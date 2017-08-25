@@ -13,4 +13,10 @@ ENDIF()
 
 ADD_LIBRARY(scada_base STATIC ${sources})
 
+TARGET_INCLUDE_DIRECTORIES(scada_base PUBLIC
+  ".."
+  ${Boost_INCLUDE_DIRS}
+  "${deps}/protobuf/src"
+)
+
 TARGET_LINK_LIBRARIES(scada_base base)

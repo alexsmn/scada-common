@@ -4,9 +4,6 @@
 #include "common/node_ref_data.h"
 #include "common/node_ref_service.h"
 #include "common/node_ref_util.h"
-#include "server/core/node.h"
-#include "server/core/node_utils.h"
-#include "server/core/variable.h"
 
 namespace {
 
@@ -32,7 +29,7 @@ scada::NodeId NodeRef::id() const {
   return data_ ? data_->id : scada::NodeId{};
 }
 
-Optional<scada::NodeClass> NodeRef::node_class() const {
+base::Optional<scada::NodeClass> NodeRef::node_class() const {
   if (data_ && data_->fetched)
     return data_->node_class;
   else

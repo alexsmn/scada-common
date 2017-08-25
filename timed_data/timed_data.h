@@ -8,8 +8,8 @@
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
-#include "common/timed_data/timed_vq_map.h"
-#include "common/timed_data/timed_data_delegate.h"
+#include "timed_data/timed_vq_map.h"
+#include "timed_data/timed_data_delegate.h"
 #include "common/node_ref.h"
 
 namespace rt {

@@ -17,25 +17,12 @@ set(OPCUAPP_DIR "${deps}/opcuapp")
 # This is not working:
 # SET(CMAKE_CXX_STANDARD 11)
 
-INCLUDE_DIRECTORIES(
-  "."
-  "build"
-)
-
 # SET(PRECOMPILE "${PROJECT_SOURCE_DIR}/src/build/precompile.cc")
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Yuprecompile.h /FIprecompile.h")
 # SET_SOURCE_FILES_PROPERTIES(${PRECOMPILE} PROPERTIES COMPILE_FLAGS "/Ycprecompile.h")
 
-# GMock
-ADD_SUBDIRECTORY("${deps}/gmock" "gmock-build")
-INCLUDE_DIRECTORIES(
-  "${deps}/gmock/include"
-  "${deps}/gmock/gtest/include"
-)
-
 # ProtoBuf
 ADD_SUBDIRECTORY("${deps}/protobuf" "protobuf-build")
-INCLUDE_DIRECTORIES("${deps}/protobuf/src")
 
 # OPC (Windows-only)
 IF(WIN32)
@@ -51,9 +38,11 @@ ADD_DEFINITIONS(
   -DPROTOBUF_USE_EXCEPTIONS=0)
 
 ADD_SUBDIRECTORY(base)
-ADD_SUBDIRECTORY(common)
-ADD_SUBDIRECTORY(core)
-ADD_SUBDIRECTORY(remote)
 
 ADD_SUBDIRECTORY(opcua)
 set(opcua_common_sources ${opcua_common_sources} PARENT_SCOPE)
+
+ADD_SUBDIRECTORY(common)
+
+ADD_SUBDIRECTORY(core)
+ADD_SUBDIRECTORY(remote)

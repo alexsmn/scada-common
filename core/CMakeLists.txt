@@ -10,7 +10,7 @@ LIST(REMOVE_ITEM scada_core_sources ${scada_core_unittest_sources})
 
 ADD_LIBRARY(scada_core STATIC ${scada_core_sources})
 TARGET_LINK_LIBRARIES(scada_core
-  base
+  scada_base
   OPCUAPP
 )
 

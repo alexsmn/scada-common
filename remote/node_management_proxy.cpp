@@ -4,8 +4,6 @@
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
-#include "server/core/node.h"
-#include "server/core/node_utils.h"
 
 NodeManagementProxy::NodeManagementProxy(std::shared_ptr<Logger> logger)
     : logger_(std::move(logger)) {

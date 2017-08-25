@@ -21,7 +21,7 @@ class NodeRef {
 
   bool fetched() const;
 
-  Optional<scada::NodeClass> node_class() const;
+  base::Optional<scada::NodeClass> node_class() const;
   std::string browse_name() const;
   base::string16 display_name() const;
   NodeRef type_definition() const;

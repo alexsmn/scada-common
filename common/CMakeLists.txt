@@ -13,14 +13,20 @@ FILE(GLOB scada_common_sources
 FILE(GLOB scada_common_ut_sources
   "*_unittest.*")
 
+LIST(APPEND scada_common_sources ${opcua_common_sources})
+
 LIST(REMOVE_ITEM scada_common_sources ${scada_common_ut_sources})
 
 ADD_LIBRARY(scada_common STATIC ${scada_common_sources})
+
 TARGET_LINK_LIBRARIES(scada_common
   base
   express
   scada_base
-  scada_core)
+  scada_core
+)
+
+# UT
 
 ADD_EXECUTABLE(scada_common_unittests ${scada_common_ut_sources})
 TARGET_LINK_LIBRARIES(scada_common_unittests

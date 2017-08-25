@@ -8,8 +8,8 @@
 #include "core/status.h"
 #include "common/format.h"
 #include "core/data_value.h"
-#include "common/timed_data/timed_vq_map.h"
-#include "common/timed_data/timed_data_delegate.h"
+#include "timed_data/timed_vq_map.h"
+#include "timed_data/timed_data_delegate.h"
 #include "common/event_set.h"
 #include "common/node_ref.h"
 

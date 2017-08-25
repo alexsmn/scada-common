@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/node_observer.h"
-#include "common/timed_data/timed_data_property.h"
+#include "timed_data/timed_data_property.h"
 
 namespace scada {
 class DataValue;
