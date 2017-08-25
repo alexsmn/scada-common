@@ -4,9 +4,8 @@ include(CMakeToolsHelpers OPTIONAL)
 # SET(BOOST_ROOT "${deps}/boost-1.63.0")
 # SET(BOOST_LIBRARYDIR "${deps}/boost-1.63.0/stage")
 SET(Boost_USE_STATIC_LIBS ON)
-FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system date_time regex)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 # OPC-UA
 set(OPENSSL_ROOT_DIR "${deps}/openssl")
@@ -46,3 +45,11 @@ ADD_SUBDIRECTORY(common)
 
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(remote)
+
+SET_PROPERTY(TARGET scada_base PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET scada_common PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET scada_common_unittests PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET scada_core PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET scada_core_unittests PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET remote PROPERTY FOLDER ${scada_folder})
+SET_PROPERTY(TARGET remote_unittests PROPERTY FOLDER ${scada_folder})

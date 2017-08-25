@@ -1,11 +1,11 @@
-#include "common/timed_data/timed_data_spec.h"
+#include "timed_data_spec.h"
 
 #include "base/strings/sys_string_conversions.h"
 #include "common/formula_util.h"
 #include "common/scada_node_ids.h"
-#include "common/timed_data/expression_timed_data.h"
-#include "common/timed_data/scada_expression.h"
-#include "common/timed_data/timed_data_service.h"
+#include "timed_data/expression_timed_data.h"
+#include "timed_data/scada_expression.h"
+#include "timed_data/timed_data_service.h"
 #include "common/node_ref_format.h"
 #include "common/node_ref_util.h"
 

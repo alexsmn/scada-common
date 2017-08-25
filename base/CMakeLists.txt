@@ -19,4 +19,4 @@ TARGET_INCLUDE_DIRECTORIES(scada_base PUBLIC
   "${deps}/protobuf/src"
 )
 
-TARGET_LINK_LIBRARIES(scada_base base)
+TARGET_LINK_LIBRARIES(scada_base base ${Boost_LIBRARIES})

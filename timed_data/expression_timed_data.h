@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "common/timed_data/timed_data.h"
-#include "common/timed_data/timed_data_delegate.h"
+#include "timed_data/timed_data.h"
+#include "timed_data/timed_data_delegate.h"
 
 class TimedDataService;
 

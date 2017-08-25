@@ -1,8 +1,8 @@
-#include "common/timed_data/expression_timed_data.h"
+#include "expression_timed_data.h"
 
 #include "base/strings/sys_string_conversions.h"
-#include "common/timed_data/scada_expression.h"
-#include "common/timed_data/timed_data_spec.h"
+#include "timed_data/scada_expression.h"
+#include "timed_data/timed_data_spec.h"
 
 namespace rt {
 

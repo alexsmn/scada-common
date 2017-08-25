@@ -10,4 +10,4 @@ LIST(REMOVE_ITEM memdb_sources ${memdb_unittests})
 
 ADD_LIBRARY(memdb STATIC ${memdb_sources})
 
-TARGET_LINK_LIBRARIES(memdb base)
+TARGET_LINK_LIBRARIES(memdb scada_base)

@@ -1,8 +1,8 @@
-#include "common/timed_data/timed_data.h"
+#include "timed_data.h"
 
 #include "base/format.h"
 #include "core/monitored_item_service.h"
-#include "common/timed_data/timed_data_spec.h"
+#include "timed_data/timed_data_spec.h"
 #include "common/event_manager.h"
 
 namespace rt {

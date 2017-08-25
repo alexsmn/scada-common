@@ -1,4 +1,4 @@
-#include "common/timed_data/timed_data_impl.h"
+#include "timed_data_impl.h"
 
 #include "base/format_time.h"
 #include "common/formula_util.h"
@@ -6,7 +6,7 @@
 #include "common/node_ref_service.h"
 #include "common/node_ref_util.h"
 #include "common/scada_node_ids.h"
-#include "common/timed_data/timed_data_spec.h"
+#include "timed_data/timed_data_spec.h"
 #include "core/attribute_service.h"
 #include "core/event_service.h"
 #include "core/history_service.h"

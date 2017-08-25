@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/timed_data/timed_data_context.h"
-#include "common/timed_data/timed_data_service.h"
+#include "timed_data/timed_data_context.h"
+#include "timed_data/timed_data_service.h"
 
 namespace rt {
 class TimedDataCache;

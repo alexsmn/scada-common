@@ -1,7 +1,7 @@
-#include "common/timed_data/timed_data_service_impl.h"
+#include "timed_data_service_impl.h"
 
-#include "common/timed_data/timed_data_cache.h"
-#include "common/timed_data/timed_data_impl.h"
+#include "timed_data/timed_data_cache.h"
+#include "timed_data/timed_data_impl.h"
 
 TimedDataServiceImpl::TimedDataServiceImpl(const TimedDataContext& context)
     : TimedDataContext(context),

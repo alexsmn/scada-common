@@ -1,4 +1,4 @@
-#include "common/timed_data/scada_expression.h"
+#include "scada_expression.h"
 
 #include "express/function.h"
 #include "express/parser.h"

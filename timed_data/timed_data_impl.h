@@ -4,8 +4,8 @@
 #include "base/nested_logger.h"
 #include "core/monitored_item.h"
 #include "core/history_service.h"
-#include "common/timed_data/timed_data.h"
-#include "common/timed_data/timed_data_context.h"
+#include "timed_data/timed_data.h"
+#include "timed_data/timed_data_context.h"
 #include "common/event_observer.h"
 #include "common/node_ref_observer.h"
 

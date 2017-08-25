@@ -5,8 +5,8 @@ CONFIGURE_FILE(
 FILE(GLOB scada_common_sources
   "*.cpp"
   "*.h"
-  "timed_data/*.cpp"
-  "timed_data/*.h"
+  "../timed_data/*.cpp"
+  "../timed_data/*.h"
   "tree/*.cpp"
   "tree/*.h")
 
