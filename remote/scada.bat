@@ -1,0 +1,1 @@
+protoc --cpp_out=. --python_out=. scada.proto

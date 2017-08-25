@@ -1,0 +1,2820 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass book
+\use_default_options true
+\begin_modules
+theorems-ams
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language russian
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style plainnat
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 0
+\index Предметный указатель
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language french
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+ОИУК
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset Quotes fld
+\end_inset
+
+Телеконтроль
+\begin_inset Quotes frd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Date
+2015
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Введение
+\end_layout
+
+\begin_layout Section
+Назначение
+\end_layout
+
+\begin_layout Standard
+Оперативный информационно-управляющий комплекс «Телеконтроль» (далее - ОИК)
+ предназначен для сбора и представления информации в требуемых конечному
+ пользователю формах, выдачи управляющих команд на контролируемое оборудование,
+ архивирования телеинформации и выдачи архивных сведений в удобных формах.
+\end_layout
+
+\begin_layout Section
+Возможности
+\end_layout
+
+\begin_layout Itemize
+Одновременная работа нескольких пользователей без использования 
+\lang english
+COM
+\lang russian
+/
+\lang english
+DCOM
+\lang russian
+ и необходимости администрирования последней.
+\end_layout
+
+\begin_layout Itemize
+Отображение данных на графиках, в таблицах и на мнемосхемах 
+\lang english
+Modus
+\lang russian
+.
+\end_layout
+
+\begin_layout Itemize
+Произвольная многооконная разметка экрана.
+\end_layout
+
+\begin_layout Itemize
+Поддержка протоколов МЭК-104 и МЭК-101 (МЭК-101 в режиме «прослушки»).
+\end_layout
+
+\begin_layout Itemize
+Инверсия, масштабирование и задание контролируемых уставок.
+\end_layout
+
+\begin_layout Itemize
+Ручной ввод значений объектов.
+\end_layout
+
+\begin_layout Itemize
+Ведение архивов данных и системных событий.
+\end_layout
+
+\begin_layout Itemize
+Дорасчетные объекты.
+\end_layout
+
+\begin_layout Itemize
+Резервирование объектов.
+\end_layout
+
+\begin_layout Itemize
+Телеуправление.
+\end_layout
+
+\begin_layout Itemize
+Команды принудительного опроса устройства и синхронизации времени.
+\end_layout
+
+\begin_layout Itemize
+Наблюдение за работой устройства с любого компьютера.
+\end_layout
+
+\begin_layout Itemize
+Изменение конфигурации в любой момент без перезапуска сервера и клиентов.
+\end_layout
+
+\begin_layout Section
+Начало работы
+\end_layout
+
+\begin_layout Standard
+ОИК не требует специальной процедуры развертывания.
+ Для работы системы необходимо скопировать файл 
+\lang english
+server
+\lang russian
+.
+\lang english
+exe
+\lang russian
+ из архива 
+\lang english
+scada
+\lang russian
+.
+\lang english
+zip
+\lang russian
+ в отдельную папку на серверном компьютере.
+ При первом запуске сервера в его папке будет создана первичная база данных.
+ Если включен 
+\noun on
+Брандмауэр 
+\lang english
+Windows
+\noun default
+\lang russian
+ или какая либо другая программа, ограничивающая доступ, необходимо разрешить
+ входящие соединения 
+\lang english
+TCP
+\lang russian
+/
+\lang english
+IP
+\lang russian
+ на порт
+\begin_inset space ~
+\end_inset
+
+2000
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Описание настройки брандмауэра смотрите в приложении.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Скопировать файл 
+\lang english
+сlient
+\lang russian
+.
+\lang english
+exe
+\lang russian
+ в отдельную папку на клиентском компьютере и запустить.
+ Схемы 
+\noun on
+\lang english
+Modus
+\noun default
+\lang russian
+ (.sde) следует поместить в находящуюся на том же уровне папку 
+\lang english
+public
+\lang russian
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Установка
+\noun on
+ 
+\lang english
+Modus
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+ActiveXeme
+\noun default
+\lang russian
+, редактора Модус.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Лицензирование
+\end_layout
+
+\begin_layout Standard
+Сервер требует аппаратный ключ HASP или GUARDANT для своей работы.
+ Без ключа работа сервера останавливается через 2
+\begin_inset space \thinspace{}
+\end_inset
+
+часа после запуска.
+\end_layout
+
+\begin_layout Subsection
+Настройка Брандмауэра 
+\lang english
+Windows
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename firewall.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Выключенный Брандмауэр 
+\lang english
+Windows
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Chapter
+Архитектура
+\end_layout
+
+\begin_layout Standard
+ОИК имеет в основе упрощенную клиент-серверную архитектуру, с центральным
+ сервером.
+ Количество систем отображения при этом не ограничивается.
+\end_layout
+
+\begin_layout Standard
+Системы отображения подключаются к серверу посредством протокола 
+\lang english
+TCP
+\lang russian
+/
+\lang english
+IP
+\lang russian
+ и устойчивы к потере связи в течение работы сервера.
+ Однако, при перезапуске сервера потребуется рестарт и повторный вход всех
+ систем отображения.
+\end_layout
+
+\begin_layout Standard
+Для работы системы требуется не менее одного компьютера с сетевым интерфейсом
+ и установленной ОС 
+\noun on
+\lang english
+Windows
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+XP
+\noun default
+\lang russian
+ с пакетом обновления 
+\noun on
+\lang english
+Service
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+Pack
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+2
+\noun default
+, 
+\noun on
+\lang english
+Windows
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+Vista
+\noun default
+\lang russian
+ или 
+\noun on
+\lang english
+Windows
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+7
+\noun default
+.
+ Для отображения схем необходим компонент 
+\noun on
+\lang english
+ActiveX
+\noun default
+\lang russian
+ 
+\noun on
+\lang english
+Modus
+\lang russian
+
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+ActiveXeme
+\noun default
+\lang russian
+ версии
+\begin_inset space ~
+\end_inset
+
+5.10.
+ Также, для редактирования схем потребуется 
+\noun on
+Графический редактор 
+\lang brazilian
+Modus
+\noun default
+\lang russian
+ (другие компоненты комплекса 
+\noun on
+Modus
+\noun default
+ необязательны).
+\end_layout
+
+\begin_layout Standard
+Компоненты сервера:
+\end_layout
+
+\begin_layout Itemize
+Конфигурация - хранит на диске информацию обо всех объектах сервера, структуре
+ оборудования и пользователях.
+ Предоставляет возможность редактирования информации пользователем и извещает
+ модули для применения изменений без рестарта сервера.
+\end_layout
+
+\begin_layout Itemize
+Система приема/передачи данных (Сканер) - выполняет сбор данных с оборудования
+ в соответствии с конфигурацией.
+ Исполняет пользовательские команды ТУ, телерегулирования, принудительный
+ опрос устройств и синхронизацию времени.
+ Осуществляет ретрансляцию данных.
+\end_layout
+
+\begin_layout Itemize
+Система обработки данных реального времени (Система РВ) - получает данные
+ оборудования от сканера и распределяет их по объектам системы.
+ Выполняет расчет качества и резервирование каналов данных, вычисляет дорасчетны
+е и эмулируемые значения.
+ Извещает клиентов об обновлении данных объектов.
+ В обратную сторону, перенаправляет пользовательские команды сканеру для
+ исполнения.
+\end_layout
+
+\begin_layout Itemize
+Система архивирования - сохраняет на диске данные объектов, полученные от
+ системы РВ.
+ Ведет архив системных событий.
+ Выполняет очистку БД в соответствии с глубинной, определенной в конфигурации.
+\end_layout
+
+\begin_layout Section
+Конфигурация
+\end_layout
+
+\begin_layout Standard
+Конфигурация содержит информацию об объектах сервера и используется всеми
+ его компонентами.
+ Конфигурация хранится во внуренней базе данных на диске и обновляется в
+ момент редактирования, позволяя избежать потери данных при отключении питания.
+\end_layout
+
+\begin_layout Standard
+Для редактирования кофигурации пользователь должен обладать административными
+ полномочиями.
+ В шаблонной конфигурации, создаваемой пользователем по умолчанию, таким
+ пользователем является 
+\begin_inset Quotes fld
+\end_inset
+
+root
+\begin_inset Quotes frd
+\end_inset
+
+ без пароля (пароль может быть задан в дальнейшем).
+\end_layout
+
+\begin_layout Standard
+Пользователь может обновлять конфигурацию в любой момент.
+ При этом каждый компонент получит извещение, таким образом сделанные изменения
+ будут отражены немедленно для всей системы.
+\end_layout
+
+\begin_layout Standard
+Конфигурация содержит несколько типов информации: объекты, устройства, описание
+ пользователей, и др.
+\end_layout
+
+\begin_layout Subsection
+Объекты
+\end_layout
+
+\begin_layout Standard
+Объектами ОИК являются логические параметры, представляющие в обработанной
+ форме данные устройств.
+\end_layout
+
+\begin_layout Standard
+В ОИК объекты делятся на типы: ТС (телесигнализация) и ТИ (телеизмерение),
+ являющиеся некоторым аналогом ТС и ТИ в общепринятой терминологии, но фактическ
+и отличающиеся лишь по формату хранения и способу обработки поступающей
+ информации.
+ ТС предназначен для работы с битовыми параметрами, в то время как ТИ работает
+ со скалярными данными.
+\end_layout
+
+\begin_layout Standard
+Объекты могут быть идентифицированы по номеру и, опционально, по строковому
+ алиасу, задаваемому пользователем.
+ Идентификация необходима для привязки объектов к элементам мнемосхем и
+ в дорасчетных выражениях.
+\end_layout
+
+\begin_layout Standard
+Объекту может быть присвоено до двух источников данных (каналов) для выполнения
+ горячего резервирования.
+ В случае двух источников, потеря достоверности приведет к автоматическому
+ переключению объекта на резервный источник, а при восстановлении основного
+ канала он снова будет задействован в качестве источника данных объекта.
+\end_layout
+
+\begin_layout Standard
+Также может быть задан один канал управления (ТУ или телерегулирования).
+ В частности, каналом управления может быть канал, используемый в качестве
+ источника данных этого же объекта.
+\end_layout
+
+\begin_layout Standard
+Значения, полученные от источников данных, могут быть инвертированы (для
+ ТС), преобразованы по линейной шкале (ТИТ) или вычислены с использованием
+ математической формулы (раздел
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:дорасчет"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Также для объекта может быть настроено архивирование в базу данных с указанием
+ глубины архива в днях.
+\end_layout
+
+\begin_layout Subsection
+Группы объектов
+\end_layout
+
+\begin_layout Standard
+Объекты могут быть включены в группы объектов.
+ Группы, в свою очередь, могут быть включены в другие группы.
+ Пользователь может перемещать объекты между группами без нарушения поведения
+ системы.
+\end_layout
+
+\begin_layout Subsection
+Устройства
+\end_layout
+
+\begin_layout Standard
+Для задания конфигурации оборудования ОИК определяет два класса: направления
+ и устройства.
+ Направления представляют собой определение канала связи с устройствами
+ (параметры COM-порта, IP-адрес и т.д) с указанием параметров протокола взаимодей
+ствия.
+ Устройства входят в направления и определяются различными адресами устройств,
+ подключенных к данному каналу.
+\end_layout
+
+\begin_layout Standard
+Для взаимодействия с устройствами ОИК поддерживает протоколы МЭК 101/104
+ и MODBUS ASCII/RTU.
+\end_layout
+
+\begin_layout Subsection
+Ретрансляция
+\end_layout
+
+\begin_layout Standard
+Устройствам могут быть заданы таблицы ретрансляции, устананвливающие соответстви
+е между объектами и адресами информационных каналов удаленного устройства.
+ При этом ретрансляция будет осуществлена и для пользовательских команд
+ ТУ.
+\end_layout
+
+\begin_layout Section
+Система приема/передачи данных
+\end_layout
+
+\begin_layout Standard
+Система приема/передачи данных (далее - Сканер) выполяет сбор данных с устройств
+ или ретрансляцию значений объектов ОИК на устройства, используя параметры,
+ заданные в конфигурации.
+\end_layout
+
+\begin_layout Standard
+Сканер устанавливает соединения по всем заданным направлениям и выполняет
+ сбор данных, в соответствии с протоколом и параметрами, определенным для
+ направления.
+ При изменении пользователем конфигурации направления или устройства, а
+ также добавлении или удалении, сканер автоматически переустанавивает или
+ закрывает канал связи с устройством.
+ После установления связи с устройством, Сканер выполняет команды инициализации
+ (полный опрос, синхронизация времени), в соответствии с конфигурацией устройств
+а.
+\end_layout
+
+\begin_layout Standard
+Сканер передает на устройства команды команды ТУ или другие команды, получаемые
+ от пользователя.
+\end_layout
+
+\begin_layout Standard
+При потере или восстановлении связи сканер регистрирует соответствующие
+ системные события.
+\end_layout
+
+\begin_layout Subsection
+Каналы
+\end_layout
+
+\begin_layout Standard
+Различные информационные объекты устройств (ТС, ТИТ или ТИИ), являющиеся
+ источниками данных для объектов системы, называются информационными каналами
+ (или просто - каналами).
+ Чаще каналы опеределяются единственным числом - адресом информационного
+ объекта (как в протоколах МЭК), однако, в общем случае спецификация канала
+ зависит от типа устройства и используемого протокола (в MODBUS).
+\end_layout
+
+\begin_layout Standard
+Примеры каналов МЭК: 
+\begin_inset Quotes fld
+\end_inset
+
+1
+\begin_inset Quotes frd
+\end_inset
+
+, 
+\begin_inset Quotes fld
+\end_inset
+
+23
+\begin_inset Quotes frd
+\end_inset
+
+, 
+\begin_inset Quotes fld
+\end_inset
+
+1403
+\begin_inset Quotes frd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Примеры каналов MODBUS:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Quotes fld
+\end_inset
+
+BOOL:3
+\begin_inset Quotes frd
+\end_inset
+
+ - параметр типа COIL с адресом 3 (нумерация адресов с 1), принимающий значения
+ 0 или 1;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Quotes fld
+\end_inset
+
+UINT16:10020
+\begin_inset Quotes frd
+\end_inset
+
+ - параметр INPUT REGISTER с адресом 20, принимающий значения в диапазоне
+ 
+\begin_inset Formula $\left[0,2^{16}-1\right]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Информационным каналам присуще 
+\begin_inset Quotes fld
+\end_inset
+
+качество
+\begin_inset Quotes frd
+\end_inset
+
+ (или 
+\begin_inset Quotes fld
+\end_inset
+
+достоверность
+\begin_inset Quotes frd
+\end_inset
+
+), определяемое состоянием канала связи с устройством, или признаками достоверно
+сти, передаваемыми устройством.
+\end_layout
+
+\begin_layout Section
+Система обработки данных реального времени
+\end_layout
+
+\begin_layout Standard
+Система РВ распределяет значения информационных каналов устройств, полученные
+ от сканера, между объектами системы в соответствии с конфигурацией.
+ В обратном направлении, система выполняет передачу команд пользователя
+ сканеру.
+ При наличии резервного канала, система РВ переключает каналы объекта в
+ зависимости от качества основного канала.
+ Выполняет вычисление дорасчетных и эмулируемых объектов.
+\end_layout
+
+\begin_layout Standard
+Значение объекта ТС может быть инвертировано, в соответствии с его конфигурацией.
+ Для объектов ТИ может быть определено линейное преобразование для преобразовани
+е физической шкалы в логическую.
+\end_layout
+
+\begin_layout Standard
+При изменении состояния объекта ТС система РВ регистрирует системное событие.
+ Для объектов ТИТ позволяется задание четырех уставок (нижняя/верхняя аварийная,
+ нижняя/верхняя предаварийная), выход за которые (как и возвращение в нормальный
+ диапазон) также приводит к регистрации события.
+\end_layout
+
+\begin_layout Standard
+При этом системой РВ выставляются признаки качества значения объекта, с
+ учетом качества источника данных.
+ которые.
+ Признаки качества значения объекта ОИК обычно отображаются рядом со значением
+ объекта, также им присущи следующие буквенные обозначения:
+\end_layout
+
+\begin_layout Description
+К - не настроен или ошибка конфигурации
+\end_layout
+
+\begin_layout Description
+С - нет связи
+\end_layout
+
+\begin_layout Description
+Н - ошибка подключения или неверное выражение
+\end_layout
+
+\begin_layout Description
+Р - ручной ввод
+\end_layout
+
+\begin_layout Description
+2 - резервный канал
+\end_layout
+
+\begin_layout Description
+Б - блокировка канала
+\end_layout
+
+\begin_layout Description
+У - устаревание
+\end_layout
+
+\begin_layout Description
+В - выход за уставку 
+\end_layout
+
+\begin_layout Standard
+При перезапуске сервера, система РВ восстанавливает последние значения объектов
+ из архива.
+\end_layout
+
+\begin_layout Standard
+Система РВ позволяет отслеживать актуальность данных объекта, при установке
+ периода устаревания в его конфигурации.
+ В случае, если значение объекта не будет обновляться в течение периода
+ устаревания, значению объекта будет выставленен признак устаревания.
+\end_layout
+
+\begin_layout Standard
+Система РВ поддерживает изменения значений объектов назад во времени.
+ То есть, информация, относящаяся к более раннему моменту времени, чем уже
+ поступившая, будет корректно обработана системой.
+ В том числе, помещена в архив.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Ограничения удаления объектов.
+\end_layout
+
+\begin_layout Plain Layout
+Системные каналы: ЦПУ, память.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Кроме того, система РВ выполняет дорасчет и эмуляцию значений объектов.
+\end_layout
+
+\begin_layout Subsection
+Ручной ввод и блокировка
+\end_layout
+
+\begin_layout Subsection
+Уставки
+\end_layout
+
+\begin_layout Subsection
+Дорасчет
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:дорасчет"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+В качестве источника данных любому объекту ОИК можно задать математическое
+ выражение, также называемое дорасчетом.
+\end_layout
+
+\begin_layout Standard
+Формулы дорасчета могут состоять из математических операций, скобок, имен
+ каналов и алиасов других объектов в качестве переменных.
+\end_layout
+
+\begin_layout Standard
+Также допустимо использование функций:
+\end_layout
+
+\begin_layout Itemize
+sin(x) - 
+\begin_inset Formula $\sin x$
+\end_inset
+
+ (все углы в радианах)
+\end_layout
+
+\begin_layout Itemize
+cos(x) - 
+\begin_inset Formula $\cos x$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+tan(x) - 
+\begin_inset Formula $\tan x$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+asin(x) - 
+\begin_inset Formula $\arcsin x$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+acos(x) - 
+\begin_inset Formula $\arccos x$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+atan(x) - 
+\begin_inset Formula $\arctan x$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+atan2(y, x) - 
+\begin_inset Formula $\arctan\frac{y}{x}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+abs(x) - 
+\begin_inset Formula $\left\Vert x\right\Vert $
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+not(x) - отрицание:
+\begin_inset Formula $\begin{cases}
+0 & x\neq0\\
+1 & x=0
+\end{cases}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+sqrt(x) - 
+\begin_inset Formula $\sqrt{x}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+sign(x) - знак: 
+\begin_inset Formula $\begin{cases}
+-1 & x<0\\
+0 & x=0\\
+1 & x>0
+\end{cases}$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Itemize
+min(x1, x2, ...) - 
+\begin_inset Formula $\min x1,x2,...$
+\end_inset
+
+ (произвольное число параметров)
+\end_layout
+
+\begin_layout Itemize
+max(x1, x2, ...) - 
+\begin_inset Formula $\max x1,x2,...$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+and(x1, x2, ...) - логическое И: если все 
+\begin_inset Formula $x1,x2,...\neq0$
+\end_inset
+
+, то 1, иначе 0
+\end_layout
+
+\begin_layout Itemize
+or(x1, x2, ...) - логическое ИЛИ: если хоть один из 
+\begin_inset Formula $x1,x2,...\neq0$
+\end_inset
+
+, то 1, иначе 0
+\end_layout
+
+\begin_layout Itemize
+if(x, a, b) - условный оператор: 
+\begin_inset Formula $\begin{cases}
+a & x\neq0\\
+b & x=0
+\end{cases}$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Example*
+ТИТ1 + ТИТ2 * ТИТ3
+\end_layout
+
+\begin_layout Example*
+sin({IEC_DEV.1
+\backslash
+Канал1})
+\end_layout
+
+\begin_layout Example*
+if (or(рек1_ток>3, рек2_ток>3),рек3_ток,0)
+\end_layout
+
+\begin_layout Subsection
+Эмуляция
+\end_layout
+
+\begin_layout Standard
+Для тестирования поведения системы на этапе подготовки проекта ОИК позволяет
+ задать режим эмуляции объектам системы.
+ Наличие оборудования при этом не требуется.
+\end_layout
+
+\begin_layout Standard
+В качестве генератора данных используется одна из предопределенных функций
+ с заданными параметрами фазы и частоты, которые в ОИК называются эмулируемыми
+ сигналами.
+\end_layout
+
+\begin_layout Section
+Системные события
+\end_layout
+
+\begin_layout Standard
+Системное событие ОИК представляет собой запись с несколькими полями, главными
+ из которых являются время события и сообщение.
+ При регистрации события, оно помечается как неквитированное, до квитирования
+ его пользователем (при этом событие квитируется во всей системе).
+\end_layout
+
+\begin_layout Standard
+Если событие относится к объекту системы, ему также присваивается ссылка
+ на объект.
+ Примерами событиями, относящимися к объекту, являются:
+\end_layout
+
+\begin_layout Itemize
+изменение состояния объекта ТС;
+\end_layout
+
+\begin_layout Itemize
+выход значения объекта ТИ за уставку;
+\end_layout
+
+\begin_layout Itemize
+ручной ввод значения объекта и установка блокировки;
+\end_layout
+
+\begin_layout Itemize
+снятие объекта с блокировки;
+\end_layout
+
+\begin_layout Itemize
+этапы команды управления объектом.
+\end_layout
+
+\begin_layout Standard
+Некоторые типы событий могут иметь привязку к устройству:
+\end_layout
+
+\begin_layout Itemize
+потеря и восстановление связи с устройством;
+\end_layout
+
+\begin_layout Itemize
+переконфигурация, рестарт, либо удаление устройства.
+\end_layout
+
+\begin_layout Section
+Система архивирования
+\end_layout
+
+\begin_layout Standard
+Система архивирования, в соответствии с настройками конфигурации, сохраняет
+ историю изменения значений объектов и системных событий в одной или нескольких
+ базах данных 
+\noun on
+Sqlite
+\noun default
+ (
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.sqlite.org
+\end_layout
+
+\end_inset
+
+).
+ Данная СУБД встроена в сервер и не требует установки сторонних компонентов.
+ Сохраненная в архиве история может быть запрошена из БД для отображения
+ на графике или в табличной форме.
+\end_layout
+
+\begin_layout Standard
+Система архивирования автоматически выполяет очистку архива в соответствии
+ с глубиной данных, определенной в конфигурации.
+ Обслуживание (очистка, сжатие) базы данных производится сервером автоматически.
+\end_layout
+
+\begin_layout Standard
+ВНИМАНИЕ: При удалении объекта удаляется вся связанная с ним история.
+\end_layout
+
+\begin_layout Chapter
+Графический клиент
+\end_layout
+
+\begin_layout Section
+Запуск
+\end_layout
+
+\begin_layout Standard
+При первом входе в систему следует воспользоваться административным логином.
+ Для этого нужно ввести имя 
+\emph on
+\lang english
+root
+\emph default
+\lang russian
+, а пароль оставить пустым (рисунок
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "pic:login"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Если сервер ОИК установлен на другом компьютере, его имя (или адрес
+\begin_inset space ~
+\end_inset
+
+
+\lang english
+IP
+\lang russian
+) нужно ввести в поле 
+\emph on
+Сервер
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename login.eps
+	groupId тест
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Вход в систему
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "pic:login"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Далее для использования системы отображения следует использовать имена других
+ созданных пользователей, а пароль пользователя 
+\emph on
+\lang english
+root
+\emph default
+\lang russian
+ необходимо изменить.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Список ошибок.
+ Повторный вход.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+При установленном флаге 
+\emph on
+Автоматический
+\begin_inset space ~
+\end_inset
+
+вход
+\emph default
+ программа запомнит текущие настройки имени пользователя, пароля и сервера
+ и будет запускаться без отображения окна 
+\emph on
+Вход
+\begin_inset space ~
+\end_inset
+
+в
+\begin_inset space ~
+\end_inset
+
+систему
+\emph default
+.
+ Для отключения этого режима удерживайте 
+\lang english
+Ctrl
+\lang russian
+ при запуске программы.
+\end_layout
+
+\begin_layout Section
+Главное окно
+\end_layout
+
+\begin_layout Standard
+Главное окно графического клиента имеет строку меню, расположенную под заголовко
+м окна, панель команд, находящуюся под нею, и строку состояния, примыкающую
+ к нижней границе окна.
+\end_layout
+
+\begin_layout Standard
+Строка меню содержит следующие пункты:
+\end_layout
+
+\begin_layout Description
+Схема Содержит список всех доступных мнемосхем.
+ Служит для вызова мнемосхем.
+\end_layout
+
+\begin_layout Description
+График Позволяет создать новое окно графика или вызвать существующий график,
+ внесенный ранее в избранное.
+\end_layout
+
+\begin_layout Description
+Таблица Позволяет создать новое окно таблицы или пользовательской таблицы.
+\end_layout
+
+\begin_layout Description
+Объект Содержит контекстный список команд, применимых к выделенному объекту.
+\end_layout
+
+\begin_layout Description
+Далее Позволяет отображать различные панели и окна редактирования конфигурации
+ в режиме администрирования.
+ Также содержит команды импорта и экспорта конфигурации.
+\end_layout
+
+\begin_layout Description
+Лист Команды для работы с листами.
+ Позволяет создать, переименовать или удалить лист.
+ Также содержит список всех листов для переключения между ними.
+\end_layout
+
+\begin_layout Description
+Окно Команды для работы с окнами текущего листа.
+ Позволяет переименовывать и закрывать открытые окна, а также помещать окна
+ в избранное (см.
+ [Избранное]).
+ Содержит список окон и позволяет переключаться между ними.
+ Кроме того, содержит список последних закрытых окон, позволяя восстановить
+ случайно закрытое окно.
+\end_layout
+
+\begin_layout Description
+Настройки Позволяет изменять внешний вид и поведение графического клиента.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Панель
+\begin_inset space \thinspace{}
+\end_inset
+
+инструментов Позволяет изменить расположение панели инструментов, либо скрыть
+ ее.
+\end_layout
+
+\begin_layout Description
+Строка
+\begin_inset space \thinspace{}
+\end_inset
+
+состояния Позволяет скрыть или отобразить строку состояния.
+\end_layout
+
+\begin_layout Description
+Подтверждение
+\begin_inset space \thinspace{}
+\end_inset
+
+управления При включении этой опции, позволяет избежать случайной выдачи
+ команд управление.
+ При выполнении команды управления пользователем будет выдан запрос для
+ подтверждения команды, либо отказа от ее выполнения.
+\end_layout
+
+\begin_layout Description
+Сообщение
+\begin_inset space \thinspace{}
+\end_inset
+
+об
+\begin_inset space \thinspace{}
+\end_inset
+
+успешном
+\begin_inset space \thinspace{}
+\end_inset
+
+управлении При успешном выполнении команды, добавляет соответствующее сообщение
+ в панель событий (данное сообщение не является системным событием).
+\end_layout
+
+\begin_layout Description
+Показывать
+\begin_inset space \thinspace{}
+\end_inset
+
+события
+\begin_inset space \thinspace{}
+\end_inset
+
+при
+\begin_inset space \thinspace{}
+\end_inset
+
+появлении Отображает панель событий при возникновении системного события.
+\end_layout
+
+\begin_layout Description
+Скрывать
+\begin_inset space \thinspace{}
+\end_inset
+
+события
+\begin_inset space \thinspace{}
+\end_inset
+
+при
+\begin_inset space \thinspace{}
+\end_inset
+
+квитировании Скрывает панель событий при квитировании всех событий.
+\end_layout
+
+\begin_layout Description
+Мигание
+\begin_inset space \thinspace{}
+\end_inset
+
+основного
+\begin_inset space \thinspace{}
+\end_inset
+
+окна
+\begin_inset space \thinspace{}
+\end_inset
+
+по
+\begin_inset space \thinspace{}
+\end_inset
+
+событию При наличии неквитированных событий включает мигание заголовка главного
+ окна.
+\end_layout
+
+\begin_layout Description
+Звуковая
+\begin_inset space \thinspace{}
+\end_inset
+
+сигнализация
+\begin_inset space \thinspace{}
+\end_inset
+
+по
+\begin_inset space \thinspace{}
+\end_inset
+
+событию При наличии неквитированных событий включает звуковую сигнализацию.
+\end_layout
+
+\begin_layout Description
+Встроенный
+\begin_inset space \thinspace{}
+\end_inset
+
+визуализатор
+\begin_inset space \thinspace{}
+\end_inset
+
+схем
+\begin_inset space \thinspace{}
+\end_inset
+
+MODUS Включает встроенную систему отображения мнемосхем MODUS.
+ Позволяет просматривать мнемосхемы без использования ActiveXeme (см.
+ [Встроенный
+\begin_inset space \thinspace{}
+\end_inset
+
+визуализатор
+\begin_inset space \thinspace{}
+\end_inset
+
+схем
+\begin_inset space \thinspace{}
+\end_inset
+
+MODUS]).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+Cправка Позволяет открыть окно документации (Web-страница 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://www.telecontrol.ru/workplace_manual
+\end_layout
+
+\end_inset
+
+) или отобразить информацию о версии программы.
+\end_layout
+
+\begin_layout Standard
+У нижней границы окна располагается строка состояния.
+ В строке состояния отображается следующая информация:
+\end_layout
+
+\begin_layout Itemize
+количество неквитированных событий;
+\end_layout
+
+\begin_layout Itemize
+текущий порог важности фильтра событий;
+\end_layout
+
+\begin_layout Itemize
+имя пользователя, пользующегося клиентом в данный момент;
+\end_layout
+
+\begin_layout Itemize
+состояние связи с сервером.
+\end_layout
+
+\begin_layout Standard
+Центральная часть главного называется листом.
+ На листе могут быть открыты панели и рабочие окна.
+ Допускается создание нескольких листов, при этом всегда отображается один
+ из них.
+ Листы можно переключать, выбирая соответствующее имя в меню "Лист".
+ Имя листа можно изменить с помощью команды меню "Лист - Переименовать".
+\end_layout
+
+\begin_layout Standard
+Открытые окна имеют заголовки, в котором отображается имя окна.
+ Справа от имени располагается кнопка закрытия окна.
+ Имя окна может быть изменено командой меню 
+\begin_inset Quotes fld
+\end_inset
+
+Окно - Переименовать
+\begin_inset Quotes frd
+\end_inset
+
+.
+ При щелчке правой кнопкой по заголовку отображается контекстное меню окна,
+ позволяющее переименовать окно, закрыть его или добавить в избранное (см.
+ [Избранное]).
+\end_layout
+
+\begin_layout Standard
+Окна и панели могут располагаться на листе в произвольной разметке.
+ Для перемещения окна по разметке следует перетащить его мышью за заголовок.
+ При перетаскивании синим цветом будет показано новое расположение окна.
+ Окна могут располагаться как рядом, с использованием горизонтального или
+ вертикального разбиения, так и в 
+\begin_inset Quotes fld
+\end_inset
+
+стопке
+\begin_inset Quotes frd
+\end_inset
+
+ - в этом случае окна накладываются одно на другое, щелчок по заголовку
+ позволяет переместить нужное окно на верх.
+ При сохранении листа разметка окон сохраняется, что позволяет переключать
+ наборы отображаемых данных в зависимости от необходимости.
+\end_layout
+
+\begin_layout Standard
+При закрытии окна, оно помещается в корзину.
+ Корзина содержит 10 последних закрытых окон.
+ Для восстановления окна из корзины нужно выбрать его имя в нижней части
+ меню 
+\begin_inset Quotes fld
+\end_inset
+
+Окно
+\begin_inset Quotes frd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Любое окно может быть помещено в избранное.
+ Для этого нужно выбрать команду меню 
+\emph on
+Окно — В избранное
+\emph default
+, после чего ввести имя окна для идентификации.
+ При этом окно сохраняется вместе с содержимым и может быть вызвано в любой
+ момент из панели избранного (см.
+ [Панель избранного]).
+ Кроме того, графики и таблицы, помещенные в избранное начинает отображаться
+ в соответствующем пункте меню главного окна.
+\end_layout
+
+\begin_layout Section
+Панель команд
+\end_layout
+
+\begin_layout Standard
+Панель команд, располагающаяся под строкой меню, служит для быстрого доступа
+ к командам выделенного объекта.
+\end_layout
+
+\begin_layout Standard
+Команды объектов:
+\end_layout
+
+\begin_layout Description
+График Отображает окно графика по выделенному объекту.
+ Если график с объектом уже открыт, переключается на нее.
+\end_layout
+
+\begin_layout Description
+Таблица Отображает таблицу по выделенному объекту или группе объектов.
+ Если таблица с объектом уже открыта, переключается на нее.
+\end_layout
+
+\begin_layout Description
+Схема Отображает мнемосхему, содержащую привязку к выделенному объекту.
+ Если мнемосхема уже открыта, переключается на нее.
+ Также выделяет привязанного графический элемент на схеме и индицирует его
+ положение анимацией.
+\end_layout
+
+\begin_layout Description
+Данные Отображает таблицу истории изменения значения выделенного объекта.
+ Если таблица истории уже открыта для этого объекта, переключается на нее.
+\end_layout
+
+\begin_layout Description
+Сводка Отображает сводку данных выделенного объекта.
+ Если сводка уже открыта для этого объекта, переключается на нее.
+\end_layout
+
+\begin_layout Description
+События Отображает журнал системных событий, относящихся к выделенному объекту.
+ Если журнал событий уже открыт для этого объекта, переключается на него.
+\end_layout
+
+\begin_layout Description
+Таблица
+\begin_inset space \thinspace{}
+\end_inset
+
+группы Отображает таблицу для всех объектов, находящихся в той же группе,
+ что и выделенный объект.
+\end_layout
+
+\begin_layout Description
+Квитировать Квитирует все события, относящиеся к выделенному объекту.
+\end_layout
+
+\begin_layout Description
+Снять
+\begin_inset space \thinspace{}
+\end_inset
+
+блокировку Снимает блокировку с выделенного объекты (см.
+ [Блокировка]).
+\end_layout
+
+\begin_layout Description
+Управление Позволяет выдать команду ТУ или телерегулирования для выделенного
+ объекта (см.
+ [Управление]).
+\end_layout
+
+\begin_layout Description
+Ручной
+\begin_inset space \thinspace{}
+\end_inset
+
+ввод Позволяет ввести нового значение объекта вручную (см.
+ [Ручной ввод]).
+\end_layout
+
+\begin_layout Description
+Устройство Группа команд, применимых к устройству, связанного с выделенным
+ объектом.
+ Идентично аналогичной группе команд устройства.
+\end_layout
+
+\begin_layout Standard
+Команды устройств:
+\end_layout
+
+\begin_layout Description
+Наблюдение Отображает окно наблюдения за выделенным устройством.
+\end_layout
+
+\begin_layout Description
+Метрики Отображает таблицу метрик выделенного устройства.
+ Если выделено направление, то отображаются также метрики по всем устройствам
+ подключенным к направлению.
+\end_layout
+
+\begin_layout Description
+Включить Запускает обмен сервера с выделенным устройством.
+\end_layout
+
+\begin_layout Description
+Отключить Останавливает обмен сервера с выделенным устройством.
+\end_layout
+
+\begin_layout Description
+Устройство Группа команд, применимых к выделенным устройству.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Опросить
+\begin_inset space \thinspace{}
+\end_inset
+
+устройство Заставляет сервер выполнить принудительный полный опрос устройства.
+\end_layout
+
+\begin_layout Description
+Синхронизация
+\begin_inset space \thinspace{}
+\end_inset
+
+часов Заставляет сервер выполнить синхронизацию часов устройства.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Общие команды:
+\end_layout
+
+\begin_layout Description
+Печать Распечатывает содержимое активного окна.
+\end_layout
+
+\begin_layout Description
+Квитировать
+\begin_inset space \thinspace{}
+\end_inset
+
+все Квитирует все системные события.
+\end_layout
+
+\begin_layout Description
+Панель
+\begin_inset space \thinspace{}
+\end_inset
+
+событий Отображает панель событий.
+ Либо переключается на панель событий, если она уже отображена.
+\end_layout
+
+\begin_layout Description
+Параметры (Только для администратора.) Отображает окно параметров выделенного
+ объекта.
+\end_layout
+
+\begin_layout Description
+Элементы (Только для администратора.) Отображает таблицу параметров всех
+ элементов, входящих в выделенный объект (группу или направление).
+\end_layout
+
+\begin_layout Description
+Удалить (Только для администратора.) Удаляет выделенный объект или устройство
+ из системы.
+\end_layout
+
+\begin_layout Subsection
+Управление
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename control-ts.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Телеуправление
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename control-ti.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Телерегулирование
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename control-confirm.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Подтверждение управления
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Ручной ввод
+\end_layout
+
+\begin_layout Standard
+Блокировка.
+\end_layout
+
+\begin_layout Subsection
+Уставки
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename limits.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Задание уставок
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Панель объектов
+\end_layout
+
+\begin_layout Standard
+Панель объектов служит для быстрого выбора объектов, вызова различных окон
+ и выполнения команд и операций с объектами.
+ В панели объектов отображается структура объектов, разбитых по группам.
+ Панель объектов можно отобразить командой меню 
+\begin_inset Quotes fld
+\end_inset
+
+Далее - Объекты
+\begin_inset Quotes frd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Напротив имен объектов в правой части панели выводятся их значения и признаки
+ качества.
+ Недостоверные значения отображаются серым цветом.
+ При наличии неквитированных системных событий, связанных с объектом, значение
+ мигает желтым цветом.
+\end_layout
+
+\begin_layout Standard
+Слева от объектов и групп располагается переключатель, предназначенный для
+ включения объектов в текущее окно или или исключения их оттуда.
+ При щелчке по переключателю группы, в текущее окно включаются все объекты
+ нижележащей иерархии группы (переключатель самой группы при этом остается
+ отключенным, т.к.
+ группы не могут быть включены в окна).
+\end_layout
+
+\begin_layout Standard
+При двойном щелчке по объекту будет открыт график объекта, а при двойном
+ щелчке по группе - таблица со всеми объектами, входящими в группу.
+\end_layout
+
+\begin_layout Standard
+При щелчке правой клавишей мыши отображается контекстное меню, содержащее
+ операции применяемые к выделенному объекту или группе.
+\end_layout
+
+\begin_layout Standard
+[Команды контекстного меню]
+\end_layout
+
+\begin_layout Standard
+В режиме администрирования разрешается перетаскивание объектов по иерархии
+ мышкой.
+\end_layout
+
+\begin_layout Standard
+[Создание объектов]
+\end_layout
+
+\begin_layout Section
+Панель оборудования
+\end_layout
+
+\begin_layout Standard
+Для вызова панели Оборудование следует выбрать меню 
+\emph on
+Далее
+\begin_inset space ~
+\end_inset
+
+–
+\begin_inset space ~
+\end_inset
+
+Оборудование
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+Элементами подсистемы МЭК являются направления, определяющие каналы данных:
+ IP-адрес для МЭК-104 и серийный порт для МЭК-101.
+ Одно направление может обеспечивать соединение с несколькими устройствами.
+\end_layout
+
+\begin_layout Standard
+Для редактирования параметров элемента следует из контекстного меню элемента
+ выбрать пункт 
+\emph on
+Параметры
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+Начать наблюдение за обменом с устройством можно выбрав из контекстного
+ меню подсистемы пункт Наблюдение.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Остановка/запуск.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Панель событий
+\end_layout
+
+\begin_layout Standard
+Панель событий отображает список неквитированных системных событий.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename events-cur.eps
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Панель событий
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Для квитирования события нужно дважды щелкнуть по строке события или выделить
+ событие щелком по нему и затем нажать "Квитировать" на панели команд.
+ После квитирования, событие пропадает из панели событий.
+ Также, удерживая клавишу Shift, можно выделить несколько событий и квитировать
+ их одновременно.
+ Для квитирования всех событий нажать кнопку "Квитировать все" на панели
+ инструментов.
+\end_layout
+
+\begin_layout Standard
+При включении опции "Отображение событий при появлении" в меню "Настройки"
+ окно будет автоматически отображено при появлении нового события.
+\end_layout
+
+\begin_layout Standard
+При щелчке правой кнопкой по строке события отображается контекстное меню
+ с командами, применяемыми к событию.
+ Если событие связано с объектом или устройством, то также отображаются
+ команды, применяемые к объекту или устройству.
+\end_layout
+
+\begin_layout Standard
+[Команды контекстного меню] 
+\end_layout
+
+\begin_layout Section
+Таблица
+\end_layout
+
+\begin_layout Standard
+Данное окно отображает текущие значения объектов в виде таблицы, строкам
+ которой соответствуют объекты, а столбцам их текущие значения и сопутствующая
+ информация: признаки качества, время последнего изменения значения, время
+ последнего обновления значения с устройства, системные события.
+\end_layout
+
+\begin_layout Standard
+При щелчке по строке таблицы она становится выделенной.
+ При этом панель команд отображает команды, применимые к объекту этой строки.
+ Щелок правой кнопкой вызывает контекстное меню с командами, применимыми
+ к объекту и строке таблицы.
+ С помощью клавиш Shift и Ctrl можно выделить несколько строк одновременно.
+\end_layout
+
+\begin_layout Standard
+Добавление строк осуществляется с помощью панели объектов (включением объекта),
+ либо непосредственным вводом алиаса объекта в последнюю строку таблицы.
+ Кроме алиасов можно использовать математические формулы (см.
+ [Формулы]).
+\end_layout
+
+\begin_layout Standard
+Удаление выделенной строки производится нажатием клавиши Delete, либо с
+ помощью панели объектов - при этом удаляются все строки таблицы, в которых
+ указан исключаемый объект.
+\end_layout
+
+\begin_layout Standard
+[Контекстное меню]
+\end_layout
+
+\begin_layout Standard
+Двойной щелчок по строке таблицы открывает график объекта.
+\end_layout
+
+\begin_layout Standard
+При наличии неквитированных событий, ячейка, соответствующая значению объекта,
+ начинает мигать.
+ В этом случае, двойной щелчок в соответствующей строке приведет к квитированию
+ всех событий, относящихся к объекту.
+ Описание последнего неквитированного системного события, связанного с объектом,
+ при наличии такового, отображается в крайнем правом столбце.
+ Если неквитированных событий несколько, их количество выводится в начале,
+ заключенное в квадратные скобки.
+ При наведении указателя мыши на строку с событиями, после небольшой задержки,
+ во всплывающей подсказке будут отображены первые три события.
+ Все события по объекту можно просмотреть в журнале событий, вызовом команды
+ 
+\begin_inset Quotes fld
+\end_inset
+
+События
+\begin_inset Quotes frd
+\end_inset
+
+ после выделения строки.
+\end_layout
+
+\begin_layout Standard
+Строки таблицы можно перемещать вверх и вниз нажатием клавиш 
+\emph on
+\lang english
+Ctrl
+\lang russian
++Вверх
+\emph default
+ и 
+\emph on
+\lang english
+Ctrl
+\lang russian
++Вниз
+\emph default
+, либо выбором из контекстного меню строки пунктов 
+\emph on
+Сместить
+\begin_inset space ~
+\end_inset
+
+вверх
+\emph default
+ и 
+\emph on
+Сместить
+\begin_inset space ~
+\end_inset
+
+вниз
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+[Формулы]
+\end_layout
+
+\begin_layout Standard
+[Сортировка по имени/каналам] 
+\end_layout
+
+\begin_layout Section
+Мнемосхема
+\end_layout
+
+\begin_layout Section
+График
+\end_layout
+
+\begin_layout Standard
+Внизу окна графика располагается шкала времени, слева - шкала значений.
+ Центральную область занимает область графика.
+ Область графика отображает историю изменения значения объекта в виде линии
+ тренда, проходящей через точки, определяемые временем (горизонтальная ось)
+ и соответствующим времени значением (вертикальная ось) объекта.
+ По мере поступления новых данных линия графика дополняется новыми точками.
+ Недостоверные значения отображаются пунктирной линией, исходящей из соответству
+ющей точки.
+\end_layout
+
+\begin_layout Standard
+[Текущее значение]
+\end_layout
+
+\begin_layout Standard
+[ТС]
+\end_layout
+
+\begin_layout Standard
+При включении в окно графика нескольких объектов (при помощи панели объектов),
+ для каждого объекта создается собственная область графика и шкала значений.
+\end_layout
+
+\begin_layout Standard
+Для просмотра значений объекта в табличном виде следует вызвать команду
+ 
+\begin_inset Quotes fld
+\end_inset
+
+Данные
+\begin_inset Quotes frd
+\end_inset
+
+ из панели команд или контекстного меню графика.
+\end_layout
+
+\begin_layout Standard
+[Контекстное меню]
+\end_layout
+
+\begin_layout Standard
+[Ступенчатый]
+\end_layout
+
+\begin_layout Standard
+[Точки]
+\end_layout
+
+\begin_layout Standard
+[Легенда]
+\end_layout
+
+\begin_layout Standard
+Границы шкала значений устанавливается в соответствии со шкалой объекта,
+ определенной в его конфигурации.
+\end_layout
+
+\begin_layout Standard
+Границы шкалы времени определяется пользователем.
+ Для прокрутки графика по шкале времени, следует нажать левую кнопку мыши
+ в области графика и перемещать мышь влево или вправо.
+ При этом прокрутка вправо ограничена текущим временем.
+ Также можно задать временной период относительно текущего момента, выбирая
+ интервал на панели команд.
+ Для возврата к текущему значению и включению автоматической прокрутки при
+ появлении новых данных следует из контекстного меню графика выбрать пункт
+ 
+\emph on
+Текущее
+\begin_inset space ~
+\end_inset
+
+время
+\emph default
+.
+ При прокрутке графика влево, данные для открывшейся зоны будут автоматически
+ запрошены с сервера.
+\end_layout
+
+\begin_layout Standard
+Для изменения масштаба, следует нажать левую клавишу мыши на соответствующей
+ шкале и перемещать мышь влево/вправо (для шкалы времени) или вверх/вниз
+ (для шкалы времени).
+\end_layout
+
+\begin_layout Standard
+При одиночном щелчке по шкале времени или значений, в соответствующую позицию
+ шкалы добавляется курсор, служащий для исследования графика.
+ Курсор - это горизонтальная (для значений) или вертикальная (для времени)
+ линия, привязанная к значению шкалы и проходящая через всю область графика.
+ На шкале отображается "корешок" курсора, подписанный значением, к которому
+ привязан курсор.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename graph-cursor.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Курсоры графика
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "pic:graph-cursor"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+После добавления курсора он становится перемещаемым и следует за указателем
+ мыши.
+ При этом легенда отображает значения линии графика, соответствующее положению
+ курсора.
+ Для закрепления курсора следует еще раз щелкнуть в нужной позиции шкалы.
+ Допустимо произвольное количество курсоров на графике.
+ При изменении масштаба графика курсоры остаются привязанными к значениям
+ шкалы.
+\end_layout
+
+\begin_layout Standard
+Чтобы открепить курсор и вновь сделать его перемещаемым, следует щелкнуть
+ по его корешку.
+ Для удаления курсора следует открепить его и нажать клавишу Delete.
+\end_layout
+
+\begin_layout Standard
+[Уставки]
+\end_layout
+
+\begin_layout Section
+Таблица истории значений объекта
+\end_layout
+
+\begin_layout Section
+Сводка
+\end_layout
+
+\begin_layout Section
+Пользовательская таблица
+\end_layout
+
+\begin_layout Section
+Журнал событий
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Фильтрация событий по объектам.
+\end_layout
+
+\begin_layout Plain Layout
+Порог важности.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Избранное
+\end_layout
+
+\begin_layout Standard
+Добавление в избранное.
+\end_layout
+
+\begin_layout Section
+Портфолио
+\end_layout
+
+\begin_layout Standard
+Добавление в портфолио.
+\end_layout
+
+\begin_layout Section
+Наблюдение
+\end_layout
+
+\begin_layout Section
+Параметры
+\end_layout
+
+\begin_layout Subsection
+Параметры объектов
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Имя
+\begin_inset space ~
+\end_inset
+
+объекта
+\emph default
+ – отображается в любом месте системы, где есть упоминание об этом объекте.
+ Имя может состоять из произвольных символов, уникальность не требуется.
+ Для точной идентификации объекта в местах отображения используется полный
+ формат имени, включающий в себя имена всех родительских групп, например:
+ "Группа 1 : Подгруппа 1 : ТС1".
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Алиас
+\emph default
+ – задает уникальное имя объекта в системе.
+ Может использоваться для быстрого ввода объекта в таблицы и графики, а
+ также для привязки объектов к элементам мнемосхемы.
+ В других случаях алиас можно не указывать.
+ Допустимы алиасы, состоящие из английских и русских букв и цифр, но не
+ содержащие пробелов.
+ Длина алиаса не должна превышать 50 символов.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Источник
+\begin_inset space ~
+\end_inset
+
+данных
+\emph default
+ – позволяет выбрать 
+\emph on
+Основной
+\emph default
+ или 
+\emph on
+Резервный
+\emph default
+ источник данных.
+ А также перейти в режим Управления.
+\end_layout
+
+\begin_layout Itemize
+Режим 
+\emph on
+Управления
+\emph default
+ – задается, если нужно Телеуправление объектом.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Устройство
+\emph default
+ – позволяет выбрать устройство, являющееся источником данных.
+ Либо, если устройство не выбрано, в строке элемент задается дорасчет.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Элемент
+\emph default
+ – здесь указывается либо адрес информационного объекта устройства, либо
+ выбирается параметр из списка.
+ Если устройство не выбрано, здесь же вводится выражение дорасчета.
+\end_layout
+
+\begin_layout Itemize
+Флаг 
+\emph on
+Инверсия
+\emph default
+ – определяет, следует ли инвертировать полученное с устройства состояние
+ ТС.
+ 
+\end_layout
+
+\begin_layout Itemize
+Список 
+\emph on
+Формат
+\emph default
+ – в параметрах объекта ТС позволяет указать способ отображения объекта
+ ТС на экране, выбрав один из существующих форматов.
+ Просмотреть и изменить список форматов можно выбрав из главного меню 
+\emph on
+Далее
+\begin_inset space ~
+\end_inset
+
+–
+\begin_inset space ~
+\end_inset
+
+Форматы
+\emph default
+.
+\end_layout
+
+\begin_layout Itemize
+Группа 
+\emph on
+Преобразование и диапазоны
+\emph default
+ – содержит параметры, определяющие правила обработки входящих данных для
+ объектов ТИТ:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Опцией 
+\emph on
+Линейное
+\emph default
+ включается линейное преобразование шкалы (смещение и масштабирование).
+\end_layout
+
+\begin_layout Itemize
+Опция 
+\emph on
+Нет
+\emph default
+ позволяет отключить преобразование входных данных.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Лог
+\begin_inset space ~
+\end_inset
+
+мин
+\emph default
+ и 
+\emph on
+Лог
+\begin_inset space ~
+\end_inset
+
+макс
+\emph default
+ определяют логический диапазон значений объекта ТИТ.
+ Используются для любого типа преобразования.
+ Определяет шкалу графиков.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Физ
+\begin_inset space ~
+\end_inset
+
+мин
+\emph default
+ и 
+\emph on
+Физ
+\begin_inset space ~
+\end_inset
+
+макс
+\emph default
+ используются для линейного преобразования и определяют физический диапазон
+ значений получаемых с устройства.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Флаг 
+\emph on
+Ограничение
+\begin_inset space ~
+\end_inset
+
+диапазона
+\emph default
+ – ограничивает значение пределами лог.
+ диапазона.
+\end_layout
+
+\begin_layout Itemize
+Флаг 
+\emph on
+Контроль
+\begin_inset space ~
+\end_inset
+
+устаревания
+\emph default
+ – позволяет задать время устаревания событий.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Архивирование
+\emph default
+ – задает глубину хранения архивных данных для объекта.
+\end_layout
+
+\begin_layout Itemize
+Группа 
+\emph on
+Параметры
+\emph default
+ – определяет форматирование значения объекта ТИТ при отображении:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\emph on
+Формат
+\emph default
+ определяет количество знаков после запятой.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Ед.
+\begin_inset space ~
+\end_inset
+
+изм.
+
+\emph default
+ определяет единицу измерения ("Вт", "А"), выводимую после значения.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Флаг 
+\emph on
+Эмуляция
+\emph default
+ – позволяет включить эмуляцию сигнала.
+ Тип эмуляции можно выбрать в выпадающем списке.
+ Редактирование списка доступно из вкладки 
+\emph on
+Далее
+\begin_inset space ~
+\end_inset
+
+–
+\begin_inset space ~
+\end_inset
+
+Эмулируемые сигналы
+\emph default
+.
+ 
+\end_layout
+
+\begin_layout Section
+Таблица параметров
+\end_layout
+
+\begin_layout Section
+Пользователи
+\end_layout
+
+\begin_layout Standard
+Смена пароля.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename users.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Редактирование списка пользователей
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Использование редактора 
+\lang english
+Modus
+\end_layout
+
+\begin_layout Standard
+Для привязки объекта ТС или ТИТ к мнемосхеме нужно задать алиас.
+ Это можно сделать из ОИК в окне параметров, открываемом при выборе пункта
+ Параметры из контекстного меню объекта.
+ Допустимы алиасы, состоящие из английских и русских букв и цифр, но не
+ содержащие пробелов.
+\end_layout
+
+\begin_layout Standard
+После того, как алиас будет определен, его нужно привязать к элементу схемы.
+ Объекты ТС привязываются к переключателям, имеющим свойство 
+\emph on
+положение
+\emph default
+, а ТИТ - к текстовым полям со свойством 
+\emph on
+текст
+\emph default
+.
+ В Графическом редакторе выберите элемент и укажите алиас как значение для
+ свойства 
+\emph on
+ключ_привязки
+\emph default
+ в редакторе свойств (F11).
+ 
+\end_layout
+
+\begin_layout Standard
+Готовые мнемосхемы (файлы с расширением sde) следует скопировать в папку
+ 
+\emph on
+\lang english
+public
+\emph default
+\lang russian
+, расположенную рядом с 
+\lang english
+client
+\lang russian
+.
+\lang english
+exe
+\lang russian
+.
+ После перезапуска системы отображения они будут доступны в меню Схемы.
+\end_layout
+
+\begin_layout Standard
+После изменения схемы или алиаса достаточно закрыть и повторно открыть схему
+ в ОИК для просмотра результата.
+\end_layout
+
+\begin_layout Section
+Импорт/Экспорт конфигурации
+\end_layout
+
+\end_body
+\end_document

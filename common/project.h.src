@@ -1,0 +1,15 @@
+#define PROJECT_VERSION_MAJOR ${project_version_major}
+#define PROJECT_VERSION_MINOR ${project_version_minor}
+#define PROJECT_VERSION_PATCH ${project_version_patch}
+#define PROJECT_VERSION_BUILD ${project_version_build}
+
+#define STR(value) #value
+#define STRINGIZE(value) STR(value)
+
+#define PROJECT_VERSION_DOTTED_STRING \
+  STRINGIZE(PROJECT_VERSION_MAJOR) "." \
+  STRINGIZE(PROJECT_VERSION_MINOR) "." \
+  STRINGIZE(PROJECT_VERSION_PATCH) "." \
+  STRINGIZE(PROJECT_VERSION_BUILD)
+
+#define PROJECT_NAME ${project_name}

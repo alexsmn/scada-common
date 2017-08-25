@@ -1,0 +1,21 @@
+<div class="modal-header">
+  <h3 class="modal-title">Select node</h3>
+</div>
+
+<div class="modal-body">
+
+<script type="text/ng-template" id="node.html">
+  <input type="checkbox" ng-checked="isSelected(node)" ng-click="toggleSelection(node)">{{node.name}}</input>
+  <ul>
+    <li ng-repeat="node in node.children" ng-include="'node.html'"></li>
+  </ul>
+</script>
+
+<div ng-controller='TreeController' ng-include="'node.html'"></div>
+
+</div>
+
+<div class="modal-footer">
+  <button class="btn btn-primary" ng-click="ok()">OK</button>
+  <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
+</div>

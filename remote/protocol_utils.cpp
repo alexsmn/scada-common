@@ -1,0 +1,337 @@
+#include "remote/protocol_utils.h"
+
+#include "base/strings/sys_string_conversions.h"
+#include "core/standard_node_ids.h"
+
+scada::NodeId FromProto(const protocol::NodeId& source) {
+  auto namespace_index = source.has_namespace_index() ? source.namespace_index() : 0;
+  if (source.has_numeric_id())
+    return scada::NodeId(source.numeric_id(), namespace_index);
+
+  else if (source.has_string_id())
+    return scada::NodeId(source.string_id(), namespace_index);
+  else if (source.has_opaque_id())
+    return scada::NodeId(source.opaque_id(), namespace_index);
+  else
+    return scada::NodeId();
+}
+
+void ToProto(const scada::NodeId& source, protocol::NodeId& target) {
+  if (source.namespace_index() != 0)
+    target.set_namespace_index(source.namespace_index());
+
+  switch (source.type()) {
+    case scada::NodeIdType::Numeric:
+      if (source.numeric_id() != 0)
+        target.set_numeric_id(source.numeric_id());
+      break;
+    case scada::NodeIdType::String:
+      target.set_string_id(source.string_id());
+      break;
+    case scada::NodeIdType::Opaque:
+      target.set_opaque_id(source.opaque_id().data(), source.opaque_id().size());
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+scada::Variant FromProto(const protocol::Variant& source) {
+  if (source.has_bool_value())
+    return scada::Variant(source.bool_value());
+  else if (source.has_int32_value())
+    return scada::Variant(source.int32_value());
+  else if (source.has_int64_value())
+    return scada::Variant(source.int64_value());
+  else if (source.has_double_value())
+    return scada::Variant(source.double_value());
+  else if (source.has_string_value())
+    return scada::Variant(base::SysWideToNativeMB(base::SysUTF8ToWide(source.string_value())));
+  else if (source.has_localized_string_value())
+    return scada::Variant(base::SysUTF8ToWide(source.localized_string_value()));
+  else if (source.has_node_id_value())
+    return scada::Variant(FromProto(source.node_id_value()));
+  else
+    return scada::Variant();
+}
+
+void ToProto(const scada::Variant& source, protocol::Variant& target) {
+  switch (source.type()) {
+    case scada::Variant::EMPTY:
+      break;
+    case scada::Variant::BOOL:
+      target.set_bool_value(source.as_bool());
+      break;
+    case scada::Variant::INT32:
+      target.set_int32_value(source.as_int32());
+      break;
+    case scada::Variant::INT64:
+      target.set_int64_value(source.as_int64());
+      break;
+    case scada::Variant::DOUBLE:
+      target.set_double_value(source.as_double());
+      break;
+    case scada::Variant::STRING:
+      target.set_string_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
+      break;
+    case scada::Variant::LOCALIZED_TEXT:
+      target.set_localized_string_value(base::SysWideToUTF8(source.as_string16()));
+      break;
+    case scada::Variant::NODE_ID:
+      ToProto(source.as_node_id(), *target.mutable_node_id_value());
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+scada::DataValue FromProto(const protocol::DataValue& source) {
+  scada::DataValue result;
+  result.collection_time = base::Time::FromInternalValue(source.server_timestamp());
+  if (source.has_source_timestamp())
+    result.time = base::Time::FromInternalValue(source.source_timestamp());
+  if (source.has_value())
+    result.value = FromProto(source.value());
+  result.qualifier = scada::Qualifier(source.qualifier());
+  result.status_code = source.has_status_code() ?
+      static_cast<scada::StatusCode>(source.status_code()) :
+      scada::StatusCode::Good;
+  return result;
+}
+
+void ToProto(const scada::DataValue& source, protocol::DataValue& target) {
+  target.set_server_timestamp(source.collection_time.ToInternalValue());
+  if (!source.time.is_null())
+    target.set_source_timestamp(source.time.ToInternalValue());
+  if (!source.value.is_null())
+    ToProto(source.value, *target.mutable_value());
+  target.set_qualifier(source.qualifier.raw());
+  if (source.status_code != scada::StatusCode::Good)
+    target.set_status_code(static_cast<uint32_t>(source.status_code));
+}
+
+scada::Status FromProto(const protocol::Status& source) {
+  return scada::Status::FromFullCode(source.code());
+}
+
+void ToProto(const scada::Status& source, protocol::Status& target) {
+  target.set_code(source.full_code());
+}
+
+/*scada::NodeState FromProto(const protocol::Node& source) {
+  return {
+      FromProto(source.node_id()),
+      FromProto(source.node_class()),
+      FromProto(source.type_id()),
+      FromProto(source.parent_id()),
+      FromProto(source.reference_type_id()),
+      source.has_attributes() ? FromProto(source.attributes()) : scada::NodeAttributes{}
+  };
+}*/
+
+scada::BrowseNode BrowseFromProto(const protocol::Node& source) {
+  return {
+      FromProto(source.parent_id()),
+      FromProto(source.reference_type_id()),
+      FromProto(source.node_id()),
+      FromProto(source.node_class()),
+      FromProto(source.type_id()),
+      source.attributes().browse_name(),
+      source.attributes().display_name(),
+      source.attributes().has_data_type_id() ? FromProto(source.attributes().data_type_id()) : scada::NodeId{},
+      source.attributes().has_value() ? FromProto(source.attributes().value()) : scada::Variant{},
+  };
+}
+
+/*void ToProto(const scada::NodeState& source, protocol::Node& target) {
+  assert(!source.node_id.is_null());
+  ToProto(source.node_id, *target.mutable_node_id());
+  target.set_node_class(ToProto(source.node_class));
+  if (!source.type_definition_id.is_null())
+    ToProto(source.type_definition_id, *target.mutable_type_id());
+  ToProto(source.parent_id, *target.mutable_parent_id());
+  ToProto(source.reference_type_id, *target.mutable_reference_type_id());
+  if (!source.attributes.empty())
+    ToProto(source.attributes, *target.mutable_attributes());
+}*/
+
+scada::Event FromProto(const protocol::Event& source) {
+  scada::Event result;
+  result.time = base::Time::FromInternalValue(source.time());
+  result.severity = source.severity();
+  if (source.has_source_node_id())
+    result.node_id = FromProto(source.source_node_id());
+  if (source.has_user_node_id())
+    result.user_id = FromProto(source.user_node_id());
+  if (source.has_value())
+    result.value = FromProto(source.value());
+  if (source.has_qualifier())
+    result.qualifier = scada::Qualifier(source.qualifier());
+  if (source.has_message())
+    result.message = base::SysNativeMBToWide(source.message());
+  if (source.has_acknowledged())
+    result.acked = source.acknowledged();
+  if (source.has_acknowledge_id())
+    result.acknowledge_id = source.acknowledge_id();
+  if (source.has_acknowledge_time())
+    result.acknowledged_time = base::Time::FromInternalValue(source.acknowledge_time());
+  if (source.has_acknowledge_user_id())
+    result.acknowledged_user_id = FromProto(source.acknowledge_user_id());
+  return result;
+}
+
+void ToProto(const scada::Event& source, protocol::Event& target) {
+  target.set_time(source.time.ToInternalValue());
+  target.set_severity(source.severity);
+  if (!source.node_id.is_null())
+    ToProto(source.node_id, *target.mutable_source_node_id());
+  if (!source.user_id.is_null())
+    ToProto(source.user_id, *target.mutable_user_node_id());
+  if (!source.value.is_null())
+    ToProto(source.value, *target.mutable_value());
+  if (source.qualifier != scada::Qualifier())
+    target.set_qualifier(source.qualifier.raw());
+  if (!source.message.empty())
+    target.set_message(base::SysWideToNativeMB(source.message));
+  if (source.acked)
+    target.set_acknowledged(true);
+  if (source.acknowledge_id)
+    target.set_acknowledge_id(source.acknowledge_id);
+  if (!source.acknowledged_time.is_null())
+    target.set_acknowledge_time(source.acknowledged_time.ToInternalValue());
+  if (!source.acknowledged_user_id.is_null())
+    ToProto(source.acknowledged_user_id, *target.mutable_acknowledge_user_id());
+  target.set_acknowledge_id(source.acknowledge_id);
+}
+
+scada::NodeClass FromProto(const protocol::NodeClass source) {
+  return static_cast<scada::NodeClass>(static_cast<int>(source) - 1);
+}
+
+protocol::NodeClass ToProto(const scada::NodeClass source) {
+  return static_cast<protocol::NodeClass>(static_cast<int>(source) + 1);
+}
+
+scada::NodeAttributes FromProto(const protocol::Attributes& source) {
+  scada::NodeAttributes result;
+  if (source.has_browse_name())
+    result.set_browse_name(source.browse_name());
+  if (source.has_display_name())
+    result.set_display_name(base::SysNativeMBToWide(source.display_name()));
+  if (source.has_data_type_id())
+    result.set_data_type_id(FromProto(source.data_type_id()));
+  if (source.has_value())
+    result.set_value(FromProto(source.value()));
+  return result;
+}
+
+void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target) {
+  if (source.has(OpcUa_Attributes_BrowseName))
+    target.set_browse_name(std::move(source.browse_name()));
+  if (source.has(OpcUa_Attributes_DataType))
+    ToProto(source.data_type_id(), *target.mutable_data_type_id());
+  if (source.has(OpcUa_Attributes_Value))
+    ToProto(source.value(), *target.mutable_value());
+}
+
+void ToProto(const scada::BrowseNode& source, protocol::Node& target) {
+  if (source.node_id != OpcUaId_RootFolder) {
+    assert(!source.parent_id.is_null());
+    assert(!source.reference_type_id.is_null());
+    ToProto(source.parent_id, *target.mutable_parent_id());
+    ToProto(source.reference_type_id, *target.mutable_reference_type_id());
+  }
+
+  ToProto(source.node_id, *target.mutable_node_id());
+  target.set_node_class(ToProto(source.node_class));
+
+  if (!scada::IsTypeDefinition(source.node_class)) {
+    assert(!source.type_id.is_null());
+    ToProto(source.type_id, *target.mutable_type_id());
+  }
+
+  auto& attributes = *target.mutable_attributes();
+  attributes.set_browse_name(source.browse_name);
+  if (!source.display_name.empty())
+    attributes.set_display_name(source.display_name);
+
+  if (source.node_class == scada::NodeClass::Variable ||
+      source.node_class == scada::NodeClass::VariableType) {
+    assert(!source.data_type_id.is_null());
+    ToProto(source.data_type_id, *attributes.mutable_data_type_id());
+    if (!source.value.is_null())
+      ToProto(source.value, *attributes.mutable_value());
+  }
+}
+
+scada::BrowseReference FromProto(const protocol::Reference& source) {
+  return {
+      FromProto(source.reference_type_id()),
+      FromProto(source.source_id()),
+      FromProto(source.target_id()),
+  };
+}
+
+void ToProto(const scada::BrowseReference& source, protocol::Reference& target) {
+  assert(!source.reference_type_id.is_null());
+  assert(!source.source_id.is_null());
+  assert(!source.target_id.is_null());
+
+  ToProto(source.reference_type_id,  *target.mutable_reference_type_id());
+  ToProto(source.source_id,  *target.mutable_source_id());
+  ToProto(source.target_id,  *target.mutable_target_id());
+}
+
+scada::AttributeId FromProto(protocol::AttributeId source) {
+  return static_cast<scada::AttributeId>(source);
+}
+
+protocol::AttributeId ToProto(scada::AttributeId source) {
+  return static_cast<protocol::AttributeId>(source);
+}
+
+scada::ReadValueId FromProto(const protocol::ReadValueId& source) {
+  return {FromProto(source.node_id()), FromProto(source.attribute_id())};
+}
+
+void ToProto(const scada::ReadValueId& source, protocol::ReadValueId& target) {
+  ToProto(source.first, *target.mutable_node_id());
+  target.set_attribute_id(ToProto(source.second));
+}
+
+scada::BrowseDirection FromProto(protocol::BrowseDirection source) {
+  return static_cast<scada::BrowseDirection>(source);
+}
+
+protocol::BrowseDirection ToProto(scada::BrowseDirection source) {
+  return static_cast<protocol::BrowseDirection>(source);
+}
+
+scada::ReferenceDescription FromProto(const protocol::ReferenceDescription& source) {
+  return {
+      FromProto(source.reference_type_id()),
+      source.forward(),
+      FromProto(source.node_id()),
+  };
+}
+
+void ToProto(const scada::ReferenceDescription& source, protocol::ReferenceDescription& target) {
+  ToProto(source.reference_type_id, *target.mutable_reference_type_id());
+  target.set_forward(source.forward);
+  ToProto(source.node_id, *target.mutable_node_id());
+}
+
+scada::BrowseResult FromProto(const protocol::BrowseResult& source) {
+  return {
+      static_cast<scada::StatusCode>(source.status_code()),
+      VectorFromProto<scada::ReferenceDescription>(source.references()),
+  };
+}
+
+void ToProto(const scada::BrowseResult& source, protocol::BrowseResult& target) {
+  if (source.status_code != scada::StatusCode::Good)
+    target.set_status_code(static_cast<uint32_t>(source.status_code));
+  ContainerToProto(source.references, *target.mutable_references());
+}

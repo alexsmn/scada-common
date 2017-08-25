@@ -1,0 +1,13 @@
+<form name="loginForm" ng-controller="LoginController" ng-submit="login(userName, password)" novalidate>
+
+  <label>Name:</label>
+  <input type="text" ng-model="userName" ng-disabled="working" placeholder="Enter your name here">
+
+  <label>Password:</label>
+  <input type="text" ng-model="password" ng-disabled="working"  placeholder="Enter your password here">
+
+  <button type="submit" ng-disabled="working">Login</button>
+
+  <alert ng-show="errorMessage">{{errorMessage}}</alert>
+
+</form>

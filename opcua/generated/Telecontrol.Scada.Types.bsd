@@ -1,0 +1,17 @@
+<opc:TypeDictionary
+  xmlns:opc="http://opcfoundation.org/BinarySchema/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ua="http://opcfoundation.org/UA/"
+  xmlns:tns="http://telecontrol.ru/opc-ua/base/"
+  DefaultByteOrder="LittleEndian"
+  TargetNamespace="http://telecontrol.ru/opc-ua/base/"
+>
+  <opc:Import Namespace="http://opcfoundation.org/UA/" Location="Opc.Ua.BinarySchema.bsd"/>
+
+  <opc:EnumeratedType Name="ModbusLinkModeType" LengthInBits="32">
+    <opc:EnumeratedValue Name="Polling" Value="1" />
+    <opc:EnumeratedValue Name="Transmission" Value="2" />
+    <opc:EnumeratedValue Name="Listening" Value="3" />
+  </opc:EnumeratedType>
+
+</opc:TypeDictionary>
