@@ -64,7 +64,7 @@ private:
   // Connection is closed by peer.
   void OnClosed(Error error);
   // Host name resolve completed.
-  void OnResolved(Error error, const void* buffer);
+  void OnResolved(Error error);
   void OnDataReceived();
   void OnSendPossible();
 
@@ -76,7 +76,7 @@ private:
   SocketDelegate* delegate_;
   SocketHandle handle_;
   SocketResolveHandle resolve_;
-  char* resolve_buffer_;
+  std::vector<char> resolve_buffer_;
   unsigned short port_;
 
   scoped_refptr<Context> context_;

@@ -66,16 +66,16 @@ void SocketPool::ResumeSelect(SocketHandle handle) {
 Error SocketPool::BeginResolve(Socket& socket, const char* host) {
   assert(resolve_.find(socket.resolve_) == resolve_.end());
   assert(!socket.resolve_);
-  assert(!socket.resolve_buffer_);
+  assert(socket.resolve_buffer_.empty());
 
-  socket.resolve_buffer_ = new char[MAXGETHOSTSTRUCT];
+  socket.resolve_buffer_.resize(MAXGETHOSTSTRUCT);
 
   socket.resolve_ = WSAAsyncGetHostByName(reinterpret_cast<SocketWindow*>(window_)->m_hWnd,
-    SocketWindow::WM_RESOLVE, host, socket.resolve_buffer_, MAXGETHOSTSTRUCT);
+    SocketWindow::WM_RESOLVE, host, socket.resolve_buffer_.data(), MAXGETHOSTSTRUCT);
   if (!socket.resolve_) {
     Error error = MapSystemError(WSAGetLastError());
-    delete[] socket.resolve_buffer_;
-    socket.resolve_buffer_ = NULL;
+    socket.resolve_buffer_.clear();
+    socket.resolve_buffer_.shrink_to_fit();
     return error;
   }
 
@@ -85,7 +85,7 @@ Error SocketPool::BeginResolve(Socket& socket, const char* host) {
 
 void SocketPool::EndResolve(Socket& socket) {
   assert(socket.resolve_);
-  assert(socket.resolve_buffer_);
+  assert(!socket.resolve_buffer_.empty());
 
   ResolutionMap::iterator i = resolve_.find(socket.resolve_);
   assert(i != resolve_.end());
@@ -95,8 +95,8 @@ void SocketPool::EndResolve(Socket& socket) {
   WSACancelAsyncRequest(socket.resolve_);
 
   socket.resolve_ = NULL;
-  delete[] socket.resolve_buffer_;
-  socket.resolve_buffer_ = NULL;
+  socket.resolve_buffer_.clear();
+  socket.resolve_buffer_.shrink_to_fit();
 }
 
 void SocketPool::ProcessEvent(SocketHandle handle, unsigned event, int os_error) {
@@ -143,13 +143,8 @@ void SocketPool::ProcessResolve(SocketResolveHandle resolve, int os_error) {
   resolve_.erase(i);
 
   assert(socket.resolve_ == resolve);
-  assert(socket.resolve_buffer_);
-
-  const void* resolve_buffer = socket.resolve_buffer_;
-  socket.resolve_ = NULL;
-  socket.resolve_buffer_ = NULL;
-
-  socket.OnResolved(error, resolve_buffer);
+  assert(socket.resolve_ == resolve);
+  socket.OnResolved(error);
 }
 
 } // namespace net

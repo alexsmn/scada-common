@@ -14,8 +14,7 @@ Socket::Socket(const tracked_objects::Location& location, SocketDelegate* delega
       delegate_(delegate),
       state_(CLOSED),
       handle_(INVALID_SOCKET),
-      resolve_(NULL),
-      resolve_buffer_(NULL) {
+      resolve_(NULL) {
 }
 
 Socket::~Socket() {
@@ -174,7 +173,7 @@ void Socket::Close() {
     context_ = NULL;
   }
 
-  assert(!resolve_buffer_);
+  assert(resolve_buffer_.empty());
 }
 
 int Socket::Read(void* data, size_t len) {
@@ -313,16 +312,17 @@ void Socket::OnConnected(Error error) {
     delegate_->OnSocketConnected(error);
 }
 
-void Socket::OnResolved(Error error, const void* buffer) {
+void Socket::OnResolved(Error error) {
   assert(state_ == RESOLVING);
-  assert(!resolve_);
-  assert(!resolve_buffer_);
+  assert(resolve_);
+  assert(!resolve_buffer_.empty());
+
+  auto buffer = std::move(resolve_buffer_);
+  resolve_ = nullptr;
 
   if (error) {
-    assert(!buffer);
-
     LOG(WARNING) << "Socket " << (unsigned)handle_
-               << " resolution error " << ErrorToString(error);
+      << " resolution error " << ErrorToString(error);
 
     set_state(IDLE);
 
@@ -331,13 +331,10 @@ void Socket::OnResolved(Error error, const void* buffer) {
     return;
   }
 
-  assert(buffer);
-
   LOG(INFO) << "Socket " << (unsigned)handle_ << " resolved";
 
-  const hostent* ent = reinterpret_cast<const hostent*>(buffer);
+  const hostent* ent = reinterpret_cast<const hostent*>(buffer.data());
   unsigned long ip = *reinterpret_cast<const unsigned long*>(ent->h_addr_list[0]);
-  delete[] buffer;
 
   error = ConnectToIP(ip, port_);
   if (error) {
