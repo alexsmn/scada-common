@@ -1,8 +1,0 @@
-<script type="text/ng-template" id="node.html">
-  {{node.name}}
-  <ul>
-    <li ng-repeat="node in node.children" ng-include="'node.html'"></li>
-  </ul>
-</script>
-
-<div ng-controller='TreeController' ng-include="'node.html'"></div>
