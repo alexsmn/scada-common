@@ -1,7 +1,6 @@
 #include "remote/history_stub.h"
 
 #include "base/logger.h"
-#include "common/scada_node_ids.h"
 #include "core/history_service.h"
 #include "base/task_runner.h"
 #include "remote/message_sender.h"
