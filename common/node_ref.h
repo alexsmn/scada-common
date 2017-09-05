@@ -7,15 +7,12 @@
 #include "core/node_id.h"
 #include "core/node_types.h"
 
-class NodeRefService;
 struct NodeRefData;
 
 class NodeRef {
  public:
   NodeRef() {}
   NodeRef(std::nullptr_t) {}
-
-  NodeRefService& node_service() const;
 
   scada::NodeId id() const;
 

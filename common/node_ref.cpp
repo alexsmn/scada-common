@@ -36,11 +36,6 @@ base::Optional<scada::NodeClass> NodeRef::node_class() const {
    return {};
 }
 
-NodeRefService& NodeRef::node_service() const {
-  assert(data_);
-  return data_->node_service;
-}
-
 bool NodeRef::fetched() const {
   return !data_ || data_->fetched;
 }
