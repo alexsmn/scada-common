@@ -1,16 +1,19 @@
 #pragma once
 
-#include "common/node_ref.h"
+#include "core/node_id.h"
 
 #include <map>
+#include <memory>
+
+class NodeRefImpl;
 
 class NodeRefCache {
  public:
-  void Add(NodeRef node);
+  void Add(std::shared_ptr<NodeRefImpl> node);
   void Remove(const scada::NodeId& node_id);
 
-  NodeRef Find(const scada::NodeId& node_id) const;
+  std::shared_ptr<NodeRefImpl> Find(const scada::NodeId& node_id) const;
 
  private:
-  std::map<scada::NodeId, NodeRef> nodes_;
+  std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> nodes_;
 };

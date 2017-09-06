@@ -7,12 +7,13 @@
 #include "core/node_id.h"
 #include "core/node_types.h"
 
-struct NodeRefData;
+class NodeRefImpl;
 
 class NodeRef {
  public:
   NodeRef() {}
   NodeRef(std::nullptr_t) {}
+  explicit NodeRef(std::shared_ptr<NodeRefImpl> impl);
 
   scada::NodeId id() const;
 
@@ -57,13 +58,9 @@ class NodeRef {
   NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const;
 
  private:
-  explicit NodeRef(std::shared_ptr<NodeRefData> data);
+  bool is_null() const { return !impl_; }
 
-  bool is_null() const { return !data_; }
-
-  std::shared_ptr<NodeRefData> data_;
-
-  friend class NodeRefService;
+  std::shared_ptr<NodeRefImpl> impl_;
 };
 
 struct NodeRef::Reference {
@@ -77,7 +74,7 @@ struct NodeRef::Reference {
 inline bool NodeRef::operator==(const NodeRef& other) const {
   if (is_null() || other.is_null())
     return is_null() == other.is_null();
-  return data_ == other.data_;
+  return impl_ == other.impl_;
 }
 
 inline bool NodeRef::operator!=(const NodeRef& other) const {
@@ -85,7 +82,7 @@ inline bool NodeRef::operator!=(const NodeRef& other) const {
 }
 
 inline NodeRef& NodeRef::operator=(std::nullptr_t) {
-  data_ = nullptr;
+  impl_ = nullptr;
   return *this;
 }
 

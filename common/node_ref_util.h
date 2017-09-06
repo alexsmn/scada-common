@@ -3,6 +3,8 @@
 #include "common/node_ref.h"
 #include "core/standard_node_ids.h"
 
+class NodeRefService;
+
 bool IsSubtypeOf(const NodeRef& node, const scada::NodeId& type_id);
 bool IsInstanceOf(const NodeRef& node, const scada::NodeId& type_id);
 

@@ -1,6 +1,6 @@
 #include "node_ref_util.h"
 
-#include "common/node_ref_service.h"
+#include "common/browse_util.h"
 #include "common/scada_node_ids.h"
 
 bool IsSubtypeOf(const NodeRef& node, const scada::NodeId& type_id) {
