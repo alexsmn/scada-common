@@ -34,7 +34,8 @@ NodeRefServiceImpl::~NodeRefServiceImpl() {
 }
 
 NodeRef NodeRefServiceImpl::GetCachedNode(const scada::NodeId& node_id) const {
-  return NodeRef{node_cache_.Find(node_id)};
+  auto i = cached_nodes_.find(node_id);
+  return i != cached_nodes_.end() ? NodeRef{i->second} : nullptr;
 }
 
 void NodeRefServiceImpl::RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback) {
@@ -47,10 +48,14 @@ NodeRef NodeRefServiceImpl::GetPartialNode(const scada::NodeId& node_id) {
 
 std::shared_ptr<NodeRefImpl> NodeRefServiceImpl::GetPartialNode(const scada::NodeId& node_id, const RequestNodeCallback& callback,
     const scada::NodeId& depended_id) {
-  if (auto node = node_cache_.Find(node_id)) {
-    if (callback)
-      callback(scada::StatusCode::Good, NodeRef{node});
-    return node;
+  {
+    auto i = cached_nodes_.find(node_id);
+    if (i != cached_nodes_.end()) {
+      auto& node = i->second;
+      if (callback)
+        callback(scada::StatusCode::Good, NodeRef{node});
+      return node;
+    }
   }
 
   auto& partial_node = partial_nodes_[node_id];
@@ -84,21 +89,21 @@ std::shared_ptr<NodeRefImpl> NodeRefServiceImpl::GetPartialNode(const scada::Nod
 void NodeRefServiceImpl::SetAttribute(NodeRefImpl& impl, scada::AttributeId attribute_id, scada::DataValue data_value) {
   switch (attribute_id) {
     case OpcUa_Attributes_NodeClass:
-      impl.node_class = static_cast<scada::NodeClass>(data_value.value.as_int32());
+      impl.node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
       break;
     case OpcUa_Attributes_BrowseName:
-      impl.browse_name = data_value.value.as_string();
-      assert(!impl.browse_name.empty());
+      impl.browse_name_ = data_value.value.as_string();
+      assert(!impl.browse_name_.empty());
       break;
     case OpcUa_Attributes_DisplayName:
-      impl.display_name = data_value.value.as_string16();
-      assert(!impl.display_name.empty());
+      impl.display_name_ = data_value.value.as_string16();
+      assert(!impl.display_name_.empty());
       break;
     case OpcUa_Attributes_DataType:
-      impl.data_type = GetPartialNode(data_value.value.as_node_id(), nullptr, impl.id());
+      impl.data_type_ = GetPartialNode(data_value.value.as_node_id(), nullptr, impl.id());
       break;
     case OpcUa_Attributes_Value:
-      impl.data_value = data_value;
+      impl.data_value_ = std::move(data_value);
       break;
   }
 }
@@ -109,15 +114,15 @@ void NodeRefServiceImpl::AddReference(NodeRefImpl& impl, const NodeRefImplRefere
 
   if (reference.forward) {
     if (IsSubtypeOf(NodeRef{reference.reference_type}, OpcUaId_HasTypeDefinition))
-      impl.type_definition = reference.target;
+      impl.type_definition_ = reference.target;
     else if (IsSubtypeOf(NodeRef{reference.reference_type}, OpcUaId_Aggregates))
-      impl.aggregates.push_back(reference);
+      impl.aggregates_.push_back(reference);
     else if (IsSubtypeOf(NodeRef{reference.reference_type}, OpcUaId_NonHierarchicalReferences))
-      impl.references.push_back(reference);
+      impl.references_.push_back(reference);
 
   } else {
     if (IsSubtypeOf(NodeRef{reference.reference_type}, OpcUaId_HasSubtype))
-      impl.supertype = reference.target;
+      impl.supertype_ = reference.target;
   }
 }
 
@@ -154,7 +159,7 @@ void NodeRefServiceImpl::OnReadComplete(const scada::NodeId& node_id, const scad
 
   std::vector<scada::BrowseDescription> nodes;
   nodes.reserve(3);
-  if (scada::IsTypeDefinition(impl->node_class))
+  if (scada::IsTypeDefinition(impl->node_class_))
     nodes.push_back({node_id, scada::BrowseDirection::Inverse, OpcUaId_HasSubtype, true});
   nodes.push_back({node_id, scada::BrowseDirection::Forward, OpcUaId_Aggregates, true});
   nodes.push_back({node_id, scada::BrowseDirection::Forward, OpcUaId_NonHierarchicalReferences, true});
@@ -223,7 +228,7 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
     auto callbacks = std::move(partial_node.callbacks);
 
     logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s", fetched_id.ToString().c_str(),
-        impl->browse_name.c_str());
+        impl->browse_name_.c_str());
 
     std::copy(partial_node.depended_ids.begin(), partial_node.depended_ids.end(),
       std::back_inserter(all_dependent_ids));
@@ -234,7 +239,7 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
 
     partial_nodes_.erase(i);
 
-    node_cache_.Add(impl);
+    cached_nodes_.emplace(impl->id_, impl);
 
     for (auto& o : observers_)
       o.OnNodeSemanticChanged(fetched_id);
@@ -256,7 +261,7 @@ bool NodeRefServiceImpl::IsNodeFetched(const std::shared_ptr<NodeRefImpl>& impl,
   if (!impl)
     return true;
 
-  if (impl->fetched)
+  if (impl->fetched_)
     return true;
 
   auto i = partial_nodes_.find(impl->id());
@@ -274,19 +279,19 @@ bool NodeRefServiceImpl::IsNodeFetched(const std::shared_ptr<NodeRefImpl>& impl,
   partial_node.passing = true;
 
   // It must never delete |partial_node| since it's in |complete_ids|.
-  impl->fetched = IsNodeFetchedHelper(partial_node, fetched_node_ids);
+  impl->fetched_ = IsNodeFetchedHelper(partial_node, fetched_node_ids);
 
   assert(partial_node.passing);
   partial_node.passing = false;
 
-  if (impl->fetched)
+  if (impl->fetched_)
     fetched_node_ids.emplace_back(impl->id());
 
-  return impl->fetched;
+  return impl->fetched_;
 }
 
 bool NodeRefServiceImpl::IsNodeFetchedHelper(PartialNode& partial_node, std::vector<scada::NodeId>& fetched_node_ids) {
-  if (auto data_type = partial_node.impl->data_type) {
+  if (auto data_type = partial_node.impl->data_type_) {
     if (!IsNodeFetched(data_type, fetched_node_ids))
       return false;
   }
@@ -339,7 +344,7 @@ void NodeRefServiceImpl::OnNodeAdded(const scada::NodeId& node_id) {
 
 void NodeRefServiceImpl::OnNodeDeleted(const scada::NodeId& node_id) {
   // TODO: Remove nodes containing aggregates.
-  node_cache_.Remove(node_id);
+  cached_nodes_.erase(node_id);
 
   if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)

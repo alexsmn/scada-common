@@ -12,8 +12,9 @@ class DataValue {
 
   DataValue(StatusCode status_code) : status_code{status_code} {}
 
-  DataValue(Variant value, Qualifier qualifier, base::Time time, base::Time collection_time)
-      : value(std::move(value)),
+  template<class T>
+  DataValue(T&& value, Qualifier qualifier, base::Time time, base::Time collection_time)
+      : value(std::forward<T>(value)),
         qualifier(std::move(qualifier)),
         time(time),
         collection_time(collection_time) {

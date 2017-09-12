@@ -1,9 +1,11 @@
 #pragma once
 
+#include "base/observer_list.h"
 #include "node_ref_service.h"
 
-#include "base/observer_list.h"
-#include "common/node_ref_cache.h"
+#include <map>
+
+class NodeRefImpl;
 
 struct NodeRefServiceImplContext {
   const std::shared_ptr<Logger> logger_;
@@ -71,7 +73,7 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   Observers observers_;
   std::map<scada::NodeId, Observers> node_observers_;
 
-  NodeRefCache node_cache_;
+  std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> cached_nodes_;
 
   std::map<scada::NodeId, PartialNode> partial_nodes_;
 };

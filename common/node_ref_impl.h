@@ -4,7 +4,7 @@
 
 #include "common/node_ref.h"
 
-class NodeRefService;
+class NodeRefServiceImpl;
 
 struct NodeRefImplReference {
   std::shared_ptr<NodeRefImpl> reference_type;
@@ -14,26 +14,48 @@ struct NodeRefImplReference {
 
 class NodeRefImpl {
  public:
-  NodeRefImpl(NodeRefService& service, scada::NodeId id) : service_{service}, id_{std::move(id)} {}
+  NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id) : service_{service}, id_{std::move(id)} {}
   virtual ~NodeRefImpl() {}
 
-  scada::NodeId id() const { return id_; }
+  const scada::NodeId& id() const { return id_; }
 
-  std::vector<NodeRefImplReference> aggregates;
-  // Instance-only.
-  std::shared_ptr<NodeRefImpl> type_definition;
-  // Type-only.
-  std::shared_ptr<NodeRefImpl> supertype;
-  // Forward non-hierarchical.
-  std::vector<NodeRefImplReference> references;
-  std::shared_ptr<NodeRefImpl> data_type;
-  bool fetched;
-  scada::NodeClass node_class;
-  std::string browse_name;
-  base::string16 display_name;
-  scada::DataValue data_value;
+  bool IsFetched() const { return fetched_; }
+
+  scada::DataValue GetAttribute(scada::AttributeId attribute_id) const;
+
+  NodeRef GetTypeDefinition() const;
+  NodeRef GetSupertype() const;
+  NodeRef GetDataType() const;
+
+  NodeRef GetAggregate(base::StringPiece aggregate_name) const;
+  std::vector<NodeRef> GetAggregates(const scada::NodeId& reference_type_id) const;
+
+  NodeRef GetTarget(const scada::NodeId& reference_type_id) const;
+  std::vector<NodeRef> GetTargets(const scada::NodeId& reference_type_id) const;
+
+  std::vector<NodeRef::Reference> GetReferences() const;
+
+  NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const;
 
  private:
-  NodeRefService& service_;
+  NodeRefServiceImpl& service_;
   const scada::NodeId id_;
+
+  bool fetched_;
+
+  scada::NodeClass node_class_;
+  std::string browse_name_;
+  base::string16 display_name_;
+  scada::DataValue data_value_;
+
+  std::vector<NodeRefImplReference> aggregates_;
+  // Instance-only.
+  std::shared_ptr<NodeRefImpl> type_definition_;
+  // Type-only.
+  std::shared_ptr<NodeRefImpl> supertype_;
+  // Forward non-hierarchical.
+  std::vector<NodeRefImplReference> references_;
+  std::shared_ptr<NodeRefImpl> data_type_;
+
+  friend class NodeRefServiceImpl;
 };

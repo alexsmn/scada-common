@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "base/optional.h"
+#include "core/attribute_ids.h"
 #include "core/data_value.h"
 #include "core/node_id.h"
 #include "core/node_types.h"
@@ -34,7 +35,7 @@ class NodeRef {
   struct Reference;
   using References = std::vector<Reference>;
 
-  // Non-herarchical references.
+  // Non-hierarchical references.
   std::vector<Reference> references() const;
 
   scada::DataValue data_value() const;
@@ -59,6 +60,8 @@ class NodeRef {
 
  private:
   bool is_null() const { return !impl_; }
+
+  scada::DataValue GetAttribute(scada::AttributeId attribute_id) const;
 
   std::shared_ptr<NodeRefImpl> impl_;
 };
