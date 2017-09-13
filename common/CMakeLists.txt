@@ -22,7 +22,6 @@ ADD_LIBRARY(scada_common STATIC ${scada_common_sources})
 TARGET_LINK_LIBRARIES(scada_common
   base
   express
-  scada_base
   scada_core
 )
 

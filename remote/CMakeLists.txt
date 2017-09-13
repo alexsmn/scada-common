@@ -1,18 +1,21 @@
-FILE(GLOB remote_sources
+file(GLOB remote_sources
   "*.cpp"
   "*.h"
-  "*.proto")
+  "*.proto"
+)
 
-LIST(APPEND remote_sources
+list(APPEND remote_sources
   "scada.pb.cc"
-  "scada.pb.h")
+  "scada.pb.h"
+)
 
-FILE(GLOB remote_ut_sources
-  "*_unittest.*")
+file(GLOB remote_ut_sources
+  "*_unittest.*"
+)
 
-LIST(REMOVE_ITEM remote_sources ${remote_ut_sources})
+list(REMOVE_ITEM remote_sources ${remote_ut_sources})
 
-ADD_CUSTOM_COMMAND(
+add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_SOURCE_DIR}/scada.pb.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/scada.pb.h"
@@ -21,16 +24,20 @@ ADD_CUSTOM_COMMAND(
   MAIN_DEPENDENCY scada.proto
   DEPENDS protoc.exe
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  DEPENDS scada.proto)
+  DEPENDS scada.proto
+)
 
-ADD_LIBRARY(remote STATIC ${remote_sources})
+add_library(remote ${remote_sources})
 
-TARGET_LINK_LIBRARIES(remote
+target_link_libraries(remote
   net
   protobuf
-  scada_base
-  scada_common)
+  scada_core
+)
 
-ADD_EXECUTABLE(remote_unittests ${remote_ut_sources})
-ADD_TEST(NAME remote_unittests COMMAND remote_unittests)
-TARGET_LINK_LIBRARIES(remote_unittests remote gmock_main)
+add_executable(remote_unittests ${remote_ut_sources})
+add_test(NAME remote_unittests COMMAND remote_unittests)
+target_link_libraries(remote_unittests
+	remote
+	gmock_main
+)
