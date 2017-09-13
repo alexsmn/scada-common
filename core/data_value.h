@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/time/time.h"
+#include "core/time.h"
 #include "core/qualifier.h"
 #include "core/variant.h"
 
@@ -13,7 +13,7 @@ class DataValue {
   DataValue(StatusCode status_code) : status_code{status_code} {}
 
   template<class T>
-  DataValue(T&& value, Qualifier qualifier, base::Time time, base::Time collection_time)
+  DataValue(T&& value, Qualifier qualifier, Time time, Time collection_time)
       : value(std::forward<T>(value)),
         qualifier(std::move(qualifier)),
         time(time),
@@ -33,8 +33,8 @@ class DataValue {
 
   Variant value;
   Qualifier qualifier;
-  base::Time time;
-  base::Time collection_time;
+  Time time;
+  Time collection_time;
   StatusCode status_code = StatusCode::Good;
 };
 
