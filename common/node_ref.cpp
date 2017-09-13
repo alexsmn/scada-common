@@ -95,9 +95,29 @@ NodeRef NodeRef::GetAggregateDeclaration(const scada::NodeId& aggregate_declarat
 }
 
 void NodeRef::Fetch(const FetchCallback& callback) {
-  impl_->Fetch(callback);
+  if (impl_)
+    impl_->Fetch(callback);
+  else
+    return callback(*this);
 }
 
 scada::Status NodeRef::status() const {
   return impl_ ? impl_->GetStatus() : scada::StatusCode::Good;
+}
+
+void NodeRef::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) {
+  if (impl_)
+    impl_->Browse(description, callback);
+  else
+    return callback(scada::StatusCode::Bad, {});
+}
+
+void NodeRef::AddObserver(NodeRefObserver& observer) {
+  if (impl_)
+    impl_->AddObserver(observer);
+}
+
+void NodeRef::RemoveObserver(NodeRefObserver& observer) {
+  if (impl_)
+    impl_->RemoveObserver(observer);
 }

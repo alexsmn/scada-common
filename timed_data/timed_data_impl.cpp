@@ -45,13 +45,13 @@ void TimedDataImpl::SetNode(NodeRef node) {
 
   if (node_) {
     event_manager_.RemoveItemObserver(node_.id(), *this);
-    node_service_.RemoveNodeObserver(node_.id(), *this);
+    node_.RemoveObserver(*this);
   }
 
   node_ = node;
 
   if (node_) {
-    node_service_.AddNodeObserver(node_.id(), *this);
+    node_.AddObserver(*this);
     event_manager_.AddItemObserver(node_.id(), *this);
 
     alerting_ = event_manager_.IsAlerting(node_.id());

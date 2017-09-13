@@ -5,7 +5,13 @@
 
 #include <map>
 
+namespace scada {
+class AttributeService;
+}
+
+class Logger;
 class NodeRefImpl;
+struct NodeRefImplReference;
 
 struct NodeRefServiceImplContext {
   const std::shared_ptr<Logger> logger_;
@@ -22,15 +28,18 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
 
   // NodeRefService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) override;
   virtual void AddObserver(NodeRefObserver& observer) override;
   virtual void RemoveObserver(NodeRefObserver& observer) override;
-  virtual void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) override;
-  virtual void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) override;
 
  private:
   using RequestNodeCallback = std::function<void()>;
   void RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback);
+
+  using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
+  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
+
+  void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
+  void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
 
   std::shared_ptr<NodeRefImpl> GetPartialNode(const scada::NodeId& node_id, const RequestNodeCallback& callback, const scada::NodeId& depended_id);
 

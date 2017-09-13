@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include "base/optional.h"
@@ -8,8 +9,10 @@
 #include "core/node_id.h"
 #include "core/node_types.h"
 #include "core/status.h"
+#include "core/view_service.h"
 
 class NodeRefImpl;
+class NodeRefObserver;
 
 class NodeRef {
  public:
@@ -63,6 +66,12 @@ class NodeRef {
   std::vector<NodeRef> targets(const scada::NodeId& reference_type_id) const;
 
   NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const;
+
+  using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
+  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
+
+  void AddObserver(NodeRefObserver& observer);
+  void RemoveObserver(NodeRefObserver& observer);
 
  private:
   bool is_null() const { return !impl_; }

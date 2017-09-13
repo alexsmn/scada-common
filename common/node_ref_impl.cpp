@@ -139,3 +139,16 @@ NodeRef NodeRefImpl::GetDataType() const {
 scada::Status NodeRefImpl::GetStatus() const {
   return status_;
 }
+
+void NodeRefImpl::Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) {
+  assert(description.node_id == id_);
+  service_.Browse(description, callback);
+}
+
+void NodeRefImpl::AddObserver(NodeRefObserver& observer) {
+  service_.AddNodeObserver(id_, observer);
+}
+
+void NodeRefImpl::RemoveObserver(NodeRefObserver& observer) {
+  service_.RemoveNodeObserver(id_, observer);
+}

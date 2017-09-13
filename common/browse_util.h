@@ -5,7 +5,7 @@
 // Callback = void(const scada::Status& status, const scada::ReferenceDescription& reference)
 template<class Callback>
 inline void BrowseReference(NodeRefService& service, const scada::BrowseDescription& description, const Callback& callback) {
-  service.Browse(description, [callback](const scada::Status& status, const scada::ReferenceDescriptions& references) {
+  service.GetNode(description.node_id).Browse(description, [callback](const scada::Status& status, const scada::ReferenceDescriptions& references) {
     if (!status) {
       assert(references.empty());
       callback(status, {});
@@ -78,8 +78,8 @@ inline void RequestNodes(NodeRefService& service, const std::vector<scada::NodeI
 
 // Callback = void(const scada::Status& status, std::vector<NodeRef> nodes)
 template<class Callback>
-inline void BrowseNodes(NodeRefService& service,const  scada::BrowseDescription& description, const Callback& callback) {
-  service.Browse(description, [&service, callback](const scada::Status& status, const scada::ReferenceDescriptions& references) {
+inline void BrowseNodes(NodeRefService& service, const scada::BrowseDescription& description, const Callback& callback) {
+  service.GetNode(description.node_id).Browse(description, [&service, callback](const scada::Status& status, const scada::ReferenceDescriptions& references) {
     if (!status) {
       callback(status, {});
       return;
