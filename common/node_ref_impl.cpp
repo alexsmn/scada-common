@@ -2,7 +2,7 @@
 
 #include "base/strings/sys_string_conversions.h"
 #include "common/node_ref_impl.h"
-#include "common/node_ref_service.h"
+#include "common/node_ref_service_impl.h"
 #include "common/node_ref_util.h"
 
 NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
@@ -15,7 +15,7 @@ NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_decl
     const auto& declarations = type_definition->aggregates_;
     auto i = std::find_if(declarations.begin(), declarations.end(),
         [&aggregate_declaration_id](const NodeRefImplReference& reference) {
-          return reference.target->id() == aggregate_declaration_id;
+          return reference.target->id_ == aggregate_declaration_id;
         });
     if (i != declarations.end())
       return NodeRef{i->target};
@@ -89,6 +89,14 @@ std::vector<NodeRef::Reference> NodeRefImpl::GetReferences() const {
   return result;
 }
 
+void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
+  NodeRef node{shared_from_this()};
+  if (fetched_)
+    callback(std::move(node));
+  else
+    service_.RequestNode(id_, [callback, node] { callback(std::move(node)); });
+}
+
 scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
   switch (attribute_id) {
     case OpcUa_Attributes_BrowseName: {
@@ -126,4 +134,8 @@ NodeRef NodeRefImpl::GetSupertype() const {
 
 NodeRef NodeRefImpl::GetDataType() const {
   return NodeRef{data_type_};
+}
+
+scada::Status NodeRefImpl::GetStatus() const {
+  return status_;
 }

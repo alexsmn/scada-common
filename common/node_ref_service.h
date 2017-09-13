@@ -18,12 +18,7 @@ class NodeRefService {
  public:
   virtual ~NodeRefService() {}
 
-  virtual NodeRef GetPartialNode(const scada::NodeId& node_id) = 0;
-
-  virtual NodeRef GetCachedNode(const scada::NodeId& node_id) const = 0;
-
-  using RequestNodeCallback = std::function<void(const scada::Status& status, const NodeRef& node)>;
-  virtual void RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback) = 0;
+  virtual NodeRef GetNode(const scada::NodeId& node_id) = 0;
 
   using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
   virtual void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) = 0;

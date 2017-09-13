@@ -33,16 +33,11 @@ NodeRefServiceImpl::~NodeRefServiceImpl() {
   view_service_.Unsubscribe(*this);
 }
 
-NodeRef NodeRefServiceImpl::GetCachedNode(const scada::NodeId& node_id) const {
-  auto i = cached_nodes_.find(node_id);
-  return i != cached_nodes_.end() ? NodeRef{i->second} : nullptr;
-}
-
 void NodeRefServiceImpl::RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback) {
   GetPartialNode(node_id, callback, {});
 }
 
-NodeRef NodeRefServiceImpl::GetPartialNode(const scada::NodeId& node_id) {
+NodeRef NodeRefServiceImpl::GetNode(const scada::NodeId& node_id) {
   return NodeRef{GetPartialNode(node_id, nullptr, {})};
 }
 
@@ -53,7 +48,7 @@ std::shared_ptr<NodeRefImpl> NodeRefServiceImpl::GetPartialNode(const scada::Nod
     if (i != cached_nodes_.end()) {
       auto& node = i->second;
       if (callback)
-        callback(scada::StatusCode::Good, NodeRef{node});
+        callback();
       return node;
     }
   }
@@ -100,7 +95,7 @@ void NodeRefServiceImpl::SetAttribute(NodeRefImpl& impl, scada::AttributeId attr
       assert(!impl.display_name_.empty());
       break;
     case OpcUa_Attributes_DataType:
-      impl.data_type_ = GetPartialNode(data_value.value.as_node_id(), nullptr, impl.id());
+      impl.data_type_ = GetPartialNode(data_value.value.as_node_id(), nullptr, impl.id_);
       break;
     case OpcUa_Attributes_Value:
       impl.data_value_ = std::move(data_value);
@@ -250,7 +245,7 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
     }
 
     for (auto& callback : callbacks)
-      callback(scada::StatusCode::Good, NodeRef{impl});
+      callback();
   }
 
   for (auto& depended_id : all_dependent_ids)
@@ -264,7 +259,7 @@ bool NodeRefServiceImpl::IsNodeFetched(const std::shared_ptr<NodeRefImpl>& impl,
   if (impl->fetched_)
     return true;
 
-  auto i = partial_nodes_.find(impl->id());
+  auto i = partial_nodes_.find(impl->id_);
   // Must be either fetched or partial.
   assert(i != partial_nodes_.end());
   if (i == partial_nodes_.end())
@@ -285,7 +280,7 @@ bool NodeRefServiceImpl::IsNodeFetched(const std::shared_ptr<NodeRefImpl>& impl,
   partial_node.passing = false;
 
   if (impl->fetched_)
-    fetched_node_ids.emplace_back(impl->id());
+    fetched_node_ids.emplace_back(impl->id_);
 
   return impl->fetched_;
 }

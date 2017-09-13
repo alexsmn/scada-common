@@ -12,14 +12,15 @@ struct NodeRefImplReference {
   bool forward;
 };
 
-class NodeRefImpl {
+class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
  public:
   NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id) : service_{service}, id_{std::move(id)} {}
   virtual ~NodeRefImpl() {}
 
-  const scada::NodeId& id() const { return id_; }
+  scada::Status GetStatus() const;
 
   bool IsFetched() const { return fetched_; }
+  void Fetch(const NodeRef::FetchCallback& callback);
 
   scada::DataValue GetAttribute(scada::AttributeId attribute_id) const;
 
@@ -47,6 +48,7 @@ class NodeRefImpl {
   std::string browse_name_;
   base::string16 display_name_;
   scada::DataValue data_value_;
+  scada::Status status_{scada::StatusCode::Good};
 
   std::vector<NodeRefImplReference> aggregates_;
   // Instance-only.

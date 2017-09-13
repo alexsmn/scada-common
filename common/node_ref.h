@@ -7,6 +7,7 @@
 #include "core/data_value.h"
 #include "core/node_id.h"
 #include "core/node_types.h"
+#include "core/status.h"
 
 class NodeRefImpl;
 
@@ -18,7 +19,12 @@ class NodeRef {
 
   scada::NodeId id() const;
 
+  scada::Status status() const;
+
   bool fetched() const;
+
+  using FetchCallback = std::function<void(NodeRef node)>;
+  void Fetch(const FetchCallback& callback);
 
   base::Optional<scada::NodeClass> node_class() const;
   std::string browse_name() const;

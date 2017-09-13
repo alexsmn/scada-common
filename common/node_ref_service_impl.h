@@ -20,23 +20,18 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   explicit NodeRefServiceImpl(NodeRefServiceImplContext&& context);
   ~NodeRefServiceImpl();
 
-  NodeRef GetPartialNode(const scada::NodeId& node_id);
-
-  NodeRef GetCachedNode(const scada::NodeId& node_id) const;
-
-  using RequestNodeCallback = std::function<void(const scada::Status& status, const NodeRef& node)>;
-  void RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback);
-
-  using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
-  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
-
-  void AddObserver(NodeRefObserver& observer);
-  void RemoveObserver(NodeRefObserver& observer);
-
-  void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
-  void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
+  // NodeRefService
+  virtual NodeRef GetNode(const scada::NodeId& node_id) override;
+  virtual void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) override;
+  virtual void AddObserver(NodeRefObserver& observer) override;
+  virtual void RemoveObserver(NodeRefObserver& observer) override;
+  virtual void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) override;
+  virtual void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) override;
 
  private:
+  using RequestNodeCallback = std::function<void()>;
+  void RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback);
+
   std::shared_ptr<NodeRefImpl> GetPartialNode(const scada::NodeId& node_id, const RequestNodeCallback& callback, const scada::NodeId& depended_id);
 
   void SetAttribute(NodeRefImpl& data, scada::AttributeId attribute_id, scada::DataValue data_value);
@@ -76,4 +71,6 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> cached_nodes_;
 
   std::map<scada::NodeId, PartialNode> partial_nodes_;
+
+  friend class NodeRefImpl;
 };

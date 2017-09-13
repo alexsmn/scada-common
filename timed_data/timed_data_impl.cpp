@@ -22,7 +22,7 @@ TimedDataImpl::TimedDataImpl(const scada::NodeId& node_id,
   logger_.set_parent(std::move(parent_logger));
   logger_.set_prefix(node_id.ToString());
 
-  SetNode(node_service_.GetPartialNode(node_id));
+  SetNode(node_service_.GetNode(node_id));
 }
 
 TimedDataImpl::TimedDataImpl(const NodeRef& node,

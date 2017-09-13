@@ -29,8 +29,8 @@ inline void BrowseNode(NodeRefService& service, const scada::BrowseDescription& 
         callback(status, nullptr);
         return;
       }
-      service.RequestNode(reference.node_id, [callback](const scada::Status& status, const NodeRef& node) {
-        callback(status, node);
+      service.GetNode(reference.node_id).Fetch([callback](NodeRef node) {
+        callback(node.status(), node);
       });
     });
 }
@@ -69,8 +69,8 @@ inline void RequestNodes(NodeRefService& service, const std::vector<scada::NodeI
 
   auto result = std::make_shared<Result>(node_ids.size(), callback);
   for (size_t i = 0; i < node_ids.size(); ++i) {
-    service.RequestNode(node_ids[i], [result, i](const scada::Status& status, const NodeRef& node) {
-      result->statuses[i] = status;
+    service.GetNode(node_ids[i]).Fetch([result, i](NodeRef node) {
+      result->statuses[i] = node.status();
       result->nodes[i] = node;
     });
   }

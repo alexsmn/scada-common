@@ -93,3 +93,11 @@ scada::DataValue NodeRef::GetAttribute(scada::AttributeId attribute_id) const {
 NodeRef NodeRef::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
   return impl_ ? impl_->GetAggregateDeclaration(aggregate_declaration_id) : nullptr;
 }
+
+void NodeRef::Fetch(const FetchCallback& callback) {
+  impl_->Fetch(callback);
+}
+
+scada::Status NodeRef::status() const {
+  return impl_ ? impl_->GetStatus() : scada::StatusCode::Good;
+}
