@@ -1,7 +1,3 @@
-CONFIGURE_FILE(
-  "${CMAKE_CURRENT_SOURCE_DIR}/project.h.src"
-  "${CMAKE_CURRENT_SOURCE_DIR}/project.h")
-
 FILE(GLOB scada_common_sources
   "*.cpp"
   "*.h"

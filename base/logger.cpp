@@ -6,13 +6,12 @@
 #include "base/time/time.h"
 #include "base/file_logger.h"
 #include "common/common_paths.h"
-#include "common/project.h"
 
 #ifdef OS_WIN
 #include <windows.h>
 #endif
 
-std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::StringType base_name) {
+std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::StringType base_name, const char* title) {
   base::FilePath path;
   PathService::Get(path_service_key, &path);
 
@@ -24,8 +23,8 @@ std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::S
   base::FilePath application_path;
   PathService::Get(base::FILE_EXE, &application_path);
 
-  logger->Write (LogSeverity::Normal, "======================================================");
-  logger->WriteF(LogSeverity::Normal, "Telecontrol SCADA " PROJECT_VERSION_DOTTED_STRING);
+  logger->Write(LogSeverity::Normal, "======================================================");
+  logger->Write(LogSeverity::Normal, title);
 
   base::Time::Exploded time;
   base::Time::Now().LocalExplode(&time);

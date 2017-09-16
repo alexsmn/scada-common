@@ -35,4 +35,4 @@ class NullLogger : public Logger {
   }
 };
 
-std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::StringType base_name);
+std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::StringType base_name, const char* title);
