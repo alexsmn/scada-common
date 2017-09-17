@@ -99,6 +99,9 @@ void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
 
 scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
   switch (attribute_id) {
+    case OpcUa_Attributes_NodeId:
+      return {id_, {}, {}, {}};
+
     case OpcUa_Attributes_BrowseName: {
       std::string browse_name = fetched_ ? browse_name_ : id_.ToString();
       return {std::move(browse_name), {}, {}, {}};

@@ -4,33 +4,35 @@
 #include "base/strings/string16.h"
 #include "core/extension_object.h"
 #include "core/node_id.h"
+#include "core/qualified_name.h"
+#include "core/string.h"
 
 #include <boost/variant.hpp>
 #include <cstdint>
-#include <string>
 #include <opcua_builtintypes.h>
 #include <vector>
 
 namespace scada {
 
-using String = std::string;
 using LocalizedText = base::string16;
 using ByteString = std::vector<char>;
 
 class Variant {
  public:
-  enum Type { EMPTY, BOOL, INT32, INT64, DOUBLE, BYTE_STRING, STRING, LOCALIZED_TEXT, NODE_ID, EXTENSION_OBJECT,
+  enum Type { EMPTY, BOOL, INT8, UINT8, INT32, UINT32, INT64, DOUBLE, BYTE_STRING, STRING, QUALIFIED_NAME, LOCALIZED_TEXT, NODE_ID, EXTENSION_OBJECT,
       VECTOR_STRING, VECTOR_LOCALIZED_TEXT, VECTOR_EXTENSION_OBJECT, COUNT };
 
   Variant() {}
   Variant(bool value) : data_{value} {}
+  Variant(int8_t value) : data_{value} {}
+  Variant(uint8_t value) : data_{value} {}
   Variant(int32_t value) : data_{value} {}
+  Variant(uint32_t value) : data_{value} {}
   Variant(int64_t value) : data_{value} {}
   Variant(double value) : data_{value} {}
-  Variant(const Variant& source) : data_{source.data_} {}
-  Variant(Variant&& source) : data_{std::move(source.data_)} {}
   Variant(ByteString str) : data_{std::move(str)} {}
   Variant(String str) : data_{std::move(str)} {}
+  Variant(QualifiedName value) : data_{std::move(value)} {}
   Variant(LocalizedText str) : data_{std::move(str)} {}
   Variant(const char* str) : data_{str ? String{str} : String{}} {}
   Variant(NodeId node_id) : data_{std::move(node_id)} {}
@@ -38,6 +40,9 @@ class Variant {
   Variant(std::vector<String> value) : data_{std::move(value)} {}
   Variant(std::vector<LocalizedText> value) : data_{std::move(value)} {}
   Variant(std::vector<ExtensionObject> value) : data_{std::move(value)} {}
+
+  Variant(const Variant& source) : data_{source.data_} {}
+  Variant(Variant&& source) : data_{std::move(source.data_)} {}
 
   ~Variant() { clear(); }
 
@@ -93,7 +98,7 @@ class Variant {
   bool ToStringHelper(String& string_value) const;
 
   boost::variant<
-      boost::blank, bool, int32_t, int64_t, double, ByteString, String, LocalizedText, NodeId, ExtensionObject,
+      boost::blank, bool, int8_t, uint8_t, int32_t, uint32_t, int64_t, double, ByteString, String, QualifiedName, LocalizedText, NodeId, ExtensionObject,
       std::vector<String>,
       std::vector<LocalizedText>,
       std::vector<ExtensionObject>

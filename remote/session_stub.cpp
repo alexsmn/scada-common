@@ -114,9 +114,11 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
     auto& call = request.call();
     if (call.has_device_command()) {
       auto& device_command = call.device_command();
-      OnCall(request_id, FromProto(device_command.node_id()),
+      Variant v;
+      Variant x{v};
+      /*OnCall(request_id, FromProto(device_command.node_id()),
           FromProto(device_command.method_id()),
-          VectorFromProto<Variant>(device_command.argument()));
+          VectorFromProto<Variant>(device_command.argument()));*/
     }
   }
 

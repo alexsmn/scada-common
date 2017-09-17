@@ -10,6 +10,7 @@
 
 #include <opcuapp/structs.h>
 #include <opcuapp/types.h>
+#include <opcuapp/vector.h>
 
 scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class);
 

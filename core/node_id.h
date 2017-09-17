@@ -1,11 +1,10 @@
 #pragma once
 
 #include "base/strings/string_piece.h"
+#include "core/basic_types.h"
 
 #include <boost/variant.hpp>
 #include <cassert>
-#include <opcua_platformdefs.h>
-#include <opcua_builtintypes.h>
 #include <string>
 #include <vector>
 
@@ -13,7 +12,6 @@ namespace scada {
 
 enum class NodeIdType { Numeric, String, Opaque };
 
-using NamespaceIndex = OpcUa_UInt16;
 using NumericId = OpcUa_UInt32;
 using StringId = std::string;
 using ByteString = std::vector<char>;
