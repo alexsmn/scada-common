@@ -24,7 +24,7 @@ NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_decl
   return nullptr;
 }
 
-NodeRef NodeRefImpl::GetAggregate(base::StringPiece aggregate_name) const {
+NodeRef NodeRefImpl::GetAggregate(const scada::QualifiedName& aggregate_name) const {
   if (!fetched_)
     return nullptr;
 
@@ -103,16 +103,16 @@ scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) cons
       return {id_, {}, {}, {}};
 
     case OpcUa_Attributes_BrowseName: {
-      std::string browse_name = fetched_ ? browse_name_ : id_.ToString();
+      scada::QualifiedName browse_name = fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString(), 0};
       return {std::move(browse_name), {}, {}, {}};
     }
 
     case OpcUa_Attributes_DisplayName: {
-      base::string16 display_name;
+      scada::LocalizedText display_name;
       if (!fetched_)
         display_name = base::SysNativeMBToWide(id_.ToString());
       else if (display_name_.empty())
-        display_name = base::SysNativeMBToWide(browse_name_);
+        display_name = base::SysNativeMBToWide(browse_name_.name());
       else
         display_name = display_name_;
       return {std::move(display_name), {}, {}, {}};

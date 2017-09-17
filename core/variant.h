@@ -1,8 +1,7 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
-#include "base/strings/string16.h"
 #include "core/extension_object.h"
+#include "core/localized_text.h"
 #include "core/node_id.h"
 #include "core/qualified_name.h"
 #include "core/string.h"
@@ -14,7 +13,6 @@
 
 namespace scada {
 
-using LocalizedText = base::string16;
 using ByteString = std::vector<char>;
 
 class Variant {
@@ -56,7 +54,7 @@ class Variant {
   int64_t as_int64() const  { return boost::get<int64_t>(data_); }
   double as_double() const  { return boost::get<double>(data_); }
   const String& as_string() const  { return boost::get<String>(data_); }
-  const LocalizedText& as_string16() const  { return boost::get<LocalizedText>(data_); }
+  const LocalizedText& as_localized_text() const  { return boost::get<LocalizedText>(data_); }
   const NodeId& as_node_id() const  { return boost::get<NodeId>(data_); }
 
   template<typename T> const T& get() const { return boost::get<T>(data_); }
@@ -67,18 +65,16 @@ class Variant {
   bool get(int64_t& int64_value) const;
   bool get(double& double_value) const;
   bool get(std::string& string_value) const;
-  bool get(base::StringPiece& string_piece_value) const;
-  bool get(base::string16& string_value) const;
-  bool get(base::StringPiece16& string_piece_value) const;
+  bool get(QualifiedName& value) const;
+  bool get(LocalizedText& value) const;
   bool get(NodeId& node_id) const;
 
   bool get_or(bool or_value) const;
   int32_t get_or(int32_t or_value) const;
   double get_or(double or_value) const;
   std::string get_or(std::string&& or_value) const;
-  base::StringPiece get_or(base::StringPiece&& or_value) const;
-  base::string16 get_or(base::string16&& or_value) const;
-  base::StringPiece16 get_or(base::StringPiece16&& or_value) const;
+  QualifiedName get_or(QualifiedName&& or_value) const;
+  LocalizedText get_or(LocalizedText&& or_value) const;
   NodeId get_or(NodeId&& or_value) const;
 
   Variant& operator=(const Variant& source);
@@ -105,7 +101,7 @@ class Variant {
   > data_;
 };
 
-template<typename T>
+template<class T>
 inline bool Variant::ChangeTypeTo() {
   T value;
   if (!get(value))

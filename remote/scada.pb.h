@@ -887,18 +887,6 @@ class Variant : public ::google::protobuf::Message {
   inline ::std::string* release_string_value();
   inline void set_allocated_string_value(::std::string* string_value);
 
-  // optional bytes localized_string_value = 7;
-  inline bool has_localized_string_value() const;
-  inline void clear_localized_string_value();
-  static const int kLocalizedStringValueFieldNumber = 7;
-  inline const ::std::string& localized_string_value() const;
-  inline void set_localized_string_value(const ::std::string& value);
-  inline void set_localized_string_value(const char* value);
-  inline void set_localized_string_value(const void* value, size_t size);
-  inline ::std::string* mutable_localized_string_value();
-  inline ::std::string* release_localized_string_value();
-  inline void set_allocated_localized_string_value(::std::string* localized_string_value);
-
   // optional .protocol.NodeId node_id_value = 6;
   inline bool has_node_id_value() const;
   inline void clear_node_id_value();
@@ -907,6 +895,18 @@ class Variant : public ::google::protobuf::Message {
   inline ::protocol::NodeId* mutable_node_id_value();
   inline ::protocol::NodeId* release_node_id_value();
   inline void set_allocated_node_id_value(::protocol::NodeId* node_id_value);
+
+  // optional bytes localized_text_value = 7;
+  inline bool has_localized_text_value() const;
+  inline void clear_localized_text_value();
+  static const int kLocalizedTextValueFieldNumber = 7;
+  inline const ::std::string& localized_text_value() const;
+  inline void set_localized_text_value(const ::std::string& value);
+  inline void set_localized_text_value(const char* value);
+  inline void set_localized_text_value(const void* value, size_t size);
+  inline ::std::string* mutable_localized_text_value();
+  inline ::std::string* release_localized_text_value();
+  inline void set_allocated_localized_text_value(::std::string* localized_text_value);
 
   // @@protoc_insertion_point(class_scope:protocol.Variant)
  private:
@@ -920,10 +920,10 @@ class Variant : public ::google::protobuf::Message {
   inline void clear_has_double_value();
   inline void set_has_string_value();
   inline void clear_has_string_value();
-  inline void set_has_localized_string_value();
-  inline void clear_has_localized_string_value();
   inline void set_has_node_id_value();
   inline void clear_has_node_id_value();
+  inline void set_has_localized_text_value();
+  inline void clear_has_localized_text_value();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -934,8 +934,8 @@ class Variant : public ::google::protobuf::Message {
   ::google::protobuf::int64 int64_value_;
   double double_value_;
   ::std::string* string_value_;
-  ::std::string* localized_string_value_;
   ::protocol::NodeId* node_id_value_;
+  ::std::string* localized_text_value_;
   friend void  protobuf_AddDesc_scada_2eproto();
   friend void protobuf_AssignDesc_scada_2eproto();
   friend void protobuf_ShutdownFile_scada_2eproto();
@@ -6042,91 +6042,15 @@ inline void Variant::set_allocated_string_value(::std::string* string_value) {
   // @@protoc_insertion_point(field_set_allocated:protocol.Variant.string_value)
 }
 
-// optional bytes localized_string_value = 7;
-inline bool Variant::has_localized_string_value() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
-}
-inline void Variant::set_has_localized_string_value() {
-  _has_bits_[0] |= 0x00000020u;
-}
-inline void Variant::clear_has_localized_string_value() {
-  _has_bits_[0] &= ~0x00000020u;
-}
-inline void Variant::clear_localized_string_value() {
-  if (localized_string_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    localized_string_value_->clear();
-  }
-  clear_has_localized_string_value();
-}
-inline const ::std::string& Variant::localized_string_value() const {
-  // @@protoc_insertion_point(field_get:protocol.Variant.localized_string_value)
-  return *localized_string_value_;
-}
-inline void Variant::set_localized_string_value(const ::std::string& value) {
-  set_has_localized_string_value();
-  if (localized_string_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    localized_string_value_ = new ::std::string;
-  }
-  localized_string_value_->assign(value);
-  // @@protoc_insertion_point(field_set:protocol.Variant.localized_string_value)
-}
-inline void Variant::set_localized_string_value(const char* value) {
-  set_has_localized_string_value();
-  if (localized_string_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    localized_string_value_ = new ::std::string;
-  }
-  localized_string_value_->assign(value);
-  // @@protoc_insertion_point(field_set_char:protocol.Variant.localized_string_value)
-}
-inline void Variant::set_localized_string_value(const void* value, size_t size) {
-  set_has_localized_string_value();
-  if (localized_string_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    localized_string_value_ = new ::std::string;
-  }
-  localized_string_value_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:protocol.Variant.localized_string_value)
-}
-inline ::std::string* Variant::mutable_localized_string_value() {
-  set_has_localized_string_value();
-  if (localized_string_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    localized_string_value_ = new ::std::string;
-  }
-  // @@protoc_insertion_point(field_mutable:protocol.Variant.localized_string_value)
-  return localized_string_value_;
-}
-inline ::std::string* Variant::release_localized_string_value() {
-  clear_has_localized_string_value();
-  if (localized_string_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    return NULL;
-  } else {
-    ::std::string* temp = localized_string_value_;
-    localized_string_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-    return temp;
-  }
-}
-inline void Variant::set_allocated_localized_string_value(::std::string* localized_string_value) {
-  if (localized_string_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete localized_string_value_;
-  }
-  if (localized_string_value) {
-    set_has_localized_string_value();
-    localized_string_value_ = localized_string_value;
-  } else {
-    clear_has_localized_string_value();
-    localized_string_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  }
-  // @@protoc_insertion_point(field_set_allocated:protocol.Variant.localized_string_value)
-}
-
 // optional .protocol.NodeId node_id_value = 6;
 inline bool Variant::has_node_id_value() const {
-  return (_has_bits_[0] & 0x00000040u) != 0;
+  return (_has_bits_[0] & 0x00000020u) != 0;
 }
 inline void Variant::set_has_node_id_value() {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000020u;
 }
 inline void Variant::clear_has_node_id_value() {
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline void Variant::clear_node_id_value() {
   if (node_id_value_ != NULL) node_id_value_->::protocol::NodeId::Clear();
@@ -6157,6 +6081,82 @@ inline void Variant::set_allocated_node_id_value(::protocol::NodeId* node_id_val
     clear_has_node_id_value();
   }
   // @@protoc_insertion_point(field_set_allocated:protocol.Variant.node_id_value)
+}
+
+// optional bytes localized_text_value = 7;
+inline bool Variant::has_localized_text_value() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void Variant::set_has_localized_text_value() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void Variant::clear_has_localized_text_value() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void Variant::clear_localized_text_value() {
+  if (localized_text_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    localized_text_value_->clear();
+  }
+  clear_has_localized_text_value();
+}
+inline const ::std::string& Variant::localized_text_value() const {
+  // @@protoc_insertion_point(field_get:protocol.Variant.localized_text_value)
+  return *localized_text_value_;
+}
+inline void Variant::set_localized_text_value(const ::std::string& value) {
+  set_has_localized_text_value();
+  if (localized_text_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    localized_text_value_ = new ::std::string;
+  }
+  localized_text_value_->assign(value);
+  // @@protoc_insertion_point(field_set:protocol.Variant.localized_text_value)
+}
+inline void Variant::set_localized_text_value(const char* value) {
+  set_has_localized_text_value();
+  if (localized_text_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    localized_text_value_ = new ::std::string;
+  }
+  localized_text_value_->assign(value);
+  // @@protoc_insertion_point(field_set_char:protocol.Variant.localized_text_value)
+}
+inline void Variant::set_localized_text_value(const void* value, size_t size) {
+  set_has_localized_text_value();
+  if (localized_text_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    localized_text_value_ = new ::std::string;
+  }
+  localized_text_value_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:protocol.Variant.localized_text_value)
+}
+inline ::std::string* Variant::mutable_localized_text_value() {
+  set_has_localized_text_value();
+  if (localized_text_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    localized_text_value_ = new ::std::string;
+  }
+  // @@protoc_insertion_point(field_mutable:protocol.Variant.localized_text_value)
+  return localized_text_value_;
+}
+inline ::std::string* Variant::release_localized_text_value() {
+  clear_has_localized_text_value();
+  if (localized_text_value_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    return NULL;
+  } else {
+    ::std::string* temp = localized_text_value_;
+    localized_text_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    return temp;
+  }
+}
+inline void Variant::set_allocated_localized_text_value(::std::string* localized_text_value) {
+  if (localized_text_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete localized_text_value_;
+  }
+  if (localized_text_value) {
+    set_has_localized_text_value();
+    localized_text_value_ = localized_text_value;
+  } else {
+    clear_has_localized_text_value();
+    localized_text_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_set_allocated:protocol.Variant.localized_text_value)
 }
 
 // -------------------------------------------------------------------

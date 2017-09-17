@@ -9,6 +9,10 @@ scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class) {
   return static_cast<scada::NodeClass>(node_class);
 }
 
+opcua::NodeClass Convert(scada::NodeClass node_class) {
+  return static_cast<opcua::NodeClass>(node_class);
+}
+
 scada::StatusCode ConvertStatusCode(opcua::StatusCode status_code) {
   if (status_code.code() == OpcUa_BadAttributeIdInvalid)
     return scada::StatusCode::Bad_WrongAttributeId;
@@ -100,9 +104,9 @@ scada::Variant ConvertArray(OpcUa_Variant&& source) {
   auto& value = source.Value.Array;
   switch (source.Datatype) {
     case OpcUaType_String:
-      return ConvertVector<std::string>(value.Value.StringArray, value.Value.StringArray + value.Length);
+      return ConvertVector<scada::String>(value.Value.StringArray, value.Value.StringArray + value.Length);
     case OpcUaType_LocalizedText:
-      return ConvertVector<base::string16>(value.Value.LocalizedTextArray, value.Value.LocalizedTextArray + value.Length);
+      return ConvertVector<scada::LocalizedText>(value.Value.LocalizedTextArray, value.Value.LocalizedTextArray + value.Length);
     case OpcUaType_ExtensionObject:
       return ConvertVector<scada::ExtensionObject>(value.Value.ExtensionObjectArray, value.Value.ExtensionObjectArray + value.Length);
     default:
@@ -148,98 +152,111 @@ OpcUa_VariantArrayValue MakeVariantArrayValue(std::vector<scada::ExtensionObject
 
 OpcUa_Variant MakeVariant(scada::Variant&& source) {
   static_assert(scada::Variant::COUNT == 17, "Not all types are declared");
+
   OpcUa_Variant result;
   OpcUa_Variant_Initialize(&result);
+
   switch (source.type()) {
     case scada::Variant::EMPTY:
       result.Datatype = OpcUaType_Null;
       break;
+
     case scada::Variant::BOOL:
       result.Datatype = OpcUaType_Boolean;
       result.Value.Boolean = source.as_bool() ? OpcUa_True : OpcUa_False;
       break;
+
     case scada::Variant::INT8:
       result.Datatype = OpcUaType_SByte;
       result.Value.SByte = source.get<int8_t>();
       break;
+
     case scada::Variant::UINT8:
       result.Datatype = OpcUaType_Byte;
       result.Value.Byte = source.get<uint8_t>();
       break;
+
     case scada::Variant::INT32:
       result.Datatype = OpcUaType_Int32;
       result.Value.Int32 = source.as_int32();
       break;
+
     case scada::Variant::UINT32:
       result.Datatype = OpcUaType_UInt32;
       result.Value.UInt32 = source.get<uint32_t>();
       break;
+
     case scada::Variant::INT64:
       result.Datatype = OpcUaType_Int64;
       result.Value.Int64 = source.as_int64();
       break;
+
     case scada::Variant::DOUBLE:
       result.Datatype = OpcUaType_Double;
       result.Value.Double = source.as_double();
       break;
+
     case scada::Variant::STRING:
       result.Datatype = OpcUaType_String;
       ::OpcUa_String_Initialize(&result.Value.String);
       ::OpcUa_String_AttachCopy(&result.Value.String, const_cast<OpcUa_StringA>(source.as_string().c_str()));
       break;
-    case scada::Variant::QUALIFIED_NAME:
+
+    case scada::Variant::QUALIFIED_NAME: {
+      ::OpcUa_QualifiedName* value = static_cast<::OpcUa_QualifiedName*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_QualifiedName)));
+      ::OpcUa_QualifiedName_Initialize(value);
+      Convert(source.get<scada::QualifiedName>(), *value);
       result.Datatype = OpcUaType_QualifiedName;
-      {
-        ::OpcUa_QualifiedName* qualified_name = static_cast<::OpcUa_QualifiedName*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_QualifiedName)));
-        ::OpcUa_QualifiedName_Initialize(qualified_name);
-        auto& source_name = source.get<scada::QualifiedName>();
-        qualified_name->NamespaceIndex = source_name.namespace_index();
-        ::OpcUa_String_AttachCopy(&qualified_name->Name, const_cast<OpcUa_StringA>(source_name.name().c_str()));
-        result.Value.QualifiedName = qualified_name;
-      }
+      result.Value.QualifiedName = value;
       break;
+    }
       
-    case scada::Variant::LOCALIZED_TEXT:
+    case scada::Variant::LOCALIZED_TEXT: {
+      ::OpcUa_LocalizedText* value = static_cast<::OpcUa_LocalizedText*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_LocalizedText)));
+      ::OpcUa_LocalizedText_Initialize(value);
+      Convert(source.get<scada::LocalizedText>(), *value);
       result.Datatype = OpcUaType_LocalizedText;
-      {
-        ::OpcUa_LocalizedText* localized_text = static_cast<::OpcUa_LocalizedText*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_LocalizedText)));
-        ::OpcUa_LocalizedText_Initialize(localized_text);
-        auto str = base::SysWideToNativeMB(source.as_string16());
-        ::OpcUa_String_AttachCopy(&localized_text->Text, const_cast<OpcUa_StringA>(str.c_str()));
-        result.Value.LocalizedText = localized_text;
-      }
+      result.Value.LocalizedText = value;
       break;
+    }
+
     case scada::Variant::NODE_ID:
       result.Datatype = OpcUaType_NodeId;
       result.Value.NodeId = reinterpret_cast<OpcUa_NodeId*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_NodeId)));
       *result.Value.NodeId = Convert(source.as_node_id());
       break;
+
     case scada::Variant::EXTENSION_OBJECT:
       result.Datatype = OpcUaType_ExtensionObject;
       ::OpcUa_ExtensionObject_Create(&result.Value.ExtensionObject);
       *result.Value.ExtensionObject = source.get<scada::ExtensionObject>().release();
       break;
+
     case scada::Variant::BYTE_STRING: {
       result.Datatype = OpcUaType_ByteString;
       auto& byte_string = source.get<scada::ByteString>();
       result.Value.ByteString = opcua::ByteString{byte_string.data(), byte_string.size()}.release();
       break;
     }
+
     case scada::Variant::VECTOR_STRING:
       result.Datatype = OpcUaType_String;
       result.ArrayType = OpcUa_VariantArrayType_Array;
       result.Value.Array = MakeVariantArrayValue(source.get<std::vector<scada::String>>());
       break;
+
     case scada::Variant::VECTOR_EXTENSION_OBJECT:
       result.Datatype = OpcUaType_ExtensionObject;
       result.ArrayType = OpcUa_VariantArrayType_Array;
       result.Value.Array = MakeVariantArrayValue(std::move(source.get<std::vector<scada::ExtensionObject>>()));
       break;
+
     default:
       assert(false);
       result.Datatype = OpcUaType_Null;
       break;
   }
+
   return result;
 }
 
@@ -479,14 +496,30 @@ scada::String Convert(const opcua::String& source) {
   return source.raw_string();
 }
 
+void Convert(const scada::String& source, OpcUa_String& target) {
+  ::OpcUa_String_AttachCopy(&target, const_cast<OpcUa_StringA>(source.c_str()));
+}
+
+scada::QualifiedName Convert(const opcua::QualifiedName& source) {
+  return {
+      Convert(source.name()),
+      static_cast<scada::NamespaceIndex>(source.namespace_index()),
+  };
+}
+
+void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target) {
+  target.NamespaceIndex = static_cast<opcua::NamespaceIndex>(source.namespace_index());
+  Convert(source.name(), target.Name);
+}
+
 scada::LocalizedText Convert(const opcua::LocalizedText& source) {
   return base::SysNativeMBToWide(OpcUa_String_GetRawString(&source.text()));
 }
 
-scada::String Convert(const opcua::QualifiedName& source) {
-  return Convert(source.name());
+void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target) {
+  ::OpcUa_String_Clear(&target.Locale);
+  Convert(base::SysWideToNativeMB(source.text()), target.Text);
 }
-
 
 scada::ByteString Convert(const OpcUa_ByteString& source) {
   if (source.Length <= 0)

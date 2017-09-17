@@ -33,17 +33,17 @@ class AttributeSet {
 
 class NodeAttributes : public AttributeSet  {
  public:
-  std::string& browse_name() { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
-  const std::string& browse_name() const { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
-  NodeAttributes& set_browse_name(std::string value) {
+  QualifiedName& browse_name() { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
+  const QualifiedName& browse_name() const { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
+  NodeAttributes& set_browse_name(QualifiedName value) {
     browse_name_ = std::move(value);
     Add(OpcUa_Attributes_BrowseName);
     return *this;
   }
 
-  base::string16& display_name() { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
-  const base::string16& display_name() const { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
-  NodeAttributes& set_display_name(base::string16 value) {
+  LocalizedText& display_name() { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
+  const LocalizedText& display_name() const { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
+  NodeAttributes& set_display_name(LocalizedText value) {
     display_name_ = std::move(value);
     Add(OpcUa_Attributes_DisplayName);
     return *this;
@@ -65,8 +65,8 @@ class NodeAttributes : public AttributeSet  {
   }
 
  private:
-  std::string browse_name_;
-  base::string16 display_name_;
+  QualifiedName browse_name_;
+  LocalizedText display_name_;
   NodeId data_type_id_;
   Variant value_;
 };

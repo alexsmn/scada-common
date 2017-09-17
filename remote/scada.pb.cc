@@ -252,8 +252,8 @@ void protobuf_AssignDesc_scada_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, int64_value_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, double_value_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, string_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, localized_string_value_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, node_id_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Variant, localized_text_value_),
   };
   Variant_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -1194,170 +1194,170 @@ void protobuf_AddDesc_scada_2eproto() {
     "\006\n\002HI\020\002\022\010\n\004LOLO\020\003\022\010\n\004HIHI\020\004\"[\n\006NodeId\022\027\n"
     "\017namespace_index\030\001 \001(\r\022\022\n\nnumeric_id\030\002 \001"
     "(\r\022\021\n\tstring_id\030\003 \001(\t\022\021\n\topaque_id\030\004 \001(\014"
-    "\"\274\001\n\007Variant\022\022\n\nbool_value\030\001 \001(\010\022\023\n\013int3"
+    "\"\272\001\n\007Variant\022\022\n\nbool_value\030\001 \001(\010\022\023\n\013int3"
     "2_value\030\002 \001(\005\022\023\n\013int64_value\030\003 \001(\003\022\024\n\014do"
-    "uble_value\030\004 \001(\001\022\024\n\014string_value\030\005 \001(\014\022\036"
-    "\n\026localized_string_value\030\007 \001(\014\022\'\n\rnode_i"
-    "d_value\030\006 \001(\0132\020.protocol.NodeId\"\211\001\n\tData"
-    "Value\022\030\n\020server_timestamp\030\001 \002(\004\022\030\n\020sourc"
-    "e_timestamp\030\002 \001(\004\022 \n\005value\030\003 \001(\0132\021.proto"
-    "col.Variant\022\021\n\tqualifier\030\004 \002(\r\022\023\n\013status"
-    "_code\030\005 \001(\r\"\321\002\n\005Event\022\031\n\021monitored_item_"
-    "id\030\001 \001(\r\022\014\n\004time\030\002 \002(\004\022\020\n\010severity\030\003 \002(\r"
-    "\022(\n\016source_node_id\030\004 \001(\0132\020.protocol.Node"
-    "Id\022&\n\014user_node_id\030\005 \001(\0132\020.protocol.Node"
-    "Id\022 \n\005value\030\006 \001(\0132\021.protocol.Variant\022\021\n\t"
-    "qualifier\030\007 \001(\r\022\017\n\007message\030\010 \001(\014\022\024\n\014ackn"
-    "owledged\030\t \001(\010\022\026\n\016acknowledge_id\030\n \001(\004\022\030"
-    "\n\020acknowledge_time\030\013 \001(\004\022-\n\023acknowledge_"
-    "user_id\030\014 \001(\0132\020.protocol.NodeId\"\215\001\n\rCrea"
-    "teSession\022\021\n\tuser_name\030\001 \002(\014\022\020\n\010password"
-    "\030\002 \001(\014\022\027\n\017delete_existing\030\003 \001(\010\022\036\n\026proto"
-    "col_version_major\030\004 \002(\r\022\036\n\026protocol_vers"
-    "ion_minor\030\005 \002(\r\"\241\001\n\023CreateSessionResult\022"
-    "\r\n\005token\030\001 \001(\t\022&\n\014user_node_id\030\002 \001(\0132\020.p"
-    "rotocol.NodeId\022\023\n\013user_rights\030\003 \001(\r\022\036\n\026p"
-    "rotocol_version_major\030\004 \002(\r\022\036\n\026protocol_"
-    "version_minor\030\005 \002(\r\"\036\n\rDeleteSession\022\r\n\005"
-    "token\030\001 \001(\t\"\361\001\n\004Node\022!\n\007node_id\030\001 \002(\0132\020."
-    "protocol.NodeId\022!\n\007type_id\030\002 \001(\0132\020.proto"
-    "col.NodeId\022\'\n\nnode_class\030\003 \001(\0162\023.protoco"
-    "l.NodeClass\022(\n\nattributes\030\005 \001(\0132\024.protoc"
-    "ol.Attributes\022#\n\tparent_id\030\006 \001(\0132\020.proto"
-    "col.NodeId\022+\n\021reference_type_id\030\007 \001(\0132\020."
-    "protocol.NodeId\"\324\001\n\nCreateNode\022+\n\021reques"
-    "ted_node_id\030\001 \001(\0132\020.protocol.NodeId\022!\n\007t"
-    "ype_id\030\002 \002(\0132\020.protocol.NodeId\022#\n\tparent"
-    "_id\030\003 \002(\0132\020.protocol.NodeId\022\'\n\nnode_clas"
-    "s\030\005 \002(\0162\023.protocol.NodeClass\022(\n\nattribut"
-    "es\030\006 \001(\0132\024.protocol.Attributes\"5\n\020Create"
-    "NodeResult\022!\n\007node_id\030\001 \002(\0132\020.protocol.N"
-    "odeId\"J\n\nDeleteNode\022!\n\007node_id\030\002 \002(\0132\020.p"
-    "rotocol.NodeId\022\031\n\021return_references\030\n \001("
-    "\010\"8\n\020DeleteNodeResult\022$\n\nreferences\030\001 \003("
-    "\0132\020.protocol.NodeId\"Y\n\nModifyNode\022!\n\007nod"
-    "e_id\030\001 \002(\0132\020.protocol.NodeId\022(\n\nattribut"
-    "es\030\002 \001(\0132\024.protocol.Attributes\"\202\001\n\tRefer"
-    "ence\022+\n\021reference_type_id\030\001 \002(\0132\020.protoc"
-    "ol.NodeId\022#\n\tsource_id\030\002 \002(\0132\020.protocol."
-    "NodeId\022#\n\ttarget_id\030\003 \002(\0132\020.protocol.Nod"
-    "eId\"h\n\016ChangePassword\022&\n\014user_node_id\030\001 "
-    "\002(\0132\020.protocol.NodeId\022\030\n\020current_passwor"
-    "d\030\002 \002(\014\022\024\n\014new_password\030\003 \002(\014\"]\n\013ReadVal"
-    "ueId\022!\n\007node_id\030\001 \002(\0132\020.protocol.NodeId\022"
-    "+\n\014attribute_id\030\002 \002(\0162\025.protocol.Attribu"
-    "teId\"/\n\004Read\022\'\n\010value_id\030\001 \003(\0132\025.protoco"
-    "l.ReadValueId\"3\n\014ReadResponse\022#\n\006result\030"
-    "\001 \003(\0132\023.protocol.DataValue\"I\n\005Write\022!\n\007n"
-    "ode_id\030\001 \002(\0132\020.protocol.NodeId\022\r\n\005value\030"
-    "\002 \002(\001\022\016\n\006select\030\005 \001(\010\"|\n\rDeviceCommand\022!"
-    "\n\007node_id\030\001 \002(\0132\020.protocol.NodeId\022#\n\tmet"
-    "hod_id\030\002 \002(\0132\020.protocol.NodeId\022#\n\010argume"
-    "nt\030\003 \003(\0132\021.protocol.Variant\"0\n\013Acknowled"
-    "ge\022\020\n\010event_id\030\001 \002(\004\022\017\n\007comment\030\002 \001(\014\"c\n"
-    "\004Call\022/\n\016device_command\030\001 \001(\0132\027.protocol"
-    ".DeviceCommand\022*\n\013acknowledge\030\002 \001(\0132\025.pr"
-    "otocol.Acknowledge\"-\n\013EventFilter\022\r\n\005ack"
-    "ed\030\001 \001(\010\022\017\n\007unacked\030\002 \001(\010\"\244\001\n\013HistoryRea"
-    "d\022!\n\007node_id\030\001 \002(\0132\020.protocol.NodeId\022+\n\014"
-    "attribute_id\030\002 \002(\0162\025.protocol.AttributeI"
-    "d\022\014\n\004from\030\003 \002(\004\022\n\n\002to\030\004 \001(\004\022+\n\014event_fil"
-    "ter\030\005 \001(\0132\025.protocol.EventFilter\"Y\n\021Hist"
-    "oryReadResult\022#\n\006values\030\001 \003(\0132\023.protocol"
-    ".DataValue\022\037\n\006events\030\002 \003(\0132\017.protocol.Ev"
-    "ent\"Y\n\022CreateSubscription\022\026\n\016update_rate"
-    "_ms\030\001 \001(\r\022+\n\014event_filter\030\002 \001(\0132\025.protoc"
-    "ol.EventFilter\"3\n\030CreateSubscriptionResu"
-    "lt\022\027\n\017subscription_id\030\001 \001(\r\"-\n\022DeleteSub"
-    "scription\022\027\n\017subscription_id\030\001 \002(\r\"~\n\023Cr"
-    "eateMonitoredItem\022\027\n\017subscription_id\030\001 \002"
-    "(\r\022!\n\007node_id\030\002 \002(\0132\020.protocol.NodeId\022+\n"
-    "\014attribute_id\030\003 \002(\0162\025.protocol.Attribute"
-    "Id\"6\n\031CreateMonitoredItemResult\022\031\n\021monit"
-    "ored_item_id\030\025 \001(\r\"I\n\023DeleteMonitoredIte"
-    "m\022\027\n\017subscription_id\030\001 \002(\r\022\031\n\021monitored_"
-    "item_id\030\002 \002(\r\"\253\001\n\021BrowseDescription\022!\n\007n"
-    "ode_id\030\001 \002(\0132\020.protocol.NodeId\022,\n\tdirect"
-    "ion\030\002 \001(\0162\031.protocol.BrowseDirection\022+\n\021"
-    "reference_type_id\030\003 \001(\0132\020.protocol.NodeI"
-    "d\022\030\n\020include_subtypes\030\004 \001(\010\"4\n\006Browse\022*\n"
-    "\005nodes\030\001 \003(\0132\033.protocol.BrowseDescriptio"
-    "n\"w\n\024ReferenceDescription\022+\n\021reference_t"
-    "ype_id\030\001 \002(\0132\020.protocol.NodeId\022\017\n\007forwar"
-    "d\030\002 \002(\010\022!\n\007node_id\030\003 \002(\0132\020.protocol.Node"
-    "Id\"W\n\014BrowseResult\022\023\n\013status_code\030\001 \001(\r\022"
-    "2\n\nreferences\030\002 \003(\0132\036.protocol.Reference"
-    "Description\"[\n\016BrowseResponse\022 \n\006status\030"
-    "\001 \002(\0132\020.protocol.Status\022\'\n\007results\030\002 \003(\013"
-    "2\026.protocol.BrowseResult\"\253\006\n\007Request\022\022\n\n"
-    "request_id\030\001 \001(\r\022/\n\016create_session\030\n \001(\013"
-    "2\027.protocol.CreateSession\022/\n\016delete_sess"
-    "ion\030\013 \001(\0132\027.protocol.DeleteSession\022\034\n\004re"
-    "ad\030\016 \001(\0132\016.protocol.Read\022\036\n\005write\030\014 \001(\0132"
-    "\017.protocol.Write\022\034\n\004call\030\r \001(\0132\016.protoco"
-    "l.Call\0229\n\023create_subscription\030\024 \001(\0132\034.pr"
-    "otocol.CreateSubscription\0229\n\023delete_subs"
-    "cription\030\025 \001(\0132\034.protocol.DeleteSubscrip"
-    "tion\022<\n\025create_monitored_item\030\036 \001(\0132\035.pr"
-    "otocol.CreateMonitoredItem\022<\n\025delete_mon"
-    "itored_item\030\037 \001(\0132\035.protocol.DeleteMonit"
-    "oredItem\022+\n\014history_read\030( \001(\0132\025.protoco"
-    "l.HistoryRead\022)\n\013create_node\0302 \001(\0132\024.pro"
-    "tocol.CreateNode\022)\n\013delete_node\0303 \001(\0132\024."
-    "protocol.DeleteNode\022)\n\013modify_node\0304 \003(\013"
-    "2\024.protocol.ModifyNode\022*\n\radd_reference\030"
-    "6 \001(\0132\023.protocol.Reference\022-\n\020delete_ref"
-    "erence\0307 \001(\0132\023.protocol.Reference\0221\n\017cha"
-    "nge_password\0305 \001(\0132\030.protocol.ChangePass"
-    "word\022 \n\006browse\030< \001(\0132\020.protocol.Browse\"\213"
-    "\004\n\010Response\022\022\n\nrequest_id\030\001 \002(\r\022 \n\006statu"
-    "s\030\002 \003(\0132\020.protocol.Status\022<\n\025create_sess"
-    "ion_result\030\n \001(\0132\035.protocol.CreateSessio"
-    "nResult\022$\n\004read\030\016 \001(\0132\026.protocol.ReadRes"
-    "ponse\022F\n\032create_subscription_result\030\024 \001("
-    "\0132\".protocol.CreateSubscriptionResult\022I\n"
-    "\034create_monitored_item_result\030\036 \001(\0132#.pr"
-    "otocol.CreateMonitoredItemResult\0228\n\023hist"
-    "ory_read_result\030( \001(\0132\033.protocol.History"
-    "ReadResult\0226\n\022create_node_result\0302 \001(\0132\032"
-    ".protocol.CreateNodeResult\0226\n\022delete_nod"
-    "e_result\0303 \001(\0132\032.protocol.DeleteNodeResu"
-    "lt\022(\n\006browse\030< \001(\0132\030.protocol.BrowseResp"
-    "onse\"P\n\nDataChange\022\031\n\021monitored_item_id\030"
-    "\001 \002(\r\022\'\n\ndata_value\030\002 \002(\0132\023.protocol.Dat"
-    "aValue\"\020\n\016SessionDeleted\"\220\003\n\014Notificatio"
-    "n\022\027\n\017subscription_id\030\001 \001(\r\022*\n\014data_chang"
-    "es\030\002 \003(\0132\024.protocol.DataChange\022\'\n\radded_"
-    "node_id\030\003 \003(\0132\020.protocol.NodeId\022)\n\017delet"
-    "ed_node_id\030\004 \003(\0132\020.protocol.NodeId\0223\n\031se"
-    "mantics_changed_node_id\030\005 \003(\0132\020.protocol"
-    ".NodeId\022-\n\020added_references\030\006 \003(\0132\023.prot"
-    "ocol.Reference\022/\n\022deleted_references\030\007 \003"
-    "(\0132\023.protocol.Reference\022\037\n\006events\030\010 \003(\0132"
-    "\017.protocol.Event\0221\n\017session_deleted\030\t \001("
-    "\0132\030.protocol.SessionDeleted\"\204\001\n\007Message\022"
-    "-\n\rnotifications\030\001 \003(\0132\026.protocol.Notifi"
-    "cation\022#\n\010requests\030\002 \003(\0132\021.protocol.Requ"
-    "est\022%\n\tresponses\030\003 \003(\0132\022.protocol.Respon"
-    "se*2\n\024ProtocolVersionMajor\022\032\n\026PROTOCOL_V"
-    "ERSION_MAJOR\020\003*2\n\024ProtocolVersionMinor\022\032"
-    "\n\026PROTOCOL_VERSION_MINOR\020\000*\?\n\016ConstantNo"
-    "deId\022\010\n\004ROOT\020\r\022\t\n\005TYPES\020\017\022\013\n\007OBJECTS\020d\022\013"
-    "\n\007DEVICES\020m*\217\003\n\013AttributeId\022\013\n\007NODE_ID\020\001"
-    "\022\016\n\nNODE_CLASS\020\002\022\017\n\013BROWSE_NAME\020\003\022\020\n\014DIS"
-    "PLAY_NAME\020\004\022\017\n\013DESCRIPTION\020\005\022\r\n\tWriteMas"
-    "k\020\006\022\021\n\rUserWriteMask\020\007\022\016\n\nIsAbstract\020\010\022\r"
-    "\n\tSymmetric\020\t\022\017\n\013InverseName\020\n\022\023\n\017Contai"
-    "nsNoLoops\020\013\022\022\n\016EVENT_NOTIFIER\020\014\022\t\n\005VALUE"
-    "\020\r\022\r\n\tDATA_TYPE\020\016\022\r\n\tValueRank\020\017\022\023\n\017Arra"
-    "yDimensions\020\020\022\017\n\013AccessLevel\020\021\022\023\n\017UserAc"
-    "cessLevel\020\022\022\033\n\027MinimumSamplingInterval\020\023"
-    "\022\017\n\013Historizing\020\024\022\016\n\nExecutable\020\025\022\022\n\016Use"
-    "rExecutable\020\026*\177\n\tNodeClass\022\n\n\006Object\020\001\022\014"
-    "\n\010Variable\020\002\022\n\n\006Method\020\004\022\016\n\nObjectType\020\010"
-    "\022\020\n\014VariableType\020\020\022\021\n\rReferenceType\020 \022\014\n"
-    "\010DataType\020@\022\t\n\004View\020\200\001*5\n\017BrowseDirectio"
-    "n\022\013\n\007FORWARD\020\000\022\013\n\007INVERSE\020\001\022\010\n\004BOTH\020\002", 7277);
+    "uble_value\030\004 \001(\001\022\024\n\014string_value\030\005 \001(\014\022\'"
+    "\n\rnode_id_value\030\006 \001(\0132\020.protocol.NodeId\022"
+    "\034\n\024localized_text_value\030\007 \001(\014\"\211\001\n\tDataVa"
+    "lue\022\030\n\020server_timestamp\030\001 \002(\004\022\030\n\020source_"
+    "timestamp\030\002 \001(\004\022 \n\005value\030\003 \001(\0132\021.protoco"
+    "l.Variant\022\021\n\tqualifier\030\004 \002(\r\022\023\n\013status_c"
+    "ode\030\005 \001(\r\"\321\002\n\005Event\022\031\n\021monitored_item_id"
+    "\030\001 \001(\r\022\014\n\004time\030\002 \002(\004\022\020\n\010severity\030\003 \002(\r\022("
+    "\n\016source_node_id\030\004 \001(\0132\020.protocol.NodeId"
+    "\022&\n\014user_node_id\030\005 \001(\0132\020.protocol.NodeId"
+    "\022 \n\005value\030\006 \001(\0132\021.protocol.Variant\022\021\n\tqu"
+    "alifier\030\007 \001(\r\022\017\n\007message\030\010 \001(\014\022\024\n\014acknow"
+    "ledged\030\t \001(\010\022\026\n\016acknowledge_id\030\n \001(\004\022\030\n\020"
+    "acknowledge_time\030\013 \001(\004\022-\n\023acknowledge_us"
+    "er_id\030\014 \001(\0132\020.protocol.NodeId\"\215\001\n\rCreate"
+    "Session\022\021\n\tuser_name\030\001 \002(\014\022\020\n\010password\030\002"
+    " \001(\014\022\027\n\017delete_existing\030\003 \001(\010\022\036\n\026protoco"
+    "l_version_major\030\004 \002(\r\022\036\n\026protocol_versio"
+    "n_minor\030\005 \002(\r\"\241\001\n\023CreateSessionResult\022\r\n"
+    "\005token\030\001 \001(\t\022&\n\014user_node_id\030\002 \001(\0132\020.pro"
+    "tocol.NodeId\022\023\n\013user_rights\030\003 \001(\r\022\036\n\026pro"
+    "tocol_version_major\030\004 \002(\r\022\036\n\026protocol_ve"
+    "rsion_minor\030\005 \002(\r\"\036\n\rDeleteSession\022\r\n\005to"
+    "ken\030\001 \001(\t\"\361\001\n\004Node\022!\n\007node_id\030\001 \002(\0132\020.pr"
+    "otocol.NodeId\022!\n\007type_id\030\002 \001(\0132\020.protoco"
+    "l.NodeId\022\'\n\nnode_class\030\003 \001(\0162\023.protocol."
+    "NodeClass\022(\n\nattributes\030\005 \001(\0132\024.protocol"
+    ".Attributes\022#\n\tparent_id\030\006 \001(\0132\020.protoco"
+    "l.NodeId\022+\n\021reference_type_id\030\007 \001(\0132\020.pr"
+    "otocol.NodeId\"\324\001\n\nCreateNode\022+\n\021requeste"
+    "d_node_id\030\001 \001(\0132\020.protocol.NodeId\022!\n\007typ"
+    "e_id\030\002 \002(\0132\020.protocol.NodeId\022#\n\tparent_i"
+    "d\030\003 \002(\0132\020.protocol.NodeId\022\'\n\nnode_class\030"
+    "\005 \002(\0162\023.protocol.NodeClass\022(\n\nattributes"
+    "\030\006 \001(\0132\024.protocol.Attributes\"5\n\020CreateNo"
+    "deResult\022!\n\007node_id\030\001 \002(\0132\020.protocol.Nod"
+    "eId\"J\n\nDeleteNode\022!\n\007node_id\030\002 \002(\0132\020.pro"
+    "tocol.NodeId\022\031\n\021return_references\030\n \001(\010\""
+    "8\n\020DeleteNodeResult\022$\n\nreferences\030\001 \003(\0132"
+    "\020.protocol.NodeId\"Y\n\nModifyNode\022!\n\007node_"
+    "id\030\001 \002(\0132\020.protocol.NodeId\022(\n\nattributes"
+    "\030\002 \001(\0132\024.protocol.Attributes\"\202\001\n\tReferen"
+    "ce\022+\n\021reference_type_id\030\001 \002(\0132\020.protocol"
+    ".NodeId\022#\n\tsource_id\030\002 \002(\0132\020.protocol.No"
+    "deId\022#\n\ttarget_id\030\003 \002(\0132\020.protocol.NodeI"
+    "d\"h\n\016ChangePassword\022&\n\014user_node_id\030\001 \002("
+    "\0132\020.protocol.NodeId\022\030\n\020current_password\030"
+    "\002 \002(\014\022\024\n\014new_password\030\003 \002(\014\"]\n\013ReadValue"
+    "Id\022!\n\007node_id\030\001 \002(\0132\020.protocol.NodeId\022+\n"
+    "\014attribute_id\030\002 \002(\0162\025.protocol.Attribute"
+    "Id\"/\n\004Read\022\'\n\010value_id\030\001 \003(\0132\025.protocol."
+    "ReadValueId\"3\n\014ReadResponse\022#\n\006result\030\001 "
+    "\003(\0132\023.protocol.DataValue\"I\n\005Write\022!\n\007nod"
+    "e_id\030\001 \002(\0132\020.protocol.NodeId\022\r\n\005value\030\002 "
+    "\002(\001\022\016\n\006select\030\005 \001(\010\"|\n\rDeviceCommand\022!\n\007"
+    "node_id\030\001 \002(\0132\020.protocol.NodeId\022#\n\tmetho"
+    "d_id\030\002 \002(\0132\020.protocol.NodeId\022#\n\010argument"
+    "\030\003 \003(\0132\021.protocol.Variant\"0\n\013Acknowledge"
+    "\022\020\n\010event_id\030\001 \002(\004\022\017\n\007comment\030\002 \001(\014\"c\n\004C"
+    "all\022/\n\016device_command\030\001 \001(\0132\027.protocol.D"
+    "eviceCommand\022*\n\013acknowledge\030\002 \001(\0132\025.prot"
+    "ocol.Acknowledge\"-\n\013EventFilter\022\r\n\005acked"
+    "\030\001 \001(\010\022\017\n\007unacked\030\002 \001(\010\"\244\001\n\013HistoryRead\022"
+    "!\n\007node_id\030\001 \002(\0132\020.protocol.NodeId\022+\n\014at"
+    "tribute_id\030\002 \002(\0162\025.protocol.AttributeId\022"
+    "\014\n\004from\030\003 \002(\004\022\n\n\002to\030\004 \001(\004\022+\n\014event_filte"
+    "r\030\005 \001(\0132\025.protocol.EventFilter\"Y\n\021Histor"
+    "yReadResult\022#\n\006values\030\001 \003(\0132\023.protocol.D"
+    "ataValue\022\037\n\006events\030\002 \003(\0132\017.protocol.Even"
+    "t\"Y\n\022CreateSubscription\022\026\n\016update_rate_m"
+    "s\030\001 \001(\r\022+\n\014event_filter\030\002 \001(\0132\025.protocol"
+    ".EventFilter\"3\n\030CreateSubscriptionResult"
+    "\022\027\n\017subscription_id\030\001 \001(\r\"-\n\022DeleteSubsc"
+    "ription\022\027\n\017subscription_id\030\001 \002(\r\"~\n\023Crea"
+    "teMonitoredItem\022\027\n\017subscription_id\030\001 \002(\r"
+    "\022!\n\007node_id\030\002 \002(\0132\020.protocol.NodeId\022+\n\014a"
+    "ttribute_id\030\003 \002(\0162\025.protocol.AttributeId"
+    "\"6\n\031CreateMonitoredItemResult\022\031\n\021monitor"
+    "ed_item_id\030\025 \001(\r\"I\n\023DeleteMonitoredItem\022"
+    "\027\n\017subscription_id\030\001 \002(\r\022\031\n\021monitored_it"
+    "em_id\030\002 \002(\r\"\253\001\n\021BrowseDescription\022!\n\007nod"
+    "e_id\030\001 \002(\0132\020.protocol.NodeId\022,\n\tdirectio"
+    "n\030\002 \001(\0162\031.protocol.BrowseDirection\022+\n\021re"
+    "ference_type_id\030\003 \001(\0132\020.protocol.NodeId\022"
+    "\030\n\020include_subtypes\030\004 \001(\010\"4\n\006Browse\022*\n\005n"
+    "odes\030\001 \003(\0132\033.protocol.BrowseDescription\""
+    "w\n\024ReferenceDescription\022+\n\021reference_typ"
+    "e_id\030\001 \002(\0132\020.protocol.NodeId\022\017\n\007forward\030"
+    "\002 \002(\010\022!\n\007node_id\030\003 \002(\0132\020.protocol.NodeId"
+    "\"W\n\014BrowseResult\022\023\n\013status_code\030\001 \001(\r\0222\n"
+    "\nreferences\030\002 \003(\0132\036.protocol.ReferenceDe"
+    "scription\"[\n\016BrowseResponse\022 \n\006status\030\001 "
+    "\002(\0132\020.protocol.Status\022\'\n\007results\030\002 \003(\0132\026"
+    ".protocol.BrowseResult\"\253\006\n\007Request\022\022\n\nre"
+    "quest_id\030\001 \001(\r\022/\n\016create_session\030\n \001(\0132\027"
+    ".protocol.CreateSession\022/\n\016delete_sessio"
+    "n\030\013 \001(\0132\027.protocol.DeleteSession\022\034\n\004read"
+    "\030\016 \001(\0132\016.protocol.Read\022\036\n\005write\030\014 \001(\0132\017."
+    "protocol.Write\022\034\n\004call\030\r \001(\0132\016.protocol."
+    "Call\0229\n\023create_subscription\030\024 \001(\0132\034.prot"
+    "ocol.CreateSubscription\0229\n\023delete_subscr"
+    "iption\030\025 \001(\0132\034.protocol.DeleteSubscripti"
+    "on\022<\n\025create_monitored_item\030\036 \001(\0132\035.prot"
+    "ocol.CreateMonitoredItem\022<\n\025delete_monit"
+    "ored_item\030\037 \001(\0132\035.protocol.DeleteMonitor"
+    "edItem\022+\n\014history_read\030( \001(\0132\025.protocol."
+    "HistoryRead\022)\n\013create_node\0302 \001(\0132\024.proto"
+    "col.CreateNode\022)\n\013delete_node\0303 \001(\0132\024.pr"
+    "otocol.DeleteNode\022)\n\013modify_node\0304 \003(\0132\024"
+    ".protocol.ModifyNode\022*\n\radd_reference\0306 "
+    "\001(\0132\023.protocol.Reference\022-\n\020delete_refer"
+    "ence\0307 \001(\0132\023.protocol.Reference\0221\n\017chang"
+    "e_password\0305 \001(\0132\030.protocol.ChangePasswo"
+    "rd\022 \n\006browse\030< \001(\0132\020.protocol.Browse\"\213\004\n"
+    "\010Response\022\022\n\nrequest_id\030\001 \002(\r\022 \n\006status\030"
+    "\002 \003(\0132\020.protocol.Status\022<\n\025create_sessio"
+    "n_result\030\n \001(\0132\035.protocol.CreateSessionR"
+    "esult\022$\n\004read\030\016 \001(\0132\026.protocol.ReadRespo"
+    "nse\022F\n\032create_subscription_result\030\024 \001(\0132"
+    "\".protocol.CreateSubscriptionResult\022I\n\034c"
+    "reate_monitored_item_result\030\036 \001(\0132#.prot"
+    "ocol.CreateMonitoredItemResult\0228\n\023histor"
+    "y_read_result\030( \001(\0132\033.protocol.HistoryRe"
+    "adResult\0226\n\022create_node_result\0302 \001(\0132\032.p"
+    "rotocol.CreateNodeResult\0226\n\022delete_node_"
+    "result\0303 \001(\0132\032.protocol.DeleteNodeResult"
+    "\022(\n\006browse\030< \001(\0132\030.protocol.BrowseRespon"
+    "se\"P\n\nDataChange\022\031\n\021monitored_item_id\030\001 "
+    "\002(\r\022\'\n\ndata_value\030\002 \002(\0132\023.protocol.DataV"
+    "alue\"\020\n\016SessionDeleted\"\220\003\n\014Notification\022"
+    "\027\n\017subscription_id\030\001 \001(\r\022*\n\014data_changes"
+    "\030\002 \003(\0132\024.protocol.DataChange\022\'\n\radded_no"
+    "de_id\030\003 \003(\0132\020.protocol.NodeId\022)\n\017deleted"
+    "_node_id\030\004 \003(\0132\020.protocol.NodeId\0223\n\031sema"
+    "ntics_changed_node_id\030\005 \003(\0132\020.protocol.N"
+    "odeId\022-\n\020added_references\030\006 \003(\0132\023.protoc"
+    "ol.Reference\022/\n\022deleted_references\030\007 \003(\013"
+    "2\023.protocol.Reference\022\037\n\006events\030\010 \003(\0132\017."
+    "protocol.Event\0221\n\017session_deleted\030\t \001(\0132"
+    "\030.protocol.SessionDeleted\"\204\001\n\007Message\022-\n"
+    "\rnotifications\030\001 \003(\0132\026.protocol.Notifica"
+    "tion\022#\n\010requests\030\002 \003(\0132\021.protocol.Reques"
+    "t\022%\n\tresponses\030\003 \003(\0132\022.protocol.Response"
+    "*2\n\024ProtocolVersionMajor\022\032\n\026PROTOCOL_VER"
+    "SION_MAJOR\020\003*2\n\024ProtocolVersionMinor\022\032\n\026"
+    "PROTOCOL_VERSION_MINOR\020\000*\?\n\016ConstantNode"
+    "Id\022\010\n\004ROOT\020\r\022\t\n\005TYPES\020\017\022\013\n\007OBJECTS\020d\022\013\n\007"
+    "DEVICES\020m*\217\003\n\013AttributeId\022\013\n\007NODE_ID\020\001\022\016"
+    "\n\nNODE_CLASS\020\002\022\017\n\013BROWSE_NAME\020\003\022\020\n\014DISPL"
+    "AY_NAME\020\004\022\017\n\013DESCRIPTION\020\005\022\r\n\tWriteMask\020"
+    "\006\022\021\n\rUserWriteMask\020\007\022\016\n\nIsAbstract\020\010\022\r\n\t"
+    "Symmetric\020\t\022\017\n\013InverseName\020\n\022\023\n\017Contains"
+    "NoLoops\020\013\022\022\n\016EVENT_NOTIFIER\020\014\022\t\n\005VALUE\020\r"
+    "\022\r\n\tDATA_TYPE\020\016\022\r\n\tValueRank\020\017\022\023\n\017ArrayD"
+    "imensions\020\020\022\017\n\013AccessLevel\020\021\022\023\n\017UserAcce"
+    "ssLevel\020\022\022\033\n\027MinimumSamplingInterval\020\023\022\017"
+    "\n\013Historizing\020\024\022\016\n\nExecutable\020\025\022\022\n\016UserE"
+    "xecutable\020\026*\177\n\tNodeClass\022\n\n\006Object\020\001\022\014\n\010"
+    "Variable\020\002\022\n\n\006Method\020\004\022\016\n\nObjectType\020\010\022\020"
+    "\n\014VariableType\020\020\022\021\n\rReferenceType\020 \022\014\n\010D"
+    "ataType\020@\022\t\n\004View\020\200\001*5\n\017BrowseDirection\022"
+    "\013\n\007FORWARD\020\000\022\013\n\007INVERSE\020\001\022\010\n\004BOTH\020\002", 7275);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "scada.proto", &protobuf_RegisterTypes);
   Attributes::default_instance_ = new Attributes();
@@ -2969,8 +2969,8 @@ const int Variant::kInt32ValueFieldNumber;
 const int Variant::kInt64ValueFieldNumber;
 const int Variant::kDoubleValueFieldNumber;
 const int Variant::kStringValueFieldNumber;
-const int Variant::kLocalizedStringValueFieldNumber;
 const int Variant::kNodeIdValueFieldNumber;
+const int Variant::kLocalizedTextValueFieldNumber;
 #endif  // !_MSC_VER
 
 Variant::Variant()
@@ -2998,8 +2998,8 @@ void Variant::SharedCtor() {
   int64_value_ = GOOGLE_LONGLONG(0);
   double_value_ = 0;
   string_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  localized_string_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   node_id_value_ = NULL;
+  localized_text_value_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -3012,8 +3012,8 @@ void Variant::SharedDtor() {
   if (string_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete string_value_;
   }
-  if (localized_string_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete localized_string_value_;
+  if (localized_text_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete localized_text_value_;
   }
   if (this != default_instance_) {
     delete node_id_value_;
@@ -3059,13 +3059,13 @@ void Variant::Clear() {
         string_value_->clear();
       }
     }
-    if (has_localized_string_value()) {
-      if (localized_string_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-        localized_string_value_->clear();
-      }
-    }
     if (has_node_id_value()) {
       if (node_id_value_ != NULL) node_id_value_->::protocol::NodeId::Clear();
+    }
+    if (has_localized_text_value()) {
+      if (localized_text_value_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+        localized_text_value_->clear();
+      }
     }
   }
 
@@ -3167,16 +3167,16 @@ bool Variant::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(58)) goto parse_localized_string_value;
+        if (input->ExpectTag(58)) goto parse_localized_text_value;
         break;
       }
 
-      // optional bytes localized_string_value = 7;
+      // optional bytes localized_text_value = 7;
       case 7: {
         if (tag == 58) {
-         parse_localized_string_value:
+         parse_localized_text_value:
           DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
-                input, this->mutable_localized_string_value()));
+                input, this->mutable_localized_text_value()));
         } else {
           goto handle_unusual;
         }
@@ -3241,10 +3241,10 @@ void Variant::SerializeWithCachedSizes(
       6, this->node_id_value(), output);
   }
 
-  // optional bytes localized_string_value = 7;
-  if (has_localized_string_value()) {
+  // optional bytes localized_text_value = 7;
+  if (has_localized_text_value()) {
     ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
-      7, this->localized_string_value(), output);
+      7, this->localized_text_value(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -3291,11 +3291,11 @@ void Variant::SerializeWithCachedSizes(
         6, this->node_id_value(), target);
   }
 
-  // optional bytes localized_string_value = 7;
-  if (has_localized_string_value()) {
+  // optional bytes localized_text_value = 7;
+  if (has_localized_text_value()) {
     target =
       ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
-        7, this->localized_string_value(), target);
+        7, this->localized_text_value(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -3341,18 +3341,18 @@ int Variant::ByteSize() const {
           this->string_value());
     }
 
-    // optional bytes localized_string_value = 7;
-    if (has_localized_string_value()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
-          this->localized_string_value());
-    }
-
     // optional .protocol.NodeId node_id_value = 6;
     if (has_node_id_value()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->node_id_value());
+    }
+
+    // optional bytes localized_text_value = 7;
+    if (has_localized_text_value()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->localized_text_value());
     }
 
   }
@@ -3397,11 +3397,11 @@ void Variant::MergeFrom(const Variant& from) {
     if (from.has_string_value()) {
       set_string_value(from.string_value());
     }
-    if (from.has_localized_string_value()) {
-      set_localized_string_value(from.localized_string_value());
-    }
     if (from.has_node_id_value()) {
       mutable_node_id_value()->::protocol::NodeId::MergeFrom(from.node_id_value());
+    }
+    if (from.has_localized_text_value()) {
+      set_localized_text_value(from.localized_text_value());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -3431,8 +3431,8 @@ void Variant::Swap(Variant* other) {
     std::swap(int64_value_, other->int64_value_);
     std::swap(double_value_, other->double_value_);
     std::swap(string_value_, other->string_value_);
-    std::swap(localized_string_value_, other->localized_string_value_);
     std::swap(node_id_value_, other->node_id_value_);
+    std::swap(localized_text_value_, other->localized_text_value_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

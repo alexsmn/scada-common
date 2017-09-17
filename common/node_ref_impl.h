@@ -28,7 +28,7 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   NodeRef GetSupertype() const;
   NodeRef GetDataType() const;
 
-  NodeRef GetAggregate(base::StringPiece aggregate_name) const;
+  NodeRef GetAggregate(const scada::QualifiedName& aggregate_name) const;
   std::vector<NodeRef> GetAggregates(const scada::NodeId& reference_type_id) const;
 
   NodeRef GetTarget(const scada::NodeId& reference_type_id) const;
@@ -50,8 +50,8 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   bool fetched_;
 
   scada::NodeClass node_class_;
-  std::string browse_name_;
-  base::string16 display_name_;
+  scada::QualifiedName browse_name_;
+  scada::LocalizedText display_name_;
   scada::DataValue data_value_;
   scada::Status status_{scada::StatusCode::Good};
 

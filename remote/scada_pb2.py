@@ -19,7 +19,7 @@ _sym_db = _symbol_database.Default()
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='scada.proto',
   package='protocol',
-  serialized_pb=_b('\n\x0bscada.proto\x12\x08protocol\"\x81\x01\n\nAttributes\x12\x13\n\x0b\x62rowse_name\x18\x03 \x01(\x0c\x12\x14\n\x0c\x64isplay_name\x18\x04 \x01(\x0c\x12 \n\x05value\x18\r \x01(\x0b\x32\x11.protocol.Variant\x12&\n\x0c\x64\x61ta_type_id\x18\x0e \x01(\x0b\x32\x10.protocol.NodeId\"\x16\n\x06Status\x12\x0c\n\x04\x63ode\x18\x01 \x02(\r\"\xbd\x03\n\tQualifier\x12.\n\x08severity\x18\x01 \x02(\x0e\x32\x1c.protocol.Qualifier.Severity\x12-\n\x08sub_code\x18\x02 \x01(\x0e\x32\x1b.protocol.Qualifier.SubCode\x12(\n\x05limit\x18\x03 \x01(\x0e\x32\x19.protocol.Qualifier.Limit\",\n\x08Severity\x12\x08\n\x04GOOD\x10\x00\x12\r\n\tUNCERTAIN\x10\x01\x12\x07\n\x03\x42\x41\x44\x10\x02\"\xbf\x01\n\x07SubCode\x12\x0f\n\x0bGOOD_NORMAL\x10\x00\x12\x0f\n\x0bGOOD_BACKUP\x10\x01\x12\x0f\n\x0bGOOD_MANUAL\x10\x02\x12\x12\n\x0eGOOD_SIMULATED\x10\x03\x12\x14\n\x10UNCERTAIN_DEVICE\x10\n\x12\x15\n\x11UNCERTAIN_OFFLINE\x10\x0b\x12\x1b\n\x17UNCERTAIN_MISCONFIGURED\x10\x0c\x12\x13\n\x0fUNCERTAIN_STALE\x10\r\x12\x0e\n\nBAD_FAILED\x10\x14\"7\n\x05Limit\x12\n\n\x06NORMAL\x10\x00\x12\x06\n\x02LO\x10\x01\x12\x06\n\x02HI\x10\x02\x12\x08\n\x04LOLO\x10\x03\x12\x08\n\x04HIHI\x10\x04\"[\n\x06NodeId\x12\x17\n\x0fnamespace_index\x18\x01 \x01(\r\x12\x12\n\nnumeric_id\x18\x02 \x01(\r\x12\x11\n\tstring_id\x18\x03 \x01(\t\x12\x11\n\topaque_id\x18\x04 \x01(\x0c\"\xbc\x01\n\x07Variant\x12\x12\n\nbool_value\x18\x01 \x01(\x08\x12\x13\n\x0bint32_value\x18\x02 \x01(\x05\x12\x13\n\x0bint64_value\x18\x03 \x01(\x03\x12\x14\n\x0c\x64ouble_value\x18\x04 \x01(\x01\x12\x14\n\x0cstring_value\x18\x05 \x01(\x0c\x12\x1e\n\x16localized_string_value\x18\x07 \x01(\x0c\x12\'\n\rnode_id_value\x18\x06 \x01(\x0b\x32\x10.protocol.NodeId\"\x89\x01\n\tDataValue\x12\x18\n\x10server_timestamp\x18\x01 \x02(\x04\x12\x18\n\x10source_timestamp\x18\x02 \x01(\x04\x12 \n\x05value\x18\x03 \x01(\x0b\x32\x11.protocol.Variant\x12\x11\n\tqualifier\x18\x04 \x02(\r\x12\x13\n\x0bstatus_code\x18\x05 \x01(\r\"\xd1\x02\n\x05\x45vent\x12\x19\n\x11monitored_item_id\x18\x01 \x01(\r\x12\x0c\n\x04time\x18\x02 \x02(\x04\x12\x10\n\x08severity\x18\x03 \x02(\r\x12(\n\x0esource_node_id\x18\x04 \x01(\x0b\x32\x10.protocol.NodeId\x12&\n\x0cuser_node_id\x18\x05 \x01(\x0b\x32\x10.protocol.NodeId\x12 \n\x05value\x18\x06 \x01(\x0b\x32\x11.protocol.Variant\x12\x11\n\tqualifier\x18\x07 \x01(\r\x12\x0f\n\x07message\x18\x08 \x01(\x0c\x12\x14\n\x0c\x61\x63knowledged\x18\t \x01(\x08\x12\x16\n\x0e\x61\x63knowledge_id\x18\n \x01(\x04\x12\x18\n\x10\x61\x63knowledge_time\x18\x0b \x01(\x04\x12-\n\x13\x61\x63knowledge_user_id\x18\x0c \x01(\x0b\x32\x10.protocol.NodeId\"\x8d\x01\n\rCreateSession\x12\x11\n\tuser_name\x18\x01 \x02(\x0c\x12\x10\n\x08password\x18\x02 \x01(\x0c\x12\x17\n\x0f\x64\x65lete_existing\x18\x03 \x01(\x08\x12\x1e\n\x16protocol_version_major\x18\x04 \x02(\r\x12\x1e\n\x16protocol_version_minor\x18\x05 \x02(\r\"\xa1\x01\n\x13\x43reateSessionResult\x12\r\n\x05token\x18\x01 \x01(\t\x12&\n\x0cuser_node_id\x18\x02 \x01(\x0b\x32\x10.protocol.NodeId\x12\x13\n\x0buser_rights\x18\x03 \x01(\r\x12\x1e\n\x16protocol_version_major\x18\x04 \x02(\r\x12\x1e\n\x16protocol_version_minor\x18\x05 \x02(\r\"\x1e\n\rDeleteSession\x12\r\n\x05token\x18\x01 \x01(\t\"\xf1\x01\n\x04Node\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12!\n\x07type_id\x18\x02 \x01(\x0b\x32\x10.protocol.NodeId\x12\'\n\nnode_class\x18\x03 \x01(\x0e\x32\x13.protocol.NodeClass\x12(\n\nattributes\x18\x05 \x01(\x0b\x32\x14.protocol.Attributes\x12#\n\tparent_id\x18\x06 \x01(\x0b\x32\x10.protocol.NodeId\x12+\n\x11reference_type_id\x18\x07 \x01(\x0b\x32\x10.protocol.NodeId\"\xd4\x01\n\nCreateNode\x12+\n\x11requested_node_id\x18\x01 \x01(\x0b\x32\x10.protocol.NodeId\x12!\n\x07type_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tparent_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\x12\'\n\nnode_class\x18\x05 \x02(\x0e\x32\x13.protocol.NodeClass\x12(\n\nattributes\x18\x06 \x01(\x0b\x32\x14.protocol.Attributes\"5\n\x10\x43reateNodeResult\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\"J\n\nDeleteNode\x12!\n\x07node_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12\x19\n\x11return_references\x18\n \x01(\x08\"8\n\x10\x44\x65leteNodeResult\x12$\n\nreferences\x18\x01 \x03(\x0b\x32\x10.protocol.NodeId\"Y\n\nModifyNode\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12(\n\nattributes\x18\x02 \x01(\x0b\x32\x14.protocol.Attributes\"\x82\x01\n\tReference\x12+\n\x11reference_type_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tsource_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\ttarget_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\"h\n\x0e\x43hangePassword\x12&\n\x0cuser_node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\x18\n\x10\x63urrent_password\x18\x02 \x02(\x0c\x12\x14\n\x0cnew_password\x18\x03 \x02(\x0c\"]\n\x0bReadValueId\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x02 \x02(\x0e\x32\x15.protocol.AttributeId\"/\n\x04Read\x12\'\n\x08value_id\x18\x01 \x03(\x0b\x32\x15.protocol.ReadValueId\"3\n\x0cReadResponse\x12#\n\x06result\x18\x01 \x03(\x0b\x32\x13.protocol.DataValue\"I\n\x05Write\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\r\n\x05value\x18\x02 \x02(\x01\x12\x0e\n\x06select\x18\x05 \x01(\x08\"|\n\rDeviceCommand\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tmethod_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\x08\x61rgument\x18\x03 \x03(\x0b\x32\x11.protocol.Variant\"0\n\x0b\x41\x63knowledge\x12\x10\n\x08\x65vent_id\x18\x01 \x02(\x04\x12\x0f\n\x07\x63omment\x18\x02 \x01(\x0c\"c\n\x04\x43\x61ll\x12/\n\x0e\x64\x65vice_command\x18\x01 \x01(\x0b\x32\x17.protocol.DeviceCommand\x12*\n\x0b\x61\x63knowledge\x18\x02 \x01(\x0b\x32\x15.protocol.Acknowledge\"-\n\x0b\x45ventFilter\x12\r\n\x05\x61\x63ked\x18\x01 \x01(\x08\x12\x0f\n\x07unacked\x18\x02 \x01(\x08\"\xa4\x01\n\x0bHistoryRead\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x02 \x02(\x0e\x32\x15.protocol.AttributeId\x12\x0c\n\x04\x66rom\x18\x03 \x02(\x04\x12\n\n\x02to\x18\x04 \x01(\x04\x12+\n\x0c\x65vent_filter\x18\x05 \x01(\x0b\x32\x15.protocol.EventFilter\"Y\n\x11HistoryReadResult\x12#\n\x06values\x18\x01 \x03(\x0b\x32\x13.protocol.DataValue\x12\x1f\n\x06\x65vents\x18\x02 \x03(\x0b\x32\x0f.protocol.Event\"Y\n\x12\x43reateSubscription\x12\x16\n\x0eupdate_rate_ms\x18\x01 \x01(\r\x12+\n\x0c\x65vent_filter\x18\x02 \x01(\x0b\x32\x15.protocol.EventFilter\"3\n\x18\x43reateSubscriptionResult\x12\x17\n\x0fsubscription_id\x18\x01 \x01(\r\"-\n\x12\x44\x65leteSubscription\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\"~\n\x13\x43reateMonitoredItem\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\x12!\n\x07node_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x03 \x02(\x0e\x32\x15.protocol.AttributeId\"6\n\x19\x43reateMonitoredItemResult\x12\x19\n\x11monitored_item_id\x18\x15 \x01(\r\"I\n\x13\x44\x65leteMonitoredItem\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\x12\x19\n\x11monitored_item_id\x18\x02 \x02(\r\"\xab\x01\n\x11\x42rowseDescription\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12,\n\tdirection\x18\x02 \x01(\x0e\x32\x19.protocol.BrowseDirection\x12+\n\x11reference_type_id\x18\x03 \x01(\x0b\x32\x10.protocol.NodeId\x12\x18\n\x10include_subtypes\x18\x04 \x01(\x08\"4\n\x06\x42rowse\x12*\n\x05nodes\x18\x01 \x03(\x0b\x32\x1b.protocol.BrowseDescription\"w\n\x14ReferenceDescription\x12+\n\x11reference_type_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\x0f\n\x07\x66orward\x18\x02 \x02(\x08\x12!\n\x07node_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\"W\n\x0c\x42rowseResult\x12\x13\n\x0bstatus_code\x18\x01 \x01(\r\x12\x32\n\nreferences\x18\x02 \x03(\x0b\x32\x1e.protocol.ReferenceDescription\"[\n\x0e\x42rowseResponse\x12 \n\x06status\x18\x01 \x02(\x0b\x32\x10.protocol.Status\x12\'\n\x07results\x18\x02 \x03(\x0b\x32\x16.protocol.BrowseResult\"\xab\x06\n\x07Request\x12\x12\n\nrequest_id\x18\x01 \x01(\r\x12/\n\x0e\x63reate_session\x18\n \x01(\x0b\x32\x17.protocol.CreateSession\x12/\n\x0e\x64\x65lete_session\x18\x0b \x01(\x0b\x32\x17.protocol.DeleteSession\x12\x1c\n\x04read\x18\x0e \x01(\x0b\x32\x0e.protocol.Read\x12\x1e\n\x05write\x18\x0c \x01(\x0b\x32\x0f.protocol.Write\x12\x1c\n\x04\x63\x61ll\x18\r \x01(\x0b\x32\x0e.protocol.Call\x12\x39\n\x13\x63reate_subscription\x18\x14 \x01(\x0b\x32\x1c.protocol.CreateSubscription\x12\x39\n\x13\x64\x65lete_subscription\x18\x15 \x01(\x0b\x32\x1c.protocol.DeleteSubscription\x12<\n\x15\x63reate_monitored_item\x18\x1e \x01(\x0b\x32\x1d.protocol.CreateMonitoredItem\x12<\n\x15\x64\x65lete_monitored_item\x18\x1f \x01(\x0b\x32\x1d.protocol.DeleteMonitoredItem\x12+\n\x0chistory_read\x18( \x01(\x0b\x32\x15.protocol.HistoryRead\x12)\n\x0b\x63reate_node\x18\x32 \x01(\x0b\x32\x14.protocol.CreateNode\x12)\n\x0b\x64\x65lete_node\x18\x33 \x01(\x0b\x32\x14.protocol.DeleteNode\x12)\n\x0bmodify_node\x18\x34 \x03(\x0b\x32\x14.protocol.ModifyNode\x12*\n\radd_reference\x18\x36 \x01(\x0b\x32\x13.protocol.Reference\x12-\n\x10\x64\x65lete_reference\x18\x37 \x01(\x0b\x32\x13.protocol.Reference\x12\x31\n\x0f\x63hange_password\x18\x35 \x01(\x0b\x32\x18.protocol.ChangePassword\x12 \n\x06\x62rowse\x18< \x01(\x0b\x32\x10.protocol.Browse\"\x8b\x04\n\x08Response\x12\x12\n\nrequest_id\x18\x01 \x02(\r\x12 \n\x06status\x18\x02 \x03(\x0b\x32\x10.protocol.Status\x12<\n\x15\x63reate_session_result\x18\n \x01(\x0b\x32\x1d.protocol.CreateSessionResult\x12$\n\x04read\x18\x0e \x01(\x0b\x32\x16.protocol.ReadResponse\x12\x46\n\x1a\x63reate_subscription_result\x18\x14 \x01(\x0b\x32\".protocol.CreateSubscriptionResult\x12I\n\x1c\x63reate_monitored_item_result\x18\x1e \x01(\x0b\x32#.protocol.CreateMonitoredItemResult\x12\x38\n\x13history_read_result\x18( \x01(\x0b\x32\x1b.protocol.HistoryReadResult\x12\x36\n\x12\x63reate_node_result\x18\x32 \x01(\x0b\x32\x1a.protocol.CreateNodeResult\x12\x36\n\x12\x64\x65lete_node_result\x18\x33 \x01(\x0b\x32\x1a.protocol.DeleteNodeResult\x12(\n\x06\x62rowse\x18< \x01(\x0b\x32\x18.protocol.BrowseResponse\"P\n\nDataChange\x12\x19\n\x11monitored_item_id\x18\x01 \x02(\r\x12\'\n\ndata_value\x18\x02 \x02(\x0b\x32\x13.protocol.DataValue\"\x10\n\x0eSessionDeleted\"\x90\x03\n\x0cNotification\x12\x17\n\x0fsubscription_id\x18\x01 \x01(\r\x12*\n\x0c\x64\x61ta_changes\x18\x02 \x03(\x0b\x32\x14.protocol.DataChange\x12\'\n\radded_node_id\x18\x03 \x03(\x0b\x32\x10.protocol.NodeId\x12)\n\x0f\x64\x65leted_node_id\x18\x04 \x03(\x0b\x32\x10.protocol.NodeId\x12\x33\n\x19semantics_changed_node_id\x18\x05 \x03(\x0b\x32\x10.protocol.NodeId\x12-\n\x10\x61\x64\x64\x65\x64_references\x18\x06 \x03(\x0b\x32\x13.protocol.Reference\x12/\n\x12\x64\x65leted_references\x18\x07 \x03(\x0b\x32\x13.protocol.Reference\x12\x1f\n\x06\x65vents\x18\x08 \x03(\x0b\x32\x0f.protocol.Event\x12\x31\n\x0fsession_deleted\x18\t \x01(\x0b\x32\x18.protocol.SessionDeleted\"\x84\x01\n\x07Message\x12-\n\rnotifications\x18\x01 \x03(\x0b\x32\x16.protocol.Notification\x12#\n\x08requests\x18\x02 \x03(\x0b\x32\x11.protocol.Request\x12%\n\tresponses\x18\x03 \x03(\x0b\x32\x12.protocol.Response*2\n\x14ProtocolVersionMajor\x12\x1a\n\x16PROTOCOL_VERSION_MAJOR\x10\x03*2\n\x14ProtocolVersionMinor\x12\x1a\n\x16PROTOCOL_VERSION_MINOR\x10\x00*?\n\x0e\x43onstantNodeId\x12\x08\n\x04ROOT\x10\r\x12\t\n\x05TYPES\x10\x0f\x12\x0b\n\x07OBJECTS\x10\x64\x12\x0b\n\x07\x44\x45VICES\x10m*\x8f\x03\n\x0b\x41ttributeId\x12\x0b\n\x07NODE_ID\x10\x01\x12\x0e\n\nNODE_CLASS\x10\x02\x12\x0f\n\x0b\x42ROWSE_NAME\x10\x03\x12\x10\n\x0c\x44ISPLAY_NAME\x10\x04\x12\x0f\n\x0b\x44\x45SCRIPTION\x10\x05\x12\r\n\tWriteMask\x10\x06\x12\x11\n\rUserWriteMask\x10\x07\x12\x0e\n\nIsAbstract\x10\x08\x12\r\n\tSymmetric\x10\t\x12\x0f\n\x0bInverseName\x10\n\x12\x13\n\x0f\x43ontainsNoLoops\x10\x0b\x12\x12\n\x0e\x45VENT_NOTIFIER\x10\x0c\x12\t\n\x05VALUE\x10\r\x12\r\n\tDATA_TYPE\x10\x0e\x12\r\n\tValueRank\x10\x0f\x12\x13\n\x0f\x41rrayDimensions\x10\x10\x12\x0f\n\x0b\x41\x63\x63\x65ssLevel\x10\x11\x12\x13\n\x0fUserAccessLevel\x10\x12\x12\x1b\n\x17MinimumSamplingInterval\x10\x13\x12\x0f\n\x0bHistorizing\x10\x14\x12\x0e\n\nExecutable\x10\x15\x12\x12\n\x0eUserExecutable\x10\x16*\x7f\n\tNodeClass\x12\n\n\x06Object\x10\x01\x12\x0c\n\x08Variable\x10\x02\x12\n\n\x06Method\x10\x04\x12\x0e\n\nObjectType\x10\x08\x12\x10\n\x0cVariableType\x10\x10\x12\x11\n\rReferenceType\x10 \x12\x0c\n\x08\x44\x61taType\x10@\x12\t\n\x04View\x10\x80\x01*5\n\x0f\x42rowseDirection\x12\x0b\n\x07\x46ORWARD\x10\x00\x12\x0b\n\x07INVERSE\x10\x01\x12\x08\n\x04\x42OTH\x10\x02')
+  serialized_pb=_b('\n\x0bscada.proto\x12\x08protocol\"\x81\x01\n\nAttributes\x12\x13\n\x0b\x62rowse_name\x18\x03 \x01(\x0c\x12\x14\n\x0c\x64isplay_name\x18\x04 \x01(\x0c\x12 \n\x05value\x18\r \x01(\x0b\x32\x11.protocol.Variant\x12&\n\x0c\x64\x61ta_type_id\x18\x0e \x01(\x0b\x32\x10.protocol.NodeId\"\x16\n\x06Status\x12\x0c\n\x04\x63ode\x18\x01 \x02(\r\"\xbd\x03\n\tQualifier\x12.\n\x08severity\x18\x01 \x02(\x0e\x32\x1c.protocol.Qualifier.Severity\x12-\n\x08sub_code\x18\x02 \x01(\x0e\x32\x1b.protocol.Qualifier.SubCode\x12(\n\x05limit\x18\x03 \x01(\x0e\x32\x19.protocol.Qualifier.Limit\",\n\x08Severity\x12\x08\n\x04GOOD\x10\x00\x12\r\n\tUNCERTAIN\x10\x01\x12\x07\n\x03\x42\x41\x44\x10\x02\"\xbf\x01\n\x07SubCode\x12\x0f\n\x0bGOOD_NORMAL\x10\x00\x12\x0f\n\x0bGOOD_BACKUP\x10\x01\x12\x0f\n\x0bGOOD_MANUAL\x10\x02\x12\x12\n\x0eGOOD_SIMULATED\x10\x03\x12\x14\n\x10UNCERTAIN_DEVICE\x10\n\x12\x15\n\x11UNCERTAIN_OFFLINE\x10\x0b\x12\x1b\n\x17UNCERTAIN_MISCONFIGURED\x10\x0c\x12\x13\n\x0fUNCERTAIN_STALE\x10\r\x12\x0e\n\nBAD_FAILED\x10\x14\"7\n\x05Limit\x12\n\n\x06NORMAL\x10\x00\x12\x06\n\x02LO\x10\x01\x12\x06\n\x02HI\x10\x02\x12\x08\n\x04LOLO\x10\x03\x12\x08\n\x04HIHI\x10\x04\"[\n\x06NodeId\x12\x17\n\x0fnamespace_index\x18\x01 \x01(\r\x12\x12\n\nnumeric_id\x18\x02 \x01(\r\x12\x11\n\tstring_id\x18\x03 \x01(\t\x12\x11\n\topaque_id\x18\x04 \x01(\x0c\"\xba\x01\n\x07Variant\x12\x12\n\nbool_value\x18\x01 \x01(\x08\x12\x13\n\x0bint32_value\x18\x02 \x01(\x05\x12\x13\n\x0bint64_value\x18\x03 \x01(\x03\x12\x14\n\x0c\x64ouble_value\x18\x04 \x01(\x01\x12\x14\n\x0cstring_value\x18\x05 \x01(\x0c\x12\'\n\rnode_id_value\x18\x06 \x01(\x0b\x32\x10.protocol.NodeId\x12\x1c\n\x14localized_text_value\x18\x07 \x01(\x0c\"\x89\x01\n\tDataValue\x12\x18\n\x10server_timestamp\x18\x01 \x02(\x04\x12\x18\n\x10source_timestamp\x18\x02 \x01(\x04\x12 \n\x05value\x18\x03 \x01(\x0b\x32\x11.protocol.Variant\x12\x11\n\tqualifier\x18\x04 \x02(\r\x12\x13\n\x0bstatus_code\x18\x05 \x01(\r\"\xd1\x02\n\x05\x45vent\x12\x19\n\x11monitored_item_id\x18\x01 \x01(\r\x12\x0c\n\x04time\x18\x02 \x02(\x04\x12\x10\n\x08severity\x18\x03 \x02(\r\x12(\n\x0esource_node_id\x18\x04 \x01(\x0b\x32\x10.protocol.NodeId\x12&\n\x0cuser_node_id\x18\x05 \x01(\x0b\x32\x10.protocol.NodeId\x12 \n\x05value\x18\x06 \x01(\x0b\x32\x11.protocol.Variant\x12\x11\n\tqualifier\x18\x07 \x01(\r\x12\x0f\n\x07message\x18\x08 \x01(\x0c\x12\x14\n\x0c\x61\x63knowledged\x18\t \x01(\x08\x12\x16\n\x0e\x61\x63knowledge_id\x18\n \x01(\x04\x12\x18\n\x10\x61\x63knowledge_time\x18\x0b \x01(\x04\x12-\n\x13\x61\x63knowledge_user_id\x18\x0c \x01(\x0b\x32\x10.protocol.NodeId\"\x8d\x01\n\rCreateSession\x12\x11\n\tuser_name\x18\x01 \x02(\x0c\x12\x10\n\x08password\x18\x02 \x01(\x0c\x12\x17\n\x0f\x64\x65lete_existing\x18\x03 \x01(\x08\x12\x1e\n\x16protocol_version_major\x18\x04 \x02(\r\x12\x1e\n\x16protocol_version_minor\x18\x05 \x02(\r\"\xa1\x01\n\x13\x43reateSessionResult\x12\r\n\x05token\x18\x01 \x01(\t\x12&\n\x0cuser_node_id\x18\x02 \x01(\x0b\x32\x10.protocol.NodeId\x12\x13\n\x0buser_rights\x18\x03 \x01(\r\x12\x1e\n\x16protocol_version_major\x18\x04 \x02(\r\x12\x1e\n\x16protocol_version_minor\x18\x05 \x02(\r\"\x1e\n\rDeleteSession\x12\r\n\x05token\x18\x01 \x01(\t\"\xf1\x01\n\x04Node\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12!\n\x07type_id\x18\x02 \x01(\x0b\x32\x10.protocol.NodeId\x12\'\n\nnode_class\x18\x03 \x01(\x0e\x32\x13.protocol.NodeClass\x12(\n\nattributes\x18\x05 \x01(\x0b\x32\x14.protocol.Attributes\x12#\n\tparent_id\x18\x06 \x01(\x0b\x32\x10.protocol.NodeId\x12+\n\x11reference_type_id\x18\x07 \x01(\x0b\x32\x10.protocol.NodeId\"\xd4\x01\n\nCreateNode\x12+\n\x11requested_node_id\x18\x01 \x01(\x0b\x32\x10.protocol.NodeId\x12!\n\x07type_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tparent_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\x12\'\n\nnode_class\x18\x05 \x02(\x0e\x32\x13.protocol.NodeClass\x12(\n\nattributes\x18\x06 \x01(\x0b\x32\x14.protocol.Attributes\"5\n\x10\x43reateNodeResult\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\"J\n\nDeleteNode\x12!\n\x07node_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12\x19\n\x11return_references\x18\n \x01(\x08\"8\n\x10\x44\x65leteNodeResult\x12$\n\nreferences\x18\x01 \x03(\x0b\x32\x10.protocol.NodeId\"Y\n\nModifyNode\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12(\n\nattributes\x18\x02 \x01(\x0b\x32\x14.protocol.Attributes\"\x82\x01\n\tReference\x12+\n\x11reference_type_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tsource_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\ttarget_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\"h\n\x0e\x43hangePassword\x12&\n\x0cuser_node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\x18\n\x10\x63urrent_password\x18\x02 \x02(\x0c\x12\x14\n\x0cnew_password\x18\x03 \x02(\x0c\"]\n\x0bReadValueId\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x02 \x02(\x0e\x32\x15.protocol.AttributeId\"/\n\x04Read\x12\'\n\x08value_id\x18\x01 \x03(\x0b\x32\x15.protocol.ReadValueId\"3\n\x0cReadResponse\x12#\n\x06result\x18\x01 \x03(\x0b\x32\x13.protocol.DataValue\"I\n\x05Write\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\r\n\x05value\x18\x02 \x02(\x01\x12\x0e\n\x06select\x18\x05 \x01(\x08\"|\n\rDeviceCommand\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\tmethod_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12#\n\x08\x61rgument\x18\x03 \x03(\x0b\x32\x11.protocol.Variant\"0\n\x0b\x41\x63knowledge\x12\x10\n\x08\x65vent_id\x18\x01 \x02(\x04\x12\x0f\n\x07\x63omment\x18\x02 \x01(\x0c\"c\n\x04\x43\x61ll\x12/\n\x0e\x64\x65vice_command\x18\x01 \x01(\x0b\x32\x17.protocol.DeviceCommand\x12*\n\x0b\x61\x63knowledge\x18\x02 \x01(\x0b\x32\x15.protocol.Acknowledge\"-\n\x0b\x45ventFilter\x12\r\n\x05\x61\x63ked\x18\x01 \x01(\x08\x12\x0f\n\x07unacked\x18\x02 \x01(\x08\"\xa4\x01\n\x0bHistoryRead\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x02 \x02(\x0e\x32\x15.protocol.AttributeId\x12\x0c\n\x04\x66rom\x18\x03 \x02(\x04\x12\n\n\x02to\x18\x04 \x01(\x04\x12+\n\x0c\x65vent_filter\x18\x05 \x01(\x0b\x32\x15.protocol.EventFilter\"Y\n\x11HistoryReadResult\x12#\n\x06values\x18\x01 \x03(\x0b\x32\x13.protocol.DataValue\x12\x1f\n\x06\x65vents\x18\x02 \x03(\x0b\x32\x0f.protocol.Event\"Y\n\x12\x43reateSubscription\x12\x16\n\x0eupdate_rate_ms\x18\x01 \x01(\r\x12+\n\x0c\x65vent_filter\x18\x02 \x01(\x0b\x32\x15.protocol.EventFilter\"3\n\x18\x43reateSubscriptionResult\x12\x17\n\x0fsubscription_id\x18\x01 \x01(\r\"-\n\x12\x44\x65leteSubscription\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\"~\n\x13\x43reateMonitoredItem\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\x12!\n\x07node_id\x18\x02 \x02(\x0b\x32\x10.protocol.NodeId\x12+\n\x0c\x61ttribute_id\x18\x03 \x02(\x0e\x32\x15.protocol.AttributeId\"6\n\x19\x43reateMonitoredItemResult\x12\x19\n\x11monitored_item_id\x18\x15 \x01(\r\"I\n\x13\x44\x65leteMonitoredItem\x12\x17\n\x0fsubscription_id\x18\x01 \x02(\r\x12\x19\n\x11monitored_item_id\x18\x02 \x02(\r\"\xab\x01\n\x11\x42rowseDescription\x12!\n\x07node_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12,\n\tdirection\x18\x02 \x01(\x0e\x32\x19.protocol.BrowseDirection\x12+\n\x11reference_type_id\x18\x03 \x01(\x0b\x32\x10.protocol.NodeId\x12\x18\n\x10include_subtypes\x18\x04 \x01(\x08\"4\n\x06\x42rowse\x12*\n\x05nodes\x18\x01 \x03(\x0b\x32\x1b.protocol.BrowseDescription\"w\n\x14ReferenceDescription\x12+\n\x11reference_type_id\x18\x01 \x02(\x0b\x32\x10.protocol.NodeId\x12\x0f\n\x07\x66orward\x18\x02 \x02(\x08\x12!\n\x07node_id\x18\x03 \x02(\x0b\x32\x10.protocol.NodeId\"W\n\x0c\x42rowseResult\x12\x13\n\x0bstatus_code\x18\x01 \x01(\r\x12\x32\n\nreferences\x18\x02 \x03(\x0b\x32\x1e.protocol.ReferenceDescription\"[\n\x0e\x42rowseResponse\x12 \n\x06status\x18\x01 \x02(\x0b\x32\x10.protocol.Status\x12\'\n\x07results\x18\x02 \x03(\x0b\x32\x16.protocol.BrowseResult\"\xab\x06\n\x07Request\x12\x12\n\nrequest_id\x18\x01 \x01(\r\x12/\n\x0e\x63reate_session\x18\n \x01(\x0b\x32\x17.protocol.CreateSession\x12/\n\x0e\x64\x65lete_session\x18\x0b \x01(\x0b\x32\x17.protocol.DeleteSession\x12\x1c\n\x04read\x18\x0e \x01(\x0b\x32\x0e.protocol.Read\x12\x1e\n\x05write\x18\x0c \x01(\x0b\x32\x0f.protocol.Write\x12\x1c\n\x04\x63\x61ll\x18\r \x01(\x0b\x32\x0e.protocol.Call\x12\x39\n\x13\x63reate_subscription\x18\x14 \x01(\x0b\x32\x1c.protocol.CreateSubscription\x12\x39\n\x13\x64\x65lete_subscription\x18\x15 \x01(\x0b\x32\x1c.protocol.DeleteSubscription\x12<\n\x15\x63reate_monitored_item\x18\x1e \x01(\x0b\x32\x1d.protocol.CreateMonitoredItem\x12<\n\x15\x64\x65lete_monitored_item\x18\x1f \x01(\x0b\x32\x1d.protocol.DeleteMonitoredItem\x12+\n\x0chistory_read\x18( \x01(\x0b\x32\x15.protocol.HistoryRead\x12)\n\x0b\x63reate_node\x18\x32 \x01(\x0b\x32\x14.protocol.CreateNode\x12)\n\x0b\x64\x65lete_node\x18\x33 \x01(\x0b\x32\x14.protocol.DeleteNode\x12)\n\x0bmodify_node\x18\x34 \x03(\x0b\x32\x14.protocol.ModifyNode\x12*\n\radd_reference\x18\x36 \x01(\x0b\x32\x13.protocol.Reference\x12-\n\x10\x64\x65lete_reference\x18\x37 \x01(\x0b\x32\x13.protocol.Reference\x12\x31\n\x0f\x63hange_password\x18\x35 \x01(\x0b\x32\x18.protocol.ChangePassword\x12 \n\x06\x62rowse\x18< \x01(\x0b\x32\x10.protocol.Browse\"\x8b\x04\n\x08Response\x12\x12\n\nrequest_id\x18\x01 \x02(\r\x12 \n\x06status\x18\x02 \x03(\x0b\x32\x10.protocol.Status\x12<\n\x15\x63reate_session_result\x18\n \x01(\x0b\x32\x1d.protocol.CreateSessionResult\x12$\n\x04read\x18\x0e \x01(\x0b\x32\x16.protocol.ReadResponse\x12\x46\n\x1a\x63reate_subscription_result\x18\x14 \x01(\x0b\x32\".protocol.CreateSubscriptionResult\x12I\n\x1c\x63reate_monitored_item_result\x18\x1e \x01(\x0b\x32#.protocol.CreateMonitoredItemResult\x12\x38\n\x13history_read_result\x18( \x01(\x0b\x32\x1b.protocol.HistoryReadResult\x12\x36\n\x12\x63reate_node_result\x18\x32 \x01(\x0b\x32\x1a.protocol.CreateNodeResult\x12\x36\n\x12\x64\x65lete_node_result\x18\x33 \x01(\x0b\x32\x1a.protocol.DeleteNodeResult\x12(\n\x06\x62rowse\x18< \x01(\x0b\x32\x18.protocol.BrowseResponse\"P\n\nDataChange\x12\x19\n\x11monitored_item_id\x18\x01 \x02(\r\x12\'\n\ndata_value\x18\x02 \x02(\x0b\x32\x13.protocol.DataValue\"\x10\n\x0eSessionDeleted\"\x90\x03\n\x0cNotification\x12\x17\n\x0fsubscription_id\x18\x01 \x01(\r\x12*\n\x0c\x64\x61ta_changes\x18\x02 \x03(\x0b\x32\x14.protocol.DataChange\x12\'\n\radded_node_id\x18\x03 \x03(\x0b\x32\x10.protocol.NodeId\x12)\n\x0f\x64\x65leted_node_id\x18\x04 \x03(\x0b\x32\x10.protocol.NodeId\x12\x33\n\x19semantics_changed_node_id\x18\x05 \x03(\x0b\x32\x10.protocol.NodeId\x12-\n\x10\x61\x64\x64\x65\x64_references\x18\x06 \x03(\x0b\x32\x13.protocol.Reference\x12/\n\x12\x64\x65leted_references\x18\x07 \x03(\x0b\x32\x13.protocol.Reference\x12\x1f\n\x06\x65vents\x18\x08 \x03(\x0b\x32\x0f.protocol.Event\x12\x31\n\x0fsession_deleted\x18\t \x01(\x0b\x32\x18.protocol.SessionDeleted\"\x84\x01\n\x07Message\x12-\n\rnotifications\x18\x01 \x03(\x0b\x32\x16.protocol.Notification\x12#\n\x08requests\x18\x02 \x03(\x0b\x32\x11.protocol.Request\x12%\n\tresponses\x18\x03 \x03(\x0b\x32\x12.protocol.Response*2\n\x14ProtocolVersionMajor\x12\x1a\n\x16PROTOCOL_VERSION_MAJOR\x10\x03*2\n\x14ProtocolVersionMinor\x12\x1a\n\x16PROTOCOL_VERSION_MINOR\x10\x00*?\n\x0e\x43onstantNodeId\x12\x08\n\x04ROOT\x10\r\x12\t\n\x05TYPES\x10\x0f\x12\x0b\n\x07OBJECTS\x10\x64\x12\x0b\n\x07\x44\x45VICES\x10m*\x8f\x03\n\x0b\x41ttributeId\x12\x0b\n\x07NODE_ID\x10\x01\x12\x0e\n\nNODE_CLASS\x10\x02\x12\x0f\n\x0b\x42ROWSE_NAME\x10\x03\x12\x10\n\x0c\x44ISPLAY_NAME\x10\x04\x12\x0f\n\x0b\x44\x45SCRIPTION\x10\x05\x12\r\n\tWriteMask\x10\x06\x12\x11\n\rUserWriteMask\x10\x07\x12\x0e\n\nIsAbstract\x10\x08\x12\r\n\tSymmetric\x10\t\x12\x0f\n\x0bInverseName\x10\n\x12\x13\n\x0f\x43ontainsNoLoops\x10\x0b\x12\x12\n\x0e\x45VENT_NOTIFIER\x10\x0c\x12\t\n\x05VALUE\x10\r\x12\r\n\tDATA_TYPE\x10\x0e\x12\r\n\tValueRank\x10\x0f\x12\x13\n\x0f\x41rrayDimensions\x10\x10\x12\x0f\n\x0b\x41\x63\x63\x65ssLevel\x10\x11\x12\x13\n\x0fUserAccessLevel\x10\x12\x12\x1b\n\x17MinimumSamplingInterval\x10\x13\x12\x0f\n\x0bHistorizing\x10\x14\x12\x0e\n\nExecutable\x10\x15\x12\x12\n\x0eUserExecutable\x10\x16*\x7f\n\tNodeClass\x12\n\n\x06Object\x10\x01\x12\x0c\n\x08Variable\x10\x02\x12\n\n\x06Method\x10\x04\x12\x0e\n\nObjectType\x10\x08\x12\x10\n\x0cVariableType\x10\x10\x12\x11\n\rReferenceType\x10 \x12\x0c\n\x08\x44\x61taType\x10@\x12\t\n\x04View\x10\x80\x01*5\n\x0f\x42rowseDirection\x12\x0b\n\x07\x46ORWARD\x10\x00\x12\x0b\n\x07INVERSE\x10\x01\x12\x08\n\x04\x42OTH\x10\x02')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -36,8 +36,8 @@ _PROTOCOLVERSIONMAJOR = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6524,
-  serialized_end=6574,
+  serialized_start=6522,
+  serialized_end=6572,
 )
 _sym_db.RegisterEnumDescriptor(_PROTOCOLVERSIONMAJOR)
 
@@ -55,8 +55,8 @@ _PROTOCOLVERSIONMINOR = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6576,
-  serialized_end=6626,
+  serialized_start=6574,
+  serialized_end=6624,
 )
 _sym_db.RegisterEnumDescriptor(_PROTOCOLVERSIONMINOR)
 
@@ -86,8 +86,8 @@ _CONSTANTNODEID = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6628,
-  serialized_end=6691,
+  serialized_start=6626,
+  serialized_end=6689,
 )
 _sym_db.RegisterEnumDescriptor(_CONSTANTNODEID)
 
@@ -189,8 +189,8 @@ _ATTRIBUTEID = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6694,
-  serialized_end=7093,
+  serialized_start=6692,
+  serialized_end=7091,
 )
 _sym_db.RegisterEnumDescriptor(_ATTRIBUTEID)
 
@@ -236,8 +236,8 @@ _NODECLASS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=7095,
-  serialized_end=7222,
+  serialized_start=7093,
+  serialized_end=7220,
 )
 _sym_db.RegisterEnumDescriptor(_NODECLASS)
 
@@ -263,8 +263,8 @@ _BROWSEDIRECTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=7224,
-  serialized_end=7277,
+  serialized_start=7222,
+  serialized_end=7275,
 )
 _sym_db.RegisterEnumDescriptor(_BROWSEDIRECTION)
 
@@ -643,16 +643,16 @@ _VARIANT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='localized_string_value', full_name='protocol.Variant.localized_string_value', index=5,
-      number=7, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      name='node_id_value', full_name='protocol.Variant.node_id_value', index=5,
+      number=6, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='node_id_value', full_name='protocol.Variant.node_id_value', index=6,
-      number=6, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
+      name='localized_text_value', full_name='protocol.Variant.localized_text_value', index=6,
+      number=7, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -668,7 +668,7 @@ _VARIANT = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=723,
-  serialized_end=911,
+  serialized_end=909,
 )
 
 
@@ -725,8 +725,8 @@ _DATAVALUE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=914,
-  serialized_end=1051,
+  serialized_start=912,
+  serialized_end=1049,
 )
 
 
@@ -832,8 +832,8 @@ _EVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1054,
-  serialized_end=1391,
+  serialized_start=1052,
+  serialized_end=1389,
 )
 
 
@@ -890,8 +890,8 @@ _CREATESESSION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1394,
-  serialized_end=1535,
+  serialized_start=1392,
+  serialized_end=1533,
 )
 
 
@@ -948,8 +948,8 @@ _CREATESESSIONRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1538,
-  serialized_end=1699,
+  serialized_start=1536,
+  serialized_end=1697,
 )
 
 
@@ -978,8 +978,8 @@ _DELETESESSION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1701,
-  serialized_end=1731,
+  serialized_start=1699,
+  serialized_end=1729,
 )
 
 
@@ -1043,8 +1043,8 @@ _NODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1734,
-  serialized_end=1975,
+  serialized_start=1732,
+  serialized_end=1973,
 )
 
 
@@ -1101,8 +1101,8 @@ _CREATENODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1978,
-  serialized_end=2190,
+  serialized_start=1976,
+  serialized_end=2188,
 )
 
 
@@ -1131,8 +1131,8 @@ _CREATENODERESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2192,
-  serialized_end=2245,
+  serialized_start=2190,
+  serialized_end=2243,
 )
 
 
@@ -1168,8 +1168,8 @@ _DELETENODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2247,
-  serialized_end=2321,
+  serialized_start=2245,
+  serialized_end=2319,
 )
 
 
@@ -1198,8 +1198,8 @@ _DELETENODERESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2323,
-  serialized_end=2379,
+  serialized_start=2321,
+  serialized_end=2377,
 )
 
 
@@ -1235,8 +1235,8 @@ _MODIFYNODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2381,
-  serialized_end=2470,
+  serialized_start=2379,
+  serialized_end=2468,
 )
 
 
@@ -1279,8 +1279,8 @@ _REFERENCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2473,
-  serialized_end=2603,
+  serialized_start=2471,
+  serialized_end=2601,
 )
 
 
@@ -1323,8 +1323,8 @@ _CHANGEPASSWORD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2605,
-  serialized_end=2709,
+  serialized_start=2603,
+  serialized_end=2707,
 )
 
 
@@ -1360,8 +1360,8 @@ _READVALUEID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2711,
-  serialized_end=2804,
+  serialized_start=2709,
+  serialized_end=2802,
 )
 
 
@@ -1390,8 +1390,8 @@ _READ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2806,
-  serialized_end=2853,
+  serialized_start=2804,
+  serialized_end=2851,
 )
 
 
@@ -1420,8 +1420,8 @@ _READRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2855,
-  serialized_end=2906,
+  serialized_start=2853,
+  serialized_end=2904,
 )
 
 
@@ -1464,8 +1464,8 @@ _WRITE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2908,
-  serialized_end=2981,
+  serialized_start=2906,
+  serialized_end=2979,
 )
 
 
@@ -1508,8 +1508,8 @@ _DEVICECOMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2983,
-  serialized_end=3107,
+  serialized_start=2981,
+  serialized_end=3105,
 )
 
 
@@ -1545,8 +1545,8 @@ _ACKNOWLEDGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3109,
-  serialized_end=3157,
+  serialized_start=3107,
+  serialized_end=3155,
 )
 
 
@@ -1582,8 +1582,8 @@ _CALL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3159,
-  serialized_end=3258,
+  serialized_start=3157,
+  serialized_end=3256,
 )
 
 
@@ -1619,8 +1619,8 @@ _EVENTFILTER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3260,
-  serialized_end=3305,
+  serialized_start=3258,
+  serialized_end=3303,
 )
 
 
@@ -1677,8 +1677,8 @@ _HISTORYREAD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3308,
-  serialized_end=3472,
+  serialized_start=3306,
+  serialized_end=3470,
 )
 
 
@@ -1714,8 +1714,8 @@ _HISTORYREADRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3474,
-  serialized_end=3563,
+  serialized_start=3472,
+  serialized_end=3561,
 )
 
 
@@ -1751,8 +1751,8 @@ _CREATESUBSCRIPTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3565,
-  serialized_end=3654,
+  serialized_start=3563,
+  serialized_end=3652,
 )
 
 
@@ -1781,8 +1781,8 @@ _CREATESUBSCRIPTIONRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3656,
-  serialized_end=3707,
+  serialized_start=3654,
+  serialized_end=3705,
 )
 
 
@@ -1811,8 +1811,8 @@ _DELETESUBSCRIPTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3709,
-  serialized_end=3754,
+  serialized_start=3707,
+  serialized_end=3752,
 )
 
 
@@ -1855,8 +1855,8 @@ _CREATEMONITOREDITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3756,
-  serialized_end=3882,
+  serialized_start=3754,
+  serialized_end=3880,
 )
 
 
@@ -1885,8 +1885,8 @@ _CREATEMONITOREDITEMRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3884,
-  serialized_end=3938,
+  serialized_start=3882,
+  serialized_end=3936,
 )
 
 
@@ -1922,8 +1922,8 @@ _DELETEMONITOREDITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3940,
-  serialized_end=4013,
+  serialized_start=3938,
+  serialized_end=4011,
 )
 
 
@@ -1973,8 +1973,8 @@ _BROWSEDESCRIPTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4016,
-  serialized_end=4187,
+  serialized_start=4014,
+  serialized_end=4185,
 )
 
 
@@ -2003,8 +2003,8 @@ _BROWSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4189,
-  serialized_end=4241,
+  serialized_start=4187,
+  serialized_end=4239,
 )
 
 
@@ -2047,8 +2047,8 @@ _REFERENCEDESCRIPTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4243,
-  serialized_end=4362,
+  serialized_start=4241,
+  serialized_end=4360,
 )
 
 
@@ -2084,8 +2084,8 @@ _BROWSERESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4364,
-  serialized_end=4451,
+  serialized_start=4362,
+  serialized_end=4449,
 )
 
 
@@ -2121,8 +2121,8 @@ _BROWSERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4453,
-  serialized_end=4544,
+  serialized_start=4451,
+  serialized_end=4542,
 )
 
 
@@ -2270,8 +2270,8 @@ _REQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4547,
-  serialized_end=5358,
+  serialized_start=4545,
+  serialized_end=5356,
 )
 
 
@@ -2363,8 +2363,8 @@ _RESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5361,
-  serialized_end=5884,
+  serialized_start=5359,
+  serialized_end=5882,
 )
 
 
@@ -2400,8 +2400,8 @@ _DATACHANGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5886,
-  serialized_end=5966,
+  serialized_start=5884,
+  serialized_end=5964,
 )
 
 
@@ -2423,8 +2423,8 @@ _SESSIONDELETED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5968,
-  serialized_end=5984,
+  serialized_start=5966,
+  serialized_end=5982,
 )
 
 
@@ -2509,8 +2509,8 @@ _NOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5987,
-  serialized_end=6387,
+  serialized_start=5985,
+  serialized_end=6385,
 )
 
 
@@ -2553,8 +2553,8 @@ _MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6390,
-  serialized_end=6522,
+  serialized_start=6388,
+  serialized_end=6520,
 )
 
 _ATTRIBUTES.fields_by_name['value'].message_type = _VARIANT

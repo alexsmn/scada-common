@@ -17,8 +17,8 @@ struct BrowseNode {
   NodeId node_id;
   NodeClass node_class;
   NodeId type_id;
-  std::string browse_name;
-  std::string display_name;
+  QualifiedName browse_name;
+  LocalizedText display_name;
   NodeId data_type_id;
   Variant value;
 };

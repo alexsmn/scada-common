@@ -110,8 +110,8 @@ message Variant {
   optional int64  int64_value   = 3;
   optional double double_value  = 4;
   optional bytes  string_value  = 5;
-  optional bytes  localized_string_value = 7;
   optional NodeId node_id_value = 6;
+  optional bytes  localized_text_value = 7;
 }
 
 message DataValue {

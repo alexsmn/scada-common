@@ -27,12 +27,12 @@ NodeRef NodeRef::data_type() const {
   return impl_ ? impl_->GetDataType() : nullptr;
 }
 
-std::string NodeRef::browse_name() const {
-  return GetAttribute(OpcUa_Attributes_BrowseName).value.get_or(std::string{});
+scada::QualifiedName NodeRef::browse_name() const {
+  return GetAttribute(OpcUa_Attributes_BrowseName).value.get_or(scada::QualifiedName{});
 }
 
-base::string16 NodeRef::display_name() const {
-  return GetAttribute(OpcUa_Attributes_DisplayName).value.get_or(base::string16{});
+scada::LocalizedText NodeRef::display_name() const {
+  return GetAttribute(OpcUa_Attributes_DisplayName).value.get_or(scada::LocalizedText{}).text();
 }
 
 NodeRef NodeRef::type_definition() const {
@@ -59,7 +59,7 @@ std::vector<NodeRef::Reference> NodeRef::references() const {
   return impl_ ? impl_->GetReferences() : std::vector<Reference>{};
 }
 
-NodeRef NodeRef::operator[](base::StringPiece aggregate_name) const {
+NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
   return impl_ ? impl_->GetAggregate(aggregate_name) : NodeRef{};
 }
 

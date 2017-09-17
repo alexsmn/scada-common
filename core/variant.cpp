@@ -49,22 +49,16 @@ std::string Variant::get_or(std::string&& or_value) const {
   return string_value;
 }
 
-base::StringPiece Variant::get_or(base::StringPiece&& or_value) const {
-  base::StringPiece result;
-  get(result);
-  return result;
+QualifiedName Variant::get_or(QualifiedName&& or_value) const {
+  QualifiedName value = std::move(or_value);
+  get(value);
+  return value;
 }
 
-base::string16 Variant::get_or(base::string16&& or_value) const {
-  base::string16 string_value = std::move(or_value);
-  get(string_value);
-  return string_value;
-}
-
-base::StringPiece16 Variant::get_or(base::StringPiece16&& or_value) const {
-  base::StringPiece16 result;
-  get(result);
-  return result;
+LocalizedText Variant::get_or(LocalizedText&& or_value) const {
+  LocalizedText value = std::move(or_value);
+  get(value);
+  return value;
 }
 
 bool Variant::get(bool& bool_value) const {
@@ -155,9 +149,9 @@ struct FormatHelper<std::string> {
 };
 
 template<>
-struct FormatHelper<base::string16> {
+struct FormatHelper<LocalizedText> {
   template<typename T>
-  static base::string16 Format(T&& value) {
+  static LocalizedText Format(T&& value) {
     return ::WideFormat(std::forward<T>(value));
   }
 };
@@ -181,7 +175,7 @@ bool Variant::ToStringHelper(String& string_value) const {
       string_value = FormatHelper<String>::Format(as_string());
       return true;
     case LOCALIZED_TEXT:
-      string_value = FormatHelper<String>::Format(as_string16());
+      string_value = FormatHelper<String>::Format(as_localized_text().text());
       return true;
     case NODE_ID:
       string_value = FormatHelper<String>::Format(as_node_id().ToString());
@@ -198,34 +192,15 @@ bool Variant::get(std::string& string_value) const {
   return ToStringHelper(string_value);
 }
 
-bool Variant::get(base::StringPiece& string_piece_value) const {
-  switch (type()) {
-    case STRING:
-      string_piece_value = as_string();
-      return true;
-    case EMPTY:
-      string_piece_value.clear();
-      return true;
-    default:
-      return false;
-  }
+bool Variant::get(QualifiedName& value) const {
+  if (type() != QUALIFIED_NAME)
+    return false;
+  value = get<QualifiedName>();
+  return true;
 }
 
-bool Variant::get(base::string16& string_value) const {
-  return ToStringHelper(string_value);
-}
-
-bool Variant::get(base::StringPiece16& string_piece_value) const {
-  switch (type()) {
-    case LOCALIZED_TEXT:
-      string_piece_value = as_string16();
-      return true;
-    case EMPTY:
-      string_piece_value.clear();
-      return true;
-    default:
-      return false;
-  }
+bool Variant::get(LocalizedText& value) const {
+  return ToStringHelper(value);
 }
 
 bool Variant::get(NodeId& node_id) const {

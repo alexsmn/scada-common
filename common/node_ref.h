@@ -30,8 +30,8 @@ class NodeRef {
   void Fetch(const FetchCallback& callback);
 
   base::Optional<scada::NodeClass> node_class() const;
-  std::string browse_name() const;
-  base::string16 display_name() const;
+  scada::QualifiedName browse_name() const;
+  scada::LocalizedText display_name() const;
   NodeRef type_definition() const;
   NodeRef supertype() const;
   NodeRef data_type() const;
@@ -59,7 +59,7 @@ class NodeRef {
   bool operator==(std::nullptr_t) const { return is_null(); }
   bool operator!=(std::nullptr_t) const { return !is_null(); }
 
-  NodeRef operator[](base::StringPiece aggregate_name) const;
+  NodeRef operator[](const scada::QualifiedName& aggregate_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
 
   NodeRef target(const scada::NodeId& reference_type_id) const;

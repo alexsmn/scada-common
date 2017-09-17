@@ -87,11 +87,11 @@ void NodeRefServiceImpl::SetAttribute(NodeRefImpl& impl, scada::AttributeId attr
       impl.node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
       break;
     case OpcUa_Attributes_BrowseName:
-      impl.browse_name_ = data_value.value.as_string();
+      impl.browse_name_ = data_value.value.get<scada::QualifiedName>();
       assert(!impl.browse_name_.empty());
       break;
     case OpcUa_Attributes_DisplayName:
-      impl.display_name_ = data_value.value.as_string16();
+      impl.display_name_ = data_value.value.get<scada::LocalizedText>();
       assert(!impl.display_name_.empty());
       break;
     case OpcUa_Attributes_DataType:
@@ -223,7 +223,7 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
     auto callbacks = std::move(partial_node.callbacks);
 
     logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s", fetched_id.ToString().c_str(),
-        impl->browse_name_.c_str());
+        impl->browse_name_.name().c_str());
 
     std::copy(partial_node.depended_ids.begin(), partial_node.depended_ids.end(),
       std::back_inserter(all_dependent_ids));

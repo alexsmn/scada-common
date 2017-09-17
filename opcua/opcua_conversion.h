@@ -13,6 +13,7 @@
 #include <opcuapp/vector.h>
 
 scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class);
+opcua::NodeClass Convert(scada::NodeClass node_class);
 
 scada::StatusCode ConvertStatusCode(opcua::StatusCode status_code);
 opcua::StatusCode MakeStatusCode(scada::StatusCode status_code);
@@ -59,8 +60,13 @@ scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object);
 scada::ByteString Convert(const OpcUa_ByteString& source);
 
 scada::String Convert(const opcua::String& source);
-scada::String Convert(const opcua::QualifiedName& source);
+void Convert(const scada::String& source, OpcUa_String& target);
+
+scada::QualifiedName Convert(const opcua::QualifiedName& source);
+void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target);
+
 scada::LocalizedText Convert(const opcua::LocalizedText& source);
+void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target);
 
 template<typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
