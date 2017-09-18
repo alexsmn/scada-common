@@ -9,7 +9,7 @@ class QualifiedName {
  public:
   QualifiedName() {}
 
-  QualifiedName(String name, NamespaceIndex namespace_index)
+  QualifiedName(String name, NamespaceIndex namespace_index = 0)
       : namespace_index_{namespace_index},
         name_{std::move(name)} {
   }

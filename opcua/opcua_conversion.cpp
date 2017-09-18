@@ -65,7 +65,7 @@ scada::Variant ConvertScalar(const OpcUa_Variant& source) {
       // TODO:
       return FormatTime(Convert(source.Value.DateTime));
     case OpcUaType_String:
-      return scada::String{OpcUa_String_GetRawString(&source.Value.String)};
+      return Convert(source.Value.String);
     case OpcUaType_Guid:
       // TODO:
       return {};
@@ -82,11 +82,9 @@ scada::Variant ConvertScalar(const OpcUa_Variant& source) {
       // TODO:
       return {};
     case OpcUaType_QualifiedName:
-      // TODO:
-      return Convert(source.Value.QualifiedName->Name);
+      return Convert(*source.Value.QualifiedName);
     case OpcUaType_LocalizedText:
-      // TODO:
-      return base::SysNativeMBToWide(OpcUa_String_GetRawString(&source.Value.LocalizedText->Text));
+      return Convert(*source.Value.LocalizedText);
     case OpcUaType_ExtensionObject:
       // TODO:
       return {};
@@ -267,7 +265,7 @@ scada::Qualifier MakeQualifier(opcua::StatusCode source) {
   return result;
 }
 
-base::Time Convert(OpcUa_DateTime source) {
+scada::Time Convert(OpcUa_DateTime source) {
   static_assert(sizeof(source) == sizeof(int64_t), "Wrong size");
   const auto us = reinterpret_cast<const int64_t&>(source) / 10;
   if (us == 0)
@@ -279,10 +277,10 @@ base::Time Convert(OpcUa_DateTime source) {
   if (us < usFrom1601To1970)
     return {};
 
-  return base::Time::UnixEpoch() + base::TimeDelta::FromMicroseconds(us - usFrom1601To1970);
+  return scada::Time::UnixEpoch() + base::TimeDelta::FromMicroseconds(us - usFrom1601To1970);
 }
 
-OpcUa_DateTime Convert(base::Time source) {
+OpcUa_DateTime Convert(scada::Time source) {
   if (source.is_null())
     return OpcUa_DateTime{};
 
@@ -500,10 +498,10 @@ void Convert(const scada::String& source, OpcUa_String& target) {
   ::OpcUa_String_AttachCopy(&target, const_cast<OpcUa_StringA>(source.c_str()));
 }
 
-scada::QualifiedName Convert(const opcua::QualifiedName& source) {
+scada::QualifiedName Convert(const OpcUa_QualifiedName& source) {
   return {
-      Convert(source.name()),
-      static_cast<scada::NamespaceIndex>(source.namespace_index()),
+      Convert(source.Name),
+      static_cast<scada::NamespaceIndex>(source.NamespaceIndex),
   };
 }
 
@@ -512,13 +510,13 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target) {
   Convert(source.name(), target.Name);
 }
 
-scada::LocalizedText Convert(const opcua::LocalizedText& source) {
-  return base::SysNativeMBToWide(OpcUa_String_GetRawString(&source.text()));
+scada::LocalizedText Convert(const OpcUa_LocalizedText& source) {
+  return Convert(source.Text);
 }
 
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target) {
   ::OpcUa_String_Clear(&target.Locale);
-  Convert(base::SysWideToNativeMB(source.text()), target.Text);
+  Convert(source.text(), target.Text);
 }
 
 scada::ByteString Convert(const OpcUa_ByteString& source) {

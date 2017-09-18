@@ -110,9 +110,9 @@ scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) cons
     case OpcUa_Attributes_DisplayName: {
       scada::LocalizedText display_name;
       if (!fetched_)
-        display_name = base::SysNativeMBToWide(id_.ToString());
+        display_name = id_.ToString();
       else if (display_name_.empty())
-        display_name = base::SysNativeMBToWide(browse_name_.name());
+        display_name = browse_name_.name();
       else
         display_name = display_name_;
       return {std::move(display_name), {}, {}, {}};

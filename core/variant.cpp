@@ -141,9 +141,9 @@ template<class String>
 struct FormatHelper;
 
 template<>
-struct FormatHelper<std::string> {
+struct FormatHelper<String> {
   template<typename T>
-  static std::string Format(T&& value) {
+  static String Format(T&& value) {
     return ::Format(std::forward<T>(value));
   }
 };
@@ -152,7 +152,7 @@ template<>
 struct FormatHelper<LocalizedText> {
   template<typename T>
   static LocalizedText Format(T&& value) {
-    return ::WideFormat(std::forward<T>(value));
+    return ::Format(std::forward<T>(value));
   }
 };
 

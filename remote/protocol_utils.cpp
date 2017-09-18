@@ -39,19 +39,19 @@ void ToProto(const scada::NodeId& source, protocol::NodeId& target) {
 
 scada::Variant FromProto(const protocol::Variant& source) {
   if (source.has_bool_value())
-    return scada::Variant(source.bool_value());
+    return source.bool_value();
   else if (source.has_int32_value())
-    return scada::Variant(source.int32_value());
+    return source.int32_value();
   else if (source.has_int64_value())
-    return scada::Variant(source.int64_value());
+    return source.int64_value();
   else if (source.has_double_value())
-    return scada::Variant(source.double_value());
+    return source.double_value();
   else if (source.has_string_value())
-    return scada::Variant(base::SysWideToNativeMB(base::SysUTF8ToWide(source.string_value())));
+    return scada::String{base::SysWideToNativeMB(base::SysUTF8ToWide(source.string_value()))};
   else if (source.has_localized_text_value())
-    return scada::Variant(scada::LocalizedText{base::SysUTF8ToWide(source.localized_text_value())});
+    return scada::LocalizedText{base::SysWideToNativeMB(base::SysUTF8ToWide(source.localized_text_value()))};
   else if (source.has_node_id_value())
-    return scada::Variant(FromProto(source.node_id_value()));
+    return FromProto(source.node_id_value());
   else
     return scada::Variant();
 }
@@ -76,7 +76,7 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       target.set_string_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
       break;
     case scada::Variant::LOCALIZED_TEXT:
-      target.set_localized_text_value(base::SysWideToUTF8(source.as_localized_text().text()));
+      target.set_localized_text_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_localized_text().text())));
       break;
     case scada::Variant::NODE_ID:
       ToProto(source.as_node_id(), *target.mutable_node_id_value());
@@ -139,7 +139,7 @@ scada::BrowseNode BrowseFromProto(const protocol::Node& source) {
       FromProto(source.node_class()),
       FromProto(source.type_id()),
       scada::QualifiedName{source.attributes().browse_name(), 0},
-      scada::LocalizedText{base::SysNativeMBToWide(source.attributes().display_name())},
+      scada::LocalizedText{source.attributes().display_name()},
       source.attributes().has_data_type_id() ? FromProto(source.attributes().data_type_id()) : scada::NodeId{},
       source.attributes().has_value() ? FromProto(source.attributes().value()) : scada::Variant{},
   };
@@ -219,7 +219,7 @@ scada::NodeAttributes FromProto(const protocol::Attributes& source) {
   if (source.has_browse_name())
     result.set_browse_name(scada::QualifiedName{source.browse_name(), 0});
   if (source.has_display_name())
-    result.set_display_name(base::SysNativeMBToWide(source.display_name()));
+    result.set_display_name(source.display_name());
   if (source.has_data_type_id())
     result.set_data_type_id(FromProto(source.data_type_id()));
   if (source.has_value())
@@ -255,7 +255,7 @@ void ToProto(const scada::BrowseNode& source, protocol::Node& target) {
   auto& attributes = *target.mutable_attributes();
   attributes.set_browse_name(source.browse_name.name());
   if (!source.display_name.empty())
-    attributes.set_display_name(base::SysWideToNativeMB(source.display_name.text()));
+    attributes.set_display_name(source.display_name.text());
 
   if (source.node_class == scada::NodeClass::Variable ||
       source.node_class == scada::NodeClass::VariableType) {

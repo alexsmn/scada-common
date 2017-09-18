@@ -1,6 +1,7 @@
 #include "timed_data_impl.h"
 
 #include "base/format_time.h"
+#include "base/strings/sys_string_conversions.h"
 #include "common/formula_util.h"
 #include "common/event_manager.h"
 #include "common/node_ref_service.h"
@@ -145,7 +146,7 @@ std::string TimedDataImpl::GetFormula(bool aliases) const {
 }
 
 base::string16 TimedDataImpl::GetTitle() const {
-  return node_.display_name().text();
+  return base::SysNativeMBToWide(node_.display_name().text());
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {

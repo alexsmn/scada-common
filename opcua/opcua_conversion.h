@@ -25,8 +25,8 @@ scada::Qualifier MakeQualifier(opcua::StatusCode source);
 
 scada::String Convert(const OpcUa_String& source);
 
-base::Time Convert(OpcUa_DateTime source);
-OpcUa_DateTime Convert(base::Time source);
+scada::Time Convert(OpcUa_DateTime source);
+OpcUa_DateTime Convert(scada::Time source);
 
 scada::DataValue Convert(OpcUa_DataValue&& source);
 OpcUa_DataValue MakeDataValue(scada::DataValue&& source);
@@ -62,10 +62,10 @@ scada::ByteString Convert(const OpcUa_ByteString& source);
 scada::String Convert(const opcua::String& source);
 void Convert(const scada::String& source, OpcUa_String& target);
 
-scada::QualifiedName Convert(const opcua::QualifiedName& source);
+scada::QualifiedName Convert(const OpcUa_QualifiedName& source);
 void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target);
 
-scada::LocalizedText Convert(const opcua::LocalizedText& source);
+scada::LocalizedText Convert(const OpcUa_LocalizedText& source);
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target);
 
 template<typename T, class It>
