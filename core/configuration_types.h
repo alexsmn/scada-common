@@ -33,31 +33,31 @@ class AttributeSet {
 
 class NodeAttributes : public AttributeSet  {
  public:
-  QualifiedName& browse_name() { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
-  const QualifiedName& browse_name() const { assert(has(OpcUa_Attributes_BrowseName)); return browse_name_; }
+  QualifiedName& browse_name() { return browse_name_; }
+  const QualifiedName& browse_name() const { return browse_name_; }
   NodeAttributes& set_browse_name(QualifiedName value) {
     browse_name_ = std::move(value);
     Add(OpcUa_Attributes_BrowseName);
     return *this;
   }
 
-  LocalizedText& display_name() { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
-  const LocalizedText& display_name() const { assert(has(OpcUa_Attributes_DisplayName)); return display_name_; }
+  LocalizedText& display_name() { return display_name_; }
+  const LocalizedText& display_name() const { return display_name_; }
   NodeAttributes& set_display_name(LocalizedText value) {
     display_name_ = std::move(value);
     Add(OpcUa_Attributes_DisplayName);
     return *this;
   }
 
-  const NodeId& data_type_id() const { assert(has(OpcUa_Attributes_DataType)); return data_type_id_; }
+  const NodeId& data_type_id() const { return data_type_id_; }
   NodeAttributes& set_data_type_id(NodeId data_type_id) {
     data_type_id_ = std::move(data_type_id);
     Add(OpcUa_Attributes_DataType);
     return *this;
   }
 
-  Variant& value() { assert(has(OpcUa_Attributes_Value)); return value_; }
-  const Variant& value() const { assert(has(OpcUa_Attributes_Value)); return value_; }
+  Variant& value() { return value_; }
+  const Variant& value() const { return value_; }
   NodeAttributes& set_value(Variant value) {
     value_ = std::move(value);
     Add(OpcUa_Attributes_Value);
