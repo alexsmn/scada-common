@@ -19,7 +19,8 @@ class QualifiedName {
   bool empty() const { return namespace_index_ == 0 && name_.empty(); }
 
   bool operator==(const QualifiedName& other) const {
-    return namespace_index_ == other.namespace_index_ && name_ == other.name_;
+    return namespace_index_ == other.namespace_index_ &&
+           name_ == other.name_;
   }
 
   bool operator!=(const QualifiedName& other) const { return !operator==(other); }
