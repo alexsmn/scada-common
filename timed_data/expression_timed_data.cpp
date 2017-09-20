@@ -118,8 +118,8 @@ void ExpressionTimedData::CalculateRange(base::Time from, base::Time to,
 
       ScadaExpression::Item& item = expression_->items[i];
       
-      if (update_time.is_null() || update_time < item.value.time)
-        update_time = item.value.time;
+      if (update_time.is_null() || update_time < item.value.source_timestamp)
+        update_time = item.value.source_timestamp;
 
       // Check iterator reached end.
       TimedVQMap::const_iterator& iterator = iters[i];
@@ -162,7 +162,7 @@ void ExpressionTimedData::CalculateRange(base::Time from, base::Time to,
       
       if (tvqs) {
         // Check values are ordered.
-        assert(tvqs->empty() || (*tvqs)[tvqs->size() - 1].time <= tvq.time);
+        assert(tvqs->empty() || (*tvqs)[tvqs->size() - 1].source_timestamp <= tvq.source_timestamp);
         tvqs->push_back(tvq);
       }
     }
@@ -198,14 +198,14 @@ bool ExpressionTimedData::CalculateCurrent() {
     expression_->items[i].value = scada::DataValue();
 
     const auto& cur = oper.current();
-    if (cur.time.is_null())
+    if (cur.source_timestamp.is_null())
       continue;
 
     // calculate value
     expression_->items[i].value = cur;
 
     // find maximal change and update times
-    const base::Time& update_time = cur.time;
+    const base::Time& update_time = cur.source_timestamp;
     if (!update_time.is_null()) {
       if (max_update_time.is_null() || update_time > max_update_time)
         max_update_time = update_time;
@@ -232,12 +232,12 @@ bool ExpressionTimedData::CalculateCurrent() {
 void ExpressionTimedData::OnTimedDataCorrections(TimedDataSpec& spec, size_t count, const scada::DataValue* tvqs) {
   assert(historical());
   assert(count > 0);
-  assert(tvqs[0].time >= ready_from());
+  assert(tvqs[0].source_timestamp >= ready_from());
 
-  ClearRange(tvqs[0].time, tvqs[count - 1].time);
+  ClearRange(tvqs[0].source_timestamp, tvqs[count - 1].source_timestamp);
 
   std::vector<scada::DataValue> changed_tvqs;
-  CalculateRange(tvqs[0].time, tvqs[count - 1].time, &changed_tvqs);
+  CalculateRange(tvqs[0].source_timestamp, tvqs[count - 1].source_timestamp, &changed_tvqs);
 
   if (!changed_tvqs.empty())
     NotifyTimedDataCorrection(changed_tvqs.size(), &changed_tvqs[0]);

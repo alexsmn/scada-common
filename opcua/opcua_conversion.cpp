@@ -265,7 +265,7 @@ scada::Qualifier MakeQualifier(opcua::StatusCode source) {
   return result;
 }
 
-scada::Time Convert(OpcUa_DateTime source) {
+scada::DateTime Convert(OpcUa_DateTime source) {
   static_assert(sizeof(source) == sizeof(int64_t), "Wrong size");
   const auto us = reinterpret_cast<const int64_t&>(source) / 10;
   if (us == 0)
@@ -277,10 +277,10 @@ scada::Time Convert(OpcUa_DateTime source) {
   if (us < usFrom1601To1970)
     return {};
 
-  return scada::Time::UnixEpoch() + base::TimeDelta::FromMicroseconds(us - usFrom1601To1970);
+  return scada::DateTime::UnixEpoch() + base::TimeDelta::FromMicroseconds(us - usFrom1601To1970);
 }
 
-OpcUa_DateTime Convert(scada::Time source) {
+OpcUa_DateTime Convert(scada::DateTime source) {
   if (source.is_null())
     return OpcUa_DateTime{};
 
@@ -312,8 +312,8 @@ scada::DataValue Convert(OpcUa_DataValue&& source) {
 OpcUa_DataValue MakeDataValue(scada::DataValue&& source) {
   OpcUa_DataValue result;
   OpcUa_DataValue_Initialize(&result);
-  result.ServerTimestamp = Convert(source.time);
-  result.SourceTimestamp = Convert(source.collection_time);
+  result.SourceTimestamp = Convert(source.source_timestamp);
+  result.ServerTimestamp = Convert(source.server_timestamp);
   result.Value = MakeVariant(std::move(source.value));
   result.StatusCode = MakeStatusCode(source.status_code).code();
   return result;

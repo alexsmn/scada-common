@@ -89,9 +89,9 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
 
 scada::DataValue FromProto(const protocol::DataValue& source) {
   scada::DataValue result;
-  result.collection_time = base::Time::FromInternalValue(source.server_timestamp());
+  result.server_timestamp = base::Time::FromInternalValue(source.server_timestamp());
   if (source.has_source_timestamp())
-    result.time = base::Time::FromInternalValue(source.source_timestamp());
+    result.source_timestamp = base::Time::FromInternalValue(source.source_timestamp());
   if (source.has_value())
     result.value = FromProto(source.value());
   result.qualifier = scada::Qualifier(source.qualifier());
@@ -102,9 +102,9 @@ scada::DataValue FromProto(const protocol::DataValue& source) {
 }
 
 void ToProto(const scada::DataValue& source, protocol::DataValue& target) {
-  target.set_server_timestamp(source.collection_time.ToInternalValue());
-  if (!source.time.is_null())
-    target.set_source_timestamp(source.time.ToInternalValue());
+  target.set_server_timestamp(source.server_timestamp.ToInternalValue());
+  if (!source.source_timestamp.is_null())
+    target.set_source_timestamp(source.source_timestamp.ToInternalValue());
   if (!source.value.is_null())
     ToProto(source.value, *target.mutable_value());
   target.set_qualifier(source.qualifier.raw());

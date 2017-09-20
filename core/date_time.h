@@ -4,7 +4,7 @@
 
 namespace scada {
 
-using Time = base::Time;
+using DateTime = base::Time;
 using Duration = base::TimeDelta;
 
 } // namespace scada

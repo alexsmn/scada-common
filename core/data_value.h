@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/time.h"
+#include "core/date_time.h"
 #include "core/qualifier.h"
 #include "core/variant.h"
 
@@ -10,14 +10,18 @@ class DataValue {
  public:
   DataValue() {}
 
-  DataValue(StatusCode status_code) : status_code{status_code} {}
+  DataValue(StatusCode status_code, DateTime server_timestamp)
+      : status_code{status_code},
+        server_timestamp{server_timestamp} {
+    assert(!IsGood(status_code));
+  }
 
   template<class T>
-  DataValue(T&& value, Qualifier qualifier, Time time, Time collection_time)
+  DataValue(T&& value, Qualifier qualifier, DateTime source_timestamp, DateTime server_timestamp)
       : value(std::forward<T>(value)),
         qualifier(std::move(qualifier)),
-        time(time),
-        collection_time(collection_time) {
+        source_timestamp(source_timestamp),
+        server_timestamp(server_timestamp) {
   }
 
   bool is_null() const {
@@ -25,16 +29,17 @@ class DataValue {
   }
 
   bool operator==(const DataValue& other) const {
-    return time == other.time &&
-           collection_time == other.collection_time &&
+    return source_timestamp == other.source_timestamp &&
+           server_timestamp == other.server_timestamp &&
            value == other.value &&
-           qualifier == other.qualifier;
+           qualifier == other.qualifier &&
+           status_code == other.status_code;
   }
 
   Variant value;
   Qualifier qualifier;
-  Time time;
-  Time collection_time;
+  DateTime source_timestamp;
+  DateTime server_timestamp;
   StatusCode status_code = StatusCode::Good;
 };
 

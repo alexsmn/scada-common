@@ -24,7 +24,7 @@ TimedData::~TimedData() {
 
 scada::DataValue TimedData::GetValueAt(const base::Time& time) const {
   if (!historical())
-    return current_.time <= time ? current_ : scada::DataValue();
+    return current_.source_timestamp <= time ? current_ : scada::DataValue();
 
   TimedVQMap::const_iterator i = map_.lower_bound(time);
   if (i == map_.end())
@@ -56,7 +56,7 @@ void TimedData::SetFrom(base::Time time) {
   
   // When data switches from current-only to historical, add current value
   // into historical values.
-  if (!historical() && !current_.time.is_null())
+  if (!historical() && !current_.source_timestamp.is_null())
     UpdateMap(current_);
 
   from_ = time;
@@ -120,7 +120,7 @@ bool CheckTvqsSorted(size_t count, const scada::DataValue* tvqs) {
   if (count <= 1)
     return true;
   for (size_t i = 0; i < count - 1; ++i)
-    if (tvqs[i].time >= tvqs[i + 1].time)
+    if (tvqs[i].source_timestamp >= tvqs[i + 1].source_timestamp)
       return false;
   return true;
 }
@@ -135,7 +135,7 @@ void TimedData::NotifyTimedDataCorrection(size_t count, const scada::DataValue* 
       // For each spec find range it's subscribed on.
       size_t spec_count = count;
       const scada::DataValue* spec_tvqs = tvqs;
-      while (spec_count && spec_tvqs[0].time < spec.from()) {
+      while (spec_count && spec_tvqs[0].source_timestamp < spec.from()) {
         ++spec_tvqs;
         --spec_count;
       }
@@ -172,16 +172,16 @@ void TimedData::NotifyEventsChanged(const events::EventSet& events) {
 }
 
 bool TimedData::UpdateMap(const scada::DataValue& value) {
-  if (value.time.is_null())
+  if (value.source_timestamp.is_null())
     return false;
 
-  TimedDataEntry& entry = map_[value.time];
-  if (entry.collection_time > value.collection_time)
+  TimedDataEntry& entry = map_[value.source_timestamp];
+  if (entry.collection_time > value.server_timestamp)
     return false;
 
   entry.vq.value = value.value;
   entry.vq.qualifier = value.qualifier;
-  entry.collection_time = value.collection_time;
+  entry.collection_time = value.server_timestamp;
   return true;
 }
 
@@ -193,11 +193,11 @@ bool TimedData::UpdateCurrent(const scada::DataValue& value) {
                    current_.qualifier != value.qualifier;
 
   // Add new point with time of last change.
-  if (historical() && is_change && !value.time.is_null())
+  if (historical() && is_change && !value.source_timestamp.is_null())
     UpdateMap(value);
 
   if (is_change)
-    change_time_ = value.time;
+    change_time_ = value.source_timestamp;
 
   current_ = value;
   return true;

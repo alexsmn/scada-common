@@ -127,7 +127,7 @@ void SubscriptionProxy::MonitoredItemProxy::OnChannelOpened() {
   assert(state_ == DELETED);
 
   DataValue tvq;
-  tvq.collection_time = base::Time::Now();
+  tvq.server_timestamp = base::Time::Now();
   tvq.qualifier = Qualifier::OFFLINE;
   current_data_ = tvq;
   ForwardData(tvq);

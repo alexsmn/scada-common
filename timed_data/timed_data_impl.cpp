@@ -195,8 +195,8 @@ void TimedDataImpl::OnQueryValuesComplete(scada::Status status, base::Time queri
 
   base::Time new_ready_from = queried_from;
   // Returned data array includes left time bound.
-  if (results && !results->empty() && results->front().time < new_ready_from)
-    new_ready_from = results->front().time;
+  if (results && !results->empty() && results->front().source_timestamp < new_ready_from)
+    new_ready_from = results->front().source_timestamp;
 
   UpdateReadyFrom(new_ready_from);
 
@@ -214,8 +214,8 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& tvq) {
     return;
   }
 
-  if (current_.time.is_null() ||
-      (!tvq.time.is_null() && current_.time <= tvq.time)) {
+  if (current_.source_timestamp.is_null() ||
+      (!tvq.source_timestamp.is_null() && current_.source_timestamp <= tvq.source_timestamp)) {
     if (UpdateCurrent(tvq))
        NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   } else {

@@ -25,8 +25,8 @@ scada::Qualifier MakeQualifier(opcua::StatusCode source);
 
 scada::String Convert(const OpcUa_String& source);
 
-scada::Time Convert(OpcUa_DateTime source);
-OpcUa_DateTime Convert(scada::Time source);
+scada::DateTime Convert(OpcUa_DateTime source);
+OpcUa_DateTime Convert(scada::DateTime source);
 
 scada::DataValue Convert(OpcUa_DataValue&& source);
 OpcUa_DataValue MakeDataValue(scada::DataValue&& source);
