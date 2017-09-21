@@ -7,6 +7,7 @@
 #include "core/status.h"
 #include "core/variant.h"
 #include "core/extension_object.h"
+#include "core/expanded_node_id.h"
 
 #include <opcuapp/structs.h>
 #include <opcuapp/types.h>
@@ -31,11 +32,12 @@ OpcUa_DateTime Convert(scada::DateTime source);
 scada::DataValue Convert(OpcUa_DataValue&& source);
 OpcUa_DataValue MakeDataValue(scada::DataValue&& source);
 
-OpcUa_NodeId Convert(const scada::NodeId& node_id);
+void Convert(const scada::NodeId& source, OpcUa_NodeId& target);
 
 scada::NodeId Convert(const OpcUa_NodeId& node_id);
 
-scada::NodeId Convert(const OpcUa_ExpandedNodeId& node_id);
+scada::ExpandedNodeId Convert(const OpcUa_ExpandedNodeId& node_id);
+void Convert(const scada::ExpandedNodeId& source, OpcUa_ExpandedNodeId& target);
 
 scada::AttributeId ConvertAttributeId(OpcUa_Int32 attribute_id);
 OpcUa_Int32 Convert(scada::AttributeId attribute_id);
@@ -53,7 +55,7 @@ scada::ReferenceDescription Convert(const OpcUa_ReferenceDescription& source);
 OpcUa_ReferenceDescription Convert(const scada::ReferenceDescription& source);
 
 scada::BrowseResult Convert(const OpcUa_BrowseResult& source);
-OpcUa_BrowseResult Convert(const scada::BrowseResult& source);
+void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& target);
 
 scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object);
 
@@ -84,7 +86,7 @@ inline std::vector<T> ConvertVector(Range&& range) {
 template<typename T, typename S>
 opcua::Vector<T> MakeVector(opcua::Span<S> values) {
   opcua::Vector<T> result(values.size());
-  std::transform(values.begin(), values.end(), result.begin(),
-      [](S& source) { return Convert(std::move(source)); });
+  for (size_t i = 0; i < values.size(); ++i)
+    Convert(std::move(values[i]), result[i]);
   return result;
 }

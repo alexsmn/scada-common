@@ -1,25 +1,39 @@
 #pragma once
 
 #include "core/node_id.h"
-
-#include <string>
+#include "core/string.h"
 
 namespace scada {
 
 class ExpandedNodeId {
  public:
-  ExpandedNodeId(NodeId node_id, std::string namespace_uri, unsigned server_index);
+  ExpandedNodeId() {}
+  ExpandedNodeId(NodeId node_id) : node_id_{std::move(node_id)} {}
+  ExpandedNodeId(NodeId node_id, String namespace_uri, unsigned server_index);
+
+  bool operator==(const ExpandedNodeId& other) const;
+  bool operator!=(const ExpandedNodeId& other) const { return !operator==(other); }
+
+  const NodeId& node_id() const { return node_id_; }
+  const String& namespace_uri() const { return namespace_uri_; }
+  unsigned server_index() const { return server_index_; }
 
  private:
-  const NodeId node_id_;
-  const std::string namespace_uri_;
-  const unsigned server_index_;
+  NodeId node_id_;
+  String namespace_uri_;
+  unsigned server_index_ = 0;
 };
 
-inline ExpandedNodeId::ExpandedNodeId(NodeId node_id, std::string namespace_uri, unsigned server_index)
+inline ExpandedNodeId::ExpandedNodeId(NodeId node_id, String namespace_uri, unsigned server_index)
     : node_id_{std::move(node_id)},
       namespace_uri_{std::move(namespace_uri)},
       server_index_{server_index} {
+}
+
+inline bool ExpandedNodeId::operator==(const ExpandedNodeId& other) const {
+  return node_id_ == other.node_id_ &&
+         namespace_uri_ == other.namespace_uri_ &&
+         server_index_ == other.server_index_;
 }
 
 } // namespace scada

@@ -14,6 +14,11 @@ TARGET_LINK_LIBRARIES(scada_core
   OPCUAPP
 )
 
+target_compile_options(scada_core
+  PUBLIC
+    "/std:c++latest"
+)
+
 ADD_EXECUTABLE(scada_core_unittests ${scada_core_unittest_sources})
 TARGET_LINK_LIBRARIES(scada_core_unittests
   scada_core
