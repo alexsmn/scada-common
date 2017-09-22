@@ -41,7 +41,7 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   // Returns fetched or unfetched node impl.
   std::shared_ptr<NodeRefImpl> GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id);
 
-  void CompletePartialNode(const scada::NodeId& node_id);
+  void CompletePartialNode(const std::shared_ptr<NodeRefImpl>& node);
 
   using Observers = base::ObserverList<NodeRefObserver>;
 

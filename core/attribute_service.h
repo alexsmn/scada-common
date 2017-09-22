@@ -13,10 +13,10 @@ class NodeId;
 class Status;
 
 using StatusCallback = std::function<void(const Status&)>;
+using ReadCallback = std::function<void(const Status&, std::vector<scada::DataValue> values)>;
 
 class AttributeService {
  public:
-  using ReadCallback = std::function<void(const Status&, std::vector<scada::DataValue> values)> ;
   virtual void Read(const std::vector<ReadValueId>& value_ids, const ReadCallback& callback) = 0;
 
   virtual void Write(const NodeId& node_id, double value, const NodeId& user_id,

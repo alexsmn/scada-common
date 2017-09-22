@@ -111,10 +111,14 @@ std::vector<NodeRef::Reference> NodeRefImpl::GetReferences() const {
 }
 
 void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
-  if (fetched_)
-    return callback(shared_from_this());
+  if (fetched_) {
+    if (callback)
+      callback(shared_from_this());
+    return;
+  }
 
-  fetch_callbacks_.emplace_back(callback);
+  if (callback)
+    fetch_callbacks_.emplace_back(callback);
 
   if (pending_request_count_ != 0)
     return;
@@ -193,10 +197,13 @@ void NodeRefImpl::RemoveObserver(NodeRefObserver& observer) {
 }
 
 void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada::DataValue> values) {
+  // Request could be canceled.
+  if (!status_)
+    return;
+
   if (!status) {
     logger_->WriteF(LogSeverity::Warning, "Read failed for node %s", id_.ToString().c_str());
-    // TODO: Failure.
-    assert(false);
+    SetError(status);
     return;
   }
 
@@ -218,7 +225,7 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
   if (!node_class_.has_value()) {
     logger_->WriteF(LogSeverity::Warning, "Node class wasn't read %s", id_.ToString().c_str());
     // TODO: Failure.
-    assert(false);
+    SetError(scada::StatusCode::Bad_WrongNodeClass);
     return;
   }
 
@@ -242,6 +249,10 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
 }
 
 void NodeRefImpl::OnBrowseComplete(const scada::Status& status, std::vector<scada::BrowseResult> results) {
+  // Request could be canceled.
+  if (!status_)
+    return;
+
   if (!status) {
     logger_->WriteF(LogSeverity::Normal, "Browse failed for node %s", id_.ToString().c_str());
     // TODO: Fail.
@@ -266,7 +277,7 @@ void NodeRefImpl::OnBrowseComplete(const scada::Status& status, std::vector<scad
 
   // TODO: Integrity check.
 
-  service_.CompletePartialNode(id_);
+  service_.CompletePartialNode(shared_from_this());
 }
 
 void NodeRefImpl::SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value) {
@@ -275,11 +286,11 @@ void NodeRefImpl::SetAttribute(scada::AttributeId attribute_id, scada::DataValue
       node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
       break;
     case OpcUa_Attributes_BrowseName:
-      browse_name_ = data_value.value.get<scada::QualifiedName>();
+      browse_name_ = std::move(data_value.value.get<scada::QualifiedName>());
       assert(!browse_name_.empty());
       break;
     case OpcUa_Attributes_DisplayName:
-      display_name_ = data_value.value.get<scada::LocalizedText>();
+      display_name_ = std::move(data_value.value.get<scada::LocalizedText>());
       assert(!display_name_.empty());
       break;
     case OpcUa_Attributes_DataType:
@@ -315,24 +326,24 @@ bool NodeRefImpl::IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) {
 
   if (passing_)
     return true;
-  if (pending_request_count_ != 0)
-    return false;
 
   passing_ = true;
 
-  // It must never delete |partial_node| since it's in |complete_ids|.
-  fetched_ = IsNodeFetchedHelper(fetched_node_ids);
+  bool fetched = IsNodeFetchedHelper(fetched_node_ids);
 
   assert(passing_);
   passing_ = false;
 
-  if (fetched_)
+  if (fetched)
     fetched_node_ids.emplace_back(id_);
 
-  return fetched_;
+  return fetched;
 }
 
 bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids) {
+  if (pending_request_count_ != 0)
+    return true;
+
   if (auto data_type = data_type_) {
     if (!data_type->IsNodeFetched(fetched_node_ids))
       return false;
@@ -345,4 +356,11 @@ bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_i
       return false;
   }
   return true;
+}
+
+void NodeRefImpl::SetError(const scada::Status& status) {
+  assert(status_.good());
+  status_ = status;
+  pending_request_count_ = 0;
+  service_.CompletePartialNode(shared_from_this());
 }

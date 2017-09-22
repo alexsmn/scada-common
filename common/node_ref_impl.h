@@ -56,6 +56,8 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   bool IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids);
   bool IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids);
 
+  void SetError(const scada::Status& status);
+
   NodeRefServiceImpl& service_;
   const scada::NodeId id_;
 

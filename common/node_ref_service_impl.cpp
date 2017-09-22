@@ -22,35 +22,30 @@ NodeRefServiceImpl::~NodeRefServiceImpl() {
 }
 
 NodeRef NodeRefServiceImpl::GetNode(const scada::NodeId& node_id) {
-  return NodeRef{GetNodeImpl(node_id, {})};
+  return GetNodeImpl(node_id, {});
 }
 
 std::shared_ptr<NodeRefImpl> NodeRefServiceImpl::GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id) {
   assert(!node_id.is_null());
 
-  auto& impl = nodes_[node_id];
+  auto& node = nodes_[node_id];
 
-  if (!impl) {
-    impl = std::make_shared<NodeRefImpl>(*this, node_id, logger_);
-    impl->Fetch(nullptr);
+  if (!node) {
+    node = std::make_shared<NodeRefImpl>(*this, node_id, logger_);
+    node->Fetch(nullptr);
   }
 
-  if (!impl->fetched_ && !depended_id.is_null())
-    impl->depended_ids_.emplace_back(depended_id);
+  if (!node->fetched_ && !depended_id.is_null())
+    node->depended_ids_.emplace_back(depended_id);
 
-  return impl;
+  return node;
 }
 
-void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
-  auto i = nodes_.find(node_id);
-  if (i == nodes_.end())
-    return;
-
-  auto& impl = i->second;
-  assert(!impl->fetched_);
+void NodeRefServiceImpl::CompletePartialNode(const std::shared_ptr<NodeRefImpl>& node) {
+  assert(!node->fetched_);
 
   std::vector<scada::NodeId> fetched_node_ids;
-  impl->IsNodeFetched(fetched_node_ids);
+  node->IsNodeFetched(fetched_node_ids);
 
   std::vector<scada::NodeId> all_dependent_ids;
 
@@ -59,21 +54,21 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
     if (i == nodes_.end())
       continue;
 
-    auto impl = i->second;
-    assert(!impl->fetched_);
-    auto callbacks = std::move(impl->fetch_callbacks_);
+    auto node = i->second;
+    assert(!node->fetched_);
+    auto callbacks = std::move(node->fetch_callbacks_);
 
     logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s", fetched_id.ToString().c_str(),
-        impl->browse_name_.name().c_str());
+        node->browse_name_.name().c_str());
 
-    std::copy(impl->depended_ids_.begin(), impl->depended_ids_.end(),
+    std::copy(node->depended_ids_.begin(), node->depended_ids_.end(),
       std::back_inserter(all_dependent_ids));
 
     // Init references.
-    for (auto& reference : impl->references_)
-      impl->AddReference(reference);
+    for (auto& reference : node->references_)
+      node->AddReference(reference);
 
-    impl->fetched_ = true;
+    node->fetched_ = true;
 
     for (auto& o : observers_)
       o.OnNodeSemanticChanged(fetched_id);
@@ -84,11 +79,14 @@ void NodeRefServiceImpl::CompletePartialNode(const scada::NodeId& node_id) {
     }
 
     for (auto& callback : callbacks)
-      callback(impl);
+      callback(node);
   }
 
-  for (auto& depended_id : all_dependent_ids)
-    CompletePartialNode(depended_id);
+  for (auto& depended_id : all_dependent_ids) {
+    auto i = nodes_.find(depended_id);
+    if (i != nodes_.end())
+      CompletePartialNode(i->second);
+  }
 }
 
 void NodeRefServiceImpl::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) {

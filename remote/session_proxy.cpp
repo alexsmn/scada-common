@@ -281,7 +281,7 @@ void SessionProxy::OnCreateSessionResult(const protocol::Response& response) {
   OnSessionCreated();
 }
 
-void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids, const ReadCallback& callback) {
+void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) {
   if (!session_created_) {
     callback(scada::StatusCode::Bad_Disconnected, {});
     return;

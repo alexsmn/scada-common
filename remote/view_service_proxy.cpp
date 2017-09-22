@@ -31,7 +31,7 @@ void ViewServiceProxy::OnChannelClosed() {
   sender_ = nullptr;
 }
 
-void ViewServiceProxy::Browse(const std::vector<scada::BrowseDescription>& nodes, const BrowseCallback& callback) {
+void ViewServiceProxy::Browse(const std::vector<scada::BrowseDescription>& nodes, const scada::BrowseCallback& callback) {
   assert(sender_);
 
   protocol::Request request;
@@ -56,7 +56,7 @@ void ViewServiceProxy::Browse(const std::vector<scada::BrowseDescription>& nodes
 }
 
 void ViewServiceProxy::TranslateBrowsePath(const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path, const TranslateBrowsePathCallback& callback) {
+    const scada::RelativePath& relative_path, const scada::TranslateBrowsePathCallback& callback) {
   assert(false);
   callback(scada::StatusCode::Bad, {}, 0);
 }

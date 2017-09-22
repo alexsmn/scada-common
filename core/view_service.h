@@ -50,15 +50,16 @@ class ViewEvents {
   virtual void OnNodeModified(const NodeId& node_id, const PropertyIds& property_ids) = 0;
 };
 
+using BrowseCallback = std::function<void(const Status& status, std::vector<BrowseResult> results)>;
+using TranslateBrowsePathCallback = std::function<void(const Status& status,
+    const std::vector<NodeId>& target_ids, size_t remaining_path_index)>;
+
 class ViewService {
  public:
   virtual ~ViewService() {}
 
-  using BrowseCallback = std::function<void(const Status& status, std::vector<BrowseResult> results)>;
   virtual void Browse(const std::vector<BrowseDescription>& nodes, const BrowseCallback& callback) = 0;
 
-  using TranslateBrowsePathCallback = std::function<void(const Status& status,
-      const std::vector<NodeId>& target_ids, size_t remaining_path_index)>;
   virtual void TranslateBrowsePath(const NodeId& starting_node_id, const RelativePath& relative_path,
       const TranslateBrowsePathCallback& callback) = 0;
 

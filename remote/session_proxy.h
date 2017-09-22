@@ -70,7 +70,7 @@ class SessionProxy : public scada::MonitoredItemService,
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::NodeId& node_id, scada::AttributeId attribute_id) override;
 
   // scada::AttributeService
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids, const ReadCallback& callback) override;
+  virtual void Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) override;
   virtual void Write(const scada::NodeId& node_id, double value, const scada::NodeId& user_id,
                      const scada::WriteFlags& flags, const scada::StatusCallback& callback) override;
 
