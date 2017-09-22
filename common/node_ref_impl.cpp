@@ -1,15 +1,36 @@
 #include "node_ref_impl.h"
 
+#include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "common/node_ref_impl.h"
 #include "common/node_ref_service_impl.h"
 #include "common/node_ref_util.h"
+#include "core/attribute_service.h"
+
+namespace {
+
+const scada::AttributeId kReadAttributeIds[] = {
+    OpcUa_Attributes_NodeClass,
+    OpcUa_Attributes_BrowseName,
+    OpcUa_Attributes_DisplayName,
+    OpcUa_Attributes_DataType,
+    OpcUa_Attributes_Value,
+};
+
+} // namespace
+
+NodeRefImpl::NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id, std::shared_ptr<const Logger> logger)
+    : service_{service},
+      id_{std::move(id)},
+      logger_{std::move(logger)} {
+}
 
 NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
   if (!fetched_)
     return nullptr;
 
-  auto* type_definition = scada::IsTypeDefinition(node_class_) ? this : type_definition_.get();
+  assert(node_class_.has_value());
+  auto* type_definition = scada::IsTypeDefinition(*node_class_) ? this : type_definition_.get();
   for (; type_definition; type_definition = type_definition->supertype_.get()) {
     assert(type_definition->fetched_);
     const auto& declarations = type_definition->aggregates_;
@@ -18,7 +39,7 @@ NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_decl
           return reference.target->id_ == aggregate_declaration_id;
         });
     if (i != declarations.end())
-      return NodeRef{i->target};
+      return i->target;
   }
 
   return nullptr;
@@ -34,7 +55,7 @@ NodeRef NodeRefImpl::GetAggregate(const scada::QualifiedName& aggregate_name) co
         assert(reference.target->fetched_);
         return reference.target->browse_name_ == aggregate_name;
       });
-  return i == aggregates_.end() ? nullptr : NodeRef{i->target};
+  return i == aggregates_.end() ? nullptr : i->target;
 }
 
 std::vector<NodeRef> NodeRefImpl::GetAggregates(const scada::NodeId& reference_type_id) const {
@@ -45,8 +66,8 @@ std::vector<NodeRef> NodeRefImpl::GetAggregates(const scada::NodeId& reference_t
   for (auto& ref : aggregates_) {
     assert(ref.reference_type->fetched_);
     assert(ref.target->fetched_);
-    if (IsSubtypeOf(NodeRef{ref.reference_type}, reference_type_id))
-      result.emplace_back(NodeRef{ref.target});
+    if (IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.emplace_back(ref.target);
   }
   return result;
 }
@@ -56,8 +77,8 @@ NodeRef NodeRefImpl::GetTarget(const scada::NodeId& reference_type_id) const {
     return nullptr;
   for (auto& ref : references_) {
     assert(ref.reference_type->fetched_);
-    if (IsSubtypeOf(NodeRef{ref.reference_type}, reference_type_id))
-      return NodeRef{ref.target};
+    if (IsSubtypeOf(ref.reference_type, reference_type_id))
+      return ref.target;
   }
   return nullptr;
 }
@@ -70,8 +91,8 @@ std::vector<NodeRef> NodeRefImpl::GetTargets(const scada::NodeId& reference_type
   for (auto& ref : references_) {
     assert(ref.reference_type->fetched_);
     assert(ref.target->fetched_);
-    if (IsSubtypeOf(NodeRef{ref.reference_type}, reference_type_id))
-      result.emplace_back(NodeRef{ref.target});
+    if (IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.emplace_back(ref.target);
   }
   return result;
 }
@@ -84,17 +105,33 @@ std::vector<NodeRef::Reference> NodeRefImpl::GetReferences() const {
   for (auto& ref : references_) {
     assert(ref.reference_type->fetched_);
     assert(ref.target->fetched_);
-    result.emplace_back(NodeRef::Reference{NodeRef{ref.reference_type}, NodeRef{ref.target}, ref.forward});
+    result.emplace_back(NodeRef::Reference{ref.reference_type, ref.target, ref.forward});
   }
   return result;
 }
 
 void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
-  NodeRef node{shared_from_this()};
   if (fetched_)
-    callback(std::move(node));
-  else
-    service_.RequestNode(id_, [callback, node] { callback(std::move(node)); });
+    return callback(shared_from_this());
+
+  fetch_callbacks_.emplace_back(callback);
+
+  if (pending_request_count_ != 0)
+    return;
+
+  logger_->WriteF(LogSeverity::Normal, "Request node %s", id_.ToString().c_str());
+
+  std::vector<scada::ReadValueId> read_ids(std::size(kReadAttributeIds));
+  for (size_t i = 0; i < read_ids.size(); ++i)
+    read_ids[i] = scada::ReadValueId{id_, kReadAttributeIds[i]};
+
+  // TODO: Weak ptr.
+  ++pending_request_count_;
+  std::weak_ptr<NodeRefImpl> weak_ptr = shared_from_this();
+  service_.attribute_service_.Read(read_ids, [weak_ptr](const scada::Status& status, std::vector<scada::DataValue> values) {
+    if (auto ptr = weak_ptr.lock())
+      ptr->OnReadComplete(status, std::move(values));
+  });
 }
 
 scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
@@ -105,20 +142,16 @@ scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const 
     case OpcUa_Attributes_NodeClass:
       return static_cast<int>(OpcUaId_NodeClass);
 
-    case OpcUa_Attributes_BrowseName: {
+    case OpcUa_Attributes_BrowseName:
       return fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString()};
-    }
 
-    case OpcUa_Attributes_DisplayName: {
-      scada::LocalizedText display_name;
+    case OpcUa_Attributes_DisplayName:
       if (!fetched_)
-        display_name = id_.ToString();
+        return scada::LocalizedText{id_.ToString()};
       else if (display_name_.empty())
-        display_name = browse_name_.name();
+        return scada::LocalizedText{browse_name_.name()};
       else
-        display_name = display_name_;
-      return std::move(display_name);
-    }
+        return display_name_;
 
     default:
       assert(false);
@@ -131,15 +164,15 @@ scada::DataValue NodeRefImpl::GetValue() const {
 }
 
 NodeRef NodeRefImpl::GetTypeDefinition() const {
-  return NodeRef{type_definition_};
+  return type_definition_;
 }
 
 NodeRef NodeRefImpl::GetSupertype() const {
-  return NodeRef{supertype_};
+  return supertype_;
 }
 
 NodeRef NodeRefImpl::GetDataType() const {
-  return NodeRef{data_type_};
+  return data_type_;
 }
 
 scada::Status NodeRefImpl::GetStatus() const {
@@ -157,4 +190,159 @@ void NodeRefImpl::AddObserver(NodeRefObserver& observer) {
 
 void NodeRefImpl::RemoveObserver(NodeRefObserver& observer) {
   service_.RemoveNodeObserver(id_, observer);
+}
+
+void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada::DataValue> values) {
+  if (!status) {
+    logger_->WriteF(LogSeverity::Warning, "Read failed for node %s", id_.ToString().c_str());
+    // TODO: Failure.
+    assert(false);
+    return;
+  }
+
+  assert(values.size() == std::size(kReadAttributeIds));
+
+  logger_->WriteF(LogSeverity::Normal, "Read complete for node %s", id_.ToString().c_str());
+
+  assert(pending_request_count_ > 0);
+  --pending_request_count_;
+
+  for (size_t i = 0; i < values.size(); ++i) {
+    const auto attribute_id = kReadAttributeIds[i];
+    auto& value = values[i];
+    // assert(scada::IsGood(value.status_code) || attribute_id != OpcUa_Attributes_BrowseName);
+    if (scada::IsGood(value.status_code))
+      SetAttribute(attribute_id, std::move(value));
+  }
+
+  if (!node_class_.has_value()) {
+    logger_->WriteF(LogSeverity::Warning, "Node class wasn't read %s", id_.ToString().c_str());
+    // TODO: Failure.
+    assert(false);
+    return;
+  }
+
+  // TODO: Data integrity check.
+
+  std::vector<scada::BrowseDescription> nodes;
+  nodes.reserve(3);
+  assert(node_class_.has_value());
+  if (scada::IsTypeDefinition(*node_class_))
+    nodes.push_back({id_, scada::BrowseDirection::Inverse, OpcUaId_HasSubtype, true});
+  nodes.push_back({id_, scada::BrowseDirection::Forward, OpcUaId_Aggregates, true});
+  nodes.push_back({id_, scada::BrowseDirection::Forward, OpcUaId_NonHierarchicalReferences, true});
+
+  ++pending_request_count_;
+  std::weak_ptr<NodeRefImpl> weak_ptr = shared_from_this();
+  service_.view_service_.Browse(std::move(nodes),
+      [weak_ptr](const scada::Status& status, std::vector<scada::BrowseResult> results) {
+        if (auto ptr = weak_ptr.lock())
+          ptr->OnBrowseComplete(status, std::move(results));
+      });
+}
+
+void NodeRefImpl::OnBrowseComplete(const scada::Status& status, std::vector<scada::BrowseResult> results) {
+  if (!status) {
+    logger_->WriteF(LogSeverity::Normal, "Browse failed for node %s", id_.ToString().c_str());
+    // TODO: Fail.
+    assert(false);
+    return;
+  }
+
+  logger_->WriteF(LogSeverity::Normal, "Browse complete for node %s", id_.ToString().c_str());
+
+  assert(pending_request_count_ > 0);
+  --pending_request_count_;
+
+  for (auto& result : results) {
+    for (auto& reference : result.references) {
+      references_.push_back({
+          service_.GetNodeImpl(reference.reference_type_id, id_),
+          service_.GetNodeImpl(reference.node_id, id_),
+          reference.forward,
+      });
+    }
+  }
+
+  // TODO: Integrity check.
+
+  service_.CompletePartialNode(id_);
+}
+
+void NodeRefImpl::SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value) {
+  switch (attribute_id) {
+    case OpcUa_Attributes_NodeClass:
+      node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
+      break;
+    case OpcUa_Attributes_BrowseName:
+      browse_name_ = data_value.value.get<scada::QualifiedName>();
+      assert(!browse_name_.empty());
+      break;
+    case OpcUa_Attributes_DisplayName:
+      display_name_ = data_value.value.get<scada::LocalizedText>();
+      assert(!display_name_.empty());
+      break;
+    case OpcUa_Attributes_DataType:
+      data_type_ = service_.GetNodeImpl(data_value.value.as_node_id(), id_);
+      break;
+    case OpcUa_Attributes_Value:
+      data_value_ = std::move(data_value);
+      break;
+  }
+}
+
+void NodeRefImpl::AddReference(const NodeRefImplReference& reference) {
+//  assert(reference.reference_type.fetched());
+//  assert(reference.target.fetched());
+
+  if (reference.forward) {
+    if (IsSubtypeOf(reference.reference_type, OpcUaId_HasTypeDefinition))
+      type_definition_ = reference.target;
+    else if (IsSubtypeOf(reference.reference_type, OpcUaId_Aggregates))
+      aggregates_.push_back(reference);
+    else if (IsSubtypeOf(reference.reference_type, OpcUaId_NonHierarchicalReferences))
+      references_.push_back(reference);
+
+  } else {
+    if (IsSubtypeOf(reference.reference_type, OpcUaId_HasSubtype))
+      supertype_ = reference.target;
+  }
+}
+
+bool NodeRefImpl::IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) {
+  if (fetched_)
+    return true;
+
+  if (passing_)
+    return true;
+  if (pending_request_count_ != 0)
+    return false;
+
+  passing_ = true;
+
+  // It must never delete |partial_node| since it's in |complete_ids|.
+  fetched_ = IsNodeFetchedHelper(fetched_node_ids);
+
+  assert(passing_);
+  passing_ = false;
+
+  if (fetched_)
+    fetched_node_ids.emplace_back(id_);
+
+  return fetched_;
+}
+
+bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids) {
+  if (auto data_type = data_type_) {
+    if (!data_type->IsNodeFetched(fetched_node_ids))
+      return false;
+  }
+
+  for (auto& reference : references_) {
+    if (!reference.reference_type->IsNodeFetched(fetched_node_ids))
+      return false;
+    if (!reference.target->IsNodeFetched(fetched_node_ids))
+      return false;
+  }
+  return true;
 }

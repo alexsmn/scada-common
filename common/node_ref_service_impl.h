@@ -32,36 +32,16 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   virtual void RemoveObserver(NodeRefObserver& observer) override;
 
  private:
-  using RequestNodeCallback = std::function<void()>;
-  void RequestNode(const scada::NodeId& node_id, const RequestNodeCallback& callback);
-
   using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
   void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
 
   void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
   void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
 
-  std::shared_ptr<NodeRefImpl> GetPartialNode(const scada::NodeId& node_id, const RequestNodeCallback& callback, const scada::NodeId& depended_id);
-
-  void SetAttribute(NodeRefImpl& data, scada::AttributeId attribute_id, scada::DataValue data_value);
-  void AddReference(NodeRefImpl& data, const NodeRefImplReference& reference);
-
-  void OnReadComplete(const scada::NodeId& node_id, const scada::Status& status, std::vector<scada::DataValue> values);
-  void OnBrowseComplete(const scada::NodeId& node_id, const scada::Status& status, std::vector<scada::BrowseResult> results);
+  // Returns fetched or unfetched node impl.
+  std::shared_ptr<NodeRefImpl> GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id);
 
   void CompletePartialNode(const scada::NodeId& node_id);
-
-  struct PartialNode {
-    unsigned pending_request_count = 0;
-    std::shared_ptr<NodeRefImpl> impl;
-    std::vector<NodeRefImplReference> pending_references;
-    std::vector<scada::NodeId> depended_ids;
-    std::vector<RequestNodeCallback> callbacks;
-    bool passing = false;
-  };
-
-  bool IsNodeFetched(const std::shared_ptr<NodeRefImpl>& impl, std::vector<scada::NodeId>& fetched_node_ids);
-  bool IsNodeFetchedHelper(PartialNode& partial_node, std::vector<scada::NodeId>& fetched_node_ids);
 
   using Observers = base::ObserverList<NodeRefObserver>;
 
@@ -77,9 +57,7 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   Observers observers_;
   std::map<scada::NodeId, Observers> node_observers_;
 
-  std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> cached_nodes_;
-
-  std::map<scada::NodeId, PartialNode> partial_nodes_;
+  std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> nodes_;
 
   friend class NodeRefImpl;
 };

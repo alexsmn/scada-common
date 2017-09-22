@@ -18,7 +18,7 @@ class NodeRef {
  public:
   NodeRef() {}
   NodeRef(std::nullptr_t) {}
-  explicit NodeRef(std::shared_ptr<NodeRefImpl> impl);
+  NodeRef(std::shared_ptr<NodeRefImpl> impl);
 
   scada::NodeId id() const;
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "common/node_ref.h"
 
+class Logger;
 class NodeRefServiceImpl;
 
 struct NodeRefImplReference {
@@ -14,7 +16,7 @@ struct NodeRefImplReference {
 
 class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
  public:
-  NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id) : service_{service}, id_{std::move(id)} {}
+  NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id, std::shared_ptr<const Logger> logger);
   virtual ~NodeRefImpl() {}
 
   scada::Status GetStatus() const;
@@ -45,12 +47,21 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   void RemoveObserver(NodeRefObserver& observer);
 
  private:
+  void OnReadComplete(const scada::Status& status, std::vector<scada::DataValue> values);
+  void OnBrowseComplete(const scada::Status& status, std::vector<scada::BrowseResult> results);
+
+  void SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value);
+  void AddReference(const NodeRefImplReference& reference);
+
+  bool IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids);
+  bool IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids);
+
   NodeRefServiceImpl& service_;
   const scada::NodeId id_;
 
-  bool fetched_;
+  bool fetched_ = false;
 
-  scada::NodeClass node_class_;
+  std::optional<scada::NodeClass> node_class_;
   scada::QualifiedName browse_name_;
   scada::LocalizedText display_name_;
   scada::DataValue data_value_;
@@ -64,6 +75,12 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   // Forward non-hierarchical.
   std::vector<NodeRefImplReference> references_;
   std::shared_ptr<NodeRefImpl> data_type_;
+
+  std::shared_ptr<const Logger> logger_;
+  unsigned pending_request_count_ = 0;
+  std::vector<scada::NodeId> depended_ids_;
+  std::vector<NodeRef::FetchCallback> fetch_callbacks_;
+  bool passing_ = false;
 
   friend class NodeRefServiceImpl;
 };
