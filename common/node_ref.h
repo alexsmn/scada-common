@@ -48,7 +48,7 @@ class NodeRef {
   std::vector<Reference> references() const;
 
   scada::DataValue data_value() const;
-  scada::Variant value() const;
+  scada::Variant value() const { return data_value().value; }
 
   explicit operator bool() const { return !is_null(); }
 
@@ -76,7 +76,7 @@ class NodeRef {
  private:
   bool is_null() const { return !impl_; }
 
-  scada::DataValue GetAttribute(scada::AttributeId attribute_id) const;
+  scada::Variant GetAttribute(scada::AttributeId attribute_id) const;
 
   std::shared_ptr<NodeRefImpl> impl_;
 };
@@ -102,8 +102,4 @@ inline bool NodeRef::operator!=(const NodeRef& other) const {
 inline NodeRef& NodeRef::operator=(std::nullptr_t) {
   impl_ = nullptr;
   return *this;
-}
-
-inline scada::Variant NodeRef::value() const {
-  return data_value().value;
 }

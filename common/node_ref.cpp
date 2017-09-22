@@ -9,11 +9,11 @@ NodeRef::NodeRef(std::shared_ptr<NodeRefImpl> impl)
 }
 
 scada::NodeId NodeRef::id() const {
-  return GetAttribute(OpcUa_Attributes_NodeId).value.get_or(scada::NodeId{});
+  return GetAttribute(OpcUa_Attributes_NodeId).get_or(scada::NodeId{});
 }
 
 base::Optional<scada::NodeClass> NodeRef::node_class() const {
-  auto value = GetAttribute(OpcUa_Attributes_NodeClass).value;
+  auto value = GetAttribute(OpcUa_Attributes_NodeClass);
   if (value.is_null())
     return {};
   return static_cast<scada::NodeClass>(value.get<int>());
@@ -28,11 +28,11 @@ NodeRef NodeRef::data_type() const {
 }
 
 scada::QualifiedName NodeRef::browse_name() const {
-  return GetAttribute(OpcUa_Attributes_BrowseName).value.get_or(scada::QualifiedName{});
+  return GetAttribute(OpcUa_Attributes_BrowseName).get_or(scada::QualifiedName{});
 }
 
 scada::LocalizedText NodeRef::display_name() const {
-  return GetAttribute(OpcUa_Attributes_DisplayName).value.get_or(scada::LocalizedText{}).text();
+  return GetAttribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{}).text();
 }
 
 NodeRef NodeRef::type_definition() const {
@@ -75,7 +75,7 @@ NodeRef NodeRef::operator[](const scada::NodeId& aggregate_declaration_id) const
 }
 
 scada::DataValue NodeRef::data_value() const {
-  return GetAttribute(OpcUa_Attributes_Value);
+  return impl_ ? impl_->GetValue() : scada::DataValue{};
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
@@ -86,8 +86,8 @@ std::vector<NodeRef> NodeRef::targets(const scada::NodeId& reference_type_id) co
   return impl_ ? impl_->GetTargets(reference_type_id) : std::vector<NodeRef>();
 }
 
-scada::DataValue NodeRef::GetAttribute(scada::AttributeId attribute_id) const {
-  return impl_ ? impl_->GetAttribute(attribute_id) : scada::DataValue{};
+scada::Variant NodeRef::GetAttribute(scada::AttributeId attribute_id) const {
+  return impl_ ? impl_->GetAttribute(attribute_id) : scada::Variant{};
 }
 
 NodeRef NodeRef::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
@@ -98,7 +98,7 @@ void NodeRef::Fetch(const FetchCallback& callback) {
   if (impl_)
     impl_->Fetch(callback);
   else
-    return callback(*this);
+    callback(*this);
 }
 
 scada::Status NodeRef::status() const {
@@ -109,7 +109,7 @@ void NodeRef::Browse(const scada::BrowseDescription& description, const BrowseCa
   if (impl_)
     impl_->Browse(description, callback);
   else
-    return callback(scada::StatusCode::Bad, {});
+    callback(scada::StatusCode::Bad, {});
 }
 
 void NodeRef::AddObserver(NodeRefObserver& observer) {

@@ -22,7 +22,8 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   bool IsFetched() const { return fetched_; }
   void Fetch(const NodeRef::FetchCallback& callback);
 
-  scada::DataValue GetAttribute(scada::AttributeId attribute_id) const;
+  scada::Variant GetAttribute(scada::AttributeId attribute_id) const;
+  scada::DataValue GetValue() const;
 
   NodeRef GetTypeDefinition() const;
   NodeRef GetSupertype() const;

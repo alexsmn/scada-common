@@ -97,14 +97,16 @@ void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
     service_.RequestNode(id_, [callback, node] { callback(std::move(node)); });
 }
 
-scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
+scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
   switch (attribute_id) {
     case OpcUa_Attributes_NodeId:
-      return {id_, {}, {}, {}};
+      return id_;
+
+    case OpcUa_Attributes_NodeClass:
+      return static_cast<int>(OpcUaId_NodeClass);
 
     case OpcUa_Attributes_BrowseName: {
-      scada::QualifiedName browse_name = fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString(), 0};
-      return {std::move(browse_name), {}, {}, {}};
+      return fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString()};
     }
 
     case OpcUa_Attributes_DisplayName: {
@@ -115,16 +117,17 @@ scada::DataValue NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) cons
         display_name = browse_name_.name();
       else
         display_name = display_name_;
-      return {std::move(display_name), {}, {}, {}};
+      return std::move(display_name);
     }
-
-    case OpcUa_Attributes_Value:
-      return data_value_;
 
     default:
       assert(false);
       return {};
   }
+}
+
+scada::DataValue NodeRefImpl::GetValue() const {
+  return data_value_;
 }
 
 NodeRef NodeRefImpl::GetTypeDefinition() const {
