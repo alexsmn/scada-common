@@ -184,7 +184,7 @@ scada::Status NodeRefImpl::GetStatus() const {
   return status_;
 }
 
-void NodeRefImpl::Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) {
+void NodeRefImpl::Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) const {
   assert(description.node_id == id_);
   service_.Browse(description, callback);
 }

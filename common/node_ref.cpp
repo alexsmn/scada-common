@@ -105,7 +105,7 @@ scada::Status NodeRef::status() const {
   return impl_ ? impl_->GetStatus() : scada::StatusCode::Good;
 }
 
-void NodeRef::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) {
+void NodeRef::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) const {
   if (impl_)
     impl_->Browse(description, callback);
   else

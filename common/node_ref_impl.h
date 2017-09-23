@@ -41,7 +41,7 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
 
   NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const;
 
-  void Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback);
+  void Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) const;
 
   void AddObserver(NodeRefObserver& observer);
   void RemoveObserver(NodeRefObserver& observer);

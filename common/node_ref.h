@@ -68,7 +68,7 @@ class NodeRef {
   NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const;
 
   using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
-  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
+  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) const;
 
   void AddObserver(NodeRefObserver& observer);
   void RemoveObserver(NodeRefObserver& observer);
