@@ -144,7 +144,8 @@ scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const 
       return id_;
 
     case OpcUa_Attributes_NodeClass:
-      return static_cast<int>(OpcUaId_NodeClass);
+      assert(!fetched_ || node_class_.has_value());
+      return fetched_ ? scada::Variant{static_cast<int>(*node_class_)} : scada::Variant{};
 
     case OpcUa_Attributes_BrowseName:
       return fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString()};
@@ -152,10 +153,10 @@ scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const 
     case OpcUa_Attributes_DisplayName:
       if (!fetched_)
         return scada::LocalizedText{id_.ToString()};
-      else if (display_name_.empty())
-        return scada::LocalizedText{browse_name_.name()};
-      else
+      else if (!display_name_.empty())
         return display_name_;
+      else
+        return scada::LocalizedText{browse_name_.name()};
 
     default:
       assert(false);
@@ -253,21 +254,20 @@ void NodeRefImpl::OnBrowseComplete(const scada::Status& status, std::vector<scad
   if (!status_)
     return;
 
+  assert(pending_request_count_ > 0);
+  --pending_request_count_;
+
   if (!status) {
     logger_->WriteF(LogSeverity::Normal, "Browse failed for node %s", id_.ToString().c_str());
-    // TODO: Fail.
-    assert(false);
+    SetError(status);
     return;
   }
 
   logger_->WriteF(LogSeverity::Normal, "Browse complete for node %s", id_.ToString().c_str());
 
-  assert(pending_request_count_ > 0);
-  --pending_request_count_;
-
   for (auto& result : results) {
     for (auto& reference : result.references) {
-      references_.push_back({
+      pending_references_.push_back({
           service_.GetNodeImpl(reference.reference_type_id, id_),
           service_.GetNodeImpl(reference.node_id, id_),
           reference.forward,
@@ -327,6 +327,9 @@ bool NodeRefImpl::IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) {
   if (passing_)
     return true;
 
+  if (std::find(fetched_node_ids.begin(), fetched_node_ids.end(), id_) != fetched_node_ids.end())
+    return true;
+
   passing_ = true;
 
   bool fetched = IsNodeFetchedHelper(fetched_node_ids);
@@ -334,8 +337,10 @@ bool NodeRefImpl::IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) {
   assert(passing_);
   passing_ = false;
 
-  if (fetched)
+  if (fetched) {
+    assert(std::find(fetched_node_ids.begin(), fetched_node_ids.end(), id_) == fetched_node_ids.end());
     fetched_node_ids.emplace_back(id_);
+  }
 
   return fetched;
 }
@@ -344,12 +349,10 @@ bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_i
   if (pending_request_count_ != 0)
     return true;
 
-  if (auto data_type = data_type_) {
-    if (!data_type->IsNodeFetched(fetched_node_ids))
-      return false;
-  }
+  if (data_type_ && !data_type_->IsNodeFetched(fetched_node_ids))
+    return false;
 
-  for (auto& reference : references_) {
+  for (auto& reference : pending_references_) {
     if (!reference.reference_type->IsNodeFetched(fetched_node_ids))
       return false;
     if (!reference.target->IsNodeFetched(fetched_node_ids))

@@ -33,10 +33,9 @@ class ExtensionObject {
     return value_ == other.value_;
   }
 
-  OpcUa_ExtensionObject release() {
-    auto value = *value_;
+  void release(OpcUa_ExtensionObject& target) {
+    target = *value_;
     ::OpcUa_ExtensionObject_Initialize(value_.get());
-    return value;
   }
 
  private:

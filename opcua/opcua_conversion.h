@@ -52,12 +52,13 @@ scada::BrowseDescription Convert(const OpcUa_BrowseDescription& source);
 OpcUa_BrowseDescription Convert(const scada::BrowseDescription& source);
 
 scada::ReferenceDescription Convert(const OpcUa_ReferenceDescription& source);
-OpcUa_ReferenceDescription Convert(const scada::ReferenceDescription& source);
+void Convert(const scada::ReferenceDescription& source, OpcUa_ReferenceDescription& target);
 
 scada::BrowseResult Convert(const OpcUa_BrowseResult& source);
 void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& target);
 
 scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object);
+void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target);
 
 scada::ByteString Convert(const OpcUa_ByteString& source);
 

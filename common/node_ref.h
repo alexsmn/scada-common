@@ -2,8 +2,8 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 
-#include "base/optional.h"
 #include "core/attribute_ids.h"
 #include "core/data_value.h"
 #include "core/node_id.h"
@@ -29,7 +29,7 @@ class NodeRef {
   using FetchCallback = std::function<void(NodeRef node)>;
   void Fetch(const FetchCallback& callback);
 
-  base::Optional<scada::NodeClass> node_class() const;
+  std::optional<scada::NodeClass> node_class() const;
   scada::QualifiedName browse_name() const;
   scada::LocalizedText display_name() const;
   NodeRef type_definition() const;

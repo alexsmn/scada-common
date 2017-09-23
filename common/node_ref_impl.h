@@ -83,6 +83,7 @@ class NodeRefImpl : public std::enable_shared_from_this<NodeRefImpl> {
   std::vector<scada::NodeId> depended_ids_;
   std::vector<NodeRef::FetchCallback> fetch_callbacks_;
   bool passing_ = false;
+  std::vector<NodeRefImplReference> pending_references_;
 
   friend class NodeRefServiceImpl;
 };

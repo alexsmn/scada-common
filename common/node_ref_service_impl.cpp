@@ -22,6 +22,9 @@ NodeRefServiceImpl::~NodeRefServiceImpl() {
 }
 
 NodeRef NodeRefServiceImpl::GetNode(const scada::NodeId& node_id) {
+  if (node_id.is_null())
+    return {};
+
   return GetNodeImpl(node_id, {});
 }
 
@@ -42,7 +45,8 @@ std::shared_ptr<NodeRefImpl> NodeRefServiceImpl::GetNodeImpl(const scada::NodeId
 }
 
 void NodeRefServiceImpl::CompletePartialNode(const std::shared_ptr<NodeRefImpl>& node) {
-  assert(!node->fetched_);
+  if (node->fetched_)
+    return;
 
   std::vector<scada::NodeId> fetched_node_ids;
   node->IsNodeFetched(fetched_node_ids);
@@ -65,8 +69,10 @@ void NodeRefServiceImpl::CompletePartialNode(const std::shared_ptr<NodeRefImpl>&
       std::back_inserter(all_dependent_ids));
 
     // Init references.
-    for (auto& reference : node->references_)
+    for (auto& reference : node->pending_references_)
       node->AddReference(reference);
+    node->pending_references_.clear();
+    node->pending_references_.shrink_to_fit();
 
     node->fetched_ = true;
 
@@ -139,7 +145,7 @@ void NodeRefServiceImpl::OnNodeDeleted(const scada::NodeId& node_id) {
     o.OnNodeDeleted(node_id);
 }
 
-void NodeRefServiceImpl::OnReferenceAdded(const scada::BrowseReference& reference) {
+void NodeRefServiceImpl::OnReferenceAdded(const scada::ViewReference& reference) {
   // TODO: Append aggregates and types.
   if (auto* node_observers = GetNodeObservers(reference.source_id)) {
     for (auto& o : *node_observers)
@@ -156,7 +162,7 @@ void NodeRefServiceImpl::OnReferenceAdded(const scada::BrowseReference& referenc
     o.OnReferenceAdded(reference.target_id);
 }
 
-void NodeRefServiceImpl::OnReferenceDeleted(const scada::BrowseReference& reference) {
+void NodeRefServiceImpl::OnReferenceDeleted(const scada::ViewReference& reference) {
   // TODO: Delete aggregates and types.
 
   if (auto* node_observers = GetNodeObservers(reference.source_id)) {

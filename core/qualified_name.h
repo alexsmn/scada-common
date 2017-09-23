@@ -30,4 +30,8 @@ class QualifiedName {
   String name_;
 };
 
+inline std::ostream& operator<<(std::ostream& stream, const QualifiedName& value) {
+  return stream << value.name();
+}
+
 } // namespace scada

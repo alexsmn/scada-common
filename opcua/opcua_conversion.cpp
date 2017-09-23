@@ -31,7 +31,7 @@ scada::String Convert(const OpcUa_String& source) {
   if (::OpcUa_String_IsNull(&source))
     return {};
   auto* raw_string = ::OpcUa_String_GetRawString(&source);
-  size_t size = ::OpcUa_String_StrLen(&source);
+  size_t size = ::OpcUa_String_StrSize(&source);
   return scada::String{raw_string, size};
 }
 
@@ -131,24 +131,26 @@ scada::Variant Convert(OpcUa_Variant&& source) {
 }
 
 OpcUa_VariantArrayValue MakeVariantArrayValue(const std::vector<scada::String>& value) {
+  auto vector = MakeVector<OpcUa_String>(opcua::MakeSpan(value.data(), value.size()));
   OpcUa_VariantArrayValue result;
   result.Length = value.size();
-  result.Value.StringArray = reinterpret_cast<OpcUa_String*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_String) * value.size()));
-  for (size_t i = 0; i < value.size(); ++i) {
-    ::OpcUa_String_Initialize(&result.Value.StringArray[i]);
-    ::OpcUa_String_AttachCopy(&result.Value.StringArray[i], const_cast<OpcUa_StringA>(value[i].c_str()));
-  }
+  result.Value.StringArray = vector.release();
+  return result;
+}
+
+OpcUa_VariantArrayValue MakeVariantArrayValue(const std::vector<scada::LocalizedText>& value) {
+  auto vector = MakeVector<OpcUa_LocalizedText>(opcua::MakeSpan(value.data(), value.size()));
+  OpcUa_VariantArrayValue result;
+  result.Length = value.size();
+  result.Value.LocalizedTextArray = vector.release();
   return result;
 }
 
 OpcUa_VariantArrayValue MakeVariantArrayValue(std::vector<scada::ExtensionObject>&& value) {
+  auto vector = MakeVector<OpcUa_ExtensionObject>(opcua::MakeSpan(value.data(), value.size()));
   OpcUa_VariantArrayValue result;
   result.Length = value.size();
-  result.Value.ExtensionObjectArray = reinterpret_cast<OpcUa_ExtensionObject*>(::OpcUa_Memory_Alloc(sizeof(OpcUa_ExtensionObject) * value.size()));
-  for (size_t i = 0; i < value.size(); ++i) {
-    ::OpcUa_ExtensionObject_Initialize(&result.Value.ExtensionObjectArray[i]);
-    result.Value.ExtensionObjectArray[i] = value[i].release();
-  }
+  result.Value.ExtensionObjectArray = vector.release();
   return result;
 }
 
@@ -166,6 +168,12 @@ OpcUa_Variant MakeVariant(scada::Variant&& source) {
         result.Datatype = OpcUaType_String;
         result.ArrayType = OpcUa_VariantArrayType_Array;
         result.Value.Array = MakeVariantArrayValue(source.get<std::vector<scada::String>>());
+        break;
+
+      case scada::Variant::LOCALIZED_TEXT:
+        result.Datatype = OpcUaType_LocalizedText;
+        result.ArrayType = OpcUa_VariantArrayType_Array;
+        result.Value.Array = MakeVariantArrayValue(source.get<std::vector<scada::LocalizedText>>());
         break;
 
       case scada::Variant::EXTENSION_OBJECT:
@@ -260,7 +268,7 @@ OpcUa_Variant MakeVariant(scada::Variant&& source) {
       case scada::Variant::EXTENSION_OBJECT:
         result.Datatype = OpcUaType_ExtensionObject;
         ::OpcUa_ExtensionObject_Create(&result.Value.ExtensionObject);
-        *result.Value.ExtensionObject = source.get<scada::ExtensionObject>().release();
+        source.get<scada::ExtensionObject>().release(*result.Value.ExtensionObject);
         break;
 
       case scada::Variant::BYTE_STRING: {
@@ -511,6 +519,10 @@ void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& result) {
 
 scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object) {
   return std::move(object);
+}
+
+void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target) {
+  source.release(target);
 }
 
 scada::String Convert(const opcua::String& source) {

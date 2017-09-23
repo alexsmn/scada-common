@@ -12,7 +12,7 @@ scada::NodeId NodeRef::id() const {
   return GetAttribute(OpcUa_Attributes_NodeId).get_or(scada::NodeId{});
 }
 
-base::Optional<scada::NodeClass> NodeRef::node_class() const {
+std::optional<scada::NodeClass> NodeRef::node_class() const {
   auto value = GetAttribute(OpcUa_Attributes_NodeClass);
   if (value.is_null())
     return {};

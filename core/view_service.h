@@ -23,7 +23,7 @@ struct BrowseNode {
   Variant value;
 };
 
-struct BrowseReference {
+struct ViewReference {
   NodeId reference_type_id;
   NodeId source_id;
   NodeId target_id;
@@ -43,8 +43,8 @@ class ViewEvents {
   // Model
   virtual void OnNodeAdded(const NodeId& node_id) = 0;
   virtual void OnNodeDeleted(const NodeId& node_id) = 0;
-  virtual void OnReferenceAdded(const BrowseReference& reference) = 0;
-  virtual void OnReferenceDeleted(const BrowseReference& reference) = 0;
+  virtual void OnReferenceAdded(const ViewReference& reference) = 0;
+  virtual void OnReferenceDeleted(const ViewReference& reference) = 0;
 
   // Semantics. Node properties modified.
   virtual void OnNodeModified(const NodeId& node_id, const PropertyIds& property_ids) = 0;

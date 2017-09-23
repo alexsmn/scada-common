@@ -50,8 +50,8 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   // scada::ViewService
   virtual void OnNodeAdded(const scada::NodeId& node_id) override;
   virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
-  virtual void OnReferenceAdded(const scada::BrowseReference& reference) ;
-  virtual void OnReferenceDeleted(const scada::BrowseReference& reference) override;
+  virtual void OnReferenceAdded(const scada::ViewReference& reference) ;
+  virtual void OnReferenceDeleted(const scada::ViewReference& reference) override;
   virtual void OnNodeModified(const scada::NodeId& node_id, const scada::PropertyIds& property_ids) override;
 
   Observers observers_;

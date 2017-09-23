@@ -85,7 +85,7 @@ void ViewServiceStub::OnNodeModified(const scada::NodeId& node_id, const scada::
   sender_.Send(message);
 }
 
-void ViewServiceStub::OnReferenceAdded(const scada::BrowseReference& reference) {
+void ViewServiceStub::OnReferenceAdded(const scada::ViewReference& reference) {
   logger_->WriteF(LogSeverity::Normal,
       "Notification ReferenceAdded [reference_type_id=%s, source_id=%s, target_id=%s]",
       reference.reference_type_id.ToString().c_str(),
@@ -101,7 +101,7 @@ void ViewServiceStub::OnReferenceAdded(const scada::BrowseReference& reference) 
   sender_.Send(message);
 }
 
-void ViewServiceStub::OnReferenceDeleted(const scada::BrowseReference& reference) {
+void ViewServiceStub::OnReferenceDeleted(const scada::ViewReference& reference) {
   logger_->WriteF(LogSeverity::Normal, "Notification ReferenceDeleted [reference_type_id=%s, source_id=%s, target_id=%s]",
       reference.reference_type_id.ToString().c_str(),
       reference.source_id.ToString().c_str(),
