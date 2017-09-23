@@ -32,9 +32,8 @@ OpcUa_DateTime Convert(scada::DateTime source);
 scada::DataValue Convert(OpcUa_DataValue&& source);
 OpcUa_DataValue MakeDataValue(scada::DataValue&& source);
 
-void Convert(const scada::NodeId& source, OpcUa_NodeId& target);
-
 scada::NodeId Convert(const OpcUa_NodeId& node_id);
+void Convert(const scada::NodeId& source, OpcUa_NodeId& target);
 
 scada::ExpandedNodeId Convert(const OpcUa_ExpandedNodeId& node_id);
 void Convert(const scada::ExpandedNodeId& source, OpcUa_ExpandedNodeId& target);
@@ -61,6 +60,7 @@ scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object);
 void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target);
 
 scada::ByteString Convert(const OpcUa_ByteString& source);
+void Convert(const scada::ByteString& source, OpcUa_ByteString& target);
 
 scada::String Convert(const opcua::String& source);
 void Convert(const scada::String& source, OpcUa_String& target);

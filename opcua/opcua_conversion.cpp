@@ -364,20 +364,25 @@ OpcUa_DataValue MakeDataValue(scada::DataValue&& source) {
   return result;
 }
 
-void Convert(const scada::NodeId& node_id, OpcUa_NodeId& result) {
-  // TODO:
-  result.NamespaceIndex = node_id.namespace_index();
-  switch (node_id.type()) {
+void Convert(const scada::NodeId& source, OpcUa_NodeId& result) {
+  result.NamespaceIndex = source.namespace_index();
+
+  switch (source.type()) {
     case scada::NodeIdType::Numeric:
       result.IdentifierType = OpcUa_IdentifierType_Numeric;
-      result.Identifier.Numeric = node_id.numeric_id();
+      result.Identifier.Numeric = source.numeric_id();
       break;
+
     case scada::NodeIdType::String:
       result.IdentifierType = OpcUa_IdentifierType_String;
-      OpcUa_String_AttachToString(const_cast<char*>(node_id.string_id().data()),
-          node_id.string_id().size(), node_id.string_id().size(),
-          OpcUa_True, OpcUa_True, &result.Identifier.String);
+      Convert(source.string_id(), result.Identifier.String);
       break;
+
+    case scada::NodeIdType::Opaque:
+      result.IdentifierType = OpcUa_IdentifierType_Opaque;
+      Convert(source.opaque_id(), result.Identifier.ByteString);
+      break;
+
     default:
       assert(false);
       break;
@@ -395,20 +400,13 @@ scada::NodeId Convert(const OpcUa_NodeId& node_id) {
       return {node_id.Identifier.Numeric, node_id.NamespaceIndex};
 
     case OpcUa_IdentifierType_String:
-      return {OpcUa_String_GetRawString(&node_id.Identifier.String), node_id.NamespaceIndex};
+      return {Convert(node_id.Identifier.String), node_id.NamespaceIndex};
 
     case OpcUa_IdentifierType_Guid:
       return {Convert(*node_id.Identifier.Guid), node_id.NamespaceIndex};
 
-    case OpcUa_IdentifierType_Opaque: {
-      auto& byte_string = node_id.Identifier.ByteString;
-      return {
-          scada::ByteString(
-              reinterpret_cast<const char*>(byte_string.Data),
-              reinterpret_cast<const char*>(byte_string.Data + byte_string.Length)),
-          node_id.NamespaceIndex,
-      };
-    }
+    case OpcUa_IdentifierType_Opaque:
+      return {Convert(node_id.Identifier.ByteString), node_id.NamespaceIndex};
 
     default:
       assert(false);
@@ -574,4 +572,11 @@ scada::ByteString Convert(const OpcUa_ByteString& source) {
     return {};
   return {reinterpret_cast<const char*>(source.Data),
           reinterpret_cast<const char*>(source.Data) + source.Length};
+}
+
+void Convert(const scada::ByteString& source, OpcUa_ByteString& target) {
+  OpcUa_Byte* data = static_cast<OpcUa_Byte*>(::OpcUa_Memory_Alloc(source.size()));
+  memcpy(data, source.data(), source.size());
+  target.Length = static_cast<OpcUa_UInt32>(source.size());
+  target.Data = data;
 }

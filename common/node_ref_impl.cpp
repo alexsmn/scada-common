@@ -26,7 +26,7 @@ NodeRefImpl::NodeRefImpl(NodeRefServiceImpl& service, scada::NodeId id, std::sha
 }
 
 NodeRef NodeRefImpl::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
-  if (!fetched_)
+  if (!fetched_ || !status_)
     return nullptr;
 
   assert(node_class_.has_value());
