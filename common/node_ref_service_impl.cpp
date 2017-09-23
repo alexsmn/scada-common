@@ -60,6 +60,10 @@ void NodeRefServiceImpl::CompletePartialNode(const std::shared_ptr<NodeRefImpl>&
 
     auto node = i->second;
     assert(!node->fetched_);
+    assert(node->pending_request_count_ == 0);
+    assert(!node->status_ || node->node_class_.has_value());
+    assert(!node->status_ || !node->browse_name_.empty());
+
     auto callbacks = std::move(node->fetch_callbacks_);
 
     logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s", fetched_id.ToString().c_str(),

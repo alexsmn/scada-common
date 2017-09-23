@@ -45,8 +45,8 @@ void NodeManagementProxy::CreateNode(const scada::NodeId& requested_id, const sc
           node_id = FromProto(response.create_node_result().node_id());
 
         logger().WriteF(LogSeverity::Normal,
-            "CreateNode response [status='%ls', node_id=%s]",
-            status.ToString16().c_str(),
+            "CreateNode response [status='%s', node_id=%s]",
+            status.ToString().c_str(),
             node_id.ToString().c_str());
 
         if (callback)
@@ -100,8 +100,8 @@ void NodeManagementProxy::DeleteNode(const scada::NodeId& node_id,
           references = SetFromProto<scada::NodeId>(response.delete_node_result().references());
 
         logger().WriteF(LogSeverity::Normal,
-            "DeleteNode response [status='%ls']",
-            status.ToString16().c_str());
+            "DeleteNode response [status='%s']",
+            status.ToString().c_str());
 
         if (!callback)
           return;

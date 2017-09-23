@@ -13,17 +13,32 @@ opcua::NodeClass Convert(scada::NodeClass node_class) {
   return static_cast<opcua::NodeClass>(node_class);
 }
 
-scada::StatusCode ConvertStatusCode(opcua::StatusCode status_code) {
-  if (status_code.code() == OpcUa_BadAttributeIdInvalid)
-    return scada::StatusCode::Bad_WrongAttributeId;
-  return status_code.IsGood() ? scada::StatusCode::Good :
-         status_code.IsUncertain() ? scada::StatusCode::Uncertain :
+constexpr std::pair<OpcUa_StatusCode, scada::StatusCode> kStatusCodeMapping[] = {
+    {OpcUa_Good, scada::StatusCode::Good},
+    {OpcUa_Bad, scada::StatusCode::Bad},
+    {OpcUa_Uncertain, scada::StatusCode::Uncertain},
+    {OpcUa_BadAttributeIdInvalid, scada::StatusCode::Bad_WrongAttributeId},
+    {OpcUa_BadNodeIdInvalid, scada::StatusCode::Bad_WrongNodeId},
+    {OpcUa_BadNodeClassInvalid, scada::StatusCode::Bad_WrongNodeClass},
+};
+
+scada::StatusCode ConvertStatusCode(OpcUa_StatusCode status_code) {
+  auto i = std::find_if(std::begin(kStatusCodeMapping), std::end(kStatusCodeMapping),
+      [status_code](auto& p) { return p.first == status_code; });
+  if (i != std::end(kStatusCodeMapping))
+    return i->second;
+
+  return OpcUa_IsGood(status_code) ? scada::StatusCode::Good :
+         OpcUa_IsUncertain(status_code) ? scada::StatusCode::Uncertain :
          scada::StatusCode::Bad;
 }
 
 opcua::StatusCode MakeStatusCode(scada::StatusCode status_code) {
-  if (status_code == scada::StatusCode::Bad_WrongAttributeId)
-    return OpcUa_BadAttributeIdInvalid;
+  auto i = std::find_if(std::begin(kStatusCodeMapping), std::end(kStatusCodeMapping),
+      [status_code](auto& p) { return p.second == status_code; });
+  if (i != std::end(kStatusCodeMapping))
+    return i->first;
+
   return scada::IsGood(status_code) ? OpcUa_Good : OpcUa_Bad;
 }
 

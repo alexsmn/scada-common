@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/strings/string16.h"
+#include <string>
 
 namespace scada {
 
@@ -105,13 +105,12 @@ class Status {
   StatusCode code() const { return static_cast<StatusCode>(full_code_ >> 16); }
   unsigned full_code() const { return full_code_; }
 
-  base::string16 ToString16() const;
+  std::string ToString() const;
 
  private:
   unsigned full_code_;
 };
 
 std::string ToString(StatusCode status_code);
-base::string16 ToString16(StatusCode status_code);
 
 } // namespace scada

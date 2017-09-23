@@ -16,7 +16,7 @@
 scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class);
 opcua::NodeClass Convert(scada::NodeClass node_class);
 
-scada::StatusCode ConvertStatusCode(opcua::StatusCode status_code);
+scada::StatusCode ConvertStatusCode(OpcUa_StatusCode status_code);
 opcua::StatusCode MakeStatusCode(scada::StatusCode status_code);
 
 scada::Variant Convert(OpcUa_Variant&& source);

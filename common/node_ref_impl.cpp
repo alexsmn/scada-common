@@ -9,7 +9,7 @@
 
 namespace {
 
-const scada::AttributeId kReadAttributeIds[] = {
+constexpr scada::AttributeId kReadAttributeIds[] = {
     OpcUa_Attributes_NodeClass,
     OpcUa_Attributes_BrowseName,
     OpcUa_Attributes_DisplayName,
@@ -144,15 +144,19 @@ scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const 
       return id_;
 
     case OpcUa_Attributes_NodeClass:
-      assert(!fetched_ || node_class_.has_value());
-      return fetched_ ? scada::Variant{static_cast<int>(*node_class_)} : scada::Variant{};
+      return node_class_.has_value() ? scada::Variant{static_cast<int>(*node_class_)} : scada::Variant{};
 
     case OpcUa_Attributes_BrowseName:
-      return fetched_ ? browse_name_ : scada::QualifiedName{id_.ToString()};
+      if (!fetched_ || !status_)
+        return scada::QualifiedName{id_.ToString()};
+      assert(!browse_name_.empty());
+      return browse_name_;
 
     case OpcUa_Attributes_DisplayName:
       if (!fetched_)
         return scada::LocalizedText{id_.ToString()};
+      if (!status_)
+        return scada::LocalizedText{status_.ToString()};
       else if (!display_name_.empty())
         return display_name_;
       else
@@ -202,6 +206,9 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
   if (!status_)
     return;
 
+  assert(pending_request_count_ > 0);
+  --pending_request_count_;
+
   if (!status) {
     logger_->WriteF(LogSeverity::Warning, "Read failed for node %s", id_.ToString().c_str());
     SetError(status);
@@ -212,9 +219,6 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
 
   logger_->WriteF(LogSeverity::Normal, "Read complete for node %s", id_.ToString().c_str());
 
-  assert(pending_request_count_ > 0);
-  --pending_request_count_;
-
   for (size_t i = 0; i < values.size(); ++i) {
     const auto attribute_id = kReadAttributeIds[i];
     auto& value = values[i];
@@ -223,10 +227,14 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
       SetAttribute(attribute_id, std::move(value));
   }
 
-  if (!node_class_.has_value()) {
-    logger_->WriteF(LogSeverity::Warning, "Node class wasn't read %s", id_.ToString().c_str());
-    // TODO: Failure.
-    SetError(scada::StatusCode::Bad_WrongNodeClass);
+  if (!node_class_.has_value() || browse_name_.empty()) {
+    logger_->WriteF(LogSeverity::Warning, "Node %s attributes weren't read", id_.ToString().c_str());
+    static_assert(kReadAttributeIds[0] == OpcUa_Attributes_NodeClass);
+    static_assert(kReadAttributeIds[1] == OpcUa_Attributes_BrowseName);
+    auto& node_class_status = values[0].status_code;
+    auto& browse_name_status = values[0].status_code;
+    assert(!scada::IsGood(node_class_status) || !scada::IsGood(browse_name_status));
+    SetError(scada::IsGood(node_class_status) ? node_class_status : browse_name_status);
     return;
   }
 
@@ -347,7 +355,7 @@ bool NodeRefImpl::IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) {
 
 bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids) {
   if (pending_request_count_ != 0)
-    return true;
+    return false;
 
   if (data_type_ && !data_type_->IsNodeFetched(fetched_node_ids))
     return false;
@@ -363,6 +371,9 @@ bool NodeRefImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_i
 
 void NodeRefImpl::SetError(const scada::Status& status) {
   assert(status_.good());
+
+  logger_->WriteF(LogSeverity::Warning, "Node %s error %s", id_.ToString().c_str(), status.ToString().c_str());
+
   status_ = status;
   pending_request_count_ = 0;
   service_.CompletePartialNode(shared_from_this());
