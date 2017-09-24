@@ -20,9 +20,6 @@ set(OPCUAPP_DIR "${deps}/opcuapp")
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Yuprecompile.h /FIprecompile.h")
 # SET_SOURCE_FILES_PROPERTIES(${PRECOMPILE} PROPERTIES COMPILE_FLAGS "/Ycprecompile.h")
 
-# ProtoBuf
-ADD_SUBDIRECTORY("${deps}/protobuf" "protobuf-build")
-
 # OPC (Windows-only)
 IF(WIN32)
   ADD_SUBDIRECTORY("${deps}/OPCFoundation" "OPCFoundation-build")

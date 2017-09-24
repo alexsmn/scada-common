@@ -1,1 +1,1 @@
-#include "remote/scada.pb.h"
+#include "scada.pb.h"
