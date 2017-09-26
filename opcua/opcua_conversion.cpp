@@ -169,11 +169,8 @@ OpcUa_VariantArrayValue MakeVariantArrayValue(std::vector<scada::ExtensionObject
   return result;
 }
 
-OpcUa_Variant MakeVariant(scada::Variant&& source) {
+void Convert(scada::Variant&& source, OpcUa_Variant& result) {
   static_assert(scada::Variant::COUNT == 15, "Not all types are declared");
-
-  OpcUa_Variant result;
-  OpcUa_Variant_Initialize(&result);
 
   if (source.is_array()) {
     assert(source.type() != scada::Variant::EMPTY);
@@ -299,8 +296,6 @@ OpcUa_Variant MakeVariant(scada::Variant&& source) {
         break;
     }
   }
-
-  return result;
 }
 
 scada::Qualifier MakeQualifier(opcua::StatusCode source) {
@@ -354,14 +349,11 @@ scada::DataValue Convert(OpcUa_DataValue&& source) {
   return result;
 }
 
-OpcUa_DataValue MakeDataValue(scada::DataValue&& source) {
-  OpcUa_DataValue result;
-  OpcUa_DataValue_Initialize(&result);
+void Convert(scada::DataValue&& source, OpcUa_DataValue& result) {
   result.SourceTimestamp = Convert(source.source_timestamp);
   result.ServerTimestamp = Convert(source.server_timestamp);
-  result.Value = MakeVariant(std::move(source.value));
+  Convert(std::move(source.value), result.Value);
   result.StatusCode = MakeStatusCode(source.status_code).code();
-  return result;
 }
 
 void Convert(const scada::NodeId& source, OpcUa_NodeId& result) {

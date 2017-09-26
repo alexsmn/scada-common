@@ -20,7 +20,7 @@ scada::StatusCode ConvertStatusCode(OpcUa_StatusCode status_code);
 opcua::StatusCode MakeStatusCode(scada::StatusCode status_code);
 
 scada::Variant Convert(OpcUa_Variant&& source);
-OpcUa_Variant MakeVariant(scada::Variant&& source);
+void Convert(scada::Variant&& source, OpcUa_Variant& target);
 
 scada::Qualifier MakeQualifier(opcua::StatusCode source);
 
@@ -30,7 +30,7 @@ scada::DateTime Convert(OpcUa_DateTime source);
 OpcUa_DateTime Convert(scada::DateTime source);
 
 scada::DataValue Convert(OpcUa_DataValue&& source);
-OpcUa_DataValue MakeDataValue(scada::DataValue&& source);
+void Convert(scada::DataValue&& source, OpcUa_DataValue& target);
 
 scada::NodeId Convert(const OpcUa_NodeId& node_id);
 void Convert(const scada::NodeId& source, OpcUa_NodeId& target);

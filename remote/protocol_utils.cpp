@@ -76,7 +76,7 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       target.set_string_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
       break;
     case scada::Variant::LOCALIZED_TEXT:
-      target.set_localized_text_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_localized_text().text())));
+      target.set_localized_text_value(source.as_localized_text().text());
       break;
     case scada::Variant::NODE_ID:
       ToProto(source.as_node_id(), *target.mutable_node_id_value());

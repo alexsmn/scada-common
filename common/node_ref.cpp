@@ -32,7 +32,7 @@ scada::QualifiedName NodeRef::browse_name() const {
 }
 
 scada::LocalizedText NodeRef::display_name() const {
-  return GetAttribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{}).text();
+  return GetAttribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{});
 }
 
 NodeRef NodeRef::type_definition() const {
