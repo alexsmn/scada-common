@@ -73,30 +73,32 @@ bool operator<(const NodeId& a, const NodeId& b) {
 }
 
 NumericId NodeId::numeric_id() const {
-  return boost::get<NumericId>(identifier_);
+  return std::get<NumericId>(identifier_);
 }
 
 const std::string& NodeId::string_id() const {
-  return *boost::get<SharedStringId>(identifier_);
+  return *std::get<SharedStringId>(identifier_);
 }
 
 const ByteString& NodeId::opaque_id() const {
-  return *boost::get<SharedByteString>(identifier_);
+  return *std::get<SharedByteString>(identifier_);
 }
 
-std::string NodeId::ToString() const {
+String NodeId::ToString() const {
   std::string result;
+
+  if (namespace_index_ != 0)
+    result += base::StringPrintf("ns=%u;", static_cast<unsigned>(namespace_index_));
 
   switch (type()) {
     case NodeIdType::Numeric:
-      result = base::StringPrintf("%s|%u", GetNamespaceName(namespace_index()), numeric_id());
+      result += base::StringPrintf("i=%u", static_cast<unsigned>(numeric_id()));
       break;
     case NodeIdType::String:
-      result = base::StringPrintf("%u|%s", namespace_index(), string_id().c_str());
+      result += base::StringPrintf("s=%s", string_id().c_str());
       break;
     case NodeIdType::Opaque:
-      result = base::StringPrintf("%u|%s", namespace_index(), base::HexEncode(opaque_id().data(), opaque_id().size()).c_str());
-      break;
+      // TODO:
     default:
       assert(false);
   }
@@ -106,23 +108,45 @@ std::string NodeId::ToString() const {
 
 // static
 NodeId NodeId::FromString(const base::StringPiece& string) {
+  if (string.empty())
+    return {};
+
   NamespaceIndex namespace_index = 0;
-  auto identifier = string;
-  auto p = string.find('|');
-  if (p != base::StringPiece::npos) {
-    auto namespace_name = string.substr(0, p);
-    auto ni = FindNamespaceIndexByName(namespace_name);
-    if (ni == -1)
+
+  base::StringPiece str = string;
+
+  if (str.starts_with("ns=")) {
+    auto index = str.find(';');
+    if (index == base::StringPiece::npos)
       return {};
-    namespace_index = static_cast<NamespaceIndex>(ni);
-    identifier = string.substr(p + 1);
+    unsigned id = 0;
+    if (!base::StringToUint(str.substr(3, index - 3), &id))
+      return {};
+    namespace_index = static_cast<NamespaceIndex>(id);
+    str = str.substr(index + 1);
   }
 
-  int numeric_id = 0;
-  if (base::StringToInt(identifier, &numeric_id))
-    return NodeId{static_cast<NumericId>(numeric_id), namespace_index};
+  if (str.starts_with("i=")) {
+    unsigned numeric_id = 0;
+    if (!base::StringToUint(str.substr(2), &numeric_id))
+      return {};
+    return {numeric_id, namespace_index};
+  }
 
-  return NodeId{identifier.as_string(), namespace_index};
+  if (str.starts_with("s=")) {
+    auto string_id = str.substr(2);
+    return {string_id.as_string(), namespace_index};
+  }
+
+  if (str.starts_with("s=")) {
+    auto string_id = str.substr(2);
+    return {string_id.as_string(), namespace_index};
+  }
+
+  // TODO: g=
+  // TODO: b=
+
+  return {str.as_string(), namespace_index};
 }
 
 } // namespace scada

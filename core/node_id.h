@@ -2,10 +2,11 @@
 
 #include "base/strings/string_piece.h"
 #include "core/basic_types.h"
+#include "core/string.h"
 
-#include <boost/variant.hpp>
 #include <cassert>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace scada {
@@ -23,7 +24,7 @@ class NodeId {
   NodeId(StringId string_id, NamespaceIndex namespace_index);
   NodeId(ByteString opaque_id, NamespaceIndex namespace_index);
 
-  NodeIdType type() const { return static_cast<NodeIdType>(identifier_.which()); }
+  NodeIdType type() const { return static_cast<NodeIdType>(identifier_.index()); }
 
   bool is_null() const;
 
@@ -34,13 +35,13 @@ class NodeId {
   const std::string& string_id() const;
   const ByteString& opaque_id() const;
 
-  std::string ToString() const;
+  String ToString() const;
   static NodeId FromString(const base::StringPiece& string);
 
  private:
   using SharedStringId = std::shared_ptr<const StringId>;
   using SharedByteString = std::shared_ptr<const ByteString>;
-  boost::variant<NumericId, SharedStringId, SharedByteString> identifier_;
+  std::variant<NumericId, SharedStringId, SharedByteString> identifier_;
 
   NamespaceIndex namespace_index_;
 };
