@@ -14,14 +14,12 @@ namespace scada {
 enum class NodeIdType { Numeric, String, Opaque };
 
 using NumericId = OpcUa_UInt32;
-using StringId = std::string;
-using ByteString = std::vector<char>;
 
 class NodeId {
  public:
   NodeId();
   NodeId(NumericId numeric_id, NamespaceIndex namespace_index = 0);
-  NodeId(StringId string_id, NamespaceIndex namespace_index);
+  NodeId(String string_id, NamespaceIndex namespace_index);
   NodeId(ByteString opaque_id, NamespaceIndex namespace_index);
 
   NodeIdType type() const { return static_cast<NodeIdType>(identifier_.index()); }
@@ -32,14 +30,14 @@ class NodeId {
   void set_namespace_index(NamespaceIndex index) { namespace_index_ = index; }
 
   NumericId numeric_id() const;
-  const std::string& string_id() const;
+  const String& string_id() const;
   const ByteString& opaque_id() const;
 
   String ToString() const;
   static NodeId FromString(const base::StringPiece& string);
 
  private:
-  using SharedStringId = std::shared_ptr<const StringId>;
+  using SharedStringId = std::shared_ptr<const String>;
   using SharedByteString = std::shared_ptr<const ByteString>;
   std::variant<NumericId, SharedStringId, SharedByteString> identifier_;
 

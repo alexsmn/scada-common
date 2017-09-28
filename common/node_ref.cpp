@@ -9,11 +9,11 @@ NodeRef::NodeRef(std::shared_ptr<NodeRefImpl> impl)
 }
 
 scada::NodeId NodeRef::id() const {
-  return GetAttribute(OpcUa_Attributes_NodeId).get_or(scada::NodeId{});
+  return attribute(OpcUa_Attributes_NodeId).get_or(scada::NodeId{});
 }
 
 std::optional<scada::NodeClass> NodeRef::node_class() const {
-  auto value = GetAttribute(OpcUa_Attributes_NodeClass);
+  auto value = attribute(OpcUa_Attributes_NodeClass);
   if (value.is_null())
     return {};
   return static_cast<scada::NodeClass>(value.get<int>());
@@ -28,11 +28,11 @@ NodeRef NodeRef::data_type() const {
 }
 
 scada::QualifiedName NodeRef::browse_name() const {
-  return GetAttribute(OpcUa_Attributes_BrowseName).get_or(scada::QualifiedName{});
+  return attribute(OpcUa_Attributes_BrowseName).get_or(scada::QualifiedName{});
 }
 
 scada::LocalizedText NodeRef::display_name() const {
-  return GetAttribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{});
+  return attribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{});
 }
 
 NodeRef NodeRef::type_definition() const {
@@ -86,7 +86,7 @@ std::vector<NodeRef> NodeRef::targets(const scada::NodeId& reference_type_id) co
   return impl_ ? impl_->GetTargets(reference_type_id) : std::vector<NodeRef>();
 }
 
-scada::Variant NodeRef::GetAttribute(scada::AttributeId attribute_id) const {
+scada::Variant NodeRef::attribute(scada::AttributeId attribute_id) const {
   return impl_ ? impl_->GetAttribute(attribute_id) : scada::Variant{};
 }
 

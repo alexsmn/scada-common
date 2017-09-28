@@ -18,9 +18,9 @@ NodeId::NodeId(NumericId numeric_id, NamespaceIndex namespace_index)
       identifier_{numeric_id} {
 }
 
-NodeId::NodeId(std::string string_id, NamespaceIndex namespace_index)
+NodeId::NodeId(String string_id, NamespaceIndex namespace_index)
     : namespace_index_{namespace_index},
-      identifier_{std::make_shared<StringId>(std::move(string_id))} {
+      identifier_{std::make_shared<String>(std::move(string_id))} {
 }
 
 NodeId::NodeId(ByteString opaque_id, NamespaceIndex namespace_index)
@@ -76,7 +76,7 @@ NumericId NodeId::numeric_id() const {
   return std::get<NumericId>(identifier_);
 }
 
-const std::string& NodeId::string_id() const {
+const String& NodeId::string_id() const {
   return *std::get<SharedStringId>(identifier_);
 }
 

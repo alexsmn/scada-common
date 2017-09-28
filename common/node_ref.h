@@ -36,6 +36,8 @@ class NodeRef {
   NodeRef supertype() const;
   NodeRef data_type() const;
 
+  scada::Variant attribute(scada::AttributeId attribute_id) const;
+
   // Includes components and properies.
   std::vector<NodeRef> aggregates() const;
   std::vector<NodeRef> components() const;
@@ -75,8 +77,6 @@ class NodeRef {
 
  private:
   bool is_null() const { return !impl_; }
-
-  scada::Variant GetAttribute(scada::AttributeId attribute_id) const;
 
   std::shared_ptr<NodeRefImpl> impl_;
 };

@@ -53,6 +53,45 @@
     </References>
     <InverseName>CreatableIn</InverseName>
   </UAReferenceType>
+  <UAObject NodeId="ns=1;i=363" BrowseName="1:Statistics">
+    <DisplayName>Statistics</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=366</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=367</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=368</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=369</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=2253</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=366" BrowseName="1:ServerCPUUsage" ParentNodeId="ns=1;i=363" DataType="Double">
+    <DisplayName>ServerCPUUsage</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=363</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=367" BrowseName="1:ServerMemoryUsage" ParentNodeId="ns=1;i=363" DataType="Double">
+    <DisplayName>ServerMemoryUsage</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=363</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=368" BrowseName="1:TotalCPUUsage" ParentNodeId="ns=1;i=363" DataType="Double">
+    <DisplayName>TotalCPUUsage</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=363</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=369" BrowseName="1:TotalMemoryUsage" ParentNodeId="ns=1;i=363" DataType="Double">
+    <DisplayName>TotalMemoryUsage</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=363</Reference>
+    </References>
+  </UAVariable>
   <UAObject NodeId="ns=1;i=24" BrowseName="1:DataItems">
     <DisplayName>DataItems</DisplayName>
     <References>

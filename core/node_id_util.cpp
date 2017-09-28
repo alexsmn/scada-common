@@ -12,7 +12,7 @@ scada::NodeId MakeNestedNodeId(const NodeId& parent_id, const base::StringPiece&
   assert(!parent_id.is_null());
   assert(!component_name.empty());
   assert(base::IsStringASCII(component_name));
-  auto string_id = base::StringPrintf("{%s}{%s}", parent_id.ToString().c_str(), component_name.as_string().c_str());
+  auto string_id = base::StringPrintf("[%s][%s]", parent_id.ToString().c_str(), component_name.as_string().c_str());
   return {std::move(string_id), 0};
 }
 
@@ -32,14 +32,14 @@ bool IsNestedNodeId(const NodeId& node_id, NodeId& parent_id, base::StringPiece&
   if (string_id.size() < 4)
     return false;
 
-  if (string_id.front() != '{' || string_id.back() != '}')
+  if (string_id.front() != '[' || string_id.back() != ']')
     return false;
 
-  size_t index = string_id.find("}{");
+  size_t index = string_id.find("][");
   if (index == base::StringPiece::npos)
     return false;
 
-  if (string_id.substr(index + 2).find("}{") != base::StringPiece::npos)
+  if (string_id.substr(index + 2).find("][") != base::StringPiece::npos)
     return false;
 
   auto node_parent_id = NodeId::FromString(string_id.substr(1, index - 1));

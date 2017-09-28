@@ -15,7 +15,3 @@ bool IsNodeIdFormula(const base::StringPiece& formula, scada::NodeId& node_id) {
 std::string MakeNodeIdFormula(const scada::NodeId& id) {
   return '{' + id.ToString() + '}';
 }
-
-std::string MakeRelativeNodeIdFormula(const scada::NodeId& id, base::StringPiece relative_path) {
-  return base::StringPrintf("{{%s}%s}", id.ToString().c_str(), relative_path.as_string().c_str());
-}

@@ -5,8 +5,8 @@ for line in lines:
 
 print(r'''#pragma once
 
-#include "scada/core/namespaces.h"
-#include "scada/core/standard_node_ids.h"
+#include "core/namespaces.h"
+#include "core/standard_node_ids.h"
 
 namespace numeric_id {
 ''')

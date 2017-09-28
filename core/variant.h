@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/basic_types.h"
 #include "core/expanded_node_id.h"
 #include "core/extension_object.h"
 #include "core/localized_text.h"
@@ -8,13 +9,9 @@
 #include "core/string.h"
 
 #include <cstdint>
-#include <opcua_builtintypes.h>
 #include <variant>
-#include <vector>
 
 namespace scada {
-
-using ByteString = std::vector<char>;
 
 class Variant {
  public:

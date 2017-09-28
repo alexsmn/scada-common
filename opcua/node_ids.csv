@@ -235,3 +235,8 @@ Iec60870DeviceType_InterrogationPeriodGroup13,359,Variable
 Iec60870DeviceType_InterrogationPeriodGroup14,360,Variable
 Iec60870DeviceType_InterrogationPeriodGroup15,361,Variable
 Iec60870DeviceType_InterrogationPeriodGroup16,362,Variable
+Statistics,363,Object
+Statistics_ServerCPUUsage,366,Variable
+Statistics_ServerMemoryUsage,367,Variable
+Statistics_TotalCPUUsage,368,Variable
+Statistics_TotalMemoryUsage,369,Variable

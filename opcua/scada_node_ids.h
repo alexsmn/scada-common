@@ -242,6 +242,11 @@ const scada::NumericId Iec60870DeviceType_InterrogationPeriodGroup13 = 359; // V
 const scada::NumericId Iec60870DeviceType_InterrogationPeriodGroup14 = 360; // Variable
 const scada::NumericId Iec60870DeviceType_InterrogationPeriodGroup15 = 361; // Variable
 const scada::NumericId Iec60870DeviceType_InterrogationPeriodGroup16 = 362; // Variable
+const scada::NumericId Statistics = 363; // Object
+const scada::NumericId Statistics_ServerCPUUsage = 366; // Variable
+const scada::NumericId Statistics_ServerMemoryUsage = 367; // Variable
+const scada::NumericId Statistics_TotalCPUUsage = 368; // Variable
+const scada::NumericId Statistics_TotalMemoryUsage = 369; // Variable
 
 } // numeric_id
 
@@ -484,5 +489,10 @@ const scada::NodeId Iec60870DeviceType_InterrogationPeriodGroup13{numeric_id::Ie
 const scada::NodeId Iec60870DeviceType_InterrogationPeriodGroup14{numeric_id::Iec60870DeviceType_InterrogationPeriodGroup14, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870DeviceType_InterrogationPeriodGroup15{numeric_id::Iec60870DeviceType_InterrogationPeriodGroup15, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870DeviceType_InterrogationPeriodGroup16{numeric_id::Iec60870DeviceType_InterrogationPeriodGroup16, NamespaceIndexes::SCADA};
+const scada::NodeId Statistics{numeric_id::Statistics, NamespaceIndexes::SCADA};
+const scada::NodeId Statistics_ServerCPUUsage{numeric_id::Statistics_ServerCPUUsage, NamespaceIndexes::SCADA};
+const scada::NodeId Statistics_ServerMemoryUsage{numeric_id::Statistics_ServerMemoryUsage, NamespaceIndexes::SCADA};
+const scada::NodeId Statistics_TotalCPUUsage{numeric_id::Statistics_TotalCPUUsage, NamespaceIndexes::SCADA};
+const scada::NodeId Statistics_TotalMemoryUsage{numeric_id::Statistics_TotalMemoryUsage, NamespaceIndexes::SCADA};
 
 } // namespace id

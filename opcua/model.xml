@@ -20,6 +20,23 @@
     <opc:InverseName>CreatableIn</opc:InverseName>
   </opc:ReferenceType>
 
+  <!-- Statistics -->
+
+  <opc:Object SymbolicName="Statistics" TypeDefinition="ua:FolderType">
+    <opc:Children>
+      <opc:Variable SymbolicName="ServerCPUUsage" Type="ua:BaseDataVariableType" DataType="ua:Double" />
+      <opc:Variable SymbolicName="ServerMemoryUsage" Type="ua:BaseDataVariableType" DataType="ua:Double" />
+      <opc:Variable SymbolicName="TotalCPUUsage" Type="ua:BaseDataVariableType" DataType="ua:Double" />
+      <opc:Variable SymbolicName="TotalMemoryUsage" Type="ua:BaseDataVariableType" DataType="ua:Double" />
+    </opc:Children>
+    <opc:References>
+      <opc:Reference IsInverse="true">
+        <opc:ReferenceType>ua:Organizes</opc:ReferenceType>
+        <opc:TargetId>ua:Server</opc:TargetId>
+      </opc:Reference>
+    </opc:References>
+  </opc:Object>
+
   <!-- Data Items -->
 
   <opc:Object SymbolicName="DataItems" TypeDefinition="ua:FolderType">

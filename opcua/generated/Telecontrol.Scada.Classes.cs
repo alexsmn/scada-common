@@ -105,6 +105,11 @@ namespace Telecontrol.Scada
     public static partial class Objects
     {
         /// <summary>
+        /// The identifier for the Statistics Object.
+        /// </summary>
+        public const uint Statistics = 363;
+
+        /// <summary>
         /// The identifier for the DataItems Object.
         /// </summary>
         public const uint DataItems = 24;
@@ -269,6 +274,26 @@ namespace Telecontrol.Scada
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Variables
     {
+        /// <summary>
+        /// The identifier for the Statistics_ServerCPUUsage Variable.
+        /// </summary>
+        public const uint Statistics_ServerCPUUsage = 366;
+
+        /// <summary>
+        /// The identifier for the Statistics_ServerMemoryUsage Variable.
+        /// </summary>
+        public const uint Statistics_ServerMemoryUsage = 367;
+
+        /// <summary>
+        /// The identifier for the Statistics_TotalCPUUsage Variable.
+        /// </summary>
+        public const uint Statistics_TotalCPUUsage = 368;
+
+        /// <summary>
+        /// The identifier for the Statistics_TotalMemoryUsage Variable.
+        /// </summary>
+        public const uint Statistics_TotalMemoryUsage = 369;
+
         /// <summary>
         /// The identifier for the DataGroupType_Simulated Variable.
         /// </summary>
@@ -875,6 +900,11 @@ namespace Telecontrol.Scada
     public static partial class ObjectIds
     {
         /// <summary>
+        /// The identifier for the Statistics Object.
+        /// </summary>
+        public static readonly ExpandedNodeId Statistics = new ExpandedNodeId(Telecontrol.Scada.Objects.Statistics, Telecontrol.Scada.Namespaces.Scada);
+
+        /// <summary>
         /// The identifier for the DataItems Object.
         /// </summary>
         public static readonly ExpandedNodeId DataItems = new ExpandedNodeId(Telecontrol.Scada.Objects.DataItems, Telecontrol.Scada.Namespaces.Scada);
@@ -1039,6 +1069,26 @@ namespace Telecontrol.Scada
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class VariableIds
     {
+        /// <summary>
+        /// The identifier for the Statistics_ServerCPUUsage Variable.
+        /// </summary>
+        public static readonly ExpandedNodeId Statistics_ServerCPUUsage = new ExpandedNodeId(Telecontrol.Scada.Variables.Statistics_ServerCPUUsage, Telecontrol.Scada.Namespaces.Scada);
+
+        /// <summary>
+        /// The identifier for the Statistics_ServerMemoryUsage Variable.
+        /// </summary>
+        public static readonly ExpandedNodeId Statistics_ServerMemoryUsage = new ExpandedNodeId(Telecontrol.Scada.Variables.Statistics_ServerMemoryUsage, Telecontrol.Scada.Namespaces.Scada);
+
+        /// <summary>
+        /// The identifier for the Statistics_TotalCPUUsage Variable.
+        /// </summary>
+        public static readonly ExpandedNodeId Statistics_TotalCPUUsage = new ExpandedNodeId(Telecontrol.Scada.Variables.Statistics_TotalCPUUsage, Telecontrol.Scada.Namespaces.Scada);
+
+        /// <summary>
+        /// The identifier for the Statistics_TotalMemoryUsage Variable.
+        /// </summary>
+        public static readonly ExpandedNodeId Statistics_TotalMemoryUsage = new ExpandedNodeId(Telecontrol.Scada.Variables.Statistics_TotalMemoryUsage, Telecontrol.Scada.Namespaces.Scada);
+
         /// <summary>
         /// The identifier for the DataGroupType_Simulated Variable.
         /// </summary>
@@ -2093,6 +2143,16 @@ namespace Telecontrol.Scada
         public const string SendTimeout = "SendTimeout";
 
         /// <summary>
+        /// The BrowseName for the ServerCPUUsage component.
+        /// </summary>
+        public const string ServerCPUUsage = "ServerCPUUsage";
+
+        /// <summary>
+        /// The BrowseName for the ServerMemoryUsage component.
+        /// </summary>
+        public const string ServerMemoryUsage = "ServerMemoryUsage";
+
+        /// <summary>
         /// The BrowseName for the Severity component.
         /// </summary>
         public const string Severity = "Severity";
@@ -2133,6 +2193,11 @@ namespace Telecontrol.Scada
         public const string StartupInterrogation = "StartupInterrogation";
 
         /// <summary>
+        /// The BrowseName for the Statistics component.
+        /// </summary>
+        public const string Statistics = "Statistics";
+
+        /// <summary>
         /// The BrowseName for the SyncClock component.
         /// </summary>
         public const string SyncClock = "SyncClock";
@@ -2146,6 +2211,16 @@ namespace Telecontrol.Scada
         /// The BrowseName for the TerminationTimeout component.
         /// </summary>
         public const string TerminationTimeout = "TerminationTimeout";
+
+        /// <summary>
+        /// The BrowseName for the TotalCPUUsage component.
+        /// </summary>
+        public const string TotalCPUUsage = "TotalCPUUsage";
+
+        /// <summary>
+        /// The BrowseName for the TotalMemoryUsage component.
+        /// </summary>
+        public const string TotalMemoryUsage = "TotalMemoryUsage";
 
         /// <summary>
         /// The BrowseName for the TransmissionItems component.
