@@ -9,8 +9,8 @@
 #include "core/extension_object.h"
 #include "core/expanded_node_id.h"
 
+#include <opcuapp/basic_types.h>
 #include <opcuapp/structs.h>
-#include <opcuapp/types.h>
 #include <opcuapp/vector.h>
 
 scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class);

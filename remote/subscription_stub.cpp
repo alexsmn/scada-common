@@ -63,8 +63,8 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::NodeId
 
   if (attribute_id == OpcUa_Attributes_EventNotifier) {
     channel_ptr->set_event_handler(
-        [this, monitored_item_id](const scada::Event& event) {
-          OnEvent(monitored_item_id, event);
+        [this, monitored_item_id](const scada::Status& status, const scada::Event& event) {
+          OnEvent(monitored_item_id, status, event);
         });
   }
 
@@ -98,10 +98,12 @@ void SubscriptionStub::OnDataChange(MonitoredItemId monitored_item_id, const sca
   sender_.Send(message);
 }
 
-void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id, const scada::Event& event) {
+void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id, const scada::Status& status, const scada::Event& event) {
   auto i = channels_.find(monitored_item_id);
   if (i == channels_.end())
     return;
+
+  // TODO: Handle |status|.
 
   protocol::Message message;
   auto& notification = *message.add_notifications();

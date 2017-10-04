@@ -1,9 +1,9 @@
 #pragma once
 
-#include <memory>
-
 #include "core/node_id.h"
-#include "opcuapp/extension_object.h"
+
+#include <memory>
+#include <opcuapp/extension_object.h>
 
 namespace scada {
 
@@ -11,22 +11,22 @@ class ExtensionObject {
  public:
   ExtensionObject() {}
 
-  ExtensionObject(OpcUa_ExtensionObject&& source) {
-    OpcUa_ExtensionObject* object = OpcUa_Null;
-    OpcUa_ExtensionObject_Create(&object);
-    *object = source;
-    OpcUa_ExtensionObject_Initialize(&source);
-    value_ = std::shared_ptr<OpcUa_ExtensionObject>(object, &Deleter);
+  ExtensionObject(OpcUa_ExtensionObject&& source)
+      : value_{std::make_shared<opcua::ExtensionObject>(std::move(source))} {
+  }
+
+  ExtensionObject(opcua::ExtensionObject&& source)
+      : value_{std::make_shared<opcua::ExtensionObject>(std::move(source))} {
   }
 
   NodeId data_type_id() const {
     if (!value_)
       return {};
-    if (value_->TypeId.ServerIndex != 0 || !OpcUa_String_IsEmpty(&value_->TypeId.NamespaceUri))
+    if (value_->type_id().ServerIndex != 0 || !OpcUa_String_IsEmpty(&value_->type_id().NamespaceUri))
       return {};
-    if (value_->TypeId.NodeId.IdentifierType != OpcUa_IdentifierType_Numeric)
+    if (value_->type_id().NodeId.IdentifierType != OpcUa_IdentifierType_Numeric)
       return {};
-    return {value_->TypeId.NodeId.Identifier.Numeric, value_->TypeId.NodeId.NamespaceIndex};
+    return {value_->type_id().NodeId.Identifier.Numeric, value_->type_id().NodeId.NamespaceIndex};
   }
 
   bool operator==(const ExtensionObject& other) const {
@@ -34,16 +34,15 @@ class ExtensionObject {
   }
 
   void release(OpcUa_ExtensionObject& target) {
-    target = *value_;
-    ::OpcUa_ExtensionObject_Initialize(value_.get());
+    if (value_)
+      target = value_->get();
+    else
+      opcua::Initialize(target);
+    value_.reset();
   }
 
  private:
-  static void Deleter(OpcUa_ExtensionObject* object) {
-    ::OpcUa_ExtensionObject_Delete(&object);
-  }
-
-  std::shared_ptr<OpcUa_ExtensionObject> value_;
+  std::shared_ptr<opcua::ExtensionObject> value_;
 };
 
 } // namespace scada

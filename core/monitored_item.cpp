@@ -11,7 +11,7 @@ void MonitoredItem::ForwardData(const DataValue& data_value) {
 
 void MonitoredItem::ForwardEvent(const Event& event) {
   if (event_handler_)
-    event_handler_(event);
+    event_handler_(StatusCode::Good, event);
 }
 
 } // namespace scada
