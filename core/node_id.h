@@ -13,7 +13,7 @@ namespace scada {
 
 enum class NodeIdType { Numeric, String, Opaque };
 
-using NumericId = OpcUa_UInt32;
+using NumericId = uint32_t;
 
 class NodeId {
  public:
