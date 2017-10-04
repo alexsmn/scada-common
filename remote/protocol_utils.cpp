@@ -228,11 +228,11 @@ scada::NodeAttributes FromProto(const protocol::Attributes& source) {
 }
 
 void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target) {
-  if (source.has(OpcUa_Attributes_BrowseName))
+  if (source.has(scada::AttributeId::BrowseName))
     target.set_browse_name(source.browse_name().name());
-  if (source.has(OpcUa_Attributes_DataType))
+  if (source.has(scada::AttributeId::DataType))
     ToProto(source.data_type_id(), *target.mutable_data_type_id());
-  if (source.has(OpcUa_Attributes_Value))
+  if (source.has(scada::AttributeId::Value))
     ToProto(source.value(), *target.mutable_value());
 }
 

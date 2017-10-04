@@ -10,11 +10,11 @@
 namespace {
 
 constexpr scada::AttributeId kReadAttributeIds[] = {
-    OpcUa_Attributes_NodeClass,
-    OpcUa_Attributes_BrowseName,
-    OpcUa_Attributes_DisplayName,
-    OpcUa_Attributes_DataType,
-    OpcUa_Attributes_Value,
+    scada::AttributeId::NodeClass,
+    scada::AttributeId::BrowseName,
+    scada::AttributeId::DisplayName,
+    scada::AttributeId::DataType,
+    scada::AttributeId::Value,
 };
 
 } // namespace
@@ -140,19 +140,19 @@ void NodeRefImpl::Fetch(const NodeRef::FetchCallback& callback) {
 
 scada::Variant NodeRefImpl::GetAttribute(scada::AttributeId attribute_id) const {
   switch (attribute_id) {
-    case OpcUa_Attributes_NodeId:
+    case scada::AttributeId::NodeId:
       return id_;
 
-    case OpcUa_Attributes_NodeClass:
+    case scada::AttributeId::NodeClass:
       return node_class_.has_value() ? scada::Variant{static_cast<int>(*node_class_)} : scada::Variant{};
 
-    case OpcUa_Attributes_BrowseName:
+    case scada::AttributeId::BrowseName:
       if (!fetched_ || !status_)
         return scada::QualifiedName{id_.ToString()};
       assert(!browse_name_.empty());
       return browse_name_;
 
-    case OpcUa_Attributes_DisplayName:
+    case scada::AttributeId::DisplayName:
       if (!fetched_)
         return scada::LocalizedText{id_.ToString()};
       if (!status_)
@@ -229,8 +229,8 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
 
   if (!node_class_.has_value() || browse_name_.empty()) {
     logger_->WriteF(LogSeverity::Warning, "Node %s attributes weren't read", id_.ToString().c_str());
-    static_assert(kReadAttributeIds[0] == OpcUa_Attributes_NodeClass);
-    static_assert(kReadAttributeIds[1] == OpcUa_Attributes_BrowseName);
+    static_assert(kReadAttributeIds[0] == scada::AttributeId::NodeClass);
+    static_assert(kReadAttributeIds[1] == scada::AttributeId::BrowseName);
     auto& node_class_status = values[0].status_code;
     auto& browse_name_status = values[0].status_code;
     assert(!scada::IsGood(node_class_status) || !scada::IsGood(browse_name_status));
@@ -290,21 +290,21 @@ void NodeRefImpl::OnBrowseComplete(const scada::Status& status, std::vector<scad
 
 void NodeRefImpl::SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value) {
   switch (attribute_id) {
-    case OpcUa_Attributes_NodeClass:
+    case scada::AttributeId::NodeClass:
       node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
       break;
-    case OpcUa_Attributes_BrowseName:
+    case scada::AttributeId::BrowseName:
       browse_name_ = std::move(data_value.value.get<scada::QualifiedName>());
       assert(!browse_name_.empty());
       break;
-    case OpcUa_Attributes_DisplayName:
+    case scada::AttributeId::DisplayName:
       display_name_ = std::move(data_value.value.get<scada::LocalizedText>());
       assert(!display_name_.empty());
       break;
-    case OpcUa_Attributes_DataType:
+    case scada::AttributeId::DataType:
       data_type_ = service_.GetNodeImpl(data_value.value.as_node_id(), id_);
       break;
-    case OpcUa_Attributes_Value:
+    case scada::AttributeId::Value:
       data_value_ = std::move(data_value);
       break;
   }

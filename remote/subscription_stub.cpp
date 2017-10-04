@@ -54,14 +54,14 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::NodeId
     sender_.Send(message);
   }
 
-  if (attribute_id == OpcUa_Attributes_Value) {
+  if (attribute_id == scada::AttributeId::Value) {
     channel_ptr->set_data_change_handler(
         [this, monitored_item_id](const scada::DataValue& data_value) {
           OnDataChange(monitored_item_id, data_value);
         });
   }
 
-  if (attribute_id == OpcUa_Attributes_EventNotifier) {
+  if (attribute_id == scada::AttributeId::EventNotifier) {
     channel_ptr->set_event_handler(
         [this, monitored_item_id](const scada::Status& status, const scada::Event& event) {
           OnEvent(monitored_item_id, status, event);

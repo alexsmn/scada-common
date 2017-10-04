@@ -57,7 +57,7 @@ void TimedDataImpl::SetNode(NodeRef node) {
 
     alerting_ = event_manager_.IsAlerting(node_.id());
 
-    monitored_value_ = realtime_service_.CreateMonitoredItem(node_.id(), OpcUa_Attributes_Value);
+    monitored_value_ = realtime_service_.CreateMonitoredItem(node_.id(), scada::AttributeId::Value);
     if (!monitored_value_) {
       Delete();
       return;
@@ -127,7 +127,7 @@ void TimedDataImpl::HistoryRead() {
   }
 
   auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
-  history_service_.HistoryRead({node_.id(), OpcUa_Attributes_Value}, from(), to, {},
+  history_service_.HistoryRead({node_.id(), scada::AttributeId::Value}, from(), to, {},
       io_service_.wrap([weak_ptr, range](scada::Status status, scada::QueryValuesResults values, scada::QueryEventsResults events) {
         if (auto ptr = weak_ptr.get())
           ptr->OnQueryValuesComplete(status, range.first, range.second, std::move(values));

@@ -6,6 +6,7 @@
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/event.h"
+#include "core/node_attributes.h"
 #include "core/status.h"
 #include "core/view_service.h"
 #include "remote/protocol.h"

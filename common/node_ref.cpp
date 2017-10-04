@@ -9,11 +9,11 @@ NodeRef::NodeRef(std::shared_ptr<NodeRefImpl> impl)
 }
 
 scada::NodeId NodeRef::id() const {
-  return attribute(OpcUa_Attributes_NodeId).get_or(scada::NodeId{});
+  return attribute(scada::AttributeId::NodeId).get_or(scada::NodeId{});
 }
 
 std::optional<scada::NodeClass> NodeRef::node_class() const {
-  auto value = attribute(OpcUa_Attributes_NodeClass);
+  auto value = attribute(scada::AttributeId::NodeClass);
   if (value.is_null())
     return {};
   return static_cast<scada::NodeClass>(value.get<int>());
@@ -28,11 +28,11 @@ NodeRef NodeRef::data_type() const {
 }
 
 scada::QualifiedName NodeRef::browse_name() const {
-  return attribute(OpcUa_Attributes_BrowseName).get_or(scada::QualifiedName{});
+  return attribute(scada::AttributeId::BrowseName).get_or(scada::QualifiedName{});
 }
 
 scada::LocalizedText NodeRef::display_name() const {
-  return attribute(OpcUa_Attributes_DisplayName).get_or(scada::LocalizedText{});
+  return attribute(scada::AttributeId::DisplayName).get_or(scada::LocalizedText{});
 }
 
 NodeRef NodeRef::type_definition() const {

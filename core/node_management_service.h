@@ -3,8 +3,9 @@
 #include <functional>
 #include <set>
 
-#include "core/status.h"
 #include "core/configuration_types.h"
+#include "core/node_attributes.h"
+#include "core/status.h"
 
 namespace scada {
 
