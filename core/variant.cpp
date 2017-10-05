@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "base/format.h"
+#include "core/standard_node_ids.h"
 
 namespace scada {
 
@@ -263,7 +264,7 @@ NodeId Variant::data_type_id() const {
   static_assert(static_cast<size_t>(Type::COUNT) == 15);
 
   if (type() == Type::EXTENSION_OBJECT)
-    return get<ExtensionObject>().data_type_id();
+    return get<ExtensionObject>().data_type_id().node_id();
 
   const scada::NumericId kNodeIds[] = {
       0,

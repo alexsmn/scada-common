@@ -13,13 +13,13 @@ inline scada::DataValue MakeReadResult(T&& value) {
 
 inline scada::DataValue Read(const scada::BrowseNode& node, scada::AttributeId attribute_id) {
   switch (attribute_id) {
-    case OpcUa_Attributes_NodeId:
+    case scada::AttributeId::NodeId:
       return MakeReadResult(node.node_id);
-    case OpcUa_Attributes_NodeClass:
+    case scada::AttributeId::NodeClass:
       return MakeReadResult(static_cast<int32_t>(node.node_class));
-    case OpcUa_Attributes_BrowseName:
+    case scada::AttributeId::BrowseName:
       return MakeReadResult(node.browse_name);
-    case OpcUa_Attributes_DisplayName:
+    case scada::AttributeId::DisplayName:
       return MakeReadResult(node.display_name);
     default:
       return {scada::StatusCode::Bad, scada::DateTime::Now()};

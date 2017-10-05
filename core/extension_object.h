@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/node_id.h"
+#include "core/expanded_node_id.h"
 
-#include <memory>
-#include <opcuapp/extension_object.h>
+#include <any>
+#include <variant>
 
 namespace scada {
 
@@ -11,38 +11,44 @@ class ExtensionObject {
  public:
   ExtensionObject() {}
 
-  ExtensionObject(OpcUa_ExtensionObject&& source)
-      : value_{std::make_shared<opcua::ExtensionObject>(std::move(source))} {
+  ExtensionObject(ExpandedNodeId data_type_id, std::any value)
+      : data_type_id_{std::move(data_type_id)},
+        value_{std::move(value)} {
   }
 
-  ExtensionObject(opcua::ExtensionObject&& source)
-      : value_{std::make_shared<opcua::ExtensionObject>(std::move(source))} {
+  const ExpandedNodeId& data_type_id() const { return data_type_id_; }
+
+  ExtensionObject(const ExtensionObject&) = default;
+  ExtensionObject& operator=(const ExtensionObject&) = default;
+
+  ExtensionObject(ExtensionObject&& source)
+      : data_type_id_{std::move(source.data_type_id_)},
+        value_{std::move(source.value_)} {
   }
 
-  NodeId data_type_id() const {
-    if (!value_)
-      return {};
-    if (value_->type_id().ServerIndex != 0 || !OpcUa_String_IsEmpty(&value_->type_id().NamespaceUri))
-      return {};
-    if (value_->type_id().NodeId.IdentifierType != OpcUa_IdentifierType_Numeric)
-      return {};
-    return {value_->type_id().NodeId.Identifier.Numeric, value_->type_id().NodeId.NamespaceIndex};
+  ExtensionObject& operator=(ExtensionObject&& source) {
+    if (&value_ != &source.value_) {
+      data_type_id_ = std::move(source.data_type_id_);
+      value_ = std::move(source.value_);
+    }
+    return *this;
   }
 
   bool operator==(const ExtensionObject& other) const {
-    return value_ == other.value_;
+    return false;
   }
 
-  void release(OpcUa_ExtensionObject& target) {
-    if (value_)
-      target = value_->get();
-    else
-      opcua::Initialize(target);
-    value_.reset();
-  }
+  /*template<class T>
+  static ExtensionObject Encode(ExpandedNodeId data_type_id, T&& object) {
+    return ExtensionObject{std::any{std::move(object)}};
+  }*/
+
+  std::any& value() { return value_; }
+  const std::any& value() const { return value_; }
 
  private:
-  std::shared_ptr<opcua::ExtensionObject> value_;
+  ExpandedNodeId data_type_id_;
+  std::any value_;
 };
 
 } // namespace scada

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "node_ref_service.h"
 
 // Callback = void(const scada::Status& status, const scada::ReferenceDescription& reference)

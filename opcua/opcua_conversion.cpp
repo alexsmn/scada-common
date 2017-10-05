@@ -277,11 +277,12 @@ void Convert(scada::Variant&& source, OpcUa_Variant& result) {
         Convert(source.get<scada::ExpandedNodeId>(), *result.Value.ExpandedNodeId);
         break;
 
-      case scada::Variant::EXTENSION_OBJECT:
+      case scada::Variant::EXTENSION_OBJECT: {
         result.Datatype = OpcUaType_ExtensionObject;
         ::OpcUa_ExtensionObject_Create(&result.Value.ExtensionObject);
-        source.get<scada::ExtensionObject>().release(*result.Value.ExtensionObject);
+        Convert(std::move(source.get<scada::ExtensionObject>()), *result.Value.ExtensionObject);
         break;
+      }
 
       case scada::Variant::BYTE_STRING: {
         result.Datatype = OpcUaType_ByteString;
@@ -523,11 +524,18 @@ void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& result) {
 }
 
 scada::ExtensionObject Convert(OpcUa_ExtensionObject&& object) {
-  return std::move(object);
+  if (object.Encoding == OpcUa_ExtensionObjectEncoding_None)
+    return {};
+
+  auto type_id = Convert(object.TypeId);
+  opcua::ExtensionObject ext{std::move(object)};
+  return scada::ExtensionObject{std::move(type_id), std::move(ext)};
 }
 
 void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target) {
-  source.release(target);
+  opcua::ExtensionObject* extension_object = std::any_cast<opcua::ExtensionObject>(&source.value());
+  if (extension_object)
+    extension_object->release(target);
 }
 
 scada::String Convert(const opcua::String& source) {

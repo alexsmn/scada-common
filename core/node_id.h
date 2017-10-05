@@ -7,7 +7,6 @@
 #include <cassert>
 #include <string>
 #include <variant>
-#include <vector>
 
 namespace scada {
 
