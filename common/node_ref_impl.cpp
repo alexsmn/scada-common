@@ -244,9 +244,9 @@ void NodeRefImpl::OnReadComplete(const scada::Status& status, std::vector<scada:
   nodes.reserve(3);
   assert(node_class_.has_value());
   if (scada::IsTypeDefinition(*node_class_))
-    nodes.push_back({id_, scada::BrowseDirection::Inverse, OpcUaId_HasSubtype, true});
-  nodes.push_back({id_, scada::BrowseDirection::Forward, OpcUaId_Aggregates, true});
-  nodes.push_back({id_, scada::BrowseDirection::Forward, OpcUaId_NonHierarchicalReferences, true});
+    nodes.push_back({id_, scada::BrowseDirection::Inverse, scada::id::HasSubtype, true});
+  nodes.push_back({id_, scada::BrowseDirection::Forward, scada::id::Aggregates, true});
+  nodes.push_back({id_, scada::BrowseDirection::Forward, scada::id::NonHierarchicalReferences, true});
 
   ++pending_request_count_;
   std::weak_ptr<NodeRefImpl> weak_ptr = shared_from_this();
@@ -315,15 +315,15 @@ void NodeRefImpl::AddReference(const NodeRefImplReference& reference) {
 //  assert(reference.target.fetched());
 
   if (reference.forward) {
-    if (IsSubtypeOf(reference.reference_type, OpcUaId_HasTypeDefinition))
+    if (IsSubtypeOf(reference.reference_type, scada::id::HasTypeDefinition))
       type_definition_ = reference.target;
-    else if (IsSubtypeOf(reference.reference_type, OpcUaId_Aggregates))
+    else if (IsSubtypeOf(reference.reference_type, scada::id::Aggregates))
       aggregates_.push_back(reference);
-    else if (IsSubtypeOf(reference.reference_type, OpcUaId_NonHierarchicalReferences))
+    else if (IsSubtypeOf(reference.reference_type, scada::id::NonHierarchicalReferences))
       references_.push_back(reference);
 
   } else {
-    if (IsSubtypeOf(reference.reference_type, OpcUaId_HasSubtype))
+    if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))
       supertype_ = reference.target;
   }
 }

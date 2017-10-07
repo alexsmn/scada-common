@@ -111,7 +111,7 @@ bool StringToValue(const base::StringPiece& str, const scada::NodeId& data_type_
     return true;
   }
 
-  if (data_type_id == OpcUaId_Boolean) {
+  if (data_type_id == scada::id::Boolean) {
     if (IsEqualNoCase(str, scada::Variant::kFalseString))
       value = false;
     else if (IsEqualNoCase(str, scada::Variant::kTrueString))
@@ -120,17 +120,17 @@ bool StringToValue(const base::StringPiece& str, const scada::NodeId& data_type_
       return StringToValueHelper<bool>(str, value);
     return true;
 
-  } else if (data_type_id == OpcUaId_Double) {
+  } else if (data_type_id == scada::id::Double) {
     return StringToValueHelper<double>(str, value);
 
-  } else if (data_type_id == OpcUaId_Int32) {
+  } else if (data_type_id == scada::id::Int32) {
     return StringToValueHelper<int>(str, value);
 
-  } else if (data_type_id == OpcUaId_String) {
+  } else if (data_type_id == scada::id::String) {
     value = str.as_string();
     return true;
 
-  } else if (data_type_id == OpcUaId_NodeId) {
+  } else if (data_type_id == scada::id::NodeId) {
     auto node_id = scada::NodeId::FromString(str);
     if (node_id.is_null())
       return false;

@@ -268,19 +268,19 @@ NodeId Variant::data_type_id() const {
 
   const scada::NumericId kNodeIds[] = {
       0,
-      OpcUaId_Boolean,
-      OpcUaId_SByte,
-      OpcUaId_Byte,
-      OpcUaId_Int32,
-      OpcUaId_UInt32,
-      OpcUaId_Int64,
-      OpcUaId_Double,
-      OpcUaId_ByteString,
-      OpcUaId_String,
-      OpcUaId_QualifiedName,
-      OpcUaId_LocalizedText,
-      OpcUaId_NodeId,
-      OpcUaId_ExpandedNodeId,
+      id::Boolean,
+      id::SByte,
+      id::Byte,
+      id::Int32,
+      id::UInt32,
+      id::Int64,
+      id::Double,
+      id::ByteString,
+      id::String,
+      id::QualifiedName,
+      id::LocalizedText,
+      id::NodeId,
+      id::ExpandedNodeId,
   };
 
   assert(static_cast<size_t>(type()) < std::size(kNodeIds));

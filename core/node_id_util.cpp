@@ -52,9 +52,9 @@ bool IsNestedNodeId(const NodeId& node_id, NodeId& parent_id, base::StringPiece&
 }
 
 bool IsBaseTypeDefinitionId(const NodeId& id) {
-  return id == OpcUaId_BaseDataType ||
-         id == OpcUaId_BaseObjectType ||
-         id == OpcUaId_BaseVariableType;
+  return id == id::BaseDataType ||
+         id == id::BaseObjectType ||
+         id == id::BaseVariableType;
 }
 
 } // namespace scada

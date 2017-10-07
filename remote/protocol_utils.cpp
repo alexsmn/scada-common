@@ -237,7 +237,7 @@ void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target) 
 }
 
 void ToProto(const scada::BrowseNode& source, protocol::Node& target) {
-  if (source.node_id != OpcUaId_RootFolder) {
+  if (source.node_id != scada::id::RootFolder) {
     assert(!source.parent_id.is_null());
     assert(!source.reference_type_id.is_null());
     ToProto(source.parent_id, *target.mutable_parent_id());

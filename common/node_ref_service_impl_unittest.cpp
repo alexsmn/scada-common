@@ -46,7 +46,7 @@ TEST(NodeRefServiceImpl, FetchNode) {
         pending_read_callback = callback;
       }));
 
-  auto* server_node = address_space.GetNode(OpcUaId_RootFolder);
+  auto* server_node = address_space.GetNode(scada::id::RootFolder);
   ASSERT_NE(nullptr, server_node);
 
   auto node = node_service.GetNode(server_node->node_id);

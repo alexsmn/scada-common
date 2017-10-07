@@ -55,9 +55,9 @@ class TestAddressSpace : public scada::ViewService {
   const scada::BrowseNode kRootNode{
       {}, // parent id
       {}, // reference_type_id
-      OpcUaId_RootFolder,
+      scada::id::RootFolder,
       scada::NodeClass::Object,
-      OpcUaId_FolderType, // type id
+      scada::id::FolderType, // type id
       "Root",
       "Root Display Name",
   };
@@ -122,7 +122,7 @@ inline scada::BrowseResult TestAddressSpace::Browse(const scada::BrowseDescripti
   std::vector<scada::ReferenceDescription> references;
 
   if (!node->type_id.is_null())
-    ReturnIfMatches(references, description, {OpcUaId_HasTypeDefinition, false, node->type_id});
+    ReturnIfMatches(references, description, {scada::id::HasTypeDefinition, false, node->type_id});
   if (!node->reference_type_id.is_null())
     ReturnIfMatches(references, description, {node->reference_type_id, false, node->parent_id});
 
@@ -146,7 +146,7 @@ inline scada::NodeId TestAddressSpace::GetSupertypeId(const scada::NodeId& type_
   auto* node = GetNode(type_id);
   if (!node)
     return {};
-  if (node->reference_type_id != OpcUaId_HasSubtype)
+  if (node->reference_type_id != scada::id::HasSubtype)
     return {};
   return node->parent_id;
 }

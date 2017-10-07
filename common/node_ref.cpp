@@ -44,15 +44,15 @@ NodeRef NodeRef::supertype() const {
 }
 
 std::vector<NodeRef> NodeRef::aggregates() const {
-  return impl_ ? impl_->GetAggregates(OpcUaId_Aggregates) : std::vector<NodeRef>{};
+  return impl_ ? impl_->GetAggregates(scada::id::Aggregates) : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::components() const {
-  return impl_ ? impl_->GetAggregates(OpcUaId_HasComponent) : std::vector<NodeRef>{};
+  return impl_ ? impl_->GetAggregates(scada::id::HasComponent) : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::properties() const {
-  return impl_ ? impl_->GetAggregates(OpcUaId_HasProperty) : std::vector<NodeRef>{};
+  return impl_ ? impl_->GetAggregates(scada::id::HasProperty) : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef::Reference> NodeRef::references() const {

@@ -1,6 +1,7 @@
-file(GLOB opcua_common_sources
-  "*.cpp"
-  "*.h"
-)
+find_package(OPCUAPP REQUIRED)
 
-set(opcua_common_sources ${opcua_common_sources} PARENT_SCOPE)
+file(GLOB sources "*.cpp" "*.h")
+
+add_library(scada_core_opcua ${sources})
+
+target_link_libraries(scada_core_opcua scada_core OPCUAPP)

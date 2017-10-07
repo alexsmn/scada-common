@@ -34,7 +34,7 @@ void BrowseNodesRecursive(NodeRefService& service, const scada::NodeId& parent_i
 
     void Browse(const scada::NodeId& parent_id) {
       auto self = shared_from_this();
-      BrowseNodes(service, {parent_id, scada::BrowseDirection::Forward, OpcUaId_HierarchicalReferences, true},
+      BrowseNodes(service, {parent_id, scada::BrowseDirection::Forward, scada::id::HierarchicalReferences, true},
           [self, this](const scada::Status& status, const std::vector<NodeRef>& nodes) {
             for (auto& node : nodes) {
               if (type_definition_id_.is_null() || IsInstanceOf(node, type_definition_id_))
@@ -67,7 +67,7 @@ void BrowseInstanceDeclarations(NodeRefService& node_service, const scada::NodeI
       (const scada::Status& status, std::vector<NodeRef> declarations) {
         auto declarations_ptr = std::make_shared<std::vector<NodeRef>>(std::move(declarations));
         // Request supertype.
-        BrowseReference(node_service, {type_definition_id, scada::BrowseDirection::Inverse, OpcUaId_HasSubtype, true},
+        BrowseReference(node_service, {type_definition_id, scada::BrowseDirection::Inverse, scada::id::HasSubtype, true},
             [&node_service, callback, declarations_ptr, reference_type_id]
             (const scada::Status& status, const scada::ReferenceDescription& reference) {
               if (!status) {

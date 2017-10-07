@@ -13,7 +13,7 @@ static const size_t kMaxParallelAcks = 5;
 
 EventManager::EventManager(EventManagerContext&& context)
     : EventManagerContext{std::move(context)} {
-  monitored_item_ = monitored_item_service_.CreateMonitoredItem(OpcUaId_RootFolder, scada::AttributeId::EventNotifier);
+  monitored_item_ = monitored_item_service_.CreateMonitoredItem(scada::id::RootFolder, scada::AttributeId::EventNotifier);
   assert(monitored_item_);
   monitored_item_->set_event_handler([this](const scada::Status& status, const scada::Event& event) {
       // TODO: Handle |status|
@@ -231,7 +231,7 @@ void EventManager::ItemEventsChanged(const ObserverSet& observers,
 
 void EventManager::Update() {
   auto weak_ptr = weak_factory_.GetWeakPtr();
-  history_service_.HistoryRead({OpcUaId_RootFolder, scada::AttributeId::EventNotifier}, {}, {}, {{scada::Event::UNACKED}},
+  history_service_.HistoryRead({scada::id::RootFolder, scada::AttributeId::EventNotifier}, {}, {}, {{scada::Event::UNACKED}},
       io_service_.wrap([weak_ptr](scada::Status status, scada::QueryValuesResults values, scada::QueryEventsResults events) {
         if (auto* ptr = weak_ptr.get())
           ptr->OnQueryEventsResult(status, std::move(events));
