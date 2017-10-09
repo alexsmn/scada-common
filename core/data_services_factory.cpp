@@ -2,14 +2,6 @@
 
 #include "base/strings/string_util.h"
 
-extern bool CreateVidiconServices(const DataServicesContext& context, DataServices& services);
-extern bool CreateScadaServices(const DataServicesContext& context, DataServices& services);
-extern bool CreateOpcUaServices(const DataServicesContext& context, DataServices& services);
-
-REGISTER_DATA_SERVICES("Scada", L"Телеконтроль", CreateScadaServices);
-REGISTER_DATA_SERVICES("Vidicon", L"Видикон", CreateVidiconServices);
-REGISTER_DATA_SERVICES("OpcUa", L"OPC UA", CreateOpcUaServices);
-
 namespace {
 
 DataServicesInfoList& GetMutableDataServicesInfoList() {

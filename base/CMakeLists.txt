@@ -1,22 +1,14 @@
-FILE(GLOB sources
-  "*.cpp"
-  "*.h")
+find_package(Boost REQUIRED COMPONENTS system date_time regex)
 
-FILE(GLOB sources_win
-  "win/*.cpp"
-  "win/*.h"
-)
+file(GLOB sources "*.cpp" "*.h")
 
-IF(WIN32)
-  LIST(APPEND sources ${sources_win})
-ENDIF()
+if(WIN32)
+  file(GLOB sources_win "win/*.cpp" "win/*.h")
+  list(APPEND sources ${sources_win})
+endif()
 
-ADD_LIBRARY(scada_base STATIC ${sources})
+add_library(scada_base ${sources})
 
-TARGET_INCLUDE_DIRECTORIES(scada_base PUBLIC
-  ".."
-  ${Boost_INCLUDE_DIRS}
-  "${deps}/protobuf/src"
-)
+target_include_directories(scada_base PUBLIC ".." ${Boost_INCLUDE_DIRS})
 
-TARGET_LINK_LIBRARIES(scada_base base ${Boost_LIBRARIES})
+target_link_libraries(scada_base base ${Boost_LIBRARIES})

@@ -1,11 +1,6 @@
 include(CMakeToolsHelpers OPTIONAL)
 
-# Boost
-# SET(BOOST_ROOT "${deps}/boost-1.63.0")
-# SET(BOOST_LIBRARYDIR "${deps}/boost-1.63.0/stage")
 SET(Boost_USE_STATIC_LIBS ON)
-FIND_PACKAGE(Boost REQUIRED COMPONENTS system date_time regex)
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
 # OPC-UA
 set(OPENSSL_ROOT_DIR "${deps}/openssl")
