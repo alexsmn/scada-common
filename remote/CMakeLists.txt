@@ -1,10 +1,7 @@
 # ProtoBuf
-# ADD_SUBDIRECTORY("${deps}/protobuf" "protobuf-build")
 find_package(Protobuf REQUIRED)
 
 file(GLOB sources "*.cpp" "*.h" "*.proto")
-
-# list(APPEND remote_sources "scada.pb.cc" "scada.pb.h")
 
 file(GLOB unittests "*_unittest.*")
 
@@ -12,7 +9,6 @@ list(REMOVE_ITEM sources ${unittests})
 
 protobuf_generate_cpp(scada_proto_cpp scada_proto_h scada.proto)
 protobuf_generate_python(scada_proto_py scada.proto)
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 list(APPEND sources ${scada_proto_cpp} ${scada_proto_h})
 
