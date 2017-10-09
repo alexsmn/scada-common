@@ -1,9 +1,7 @@
 #pragma once
 
-#include "memdb/types.h"
-#include "core/configuration_types.h"
-
 namespace scada {
+class NodeId;
 class Event;
 }
 

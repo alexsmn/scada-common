@@ -2,7 +2,6 @@
 
 #include "express/function.h"
 #include "express/parser.h"
-#include "memdb/types.h"
 #include "core/monitored_item_service.h"
 
 namespace expression {

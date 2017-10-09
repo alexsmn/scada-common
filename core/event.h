@@ -3,7 +3,6 @@
 #include "base/strings/string16.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
-#include "memdb/types.h"
 
 namespace scada {
 
@@ -16,6 +15,8 @@ enum EventSeverity {
   kSeverityCritical = 80, // critical
   kSeverityMax = 100 // max
 };
+
+using EventAcknowledgeId = unsigned;
 
 class Event {
  public:
@@ -51,7 +52,7 @@ class Event {
   Qualifier  qualifier;
   base::string16 message;
   bool       acked;
-  memdb::RID acknowledge_id;
+  EventAcknowledgeId acknowledge_id;
   base::Time acknowledged_time;
   NodeId     acknowledged_user_id;
 };

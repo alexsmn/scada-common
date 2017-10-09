@@ -171,7 +171,7 @@ void EventManager::AckPendingEvents() {
 
   while (running_ack_event_ids_.size() < kMaxParallelAcks &&
          !pending_ack_event_ids_.empty()) {
-    memdb::RID ack_id = pending_ack_event_ids_.front();
+    auto ack_id = pending_ack_event_ids_.front();
     pending_ack_event_ids_.pop_front();
 
     logger().WriteF(LogSeverity::Normal, "Acknowledge event %u", ack_id);

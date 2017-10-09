@@ -113,10 +113,10 @@ class EventManager : private EventManagerContext {
 
   bool alarming_ = false;
 
-  typedef std::deque<memdb::RID> EventIdQueue;
+  typedef std::deque<scada::EventAcknowledgeId> EventIdQueue;
   EventIdQueue pending_ack_event_ids_;
 
-  typedef std::set<memdb::RID> EventIdSet;
+  typedef std::set<scada::EventAcknowledgeId> EventIdSet;
   EventIdSet running_ack_event_ids_;
 
   ObserverSet observers_;
