@@ -5,7 +5,6 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/time/time.h"
 #include "base/file_logger.h"
-#include "common/common_paths.h"
 
 #ifdef OS_WIN
 #include <windows.h>

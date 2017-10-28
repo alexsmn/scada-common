@@ -7,9 +7,9 @@ set(OPCUA_DIR "${deps}/opcuapp")
 set(OPCUAPP_DIR "${deps}/opcuapp")
 
 add_subdirectory("${deps}/chromebase" chromebase)
-add_subdirectory("${deps}/express" "express")
+add_subdirectory("${deps}/express" express)
 add_subdirectory(memdb)
-add_subdirectory(net)
+add_subdirectory("${deps}/net" net)
 
 add_subdirectory(base)
 add_subdirectory(core)

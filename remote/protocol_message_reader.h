@@ -3,7 +3,7 @@
 #include "base/logger.h"
 #include "net/message_reader.h"
 
-class ProtocolMessageReader : public MessageReaderImpl<4096> {
+class ProtocolMessageReader : public net::MessageReaderImpl<4096> {
  protected:
   virtual bool GetBytesExpected(const void* buf, size_t len,
                                 size_t& expected) const {
@@ -18,7 +18,7 @@ class ProtocolMessageReader : public MessageReaderImpl<4096> {
     // check data is received
     size_t size = *reinterpret_cast<const uint16_t*>(bytes);
     if (size > 4096) {
-      logger().Write(LogSeverity::Warning, "Size is too large");
+      logger().Write(net::LogSeverity::Warning, "Size is too large");
       return false;
     }
     
