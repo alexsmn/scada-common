@@ -2,7 +2,6 @@
 
 #include "base/memory/weak_ptr.h"
 #include "base/logger.h"
-#include "core/configuration_types.h"
 #include "core/view_service.h"
 
 #include <memory>

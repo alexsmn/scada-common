@@ -291,6 +291,11 @@ message DeleteMonitoredItem {
   required uint32 monitored_item_id = 2;
 }
 
+message NodeTree {
+  repeated Node node = 1;
+  repeated Reference reference = 2;
+}
+
 enum BrowseDirection {
   FORWARD = 0;
   INVERSE = 1;
@@ -320,7 +325,6 @@ message BrowseResult {
 }
 
 message BrowseResponse {
-  required Status status = 1;
   repeated BrowseResult results = 2;
 }
 
@@ -391,8 +395,8 @@ message Notification {
   repeated NodeId deleted_node_id = 4;
   repeated NodeId semantics_changed_node_id = 5;
 
-  repeated Reference added_references = 6;
-  repeated Reference deleted_references = 7;
+  repeated NodeId added_reference_node_id = 6;
+  repeated NodeId deleted_reference_node_id = 7;
 
   repeated Event events = 8;
   optional SessionDeleted session_deleted = 9;

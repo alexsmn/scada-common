@@ -10,17 +10,12 @@ class BrowseResult;
 class Notification;
 }
 
-namespace scada {
-enum class NodeClass;
-}
-
 class Logger;
 class MessageSender;
 
 class ViewServiceProxy : public scada::ViewService {
  public:
   explicit ViewServiceProxy(std::shared_ptr<Logger> logger);
-  virtual ~ViewServiceProxy();
 
   void OnNotification(const protocol::Notification& notification);
 
@@ -39,7 +34,5 @@ class ViewServiceProxy : public scada::ViewService {
 
   MessageSender* sender_ = nullptr;
 
-  int next_subscription_id_ = 1;
-
-  base::ObserverList<scada::ViewEvents> view_events_;
+  base::ObserverList<scada::ViewEvents> events_;
 };

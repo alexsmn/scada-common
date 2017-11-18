@@ -1,9 +1,13 @@
 #include "remote/view_service_stub.h"
 
+#include "common/scada_node_ids.h"
+#include "core/status.h"
 #include "core/view_service.h"
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
 #include "remote/message_sender.h"
+
+// ViewServiceStub
 
 ViewServiceStub::ViewServiceStub(MessageSender& sender,
                                  scada::ViewService& service,
@@ -45,8 +49,8 @@ void ViewServiceStub::OnBrowse(unsigned request_id, const std::vector<scada::Bro
     protocol::Message message;
     auto& response = *message.add_responses();
     response.set_request_id(request_id);
+    ToProto(status, *response.add_status());
     auto& browse = *response.mutable_browse();
-    ToProto(status, *browse.mutable_status());
     if (status)
       ToProto(results, *browse.mutable_results());
 
@@ -55,8 +59,7 @@ void ViewServiceStub::OnBrowse(unsigned request_id, const std::vector<scada::Bro
 }
 
 void ViewServiceStub::OnNodeAdded(const scada::NodeId& node_id) {
-  logger_->WriteF(LogSeverity::Normal, "Notification NodeCreated [node_id=%s]",
-      node_id.ToString().c_str());
+  logger_->WriteF(LogSeverity::Normal, "Notification NodeAdded [node_id=%s]", node_id.ToString().c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -76,7 +79,8 @@ void ViewServiceStub::OnNodeDeleted(const scada::NodeId& node_id) {
 }
 
 void ViewServiceStub::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
-  logger_->WriteF(LogSeverity::Normal, "Notification NodeSemanticsChanged [node_id=%s]", node_id.ToString().c_str());
+  logger_->WriteF(LogSeverity::Normal, "Notification NodeSemanticsChanged [node_id=%s]",
+      node_id.ToString().c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -89,10 +93,7 @@ void ViewServiceStub::OnReferenceAdded(const scada::NodeId& node_id) {
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
-  auto& ref = *notification.add_added_references();
-  /*ToProto(reference.reference_type_id, *ref.mutable_reference_type_id());
-  ToProto(reference.source_id, *ref.mutable_source_id());
-  ToProto(reference.target_id, *ref.mutable_target_id());*/
+  ToProto(node_id, *notification.add_added_reference_node_id());
   sender_.Send(message);
 }
 
@@ -101,9 +102,6 @@ void ViewServiceStub::OnReferenceDeleted(const scada::NodeId& node_id) {
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
-  auto& ref = *notification.add_deleted_references();
-  /*ToProto(reference.reference_type_id, *ref.mutable_reference_type_id());
-  ToProto(reference.source_id, *ref.mutable_source_id());
-  ToProto(reference.target_id, *ref.mutable_target_id());*/
+  ToProto(node_id, *notification.add_deleted_reference_node_id());
   sender_.Send(message);
 }
