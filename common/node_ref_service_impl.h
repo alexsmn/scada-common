@@ -10,8 +10,8 @@ class AttributeService;
 }
 
 class Logger;
-class NodeRefImpl;
-struct NodeRefImplReference;
+class NodeModelImpl;
+struct NodeModelImplReference;
 
 struct NodeRefServiceImplContext {
   const std::shared_ptr<Logger> logger_;
@@ -39,9 +39,9 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
 
   // Returns fetched or unfetched node impl.
-  std::shared_ptr<NodeRefImpl> GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id);
+  std::shared_ptr<NodeModelImpl> GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id);
 
-  void CompletePartialNode(const std::shared_ptr<NodeRefImpl>& node);
+  void CompletePartialNode(const std::shared_ptr<NodeModelImpl>& node);
 
   using Observers = base::ObserverList<NodeRefObserver>;
 
@@ -57,7 +57,7 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   Observers observers_;
   std::map<scada::NodeId, Observers> node_observers_;
 
-  std::map<scada::NodeId, std::shared_ptr<NodeRefImpl>> nodes_;
+  std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 
-  friend class NodeRefImpl;
+  friend class NodeModelImpl;
 };

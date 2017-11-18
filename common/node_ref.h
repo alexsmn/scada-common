@@ -11,14 +11,15 @@
 #include "core/status.h"
 #include "core/view_service.h"
 
-class NodeRefImpl;
+class NodeModel;
 class NodeRefObserver;
 
 class NodeRef {
  public:
   NodeRef() {}
   NodeRef(std::nullptr_t) {}
-  NodeRef(std::shared_ptr<NodeRefImpl> impl);
+  template<class T>
+  NodeRef(std::shared_ptr<T> model) : model_{std::move(model)} {}
 
   scada::NodeId id() const;
 
@@ -76,9 +77,9 @@ class NodeRef {
   void RemoveObserver(NodeRefObserver& observer);
 
  private:
-  bool is_null() const { return !impl_; }
+  bool is_null() const { return !model_; }
 
-  std::shared_ptr<NodeRefImpl> impl_;
+  std::shared_ptr<const NodeModel> model_;
 };
 
 struct NodeRef::Reference {
@@ -92,7 +93,7 @@ struct NodeRef::Reference {
 inline bool NodeRef::operator==(const NodeRef& other) const {
   if (is_null() || other.is_null())
     return is_null() == other.is_null();
-  return impl_ == other.impl_;
+  return model_ == other.model_;
 }
 
 inline bool NodeRef::operator!=(const NodeRef& other) const {
@@ -100,6 +101,6 @@ inline bool NodeRef::operator!=(const NodeRef& other) const {
 }
 
 inline NodeRef& NodeRef::operator=(std::nullptr_t) {
-  impl_ = nullptr;
+  model_ = nullptr;
   return *this;
 }
