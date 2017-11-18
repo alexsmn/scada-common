@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "core/attribute_ids.h"
+#include "core/node_class.h"
 #include "core/node_id.h"
-#include "core/node_types.h"
 #include "core/status.h"
 #include "core/variant.h"
 
