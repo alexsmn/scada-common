@@ -14,7 +14,7 @@ class NodeModel {
   virtual void Fetch(const NodeRef::FetchCallback& callback) const = 0;
 
   virtual scada::Variant GetAttribute(scada::AttributeId attribute_id) const = 0;
-  virtual scada::DataValue GetValue() const = 0;
+  virtual scada::Variant GetValue() const = 0;
 
   virtual NodeRef GetTypeDefinition() const = 0;
   virtual NodeRef GetSupertype() const = 0;

@@ -50,8 +50,7 @@ class NodeRef {
   // Non-hierarchical references.
   std::vector<Reference> references() const;
 
-  scada::DataValue data_value() const;
-  scada::Variant value() const { return data_value().value; }
+  scada::Variant value() const;
 
   explicit operator bool() const { return !is_null(); }
 

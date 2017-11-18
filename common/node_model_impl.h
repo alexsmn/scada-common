@@ -24,7 +24,7 @@ class NodeModelImpl : public std::enable_shared_from_this<NodeModelImpl>,
   virtual bool IsFetched() const override { return fetched_; }
   virtual void Fetch(const NodeRef::FetchCallback& callback) const final;
   virtual scada::Variant GetAttribute(scada::AttributeId attribute_id) const final;
-  virtual scada::DataValue GetValue() const final;
+  virtual scada::Variant GetValue() const final;
   virtual NodeRef GetTypeDefinition() const final;
   virtual NodeRef GetSupertype() const final;
   virtual NodeRef GetDataType() const final;
@@ -39,10 +39,10 @@ class NodeModelImpl : public std::enable_shared_from_this<NodeModelImpl>,
   virtual void RemoveObserver(NodeRefObserver& observer) const final;
 
  private:
-  void OnReadComplete(const scada::Status& status, std::vector<scada::DataValue> values);
-  void OnBrowseComplete(const scada::Status& status, std::vector<scada::BrowseResult> results);
+  void OnReadComplete(scada::Status&& status, std::vector<scada::DataValue>&& data_values);
+  void OnBrowseComplete(scada::Status&& status, std::vector<scada::BrowseResult>&& results);
 
-  void SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value);
+  void SetAttribute(scada::AttributeId attribute_id, scada::Variant&& value);
   void AddReference(const NodeModelImplReference& reference);
 
   bool IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) const;
@@ -58,7 +58,7 @@ class NodeModelImpl : public std::enable_shared_from_this<NodeModelImpl>,
   std::optional<scada::NodeClass> node_class_;
   scada::QualifiedName browse_name_;
   scada::LocalizedText display_name_;
-  scada::DataValue data_value_;
+  scada::Variant value_;
   scada::Status status_{scada::StatusCode::Good};
 
   std::vector<NodeModelImplReference> aggregates_;

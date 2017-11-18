@@ -70,8 +70,8 @@ NodeRef NodeRef::operator[](const scada::NodeId& aggregate_declaration_id) const
   return model_->GetAggregate(aggregate_declaration.browse_name());
 }
 
-scada::DataValue NodeRef::data_value() const {
-  return model_ ? model_->GetValue() : scada::DataValue{};
+scada::Variant NodeRef::value() const {
+  return model_ ? model_->GetValue() : scada::Variant{};
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {

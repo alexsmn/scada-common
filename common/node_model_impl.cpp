@@ -131,9 +131,9 @@ void NodeModelImpl::Fetch(const NodeRef::FetchCallback& callback) const {
   // TODO: Weak ptr.
   ++pending_request_count_;
   std::weak_ptr<NodeModelImpl> weak_ptr = std::const_pointer_cast<NodeModelImpl>(shared_from_this());
-  service_.attribute_service_.Read(read_ids, [weak_ptr](const scada::Status& status, std::vector<scada::DataValue> values) {
+  service_.attribute_service_.Read(read_ids, [weak_ptr](scada::Status&& status, std::vector<scada::DataValue>&& data_values) {
     if (auto ptr = weak_ptr.lock())
-      ptr->OnReadComplete(status, std::move(values));
+      ptr->OnReadComplete(std::move(status), std::move(data_values));
   });
 }
 
@@ -167,8 +167,8 @@ scada::Variant NodeModelImpl::GetAttribute(scada::AttributeId attribute_id) cons
   }
 }
 
-scada::DataValue NodeModelImpl::GetValue() const {
-  return data_value_;
+scada::Variant NodeModelImpl::GetValue() const {
+  return value_;
 }
 
 NodeRef NodeModelImpl::GetTypeDefinition() const {
@@ -200,7 +200,7 @@ void NodeModelImpl::RemoveObserver(NodeRefObserver& observer) const {
   service_.RemoveNodeObserver(id_, observer);
 }
 
-void NodeModelImpl::OnReadComplete(const scada::Status& status, std::vector<scada::DataValue> values) {
+void NodeModelImpl::OnReadComplete(scada::Status&& status, std::vector<scada::DataValue>&& data_values) {
   // Request could be canceled.
   if (!status_)
     return;
@@ -214,24 +214,24 @@ void NodeModelImpl::OnReadComplete(const scada::Status& status, std::vector<scad
     return;
   }
 
-  assert(values.size() == std::size(kReadAttributeIds));
+  assert(data_values.size() == std::size(kReadAttributeIds));
 
   logger_->WriteF(LogSeverity::Normal, "Read complete for node %s", id_.ToString().c_str());
 
-  for (size_t i = 0; i < values.size(); ++i) {
+  for (size_t i = 0; i < data_values.size(); ++i) {
     const auto attribute_id = kReadAttributeIds[i];
-    auto& value = values[i];
+    auto& data_value = data_values[i];
     // assert(scada::IsGood(value.status_code) || attribute_id != OpcUa_Attributes_BrowseName);
-    if (scada::IsGood(value.status_code))
-      SetAttribute(attribute_id, std::move(value));
+    if (scada::IsGood(data_value.status_code))
+      SetAttribute(attribute_id, std::move(data_value.value));
   }
 
   if (!node_class_.has_value() || browse_name_.empty()) {
     logger_->WriteF(LogSeverity::Warning, "Node %s attributes weren't read", id_.ToString().c_str());
     static_assert(kReadAttributeIds[0] == scada::AttributeId::NodeClass);
     static_assert(kReadAttributeIds[1] == scada::AttributeId::BrowseName);
-    auto& node_class_status = values[0].status_code;
-    auto& browse_name_status = values[0].status_code;
+    auto& node_class_status = data_values[0].status_code;
+    auto& browse_name_status = data_values[0].status_code;
     assert(!scada::IsGood(node_class_status) || !scada::IsGood(browse_name_status));
     SetError(scada::IsGood(node_class_status) ? node_class_status : browse_name_status);
     return;
@@ -250,13 +250,13 @@ void NodeModelImpl::OnReadComplete(const scada::Status& status, std::vector<scad
   ++pending_request_count_;
   std::weak_ptr<NodeModelImpl> weak_ptr = shared_from_this();
   service_.view_service_.Browse(std::move(nodes),
-      [weak_ptr](const scada::Status& status, std::vector<scada::BrowseResult> results) {
+      [weak_ptr](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         if (auto ptr = weak_ptr.lock())
-          ptr->OnBrowseComplete(status, std::move(results));
+          ptr->OnBrowseComplete(std::move(status), std::move(results));
       });
 }
 
-void NodeModelImpl::OnBrowseComplete(const scada::Status& status, std::vector<scada::BrowseResult> results) {
+void NodeModelImpl::OnBrowseComplete(scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
   // Request could be canceled.
   if (!status_)
     return;
@@ -287,24 +287,24 @@ void NodeModelImpl::OnBrowseComplete(const scada::Status& status, std::vector<sc
   service_.CompletePartialNode(shared_from_this());
 }
 
-void NodeModelImpl::SetAttribute(scada::AttributeId attribute_id, scada::DataValue data_value) {
+void NodeModelImpl::SetAttribute(scada::AttributeId attribute_id, scada::Variant&& value) {
   switch (attribute_id) {
     case scada::AttributeId::NodeClass:
-      node_class_ = static_cast<scada::NodeClass>(data_value.value.as_int32());
+      node_class_ = static_cast<scada::NodeClass>(value.as_int32());
       break;
     case scada::AttributeId::BrowseName:
-      browse_name_ = std::move(data_value.value.get<scada::QualifiedName>());
+      browse_name_ = std::move(value.get<scada::QualifiedName>());
       assert(!browse_name_.empty());
       break;
     case scada::AttributeId::DisplayName:
-      display_name_ = std::move(data_value.value.get<scada::LocalizedText>());
+      display_name_ = std::move(value.get<scada::LocalizedText>());
       assert(!display_name_.empty());
       break;
     case scada::AttributeId::DataType:
-      data_type_ = service_.GetNodeImpl(data_value.value.as_node_id(), id_);
+      data_type_ = service_.GetNodeImpl(value.as_node_id(), id_);
       break;
     case scada::AttributeId::Value:
-      data_value_ = std::move(data_value);
+      value_ = std::move(value);
       break;
   }
 }
