@@ -13,7 +13,7 @@ class NodeId;
 class Status;
 
 using StatusCallback = std::function<void(const Status&)>;
-using ReadCallback = std::function<void(const Status&, std::vector<DataValue> values)>;
+using ReadCallback = std::function<void(Status&&, std::vector<DataValue>&& values)>;
 
 class AttributeService {
  public:
