@@ -149,42 +149,30 @@ void NodeRefServiceImpl::OnNodeDeleted(const scada::NodeId& node_id) {
     o.OnNodeDeleted(node_id);
 }
 
-void NodeRefServiceImpl::OnReferenceAdded(const scada::ViewReference& reference) {
+void NodeRefServiceImpl::OnReferenceAdded(const scada::NodeId& node_id) {
   // TODO: Append aggregates and types.
-  if (auto* node_observers = GetNodeObservers(reference.source_id)) {
+  if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)
-      o.OnReferenceAdded(reference.source_id);
-  }
-  if (auto* node_observers = GetNodeObservers(reference.target_id)) {
-    for (auto& o : *node_observers)
-      o.OnReferenceAdded(reference.target_id);
+      o.OnReferenceAdded(node_id);
   }
 
   for (auto& o : observers_)
-    o.OnReferenceAdded(reference.source_id);
-  for (auto& o : observers_)
-    o.OnReferenceAdded(reference.target_id);
+    o.OnReferenceAdded(node_id);
 }
 
-void NodeRefServiceImpl::OnReferenceDeleted(const scada::ViewReference& reference) {
+void NodeRefServiceImpl::OnReferenceDeleted(const scada::NodeId& node_id) {
   // TODO: Delete aggregates and types.
 
-  if (auto* node_observers = GetNodeObservers(reference.source_id)) {
+  if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)
-      o.OnReferenceDeleted(reference.source_id);
-  }
-  if (auto* node_observers = GetNodeObservers(reference.target_id)) {
-    for (auto& o : *node_observers)
-      o.OnReferenceDeleted(reference.target_id);
+      o.OnReferenceDeleted(node_id);
   }
 
   for (auto& o : observers_)
-    o.OnReferenceDeleted(reference.source_id);
-  for (auto& o : observers_)
-    o.OnReferenceDeleted(reference.target_id);
+    o.OnReferenceDeleted(node_id);
 }
 
-void NodeRefServiceImpl::OnNodeModified(const scada::NodeId& node_id, const scada::PropertyIds& property_ids) {
+void NodeRefServiceImpl::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
   if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)
       o.OnNodeDeleted(node_id);

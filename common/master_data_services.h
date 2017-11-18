@@ -98,9 +98,9 @@ class MasterDataServices : public scada::AttributeService,
   // scada::ViewEvents
   virtual void OnNodeAdded(const scada::NodeId& node_id) override;
   virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
-  virtual void OnReferenceAdded(const scada::ViewReference& reference) override;
-  virtual void OnReferenceDeleted(const scada::ViewReference& reference) override;
-  virtual void OnNodeModified(const scada::NodeId& node_id, const scada::PropertyIds& property_ids) override;
+  virtual void OnReferenceAdded(const scada::NodeId& node_id) override;
+  virtual void OnReferenceDeleted(const scada::NodeId& node_id) override;
+  virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
   base::ObserverList<scada::SessionStateObserver> session_state_observers_;
   base::ObserverList<scada::ViewEvents> view_events_;

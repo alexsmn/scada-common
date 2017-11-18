@@ -254,17 +254,17 @@ void MasterDataServices::OnNodeDeleted(const scada::NodeId& node_id) {
     obs.OnNodeDeleted(node_id);
 }
 
-void MasterDataServices::OnReferenceAdded(const scada::ViewReference& reference) {
+void MasterDataServices::OnReferenceAdded(const scada::NodeId& node_id) {
   for (auto& obs : view_events_)
-    obs.OnReferenceAdded(reference);
+    obs.OnReferenceAdded(node_id);
 }
 
-void MasterDataServices::OnReferenceDeleted(const scada::ViewReference& reference) {
+void MasterDataServices::OnReferenceDeleted(const scada::NodeId& node_id) {
   for (auto& obs : view_events_)
-    obs.OnReferenceDeleted(reference);
+    obs.OnReferenceDeleted(node_id);
 }
 
-void MasterDataServices::OnNodeModified(const scada::NodeId& node_id, const scada::PropertyIds& property_ids) {
+void MasterDataServices::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
   for (auto& obs : view_events_)
-    obs.OnNodeModified(node_id, property_ids);
+    obs.OnNodeSemanticsChanged(node_id);
 }

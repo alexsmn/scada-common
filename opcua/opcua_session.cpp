@@ -32,8 +32,8 @@ OpcUa_ProxyStubConfiguration MakeProxyStubConfiguration() {
   return result;
 }
 
-static void OnBrowseResponse(const scada::BrowseCallback& callback, const scada::Status& status, std::vector<scada::BrowseResult> results) {
-  callback(status, std::move(results));
+static void OnBrowseResponse(const scada::BrowseCallback& callback, scada::Status&& status, std::vector<scada::BrowseResult> results) {
+  callback(std::move(status), std::move(results));
 }
 
 static void OnReadResponse(const scada::ReadCallback& callback, scada::Status&& status, std::vector<scada::DataValue> results) {
