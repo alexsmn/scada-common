@@ -112,6 +112,7 @@ message Variant {
   optional bytes  string_value  = 5;
   optional NodeId node_id_value = 6;
   optional bytes  localized_text_value = 7;
+  optional bytes  qualified_name_value = 8;
 }
 
 message DataValue {

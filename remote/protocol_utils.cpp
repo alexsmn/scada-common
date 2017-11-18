@@ -48,6 +48,8 @@ scada::Variant FromProto(const protocol::Variant& source) {
     return source.double_value();
   else if (source.has_string_value())
     return scada::String{base::SysWideToNativeMB(base::SysUTF8ToWide(source.string_value()))};
+  else if (source.has_qualified_name_value())
+    return scada::QualifiedName(base::SysWideToNativeMB(base::SysUTF8ToWide(source.qualified_name_value())));
   else if (source.has_localized_text_value())
     return scada::LocalizedText{base::SysWideToNativeMB(base::SysUTF8ToWide(source.localized_text_value()))};
   else if (source.has_node_id_value())
@@ -74,6 +76,9 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       break;
     case scada::Variant::STRING:
       target.set_string_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
+      break;
+    case scada::Variant::QUALIFIED_NAME:
+      target.set_qualified_name_value(base::SysWideToUTF8(base::SysNativeMBToWide(source.get<scada::QualifiedName>().name())));
       break;
     case scada::Variant::LOCALIZED_TEXT:
       target.set_localized_text_value(source.as_localized_text().text());
@@ -170,7 +175,7 @@ scada::Event FromProto(const protocol::Event& source) {
   if (source.has_qualifier())
     result.qualifier = scada::Qualifier(source.qualifier());
   if (source.has_message())
-    result.message = base::SysNativeMBToWide(source.message());
+    result.message = base::SysUTF8ToWide(source.message());
   if (source.has_acknowledged())
     result.acked = source.acknowledged();
   if (source.has_acknowledge_id())
@@ -194,7 +199,7 @@ void ToProto(const scada::Event& source, protocol::Event& target) {
   if (source.qualifier != scada::Qualifier())
     target.set_qualifier(source.qualifier.raw());
   if (!source.message.empty())
-    target.set_message(base::SysWideToNativeMB(source.message));
+    target.set_message(base::SysWideToUTF8(source.message));
   if (source.acked)
     target.set_acknowledged(true);
   if (source.acknowledge_id)
@@ -207,11 +212,11 @@ void ToProto(const scada::Event& source, protocol::Event& target) {
 }
 
 scada::NodeClass FromProto(const protocol::NodeClass source) {
-  return static_cast<scada::NodeClass>(static_cast<int>(source) - 1);
+  return static_cast<scada::NodeClass>(static_cast<int>(source));
 }
 
 protocol::NodeClass ToProto(const scada::NodeClass source) {
-  return static_cast<protocol::NodeClass>(static_cast<int>(source) + 1);
+  return static_cast<protocol::NodeClass>(static_cast<int>(source));
 }
 
 scada::NodeAttributes FromProto(const protocol::Attributes& source) {
