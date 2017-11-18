@@ -51,7 +51,7 @@ scada::Variant FromProto(const protocol::Variant& source) {
   else if (source.has_qualified_name_value())
     return scada::QualifiedName(base::SysWideToNativeMB(base::SysUTF8ToWide(source.qualified_name_value())));
   else if (source.has_localized_text_value())
-    return scada::LocalizedText{base::SysWideToNativeMB(base::SysUTF8ToWide(source.localized_text_value()))};
+    return scada::LocalizedText{source.localized_text_value()};
   else if (source.has_node_id_value())
     return FromProto(source.node_id_value());
   else
