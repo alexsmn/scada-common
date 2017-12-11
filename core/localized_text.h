@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/strings/string16.h"
 #include "core/string.h"
 
 namespace scada {
@@ -13,8 +14,12 @@ class LocalizedText {
   bool empty() const { return text_.empty(); }
   const String& text() const { return text_; }
 
-  bool operator==(const LocalizedText& other) const { return text_ == other.text_; }
-  bool operator!=(const LocalizedText& other) const { return !operator==(other); }
+  bool operator==(const LocalizedText& other) const {
+    return text_ == other.text_;
+  }
+  bool operator!=(const LocalizedText& other) const {
+    return !operator==(other);
+  }
 
   void clear() { text_.clear(); }
 
@@ -22,4 +27,12 @@ class LocalizedText {
   String text_;
 };
 
-} // namespace scada
+LocalizedText ToLocalizedText(const std::wstring& string);
+
+}  // namespace scada
+
+namespace base {
+
+string16 ToString16(const scada::LocalizedText& text);
+
+}  // namespace base

@@ -11,6 +11,7 @@ class AttributeService;
 
 class Logger;
 class NodeModelImpl;
+struct ModelChangeEvent;
 struct NodeModelImplReference;
 
 struct NodeRefServiceImplContext {
@@ -46,6 +47,8 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   using Observers = base::ObserverList<NodeRefObserver>;
 
   const Observers* GetNodeObservers(const scada::NodeId& node_id) const;
+
+  void NotifyEvent(const ModelChangeEvent& event);
 
   // scada::ViewService
   virtual void OnNodeAdded(const scada::NodeId& node_id) override;

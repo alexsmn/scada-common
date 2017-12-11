@@ -43,7 +43,7 @@ class TimedDataImpl : public TimedData,
   virtual void OnFromChanged() override;
 
  private:
-  void SetNode(NodeRef node);
+  void SetNode(const NodeRef& node);
 
   void HistoryRead();
 
@@ -53,7 +53,7 @@ class TimedDataImpl : public TimedData,
   void OnChannelData(const scada::DataValue& data_value);
 
   // scada::NodeObserver
-  virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
+  virtual void OnModelChange(const ModelChangeEvent& event) override;
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) override;
 
   // events::EventObserver

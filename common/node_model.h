@@ -30,6 +30,8 @@ class NodeModel {
 
   virtual NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const = 0;
 
+  virtual NodeRef GetParent() const = 0;
+
   virtual void Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) const = 0;
 
   virtual void AddObserver(NodeRefObserver& observer) const = 0;

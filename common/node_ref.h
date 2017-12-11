@@ -27,7 +27,7 @@ class NodeRef {
 
   bool fetched() const;
 
-  using FetchCallback = std::function<void(NodeRef node)>;
+  using FetchCallback = std::function<void(const NodeRef& node)>;
   void Fetch(const FetchCallback& callback);
 
   std::optional<scada::NodeClass> node_class() const;
@@ -38,6 +38,8 @@ class NodeRef {
   NodeRef data_type() const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
+
+  NodeRef parent() const;
 
   // Includes components and properies.
   std::vector<NodeRef> aggregates() const;

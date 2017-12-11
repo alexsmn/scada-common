@@ -40,7 +40,7 @@ TimedDataImpl::~TimedDataImpl() {
   SetNode(nullptr);
 }
 
-void TimedDataImpl::SetNode(NodeRef node) {
+void TimedDataImpl::SetNode(const NodeRef& node) {
   if (node_ == node)
     return;
 
@@ -163,8 +163,11 @@ void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
   }
 }
 
-void TimedDataImpl::OnNodeDeleted(const scada::NodeId& node_id) {
-  assert(node_id == node_.id());
+void TimedDataImpl::OnModelChange(const ModelChangeEvent& event) {
+  assert(event.node_id == node_.id());
+
+  if (!(event.verb & ModelChangeEvent::NodeDeleted))
+    return;
 
   SetNode(nullptr);
   Delete();

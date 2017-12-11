@@ -126,56 +126,41 @@ void NodeRefServiceImpl::RemoveNodeObserver(const scada::NodeId& node_id, NodeRe
   node_observers_[node_id].RemoveObserver(&observer);
 }
 
-void NodeRefServiceImpl::OnNodeAdded(const scada::NodeId& node_id) {
-  if (auto* node_observers = GetNodeObservers(node_id)) {
+void NodeRefServiceImpl::NotifyEvent(const ModelChangeEvent& event) {
+  if (auto* node_observers = GetNodeObservers(event.node_id)) {
     for (auto& o : *node_observers)
-      o.OnNodeAdded(node_id);
+      o.OnModelChange(event);
   }
 
   for (auto& o : observers_)
-    o.OnNodeAdded(node_id);
+    o.OnModelChange(event);
+}
+
+void NodeRefServiceImpl::OnNodeAdded(const scada::NodeId& node_id) {
+  NotifyEvent({node_id, {}, ModelChangeEvent::NodeAdded});
 }
 
 void NodeRefServiceImpl::OnNodeDeleted(const scada::NodeId& node_id) {
   // TODO: Remove nodes containing aggregates.
   nodes_.erase(node_id);
 
-  if (auto* node_observers = GetNodeObservers(node_id)) {
-    for (auto& o : *node_observers)
-      o.OnNodeDeleted(node_id);
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeDeleted(node_id);
+  NotifyEvent({node_id, {}, ModelChangeEvent::NodeDeleted});
 }
 
 void NodeRefServiceImpl::OnReferenceAdded(const scada::NodeId& node_id) {
-  // TODO: Append aggregates and types.
-  if (auto* node_observers = GetNodeObservers(node_id)) {
-    for (auto& o : *node_observers)
-      o.OnReferenceAdded(node_id);
-  }
-
-  for (auto& o : observers_)
-    o.OnReferenceAdded(node_id);
+  NotifyEvent({node_id, {}, ModelChangeEvent::ReferenceAdded});
 }
 
 void NodeRefServiceImpl::OnReferenceDeleted(const scada::NodeId& node_id) {
   // TODO: Delete aggregates and types.
 
-  if (auto* node_observers = GetNodeObservers(node_id)) {
-    for (auto& o : *node_observers)
-      o.OnReferenceDeleted(node_id);
-  }
-
-  for (auto& o : observers_)
-    o.OnReferenceDeleted(node_id);
+  NotifyEvent({node_id, {}, ModelChangeEvent::ReferenceDeleted});
 }
 
 void NodeRefServiceImpl::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
   if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)
-      o.OnNodeDeleted(node_id);
+      o.OnNodeSemanticChanged(node_id);
   }
 
   for (auto& o : observers_)

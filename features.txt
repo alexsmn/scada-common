@@ -17,6 +17,8 @@ Object Tree -------------------------------------------------------------------
 11. Service channel create
 12. Object Tree Drag&Drop
 13. Save/load expanded nodes on restart
+14. Delete node
+15. Delete node with opened view
 
 Table View --------------------------------------------------------------------
 
@@ -34,10 +36,24 @@ Hardware Tree -----------------------------------------------------------------
 3. Create link when device is selected
 4. Device metrics
 5. Device tree states
-6. Device start/stop
-7. Device watch
-8. Device statuses: disabled, offline, active
-9. IEC-61850: Model tree
+6. Device watch
+  Req: A device connect and disconnect processes are logged to Watch window.
+7. Device start/stop
+8. Device statuses
+  Req: Device statuses:
+     - when device is started and connected - connected status is displayed
+     - when device is started and disconnected - disconnected status is displayed
+     - when device is stopped - stopped status is displayed
+  Test:
+  Have a device created. Initially the device is stopped, the status is stopped, the model is empty.
+  1. Start the remote device, start the device - the status is connected, the model is loaded.
+  1.1. Stop the remote device - the status is disconnected, the model is empty.
+  1.1.1. Start the remote device - the status is connected, the model is loaded.
+  1.2. Stop the device - the status is stopped, the model is empty.
+  2. Stop the remote device, start the device - the status is disconnected, the model is empty.
+  2.1. Start the remote device - the status is connected, the model is loaded.
+8. IEC-61850: Model tree
+  Req: A device model is loaded when device is online & connected, is empty otherwise.
 
 Retransmissions ---------------------------------------------------------------
 

@@ -34,6 +34,7 @@ class NodeModelImpl : public std::enable_shared_from_this<NodeModelImpl>,
   virtual std::vector<NodeRef> GetTargets(const scada::NodeId& reference_type_id) const final;
   virtual std::vector<NodeRef::Reference> GetReferences() const final;
   virtual NodeRef GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const final;
+  virtual NodeRef GetParent() const final;
   virtual void Browse(const scada::BrowseDescription& description, const NodeRef::BrowseCallback& callback) const final;
   virtual void AddObserver(NodeRefObserver& observer) const final;
   virtual void RemoveObserver(NodeRefObserver& observer) const final;

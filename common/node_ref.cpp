@@ -117,3 +117,7 @@ void NodeRef::RemoveObserver(NodeRefObserver& observer) {
   if (model_)
     model_->RemoveObserver(observer);
 }
+
+NodeRef NodeRef::parent() const {
+  return model_ ? model_->GetParent() : nullptr;
+}

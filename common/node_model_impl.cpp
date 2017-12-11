@@ -377,3 +377,8 @@ void NodeModelImpl::SetError(const scada::Status& status) {
   pending_request_count_ = 0;
   service_.CompletePartialNode(shared_from_this());
 }
+
+NodeRef NodeModelImpl::GetParent() const {
+  // TODO:
+  return nullptr;
+}
