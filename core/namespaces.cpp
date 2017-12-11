@@ -4,6 +4,7 @@
 
 #include "base/strings/string_number_conversions.h"
 
+// WARNING: These names are used as names for tables in the configuration DB and mustn't be modified.
 const char* kNamespaceNames[static_cast<size_t>(NamespaceIndexes::END)] = {
   "OPCUA",
   "TS",
@@ -22,7 +23,8 @@ const char* kNamespaceNames[static_cast<size_t>(NamespaceIndexes::END)] = {
   "TS_PARAMS",
   "SERVER_PARAMS",
   "IEC_TRANSMIT",
-  "SCADA"
+  "IEC61850_DEV",
+  "IEC61850_RCB",
 };
 
 const char* GetNamespaceName(scada::NamespaceIndex namespace_index) {
@@ -43,7 +45,7 @@ int FindNamespaceIndexByName(const base::StringPiece& name) {
   if (base::StringToInt(name, &namespace_index))
     return namespace_index;
 
-  for (int i = 0; i < static_cast<int>(NamespaceIndexes::END); ++i) {
+  for (int i = static_cast<int>(NamespaceIndexes::BEGIN); i < static_cast<int>(NamespaceIndexes::END); ++i) {
     if (_strnicmp(GetNamespaceName(i), name.data(), name.size()) == 0)
       return i;
   }
