@@ -29,8 +29,8 @@ class NodeId {
   void set_namespace_index(NamespaceIndex index) { namespace_index_ = index; }
 
   NumericId numeric_id() const;
-  const String& string_id() const;
-  const ByteString& opaque_id() const;
+  const String* string_id() const;
+  const ByteString* opaque_id() const;
 
   String ToString() const;
   static NodeId FromString(const base::StringPiece& string);

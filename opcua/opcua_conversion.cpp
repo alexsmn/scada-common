@@ -368,12 +368,12 @@ void Convert(const scada::NodeId& source, OpcUa_NodeId& result) {
 
     case scada::NodeIdType::String:
       result.IdentifierType = OpcUa_IdentifierType_String;
-      Convert(source.string_id(), result.Identifier.String);
+      Convert(*source.string_id(), result.Identifier.String);
       break;
 
     case scada::NodeIdType::Opaque:
       result.IdentifierType = OpcUa_IdentifierType_Opaque;
-      Convert(source.opaque_id(), result.Identifier.ByteString);
+      Convert(*source.opaque_id(), result.Identifier.ByteString);
       break;
 
     default:

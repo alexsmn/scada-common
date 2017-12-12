@@ -76,12 +76,14 @@ NumericId NodeId::numeric_id() const {
   return std::get<NumericId>(identifier_);
 }
 
-const String& NodeId::string_id() const {
-  return *std::get<SharedStringId>(identifier_);
+const String* NodeId::string_id() const {
+  auto* string_id = std::get_if<SharedStringId>(&identifier_);
+  return string_id ? string_id->get() : nullptr;
 }
 
-const ByteString& NodeId::opaque_id() const {
-  return *std::get<SharedByteString>(identifier_);
+const ByteString* NodeId::opaque_id() const {
+  auto* opaque_id = std::get_if<SharedByteString>(&identifier_);
+  return opaque_id ? opaque_id->get() : nullptr;
 }
 
 String NodeId::ToString() const {
@@ -95,7 +97,7 @@ String NodeId::ToString() const {
       result += base::StringPrintf("i=%u", static_cast<unsigned>(numeric_id()));
       break;
     case NodeIdType::String:
-      result += base::StringPrintf("s=%s", string_id().c_str());
+      result += base::StringPrintf("s=%s", string_id()->c_str());
       break;
     case NodeIdType::Opaque:
       // TODO:

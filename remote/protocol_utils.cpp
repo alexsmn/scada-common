@@ -26,11 +26,13 @@ void ToProto(const scada::NodeId& source, protocol::NodeId& target) {
         target.set_numeric_id(source.numeric_id());
       break;
     case scada::NodeIdType::String:
-      target.set_string_id(source.string_id());
+      target.set_string_id(*source.string_id());
       break;
-    case scada::NodeIdType::Opaque:
-      target.set_opaque_id(source.opaque_id().data(), source.opaque_id().size());
+    case scada::NodeIdType::Opaque: {
+      auto* opaque_id = source.opaque_id();
+      target.set_opaque_id(opaque_id->data(), opaque_id->size());
       break;
+    }
     default:
       assert(false);
       break;
