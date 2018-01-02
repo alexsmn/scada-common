@@ -4,6 +4,10 @@
 
 namespace scada {
 
+LocalizedText ToLocalizedText(const std::string& string) {
+  return string;
+}
+
 LocalizedText ToLocalizedText(const std::wstring& string) {
   return base::SysWideToNativeMB(string);
 }

@@ -15,8 +15,24 @@ namespace scada {
 
 class Variant {
  public:
-  enum Type { EMPTY, BOOL, INT8, UINT8, INT32, UINT32, INT64, DOUBLE, BYTE_STRING, STRING,
-      QUALIFIED_NAME, LOCALIZED_TEXT, NODE_ID, EXPANDED_NODE_ID, EXTENSION_OBJECT, COUNT };
+  enum Type {
+    EMPTY,
+    BOOL,
+    INT8,
+    UINT8,
+    INT32,
+    UINT32,
+    INT64,
+    DOUBLE,
+    BYTE_STRING,
+    STRING,
+    QUALIFIED_NAME,
+    LOCALIZED_TEXT,
+    NODE_ID,
+    EXPANDED_NODE_ID,
+    EXTENSION_OBJECT,
+    COUNT
+  };
 
   Variant() {}
   Variant(bool value) : data_{value} {}
@@ -55,14 +71,22 @@ class Variant {
 
   bool as_bool() const { return std::get<bool>(data_); }
   int32_t as_int32() const { return std::get<int32_t>(data_); }
-  int64_t as_int64() const  { return std::get<int64_t>(data_); }
-  double as_double() const  { return std::get<double>(data_); }
-  const String& as_string() const  { return std::get<String>(data_); }
-  const LocalizedText& as_localized_text() const  { return std::get<LocalizedText>(data_); }
-  const NodeId& as_node_id() const  { return std::get<NodeId>(data_); }
+  int64_t as_int64() const { return std::get<int64_t>(data_); }
+  double as_double() const { return std::get<double>(data_); }
+  const String& as_string() const { return std::get<String>(data_); }
+  const LocalizedText& as_localized_text() const {
+    return std::get<LocalizedText>(data_);
+  }
+  const NodeId& as_node_id() const { return std::get<NodeId>(data_); }
 
-  template<class T> const T& get() const { return std::get<T>(data_); }
-  template<class T> T& get() { return std::get<T>(data_); }
+  template <class T>
+  const T& get() const {
+    return std::get<T>(data_);
+  }
+  template <class T>
+  T& get() {
+    return std::get<T>(data_);
+  }
 
   bool get(bool& bool_value) const;
   bool get(int32_t& int_value) const;
@@ -81,6 +105,9 @@ class Variant {
   LocalizedText get_or(LocalizedText&& or_value) const;
   NodeId get_or(NodeId&& or_value) const;
 
+  template <class T>
+  const T* get_if() const;
+
   Variant& operator=(const Variant& source);
   Variant& operator=(Variant&& source);
 
@@ -88,49 +115,49 @@ class Variant {
   bool operator!=(const Variant& other) const { return !operator==(other); }
 
   bool ChangeType(Variant::Type new_type);
-  template<typename T> bool ChangeTypeTo();
+  template <typename T>
+  bool ChangeTypeTo();
 
   static const char* kTrueString;
   static const char* kFalseString;
 
  private:
-  template<class String>
+  template <class String>
   bool ToStringHelper(String& string_value) const;
 
   struct Placeholder : std::monostate {};
 
-  std::variant<
-      std::monostate,
-      bool,
-      int8_t,
-      uint8_t,
-      int32_t,
-      uint32_t,
-      int64_t,
-      double,
-      ByteString,
-      String,
-      QualifiedName,
-      LocalizedText,
-      NodeId,
-      ExpandedNodeId,
-      ExtensionObject,
-      Placeholder,
-      std::vector<bool>,
-      std::vector<int8_t>,
-      std::vector<uint8_t>,
-      std::vector<int32_t>,
-      std::vector<uint32_t>,
-      std::vector<int64_t>,
-      std::vector<double>,
-      std::vector<ByteString>,
-      std::vector<String>,
-      std::vector<QualifiedName>,
-      std::vector<LocalizedText>,
-      std::vector<NodeId>,
-      std::vector<ExpandedNodeId>,
-      std::vector<ExtensionObject>
-  > data_;
+  std::variant<std::monostate,
+               bool,
+               int8_t,
+               uint8_t,
+               int32_t,
+               uint32_t,
+               int64_t,
+               double,
+               ByteString,
+               String,
+               QualifiedName,
+               LocalizedText,
+               NodeId,
+               ExpandedNodeId,
+               ExtensionObject,
+               Placeholder,
+               std::vector<bool>,
+               std::vector<int8_t>,
+               std::vector<uint8_t>,
+               std::vector<int32_t>,
+               std::vector<uint32_t>,
+               std::vector<int64_t>,
+               std::vector<double>,
+               std::vector<ByteString>,
+               std::vector<String>,
+               std::vector<QualifiedName>,
+               std::vector<LocalizedText>,
+               std::vector<NodeId>,
+               std::vector<ExpandedNodeId>,
+               std::vector<ExtensionObject> >
+      data_;
 };
 
 inline Variant::Type Variant::type() const {
@@ -144,7 +171,7 @@ inline bool Variant::is_scalar() const {
   return data_.index() < static_cast<size_t>(Type::COUNT);
 }
 
-template<class T>
+template <class T>
 inline bool Variant::ChangeTypeTo() {
   T value;
   if (!get(value))
@@ -153,6 +180,11 @@ inline bool Variant::ChangeTypeTo() {
   return true;
 }
 
+template <class T>
+inline const T* Variant::get_if() const {
+  return std::get_if<T>(&data_);
+}
+
 String ToString(const Variant& value);
 
-} // namespace scada
+}  // namespace scada

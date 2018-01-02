@@ -5,7 +5,6 @@
 #include "core/string.h"
 
 #include <cassert>
-#include <string>
 #include <variant>
 
 namespace scada {
@@ -21,7 +20,9 @@ class NodeId {
   NodeId(String string_id, NamespaceIndex namespace_index);
   NodeId(ByteString opaque_id, NamespaceIndex namespace_index);
 
-  NodeIdType type() const { return static_cast<NodeIdType>(identifier_.index()); }
+  NodeIdType type() const {
+    return static_cast<NodeIdType>(identifier_.index());
+  }
 
   bool is_null() const;
 
@@ -29,8 +30,8 @@ class NodeId {
   void set_namespace_index(NamespaceIndex index) { namespace_index_ = index; }
 
   NumericId numeric_id() const;
-  const String* string_id() const;
-  const ByteString* opaque_id() const;
+  const String& string_id() const;
+  const ByteString& opaque_id() const;
 
   String ToString() const;
   static NodeId FromString(const base::StringPiece& string);
@@ -44,8 +45,25 @@ class NodeId {
 };
 
 bool operator==(const NodeId& a, const NodeId& b);
-inline bool operator!=(const NodeId& a, const NodeId& b) { return !operator==(a, b); }
+
+inline bool operator!=(const NodeId& a, const NodeId& b) {
+  return !operator==(a, b);
+}
 
 bool operator<(const NodeId& a, const NodeId& b);
+
+bool operator==(const NodeId& a, NumericId b);
+
+inline bool operator!=(const NodeId& a, NumericId b) {
+  return !(a == b);
+}
+
+inline bool operator==(NumericId a, const NodeId& b) {
+  return b == a;
+}
+
+inline bool operator!=(NumericId a, const NodeId& b) {
+  return !operator==(a, b);
+}
 
 } // namespace scada

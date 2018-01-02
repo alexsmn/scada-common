@@ -1,5 +1,11 @@
 #pragma once
 
+#include "core/attribute_ids.h"
+#include "core/qualified_name.h"
+#include "core/localized_text.h"
+#include "core/node_id.h"
+#include "core/variant.h"
+
 namespace scada {
 
 class AttributeSet {
@@ -15,44 +21,18 @@ class AttributeSet {
   unsigned bits_ = 0;
 };
 
-class NodeAttributes : public AttributeSet  {
- public:
-  QualifiedName& browse_name() { return browse_name_; }
-  const QualifiedName& browse_name() const { return browse_name_; }
-  NodeAttributes& set_browse_name(QualifiedName value) {
-    browse_name_ = std::move(value);
-    Add(AttributeId::BrowseName);
-    return *this;
-  }
+struct NodeAttributes  {
+  NodeAttributes& set_browse_name(QualifiedName browse_name) { this->browse_name = std::move(browse_name); return *this; }
+  NodeAttributes& set_display_name(LocalizedText display_name) { this->display_name = std::move(display_name); return *this; }
+  NodeAttributes& set_data_type(NodeId data_type) { this->data_type = std::move(data_type); return *this; }
+  NodeAttributes& set_value(Variant value) { this->value = std::move(value); return *this; }
 
-  LocalizedText& display_name() { return display_name_; }
-  const LocalizedText& display_name() const { return display_name_; }
-  NodeAttributes& set_display_name(LocalizedText value) {
-    display_name_ = std::move(value);
-    Add(AttributeId::DisplayName);
-    return *this;
-  }
+  bool empty() const { return browse_name.empty() && display_name.empty() && data_type.is_null() && value.is_null(); }
 
-  const NodeId& data_type_id() const { return data_type_id_; }
-  NodeAttributes& set_data_type_id(NodeId data_type_id) {
-    data_type_id_ = std::move(data_type_id);
-    Add(AttributeId::DataType);
-    return *this;
-  }
-
-  Variant& value() { return value_; }
-  const Variant& value() const { return value_; }
-  NodeAttributes& set_value(Variant value) {
-    value_ = std::move(value);
-    Add(AttributeId::Value);
-    return *this;
-  }
-
- private:
-  QualifiedName browse_name_;
-  LocalizedText display_name_;
-  NodeId data_type_id_;
-  Variant value_;
+  QualifiedName browse_name;
+  LocalizedText display_name;
+  NodeId data_type;
+  Variant value;
 };
 
 } // namespace scada

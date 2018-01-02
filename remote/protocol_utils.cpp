@@ -26,11 +26,11 @@ void ToProto(const scada::NodeId& source, protocol::NodeId& target) {
         target.set_numeric_id(source.numeric_id());
       break;
     case scada::NodeIdType::String:
-      target.set_string_id(*source.string_id());
+      target.set_string_id(source.string_id());
       break;
     case scada::NodeIdType::Opaque: {
-      auto* opaque_id = source.opaque_id();
-      target.set_opaque_id(opaque_id->data(), opaque_id->size());
+      const auto& opaque_id = source.opaque_id();
+      target.set_opaque_id(opaque_id.data(), opaque_id.size());
       break;
     }
     default:
@@ -228,19 +228,19 @@ scada::NodeAttributes FromProto(const protocol::Attributes& source) {
   if (source.has_display_name())
     result.set_display_name(source.display_name());
   if (source.has_data_type_id())
-    result.set_data_type_id(FromProto(source.data_type_id()));
+    result.set_data_type(FromProto(source.data_type_id()));
   if (source.has_value())
     result.set_value(FromProto(source.value()));
   return result;
 }
 
 void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target) {
-  if (source.has(scada::AttributeId::BrowseName))
-    target.set_browse_name(source.browse_name().name());
-  if (source.has(scada::AttributeId::DataType))
-    ToProto(source.data_type_id(), *target.mutable_data_type_id());
-  if (source.has(scada::AttributeId::Value))
-    ToProto(source.value(), *target.mutable_value());
+  if (!source.browse_name.empty())
+    target.set_browse_name(source.browse_name.name());
+  if (source.data_type.is_null())
+    ToProto(source.data_type, *target.mutable_data_type_id());
+  if (!source.value.is_null())
+    ToProto(source.value, *target.mutable_value());
 }
 
 void ToProto(const scada::BrowseNode& source, protocol::Node& target) {

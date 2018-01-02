@@ -27,6 +27,16 @@ inline bool IsTypeDefinition(NodeClass node_class) {
   }
 }
 
+inline bool IsInstance(NodeClass node_class) {
+  switch (node_class) {
+    case NodeClass::Object:
+    case NodeClass::Variable:
+      return true;
+    default:
+      return false;
+  }
+}
+
 inline const char* ToString(NodeClass node_class) {
   switch (node_class) {
     case NodeClass::Object:

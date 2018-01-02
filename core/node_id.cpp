@@ -8,28 +8,22 @@
 
 namespace scada {
 
-NodeId::NodeId()
-    : namespace_index_{0},
-      identifier_{0} {
-}
+NodeId::NodeId() : namespace_index_{0}, identifier_{0} {}
 
 NodeId::NodeId(NumericId numeric_id, NamespaceIndex namespace_index)
-    : namespace_index_{namespace_index},
-      identifier_{numeric_id} {
-}
+    : namespace_index_{namespace_index}, identifier_{numeric_id} {}
 
 NodeId::NodeId(String string_id, NamespaceIndex namespace_index)
     : namespace_index_{namespace_index},
-      identifier_{std::make_shared<String>(std::move(string_id))} {
-}
+      identifier_{std::make_shared<String>(std::move(string_id))} {}
 
 NodeId::NodeId(ByteString opaque_id, NamespaceIndex namespace_index)
     : namespace_index_{namespace_index},
-      identifier_{std::make_shared<ByteString>(std::move(opaque_id))} {
-}
+      identifier_{std::make_shared<ByteString>(std::move(opaque_id))} {}
 
 bool NodeId::is_null() const {
-  return namespace_index_ == 0 && type() == NodeIdType::Numeric && numeric_id() == 0;
+  return namespace_index_ == 0 && type() == NodeIdType::Numeric &&
+         numeric_id() == 0;
 }
 
 bool operator==(const NodeId& a, const NodeId& b) {
@@ -50,6 +44,11 @@ bool operator==(const NodeId& a, const NodeId& b) {
       assert(false);
       return false;
   }
+}
+
+bool operator==(const NodeId& a, NumericId b) {
+  return a.namespace_index() == 0 && a.type() == NodeIdType::Numeric &&
+         a.numeric_id() == b;
 }
 
 bool operator<(const NodeId& a, const NodeId& b) {
@@ -76,28 +75,27 @@ NumericId NodeId::numeric_id() const {
   return std::get<NumericId>(identifier_);
 }
 
-const String* NodeId::string_id() const {
-  auto* string_id = std::get_if<SharedStringId>(&identifier_);
-  return string_id ? string_id->get() : nullptr;
+const String& NodeId::string_id() const {
+  return *std::get<SharedStringId>(identifier_);
 }
 
-const ByteString* NodeId::opaque_id() const {
-  auto* opaque_id = std::get_if<SharedByteString>(&identifier_);
-  return opaque_id ? opaque_id->get() : nullptr;
+const ByteString& NodeId::opaque_id() const {
+  return *std::get<SharedByteString>(identifier_);
 }
 
 String NodeId::ToString() const {
   std::string result;
 
   if (namespace_index_ != 0)
-    result += base::StringPrintf("ns=%u;", static_cast<unsigned>(namespace_index_));
+    result +=
+        base::StringPrintf("ns=%u;", static_cast<unsigned>(namespace_index_));
 
   switch (type()) {
     case NodeIdType::Numeric:
       result += base::StringPrintf("i=%u", static_cast<unsigned>(numeric_id()));
       break;
     case NodeIdType::String:
-      result += base::StringPrintf("s=%s", string_id()->c_str());
+      result += base::StringPrintf("s=%s", string_id().c_str());
       break;
     case NodeIdType::Opaque:
       // TODO:

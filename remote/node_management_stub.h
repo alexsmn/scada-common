@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/memory/weak_ptr.h"
+#include "core/node_attributes.h"
 #include "core/node_id.h"
 
 #include <memory>
@@ -12,7 +13,6 @@ class Request;
 }
 
 namespace scada {
-class NodeAttributes;
 class NodeManagementService;
 enum class NodeClass;
 }

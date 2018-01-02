@@ -150,33 +150,44 @@ bool Variant::get(double& double_value) const {
   }
 }
 
-template<class String>
+template <class String>
 struct FormatHelper;
 
-template<>
+template <>
 struct FormatHelper<String> {
-  template<typename T>
-  static String Format(T&& value) {
-    return ::Format(std::forward<T>(value));
+  template <typename T>
+  static String Format(const T& value) {
+    return ::Format(value);
+  }
+
+  template <>
+  static String Format(const LocalizedText& value) {
+    return ToString(value);
   }
 };
 
-template<>
+template <>
 struct FormatHelper<LocalizedText> {
-  template<typename T>
-  static LocalizedText Format(T&& value) {
-    return ::Format(std::forward<T>(value));
+  template <typename T>
+  static LocalizedText Format(const T& value) {
+    return ToLocalizedText(::Format(value));
+  }
+
+  template <>
+  static LocalizedText Format(const LocalizedText& value) {
+    return value;
   }
 };
 
-template<class String>
+template <class String>
 bool Variant::ToStringHelper(String& string_value) const {
   if (!is_scalar())
     return false;
 
   switch (type()) {
     case BOOL:
-      string_value = FormatHelper<String>::Format(base::StringPiece(as_bool() ? kTrueString : kFalseString));
+      string_value = FormatHelper<String>::Format(
+          base::StringPiece(as_bool() ? kTrueString : kFalseString));
       return true;
     case INT32:
       string_value = FormatHelper<String>::Format(as_int32());
@@ -191,7 +202,7 @@ bool Variant::ToStringHelper(String& string_value) const {
       string_value = FormatHelper<String>::Format(as_string());
       return true;
     case LOCALIZED_TEXT:
-      string_value = FormatHelper<String>::Format(as_localized_text().text());
+      string_value = FormatHelper<String>::Format(as_localized_text());
       return true;
     case NODE_ID:
       string_value = FormatHelper<String>::Format(as_node_id().ToString());
@@ -267,20 +278,11 @@ NodeId Variant::data_type_id() const {
     return get<ExtensionObject>().data_type_id().node_id();
 
   const scada::NumericId kNodeIds[] = {
-      0,
-      id::Boolean,
-      id::SByte,
-      id::Byte,
-      id::Int32,
-      id::UInt32,
-      id::Int64,
-      id::Double,
-      id::ByteString,
-      id::String,
-      id::QualifiedName,
-      id::LocalizedText,
-      id::NodeId,
-      id::ExpandedNodeId,
+      0,          id::Boolean,        id::SByte,
+      id::Byte,   id::Int32,          id::UInt32,
+      id::Int64,  id::Double,         id::ByteString,
+      id::String, id::QualifiedName,  id::LocalizedText,
+      id::NodeId, id::ExpandedNodeId,
   };
 
   assert(static_cast<size_t>(type()) < std::size(kNodeIds));
@@ -291,4 +293,4 @@ String ToString(const Variant& value) {
   return value.get_or(String{});
 }
 
-} // namespace scada
+}  // namespace scada

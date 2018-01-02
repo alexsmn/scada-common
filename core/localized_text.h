@@ -27,6 +27,7 @@ class LocalizedText {
   String text_;
 };
 
+LocalizedText ToLocalizedText(const std::string& string);
 LocalizedText ToLocalizedText(const std::wstring& string);
 
 }  // namespace scada
