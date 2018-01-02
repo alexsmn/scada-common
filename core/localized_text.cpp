@@ -4,8 +4,8 @@
 
 namespace scada {
 
-LocalizedText ToLocalizedText(const std::string& string) {
-  return string;
+LocalizedText ToLocalizedText(base::StringPiece string) {
+  return string.as_string();
 }
 
 LocalizedText ToLocalizedText(const std::wstring& string) {

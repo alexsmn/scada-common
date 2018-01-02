@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/strings/string_piece.h"
 #include "base/strings/string16.h"
 #include "core/string.h"
 
@@ -27,7 +28,7 @@ class LocalizedText {
   String text_;
 };
 
-LocalizedText ToLocalizedText(const std::string& string);
+LocalizedText ToLocalizedText(base::StringPiece string);
 LocalizedText ToLocalizedText(const std::wstring& string);
 
 }  // namespace scada

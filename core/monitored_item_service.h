@@ -1,7 +1,5 @@
 #pragma once
 
-#include "core/attribute_ids.h"
-
 #include <memory>
 
 namespace scada {
