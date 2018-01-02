@@ -13,7 +13,7 @@ class Event;
 class WriteFlags;
 
 typedef std::function<void(const DataValue& data_value)> DataChangeHandler;
-typedef std::function<void(const scada::Status& status, const Event& event)> EventHandler;
+typedef std::function<void(const Status& status, const Event& event)> EventHandler;
 
 class MonitoredItem {
  public:

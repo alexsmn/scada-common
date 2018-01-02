@@ -13,7 +13,7 @@ static const size_t kMaxParallelAcks = 5;
 
 EventManager::EventManager(EventManagerContext&& context)
     : EventManagerContext{std::move(context)} {
-  monitored_item_ = monitored_item_service_.CreateMonitoredItem(scada::id::RootFolder, scada::AttributeId::EventNotifier);
+  monitored_item_ = monitored_item_service_.CreateMonitoredItem({scada::id::RootFolder, scada::AttributeId::EventNotifier});
   assert(monitored_item_);
   monitored_item_->set_event_handler([this](const scada::Status& status, const scada::Event& event) {
       // TODO: Handle |status|

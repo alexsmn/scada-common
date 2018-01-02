@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "core/configuration_types.h"
+#include "core/node_class.h"
 #include "core/node_id.h"
 #include "core/qualified_name.h"
 #include "core/status.h"

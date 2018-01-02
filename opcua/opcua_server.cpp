@@ -112,11 +112,11 @@ void FillBrowseResultsAttributes(scada::AttributeService& attribute_service,
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
-        read_ids.emplace_back(node_id, scada::AttributeId::NodeClass);
+        read_ids.push_back({node_id, scada::AttributeId::NodeClass});
       if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
-        read_ids.emplace_back(node_id, scada::AttributeId::BrowseName);
+        read_ids.push_back({node_id, scada::AttributeId::BrowseName});
       if (description.ResultMask & OpcUa_BrowseResultMask_DisplayName)
-        read_ids.emplace_back(node_id, scada::AttributeId::DisplayName);
+        read_ids.push_back({node_id, scada::AttributeId::DisplayName});
     }
   }
 
@@ -271,7 +271,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request, const opcua::server::Brow
 
 opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(opcua::ReadValueId& read_value_id) {
   auto id = Convert(read_value_id);
-  auto monitored_item = monitored_item_service_.CreateMonitoredItem(id.first, id.second);
+  auto monitored_item = monitored_item_service_.CreateMonitoredItem(id);
   if (!monitored_item)
     return {OpcUa_Bad};
   return {OpcUa_Good, std::make_unique<MonitoredItemAdapter>(std::move(monitored_item))};

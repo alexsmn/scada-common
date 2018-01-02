@@ -67,7 +67,7 @@ class SessionProxy : public scada::MonitoredItemService,
                        ResponseHandler response_handler) override;
 
   // scada::MonitoredItemService
-  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::NodeId& node_id, scada::AttributeId attribute_id) override;
+  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::ReadValueId& read_value_id) override;
 
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) override;

@@ -6,15 +6,14 @@
 
 namespace scada {
 
-class NodeId;
 class MonitoredItem;
-class Status;
+struct ReadValueId;
 
 class MonitoredItemService {
  public:
   virtual ~MonitoredItemService() {}
   
-  virtual std::unique_ptr<MonitoredItem> CreateMonitoredItem(const NodeId& node_id, AttributeId attribute_id) = 0;
+  virtual std::unique_ptr<MonitoredItem> CreateMonitoredItem(const ReadValueId& read_value_id) = 0;
 };
 
 } // namespace scada

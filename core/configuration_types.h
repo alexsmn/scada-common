@@ -3,14 +3,11 @@
 #include <vector>
 
 #include "core/attribute_ids.h"
-#include "core/node_class.h"
 #include "core/node_id.h"
 #include "core/status.h"
 #include "core/variant.h"
 
 namespace scada {
-
-using ReadValueId = std::pair<NodeId, AttributeId>;
 
 typedef std::pair<NodeId /*prop_type_id*/, Variant /*value*/> NodeProperty;
 typedef std::vector<NodeProperty> NodeProperties;
@@ -37,11 +34,26 @@ struct ReferenceDescription {
   NodeId node_id;
 };
 
+inline bool operator==(const ReferenceDescription& a, const ReferenceDescription& b) {
+  return std::tie(a.reference_type_id, a.forward, a.node_id) ==
+         std::tie(b.reference_type_id, b.forward, b.node_id);
+}
+
 using ReferenceDescriptions = std::vector<ReferenceDescription>;
 
 struct BrowseResult {
   StatusCode status_code;
   std::vector<ReferenceDescription> references;
 };
+
+struct ReadValueId {
+  NodeId node_id;
+  AttributeId attribute_id;
+};
+
+inline bool operator==(const ReadValueId& a, const ReadValueId& b) {
+  return std::tie(a.node_id, a.attribute_id) ==
+         std::tie(b.node_id, b.attribute_id);
+}
 
 } // namespace scada

@@ -70,7 +70,7 @@ TEST(NodeRefServiceImpl, FetchNode) {
     for (size_t i = 0; i < pending_read_ids.size(); ++i) {
       auto& read_id = pending_read_ids[i];
       auto& result = read_results[i];
-      EXPECT_EQ(server_node->node_id, read_id.first);
+      EXPECT_EQ(server_node->node_id, read_id.node_id);
       result = address_space.Read(read_id);
     }
     pending_read_callback(scada::StatusCode::Good, std::move(read_results));

@@ -39,7 +39,7 @@ class OpcUaSubscription : public std::enable_shared_from_this<OpcUaSubscription>
 
   bool created() const { return created_; }
 
-  std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::NodeId& node_id, scada::AttributeId attribute_id);
+  std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::ReadValueId& read_value_id);
 
  private:
   explicit OpcUaSubscription(OpcUaSubscriptionContext&& session);

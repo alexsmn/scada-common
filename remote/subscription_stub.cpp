@@ -22,9 +22,8 @@ SubscriptionStub::SubscriptionStub(MessageSender& sender,
 SubscriptionStub::~SubscriptionStub() {
 }
 
-void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::NodeId& node_id,
-                                             scada::AttributeId attribute_id) {
-  auto channel = monitored_item_service_.CreateMonitoredItem(node_id, attribute_id);
+void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadValueId& read_value_id) {
+  auto channel = monitored_item_service_.CreateMonitoredItem(read_value_id);
   if (!channel) {
     scada::DataValue data_value;
     data_value.qualifier.set_failed(true);
@@ -54,14 +53,13 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::NodeId
     sender_.Send(message);
   }
 
-  if (attribute_id == scada::AttributeId::Value) {
+  if (read_value_id.attribute_id == scada::AttributeId::Value) {
     channel_ptr->set_data_change_handler(
         [this, monitored_item_id](const scada::DataValue& data_value) {
           OnDataChange(monitored_item_id, data_value);
         });
-  }
 
-  if (attribute_id == scada::AttributeId::EventNotifier) {
+  } else if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
     channel_ptr->set_event_handler(
         [this, monitored_item_id](const scada::Status& status, const scada::Event& event) {
           OnEvent(monitored_item_id, status, event);

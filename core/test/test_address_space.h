@@ -107,11 +107,11 @@ inline const scada::BrowseNode* TestAddressSpace::GetNode(const scada::NodeId& n
 }
 
 inline scada::DataValue TestAddressSpace::Read(const scada::ReadValueId& read_id) const {
-  auto* node = GetNode(read_id.first);
+  auto* node = GetNode(read_id.node_id);
   if (!node)
     return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 
-  return test::Read(*node, read_id.second);
+  return test::Read(*node, read_id.attribute_id);
 }
 
 inline scada::BrowseResult TestAddressSpace::Browse(const scada::BrowseDescription& description) const {

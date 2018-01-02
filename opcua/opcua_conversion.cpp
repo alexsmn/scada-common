@@ -438,8 +438,8 @@ scada::ReadValueId Convert(const OpcUa_ReadValueId& source) {
 OpcUa_ReadValueId MakeUaReadValueId(const scada::ReadValueId& source) {
   OpcUa_ReadValueId result;
   ::OpcUa_ReadValueId_Initialize(&result);
-  Convert(source.first, result.NodeId);
-  result.AttributeId = Convert(source.second);
+  Convert(source.node_id, result.NodeId);
+  result.AttributeId = Convert(source.attribute_id);
   return result;
 }
 

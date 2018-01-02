@@ -342,8 +342,8 @@ void SessionProxy::Call(const scada::NodeId& node_id, const scada::NodeId& metho
       });
 }
 
-std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(const scada::NodeId& node_id, scada::AttributeId attribute_id) {
-  return subscription_->CreateMonitoredItem(node_id, attribute_id);
+std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
+  return subscription_->CreateMonitoredItem(read_value_id);
 }
 
 bool SessionProxy::IsConnected() const {

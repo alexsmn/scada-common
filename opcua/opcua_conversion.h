@@ -8,6 +8,7 @@
 #include "core/variant.h"
 #include "core/extension_object.h"
 #include "core/expanded_node_id.h"
+#include "core/node_class.h"
 
 #include <opcuapp/basic_types.h>
 #include <opcuapp/structs.h>

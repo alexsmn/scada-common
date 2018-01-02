@@ -29,8 +29,8 @@ void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from
 
   protocol::Request request;
   auto& history_read = *request.mutable_history_read();
-  ToProto(read_value_id.first, *history_read.mutable_node_id());
-  history_read.set_attribute_id(ToProto(read_value_id.second));
+  ToProto(read_value_id.node_id, *history_read.mutable_node_id());
+  history_read.set_attribute_id(ToProto(read_value_id.attribute_id));
   history_read.set_from(from.ToInternalValue());
   if (!to.is_null())
     history_read.set_to(to.ToInternalValue());

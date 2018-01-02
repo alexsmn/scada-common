@@ -75,7 +75,7 @@ class SessionStub : public std::enable_shared_from_this<SessionStub>,
   void OnCreateSubscription(int request_id);
   void OnDeleteSubscription(int request_id, int subscription_id);
   void OnCreateMonitoredItem(int request_id, int subscription_id,
-      const scada::NodeId& node_id, scada::AttributeId attribute_id);
+      const scada::ReadValueId& read_value_id);
   void OnDeleteMonitoredItem(int request_id, int subscription_id, int monitored_item_id);
 
   void OnRead(unsigned request_id, const std::vector<scada::ReadValueId>& value_ids);

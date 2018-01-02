@@ -57,7 +57,7 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
 
     alerting_ = event_manager_.IsAlerting(node_.id());
 
-    monitored_value_ = realtime_service_.CreateMonitoredItem(node_.id(), scada::AttributeId::Value);
+    monitored_value_ = realtime_service_.CreateMonitoredItem({node_.id(), scada::AttributeId::Value});
     if (!monitored_value_) {
       Delete();
       return;

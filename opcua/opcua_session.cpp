@@ -150,9 +150,9 @@ OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
   return *default_subscription_;
 }
 
-std::unique_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(const scada::NodeId& node_id, scada::AttributeId attribute_id) {
-  assert(!node_id.is_null());
-  return GetDefaultSubscription().CreateMonitoredItem(node_id, attribute_id);
+std::unique_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
+  assert(!read_value_id.node_id.is_null());
+  return GetDefaultSubscription().CreateMonitoredItem(read_value_id);
 }
 
 void OpcUaSession::Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) {

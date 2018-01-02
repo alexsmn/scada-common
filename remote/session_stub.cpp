@@ -68,8 +68,8 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
     OnCreateMonitoredItem(
         request.request_id(),
         create_monitored_item.subscription_id(),
-        FromProto(create_monitored_item.node_id()),
-        static_cast<AttributeId>(create_monitored_item.attribute_id()));
+        {FromProto(create_monitored_item.node_id()),
+        static_cast<AttributeId>(create_monitored_item.attribute_id())});
   }
 
   if (request.has_delete_monitored_item()) {
@@ -167,11 +167,10 @@ void SessionStub::OnDeleteSubscription(int request_id, int subscription_id) {
 }
 
 void SessionStub::OnCreateMonitoredItem(
-    int request_id, int subscription_id, const scada::NodeId& node_id,
-    AttributeId attribute_id) {
+    int request_id, int subscription_id, const scada::ReadValueId& read_value_id) {
   auto i = subscriptions_.find(subscription_id);
   if (i != subscriptions_.end())
-    i->second->OnCreateMonitoredItem(request_id, node_id, attribute_id);
+    i->second->OnCreateMonitoredItem(request_id, read_value_id);
 }
 
 void SessionStub::OnDeleteMonitoredItem(int request_id, int subscription_id, int monitored_item_id) {

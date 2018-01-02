@@ -304,8 +304,8 @@ scada::ReadValueId FromProto(const protocol::ReadValueId& source) {
 }
 
 void ToProto(const scada::ReadValueId& source, protocol::ReadValueId& target) {
-  ToProto(source.first, *target.mutable_node_id());
-  target.set_attribute_id(ToProto(source.second));
+  ToProto(source.node_id, *target.mutable_node_id());
+  target.set_attribute_id(ToProto(source.attribute_id));
 }
 
 scada::BrowseDirection FromProto(protocol::BrowseDirection source) {

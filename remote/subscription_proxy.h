@@ -12,6 +12,7 @@
 namespace scada {
 class Event;
 class MonitoredItem;
+struct ReadValueId;
 }
 
 namespace protocol {
@@ -26,7 +27,7 @@ class SubscriptionProxy {
   ~SubscriptionProxy();
 
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::NodeId& node_id, scada::AttributeId attribute_id);
+      const scada::ReadValueId& read_value_id);
 
   void OnChannelOpened(MessageSender& sender);
   void OnChannelClosed();

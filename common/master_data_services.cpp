@@ -168,12 +168,11 @@ void MasterDataServices::GenerateEvent(const scada::Event& event) {
   services_.event_service_->GenerateEvent(event);
 }
 
-std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(const scada::NodeId& node_id,
-    scada::AttributeId attribute_id) {
+std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
   if (!services_.monitored_item_service_)
     return nullptr;
 
-  return services_.monitored_item_service_->CreateMonitoredItem(node_id, attribute_id);
+  return services_.monitored_item_service_->CreateMonitoredItem(read_value_id);
 }
 
 void MasterDataServices::Write(const scada::NodeId& node_id, double value, const scada::NodeId& user_id, const scada::WriteFlags& flags, const scada::StatusCallback& callback) {
