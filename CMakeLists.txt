@@ -6,6 +6,11 @@ set(OPCUA_ROOT_DIR "${deps}/UA-AnsiC/Stack")
 set(OPCUA_DIR "${deps}/opcuapp")
 set(OPCUAPP_DIR "${deps}/opcuapp")
 
+set(GTEST_INCLUDE_DIR "${deps}/googletest/googletest/include")
+set(GMOCK_INCLUDE_DIR "${deps}/googletest/googlemock/include")
+add_subdirectory("${deps}/googletest" gtest)
+
+add_subdirectory("${deps}/icu" icu)
 add_subdirectory("${deps}/chromebase" chromebase)
 add_subdirectory("${deps}/express" express)
 add_subdirectory(memdb)
