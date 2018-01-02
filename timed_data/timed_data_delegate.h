@@ -1,18 +1,17 @@
 #pragma once
 
-#include "core/node_observer.h"
 #include "timed_data/timed_data_property.h"
 
 namespace scada {
+
 class DataValue;
-}
+
+using PropertyIds = std::vector<scada::NodeId>;
+
+} // namepspace scada
 
 namespace events {
 class EventSet;
-}
-
-namespace memdb {
-class TableUpdateInfo;
 }
 
 namespace rt {
@@ -30,3 +29,4 @@ class TimedDataDelegate {
 };
 
 } // namespace rt
+
