@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include "base/strings/string_piece.h"
 #include "core/node_id.h"
 
 namespace scada {

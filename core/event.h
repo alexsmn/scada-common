@@ -53,7 +53,7 @@ class Event {
   base::string16 message;
   bool       acked;
   EventAcknowledgeId acknowledge_id;
-  base::Time acknowledged_time;
+  DateTime   acknowledged_time;
   NodeId     acknowledged_user_id;
 };
 

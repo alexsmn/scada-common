@@ -10,28 +10,31 @@ class QualifiedName {
   QualifiedName() {}
 
   QualifiedName(String name, NamespaceIndex namespace_index = 0)
-      : namespace_index_{namespace_index},
-        name_{std::move(name)} {
-  }
+      : namespace_index_{namespace_index}, name_{std::move(name)} {}
+
+  QualifiedName(const char* name, NamespaceIndex namespace_index = 0)
+      : namespace_index_{namespace_index}, name_{name} {}
 
   NamespaceIndex namespace_index() const { return namespace_index_; }
   const String& name() const { return name_; }
   bool empty() const { return namespace_index_ == 0 && name_.empty(); }
 
-  bool operator==(const QualifiedName& other) const {
-    return namespace_index_ == other.namespace_index_ &&
-           name_ == other.name_;
-  }
-
-  bool operator!=(const QualifiedName& other) const { return !operator==(other); }
-
  private:
-  NamespaceIndex namespace_index_ = 0;
   String name_;
+  NamespaceIndex namespace_index_ = 0;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const QualifiedName& value) {
+inline bool operator==(const QualifiedName& a, const QualifiedName& b) {
+  return a.namespace_index() == b.namespace_index() && a.name() == b.name();
+}
+
+inline bool operator!=(const QualifiedName& a, const QualifiedName& b) {
+  return !operator==(a, b);
+}
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const QualifiedName& value) {
   return stream << value.name();
 }
 
-} // namespace scada
+}  // namespace scada
