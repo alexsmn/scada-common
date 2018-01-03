@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/namespaces.h"
+#include "common/namespaces.h"
 #include "core/standard_node_ids.h"
 
 namespace numeric_id {

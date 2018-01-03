@@ -5,7 +5,7 @@
 
 namespace NamespaceIndexes {
 
-const scada::NamespaceIndex OPCUA = 0;
+const scada::NamespaceIndex NS0 = 0;
 const scada::NamespaceIndex TS = 1;
 const scada::NamespaceIndex TIT = 2;
 const scada::NamespaceIndex MODBUS_DEVICES = 3;
@@ -23,10 +23,9 @@ const scada::NamespaceIndex TRANSMISSION_ITEM = 16;
 const scada::NamespaceIndex IEC61850_DEVICE = 17;
 const scada::NamespaceIndex IEC61850_RCB = 18;
 
-const scada::NamespaceIndex BEGIN = 0;
 const scada::NamespaceIndex END = 19;
 
 } // namespace NamespaceIndexes
 
 const char* GetNamespaceName(scada::NamespaceIndex namespace_index);
-int FindNamespaceIndexByName(const base::StringPiece& name);
+int FindNamespaceIndexByName(base::StringPiece name);

@@ -1,19 +1,22 @@
 #pragma once
 
+#include "core/node_id.h"
+#include "core/variant.h"
+#include "core/status.h"
+
 #include <functional>
 #include <vector>
 
 namespace scada {
 
-class NodeId;
-class Status;
-class Variant;
-
-typedef std::function<void(const Status&)> StatusCallback;
+using StatusCallback = std::function<void(const Status&)>;
 
 class MethodService {
  public:
-  virtual void Call(const NodeId& node_id, const NodeId& method_id,
+  virtual ~MethodService() {}
+
+  virtual void Call(const NodeId& node_id,
+                    const NodeId& method_id,
                     const std::vector<Variant>& arguments,
                     const StatusCallback& callback) = 0;
 };
