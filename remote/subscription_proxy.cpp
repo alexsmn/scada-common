@@ -3,7 +3,6 @@
 #include <cassert>
 
 #include "base/strings/sys_string_conversions.h"
-#include "core/data_utils.h"
 #include "core/monitored_item.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
@@ -160,7 +159,7 @@ void SubscriptionProxy::MonitoredItemProxy::UpdateAndForwardData(const DataValue
     return;
 
   // Update current value only with latest time.
-  if (IsCurrentDataUpdate(current_data_, value))
+  if (IsUpdate(current_data_, value))
     current_data_ = value;
 
   // But any data shall be notified to delegate.
