@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/win/scoped_comptr.h"
+#include "core/data_value.h"
 #include "core/monitored_item.h"
 #include "vidicon/TeleClient.h"
 

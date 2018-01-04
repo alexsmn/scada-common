@@ -1,16 +1,15 @@
 #pragma once
 
 #include <functional>
-#include <vector>
 
 #include "core/configuration_types.h"
-#include "core/data_value.h"
-#include "core/status.h"
 
 namespace scada {
 
+class DataValue;
 class Event;
 class WriteFlags;
+class Status;
 
 typedef std::function<void(const DataValue& data_value)> DataChangeHandler;
 typedef std::function<void(const Status& status, const Event& event)> EventHandler;

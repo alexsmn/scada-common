@@ -1,7 +1,9 @@
 #include "vidicon_monitored_data_point.h"
 
+#include "base/time/time.h"
 #include "base/win/scoped_variant.h"
 #include "base/strings/sys_string_conversions.h"
+#include "core/qualifier.h"
 
 #include <opcda.h>
 
