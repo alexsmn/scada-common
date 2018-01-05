@@ -1,6 +1,4 @@
-#include "core/status.h"
-
-#include "base/strings/string_number_conversions.h"
+Ôªø#include "core/status.h"
 
 namespace scada {
 
@@ -11,61 +9,83 @@ Status Status::FromFullCode(unsigned full_code) {
   return result;
 }
 
-std::string Status::ToString() const {
-  return scada::ToString(code());
-}
+} // namespace scada
 
-std::string ToString(StatusCode status_code) {
-  struct Entry {
-    StatusCode code;
-    const char* error_string;
-    const char* localized_error_string;
-  };
+namespace {
 
-  const Entry kEntries[] = {
-      { StatusCode::Good, "Good", "ŒÔÂ‡ˆËˇ ‚˚ÔÓÎÌÂÌ‡ ÛÒÔÂ¯ÌÓ" },
-      { StatusCode::Good_Pending, "Good_Pending", "ŒÔÂ‡ˆËˇ ‚˚ÔÓÎÌˇÂÚÒˇ" },
-      { StatusCode::Uncertain_StateWasNotChanged, "Uncertain_StateWasNotChanged", "¡ÎÓÍËÓ‚Í‡ ÌÂ ·˚Î‡ ËÁÏÂÌÂÌ‡" },
-      { StatusCode::Bad, "Bad", "Œ¯Ë·Í‡" },
-      { StatusCode::Bad_WrongLoginCredentials, "Bad_WrongLoginCredentials", "ÕÂ‚ÂÌÓÂ ËÏˇ ÔÓÎ¸ÁÓ‚‡ÚÂÎˇ ËÎË Ô‡ÓÎ¸" },
-      { StatusCode::Bad_UserIsAlreadyLoggedOn, "Bad_UserIsAlreadyLoggedOn", "—ÂÒÒËˇ ‰‡ÌÌÓ„Ó ÔÓÎ¸ÁÓ‚‡ÚÂÎˇ ÛÊÂ ÛÒÚ‡ÌÓ‚ÎÂÌ‡" },
-      { StatusCode::Bad_UnsupportedProtocolVersion, "Bad_UnsupportedProtocolVersion", "¬ÂÒËˇ ÔÓÚÓÍÓÎ‡ ÌÂ ÔÓ‰‰ÂÊË‚‡ÂÚÒˇ" },
-      { StatusCode::Bad_ObjectIsBusy, "Bad_ObjectIsBusy", "¬ ‰‡ÌÌ˚È ÏÓÏÂÌÚ ‚˚ÔÓÎÌˇÂÚÒˇ ‰Û„‡ˇ ÍÓÏ‡Ì‰‡" },
-      { StatusCode::Bad_WrongNodeId, "Bad_WrongNodeId", "ÕÂÔ‡‚ËÎ¸Ì˚È Ë‰ÂÌÚËÙËÍ‡ÚÓ ÛÁÎ‡" },
-      { StatusCode::Bad_WrongDeviceId, "Bad_WrongDeviceId", "ÕÂÔ‡‚ËÎ¸Ì˚È Ë‰ÂÌÚËÙËÍ‡ÚÓ ÛÒÚÓÈÒÚ‚‡" },
-      { StatusCode::Bad_Disconnected, "Bad_Disconnected", "—ÓÂ‰ËÌÂÌËÂ ÌÂ ÛÒÚ‡ÌÓ‚ÎÂÌÓ" },
-      { StatusCode::Bad_SessionForcedLogoff, "Bad_SessionForcedLogoff", "—ÂÒÒËˇ ‡ÁÓ‚‡Ì‡ ËÁ-Á‡ ÔÓ‚ÚÓÌÓ„Ó ÔÓ‰ÍÎ˛˜ÂÌËˇ ‰‡ÌÌÓ„Ó ÔÓÎ¸ÁÓ‚‡ÚÂÎˇ" },
-      { StatusCode::Bad_Timeout, "Bad_Timeout", "ŒÔÂ‡ˆËˇ ÔÂ‚‡Ì‡ ÔÓ ËÒÚÂ˜ÂÌËË ‚ÂÏÂÌË ÓÊË‰‡ÌËˇ" },
-      { StatusCode::Bad_CantDeleteDependentNode, "Bad_CantDeleteDependentNode", "ÕÂ‚ÓÁÏÓÊÌÓ Û‰‡ÎËÚ¸ Ó·˙ÂÍÚ ËÁ-Á‡ Ì‡ÎË˜Ëˇ Á‡‚ËÒËÏ˚ı Ó·˙ÂÍÚÓ‚" },
-      { StatusCode::Bad_ServerWasShutDown, "Bad_ServerWasShutDown", "—ÂÒÒËˇ ‡ÁÓ‚‡Ì‡ ËÁ-Á‡ ÓÒÚ‡ÌÓ‚ÍË ÒÂ‚Â‡" },
-      { StatusCode::Bad_WrongMethodId, "Bad_WrongMethodId", " ÓÏ‡Ì‰‡ ÌÂ ÔÓ‰‰ÂÊË‚‡ÂÚÒˇ ‰‡ÌÌ˚Ï Ó·˙ÂÍÚÓÏ" },
-      { StatusCode::Bad_CantDeleteOwnUser, "Bad_CantDeleteOwnUser", "ÕÂ‚ÓÁÏÓÊÌÓ Û‰‡ÎËÚ¸ ÔÓÎ¸ÁÓ‚‡ÚÂÎˇ ËÁ ÓÚÍ˚ÚÓÈ ËÏ ÒÂÒÒËË" },
-      { StatusCode::Bad_DuplicateNodeId, "Bad_DuplicateNodeId", "Œ·˙ÂÍÚ Ò Ú‡ÍËÏ Ë‰ÂÌÚËÙËÍ‡ÚÓÓÏ ÛÊÂ ÒÛ˘ÂÒÚ‚ÛÂÚ" },
-      { StatusCode::Bad_UnsupportedFileVersion, "Bad_UnsupportedFileVersion", "¬ÂÒËˇ Ù‡ÈÎ‡ ÌÂ ÔÓ‰‰ÂÊË‚‡ÂÚÒˇ" },
-      { StatusCode::Bad_WrongTypeId, "Bad_WrongTypeId", "ÕÂÔ‡‚ËÎ¸Ì˚È ÚËÔ Ó·˙ÂÍÚ‡" },
-      { StatusCode::Bad_WrongParentId, "Bad_WrongParentId", "ÕÂÔ‡‚ËÎ¸Ì˚È Ë‰ÂÌÚËÙËÍ‡ÚÓ Ó‰ËÚÂÎ¸ÒÍÓ„Ó Ó·˙ÂÍÚ‡" },
-      { StatusCode::Bad_SessionIsLoggedOff, "Bad_SessionIsLoggedOff", "¿‚ÚÓËÁ‡ˆËˇ ÌÂ ‚˚ÔÓÎÌÂÌ‡" },
-      { StatusCode::Bad_WrongSubscriptionId, "Bad_WrongSubscriptionId", "ÕÂÔ‡‚ËÎ¸Ì˚È ÌÓÏÂ ÔÓ‰ÔËÒÍË" },
-      { StatusCode::Bad_WrongIndex, "Bad_WrongIndex", "ÕÂÔ‡‚ËÎ¸Ì˚È ËÌ‰ÂÍÒ" },
-      { StatusCode::Bad_IecUnknownType, "Bad_IecUnknownType", "ÕÂÔ‡‚ËÎ¸Ì˚È ÚËÔ ASDU ÔÓÚÓÍÓÎ‡ Ã› -60870" },
-      { StatusCode::Bad_IecUnknownCot, "Bad_IecUnknownCot", "ÕÂÔ‡‚ËÎ¸Ì‡ˇ ÔË˜ËÌ‡ ÔÂÂ‰‡˜Ë ÔÓÚÓÍÓÎ‡ Ã› -60870" },
-      { StatusCode::Bad_IecUnknownDevice, "Bad_IecUnknownDevice", "ÕÂÔ‡‚ËÎ¸Ì˚È ‡‰ÂÒ ÛÒÚÓÈÒÚ‚‡ ÔÓÚÓÍÓÎ‡ Ã› -60870" },
-      { StatusCode::Bad_IecUnknownAddress, "Bad_IecUnknownAddress", "ÕÂÔ‡‚ËÎ¸Ì˚È ‡‰ÂÒ Ó·˙ÂÍÚ‡ ÔÓÚÓÍÓÎ‡ Ã› -60870" },
-      { StatusCode::Bad_IecUnknownError, "Bad_IecUnknownError", "Œ¯Ë·Í‡ ÔÓÚÓÍÓÎ‡ Ã› -60870" },
-      { StatusCode::Bad_WrongCallArguments, "Bad_WrongCallArguments", "ÕÂÔ‡‚ËÎ¸Ì˚Â ‡„ÛÏÂÌÚ˚ ÍÓÏ‡Ì‰˚" },
-      { StatusCode::Bad_CantParseString, "Bad_CantParseString", "ÕÂ‚ÓÁÏÓÊÌÓ ÔÂÓ·‡ÁÓ‚‡Ú¸ ÒÚÓÍÛ ‚ ÁÌ‡˜ÂÌËÂ ‰‡ÌÌÓ„Ó ÚËÔ‡" },
-      { StatusCode::Bad_TooLongString, "Bad_TooLongString", "—ÎË¯ÍÓÏ ‰ÎËÌÌ‡ˇ ÒÚÓÍ‡" },
-      { StatusCode::Bad_WrongPropertyId, "Bad_WrongPropertyId", "ÕÂÔ‡‚ËÎ¸Ì˚È ‡ÚË·ÛÚ Ó·˙ÂÍÚ‡" },
-      { StatusCode::Bad_WrongReferenceId, "Bad_WrongReferenceId", "ÕÂÔ‡‚ËÎ¸Ì˚È ÚËÔ ÒÒ˚ÎÍË" },
-      { StatusCode::Bad_WrongNodeClass, "Bad_WrongNodeClass", "ÕÂÔ‡‚ËÎ¸Ì˚È ÍÎ‡ÒÒ ÛÁÎ‡" },
-  };
+struct Entry {
+  scada::StatusCode code;
+  const char* error_string;
+  const wchar_t* localized_error_string;
+};
 
+const Entry kEntries[] = {
+    { scada::StatusCode::Good, "Good", L"–û–ø–µ—Ä–∞—Ü–∏—è –≤—ã–ø–æ–ª–Ω–µ–Ω–∞ —É—Å–ø–µ—à–Ω–æ" },
+    { scada::StatusCode::Good_Pending, "Good_Pending", L"–û–ø–µ—Ä–∞—Ü–∏—è –≤—ã–ø–æ–ª–Ω—è–µ—Ç—Å—è" },
+    { scada::StatusCode::Uncertain_StateWasNotChanged, "Uncertain_StateWasNotChanged", L"–ë–ª–æ–∫–∏—Ä–æ–≤–∫–∞ –Ω–µ –±—ã–ª–∞ –∏–∑–º–µ–Ω–µ–Ω–∞" },
+    { scada::StatusCode::Bad, "Bad", L"–û—à–∏–±–∫–∞" },
+    { scada::StatusCode::Bad_WrongLoginCredentials, "Bad_WrongLoginCredentials", L"–ù–µ–≤–µ—Ä–Ω–æ–µ –∏–º—è –ø–æ–ª—å–∑–æ–≤–∞—Ç–µ–ª—è –∏–ª–∏ –ø–∞—Ä–æ–ª—å" },
+    { scada::StatusCode::Bad_UserIsAlreadyLoggedOn, "Bad_UserIsAlreadyLoggedOn", L"–°–µ—Å—Å–∏—è –¥–∞–Ω–Ω–æ–≥–æ –ø–æ–ª—å–∑–æ–≤–∞—Ç–µ–ª—è —É–∂–µ —É—Å—Ç–∞–Ω–æ–≤–ª–µ–Ω–∞" },
+    { scada::StatusCode::Bad_UnsupportedProtocolVersion, "Bad_UnsupportedProtocolVersion", L"–í–µ—Ä—Å–∏—è –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –Ω–µ –ø–æ–¥–¥–µ—Ä–∂–∏–≤–∞–µ—Ç—Å—è" },
+    { scada::StatusCode::Bad_ObjectIsBusy, "Bad_ObjectIsBusy", L"–í –¥–∞–Ω–Ω—ã–π –º–æ–º–µ–Ω—Ç –≤—ã–ø–æ–ª–Ω—è–µ—Ç—Å—è –¥—Ä—É–≥–∞—è –∫–æ–º–∞–Ω–¥–∞" },
+    { scada::StatusCode::Bad_WrongNodeId, "Bad_WrongNodeId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∏–¥–µ–Ω—Ç–∏—Ñ–∏–∫–∞—Ç–æ—Ä —É–∑–ª–∞" },
+    { scada::StatusCode::Bad_WrongDeviceId, "Bad_WrongDeviceId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∏–¥–µ–Ω—Ç–∏—Ñ–∏–∫–∞—Ç–æ—Ä —É—Å—Ç—Ä–æ–π—Å—Ç–≤–∞" },
+    { scada::StatusCode::Bad_Disconnected, "Bad_Disconnected", L"–°–æ–µ–¥–∏–Ω–µ–Ω–∏–µ –Ω–µ —É—Å—Ç–∞–Ω–æ–≤–ª–µ–Ω–æ" },
+    { scada::StatusCode::Bad_SessionForcedLogoff, "Bad_SessionForcedLogoff", L"–°–µ—Å—Å–∏—è —Ä–∞–∑–æ—Ä–≤–∞–Ω–∞ –∏–∑-–∑–∞ –ø–æ–≤—Ç–æ—Ä–Ω–æ–≥–æ –ø–æ–¥–∫–ª—é—á–µ–Ω–∏—è –¥–∞–Ω–Ω–æ–≥–æ –ø–æ–ª—å–∑–æ–≤–∞—Ç–µ–ª—è" },
+    { scada::StatusCode::Bad_Timeout, "Bad_Timeout", L"–û–ø–µ—Ä–∞—Ü–∏—è –ø—Ä–µ—Ä–≤–∞–Ω–∞ –ø–æ –∏—Å—Ç–µ—á–µ–Ω–∏–∏ –≤—Ä–µ–º–µ–Ω–∏ –æ–∂–∏–¥–∞–Ω–∏—è" },
+    { scada::StatusCode::Bad_CantDeleteDependentNode, "Bad_CantDeleteDependentNode", L"–ù–µ–≤–æ–∑–º–æ–∂–Ω–æ —É–¥–∞–ª–∏—Ç—å –æ–±—ä–µ–∫—Ç –∏–∑-–∑–∞ –Ω–∞–ª–∏—á–∏—è –∑–∞–≤–∏—Å–∏–º—ã—Ö –æ–±—ä–µ–∫—Ç–æ–≤" },
+    { scada::StatusCode::Bad_ServerWasShutDown, "Bad_ServerWasShutDown", L"–°–µ—Å—Å–∏—è —Ä–∞–∑–æ—Ä–≤–∞–Ω–∞ –∏–∑-–∑–∞ –æ—Å—Ç–∞–Ω–æ–≤–∫–∏ —Å–µ—Ä–≤–µ—Ä–∞" },
+    { scada::StatusCode::Bad_WrongMethodId, "Bad_WrongMethodId", L"–ö–æ–º–∞–Ω–¥–∞ –Ω–µ –ø–æ–¥–¥–µ—Ä–∂–∏–≤–∞–µ—Ç—Å—è –¥–∞–Ω–Ω—ã–º –æ–±—ä–µ–∫—Ç–æ–º" },
+    { scada::StatusCode::Bad_CantDeleteOwnUser, "Bad_CantDeleteOwnUser", L"–ù–µ–≤–æ–∑–º–æ–∂–Ω–æ —É–¥–∞–ª–∏—Ç—å –ø–æ–ª—å–∑–æ–≤–∞—Ç–µ–ª—è –∏–∑ –æ—Ç–∫—Ä—ã—Ç–æ–π –∏–º —Å–µ—Å—Å–∏–∏" },
+    { scada::StatusCode::Bad_DuplicateNodeId, "Bad_DuplicateNodeId", L"–û–±—ä–µ–∫—Ç —Å —Ç–∞–∫–∏–º –∏–¥–µ–Ω—Ç–∏—Ñ–∏–∫–∞—Ç–æ—Ä–æ–º —É–∂–µ —Å—É—â–µ—Å—Ç–≤—É–µ—Ç" },
+    { scada::StatusCode::Bad_UnsupportedFileVersion, "Bad_UnsupportedFileVersion", L"–í–µ—Ä—Å–∏—è —Ñ–∞–π–ª–∞ –Ω–µ –ø–æ–¥–¥–µ—Ä–∂–∏–≤–∞–µ—Ç—Å—è" },
+    { scada::StatusCode::Bad_WrongTypeId, "Bad_WrongTypeId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π —Ç–∏–ø –æ–±—ä–µ–∫—Ç–∞" },
+    { scada::StatusCode::Bad_WrongParentId, "Bad_WrongParentId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∏–¥–µ–Ω—Ç–∏—Ñ–∏–∫–∞—Ç–æ—Ä —Ä–æ–¥–∏—Ç–µ–ª—å—Å–∫–æ–≥–æ –æ–±—ä–µ–∫—Ç–∞" },
+    { scada::StatusCode::Bad_SessionIsLoggedOff, "Bad_SessionIsLoggedOff", L"–ê–≤—Ç–æ—Ä–∏–∑–∞—Ü–∏—è –Ω–µ –≤—ã–ø–æ–ª–Ω–µ–Ω–∞" },
+    { scada::StatusCode::Bad_WrongSubscriptionId, "Bad_WrongSubscriptionId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –Ω–æ–º–µ—Ä –ø–æ–¥–ø–∏—Å–∫–∏" },
+    { scada::StatusCode::Bad_WrongIndex, "Bad_WrongIndex", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∏–Ω–¥–µ–∫—Å" },
+    { scada::StatusCode::Bad_Iec60870UnknownType, "Bad_IecUnknownType", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π —Ç–∏–ø ASDU –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-60870" },
+    { scada::StatusCode::Bad_Iec60870UnknownCot, "Bad_IecUnknownCot", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω–∞—è –ø—Ä–∏—á–∏–Ω–∞ –ø–µ—Ä–µ–¥–∞—á–∏ –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-60870" },
+    { scada::StatusCode::Bad_Iec60870UnknownDevice, "Bad_IecUnknownDevice", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∞–¥—Ä–µ—Å —É—Å—Ç—Ä–æ–π—Å—Ç–≤–∞ –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-60870" },
+    { scada::StatusCode::Bad_Iec60870UnknownAddress, "Bad_IecUnknownAddress", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∞–¥—Ä–µ—Å –æ–±—ä–µ–∫—Ç–∞ –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-60870" },
+    { scada::StatusCode::Bad_Iec60870UnknownError, "Bad_IecUnknownError", L"–û—à–∏–±–∫–∞ –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-60870" },
+    { scada::StatusCode::Bad_WrongCallArguments, "Bad_WrongCallArguments", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–µ –∞—Ä–≥—É–º–µ–Ω—Ç—ã –∫–æ–º–∞–Ω–¥—ã" },
+    { scada::StatusCode::Bad_CantParseString, "Bad_CantParseString", L"–ù–µ–≤–æ–∑–º–æ–∂–Ω–æ –ø—Ä–µ–æ–±—Ä–∞–∑–æ–≤–∞—Ç—å —Å—Ç—Ä–æ–∫—É –≤ –∑–Ω–∞—á–µ–Ω–∏–µ –¥–∞–Ω–Ω–æ–≥–æ —Ç–∏–ø–∞" },
+    { scada::StatusCode::Bad_TooLongString, "Bad_TooLongString", L"–°–ª–∏—à–∫–æ–º –¥–ª–∏–Ω–Ω–∞—è —Å—Ç—Ä–æ–∫–∞" },
+    { scada::StatusCode::Bad_WrongPropertyId, "Bad_WrongPropertyId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∞—Ç—Ä–∏–±—É—Ç –æ–±—ä–µ–∫—Ç–∞" },
+    { scada::StatusCode::Bad_WrongReferenceId, "Bad_WrongReferenceId", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π —Ç–∏–ø —Å—Å—ã–ª–∫–∏" },
+    { scada::StatusCode::Bad_WrongNodeClass, "Bad_WrongNodeClass", L"–ù–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π –∫–ª–∞—Å—Å —É–∑–ª–∞" },
+    { scada::StatusCode::Bad_Iec61850Error, "Bad_Iec61850Error", L"–û—à–∏–±–∫–∞ –ø—Ä–æ—Ç–æ–∫–æ–ª–∞ –ú–≠–ö-61850" },
+};
+
+const Entry* FindEntry(scada::StatusCode status_code) {
   for (auto& entry : kEntries) {
     if (entry.code == status_code)
-      return entry.error_string;
+      return &entry;
   }
-
-  return IsGood(status_code) ? "ŒÔÂ‡ˆËˇ ‚˚ÔÓÎÌÂÌ‡ ÛÒÔÂ¯ÌÓ" : "Œ¯Ë·Í‡";
+  return nullptr;
 }
 
-} // namespace scada
+} // namespace
+
+std::string ToString(scada::StatusCode status_code) {
+  if (auto* entry = FindEntry(status_code))
+    return entry->error_string;
+
+  return IsGood(status_code) ? "OK" : "Error";
+}
+
+base::string16 ToString16(scada::StatusCode status_code) {
+  if (auto* entry = FindEntry(status_code))
+    return entry->localized_error_string;
+
+  return IsGood(status_code) ? L"–û–ø–µ—Ä–∞—Ü–∏—è –≤—ã–ø–æ–ª–Ω–µ–Ω–∞ —É—Å–ø–µ—à–Ω–æ" : L"–û—à–∏–±–∫–∞";
+}
+
+std::string ToString(const scada::Status& status) {
+  return ToString(status.code());
+}
+
+base::string16 ToString16(const scada::Status& status) {
+  return ToString16(status.code());
+}

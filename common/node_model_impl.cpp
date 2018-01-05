@@ -153,9 +153,9 @@ scada::Variant NodeModelImpl::GetAttribute(scada::AttributeId attribute_id) cons
 
     case scada::AttributeId::DisplayName:
       if (!fetched_)
-        return scada::LocalizedText{id_.ToString()};
+        return scada::ToLocalizedText(id_.ToString());
       if (!status_)
-        return scada::LocalizedText{status_.ToString()};
+        return scada::ToLocalizedText(ToString16(status_));
       else if (!display_name_.empty())
         return display_name_;
       else
@@ -371,7 +371,7 @@ bool NodeModelImpl::IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node
 void NodeModelImpl::SetError(const scada::Status& status) {
   assert(status_.good());
 
-  logger_->WriteF(LogSeverity::Warning, "Node %s error %s", id_.ToString().c_str(), status.ToString().c_str());
+  logger_->WriteF(LogSeverity::Warning, "Node %s error %s", id_.ToString().c_str(), ToString(status).c_str());
 
   status_ = status;
   pending_request_count_ = 0;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include "base/strings/string16.h"
 
 namespace scada {
 
@@ -54,11 +54,11 @@ enum class StatusCode : unsigned {
   Bad_SessionIsLoggedOff = Bad | 18,
   Bad_WrongSubscriptionId = Bad | 19,
   Bad_WrongIndex = Bad | 20,
-  Bad_IecUnknownType = Bad | 21,
-  Bad_IecUnknownCot = Bad | 22,
-  Bad_IecUnknownDevice = Bad | 23,
-  Bad_IecUnknownAddress = Bad | 24,
-  Bad_IecUnknownError = Bad | 25,
+  Bad_Iec60870UnknownType = Bad | 21,
+  Bad_Iec60870UnknownCot = Bad | 22,
+  Bad_Iec60870UnknownDevice = Bad | 23,
+  Bad_Iec60870UnknownAddress = Bad | 24,
+  Bad_Iec60870UnknownError = Bad | 25,
   Bad_WrongCallArguments = Bad | 26,
   Bad_CantParseString = Bad | 27,
   Bad_TooLongString = Bad | 28,
@@ -66,10 +66,8 @@ enum class StatusCode : unsigned {
   Bad_WrongReferenceId = Bad | 30,
   Bad_WrongNodeClass = Bad | 31,
   Bad_WrongAttributeId = Bad | 32,
+  Bad_Iec61850Error = Bad | 33,
 };
-
-inline StatusSeverity GetSeverity(StatusCode status_code) { return static_cast<StatusSeverity>(static_cast<unsigned>(status_code) >> 14); }
-inline bool IsGood(StatusCode status_code) { return GetSeverity(status_code) == StatusSeverity::Good; }
 
 enum class StatusLimit {
   // The value is free to change.
@@ -84,6 +82,9 @@ enum class StatusLimit {
   // The value is constant and cannot change.
   Constant,
 };
+
+inline StatusSeverity GetSeverity(StatusCode code) { return static_cast<StatusSeverity>(static_cast<unsigned>(code) >> 14); }
+inline bool IsGood(StatusCode code) { return GetSeverity(code) == StatusSeverity::Good; }
 
 class Status {
  public:
@@ -105,12 +106,14 @@ class Status {
   StatusCode code() const { return static_cast<StatusCode>(full_code_ >> 16); }
   unsigned full_code() const { return full_code_; }
 
-  std::string ToString() const;
-
  private:
   unsigned full_code_;
 };
 
-std::string ToString(StatusCode status_code);
-
 } // namespace scada
+
+std::string ToString(scada::StatusCode status_code);
+base::string16 ToString16(scada::StatusCode status_code);
+
+std::string ToString(const scada::Status& status);
+base::string16 ToString16(const scada::Status& status);

@@ -46,7 +46,7 @@ void NodeManagementProxy::CreateNode(const scada::NodeId& requested_id, const sc
 
         logger().WriteF(LogSeverity::Normal,
             "CreateNode response [status='%s', node_id=%s]",
-            status.ToString().c_str(),
+            ToString(status).c_str(),
             node_id.ToString().c_str());
 
         if (callback)
@@ -101,7 +101,7 @@ void NodeManagementProxy::DeleteNode(const scada::NodeId& node_id,
 
         logger().WriteF(LogSeverity::Normal,
             "DeleteNode response [status='%s']",
-            status.ToString().c_str());
+            ToString(status).c_str());
 
         if (!callback)
           return;
