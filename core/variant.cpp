@@ -1,4 +1,4 @@
-#include "core/variant.h"
+п»ї#include "core/variant.h"
 
 #include <cassert>
 #include <limits>
@@ -8,8 +8,8 @@
 
 namespace scada {
 
-const char* Variant::kTrueString = "Да";
-const char* Variant::kFalseString = "Нет";
+const wchar_t* Variant::kTrueString = L"Р”Р°";
+const wchar_t* Variant::kFalseString = L"РќРµС‚";
 
 void Variant::clear() {
   data_ = std::monostate{};
@@ -186,8 +186,7 @@ bool Variant::ToStringHelper(String& string_value) const {
 
   switch (type()) {
     case BOOL:
-      string_value = FormatHelper<String>::Format(
-          base::StringPiece(as_bool() ? kTrueString : kFalseString));
+      string_value = FormatHelper<String>::Format(as_bool() ? kTrueString : kFalseString);
       return true;
     case INT32:
       string_value = FormatHelper<String>::Format(as_int32());

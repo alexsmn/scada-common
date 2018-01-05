@@ -96,8 +96,8 @@ std::string FormatFloat(double val, const char* fmt) {
   return std::string(buffer, buffer_size);
 }
 
-template<typename T>
-bool StringToValueHelper(const base::StringPiece& str, scada::Variant& value) {
+template<class T, class String>
+bool StringToValueHelper(String str, scada::Variant& value) {
   T v;
   if (!Parse(str, v))
     return false;
@@ -105,16 +105,17 @@ bool StringToValueHelper(const base::StringPiece& str, scada::Variant& value) {
   return true;
 }
 
-bool StringToValue(const base::StringPiece& str, const scada::NodeId& data_type_id, scada::Variant& value) {
+
+bool StringToValue(base::StringPiece str, const scada::NodeId& data_type_id, scada::Variant& value) {
   if (str.empty()) {
     value = scada::Variant();
     return true;
   }
 
   if (data_type_id == scada::id::Boolean) {
-    if (IsEqualNoCase(str, scada::Variant::kFalseString))
+    if (IsEqualNoCase(base::SysNativeMBToWide(str), scada::Variant::kFalseString))
       value = false;
-    else if (IsEqualNoCase(str, scada::Variant::kTrueString))
+    else if (IsEqualNoCase(base::SysNativeMBToWide(str), scada::Variant::kTrueString))
       value = true;
     else
       return StringToValueHelper<bool>(str, value);
@@ -139,4 +140,8 @@ bool StringToValue(const base::StringPiece& str, const scada::NodeId& data_type_
 
   } else
     return false;
+}
+
+bool StringToValue(base::StringPiece16 str, const scada::NodeId& data_type_id, scada::Variant& value) {
+  return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id, value);
 }

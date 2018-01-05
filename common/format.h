@@ -25,4 +25,5 @@ std::string FormatFloat(double val, const char* fmt);
 
 void EscapeColoredString(base::string16& str);
 
-bool StringToValue(const base::StringPiece& str, const scada::NodeId& data_type_id, scada::Variant& value);
+bool StringToValue(base::StringPiece str, const scada::NodeId& data_type_id, scada::Variant& value);
+bool StringToValue(base::StringPiece16 str, const scada::NodeId& data_type_id, scada::Variant& value);

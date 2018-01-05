@@ -8,7 +8,6 @@ namespace scada {
 
 class DataValue;
 class Event;
-class WriteFlags;
 class Status;
 
 typedef std::function<void(const DataValue& data_value)> DataChangeHandler;

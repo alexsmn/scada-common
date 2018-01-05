@@ -118,8 +118,8 @@ class Variant {
   template <typename T>
   bool ChangeTypeTo();
 
-  static const char* kTrueString;
-  static const char* kFalseString;
+  static const wchar_t* kTrueString;
+  static const wchar_t* kFalseString;
 
  private:
   template <class String>
