@@ -51,23 +51,9 @@ void VidiconSession::AddObserver(scada::SessionStateObserver& observer) {
 void VidiconSession::RemoveObserver(scada::SessionStateObserver& observer) {
 }
 
-void VidiconSession::QueryItemInfos(const scada::ItemInfosCallback& callback) {
-  callback(std::make_shared<scada::ItemInfoVector>());
-}
-
-void VidiconSession::WriteItemInfo(const scada::ItemInfo& info) {
-}
-
 void VidiconSession::HistoryRead(const scada::ReadValueId& read_value_id, base::Time from, base::Time to,
                                  const scada::Filter& filter, const scada::HistoryReadCallback& callback) {
   callback(scada::StatusCode::Bad, nullptr, nullptr);
-}
-
-void VidiconSession::WriteEvent(const scada::Event& event) {
-}
-
-void VidiconSession::AcknowledgeEvent(unsigned ack_id, base::Time time,
-                              const scada::NodeId& user_node_id) {
 }
 
 std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {

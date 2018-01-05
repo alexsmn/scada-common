@@ -189,41 +189,12 @@ void MasterDataServices::Call(const scada::NodeId& node_id, const scada::NodeId&
   services_.method_service_->Call(node_id, method_id, arguments, callback);
 }
 
-void MasterDataServices::QueryItemInfos(const scada::ItemInfosCallback& callback) {
-  if (!services_.history_service_)
-    return;
-
-  services_.history_service_->QueryItemInfos(callback);
-}
-
-void MasterDataServices::WriteItemInfo(const scada::ItemInfo& info) {
-  if (!services_.history_service_)
-    return;
-
-  services_.history_service_->WriteItemInfo(info);
-}
-
 void MasterDataServices::HistoryRead(const scada::ReadValueId& read_value_id, base::Time from, base::Time to,
                                     const scada::Filter& filter, const scada::HistoryReadCallback& callback) {
   if (!services_.history_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {}, {});
 
   services_.history_service_->HistoryRead(read_value_id, from, to, filter, callback);
-}
-
-void MasterDataServices::WriteEvent(const scada::Event& event) {
-  if (!services_.history_service_)
-    return;
-
-  services_.history_service_->WriteEvent(event);
-}
-
-void MasterDataServices::AcknowledgeEvent(unsigned ack_id, base::Time time,
-                              const scada::NodeId& user_node_id) {
-  if (!services_.history_service_)
-    return;
-
-  services_.history_service_->AcknowledgeEvent(ack_id, time, user_node_id);
 }
 
 void MasterDataServices::Read(const std::vector<scada::ReadValueId>& nodes, const scada::ReadCallback& callback) {

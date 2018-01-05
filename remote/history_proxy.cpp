@@ -11,15 +11,6 @@ HistoryProxy::HistoryProxy()
     : sender_(nullptr) {
 }
 
-void HistoryProxy::QueryItemInfos(const ItemInfosCallback& callback) {
-  assert(false);
-  callback(nullptr);
-}
-
-void HistoryProxy::WriteItemInfo(const scada::ItemInfo& infos) {
-  assert(false);
-}
-
 void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from, base::Time to,
                                const scada::Filter& filter, const HistoryReadCallback& callback) {
   if (!sender_) {
@@ -48,13 +39,6 @@ void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from
         }
         callback(FromProto(response.status(0)), std::move(values), std::move(events));
       });
-}
-
-void HistoryProxy::WriteEvent(const Event& event) {
-  assert(false);
-}
-
-void HistoryProxy::AcknowledgeEvent(unsigned ack_id, base::Time time, const NodeId& user_node_id) {
 }
 
 void HistoryProxy::OnChannelOpened(MessageSender& sender) {
