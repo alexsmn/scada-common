@@ -7,18 +7,18 @@
 
 namespace scada {
 
-NodeId::NodeId() : namespace_index_{0}, identifier_{0} {}
+NodeId::NodeId() : identifier_{0}, namespace_index_{0} {}
 
 NodeId::NodeId(NumericId numeric_id, NamespaceIndex namespace_index)
-    : namespace_index_{namespace_index}, identifier_{numeric_id} {}
+    : identifier_{numeric_id}, namespace_index_{namespace_index} {}
 
 NodeId::NodeId(String string_id, NamespaceIndex namespace_index)
-    : namespace_index_{namespace_index},
-      identifier_{std::make_shared<String>(std::move(string_id))} {}
+    : identifier_{std::make_shared<String>(std::move(string_id))},
+      namespace_index_{namespace_index} {}
 
 NodeId::NodeId(ByteString opaque_id, NamespaceIndex namespace_index)
-    : namespace_index_{namespace_index},
-      identifier_{std::make_shared<ByteString>(std::move(opaque_id))} {}
+    : identifier_{std::make_shared<ByteString>(std::move(opaque_id))},
+      namespace_index_{namespace_index} {}
 
 bool NodeId::is_null() const {
   return namespace_index_ == 0 && type() == NodeIdType::Numeric &&
@@ -148,4 +148,4 @@ NodeId NodeId::FromString(const base::StringPiece& string) {
   return {str.as_string(), namespace_index};
 }
 
-} // namespace scada
+}  // namespace scada

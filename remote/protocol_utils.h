@@ -50,13 +50,15 @@ void ToProto(const scada::ReadValueId& source, protocol::ReadValueId& target);
 scada::BrowseDirection FromProto(protocol::BrowseDirection source);
 protocol::BrowseDirection ToProto(scada::BrowseDirection source);
 
-scada::ReferenceDescription FromProto(const protocol::ReferenceDescription& source);
-void ToProto(const scada::ReferenceDescription& source, protocol::ReferenceDescription& target);
+scada::ReferenceDescription FromProto(
+    const protocol::ReferenceDescription& source);
+void ToProto(const scada::ReferenceDescription& source,
+             protocol::ReferenceDescription& target);
 
 scada::BrowseResult FromProto(const protocol::BrowseResult& source);
 void ToProto(const scada::BrowseResult& source, protocol::BrowseResult& target);
 
-template<typename Target, typename Source>
+template <typename Target, typename Source>
 inline std::vector<Target> VectorFromProto(
     const ::google::protobuf::RepeatedPtrField<Source>& source) {
   std::vector<Target> result;
@@ -66,7 +68,7 @@ inline std::vector<Target> VectorFromProto(
   return result;
 }
 
-template<typename Target, typename Source>
+template <typename Target, typename Source>
 inline std::vector<Target> BrowseVectorFromProto(
     const ::google::protobuf::RepeatedPtrField<Source>& source) {
   std::vector<Target> result;
@@ -76,7 +78,7 @@ inline std::vector<Target> BrowseVectorFromProto(
   return result;
 }
 
-template<typename Target, typename Container>
+template <typename Target, typename Container>
 inline void ContainerToProto(
     const Container& source,
     ::google::protobuf::RepeatedPtrField<Target>& target) {
@@ -85,21 +87,19 @@ inline void ContainerToProto(
     ToProto(s, *target.Add());
 }
 
-template<typename Source, typename Target>
-inline void ToProto(
-    const std::vector<Source>& sources,
-    ::google::protobuf::RepeatedPtrField<Target>& targets) {
+template <typename Source, typename Target>
+inline void ToProto(const std::vector<Source>& sources,
+                    ::google::protobuf::RepeatedPtrField<Target>& targets) {
   ContainerToProto(sources, targets);
 }
 
-template<typename Source, typename Target>
-inline void ToProto(
-    const std::set<Source>& sources,
-    ::google::protobuf::RepeatedPtrField<Target>& targets) {
+template <typename Source, typename Target>
+inline void ToProto(const std::set<Source>& sources,
+                    ::google::protobuf::RepeatedPtrField<Target>& targets) {
   ContainerToProto(sources, targets);
 }
 
-template<typename Target, typename Source>
+template <typename Target, typename Source>
 inline std::set<Target> SetFromProto(
     const ::google::protobuf::RepeatedPtrField<Source>& source) {
   std::set<Target> result;

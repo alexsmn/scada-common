@@ -1,28 +1,29 @@
 #include "remote/subscription_stub.h"
 
 #include "base/strings/sys_string_conversions.h"
+#include "core/event_service.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
-#include "core/event_service.h"
-#include "remote/subscription.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
+#include "remote/subscription.h"
 
-SubscriptionStub::SubscriptionStub(MessageSender& sender,
-                                   scada::MonitoredItemService& realtime_service,
-                                   int subscription_id,
-                                   const SubscriptionParams& params)
+SubscriptionStub::SubscriptionStub(
+    MessageSender& sender,
+    scada::MonitoredItemService& realtime_service,
+    int subscription_id,
+    const SubscriptionParams& params)
     : sender_(sender),
       monitored_item_service_(realtime_service),
       subscription_id_(subscription_id),
-      next_monitored_item_id_(1) {
-}
+      next_monitored_item_id_(1) {}
 
-SubscriptionStub::~SubscriptionStub() {
-}
+SubscriptionStub::~SubscriptionStub() {}
 
-void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadValueId& read_value_id) {
+void SubscriptionStub::OnCreateMonitoredItem(
+    int request_id,
+    const scada::ReadValueId& read_value_id) {
   auto channel = monitored_item_service_.CreateMonitoredItem(read_value_id);
   if (!channel) {
     scada::DataValue data_value;
@@ -31,8 +32,9 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadVa
     protocol::Message message;
     auto& response = *message.add_responses();
     response.set_request_id(request_id);
-    auto& create_monitored_item_result = *response.mutable_create_monitored_item_result();
-    ToProto(scada::StatusCode::Bad_WrongNodeId, *response.add_status());
+    auto& create_monitored_item_result =
+        *response.mutable_create_monitored_item_result();
+    ToProto(scada::StatusCode::Bad_WrongNodeId, *response.mutable_status());
     sender_.Send(message);
     return;
   }
@@ -47,8 +49,9 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadVa
     protocol::Message message;
     auto& response = *message.add_responses();
     response.set_request_id(request_id);
-    auto& create_monitored_item_result = *response.mutable_create_monitored_item_result();
-    ToProto(scada::StatusCode::Good, *response.add_status());
+    auto& create_monitored_item_result =
+        *response.mutable_create_monitored_item_result();
+    ToProto(scada::StatusCode::Good, *response.mutable_status());
     create_monitored_item_result.set_monitored_item_id(monitored_item_id);
     sender_.Send(message);
   }
@@ -61,7 +64,8 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadVa
 
   } else if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
     channel_ptr->set_event_handler(
-        [this, monitored_item_id](const scada::Status& status, const scada::Event& event) {
+        [this, monitored_item_id](const scada::Status& status,
+                                  const scada::Event& event) {
           OnEvent(monitored_item_id, status, event);
         });
   }
@@ -69,17 +73,19 @@ void SubscriptionStub::OnCreateMonitoredItem(int request_id, const scada::ReadVa
   channel_ptr->Subscribe();
 }
 
-void SubscriptionStub::OnDeleteMonitoredItem(int request_id, int monitored_item_id) {
+void SubscriptionStub::OnDeleteMonitoredItem(int request_id,
+                                             int monitored_item_id) {
   channels_.erase(monitored_item_id);
 
   protocol::Message message;
   auto& response = *message.add_responses();
   response.set_request_id(request_id);
-  ToProto(scada::StatusCode::Good, *response.add_status());
+  ToProto(scada::StatusCode::Good, *response.mutable_status());
   sender_.Send(message);
 }
 
-void SubscriptionStub::OnDataChange(MonitoredItemId monitored_item_id, const scada::DataValue& data_value) {
+void SubscriptionStub::OnDataChange(MonitoredItemId monitored_item_id,
+                                    const scada::DataValue& data_value) {
   auto i = channels_.find(monitored_item_id);
   if (i == channels_.end())
     return;
@@ -96,7 +102,9 @@ void SubscriptionStub::OnDataChange(MonitoredItemId monitored_item_id, const sca
   sender_.Send(message);
 }
 
-void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id, const scada::Status& status, const scada::Event& event) {
+void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id,
+                               const scada::Status& status,
+                               const scada::Event& event) {
   auto i = channels_.find(monitored_item_id);
   if (i == channels_.end())
     return;

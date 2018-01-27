@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/basictypes.h"
+#include "base/macros.h"
 
 #include <windows.h>
 

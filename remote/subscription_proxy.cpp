@@ -18,7 +18,8 @@ const auto kInvalidIndex = std::numeric_limits<std::size_t>::max();
 
 class SubscriptionProxy::MonitoredItemProxy : public MonitoredItem {
  public:
-  MonitoredItemProxy(SubscriptionProxy& subscription, const scada::ReadValueId& read_value_id);
+  MonitoredItemProxy(SubscriptionProxy& subscription,
+                     const scada::ReadValueId& read_value_id);
   virtual ~MonitoredItemProxy();
 
   MonitoredItemId monitored_item_id() const { return monitored_item_id_; }
@@ -55,11 +56,11 @@ class SubscriptionProxy::MonitoredItemProxy : public MonitoredItem {
 };
 
 SubscriptionProxy::MonitoredItemProxy::MonitoredItemProxy(
-    SubscriptionProxy& subscription, const scada::ReadValueId& read_value_id)
+    SubscriptionProxy& subscription,
+    const scada::ReadValueId& read_value_id)
     : subscription_(std::move(subscription)),
       read_value_id_(std::move(read_value_id)),
-      cancelation_(std::make_shared<bool>(false)) {
-}
+      cancelation_(std::make_shared<bool>(false)) {}
 
 SubscriptionProxy::MonitoredItemProxy::~MonitoredItemProxy() {
   if (state_ == CREATED)
@@ -85,11 +86,12 @@ void SubscriptionProxy::MonitoredItemProxy::CreateStub() {
   auto& create_monitored_item = *request.mutable_create_monitored_item();
   create_monitored_item.set_subscription_id(subscription_.subscription_id_);
   ToProto(read_value_id_.node_id, *create_monitored_item.mutable_node_id());
-  create_monitored_item.set_attribute_id(static_cast<protocol::AttributeId>(read_value_id_.attribute_id));
+  create_monitored_item.set_attribute_id(
+      static_cast<protocol::AttributeId>(read_value_id_.attribute_id));
 
   std::weak_ptr<bool> cancelation = cancelation_;
-  subscription_.sender_->Request(request,
-      [this, cancelation](const protocol::Response& response) {
+  subscription_.sender_->Request(
+      request, [this, cancelation](const protocol::Response& response) {
         if (cancelation.expired())
           return;
         int monitored_item_id = 0;
@@ -97,7 +99,8 @@ void SubscriptionProxy::MonitoredItemProxy::CreateStub() {
           auto& m = response.create_monitored_item_result();
           monitored_item_id = m.monitored_item_id();
         }
-        OnCreateMonitoredItemResult(FromProto(response.status(0)), monitored_item_id);
+        OnCreateMonitoredItemResult(FromProto(response.status()),
+                                    monitored_item_id);
       });
 }
 
@@ -141,7 +144,8 @@ void SubscriptionProxy::MonitoredItemProxy::OnChannelClosed() {
 }
 
 void SubscriptionProxy::MonitoredItemProxy::OnCreateMonitoredItemResult(
-    const Status& status, int monitored_item_id) {
+    const Status& status,
+    int monitored_item_id) {
   if (!status) {
     state_ = DELETED;
     subscription_.RemoveMonitoredItem(*this);
@@ -154,7 +158,8 @@ void SubscriptionProxy::MonitoredItemProxy::OnCreateMonitoredItemResult(
   subscription_.monitored_item_ids_[monitored_item_id_] = this;
 }
 
-void SubscriptionProxy::MonitoredItemProxy::UpdateAndForwardData(const DataValue& value) {
+void SubscriptionProxy::MonitoredItemProxy::UpdateAndForwardData(
+    const DataValue& value) {
   if (value == current_data_)
     return;
 
@@ -166,7 +171,8 @@ void SubscriptionProxy::MonitoredItemProxy::UpdateAndForwardData(const DataValue
   ForwardData(value);
 }
 
-void SubscriptionProxy::MonitoredItemProxy::UpdateQualifier(unsigned remove, unsigned add) {
+void SubscriptionProxy::MonitoredItemProxy::UpdateQualifier(unsigned remove,
+                                                            unsigned add) {
   Qualifier new_qualifier = current_data_.qualifier;
   new_qualifier.Update(remove, add);
   if (current_data_.qualifier == new_qualifier)
@@ -184,8 +190,7 @@ SubscriptionProxy::SubscriptionProxy(const SubscriptionParams& params)
     : sender_(nullptr),
       state_(DELETED),
       subscription_id_(0),
-      cancelation_(std::make_shared<bool>(false)) {
-}
+      cancelation_(std::make_shared<bool>(false)) {}
 
 SubscriptionProxy::~SubscriptionProxy() {
   assert(monitored_items_.empty());
@@ -200,8 +205,10 @@ SubscriptionProxy::~SubscriptionProxy() {
   }
 }
 
-std::unique_ptr<MonitoredItem> SubscriptionProxy::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
-  return std::unique_ptr<MonitoredItem>(new MonitoredItemProxy(*this, read_value_id));
+std::unique_ptr<MonitoredItem> SubscriptionProxy::CreateMonitoredItem(
+    const scada::ReadValueId& read_value_id) {
+  return std::unique_ptr<MonitoredItem>(
+      new MonitoredItemProxy(*this, read_value_id));
 }
 
 void SubscriptionProxy::AddMonitoredItem(MonitoredItemProxy& item) {
@@ -215,7 +222,8 @@ void SubscriptionProxy::RemoveMonitoredItem(MonitoredItemProxy& item) {
   monitored_items_.erase(&item);
 }
 
-void SubscriptionProxy::OnDataChange(int monitored_item_id, const DataValue& data_value) {
+void SubscriptionProxy::OnDataChange(int monitored_item_id,
+                                     const DataValue& data_value) {
   auto i = monitored_item_ids_.find(monitored_item_id);
   if (i != monitored_item_ids_.end())
     i->second->UpdateAndForwardData(data_value);
@@ -237,17 +245,17 @@ void SubscriptionProxy::OnChannelOpened(MessageSender& sender) {
   auto& create_subscription = *request.mutable_create_subscription();
 
   std::weak_ptr<bool> cancelation = cancelation_;
-  sender_->Request(request,
-      [this, cancelation](const protocol::Response& response) {
-        if (cancelation.expired())
-          return;
-        int subscription_id = 0;
-        if (response.has_create_subscription_result()) {
-          auto& m = response.create_subscription_result();
-          subscription_id = m.subscription_id();
-        }
-        OnCreateSubscriptionResult(FromProto(response.status(0)), subscription_id);
-      });
+  sender_->Request(request, [this,
+                             cancelation](const protocol::Response& response) {
+    if (cancelation.expired())
+      return;
+    int subscription_id = 0;
+    if (response.has_create_subscription_result()) {
+      auto& m = response.create_subscription_result();
+      subscription_id = m.subscription_id();
+    }
+    OnCreateSubscriptionResult(FromProto(response.status()), subscription_id);
+  });
 }
 
 void SubscriptionProxy::OnChannelClosed() {
@@ -263,7 +271,8 @@ void SubscriptionProxy::OnChannelClosed() {
     channel->OnChannelClosed();
 }
 
-void SubscriptionProxy::OnCreateSubscriptionResult(const Status& status, int subscription_id) {
+void SubscriptionProxy::OnCreateSubscriptionResult(const Status& status,
+                                                   int subscription_id) {
   if (state_ != CREATING)
     return;
 

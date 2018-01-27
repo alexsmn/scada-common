@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <string>
 
 namespace scada {
 
@@ -37,23 +38,24 @@ inline bool IsInstance(NodeClass node_class) {
   }
 }
 
-inline const char* ToString(NodeClass node_class) {
+} // namespace scada
+inline std::string ToString(scada::NodeClass node_class) {
   switch (node_class) {
-    case NodeClass::Object:
+    case scada::NodeClass::Object:
       return "Object";
-    case NodeClass::Variable:
+    case scada::NodeClass::Variable:
       return "Variable";
-    case NodeClass::Method:
+    case scada::NodeClass::Method:
       return "Method";
-    case NodeClass::ObjectType:
+    case scada::NodeClass::ObjectType:
       return "ObjectType";
-    case NodeClass::VariableType:
+    case scada::NodeClass::VariableType:
       return "VariableType";
-    case NodeClass::ReferenceType:
+    case scada::NodeClass::ReferenceType:
       return "ReferenceType";
-    case NodeClass::DataType:
+    case scada::NodeClass::DataType:
       return "DataType";
-    case NodeClass::View:
+    case scada::NodeClass::View:
       return "View";
     default:
       assert(false);
@@ -61,4 +63,3 @@ inline const char* ToString(NodeClass node_class) {
   };
 }
 
-} // namespace scada

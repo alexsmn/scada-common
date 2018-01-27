@@ -10,5 +10,4 @@ endif()
 add_library(scada_base ${sources})
 
 target_include_directories(scada_base PUBLIC ".." ${Boost_INCLUDE_DIRS})
-
-target_link_libraries(scada_base base ${Boost_LIBRARIES})
+target_link_libraries(scada_base PUBLIC base ${Boost_LIBRARIES})

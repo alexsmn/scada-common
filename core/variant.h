@@ -108,7 +108,7 @@ class Variant {
   template <class T>
   const T* get_if() const;
 
-  Variant& operator=(const Variant& source);
+  Variant& operator=(const Variant& source) = default;
   Variant& operator=(Variant&& source);
 
   bool operator==(const Variant& other) const;
@@ -185,6 +185,6 @@ inline const T* Variant::get_if() const {
   return std::get_if<T>(&data_);
 }
 
-String ToString(const Variant& value);
-
 }  // namespace scada
+
+std::string ToString(const scada::Variant& value);

@@ -159,7 +159,7 @@ scada::Variant NodeModelImpl::GetAttribute(scada::AttributeId attribute_id) cons
       else if (!display_name_.empty())
         return display_name_;
       else
-        return scada::LocalizedText{browse_name_.name()};
+        return scada::ToLocalizedText(browse_name_.name());
 
     default:
       assert(false);

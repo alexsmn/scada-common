@@ -1,25 +1,25 @@
 #include "remote/session_proxy.h"
 
 #include "base/strings/stringprintf.h"
-#include "net/transport_factory.h"
-#include "net/transport_string.h"
 #include "core/monitored_item.h"
+#include "core/session_state_observer.h"
 #include "core/status.h"
 #include "core/write_flags.h"
-#include "core/session_state_observer.h"
+#include "net/transport_factory.h"
+#include "net/transport_string.h"
+#include "remote/event_service_proxy.h"
+#include "remote/history_proxy.h"
+#include "remote/node_management_proxy.h"
 #include "remote/protocol.h"
 #include "remote/protocol_message_reader.h"
 #include "remote/protocol_message_transport.h"
 #include "remote/protocol_utils.h"
-#include "remote/event_service_proxy.h"
-#include "remote/history_proxy.h"
-#include "remote/node_management_proxy.h"
 #include "remote/subscription_proxy.h"
 #include "remote/view_service_proxy.h"
 
-SessionProxy::SessionProxy(std::shared_ptr<Logger> logger, net::TransportFactory& transport_factory)
-    : logger_{std::move(logger)},
-      transport_factory_{transport_factory} {
+SessionProxy::SessionProxy(std::shared_ptr<Logger> logger,
+                           net::TransportFactory& transport_factory)
+    : logger_{std::move(logger)}, transport_factory_{transport_factory} {
   SubscriptionParams params;
   subscription_ = std::make_unique<SubscriptionProxy>(params);
 
@@ -41,7 +41,6 @@ SessionProxy::~SessionProxy() {
     Request(request, nullptr);
   }
 }
-
 
 void SessionProxy::OnTransportOpened() {
   logger().Write(LogSeverity::Normal, "Transport opened");
@@ -70,18 +69,21 @@ void SessionProxy::OnSessionCreated() {
   event_service_proxy_->OnChannelOpened(*this);
   history_proxy_->OnChannelOpened(*this);
 
-  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_, OnSessionCreated());
+  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_,
+                    OnSessionCreated());
 
   ForwardConnectResult(scada::StatusCode::Good);
 }
 
 void SessionProxy::OnTransportClosed(net::Error error) {
-  logger().WriteF(LogSeverity::Warning, "Transport closed as %s", ErrorToString(error));
+  logger().WriteF(LogSeverity::Warning, "Transport closed as %s",
+                  ErrorToString(error));
 
   scada::Status status_code(
-      error == net::OK ? scada::StatusCode::Bad_SessionForcedLogoff :
-      error == net::ERR_SSL_BAD_PEER_PUBLIC_KEY ? scada::StatusCode::Bad_UserIsAlreadyLoggedOn :
-      scada::StatusCode::Bad_Disconnected);
+      error == net::OK ? scada::StatusCode::Bad_SessionForcedLogoff
+                       : error == net::ERR_SSL_BAD_PEER_PUBLIC_KEY
+                             ? scada::StatusCode::Bad_UserIsAlreadyLoggedOn
+                             : scada::StatusCode::Bad_Disconnected);
   OnSessionError(status_code);
 }
 
@@ -92,7 +94,8 @@ void SessionProxy::OnSessionError(const scada::Status& status) {
 
   ForwardConnectResult(status);
 
-  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_, OnSessionDeleted(status));
+  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_,
+                    OnSessionDeleted(status));
 }
 
 void SessionProxy::OnTransportMessageReceived(const void* data, size_t size) {
@@ -113,7 +116,7 @@ void SessionProxy::OnSessionDeleted() {
   // Cancel all requests.
   {
     protocol::Response response;
-    ToProto(scada::Status(scada::StatusCode::Bad_Disconnected), *response.add_status());
+    ToProto(scada::StatusCode::Bad_Disconnected, *response.mutable_status());
     auto requests = std::move(requests_);
     for (auto& p : requests) {
       response.set_request_id(p.first);
@@ -178,8 +181,8 @@ void SessionProxy::Send(protocol::Message& message) {
 }
 
 void SessionProxy::OnMessageReceived(const protocol::Message& message) {
-//  OutputDebugStringA(message.DebugString().c_str());
-//  OutputDebugStringA("\n");
+  //  OutputDebugStringA(message.DebugString().c_str());
+  //  OutputDebugStringA("\n");
 
   for (auto& response : message.responses()) {
     auto i = requests_.find(response.request_id());
@@ -192,9 +195,8 @@ void SessionProxy::OnMessageReceived(const protocol::Message& message) {
 
   for (auto& notification : message.notifications()) {
     for (auto& data_change : notification.data_changes()) {
-      subscription_->OnDataChange(
-          data_change.monitored_item_id(),
-          FromProto(data_change.data_value()));
+      subscription_->OnDataChange(data_change.monitored_item_id(),
+                                  FromProto(data_change.data_value()));
     }
 
     view_service_proxy_->OnNotification(notification);
@@ -209,9 +211,12 @@ void SessionProxy::OnMessageReceived(const protocol::Message& message) {
   }
 }
 
-void SessionProxy::Request(protocol::Request& request, ResponseHandler response_handler) {
+void SessionProxy::Request(protocol::Request& request,
+                           ResponseHandler response_handler) {
   auto request_id = next_request_id_;
-  next_request_id_ = next_request_id_ == std::numeric_limits<int>::max() ? 1 : (next_request_id_ + 1);
+  next_request_id_ = next_request_id_ == std::numeric_limits<int>::max()
+                         ? 1
+                         : (next_request_id_ + 1);
 
   if (response_handler)
     requests_[request_id] = std::move(response_handler);
@@ -225,8 +230,10 @@ void SessionProxy::Request(protocol::Request& request, ResponseHandler response_
 }
 
 void SessionProxy::Connect(const std::string& host,
-                           const std::string& username, const std::string& password,
-                           bool allow_remote_logoff, ConnectCallback callback) {
+                           const std::string& username,
+                           const std::string& password,
+                           bool allow_remote_logoff,
+                           ConnectCallback callback) {
   assert(!transport_);
 
   user_name_ = username;
@@ -239,9 +246,10 @@ void SessionProxy::Connect(const std::string& host,
       base::StringPrintf("Host=%s;Port=2000", host_.c_str());
 
   logger().WriteF(LogSeverity::Normal, "Connecting as '%s' to '%s'",
-      user_name_.c_str(), connection_string.c_str());
+                  user_name_.c_str(), connection_string.c_str());
 
-  auto transport = transport_factory_.CreateTransport(net::TransportString(connection_string));
+  auto transport = transport_factory_.CreateTransport(
+      net::TransportString(connection_string));
   if (!transport) {
     OnTransportClosed(net::ERR_FAILED);
     return;
@@ -262,7 +270,7 @@ void SessionProxy::ForwardConnectResult(const scada::Status& status) {
 }
 
 void SessionProxy::OnCreateSessionResult(const protocol::Response& response) {
-  auto status = FromProto(response.status(0));
+  auto status = FromProto(response.status());
   if (!status) {
     OnSessionError(status);
     return;
@@ -281,7 +289,8 @@ void SessionProxy::OnCreateSessionResult(const protocol::Response& response) {
   OnSessionCreated();
 }
 
-void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) {
+void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids,
+                        const scada::ReadCallback& callback) {
   if (!session_created_) {
     callback(scada::StatusCode::Bad_Disconnected, {});
     return;
@@ -292,15 +301,17 @@ void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids, const 
   for (auto& value_id : value_ids)
     ToProto(value_id, *read.add_value_id());
 
-  Request(request,
-      [this, callback](const protocol::Response& response) {
-        if (callback)
-          callback(FromProto(response.status(0)), VectorFromProto<scada::DataValue>(response.read().result()));
-      });
+  Request(request, [this, callback](const protocol::Response& response) {
+    if (callback)
+      callback(FromProto(response.status()),
+               VectorFromProto<scada::DataValue>(response.read().result()));
+  });
 }
 
-void SessionProxy::Write(const scada::NodeId& item_id, double value,
-                         const scada::NodeId& user_id, const scada::WriteFlags& flags,
+void SessionProxy::Write(const scada::NodeId& item_id,
+                         double value,
+                         const scada::NodeId& user_id,
+                         const scada::WriteFlags& flags,
                          const scada::StatusCallback& callback) {
   if (!session_created_) {
     callback(scada::StatusCode::Bad_Disconnected);
@@ -314,14 +325,14 @@ void SessionProxy::Write(const scada::NodeId& item_id, double value,
   if (flags.select())
     write.set_select(true);
 
-  Request(request,
-      [this, callback](const protocol::Response& response) {
-        if (callback)
-          callback(FromProto(response.status(0)));
-      });
+  Request(request, [this, callback](const protocol::Response& response) {
+    if (callback)
+      callback(FromProto(response.status()));
+  });
 }
 
-void SessionProxy::Call(const scada::NodeId& node_id, const scada::NodeId& method_id,
+void SessionProxy::Call(const scada::NodeId& node_id,
+                        const scada::NodeId& method_id,
                         const std::vector<scada::Variant>& arguments,
                         const scada::StatusCallback& callback) {
   if (!session_created_) {
@@ -335,14 +346,14 @@ void SessionProxy::Call(const scada::NodeId& node_id, const scada::NodeId& metho
   ToProto(method_id, *command.mutable_method_id());
   ContainerToProto(arguments, *command.mutable_argument());
 
-  Request(request,
-      [this, callback](const protocol::Response& response) {
-        if (callback)
-          callback(FromProto(response.status(0)));
-      });
+  Request(request, [this, callback](const protocol::Response& response) {
+    if (callback)
+      callback(FromProto(response.status()));
+  });
 }
 
-std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
+std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(
+    const scada::ReadValueId& read_value_id) {
   return subscription_->CreateMonitoredItem(read_value_id);
 }
 

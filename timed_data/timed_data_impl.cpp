@@ -146,7 +146,7 @@ std::string TimedDataImpl::GetFormula(bool aliases) const {
 }
 
 base::string16 TimedDataImpl::GetTitle() const {
-  return base::SysNativeMBToWide(node_.display_name().text());
+  return ToString16(node_.display_name());
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {

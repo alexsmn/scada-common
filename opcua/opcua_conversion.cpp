@@ -559,12 +559,12 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target) {
 }
 
 scada::LocalizedText Convert(const OpcUa_LocalizedText& source) {
-  return Convert(source.Text);
+  return scada::ToLocalizedText(Convert(source.Text));
 }
 
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target) {
   ::OpcUa_String_Clear(&target.Locale);
-  Convert(source.text(), target.Text);
+  Convert(ToString(source), target.Text);
 }
 
 scada::ByteString Convert(const OpcUa_ByteString& source) {

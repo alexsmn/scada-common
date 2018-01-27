@@ -15,11 +15,6 @@ void Variant::clear() {
   data_ = std::monostate{};
 }
 
-Variant& Variant::operator=(const Variant& source) {
-  data_ = source.data_;
-  return *this;
-}
-
 Variant& Variant::operator=(Variant&& source) {
   data_ = std::move(source.data_);
   return *this;
@@ -186,7 +181,8 @@ bool Variant::ToStringHelper(String& string_value) const {
 
   switch (type()) {
     case BOOL:
-      string_value = FormatHelper<String>::Format(as_bool() ? kTrueString : kFalseString);
+      string_value =
+          FormatHelper<String>::Format(as_bool() ? kTrueString : kFalseString);
       return true;
     case INT32:
       string_value = FormatHelper<String>::Format(as_int32());
@@ -288,8 +284,8 @@ NodeId Variant::data_type_id() const {
   return kNodeIds[static_cast<size_t>(type())];
 }
 
-String ToString(const Variant& value) {
-  return value.get_or(String{});
+}  // namespace scada
+std::string ToString(const scada::Variant& value) {
+  return value.get_or(std::string{});
 }
 
-}  // namespace scada

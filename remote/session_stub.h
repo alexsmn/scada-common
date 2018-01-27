@@ -97,7 +97,7 @@ class SessionStub : public std::enable_shared_from_this<SessionStub>,
   std::unique_ptr<NodeManagementStub> node_management_stub_;
   std::unique_ptr<HistoryStub> history_stub_;
 
-  int next_subscription_id_;
+  int next_subscription_id_ = 1;
   std::map<int /*subscription_id*/, std::unique_ptr<SubscriptionStub>> subscriptions_;
 
   std::unique_ptr<protocol::Message> send_message_;

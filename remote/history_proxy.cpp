@@ -37,7 +37,7 @@ void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from
           values = std::make_shared<DataValueVector>(VectorFromProto<DataValue>(m.values()));
           events = std::make_shared<EventVector>(VectorFromProto<Event>(m.events()));
         }
-        callback(FromProto(response.status(0)), std::move(values), std::move(events));
+        callback(FromProto(response.status()), std::move(values), std::move(events));
       });
 }
 

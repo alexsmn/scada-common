@@ -1,40 +1,29 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "base/strings/string16.h"
-#include "core/string.h"
+#include "base/strings/string_piece.h"
+
+#define LOCALIZED_TEXT(text) L##text
 
 namespace scada {
 
-class LocalizedText {
- public:
-  LocalizedText() {}
-  LocalizedText(const char* text) : text_{text} {}
-  LocalizedText(String text) : text_{std::move(text)} {}
-
-  bool empty() const { return text_.empty(); }
-  const String& text() const { return text_; }
-
-  bool operator==(const LocalizedText& other) const {
-    return text_ == other.text_;
-  }
-  bool operator!=(const LocalizedText& other) const {
-    return !operator==(other);
-  }
-
-  void clear() { text_.clear(); }
-
- private:
-  String text_;
-};
+using LocalizedText = base::string16;
 
 LocalizedText ToLocalizedText(base::StringPiece string);
-LocalizedText ToLocalizedText(const std::wstring& string);
+
+inline const LocalizedText& ToLocalizedText(const base::string16& string) {
+  return string;
+}
+
+inline LocalizedText ToLocalizedText(base::string16&& string) {
+  return string;
+}
 
 }  // namespace scada
 
-namespace base {
+std::string ToString(const scada::LocalizedText& text);
 
-string16 ToString16(const scada::LocalizedText& text);
-
-}  // namespace base
+inline const base::string16& ToString16(
+    const scada::LocalizedText& localized_text) {
+  return localized_text;
+}

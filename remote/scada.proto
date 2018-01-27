@@ -164,7 +164,7 @@ message DeleteSession {
 
 message Node {
   required NodeId node_id = 1;
-  optional NodeId type_id = 2;
+  optional NodeId type_definition_id = 2;
   optional NodeClass node_class = 3;
   optional Attributes attributes = 5;
   optional NodeId parent_id = 6;
@@ -173,7 +173,7 @@ message Node {
 
 message CreateNode {
   optional NodeId requested_node_id = 1;
-  required NodeId type_id = 2;
+  required NodeId type_definition_id = 2;
   required NodeId parent_id = 3;
   required NodeClass node_class = 5;
   optional Attributes attributes = 6;
@@ -361,7 +361,7 @@ message Request {
 
 message Response {
   required uint32 request_id = 1;
-  repeated Status status = 2;
+  required Status status = 2;
 
   optional CreateSessionResult create_session_result = 10;
 
@@ -375,6 +375,7 @@ message Response {
 
   optional CreateNodeResult create_node_result = 50;
   optional DeleteNodeResult delete_node_result = 51;
+  repeated Status modify_node_result = 52;
 
   optional BrowseResponse browse = 60;
 }

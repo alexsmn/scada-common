@@ -2,8 +2,7 @@
 
 #include "core/monitored_item.h"
 
-MasterDataServices::MasterDataServices() {
-}
+MasterDataServices::MasterDataServices() {}
 
 MasterDataServices::~MasterDataServices() {
   SetServices({});
@@ -24,12 +23,15 @@ void MasterDataServices::SetServices(const DataServices& services) {
 }
 
 void MasterDataServices::Connect(const std::string& host,
-                           const std::string& username, const std::string& password,
-                           bool allow_remote_logoff, ConnectCallback callback) {
+                                 const std::string& username,
+                                 const std::string& password,
+                                 bool allow_remote_logoff,
+                                 ConnectCallback callback) {
   if (!services_.session_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.session_service_->Connect(host, username, password, allow_remote_logoff, std::move(callback));
+  services_.session_service_->Connect(host, username, password,
+                                      allow_remote_logoff, std::move(callback));
 }
 
 bool MasterDataServices::IsConnected() const {
@@ -75,75 +77,93 @@ void MasterDataServices::RemoveObserver(scada::SessionStateObserver& observer) {
   session_state_observers_.RemoveObserver(&observer);
 }
 
-void MasterDataServices::CreateNode(const scada::NodeId& requested_id, const scada::NodeId& parent_id,
-                                          scada::NodeClass node_class, const scada::NodeId& type_id,
-                                          scada::NodeAttributes attributes, const CreateNodeCallback& callback) {
+void MasterDataServices::CreateNode(const scada::NodeId& requested_id,
+                                    const scada::NodeId& parent_id,
+                                    scada::NodeClass node_class,
+                                    const scada::NodeId& type_id,
+                                    scada::NodeAttributes attributes,
+                                    const CreateNodeCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.node_management_service_->CreateNode(requested_id, parent_id, node_class, type_id, std::move(attributes), callback);
+  services_.node_management_service_->CreateNode(
+      requested_id, parent_id, node_class, type_id, std::move(attributes),
+      callback);
 }
 
-void MasterDataServices::ModifyNodes(const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>& attributes,
-                                          const MultiStatusCallback& callback) {
+void MasterDataServices::ModifyNodes(
+    const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
+        attributes,
+    const scada::ModifyNodesCallback& callback) {
   if (!services_.node_management_service_)
-    return callback(std::vector<scada::Status>(attributes.size(), scada::StatusCode::Bad_Disconnected));
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
   services_.node_management_service_->ModifyNodes(attributes, callback);
 }
 
 void MasterDataServices::DeleteNode(const scada::NodeId& node_id,
-                                          bool return_references,
-                                          const DeleteNodeCallback& callback) {
+                                    bool return_references,
+                                    const scada::DeleteNodeCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, nullptr);
 
-  services_.node_management_service_->DeleteNode(node_id, return_references, callback);
+  services_.node_management_service_->DeleteNode(node_id, return_references,
+                                                 callback);
 }
 
-void MasterDataServices::ChangeUserPassword(const scada::NodeId& user_id,
-                                                  const std::string& current_password,
-                                                  const std::string& new_password,
-                                                  const StatusCallback& callback) {
+void MasterDataServices::ChangeUserPassword(
+    const scada::NodeId& user_id,
+    const scada::LocalizedText& current_password,
+    const scada::LocalizedText& new_password,
+    const scada::StatusCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.node_management_service_->ChangeUserPassword(user_id, current_password, new_password, callback);
+  services_.node_management_service_->ChangeUserPassword(
+      user_id, current_password, new_password, callback);
 }
 
 void MasterDataServices::AddReference(const scada::NodeId& reference_type_id,
-                                            const scada::NodeId& source_id,
-                                            const scada::NodeId& target_id,
-                                            const StatusCallback& callback) {
+                                      const scada::NodeId& source_id,
+                                      const scada::NodeId& target_id,
+                                      const scada::StatusCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.node_management_service_->AddReference(reference_type_id, source_id, target_id, callback);
+  services_.node_management_service_->AddReference(reference_type_id, source_id,
+                                                   target_id, callback);
 }
 
-void MasterDataServices::DeleteReference(const scada::NodeId& reference_type_id,
-                                        const scada::NodeId& source_id,
-                                        const scada::NodeId& target_id,
-                                        const StatusCallback& callback) {
+void MasterDataServices::DeleteReference(
+    const scada::NodeId& reference_type_id,
+    const scada::NodeId& source_id,
+    const scada::NodeId& target_id,
+    const scada::StatusCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.node_management_service_->DeleteReference(reference_type_id, source_id, target_id, callback);
+  services_.node_management_service_->DeleteReference(
+      reference_type_id, source_id, target_id, callback);
 }
 
-void MasterDataServices::Browse(const std::vector<scada::BrowseDescription>& nodes, const scada::BrowseCallback& callback) {
+void MasterDataServices::Browse(
+    const std::vector<scada::BrowseDescription>& nodes,
+    const scada::BrowseCallback& callback) {
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
   services_.view_service_->Browse(nodes, callback);
 }
 
-void MasterDataServices::TranslateBrowsePath(const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path, const scada::TranslateBrowsePathCallback& callback) {
+void MasterDataServices::TranslateBrowsePath(
+    const scada::NodeId& starting_node_id,
+    const scada::RelativePath& relative_path,
+    const scada::TranslateBrowsePathCallback& callback) {
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {}, 0);
 
-  services_.view_service_->TranslateBrowsePath(starting_node_id, relative_path, callback);
+  services_.view_service_->TranslateBrowsePath(starting_node_id, relative_path,
+                                               callback);
 }
 
 void MasterDataServices::Subscribe(scada::ViewEvents& events) {
@@ -154,7 +174,8 @@ void MasterDataServices::Unsubscribe(scada::ViewEvents& events) {
   view_events_.RemoveObserver(&events);
 }
 
-void MasterDataServices::Acknowledge(int acknowledge_id, const scada::NodeId& user_node_id) {
+void MasterDataServices::Acknowledge(int acknowledge_id,
+                                     const scada::NodeId& user_node_id) {
   if (!services_.event_service_)
     return;
 
@@ -168,36 +189,50 @@ void MasterDataServices::GenerateEvent(const scada::Event& event) {
   services_.event_service_->GenerateEvent(event);
 }
 
-std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(const scada::ReadValueId& read_value_id) {
+std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
+    const scada::ReadValueId& read_value_id) {
   if (!services_.monitored_item_service_)
     return nullptr;
 
   return services_.monitored_item_service_->CreateMonitoredItem(read_value_id);
 }
 
-void MasterDataServices::Write(const scada::NodeId& node_id, double value, const scada::NodeId& user_id, const scada::WriteFlags& flags, const scada::StatusCallback& callback) {
+void MasterDataServices::Write(const scada::NodeId& node_id,
+                               double value,
+                               const scada::NodeId& user_id,
+                               const scada::WriteFlags& flags,
+                               const scada::StatusCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
   services_.attribute_service_->Write(node_id, value, user_id, flags, callback);
 }
 
-void MasterDataServices::Call(const scada::NodeId& node_id, const scada::NodeId& method_id, const std::vector<scada::Variant>& arguments, const scada::StatusCallback& callback) {
+void MasterDataServices::Call(const scada::NodeId& node_id,
+                              const scada::NodeId& method_id,
+                              const std::vector<scada::Variant>& arguments,
+                              const scada::StatusCallback& callback) {
   if (!services_.method_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
   services_.method_service_->Call(node_id, method_id, arguments, callback);
 }
 
-void MasterDataServices::HistoryRead(const scada::ReadValueId& read_value_id, base::Time from, base::Time to,
-                                    const scada::Filter& filter, const scada::HistoryReadCallback& callback) {
+void MasterDataServices::HistoryRead(
+    const scada::ReadValueId& read_value_id,
+    base::Time from,
+    base::Time to,
+    const scada::Filter& filter,
+    const scada::HistoryReadCallback& callback) {
   if (!services_.history_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {}, {});
 
-  services_.history_service_->HistoryRead(read_value_id, from, to, filter, callback);
+  services_.history_service_->HistoryRead(read_value_id, from, to, filter,
+                                          callback);
 }
 
-void MasterDataServices::Read(const std::vector<scada::ReadValueId>& nodes, const scada::ReadCallback& callback) {
+void MasterDataServices::Read(const std::vector<scada::ReadValueId>& nodes,
+                              const scada::ReadCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 

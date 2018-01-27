@@ -55,7 +55,7 @@ TEST(NodeRefServiceImpl, FetchNode) {
   // Check pending node.
   {
     EXPECT_EQ(scada::QualifiedName{server_node->node_id.ToString()}, node.browse_name());
-    EXPECT_EQ(scada::LocalizedText{server_node->node_id.ToString()}, node.display_name());
+    EXPECT_EQ(scada::ToLocalizedText(server_node->node_id.ToString()), node.display_name());
     EXPECT_EQ(std::nullopt, node.node_class());
     // TODO: More checks for pending node.
   }

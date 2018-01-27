@@ -59,7 +59,7 @@ class TestAddressSpace : public scada::ViewService {
       scada::NodeClass::Object,
       scada::id::FolderType, // type id
       "Root",
-      "Root Display Name",
+      LOCALIZED_TEXT("Root Display Name"),
   };
 
   const scada::BrowseNode kTestNode1{
@@ -69,7 +69,7 @@ class TestAddressSpace : public scada::ViewService {
       scada::NodeClass::Object,
       kTestTypeId, // type id
       "TestNode1",
-      "TestNode1 Display Name",
+      LOCALIZED_TEXT("TestNode1 Display Name"),
   };
 
   const scada::BrowseNode kTestNode2{
@@ -79,7 +79,7 @@ class TestAddressSpace : public scada::ViewService {
       scada::NodeClass::Object,
       kTestTypeId, // type id
       "TestNode2",
-      "TestNode2 Display Name",
+      LOCALIZED_TEXT("TestNode2 Display Name"),
   };
 
   const std::vector<scada::BrowseNode> kNodes{
