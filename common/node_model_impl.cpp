@@ -74,14 +74,31 @@ std::vector<NodeRef> NodeModelImpl::GetAggregates(
   return result;
 }
 
-NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id) const {
+NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
+                                 bool forward) const {
   if (!fetched_)
     return nullptr;
-  for (auto& ref : references_) {
-    assert(ref.reference_type->fetched_);
-    if (IsSubtypeOf(ref.reference_type, reference_type_id))
-      return ref.target;
+
+  if (forward) {
+    if (reference_type_id == scada::id::HasTypeDefinition)
+      return type_definition_;
+
+    for (auto& ref : references_) {
+      assert(ref.reference_type->fetched_);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        return ref.target;
+    }
+
+  } else {
+    if (reference_type_id == scada::id::HasSubtype)
+      return supertype_;
+
+    assert(reference_type_id == scada::id::HierarchicalReferences);
+    // TODO: return parent_.
+    assert(false);
+    return nullptr;
   }
+
   return nullptr;
 }
 
@@ -180,14 +197,6 @@ scada::Variant NodeModelImpl::GetAttribute(
       assert(false);
       return {};
   }
-}
-
-NodeRef NodeModelImpl::GetTypeDefinition() const {
-  return type_definition_;
-}
-
-NodeRef NodeModelImpl::GetSupertype() const {
-  return supertype_;
 }
 
 NodeRef NodeModelImpl::GetDataType() const {
@@ -405,9 +414,4 @@ void NodeModelImpl::SetError(const scada::Status& status) {
   status_ = status;
   pending_request_count_ = 0;
   service_.CompletePartialNode(shared_from_this());
-}
-
-NodeRef NodeModelImpl::GetParent() const {
-  // TODO:
-  return nullptr;
 }

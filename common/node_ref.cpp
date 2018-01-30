@@ -34,11 +34,12 @@ scada::LocalizedText NodeRef::display_name() const {
 }
 
 NodeRef NodeRef::type_definition() const {
-  return model_ ? model_->GetTypeDefinition() : nullptr;
+  return model_ ? model_->GetTarget(scada::id::HasTypeDefinition, true)
+                : nullptr;
 }
 
 NodeRef NodeRef::supertype() const {
-  return model_ ? model_->GetSupertype() : nullptr;
+  return model_ ? model_->GetTarget(scada::id::HasSubtype, false) : nullptr;
 }
 
 std::vector<NodeRef> NodeRef::aggregates() const {
@@ -82,7 +83,7 @@ scada::Variant NodeRef::value() const {
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetTarget(reference_type_id) : NodeRef{};
+  return model_ ? model_->GetTarget(reference_type_id, true) : NodeRef{};
 }
 
 std::vector<NodeRef> NodeRef::targets(
@@ -123,5 +124,6 @@ void NodeRef::Unsubscribe(NodeRefObserver& observer) {
 }
 
 NodeRef NodeRef::parent() const {
-  return model_ ? model_->GetParent() : nullptr;
+  return model_ ? model_->GetTarget(scada::id::HierarchicalReferences, false)
+                : nullptr;
 }

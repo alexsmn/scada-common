@@ -8,7 +8,7 @@
 namespace scada {
 class DataValue;
 struct BrowseResult;
-}
+}  // namespace scada
 
 class Logger;
 class NodeModelImpl;
@@ -33,21 +33,18 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   virtual void Fetch(const NodeRef::FetchCallback& callback) const override;
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override;
-  virtual NodeRef GetTypeDefinition() const override;
-  virtual NodeRef GetSupertype() const override;
   virtual NodeRef GetDataType() const override;
   virtual NodeRef GetAggregate(
       const scada::QualifiedName& aggregate_name) const override;
   virtual std::vector<NodeRef> GetAggregates(
       const scada::NodeId& reference_type_id) const override;
-  virtual NodeRef GetTarget(
-      const scada::NodeId& reference_type_id) const override;
+  virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
+                            bool forward) const override;
   virtual std::vector<NodeRef> GetTargets(
       const scada::NodeId& reference_type_id) const override;
   virtual std::vector<NodeRef::Reference> GetReferences() const override;
   virtual NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const override;
-  virtual NodeRef GetParent() const override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
