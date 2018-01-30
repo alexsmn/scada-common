@@ -1,20 +1,21 @@
 #pragma once
 
 #include "base/observer_list.h"
-#include "base/nested_logger.h"
-#include "core/history_service.h"
 #include "common/event_set.h"
+#include "core/history_service.h"
 
 #include <boost/asio/io_service.hpp>
 #include <deque>
 #include <map>
+
+class Logger;
 
 namespace scada {
 class EventService;
 class HistoryService;
 class MonitoredItem;
 class MonitoredItemService;
-}
+}  // namespace scada
 
 namespace events {
 
@@ -33,7 +34,7 @@ struct EventManagerContext {
 class EventManager : private EventManagerContext {
  public:
   typedef std::map<unsigned, scada::Event> EventContainer;
-  
+
   explicit EventManager(EventManagerContext&& context);
   ~EventManager();
 
@@ -42,16 +43,17 @@ class EventManager : private EventManagerContext {
 
   unsigned severity_min() const { return severity_min_; }
   void SetSeverityMin(unsigned severity);
-  
+
   const EventContainer& unacked_events() const { return unacked_events_; }
 
   bool alarming() const { return alarming_; }
-  bool is_acking() const { return !pending_ack_event_ids_.empty() ||
-                                  !running_ack_event_ids_.empty(); }
+  bool is_acking() const {
+    return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
+  }
 
   const EventSet* GetItemUnackedEvents(const scada::NodeId& item_id) const;
   bool IsAlerting(const scada::NodeId& item_id) const;
-  
+
   void AcknowledgeItemEvents(const scada::NodeId& item_id);
   void AcknowledgeEvent(unsigned ack_id);
   void AcknowledgeAll();
@@ -61,7 +63,8 @@ class EventManager : private EventManagerContext {
   void AddItemObserver(const scada::NodeId& item_id, EventObserver& observer) {
     item_unacked_events_[item_id].observers.insert(&observer);
   }
-  void RemoveItemObserver(const scada::NodeId& item_id, EventObserver& observer) {
+  void RemoveItemObserver(const scada::NodeId& item_id,
+                          EventObserver& observer) {
     item_unacked_events_[item_id].observers.erase(&observer);
   }
 
@@ -79,8 +82,6 @@ class EventManager : private EventManagerContext {
 
   typedef std::map<scada::NodeId, ItemEventData> ItemEventMap;
 
-  Logger& logger() { return logger_; }
-
   void AddUnackedEvent(const scada::Event& event);
   void RemoveUnackedEvent(const scada::Event& event);
   void ClearUackedEvents();
@@ -88,22 +89,22 @@ class EventManager : private EventManagerContext {
   void UpdateAlarming();
 
   void ItemEventsChanged(const ObserverSet& observers,
-                         const scada::NodeId& item_id, const EventSet& events);
+                         const scada::NodeId& item_id,
+                         const EventSet& events);
 
   void AckPendingEvents();
   void PostAckPendingEvents();
 
   void Update();
 
-  void OnQueryEventsResult(scada::Status status, scada::QueryEventsResults results);
+  void OnQueryEventsResult(scada::Status status,
+                           scada::QueryEventsResults results);
 
   scada::NodeId user_node_id_;
 
   bool connected_ = false;
 
   std::unique_ptr<scada::MonitoredItem> monitored_item_;
-
-  NestedLogger logger_;
 
   unsigned severity_min_ = scada::kSeverityMin;
 
@@ -126,7 +127,8 @@ class EventManager : private EventManagerContext {
   base::WeakPtrFactory<EventManager> weak_factory_{this};
 };
 
-inline const EventSet* EventManager::GetItemUnackedEvents(const scada::NodeId& item_id) const {
+inline const EventSet* EventManager::GetItemUnackedEvents(
+    const scada::NodeId& item_id) const {
   ItemEventMap::const_iterator i = item_unacked_events_.find(item_id);
   return i != item_unacked_events_.end() ? &i->second.events : nullptr;
 }
@@ -136,4 +138,4 @@ inline bool EventManager::IsAlerting(const scada::NodeId& item_id) const {
   return events && !events->empty();
 }
 
-} // namespace events
+}  // namespace events

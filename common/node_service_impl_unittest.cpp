@@ -1,4 +1,4 @@
-#include "node_ref_service_impl.h"
+#include "common/node_service_impl.h"
 
 #include "base/logger.h"
 #include "core/attribute_service.h"
@@ -11,9 +11,15 @@ using namespace testing;
 
 class MockAttributeService : public scada::AttributeService {
  public:
-  MOCK_METHOD2(Read, void(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback));
-  MOCK_METHOD5(Write, void(const scada::NodeId& node_id, double value, const scada::NodeId& user_id,
-                           const scada::WriteFlags& flags, const scada::StatusCallback& callback));
+  MOCK_METHOD2(Read,
+               void(const std::vector<scada::ReadValueId>& value_ids,
+                    const scada::ReadCallback& callback));
+  MOCK_METHOD5(Write,
+               void(const scada::NodeId& node_id,
+                    double value,
+                    const scada::NodeId& user_id,
+                    const scada::WriteFlags& flags,
+                    const scada::StatusCallback& callback));
 };
 
 /*struct NodeRefServiceImplTestContext {
@@ -21,27 +27,28 @@ class MockAttributeService : public scada::AttributeService {
   TestAddressSpace address_space;
   TestViewService view_service{address_space};
   MockAttributeService attribute_service;
-  NodeRefServiceImpl node_service{NodeRefServiceImplContext{
+  NodeServiceImpl node_service{NodeRefServiceImplContext{
       logger,
       view_service,
       attribute_service,
   }};
 };*/
 
-TEST(NodeRefServiceImpl, FetchNode) {
+TEST(NodeServiceImpl, FetchNode) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
   MockAttributeService attribute_service;
-  NodeRefServiceImpl node_service{NodeRefServiceImplContext{
+  NodeServiceImpl node_service{NodeServiceImplContext{
       logger,
       address_space,
       attribute_service,
   }};
 
   std::vector<scada::ReadValueId> pending_read_ids;
-  scada::ReadCallback pending_read_callback;  
+  scada::ReadCallback pending_read_callback;
   EXPECT_CALL(attribute_service, Read(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::ReadValueId>& read_ids, const scada::ReadCallback& callback) {
+      .WillOnce(Invoke([&](const std::vector<scada::ReadValueId>& read_ids,
+                           const scada::ReadCallback& callback) {
         pending_read_ids = read_ids;
         pending_read_callback = callback;
       }));
@@ -54,8 +61,10 @@ TEST(NodeRefServiceImpl, FetchNode) {
 
   // Check pending node.
   {
-    EXPECT_EQ(scada::QualifiedName{server_node->node_id.ToString()}, node.browse_name());
-    EXPECT_EQ(scada::ToLocalizedText(server_node->node_id.ToString()), node.display_name());
+    EXPECT_EQ(scada::QualifiedName{server_node->node_id.ToString()},
+              node.browse_name());
+    EXPECT_EQ(scada::ToLocalizedText(server_node->node_id.ToString()),
+              node.display_name());
     EXPECT_EQ(std::nullopt, node.node_class());
     // TODO: More checks for pending node.
   }

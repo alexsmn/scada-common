@@ -1,7 +1,5 @@
 #include "remote/subscription_stub.h"
 
-#include "base/strings/sys_string_conversions.h"
-#include "core/event_service.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
 #include "remote/message_sender.h"
@@ -11,13 +9,12 @@
 
 SubscriptionStub::SubscriptionStub(
     MessageSender& sender,
-    scada::MonitoredItemService& realtime_service,
+    scada::MonitoredItemService& monitored_item_service,
     int subscription_id,
     const SubscriptionParams& params)
-    : sender_(sender),
-      monitored_item_service_(realtime_service),
-      subscription_id_(subscription_id),
-      next_monitored_item_id_(1) {}
+    : sender_{sender},
+      monitored_item_service_{monitored_item_service},
+      subscription_id_(subscription_id) {}
 
 SubscriptionStub::~SubscriptionStub() {}
 

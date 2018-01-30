@@ -12,8 +12,6 @@
 #include "remote/subscription_stub.h"
 #include "remote/view_service_stub.h"
 
-using namespace scada;
-
 SessionStub::SessionStub(SessionContext&& context)
     : SessionContext(std::move(context)),
       // Can't use std::make_unique:
@@ -22,7 +20,7 @@ SessionStub::SessionStub(SessionContext&& context)
       view_service_stub_{new ViewServiceStub{*this, view_service_, logger_}},
       node_management_stub_{new NodeManagementStub{
           *this, node_management_service_, user_id_, logger_}},
-      history_stub_{new HistoryStub{*this, history_service_, logger_}} {
+      history_stub_{new HistoryStub{history_service_, *this, logger_}} {
   logger().Write(LogSeverity::Normal, "Created");
 }
 
@@ -52,6 +50,39 @@ void SessionStub::ProcessMessage(const protocol::Message& message) {
 }
 
 void SessionStub::ProcessRequest(const protocol::Request& request) {
+  if (request.has_read()) {
+    auto& read = request.read();
+    OnRead(request.request_id(),
+           VectorFromProto<scada::ReadValueId>(read.value_id()));
+  }
+
+  if (request.has_write()) {
+    auto& write = request.write();
+    scada::WriteFlags flags;
+    if (write.select())
+      flags.set_select();
+    OnWrite(request.request_id(), FromProto(write.node_id()), write.value(),
+            flags.raw());
+  }
+
+  if (request.has_call()) {
+    auto& call = request.call();
+    if (call.has_acknowledge()) {
+      auto& acknowledge = call.acknowledge();
+      event_service_.Acknowledge(acknowledge.event_id(), user_id_);
+      protocol::Response response;
+      response.set_request_id(request.request_id());
+      ToProto(scada::StatusCode::Good, *response.mutable_status());
+      SendResponse(response);
+    }
+    if (call.has_device_command()) {
+      auto& device_command = call.device_command();
+      OnCall(request.request_id(), FromProto(device_command.node_id()),
+             FromProto(device_command.method_id()),
+             VectorFromProto<scada::Variant>(device_command.argument()));
+    }
+  }
+
   if (request.has_create_subscription()) {
     auto& create_subscription = request.create_subscription();
     OnCreateSubscription(request.request_id());
@@ -65,10 +96,11 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
 
   if (request.has_create_monitored_item()) {
     auto& create_monitored_item = request.create_monitored_item();
-    OnCreateMonitoredItem(
-        request.request_id(), create_monitored_item.subscription_id(),
-        {FromProto(create_monitored_item.node_id()),
-         static_cast<AttributeId>(create_monitored_item.attribute_id())});
+    OnCreateMonitoredItem(request.request_id(),
+                          create_monitored_item.subscription_id(),
+                          {FromProto(create_monitored_item.node_id()),
+                           static_cast<scada::AttributeId>(
+                               create_monitored_item.attribute_id())});
   }
 
   if (request.has_delete_monitored_item()) {
@@ -78,49 +110,8 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
                           delete_monitored_item.monitored_item_id());
   }
 
-  if (request.has_read()) {
-    auto& read = request.read();
-    OnRead(request.request_id(),
-           VectorFromProto<scada::ReadValueId>(read.value_id()));
-  }
-
-  if (request.has_call()) {
-    auto& call = request.call();
-    if (call.has_acknowledge()) {
-      auto& acknowledge = call.acknowledge();
-      event_service_.Acknowledge(acknowledge.event_id(), user_id_);
-      protocol::Response response;
-      response.set_request_id(request.request_id());
-      ToProto(StatusCode::Good, *response.mutable_status());
-      SendResponse(response);
-    }
-  }
-
   view_service_stub_->OnRequestReceived(request);
   node_management_stub_->OnRequestReceived(request);
-
-  auto request_id = request.has_request_id() ? request.request_id() : 0;
-
-  if (request.has_write()) {
-    auto& write = request.write();
-    WriteFlags flags;
-    if (write.select())
-      flags.set_select();
-    OnWrite(request_id, FromProto(write.node_id()), write.value(), flags.raw());
-  }
-
-  if (request.has_call()) {
-    auto& call = request.call();
-    if (call.has_device_command()) {
-      auto& device_command = call.device_command();
-      Variant v;
-      Variant x{v};
-      /*OnCall(request_id, FromProto(device_command.node_id()),
-          FromProto(device_command.method_id()),
-          VectorFromProto<Variant>(device_command.argument()));*/
-    }
-  }
-
   history_stub_->OnRequestReceived(request);
 }
 
@@ -154,14 +145,14 @@ void SessionStub::OnCreateSubscription(int request_id) {
   auto& create_subscription_result =
       *response.mutable_create_subscription_result();
   create_subscription_result.set_subscription_id(subscription_id);
-  ToProto(StatusCode::Good, *response.mutable_status());
+  ToProto(scada::StatusCode::Good, *response.mutable_status());
   Send(message);
 }
 
 void SessionStub::OnDeleteSubscription(int request_id, int subscription_id) {
   auto result = subscriptions_.erase(subscription_id)
-                    ? StatusCode::Good
-                    : StatusCode::Bad_WrongSubscriptionId;
+                    ? scada::StatusCode::Good
+                    : scada::StatusCode::Bad_WrongSubscriptionId;
 
   protocol::Message message;
   auto& response = *message.add_responses();
@@ -201,11 +192,11 @@ void SessionStub::OnSessionDeleted() {
 
 void SessionStub::OnCall(unsigned request_id,
                          const scada::NodeId& node_id,
-                         const NodeId& method_id,
-                         const std::vector<Variant>& arguments) {
+                         const scada::NodeId& method_id,
+                         const std::vector<scada::Variant>& arguments) {
   std::weak_ptr<SessionStub> weak_ptr = shared_from_this();
   method_service_.Call(node_id, method_id, arguments,
-                       [weak_ptr, request_id](const Status& status) {
+                       [weak_ptr, request_id](const scada::Status& status) {
                          auto ptr = weak_ptr.lock();
                          if (!ptr)
                            return;
@@ -218,13 +209,14 @@ void SessionStub::OnCall(unsigned request_id,
                        });
 }
 
-void SessionStub::OnRead(unsigned request_id,
-                         const std::vector<scada::ReadValueId>& value_ids) {
+void SessionStub::OnRead(
+    unsigned request_id,
+    const std::vector<scada::ReadValueId>& read_value_ids) {
   std::weak_ptr<SessionStub> weak_ptr = shared_from_this();
   attribute_service_.Read(
-      value_ids,
-      [weak_ptr, request_id](const scada::Status& status,
-                             const std::vector<scada::DataValue>& values) {
+      read_value_ids,
+      [weak_ptr, request_id](scada::Status&& status,
+                             std::vector<scada::DataValue>&& results) {
         auto ptr = weak_ptr.lock();
         if (!ptr)
           return;
@@ -232,19 +224,20 @@ void SessionStub::OnRead(unsigned request_id,
         protocol::Message message;
         auto& response = *message.add_responses();
         response.set_request_id(request_id);
-        ToProto(status, *response.mutable_status());
-        ContainerToProto(values, *response.mutable_read()->mutable_result());
+        ToProto(std::move(status), *response.mutable_status());
+        ContainerToProto(std::move(results),
+                         *response.mutable_read()->mutable_result());
         ptr->Send(message);
       });
 }
 
 void SessionStub::OnWrite(unsigned request_id,
-                          const NodeId& item_id,
+                          const scada::NodeId& item_id,
                           double value,
                           unsigned flags) {
   std::weak_ptr<SessionStub> weak_ptr = shared_from_this();
-  attribute_service_.Write(item_id, value, user_id_, WriteFlags(flags),
-                           [weak_ptr, request_id](const Status& status) {
+  attribute_service_.Write(item_id, value, user_id_, scada::WriteFlags(flags),
+                           [weak_ptr, request_id](const scada::Status& status) {
                              auto ptr = weak_ptr.lock();
                              if (!ptr)
                                return;

@@ -3,25 +3,25 @@
 #include "common/node_ref.h"
 #include "core/standard_node_ids.h"
 
-class NodeRefService;
+class NodeService;
 
 bool IsSubtypeOf(const NodeRef& node, const scada::NodeId& type_id);
 bool IsInstanceOf(const NodeRef& node, const scada::NodeId& type_id);
 
 using NodesCallback = std::function<void(std::vector<NodeRef> nodes)>;
-void BrowseNodesRecursive(NodeRefService& service, const scada::NodeId& parent_id,
+void BrowseNodesRecursive(NodeService& service, const scada::NodeId& parent_id,
     const scada::NodeId& type_definition_id, const NodesCallback& callback);
 
-void BrowseAllDevices(NodeRefService& service, const NodesCallback& callback);
+void BrowseAllDevices(NodeService& service, const NodesCallback& callback);
 
-void BrowseInstanceDeclarations(NodeRefService& node_service, const scada::NodeId& type_definition_id,
+void BrowseInstanceDeclarations(NodeService& node_service, const scada::NodeId& type_definition_id,
     const scada::NodeId& reference_type_id, const NodesCallback& callback);
 
 // Callback = void(std::vector<scada::NodeId>)
 template<class Callback>
-inline void BrowseSupertypeIds(NodeRefService& service, const scada::NodeId& type_definition_id, const Callback& callback) {
+inline void BrowseSupertypeIds(NodeService& service, const scada::NodeId& type_definition_id, const Callback& callback) {
   BrowseReference(service, type_definition_id, OpcUaId_HasSubtype, false,
-      [&service, callback](const scada::Status& status, const NodeRefService::ReferenceDescription& reference) {
+      [&service, callback](const scada::Status& status, const NodeService::ReferenceDescription& reference) {
         const auto& supertype_id = reference.reference_type_id;
         if (!status) {
           callback({supertype_id});

@@ -1,6 +1,6 @@
 #include "common/namespaces.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "base/strings/string_number_conversions.h"
 
@@ -8,7 +8,7 @@
 // mustn't be modified.
 const char* kNamespaceNames[NamespaceIndexes::END] = {
     "NS0",          "TS",           "TIT",           "MODBUS_DEVICES",
-    "GROUP",        "USER",         "HISTORICAL_DB", "SUBS",
+    "GROUP",        "USER",         "HISTORICAL_DB", "SCADA",
     "EXPR",         "SIM_ITEM",     "IEC_LINK",      "IEC_DEV",
     "MODBUS_PORTS", "FILE",         "TS_PARAMS",     "SERVER_PARAMS",
     "IEC_TRANSMIT", "IEC61850_DEV", "IEC61850_RCB",

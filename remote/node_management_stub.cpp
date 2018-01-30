@@ -13,11 +13,9 @@ NodeManagementStub::NodeManagementStub(MessageSender& sender,
     : sender_(sender),
       service_(service),
       user_id_(user_id),
-      logger_(std::move(logger)) {}
+      logger_{std::move(logger)} {}
 
 void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
-  auto weak_ptr = weak_factory_.GetWeakPtr();
-
   if (request.has_create_node()) {
     auto& create_node = request.create_node();
     OnCreateNode(
@@ -32,13 +30,13 @@ void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
   }
 
   if (request.modify_node_size() != 0) {
-    std::vector<std::pair<scada::NodeId, scada::NodeAttributes>> attributes;
-    attributes.reserve(request.modify_node_size());
+    std::vector<std::pair<scada::NodeId, scada::NodeAttributes>> nodes;
+    nodes.reserve(request.modify_node_size());
     for (auto& modify_node : request.modify_node()) {
-      attributes.emplace_back(FromProto(modify_node.node_id()),
-                              FromProto(modify_node.attributes()));
+      nodes.emplace_back(FromProto(modify_node.node_id()),
+                         FromProto(modify_node.attributes()));
     }
-    OnModifyNodes(request.request_id(), attributes);
+    OnModifyNodes(request.request_id(), std::move(nodes));
   }
 
   if (request.has_delete_node()) {
@@ -125,13 +123,11 @@ void NodeManagementStub::OnCreateNode(unsigned request_id,
 
 void NodeManagementStub::OnModifyNodes(
     unsigned request_id,
-    const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
-        attributes) {
+    const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>& nodes) {
   auto weak_ptr = weak_factory_.GetWeakPtr();
   service_.ModifyNodes(
-      attributes,
-      [weak_ptr, request_id](const scada::Status& status,
-                             const std::vector<scada::Status>& results) {
+      nodes, [weak_ptr, request_id](const scada::Status& status,
+                                    const std::vector<scada::Status>& results) {
         auto ptr = weak_ptr.get();
         if (!ptr)
           return;

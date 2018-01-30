@@ -6,8 +6,8 @@ enum class ModbusEncoding : int { RTU, ASCII, TCP };
 
 const int NUM_CHANNELS = 2;
 
-enum class IecProtocol : int { IEC104, IEC101 };
-enum class IecMode : int { MASTER, SLAVE, SLAVE_LISTEN };
+enum class Iec60870Protocol : int { IEC104, IEC101 };
+enum class Iec60870Mode : int { MASTER, SLAVE, SLAVE_LISTEN };
 
 // special values for Item::Channel::item
 const unsigned RID_SERVICE	= -1000;

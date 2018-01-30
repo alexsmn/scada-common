@@ -4,7 +4,6 @@
 #include "core/monitored_item.h"
 #include "core/session_state_observer.h"
 #include "core/status.h"
-#include "core/write_flags.h"
 #include "net/transport_factory.h"
 #include "net/transport_string.h"
 #include "remote/event_service_proxy.h"
@@ -17,9 +16,8 @@
 #include "remote/subscription_proxy.h"
 #include "remote/view_service_proxy.h"
 
-SessionProxy::SessionProxy(std::shared_ptr<Logger> logger,
-                           net::TransportFactory& transport_factory)
-    : logger_{std::move(logger)}, transport_factory_{transport_factory} {
+SessionProxy::SessionProxy(SessionProxyContext&& context)
+    : SessionProxyContext{std::move(context)} {
   SubscriptionParams params;
   subscription_ = std::make_unique<SubscriptionProxy>(params);
 
@@ -126,8 +124,8 @@ void SessionProxy::OnSessionDeleted() {
   }
 
   subscription_->OnChannelClosed();
-  view_service_proxy_->OnChannelClosed();
   node_management_proxy_->OnChannelClosed();
+  view_service_proxy_->OnChannelClosed();
   event_service_proxy_->OnChannelClosed();
   history_proxy_->OnChannelClosed();
 }
@@ -181,9 +179,6 @@ void SessionProxy::Send(protocol::Message& message) {
 }
 
 void SessionProxy::OnMessageReceived(const protocol::Message& message) {
-  //  OutputDebugStringA(message.DebugString().c_str());
-  //  OutputDebugStringA("\n");
-
   for (auto& response : message.responses()) {
     auto i = requests_.find(response.request_id());
     if (i != requests_.end()) {
@@ -265,6 +260,7 @@ void SessionProxy::Connect(const std::string& host,
 
 void SessionProxy::ForwardConnectResult(const scada::Status& status) {
   auto callback = std::move(connect_callback_);
+  connect_callback_ = nullptr;
   if (callback)
     callback(status);
 }

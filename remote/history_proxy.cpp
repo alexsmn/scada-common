@@ -7,12 +7,13 @@
 
 using namespace scada;
 
-HistoryProxy::HistoryProxy()
-    : sender_(nullptr) {
-}
+HistoryProxy::HistoryProxy() {}
 
-void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from, base::Time to,
-                               const scada::Filter& filter, const HistoryReadCallback& callback) {
+void HistoryProxy::HistoryRead(const scada::ReadValueId& read_value_id,
+                               base::Time from,
+                               base::Time to,
+                               const scada::Filter& filter,
+                               const scada::HistoryReadCallback& callback) {
   if (!sender_) {
     assert(false);
     return;
@@ -26,18 +27,31 @@ void HistoryProxy::HistoryRead(const ReadValueId& read_value_id, base::Time from
   if (!to.is_null())
     history_read.set_to(to.ToInternalValue());
 
-  sender_->Request(request,
-      [this, callback](const protocol::Response& response) {
+  if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
+    auto& event_filter = *history_read.mutable_event_filter();
+    if (filter.event_filter.types & Event::ACKED)
+      event_filter.set_acked(true);
+    if (filter.event_filter.types & Event::UNACKED)
+      event_filter.set_unacked(true);
+  }
+
+  sender_->Request(
+      request, [this, callback](const protocol::Response& response) {
         if (!callback)
           return;
+
+        auto status = FromProto(response.status());
+
         QueryValuesResults values;
         QueryEventsResults events;
         if (response.has_history_read_result()) {
-          auto& m = response.history_read_result();
-          values = std::make_shared<DataValueVector>(VectorFromProto<DataValue>(m.values()));
-          events = std::make_shared<EventVector>(VectorFromProto<Event>(m.events()));
+          values = std::make_shared<DataValueVector>(VectorFromProto<DataValue>(
+              response.history_read_result().values()));
+          events = std::make_shared<EventVector>(
+              VectorFromProto<Event>(response.history_read_result().events()));
         }
-        callback(FromProto(response.status()), std::move(values), std::move(events));
+
+        callback(status, std::move(values), std::move(events));
       });
 }
 

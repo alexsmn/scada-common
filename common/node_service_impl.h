@@ -1,7 +1,8 @@
 #pragma once
 
 #include "base/observer_list.h"
-#include "node_ref_service.h"
+#include "common/node_service.h"
+#include "core/view_service.h"
 
 #include <map>
 
@@ -14,33 +15,38 @@ class NodeModelImpl;
 struct ModelChangeEvent;
 struct NodeModelImplReference;
 
-struct NodeRefServiceImplContext {
+struct NodeServiceImplContext {
   const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
 };
 
-class NodeRefServiceImpl : private NodeRefServiceImplContext,
-                           private scada::ViewEvents,
-                           public NodeRefService {
+class NodeServiceImpl : private NodeServiceImplContext,
+                        private scada::ViewEvents,
+                        public NodeService {
  public:
-  explicit NodeRefServiceImpl(NodeRefServiceImplContext&& context);
-  ~NodeRefServiceImpl();
+  explicit NodeServiceImpl(NodeServiceImplContext&& context);
+  ~NodeServiceImpl();
 
-  // NodeRefService
+  // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
   virtual void AddObserver(NodeRefObserver& observer) override;
   virtual void RemoveObserver(NodeRefObserver& observer) override;
 
  private:
-  using BrowseCallback = std::function<void(const scada::Status& status, scada::ReferenceDescriptions references)>;
-  void Browse(const scada::BrowseDescription& description, const BrowseCallback& callback);
+  using BrowseCallback =
+      std::function<void(const scada::Status& status,
+                         scada::ReferenceDescriptions references)>;
+  void Browse(const scada::BrowseDescription& description,
+              const BrowseCallback& callback);
 
   void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
-  void RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
+  void RemoveNodeObserver(const scada::NodeId& node_id,
+                          NodeRefObserver& observer);
 
   // Returns fetched or unfetched node impl.
-  std::shared_ptr<NodeModelImpl> GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id);
+  std::shared_ptr<NodeModelImpl> GetNodeImpl(const scada::NodeId& node_id,
+                                             const scada::NodeId& depended_id);
 
   void CompletePartialNode(const std::shared_ptr<NodeModelImpl>& node);
 
@@ -53,7 +59,7 @@ class NodeRefServiceImpl : private NodeRefServiceImplContext,
   // scada::ViewService
   virtual void OnNodeAdded(const scada::NodeId& node_id) override;
   virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
-  virtual void OnReferenceAdded(const scada::NodeId& node_id) ;
+  virtual void OnReferenceAdded(const scada::NodeId& node_id);
   virtual void OnReferenceDeleted(const scada::NodeId& node_id) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 

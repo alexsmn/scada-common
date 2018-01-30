@@ -1,5 +1,6 @@
 #include "remote/view_service_stub.h"
 
+#include "common/node_id_util.h"
 #include "common/scada_node_ids.h"
 #include "core/status.h"
 #include "core/view_service.h"
@@ -66,7 +67,7 @@ void ViewServiceStub::OnBrowse(
 
 void ViewServiceStub::OnNodeAdded(const scada::NodeId& node_id) {
   logger_->WriteF(LogSeverity::Normal, "Notification NodeAdded [node_id=%s]",
-                  node_id.ToString().c_str());
+                  NodeIdToScadaString(node_id).c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -77,7 +78,7 @@ void ViewServiceStub::OnNodeAdded(const scada::NodeId& node_id) {
 
 void ViewServiceStub::OnNodeDeleted(const scada::NodeId& node_id) {
   logger_->WriteF(LogSeverity::Normal, "Notification NodeDeleted [node_id=%s]",
-                  node_id.ToString().c_str());
+                  NodeIdToScadaString(node_id).c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -88,7 +89,7 @@ void ViewServiceStub::OnNodeDeleted(const scada::NodeId& node_id) {
 void ViewServiceStub::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
   logger_->WriteF(LogSeverity::Normal,
                   "Notification NodeSemanticsChanged [node_id=%s]",
-                  node_id.ToString().c_str());
+                  NodeIdToScadaString(node_id).c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -99,7 +100,7 @@ void ViewServiceStub::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
 void ViewServiceStub::OnReferenceAdded(const scada::NodeId& node_id) {
   logger_->WriteF(LogSeverity::Normal,
                   "Notification ReferenceAdded [node_id=%s]",
-                  node_id.ToString().c_str());
+                  NodeIdToScadaString(node_id).c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -110,7 +111,7 @@ void ViewServiceStub::OnReferenceAdded(const scada::NodeId& node_id) {
 void ViewServiceStub::OnReferenceDeleted(const scada::NodeId& node_id) {
   logger_->WriteF(LogSeverity::Normal,
                   "Notification ReferenceDeleted [node_id=%s]",
-                  node_id.ToString().c_str());
+                  NodeIdToScadaString(node_id).c_str());
 
   protocol::Message message;
   auto& notification = *message.add_notifications();

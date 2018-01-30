@@ -39,7 +39,7 @@ class NodeManagementStub {
   void OnModifyNodes(
       unsigned request_id,
       const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
-          attributes);
+          nodes);
   void OnDeleteNode(unsigned request_id,
                     const scada::NodeId& id,
                     bool return_relations);
@@ -58,7 +58,7 @@ class NodeManagementStub {
   // Identifier of logged user for access control.
   scada::NodeId user_id_;
 
-  std::shared_ptr<Logger> logger_;
+  const std::shared_ptr<Logger> logger_;
 
   base::WeakPtrFactory<NodeManagementStub> weak_factory_{this};
 };

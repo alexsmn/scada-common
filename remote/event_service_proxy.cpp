@@ -1,27 +1,20 @@
 #include "remote/event_service_proxy.h"
 
-#include "base/strings/sys_string_conversions.h"
-#include "core/monitored_item.h"
-#include "remote/subscription_proxy.h"
-#include "remote/protocol.h"
 #include "remote/message_sender.h"
+#include "remote/protocol.h"
 
-using namespace scada;
+EventServiceProxy::EventServiceProxy() {}
 
-EventServiceProxy::EventServiceProxy() {
-}
-
-EventServiceProxy::~EventServiceProxy() {
-}
+EventServiceProxy::~EventServiceProxy() {}
 
 void EventServiceProxy::OnChannelOpened(MessageSender& sender) {
   sender_ = &sender;
 }
 
-void EventServiceProxy::OnChannelClosed() {
-}
+void EventServiceProxy::OnChannelClosed() {}
 
-void EventServiceProxy::Acknowledge(int acknowledge_id, const NodeId& user_node_id) {
+void EventServiceProxy::Acknowledge(int acknowledge_id,
+                                    const scada::NodeId& user_node_id) {
   if (!sender_) {
     assert(false);
     return;
@@ -34,6 +27,6 @@ void EventServiceProxy::Acknowledge(int acknowledge_id, const NodeId& user_node_
   sender_->Request(request, nullptr);
 }
 
-void EventServiceProxy::GenerateEvent(const Event& event) {
+void EventServiceProxy::GenerateEvent(const scada::Event& event) {
   assert(false);
 }

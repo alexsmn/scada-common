@@ -1,18 +1,18 @@
 #pragma once
 
-#include <map>
-
 #include "base/nested_logger.h"
 #include "base/observer_list.h"
-#include "net/transport.h"
 #include "core/attribute_service.h"
 #include "core/configuration_types.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "core/privileges.h"
-#include "remote/message_sender.h"
 #include "core/session_service.h"
 #include "core/status.h"
+#include "net/transport.h"
+#include "remote/message_sender.h"
+
+#include <map>
 
 namespace net {
 class TransportFactory;
@@ -23,23 +23,30 @@ class NodeManagementService;
 class EventService;
 class HistoryService;
 class ViewService;
-}
+}  // namespace scada
 
-class ViewServiceProxy;
+
 class EventServiceProxy;
 class Logger;
 class NodeManagementProxy;
 class HistoryProxy;
 class SubscriptionProxy;
+class ViewServiceProxy;
 
-class SessionProxy : public scada::MonitoredItemService,
+struct SessionProxyContext {
+  const std::shared_ptr<Logger> logger_;
+  net::TransportFactory& transport_factory_;
+};
+
+class SessionProxy : private SessionProxyContext,
                      public scada::AttributeService,
                      public scada::MethodService,
+                     public scada::MonitoredItemService,
                      public scada::SessionService,
                      public MessageSender,
                      private net::Transport::Delegate {
  public:
-  SessionProxy(std::shared_ptr<Logger> logger, net::TransportFactory& transport_factory);
+  explicit SessionProxy(SessionProxyContext&& context);
   virtual ~SessionProxy();
 
   bool has_privilege(cfg::Privilege privilege) const;
@@ -50,8 +57,10 @@ class SessionProxy : public scada::MonitoredItemService,
   scada::ViewService& GetViewService();
 
   // scada::SessionService
-  virtual void Connect(const std::string& connection_string, const std::string& username,
-                       const std::string& password, bool allow_remote_logoff,
+  virtual void Connect(const std::string& connection_string,
+                       const std::string& username,
+                       const std::string& password,
+                       bool allow_remote_logoff,
                        ConnectCallback callback) override;
   virtual bool IsConnected() const override;
   virtual bool IsAdministrator() const override;
@@ -67,15 +76,21 @@ class SessionProxy : public scada::MonitoredItemService,
                        ResponseHandler response_handler) override;
 
   // scada::MonitoredItemService
-  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(const scada::ReadValueId& read_value_id) override;
+  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+      const scada::ReadValueId& read_value_id) override;
 
   // scada::AttributeService
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids, const scada::ReadCallback& callback) override;
-  virtual void Write(const scada::NodeId& node_id, double value, const scada::NodeId& user_id,
-                     const scada::WriteFlags& flags, const scada::StatusCallback& callback) override;
+  virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
+                    const scada::ReadCallback& callback) override;
+  virtual void Write(const scada::NodeId& node_id,
+                     double value,
+                     const scada::NodeId& user_id,
+                     const scada::WriteFlags& flags,
+                     const scada::StatusCallback& callback) override;
 
   // scada::MethodService
-  virtual void Call(const scada::NodeId& node_id, const scada::NodeId& method_id,
+  virtual void Call(const scada::NodeId& node_id,
+                    const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::StatusCallback& callback) override;
 
@@ -85,7 +100,8 @@ class SessionProxy : public scada::MonitoredItemService,
   // net::Transport::Delegate
   virtual void OnTransportOpened() override;
   virtual void OnTransportClosed(net::Error error) override;
-  virtual void OnTransportMessageReceived(const void* data, size_t size) override;
+  virtual void OnTransportMessageReceived(const void* data,
+                                          size_t size) override;
 
  private:
   friend class EventServiceProxy;
@@ -99,9 +115,6 @@ class SessionProxy : public scada::MonitoredItemService,
   void OnCreateSessionResult(const protocol::Response& response);
 
   void ForwardConnectResult(const scada::Status& status);
-
-  const std::shared_ptr<Logger> logger_;
-  net::TransportFactory& transport_factory_;
 
   std::unique_ptr<net::Transport> transport_;
 

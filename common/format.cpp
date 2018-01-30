@@ -1,18 +1,21 @@
-#include "common/format.h"
+﻿#include "common/format.h"
 
 #include <algorithm>
 
 #include "base/format.h"
 #include "base/string_util.h"
-#include "base/third_party/dmg_fp/dmg_fp.h"
 #include "base/strings/string_util.h"
-#include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/third_party/dmg_fp/dmg_fp.h"
+#include "common/node_id_util.h"
 #include "common/scada_node_ids.h"
-#include "core/tvq.h"
+#include "core/variant.h"
 
-const char* kDefaultCloseLabel = "���";
-const char* kDefaultOpenLabel = "����";
+const wchar_t* kEmptyDisplayName = L"#ИМЯ?";
+const wchar_t* kUnknownDisplayName = L"#ИМЯ?";
+
+const wchar_t* kDefaultCloseLabel = L"Вкл";
+const wchar_t* kDefaultOpenLabel = L"Откл";
 
 void EscapeColoredString(base::string16& str) {
   base::ReplaceSubstringsAfterOffset(&str, 0, L"&", L"&;");
@@ -20,11 +23,11 @@ void EscapeColoredString(base::string16& str) {
 
 std::string FormatFloat(double val, const char* fmt) {
   size_t flen = strlen(fmt);
-  size_t llen;	// left part len (before dot)
-  size_t rlen;	// right part len (after dot)
+  size_t llen;  // left part len (before dot)
+  size_t rlen;  // right part len (after dot)
 
   const char* left = fmt;
-  const char* right = NULL;
+  const char* right = nullptr;
 
   while (*left == '#')
     left++;
@@ -39,27 +42,13 @@ std::string FormatFloat(double val, const char* fmt) {
     rlen = 0;
   }
 
-//	while (rlen && right[rlen - 1] == _T('#'))
-//		rlen--;
-
-  /*std::string fmt2 = base::StringPrintf("%%%d.%dlf", llen + rlen + 1, rlen);
-  return base::StringPrintf(fmt2.c_str(), val);*/
-
-  /*int decpt = 0;
-  int sign = 0;
-  char* e = NULL;
-  char* s = dmg_fp::dtoa(val, 1, rlen, &decpt, &sign, &e);
-  std::string ss(s, e);
-  dmg_fp::freedtoa(s);
-  return ss;*/
-
   int decimal = 0;
   int sign = 0;
-//  char* s = fcvt(val, rlen, &decimal, &sign);
-  char* e = NULL;
+  //  char* s = fcvt(val, rlen, &decimal, &sign);
+  char* e = nullptr;
   char* s = dmg_fp::dtoa(val, 3, rlen, &decimal, &sign, &e);
   int l = e - s;
-  char buffer[64] = { 0 };
+  char buffer[64] = {0};
   size_t buffer_size = 0;
 
   if (sign)
@@ -86,17 +75,17 @@ std::string FormatFloat(double val, const char* fmt) {
       buffer_size += -decimal;
       decimal = 0;
     }
-    memcpy_s(buffer + buffer_size, _countof(buffer) - buffer_size,
-              s + decimal, l - decimal);
+    memcpy_s(buffer + buffer_size, _countof(buffer) - buffer_size, s + decimal,
+             l - decimal);
     buffer_size += l - decimal;
-  } 
+  }
 
   dmg_fp::freedtoa(s);
 
   return std::string(buffer, buffer_size);
 }
 
-template<class T, class String>
+template <class T, class String>
 bool StringToValueHelper(String str, scada::Variant& value) {
   T v;
   if (!Parse(str, v))
@@ -105,17 +94,19 @@ bool StringToValueHelper(String str, scada::Variant& value) {
   return true;
 }
 
-
-bool StringToValue(base::StringPiece str, const scada::NodeId& data_type_id, scada::Variant& value) {
+bool StringToValue(base::StringPiece str,
+                   const scada::NodeId& data_type_id,
+                   scada::Variant& value) {
   if (str.empty()) {
     value = scada::Variant();
     return true;
   }
 
   if (data_type_id == scada::id::Boolean) {
-    if (IsEqualNoCase(base::SysNativeMBToWide(str), scada::Variant::kFalseString))
+    auto wide = base::SysNativeMBToWide(str);
+    if (IsEqualNoCase(wide, scada::Variant::kFalseString))
       value = false;
-    else if (IsEqualNoCase(base::SysNativeMBToWide(str), scada::Variant::kTrueString))
+    else if (IsEqualNoCase(wide, scada::Variant::kTrueString))
       value = true;
     else
       return StringToValueHelper<bool>(str, value);
@@ -132,7 +123,7 @@ bool StringToValue(base::StringPiece str, const scada::NodeId& data_type_id, sca
     return true;
 
   } else if (data_type_id == scada::id::NodeId) {
-    auto node_id = scada::NodeId::FromString(str);
+    auto node_id = NodeIdFromScadaString(str);
     if (node_id.is_null())
       return false;
     value = node_id;
@@ -142,6 +133,9 @@ bool StringToValue(base::StringPiece str, const scada::NodeId& data_type_id, sca
     return false;
 }
 
-bool StringToValue(base::StringPiece16 str, const scada::NodeId& data_type_id, scada::Variant& value) {
-  return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id, value);
+bool StringToValue(base::StringPiece16 str,
+                   const scada::NodeId& data_type_id,
+                   scada::Variant& value) {
+  return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id,
+                       value);
 }

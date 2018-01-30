@@ -23,12 +23,6 @@ struct BrowseNode {
   Variant value;
 };
 
-struct ViewReference {
-  NodeId reference_type_id;
-  NodeId source_id;
-  NodeId target_id;
-};
-
 struct RelativePathElement {
   NodeId reference_type_id;
   QualifiedName target_name;

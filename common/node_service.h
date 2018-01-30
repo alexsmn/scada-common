@@ -5,9 +5,9 @@
 
 class NodeRefObserver;
 
-class NodeRefService {
+class NodeService {
  public:
-  virtual ~NodeRefService() {}
+  virtual ~NodeService() {}
 
   virtual NodeRef GetNode(const scada::NodeId& node_id) = 0;
 

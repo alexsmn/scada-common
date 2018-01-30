@@ -1,4 +1,4 @@
-#include "common/format.h"
+Ôªø#include "common/format.h"
 
 #include <algorithm>
 
@@ -16,25 +16,25 @@ void FmtAddMods(const NodeRef& node, scada::Qualifier qualifier, base::string16&
   base::string16 mods;
 
   if (qualifier.failed())
-    mods += L'Õ';
+    mods += L'–ù';
   else if (qualifier.misconfigured())
-    mods += L' ';
+    mods += L'–ö';
   else if (qualifier.offline())
-    mods += L'—';
+    mods += L'–°';
     
   if (qualifier.manual())
-    mods += L'–';
+    mods += L'–†';
   else if (qualifier.backup())
     mods += L'2';
 
   if (IsInstanceOf(node, id::DataItemType) && node[id::DataItemType_Locked].value().get_or(false))
-    mods += L'¡';
+    mods += L'–ë';
 
   if (qualifier.stale())
-    mods += L'”';
+    mods += L'–£';
 
   if (qualifier.limit() != scada::Qualifier::LIMIT_NORMAL)
-    mods += L'¬';
+    mods += L'–í';
 
   if (!mods.empty()) {
     /*if (flags&FORMAT_COLOR) {
@@ -58,7 +58,7 @@ base::string16 FormatTsValue(const NodeRef& node, const scada::Variant& value, s
       auto pid = bool_value ? id::TsFormatType_CloseLabel : id::TsFormatType_OpenLabel;
       text = base::SysNativeMBToWide(format[pid].value().get_or(std::string()));
     } else {
-      text = base::SysNativeMBToWide(bool_value ? kDefaultCloseLabel : kDefaultOpenLabel);
+      text = bool_value ? kDefaultCloseLabel : kDefaultOpenLabel;
     }
   }
   

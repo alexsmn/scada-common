@@ -12,10 +12,13 @@ class HistoryProxy : public scada::HistoryService {
   void OnChannelOpened(MessageSender& sender);
   void OnChannelClosed();
 
-  // HistoryService
-  virtual void HistoryRead(const scada::ReadValueId& read_value_id, base::Time from, base::Time to,
-                           const scada::Filter& filter, const scada::HistoryReadCallback& callback) override;
+  // scada::HistoryService
+  virtual void HistoryRead(const scada::ReadValueId& read_value_id,
+                           base::Time from,
+                           base::Time to,
+                           const scada::Filter& filter,
+                           const scada::HistoryReadCallback& callback) override;
 
  private:
-  MessageSender* sender_;
+  MessageSender* sender_ = nullptr;
 };

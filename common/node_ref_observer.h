@@ -21,4 +21,5 @@ class NodeRefObserver {
  public:
   virtual void OnModelChange(const ModelChangeEvent& event) {}
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) {}
+  virtual void OnNodeFetched(const scada::NodeId& node_id, bool children) {}
 };

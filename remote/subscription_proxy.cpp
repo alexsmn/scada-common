@@ -22,11 +22,6 @@ class SubscriptionProxy::MonitoredItemProxy : public MonitoredItem {
                      const scada::ReadValueId& read_value_id);
   virtual ~MonitoredItemProxy();
 
-  MonitoredItemId monitored_item_id() const { return monitored_item_id_; }
-  void set_monitored_item_id(MonitoredItemId id) { monitored_item_id_ = id; }
-
-  const scada::ReadValueId& read_value_id() const { return read_value_id_; }
-
   virtual void Subscribe() override;
 
   void OnChannelOpened();
@@ -207,6 +202,8 @@ SubscriptionProxy::~SubscriptionProxy() {
 
 std::unique_ptr<MonitoredItem> SubscriptionProxy::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id) {
+  assert(read_value_id.attribute_id == AttributeId::EventNotifier ||
+         !read_value_id.node_id.is_null());
   return std::unique_ptr<MonitoredItem>(
       new MonitoredItemProxy(*this, read_value_id));
 }

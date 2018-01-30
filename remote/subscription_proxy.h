@@ -13,7 +13,7 @@ namespace scada {
 class Event;
 class MonitoredItem;
 struct ReadValueId;
-}
+}  // namespace scada
 
 namespace protocol {
 class Response;
@@ -40,7 +40,8 @@ class SubscriptionProxy {
   void AddMonitoredItem(MonitoredItemProxy& item);
   void RemoveMonitoredItem(MonitoredItemProxy& item);
 
-  void OnCreateSubscriptionResult(const scada::Status& status, int subscription_id);
+  void OnCreateSubscriptionResult(const scada::Status& status,
+                                  int subscription_id);
 
   MessageSender* sender_;
   

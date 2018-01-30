@@ -1,8 +1,8 @@
 #include "common/node_ref.h"
 
 #include "common/node_model.h"
-#include "common/node_ref_service.h"
 #include "common/node_ref_util.h"
+#include "common/node_service.h"
 
 scada::NodeId NodeRef::id() const {
   return attribute(scada::AttributeId::NodeId).get_or(scada::NodeId{});
@@ -24,11 +24,13 @@ NodeRef NodeRef::data_type() const {
 }
 
 scada::QualifiedName NodeRef::browse_name() const {
-  return attribute(scada::AttributeId::BrowseName).get_or(scada::QualifiedName{});
+  return attribute(scada::AttributeId::BrowseName)
+      .get_or(scada::QualifiedName{});
 }
 
 scada::LocalizedText NodeRef::display_name() const {
-  return attribute(scada::AttributeId::DisplayName).get_or(scada::LocalizedText{});
+  return attribute(scada::AttributeId::DisplayName)
+      .get_or(scada::LocalizedText{});
 }
 
 NodeRef NodeRef::type_definition() const {
@@ -40,15 +42,18 @@ NodeRef NodeRef::supertype() const {
 }
 
 std::vector<NodeRef> NodeRef::aggregates() const {
-  return model_ ? model_->GetAggregates(scada::id::Aggregates) : std::vector<NodeRef>{};
+  return model_ ? model_->GetAggregates(scada::id::Aggregates)
+                : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::components() const {
-  return model_ ? model_->GetAggregates(scada::id::HasComponent) : std::vector<NodeRef>{};
+  return model_ ? model_->GetAggregates(scada::id::HasComponent)
+                : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::properties() const {
-  return model_ ? model_->GetAggregates(scada::id::HasProperty) : std::vector<NodeRef>{};
+  return model_ ? model_->GetAggregates(scada::id::HasProperty)
+                : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef::Reference> NodeRef::references() const {
@@ -59,11 +64,13 @@ NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
   return model_ ? model_->GetAggregate(aggregate_name) : NodeRef{};
 }
 
-NodeRef NodeRef::operator[](const scada::NodeId& aggregate_declaration_id) const {
+NodeRef NodeRef::operator[](
+    const scada::NodeId& aggregate_declaration_id) const {
   if (!model_)
     return nullptr;
 
-  auto aggregate_declaration = model_->GetAggregateDeclaration(aggregate_declaration_id);
+  auto aggregate_declaration =
+      model_->GetAggregateDeclaration(aggregate_declaration_id);
   if (!aggregate_declaration)
     return nullptr;
 
@@ -71,26 +78,30 @@ NodeRef NodeRef::operator[](const scada::NodeId& aggregate_declaration_id) const
 }
 
 scada::Variant NodeRef::value() const {
-  return model_ ? model_->GetValue() : scada::Variant{};
+  return attribute(scada::AttributeId::Value);
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
   return model_ ? model_->GetTarget(reference_type_id) : NodeRef{};
 }
 
-std::vector<NodeRef> NodeRef::targets(const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetTargets(reference_type_id) : std::vector<NodeRef>();
+std::vector<NodeRef> NodeRef::targets(
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetTargets(reference_type_id)
+                : std::vector<NodeRef>();
 }
 
 scada::Variant NodeRef::attribute(scada::AttributeId attribute_id) const {
   return model_ ? model_->GetAttribute(attribute_id) : scada::Variant{};
 }
 
-NodeRef NodeRef::GetAggregateDeclaration(const scada::NodeId& aggregate_declaration_id) const {
-  return model_ ? model_->GetAggregateDeclaration(aggregate_declaration_id) : nullptr;
+NodeRef NodeRef::GetAggregateDeclaration(
+    const scada::NodeId& aggregate_declaration_id) const {
+  return model_ ? model_->GetAggregateDeclaration(aggregate_declaration_id)
+                : nullptr;
 }
 
-void NodeRef::Fetch(const FetchCallback& callback) {
+void NodeRef::Fetch(const FetchCallback& callback) const {
   if (model_)
     model_->Fetch(callback);
   else
@@ -101,21 +112,14 @@ scada::Status NodeRef::status() const {
   return model_ ? model_->GetStatus() : scada::StatusCode::Good;
 }
 
-void NodeRef::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) const {
+void NodeRef::Subscribe(NodeRefObserver& observer) {
   if (model_)
-    model_->Browse(description, callback);
-  else
-    callback(scada::StatusCode::Bad, {});
+    model_->Subscribe(observer);
 }
 
-void NodeRef::AddObserver(NodeRefObserver& observer) {
+void NodeRef::Unsubscribe(NodeRefObserver& observer) {
   if (model_)
-    model_->AddObserver(observer);
-}
-
-void NodeRef::RemoveObserver(NodeRefObserver& observer) {
-  if (model_)
-    model_->RemoveObserver(observer);
+    model_->Unsubscribe(observer);
 }
 
 NodeRef NodeRef::parent() const {

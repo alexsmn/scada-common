@@ -1,6 +1,7 @@
 #include "remote/view_service_proxy.h"
 
 #include "base/logger.h"
+#include "common/node_id_util.h"
 #include "core/standard_node_ids.h"
 #include "core/status.h"
 #include "remote/message_sender.h"

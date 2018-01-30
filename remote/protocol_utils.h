@@ -23,9 +23,6 @@ void ToProto(const scada::DataValue& source, protocol::DataValue& target);
 scada::Status FromProto(const protocol::Status& source);
 void ToProto(const scada::Status& source, protocol::Status& target);
 
-/*scada::NodeState FromProto(const protocol::Node& source);
-void ToProto(const scada::NodeState& source, protocol::Node& target);*/
-
 scada::Event FromProto(const protocol::Event& source);
 void ToProto(const scada::Event& source, protocol::Event& target);
 
@@ -37,9 +34,6 @@ void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target);
 
 scada::BrowseNode BrowseFromProto(const protocol::Node& source);
 void ToProto(const scada::BrowseNode& source, protocol::Node& target);
-
-scada::ViewReference FromProto(const protocol::Reference& source);
-void ToProto(const scada::ViewReference& source, protocol::Reference& target);
 
 scada::AttributeId FromProto(protocol::AttributeId source);
 protocol::AttributeId ToProto(scada::AttributeId source);

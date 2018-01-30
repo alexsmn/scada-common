@@ -16,19 +16,16 @@ class MessageSender;
 
 class HistoryStub {
  public:
-  HistoryStub(MessageSender& sender, scada::HistoryService& history_service, std::shared_ptr<Logger> logger);
+  HistoryStub(scada::HistoryService& service,
+              MessageSender& sender,
+              std::shared_ptr<Logger> logger);
 
   void OnRequestReceived(const protocol::Request& request);
 
  private:
-  Logger& logger() { return *logger_; }
-
-  void OnQueryEventsCompleted(unsigned request_id,
-                              scada::QueryEventsResults results);
-
+  scada::HistoryService& service_;
   MessageSender& sender_;
-  scada::HistoryService& history_service_;
   std::shared_ptr<Logger> logger_;
 
-  base::WeakPtrFactory<HistoryStub> weak_factory_;
+  base::WeakPtrFactory<HistoryStub> weak_factory_{this};
 };

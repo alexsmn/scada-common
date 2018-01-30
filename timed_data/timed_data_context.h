@@ -14,11 +14,11 @@ class EventService;
 class HistoryService;
 }
 
-class NodeRefService;
+class NodeService;
 
 struct TimedDataContext {
   boost::asio::io_service& io_service_;
-  NodeRefService& node_service_;
+  NodeService& node_service_;
   scada::MonitoredItemService& realtime_service_;
   scada::AttributeService& attribute_service_;
   scada::MethodService& method_service_;
