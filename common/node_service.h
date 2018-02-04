@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/node_ref.h"
-#include "core/status.h"
+#include "core/node_id.h"
 
 class NodeRefObserver;
 
@@ -11,6 +11,6 @@ class NodeService {
 
   virtual NodeRef GetNode(const scada::NodeId& node_id) = 0;
 
-  virtual void AddObserver(NodeRefObserver& observer) = 0;
-  virtual void RemoveObserver(NodeRefObserver& observer) = 0;
+  virtual void Subscribe(NodeRefObserver& observer) const = 0;
+  virtual void Unsubscribe(NodeRefObserver& observer) const = 0;
 };

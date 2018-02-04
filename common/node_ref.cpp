@@ -43,22 +43,23 @@ NodeRef NodeRef::supertype() const {
 }
 
 std::vector<NodeRef> NodeRef::aggregates() const {
-  return model_ ? model_->GetAggregates(scada::id::Aggregates)
+  return model_ ? model_->GetTargets(scada::id::Aggregates, true)
                 : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::components() const {
-  return model_ ? model_->GetAggregates(scada::id::HasComponent)
+  return model_ ? model_->GetTargets(scada::id::HasComponent, true)
                 : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef> NodeRef::properties() const {
-  return model_ ? model_->GetAggregates(scada::id::HasProperty)
+  return model_ ? model_->GetTargets(scada::id::HasProperty, true)
                 : std::vector<NodeRef>{};
 }
 
 std::vector<NodeRef::Reference> NodeRef::references() const {
-  return model_ ? model_->GetReferences() : std::vector<Reference>{};
+  return model_ ? model_->GetReferences(scada::id::References, true)
+                : std::vector<Reference>{};
 }
 
 NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
@@ -88,7 +89,7 @@ NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
 
 std::vector<NodeRef> NodeRef::targets(
     const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetTargets(reference_type_id)
+  return model_ ? model_->GetTargets(reference_type_id, true)
                 : std::vector<NodeRef>();
 }
 

@@ -31,11 +31,12 @@ NodeRef NodeModelImpl::GetAggregateDeclaration(
       scada::IsTypeDefinition(*node_class_) ? this : type_definition_.get();
   for (; type_definition; type_definition = type_definition->supertype_.get()) {
     assert(type_definition->fetched_);
-    const auto& declarations = type_definition->aggregates_;
+    const auto& declarations = type_definition->references_;
     auto i = std::find_if(
         declarations.begin(), declarations.end(),
         [&aggregate_declaration_id](const NodeModelImplReference& reference) {
-          return reference.target->id_ == aggregate_declaration_id;
+          return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
+                 reference.target->id_ == aggregate_declaration_id;
         });
     if (i != declarations.end())
       return i->target;
@@ -49,29 +50,15 @@ NodeRef NodeModelImpl::GetAggregate(
   if (!fetched_)
     return nullptr;
 
-  auto i =
-      std::find_if(aggregates_.begin(), aggregates_.end(),
-                   [aggregate_name](const NodeModelImplReference& reference) {
-                     assert(reference.reference_type->fetched_);
-                     assert(reference.target->fetched_);
-                     return reference.target->browse_name_ == aggregate_name;
-                   });
-  return i == aggregates_.end() ? nullptr : i->target;
-}
-
-std::vector<NodeRef> NodeModelImpl::GetAggregates(
-    const scada::NodeId& reference_type_id) const {
-  std::vector<NodeRef> result;
-  if (!fetched_)
-    return result;
-  result.reserve(aggregates_.size());
-  for (auto& ref : aggregates_) {
-    assert(ref.reference_type->fetched_);
-    assert(ref.target->fetched_);
-    if (IsSubtypeOf(ref.reference_type, reference_type_id))
-      result.emplace_back(ref.target);
-  }
-  return result;
+  auto i = std::find_if(
+      references_.begin(), references_.end(),
+      [aggregate_name](const NodeModelImplReference& reference) {
+        assert(reference.reference_type->fetched_);
+        assert(reference.target->fetched_);
+        return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
+               reference.target->browse_name_ == aggregate_name;
+      });
+  return i == references_.end() ? nullptr : i->target;
 }
 
 NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
@@ -103,31 +90,42 @@ NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
 }
 
 std::vector<NodeRef> NodeModelImpl::GetTargets(
-    const scada::NodeId& reference_type_id) const {
+    const scada::NodeId& reference_type_id,
+    bool forward) const {
   std::vector<NodeRef> result;
   if (!fetched_)
     return result;
-  result.reserve(references_.size());
-  for (auto& ref : references_) {
-    assert(ref.reference_type->fetched_);
-    assert(ref.target->fetched_);
-    if (IsSubtypeOf(ref.reference_type, reference_type_id))
-      result.emplace_back(ref.target);
+
+  if (forward) {
+    result.reserve(references_.size());
+    for (auto& ref : references_) {
+      assert(ref.reference_type->fetched_);
+      assert(ref.target->fetched_);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        result.emplace_back(ref.target);
+    }
   }
+
   return result;
 }
 
-std::vector<NodeRef::Reference> NodeModelImpl::GetReferences() const {
+std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
+    const scada::NodeId& reference_type_id,
+    bool forward) const {
   std::vector<NodeRef::Reference> result;
   if (!fetched_)
     return result;
-  result.reserve(references_.size());
-  for (auto& ref : references_) {
-    assert(ref.reference_type->fetched_);
-    assert(ref.target->fetched_);
-    result.emplace_back(
-        NodeRef::Reference{ref.reference_type, ref.target, ref.forward});
+
+  if (forward) {
+    result.reserve(references_.size());
+    for (auto& ref : references_) {
+      assert(ref.reference_type->fetched_);
+      assert(ref.target->fetched_);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        result.push_back({ref.reference_type, ref.target, ref.forward});
+    }
   }
+
   return result;
 }
 
@@ -348,11 +346,7 @@ void NodeModelImpl::AddReference(const NodeModelImplReference& reference) {
   if (reference.forward) {
     if (IsSubtypeOf(reference.reference_type, scada::id::HasTypeDefinition))
       type_definition_ = reference.target;
-    else if (IsSubtypeOf(reference.reference_type, scada::id::Aggregates))
-      aggregates_.push_back(reference);
-    else if (IsSubtypeOf(reference.reference_type,
-                         scada::id::NonHierarchicalReferences))
-      references_.push_back(reference);
+    references_.push_back(reference);
 
   } else {
     if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))

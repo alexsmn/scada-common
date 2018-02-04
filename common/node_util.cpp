@@ -1,4 +1,4 @@
-#include "node_ref_util.h"
+#include "common/node_util.h"
 
 #include "common/browse_util.h"
 #include "common/scada_node_ids.h"
@@ -66,8 +66,10 @@ void BrowseNodesRecursive(scada::ViewService& view_service,
       ->Browse(parent_id);
 }
 
-void BrowseAllDevices(NodeService& service, const NodesCallback& callback) {
-  BrowseNodesRecursive(service, id::Devices, id::DeviceType,
+void BrowseAllDevices(scada::ViewService& view_service,
+                      NodeService& node_service,
+                      const NodesCallback& callback) {
+  BrowseNodesRecursive(view_service, node_service, id::Devices, id::DeviceType,
                        [callback](std::vector<NodeRef> devices) {
                          callback(std::move(devices));
                        });
@@ -93,9 +95,9 @@ void BrowseInstanceDeclarations(scada::ViewService& view_service,
             view_service,
             {type_definition_id, scada::BrowseDirection::Inverse,
              scada::id::HasSubtype, true},
-            [&node_service, callback, declarations_ptr, reference_type_id](
-                const scada::Status& status,
-                const scada::ReferenceDescription& reference) {
+            [&view_service, &node_service, callback, declarations_ptr,
+             reference_type_id](const scada::Status& status,
+                                const scada::ReferenceDescription& reference) {
               if (!status) {
                 callback(std::move(*declarations_ptr));
                 return;
@@ -103,7 +105,7 @@ void BrowseInstanceDeclarations(scada::ViewService& view_service,
               // Request supertype's variables.
               const auto& supertype_id = reference.node_id;
               BrowseInstanceDeclarations(
-                  node_service, supertype_id, reference_type_id,
+                  view_service, node_service, supertype_id, reference_type_id,
                   [declarations_ptr,
                    callback](std::vector<NodeRef> super_declarations) {
                     declarations_ptr->insert(declarations_ptr->begin(),

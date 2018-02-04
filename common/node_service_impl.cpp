@@ -3,14 +3,14 @@
 #include <set>
 
 #include "base/bind.h"
+#include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/threading/sequenced_task_runner_handle.h"
-#include "base/logger.h"
+#include "common/node_model_impl.h"
+#include "common/node_observer.h"
+#include "common/node_util.h"
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
-#include "common/node_model_impl.h"
-#include "common/node_ref_observer.h"
-#include "common/node_ref_util.h"
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)) {
@@ -28,7 +28,9 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   return GetNodeImpl(node_id, {});
 }
 
-std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(const scada::NodeId& node_id, const scada::NodeId& depended_id) {
+std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
+    const scada::NodeId& node_id,
+    const scada::NodeId& depended_id) {
   assert(!node_id.is_null());
 
   auto& node = nodes_[node_id];
@@ -44,7 +46,8 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(const scada::NodeId&
   return node;
 }
 
-void NodeServiceImpl::CompletePartialNode(const std::shared_ptr<NodeModelImpl>& node) {
+void NodeServiceImpl::CompletePartialNode(
+    const std::shared_ptr<NodeModelImpl>& node) {
   if (node->fetched_)
     return;
 
@@ -66,11 +69,12 @@ void NodeServiceImpl::CompletePartialNode(const std::shared_ptr<NodeModelImpl>& 
 
     auto callbacks = std::move(node->fetch_callbacks_);
 
-    logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s", fetched_id.ToString().c_str(),
-        node->browse_name_.name().c_str());
+    logger_->WriteF(LogSeverity::Normal, "Fetched node %s: %s",
+                    fetched_id.ToString().c_str(),
+                    node->browse_name_.name().c_str());
 
     std::copy(node->depended_ids_.begin(), node->depended_ids_.end(),
-      std::back_inserter(all_dependent_ids));
+              std::back_inserter(all_dependent_ids));
 
     // Init references.
     for (auto& reference : node->pending_references_)
@@ -99,30 +103,35 @@ void NodeServiceImpl::CompletePartialNode(const std::shared_ptr<NodeModelImpl>& 
   }
 }
 
-void NodeServiceImpl::Browse(const scada::BrowseDescription& description, const BrowseCallback& callback) {
+void NodeServiceImpl::Browse(const scada::BrowseDescription& description,
+                             const BrowseCallback& callback) {
   // TODO: Cache.
 
-  view_service_.Browse({description}, [callback](const scada::Status& status, std::vector<scada::BrowseResult> results) {
-    if (status)
-      callback(status, std::move(results.front().references));
-    else
-      callback(status, {});
-  });
+  view_service_.Browse(
+      {description}, [callback](const scada::Status& status,
+                                std::vector<scada::BrowseResult> results) {
+        if (status)
+          callback(status, std::move(results.front().references));
+        else
+          callback(status, {});
+      });
 }
 
-void NodeServiceImpl::AddObserver(NodeRefObserver& observer) {
+void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
   observers_.AddObserver(&observer);
 }
 
-void NodeServiceImpl::RemoveObserver(NodeRefObserver& observer) {
+void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
   observers_.RemoveObserver(&observer);
 }
 
-void NodeServiceImpl::AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) {
+void NodeServiceImpl::AddNodeObserver(const scada::NodeId& node_id,
+                                      NodeRefObserver& observer) {
   node_observers_[node_id].AddObserver(&observer);
 }
 
-void NodeServiceImpl::RemoveNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer) {
+void NodeServiceImpl::RemoveNodeObserver(const scada::NodeId& node_id,
+                                         NodeRefObserver& observer) {
   node_observers_[node_id].RemoveObserver(&observer);
 }
 
@@ -167,7 +176,8 @@ void NodeServiceImpl::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
     o.OnNodeSemanticChanged(node_id);
 }
 
-const NodeServiceImpl::Observers* NodeServiceImpl::GetNodeObservers(const scada::NodeId& node_id) const {
+const NodeServiceImpl::Observers* NodeServiceImpl::GetNodeObservers(
+    const scada::NodeId& node_id) const {
   auto i = node_observers_.find(node_id);
   return i != node_observers_.end() ? &i->second : nullptr;
 }

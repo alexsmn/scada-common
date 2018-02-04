@@ -4,15 +4,18 @@
 
 #include "base/format.h"
 #include "base/string_util.h"
-#include "base/third_party/dmg_fp/dmg_fp.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/third_party/dmg_fp/dmg_fp.h"
+#include "common/node_util.h"
 #include "common/scada_node_ids.h"
 #include "core/tvq.h"
-#include "common/node_ref_util.h"
 
-void FmtAddMods(const NodeRef& node, scada::Qualifier qualifier, base::string16& text, int flags) {
+void FmtAddMods(const NodeRef& node,
+                scada::Qualifier qualifier,
+                base::string16& text,
+                int flags) {
   base::string16 mods;
 
   if (qualifier.failed())
@@ -21,13 +24,14 @@ void FmtAddMods(const NodeRef& node, scada::Qualifier qualifier, base::string16&
     mods += L'К';
   else if (qualifier.offline())
     mods += L'С';
-    
+
   if (qualifier.manual())
     mods += L'Р';
   else if (qualifier.backup())
     mods += L'2';
 
-  if (IsInstanceOf(node, id::DataItemType) && node[id::DataItemType_Locked].value().get_or(false))
+  if (IsInstanceOf(node, id::DataItemType) &&
+      node[id::DataItemType_Locked].value().get_or(false))
     mods += L'Б';
 
   if (qualifier.stale())
@@ -40,7 +44,8 @@ void FmtAddMods(const NodeRef& node, scada::Qualifier qualifier, base::string16&
     /*if (flags&FORMAT_COLOR) {
       mods.insert(0, "{b");
       mods.append("}");
-    } else*/ {
+    } else*/
+    {
       mods.insert(0, L"[");
       mods.append(L"] ");
     }
@@ -48,36 +53,45 @@ void FmtAddMods(const NodeRef& node, scada::Qualifier qualifier, base::string16&
   text.insert(0, mods);
 }
 
-base::string16 FormatTsValue(const NodeRef& node, const scada::Variant& value, scada::Qualifier qualifier, int flags) {
+base::string16 FormatTsValue(const NodeRef& node,
+                             const scada::Variant& value,
+                             scada::Qualifier qualifier,
+                             int flags) {
   base::string16 text;
-  
+
   bool bool_value;
   if (value.get(bool_value)) {
     auto format = node.target(id::HasTsFormat);
     if (format) {
-      auto pid = bool_value ? id::TsFormatType_CloseLabel : id::TsFormatType_OpenLabel;
+      auto pid =
+          bool_value ? id::TsFormatType_CloseLabel : id::TsFormatType_OpenLabel;
       text = base::SysNativeMBToWide(format[pid].value().get_or(std::string()));
     } else {
       text = bool_value ? kDefaultCloseLabel : kDefaultOpenLabel;
     }
   }
-  
+
   if ((flags & FORMAT_QUALITY) && qualifier.bad())
     text += L'?';
-    
+
   if (flags & FORMAT_STATUS)
     FmtAddMods(node, qualifier, text, flags);
-    
+
   return text;
 }
 
-base::string16 FormatTitValue(const NodeRef& node, const scada::Variant& value, scada::Qualifier qualifier, int flags) {
+base::string16 FormatTitValue(const NodeRef& node,
+                              const scada::Variant& value,
+                              scada::Qualifier qualifier,
+                              int flags) {
   base::string16 text;
 
   double double_value;
   if (value.get(double_value)) {
-    auto format = node[id::AnalogItemType_DisplayFormat].value().get_or(std::string());
-    auto units = node[id::AnalogItemType_EngineeringUnits].value().get_or(std::string());
+    auto format =
+        node[id::AnalogItemType_DisplayFormat].value().get_or(std::string());
+    auto units =
+        node[id::AnalogItemType_EngineeringUnits].value().get_or(std::string());
     text = base::SysNativeMBToWide(FormatFloat(double_value, format.c_str()));
     if ((flags & FORMAT_UNITS) && !units.empty()) {
       text += ' ';
@@ -96,7 +110,10 @@ base::string16 FormatTitValue(const NodeRef& node, const scada::Variant& value, 
   return text;
 }
 
-base::string16 FormatUnknownValue(const NodeRef& node, const scada::Variant& value, scada::Qualifier qualifier, int flags) {
+base::string16 FormatUnknownValue(const NodeRef& node,
+                                  const scada::Variant& value,
+                                  scada::Qualifier qualifier,
+                                  int flags) {
   base::string16 text;
 
   {
@@ -117,7 +134,10 @@ base::string16 FormatUnknownValue(const NodeRef& node, const scada::Variant& val
   return text;
 }
 
-base::string16 FormatValue(const NodeRef& node, const scada::Variant& value, scada::Qualifier qualifier, int flags) {
+base::string16 FormatValue(const NodeRef& node,
+                           const scada::Variant& value,
+                           scada::Qualifier qualifier,
+                           int flags) {
   if (IsInstanceOf(node, id::DiscreteItemType))
     return FormatTsValue(node, value, qualifier, flags);
   else if (IsInstanceOf(node, id::AnalogItemType))

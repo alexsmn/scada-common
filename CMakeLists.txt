@@ -13,7 +13,6 @@ add_subdirectory("${deps}/googletest" gtest)
 add_subdirectory("${deps}/icu" icu)
 add_subdirectory("${deps}/chromebase" chromebase)
 add_subdirectory("${deps}/express" express)
-add_subdirectory(memdb)
 add_subdirectory("${deps}/net" net)
 
 add_subdirectory(base)

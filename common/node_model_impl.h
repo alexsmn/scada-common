@@ -36,13 +36,14 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   virtual NodeRef GetDataType() const override;
   virtual NodeRef GetAggregate(
       const scada::QualifiedName& aggregate_name) const override;
-  virtual std::vector<NodeRef> GetAggregates(
-      const scada::NodeId& reference_type_id) const override;
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override;
   virtual std::vector<NodeRef> GetTargets(
-      const scada::NodeId& reference_type_id) const override;
-  virtual std::vector<NodeRef::Reference> GetReferences() const override;
+      const scada::NodeId& reference_type_id,
+      bool forward) const override;
+  virtual std::vector<NodeRef::Reference> GetReferences(
+      const scada::NodeId& reference_type_id,
+      bool forward) const override;
   virtual NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
@@ -73,13 +74,10 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   scada::Variant value_;
   scada::Status status_{scada::StatusCode::Good};
 
-  std::vector<NodeModelImplReference> aggregates_;
-  // Instance-only.
-  std::shared_ptr<const NodeModelImpl> type_definition_;
-  // Type-only.
-  std::shared_ptr<const NodeModelImpl> supertype_;
-  // Forward non-hierarchical.
   std::vector<NodeModelImplReference> references_;
+
+  std::shared_ptr<const NodeModelImpl> type_definition_;
+  std::shared_ptr<const NodeModelImpl> supertype_;
   std::shared_ptr<const NodeModelImpl> data_type_;
 
   std::shared_ptr<const Logger> logger_;

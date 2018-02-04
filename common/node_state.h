@@ -19,9 +19,9 @@ struct NodeState {
   NodeId parent_id;
   NodeId reference_type_id;
   NodeAttributes attributes;
-  NodeId super_type_id;
   NodeProperties properties;
   std::vector<ReferenceDescription> references;
+  NodeId super_type_id;
   std::vector<NodeState> children;
 };
 

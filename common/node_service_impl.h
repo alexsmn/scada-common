@@ -30,8 +30,8 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void AddObserver(NodeRefObserver& observer) override;
-  virtual void RemoveObserver(NodeRefObserver& observer) override;
+  virtual void Subscribe(NodeRefObserver& observer) const override;
+  virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  private:
   using BrowseCallback =
@@ -63,7 +63,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void OnReferenceDeleted(const scada::NodeId& node_id) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
-  Observers observers_;
+  mutable Observers observers_;
   std::map<scada::NodeId, Observers> node_observers_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;

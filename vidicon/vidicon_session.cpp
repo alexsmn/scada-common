@@ -3,6 +3,7 @@
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
 #include "core/monitored_item.h"
+#include "core/standard_node_ids.h"
 #include "vidicon/vidicon_monitored_data_point.h"
 #include "vidicon/vidicon_monitored_events.h"
 
@@ -72,7 +73,7 @@ std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
   }
 
   if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
-    assert(read_value_id.node_id.is_null());
+    assert(read_value_id.node_id == scada::id::RootFolder);
     return std::make_unique<VidiconMonitoredEvents>();
   }
 

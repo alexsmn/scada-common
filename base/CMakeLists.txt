@@ -9,5 +9,5 @@ endif()
 
 add_library(scada_base ${sources})
 
-target_include_directories(scada_base PUBLIC ".." ${Boost_INCLUDE_DIRS})
-target_link_libraries(scada_base PUBLIC base ${Boost_LIBRARIES})
+target_include_directories(scada_base PUBLIC "..")
+target_link_libraries(scada_base PUBLIC base Boost::boost Boost::diagnostic_definitions)

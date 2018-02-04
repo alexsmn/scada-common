@@ -5,12 +5,12 @@
 #include <set>
 
 #include "base/time/time.h"
+#include "common/node_ref.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
-#include "timed_data/timed_vq_map.h"
 #include "timed_data/timed_data_delegate.h"
-#include "common/node_ref.h"
+#include "timed_data/timed_vq_map.h"
 
 namespace rt {
 
@@ -36,7 +36,7 @@ class TimedData {
 
   base::Time from() const { return from_; }
   base::Time ready_from() const { return ready_from_; }
-  
+
   const TimedVQMap& values() const { return map_; }
 
   scada::DataValue GetValueAt(const base::Time& time) const;
@@ -52,8 +52,9 @@ class TimedData {
   virtual void Acknowledge() {}
   // Write item value.
   typedef std::function<void(const scada::Status&)> StatusCallback;
-  virtual void Write(double value, const scada::WriteFlags& flags,
-                        const StatusCallback& callback) const;
+  virtual void Write(double value,
+                     const scada::WriteFlags& flags,
+                     const StatusCallback& callback) const;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const StatusCallback& callback) const;
@@ -66,16 +67,16 @@ class TimedData {
   void UpdateReadyFrom(base::Time time);
   // Used when data is disconnected.
   void ResetReadyFrom();
-  
+
   void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
   void NotifyDataReady();
   void NotifyPropertyChanged(const PropertySet& properties);
   void NotifyEventsChanged(const events::EventSet& events);
-  
+
   bool UpdateCurrent(const scada::DataValue& tvq);
   bool UpdateMap(const scada::DataValue& tvq);
 
-	void ClearRange(base::Time from, base::Time to);
+  void ClearRange(base::Time from, base::Time to);
 
   void Delete();
   void Failed();
@@ -84,7 +85,7 @@ class TimedData {
   bool alerting_;
 
   // |from_| parameter was changed. Data needs to be updated.
-  virtual void OnFromChanged() { }
+  virtual void OnFromChanged() {}
 
   scada::DataValue current_;
   base::Time change_time_;
@@ -99,9 +100,9 @@ class TimedData {
   // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
   base::Time ready_from_;
 
-	TimedVQMap map_;
+  TimedVQMap map_;
 
   DISALLOW_COPY_AND_ASSIGN(TimedData);
 };
 
-} // namespace rt
+}  // namespace rt

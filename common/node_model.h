@@ -23,16 +23,17 @@ class NodeModel {
 
   virtual NodeRef GetAggregate(
       const scada::QualifiedName& aggregate_name) const = 0;
-  virtual std::vector<NodeRef> GetAggregates(
-      const scada::NodeId& reference_type_id) const = 0;
 
-  virtual std::vector<NodeRef::Reference> GetReferences() const = 0;
+  virtual std::vector<NodeRef::Reference> GetReferences(
+      const scada::NodeId& reference_type_id,
+      bool forward) const = 0;
 
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const = 0;
 
   virtual std::vector<NodeRef> GetTargets(
-      const scada::NodeId& reference_type_id) const = 0;
+      const scada::NodeId& reference_type_id,
+      bool forward) const = 0;
 
   virtual NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const = 0;
