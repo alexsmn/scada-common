@@ -2,8 +2,8 @@
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
-#include "common/node_ref_util.h"
 #include "common/node_service_impl.h"
+#include "common/node_util.h"
 #include "core/attribute_service.h"
 
 namespace {
@@ -21,16 +21,20 @@ NodeModelImpl::NodeModelImpl(NodeServiceImpl& service,
                              std::shared_ptr<const Logger> logger)
     : service_{service}, id_{std::move(id)}, logger_{std::move(logger)} {}
 
+NodeFetchStatus NodeModelImpl::GetFetchStatus() const {
+  return fetch_status_;
+}
+
 NodeRef NodeModelImpl::GetAggregateDeclaration(
     const scada::NodeId& aggregate_declaration_id) const {
-  if (!fetched_ || !status_)
+  if (!fetch_status_.node_fetched || !status_)
     return nullptr;
 
   assert(node_class_.has_value());
   auto* type_definition =
       scada::IsTypeDefinition(*node_class_) ? this : type_definition_.get();
   for (; type_definition; type_definition = type_definition->supertype_.get()) {
-    assert(type_definition->fetched_);
+    assert(type_definition->fetch_status_.node_fetched);
     const auto& declarations = type_definition->references_;
     auto i = std::find_if(
         declarations.begin(), declarations.end(),
@@ -47,14 +51,14 @@ NodeRef NodeModelImpl::GetAggregateDeclaration(
 
 NodeRef NodeModelImpl::GetAggregate(
     const scada::QualifiedName& aggregate_name) const {
-  if (!fetched_)
+  if (!fetch_status_.node_fetched)
     return nullptr;
 
   auto i = std::find_if(
       references_.begin(), references_.end(),
       [aggregate_name](const NodeModelImplReference& reference) {
-        assert(reference.reference_type->fetched_);
-        assert(reference.target->fetched_);
+        assert(reference.reference_type->fetch_status_.node_fetched);
+        assert(reference.target->fetch_status_.node_fetched);
         return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
                reference.target->browse_name_ == aggregate_name;
       });
@@ -63,7 +67,7 @@ NodeRef NodeModelImpl::GetAggregate(
 
 NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
                                  bool forward) const {
-  if (!fetched_)
+  if (!fetch_status_.node_fetched)
     return nullptr;
 
   if (forward) {
@@ -71,7 +75,7 @@ NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
       return type_definition_;
 
     for (auto& ref : references_) {
-      assert(ref.reference_type->fetched_);
+      assert(ref.reference_type->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
         return ref.target;
     }
@@ -93,14 +97,14 @@ std::vector<NodeRef> NodeModelImpl::GetTargets(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef> result;
-  if (!fetched_)
+  if (!fetch_status_.node_fetched)
     return result;
 
   if (forward) {
     result.reserve(references_.size());
     for (auto& ref : references_) {
-      assert(ref.reference_type->fetched_);
-      assert(ref.target->fetched_);
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
         result.emplace_back(ref.target);
     }
@@ -113,14 +117,14 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef::Reference> result;
-  if (!fetched_)
+  if (!fetch_status_.node_fetched)
     return result;
 
   if (forward) {
     result.reserve(references_.size());
     for (auto& ref : references_) {
-      assert(ref.reference_type->fetched_);
-      assert(ref.target->fetched_);
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
         result.push_back({ref.reference_type, ref.target, ref.forward});
     }
@@ -129,10 +133,11 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
   return result;
 }
 
-void NodeModelImpl::Fetch(const NodeRef::FetchCallback& callback) const {
-  if (fetched_) {
+void NodeModelImpl::Fetch(const NodeFetchStatus& requested_status,
+                          const FetchCallback& callback) const {
+  if (fetch_status_.node_fetched) {
     if (callback)
-      callback(shared_from_this());
+      callback();
     return;
   }
 
@@ -173,13 +178,13 @@ scada::Variant NodeModelImpl::GetAttribute(
                  : scada::Variant{};
 
     case scada::AttributeId::BrowseName:
-      if (!fetched_ || !status_)
+      if (!fetch_status_.node_fetched || !status_)
         return scada::QualifiedName{id_.ToString()};
       assert(!browse_name_.empty());
       return browse_name_;
 
     case scada::AttributeId::DisplayName:
-      if (!fetched_)
+      if (!fetch_status_.node_fetched)
         return scada::ToLocalizedText(id_.ToString());
       if (!status_)
         return scada::ToLocalizedText(ToString16(status_));
@@ -356,7 +361,7 @@ void NodeModelImpl::AddReference(const NodeModelImplReference& reference) {
 
 bool NodeModelImpl::IsNodeFetched(
     std::vector<scada::NodeId>& fetched_node_ids) const {
-  if (fetched_)
+  if (fetch_status_.node_fetched)
     return true;
 
   if (passing_)

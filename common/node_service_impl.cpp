@@ -37,10 +37,10 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
 
   if (!node) {
     node = std::make_shared<NodeModelImpl>(*this, node_id, logger_);
-    node->Fetch(nullptr);
+    node->Fetch(NodeFetchStatus::NodeOnly(), nullptr);
   }
 
-  if (!node->fetched_ && !depended_id.is_null())
+  if (!node->fetch_status_.node_fetched && !depended_id.is_null())
     node->depended_ids_.emplace_back(depended_id);
 
   return node;
@@ -48,7 +48,7 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
 
 void NodeServiceImpl::CompletePartialNode(
     const std::shared_ptr<NodeModelImpl>& node) {
-  if (node->fetched_)
+  if (node->fetch_status_.node_fetched)
     return;
 
   std::vector<scada::NodeId> fetched_node_ids;
@@ -62,7 +62,7 @@ void NodeServiceImpl::CompletePartialNode(
       continue;
 
     auto node = i->second;
-    assert(!node->fetched_);
+    assert(!node->fetch_status_.node_fetched);
     assert(node->pending_request_count_ == 0);
     assert(!node->status_ || node->node_class_.has_value());
     assert(!node->status_ || !node->browse_name_.empty());
@@ -82,7 +82,7 @@ void NodeServiceImpl::CompletePartialNode(
     node->pending_references_.clear();
     node->pending_references_.shrink_to_fit();
 
-    node->fetched_ = true;
+    node->fetch_status_.node_fetched = true;
 
     for (auto& o : observers_)
       o.OnNodeSemanticChanged(fetched_id);
@@ -93,7 +93,7 @@ void NodeServiceImpl::CompletePartialNode(
     }
 
     for (auto& callback : callbacks)
-      callback(node);
+      callback();
   }
 
   for (auto& depended_id : all_dependent_ids) {

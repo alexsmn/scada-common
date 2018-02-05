@@ -6,8 +6,8 @@
 #include "timed_data/expression_timed_data.h"
 #include "timed_data/scada_expression.h"
 #include "timed_data/timed_data_service.h"
-#include "common/node_ref_format.h"
-#include "common/node_ref_util.h"
+#include "common/node_format.h"
+#include "common/node_util.h"
 
 namespace {
 const base::char16 kUnknownTitle[] = L"#»Ãﬂ?";

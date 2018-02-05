@@ -13,8 +13,11 @@ class NodeModel {
 
   virtual scada::Status GetStatus() const = 0;
 
-  virtual bool IsFetched() const = 0;
-  virtual void Fetch(const NodeRef::FetchCallback& callback) const = 0;
+  virtual NodeFetchStatus GetFetchStatus() const = 0;
+
+  using FetchCallback = std::function<void()>;
+  virtual void Fetch(const NodeFetchStatus& requested_status,
+                     const FetchCallback& callback) const = 0;
 
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const = 0;

@@ -7,7 +7,7 @@
 #include "timed_data/timed_data.h"
 #include "timed_data/timed_data_context.h"
 #include "common/event_observer.h"
-#include "common/node_ref_observer.h"
+#include "common/node_observer.h"
 
 namespace scada {
 class EventService;
@@ -52,7 +52,7 @@ class TimedDataImpl : public TimedData,
 
   void OnChannelData(const scada::DataValue& data_value);
 
-  // scada::NodeObserver
+  // scada::NodeRefObserver
   virtual void OnModelChange(const ModelChangeEvent& event) override;
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) override;
 

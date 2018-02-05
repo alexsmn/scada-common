@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/node_fetch_status.h"
 #include "core/attribute_ids.h"
 #include "core/node_class.h"
-#include "core/standard_node_ids.h"
 #include "core/status.h"
 #include "core/variant.h"
 
@@ -22,9 +22,11 @@ class NodeRef {
 
   scada::Status status() const;
 
+  NodeFetchStatus fetch_status() const;
   bool fetched() const;
   using FetchCallback = std::function<void(const NodeRef& node)>;
-  void Fetch(const FetchCallback& callback) const;
+  void Fetch(const NodeFetchStatus& requested_status,
+             const FetchCallback& callback) const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 
@@ -56,8 +58,8 @@ class NodeRef {
   NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const;
 
-  void Subscribe(NodeRefObserver& observer);
-  void Unsubscribe(NodeRefObserver& observer);
+  void Subscribe(NodeRefObserver& observer) const;
+  void Unsubscribe(NodeRefObserver& observer) const;
 
   NodeRef operator[](const scada::QualifiedName& aggregate_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
@@ -68,6 +70,8 @@ class NodeRef {
   bool operator!=(const NodeRef& other) const { return !operator==(other); }
 
   bool operator<(const NodeRef& other) const { return id() < other.id(); }
+
+  const std::shared_ptr<const NodeModel>& model() const { return model_; }
 
  private:
   std::shared_ptr<const NodeModel> model_;

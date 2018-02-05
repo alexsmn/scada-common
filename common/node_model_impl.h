@@ -29,8 +29,9 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
 
   // NodeModel
   virtual scada::Status GetStatus() const override;
-  virtual bool IsFetched() const override { return fetched_; }
-  virtual void Fetch(const NodeRef::FetchCallback& callback) const override;
+  virtual NodeFetchStatus GetFetchStatus() const override;
+  virtual void Fetch(const NodeFetchStatus& requested_status,
+                     const FetchCallback& callback) const override;
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override;
   virtual NodeRef GetDataType() const override;
@@ -66,7 +67,7 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   NodeServiceImpl& service_;
   const scada::NodeId id_;
 
-  bool fetched_ = false;
+  NodeFetchStatus fetch_status_{};
 
   std::optional<scada::NodeClass> node_class_;
   scada::QualifiedName browse_name_;
@@ -83,7 +84,7 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   std::shared_ptr<const Logger> logger_;
   mutable unsigned pending_request_count_ = 0;
   std::vector<scada::NodeId> depended_ids_;
-  mutable std::vector<NodeRef::FetchCallback> fetch_callbacks_;
+  mutable std::vector<FetchCallback> fetch_callbacks_;
   mutable bool passing_ = false;
   std::vector<NodeModelImplReference> pending_references_;
 
