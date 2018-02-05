@@ -55,9 +55,6 @@ class NodeRef {
   // Non-hierarchical references.
   std::vector<Reference> references() const;
 
-  NodeRef GetAggregateDeclaration(
-      const scada::NodeId& aggregate_declaration_id) const;
-
   void Subscribe(NodeRefObserver& observer) const;
   void Unsubscribe(NodeRefObserver& observer) const;
 

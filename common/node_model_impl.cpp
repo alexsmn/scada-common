@@ -50,6 +50,20 @@ NodeRef NodeModelImpl::GetAggregateDeclaration(
 }
 
 NodeRef NodeModelImpl::GetAggregate(
+    const scada::NodeId& aggregate_declaration_id) const {
+  auto aggregate_declaration =
+      GetAggregateDeclaration(aggregate_declaration_id);
+  if (!aggregate_declaration)
+    return nullptr;
+
+  assert(node_class_.has_value());
+  if (scada::IsTypeDefinition(node_class_.value()))
+    return aggregate_declaration;
+  else
+    return GetAggregate(aggregate_declaration.browse_name());
+}
+
+NodeRef NodeModelImpl::GetAggregate(
     const scada::QualifiedName& aggregate_name) const {
   if (!fetch_status_.node_fetched)
     return nullptr;
@@ -111,6 +125,26 @@ std::vector<NodeRef> NodeModelImpl::GetTargets(
   }
 
   return result;
+}
+
+NodeRef::Reference NodeModelImpl::GetReference(
+    const scada::NodeId& reference_type_id,
+    bool forward) const {
+  std::vector<NodeRef::Reference> result;
+  if (!fetch_status_.node_fetched)
+    return {};
+
+  if (forward) {
+    result.reserve(references_.size());
+    for (auto& ref : references_) {
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        return {ref.reference_type, ref.target, ref.forward};
+    }
+  }
+
+  return {};
 }
 
 std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(

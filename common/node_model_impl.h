@@ -36,17 +36,20 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
       scada::AttributeId attribute_id) const override;
   virtual NodeRef GetDataType() const override;
   virtual NodeRef GetAggregate(
+      const scada::NodeId& aggregate_declaration_id) const override;
+  virtual NodeRef GetAggregate(
       const scada::QualifiedName& aggregate_name) const override;
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override;
   virtual std::vector<NodeRef> GetTargets(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
+  virtual NodeRef::Reference GetReference(
+      const scada::NodeId& reference_type_id,
+      bool forward) const override;
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
-  virtual NodeRef GetAggregateDeclaration(
-      const scada::NodeId& aggregate_declaration_id) const override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
@@ -61,6 +64,9 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
 
   bool IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) const;
   bool IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids) const;
+
+  NodeRef GetAggregateDeclaration(
+      const scada::NodeId& aggregate_declaration_id) const;
 
   void SetError(const scada::Status& status);
 

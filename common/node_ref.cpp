@@ -91,25 +91,11 @@ NodeRef NodeRef::data_type() const {
 
 NodeRef NodeRef::operator[](
     const scada::NodeId& aggregate_declaration_id) const {
-  if (!model_)
-    return nullptr;
-
-  auto aggregate_declaration =
-      model_->GetAggregateDeclaration(aggregate_declaration_id);
-  if (!aggregate_declaration)
-    return nullptr;
-
-  return model_->GetAggregate(aggregate_declaration.browse_name());
+  return model_ ? model_->GetAggregate(aggregate_declaration_id) : nullptr;
 }
 
 NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
   return model_ ? model_->GetAggregate(aggregate_name) : NodeRef{};
-}
-
-NodeRef NodeRef::GetAggregateDeclaration(
-    const scada::NodeId& aggregate_declaration_id) const {
-  return model_ ? model_->GetAggregateDeclaration(aggregate_declaration_id)
-                : nullptr;
 }
 
 void NodeRef::Fetch(const NodeFetchStatus& requested_status,
