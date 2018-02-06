@@ -14,9 +14,9 @@
 
 namespace rt {
 
+class PropertySet;
 class TimedDataCache;
 class TimedDataDelegate;
-class PropertySet;
 class TimedDataSpec;
 
 extern const char kConnectingName[];
