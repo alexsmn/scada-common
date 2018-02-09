@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "timed_data/timed_data.h"
-#include "timed_data/timed_data_delegate.h"
 
 class TimedDataService;
 
@@ -12,8 +11,7 @@ namespace rt {
 
 class ScadaExpression;
 
-class ExpressionTimedData : public TimedData,
-                            protected TimedDataDelegate {
+class ExpressionTimedData : public TimedData {
  public:
   ExpressionTimedData(TimedDataService& timed_data_service,
                       std::unique_ptr<ScadaExpression> expression);
@@ -29,14 +27,12 @@ class ExpressionTimedData : public TimedData,
   virtual void OnFromChanged() override;
 
   // TimedDataEvents
-  virtual void OnPropertyChanged(rt::TimedDataSpec& spec,
-                                 const rt::PropertySet& properties) override;
-  virtual void OnTimedDataCorrections(TimedDataSpec& spec, size_t count,
-                                      const scada::DataValue* tvqs) override;
-  virtual void OnTimedDataReady(TimedDataSpec& spec) override;
-  virtual void OnTimedDataNodeModified(rt::TimedDataSpec& spec,
-                                       const scada::PropertyIds& property_ids) override;
-  virtual void OnTimedDataDeleted(TimedDataSpec& spec) override;
+  void OnPropertyChanged(rt::TimedDataSpec& spec,
+                         const rt::PropertySet& properties);
+  void OnTimedDataCorrections(TimedDataSpec& spec,
+                              size_t count,
+                              const scada::DataValue* tvqs);
+  void OnTimedDataReady(TimedDataSpec& spec);
 
  private:
   typedef std::vector<TimedDataSpec> OperandVector;
@@ -49,11 +45,13 @@ class ExpressionTimedData : public TimedData,
   // Returns false if ready range was not changed.
   bool CalculateReadyRange();
 
-  void CalculateRange(base::Time from, base::Time to, std::vector<scada::DataValue>* tvqs);
+  void CalculateRange(base::Time from,
+                      base::Time to,
+                      std::vector<scada::DataValue>* tvqs);
   bool CalculateCurrent();
 
   std::unique_ptr<ScadaExpression> expression_;
   OperandVector operands_;
 };
 
-} // namespace rt
+}  // namespace rt

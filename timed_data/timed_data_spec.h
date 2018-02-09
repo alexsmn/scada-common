@@ -31,15 +31,11 @@ class TimedDataSpec {
   explicit TimedDataSpec(std::shared_ptr<TimedData> data);
   ~TimedDataSpec();
 
-  void set_delegate(TimedDataDelegate* delegate) { delegate_ = delegate; }
-
   // Specify |kTimedDataCurrentOnly| to get only current values.
   void SetFrom(base::Time from);
 
   void Connect(TimedDataService& service, const std::string& formula);
   void Connect(TimedDataService& service, const scada::NodeId& node_id);
-
-  TimedDataDelegate* delegate() const { return delegate_; }
 
   const std::string& formula() const { return formula_; }
   bool alerting() const;
@@ -84,7 +80,13 @@ class TimedDataSpec {
 
   bool operator==(const TimedDataSpec& other) const;
 
-  void* param;
+  std::function<void(size_t count, const scada::DataValue* tvqs)>
+      correction_handler;
+  std::function<void()> ready_handler;
+  std::function<void()> node_modified_handler;
+  std::function<void()> deletion_handler;
+  std::function<void()> event_change_handler;
+  std::function<void(const PropertySet& properties)> property_change_handler;
 
  private:
   friend class ExpressionTimedData;
@@ -98,8 +100,6 @@ class TimedDataSpec {
 
   // TODO: Move into TimedData.
   std::string formula_;
-
-  TimedDataDelegate* delegate_ = nullptr;
 };
 
 }  // namespace rt

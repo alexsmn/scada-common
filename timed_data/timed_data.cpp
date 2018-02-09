@@ -1,9 +1,9 @@
 #include "timed_data.h"
 
 #include "base/format.h"
+#include "common/event_manager.h"
 #include "core/monitored_item_service.h"
 #include "timed_data/timed_data_spec.h"
-#include "common/event_manager.h"
 
 namespace rt {
 
@@ -15,8 +15,7 @@ const base::Time kTimedDataCurrentOnly =
 TimedData::TimedData()
     : alerting_(false),
       from_(kTimedDataCurrentOnly),
-      ready_from_(kTimedDataCurrentOnly) {
-}
+      ready_from_(kTimedDataCurrentOnly) {}
 
 TimedData::~TimedData() {
   assert(specs_.empty());
@@ -34,9 +33,7 @@ scada::DataValue TimedData::GetValueAt(const base::Time& time) const {
   if (i == map_.end())
     return scada::DataValue();
 
-  return scada::DataValue(i->second.vq.value,
-                          i->second.vq.qualifier,
-                          i->first,
+  return scada::DataValue(i->second.vq.value, i->second.vq.qualifier, i->first,
                           i->second.collection_time);
 }
 
@@ -53,7 +50,7 @@ void TimedData::Unsubscribe(TimedDataSpec& spec) {
 void TimedData::SetFrom(base::Time time) {
   if (time >= from_)
     return;
-  
+
   // When data switches from current-only to historical, add current value
   // into historical values.
   if (!historical() && !current_.source_timestamp.is_null())
@@ -78,7 +75,8 @@ void TimedData::ResetReadyFrom() {
   ready_from_ = kTimedDataCurrentOnly;
 }
 
-void TimedData::Write(double value, const scada::WriteFlags& flags,
+void TimedData::Write(double value,
+                      const scada::WriteFlags& flags,
                       const StatusCallback& callback) const {
   if (callback)
     callback(scada::StatusCode::Bad_WrongMethodId);
@@ -98,21 +96,19 @@ void TimedData::Delete() {
   while (!specs_.empty()) {
     TimedDataSpec& spec = **specs_.begin();
     spec.Reset();
-    if (spec.delegate())
-      spec.delegate()->OnTimedDataDeleted(spec);
+    if (spec.deletion_handler)
+      spec.deletion_handler();
   }
 }
 
 void TimedData::Failed() {
   // notify specs
-  PropertySet changed_mask(PROPERTY_ITEM |
-                                     PROPERTY_TITLE |
-                                     PROPERTY_CURRENT);
+  PropertySet changed_mask(PROPERTY_ITEM | PROPERTY_TITLE | PROPERTY_CURRENT);
   while (!specs_.empty()) {
     TimedDataSpec& spec = **specs_.begin();
     spec.Reset();
-    if (spec.delegate())
-      spec.delegate()->OnPropertyChanged(spec, changed_mask);
+    if (spec.property_change_handler)
+      spec.property_change_handler(changed_mask);
   }
 }
 
@@ -125,13 +121,14 @@ bool CheckTvqsSorted(size_t count, const scada::DataValue* tvqs) {
   return true;
 }
 
-void TimedData::NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs) {
+void TimedData::NotifyTimedDataCorrection(size_t count,
+                                          const scada::DataValue* tvqs) {
   assert(count > 0);
   assert(CheckTvqsSorted(count, tvqs));
-  
-  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end(); ) {
+
+  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
     TimedDataSpec& spec = **i++;
-    if (spec.delegate() && spec.historical()) {
+    if (spec.correction_handler && spec.historical()) {
       // For each spec find range it's subscribed on.
       size_t spec_count = count;
       const scada::DataValue* spec_tvqs = tvqs;
@@ -140,34 +137,34 @@ void TimedData::NotifyTimedDataCorrection(size_t count, const scada::DataValue* 
         --spec_count;
       }
       if (spec_count)
-        spec.delegate()->OnTimedDataCorrections(spec, spec_count, spec_tvqs);
+        spec.correction_handler(spec_count, spec_tvqs);
     }
   }
 }
 
 void TimedData::NotifyPropertyChanged(const PropertySet& properties) {
-  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end(); ) {
+  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
     TimedDataSpec& spec = **i++;
-    if (spec.delegate())
-      spec.delegate()->OnPropertyChanged(spec, properties);
+    if (spec.property_change_handler)
+      spec.property_change_handler(properties);
   }
 }
 
 void TimedData::NotifyDataReady() {
-  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end(); ) {
+  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
     TimedDataSpec& spec = **i++;
-    if (spec.delegate() && spec.historical())
-      spec.delegate()->OnTimedDataReady(spec);
+    if (spec.ready_handler && spec.historical())
+      spec.ready_handler();
   }
 }
 
 void TimedData::NotifyEventsChanged(const events::EventSet& events) {
   assert(alerting_ == !events.empty());
 
-  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end(); ) {
+  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
     TimedDataSpec& spec = **i++;
-    if (spec.delegate())
-      spec.delegate()->OnEventsChanged(spec, events);
+    if (spec.event_change_handler)
+      spec.event_change_handler();
   }
 }
 
@@ -189,8 +186,8 @@ bool TimedData::UpdateCurrent(const scada::DataValue& value) {
   if (value == current_)
     return false;
 
-  bool is_change = current_.value != value.value ||
-                   current_.qualifier != value.qualifier;
+  bool is_change =
+      current_.value != value.value || current_.qualifier != value.qualifier;
 
   // Add new point with time of last change.
   if (historical() && is_change && !value.source_timestamp.is_null())
@@ -204,18 +201,18 @@ bool TimedData::UpdateCurrent(const scada::DataValue& value) {
 }
 
 void TimedData::ClearRange(base::Time from, base::Time to) {
-	assert(!from.is_null());
-	assert(to.is_null() || from <= to);
+  assert(!from.is_null());
+  assert(to.is_null() || from <= to);
 
-	TimedVQMap::iterator i = map_.lower_bound(from);
-	if (i == map_.end())
-		return;
+  TimedVQMap::iterator i = map_.lower_bound(from);
+  if (i == map_.end())
+    return;
 
-	assert(i->first >= from);
+  assert(i->first >= from);
 
-	TimedVQMap::iterator j = to.is_null() ? map_.end() : map_.lower_bound(to);
+  TimedVQMap::iterator j = to.is_null() ? map_.end() : map_.lower_bound(to);
 
-	map_.erase(i, j);
+  map_.erase(i, j);
 }
 
-} // namespace rt
+}  // namespace rt

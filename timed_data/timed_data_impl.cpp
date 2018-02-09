@@ -163,11 +163,10 @@ void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
   NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
   // Notify specs.
-  scada::PropertyIds property_ids;
   for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
     TimedDataSpec& spec = **i++;
-    if (spec.delegate())
-      spec.delegate()->OnTimedDataNodeModified(spec, property_ids);
+    if (spec.node_modified_handler)
+      spec.node_modified_handler();
   }
 }
 
