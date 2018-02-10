@@ -1,6 +1,14 @@
 #pragma once
 
-#include <boost/asio/io_service.hpp>
+#include "core/node_id.h"
+#include "base/strings/string_piece.h"
+#include "common/aliases.h"
+
+namespace boost {
+namespace asio {
+class io_context;
+}
+}  // namespace boost
 
 namespace events {
 class EventManager;
@@ -8,20 +16,22 @@ class EventManager;
 
 namespace scada {
 class AttributeService;
-class MethodService;
-class MonitoredItemService;
+class Configuration;
 class EventService;
 class HistoryService;
+class MethodService;
+class MonitoredItemService;
 }
 
 class NodeService;
 
 struct TimedDataContext {
-  boost::asio::io_service& io_service_;
+  boost::asio::io_context& io_context_;
+  const AliasResolver alias_resolver_;
   NodeService& node_service_;
-  scada::MonitoredItemService& realtime_service_;
   scada::AttributeService& attribute_service_;
   scada::MethodService& method_service_;
+  scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;
   events::EventManager& event_manager_;

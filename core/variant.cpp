@@ -285,7 +285,11 @@ NodeId Variant::data_type_id() const {
 }
 
 }  // namespace scada
+
 std::string ToString(const scada::Variant& value) {
   return value.get_or(std::string{});
 }
 
+base::string16 ToString16(const scada::Variant& value) {
+  return value.get_or(base::string16{});
+}

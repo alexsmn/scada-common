@@ -1,20 +1,36 @@
 #pragma once
 
+#include "base/memory/weak_ptr.h"
+#include "base/timed_cache.h"
 #include "timed_data/timed_data_context.h"
 #include "timed_data/timed_data_service.h"
 
-namespace rt {
+class AliasTimedData;
+template <class Key, class Value>
 class TimedDataCache;
+
+namespace rt {
+class TimedDataImpl;
 }
 
-class TimedDataServiceImpl : public TimedDataService,
-                             private TimedDataContext {
+class TimedDataServiceImpl final : private TimedDataContext,
+                                   public TimedDataService {
  public:
-  explicit TimedDataServiceImpl(const TimedDataContext& context);
+  explicit TimedDataServiceImpl(TimedDataContext&& context);
   virtual ~TimedDataServiceImpl();
 
-  virtual std::shared_ptr<rt::TimedData> GetNodeTimedData(const scada::NodeId& node_id) override;
+  virtual std::shared_ptr<rt::TimedData> GetFormulaTimedData(
+      base::StringPiece formula) final;
+  virtual std::shared_ptr<rt::TimedData> GetNodeTimedData(
+      const scada::NodeId& node_id) final;
 
  private:
-  std::unique_ptr<rt::TimedDataCache> timed_data_cache_;
+  std::shared_ptr<rt::TimedData> GetAliasTimedData(base::StringPiece alias);
+
+  TimedCache<scada::NodeId, std::shared_ptr<rt::TimedDataImpl>> node_id_cache_;
+  TimedCache<std::string, std::shared_ptr<AliasTimedData>> alias_cache_;
+
+  const std::shared_ptr<rt::TimedData> null_timed_data_;
+
+  base::WeakPtrFactory<TimedDataServiceImpl> weak_ptr_factory_{this};
 };

@@ -12,6 +12,7 @@
 #include "core/status.h"
 #include "timed_data/timed_data.h"
 #include "timed_data/timed_data_delegate.h"
+#include "timed_data/timed_data_property.h"
 #include "timed_data/timed_vq_map.h"
 
 class TimedDataService;
@@ -24,20 +25,21 @@ namespace rt {
 
 class TimedData;
 
-class TimedDataSpec {
+class TimedDataSpec : private TimedDataDelegate {
  public:
   TimedDataSpec();
   TimedDataSpec(const TimedDataSpec& other);
-  explicit TimedDataSpec(std::shared_ptr<TimedData> data);
+  TimedDataSpec(std::shared_ptr<TimedData> data);
   ~TimedDataSpec();
 
   // Specify |kTimedDataCurrentOnly| to get only current values.
   void SetFrom(base::Time from);
 
-  void Connect(TimedDataService& service, const std::string& formula);
+  void Connect(TimedDataService& service, base::StringPiece formula);
   void Connect(TimedDataService& service, const scada::NodeId& node_id);
+  void Connect(TimedDataService& service, const NodeRef& node);
 
-  const std::string& formula() const { return formula_; }
+  std::string formula() const;
   bool alerting() const;
   bool connected() const { return !!data_; }
   base::Time from() const { return from_; }
@@ -63,7 +65,7 @@ class TimedDataSpec {
   base::string16 GetTitle() const;
   const events::EventSet* GetEvents() const;
 
-  void Reset() { SetData(NULL, false); }
+  void Reset() { SetData(nullptr); }
 
   // Acknowledge all active events related to this data.
   void Acknowledge() const;
@@ -89,17 +91,20 @@ class TimedDataSpec {
   std::function<void(const PropertySet& properties)> property_change_handler;
 
  private:
-  friend class ExpressionTimedData;
-  friend class TimedData;
+  void SetData(std::shared_ptr<TimedData> data);
 
-  void SetData(std::shared_ptr<TimedData> data, bool update);
+  // TimedDataDelegate
+  virtual void OnTimedDataCorrections(size_t count,
+                                      const scada::DataValue* tvqs) final;
+  virtual void OnTimedDataReady() final;
+  virtual void OnTimedDataNodeModified() final;
+  virtual void OnTimedDataDeleted() final;
+  virtual void OnEventsChanged();
+  virtual void OnPropertyChanged(const PropertySet& properties) final;
 
   std::shared_ptr<TimedData> data_;
 
   base::Time from_ = kTimedDataCurrentOnly;
-
-  // TODO: Move into TimedData.
-  std::string formula_;
 };
 
 }  // namespace rt

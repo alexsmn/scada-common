@@ -6,11 +6,15 @@
 
 #include "base/time/time.h"
 #include "common/node_ref.h"
+#include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
-#include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_vq_map.h"
+
+namespace events {
+class EventSet;
+}
 
 namespace rt {
 
@@ -19,90 +23,43 @@ class TimedDataCache;
 class TimedDataDelegate;
 class TimedDataSpec;
 
-extern const char kConnectingName[];
 extern const base::Time kTimedDataCurrentOnly;
 
 class TimedData {
  public:
-  TimedData();
-  virtual ~TimedData();
+  virtual ~TimedData() {}
 
-  void SetFrom(base::Time from);
+  virtual base::Time GetFrom() const = 0;
+  virtual void SetFrom(base::Time from) = 0;
+  virtual base::Time GetReadyFrom() const = 0;
 
-  bool alerting() const { return alerting_; }
-  const scada::DataValue& current() const { return current_; }
-  base::Time change_time() const { return change_time_; }
-  bool historical() const { return from_ != kTimedDataCurrentOnly; }
+  virtual scada::DataValue GetDataValue() const = 0;
+  virtual base::Time GetChangeTime() const = 0;
 
-  base::Time from() const { return from_; }
-  base::Time ready_from() const { return ready_from_; }
+  virtual const TimedVQMap* GetValues() const = 0;
+  virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
-  const TimedVQMap& values() const { return map_; }
-
-  scada::DataValue GetValueAt(const base::Time& time) const;
-
-  void Subscribe(TimedDataSpec& spec);
-  void Unsubscribe(TimedDataSpec& spec);
+  virtual void AddObserver(TimedDataDelegate& observer) = 0;
+  virtual void RemoveObserver(TimedDataDelegate& observer) = 0;
 
   virtual std::string GetFormula(bool aliases) const = 0;
-  virtual base::string16 GetTitle() const = 0;
-  virtual NodeRef GetNode() const { return {}; }
-  virtual const events::EventSet* GetEvents() const { return NULL; }
+  virtual scada::LocalizedText GetTitle() const = 0;
+  virtual NodeRef GetNode() const = 0;
+
+  virtual bool IsAlerting() const = 0;
+  virtual const events::EventSet* GetEvents() const = 0;
   // Acknowledge all active events related to this data.
-  virtual void Acknowledge() {}
+  virtual void Acknowledge() = 0;
+
   // Write item value.
   typedef std::function<void(const scada::Status&)> StatusCallback;
   virtual void Write(double value,
                      const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const;
+                     const StatusCallback& callback) const = 0;
+
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
-                    const StatusCallback& callback) const;
-
- protected:
-  typedef std::set<TimedDataSpec*> TimedDataSpecSet;
-
-  // Update |ready_from_| to new |time| if new time is earlier, and also
-  // update |from_| if |time| is earlier than it.
-  void UpdateReadyFrom(base::Time time);
-  // Used when data is disconnected.
-  void ResetReadyFrom();
-
-  void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
-  void NotifyDataReady();
-  void NotifyPropertyChanged(const PropertySet& properties);
-  void NotifyEventsChanged(const events::EventSet& events);
-
-  bool UpdateCurrent(const scada::DataValue& tvq);
-  bool UpdateMap(const scada::DataValue& tvq);
-
-  void ClearRange(base::Time from, base::Time to);
-
-  void Delete();
-  void Failed();
-
-  // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
-  bool alerting_;
-
-  // |from_| parameter was changed. Data needs to be updated.
-  virtual void OnFromChanged() {}
-
-  scada::DataValue current_;
-  base::Time change_time_;
-
-  TimedDataSpecSet specs_;
-
- private:
-  friend class TimedDataCache;
-
-  base::Time from_;
-
-  // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
-  base::Time ready_from_;
-
-  TimedVQMap map_;
-
-  DISALLOW_COPY_AND_ASSIGN(TimedData);
+                    const StatusCallback& callback) const = 0;
 };
 
 }  // namespace rt

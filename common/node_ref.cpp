@@ -34,37 +34,44 @@ scada::Variant NodeRef::value() const {
 }
 
 NodeRef NodeRef::type_definition() const {
-  return model_ ? model_->GetTarget(scada::id::HasTypeDefinition, true)
-                : nullptr;
+  return target(scada::id::HasTypeDefinition);
 }
 
 NodeRef NodeRef::supertype() const {
-  return model_ ? model_->GetTarget(scada::id::HasSubtype, false) : nullptr;
+  return target(scada::id::HasSubtype, false);
 }
 
 NodeRef NodeRef::parent() const {
-  return model_ ? model_->GetTarget(scada::id::HierarchicalReferences, false)
-                : nullptr;
+  return target(scada::id::HierarchicalReferences, false);
+}
+
+std::vector<NodeRef> NodeRef::children() const {
+  return targets(scada::id::HasChild, true);
 }
 
 std::vector<NodeRef> NodeRef::aggregates() const {
-  return model_ ? model_->GetTargets(scada::id::Aggregates, true)
-                : std::vector<NodeRef>{};
+  return targets(scada::id::Aggregates, true);
 }
 
 std::vector<NodeRef> NodeRef::components() const {
-  return model_ ? model_->GetTargets(scada::id::HasComponent, true)
-                : std::vector<NodeRef>{};
+  return targets(scada::id::HasComponent, true);
+}
+
+std::vector<NodeRef> NodeRef::organizes() const {
+  return targets(scada::id::Organizes, true);
 }
 
 std::vector<NodeRef> NodeRef::properties() const {
-  return model_ ? model_->GetTargets(scada::id::HasProperty, true)
-                : std::vector<NodeRef>{};
+  return targets(scada::id::HasProperty, true);
 }
 
 std::vector<NodeRef::Reference> NodeRef::references() const {
-  return model_ ? model_->GetReferences(scada::id::References, true)
-                : std::vector<Reference>{};
+  return references(scada::id::NonHierarchicalReferences, true);
+}
+
+std::vector<NodeRef::Reference> NodeRef::inverse_references(
+    const scada::NodeId& reference_type_id) const {
+  return references(reference_type_id, false);
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
@@ -73,8 +80,7 @@ NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
 
 std::vector<NodeRef> NodeRef::targets(
     const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetTargets(reference_type_id, true)
-                : std::vector<NodeRef>();
+  return targets(reference_type_id, true);
 }
 
 NodeFetchStatus NodeRef::fetch_status() const {
@@ -87,6 +93,30 @@ scada::Variant NodeRef::attribute(scada::AttributeId attribute_id) const {
 
 NodeRef NodeRef::data_type() const {
   return model_ ? model_->GetDataType() : nullptr;
+}
+
+NodeRef::Reference NodeRef::reference(const scada::NodeId& reference_type_id,
+                                      bool forward) const {
+  return model_ ? model_->GetReference(reference_type_id, forward)
+                : NodeRef::Reference{};
+}
+
+NodeRef NodeRef::target(const scada::NodeId& reference_type_id,
+                        bool forward) const {
+  return model_ ? model_->GetTarget(reference_type_id, forward) : nullptr;
+}
+
+std::vector<NodeRef> NodeRef::targets(const scada::NodeId& reference_type_id,
+                                      bool forward) const {
+  return model_ ? model_->GetTargets(reference_type_id, forward)
+                : std::vector<NodeRef>{};
+}
+
+std::vector<NodeRef::Reference> NodeRef::references(
+    const scada::NodeId& reference_type_id,
+    bool forward) const {
+  return model_ ? model_->GetReferences(reference_type_id, forward)
+                : std::vector<NodeRef::Reference>{};
 }
 
 NodeRef NodeRef::operator[](

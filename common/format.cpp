@@ -97,20 +97,15 @@ bool StringToValueHelper(String str, scada::Variant& value) {
 bool StringToValue(base::StringPiece str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
+  assert(!data_type_id.is_null());
+
   if (str.empty()) {
     value = scada::Variant();
     return true;
   }
 
   if (data_type_id == scada::id::Boolean) {
-    auto wide = base::SysNativeMBToWide(str);
-    if (IsEqualNoCase(wide, scada::Variant::kFalseString))
-      value = false;
-    else if (IsEqualNoCase(wide, scada::Variant::kTrueString))
-      value = true;
-    else
-      return StringToValueHelper<bool>(str, value);
-    return true;
+    return StringToValueHelper<bool>(str, value);
 
   } else if (data_type_id == scada::id::Double) {
     return StringToValueHelper<double>(str, value);
@@ -136,6 +131,16 @@ bool StringToValue(base::StringPiece str,
 bool StringToValue(base::StringPiece16 str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
+  if (data_type_id == scada::id::Boolean) {
+    if (IsEqualNoCase(str, scada::Variant::kFalseString)) {
+      value = false;
+      return true;
+    } else if (IsEqualNoCase(str, scada::Variant::kTrueString)) {
+      value = true;
+      return true;
+    }
+  }
+
   return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id,
                        value);
 }

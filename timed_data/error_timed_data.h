@@ -1,0 +1,54 @@
+#pragma once
+
+#include "timed_data/timed_data.h"
+
+class ErrorTimedData final : public rt::TimedData {
+ public:
+  ErrorTimedData(std::string formula, scada::LocalizedText title)
+      : formula_{std::move(formula)}, title_{std::move(title)} {}
+
+  virtual base::Time GetFrom() const override { return {}; }
+  virtual void SetFrom(base::Time from) override {}
+  virtual base::Time GetReadyFrom() const override { return {}; }
+  virtual scada::DataValue GetDataValue() const override { return {}; }
+  virtual scada::DataValue GetValueAt(const base::Time& time) const override {
+    return {};
+  }
+  virtual base::Time GetChangeTime() const override { return {}; }
+  virtual const rt::TimedVQMap* GetValues() const override { return nullptr; }
+  virtual void AddObserver(rt::TimedDataDelegate& observer) override {}
+  virtual void RemoveObserver(rt::TimedDataDelegate& observer) override {}
+  virtual std::string GetFormula(bool aliases) const override {
+    return formula_;
+  }
+  virtual scada::LocalizedText GetTitle() const override;
+  virtual NodeRef GetNode() const override { return NodeRef{}; }
+  virtual bool IsAlerting() const override { return false; }
+  virtual const events::EventSet* GetEvents() const override { return nullptr; }
+  virtual void Acknowledge() override {}
+  virtual void Write(double value,
+                     const scada::WriteFlags& flags,
+                     const StatusCallback& callback) const override;
+  virtual void Call(const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const StatusCallback& callback) const override;
+
+ private:
+  const std::string formula_;
+  const scada::LocalizedText title_;
+};
+
+inline scada::LocalizedText ErrorTimedData::GetTitle() const {
+  return title_;
+}
+
+inline void ErrorTimedData::Write(double value,
+                                  const scada::WriteFlags& flags,
+                                  const StatusCallback& callback) const {
+  callback(scada::StatusCode::Bad_Disconnected);
+}
+inline void ErrorTimedData::Call(const scada::NodeId& method_id,
+                                 const std::vector<scada::Variant>& arguments,
+                                 const StatusCallback& callback) const {
+  callback(scada::StatusCode::Bad_Disconnected);
+}

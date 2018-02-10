@@ -75,7 +75,7 @@ void SessionProxy::OnSessionCreated() {
 
 void SessionProxy::OnTransportClosed(net::Error error) {
   logger().WriteF(LogSeverity::Warning, "Transport closed as %s",
-                  ErrorToString(error));
+                  ErrorToString(error).c_str());
 
   scada::Status status_code(
       error == net::OK ? scada::StatusCode::Bad_SessionForcedLogoff

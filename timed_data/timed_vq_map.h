@@ -2,15 +2,16 @@
 
 #include <map>
 
+#include "core/date_time.h"
 #include "core/tvq.h"
 
 namespace rt {
 
 struct TimedDataEntry {
   scada::VQ vq;
-  base::Time collection_time;
+  scada::DateTime server_timestamp;
 };
 
-typedef std::map<base::Time, TimedDataEntry> TimedVQMap;
+typedef std::map<scada::DateTime /*source_timestamp*/, TimedDataEntry> TimedVQMap;
 
 } // namespace rt

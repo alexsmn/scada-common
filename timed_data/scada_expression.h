@@ -38,12 +38,15 @@ class ScadaExpression : protected expression::Expression {
   // expression::Expression
   virtual void ReadLexem(expression::Parser& parser);
   virtual int WriteLexem(expression::Parser& parser);
-  virtual void CalculateLexem(int pos, expression::Lexem lexem, Value& value,
+  virtual void CalculateLexem(int pos,
+                              expression::Lexem lexem,
+                              Value& value,
                               void* data) const;
   virtual std::string FormatLexem(int pos, expression::Lexem lexem) const;
-  virtual void TraverseLexem(int pos, expression::Lexem lexem,
+  virtual void TraverseLexem(int pos,
+                             expression::Lexem lexem,
                              expression::TraverseCallback callback,
                              void* param) const;
 };
 
-} // namespace rt
+}  // namespace rt

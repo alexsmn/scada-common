@@ -1,42 +1,31 @@
-#include "expression_timed_data.h"
+#include "timed_data/expression_timed_data.h"
 
-#include "base/strings/sys_string_conversions.h"
 #include "timed_data/scada_expression.h"
+#include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_spec.h"
 
 namespace rt {
 
 ExpressionTimedData::ExpressionTimedData(
-    TimedDataService& timed_data_service,
-    std::unique_ptr<ScadaExpression> expression)
-    : expression_(std::move(expression)) {
-  size_t num_operands = expression_->items.size();
-
-  operands_.resize(num_operands);
-  for (size_t i = 0; i < num_operands; ++i) {
-    ScadaExpression::Item& item = expression_->items[i];
-    TimedDataSpec& oper = operands_[i];
-    oper.property_change_handler = [this,
-                                    &oper](const rt::PropertySet& properties) {
-      OnPropertyChanged(oper, properties);
-    };
-    oper.correction_handler = [this, &oper](size_t count,
-                                            const scada::DataValue* tvqs) {
-      OnTimedDataCorrections(oper, count, tvqs);
-    };
-    oper.ready_handler = [this, &oper] { OnTimedDataReady(oper); };
-    oper.Connect(timed_data_service, item.name);
-  }
-
+    std::unique_ptr<ScadaExpression> expression,
+    std::vector<std::shared_ptr<TimedData>> operands)
+    : expression_{std::move(expression)}, operands_{std::move(operands)} {
+  for (auto& operand : operands_)
+    operand->AddObserver(*this);
   CalculateCurrent();
+}
+
+ExpressionTimedData::~ExpressionTimedData() {
+  for (auto& operand : operands_)
+    operand->RemoveObserver(*this);
 }
 
 std::string ExpressionTimedData::GetFormula(bool aliases) const {
   return expression_->Format(aliases);
 }
 
-base::string16 ExpressionTimedData::GetTitle() const {
-  return base::SysNativeMBToWide(expression_->Format(true));
+scada::LocalizedText ExpressionTimedData::GetTitle() const {
+  return scada::ToLocalizedText(expression_->Format(true));
 }
 
 void ExpressionTimedData::OnFromChanged() {
@@ -44,7 +33,7 @@ void ExpressionTimedData::OnFromChanged() {
 
   // connect operands
   for (size_t i = 0; i < num_operands; ++i)
-    operands_[i].SetFrom(from());
+    operands_[i]->SetFrom(GetFrom());
 
   if (historical())
     CalculateReadyRange();
@@ -54,15 +43,15 @@ void ExpressionTimedData::OnFromChanged() {
 
 void ExpressionTimedData::Acknowledge() {
   for (size_t i = 0; i < operands_.size(); ++i)
-    operands_[i].Acknowledge();
+    operands_[i]->Acknowledge();
 }
 
 base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
   base::Time ready_from;
 
   for (size_t i = 0; i < operands_.size(); ++i) {
-    const TimedDataSpec& operand = operands_[i];
-    base::Time operand_ready_from = operand.ready_from();
+    const auto& operand = *operands_[i];
+    base::Time operand_ready_from = operand.GetReadyFrom();
 
     if (operand_ready_from == kTimedDataCurrentOnly)
       return kTimedDataCurrentOnly;
@@ -85,10 +74,10 @@ void ExpressionTimedData::CalculateRange(base::Time from,
 
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
-    TimedDataSpec& operand = operands_[i];
-    assert(operand.ready_from() <= from);
+    auto& operand = *operands_[i];
+    assert(operand.GetReadyFrom() <= from);
 
-    const TimedVQMap* values = operand.values();
+    const TimedVQMap* values = operand.GetValues();
     assert(values);
 
     TimedVQMap::const_iterator& iterator = iters[i];
@@ -98,13 +87,13 @@ void ExpressionTimedData::CalculateRange(base::Time from,
     if (iterator != values->end()) {
       initial_value = scada::DataValue(
           iterator->second.vq.value, iterator->second.vq.qualifier,
-          iterator->first, iterator->second.collection_time);
+          iterator->first, iterator->second.server_timestamp);
     } else {
       TimedVQMap::const_iterator last = --values->end();
       assert(last->first <= from);
       initial_value =
           scada::DataValue(last->second.vq.value, last->second.vq.qualifier,
-                           last->first, last->second.collection_time);
+                           last->first, last->second.server_timestamp);
     }
   }
 
@@ -119,8 +108,8 @@ void ExpressionTimedData::CalculateRange(base::Time from,
     bool calculation_finished = true;
 
     for (size_t i = 0; i < operands_.size(); ++i) {
-      TimedDataSpec& operand = operands_[i];
-      const TimedVQMap* values = operand.values();
+      auto& operand = *operands_[i];
+      const TimedVQMap* values = operand.GetValues();
       assert(values);
 
       ScadaExpression::Item& item = expression_->items[i];
@@ -143,7 +132,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
       // Setup operand value.
       item.value = scada::DataValue(
           iterator->second.vq.value, iterator->second.vq.qualifier,
-          iterator->first, iterator->second.collection_time);
+          iterator->first, iterator->second.server_timestamp);
 
       // Update total qualifier.
       if (item.value.qualifier.bad())
@@ -186,9 +175,9 @@ bool ExpressionTimedData::CalculateReadyRange() {
 
   assert(!operands_ready_from.is_null());
   // Operands can't be less ready than we already know.
-  assert(operands_ready_from <= ready_from());
+  assert(operands_ready_from <= ready_from_);
 
-  CalculateRange(operands_ready_from, ready_from(), NULL);
+  CalculateRange(operands_ready_from, ready_from_, NULL);
   UpdateReadyFrom(operands_ready_from);
 
   return true;
@@ -201,11 +190,11 @@ bool ExpressionTimedData::CalculateCurrent() {
 
   base::Time max_update_time;
   for (size_t i = 0; i < num_operands; ++i) {
-    TimedDataSpec& oper = operands_[i];
+    auto& operand = *operands_[i];
 
     expression_->items[i].value = scada::DataValue();
 
-    const auto& cur = oper.current();
+    const auto& cur = operand.GetDataValue();
     if (cur.source_timestamp.is_null())
       continue;
 
@@ -230,7 +219,7 @@ bool ExpressionTimedData::CalculateCurrent() {
   } catch (const std::exception&) {
   }
 
-  if (!num_operands)
+  if (num_operands == 0)
     max_update_time = base::Time::Now();
 
   scada::DataValue tvq(std::move(total_value), total_qualifier, max_update_time,
@@ -238,12 +227,11 @@ bool ExpressionTimedData::CalculateCurrent() {
   return UpdateCurrent(tvq);
 }
 
-void ExpressionTimedData::OnTimedDataCorrections(TimedDataSpec& spec,
-                                                 size_t count,
+void ExpressionTimedData::OnTimedDataCorrections(size_t count,
                                                  const scada::DataValue* tvqs) {
   assert(historical());
   assert(count > 0);
-  assert(tvqs[0].source_timestamp >= ready_from());
+  assert(tvqs[0].source_timestamp >= ready_from_);
 
   ClearRange(tvqs[0].source_timestamp, tvqs[count - 1].source_timestamp);
 
@@ -255,19 +243,22 @@ void ExpressionTimedData::OnTimedDataCorrections(TimedDataSpec& spec,
     NotifyTimedDataCorrection(changed_tvqs.size(), &changed_tvqs[0]);
 }
 
-void ExpressionTimedData::OnPropertyChanged(rt::TimedDataSpec& spec,
-                                            const rt::PropertySet& properties) {
+void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {
   if (properties.is_current_changed()) {
     if (CalculateCurrent())
       NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   }
 }
 
-void ExpressionTimedData::OnTimedDataReady(TimedDataSpec& spec) {
+void ExpressionTimedData::OnTimedDataReady() {
   assert(historical());
   if (CalculateReadyRange())
     NotifyDataReady();
 }
+
+void ExpressionTimedData::OnTimedDataNodeModified() {}
+
+void ExpressionTimedData::OnTimedDataDeleted() {}
 
 const events::EventSet* ExpressionTimedData::GetEvents() const {
   return NULL;

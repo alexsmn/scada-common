@@ -5,6 +5,7 @@
 #include "common/node_service_impl.h"
 #include "common/node_util.h"
 #include "core/attribute_service.h"
+#include "core/standard_node_ids.h"
 
 namespace {
 

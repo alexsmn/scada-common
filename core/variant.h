@@ -188,3 +188,4 @@ inline const T* Variant::get_if() const {
 }  // namespace scada
 
 std::string ToString(const scada::Variant& value);
+base::string16 ToString16(const scada::Variant& value);

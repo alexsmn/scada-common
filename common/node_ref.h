@@ -41,19 +41,30 @@ class NodeRef {
 
   NodeRef parent() const;
 
+  std::vector<NodeRef> children() const;
   // Includes components and properies.
   std::vector<NodeRef> aggregates() const;
   std::vector<NodeRef> components() const;
+  std::vector<NodeRef> organizes() const;
   std::vector<NodeRef> properties() const;
 
   NodeRef target(const scada::NodeId& reference_type_id) const;
+  NodeRef target(const scada::NodeId& reference_type_id, bool forward) const;
   std::vector<NodeRef> targets(const scada::NodeId& reference_type_id) const;
+  std::vector<NodeRef> targets(const scada::NodeId& reference_type_id,
+                               bool forward) const;
 
   struct Reference;
   using References = std::vector<Reference>;
 
   // Non-hierarchical references.
+  Reference reference(const scada::NodeId& reference_type_id,
+                      bool forward) const;
   std::vector<Reference> references() const;
+  std::vector<Reference> inverse_references(
+      const scada::NodeId& reference_type_id) const;
+  std::vector<Reference> references(const scada::NodeId& reference_type_id,
+                                    bool forward) const;
 
   void Subscribe(NodeRefObserver& observer) const;
   void Unsubscribe(NodeRefObserver& observer) const;

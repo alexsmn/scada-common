@@ -1,11 +1,15 @@
-#include "timed_data_impl.h"
+#include "timed_data/timed_data_impl.h"
 
+#include "base/bind.h"
 #include "base/format_time.h"
+#include "base/location.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/threading/thread_task_runner_handle.h"
+#include "base/utils.h"
 #include "common/event_manager.h"
 #include "common/formula_util.h"
+#include "common/node_id_util.h"
 #include "common/node_service.h"
-#include "common/node_util.h"
 #include "common/scada_node_ids.h"
 #include "core/attribute_service.h"
 #include "core/event_service.h"
@@ -16,24 +20,28 @@
 
 namespace rt {
 
-TimedDataImpl::TimedDataImpl(const scada::NodeId& node_id,
-                             const TimedDataContext& context,
-                             std::shared_ptr<const Logger> parent_logger)
-    : TimedDataContext{context} {
-  logger_.set_parent(std::move(parent_logger));
-  logger_.set_prefix(node_id.ToString());
-
-  SetNode(node_service_.GetNode(node_id));
-}
-
 TimedDataImpl::TimedDataImpl(const NodeRef& node,
                              const TimedDataContext& context,
                              std::shared_ptr<const Logger> parent_logger)
-    : TimedDataContext{context} {
-  logger_.set_parent(std::move(parent_logger));
-  logger_.set_prefix(node.id().ToString());
-
+    : TimedDataContext{context}, querying_(false), weak_ptr_factory_(this) {
+  assert(node);
   SetNode(node);
+
+  logger_.set_parent(std::move(parent_logger));
+  logger_.set_prefix(NodeIdToScadaString(node_.id()));
+
+  monitored_value_ = monitored_item_service_.CreateMonitoredItem(
+      {node_.id(), scada::AttributeId::Value});
+  if (!monitored_value_) {
+    Delete();
+    return;
+  }
+
+  monitored_value_->set_data_change_handler(
+      [this](const scada::DataValue& data_value) {
+        OnChannelData(data_value);
+      });
+  monitored_value_->Subscribe();
 }
 
 TimedDataImpl::~TimedDataImpl() {
@@ -56,19 +64,6 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
     event_manager_.AddItemObserver(node_.id(), *this);
 
     alerting_ = event_manager_.IsAlerting(node_.id());
-
-    monitored_value_ = realtime_service_.CreateMonitoredItem(
-        {node_.id(), scada::AttributeId::Value});
-    if (!monitored_value_) {
-      Delete();
-      return;
-    }
-
-    monitored_value_->set_data_change_handler(
-        [this](const scada::DataValue& data_value) {
-          OnChannelData(data_value);
-        });
-    monitored_value_->Subscribe();
   }
 }
 
@@ -102,59 +97,60 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
   method_service_.Call(node.id(), method_id, arguments, callback);
 }
 
-void TimedDataImpl::HistoryRead() {
+void TimedDataImpl::QueryValues() {
   assert(historical());
 
-  if (from() >= ready_from()) {
-    assert(from() == ready_from());
+  if (from_ >= ready_from_) {
+    assert(from_ == ready_from_);
     return;
   }
 
   // Convert upper time range bound to query specific value:
   // |kTimedDataCurrentOnly| must be replaced on Time() in such case.
-  base::Time to = ready_from();
+  base::Time to = ready_from_;
   assert(!to.is_null());
   if (to == kTimedDataCurrentOnly)
     to = base::Time();
 
   logger_.WriteF(LogSeverity::Normal, "Querying history from {%s} to {%s}",
-                 FormatTime(from()).c_str(),
+                 FormatTime(from_).c_str(),
                  !to.is_null() ? FormatTime(to).c_str() : "Current");
 
   querying_ = true;
-  auto range = std::make_pair(from(), to);
+  auto message_loop = base::ThreadTaskRunnerHandle::Get();
+  auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
+  auto range = std::make_pair(from_, to);
 
   if (!node_) {
-    OnQueryValuesComplete(scada::StatusCode::Bad, range.first, range.second,
+    OnQueryValuesComplete(range.first, range.second,
                           scada::QueryValuesResults());
     return;
   }
 
-  auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
   history_service_.HistoryRead(
-      {node_.id(), scada::AttributeId::Value}, from(), to, {},
-      io_service_.wrap([weak_ptr, range](scada::Status status,
-                                         scada::QueryValuesResults values,
-                                         scada::QueryEventsResults events) {
-        if (auto ptr = weak_ptr.get())
-          ptr->OnQueryValuesComplete(status, range.first, range.second,
-                                     std::move(values));
-      }));
+      {node_.id(), scada::AttributeId::Value}, from_, to, {},
+      [message_loop, weak_ptr, range](const scada::Status& status,
+                                      scada::QueryValuesResults values,
+                                      scada::QueryEventsResults events) {
+        message_loop->PostTask(
+            FROM_HERE, base::Bind(&TimedDataImpl::OnQueryValuesComplete,
+                                  weak_ptr, range.first, range.second, values));
+      });
 }
 
 void TimedDataImpl::OnFromChanged() {
   assert(historical());
 
   if (!querying_)
-    HistoryRead();
+    QueryValues();
 }
 
 std::string TimedDataImpl::GetFormula(bool aliases) const {
   return MakeNodeIdFormula(node_.id());
 }
 
-base::string16 TimedDataImpl::GetTitle() const {
-  return ToString16(node_.display_name());
+scada::LocalizedText TimedDataImpl::GetTitle() const {
+  return node_.display_name();
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
@@ -162,41 +158,39 @@ void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
 
   NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-  // Notify specs.
-  for (TimedDataSpecSet::iterator i = specs_.begin(); i != specs_.end();) {
-    TimedDataSpec& spec = **i++;
-    if (spec.node_modified_handler)
-      spec.node_modified_handler();
-  }
+  for (auto& o : observers_)
+    o.OnTimedDataNodeModified();
 }
 
 void TimedDataImpl::OnModelChange(const ModelChangeEvent& event) {
-  assert(event.node_id == node_.id());
+  if (event.verb & ModelChangeEvent::NodeDeleted) {
+    SetNode(nullptr);
+    Delete();
 
-  if (!(event.verb & ModelChangeEvent::NodeDeleted))
-    return;
+  } else {
+    NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-  SetNode(nullptr);
-  Delete();
+    for (auto& o : observers_)
+      o.OnTimedDataNodeModified();
+  }
 }
 
-void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& item_id,
+void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
                                         const events::EventSet& events) {
-  assert(item_id == node_.id());
+  assert(node_id == node_.id());
 
   alerting_ = !events.empty();
-  NotifyEventsChanged(events);
+  NotifyEventsChanged();
 }
 
-void TimedDataImpl::OnQueryValuesComplete(scada::Status status,
-                                          base::Time queried_from,
+void TimedDataImpl::OnQueryValuesComplete(base::Time queried_from,
                                           base::Time queried_to,
                                           scada::QueryValuesResults results) {
   assert(querying_);
-  assert(queried_from < ready_from());
-  assert(queried_from >= from());
-  assert((!queried_to.is_null() && ready_from() == queried_to) ||
-         (queried_to.is_null() && ready_from() == kTimedDataCurrentOnly));
+  assert(queried_from < ready_from_);
+  assert(queried_from >= from_);
+  assert((!queried_to.is_null() && ready_from_ == queried_to) ||
+         (queried_to.is_null() && ready_from_ == kTimedDataCurrentOnly));
 
   querying_ = false;
 
@@ -214,28 +208,26 @@ void TimedDataImpl::OnQueryValuesComplete(scada::Status status,
 
   UpdateReadyFrom(new_ready_from);
 
-  // Query next fragment of data if |from()| changed from moment of last query.
-  HistoryRead();
+  // Query next fragment of data if |from_| changed from moment of last query.
+  QueryValues();
 
   // This probably may cause deletion.
   NotifyDataReady();
 }
 
-void TimedDataImpl::OnChannelData(const scada::DataValue& tvq) {
-  if (tvq.qualifier.failed()) {
+void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
+  if (data_value.qualifier.failed()) {
     monitored_value_.reset();
     Delete();
     return;
   }
 
-  if (current_.source_timestamp.is_null() ||
-      (!tvq.source_timestamp.is_null() &&
-       current_.source_timestamp <= tvq.source_timestamp)) {
-    if (UpdateCurrent(tvq))
+  if (IsUpdate(current_, data_value)) {
+    if (UpdateCurrent(data_value))
       NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   } else {
-    if (UpdateMap(tvq))
-      NotifyTimedDataCorrection(1, &tvq);
+    if (UpdateMap(data_value))
+      NotifyTimedDataCorrection(1, &data_value);
   }
 }
 
