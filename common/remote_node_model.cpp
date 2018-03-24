@@ -2,28 +2,95 @@
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
+#include "common/node_id_util.h"
+#include "common/node_observer.h"
 #include "common/node_util.h"
 #include "common/remote_node_service.h"
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
 
-namespace {
-
-constexpr scada::AttributeId kReadAttributeIds[] = {
-    scada::AttributeId::NodeClass,   scada::AttributeId::BrowseName,
-    scada::AttributeId::DisplayName, scada::AttributeId::DataType,
-    scada::AttributeId::Value,
-};
-
-}  // namespace
-
 RemoteNodeModel::RemoteNodeModel(RemoteNodeService& service,
-                                 scada::NodeId id,
-                                 std::shared_ptr<const Logger> logger)
-    : service_{service}, id_{std::move(id)}, logger_{std::move(logger)} {}
+                                 scada::NodeId node_id)
+    : BaseNodeModel{std::move(node_id)}, service_{service} {}
 
-NodeFetchStatus RemoteNodeModel::GetFetchStatus() const {
-  return fetch_status_;
+void RemoteNodeModel::OnModelChanged(const scada::ModelChangeEvent& event) {
+  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
+    OnNodeDeleted();
+
+    for (auto& o : observers_)
+      o.OnModelChanged(event);
+  }
+
+  if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
+                    scada::ModelChangeEvent::ReferenceDeleted)) {
+    pending_status_.children_fetched = true;
+    service_.OnFetchNode(node_id_, pending_status_);
+  }
+}
+
+void RemoteNodeModel::OnNodeSemanticChanged() {
+  for (auto& o : observers_)
+    o.OnNodeSemanticChanged(node_id_);
+}
+
+void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
+  parent_ = service_.GetNodeImpl(node_state.parent_id);
+
+  node_class_ = node_state.node_class;
+  attributes_ = std::move(node_state.attributes);
+  data_type_ = service_.GetNodeImpl(node_state.attributes.data_type);
+
+  references_.clear();
+  for (auto& reference : node_state.references) {
+    AddReference({service_.GetNodeImpl(reference.reference_type_id),
+                  service_.GetNodeImpl(reference.node_id), reference.forward});
+  }
+
+  pending_status_.node_fetched = false;
+  SetFetchStatus(NodeFetchStatus::NodeOnly());
+
+  {
+    auto type_definition_id =
+        type_definition_ ? type_definition_->node_id_ : scada::NodeId{};
+    scada::ModelChangeEvent event{
+        node_id_, type_definition_id,
+        scada::ModelChangeEvent::ReferenceAdded |
+            scada::ModelChangeEvent::ReferenceDeleted};
+    for (auto& obs : observers_)
+      obs.OnModelChanged(event);
+    service_.NotifyModelChanged(event);
+  }
+
+  {
+    for (auto& obs : observers_)
+      obs.OnNodeSemanticChanged(node_id_);
+    service_.NotifySemanticsChanged(node_id_);
+  }
+}
+
+void RemoteNodeModel::OnChildrenFetched(const ReferenceMap& references) {
+  child_references_.clear();
+  for (auto& p : references) {
+    for (auto& [target_id, reference_type_id] : p.second) {
+      child_references_.push_back({service_.GetNodeImpl(reference_type_id),
+                                   service_.GetNodeImpl(target_id), true});
+    }
+  }
+
+  pending_status_.children_fetched = false;
+  SetFetchStatus(NodeFetchStatus::NodeAndChildren());
+
+  {
+    auto type_definition_id =
+        type_definition_ ? type_definition_->node_id_ : scada::NodeId{};
+    scada::ModelChangeEvent event{
+        node_id_, type_definition_id,
+        scada::ModelChangeEvent::ReferenceAdded |
+            scada::ModelChangeEvent::ReferenceDeleted};
+    for (auto& obs : observers_)
+      obs.OnModelChanged(event);
+    service_.NotifyModelChanged(event);
+  }
 }
 
 NodeRef RemoteNodeModel::GetAggregateDeclaration(
@@ -41,7 +108,7 @@ NodeRef RemoteNodeModel::GetAggregateDeclaration(
         declarations.begin(), declarations.end(),
         [&aggregate_declaration_id](const NodeModelImplReference& reference) {
           return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
-                 reference.target->id_ == aggregate_declaration_id;
+                 reference.target->node_id_ == aggregate_declaration_id;
         });
     if (i != declarations.end())
       return i->target;
@@ -75,7 +142,7 @@ NodeRef RemoteNodeModel::GetAggregate(
         assert(reference.reference_type->fetch_status_.node_fetched);
         assert(reference.target->fetch_status_.node_fetched);
         return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
-               reference.target->browse_name_ == aggregate_name;
+               reference.target->attributes_.browse_name == aggregate_name;
       });
   return i == references_.end() ? nullptr : i->target;
 }
@@ -95,14 +162,18 @@ NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
         return ref.target;
     }
 
+    for (auto& ref : child_references_) {
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        return ref.target;
+    }
+
   } else {
     if (reference_type_id == scada::id::HasSubtype)
       return supertype_;
 
     assert(reference_type_id == scada::id::HierarchicalReferences);
-    // TODO: return parent_.
-    assert(false);
-    return nullptr;
+    return parent_.lock();
   }
 
   return nullptr;
@@ -116,8 +187,16 @@ std::vector<NodeRef> RemoteNodeModel::GetTargets(
     return result;
 
   if (forward) {
-    result.reserve(references_.size());
+    result.reserve(references_.size() + child_references_.size());
+
     for (auto& ref : references_) {
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        result.emplace_back(ref.target);
+    }
+
+    for (auto& ref : child_references_) {
       assert(ref.reference_type->fetch_status_.node_fetched);
       assert(ref.target->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
@@ -136,8 +215,16 @@ NodeRef::Reference RemoteNodeModel::GetReference(
     return {};
 
   if (forward) {
-    result.reserve(references_.size());
+    result.reserve(references_.size() + child_references_.size());
+
     for (auto& ref : references_) {
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        return {ref.reference_type, ref.target, ref.forward};
+    }
+
+    for (auto& ref : child_references_) {
       assert(ref.reference_type->fetch_status_.node_fetched);
       assert(ref.target->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
@@ -156,8 +243,16 @@ std::vector<NodeRef::Reference> RemoteNodeModel::GetReferences(
     return result;
 
   if (forward) {
-    result.reserve(references_.size());
+    result.reserve(references_.size() + child_references_.size());
+
     for (auto& ref : references_) {
+      assert(ref.reference_type->fetch_status_.node_fetched);
+      assert(ref.target->fetch_status_.node_fetched);
+      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+        result.push_back({ref.reference_type, ref.target, ref.forward});
+    }
+
+    for (auto& ref : child_references_) {
       assert(ref.reference_type->fetch_status_.node_fetched);
       assert(ref.target->fetch_status_.node_fetched);
       if (IsSubtypeOf(ref.reference_type, reference_type_id))
@@ -168,44 +263,11 @@ std::vector<NodeRef::Reference> RemoteNodeModel::GetReferences(
   return result;
 }
 
-void RemoteNodeModel::Fetch(const NodeFetchStatus& requested_status,
-                            const FetchCallback& callback) const {
-  if (fetch_status_.node_fetched) {
-    if (callback)
-      callback();
-    return;
-  }
-
-  if (callback)
-    fetch_callbacks_.emplace_back(callback);
-
-  if (pending_request_count_ != 0)
-    return;
-
-  logger_->WriteF(LogSeverity::Normal, "Request node %s",
-                  id_.ToString().c_str());
-
-  std::vector<scada::ReadValueId> read_ids(std::size(kReadAttributeIds));
-  for (size_t i = 0; i < read_ids.size(); ++i)
-    read_ids[i] = scada::ReadValueId{id_, kReadAttributeIds[i]};
-
-  // TODO: Weak ptr.
-  ++pending_request_count_;
-  std::weak_ptr<RemoteNodeModel> weak_ptr =
-      std::const_pointer_cast<RemoteNodeModel>(shared_from_this());
-  service_.attribute_service_.Read(
-      read_ids, [weak_ptr](scada::Status&& status,
-                           std::vector<scada::DataValue>&& data_values) {
-        if (auto ptr = weak_ptr.lock())
-          ptr->OnReadComplete(std::move(status), std::move(data_values));
-      });
-}
-
 scada::Variant RemoteNodeModel::GetAttribute(
     scada::AttributeId attribute_id) const {
   switch (attribute_id) {
     case scada::AttributeId::NodeId:
-      return id_;
+      return node_id_;
 
     case scada::AttributeId::NodeClass:
       return node_class_.has_value()
@@ -214,22 +276,22 @@ scada::Variant RemoteNodeModel::GetAttribute(
 
     case scada::AttributeId::BrowseName:
       if (!fetch_status_.node_fetched || !status_)
-        return scada::QualifiedName{id_.ToString()};
-      assert(!browse_name_.empty());
-      return browse_name_;
+        return scada::QualifiedName{NodeIdToScadaString(node_id_)};
+      assert(!attributes_.browse_name.empty());
+      return attributes_.browse_name;
 
     case scada::AttributeId::DisplayName:
       if (!fetch_status_.node_fetched)
-        return scada::ToLocalizedText(id_.ToString());
+        return scada::ToLocalizedText(NodeIdToScadaString(node_id_));
       if (!status_)
         return scada::ToLocalizedText(ToString16(status_));
-      else if (!display_name_.empty())
-        return display_name_;
+      else if (!attributes_.display_name.empty())
+        return attributes_.display_name;
       else
-        return scada::ToLocalizedText(browse_name_.name());
+        return scada::ToLocalizedText(attributes_.browse_name.name());
 
     case scada::AttributeId::Value:
-      return value_;
+      return attributes_.value;
 
     default:
       assert(false);
@@ -239,144 +301,6 @@ scada::Variant RemoteNodeModel::GetAttribute(
 
 NodeRef RemoteNodeModel::GetDataType() const {
   return data_type_;
-}
-
-scada::Status RemoteNodeModel::GetStatus() const {
-  return status_;
-}
-
-void RemoteNodeModel::Subscribe(NodeRefObserver& observer) const {
-  service_.AddNodeObserver(id_, observer);
-}
-
-void RemoteNodeModel::Unsubscribe(NodeRefObserver& observer) const {
-  service_.RemoveNodeObserver(id_, observer);
-}
-
-void RemoteNodeModel::OnReadComplete(
-    scada::Status&& status,
-    std::vector<scada::DataValue>&& data_values) {
-  // Request could be canceled.
-  if (!status_)
-    return;
-
-  assert(pending_request_count_ > 0);
-  --pending_request_count_;
-
-  if (!status) {
-    logger_->WriteF(LogSeverity::Warning, "Read failed for node %s",
-                    id_.ToString().c_str());
-    SetError(status);
-    return;
-  }
-
-  assert(data_values.size() == std::size(kReadAttributeIds));
-
-  logger_->WriteF(LogSeverity::Normal, "Read complete for node %s",
-                  id_.ToString().c_str());
-
-  for (size_t i = 0; i < data_values.size(); ++i) {
-    const auto attribute_id = kReadAttributeIds[i];
-    auto& data_value = data_values[i];
-    // assert(scada::IsGood(value.status_code) || attribute_id !=
-    // OpcUa_Attributes_BrowseName);
-    if (scada::IsGood(data_value.status_code))
-      SetAttribute(attribute_id, std::move(data_value.value));
-  }
-
-  if (!node_class_.has_value() || browse_name_.empty()) {
-    logger_->WriteF(LogSeverity::Warning, "Node %s attributes weren't read",
-                    id_.ToString().c_str());
-    static_assert(kReadAttributeIds[0] == scada::AttributeId::NodeClass);
-    static_assert(kReadAttributeIds[1] == scada::AttributeId::BrowseName);
-    auto& node_class_status = data_values[0].status_code;
-    auto& browse_name_status = data_values[0].status_code;
-    assert(!scada::IsGood(node_class_status) ||
-           !scada::IsGood(browse_name_status));
-    SetError(scada::IsGood(node_class_status) ? node_class_status
-                                              : browse_name_status);
-    return;
-  }
-
-  // TODO: Data integrity check.
-
-  std::vector<scada::BrowseDescription> nodes;
-  nodes.reserve(3);
-  assert(node_class_.has_value());
-  if (scada::IsTypeDefinition(*node_class_))
-    nodes.push_back(
-        {id_, scada::BrowseDirection::Inverse, scada::id::HasSubtype, true});
-  nodes.push_back(
-      {id_, scada::BrowseDirection::Forward, scada::id::Aggregates, true});
-  nodes.push_back({id_, scada::BrowseDirection::Forward,
-                   scada::id::NonHierarchicalReferences, true});
-
-  ++pending_request_count_;
-  std::weak_ptr<RemoteNodeModel> weak_ptr = shared_from_this();
-  service_.view_service_.Browse(
-      std::move(nodes), [weak_ptr](scada::Status&& status,
-                                   std::vector<scada::BrowseResult>&& results) {
-        if (auto ptr = weak_ptr.lock())
-          ptr->OnBrowseComplete(std::move(status), std::move(results));
-      });
-}
-
-void RemoteNodeModel::OnBrowseComplete(
-    scada::Status&& status,
-    std::vector<scada::BrowseResult>&& results) {
-  // Request could be canceled.
-  if (!status_)
-    return;
-
-  assert(pending_request_count_ > 0);
-  --pending_request_count_;
-
-  if (!status) {
-    logger_->WriteF(LogSeverity::Normal, "Browse failed for node %s",
-                    id_.ToString().c_str());
-    SetError(status);
-    return;
-  }
-
-  logger_->WriteF(LogSeverity::Normal, "Browse complete for node %s",
-                  id_.ToString().c_str());
-
-  for (auto& result : results) {
-    for (auto& reference : result.references) {
-      pending_references_.push_back({
-          service_.GetNodeImpl(reference.reference_type_id, id_),
-          service_.GetNodeImpl(reference.node_id, id_),
-          reference.forward,
-      });
-    }
-  }
-
-  // TODO: Integrity check.
-
-  service_.CompletePartialNode(shared_from_this());
-}
-
-void RemoteNodeModel::SetAttribute(scada::AttributeId attribute_id,
-                                   scada::Variant&& value) {
-  switch (attribute_id) {
-    case scada::AttributeId::NodeClass:
-      node_class_ = static_cast<scada::NodeClass>(value.as_int32());
-      break;
-    case scada::AttributeId::BrowseName:
-      browse_name_ = std::move(value.get<scada::QualifiedName>());
-      assert(!browse_name_.empty());
-      break;
-    case scada::AttributeId::DisplayName:
-      display_name_ = std::move(value.get<scada::LocalizedText>());
-      assert(!display_name_.empty());
-      break;
-    case scada::AttributeId::DataType:
-      data_type_ = service_.GetNodeImpl(value.as_node_id(), id_);
-      break;
-    case scada::AttributeId::Value:
-      value_ = std::move(value);
-      break;
-  }
 }
 
 void RemoteNodeModel::AddReference(const NodeModelImplReference& reference) {
@@ -394,58 +318,19 @@ void RemoteNodeModel::AddReference(const NodeModelImplReference& reference) {
   }
 }
 
-bool RemoteNodeModel::IsNodeFetched(
-    std::vector<scada::NodeId>& fetched_node_ids) const {
-  if (fetch_status_.node_fetched)
-    return true;
-
-  if (passing_)
-    return true;
-
-  if (std::find(fetched_node_ids.begin(), fetched_node_ids.end(), id_) !=
-      fetched_node_ids.end())
-    return true;
-
-  passing_ = true;
-
-  bool fetched = IsNodeFetchedHelper(fetched_node_ids);
-
-  assert(passing_);
-  passing_ = false;
-
-  if (fetched) {
-    assert(std::find(fetched_node_ids.begin(), fetched_node_ids.end(), id_) ==
-           fetched_node_ids.end());
-    fetched_node_ids.emplace_back(id_);
-  }
-
-  return fetched;
-}
-
-bool RemoteNodeModel::IsNodeFetchedHelper(
-    std::vector<scada::NodeId>& fetched_node_ids) const {
-  if (pending_request_count_ != 0)
-    return false;
-
-  if (data_type_ && !data_type_->IsNodeFetched(fetched_node_ids))
-    return false;
-
-  for (auto& reference : pending_references_) {
-    if (!reference.reference_type->IsNodeFetched(fetched_node_ids))
-      return false;
-    if (!reference.target->IsNodeFetched(fetched_node_ids))
-      return false;
-  }
-  return true;
-}
-
 void RemoteNodeModel::SetError(const scada::Status& status) {
   assert(status_.good());
 
-  logger_->WriteF(LogSeverity::Warning, "Node %s error %s",
-                  id_.ToString().c_str(), ToString(status).c_str());
-
   status_ = status;
-  pending_request_count_ = 0;
-  service_.CompletePartialNode(shared_from_this());
+}
+
+void RemoteNodeModel::OnFetch(const NodeFetchStatus& requested_status) {
+  auto new_status = pending_status_;
+  new_status |= requested_status;
+
+  if (pending_status_ == new_status)
+    return;
+
+  pending_status_ = new_status;
+  service_.OnFetchNode(node_id_, requested_status);
 }

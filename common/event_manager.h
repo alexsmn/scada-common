@@ -4,7 +4,6 @@
 #include "common/event_set.h"
 #include "core/history_service.h"
 
-#include <boost/asio/io_service.hpp>
 #include <deque>
 #include <map>
 
@@ -22,7 +21,6 @@ namespace events {
 class EventObserver;
 
 struct EventManagerContext {
-  boost::asio::io_service& io_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;

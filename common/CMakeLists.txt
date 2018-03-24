@@ -1,30 +1,33 @@
-FILE(GLOB scada_common_sources
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/project.h.src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/project.h")
+
+file(GLOB sources
   "*.cpp"
   "*.h"
   "../timed_data/*.cpp"
   "../timed_data/*.h"
-  "tree/*.cpp"
-  "tree/*.h")
+)
 
-FILE(GLOB scada_common_ut_sources
+file(GLOB unittests
   "*_unittest.*")
 
-LIST(APPEND scada_common_sources ${opcua_common_sources})
+list(REMOVE_ITEM sources ${unittests})
 
-LIST(REMOVE_ITEM scada_common_sources ${scada_common_ut_sources})
-
-ADD_LIBRARY(scada_common STATIC ${scada_common_sources})
-
-TARGET_LINK_LIBRARIES(scada_common
+add_library(scada_common STATIC ${sources})
+target_link_libraries(scada_common PUBLIC
   base
   express
+  scada_base
   scada_core
 )
 
-# UT
-
-ADD_EXECUTABLE(scada_common_unittests ${scada_common_ut_sources})
-TARGET_LINK_LIBRARIES(scada_common_unittests
+add_executable(scada_common_unittests ${unittests})
+target_link_libraries(scada_common_unittests PUBLIC
   scada_common
-  gmock_main)
-ADD_TEST(NAME scada_common_unittests COMMAND scada_common_unittests)
+  gmock_main
+ )
+add_test(NAME scada_common_unittests COMMAND scada_common_unittests)
+
+set_property(TARGET scada_common PROPERTY FOLDER ${scada_folder})
+set_property(TARGET scada_common_unittests PROPERTY FOLDER ${scada_folder})

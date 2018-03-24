@@ -23,6 +23,11 @@ class HistoryStub {
   void OnRequestReceived(const protocol::Request& request);
 
  private:
+  void OnHistoryReadCompleted(unsigned request_id,
+                              const scada::Status& status,
+                              scada::QueryValuesResults values,
+                              scada::QueryEventsResults events);
+
   scada::HistoryService& service_;
   MessageSender& sender_;
   std::shared_ptr<Logger> logger_;

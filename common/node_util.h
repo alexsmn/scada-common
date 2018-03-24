@@ -1,54 +1,45 @@
 #pragma once
 
 #include "common/node_ref.h"
-#include "core/standard_node_ids.h"
-
-namespace scada {
-class ViewService;
-}
 
 class NodeService;
 
-bool IsSubtypeOf(const NodeRef& node, const scada::NodeId& type_id);
-bool IsInstanceOf(const NodeRef& node, const scada::NodeId& type_id);
-
-using NodesCallback = std::function<void(std::vector<NodeRef> nodes)>;
-void BrowseNodesRecursive(scada::ViewService& view_service,
-                          NodeService& service,
-                          const scada::NodeId& parent_id,
-                          const scada::NodeId& type_definition_id,
-                          const NodesCallback& callback);
-
-void BrowseAllDevices(scada::ViewService& view_service,
-                      NodeService& node_service,
-                      const NodesCallback& callback);
-
-void BrowseInstanceDeclarations(scada::ViewService& view_service,
-                                NodeService& node_service,
-                                const scada::NodeId& type_definition_id,
-                                const scada::NodeId& reference_type_id,
-                                const NodesCallback& callback);
-
-// Callback = void(std::vector<scada::NodeId>)
-template <class Callback>
-inline void BrowseSupertypeIds(NodeService& service,
-                               const scada::NodeId& type_definition_id,
-                               const Callback& callback) {
-  BrowseReference(
-      service, type_definition_id, OpcUaId_HasSubtype, false,
-      [&service, callback](const scada::Status& status,
-                           const NodeService::ReferenceDescription& reference) {
-        const auto& supertype_id = reference.reference_type_id;
-        if (!status) {
-          callback({supertype_id});
-          return;
-        }
-
-        BrowseSupertypeIds(
-            service, supertype_id,
-            [supertype_id, callback](std::vector<scada::NodeId> supertype_ids) {
-              supertype_ids.emplace_back(supertype_id);
-              callback(std::move(supertype_ids));
-            });
-      });
+inline bool IsSubtypeOf(NodeRef type_definition,
+                        const scada::NodeId& supertype_id) {
+  for (; type_definition; type_definition = type_definition.supertype()) {
+    if (type_definition.id() == supertype_id)
+      return true;
+  }
+  return false;
 }
+
+inline bool IsInstanceOf(const NodeRef& node,
+                         const scada::NodeId& type_definition_id) {
+  return IsSubtypeOf(node.type_definition(), type_definition_id);
+}
+
+inline bool HasComponent(NodeRef parent_type, NodeRef component_type) {
+  for (auto component_decl : parent_type.components()) {
+    assert(component_decl.node_class() &&
+           scada::IsInstance(*component_decl.node_class()));
+    if (IsSubtypeOf(component_type, component_decl.type_definition().id()))
+      return true;
+  }
+  return false;
+}
+
+inline std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
+  std::vector<NodeRef> result;
+
+  for (auto& component : node.components()) {
+    if (component.node_class() == scada::NodeClass::Variable)
+      result.emplace_back(component);
+  }
+
+  return result;
+}
+
+base::string16 GetFullDisplayName(const NodeRef& node);
+
+scada::LocalizedText GetDisplayName(NodeService& node_service,
+                                    const scada::NodeId& node_id);

@@ -11,3 +11,4 @@ add_library(scada_base ${sources})
 
 target_include_directories(scada_base PUBLIC "..")
 target_link_libraries(scada_base PUBLIC base Boost::boost Boost::diagnostic_definitions)
+set_property(TARGET scada_base PROPERTY FOLDER ${scada_folder})

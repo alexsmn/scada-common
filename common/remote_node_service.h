@@ -1,6 +1,8 @@
 #pragma once
 
 #include "base/observer_list.h"
+#include "common/node_children_fetcher.h"
+#include "common/node_fetcher.h"
 #include "common/node_service.h"
 #include "core/view_service.h"
 
@@ -9,9 +11,10 @@
 namespace scada {
 class AttributeService;
 struct ModelChangeEvent;
-}  // namespace scada
+}
 
 class Logger;
+class NodeFetcher;
 class RemoteNodeModel;
 struct NodeModelImplReference;
 
@@ -28,41 +31,40 @@ class RemoteNodeService : private RemoteNodeServiceContext,
   explicit RemoteNodeService(RemoteNodeServiceContext&& context);
   ~RemoteNodeService();
 
+  void OnChannelOpened();
+  void OnChannelClosed();
+
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  private:
-  using BrowseCallback =
-      std::function<void(const scada::Status& status,
-                         scada::ReferenceDescriptions references)>;
-  void Browse(const scada::BrowseDescription& description,
-              const BrowseCallback& callback);
-
-  void AddNodeObserver(const scada::NodeId& node_id, NodeRefObserver& observer);
-  void RemoveNodeObserver(const scada::NodeId& node_id,
-                          NodeRefObserver& observer);
-
   // Returns fetched or unfetched node impl.
-  std::shared_ptr<RemoteNodeModel> GetNodeImpl(
-      const scada::NodeId& node_id,
-      const scada::NodeId& depended_id);
+  std::shared_ptr<RemoteNodeModel> GetNodeImpl(const scada::NodeId& node_id);
 
-  void CompletePartialNode(const std::shared_ptr<RemoteNodeModel>& node);
+  void NotifyModelChanged(const scada::ModelChangeEvent& event);
+  void NotifySemanticsChanged(const scada::NodeId& node_id);
 
-  using Observers = base::ObserverList<NodeRefObserver>;
+  void OnFetchNode(const scada::NodeId& node_id,
+                   const NodeFetchStatus& requested_status);
 
-  const Observers* GetNodeObservers(const scada::NodeId& node_id) const;
+  NodeFetcherContext MakeNodeFetcherContext();
+  NodeChildrenFetcherContext MakeNodeChildrenFetcherContext();
 
   // scada::ViewService
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
-  mutable Observers observers_;
-  std::map<scada::NodeId, Observers> node_observers_;
+  mutable base::ObserverList<NodeRefObserver> observers_;
 
   std::map<scada::NodeId, std::shared_ptr<RemoteNodeModel>> nodes_;
+
+  NodeFetcher node_fetcher_;
+  NodeChildrenFetcher node_children_fetcher_;
+
+  bool channel_opened_ = false;
+  std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
 
   friend class RemoteNodeModel;
 };

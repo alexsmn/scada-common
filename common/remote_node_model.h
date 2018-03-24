@@ -1,16 +1,17 @@
 #pragma once
 
-#include "common/node_model.h"
+#include "base/observer_list.h"
+#include "common/base_node_model.h"
+#include "common/node_state.h"
 
+#include <map>
 #include <optional>
 #include <vector>
 
 namespace scada {
-class DataValue;
-struct BrowseResult;
-}  // namespace scada
+struct ModelChangeEvent;
+}
 
-class Logger;
 class RemoteNodeModel;
 class RemoteNodeService;
 
@@ -20,19 +21,24 @@ struct NodeModelImplReference {
   bool forward;
 };
 
+using ReferenceMap =
+    std::map<scada::NodeId /*reference_type_id*/,
+             std::map<scada::NodeId /*target_id*/,
+                      scada::NodeId /*child_reference_type_id*/>>;
+
 class RemoteNodeModel final
-    : public std::enable_shared_from_this<RemoteNodeModel>,
-      public NodeModel {
+    : public BaseNodeModel,
+      public std::enable_shared_from_this<RemoteNodeModel> {
  public:
-  RemoteNodeModel(RemoteNodeService& service,
-                  scada::NodeId id,
-                  std::shared_ptr<const Logger> logger);
+  RemoteNodeModel(RemoteNodeService& service, scada::NodeId node_id);
+
+  void OnModelChanged(const scada::ModelChangeEvent& event);
+  void OnNodeSemanticChanged();
+
+  void OnNodeFetched(scada::NodeState&& node_state);
+  void OnChildrenFetched(const ReferenceMap& references);
 
   // NodeModel
-  virtual scada::Status GetStatus() const override;
-  virtual NodeFetchStatus GetFetchStatus() const override;
-  virtual void Fetch(const NodeFetchStatus& requested_status,
-                     const FetchCallback& callback) const override;
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override;
   virtual NodeRef GetDataType() const override;
@@ -51,20 +57,13 @@ class RemoteNodeModel final
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+
+ protected:
+  // BaseNodeModel
+  virtual void OnFetch(const NodeFetchStatus& requested_status) override;
 
  private:
-  void OnReadComplete(scada::Status&& status,
-                      std::vector<scada::DataValue>&& data_values);
-  void OnBrowseComplete(scada::Status&& status,
-                        std::vector<scada::BrowseResult>&& results);
-
-  void SetAttribute(scada::AttributeId attribute_id, scada::Variant&& value);
   void AddReference(const NodeModelImplReference& reference);
-
-  bool IsNodeFetched(std::vector<scada::NodeId>& fetched_node_ids) const;
-  bool IsNodeFetchedHelper(std::vector<scada::NodeId>& fetched_node_ids) const;
 
   NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const;
@@ -72,28 +71,20 @@ class RemoteNodeModel final
   void SetError(const scada::Status& status);
 
   RemoteNodeService& service_;
-  const scada::NodeId id_;
-
-  NodeFetchStatus fetch_status_{};
 
   std::optional<scada::NodeClass> node_class_;
-  scada::QualifiedName browse_name_;
-  scada::LocalizedText display_name_;
-  scada::Variant value_;
+  scada::NodeAttributes attributes_;
+  NodeFetchStatus pending_status_;
   scada::Status status_{scada::StatusCode::Good};
 
   std::vector<NodeModelImplReference> references_;
+  std::vector<NodeModelImplReference> child_references_;
+
+  std::weak_ptr<const RemoteNodeModel> parent_;
 
   std::shared_ptr<const RemoteNodeModel> type_definition_;
   std::shared_ptr<const RemoteNodeModel> supertype_;
   std::shared_ptr<const RemoteNodeModel> data_type_;
-
-  std::shared_ptr<const Logger> logger_;
-  mutable unsigned pending_request_count_ = 0;
-  std::vector<scada::NodeId> depended_ids_;
-  mutable std::vector<FetchCallback> fetch_callbacks_;
-  mutable bool passing_ = false;
-  std::vector<NodeModelImplReference> pending_references_;
 
   friend class RemoteNodeService;
 };

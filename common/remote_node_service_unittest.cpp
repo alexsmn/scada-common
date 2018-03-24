@@ -1,6 +1,7 @@
 #include "common/remote_node_service.h"
 
 #include "base/logger.h"
+#include "common/node_id_util.h"
 #include "core/attribute_service.h"
 #include "core/test/test_address_space.h"
 
@@ -61,9 +62,9 @@ TEST(RemoteNodeService, FetchNode) {
 
   // Check pending node.
   {
-    EXPECT_EQ(scada::QualifiedName{server_node->node_id.ToString()},
+    EXPECT_EQ(scada::QualifiedName{NodeIdToScadaString(server_node->node_id)},
               node.browse_name());
-    EXPECT_EQ(scada::ToLocalizedText(server_node->node_id.ToString()),
+    EXPECT_EQ(scada::ToLocalizedText(NodeIdToScadaString(server_node->node_id)),
               node.display_name());
     EXPECT_EQ(std::nullopt, node.node_class());
     // TODO: More checks for pending node.

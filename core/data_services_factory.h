@@ -1,11 +1,16 @@
 #pragma once
 
+#include "base/memory/ref_counted.h"
 #include "base/strings/string_piece.h"
 #include "core/data_services.h"
 
 #include <functional>
 #include <memory>
 #include <vector>
+
+namespace base {
+class SingleThreadTaskRunner;
+}
 
 namespace net {
 class TransportFactory;
@@ -15,6 +20,7 @@ class Logger;
 
 struct DataServicesContext {
   std::shared_ptr<Logger> logger;
+  scoped_refptr<base::SingleThreadTaskRunner> task_runner;
   net::TransportFactory& transport_factory;
 };
 
@@ -37,10 +43,10 @@ const DataServicesInfoList& GetDataServicesInfoList();
 bool EqualDataServicesName(base::StringPiece name1, base::StringPiece name2);
 
 #define REGISTER_DATA_SERVICES(name, display_name, factory_method) \
-    static bool factory_method##_registered = [] { \
-      RegisterDataServices({name, display_name, factory_method}); \
-      return true; \
-    }();
+  static bool factory_method##_registered = [] {                   \
+    RegisterDataServices({name, display_name, factory_method});    \
+    return true;                                                   \
+  }();
 
 bool CreateDataServices(base::StringPiece name,
                         const DataServicesContext& context,

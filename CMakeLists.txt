@@ -1,35 +1,19 @@
-include(CMakeToolsHelpers OPTIONAL)
+include_directories(".")
 
-# OPC-UA
-set(OPENSSL_ROOT_DIR "${deps}/openssl")
-set(OPCUA_ROOT_DIR "${deps}/UA-AnsiC/Stack")
-set(OPCUA_DIR "${deps}/opcuapp")
-set(OPCUAPP_DIR "${deps}/opcuapp")
+add_subdirectory("${deps}/googletest" gtest)
+add_subdirectory("${deps}/icu" icu)
 
 set(GTEST_INCLUDE_DIR "${deps}/googletest/googletest/include")
 set(GMOCK_INCLUDE_DIR "${deps}/googletest/googlemock/include")
-add_subdirectory("${deps}/googletest" gtest)
 
-add_subdirectory("${deps}/icu" icu)
-add_subdirectory("${deps}/chromebase" chromebase)
+set(CHROME_BASE_ROOT "${deps}/chromebase")
+add_subdirectory(${CHROME_BASE_ROOT} chromebase)
+
 add_subdirectory("${deps}/express" express)
 add_subdirectory("${deps}/net" net)
 
 add_subdirectory(base)
 add_subdirectory(core)
 add_subdirectory(common)
-add_subdirectory(opcua)
+add_subdirectory(address_space)
 add_subdirectory(remote)
-add_subdirectory(vidicon)
-
-set(folder "CommonProjects")
-set_property(TARGET scada_base PROPERTY FOLDER ${folder})
-set_property(TARGET scada_common PROPERTY FOLDER ${folder})
-set_property(TARGET scada_common_unittests PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_unittests PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_opcua PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_remote PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_vidicon PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_remote PROPERTY FOLDER ${folder})
-set_property(TARGET scada_core_remote_unittests PROPERTY FOLDER ${folder})

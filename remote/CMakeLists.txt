@@ -20,6 +20,7 @@ target_link_libraries(scada_core_remote PUBLIC
   protobuf::libprotobuf
   net
   scada_core
+  address_space
 )
 
 add_executable(scada_core_remote_unittests ${unittests})
@@ -28,3 +29,6 @@ target_link_libraries(scada_core_remote_unittests PUBLIC
   scada_core_remote
   gmock_main
 )
+
+set_property(TARGET scada_core_remote PROPERTY FOLDER ${scada_folder})
+set_property(TARGET scada_core_remote_unittests PROPERTY FOLDER ${scada_folder})

@@ -2,6 +2,7 @@
 
 #include "base/nested_logger.h"
 #include "base/observer_list.h"
+#include "base/timer/timer.h"
 #include "core/attribute_service.h"
 #include "core/configuration_types.h"
 #include "core/method_service.h"
@@ -13,6 +14,10 @@
 #include "remote/message_sender.h"
 
 #include <map>
+
+namespace base {
+class SingleThreadTaskRunner;
+}
 
 namespace net {
 class Logger;
@@ -26,7 +31,6 @@ class HistoryService;
 class ViewService;
 }  // namespace scada
 
-
 class EventServiceProxy;
 class Logger;
 class NodeManagementProxy;
@@ -36,6 +40,7 @@ class ViewServiceProxy;
 
 struct SessionProxyContext {
   const std::shared_ptr<Logger> logger_;
+  scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
   net::TransportFactory& transport_factory_;
 };
 
