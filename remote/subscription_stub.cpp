@@ -106,7 +106,8 @@ void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id,
   if (i == channels_.end())
     return;
 
-  // TODO: Handle |status|.
+  if (!status)
+    channels_.erase(i);
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
@@ -114,5 +115,7 @@ void SubscriptionStub::OnEvent(MonitoredItemId monitored_item_id,
   auto& event_message = *notification.add_events();
   event_message.set_monitored_item_id(monitored_item_id);
   ToProto(event, event_message);
+  if (!status)
+    ToProto(status, *event_message.mutable_status());
   sender_.Send(message);
 }

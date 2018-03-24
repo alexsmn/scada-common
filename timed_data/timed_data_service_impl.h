@@ -6,6 +6,7 @@
 #include "timed_data/timed_data_service.h"
 
 class AliasTimedData;
+class Logger;
 template <class Key, class Value>
 class TimedDataCache;
 
@@ -16,7 +17,8 @@ class TimedDataImpl;
 class TimedDataServiceImpl final : private TimedDataContext,
                                    public TimedDataService {
  public:
-  explicit TimedDataServiceImpl(TimedDataContext&& context);
+  TimedDataServiceImpl(TimedDataContext&& context,
+                       std::shared_ptr<const Logger> logger);
   virtual ~TimedDataServiceImpl();
 
   virtual std::shared_ptr<rt::TimedData> GetFormulaTimedData(
@@ -26,6 +28,8 @@ class TimedDataServiceImpl final : private TimedDataContext,
 
  private:
   std::shared_ptr<rt::TimedData> GetAliasTimedData(base::StringPiece alias);
+
+  const std::shared_ptr<const Logger> logger_;
 
   TimedCache<scada::NodeId, std::shared_ptr<rt::TimedDataImpl>> node_id_cache_;
   TimedCache<std::string, std::shared_ptr<AliasTimedData>> alias_cache_;

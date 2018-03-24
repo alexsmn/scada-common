@@ -38,7 +38,7 @@ class EventManager : private EventManagerContext {
   explicit EventManager(EventManagerContext&& context);
   ~EventManager();
 
-  void OnChannelOpened(const scada::NodeId& user_node_id);
+  void OnChannelOpened(const scada::NodeId& user_id);
   void OnChannelClosed();
 
   unsigned severity_min() const { return severity_min_; }
@@ -100,7 +100,7 @@ class EventManager : private EventManagerContext {
   void OnQueryEventsResult(scada::Status status,
                            scada::QueryEventsResults results);
 
-  scada::NodeId user_node_id_;
+  scada::NodeId user_id_;
 
   bool connected_ = false;
 

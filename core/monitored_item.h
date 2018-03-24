@@ -28,7 +28,7 @@ class MonitoredItem {
   virtual void Subscribe() = 0;
 
   void ForwardData(const DataValue& data_value);
-  void ForwardEvent(const Event& event);
+  void ForwardEvent(const Status& status, const Event& event);
 
  protected:
   DataChangeHandler data_change_handler_;

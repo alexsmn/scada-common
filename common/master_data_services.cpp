@@ -8,13 +8,13 @@ MasterDataServices::~MasterDataServices() {
   SetServices({});
 }
 
-void MasterDataServices::SetServices(const DataServices& services) {
+void MasterDataServices::SetServices(DataServices&& services) {
   if (services_.view_service_)
     services_.view_service_->Unsubscribe(*this);
   if (services_.session_service_)
     services_.session_service_->RemoveObserver(*this);
 
-  services_ = services;
+  services_ = std::move(services);
 
   if (services_.view_service_)
     services_.view_service_->Subscribe(*this);
@@ -23,29 +23,29 @@ void MasterDataServices::SetServices(const DataServices& services) {
 }
 
 void MasterDataServices::Connect(const std::string& host,
-                                 const std::string& username,
+                                 const scada::LocalizedText& user_name,
                                  const std::string& password,
                                  bool allow_remote_logoff,
                                  ConnectCallback callback) {
   if (!services_.session_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.session_service_->Connect(host, username, password,
+  services_.session_service_->Connect(host, user_name, password,
                                       allow_remote_logoff, std::move(callback));
 }
 
-bool MasterDataServices::IsConnected() const {
+bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
   if (!services_.session_service_)
     return false;
 
-  return services_.session_service_->IsConnected();
+  return services_.session_service_->IsConnected(ping_delay);
 }
 
-bool MasterDataServices::IsAdministrator() const {
+bool MasterDataServices::HasPrivilege(scada::Privilege privilege) const {
   if (!services_.session_service_)
     return false;
 
-  return services_.session_service_->IsAdministrator();
+  return services_.session_service_->HasPrivilege(privilege);
 }
 
 scada::NodeId MasterDataServices::GetUserId() const {
@@ -211,11 +211,13 @@ void MasterDataServices::Write(const scada::NodeId& node_id,
 void MasterDataServices::Call(const scada::NodeId& node_id,
                               const scada::NodeId& method_id,
                               const std::vector<scada::Variant>& arguments,
+                              const scada::NodeId& user_id,
                               const scada::StatusCallback& callback) {
   if (!services_.method_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.method_service_->Call(node_id, method_id, arguments, callback);
+  services_.method_service_->Call(node_id, method_id, arguments, user_id,
+                                  callback);
 }
 
 void MasterDataServices::HistoryRead(
@@ -249,24 +251,9 @@ void MasterDataServices::OnSessionDeleted(const scada::Status& status) {
     obs.OnSessionDeleted(status);
 }
 
-void MasterDataServices::OnNodeAdded(const scada::NodeId& node_id) {
+void MasterDataServices::OnModelChanged(const scada::ModelChangeEvent& event) {
   for (auto& obs : view_events_)
-    obs.OnNodeAdded(node_id);
-}
-
-void MasterDataServices::OnNodeDeleted(const scada::NodeId& node_id) {
-  for (auto& obs : view_events_)
-    obs.OnNodeDeleted(node_id);
-}
-
-void MasterDataServices::OnReferenceAdded(const scada::NodeId& node_id) {
-  for (auto& obs : view_events_)
-    obs.OnReferenceAdded(node_id);
-}
-
-void MasterDataServices::OnReferenceDeleted(const scada::NodeId& node_id) {
-  for (auto& obs : view_events_)
-    obs.OnReferenceDeleted(node_id);
+    obs.OnModelChanged(event);
 }
 
 void MasterDataServices::OnNodeSemanticsChanged(const scada::NodeId& node_id) {

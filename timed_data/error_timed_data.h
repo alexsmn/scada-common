@@ -27,10 +27,12 @@ class ErrorTimedData final : public rt::TimedData {
   virtual const events::EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}
   virtual void Write(double value,
+                     const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
                      const StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
 
  private:
@@ -43,12 +45,14 @@ inline scada::LocalizedText ErrorTimedData::GetTitle() const {
 }
 
 inline void ErrorTimedData::Write(double value,
+                                  const scada::NodeId& user_id,
                                   const scada::WriteFlags& flags,
                                   const StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
 }
 inline void ErrorTimedData::Call(const scada::NodeId& method_id,
                                  const std::vector<scada::Variant>& arguments,
+                                 const scada::NodeId& user_id,
                                  const StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
 }

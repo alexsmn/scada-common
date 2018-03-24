@@ -1,6 +1,7 @@
 #include "remote/history_stub.h"
 
 #include "base/logger.h"
+#include "common/node_id_util.h"
 #include "core/history_service.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
@@ -9,9 +10,7 @@
 HistoryStub::HistoryStub(scada::HistoryService& service,
                          MessageSender& sender,
                          std::shared_ptr<Logger> logger)
-    : service_{service},
-      sender_{sender},
-      logger_{std::move(logger)} {}
+    : service_{service}, sender_{sender}, logger_{std::move(logger)} {}
 
 void HistoryStub::OnRequestReceived(const protocol::Request& request) {
   if (!request.has_history_read())
@@ -36,6 +35,9 @@ void HistoryStub::OnRequestReceived(const protocol::Request& request) {
     if (event_filter.has_unacked() && event_filter.unacked())
       filter.event_filter.types |= scada::Event::UNACKED;
   }
+
+  logger_->WriteF(LogSeverity::Normal, "Read history %u node %s", request_id,
+                  NodeIdToScadaString(read_value_id.node_id).c_str());
 
   auto weak_ptr = weak_factory_.GetWeakPtr();
   service_.HistoryRead(

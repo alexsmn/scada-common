@@ -1,7 +1,7 @@
 #pragma once
 
-#include "base/memory/weak_ptr.h"
 #include "base/logger.h"
+#include "base/memory/weak_ptr.h"
 #include "core/view_service.h"
 
 #include <memory>
@@ -9,11 +9,11 @@
 namespace protocol {
 class Reference;
 class Request;
-}
+}  // namespace protocol
 
 class MessageSender;
 
-class ViewServiceStub : private scada::ViewEvents {
+class ViewServiceStub final : private scada::ViewEvents {
  public:
   ViewServiceStub(MessageSender& sender,
                   scada::ViewService& service,
@@ -23,13 +23,11 @@ class ViewServiceStub : private scada::ViewEvents {
   void OnRequestReceived(const protocol::Request& request);
 
  private:
-  void OnBrowse(unsigned request_id, const std::vector<scada::BrowseDescription>& nodes);
+  void OnBrowse(unsigned request_id,
+                const std::vector<scada::BrowseDescription>& nodes);
 
   // scada::ViewEvents
-  virtual void OnNodeAdded(const scada::NodeId& node_id) override;
-  virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
-  virtual void OnReferenceAdded(const scada::NodeId& node_id) override;
-  virtual void OnReferenceDeleted(const scada::NodeId& node_id) override;
+  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
   MessageSender& sender_;

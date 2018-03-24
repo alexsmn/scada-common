@@ -25,4 +25,10 @@ class AttributeService {
                      const WriteFlags& flags, const StatusCallback& callback) = 0;
 };
 
+template <class T>
+inline DataValue MakeReadResult(T&& value) {
+  const auto timestamp = base::Time::Now();
+  return DataValue{std::forward<T>(value), {}, timestamp, timestamp};
+}
+
 } // namespace scada

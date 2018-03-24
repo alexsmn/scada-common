@@ -182,7 +182,7 @@ void EventManager::AckPendingEvents() {
 
     logger_->WriteF(LogSeverity::Normal, "Acknowledge event %u", ack_id);
 
-    event_service_.Acknowledge(ack_id, user_node_id_);
+    event_service_.Acknowledge(ack_id, user_id_);
     running_ack_event_ids_.insert(ack_id);
   }
 
@@ -248,9 +248,9 @@ void EventManager::Update() {
       }));
 }
 
-void EventManager::OnChannelOpened(const scada::NodeId& user_node_id) {
+void EventManager::OnChannelOpened(const scada::NodeId& user_id) {
   connected_ = true;
-  user_node_id_ = user_node_id;
+  user_id_ = user_id;
   Update();
 }
 

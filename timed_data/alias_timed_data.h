@@ -29,10 +29,12 @@ class AliasTimedData final : public rt::TimedData {
   virtual const events::EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
   virtual void Write(double value,
+                     const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
                      const StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
 
  private:

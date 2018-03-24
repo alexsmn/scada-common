@@ -72,10 +72,12 @@ class TimedDataSpec : private TimedDataDelegate {
 
   typedef std::function<void(const scada::Status&)> StatusCallback;
   void Write(double value,
+             const scada::NodeId& user_id,
              const scada::WriteFlags& flags,
              const StatusCallback& callback) const;
   void Call(const scada::NodeId& method_id,
             const std::vector<scada::Variant>& arguments,
+            const scada::NodeId& user_id,
             const StatusCallback& callback) const;
 
   TimedDataSpec& operator=(const TimedDataSpec& other);

@@ -8,17 +8,19 @@ ProtocolMessageTransport::ProtocolMessageTransport(
     : transport_(std::move(transport)),
       cancelation_(std::make_shared<bool>(false)) {
   assert(!transport_->IsMessageOriented());
-  transport_->set_delegate(this);
 }
 
-ProtocolMessageTransport::~ProtocolMessageTransport() {
-}
+ProtocolMessageTransport::~ProtocolMessageTransport() {}
 
-net::Error ProtocolMessageTransport::Open() {
-  return transport_->Open();
+net::Error ProtocolMessageTransport::Open(net::Transport::Delegate& delegate) {
+  delegate_ = &delegate;
+
+  return transport_->Open(*this);
 }
 
 void ProtocolMessageTransport::Close() {
+  delegate_ = nullptr;
+
   if (transport_)
     transport_->Close();
 }
@@ -31,9 +33,13 @@ int ProtocolMessageTransport::Write(const void* data, size_t len) {
   std::string message;
   protocol::PrependMessageSize(message);
   message.insert(message.end(), static_cast<const char*>(data),
-                                static_cast<const char*>(data) + len);
+                 static_cast<const char*>(data) + len);
   protocol::UpdateMessageSize(message);
-  return transport_->Write(message.data(), message.size());
+  int res = transport_->Write(message.data(), message.size());
+  if (res != message.size())
+    return net::ERR_FAILED;
+
+  return len;
 }
 
 std::string ProtocolMessageTransport::GetName() const {
@@ -61,8 +67,8 @@ void ProtocolMessageTransport::OnTransportDataReceived() {
       auto original_size = incoming_message_.size();
       auto size = protocol::GetIncomingMessageSize(incoming_message_);
       incoming_message_.resize(size);
-      auto read_count = transport_->Read(
-          &incoming_message_[original_size], size - original_size);
+      auto read_count = transport_->Read(&incoming_message_[original_size],
+                                         size - original_size);
       if (read_count < 0) {
         delegate_->OnTransportClosed(static_cast<net::Error>(read_count));
         return;
@@ -73,11 +79,10 @@ void ProtocolMessageTransport::OnTransportDataReceived() {
     }
 
     auto incoming_message = std::move(incoming_message_);
+    incoming_message_.clear();
+
     delegate_->OnTransportMessageReceived(
         protocol::GetMessagePayload(incoming_message),
         protocol::GetMessagePayloadSize(incoming_message));
-
-    if (cancelation.expired())
-      break;
   }
 }

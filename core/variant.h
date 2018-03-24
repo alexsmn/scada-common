@@ -47,6 +47,8 @@ class Variant {
   Variant(QualifiedName value) : data_{std::move(value)} {}
   Variant(LocalizedText str) : data_{std::move(str)} {}
   Variant(const char* str) : data_{str ? String{str} : String{}} {}
+  Variant(const wchar_t* str)
+      : data_{str ? LocalizedText{str} : LocalizedText{}} {}
   Variant(NodeId node_id) : data_{std::move(node_id)} {}
   Variant(ExpandedNodeId node_id) : data_{std::move(node_id)} {}
   Variant(ExtensionObject source) : data_{std::move(source)} {}
@@ -189,3 +191,7 @@ inline const T* Variant::get_if() const {
 
 std::string ToString(const scada::Variant& value);
 base::string16 ToString16(const scada::Variant& value);
+
+inline std::ostream& operator<<(std::ostream& stream, const scada::Variant& v) {
+  return stream << v.get_or("(error)");
+}

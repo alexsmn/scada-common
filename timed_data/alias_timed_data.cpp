@@ -88,19 +88,21 @@ void AliasTimedData::Acknowledge() {
 }
 
 void AliasTimedData::Write(double value,
+                           const scada::NodeId& user_id,
                            const scada::WriteFlags& flags,
                            const StatusCallback& callback) const {
   if (is_forwarded())
-    forwarded().Write(value, flags, callback);
+    forwarded().Write(value, user_id, flags, callback);
   else
     callback(scada::StatusCode::Bad_Disconnected);
 }
 
 void AliasTimedData::Call(const scada::NodeId& method_id,
                           const std::vector<scada::Variant>& arguments,
+                          const scada::NodeId& user_id,
                           const StatusCallback& callback) const {
   if (is_forwarded())
-    forwarded().Call(method_id, arguments, callback);
+    forwarded().Call(method_id, arguments, user_id, callback);
   else
     callback(scada::StatusCode::Bad_Disconnected);
 }

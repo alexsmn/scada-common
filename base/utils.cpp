@@ -43,7 +43,7 @@ int HumanCompareText(const char* left, const char* right) {
 
   int res = base::CompareCaseInsensitiveASCII(
       base::StringPiece(left, left_len),
-      base::StringPiece(right, left_len));
+      base::StringPiece(right, right_len));
   if (res != 0)
      return res;
 

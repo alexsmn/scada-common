@@ -12,30 +12,31 @@
 #include "core/session_state_observer.h"
 #include "core/view_service.h"
 
-class MasterDataServices : public scada::AttributeService,
-                           public scada::ViewService,
-                           public scada::SessionService,
-                           public scada::MonitoredItemService,
-                           public scada::EventService,
-                           public scada::MethodService,
-                           public scada::HistoryService,
-                           public scada::NodeManagementService,
-                           private scada::SessionStateObserver,
-                           private scada::ViewEvents {
+class MasterDataServices final : public scada::AttributeService,
+                                 public scada::ViewService,
+                                 public scada::SessionService,
+                                 public scada::MonitoredItemService,
+                                 public scada::EventService,
+                                 public scada::MethodService,
+                                 public scada::HistoryService,
+                                 public scada::NodeManagementService,
+                                 private scada::SessionStateObserver,
+                                 private scada::ViewEvents {
  public:
   MasterDataServices();
   ~MasterDataServices();
 
-  void SetServices(const DataServices& sevices);
+  void SetServices(DataServices&& sevices);
 
   // scada::SessionService
   virtual void Connect(const std::string& connection_string,
-                       const std::string& username,
+                       const scada::LocalizedText& user_name,
                        const std::string& password,
                        bool allow_remote_logoff,
                        ConnectCallback callback) override;
-  virtual bool IsConnected() const override;
-  virtual bool IsAdministrator() const override;
+  virtual bool IsConnected(
+      base::TimeDelta* ping_delay = nullptr) const override;
+  virtual bool HasPrivilege(scada::Privilege privilege) const override;
   virtual bool IsScada() const override;
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
@@ -102,6 +103,7 @@ class MasterDataServices : public scada::AttributeService,
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) override;
 
   // scada::HistoryService
@@ -117,10 +119,7 @@ class MasterDataServices : public scada::AttributeService,
   virtual void OnSessionDeleted(const scada::Status& status) override;
 
   // scada::ViewEvents
-  virtual void OnNodeAdded(const scada::NodeId& node_id) override;
-  virtual void OnNodeDeleted(const scada::NodeId& node_id) override;
-  virtual void OnReferenceAdded(const scada::NodeId& node_id) override;
-  virtual void OnReferenceDeleted(const scada::NodeId& node_id) override;
+  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
   base::ObserverList<scada::SessionStateObserver> session_state_observers_;

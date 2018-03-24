@@ -32,9 +32,6 @@ protocol::NodeClass ToProto(const scada::NodeClass source);
 scada::NodeAttributes FromProto(const protocol::Attributes& source);
 void ToProto(const scada::NodeAttributes& source, protocol::Attributes& target);
 
-scada::BrowseNode BrowseFromProto(const protocol::Node& source);
-void ToProto(const scada::BrowseNode& source, protocol::Node& target);
-
 scada::AttributeId FromProto(protocol::AttributeId source);
 protocol::AttributeId ToProto(scada::AttributeId source);
 

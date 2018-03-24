@@ -226,10 +226,12 @@ void SubscriptionProxy::OnDataChange(int monitored_item_id,
     i->second->UpdateAndForwardData(data_value);
 }
 
-void SubscriptionProxy::OnEvent(int monitored_item_id, const Event& event) {
+void SubscriptionProxy::OnEvent(int monitored_item_id,
+                                const scada::Status& status,
+                                const Event& event) {
   auto i = monitored_item_ids_.find(monitored_item_id);
   if (i != monitored_item_ids_.end())
-    i->second->ForwardEvent(event);
+    i->second->ForwardEvent(status, event);
 }
 
 void SubscriptionProxy::OnChannelOpened(MessageSender& sender) {

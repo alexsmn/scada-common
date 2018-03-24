@@ -27,8 +27,9 @@ void ViewServiceProxy::OnNotification(
   // But it can be addition on complex object.
 
   for (auto& proto_node_id : notification.deleted_node_id()) {
-    const auto node_id = FromProto(proto_node_id);
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnNodeDeleted(node_id));
+    scada::ModelChangeEvent event{
+        FromProto(proto_node_id), {}, scada::ModelChangeEvent::NodeDeleted};
+    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
   }
 
   for (auto& proto_node_id : notification.semantics_changed_node_id()) {
@@ -38,25 +39,30 @@ void ViewServiceProxy::OnNotification(
   }
 
   for (auto& proto_node_id : notification.added_node_id()) {
-    const auto node_id = FromProto(proto_node_id);
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnNodeAdded(node_id));
+    scada::ModelChangeEvent event{
+        FromProto(proto_node_id), {}, scada::ModelChangeEvent::NodeAdded};
+    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
   }
 
   for (auto& proto_node_id : notification.added_reference_node_id()) {
-    const auto node_id = FromProto(proto_node_id);
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnReferenceAdded(node_id));
+    scada::ModelChangeEvent event{
+        FromProto(proto_node_id), {}, scada::ModelChangeEvent::ReferenceAdded};
+    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
   }
 
   for (auto& proto_node_id : notification.deleted_reference_node_id()) {
-    const auto node_id = FromProto(proto_node_id);
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnReferenceDeleted(node_id));
+    scada::ModelChangeEvent event{FromProto(proto_node_id),
+                                  {},
+                                  scada::ModelChangeEvent::ReferenceDeleted};
+    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
   }
 }
 
 void ViewServiceProxy::Browse(
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
-  assert(sender_);
+  if (!sender_)
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
   protocol::Request request;
   auto& browse = *request.mutable_browse();

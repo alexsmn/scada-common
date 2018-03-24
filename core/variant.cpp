@@ -156,6 +156,11 @@ struct FormatHelper<String> {
   }
 
   template <>
+  static String Format(const QualifiedName& value) {
+    return ToString(value);
+  }
+
+  template <>
   static String Format(const LocalizedText& value) {
     return ToString(value);
   }
@@ -166,6 +171,11 @@ struct FormatHelper<LocalizedText> {
   template <typename T>
   static LocalizedText Format(const T& value) {
     return ToLocalizedText(::Format(value));
+  }
+
+  template <>
+  static LocalizedText Format(const QualifiedName& value) {
+    return ToString16(value);
   }
 
   template <>
@@ -195,6 +205,9 @@ bool Variant::ToStringHelper(String& string_value) const {
       return true;
     case STRING:
       string_value = FormatHelper<String>::Format(as_string());
+      return true;
+    case QUALIFIED_NAME:
+      string_value = FormatHelper<String>::Format(get<QualifiedName>());
       return true;
     case LOCALIZED_TEXT:
       string_value = FormatHelper<String>::Format(as_localized_text());
@@ -256,6 +269,8 @@ bool Variant::ChangeType(Variant::Type new_type) {
       return ChangeTypeTo<double>();
     case STRING:
       return ChangeTypeTo<String>();
+    case QUALIFIED_NAME:
+      return ChangeTypeTo<QualifiedName>();
     case LOCALIZED_TEXT:
       return ChangeTypeTo<LocalizedText>();
     case NODE_ID:

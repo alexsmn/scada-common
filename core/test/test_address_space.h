@@ -1,29 +1,24 @@
 #pragma once
 
 #include "common/node_state.h"
+#include "core/attribute_service.h"
 #include "core/data_value.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
 namespace test {
 
-template <class T>
-inline scada::DataValue MakeReadResult(T&& value) {
-  auto timestamp = scada::DateTime::Now();
-  return {std::forward<T>(value), {}, timestamp, timestamp};
-}
-
 inline scada::DataValue Read(const scada::BrowseNode& node,
                              scada::AttributeId attribute_id) {
   switch (attribute_id) {
     case scada::AttributeId::NodeId:
-      return MakeReadResult(node.node_id);
+      return scada::MakeReadResult(node.node_id);
     case scada::AttributeId::NodeClass:
-      return MakeReadResult(static_cast<int32_t>(node.node_class));
+      return scada::MakeReadResult(static_cast<int32_t>(node.node_class));
     case scada::AttributeId::BrowseName:
-      return MakeReadResult(node.browse_name);
+      return scada::MakeReadResult(node.browse_name);
     case scada::AttributeId::DisplayName:
-      return MakeReadResult(node.display_name);
+      return scada::MakeReadResult(node.display_name);
     default:
       return {scada::StatusCode::Bad, scada::DateTime::Now()};
   }

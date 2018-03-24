@@ -25,10 +25,12 @@ class BaseTimedData : public TimedData {
   virtual const events::EventSet* GetEvents() const { return nullptr; }
   virtual void Acknowledge() {}
   virtual void Write(double value,
+                     const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
                      const StatusCallback& callback) const;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const StatusCallback& callback) const;
 
  protected:
@@ -56,17 +58,17 @@ class BaseTimedData : public TimedData {
   void Failed();
 
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
-  bool alerting_;
+  bool alerting_ = false;
 
   scada::DataValue current_;
   base::Time change_time_;
 
   base::ObserverList<TimedDataDelegate> observers_;
 
-  base::Time from_;
+  base::Time from_ = kTimedDataCurrentOnly;
 
   // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
-  base::Time ready_from_;
+  base::Time ready_from_ = kTimedDataCurrentOnly;
 
   TimedVQMap map_;
 

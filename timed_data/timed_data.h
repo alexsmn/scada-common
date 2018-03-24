@@ -54,11 +54,13 @@ class TimedData {
   // Write item value.
   typedef std::function<void(const scada::Status&)> StatusCallback;
   virtual void Write(double value,
+                     const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
                      const StatusCallback& callback) const = 0;
 
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const StatusCallback& callback) const = 0;
 };
 

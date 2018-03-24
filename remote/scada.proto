@@ -125,6 +125,7 @@ message DataValue {
 
 message Event {
   optional uint32 monitored_item_id = 1;
+  optional Status status = 13;
   required uint64 time = 2;
   required uint32 severity = 3;
   optional NodeId source_node_id = 4;
@@ -162,6 +163,17 @@ message DeleteSession {
   optional string token = 1;
 }
 
+message NodeReference {
+  optional NodeId reference_type_id = 1;
+  optional bool forward = 2;
+  optional NodeId node_id = 3;
+}
+
+message NodeProperty {
+  optional NodeId declaration_id = 1;
+  optional Variant value = 2;
+}
+
 message Node {
   required NodeId node_id = 1;
   optional NodeId type_definition_id = 2;
@@ -169,6 +181,8 @@ message Node {
   optional Attributes attributes = 5;
   optional NodeId parent_id = 6;
   optional NodeId reference_type_id = 7;
+  repeated NodeReference reference = 8;
+  repeated NodeProperty property = 9;
 }
 
 message CreateNode {
@@ -329,11 +343,15 @@ message BrowseResponse {
   repeated BrowseResult results = 2;
 }
 
+message Ping {
+}
+
 message Request {
   optional uint32 request_id = 1;
 
   optional CreateSession create_session = 10;
   optional DeleteSession delete_session = 11;
+  optional Ping ping = 15;
 
   optional Read read = 14;
   optional Write write = 12;

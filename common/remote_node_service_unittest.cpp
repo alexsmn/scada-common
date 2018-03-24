@@ -1,4 +1,4 @@
-#include "common/node_service_impl.h"
+#include "common/remote_node_service.h"
 
 #include "base/logger.h"
 #include "core/attribute_service.h"
@@ -27,18 +27,18 @@ class MockAttributeService : public scada::AttributeService {
   TestAddressSpace address_space;
   TestViewService view_service{address_space};
   MockAttributeService attribute_service;
-  NodeServiceImpl node_service{NodeRefServiceImplContext{
+  RemoteNodeService node_service{NodeRefServiceImplContext{
       logger,
       view_service,
       attribute_service,
   }};
 };*/
 
-TEST(NodeServiceImpl, FetchNode) {
+TEST(RemoteNodeService, FetchNode) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
   MockAttributeService attribute_service;
-  NodeServiceImpl node_service{NodeServiceImplContext{
+  RemoteNodeService node_service{RemoteNodeServiceContext{
       logger,
       address_space,
       attribute_service,

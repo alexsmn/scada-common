@@ -18,7 +18,9 @@ struct DataServicesContext {
   net::TransportFactory& transport_factory;
 };
 
-using DataServicesFactoryMethod = std::function<bool(const DataServicesContext& context, DataServices& services)>;
+using DataServicesFactoryMethod =
+    std::function<bool(const DataServicesContext& context,
+                       DataServices& services)>;
 
 struct DataServicesInfo {
   std::string name;
@@ -40,4 +42,6 @@ bool EqualDataServicesName(base::StringPiece name1, base::StringPiece name2);
       return true; \
     }();
 
-bool CreateDataServices(base::StringPiece name, const DataServicesContext& context, DataServices& services);
+bool CreateDataServices(base::StringPiece name,
+                        const DataServicesContext& context,
+                        DataServices& services);

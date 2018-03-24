@@ -8,9 +8,12 @@ namespace scada {
 
 class MockMethodService : public MethodService {
  public:
-  MOCK_METHOD4(Call, void(const NodeId& node_id, const NodeId& method_id,
-                          const std::vector<Variant>& arguments,
-                          const StatusCallback& callback));
+  MOCK_METHOD5(Call,
+               void(const NodeId& node_id,
+                    const NodeId& method_id,
+                    const std::vector<Variant>& arguments,
+                    const scada::NodeId& user_id,
+                    const StatusCallback& callback));
 };
 
-} // namespace scada
+}  // namespace scada

@@ -50,6 +50,13 @@ void SessionStub::ProcessMessage(const protocol::Message& message) {
 }
 
 void SessionStub::ProcessRequest(const protocol::Request& request) {
+  if (request.has_ping()) {
+    protocol::Response response;
+    response.set_request_id(request.request_id());
+    ToProto(scada::StatusCode::Good, *response.mutable_status());
+    SendResponse(response);
+  }
+
   if (request.has_read()) {
     auto& read = request.read();
     OnRead(request.request_id(),
@@ -195,7 +202,7 @@ void SessionStub::OnCall(unsigned request_id,
                          const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments) {
   std::weak_ptr<SessionStub> weak_ptr = shared_from_this();
-  method_service_.Call(node_id, method_id, arguments,
+  method_service_.Call(node_id, method_id, arguments, user_id_,
                        [weak_ptr, request_id](const scada::Status& status) {
                          auto ptr = weak_ptr.lock();
                          if (!ptr)

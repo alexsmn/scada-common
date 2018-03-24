@@ -16,8 +16,10 @@ bool IsTimedCacheExpired(const T& value) {
 
 // TimedDataServiceImpl
 
-TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
+TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
+                                           std::shared_ptr<const Logger> logger)
     : TimedDataContext{std::move(context)},
+      logger_{std::move(logger)},
       null_timed_data_{
           std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
 
@@ -68,7 +70,9 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
     return null_timed_data_;
 
   auto& context = static_cast<TimedDataContext&>(*this);
-  auto timed_data = std::make_shared<rt::TimedDataImpl>(node, context, nullptr);
+  auto logger =
+      std::make_shared<NestedLogger>(logger_, NodeIdToScadaString(node_id));
+  auto timed_data = std::make_shared<rt::TimedDataImpl>(node, context, logger);
 
   node_id_cache_.Add(node_id, timed_data);
   return timed_data;

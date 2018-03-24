@@ -11,21 +11,22 @@ struct BrowseResult;
 }  // namespace scada
 
 class Logger;
-class NodeModelImpl;
-class NodeServiceImpl;
+class RemoteNodeModel;
+class RemoteNodeService;
 
 struct NodeModelImplReference {
-  std::shared_ptr<const NodeModelImpl> reference_type;
-  std::shared_ptr<const NodeModelImpl> target;
+  std::shared_ptr<const RemoteNodeModel> reference_type;
+  std::shared_ptr<const RemoteNodeModel> target;
   bool forward;
 };
 
-class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
-                            public NodeModel {
+class RemoteNodeModel final
+    : public std::enable_shared_from_this<RemoteNodeModel>,
+      public NodeModel {
  public:
-  NodeModelImpl(NodeServiceImpl& service,
-                scada::NodeId id,
-                std::shared_ptr<const Logger> logger);
+  RemoteNodeModel(RemoteNodeService& service,
+                  scada::NodeId id,
+                  std::shared_ptr<const Logger> logger);
 
   // NodeModel
   virtual scada::Status GetStatus() const override;
@@ -70,7 +71,7 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
 
   void SetError(const scada::Status& status);
 
-  NodeServiceImpl& service_;
+  RemoteNodeService& service_;
   const scada::NodeId id_;
 
   NodeFetchStatus fetch_status_{};
@@ -83,9 +84,9 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
 
   std::vector<NodeModelImplReference> references_;
 
-  std::shared_ptr<const NodeModelImpl> type_definition_;
-  std::shared_ptr<const NodeModelImpl> supertype_;
-  std::shared_ptr<const NodeModelImpl> data_type_;
+  std::shared_ptr<const RemoteNodeModel> type_definition_;
+  std::shared_ptr<const RemoteNodeModel> supertype_;
+  std::shared_ptr<const RemoteNodeModel> data_type_;
 
   std::shared_ptr<const Logger> logger_;
   mutable unsigned pending_request_count_ = 0;
@@ -94,5 +95,5 @@ class NodeModelImpl final : public std::enable_shared_from_this<NodeModelImpl>,
   mutable bool passing_ = false;
   std::vector<NodeModelImplReference> pending_references_;
 
-  friend class NodeServiceImpl;
+  friend class RemoteNodeService;
 };

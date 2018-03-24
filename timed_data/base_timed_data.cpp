@@ -6,13 +6,9 @@
 
 namespace rt {
 
-const base::Time kTimedDataCurrentOnly =
-    base::Time::FromInternalValue(std::numeric_limits<int64>::max());
+const base::Time kTimedDataCurrentOnly = base::Time::Max();
 
-BaseTimedData::BaseTimedData()
-    : alerting_(false),
-      from_(kTimedDataCurrentOnly),
-      ready_from_(kTimedDataCurrentOnly) {}
+BaseTimedData::BaseTimedData() {}
 
 BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
@@ -22,7 +18,7 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   if (!historical())
     return current_.source_timestamp <= time ? current_ : scada::DataValue();
 
-  TimedVQMap::const_iterator i = map_.lower_bound(time);
+  auto i = map_.lower_bound(time);
   if (i == map_.end())
     return scada::DataValue();
 
@@ -71,6 +67,7 @@ void BaseTimedData::ResetReadyFrom() {
 }
 
 void BaseTimedData::Write(double value,
+                          const scada::NodeId& user_id,
                           const scada::WriteFlags& flags,
                           const StatusCallback& callback) const {
   if (callback)
@@ -79,6 +76,7 @@ void BaseTimedData::Write(double value,
 
 void BaseTimedData::Call(const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments,
+                         const scada::NodeId& user_id,
                          const StatusCallback& callback) const {
   if (callback)
     callback(scada::StatusCode::Bad_Disconnected);
@@ -169,14 +167,13 @@ void BaseTimedData::ClearRange(base::Time from, base::Time to) {
   assert(!from.is_null());
   assert(to.is_null() || from <= to);
 
-  TimedVQMap::iterator i = map_.lower_bound(from);
+  auto i = map_.lower_bound(from);
   if (i == map_.end())
     return;
 
   assert(i->first >= from);
 
-  TimedVQMap::iterator j = to.is_null() ? map_.end() : map_.lower_bound(to);
-
+  auto j = to.is_null() ? map_.end() : map_.lower_bound(to);
   map_.erase(i, j);
 }
 

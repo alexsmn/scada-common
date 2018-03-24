@@ -94,6 +94,7 @@ TimedDataSpec& TimedDataSpec::operator=(const TimedDataSpec& other) {
 }
 
 void TimedDataSpec::Write(double value,
+                          const scada::NodeId& user_id,
                           const scada::WriteFlags& flags,
                           const StatusCallback& callback) const {
   if (!data_) {
@@ -102,11 +103,12 @@ void TimedDataSpec::Write(double value,
     return;
   }
 
-  return data_->Write(value, flags, callback);
+  return data_->Write(value, user_id, flags, callback);
 }
 
 void TimedDataSpec::Call(const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments,
+                         const scada::NodeId& user_id,
                          const StatusCallback& callback) const {
   if (!data_) {
     if (callback)
@@ -114,7 +116,7 @@ void TimedDataSpec::Call(const scada::NodeId& method_id,
     return;
   }
 
-  return data_->Call(method_id, arguments, callback);
+  return data_->Call(method_id, arguments, user_id, callback);
 }
 
 void TimedDataSpec::Acknowledge() const {

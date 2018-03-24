@@ -23,7 +23,7 @@ class TimedDataImpl : private TimedDataContext,
  public:
   TimedDataImpl(const NodeRef& node,
                 const TimedDataContext& context,
-                std::shared_ptr<const Logger> parent_logger);
+                std::shared_ptr<const Logger> logger);
   virtual ~TimedDataImpl();
 
   // TimedData overrides
@@ -31,10 +31,12 @@ class TimedDataImpl : private TimedDataContext,
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
   virtual void Write(double value,
+                     const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
                      const StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
   virtual const events::EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
@@ -56,20 +58,20 @@ class TimedDataImpl : private TimedDataContext,
 
   // NodeRefObserver
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) override;
-  virtual void OnModelChange(const ModelChangeEvent& event) override;
+  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
 
   // events::EventObserver
   virtual void OnItemEventsChanged(const scada::NodeId& node_id,
                                    const events::EventSet& events) override;
 
-  NestedLogger logger_;
+  const std::shared_ptr<const Logger> logger_;
 
   NodeRef node_;
   std::unique_ptr<scada::MonitoredItem> monitored_value_;
 
-  bool querying_;
+  bool querying_ = false;
 
-  base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_;
+  base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_{this};
 };
 
 }  // namespace rt

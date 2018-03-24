@@ -24,6 +24,8 @@ inline SessionProxyNotifier<Proxy>::SessionProxyNotifier(
     scada::SessionService& session_service)
     : proxy_{proxy}, session_service_{session_service} {
   session_service_.AddObserver(*this);
+  if (session_service_.IsConnected())
+    proxy_.OnChannelOpened();
 }
 
 template <class Proxy>

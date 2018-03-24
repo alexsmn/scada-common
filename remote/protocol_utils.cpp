@@ -136,24 +136,6 @@ void ToProto(const scada::Status& source, protocol::Status& target) {
   target.set_code(source.full_code());
 }
 
-scada::BrowseNode BrowseFromProto(const protocol::Node& source) {
-  return {
-      FromProto(source.parent_id()),
-      FromProto(source.reference_type_id()),
-      FromProto(source.node_id()),
-      FromProto(source.node_class()),
-      FromProto(source.type_definition_id()),
-      scada::QualifiedName{source.attributes().browse_name(), 0},
-      scada::ToLocalizedText(
-          base::SysUTF8ToWide(source.attributes().display_name())),
-      source.attributes().has_data_type_id()
-          ? FromProto(source.attributes().data_type_id())
-          : scada::NodeId{},
-      source.attributes().has_value() ? FromProto(source.attributes().value())
-                                      : scada::Variant{},
-  };
-}
-
 scada::Event FromProto(const protocol::Event& source) {
   scada::Event result;
   result.time = base::Time::FromInternalValue(source.time());
@@ -237,38 +219,6 @@ void ToProto(const scada::NodeAttributes& source,
     ToProto(source.data_type, *target.mutable_data_type_id());
   if (!source.value.is_null())
     ToProto(source.value, *target.mutable_value());
-}
-
-void ToProto(const scada::BrowseNode& source, protocol::Node& target) {
-  if (source.node_id != scada::id::RootFolder) {
-    assert(!source.parent_id.is_null());
-    assert(!source.reference_type_id.is_null());
-    ToProto(source.parent_id, *target.mutable_parent_id());
-    ToProto(source.reference_type_id, *target.mutable_reference_type_id());
-  }
-
-  ToProto(source.node_id, *target.mutable_node_id());
-  target.set_node_class(ToProto(source.node_class));
-
-  if (!scada::IsTypeDefinition(source.node_class)) {
-    assert(!source.type_id.is_null());
-    ToProto(source.type_id, *target.mutable_type_definition_id());
-  }
-
-  auto& attributes = *target.mutable_attributes();
-  attributes.set_browse_name(source.browse_name.name());
-  if (!source.display_name.empty()) {
-    attributes.set_display_name(
-        base::SysWideToUTF8(ToString16(source.display_name)));
-  }
-
-  if (source.node_class == scada::NodeClass::Variable ||
-      source.node_class == scada::NodeClass::VariableType) {
-    assert(!source.data_type_id.is_null());
-    ToProto(source.data_type_id, *attributes.mutable_data_type_id());
-    if (!source.value.is_null())
-      ToProto(source.value, *attributes.mutable_value());
-  }
 }
 
 scada::AttributeId FromProto(protocol::AttributeId source) {

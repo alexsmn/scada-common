@@ -20,7 +20,7 @@ inline const void* GetMessagePayload(const std::string& message) {
 
 inline size_t GetIncomingMessageSize(const std::string& message) {
   if (message.size() < sizeof(MessageSizeType))
-    return sizeof(MessageSizeType) - message.size();
+    return sizeof(MessageSizeType);
   return sizeof(MessageSizeType) + GetMessagePayloadSize(message);
 }
 

@@ -22,13 +22,10 @@ namespace rt {
 
 TimedDataImpl::TimedDataImpl(const NodeRef& node,
                              const TimedDataContext& context,
-                             std::shared_ptr<const Logger> parent_logger)
-    : TimedDataContext{context}, querying_(false), weak_ptr_factory_(this) {
+                             std::shared_ptr<const Logger> logger)
+    : TimedDataContext{context}, logger_{std::move(logger)} {
   assert(node);
   SetNode(node);
-
-  logger_.set_parent(std::move(parent_logger));
-  logger_.set_prefix(NodeIdToScadaString(node_.id()));
 
   monitored_value_ = monitored_item_service_.CreateMonitoredItem(
       {node_.id(), scada::AttributeId::Value});
@@ -72,6 +69,7 @@ NodeRef TimedDataImpl::GetNode() const {
 }
 
 void TimedDataImpl::Write(double value,
+                          const scada::NodeId& user_id,
                           const scada::WriteFlags& flags,
                           const StatusCallback& callback) const {
   auto node = GetNode();
@@ -81,11 +79,12 @@ void TimedDataImpl::Write(double value,
     return;
   }
 
-  attribute_service_.Write(node.id(), value, scada::NodeId(), flags, callback);
+  attribute_service_.Write(node.id(), value, user_id, flags, callback);
 }
 
 void TimedDataImpl::Call(const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments,
+                         const scada::NodeId& user_id,
                          const StatusCallback& callback) const {
   auto node = GetNode();
   if (!node) {
@@ -94,7 +93,7 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
     return;
   }
 
-  method_service_.Call(node.id(), method_id, arguments, callback);
+  method_service_.Call(node.id(), method_id, arguments, user_id, callback);
 }
 
 void TimedDataImpl::QueryValues() {
@@ -112,9 +111,9 @@ void TimedDataImpl::QueryValues() {
   if (to == kTimedDataCurrentOnly)
     to = base::Time();
 
-  logger_.WriteF(LogSeverity::Normal, "Querying history from {%s} to {%s}",
-                 FormatTime(from_).c_str(),
-                 !to.is_null() ? FormatTime(to).c_str() : "Current");
+  logger_->WriteF(LogSeverity::Normal, "Querying history from %s to %s",
+                  FormatTime(from_).c_str(),
+                  !to.is_null() ? FormatTime(to).c_str() : "Current");
 
   querying_ = true;
   auto message_loop = base::ThreadTaskRunnerHandle::Get();
@@ -162,8 +161,8 @@ void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
     o.OnTimedDataNodeModified();
 }
 
-void TimedDataImpl::OnModelChange(const ModelChangeEvent& event) {
-  if (event.verb & ModelChangeEvent::NodeDeleted) {
+void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
+  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     SetNode(nullptr);
     Delete();
 
@@ -205,6 +204,12 @@ void TimedDataImpl::OnQueryValuesComplete(base::Time queried_from,
   if (results && !results->empty() &&
       results->front().source_timestamp < new_ready_from)
     new_ready_from = results->front().source_timestamp;
+
+  logger_->WriteF(
+      LogSeverity::Normal,
+      "Query result %Iu values from %s to %s. Ready from %s",
+      results ? results->size() : 0, FormatTime(queried_from).c_str(),
+      FormatTime(queried_to).c_str(), FormatTime(new_ready_from).c_str());
 
   UpdateReadyFrom(new_ready_from);
 

@@ -1,4 +1,4 @@
-#include "common/node_service_impl.h"
+#include "common/remote_node_service.h"
 
 #include <set>
 
@@ -6,29 +6,29 @@
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/threading/sequenced_task_runner_handle.h"
-#include "common/node_model_impl.h"
 #include "common/node_observer.h"
 #include "common/node_util.h"
+#include "common/remote_node_model.h"
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
 
-NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
-    : NodeServiceImplContext(std::move(context)) {
+RemoteNodeService::RemoteNodeService(RemoteNodeServiceContext&& context)
+    : RemoteNodeServiceContext(std::move(context)) {
   view_service_.Subscribe(*this);
 }
 
-NodeServiceImpl::~NodeServiceImpl() {
+RemoteNodeService::~RemoteNodeService() {
   view_service_.Unsubscribe(*this);
 }
 
-NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
+NodeRef RemoteNodeService::GetNode(const scada::NodeId& node_id) {
   if (node_id.is_null())
     return {};
 
   return GetNodeImpl(node_id, {});
 }
 
-std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
+std::shared_ptr<RemoteNodeModel> RemoteNodeService::GetNodeImpl(
     const scada::NodeId& node_id,
     const scada::NodeId& depended_id) {
   assert(!node_id.is_null());
@@ -36,7 +36,7 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
   auto& node = nodes_[node_id];
 
   if (!node) {
-    node = std::make_shared<NodeModelImpl>(*this, node_id, logger_);
+    node = std::make_shared<RemoteNodeModel>(*this, node_id, logger_);
     node->Fetch(NodeFetchStatus::NodeOnly(), nullptr);
   }
 
@@ -46,8 +46,8 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeImpl(
   return node;
 }
 
-void NodeServiceImpl::CompletePartialNode(
-    const std::shared_ptr<NodeModelImpl>& node) {
+void RemoteNodeService::CompletePartialNode(
+    const std::shared_ptr<RemoteNodeModel>& node) {
   if (node->fetch_status_.node_fetched)
     return;
 
@@ -103,8 +103,8 @@ void NodeServiceImpl::CompletePartialNode(
   }
 }
 
-void NodeServiceImpl::Browse(const scada::BrowseDescription& description,
-                             const BrowseCallback& callback) {
+void RemoteNodeService::Browse(const scada::BrowseDescription& description,
+                               const BrowseCallback& callback) {
   // TODO: Cache.
 
   view_service_.Browse(
@@ -117,56 +117,35 @@ void NodeServiceImpl::Browse(const scada::BrowseDescription& description,
       });
 }
 
-void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
+void RemoteNodeService::Subscribe(NodeRefObserver& observer) const {
   observers_.AddObserver(&observer);
 }
 
-void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
+void RemoteNodeService::Unsubscribe(NodeRefObserver& observer) const {
   observers_.RemoveObserver(&observer);
 }
 
-void NodeServiceImpl::AddNodeObserver(const scada::NodeId& node_id,
-                                      NodeRefObserver& observer) {
+void RemoteNodeService::AddNodeObserver(const scada::NodeId& node_id,
+                                        NodeRefObserver& observer) {
   node_observers_[node_id].AddObserver(&observer);
 }
 
-void NodeServiceImpl::RemoveNodeObserver(const scada::NodeId& node_id,
-                                         NodeRefObserver& observer) {
+void RemoteNodeService::RemoveNodeObserver(const scada::NodeId& node_id,
+                                           NodeRefObserver& observer) {
   node_observers_[node_id].RemoveObserver(&observer);
 }
 
-void NodeServiceImpl::NotifyEvent(const ModelChangeEvent& event) {
+void RemoteNodeService::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (auto* node_observers = GetNodeObservers(event.node_id)) {
     for (auto& o : *node_observers)
-      o.OnModelChange(event);
+      o.OnModelChanged(event);
   }
 
   for (auto& o : observers_)
-    o.OnModelChange(event);
+    o.OnModelChanged(event);
 }
 
-void NodeServiceImpl::OnNodeAdded(const scada::NodeId& node_id) {
-  NotifyEvent({node_id, {}, ModelChangeEvent::NodeAdded});
-}
-
-void NodeServiceImpl::OnNodeDeleted(const scada::NodeId& node_id) {
-  // TODO: Remove nodes containing aggregates.
-  nodes_.erase(node_id);
-
-  NotifyEvent({node_id, {}, ModelChangeEvent::NodeDeleted});
-}
-
-void NodeServiceImpl::OnReferenceAdded(const scada::NodeId& node_id) {
-  NotifyEvent({node_id, {}, ModelChangeEvent::ReferenceAdded});
-}
-
-void NodeServiceImpl::OnReferenceDeleted(const scada::NodeId& node_id) {
-  // TODO: Delete aggregates and types.
-
-  NotifyEvent({node_id, {}, ModelChangeEvent::ReferenceDeleted});
-}
-
-void NodeServiceImpl::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
+void RemoteNodeService::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
   if (auto* node_observers = GetNodeObservers(node_id)) {
     for (auto& o : *node_observers)
       o.OnNodeSemanticChanged(node_id);
@@ -176,7 +155,7 @@ void NodeServiceImpl::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
     o.OnNodeSemanticChanged(node_id);
 }
 
-const NodeServiceImpl::Observers* NodeServiceImpl::GetNodeObservers(
+const RemoteNodeService::Observers* RemoteNodeService::GetNodeObservers(
     const scada::NodeId& node_id) const {
   auto i = node_observers_.find(node_id);
   return i != node_observers_.end() ? &i->second : nullptr;

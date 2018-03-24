@@ -22,18 +22,18 @@ VidiconSession::VidiconSession() : teleclient_(CreateTeleClient()) {}
 VidiconSession::~VidiconSession() {}
 
 void VidiconSession::Connect(const std::string& connection_string,
-                             const std::string& username,
+                             const scada::LocalizedText& user_name,
                              const std::string& password,
                              bool allow_remote_logoff,
                              ConnectCallback callback) {
   callback(scada::StatusCode::Good);
 }
 
-bool VidiconSession::IsConnected() const {
+bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {
   return true;
 }
 
-bool VidiconSession::IsAdministrator() const {
+bool VidiconSession::HasPrivilege(scada::Privilege privilege) const {
   return false;
 }
 
@@ -101,6 +101,7 @@ void VidiconSession::GenerateEvent(const scada::Event& event) {}
 void VidiconSession::Call(const scada::NodeId& node_id,
                           const scada::NodeId& method_id,
                           const std::vector<scada::Variant>& arguments,
+                          const scada::NodeId& user_id,
                           const scada::StatusCallback& callback) {
   callback(scada::StatusCode::Bad);
 }

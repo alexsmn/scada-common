@@ -139,6 +139,10 @@ bool StringToValue(base::StringPiece16 str,
       value = true;
       return true;
     }
+
+  } else if (data_type_id == scada::id::LocalizedText) {
+    value = scada::ToLocalizedText(str.as_string());
+    return true;
   }
 
   return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id,

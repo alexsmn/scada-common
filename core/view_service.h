@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "core/configuration_types.h"
+#include "core/model_change_event.h"
 #include "core/node_class.h"
 #include "core/node_id.h"
 #include "core/qualified_name.h"
@@ -34,26 +35,27 @@ class ViewEvents {
  public:
   virtual ~ViewEvents() {}
 
-  // Model
-  virtual void OnNodeAdded(const NodeId& node_id) = 0;
-  virtual void OnNodeDeleted(const NodeId& node_id) = 0;
-  virtual void OnReferenceAdded(const scada::NodeId& node_id) = 0;
-  virtual void OnReferenceDeleted(const scada::NodeId& node_id) = 0;
-
+  virtual void OnModelChanged(const ModelChangeEvent& event) = 0;
   virtual void OnNodeSemanticsChanged(const NodeId& node_id) = 0;
 };
 
-using BrowseCallback = std::function<void(Status&& status, std::vector<BrowseResult>&& results)>;
-using TranslateBrowsePathCallback = std::function<void(Status&& status, std::vector<NodeId>&& target_ids,
-    size_t remaining_path_index)>;
+using BrowseCallback =
+    std::function<void(Status&& status, std::vector<BrowseResult>&& results)>;
+using TranslateBrowsePathCallback =
+    std::function<void(Status&& status,
+                       std::vector<NodeId>&& target_ids,
+                       size_t remaining_path_index)>;
 
 class ViewService {
  public:
   virtual ~ViewService() {}
 
-  virtual void Browse(const std::vector<BrowseDescription>& descriptions, const BrowseCallback& callback) = 0;
+  virtual void Browse(const std::vector<BrowseDescription>& descriptions,
+                      const BrowseCallback& callback) = 0;
 
-  virtual void TranslateBrowsePath(const NodeId& starting_node_id, const RelativePath& relative_path,
+  virtual void TranslateBrowsePath(
+      const NodeId& starting_node_id,
+      const RelativePath& relative_path,
       const TranslateBrowsePathCallback& callback) = 0;
 
   virtual void Subscribe(ViewEvents& events) = 0;
@@ -67,4 +69,4 @@ class LocalViewService {
   virtual BrowseResult Browse(const BrowseDescription& node) = 0;
 };
 
-} // namespace scada
+}  // namespace scada

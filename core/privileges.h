@@ -1,8 +1,7 @@
 #pragma once
 
-namespace cfg {
+namespace scada {
 
-enum Privilege { PRIVILEGE_CONFIGURE = 0,
-                 PRIVILEGE_CONTROL   = 1  };
+enum class Privilege { Configure = 0, Control = 1 };
 
-} // namespace cfg
+}  // namespace scada

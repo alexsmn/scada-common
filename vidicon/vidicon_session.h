@@ -29,12 +29,13 @@ class VidiconSession : public scada::SessionService,
 
   // scada::SessionService
   virtual void Connect(const std::string& connection_string,
-                       const std::string& username,
+                       const scada::LocalizedText& user_name,
                        const std::string& password,
                        bool allow_remote_logoff,
                        ConnectCallback callback) override;
-  virtual bool IsConnected() const override;
-  virtual bool IsAdministrator() const override;
+  virtual bool IsConnected(
+      base::TimeDelta* ping_delay = nullptr) const override;
+  virtual bool HasPrivilege(scada::Privilege privilege) const override;
   virtual bool IsScada() const override { return false; }
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
@@ -70,6 +71,7 @@ class VidiconSession : public scada::SessionService,
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) override;
 
   // scada::NodeManagementService

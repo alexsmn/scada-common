@@ -15,8 +15,9 @@
 #include <map>
 
 namespace net {
+class Logger;
 class TransportFactory;
-}
+}  // namespace net
 
 namespace scada {
 class NodeManagementService;
@@ -49,8 +50,6 @@ class SessionProxy : private SessionProxyContext,
   explicit SessionProxy(SessionProxyContext&& context);
   virtual ~SessionProxy();
 
-  bool has_privilege(cfg::Privilege privilege) const;
-
   scada::NodeManagementService& GetNodeManagementService();
   scada::EventService& GetEventService();
   scada::HistoryService& GetHistoryService();
@@ -58,12 +57,12 @@ class SessionProxy : private SessionProxyContext,
 
   // scada::SessionService
   virtual void Connect(const std::string& connection_string,
-                       const std::string& username,
+                       const scada::LocalizedText& user_name,
                        const std::string& password,
                        bool allow_remote_logoff,
                        ConnectCallback callback) override;
-  virtual bool IsConnected() const override;
-  virtual bool IsAdministrator() const override;
+  virtual bool IsConnected(base::TimeDelta* ping_delay) const override;
+  virtual bool HasPrivilege(scada::Privilege privilege) const override;
   virtual bool IsScada() const override { return false; }
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
@@ -92,6 +91,7 @@ class SessionProxy : private SessionProxyContext,
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) override;
 
  protected:
@@ -116,11 +116,14 @@ class SessionProxy : private SessionProxyContext,
 
   void ForwardConnectResult(const scada::Status& status);
 
+  void Ping();
+
+  std::unique_ptr<net::Logger> transport_logger_;
   std::unique_ptr<net::Transport> transport_;
 
   bool session_created_ = false;
 
-  std::string user_name_;
+  scada::LocalizedText user_name_;
   std::string password_;
   std::string host_;
   bool allow_remote_logoff_ = false;
@@ -142,4 +145,8 @@ class SessionProxy : private SessionProxyContext,
   ConnectCallback connect_callback_;
 
   int next_request_id_ = 1;
+
+  base::Timer ping_timer_;
+  base::TimeTicks ping_time_;
+  base::TimeDelta last_ping_delay_;
 };

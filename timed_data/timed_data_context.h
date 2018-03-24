@@ -4,12 +4,6 @@
 #include "base/strings/string_piece.h"
 #include "common/aliases.h"
 
-namespace boost {
-namespace asio {
-class io_context;
-}
-}  // namespace boost
-
 namespace events {
 class EventManager;
 }
@@ -26,7 +20,6 @@ class MonitoredItemService;
 class NodeService;
 
 struct TimedDataContext {
-  boost::asio::io_context& io_context_;
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
   scada::AttributeService& attribute_service_;
