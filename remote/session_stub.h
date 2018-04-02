@@ -7,6 +7,10 @@
 #include "remote/message_sender.h"
 #include "remote/subscription.h"
 
+namespace boost::asio {
+class io_context;
+}
+
 namespace protocol {
 class Message;
 class Request;
@@ -33,6 +37,7 @@ class SubscriptionStub;
 class ViewServiceStub;
 
 struct SessionContext {
+  boost::asio::io_context& io_context_;
   const std::shared_ptr<Logger> logger_;
   scada::NodeManagementService& node_management_service_;
   scada::AttributeService& attribute_service_;

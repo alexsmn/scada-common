@@ -20,6 +20,8 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
                                            std::shared_ptr<const Logger> logger)
     : TimedDataContext{std::move(context)},
       logger_{std::move(logger)},
+      node_id_cache_{io_context_},
+      alias_cache_{io_context_},
       null_timed_data_{
           std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
 

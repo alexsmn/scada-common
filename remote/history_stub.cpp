@@ -2,17 +2,22 @@
 
 #include "base/bind.h"
 #include "base/logger.h"
-#include "base/threading/sequenced_task_runner_handle.h"
 #include "common/node_id_util.h"
 #include "core/history_service.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
 
+#include <boost/asio/io_context.hpp>
+
 HistoryStub::HistoryStub(scada::HistoryService& service,
                          MessageSender& sender,
+                         boost::asio::io_context& io_context,
                          std::shared_ptr<Logger> logger)
-    : service_{service}, sender_{sender}, logger_{std::move(logger)} {}
+    : service_{service},
+      sender_{sender},
+      io_context_{io_context},
+      logger_{std::move(logger)} {}
 
 void HistoryStub::OnRequestReceived(const protocol::Request& request) {
   if (!request.has_history_read())
@@ -41,18 +46,15 @@ void HistoryStub::OnRequestReceived(const protocol::Request& request) {
   logger_->WriteF(LogSeverity::Normal, "Read history %u node %s", request_id,
                   NodeIdToScadaString(read_value_id.node_id).c_str());
 
-  auto weak_ptr = weak_factory_.GetWeakPtr();
-  auto runner = base::SequencedTaskRunnerHandle::Get();
   service_.HistoryRead(
       read_value_id, from, to, filter,
-      [runner, weak_ptr, request_id](scada::Status status,
-                                     scada::QueryValuesResults values,
-                                     scada::QueryEventsResults events) {
-        runner->PostTask(
-            FROM_HERE,
-            base::Bind(&HistoryStub::OnHistoryReadCompleted, weak_ptr,
-                       request_id, status, values, events));
-      });
+      io_context_.wrap([weak_ptr = weak_factory_.GetWeakPtr(), request_id](
+                           scada::Status status,
+                           scada::QueryValuesResults values,
+                           scada::QueryEventsResults events) {
+        if (auto* self = weak_ptr.get())
+          self->OnHistoryReadCompleted(request_id, status, values, events);
+      }));
 }
 
 void HistoryStub::OnHistoryReadCompleted(unsigned request_id,

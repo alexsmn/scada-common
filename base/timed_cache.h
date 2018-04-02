@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/timer/timer.h"
+#include "base/timer.h"
 
 #include <map>
 #include <memory>
@@ -11,16 +11,16 @@ bool IsTimedCacheExpired(const Value& value);
 template <class Key, class Value>
 class TimedCache {
  public:
-  TimedCache();
+  explicit TimedCache(boost::asio::io_context& io_context);
 
-  template<class T>
+  template <class T>
   void Add(const Key& key, T&& value);
 
   Value Find(const Key& key) const;
 
  private:
   struct CacheEntry {
-    template<class T>
+    template <class T>
     explicit CacheEntry(T&& value) : value{std::forward<T>(value)} {}
 
     Value value;
@@ -34,7 +34,7 @@ class TimedCache {
 
   std::map<Key, CacheEntry> map_;
 
-  base::RepeatingTimer timer_;
+  Timer timer_;
 
 #ifdef _DEBUG
   static const unsigned kCacheDurationS = 10;
@@ -44,26 +44,23 @@ class TimedCache {
 };
 
 template <class Key, class Value>
-inline TimedCache<Key, Value>::TimedCache() {
-  timer_.Start(FROM_HERE, base::TimeDelta::FromSeconds(1), this,
-               &TimedCache::OnTimer);
+inline TimedCache<Key, Value>::TimedCache(boost::asio::io_context& io_context) : timer_{io_context} {
+  using namespace std::chrono_literals;
+  timer_.StartRepeating(1s, [this] { OnTimer(); });
 }
 
 template <class Key, class Value>
-inline Value TimedCache<Key, Value>::Find(
-    const Key& key) const {
+inline Value TimedCache<Key, Value>::Find(const Key& key) const {
   auto i = map_.find(key);
   return i != map_.end() ? i->second.value : nullptr;
 }
 
 template <class Key, class Value>
 template <class T>
-inline void TimedCache<Key, Value>::Add(const Key& key,
-                                            T&& value) {
+inline void TimedCache<Key, Value>::Add(const Key& key, T&& value) {
   assert(map_.find(key) == map_.end());
-  map_.emplace(std::piecewise_construct,
-      std::forward_as_tuple(key),
-      std::forward_as_tuple(std::forward<T>(value)));
+  map_.emplace(std::piecewise_construct, std::forward_as_tuple(key),
+               std::forward_as_tuple(std::forward<T>(value)));
 }
 
 template <class Key, class Value>

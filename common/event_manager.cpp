@@ -3,13 +3,14 @@
 #include "base/bind.h"
 #include "base/location.h"
 #include "base/logger.h"
-#include "base/threading/thread_task_runner_handle.h"
 #include "common/event_observer.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
 #include "core/standard_node_ids.h"
+
+#include <boost/asio/io_context.hpp>
 
 namespace events {
 
@@ -170,9 +171,7 @@ void EventManager::PostAckPendingEvents() {
 
   if (!ack_pending_) {
     ack_pending_ = true;
-    base::ThreadTaskRunnerHandle::Get()->PostTask(
-        FROM_HERE,
-        base::Bind(&EventManager::AckPendingEvents, base::Unretained(this)));
+    io_context_.post([this] { AckPendingEvents(); });
   }
 }
 
@@ -241,17 +240,16 @@ void EventManager::ItemEventsChanged(const ObserverSet& observers,
 }
 
 void EventManager::Update() {
-  auto message_loop = base::ThreadTaskRunnerHandle::Get();
-  auto weak_ptr = weak_factory_.GetWeakPtr();
   history_service_.HistoryRead(
       {scada::id::RootFolder, scada::AttributeId::EventNotifier}, {}, {},
       {{scada::Event::UNACKED}},
-      [=](const scada::Status& status, scada::QueryValuesResults values,
-          scada::QueryEventsResults events) {
-        message_loop->PostTask(
-            FROM_HERE, base::Bind(&EventManager::OnQueryEventsResult, weak_ptr,
-                                  status, events));
-      });
+      io_context_.wrap([weak_ptr = weak_factory_.GetWeakPtr()](
+                           const scada::Status& status,
+                           scada::QueryValuesResults values,
+                           scada::QueryEventsResults events) {
+        if (auto* self = weak_ptr.get())
+          self->OnQueryEventsResult(status, events);
+      }));
 }
 
 void EventManager::OnChannelOpened(const scada::NodeId& user_id) {

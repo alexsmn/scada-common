@@ -9,6 +9,10 @@
 
 class Logger;
 
+namespace boost::asio {
+class io_context;
+}
+
 namespace scada {
 class EventService;
 class HistoryService;
@@ -21,6 +25,7 @@ namespace events {
 class EventObserver;
 
 struct EventManagerContext {
+  boost::asio::io_context& io_context_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;

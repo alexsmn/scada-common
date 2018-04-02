@@ -1,31 +1,30 @@
 #pragma once
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
 
 class Timer {
  public:
   using Period = std::chrono::nanoseconds;
 
-  Timer(boost::asio::io_service& io_service)
-      : io_service_{io_service} {
-  }
+  explicit Timer(boost::asio::io_context& io_context)
+      : io_context_{io_context} {}
 
-  template<class Callback>
+  template <class Callback>
   void StartOne(Period period, Callback&& callback) {
-    core_ = std::make_shared<CoreImpl<false, Callback>>(io_service_, period, std::forward<Callback>(callback));
+    core_ = std::make_shared<CoreImpl<false, Callback>>(
+        io_context_, period, std::forward<Callback>(callback));
     core_->Start();
   }
 
-  template<class Callback>
+  template <class Callback>
   void StartRepeating(Period period, Callback&& callback) {
-    core_ = std::make_shared<CoreImpl<true, Callback>>(io_service_, period, std::forward<Callback>(callback));
+    core_ = std::make_shared<CoreImpl<true, Callback>>(
+        io_context_, period, std::forward<Callback>(callback));
     core_->Start();
   }
 
-  void Stop() {
-    core_ = nullptr;
-  }
+  void Stop() { core_ = nullptr; }
 
  private:
   struct Core {
@@ -33,21 +32,22 @@ class Timer {
     virtual void Start() = 0;
   };
 
-  template<bool kRepeating, class Callback>
-  struct CoreImpl : public Core,
-                    public std::enable_shared_from_this<CoreImpl<kRepeating, Callback>> {
-    CoreImpl(boost::asio::io_service& io_service, Period period, Callback&& callback)
-        : timer_{io_service},
+  template <bool kRepeating, class Callback>
+  struct CoreImpl
+      : public Core,
+        public std::enable_shared_from_this<CoreImpl<kRepeating, Callback>> {
+    CoreImpl(boost::asio::io_context& io_context,
+             Period period,
+             Callback&& callback)
+        : timer_{io_context},
           period_{period},
-          callback_{std::forward<Callback>(callback)} {
-    }
+          callback_{std::forward<Callback>(callback)} {}
 
-    ~CoreImpl() {
-      timer_.cancel();
-    }
+    ~CoreImpl() { timer_.cancel(); }
 
     virtual void Start() override {
-      auto weak_core = std::weak_ptr<CoreImpl<kRepeating, Callback>>(shared_from_this());
+      auto weak_core =
+          std::weak_ptr<CoreImpl<kRepeating, Callback>>(shared_from_this());
       timer_.expires_from_now(period_);
       timer_.async_wait([weak_core](boost::system::error_code ec) {
         if (ec == boost::asio::error::operation_aborted)
@@ -66,6 +66,6 @@ class Timer {
     Callback callback_;
   };
 
-  boost::asio::io_service& io_service_;
+  boost::asio::io_context& io_context_;
   std::shared_ptr<Core> core_;
 };

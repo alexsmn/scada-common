@@ -101,9 +101,6 @@ void SessionProxy::OnTransportClosed(net::Error error) {
 }
 
 void SessionProxy::OnSessionError(const scada::Status& status) {
-  ping_time_ = {};
-  ping_timer_.Stop();
-
   transport_.reset();
 
   OnSessionDeleted();
@@ -141,6 +138,9 @@ void SessionProxy::OnSessionDeleted() {
         p.second(response);
     }
   }
+
+  ping_time_ = {};
+  ping_timer_.Stop();
 
   subscription_->OnChannelClosed();
   node_management_proxy_->OnChannelClosed();
