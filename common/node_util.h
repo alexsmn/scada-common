@@ -18,7 +18,8 @@ inline bool IsInstanceOf(const NodeRef& node,
   return IsSubtypeOf(node.type_definition(), type_definition_id);
 }
 
-inline bool HasComponent(NodeRef parent_type, NodeRef component_type) {
+inline bool HasComponent(const NodeRef& parent_type,
+                         const NodeRef& component_type) {
   for (auto component_decl : parent_type.components()) {
     assert(component_decl.node_class() &&
            scada::IsInstance(*component_decl.node_class()));
