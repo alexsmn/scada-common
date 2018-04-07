@@ -1,7 +1,3 @@
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/project.h.src"
-  "${CMAKE_CURRENT_SOURCE_DIR}/project.h")
-
 file(GLOB sources
   "*.cpp"
   "*.h"
