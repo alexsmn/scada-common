@@ -14,7 +14,7 @@ class EventManager;
 
 namespace scada {
 class AttributeService;
-class Configuration;
+class AddressSpace;
 class EventService;
 class HistoryService;
 class MethodService;

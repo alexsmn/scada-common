@@ -29,3 +29,5 @@ add_test(NAME scada_common_unittests COMMAND scada_common_unittests)
 
 set_property(TARGET scada_common PROPERTY FOLDER ${scada_folder})
 set_property(TARGET scada_common_unittests PROPERTY FOLDER ${scada_folder})
+
+add_subdirectory(address_space)
