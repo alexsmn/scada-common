@@ -12,6 +12,7 @@
 #include "core/node.h"
 #include "core/node_utils.h"
 #include "core/type_definition.h"
+#include "core/variable.h"
 
 namespace scada {
 
@@ -161,6 +162,66 @@ Node* GetNestedNode(Configuration& address_space,
   }
 
   return node;
+}
+
+scada::Variant::Type DataTypeToValueType(const scada::TypeDefinition& type) {
+  if (type.id() == scada::id::Boolean)
+    return scada::Variant::BOOL;
+  else if (type.id() == scada::id::Int32)
+    return scada::Variant::INT32;
+  else if (type.id() == scada::id::Double)
+    return scada::Variant::DOUBLE;
+  else if (type.id() == scada::id::String)
+    return scada::Variant::STRING;
+  else if (type.id() == scada::id::LocalizedText)
+    return scada::Variant::LOCALIZED_TEXT;
+  else if (type.id() == scada::id::NodeId)
+    return scada::Variant::NODE_ID;
+  else if (auto* supertype = GetSupertype(type))
+    return DataTypeToValueType(*supertype);
+  else
+    return scada::Variant::EMPTY;
+}
+
+scada::Status ConvertPropertyValue(const scada::DataType& data_type,
+                                   scada::Variant& value) {
+  if (!value.is_null()) {
+    if (data_type.id() != scada::id::BaseDataType) {
+      auto value_type = DataTypeToValueType(data_type);
+      if (!value.ChangeType(value_type)) {
+        assert(false);
+        return scada::StatusCode::Bad;
+      }
+    }
+  }
+
+  return scada::StatusCode::Good;
+}
+
+scada::Status ConvertPropertyValues(scada::Node& node,
+                                    scada::NodeProperties& properties) {
+  auto* type = scada::GetTypeDefinition(node);
+  assert(type);
+
+  for (auto& prop : properties) {
+    auto prop_decl_id = prop.first;
+    auto* prop_decl =
+        type ? scada::AsVariable(GetAggregateDeclaration(*type, prop_decl_id))
+             : nullptr;
+    if (!prop_decl) {
+      assert(false);
+      return scada::StatusCode::Bad_WrongPropertyId;
+    }
+
+    auto& value = prop.second;
+    auto status = ConvertPropertyValue(prop_decl->GetDataType(), value);
+    if (!status) {
+      assert(false);
+      return scada::StatusCode::Bad;
+    }
+  }
+
+  return scada::StatusCode::Good;
 }
 
 }  // namespace scada

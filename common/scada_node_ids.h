@@ -14,14 +14,6 @@ const scada::NumericId kIec60870DeviceGroup1PollPeriodPropTypeId = 200;
 
 } // numeric_id
 
-// Root id-s.
-const scada::NodeId kObjectsRootTypeId{102, NamespaceIndexes::SCADA};
-const scada::NodeId kUsersRootTypeId{104, NamespaceIndexes::SCADA};
-const scada::NodeId kTsFormatRootTypeId{105, NamespaceIndexes::SCADA};
-const scada::NodeId kSimulatorRootTypeId{106, NamespaceIndexes::SCADA};
-const scada::NodeId kHistoricalDbRootTypeId{107, NamespaceIndexes::SCADA};
-const scada::NodeId kIecTransmitRootTypeId{290, NamespaceIndexes::SCADA};
-
 const scada::NodeId kServerParamTypeId{128, NamespaceIndexes::SCADA};
 
 const scada::NodeId kObjectWriteManualCommandId{230, NamespaceIndexes::SCADA};
@@ -81,19 +73,6 @@ const scada::NodeId kServer_TotalMemory{245, NamespaceIndexes::SCADA};
 const scada::NodeId kServer_ProcessCPU{246, NamespaceIndexes::SCADA};
 const scada::NodeId kServer_TotalCPU{247, NamespaceIndexes::SCADA};
 
-const scada::NodeId kSimulatorRoot_Signals{258, NamespaceIndexes::SCADA};
-const scada::NodeId kHistoricalDbRoot_Databases{259, NamespaceIndexes::SCADA};
-const scada::NodeId kTsFormatRoot_Formats{260, NamespaceIndexes::SCADA};
-const scada::NodeId kObjectsRoot_Folders{270, NamespaceIndexes::SCADA};
-const scada::NodeId kFolder_Subfolders{271, NamespaceIndexes::SCADA};
-const scada::NodeId kFolder_DataItems{272, NamespaceIndexes::SCADA};
-const scada::NodeId kUsersRoot_Users{274, NamespaceIndexes::SCADA};
-const scada::NodeId kIecTransmitRoot_Items{276, NamespaceIndexes::SCADA};
-
-// Devices
-const scada::NodeId kDevicesRoot_Links{257, NamespaceIndexes::SCADA};
-const scada::NodeId kDevicesRootTypeId{103, NamespaceIndexes::SCADA};
-
 // Device
 const scada::NodeId kDeviceOnlineVarTypeId{235, NamespaceIndexes::SCADA};
 const scada::NodeId kDeviceStartCommandId{131, NamespaceIndexes::SCADA};
@@ -113,7 +92,6 @@ const scada::NodeId kLinkTypeId{116, NamespaceIndexes::SCADA}; // :Device
 const scada::NodeId kLinkTransportStringPropTypeId{142, NamespaceIndexes::SCADA};
 
 // Iec60870Link
-const scada::NodeId kIec60870Link_Devices{275, NamespaceIndexes::SCADA};
 const scada::NodeId kIec60870LinkModePropTypeId{177, NamespaceIndexes::SCADA};
 const scada::NodeId kIec60870LinkSendQueueSizePropTypeId{178, NamespaceIndexes::SCADA};
 const scada::NodeId kIec60870LinkReceiveQueueSizePropTypeId{179, NamespaceIndexes::SCADA};
@@ -158,13 +136,14 @@ const scada::NodeId kIec60870DeviceGroup16PollPeriodPropTypeId{215, NamespaceInd
 // ModbusPort
 const scada::NodeId kModbusPortModeTypeId{130, NamespaceIndexes::SCADA};
 const scada::NodeId kModbusPortModePropTypeId{167, NamespaceIndexes::SCADA};
-const scada::NodeId kModbusPort_Devices{273, NamespaceIndexes::SCADA};
 
 // ModbusDevice
 const scada::NodeId kModbusDeviceAddressPropTypeId{168, NamespaceIndexes::SCADA};
 const scada::NodeId kModbusDeviceRepeatCountPropTypeId{169, NamespaceIndexes::SCADA};
 
 namespace id {
+
+const scada::NodeId Creates{297, NamespaceIndexes::SCADA}; // Ref
 
 const scada::NodeId HasTsFormat{154, NamespaceIndexes::SCADA}; // Ref
 const scada::NodeId HasSimulationSignal{150, NamespaceIndexes::SCADA}; // Ref
@@ -221,7 +200,6 @@ const scada::NodeId Iec60870LinkType_Protocol{176, NamespaceIndexes::SCADA};
 
 // Iec61850DeviceType
 const scada::NodeId Iec61850DeviceType{277, NamespaceIndexes::SCADA};
-const scada::NodeId DevicesRoot_Iec61850Devices{280, NamespaceIndexes::SCADA};
 const scada::NodeId Iec61850DeviceType_Host{278, NamespaceIndexes::SCADA};
 const scada::NodeId Iec61850DeviceType_Port{279, NamespaceIndexes::SCADA};
 const scada::NodeId Iec61850DeviceType_Model{288, NamespaceIndexes::SCADA};
@@ -229,7 +207,6 @@ const scada::NodeId Iec61850DeviceType_Model{288, NamespaceIndexes::SCADA};
 // Iec61850ConfigurableObjectType : BaseObjectType
 const scada::NodeId Iec61850ConfigurableObjectType{285, NamespaceIndexes::SCADA};
 const scada::NodeId Iec61850ConfigurableObjectType_Reference{283, NamespaceIndexes::SCADA};
-const scada::NodeId Iec61850ConfigurableObjectType_Node{287, NamespaceIndexes::SCADA};
 
 // ModbusLinkType
 const scada::NodeId ModbusLinkType{108, NamespaceIndexes::SCADA};
@@ -246,12 +223,11 @@ const scada::NodeId Iec61850ControlObjectType{293, NamespaceIndexes::SCADA};
 
 // Iec61850RcbType : Iec61850ConfigurableObjectType
 const scada::NodeId Iec61850RcbType{281, NamespaceIndexes::SCADA};
-const scada::NodeId Iec61850DeviceType_Rcb{282, NamespaceIndexes::SCADA};
 
 // Iec61850DataItemType
 // Unused.
 const scada::NodeId Iec61850DataItemType{286, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{297, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{298, NamespaceIndexes::SCADA};
 
 } // namespace id

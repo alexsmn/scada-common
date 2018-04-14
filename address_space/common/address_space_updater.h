@@ -11,12 +11,10 @@ struct NodeState;
 
 class ConfigurationImpl;
 class Logger;
-
-scada::Node* CreateNode(ConfigurationImpl& address_space,
-                        const scada::NodeState& data,
-                        Logger& logger);
+class NodeFactory;
 
 void UpdateNodes(ConfigurationImpl& address_space,
+                 NodeFactory& node_factory,
                  std::vector<scada::NodeState>&& nodes,
                  Logger& logger,
                  std::vector<scada::Node*>* added_nodes = nullptr);

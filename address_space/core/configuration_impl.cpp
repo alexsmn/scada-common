@@ -38,12 +38,11 @@ ConfigurationImpl::ConfigurationImpl(std::shared_ptr<Logger> logger)
   AddNode(standard_address_space_->BaseVariableType);
   AddNode(standard_address_space_->PropertyType);
 
+  AddNode(static_address_space_->Creates);
   AddNode(static_address_space_->DeviceType);
   AddNode(static_address_space_->DeviceType.Disabled);
   AddNode(static_address_space_->DeviceType.Enabled);
   AddNode(static_address_space_->DeviceType.Online);
-
-  CreateCommonTypes(*this);
 }
 
 ConfigurationImpl::~ConfigurationImpl() {

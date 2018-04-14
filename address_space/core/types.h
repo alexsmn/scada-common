@@ -8,6 +8,7 @@
 #include "common/scada_node_ids.h"
 
 class ConfigurationImpl;
+class NodeFactory;
 
 struct StandardAddressSpace {
   StandardAddressSpace();
@@ -64,24 +65,9 @@ struct StaticAddressSpace {
     GenericDataVariable Enabled;
   };
 
+  scada::ReferenceType Creates{id::Creates, "Creates", L"Creates"};
+
   DeviceType DeviceType;
 };
 
-void CreateCommonTypes(ConfigurationImpl& configuration);
-
-enum TreeID { kTreeObjects,
-              kTreeDevices,
-              kTreeUser,
-              kTreeTsFormat,
-              kTreeSimulator,
-              kTreeHistoricalDB,
-              kTreeIecTransmit,
-              kTreeCount };
-
-struct TreeDef {
-  scada::NodeId node_id;
-  scada::NodeId type_id;
-  base::StringPiece16 title;
-};
-
-extern const TreeDef kTreeDefs[];
+void CreateScadaAddressSpace(ConfigurationImpl& configuration, NodeFactory& node_factory);

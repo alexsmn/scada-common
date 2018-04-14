@@ -15,12 +15,14 @@ class AttributeService;
 
 class ConfigurationImpl;
 class Logger;
+class NodeFactory;
 
 struct AddressSpaceFetcherContext {
   const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   ConfigurationImpl& address_space_;
+  NodeFactory& node_factory_;
   const bool smart_fetch_;
 
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;

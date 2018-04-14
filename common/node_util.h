@@ -4,41 +4,13 @@
 
 class NodeService;
 
-inline bool IsSubtypeOf(NodeRef type_definition,
-                        const scada::NodeId& supertype_id) {
-  for (; type_definition; type_definition = type_definition.supertype()) {
-    if (type_definition.id() == supertype_id)
-      return true;
-  }
-  return false;
-}
+bool IsSubtypeOf(NodeRef type_definition, const scada::NodeId& supertype_id);
 
-inline bool IsInstanceOf(const NodeRef& node,
-                         const scada::NodeId& type_definition_id) {
-  return IsSubtypeOf(node.type_definition(), type_definition_id);
-}
+bool IsInstanceOf(const NodeRef& node, const scada::NodeId& type_definition_id);
 
-inline bool HasComponent(const NodeRef& parent_type,
-                         const NodeRef& component_type) {
-  for (auto component_decl : parent_type.components()) {
-    assert(component_decl.node_class() &&
-           scada::IsInstance(*component_decl.node_class()));
-    if (IsSubtypeOf(component_type, component_decl.type_definition().id()))
-      return true;
-  }
-  return false;
-}
+bool CanCreate(const NodeRef& parent, const NodeRef& component_type_definition);
 
-inline std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
-  std::vector<NodeRef> result;
-
-  for (auto& component : node.components()) {
-    if (component.node_class() == scada::NodeClass::Variable)
-      result.emplace_back(component);
-  }
-
-  return result;
-}
+std::vector<NodeRef> GetDataVariables(const NodeRef& node);
 
 base::string16 GetFullDisplayName(const NodeRef& node);
 

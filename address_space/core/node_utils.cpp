@@ -195,16 +195,6 @@ bool IsSubtypeOf(Configuration& address_space, const NodeId& type_id, const Node
   return false;
 }
 
-bool HasComponent(const TypeDefinition& parent_type, const TypeDefinition& component_type) {
-  for (auto* component_decl : GetComponents(parent_type)) {
-    assert(component_decl->GetNodeClass() == NodeClass::Object ||
-           component_decl->GetNodeClass() == NodeClass::Variable);
-    if (IsSubtypeOf(component_type, GetTypeDefinitionId(*component_decl)))
-      return true;
-  }
-  return false;
-}
-
 NodeId GetModellingRuleId(const Node& node) {
   assert(!scada::IsTypeDefinition(node.GetNodeClass()));
   auto* modelling_rule = GetReference(node, id::HasModellingRule).node;

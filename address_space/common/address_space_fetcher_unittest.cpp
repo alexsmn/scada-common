@@ -4,6 +4,7 @@
 
 #include "base/logger.h"
 #include "core/configuration_impl.h"
+#include "core/generic_node_factory.h"
 #include "core/node_utils.h"
 #include "core/test/test_address_space.h"
 #include "core/types.h"
@@ -57,11 +58,14 @@ struct TestContext {
 
   ConfigurationImpl client_address_space{logger};
 
+  GenericNodeFactory node_factory{logger, client_address_space};
+
   AddressSpaceFetcher fetcher{AddressSpaceFetcherContext{
       logger,
       server_address_space,
       server_address_space,
       client_address_space,
+      node_factory,
       false,
       [this](const scada::NodeId& node_id, const NodeFetchStatus& status) {
         OnNodeFetchStatusChanged(node_id, status);

@@ -6,6 +6,7 @@
 #include "core/configuration_impl.h"
 #include "core/configuration_types.h"
 #include "core/node_class.h"
+#include "core/node_factory.h"
 #include "core/node_utils.h"
 #include "core/object.h"
 #include "core/standard_node_ids.h"
@@ -140,94 +141,8 @@ void SortNodes(std::vector<scada::NodeState>& nodes) {
     Visitor{nodes};
 }
 
-// Creates new node. If |id| is null, create new id.
-scada::Node* CreateNode(ConfigurationImpl& address_space,
-                        const scada::NodeState& data,
-                        Logger& logger) {
-  logger.WriteF(LogSeverity::Normal,
-                "CreateNode [node_id=%s, node_class=%s, type_definition_id=%s, "
-                "parent_id=%s, reference_type_id=%s",
-                NodeIdToScadaString(data.node_id).c_str(),
-                ToString(data.node_class).c_str(),
-                NodeIdToScadaString(data.type_definition_id).c_str(),
-                NodeIdToScadaString(data.parent_id).c_str(),
-                NodeIdToScadaString(data.reference_type_id).c_str());
-
-  if (data.node_id != scada::id::RootFolder) {
-    assert(!data.parent_id.is_null());
-    assert(!data.reference_type_id.is_null());
-  }
-
-  if (address_space.GetNode(data.node_id))
-    throw scada::Status(scada::StatusCode::Bad_DuplicateNodeId);
-
-  auto* type_definition =
-      AsTypeDefinition(address_space.GetNode(data.type_definition_id));
-  if (!type_definition)
-    throw scada::Status(scada::StatusCode::Bad_WrongTypeId);
-
-  std::unique_ptr<scada::Node> node;
-  if (data.node_class == scada::NodeClass::Object) {
-    if (!type_definition ||
-        type_definition->GetNodeClass() != scada::NodeClass::ObjectType)
-      return nullptr;
-    node = std::make_unique<scada::GenericObject>();
-
-  } else if (data.node_class == scada::NodeClass::Variable) {
-    auto* variable_type = scada::AsVariableType(type_definition);
-    if (!variable_type)
-      return nullptr;
-    auto* data_type =
-        scada::AsDataType(address_space.GetNode(data.attributes.data_type));
-    if (!data_type)
-      return nullptr;
-    node = std::make_unique<scada::GenericVariable>(*data_type);
-
-  } else
-    return nullptr;
-
-  node->set_id(std::move(data.node_id));
-
-  scada::AddReference(address_space, scada::id::HasTypeDefinition, *node,
-                      *type_definition);
-
-  if (!data.attributes.browse_name.empty())
-    node->SetBrowseName(data.attributes.browse_name);
-  if (!data.attributes.display_name.empty())
-    node->SetDisplayName(data.attributes.display_name);
-
-  for (auto& prop : data.properties) {
-    /*logger.WriteF(LogSeverity::Normal, "Property %s[%s] = %s",
-                  NodeIdToScadaString(data.id).c_str(),
-                  NodeIdToScadaString(prop.first).c_str(),
-                  prop.second.get_or(std::string{"(unknown)"}).c_str());*/
-    auto result =
-        scada::SetPropertyValue(*node, prop.first, std::move(prop.second));
-    if (!result)
-      return nullptr;
-  }
-
-  auto* node_ptr = node.get();
-
-  address_space.AddStaticNode(std::move(node));
-
-  if (!data.parent_id.is_null()) {
-    auto* parent = address_space.GetNode(data.parent_id);
-    if (!parent)
-      throw scada::Status(scada::StatusCode::Bad_WrongParentId);
-
-    auto* reference_type =
-        AsReferenceType(address_space.GetNode(data.reference_type_id));
-    if (!reference_type)
-      throw scada::Status(scada::StatusCode::Bad_WrongReferenceId);
-
-    scada::AddReference(*reference_type, *parent, *node_ptr);
-  }
-
-  return node_ptr;
-}
-
 void UpdateNodes(ConfigurationImpl& address_space,
+                 NodeFactory& node_factory,
                  std::vector<scada::NodeState>&& nodes,
                  Logger& logger,
                  std::vector<scada::Node*>* return_added_nodes) {
@@ -259,7 +174,8 @@ void UpdateNodes(ConfigurationImpl& address_space,
                                std::move(node_state.properties));
 
     } else {
-      auto* added_node = CreateNode(address_space, node_state, logger);
+      auto [status, added_node] = node_factory.CreateNode(node_state);
+      assert(status);
       assert(added_node);
       added_nodes.emplace_back(added_node);
     }

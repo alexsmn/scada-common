@@ -18,6 +18,27 @@ std::set<Key> MakeKeySet(const std::map<Key, Value>& map) {
   return set;
 }
 
+void GetAllNodeIdsHelper(scada::Node& parent,
+                         std::vector<scada::NodeId>& result) {
+  result.emplace_back(parent.id());
+
+  for (auto& ref : parent.forward_references()) {
+    if (scada::IsSubtypeOf(*ref.type, scada::id::HierarchicalReferences) &&
+        !scada::IsSubtypeOf(*ref.type, scada::id::HasProperty)) {
+      GetAllNodeIdsHelper(*ref.node, result);
+    }
+  }
+}
+
+std::vector<scada::NodeId> GetAllNodeIds(scada::Configuration& address_space) {
+  std::vector<scada::NodeId> result;
+  if (auto* parent = address_space.GetNode(scada::id::RootFolder)) {
+    result.reserve(32);
+    GetAllNodeIdsHelper(*parent, result);
+  }
+  return result;
+}
+
 }  // namespace
 
 // AddressSpaceFetcher
@@ -39,8 +60,10 @@ void AddressSpaceFetcher::OnChannelOpened() {
   channel_opened_ = true;
 
   if (!smart_fetch_) {
-    node_fetcher_.Fetch(scada::id::RootFolder);
-    node_children_fetcher_.Fetch(scada::id::RootFolder);
+    for (const auto& node_id : GetAllNodeIds(address_space_)) {
+      node_fetcher_.Fetch(node_id);
+      node_children_fetcher_.Fetch(node_id);
+    }
   }
 
   PostponedFetchNodes postponed_fetch_nodes;
@@ -105,8 +128,8 @@ NodeFetcherContext AddressSpaceFetcher::MakeNodeFetcherContext() {
                         fetched_nodes.size());
 
         std::vector<scada::Node*> added_nodes;
-        UpdateNodes(address_space_, std::move(fetched_nodes), *logger_,
-                    &added_nodes);
+        UpdateNodes(address_space_, node_factory_, std::move(fetched_nodes),
+                    *logger_, &added_nodes);
 
         for (auto* added_node : added_nodes) {
           const auto added_id = added_node->id();

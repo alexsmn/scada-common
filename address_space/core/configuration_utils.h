@@ -36,4 +36,7 @@ Node* GetNestedNode(Configuration& address_space,
 
 base::string16 GetFullDisplayName(const Node& node);
 
+scada::Status ConvertPropertyValues(scada::Node& node,
+                                    scada::NodeProperties& properties);
+
 }  // namespace scada

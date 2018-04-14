@@ -116,8 +116,6 @@ inline auto GetChildren(const Node& node) {
   return GetForwardReferenceNodes(node, id::HierarchicalReferences);
 }
 
-bool HasComponent(const TypeDefinition& parent_type, const TypeDefinition& component_type);
-
 NodeId GetModellingRuleId(const Node& node);
 
 Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id);
