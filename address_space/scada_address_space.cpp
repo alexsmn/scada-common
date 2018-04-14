@@ -276,23 +276,23 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
 
   // Link
   {
-    CreateObjectType(configuration, kLinkTypeId, "LinkType", L"Направление",
+    CreateObjectType(configuration, id::LinkType, "LinkType", L"Направление",
                      id::DeviceType);
-    AddReference(configuration, id::Creates, id::Devices, kLinkTypeId);
-    AddProperty(configuration, kLinkTypeId, kLinkTransportStringPropTypeId,
+    AddReference(configuration, id::Creates, id::Devices, id::LinkType);
+    AddProperty(configuration, id::LinkType, id::LinkType_Transport,
                 "TransportString", L"Транспорт", scada::id::String);
-    AddDataVariable(configuration, kLinkTypeId, kLink_ConnectCount,
+    AddDataVariable(configuration, id::LinkType, id::LinkType_ConnectCount,
                     "ConnectCount", L"ConnectCount", scada::id::Int32, 0);
-    AddDataVariable(configuration, kLinkTypeId, kLink_ActiveConnections,
+    AddDataVariable(configuration, id::LinkType, id::LinkType_ActiveConnections,
                     "ActiveConnections", L"ActiveConnections", scada::id::Int32,
                     0);
-    AddDataVariable(configuration, kLinkTypeId, kLink_MessagesOut,
+    AddDataVariable(configuration, id::LinkType, id::LinkType_MessagesOut,
                     "MessagesOut", L"MessagesOut", scada::id::Int32, 0);
-    AddDataVariable(configuration, kLinkTypeId, kLink_MessagesIn, "MessagesIn",
+    AddDataVariable(configuration, id::LinkType, id::LinkType_MessagesIn, "MessagesIn",
                     L"MessagesIn", scada::id::Int32, 0);
-    AddDataVariable(configuration, kLinkTypeId, kLink_BytesOut, "BytesOut",
+    AddDataVariable(configuration, id::LinkType, id::LinkType_BytesOut, "BytesOut",
                     L"BytesOut", scada::id::Int32, 0);
-    AddDataVariable(configuration, kLinkTypeId, kLink_BytesIn, "BytesIn",
+    AddDataVariable(configuration, id::LinkType, id::LinkType_BytesIn, "BytesIn",
                     L"BytesIn", scada::id::Int32, 0);
   }
 
@@ -304,16 +304,16 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddReference(configuration, id::Creates, id::SimulationSignals,
                  id::SimulationSignalType);
     AddProperty(configuration, id::SimulationSignalType,
-                kSimulationSignalTypePropTypeId, "Type", L"Тип",
+                id::SimulationSignalType_Type, "Type", L"Тип",
                 scada::id::Int32, 0);
     AddProperty(configuration, id::SimulationSignalType,
-                kSimulationSignalPeriodPropTypeId, "Period", L"Период (мс)",
+                id::SimulationSignalType_Period, "Period", L"Период (мс)",
                 scada::id::Int32, 60000);
     AddProperty(configuration, id::SimulationSignalType,
-                kSimulationSignalPhasePropTypeId, "Phase", L"Фаза (мс)",
+                id::SimulationSignalType_Phase, "Phase", L"Фаза (мс)",
                 scada::id::Int32, 0);
     AddProperty(configuration, id::SimulationSignalType,
-                kSimulationSignalUpdateIntervalPropTypeId, "UpdateInterval",
+                id::SimulationSignalType_UpdateInterval, "UpdateInterval",
                 L"Обновление (мс)", scada::id::Int32, 1000);
   }
 
@@ -325,32 +325,32 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddReference(configuration, id::Creates, id::HistoricalDatabases,
                  id::HistoricalDatabaseType);
     AddProperty(configuration, id::HistoricalDatabaseType,
-                kHistoricalDbDepthPropTypeId, "Depth", L"Глубина (дн)",
+                id::HistoricalDatabaseType_Depth, "Depth", L"Глубина (дн)",
                 scada::id::Int32, 1);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
-                    kHistoricalDb_WriteValueDuration, "WriteValueDuration",
+                    id::HistoricalDatabaseType_WriteValueDuration, "WriteValueDuration",
                     L"WriteValueDuration", scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
-                    kHistoricalDb_PendingTaskCount, "PendingTaskCount",
+                    id::HistoricalDatabaseType_PendingTaskCount, "PendingTaskCount",
                     L"PendingTaskCount", scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
-                    kHistoricalDb_EventCleanupDuration, "EventCleanupDuration",
+                    id::HistoricalDatabaseType_EventCleanupDuration, "EventCleanupDuration",
                     L"EventCleanupDuration", scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
-                    kHistoricalDb_ValueCleanupDuration, "ValueCleanupDuration",
+                    id::HistoricalDatabaseType_ValueCleanupDuration, "ValueCleanupDuration",
                     L"ValueCleanupDuration", scada::id::Int32);
   }
 
   // System historical database.
   node_factory.CreateNode(
-      {kSystemHistoricalDbNodeId,
+      {id::SystemDatabase,
        scada::NodeClass::Object,
        id::HistoricalDatabaseType,
        id::HistoricalDatabases,
        scada::id::Organizes,
        scada::NodeAttributes().set_browse_name("System").set_display_name(
            L"Системная база данных"),
-       {{kHistoricalDbDepthPropTypeId, 30}}});
+       {{id::HistoricalDatabaseType_Depth, 30}}});
 
   // TsFormat
   {
@@ -361,9 +361,9 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
                 "OpenLabel", L"Подпись 0", scada::id::LocalizedText);
     AddProperty(configuration, id::TsFormatType, id::TsFormatType_CloseLabel,
                 "CloseLabel", L"Подпись 1", scada::id::LocalizedText);
-    AddProperty(configuration, id::TsFormatType, kTsFormatOpenColorPropTypeId,
+    AddProperty(configuration, id::TsFormatType, id::TsFormatType_OpenColor,
                 "OpenColor", L"Цвет 0", scada::id::Int32);
-    AddProperty(configuration, id::TsFormatType, kTsFormatCloseColorPropTypeId,
+    AddProperty(configuration, id::TsFormatType, id::TsFormatType_CloseColor,
                 "CloseColor", L"Цвет 1", scada::id::Int32);
   }
 
@@ -387,18 +387,18 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
                  id::DataItemType);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Alias,
                 "Alias", L"Алиас", scada::id::String);
-    AddProperty(configuration, id::DataItemType, kObjectSeverityPropTypeId,
+    AddProperty(configuration, id::DataItemType, id::DataItemType_Severity,
                 "Severity", L"Важность", scada::id::Int32, 1);
-    AddProperty(configuration, id::DataItemType, kObjectInput1PropTypeId,
+    AddProperty(configuration, id::DataItemType, id::DataItemType_Input1,
                 "Input1", L"Ввод1", scada::id::String);
-    AddProperty(configuration, id::DataItemType, kObjectInput2PropTypeId,
+    AddProperty(configuration, id::DataItemType, id::DataItemType_Input2,
                 "Input2", L"Ввод2", scada::id::String);
-    AddProperty(configuration, id::DataItemType, kObjectOutputPropTypeId,
+    AddProperty(configuration, id::DataItemType, id::DataItemType_Output,
                 "Output", L"Вывод", scada::id::String);
     AddProperty(configuration, id::DataItemType,
-                kObjectOutputConditionPropTypeId, "OutputCondition",
+                id::DataItemType_OutputCondition, "OutputCondition",
                 L"Условие (Управление)", scada::id::String);
-    AddProperty(configuration, id::DataItemType, kObjectStalePeriodTypeId,
+    AddProperty(configuration, id::DataItemType, id::DataItemType_StalePeriod,
                 "StalePeriod", L"Устаревание (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Simulated,
                 "Simulated", L"Эмуляция", scada::id::Boolean, false);
@@ -408,7 +408,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddProperty(configuration, id::DataItemType, id::DataItemType_Locked,
                 "Locked", L"Блокирован", scada::id::Boolean, false);
     CreateReferenceType(configuration, id::DataItemType,
-                        kObjectHistoricalDbPropTypeId, "ObjectHistoricalDb",
+                        id::HasHistoricalDatabase, "ObjectHistoricalDb",
                         L"База данных", id::HistoricalDatabaseType);
   }
 
@@ -416,7 +416,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
   {
     CreateVariableType(configuration, id::DiscreteItemType, "DiscreteItemType",
                        L"Объект ТС", scada::id::BaseDataType, id::DataItemType);
-    AddProperty(configuration, id::DiscreteItemType, kTsInvertedPropTypeId,
+    AddProperty(configuration, id::DiscreteItemType, id::DiscreteItemType_Inversion,
                 "Inverted", L"Инверсия", scada::id::Boolean, false);
     CreateReferenceType(configuration, id::DiscreteItemType, id::HasTsFormat,
                         "HasTsFormat", L"Параметры", id::TsFormatType);
@@ -430,26 +430,26 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddProperty(configuration, id::AnalogItemType,
                 id::AnalogItemType_DisplayFormat, "DisplayFormat", L"Формат",
                 scada::id::String, "0.####");
-    AddProperty(configuration, id::AnalogItemType, kTitConversionPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Conversion,
                 "ConversionType", L"Преобразование", scada::id::Int32, 0);
-    AddProperty(configuration, id::AnalogItemType, kTitClampingPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Clamping,
                 "ClampingType", L"Ограничение диапазона", scada::id::Boolean,
                 false);
-    AddProperty(configuration, id::AnalogItemType, kTitEuLoPropTypeId, "EuLo",
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_EuLo, "EuLo",
                 L"Лог мин", scada::id::Double, -100);
-    AddProperty(configuration, id::AnalogItemType, kTitEuHiPropTypeId, "EuHi",
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_EuHi, "EuHi",
                 L"Лог макс", scada::id::Double, 100);
-    AddProperty(configuration, id::AnalogItemType, kTitIrLoPropTypeId, "IrLo",
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_IrLo, "IrLo",
                 L"Физ мин", scada::id::Double, 0);
-    AddProperty(configuration, id::AnalogItemType, kTitIrHiPropTypeId, "IrHi",
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_IrHi, "IrHi",
                 L"Физ макс", scada::id::Double, 65535);
-    AddProperty(configuration, id::AnalogItemType, kTitLimitLoPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitLo,
                 "LimitLo", L"Уставка нижняя предаварийная", scada::id::Double);
-    AddProperty(configuration, id::AnalogItemType, kTitLimitHiPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitHi,
                 "LimitHi", L"Уставка верхняя предаварийная", scada::id::Double);
-    AddProperty(configuration, id::AnalogItemType, kTitLimitLoLoPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitLoLo,
                 "LimitLoLo", L"Уставка нижняя аварийная", scada::id::Double);
-    AddProperty(configuration, id::AnalogItemType, kTitLimitHiHiPropTypeId,
+    AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitHiHi,
                 "LimitHiHi", L"Уставка верхняя аварийная", scada::id::Double);
     AddProperty(configuration, id::AnalogItemType,
                 id::AnalogItemType_EngineeringUnits, "EngineeringUnits",
@@ -463,13 +463,13 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
   // Modbus Port Device
   {
     CreateObjectType(configuration, id::ModbusLinkType, "ModbusLinkType",
-                     L"Направление MODBUS", kLinkTypeId);
+                     L"Направление MODBUS", id::LinkType);
     auto* mode_type = CreateDataType(
-        configuration, kModbusPortModeTypeId, "ModbusPortModeType",
+        configuration, id::ModbusLinkType_Mode, "ModbusPortModeType",
         L"Тип направления MODBUS", scada::id::Int32);
     mode_type->enum_strings = {L"Опрос", L"Ретрансляция", L"Прослушка"};
-    AddProperty(configuration, id::ModbusLinkType, kModbusPortModePropTypeId,
-                "Mode", L"Режим", kModbusPortModeTypeId, 0);
+    AddProperty(configuration, id::ModbusLinkType, id::ModbusLinkType_Protocol,
+                "Mode", L"Режим", id::ModbusLinkType_Mode, 0);
   }
 
   // Modbus Device
@@ -479,10 +479,10 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddReference(configuration, id::Creates, id::ModbusLinkType,
                  id::ModbusDeviceType);
     AddProperty(configuration, id::ModbusDeviceType,
-                kModbusDeviceAddressPropTypeId, "Address", L"Адрес",
+                id::ModbusDeviceType_Address, "Address", L"Адрес",
                 scada::id::Int32, 1);
     AddProperty(configuration, id::ModbusDeviceType,
-                kModbusDeviceRepeatCountPropTypeId, "RepeatCount",
+                id::ModbusDeviceType_SendRetryCount, "RepeatCount",
                 L"Попыток повторов передачи", scada::id::Int32, 3);
   }
 
@@ -491,78 +491,78 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     CreateObjectType(configuration, id::UserType, "UserType", L"Пользователь",
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::Users, id::UserType);
-    AddProperty(configuration, id::UserType, kUserAccessRightsPropTypeId,
+    AddProperty(configuration, id::UserType, id::UserType_AccessRights,
                 "AccessRights", L"Права", scada::id::Int32, 0);
   }
 
   // Root user.
   int root_privileges = (1 << static_cast<int>(scada::Privilege::Configure)) |
                         (1 << static_cast<int>(scada::Privilege::Control));
-  node_factory.CreateNode({kRootUserNodeId,
+  node_factory.CreateNode({id::RootUser,
                            scada::NodeClass::Object,
                            id::UserType,
                            id::Users,
                            scada::id::Organizes,
                            scada::NodeAttributes().set_display_name(L"root"),
-                           {{kUserAccessRightsPropTypeId, root_privileges}}});
+                           {{id::UserType_AccessRights, root_privileges}}});
 
   // IEC Link Device
   {
     auto* type = CreateObjectType(configuration, id::Iec60870LinkType,
                                   "Iec60870LinkType", L"Направление МЭК-60870",
-                                  kLinkTypeId);
+                                  id::LinkType);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_Protocol, "Protocol", L"Протокол",
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkModePropTypeId, "Mode", L"Режим", scada::id::Int32,
+                id::Iec60870LinkType_Mode, "Mode", L"Режим", scada::id::Int32,
                 0);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkSendQueueSizePropTypeId, "SendQueueSize",
+                id::Iec60870LinkType_SendQueueSize, "SendQueueSize",
                 L"Очередь передачи (K)", scada::id::Int32, 12);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkReceiveQueueSizePropTypeId, "ReceiveQueueSize",
+                id::Iec60870LinkType_ReceiveQueueSize, "ReceiveQueueSize",
                 L"Очередь приема (W)", scada::id::Int32, 8);
-    AddProperty(configuration, id::Iec60870LinkType, kIec60870LinkT0PropTypeId,
+    AddProperty(configuration, id::Iec60870LinkType, id::Iec60870LinkType_ConnectTimeout,
                 "ConnectTimeout", L"Таймаут связи (T0, с)", scada::id::Int32,
                 30);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkConfirmationTimeoutPropTypeId,
+                id::Iec60870LinkType_ConfirmationTimeout,
                 "ConfirmationTimeout", L"Таймаут подтверждения (с)",
                 scada::id::Int32, 5);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkTerminationTimeoutProtocolPropTypeId,
+                id::Iec60870LinkType_TerminationTimeout,
                 "TerminationTimeout", L"Таймаут операции (с)", scada::id::Int32,
                 20);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkDeviceAddressSizePropTypeId, "DeviceAddressSize",
+                id::Iec60870LinkType_DeviceAddressSize, "DeviceAddressSize",
                 L"Размер адреса устройства", scada::id::Int32, 2);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkCotSizePropTypeId, "CotSize",
+                id::Iec60870LinkType_COTSize, "CotSize",
                 L"Размер причины передачи", scada::id::Int32, 2);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkInfoAddressSizePropTypeId, "InfoAddressSize",
+                id::Iec60870LinkType_InfoAddressSize, "InfoAddressSize",
                 L"Размер адреса объекта", scada::id::Int32, 3);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkCollectDataPropTypeId, "CollectData",
+                id::Iec60870LinkType_DataCollection, "CollectData",
                 L"Сбор данных", scada::id::Boolean, true);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkSendRetriesPropTypeId, "SendRetries",
+                id::Iec60870LinkType_SendRetryCount, "SendRetries",
                 L"Попыток повторов передачи", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkCrcProtectionPropTypeId, "CrcProtection",
+                id::Iec60870LinkType_CRCProtection, "CrcProtection",
                 L"Защита CRC", scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkSendTimeoutPropTypeId, "SendTimeout",
+                id::Iec60870LinkType_SendTimeout, "SendTimeout",
                 L"Таймаут передачи (T1, с)", scada::id::Int32, 5);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkReceiveTimeoutPropTypeId, "ReceiveTimeout",
+                id::Iec60870LinkType_ReceiveTimeout, "ReceiveTimeout",
                 L"Таймаут приема (T2, с)", scada::id::Int32, 10);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkIdleTimeoutPropTypeId, "IdleTimeout",
+                id::Iec60870LinkType_IdleTimeout, "IdleTimeout",
                 L"Таймаут простоя (T3, с)", scada::id::Int32, 30);
     AddProperty(configuration, id::Iec60870LinkType,
-                kIec60870LinkAnonymousPropTypeId, "AnonymousMode",
+                id::Iec60870LinkType_AnonymousMode, "AnonymousMode",
                 L"Анонимный режим", scada::id::Boolean);
   }
 
@@ -574,77 +574,77 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddReference(configuration, id::Creates, id::Iec60870LinkType,
                  id::Iec60870DeviceType);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceAddressPropTypeId, "Address", L"Адрес",
+                id::Iec60870DeviceType_Address, "Address", L"Адрес",
                 scada::id::Int32, 1);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceLinkAddressPropTypeId, "LinkAddress",
+                id::Iec60870DeviceType_LinkAddress, "LinkAddress",
                 L"Адрес коммутатора", scada::id::Int32, 1);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceInterrogateOnStartPropTypeId,
+                id::Iec60870DeviceType_StartupInterrogation,
                 "InterrogateOnStart", L"Полный опрос при запуске",
                 scada::id::Boolean, true);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceInterrogationPeriodPropTypeId,
+                id::Iec60870DeviceType_InterrogationPeriod,
                 "InterrogationPeriod", L"Период полного опроса (с)",
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceSynchronizeClockOnStartPropTypeId,
+                id::Iec60870DeviceType_StartupClockSync,
                 "SynchronizeClockOnStart", L"Синхронизация часов при запуске",
                 scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceClockSynchronizationPeriodPropTypeId,
+                id::Iec60870DeviceType_ClockSyncPeriod,
                 "ClockSynchronizationPeriod", L"Период синхронизации часов (с)",
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_UtcTime, "UtcTime", L"Время UTC",
                 scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup1PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup1, "Group1PollPeriod",
                 L"Период опроса группы 1 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup2PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup2, "Group1PollPeriod",
                 L"Период опроса группы 2 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup3PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup3, "Group1PollPeriod",
                 L"Период опроса группы 3 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup4PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup4, "Group1PollPeriod",
                 L"Период опроса группы 4 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup5PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup5, "Group1PollPeriod",
                 L"Период опроса группы 5 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup6PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup6, "Group1PollPeriod",
                 L"Период опроса группы 6 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup7PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup7, "Group1PollPeriod",
                 L"Период опроса группы 7 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup8PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup8, "Group1PollPeriod",
                 L"Период опроса группы 8 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup9PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup9, "Group1PollPeriod",
                 L"Период опроса группы 9 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup10PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup10, "Group1PollPeriod",
                 L"Период опроса группы 10 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup11PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup11, "Group1PollPeriod",
                 L"Период опроса группы 11 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup12PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup12, "Group1PollPeriod",
                 L"Период опроса группы 12 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup13PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup13, "Group1PollPeriod",
                 L"Период опроса группы 13 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup14PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup14, "Group1PollPeriod",
                 L"Период опроса группы 14 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup15PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup15, "Group1PollPeriod",
                 L"Период опроса группы 15 (с)", scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                kIec60870DeviceGroup16PollPeriodPropTypeId, "Group1PollPeriod",
+                id::Iec60870DeviceType_InterrogationPeriodGroup16, "Group1PollPeriod",
                 L"Период опроса группы 16 (с)", scada::id::Int32, 0);
   }
 
@@ -719,14 +719,6 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
                  id::Iec61850RcbType);
   }
 
-  // Server Parameter
-  {
-    CreateObjectType(configuration, kServerParamTypeId, "ServerParamType",
-                     L"Параметр", scada::id::BaseObjectType);
-    AddProperty(configuration, kServerParamTypeId, kServerParamValuePropTypeId,
-                "Value", L"Значение", scada::id::String);
-  }
-
   // IEC Retransmission Item
   {
     CreateObjectType(configuration, id::TransmissionItemType,
@@ -735,14 +727,14 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
     AddReference(configuration, id::Creates, id::TransmissionItems,
                  id::TransmissionItemType);
     CreateReferenceType(configuration, id::TransmissionItemType,
-                        kIecTransmitSourceRefTypeId, "IecTransmitSource",
+                        id::HasTransmissionSource, "IecTransmitSource",
                         L"Объект источник", scada::id::BaseVariableType);
     CreateReferenceType(configuration, id::TransmissionItemType,
-                        kIecTransmitTargetDeviceRefTypeId,
+                        id::HasTransmissionTarget,
                         "IecTransmitTargetDevice", L"Устройство приемник",
                         id::DeviceType);
     AddProperty(configuration, id::TransmissionItemType,
-                kIecTransmitTargetInfoAddressPropTypeId, "InfoAddress",
+                id::TransmissionItemType_SourceAddress, "InfoAddress",
                 L"Адрес объекта приемника", scada::id::Int32, 1);
   }
 }
