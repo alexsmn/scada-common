@@ -1,14 +1,24 @@
 #pragma once
 
-#include "core/configuration_types.h"
-#include "core/node_id.h"
 #include "core/standard_node_ids.h"
 #include "core/type_definition.h"
 #include "core/variable.h"
-#include "common/scada_node_ids.h"
 
-class ConfigurationImpl;
-class NodeFactory;
+struct StandardAddressSpace;
+
+class GenericDataVariable : public scada::GenericVariable {
+ public:
+  GenericDataVariable(StandardAddressSpace& std, scada::NodeId id, scada::QualifiedName browse_name,
+      scada::LocalizedText display_name, scada::VariableType& variable_type, const scada::DataType& data_type,
+      scada::Variant default_value = scada::Variant());
+};
+
+class GenericProperty : public scada::GenericVariable {
+ public:
+  GenericProperty(StandardAddressSpace& std, scada::NodeId id, scada::QualifiedName browse_name,
+      scada::LocalizedText display_name, const scada::DataType& data_type,
+      scada::Variant default_value = scada::Variant());
+};
 
 struct StandardAddressSpace {
   StandardAddressSpace();
@@ -38,36 +48,3 @@ struct StandardAddressSpace {
   scada::VariableType BaseVariableType{scada::id::BaseVariableType, "BaseVariableType", L"BaseVariableType", BaseDataType};
   scada::VariableType PropertyType{scada::id::PropertyType, "PropertyType", L"PropertyType", BaseDataType};
 };
-
-class GenericDataVariable : public scada::GenericVariable {
- public:
-  GenericDataVariable(StandardAddressSpace& std, scada::NodeId id, scada::QualifiedName browse_name,
-      scada::LocalizedText display_name, scada::VariableType& variable_type, const scada::DataType& data_type,
-      scada::Variant default_value = scada::Variant());
-};
-
-class GenericProperty : public scada::GenericVariable {
- public:
-  GenericProperty(StandardAddressSpace& std, scada::NodeId id, scada::QualifiedName browse_name,
-      scada::LocalizedText display_name, const scada::DataType& data_type,
-      scada::Variant default_value = scada::Variant());
-};
-
-struct StaticAddressSpace {
-  explicit StaticAddressSpace(StandardAddressSpace& std);
-
-  struct DeviceType : public scada::ObjectType {
-    DeviceType(StandardAddressSpace& std, scada::NodeId id, scada::QualifiedName browse_name,
-        scada::LocalizedText display_name);
-
-    GenericProperty Disabled;
-    GenericDataVariable Online;
-    GenericDataVariable Enabled;
-  };
-
-  scada::ReferenceType Creates{id::Creates, "Creates", L"Creates"};
-
-  DeviceType DeviceType;
-};
-
-void CreateScadaAddressSpace(ConfigurationImpl& configuration, NodeFactory& node_factory);

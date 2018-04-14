@@ -6,8 +6,8 @@
 #include "core/configuration_impl.h"
 #include "core/generic_node_factory.h"
 #include "core/node_utils.h"
+#include "core/standard_address_space.h"
 #include "core/test/test_address_space.h"
-#include "core/types.h"
 #include "core/variable.h"
 
 using namespace testing;

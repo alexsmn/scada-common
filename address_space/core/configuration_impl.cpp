@@ -5,10 +5,10 @@
 #include "core/node_utils.h"
 #include "core/object.h"
 #include "core/reference.h"
+#include "core/scada_address_space.h"
 #include "core/standard_node_ids.h"
 #include "core/status.h"
 #include "core/type_definition.h"
-#include "core/types.h"
 #include "core/variable.h"
 
 ConfigurationImpl::ConfigurationImpl(std::shared_ptr<Logger> logger)
