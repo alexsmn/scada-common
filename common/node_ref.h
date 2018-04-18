@@ -15,10 +15,11 @@ class NodeRefObserver;
 
 class NodeRef {
  public:
-  NodeRef() {}
-  NodeRef(std::nullptr_t) {}
+  constexpr NodeRef() noexcept {}
+  constexpr NodeRef(std::nullptr_t) noexcept {}
   template <class T>
-  NodeRef(std::shared_ptr<T> model) : model_{std::move(model)} {}
+  constexpr NodeRef(std::shared_ptr<T> model) noexcept
+      : model_{std::move(model)} {}
 
   scada::Status status() const;
 
@@ -72,7 +73,7 @@ class NodeRef {
   NodeRef operator[](const scada::QualifiedName& aggregate_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
 
-  explicit operator bool() const { return model_ != nullptr; }
+  explicit operator bool() const noexcept { return model_ != nullptr; }
 
   bool operator==(const NodeRef& other) const { return id() == other.id(); }
   bool operator!=(const NodeRef& other) const { return !operator==(other); }

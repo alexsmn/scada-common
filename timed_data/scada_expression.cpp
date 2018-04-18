@@ -3,6 +3,8 @@
 #include "express/function.h"
 #include "express/parser.h"
 
+#include <stdexcept>
+
 namespace expression {
 
 static const Lexem LEX_TRUE = 't';
@@ -34,7 +36,7 @@ inline bool wp_isalnum(char ch) {
   return wp_isalpha(ch) || wp_isnum(ch);
 }
 
-Value ScadaToExpressionValue(const scada::Variant& value) {
+expression::Value ScadaToExpressionValue(const scada::Variant& value) {
   switch (value.type()) {
     case scada::Variant::BOOL:
       return value.as_bool();
@@ -47,7 +49,7 @@ Value ScadaToExpressionValue(const scada::Variant& value) {
     case scada::Variant::STRING:
       return value.as_string().c_str();
     default:
-      return Value();
+      return {};
   }
 }
 
@@ -70,6 +72,17 @@ class Traversers {
   }
 };
 
+ScadaExpression::ScadaExpression() : expression_{*this} {}
+
+void ScadaExpression::Parse(const char* buf) {
+  expression_.Parse(buf);
+}
+
+void ScadaExpression::Clear() {
+  items.clear();
+  expression_.Clear();
+}
+
 bool ScadaExpression::IsSingleName(std::string& item_name) const {
   if (GetNodeCount() != 1)
     return false;
@@ -78,8 +91,8 @@ bool ScadaExpression::IsSingleName(std::string& item_name) const {
     return false;
 
   bool result = true;
-  ScadaExpression* expr = const_cast<ScadaExpression*>(this);
-  expr->TraverseNode(root, &Traversers::IsSingleName, &result);
+  auto& expr = const_cast<expression::Expression&>(expression_);
+  expr.TraverseNode(expr.root, &Traversers::IsSingleName, &result);
   if (!result)
     return false;
 
@@ -87,71 +100,74 @@ bool ScadaExpression::IsSingleName(std::string& item_name) const {
   return true;
 }
 
-void ScadaExpression::Parse(const char* formula) {
-  __super::Parse(formula);
-}
+expression::LexemData ScadaExpression::ReadLexem(
+    expression::ReadBuffer& buffer) {
+  expression::LexemData result = {};
 
-void ScadaExpression::ReadLexem(expression::Parser& parser) {
-  if (*parser.buf == ',') {
-    parser.lexem = *parser.buf++;
+  if (*buffer.buf == ',') {
+    result.lexem = *buffer.buf++;
 
-  } else if (*parser.buf == '_' || wp_isalpha(*parser.buf)) {
-    const char* buf = parser.buf;
+  } else if (*buffer.buf == '_' || wp_isalpha(*buffer.buf)) {
+    const char* buf = buffer.buf;
 
     // read name
-    const char* str = parser.buf;
+    const char* str = buffer.buf;
     do {
       buf++;
     } while (*buf == '_' || *buf == '.' || *buf == '!' || wp_isalnum(*buf));
-    int strl = static_cast<int>(buf - parser.buf);
-    parser.buf = buf;
+    int strl = static_cast<int>(buf - buffer.buf);
+    buffer.buf = buf;
     // Parse name
     if (_strnicmp(str, "true", strl) == 0) {
-      parser.lexem = expression::LEX_TRUE;
+      result.lexem = expression::LEX_TRUE;
     } else if (_strnicmp(str, "false", strl) == 0) {
-      parser.lexem = expression::LEX_FALSE;
+      result.lexem = expression::LEX_FALSE;
     } else {
-      parser.lexem = expression::LEX_NAME;
-      parser._str = str;
-      parser._strl = strl;
+      result.lexem = expression::LEX_NAME;
+      result._str = str;
+      result._strl = strl;
     }
 
-  } else if (*parser.buf == '{') {
+  } else if (*buffer.buf == '{') {
     // Channel path.
-    parser.lexem = expression::LEX_NAME;
-    parser._str = parser.buf;
+    result.lexem = expression::LEX_NAME;
+    result._str = buffer.buf;
 
-    while (*parser.buf && *parser.buf != '}')
-      ++parser.buf;
-    if (*parser.buf != '}')
-      throw std::exception();
+    while (*buffer.buf && *buffer.buf != '}')
+      ++buffer.buf;
+    if (*buffer.buf != '}')
+      throw std::runtime_error("no ending bracket");
 
-    ++parser.buf;
+    ++buffer.buf;
 
-    parser._strl = parser.buf - parser._str;
+    result._strl = buffer.buf - result._str;
 
   } else {
-    throw std::exception("incorrect lexem", 1);
+    throw std::runtime_error("incorrect lexem");
   }
+
+  return result;
 }
 
-int ScadaExpression::WriteLexem(expression::Parser& parser) {
+int ScadaExpression::WriteLexem(const expression::LexemData& lexem_data,
+                                expression::Parser& parser,
+                                expression::Buffer& buffer) {
   int pos = buffer.size;
-  switch (parser.lexem) {
+  switch (parser.lexem_data_.lexem) {
     case expression::LEX_TRUE:
     case expression::LEX_FALSE:
-      buffer << parser.lexem;
+      buffer << parser.lexem_data_.lexem;
       parser.ReadLexem();
       return pos;
 
     case expression::LEX_NAME: {
-      std::string name(parser._str, parser._strl);
+      std::string name(parser.lexem_data_._str, parser.lexem_data_._strl);
       parser.ReadLexem();
-      if (parser.lexem == expression::LEX_LP) {
+      if (parser.lexem_data_.lexem == expression::LEX_LP) {
         // function
-        expression::Function* fun = find_function(name.c_str());
+        expression::Function* fun = FindFunction(name.c_str());
         if (!fun) {
-          throw std::exception(
+          throw std::runtime_error(
               base::StringPrintf("function '%s' is not found", name.c_str())
                   .c_str());
         }
@@ -159,19 +175,19 @@ int ScadaExpression::WriteLexem(expression::Parser& parser) {
         int params[256];
         unsigned char nparam = 0;
         parser.ReadLexem();
-        if (parser.lexem != expression::LEX_RP) {
+        if (parser.lexem_data_.lexem != expression::LEX_RP) {
           for (;;) {
             params[nparam++] = parser.expr_bin();
-            if (parser.lexem != expression::LEX_COMMA)
+            if (parser.lexem_data_.lexem != expression::LEX_COMMA)
               break;
             parser.ReadLexem();
           }
-          if (parser.lexem != expression::LEX_RP)
-            throw std::exception("missing ')'", 1);
+          if (parser.lexem_data_.lexem != expression::LEX_RP)
+            throw std::runtime_error("missing ')'");
         }
         parser.ReadLexem();
         if (fun->params != -1 && fun->params != nparam) {
-          throw std::exception(
+          throw std::runtime_error(
               base::StringPrintf("%d parameters expected", fun->params)
                   .c_str());
         }
@@ -193,7 +209,7 @@ int ScadaExpression::WriteLexem(expression::Parser& parser) {
     }
 
     case expression::LEX_DBL: {
-      double val = parser._double;
+      double val = parser.lexem_data_._double;
       int units = -1;
       if (*parser.buf == '%') {
         units = 0;
@@ -218,9 +234,10 @@ int ScadaExpression::WriteLexem(expression::Parser& parser) {
   }
 }
 
-void ScadaExpression::CalculateLexem(int pos,
+void ScadaExpression::CalculateLexem(const expression::Buffer& buffer,
+                                     int pos,
                                      expression::Lexem lexem,
-                                     Value& value,
+                                     expression::Value& value,
                                      void* data) const {
   switch (lexem) {
     case expression::LEX_TRUE:
@@ -244,11 +261,12 @@ void ScadaExpression::CalculateLexem(int pos,
         return;
       }*/
     default:
-      throw std::exception("CalculateLexem", 1);
+      throw std::runtime_error("CalculateLexem");
   }
 }
 
-std::string ScadaExpression::FormatLexem(int pos,
+std::string ScadaExpression::FormatLexem(const expression::Buffer& buffer,
+                                         int pos,
                                          expression::Lexem lexem) const {
   switch (lexem) {
     case expression::LEX_TRUE:
@@ -261,7 +279,7 @@ std::string ScadaExpression::FormatLexem(int pos,
     }
     case expression::LEX_FUN: {
       expression::Function* fun = buffer.read<expression::Function*>(pos);
-      return fun->Format(*this, pos);
+      return fun->Format(expression_, pos);
     }
     /*case LEX_UNITS:
       {
@@ -272,20 +290,21 @@ std::string ScadaExpression::FormatLexem(int pos,
         return str;
       }*/
     default:
-      throw std::exception("FormatLexem", 1);
+      throw std::runtime_error("FormatLexem");
   }
 }
 
-void ScadaExpression::TraverseLexem(int pos,
+void ScadaExpression::TraverseLexem(const expression::Expression& expr,
+                                    int pos,
                                     expression::Lexem lexem,
                                     expression::TraverseCallback callback,
                                     void* param) const {
-  if (!callback(*this, lexem, param))
+  if (!callback(expr, lexem, param))
     return;
 
   if (lexem == expression::LEX_FUN) {
-    expression::Function* fun = buffer.read<expression::Function*>(pos);
-    fun->Traverse(*this, pos, callback, param);
+    expression::Function* fun = expr.buffer.read<expression::Function*>(pos);
+    fun->Traverse(expr, pos, callback, param);
   }
 }
 
@@ -294,20 +313,20 @@ scada::Variant ScadaExpression::Calculate() const {
     if (items[i].value.value.is_null())
       return scada::Variant();
 
-  return static_cast<double>(__super::Calculate());
+  return static_cast<double>(expression_.Calculate());
 }
 
 std::string ScadaExpression::Format(bool aliases) const {
   _aliases = aliases;
-  ScadaExpression* expr = const_cast<ScadaExpression*>(this);
-  return ((expression::Expression*)expr)->FormatNode(root);
+  auto& expr = const_cast<expression::Expression&>(expression_);
+  return expr.FormatNode(expr.root);
 }
 
 size_t ScadaExpression::GetNodeCount() const {
   size_t count = 0;
 
-  ScadaExpression* expr = const_cast<ScadaExpression*>(this);
-  expr->TraverseNode(root, &Traversers::GetNodeCount, &count);
+  auto& expr = const_cast<expression::Expression&>(expression_);
+  expr.TraverseNode(expr.root, &Traversers::GetNodeCount, &count);
 
   return count;
 }

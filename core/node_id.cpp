@@ -7,22 +7,26 @@
 
 namespace scada {
 
-NodeId::NodeId() : identifier_{0}, namespace_index_{0} {}
+constexpr NodeId::NodeId() noexcept : identifier_{0}, namespace_index_{0} {}
 
-NodeId::NodeId(NumericId numeric_id, NamespaceIndex namespace_index)
+constexpr NodeId::NodeId(NumericId numeric_id,
+                         NamespaceIndex namespace_index) noexcept
     : identifier_{numeric_id}, namespace_index_{namespace_index} {}
 
-NodeId::NodeId(String string_id, NamespaceIndex namespace_index)
+NodeId::NodeId(String string_id, NamespaceIndex namespace_index) noexcept
     : identifier_{std::make_shared<String>(std::move(string_id))},
       namespace_index_{namespace_index} {}
 
-NodeId::NodeId(ByteString opaque_id, NamespaceIndex namespace_index)
+NodeId::NodeId(ByteString opaque_id, NamespaceIndex namespace_index) noexcept
     : identifier_{std::make_shared<ByteString>(std::move(opaque_id))},
       namespace_index_{namespace_index} {}
 
-bool NodeId::is_null() const {
-  return namespace_index_ == 0 && type() == NodeIdType::Numeric &&
-         numeric_id() == 0;
+bool NodeId::is_null() const noexcept {
+  if (namespace_index_ != 0)
+    return false;
+  if (const auto* numeric_id = std::get_if<NumericId>(&identifier_))
+    return *numeric_id == 0;
+  return false;
 }
 
 bool operator==(const NodeId& a, const NodeId& b) {

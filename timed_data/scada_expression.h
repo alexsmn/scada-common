@@ -2,12 +2,13 @@
 
 #include "core/data_value.h"
 #include "express/express.h"
+#include "express/express_delegate.h"
 
 #include <vector>
 
 namespace rt {
 
-class ScadaExpression : protected expression::Expression {
+class ScadaExpression : private expression::ExpressionDelegate {
  public:
   struct Item {
     std::string name;
@@ -16,37 +17,45 @@ class ScadaExpression : protected expression::Expression {
 
   typedef std::vector<Item> ItemList;
 
+  ScadaExpression();
+
   // Calculate node count of expression tree.
   size_t GetNodeCount() const;
   // Check expression consists from single item and return item name.
   bool IsSingleName(std::string& item_name) const;
 
-  void Clear() {
-    items.clear();
-    __super::Clear();
-  }
-
-  void Parse(const char* formula);
+  void Parse(const char* buf);
 
   scada::Variant Calculate() const;
 
   std::string Format(bool aliases = false) const;
 
+  void Clear();
+
   ItemList items;
 
  protected:
   // expression::Expression
-  virtual void ReadLexem(expression::Parser& parser);
-  virtual int WriteLexem(expression::Parser& parser);
-  virtual void CalculateLexem(int pos,
+  virtual expression::LexemData ReadLexem(
+      expression::ReadBuffer& buffer) override;
+  virtual int WriteLexem(const expression::LexemData& lexem_data,
+                         expression::Parser& parser,
+                         expression::Buffer& buffer) override;
+  virtual void CalculateLexem(const expression::Buffer& buffer,
+                              int pos,
                               expression::Lexem lexem,
-                              Value& value,
-                              void* data) const;
-  virtual std::string FormatLexem(int pos, expression::Lexem lexem) const;
-  virtual void TraverseLexem(int pos,
+                              expression::Value& value,
+                              void* data) const override;
+  virtual std::string FormatLexem(const expression::Buffer& buffer,
+                                  int pos,
+                                  expression::Lexem lexem) const;
+  virtual void TraverseLexem(const expression::Expression& expr,
+                             int pos,
                              expression::Lexem lexem,
                              expression::TraverseCallback callback,
-                             void* param) const;
+                             void* param) const override;
+
+  expression::Expression expression_;
 };
 
 }  // namespace rt

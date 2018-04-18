@@ -15,19 +15,24 @@ using NumericId = uint32_t;
 
 class NodeId {
  public:
-  NodeId();
-  NodeId(NumericId numeric_id, NamespaceIndex namespace_index = 0);
-  NodeId(String string_id, NamespaceIndex namespace_index);
-  NodeId(ByteString opaque_id, NamespaceIndex namespace_index);
+  constexpr NodeId() noexcept;
+  constexpr NodeId(NumericId numeric_id,
+                   NamespaceIndex namespace_index = 0) noexcept;
+  NodeId(String string_id, NamespaceIndex namespace_index) noexcept;
+  NodeId(ByteString opaque_id, NamespaceIndex namespace_index) noexcept;
 
-  NodeIdType type() const {
+  constexpr NodeIdType type() const noexcept {
     return static_cast<NodeIdType>(identifier_.index());
   }
 
-  bool is_null() const;
+  bool is_null() const noexcept;
 
-  NamespaceIndex namespace_index() const { return namespace_index_; }
-  void set_namespace_index(NamespaceIndex index) { namespace_index_ = index; }
+  constexpr NamespaceIndex namespace_index() const noexcept {
+    return namespace_index_;
+  }
+  constexpr void set_namespace_index(NamespaceIndex index) noexcept {
+    namespace_index_ = index;
+  }
 
   NumericId numeric_id() const;
   const String& string_id() const;
@@ -68,6 +73,7 @@ inline bool operator!=(NumericId a, const NodeId& b) {
 
 }  // namespace scada
 
-inline std::ostream& operator<<(std::ostream& stream, const scada::NodeId& node_id) {
+inline std::ostream& operator<<(std::ostream& stream,
+                                const scada::NodeId& node_id) {
   return stream << node_id.ToString();
 }
