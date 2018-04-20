@@ -133,8 +133,13 @@ void NodeRef::Fetch(const NodeFetchStatus& requested_status,
   assert(!requested_status.empty());
 
   if (model_) {
-    model_->Fetch(requested_status,
-                  [copy = *this, callback] { callback(copy); });
+    if (callback) {
+      model_->Fetch(requested_status,
+                    [copy = *this, callback] { callback(copy); });
+    } else {
+      model_->Fetch(requested_status, {});
+    }
+
   } else {
     callback(*this);
   }

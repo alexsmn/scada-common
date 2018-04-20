@@ -19,12 +19,14 @@ class ViewService;
 class Logger;
 
 using NodeValidator = std::function<bool(const scada::NodeId& node_id)>;
+using NodeFetchErrors = std::vector<std::pair<scada::NodeId, scada::Status>>;
 
 struct NodeFetcherContext {
   Logger& logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
-  const std::function<void(std::vector<scada::NodeState>&& nodes)>
+  const std::function<void(std::vector<scada::NodeState>&& nodes,
+                           NodeFetchErrors&& errors)>
       fetch_completed_handler_;
   const NodeValidator node_validator_;
 };
@@ -37,7 +39,8 @@ class NodeFetcher : private NodeFetcherContext {
   void Fetch(const scada::NodeId& node_id,
              bool fetch_parent = false,
              const scada::NodeId& parent_id = {},
-             const scada::NodeId& reference_type_id = {});
+             const scada::NodeId& reference_type_id = {},
+             bool force = false);
   void Cancel(const scada::NodeId& node_id);
 
  private:
@@ -56,6 +59,7 @@ class NodeFetcher : private NodeFetcherContext {
     bool attributes_fetched = false;
     bool references_fetched = false;
     scada::Status status{scada::StatusCode::Good};
+    bool force = false;
   };
 
   class FetchingNodeGraph {
@@ -69,7 +73,7 @@ class NodeFetcher : private NodeFetcherContext {
 
     void AddDependency(FetchingNode& node, FetchingNode& from);
 
-    std::vector<scada::NodeState> GetFetchedNodes();
+    std::pair<std::vector<scada::NodeState>, NodeFetchErrors> GetFetchedNodes();
 
     bool AssertValid() const;
 
@@ -86,17 +90,17 @@ class NodeFetcher : private NodeFetcherContext {
 
   void NotifyFetchedNodes();
 
-  void OnFetchError(scada::Status&& status);
-
   void AddFetchedReference(FetchingNode& node,
                            const scada::BrowseDescription& description,
                            scada::ReferenceDescription&& reference);
 
-  void OnReadResult(unsigned request_id, base::TimeTicks start_ticks,
+  void OnReadResult(unsigned request_id,
+                    base::TimeTicks start_ticks,
                     scada::Status&& status,
                     const std::vector<scada::ReadValueId>& read_ids,
                     std::vector<scada::DataValue>&& results);
-  void OnBrowseResult(unsigned request_id, base::TimeTicks start_ticks,
+  void OnBrowseResult(unsigned request_id,
+                      base::TimeTicks start_ticks,
                       scada::Status&& status,
                       const std::vector<scada::BrowseDescription>& descriptions,
                       std::vector<scada::BrowseResult>&& results);

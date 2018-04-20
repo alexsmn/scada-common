@@ -33,7 +33,8 @@ void RemoteNodeModel::OnNodeSemanticChanged() {
     o.OnNodeSemanticChanged(node_id_);
 }
 
-void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
+void RemoteNodeModel::OnNodeFetched(scada::Status&& status,
+                                    scada::NodeState&& node_state) {
   parent_ = service_.GetNodeImpl(node_state.parent_id);
 
   node_class_ = node_state.node_class;
@@ -47,7 +48,7 @@ void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
   }
 
   pending_status_.node_fetched = false;
-  SetFetchStatus(NodeFetchStatus::NodeOnly());
+  SetFetchStatus(status, NodeFetchStatus::NodeOnly());
 
   {
     auto type_definition_id =
@@ -78,7 +79,7 @@ void RemoteNodeModel::OnChildrenFetched(const ReferenceMap& references) {
   }
 
   pending_status_.children_fetched = false;
-  SetFetchStatus(NodeFetchStatus::NodeAndChildren());
+  SetFetchStatus(status_, NodeFetchStatus::NodeAndChildren());
 
   {
     auto type_definition_id =
@@ -324,7 +325,8 @@ void RemoteNodeModel::SetError(const scada::Status& status) {
   status_ = status;
 }
 
-void RemoteNodeModel::OnFetch(const NodeFetchStatus& requested_status) {
+void RemoteNodeModel::OnFetchRequested(
+    const NodeFetchStatus& requested_status) {
   auto new_status = pending_status_;
   new_status |= requested_status;
 

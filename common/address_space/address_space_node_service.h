@@ -3,6 +3,7 @@
 #include <map>
 
 #include "base/observer_list.h"
+#include "common/address_space/address_space_fetcher.h"
 #include "common/address_space/address_space_node_model.h"
 #include "common/node_service.h"
 
@@ -15,17 +16,12 @@ struct ModelChangeEvent;
 class AddressSpaceNodeModel;
 class Logger;
 
-using NodeFetchStatusChecker =
-    std::function<NodeFetchStatus(const scada::NodeId& node_id)>;
-using NodeFetchHandler =
-    std::function<void(const scada::NodeId& node_id,
-                       const NodeFetchStatus& requested_status)>;
-
 struct AddressSpaceNodeServiceContext {
   const std::shared_ptr<Logger> logger_;
-  const NodeFetchStatusChecker node_fetch_status_checker_;
-  const NodeFetchHandler node_fetch_handler_;
-  scada::AddressSpace& address_space_;
+  scada::ViewService& view_service_;
+  scada::AttributeService& attribute_service_;
+  AddressSpaceImpl& address_space_;
+  NodeFactory& node_factory_;
 };
 
 class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
@@ -36,8 +32,8 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
   explicit AddressSpaceNodeService(AddressSpaceNodeServiceContext&& context);
   ~AddressSpaceNodeService();
 
-  void OnNodeFetchStatusChanged(const scada::NodeId& node_id,
-                                const NodeFetchStatus& status);
+  void OnChannelOpened();
+  void OnChannelClosed();
 
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
@@ -45,11 +41,20 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  private:
+  AddressSpaceFetcherContext MakeAddressSpaceFetcherContext();
+
+  void OnNodeFetchStatusChanged(const scada::NodeId& node_id,
+                                const scada::Status& status,
+                                const NodeFetchStatus& fetch_status);
+
   void OnModelChanged(const scada::ModelChangeEvent& event);
 
   // AddressSpaceNodeModelDelegate
   virtual NodeRef GetRemoteNode(const scada::Node* node) override;
-  virtual void OnRemoteNodeModelDeleted(const scada::NodeId& node_id) override;
+  virtual void OnNodeModelDeleted(const scada::NodeId& node_id) override;
+  virtual void OnNodeModelFetchRequested(
+      const scada::NodeId& node_id,
+      const NodeFetchStatus& requested_status) override;
 
   // scada::NodeObserver
   virtual void OnNodeCreated(const scada::Node& node) override;
@@ -66,6 +71,8 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
   mutable base::ObserverList<NodeRefObserver> observers_;
 
   std::map<scada::NodeId, std::weak_ptr<AddressSpaceNodeModel>> nodes_;
+
+  AddressSpaceFetcher fetcher_;
 
   friend class AddressSpaceNodeModel;
 };

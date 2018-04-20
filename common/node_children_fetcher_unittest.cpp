@@ -19,7 +19,7 @@ struct TestContext {
 
   NullLogger logger;
 
-  test::TestAddressSpace address_space;
+  TestAddressSpace address_space;
 
   NodeChildrenFetcher node_children_fetcher{NodeChildrenFetcherContext{
       logger,

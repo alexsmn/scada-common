@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/base_node_model.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "common/base_node_model.h"
 
 namespace scada {
 struct ModelChangeEvent;
@@ -18,7 +18,11 @@ class AddressSpaceNodeModelDelegate {
   // If |node| is nullptr, empty node model is returned.
   virtual NodeRef GetRemoteNode(const scada::Node* node) = 0;
 
-  virtual void OnRemoteNodeModelDeleted(const scada::NodeId& node_id) = 0;
+  virtual void OnNodeModelDeleted(const scada::NodeId& node_id) = 0;
+
+  virtual void OnNodeModelFetchRequested(
+      const scada::NodeId& node_id,
+      const NodeFetchStatus& requested_status) = 0;
 };
 
 class AddressSpaceNodeModel final
@@ -32,8 +36,9 @@ class AddressSpaceNodeModel final
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
 
-  void OnNodeFetchStatusChanged(const scada::Node* node,
-                                const NodeFetchStatus& status);
+  void SetFetchStatus(const scada::Node* node,
+                      const scada::Status& status,
+                      const NodeFetchStatus& fetch_status);
 
   scada::Variant GetPropertyAttribute(const NodeModel& property_declaration,
                                       scada::AttributeId attribute_id) const;
@@ -60,6 +65,8 @@ class AddressSpaceNodeModel final
 
  protected:
   // BaseNodeModel
+  virtual void OnFetchRequested(
+      const NodeFetchStatus& requested_status) override;
   virtual void OnNodeDeleted() override;
 
   AddressSpaceNodeModelDelegate& delegate_;

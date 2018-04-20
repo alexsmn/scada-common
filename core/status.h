@@ -5,32 +5,37 @@
 namespace scada {
 
 enum class StatusSeverity {
-  // Indicates that the operation was successful and the associated results may be used.
+  // Indicates that the operation was successful and the associated results may
+  // be used.
   Good = 0,
 
-  // Indicates that the operation was partially successful and that associated results might not be suitable for some purposes.
+  // Indicates that the operation was partially successful and that associated
+  // results might not be suitable for some purposes.
   Uncertain = 1,
 
-  // Indicates that the operation failed and any associated results cannot be used.
+  // Indicates that the operation failed and any associated results cannot be
+  // used.
   Bad = 2,
 
-  // Reserved for future use. All Clients should treat a StatusCode with this severity as “Bad”.
+  // Reserved for future use. All Clients should treat a StatusCode with this
+  // severity as “Bad”.
   Reserved = 3
 };
 
 enum class StatusCode : unsigned {
   Good = static_cast<unsigned>(StatusSeverity::Good),
-  Good_Pending = Good | 1, // Async operation started
+  Good_Pending = Good | 1,  // Async operation started
   Good_Sporadic = Good | 2,
-  Good_Backup = Good | 3, // Uncertain_SubNormal
-  Good_Manual = Good | 4, // Good_LocalOverride
-  Good_Simulated = Good | 5, // Good_LocalOverride
+  Good_Backup = Good | 3,     // Uncertain_SubNormal
+  Good_Manual = Good | 4,     // Good_LocalOverride
+  Good_Simulated = Good | 5,  // Good_LocalOverride
   Uncertain = static_cast<unsigned>(StatusSeverity::Uncertain) << 14,
   Uncertain_DeviceFlag = Uncertain | 1,
   Uncertain_Misconfigured = Uncertain | 2,
   Uncertain_Disconnected = Uncertain | 3,
   Uncertain_NotUpdated = Uncertain | 4,
-  // Lock command was not changed state, because object is already locked/unlocked.
+  // Lock command was not changed state, because object is already
+  // locked/unlocked.
   Uncertain_StateWasNotChanged = Uncertain | 5,
   Bad = static_cast<unsigned>(StatusSeverity::Bad) << 14,
   Bad_WrongLoginCredentials = Bad | 1,
@@ -83,34 +88,53 @@ enum class StatusLimit {
   Constant,
 };
 
-inline StatusSeverity GetSeverity(StatusCode code) { return static_cast<StatusSeverity>(static_cast<unsigned>(code) >> 14); }
-inline bool IsGood(StatusCode code) { return GetSeverity(code) == StatusSeverity::Good; }
+inline StatusSeverity GetSeverity(StatusCode code) noexcept {
+  return static_cast<StatusSeverity>(static_cast<unsigned>(code) >> 14);
+}
+inline bool IsGood(StatusCode code) noexcept {
+  return GetSeverity(code) == StatusSeverity::Good;
+}
 
 class Status {
  public:
-  Status(StatusCode code) : full_code_(static_cast<unsigned>(code) << 16) {}
+  constexpr Status(StatusCode code) noexcept
+      : full_code_(static_cast<unsigned>(code) << 16) {}
 
   static Status FromFullCode(unsigned full_code);
 
-  explicit operator bool() const { return !bad(); }
-  bool operator!() const { return bad(); }
+  explicit operator bool() const noexcept { return !bad(); }
+  bool operator!() const noexcept { return bad(); }
 
-  StatusSeverity severity() const { return static_cast<StatusSeverity>(full_code_ >> 30); }
-  bool good() const { return severity() == StatusSeverity::Good; }
-  bool uncertain() const { return severity() == StatusSeverity::Uncertain; }
-  bool bad() const { return severity() == StatusSeverity::Bad; }
+  StatusSeverity severity() const noexcept {
+    return static_cast<StatusSeverity>(full_code_ >> 30);
+  }
 
-  StatusLimit limit() const { return static_cast<StatusLimit>(full_code_ & 3); }
-  void set_limit(StatusLimit limit) { full_code_ &= ~3U; full_code_ |= static_cast<unsigned>(limit); }
+  bool good() const noexcept { return severity() == StatusSeverity::Good; }
+  bool uncertain() const noexcept {
+    return severity() == StatusSeverity::Uncertain;
+  }
+  bool bad() const noexcept { return severity() == StatusSeverity::Bad; }
 
-  StatusCode code() const { return static_cast<StatusCode>(full_code_ >> 16); }
-  unsigned full_code() const { return full_code_; }
+  StatusLimit limit() const noexcept {
+    return static_cast<StatusLimit>(full_code_ & 3);
+  }
+
+  void set_limit(StatusLimit limit) noexcept {
+    full_code_ &= ~3U;
+    full_code_ |= static_cast<unsigned>(limit);
+  }
+
+  StatusCode code() const noexcept {
+    return static_cast<StatusCode>(full_code_ >> 16);
+  }
+
+  unsigned full_code() const noexcept { return full_code_; }
 
  private:
   unsigned full_code_;
 };
 
-} // namespace scada
+}  // namespace scada
 
 std::string ToString(scada::StatusCode status_code);
 base::string16 ToString16(scada::StatusCode status_code);

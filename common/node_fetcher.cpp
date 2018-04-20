@@ -133,11 +133,13 @@ NodeFetcher::FetchingNode& NodeFetcher::FetchingNodeGraph::AddNode(
 void NodeFetcher::Fetch(const scada::NodeId& node_id,
                         bool fetch_parent,
                         const scada::NodeId& parent_id,
-                        const scada::NodeId& reference_type_id) {
+                        const scada::NodeId& reference_type_id,
+                        bool force) {
   assert(AssertValid());
 
   auto& node = fetching_nodes_.AddNode(node_id);
   node.fetch_parent |= fetch_parent;
+  node.force |= force;
 
   if (!parent_id.is_null()) {
     assert(!reference_type_id.is_null());
@@ -164,6 +166,9 @@ void NodeFetcher::FetchNode(FetchingNode& node) {
                  node.node_id.ToString().c_str());
 
   if (node.fetch_started) {
+    if (!node.force)
+      return;
+
     logger_.WriteF(LogSeverity::Normal,
                    "Canceling old fetching node %s with request %u",
                    node.node_id.ToString().c_str(), node.fetch_request_id);
@@ -171,7 +176,6 @@ void NodeFetcher::FetchNode(FetchingNode& node) {
     node.fetch_request_id = 0;
     node.attributes_fetched = false;
     node.references_fetched = false;
-    node.ClearDependsOf();
     node.status = scada::StatusCode::Good;
   }
 
@@ -312,31 +316,31 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
       });
 }
 
-void NodeFetcher::OnFetchError(scada::Status&& status) {
-  logger_.WriteF(LogSeverity::Normal, "Fetch error: %ls",
-                 ToString16(status).c_str());
-
-  throw status;
-}
-
 void NodeFetcher::NotifyFetchedNodes() {
-  auto fetched_nodes = fetching_nodes_.GetFetchedNodes();
+  auto [nodes, errors] = fetching_nodes_.GetFetchedNodes();
+  if (nodes.empty() && errors.empty())
+    return;
 
-  if (!fetched_nodes.empty()) {
-    for (auto& node : fetched_nodes) {
-      logger_.WriteF(LogSeverity::Normal, "Node %s fetched",
-                     node.node_id.ToString().c_str());
+  if (!errors.empty()) {
+    for (auto& error : errors) {
+      logger_.WriteF(LogSeverity::Warning, "Node %s fetch error %s",
+                     NodeIdToScadaString(error.first).c_str(),
+                     ToString(error.second).c_str());
     }
-
-    logger_.WriteF(LogSeverity::Normal, "%Iu nodes completed",
-                   fetched_nodes.size());
   }
 
-  logger_.WriteF(LogSeverity::Normal, "%Iu incomplete nodes remain",
-                 fetching_nodes_.size());
+  if (!nodes.empty()) {
+    for (auto& node : nodes) {
+      logger_.WriteF(LogSeverity::Normal, "Node %s fetched",
+                     NodeIdToScadaString(node.node_id).c_str());
+    }
+  }
 
-  if (!fetched_nodes.empty())
-    fetch_completed_handler_{std::move(fetched_nodes)};
+  logger_.WriteF(LogSeverity::Normal,
+                 "%Iu nodes completed, %Iu incomplete nodes remain",
+                 nodes.size() + errors.size(), fetching_nodes_.size());
+
+  fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
 
 void NodeFetcher::FetchingNode::ClearDependentNodes() {
@@ -351,7 +355,7 @@ void NodeFetcher::FetchingNode::ClearDependsOf() {
   depends_of.clear();
 }
 
-std::vector<scada::NodeState>
+std::pair<std::vector<scada::NodeState>, NodeFetchErrors>
 NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
@@ -384,6 +388,8 @@ NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
   std::vector<scada::NodeState> fetched_nodes;
   fetched_nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
 
+  NodeFetchErrors errors;
+
   Collector collector;
   collector.visited.reserve(std::min<size_t>(32, fetching_nodes_.size()));
 
@@ -400,6 +406,8 @@ NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
 
     if (node.status)
       fetched_nodes.emplace_back(node);
+    else
+      errors.emplace_back(node.node_id, node.status);
 
     node.ClearDependsOf();
     node.ClearDependentNodes();
@@ -408,7 +416,7 @@ NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
 
   assert(AssertValid());
 
-  return fetched_nodes;
+  return {std::move(fetched_nodes), std::move(errors)};
 }
 
 void NodeFetcher::OnReadResult(unsigned request_id,
@@ -443,7 +451,7 @@ void NodeFetcher::OnReadResult(unsigned request_id,
 
     if (!status) {
       node->status = status;
-      return;
+      continue;
     }
 
     assert(read_ids.size() == results.size());
@@ -571,6 +579,7 @@ void NodeFetcher::AddFetchedReference(
     auto& child = fetching_nodes_.AddNode(reference.node_id);
     child.reference_type_id = reference.reference_type_id;
     child.parent_id = description.node_id;
+    child.force |= node.force;
 
     if (reference.reference_type_id == scada::id::HasProperty)
       child.type_definition_id = scada::id::PropertyType;
@@ -652,6 +661,7 @@ void NodeFetcher::ValidateDependency(FetchingNode& node,
     // The equality is possible for references.
     if (&from != &node) {
       from.fetch_parent = true;
+      from.force |= node.force;
       fetching_nodes_.AddDependency(node, from);
       FetchNode(from);
     }

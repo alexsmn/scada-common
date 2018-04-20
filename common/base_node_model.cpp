@@ -7,6 +7,8 @@ BaseNodeModel::BaseNodeModel(scada::NodeId node_id)
 
 void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
                           const FetchCallback& callback) const {
+  bool request = false;
+
   if (requested_status <= fetch_status_) {
     if (callback)
       callback();
@@ -15,12 +17,15 @@ void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
     if (callback)
       fetch_callbacks_.emplace_back(requested_status, callback);
 
-    const_cast<BaseNodeModel*>(this)->OnFetch(requested_status);
+    request = true;
   }
+
+  if (request || !status_)
+    const_cast<BaseNodeModel*>(this)->OnFetchRequested(requested_status);
 }
 
 scada::Status BaseNodeModel::GetStatus() const {
-  return scada::StatusCode::Good;
+  return status_;
 }
 
 NodeFetchStatus BaseNodeModel::GetFetchStatus() const {
@@ -37,36 +42,27 @@ void BaseNodeModel::Unsubscribe(NodeRefObserver& observer) const {
   observers_.RemoveObserver(&observer);
 }
 
-void BaseNodeModel::OnFetch(const NodeFetchStatus& requested_status) {
-}
+void BaseNodeModel::OnFetchRequested(const NodeFetchStatus& requested_status) {}
 
 void BaseNodeModel::OnNodeDeleted() {
-  if (fetch_status_ == NodeFetchStatus::Max())
-    return;
-
-  fetch_status_ = NodeFetchStatus::Max();
-
-  std::vector<FetchCallback> callbacks;
-  callbacks.reserve(fetch_callbacks_.size());
-  for (auto& c : fetch_callbacks_)
-    callbacks.emplace_back(std::move(c.second));
-
-  fetch_callbacks_.clear();
-  fetch_callbacks_.shrink_to_fit();
-
-  for (auto& callback : callbacks)
-    callback();
+  SetFetchStatus(scada::StatusCode::Bad_WrongNodeId, NodeFetchStatus::Max());
 }
 
-void BaseNodeModel::SetFetchStatus(const NodeFetchStatus& status) {
-  fetch_status_ = status;
+void BaseNodeModel::SetFetchStatus(const scada::Status& status,
+                                   const NodeFetchStatus& fetch_status) {
+  status_ = status;
+
+  if (fetch_status_ == fetch_status)
+    return;
+
+  fetch_status_ = fetch_status;
 
   std::vector<FetchCallback> callbacks;
   size_t p = 0;
   for (size_t i = 0; i < fetch_callbacks_.size(); ++i) {
     auto& c = fetch_callbacks_[i];
     assert(c.second);
-    if (c.first <= status)
+    if (c.first <= fetch_status_)
       callbacks.emplace_back(std::move(c.second));
     else
       fetch_callbacks_[p++] = std::move(c);

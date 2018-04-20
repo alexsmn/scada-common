@@ -22,13 +22,13 @@ struct TestContext {
 
   NullLogger logger;
 
-  test::TestAddressSpace address_space;
+  TestAddressSpace address_space;
 
   NodeFetcher node_fetcher{NodeFetcherContext{
       logger,
       address_space,
       address_space,
-      [&](std::vector<scada::NodeState>&& nodes) {
+      [&](std::vector<scada::NodeState>&& nodes, NodeFetchErrors&& errors) {
         OnFetched(std::move(nodes));
         ProcessFetchedNodes(nodes);
       },
@@ -64,6 +64,8 @@ TEST(NodeFetcher, Test) {
 
   context.node_fetcher.Fetch(scada::id::RootFolder);
 
+  Mock::VerifyAndClearExpectations(&context);
+
   // TestNode1 only has a property.
   EXPECT_CALL(
       context,
@@ -72,6 +74,8 @@ TEST(NodeFetcher, Test) {
           NodeIs(as.MakeNestedNodeId(as.kTestNode1Id, as.kTestProp1Id)))));
 
   context.node_fetcher.Fetch(as.kTestNode1Id);
+
+  Mock::VerifyAndClearExpectations(&context);
 
   // TestNode2 depends from TestNode3.
   EXPECT_CALL(
@@ -84,13 +88,17 @@ TEST(NodeFetcher, Test) {
 
   context.node_fetcher.Fetch(as.kTestNode2Id);
 
+  Mock::VerifyAndClearExpectations(&context);
+
   EXPECT_CALL(context,
               OnFetched(UnorderedElementsAre(NodeIs(as.kTestNode4Id))));
 
   context.node_fetcher.Fetch(as.kTestNode4Id);
+
+  Mock::VerifyAndClearExpectations(&context);
 }
 
-TEST(NodeFetcher, Error) {
+TEST(NodeFetcher, UnknownNode) {
   // TODO: Read failure
   // TODO: Browse failure
 }

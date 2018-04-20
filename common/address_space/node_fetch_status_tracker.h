@@ -2,6 +2,7 @@
 
 #include "common/node_fetch_status.h"
 #include "core/node_id.h"
+#include "core/status.h"
 
 #include <functional>
 #include <map>
@@ -10,11 +11,12 @@
 namespace scada {
 class AddressSpace;
 class Node;
-}
+}  // namespace scada
 
 using NodeFetchStatusChangedHandler =
     std::function<void(const scada::NodeId& node_id,
-                       const NodeFetchStatus& status)>;
+                       const scada::Status& status,
+                       const NodeFetchStatus& fetch_status)>;
 
 struct NodeFetchStatusTrackerContext {
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;
@@ -25,13 +27,14 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
  public:
   explicit NodeFetchStatusTracker(NodeFetchStatusTrackerContext&& context);
 
-  void OnNodeFetched(const scada::NodeId& node_id);
+  void OnNodeFetched(const scada::NodeId& node_id, scada::Status status);
   void OnChildrenFetched(const scada::NodeId& node_id,
                          std::set<scada::NodeId> child_ids);
 
   void Delete(const scada::NodeId& node_id);
 
-  NodeFetchStatus GetStatus(const scada::NodeId& node_id) const;
+  std::pair<scada::Status, NodeFetchStatus> GetStatus(
+      const scada::NodeId& node_id) const;
 
  private:
   bool IsNodeFetched(const scada::NodeId& node_id) const;
@@ -48,4 +51,6 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
       parents_;
 
   std::map<scada::NodeId /*child_id*/, scada::NodeId /*parent_id*/> children_;
+
+  std::map<scada::NodeId, scada::Status> errors_;
 };

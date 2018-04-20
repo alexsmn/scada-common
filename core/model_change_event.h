@@ -18,4 +18,15 @@ struct ModelChangeEvent {
   uint8_t verb;
 };
 
+inline bool operator==(const ModelChangeEvent& a, const ModelChangeEvent& b) {
+  return a.node_id == b.node_id &&
+         a.type_definition_id == b.type_definition_id && a.verb == b.verb;
+}
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const ModelChangeEvent& e) {
+  return stream << "{" << e.node_id << ", " << e.type_definition_id << ", "
+                << static_cast<unsigned>(e.verb) << "}";
+}
+
 }  // namespace scada

@@ -1,9 +1,9 @@
 #include "common/address_space/address_space_node_model.h"
 
+#include "common/address_space/property_node_model.h"
 #include "common/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
-#include "common/address_space/property_node_model.h"
 
 AddressSpaceNodeModel::AddressSpaceNodeModel(
     AddressSpaceNodeModelDelegate& delegate,
@@ -11,7 +11,7 @@ AddressSpaceNodeModel::AddressSpaceNodeModel(
     : BaseNodeModel{std::move(node_id)}, delegate_{delegate} {}
 
 AddressSpaceNodeModel::~AddressSpaceNodeModel() {
-  delegate_.OnRemoteNodeModelDeleted(node_id_);
+  delegate_.OnNodeModelDeleted(node_id_);
 }
 
 void AddressSpaceNodeModel::OnModelChanged(
@@ -19,8 +19,16 @@ void AddressSpaceNodeModel::OnModelChanged(
   for (auto& o : observers_)
     o.OnModelChanged(event);
 
-  if (event.verb & scada::ModelChangeEvent::NodeDeleted)
+  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
+
+  } else if (event.verb & scada::ModelChangeEvent::NodeAdded) {
+    if (!fetch_status_.empty()) {
+      auto fetch_status = fetch_status_;
+      SetFetchStatus(node_, scada::StatusCode::Good, NodeFetchStatus());
+      delegate_.OnNodeModelFetchRequested(node_id_, fetch_status);
+    }
+  }
 }
 
 void AddressSpaceNodeModel::OnNodeSemanticChanged() {
@@ -161,14 +169,27 @@ NodeRef::Reference AddressSpaceNodeModel::GetReference(
           delegate_.GetRemoteNode(reference.node), forward};
 }
 
-void AddressSpaceNodeModel::OnNodeFetchStatusChanged(
+void AddressSpaceNodeModel::SetFetchStatus(
     const scada::Node* node,
-    const NodeFetchStatus& status) {
-  assert(status.node_fetched == !!node);
-
+    const scada::Status& status,
+    const NodeFetchStatus& fetch_status) {
   node_ = node;
 
-  SetFetchStatus(status);
+  BaseNodeModel::SetFetchStatus(status, fetch_status);
+
+  const scada::ModelChangeEvent event{
+      node_id_, node_ ? scada::GetTypeDefinitionId(*node_) : scada::NodeId{},
+      scada::ModelChangeEvent::ReferenceAdded |
+          scada::ModelChangeEvent::ReferenceDeleted};
+  for (auto& o : observers_) {
+    o.OnModelChanged(event);
+    o.OnNodeSemanticChanged(node_id_);
+  }
+}
+
+void AddressSpaceNodeModel::OnFetchRequested(
+    const NodeFetchStatus& requested_status) {
+  delegate_.OnNodeModelFetchRequested(node_id_, requested_status);
 }
 
 void AddressSpaceNodeModel::OnNodeDeleted() {

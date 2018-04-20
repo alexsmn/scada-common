@@ -114,6 +114,8 @@ class MasterDataServices final : public scada::AttributeService,
                            const scada::HistoryReadCallback& callback) override;
 
  private:
+  class MasterMonitoredItem;
+
   // scada::SessionStateObserver
   virtual void OnSessionCreated() override;
   virtual void OnSessionDeleted(const scada::Status& status) override;
@@ -122,8 +124,11 @@ class MasterDataServices final : public scada::AttributeService,
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
 
+  std::vector<MasterMonitoredItem*> monitored_items_;
+
   base::ObserverList<scada::SessionStateObserver> session_state_observers_;
   base::ObserverList<scada::ViewEvents> view_events_;
 
   DataServices services_;
+  bool connected_ = false;
 };

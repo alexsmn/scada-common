@@ -27,7 +27,7 @@ class NodeRef {
   bool fetched() const;
   using FetchCallback = std::function<void(const NodeRef& node)>;
   void Fetch(const NodeFetchStatus& requested_status,
-             const FetchCallback& callback) const;
+             const FetchCallback& callback = {}) const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 

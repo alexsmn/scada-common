@@ -113,8 +113,9 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
 }
 
 void AddressSpaceImpl::RemoveNode(const scada::NodeId& id) {
-  NodeMap::iterator i = node_map_.find(id);
-  assert(i != node_map_.end());
+  auto i = node_map_.find(id);
+  if (i == node_map_.end())
+    return;
 
   auto*& node = i->second;
 

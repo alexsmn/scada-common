@@ -51,6 +51,8 @@ SessionProxy::~SessionProxy() {
     auto& delete_session = *request.mutable_delete_session();
     Request(request, nullptr);
   }
+
+  OnSessionDeleted();
 }
 
 void SessionProxy::OnTransportOpened() {

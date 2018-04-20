@@ -35,7 +35,7 @@ class RemoteNodeModel final
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
 
-  void OnNodeFetched(scada::NodeState&& node_state);
+  void OnNodeFetched(scada::Status&& status, scada::NodeState&& node_state);
   void OnChildrenFetched(const ReferenceMap& references);
 
   // NodeModel
@@ -60,7 +60,8 @@ class RemoteNodeModel final
 
  protected:
   // BaseNodeModel
-  virtual void OnFetch(const NodeFetchStatus& requested_status) override;
+  virtual void OnFetchRequested(
+      const NodeFetchStatus& requested_status) override;
 
  private:
   void AddReference(const NodeModelImplReference& reference);

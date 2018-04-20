@@ -16,12 +16,15 @@ class BaseNodeModel : public NodeModel {
  protected:
   explicit BaseNodeModel(scada::NodeId node_id);
 
-  void SetFetchStatus(const NodeFetchStatus& status);
+  void SetFetchStatus(const scada::Status& status,
+                      const NodeFetchStatus& fetch_status);
 
-  virtual void OnFetch(const NodeFetchStatus& requested_status);
+  virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
   virtual void OnNodeDeleted();
 
   const scada::NodeId node_id_;
+
+  scada::Status status_{scada::StatusCode::Good};
 
   NodeFetchStatus fetch_status_{};
   mutable std::vector<std::pair<NodeFetchStatus, FetchCallback>>

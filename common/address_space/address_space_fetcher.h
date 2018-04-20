@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/node_children_fetcher.h"
 #include "common/address_space/node_fetch_status_tracker.h"
+#include "common/node_children_fetcher.h"
 #include "common/node_fetcher.h"
 #include "core/configuration_types.h"
 #include "core/view_service.h"
@@ -23,9 +23,9 @@ struct AddressSpaceFetcherContext {
   scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
-  const bool smart_fetch_;
 
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;
+  const std::function<void(const scada::ModelChangeEvent& event)> model_changed_handler_;
 };
 
 class AddressSpaceFetcher : private AddressSpaceFetcherContext,
@@ -37,7 +37,8 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
   void OnChannelOpened();
   void OnChannelClosed();
 
-  NodeFetchStatus GetNodeFetchStatus(const scada::NodeId& node_id) const;
+  std::pair<scada::Status, NodeFetchStatus> GetNodeFetchStatus(
+      const scada::NodeId& node_id) const;
 
   void FetchNode(const scada::NodeId& node_id,
                  const NodeFetchStatus& requested_status);
@@ -61,6 +62,4 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
 
   using PostponedFetchNodes = std::map<scada::NodeId, NodeFetchStatus>;
   PostponedFetchNodes postponed_fetch_nodes_;
-
-  const bool smart_fetch_ = false;
 };

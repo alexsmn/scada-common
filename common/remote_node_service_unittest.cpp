@@ -7,7 +7,6 @@
 
 #include <gmock/gmock.h>
 
-using namespace test;
 using namespace testing;
 
 class MockAttributeService : public scada::AttributeService {

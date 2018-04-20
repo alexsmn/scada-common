@@ -2,15 +2,17 @@
 
 #include <gmock/gmock.h>
 
-#include "base/logger.h"
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/standard_address_space.h"
-#include "core/test/test_address_space.h"
 #include "address_space/variable.h"
+#include "base/logger.h"
+#include "core/test/test_address_space.h"
 
 using namespace testing;
+
+namespace {
 
 struct TestContext {
   TestContext() {
@@ -36,10 +38,12 @@ struct TestContext {
         server_address_space.kTestRefTypeId, "TestRef", L"TestRef"));
 
     for (auto& node : server_address_space.nodes) {
-      EXPECT_CALL(*this, OnNodeFetchStatusChanged(node.node_id,
-                                                  NodeFetchStatus::NodeOnly()));
-      EXPECT_CALL(*this, OnNodeFetchStatusChanged(
-                             node.node_id, NodeFetchStatus::NodeAndChildren()));
+      EXPECT_CALL(
+          *this, OnNodeFetchStatusChanged(node.node_id, scada::StatusCode::Good,
+                                          NodeFetchStatus::NodeOnly()));
+      EXPECT_CALL(
+          *this, OnNodeFetchStatusChanged(node.node_id, scada::StatusCode::Good,
+                                          NodeFetchStatus::NodeAndChildren()));
     }
 
     fetcher.OnChannelOpened();
@@ -48,30 +52,31 @@ struct TestContext {
     Mock::VerifyAndClearExpectations(this);
   }
 
-  MOCK_METHOD2(OnNodeFetchStatusChanged,
+  MOCK_METHOD3(OnNodeFetchStatusChanged,
                void(const scada::NodeId& node_id,
-                    const NodeFetchStatus& status));
+                    const scada::StatusCode& status_code,
+                    const NodeFetchStatus& fetch_status));
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
-  test::TestAddressSpace server_address_space;
+  TestAddressSpace server_address_space;
 
   AddressSpaceImpl client_address_space{logger};
 
   GenericNodeFactory node_factory{logger, client_address_space};
 
   AddressSpaceFetcher fetcher{AddressSpaceFetcherContext{
-      logger,
-      server_address_space,
-      server_address_space,
-      client_address_space,
+      logger, server_address_space, server_address_space, client_address_space,
       node_factory,
-      false,
-      [this](const scada::NodeId& node_id, const NodeFetchStatus& status) {
-        OnNodeFetchStatusChanged(node_id, status);
+      [this](const scada::NodeId& node_id,
+             const scada::Status& status,
+             const NodeFetchStatus& fetch_status) {
+        OnNodeFetchStatusChanged(node_id, status.code(), fetch_status);
       },
-  }};
+      [](const scada::ModelChangeEvent& event) {}}};
 };
+
+}  // namespace
 
 TEST(AddressSpaceFetcher, ConfigurationLoad) {
   TestContext context;
@@ -123,15 +128,15 @@ TEST(AddressSpaceFetcher, NodeAdded) {
   };
 
   EXPECT_CALL(context, OnNodeFetchStatusChanged(kNewNode.node_id,
+                                                scada::StatusCode::Good,
                                                 NodeFetchStatus::NodeOnly()));
-  EXPECT_CALL(context,
-              OnNodeFetchStatusChanged(kNewNode.node_id,
-                                       NodeFetchStatus::NodeAndChildren()));
+  EXPECT_CALL(context, OnNodeFetchStatusChanged(
+                           kNewNode.node_id, scada::StatusCode::Good,
+                           NodeFetchStatus::NodeAndChildren()));
 
   context.server_address_space.nodes.emplace_back(kNewNode);
   context.server_address_space.NotifyModelChanged(
-      {kNewNode.node_id, kNewNode.type_definition_id,
-       scada::ModelChangeEvent::NodeAdded});
+      {kNewNode.node_id, {}, scada::ModelChangeEvent::NodeAdded});
 
   context.fetcher.FetchNode(kNewNode.node_id,
                             NodeFetchStatus::NodeAndChildren());
@@ -206,9 +211,11 @@ TEST(AddressSpaceFetcher, DeleteNodeByDeletionOfParentReference) {
   // Restore reference. Expect node is refetched on client.
 
   EXPECT_CALL(context,
-              OnNodeFetchStatusChanged(kNodeId, NodeFetchStatus::NodeOnly()));
-  EXPECT_CALL(context, OnNodeFetchStatusChanged(
-                           kNodeId, NodeFetchStatus::NodeAndChildren()));
+              OnNodeFetchStatusChanged(kNodeId, scada::StatusCode::Good,
+                                       NodeFetchStatus::NodeOnly()));
+  EXPECT_CALL(context,
+              OnNodeFetchStatusChanged(kNodeId, scada::StatusCode::Good,
+                                       NodeFetchStatus::NodeAndChildren()));
 
   context.server_address_space.nodes.emplace_back(saved_node);
   context.server_address_space.NotifyModelChanged(

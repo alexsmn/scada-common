@@ -1,6 +1,67 @@
 #include "master_data_services.h"
 
 #include "core/monitored_item.h"
+#include "core/standard_node_ids.h"
+
+// MasterDataServices::MasterMonitoredItem
+
+class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
+ public:
+  MasterMonitoredItem(MasterDataServices& owner,
+                      scada::ReadValueId read_value_id)
+      : owner_{owner}, read_value_id_{std::move(read_value_id)} {
+    owner_.monitored_items_.emplace_back(this);
+  }
+
+  ~MasterMonitoredItem() {
+    auto i = std::find(owner_.monitored_items_.begin(),
+                       owner_.monitored_items_.end(), this);
+    assert(i != owner_.monitored_items_.end());
+    owner_.monitored_items_.erase(i);
+  }
+
+  virtual void Subscribe() override { Reconnect(); }
+
+  void Reconnect() {
+    if (!owner_.connected_) {
+      ForwardData(
+          {scada::StatusCode::Uncertain_Disconnected, base::Time::Now()});
+      return;
+    }
+
+    assert(owner_.services_.monitored_item_service_);
+
+    underlying_item_ =
+        owner_.services_.monitored_item_service_->CreateMonitoredItem(
+            read_value_id_);
+    if (!underlying_item_) {
+      ForwardData({scada::StatusCode::Bad, base::Time::Now()});
+      return;
+    }
+
+    if (read_value_id_.attribute_id != scada::AttributeId::EventNotifier) {
+      underlying_item_->set_data_change_handler(
+          [this](const scada::DataValue& data_value) {
+            ForwardData(data_value);
+          });
+
+    } else {
+      underlying_item_->set_event_handler(
+          [this](const scada::Status& status, const scada::Event& event) {
+            ForwardEvent(status, event);
+          });
+    }
+
+    underlying_item_->Subscribe();
+  }
+
+ private:
+  MasterDataServices& owner_;
+  const scada::ReadValueId read_value_id_;
+  std::unique_ptr<scada::MonitoredItem> underlying_item_;
+};
+
+// MasterDataServices
 
 MasterDataServices::MasterDataServices() {}
 
@@ -20,6 +81,20 @@ void MasterDataServices::SetServices(DataServices&& services) {
     services_.view_service_->Subscribe(*this);
   if (services_.session_service_)
     services_.session_service_->AddObserver(*this);
+
+  connected_ = services_.session_service_ != nullptr;
+
+  {
+    const scada::ModelChangeEvent event{
+        scada::id::RootFolder, scada::id::FolderType,
+        scada::ModelChangeEvent::ReferenceAdded |
+            scada::ModelChangeEvent::ReferenceDeleted};
+    for (auto& e : view_events_)
+      e.OnModelChanged(event);
+  }
+
+  for (auto* monitored_item : monitored_items_)
+    monitored_item->Reconnect();
 }
 
 void MasterDataServices::Connect(const std::string& host,
@@ -35,7 +110,7 @@ void MasterDataServices::Connect(const std::string& host,
 }
 
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
-  if (!services_.session_service_)
+  if (!connected_)
     return false;
 
   return services_.session_service_->IsConnected(ping_delay);
@@ -191,10 +266,7 @@ void MasterDataServices::GenerateEvent(const scada::Event& event) {
 
 std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id) {
-  if (!services_.monitored_item_service_)
-    return nullptr;
-
-  return services_.monitored_item_service_->CreateMonitoredItem(read_value_id);
+  return std::make_unique<MasterMonitoredItem>(*this, read_value_id);
 }
 
 void MasterDataServices::Write(const scada::NodeId& node_id,

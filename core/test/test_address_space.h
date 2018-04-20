@@ -7,11 +7,13 @@
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
-namespace test {
+namespace testing {
 
 class TestAddressSpace : public scada::AttributeService,
                          public scada::ViewService {
  public:
+  TestAddressSpace();
+
   scada::NodeState* GetNode(const scada::NodeId& node_id);
   const scada::NodeState* GetNode(const scada::NodeId& node_id) const;
 
@@ -157,7 +159,7 @@ class TestAddressSpace : public scada::AttributeService,
   scada::Variant GetPropertyValue(
       const scada::NodeState& node,
       const scada::NodeId& property_declaration_id) const;
-  scada::QualifiedName GetPropertyName(
+  std::string GetPropertyName(
       const scada::NodeId& property_declaration_id) const;
 
   bool IsSubtype(const scada::NodeId& type_id,
@@ -174,6 +176,13 @@ class TestAddressSpace : public scada::AttributeService,
 
   base::ObserverList<scada::ViewEvents> view_events_;
 };
+
+inline TestAddressSpace::TestAddressSpace() {
+  for (auto& node : nodes) {
+    node.attributes.display_name =
+        scada::ToLocalizedText(node.attributes.browse_name.name());
+  }
+}
 
 inline void TestAddressSpace::Read(
     const std::vector<scada::ReadValueId>& value_ids,
@@ -223,6 +232,9 @@ inline scada::DataValue TestAddressSpace::ReadNode(
 
     case scada::AttributeId::BrowseName:
       return scada::MakeReadResult(node->attributes.browse_name);
+
+    case scada::AttributeId::DisplayName:
+      return scada::MakeReadResult(node->attributes.display_name);
   }
 
   if (node->node_class == scada::NodeClass::Variable) {
@@ -248,7 +260,12 @@ inline scada::DataValue TestAddressSpace::ReadProperty(
           static_cast<int>(scada::NodeClass::Variable));
 
     case scada::AttributeId::BrowseName:
-      return scada::MakeReadResult(GetPropertyName(child_id));
+      return scada::MakeReadResult(
+          scada::QualifiedName{GetPropertyName(child_id)});
+
+    case scada::AttributeId::DisplayName:
+      return scada::MakeReadResult(
+          scada::ToLocalizedText(GetPropertyName(child_id)));
 
     case scada::AttributeId::DataType:
       return scada::MakeReadResult(scada::NodeId{scada::id::String});
@@ -282,7 +299,6 @@ inline scada::BrowseResult TestAddressSpace::BrowseNode(
 
   auto* node = GetNode(description.node_id);
   if (!node) {
-    assert(false);
     result.status_code = scada::StatusCode::Bad_WrongNodeId;
     return result;
   }
@@ -451,7 +467,7 @@ inline scada::Variant TestAddressSpace::GetPropertyValue(
   return i->second;
 }
 
-inline scada::QualifiedName TestAddressSpace::GetPropertyName(
+inline std::string TestAddressSpace::GetPropertyName(
     const scada::NodeId& property_declaration_id) const {
   if (property_declaration_id == kTestProp1Id)
     return "TestProp1";
@@ -529,4 +545,17 @@ inline bool TestAddressSpace::BrowseMatches(
          BrowseMatches(description, reference_type_id);
 }
 
-}  // namespace test
+template <class T>
+inline void SetProperty(scada::NodeState& node_state,
+                        const scada::NodeId& prop_decl_id,
+                        T&& value) {
+  auto i =
+      std::find_if(node_state.properties.begin(), node_state.properties.end(),
+                   [&](const auto& p) { return p.first == prop_decl_id; });
+  if (i != node_state.properties.end())
+    i->second = std::forward<T>(value);
+  else
+    node_state.properties.emplace_back(prop_decl_id, std::forward<T>(value));
+}
+
+}  // namespace testing

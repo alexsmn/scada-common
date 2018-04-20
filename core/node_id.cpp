@@ -7,10 +7,9 @@
 
 namespace scada {
 
-constexpr NodeId::NodeId() noexcept : identifier_{0}, namespace_index_{0} {}
+NodeId::NodeId() noexcept : identifier_{0}, namespace_index_{0} {}
 
-constexpr NodeId::NodeId(NumericId numeric_id,
-                         NamespaceIndex namespace_index) noexcept
+NodeId::NodeId(NumericId numeric_id, NamespaceIndex namespace_index) noexcept
     : identifier_{numeric_id}, namespace_index_{namespace_index} {}
 
 NodeId::NodeId(String string_id, NamespaceIndex namespace_index) noexcept
