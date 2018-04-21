@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/memory/weak_ptr.h"
 #include "common/node_state.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
@@ -117,4 +118,6 @@ class NodeFetcher : private NodeFetcherContext {
   unsigned next_request_id_ = 1;
 
   std::deque<FetchingNode*> pending_queue_;
+
+  base::WeakPtrFactory<NodeFetcher> weak_factory_{this};
 };

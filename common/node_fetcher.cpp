@@ -270,6 +270,8 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   if (next_request_id_ == 0)
     next_request_id_ = 1;
 
+  auto weak_ptr = weak_factory_.GetWeakPtr();
+
   // Attributes
 
   std::vector<scada::ReadValueId> read_ids;
@@ -286,10 +288,12 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   attribute_service_.Read(
       read_ids,
-      [this, request_id, start_ticks, read_ids](
+      [weak_ptr, request_id, start_ticks, read_ids](
           scada::Status&& status, std::vector<scada::DataValue>&& results) {
-        OnReadResult(request_id, start_ticks, std::move(status), read_ids,
-                     std::move(results));
+        if (auto* ptr = weak_ptr.get()) {
+          ptr->OnReadResult(request_id, start_ticks, std::move(status),
+                            read_ids, std::move(results));
+        }
       });
 
   // References
@@ -309,10 +313,12 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   view_service_.Browse(
       descriptions,
-      [this, request_id, start_ticks, descriptions](
+      [weak_ptr, request_id, start_ticks, descriptions](
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        OnBrowseResult(request_id, start_ticks, std::move(status),
-                       std::move(descriptions), std::move(results));
+        if (auto* ptr = weak_ptr.get()) {
+          ptr->OnBrowseResult(request_id, start_ticks, std::move(status),
+                              std::move(descriptions), std::move(results));
+        }
       });
 }
 
