@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "core/configuration_types.h"
 
@@ -52,4 +53,6 @@ class NodeChildrenFetcher : private NodeChildrenFetcherContext {
   size_t children_request_count_ = 0;
   std::deque<scada::NodeId> pending_children_;
   std::set<scada::NodeId> pending_children_set_;
+
+  base::WeakPtrFactory<NodeChildrenFetcher> weak_factory_{this};
 };
