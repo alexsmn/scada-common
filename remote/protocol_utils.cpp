@@ -275,3 +275,57 @@ void ToProto(const scada::BrowseResult& source,
     target.set_status_code(static_cast<uint32_t>(source.status_code));
   ContainerToProto(source.references, *target.mutable_references());
 }
+
+bool AssertValid(const scada::ModelChangeEvent& event) {
+  assert(!event.node_id.is_null());
+  assert(event.verb != 0);
+
+  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
+    assert(event.verb ==
+           static_cast<uint8_t>(scada::ModelChangeEvent::NodeDeleted));
+  } else {
+    // assert(!event.type_definition_id.is_null());
+  }
+
+  return true;
+}
+
+scada::ModelChangeEvent FromProto(const protocol::ModelChangeEvent& source) {
+  scada::ModelChangeEvent result{};
+
+  if (source.has_node_id())
+    result.node_id = FromProto(source.node_id());
+  if (source.has_type_definition_id())
+    result.type_definition_id = FromProto(source.type_definition_id());
+
+  if (source.node_added())
+    result.verb |= scada::ModelChangeEvent::NodeAdded;
+  if (source.node_deleted())
+    result.verb |= scada::ModelChangeEvent::NodeDeleted;
+  if (source.reference_added())
+    result.verb |= scada::ModelChangeEvent::ReferenceAdded;
+  if (source.reference_deleted())
+    result.verb |= scada::ModelChangeEvent::ReferenceDeleted;
+
+  assert(AssertValid(result));
+  return result;
+}
+
+void ToProto(const scada::ModelChangeEvent& source,
+             protocol::ModelChangeEvent& target) {
+  assert(AssertValid(source));
+
+  if (!source.node_id.is_null())
+    ToProto(source.node_id, *target.mutable_node_id());
+  if (!source.type_definition_id.is_null())
+    ToProto(source.type_definition_id, *target.mutable_type_definition_id());
+
+  if (source.verb & scada::ModelChangeEvent::NodeAdded)
+    target.set_node_added(true);
+  if (source.verb & scada::ModelChangeEvent::NodeDeleted)
+    target.set_node_deleted(true);
+  if (source.verb & scada::ModelChangeEvent::ReferenceAdded)
+    target.set_reference_added(true);
+  if (source.verb & scada::ModelChangeEvent::ReferenceDeleted)
+    target.set_reference_deleted(true);
+}

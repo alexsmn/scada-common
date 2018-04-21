@@ -49,6 +49,9 @@ void ToProto(const scada::ReferenceDescription& source,
 scada::BrowseResult FromProto(const protocol::BrowseResult& source);
 void ToProto(const scada::BrowseResult& source, protocol::BrowseResult& target);
 
+scada::ModelChangeEvent FromProto(const protocol::ModelChangeEvent& source);
+void ToProto(const scada::ModelChangeEvent& source, protocol::ModelChangeEvent& target);
+
 template <typename Target, typename Source>
 inline std::vector<Target> VectorFromProto(
     const ::google::protobuf::RepeatedPtrField<Source>& source) {

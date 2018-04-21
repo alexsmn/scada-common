@@ -1,6 +1,6 @@
 package protocol;
 
-// Protocol version 4.0
+// Protocol version 5.0
 enum ProtocolVersionMajor {
   PROTOCOL_VERSION_MAJOR = 4;
 }
@@ -406,17 +406,22 @@ message DataChange {
 message SessionDeleted {
 }
 
+message ModelChangeEvent {
+  optional NodeId node_id = 1;
+  optional NodeId type_definition_id = 2;
+  optional bool node_added = 3;
+  optional bool node_deleted = 4;
+  optional bool reference_added = 5;
+  optional bool reference_deleted = 6;
+}
+
 message Notification {
   optional uint32 subscription_id = 1;
 
   repeated DataChange data_changes = 2;
 
-  repeated NodeId added_node_id = 3;
-  repeated NodeId deleted_node_id = 4;
+  repeated ModelChangeEvent model_change = 3;
   repeated NodeId semantics_changed_node_id = 5;
-
-  repeated NodeId added_reference_node_id = 6;
-  repeated NodeId deleted_reference_node_id = 7;
 
   repeated Event events = 8;
   optional SessionDeleted session_deleted = 9;

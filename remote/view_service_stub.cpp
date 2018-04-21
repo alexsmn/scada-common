@@ -71,15 +71,7 @@ void ViewServiceStub::OnModelChanged(const scada::ModelChangeEvent& event) {
 
   protocol::Message message;
   auto& notification = *message.add_notifications();
-
-  if (event.verb & scada::ModelChangeEvent::NodeAdded)
-    ToProto(event.node_id, *notification.add_added_node_id());
-  if (event.verb & scada::ModelChangeEvent::NodeDeleted)
-    ToProto(event.node_id, *notification.add_deleted_node_id());
-  if (event.verb & scada::ModelChangeEvent::ReferenceAdded)
-    ToProto(event.node_id, *notification.add_added_reference_node_id());
-  if (event.verb & scada::ModelChangeEvent::ReferenceDeleted)
-    ToProto(event.node_id, *notification.add_deleted_reference_node_id());
+  ToProto(event, *notification.add_model_change());
 
   sender_.Send(message);
 }

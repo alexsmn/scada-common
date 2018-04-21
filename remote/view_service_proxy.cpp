@@ -26,35 +26,10 @@ void ViewServiceProxy::OnNotification(
   // Notification should contain only one type changes.
   // But it can be addition on complex object.
 
-  for (auto& proto_node_id : notification.deleted_node_id()) {
-    scada::ModelChangeEvent event{
-        FromProto(proto_node_id), {}, scada::ModelChangeEvent::NodeDeleted};
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
-  }
-
-  for (auto& proto_node_id : notification.semantics_changed_node_id()) {
-    const auto node_id = FromProto(proto_node_id);
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_,
-                      OnNodeSemanticsChanged(node_id));
-  }
-
-  for (auto& proto_node_id : notification.added_node_id()) {
-    scada::ModelChangeEvent event{
-        FromProto(proto_node_id), {}, scada::ModelChangeEvent::NodeAdded};
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
-  }
-
-  for (auto& proto_node_id : notification.added_reference_node_id()) {
-    scada::ModelChangeEvent event{
-        FromProto(proto_node_id), {}, scada::ModelChangeEvent::ReferenceAdded};
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
-  }
-
-  for (auto& proto_node_id : notification.deleted_reference_node_id()) {
-    scada::ModelChangeEvent event{FromProto(proto_node_id),
-                                  {},
-                                  scada::ModelChangeEvent::ReferenceDeleted};
-    FOR_EACH_OBSERVER(scada::ViewEvents, events_, OnModelChanged(event));
+  for (auto& model_change : notification.model_change()) {
+    auto event = FromProto(model_change);
+    for (auto& e : events_)
+      e.OnModelChanged(event);
   }
 }
 
