@@ -17,7 +17,8 @@ SessionStub::SessionStub(SessionContext&& context)
       // Can't use std::make_unique:
       // conversion from 'SessionStub *' to 'MessageSender &' exists, but is
       // inaccessible
-      view_service_stub_{new ViewServiceStub{*this, view_service_, logger_}},
+      view_service_stub_{new ViewServiceStub{
+          ViewServiceStubContext{logger_, io_context_, *this, view_service_}}},
       node_management_stub_{new NodeManagementStub{
           *this, node_management_service_, user_id_, logger_}},
       history_stub_{

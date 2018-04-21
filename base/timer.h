@@ -10,6 +10,8 @@ class Timer {
   explicit Timer(boost::asio::io_context& io_context)
       : io_context_{io_context} {}
 
+  bool started() const { return core_ != nullptr; }
+
   template <class Callback>
   void StartOne(Period period, Callback&& callback) {
     core_ = std::make_shared<CoreImpl<false, Callback>>(
