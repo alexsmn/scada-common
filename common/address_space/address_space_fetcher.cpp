@@ -93,8 +93,12 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
 
     if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
                       scada::ModelChangeEvent::ReferenceDeleted)) {
-      logger_->WriteF(LogSeverity::Normal, "ReferenceChanged [node_id=%s]",
-                      NodeIdToScadaString(event.node_id).c_str());
+      logger_->WriteF(
+          LogSeverity::Normal,
+          "ReferenceChanged [node_id=%s, added=%d, deleted=%d]",
+          NodeIdToScadaString(event.node_id).c_str(),
+          (event.verb & scada::ModelChangeEvent::ReferenceAdded) ? 1 : 0,
+          (event.verb & scada::ModelChangeEvent::ReferenceDeleted) ? 1 : 0);
 
       if (address_space_.GetNode(event.node_id)) {
         // Fetch forward references.
@@ -222,6 +226,7 @@ void AddressSpaceFetcher::InternalFetchNode(
   if (!status || fetch_status.node_fetched < requested_status.node_fetched)
     node_fetcher_.Fetch(node_id, true);
 
-  if (!status || fetch_status.children_fetched < requested_status.children_fetched)
+  if (!status ||
+      fetch_status.children_fetched < requested_status.children_fetched)
     node_children_fetcher_.Fetch(node_id);
 }

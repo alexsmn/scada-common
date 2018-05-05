@@ -36,9 +36,18 @@ const scada::AttributeId kAttributeIds[] = {
 const size_t kFetchAttributesReserveFactor = std::size(kAttributeIds);
 
 void GetFetchAttributes(const scada::NodeId& node_id,
+                        bool is_property,
                         std::vector<scada::ReadValueId>& read_ids) {
-  for (auto attribute_id : kAttributeIds)
-    read_ids.push_back({node_id, attribute_id});
+  if (is_property) {
+    read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+    read_ids.push_back({node_id, scada::AttributeId::Value});
+    read_ids.push_back({node_id, scada::AttributeId::DataType});
+  } else {
+    read_ids.push_back({node_id, scada::AttributeId::NodeClass});
+    read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+    read_ids.push_back({node_id, scada::AttributeId::DisplayName});
+    read_ids.push_back({node_id, scada::AttributeId::DataType});
+  }
 }
 
 const size_t kFetchReferencesReserveFactor = 3;
@@ -162,9 +171,6 @@ void NodeFetcher::FetchNode(FetchingNode& node) {
   if (node.pending)
     return;
 
-  logger_.WriteF(LogSeverity::Normal, "Schedule fetch node %s",
-                 node.node_id.ToString().c_str());
-
   if (node.fetch_started) {
     if (!node.force)
       return;
@@ -178,6 +184,9 @@ void NodeFetcher::FetchNode(FetchingNode& node) {
     node.references_fetched = false;
     node.status = scada::StatusCode::Good;
   }
+
+  logger_.WriteF(LogSeverity::Normal, "Scheduling fetch node %s",
+                 node.node_id.ToString().c_str());
 
   assert(!node.pending);
   node.pending = true;
@@ -281,7 +290,9 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
                    ToString(node->node_id).c_str(), request_id);
 
     size_t count = read_ids.size();
-    GetFetchAttributes(node->node_id, read_ids);
+    GetFetchAttributes(node->node_id,
+                       node->reference_type_id == scada::id::HasProperty,
+                       read_ids);
     node->attributes_fetched = count == read_ids.size();
     node->fetch_request_id = request_id;
   }
@@ -337,8 +348,16 @@ void NodeFetcher::NotifyFetchedNodes() {
 
   if (!nodes.empty()) {
     for (auto& node : nodes) {
-      logger_.WriteF(LogSeverity::Normal, "Node %s fetched",
-                     NodeIdToScadaString(node.node_id).c_str());
+      logger_.WriteF(LogSeverity::Normal,
+                     "Node '%s' fetched {parent_id: '%s', reference_type_id: "
+                     "'%s', browse_name: '%s', display_name: '%ls', "
+                     "value: '%ls'}",
+                     NodeIdToScadaString(node.node_id).c_str(),
+                     NodeIdToScadaString(node.parent_id).c_str(),
+                     NodeIdToScadaString(node.reference_type_id).c_str(),
+                     ToString(node.attributes.browse_name).c_str(),
+                     ToString16(node.attributes.display_name).c_str(),
+                     ToString16(node.attributes.value).c_str());
     }
   }
 

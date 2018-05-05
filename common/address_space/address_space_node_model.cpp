@@ -11,7 +11,9 @@ AddressSpaceNodeModel::AddressSpaceNodeModel(
     : BaseNodeModel{std::move(node_id)}, delegate_{delegate} {}
 
 AddressSpaceNodeModel::~AddressSpaceNodeModel() {
-  delegate_.OnNodeModelDeleted(node_id_);
+  assert(!observers_.might_have_observers());
+
+  // delegate_.OnNodeModelDeleted(node_id_);
 }
 
 void AddressSpaceNodeModel::OnModelChanged(
@@ -19,16 +21,8 @@ void AddressSpaceNodeModel::OnModelChanged(
   for (auto& o : observers_)
     o.OnModelChanged(event);
 
-  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
+  if (event.verb & scada::ModelChangeEvent::NodeDeleted)
     OnNodeDeleted();
-
-  } else if (event.verb & scada::ModelChangeEvent::NodeAdded) {
-    if (!fetch_status_.empty()) {
-      auto fetch_status = fetch_status_;
-      SetFetchStatus(node_, scada::StatusCode::Good, NodeFetchStatus());
-      delegate_.OnNodeModelFetchRequested(node_id_, fetch_status);
-    }
-  }
 }
 
 void AddressSpaceNodeModel::OnNodeSemanticChanged() {

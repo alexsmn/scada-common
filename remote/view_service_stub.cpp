@@ -134,14 +134,20 @@ void ViewServiceStub::SendEvents() {
 
   protocol::Message message;
 
-  auto& notification = *message.add_notifications();
+  protocol::Notification* notification = nullptr;
+  size_t notification_type = std::numeric_limits<size_t>::max();
 
   for (auto& event : events) {
+    if (notification_type != event.index()) {
+      notification = message.add_notifications();
+      notification_type = event.index();
+    }
+
     if (auto* model_change = std::get_if<scada::ModelChangeEvent>(&event))
-      ToProto(*model_change, *notification.add_model_change());
+      ToProto(*model_change, *notification->add_model_change());
     else if (auto* semantic_change_node_id = std::get_if<scada::NodeId>(&event))
       ToProto(*semantic_change_node_id,
-              *notification.add_semantics_changed_node_id());
+              *notification->add_semantics_changed_node_id());
   }
 
   sender_.Send(std::move(message));

@@ -70,7 +70,7 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 
-  std::map<scada::NodeId, std::weak_ptr<AddressSpaceNodeModel>> nodes_;
+  std::map<scada::NodeId, std::shared_ptr<AddressSpaceNodeModel>> nodes_;
 
   AddressSpaceFetcher fetcher_;
 
