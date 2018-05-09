@@ -2,6 +2,7 @@
 
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "common/scada_node_ids.h"
@@ -13,6 +14,9 @@ void FmtAddMods(const Node& node,
                 base::string16& text,
                 int flags) {
   base::string16 mods;
+  mods.reserve(16);
+
+  mods += L'[';
 
   if (qualifier.failed())
     mods += L'Н';
@@ -36,16 +40,10 @@ void FmtAddMods(const Node& node,
     mods += L'В';
 
   if (!mods.empty()) {
-    /*if (flags&FORMAT_COLOR) {
-      mods.insert(0, "{b");
-      mods.append("}");
-    } else*/
-    {
-      mods.insert(0, L"[");
-      mods.append(L"] ");
-    }
+    mods += L']';
+    mods += L' ';
+    text.insert(0, mods);
   }
-  text.insert(0, mods);
 }
 
 base::string16 FormatTsValue(const Node& node,
@@ -60,10 +58,10 @@ base::string16 FormatTsValue(const Node& node,
     if (format) {
       auto pid = bool_value ? ::id::TsFormatType_CloseLabel
                             : ::id::TsFormatType_OpenLabel;
-      text = base::SysNativeMBToWide(
-          GetPropertyValue(*format, pid).get_or(std::string()));
+      text = GetPropertyValue(*format, pid).get_or(scada::LocalizedText());
     } else {
-      text = bool_value ? kDefaultCloseLabel : kDefaultOpenLabel;
+      text = bool_value ? base::WideToUTF16(kDefaultCloseLabel)
+                        : base::WideToUTF16(kDefaultOpenLabel);
     }
   }
 
@@ -85,15 +83,15 @@ base::string16 FormatTitValue(const Node& node,
   double double_value;
   if (value.get(double_value)) {
     auto format = GetPropertyValue(node, ::id::AnalogItemType_DisplayFormat)
-                      .get_or(std::string());
+                      .get_or(scada::String());
     auto units = GetPropertyValue(node, ::id::AnalogItemType_EngineeringUnits)
-                     .get_or(std::string());
-    text = base::SysNativeMBToWide(FormatFloat(double_value, format.c_str()));
+                     .get_or(scada::LocalizedText());
+    text = base::WideToUTF16(base::SysNativeMBToWide(FormatFloat(double_value, format.c_str())));
     if ((flags & FORMAT_UNITS) && !units.empty()) {
-      text += ' ';
+      text += L' ';
       if (flags & FORMAT_COLOR)
-        text += base::StringPrintf(L"&color:%d;", 0x7f7f7f);
-      text += base::SysNativeMBToWide(units);
+        text += base::WideToUTF16(base::SysNativeMBToWide(base::StringPrintf("&color:%d;", 0x7f7f7f)));
+      text += units;
     }
   }
 
@@ -112,11 +110,7 @@ base::string16 FormatUnknownValue(const Node& node,
                                   int flags) {
   base::string16 text;
 
-  {
-    std::string string_value;
-    if (value.get(string_value))
-      text = base::SysNativeMBToWide(string_value);
-  }
+  value.get(text);
 
   if (qualifier.bad() && (flags & FORMAT_QUALITY))
     text += L'?';

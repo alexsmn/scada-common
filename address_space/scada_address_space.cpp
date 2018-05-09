@@ -86,8 +86,8 @@ scada::DataType* CreateDataType(AddressSpaceImpl& configuration,
 scada::Variable* AddProperty(AddressSpaceImpl& configuration,
                              const scada::NodeId& type_id,
                              const scada::NodeId& prop_type_id,
-                             const char* browse_name,
-                             const base::char16* display_name,
+                             scada::QualifiedName browse_name,
+                             scada::LocalizedText display_name,
                              const scada::NodeId& data_type_id,
                              scada::Variant default_value = scada::Variant()) {
   auto* type = configuration.GetNode(type_id);
@@ -104,7 +104,7 @@ scada::Variable* AddProperty(AddressSpaceImpl& configuration,
     assert(data_type);
 
     auto variable = std::make_unique<scada::GenericVariable>(
-        prop_type_id, browse_name, display_name, *data_type);
+        prop_type_id, std::move(browse_name), std::move(display_name), *data_type);
     variable->SetValue({default_value, {}, {}, {}});
     result = variable.get();
     configuration.AddStaticNode(std::move(variable));
@@ -154,8 +154,8 @@ scada::ReferenceType* CreateReferenceType(AddressSpaceImpl& configuration,
 void AddDataVariable(AddressSpaceImpl& configuration,
                      const scada::NodeId& type_id,
                      const scada::NodeId& variable_decl_id,
-                     const char* browse_name,
-                     const base::char16* display_name,
+                     scada::QualifiedName browse_name,
+                     scada::LocalizedText display_name,
                      const scada::NodeId& data_type_id,
                      scada::Variant default_value = scada::Variant()) {
   auto* type = configuration.GetNode(type_id);
@@ -175,7 +175,7 @@ void AddDataVariable(AddressSpaceImpl& configuration,
     auto* data_type = scada::AsDataType(configuration.GetNode(data_type_id));
     assert(data_type);
     auto variable = std::make_unique<scada::GenericVariable>(
-        variable_decl_id, browse_name, display_name, *data_type);
+        variable_decl_id, std::move(browse_name), std::move(display_name), *data_type);
     auto now = base::Time::Now();
     variable->SetValue({std::move(default_value), {}, now, now});
     result = variable.get();
@@ -197,12 +197,12 @@ StaticAddressSpace::DeviceType::DeviceType(StandardAddressSpace& std,
                                            scada::LocalizedText display_name)
     : scada::ObjectType(id, std::move(browse_name), std::move(display_name)),
       Disabled{std,          id::DeviceType_Disabled, "Disabled",
-               L"Отключено", std.BoolDataType,        true},
+               base::WideToUTF16(L"Отключено"), std.BoolDataType,        true},
       Online{std,      id::DeviceType_Online, "Online",
-             L"Связь", std.BaseVariableType,  std.BoolDataType,
+             base::WideToUTF16(L"Связь"), std.BaseVariableType,  std.BoolDataType,
              false},
       Enabled{std,         id::DeviceType_Enabled, "Enabled",
-              L"Включено", std.BaseVariableType,   std.BoolDataType,
+              base::WideToUTF16(L"Включено"), std.BaseVariableType,   std.BoolDataType,
               false} {
   SetDisplayName(std::move(display_name));
   scada::AddReference(std.HasSubtype, std.BaseObjectType, *this);
@@ -212,7 +212,7 @@ StaticAddressSpace::DeviceType::DeviceType(StandardAddressSpace& std,
 }
 
 StaticAddressSpace::StaticAddressSpace(StandardAddressSpace& std)
-    : DeviceType{std, id::DeviceType, "DeviceType", L"Устройство"} {
+    : DeviceType{std, id::DeviceType, "DeviceType", base::WideToUTF16(L"Устройство")} {
   scada::AddReference(std.HasSubtype, std.NonHierarchicalReference, Creates);
 }
 
@@ -225,120 +225,120 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
        {},
        {},
        scada::NodeAttributes().set_browse_name("Root").set_display_name(
-           L"Корневая папка")});
+           base::WideToUTF16(L"Корневая папка"))});
 
   node_factory.CreateNode({id::DataItems, scada::NodeClass::Object,
                            scada::id::FolderType, scada::id::RootFolder,
                            scada::id::Organizes,
                            scada::NodeAttributes{}
                                .set_browse_name("DataItems")
-                               .set_display_name(L"Все объекты")});
+                               .set_display_name(base::WideToUTF16(L"Все объекты"))});
 
   node_factory.CreateNode(
       {id::Devices, scada::NodeClass::Object, scada::id::FolderType,
        scada::id::RootFolder, scada::id::Organizes,
        scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
-           L"Все оборудование")});
+           base::WideToUTF16(L"Все оборудование"))});
 
   node_factory.CreateNode(
       {id::Users, scada::NodeClass::Object, scada::id::FolderType,
        scada::id::RootFolder, scada::id::Organizes,
        scada::NodeAttributes{}.set_browse_name("Users").set_display_name(
-           L"Пользователи")});
+           base::WideToUTF16(L"Пользователи"))});
 
   node_factory.CreateNode({id::TsFormats, scada::NodeClass::Object,
                            scada::id::FolderType, scada::id::RootFolder,
                            scada::id::Organizes,
                            scada::NodeAttributes{}
                                .set_browse_name("TsFormats")
-                               .set_display_name(L"Форматы")});
+                               .set_display_name(base::WideToUTF16(L"Форматы"))});
 
   node_factory.CreateNode({id::SimulationSignals, scada::NodeClass::Object,
                            scada::id::FolderType, scada::id::RootFolder,
                            scada::id::Organizes,
                            scada::NodeAttributes{}
                                .set_browse_name("SimulationSignals")
-                               .set_display_name(L"Эмулируемые сигналы")});
+                               .set_display_name(base::WideToUTF16(L"Эмулируемые сигналы"))});
 
   node_factory.CreateNode({id::HistoricalDatabases, scada::NodeClass::Object,
                            scada::id::FolderType, scada::id::RootFolder,
                            scada::id::Organizes,
                            scada::NodeAttributes{}
                                .set_browse_name("HistoricalDatabases")
-                               .set_display_name(L"Базы данных")});
+                               .set_display_name(base::WideToUTF16(L"Базы данных"))});
 
   node_factory.CreateNode({id::TransmissionItems, scada::NodeClass::Object,
                            scada::id::FolderType, scada::id::RootFolder,
                            scada::id::Organizes,
                            scada::NodeAttributes{}
                                .set_browse_name("TransmissionItems")
-                               .set_display_name(L"Ретрансляция")});
+                               .set_display_name(base::WideToUTF16(L"Ретрансляция"))});
 
   // Link
   {
-    CreateObjectType(configuration, id::LinkType, "LinkType", L"Направление",
+    CreateObjectType(configuration, id::LinkType, "LinkType", base::WideToUTF16(L"Направление"),
                      id::DeviceType);
     AddReference(configuration, id::Creates, id::Devices, id::LinkType);
     AddProperty(configuration, id::LinkType, id::LinkType_Transport,
-                "TransportString", L"Транспорт", scada::id::String);
+                "TransportString", base::WideToUTF16(L"Транспорт"), scada::id::String);
     AddDataVariable(configuration, id::LinkType, id::LinkType_ConnectCount,
-                    "ConnectCount", L"ConnectCount", scada::id::Int32, 0);
+                    "ConnectCount", base::WideToUTF16(L"ConnectCount"), scada::id::Int32, 0);
     AddDataVariable(configuration, id::LinkType, id::LinkType_ActiveConnections,
-                    "ActiveConnections", L"ActiveConnections", scada::id::Int32,
+                    "ActiveConnections", base::WideToUTF16(L"ActiveConnections"), scada::id::Int32,
                     0);
     AddDataVariable(configuration, id::LinkType, id::LinkType_MessagesOut,
-                    "MessagesOut", L"MessagesOut", scada::id::Int32, 0);
+                    "MessagesOut", base::WideToUTF16(L"MessagesOut"), scada::id::Int32, 0);
     AddDataVariable(configuration, id::LinkType, id::LinkType_MessagesIn, "MessagesIn",
-                    L"MessagesIn", scada::id::Int32, 0);
+                    base::WideToUTF16(L"MessagesIn"), scada::id::Int32, 0);
     AddDataVariable(configuration, id::LinkType, id::LinkType_BytesOut, "BytesOut",
-                    L"BytesOut", scada::id::Int32, 0);
+                    base::WideToUTF16(L"BytesOut"), scada::id::Int32, 0);
     AddDataVariable(configuration, id::LinkType, id::LinkType_BytesIn, "BytesIn",
-                    L"BytesIn", scada::id::Int32, 0);
+                    base::WideToUTF16(L"BytesIn"), scada::id::Int32, 0);
   }
 
   // Simulation Item
   {
     CreateVariableType(configuration, id::SimulationSignalType,
-                       "SimulationSignalType", L"Эмулируемый сигнал",
+                       "SimulationSignalType", base::WideToUTF16(L"Эмулируемый сигнал"),
                        scada::id::BaseDataType, scada::id::BaseVariableType);
     AddReference(configuration, id::Creates, id::SimulationSignals,
                  id::SimulationSignalType);
     AddProperty(configuration, id::SimulationSignalType,
-                id::SimulationSignalType_Type, "Type", L"Тип",
+                id::SimulationSignalType_Type, "Type", base::WideToUTF16(L"Тип"),
                 scada::id::Int32, 0);
     AddProperty(configuration, id::SimulationSignalType,
-                id::SimulationSignalType_Period, "Period", L"Период (мс)",
+                id::SimulationSignalType_Period, "Period", base::WideToUTF16(L"Период (мс)"),
                 scada::id::Int32, 60000);
     AddProperty(configuration, id::SimulationSignalType,
-                id::SimulationSignalType_Phase, "Phase", L"Фаза (мс)",
+                id::SimulationSignalType_Phase, "Phase", base::WideToUTF16(L"Фаза (мс)"),
                 scada::id::Int32, 0);
     AddProperty(configuration, id::SimulationSignalType,
                 id::SimulationSignalType_UpdateInterval, "UpdateInterval",
-                L"Обновление (мс)", scada::id::Int32, 1000);
+                base::WideToUTF16(L"Обновление (мс)"), scada::id::Int32, 1000);
   }
 
   // Historical DB
   {
     CreateObjectType(configuration, id::HistoricalDatabaseType,
-                     "HistoricalDatabaseType", L"База данных",
+                     "HistoricalDatabaseType", base::WideToUTF16(L"База данных"),
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::HistoricalDatabases,
                  id::HistoricalDatabaseType);
     AddProperty(configuration, id::HistoricalDatabaseType,
-                id::HistoricalDatabaseType_Depth, "Depth", L"Глубина (дн)",
+                id::HistoricalDatabaseType_Depth, "Depth", base::WideToUTF16(L"Глубина (дн)"),
                 scada::id::Int32, 1);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
                     id::HistoricalDatabaseType_WriteValueDuration, "WriteValueDuration",
-                    L"WriteValueDuration", scada::id::Int32);
+                    base::WideToUTF16(L"WriteValueDuration"), scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
                     id::HistoricalDatabaseType_PendingTaskCount, "PendingTaskCount",
-                    L"PendingTaskCount", scada::id::Int32);
+                    base::WideToUTF16(L"PendingTaskCount"), scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
                     id::HistoricalDatabaseType_EventCleanupDuration, "EventCleanupDuration",
-                    L"EventCleanupDuration", scada::id::Int32);
+                    base::WideToUTF16(L"EventCleanupDuration"), scada::id::Int32);
     AddDataVariable(configuration, id::HistoricalDatabaseType,
                     id::HistoricalDatabaseType_ValueCleanupDuration, "ValueCleanupDuration",
-                    L"ValueCleanupDuration", scada::id::Int32);
+                    base::WideToUTF16(L"ValueCleanupDuration"), scada::id::Int32);
   }
 
   // System historical database.
@@ -349,150 +349,150 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
        id::HistoricalDatabases,
        scada::id::Organizes,
        scada::NodeAttributes().set_browse_name("System").set_display_name(
-           L"Системная база данных"),
+           base::WideToUTF16(L"Системная база данных")),
        {{id::HistoricalDatabaseType_Depth, 30}}});
 
   // TsFormat
   {
-    CreateObjectType(configuration, id::TsFormatType, "TsFormatType", L"Формат",
+    CreateObjectType(configuration, id::TsFormatType, "TsFormatType", base::WideToUTF16(L"Формат"),
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::TsFormats, id::TsFormatType);
     AddProperty(configuration, id::TsFormatType, id::TsFormatType_OpenLabel,
-                "OpenLabel", L"Подпись 0", scada::id::LocalizedText);
+                "OpenLabel", base::WideToUTF16(L"Подпись 0"), scada::id::LocalizedText);
     AddProperty(configuration, id::TsFormatType, id::TsFormatType_CloseLabel,
-                "CloseLabel", L"Подпись 1", scada::id::LocalizedText);
+                "CloseLabel", base::WideToUTF16(L"Подпись 1"), scada::id::LocalizedText);
     AddProperty(configuration, id::TsFormatType, id::TsFormatType_OpenColor,
-                "OpenColor", L"Цвет 0", scada::id::Int32);
+                "OpenColor", base::WideToUTF16(L"Цвет 0"), scada::id::Int32);
     AddProperty(configuration, id::TsFormatType, id::TsFormatType_CloseColor,
-                "CloseColor", L"Цвет 1", scada::id::Int32);
+                "CloseColor", base::WideToUTF16(L"Цвет 1"), scada::id::Int32);
   }
 
   // DataGroup
   {
     CreateObjectType(configuration, id::DataGroupType, "DataGroupType",
-                     L"Группа", scada::id::BaseObjectType);
+                     base::WideToUTF16(L"Группа"), scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::DataItems, id::DataGroupType);
     AddReference(configuration, id::Creates, id::DataGroupType,
                  id::DataGroupType);  // recursive
     AddProperty(configuration, id::DataGroupType, id::DataGroupType_Simulated,
-                "Simulated", L"Эмуляция", scada::id::Boolean, false);
+                "Simulated", base::WideToUTF16(L"Эмуляция"), scada::id::Boolean, false);
   }
 
   // DataItem
   {
     CreateVariableType(configuration, id::DataItemType, "DataItemType",
-                       L"Объект", scada::id::BaseDataType,
+                       base::WideToUTF16(L"Объект"), scada::id::BaseDataType,
                        scada::id::BaseVariableType);
     AddReference(configuration, id::Creates, id::DataGroupType,
                  id::DataItemType);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Alias,
-                "Alias", L"Алиас", scada::id::String);
+                "Alias", base::WideToUTF16(L"Алиас"), scada::id::String);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Severity,
-                "Severity", L"Важность", scada::id::Int32, 1);
+                "Severity", base::WideToUTF16(L"Важность"), scada::id::Int32, 1);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Input1,
-                "Input1", L"Ввод1", scada::id::String);
+                "Input1", base::WideToUTF16(L"Ввод1"), scada::id::String);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Input2,
-                "Input2", L"Ввод2", scada::id::String);
+                "Input2", base::WideToUTF16(L"Ввод2"), scada::id::String);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Output,
-                "Output", L"Вывод", scada::id::String);
+                "Output", base::WideToUTF16(L"Вывод"), scada::id::String);
     AddProperty(configuration, id::DataItemType,
                 id::DataItemType_OutputCondition, "OutputCondition",
-                L"Условие (Управление)", scada::id::String);
+                base::WideToUTF16(L"Условие (Управление)"), scada::id::String);
     AddProperty(configuration, id::DataItemType, id::DataItemType_StalePeriod,
-                "StalePeriod", L"Устаревание (с)", scada::id::Int32, 0);
+                "StalePeriod", base::WideToUTF16(L"Устаревание (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Simulated,
-                "Simulated", L"Эмуляция", scada::id::Boolean, false);
+                "Simulated", base::WideToUTF16(L"Эмуляция"), scada::id::Boolean, false);
     CreateReferenceType(configuration, id::DataItemType,
                         id::HasSimulationSignal, "HasSimulationSignal",
-                        L"Эмулируемый сигнал", id::SimulationSignalType);
+                        base::WideToUTF16(L"Эмулируемый сигнал"), id::SimulationSignalType);
     AddProperty(configuration, id::DataItemType, id::DataItemType_Locked,
-                "Locked", L"Блокирован", scada::id::Boolean, false);
+                "Locked", base::WideToUTF16(L"Блокирован"), scada::id::Boolean, false);
     CreateReferenceType(configuration, id::DataItemType,
                         id::HasHistoricalDatabase, "ObjectHistoricalDb",
-                        L"База данных", id::HistoricalDatabaseType);
+                        base::WideToUTF16(L"База данных"), id::HistoricalDatabaseType);
   }
 
   // DiscreteItem
   {
     CreateVariableType(configuration, id::DiscreteItemType, "DiscreteItemType",
-                       L"Объект ТС", scada::id::BaseDataType, id::DataItemType);
+                       base::WideToUTF16(L"Объект ТС"), scada::id::BaseDataType, id::DataItemType);
     AddProperty(configuration, id::DiscreteItemType, id::DiscreteItemType_Inversion,
-                "Inverted", L"Инверсия", scada::id::Boolean, false);
+                "Inverted", base::WideToUTF16(L"Инверсия"), scada::id::Boolean, false);
     CreateReferenceType(configuration, id::DiscreteItemType, id::HasTsFormat,
-                        "HasTsFormat", L"Параметры", id::TsFormatType);
+                        "HasTsFormat", base::WideToUTF16(L"Параметры"), id::TsFormatType);
   }
 
   // AnalogItem
   {
     CreateVariableType(configuration, id::AnalogItemType, "AnalogItemType",
-                       L"Объект ТИТ", scada::id::BaseDataType,
+                       base::WideToUTF16(L"Объект ТИТ"), scada::id::BaseDataType,
                        id::DataItemType);
     AddProperty(configuration, id::AnalogItemType,
-                id::AnalogItemType_DisplayFormat, "DisplayFormat", L"Формат",
+                id::AnalogItemType_DisplayFormat, "DisplayFormat", base::WideToUTF16(L"Формат"),
                 scada::id::String, "0.####");
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Conversion,
-                "ConversionType", L"Преобразование", scada::id::Int32, 0);
+                "ConversionType", base::WideToUTF16(L"Преобразование"), scada::id::Int32, 0);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Clamping,
-                "ClampingType", L"Ограничение диапазона", scada::id::Boolean,
+                "ClampingType", base::WideToUTF16(L"Ограничение диапазона"), scada::id::Boolean,
                 false);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_EuLo, "EuLo",
-                L"Лог мин", scada::id::Double, -100);
+                base::WideToUTF16(L"Лог мин"), scada::id::Double, -100);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_EuHi, "EuHi",
-                L"Лог макс", scada::id::Double, 100);
+                base::WideToUTF16(L"Лог макс"), scada::id::Double, 100);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_IrLo, "IrLo",
-                L"Физ мин", scada::id::Double, 0);
+                base::WideToUTF16(L"Физ мин"), scada::id::Double, 0);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_IrHi, "IrHi",
-                L"Физ макс", scada::id::Double, 65535);
+                base::WideToUTF16(L"Физ макс"), scada::id::Double, 65535);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitLo,
-                "LimitLo", L"Уставка нижняя предаварийная", scada::id::Double);
+                "LimitLo", base::WideToUTF16(L"Уставка нижняя предаварийная"), scada::id::Double);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitHi,
-                "LimitHi", L"Уставка верхняя предаварийная", scada::id::Double);
+                "LimitHi", base::WideToUTF16(L"Уставка верхняя предаварийная"), scada::id::Double);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitLoLo,
-                "LimitLoLo", L"Уставка нижняя аварийная", scada::id::Double);
+                "LimitLoLo", base::WideToUTF16(L"Уставка нижняя аварийная"), scada::id::Double);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_LimitHiHi,
-                "LimitHiHi", L"Уставка верхняя аварийная", scada::id::Double);
+                "LimitHiHi", base::WideToUTF16(L"Уставка верхняя аварийная"), scada::id::Double);
     AddProperty(configuration, id::AnalogItemType,
                 id::AnalogItemType_EngineeringUnits, "EngineeringUnits",
-                L"Единицы измерения", scada::id::LocalizedText);
+                base::WideToUTF16(L"Единицы измерения"), scada::id::LocalizedText);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Aperture,
-                "Aperture", L"Апертура", scada::id::Double, 0.0);
+                "Aperture", base::WideToUTF16(L"Апертура"), scada::id::Double, 0.0);
     AddProperty(configuration, id::AnalogItemType, id::AnalogItemType_Deadband,
-                "Deadband", L"Мертвая зона", scada::id::Double, 0.0);
+                "Deadband", base::WideToUTF16(L"Мертвая зона"), scada::id::Double, 0.0);
   }
 
   // Modbus Port Device
   {
     CreateObjectType(configuration, id::ModbusLinkType, "ModbusLinkType",
-                     L"Направление MODBUS", id::LinkType);
+                     base::WideToUTF16(L"Направление MODBUS"), id::LinkType);
     auto* mode_type = CreateDataType(
         configuration, id::ModbusLinkType_Mode, "ModbusPortModeType",
-        L"Тип направления MODBUS", scada::id::Int32);
-    mode_type->enum_strings = {L"Опрос", L"Ретрансляция", L"Прослушка"};
+        base::WideToUTF16(L"Тип направления MODBUS"), scada::id::Int32);
+    mode_type->enum_strings = {base::WideToUTF16(L"Опрос"), base::WideToUTF16(L"Ретрансляция"), base::WideToUTF16(L"Прослушка")};
     AddProperty(configuration, id::ModbusLinkType, id::ModbusLinkType_Protocol,
-                "Mode", L"Режим", id::ModbusLinkType_Mode, 0);
+                "Mode", base::WideToUTF16(L"Режим"), id::ModbusLinkType_Mode, 0);
   }
 
   // Modbus Device
   {
     CreateObjectType(configuration, id::ModbusDeviceType, "ModbusDeviceType",
-                     L"Устройство MODBUS", id::DeviceType);
+                     base::WideToUTF16(L"Устройство MODBUS"), id::DeviceType);
     AddReference(configuration, id::Creates, id::ModbusLinkType,
                  id::ModbusDeviceType);
     AddProperty(configuration, id::ModbusDeviceType,
-                id::ModbusDeviceType_Address, "Address", L"Адрес",
+                id::ModbusDeviceType_Address, "Address", base::WideToUTF16(L"Адрес"),
                 scada::id::Int32, 1);
     AddProperty(configuration, id::ModbusDeviceType,
                 id::ModbusDeviceType_SendRetryCount, "RepeatCount",
-                L"Попыток повторов передачи", scada::id::Int32, 3);
+                base::WideToUTF16(L"Попыток повторов передачи"), scada::id::Int32, 3);
   }
 
   // User
   {
-    CreateObjectType(configuration, id::UserType, "UserType", L"Пользователь",
+    CreateObjectType(configuration, id::UserType, "UserType", base::WideToUTF16(L"Пользователь"),
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::Users, id::UserType);
     AddProperty(configuration, id::UserType, id::UserType_AccessRights,
-                "AccessRights", L"Права", scada::id::Int32, 0);
+                "AccessRights", base::WideToUTF16(L"Права"), scada::id::Int32, 0);
   }
 
   // Root user.
@@ -503,162 +503,162 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
                            id::UserType,
                            id::Users,
                            scada::id::Organizes,
-                           scada::NodeAttributes().set_display_name(L"root"),
+                           scada::NodeAttributes().set_display_name(base::WideToUTF16(L"root")),
                            {{id::UserType_AccessRights, root_privileges}}});
 
   // IEC Link Device
   {
     auto* type = CreateObjectType(configuration, id::Iec60870LinkType,
-                                  "Iec60870LinkType", L"Направление МЭК-60870",
+                                  "Iec60870LinkType", base::WideToUTF16(L"Направление МЭК-60870"),
                                   id::LinkType);
     AddProperty(configuration, id::Iec60870LinkType,
-                id::Iec60870LinkType_Protocol, "Protocol", L"Протокол",
+                id::Iec60870LinkType_Protocol, "Protocol", base::WideToUTF16(L"Протокол"),
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870LinkType,
-                id::Iec60870LinkType_Mode, "Mode", L"Режим", scada::id::Int32,
+                id::Iec60870LinkType_Mode, "Mode", base::WideToUTF16(L"Режим"), scada::id::Int32,
                 0);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_SendQueueSize, "SendQueueSize",
-                L"Очередь передачи (K)", scada::id::Int32, 12);
+                base::WideToUTF16(L"Очередь передачи (K)"), scada::id::Int32, 12);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_ReceiveQueueSize, "ReceiveQueueSize",
-                L"Очередь приема (W)", scada::id::Int32, 8);
+                base::WideToUTF16(L"Очередь приема (W)"), scada::id::Int32, 8);
     AddProperty(configuration, id::Iec60870LinkType, id::Iec60870LinkType_ConnectTimeout,
-                "ConnectTimeout", L"Таймаут связи (T0, с)", scada::id::Int32,
+                "ConnectTimeout", base::WideToUTF16(L"Таймаут связи (T0, с)"), scada::id::Int32,
                 30);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_ConfirmationTimeout,
-                "ConfirmationTimeout", L"Таймаут подтверждения (с)",
+                "ConfirmationTimeout", base::WideToUTF16(L"Таймаут подтверждения (с)"),
                 scada::id::Int32, 5);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_TerminationTimeout,
-                "TerminationTimeout", L"Таймаут операции (с)", scada::id::Int32,
+                "TerminationTimeout", base::WideToUTF16(L"Таймаут операции (с)"), scada::id::Int32,
                 20);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_DeviceAddressSize, "DeviceAddressSize",
-                L"Размер адреса устройства", scada::id::Int32, 2);
+                base::WideToUTF16(L"Размер адреса устройства"), scada::id::Int32, 2);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_COTSize, "CotSize",
-                L"Размер причины передачи", scada::id::Int32, 2);
+                base::WideToUTF16(L"Размер причины передачи"), scada::id::Int32, 2);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_InfoAddressSize, "InfoAddressSize",
-                L"Размер адреса объекта", scada::id::Int32, 3);
+                base::WideToUTF16(L"Размер адреса объекта"), scada::id::Int32, 3);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_DataCollection, "CollectData",
-                L"Сбор данных", scada::id::Boolean, true);
+                base::WideToUTF16(L"Сбор данных"), scada::id::Boolean, true);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_SendRetryCount, "SendRetries",
-                L"Попыток повторов передачи", scada::id::Int32, 0);
+                base::WideToUTF16(L"Попыток повторов передачи"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_CRCProtection, "CrcProtection",
-                L"Защита CRC", scada::id::Boolean, false);
+                base::WideToUTF16(L"Защита CRC"), scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_SendTimeout, "SendTimeout",
-                L"Таймаут передачи (T1, с)", scada::id::Int32, 5);
+                base::WideToUTF16(L"Таймаут передачи (T1, с)"), scada::id::Int32, 5);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_ReceiveTimeout, "ReceiveTimeout",
-                L"Таймаут приема (T2, с)", scada::id::Int32, 10);
+                base::WideToUTF16(L"Таймаут приема (T2, с)"), scada::id::Int32, 10);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_IdleTimeout, "IdleTimeout",
-                L"Таймаут простоя (T3, с)", scada::id::Int32, 30);
+                base::WideToUTF16(L"Таймаут простоя (T3, с)"), scada::id::Int32, 30);
     AddProperty(configuration, id::Iec60870LinkType,
                 id::Iec60870LinkType_AnonymousMode, "AnonymousMode",
-                L"Анонимный режим", scada::id::Boolean);
+                base::WideToUTF16(L"Анонимный режим"), scada::id::Boolean);
   }
 
   // IEC Device
   {
     CreateObjectType(configuration, id::Iec60870DeviceType,
-                     "Iec60870DeviceType", L"Устройство МЭК-60870",
+                     "Iec60870DeviceType", base::WideToUTF16(L"Устройство МЭК-60870"),
                      id::DeviceType);
     AddReference(configuration, id::Creates, id::Iec60870LinkType,
                  id::Iec60870DeviceType);
     AddProperty(configuration, id::Iec60870DeviceType,
-                id::Iec60870DeviceType_Address, "Address", L"Адрес",
+                id::Iec60870DeviceType_Address, "Address", base::WideToUTF16(L"Адрес"),
                 scada::id::Int32, 1);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_LinkAddress, "LinkAddress",
-                L"Адрес коммутатора", scada::id::Int32, 1);
+                base::WideToUTF16(L"Адрес коммутатора"), scada::id::Int32, 1);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_StartupInterrogation,
-                "InterrogateOnStart", L"Полный опрос при запуске",
+                "InterrogateOnStart", base::WideToUTF16(L"Полный опрос при запуске"),
                 scada::id::Boolean, true);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriod,
-                "InterrogationPeriod", L"Период полного опроса (с)",
+                "InterrogationPeriod", base::WideToUTF16(L"Период полного опроса (с)"),
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_StartupClockSync,
-                "SynchronizeClockOnStart", L"Синхронизация часов при запуске",
+                "SynchronizeClockOnStart", base::WideToUTF16(L"Синхронизация часов при запуске"),
                 scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_ClockSyncPeriod,
-                "ClockSynchronizationPeriod", L"Период синхронизации часов (с)",
+                "ClockSynchronizationPeriod", base::WideToUTF16(L"Период синхронизации часов (с)"),
                 scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
-                id::Iec60870DeviceType_UtcTime, "UtcTime", L"Время UTC",
+                id::Iec60870DeviceType_UtcTime, "UtcTime", base::WideToUTF16(L"Время UTC"),
                 scada::id::Boolean, false);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup1, "Group1PollPeriod",
-                L"Период опроса группы 1 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 1 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup2, "Group1PollPeriod",
-                L"Период опроса группы 2 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 2 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup3, "Group1PollPeriod",
-                L"Период опроса группы 3 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 3 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup4, "Group1PollPeriod",
-                L"Период опроса группы 4 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 4 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup5, "Group1PollPeriod",
-                L"Период опроса группы 5 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 5 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup6, "Group1PollPeriod",
-                L"Период опроса группы 6 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 6 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup7, "Group1PollPeriod",
-                L"Период опроса группы 7 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 7 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup8, "Group1PollPeriod",
-                L"Период опроса группы 8 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 8 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup9, "Group1PollPeriod",
-                L"Период опроса группы 9 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 9 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup10, "Group1PollPeriod",
-                L"Период опроса группы 10 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 10 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup11, "Group1PollPeriod",
-                L"Период опроса группы 11 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 11 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup12, "Group1PollPeriod",
-                L"Период опроса группы 12 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 12 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup13, "Group1PollPeriod",
-                L"Период опроса группы 13 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 13 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup14, "Group1PollPeriod",
-                L"Период опроса группы 14 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 14 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup15, "Group1PollPeriod",
-                L"Период опроса группы 15 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 15 (с)"), scada::id::Int32, 0);
     AddProperty(configuration, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_InterrogationPeriodGroup16, "Group1PollPeriod",
-                L"Период опроса группы 16 (с)", scada::id::Int32, 0);
+                base::WideToUTF16(L"Период опроса группы 16 (с)"), scada::id::Int32, 0);
   }
 
   // IEC-61850 Logical Node
   {
     CreateObjectType(configuration, id::Iec61850LogicalNodeType,
-                     "Iec61850LogicalNodeType", L"Логический узел МЭК-61850",
+                     "Iec61850LogicalNodeType", base::WideToUTF16(L"Логический узел МЭК-61850"),
                      scada::id::BaseObjectType);
   }
 
   // IEC-61850 Data Variable
   {
     CreateVariableType(configuration, id::Iec61850DataVariableType,
-                       "Iec61850DataVariableType", L"Объект данных МЭК-61850",
+                       "Iec61850DataVariableType", base::WideToUTF16(L"Объект данных МЭК-61850"),
                        scada::id::BaseDataType, scada::id::BaseVariableType);
   }
 
@@ -666,13 +666,13 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
   {
     CreateObjectType(configuration, id::Iec61850ControlObjectType,
                      "Iec61850ControlObjectType",
-                     L"Объект управления МЭК-61850", scada::id::BaseObjectType);
+                     base::WideToUTF16(L"Объект управления МЭК-61850"), scada::id::BaseObjectType);
   }
 
   // IEC-61850 Device
   {
     CreateObjectType(configuration, id::Iec61850DeviceType,
-                     "Iec61850DeviceType", L"Устройство МЭК-61850",
+                     "Iec61850DeviceType", base::WideToUTF16(L"Устройство МЭК-61850"),
                      id::DeviceType);
     AddReference(configuration, id::Creates, id::Devices,
                  id::Iec61850DeviceType);
@@ -680,7 +680,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
       auto model = std::make_unique<scada::GenericObject>();
       model->set_id(id::Iec61850DeviceType_Model);
       model->SetBrowseName("Model");
-      model->SetDisplayName(L"Модель");
+      model->SetDisplayName(base::WideToUTF16(L"Модель"));
       configuration.AddStaticNode(std::move(model));
       AddReference(configuration, scada::id::HasTypeDefinition,
                    id::Iec61850DeviceType_Model, id::Iec61850LogicalNodeType);
@@ -692,29 +692,29 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
                    id::Iec61850DeviceType, id::Iec61850DeviceType_Model);
     }
     AddProperty(configuration, id::Iec61850DeviceType,
-                id::Iec61850DeviceType_Host, "Host", L"Хост",
+                id::Iec61850DeviceType_Host, "Host", base::WideToUTF16(L"Хост"),
                 scada::id::String);
     AddProperty(configuration, id::Iec61850DeviceType,
-                id::Iec61850DeviceType_Port, "Port", L"Порт", scada::id::Int32,
+                id::Iec61850DeviceType_Port, "Port", base::WideToUTF16(L"Порт"), scada::id::Int32,
                 102);
   }
 
   // IEC-61850 ConfigurableObject
   {
     CreateObjectType(configuration, id::Iec61850ConfigurableObjectType,
-                     "ConfigurableObject", L"Параметр МЭК-61850",
+                     "ConfigurableObject", base::WideToUTF16(L"Параметр МЭК-61850"),
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::Iec61850ConfigurableObjectType,
                  id::Iec61850ConfigurableObjectType);
     AddProperty(configuration, id::Iec61850ConfigurableObjectType,
                 id::Iec61850ConfigurableObjectType_Reference, "Address",
-                L"Адрес", scada::id::String);
+                base::WideToUTF16(L"Адрес"), scada::id::String);
   }
 
   // IEC-61850 RCB
   {
     CreateObjectType(configuration, id::Iec61850RcbType, "RCB",
-                     L"RCB МЭК-61850", id::Iec61850ConfigurableObjectType);
+                     base::WideToUTF16(L"RCB МЭК-61850"), id::Iec61850ConfigurableObjectType);
     AddReference(configuration, id::Creates, id::Iec61850DeviceType,
                  id::Iec61850RcbType);
   }
@@ -722,19 +722,19 @@ void CreateScadaAddressSpace(AddressSpaceImpl& configuration,
   // IEC Retransmission Item
   {
     CreateObjectType(configuration, id::TransmissionItemType,
-                     "TransmissionItemType", L"Ретрансляция",
+                     "TransmissionItemType", base::WideToUTF16(L"Ретрансляция"),
                      scada::id::BaseObjectType);
     AddReference(configuration, id::Creates, id::TransmissionItems,
                  id::TransmissionItemType);
     CreateReferenceType(configuration, id::TransmissionItemType,
                         id::HasTransmissionSource, "IecTransmitSource",
-                        L"Объект источник", scada::id::BaseVariableType);
+                        base::WideToUTF16(L"Объект источник"), scada::id::BaseVariableType);
     CreateReferenceType(configuration, id::TransmissionItemType,
                         id::HasTransmissionTarget,
-                        "IecTransmitTargetDevice", L"Устройство приемник",
+                        "IecTransmitTargetDevice", base::WideToUTF16(L"Устройство приемник"),
                         id::DeviceType);
     AddProperty(configuration, id::TransmissionItemType,
                 id::TransmissionItemType_SourceAddress, "InfoAddress",
-                L"Адрес объекта приемника", scada::id::Int32, 1);
+                base::WideToUTF16(L"Адрес объекта приемника"), scada::id::Int32, 1);
   }
 }

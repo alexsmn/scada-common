@@ -21,4 +21,7 @@ add_subdirectory(core)
 add_subdirectory(common)
 add_subdirectory(address_space)
 add_subdirectory(remote)
-add_subdirectory(vidicon)
+
+if(WIN32)
+  add_subdirectory(vidicon)
+endif()

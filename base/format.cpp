@@ -90,11 +90,11 @@ std::string Format(base::StringPiece value) {
 }
 
 base::string16 WideFormat(base::StringPiece value) {
-  return base::SysNativeMBToWide(value.as_string());
+  return base::WideToUTF16(base::SysNativeMBToWide(value.as_string()));
 }
 
 std::string Format(base::StringPiece16 value) {
-  return base::SysWideToNativeMB(value.as_string());
+  return base::SysWideToNativeMB(base::UTF16ToWide(value.as_string()));
 }
 
 base::string16 WideFormat(base::StringPiece16 value) {

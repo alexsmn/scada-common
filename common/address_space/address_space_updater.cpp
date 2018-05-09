@@ -200,7 +200,7 @@ void UpdateNodes(AddressSpaceImpl& address_space,
 
     deleted_references.clear();
 
-    for (auto& ref : FilterReferences(node->forward_references(),
+    for (const auto& ref : FilterReferences(node->forward_references(),
                                       scada::id::NonHierarchicalReferences)) {
       // TODO: Handle type definition update.
       if (ref.type->id() == scada::id::HasTypeDefinition)
@@ -212,7 +212,7 @@ void UpdateNodes(AddressSpaceImpl& address_space,
         deleted_references.emplace_back(std::move(reference));
     }
 
-    for (auto& reference : deleted_references) {
+    for (const auto& reference : deleted_references) {
       auto& source_id =
           reference.forward ? node_state.node_id : reference.node_id;
       auto& target_id =
@@ -228,7 +228,7 @@ void UpdateNodes(AddressSpaceImpl& address_space,
 
     // Added references.
 
-    for (auto& reference : node_state.references) {
+    for (const auto& reference : node_state.references) {
       assert(reference.forward);
       assert(node);
       if (scada::FindReference(*node, reference))

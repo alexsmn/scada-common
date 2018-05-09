@@ -118,9 +118,10 @@ expression::LexemData ScadaExpression::ReadLexem(
     int strl = static_cast<int>(buf - buffer.buf);
     buffer.buf = buf;
     // Parse name
-    if (_strnicmp(str, "true", strl) == 0) {
+    base::StringPiece strp{str, strl};
+    if (strp == "true") {
       result.lexem = expression::LEX_TRUE;
-    } else if (_strnicmp(str, "false", strl) == 0) {
+    } else if (strp == "false") {
       result.lexem = expression::LEX_FALSE;
     } else {
       result.lexem = expression::LEX_NAME;

@@ -99,7 +99,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
   auto* parent = address_space.GetNode(parent_id);
   assert(parent);
 
-  AddNodeAndReference(address_space, std::move(node), reference_type_id,
+  AddNodeAndReference(address_space, node, reference_type_id,
                       *parent);
 }
 

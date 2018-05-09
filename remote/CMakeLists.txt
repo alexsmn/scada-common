@@ -1,5 +1,7 @@
 # ProtoBuf
-find_package(Protobuf REQUIRED)
+if(NOT PROTOBUF_FOUND)
+  find_package(Protobuf REQUIRED)
+endif()
 
 file(GLOB sources "*.cpp" "*.h" "*.proto")
 file(GLOB unittests "*_unittest.*")

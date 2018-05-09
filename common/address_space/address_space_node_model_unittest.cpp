@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
 #include "base/logger.h"
+#include "base/strings/utf_string_conversions.h"
 
 #include <gmock/gmock.h>
 
@@ -41,7 +42,7 @@ TEST(AddressSpaceNodeModel, Fetch) {
 
   auto& root_folder =
       address_space.AddStaticNode(std::make_unique<scada::GenericObject>(
-          scada::id::RootFolder, L"RootFolder"));
+          scada::id::RootFolder, base::WideToUTF16(L"RootFolder")));
   node.SetFetchStatus(&root_folder, scada::StatusCode::Good,
                       NodeFetchStatus::NodeOnly());
 

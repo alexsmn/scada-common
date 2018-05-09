@@ -1,6 +1,7 @@
 #include "remote/node_management_stub.h"
 
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "core/node_management_service.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
@@ -50,8 +51,8 @@ void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
     auto& change_password = request.change_password();
     OnChangeUserPassword(
         request.request_id(), FromProto(change_password.user_node_id()),
-        base::SysUTF8ToWide(change_password.current_password()),
-        base::SysUTF8ToWide(change_password.new_password()));
+        base::UTF8ToUTF16(change_password.current_password()),
+        base::UTF8ToUTF16(change_password.new_password()));
   }
 
   if (request.has_add_reference())

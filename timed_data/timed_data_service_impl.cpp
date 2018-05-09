@@ -1,6 +1,7 @@
 #include "timed_data/timed_data_service_impl.h"
 
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "common/node_id_util.h"
 #include "common/node_service.h"
 #include "timed_data/alias_timed_data.h"
@@ -23,7 +24,7 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
       node_id_cache_{io_context_},
       alias_cache_{io_context_},
       null_timed_data_{
-          std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
+          std::make_shared<ErrorTimedData>(std::string{}, base::WideToUTF16(kEmptyDisplayName))} {}
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
@@ -36,7 +37,7 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     expression->Parse(formula.as_string().c_str());
   } catch (const std::exception& e) {
     return std::make_shared<ErrorTimedData>(formula.as_string(),
-                                            base::SysNativeMBToWide(e.what()));
+                                            base::WideToUTF16(base::SysNativeMBToWide(e.what())));
   }
 
   std::shared_ptr<rt::TimedData> data;

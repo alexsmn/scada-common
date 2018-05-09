@@ -21,7 +21,7 @@ struct StaticAddressSpace {
     GenericDataVariable Enabled;
   };
 
-  scada::ReferenceType Creates{id::Creates, "Creates", L"Creates"};
+  scada::ReferenceType Creates{id::Creates, "Creates", base::WideToUTF16(L"Creates")};
 
   DeviceType DeviceType;
 };

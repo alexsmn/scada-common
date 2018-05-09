@@ -1,5 +1,6 @@
 #include "common/node_util.h"
 
+#include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_service.h"
 #include "common/scada_node_ids.h"
@@ -50,7 +51,7 @@ base::string16 GetFullDisplayName(const NodeRef& node) {
   auto parent = node.parent();
   if (IsInstanceOf(parent, ::id::DataGroupType) ||
       IsInstanceOf(parent, ::id::DeviceType))
-    return GetFullDisplayName(parent) + L" : " +
+    return GetFullDisplayName(parent) + base::WideToUTF16(L" : ") +
            ToString16(node.display_name());
   else
     return ToString16(node.display_name());
@@ -62,5 +63,5 @@ scada::LocalizedText GetDisplayName(NodeService& node_service,
     return {};
 
   auto node = node_service.GetNode(node_id);
-  return node ? node.display_name() : kUnknownDisplayName;
+  return node ? node.display_name() : base::WideToUTF16(kUnknownDisplayName);
 }

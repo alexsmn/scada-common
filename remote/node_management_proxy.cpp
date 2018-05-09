@@ -2,6 +2,7 @@
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "common/node_id_util.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
@@ -143,10 +144,8 @@ void NodeManagementProxy::ChangeUserPassword(
   protocol::Request request;
   auto& change_password = *request.mutable_change_password();
   ToProto(user_node_id, *change_password.mutable_user_node_id());
-  change_password.set_current_password(
-      base::SysWideToUTF8(ToString16(current_password)));
-  change_password.set_new_password(
-      base::SysWideToUTF8(ToString16(new_password)));
+  change_password.set_current_password(base::UTF16ToUTF8(current_password));
+  change_password.set_new_password(base::UTF16ToUTF8(new_password));
 
   sender_->Request(request,
                    [this, callback](const protocol::Response& response) {

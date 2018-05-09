@@ -150,5 +150,5 @@ void ViewServiceStub::SendEvents() {
               *notification->add_semantics_changed_node_id());
   }
 
-  sender_.Send(std::move(message));
+  sender_.Send(message);
 }

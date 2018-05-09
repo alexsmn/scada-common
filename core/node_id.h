@@ -5,6 +5,7 @@
 #include "core/string.h"
 
 #include <cassert>
+#include <memory>
 #include <variant>
 
 namespace scada {

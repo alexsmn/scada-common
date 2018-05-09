@@ -1,6 +1,7 @@
 #include "remote/protocol_utils.h"
 
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "core/standard_node_ids.h"
 
 scada::NodeId FromProto(const protocol::NodeId& source) {
@@ -55,7 +56,7 @@ scada::Variant FromProto(const protocol::Variant& source) {
         base::SysUTF8ToWide(source.qualified_name_value())));
   else if (source.has_localized_text_value())
     return scada::LocalizedText{
-        base::SysUTF8ToWide(source.localized_text_value())};
+        base::UTF8ToUTF16(source.localized_text_value())};
   else if (source.has_node_id_value())
     return FromProto(source.node_id_value());
   else
@@ -88,7 +89,7 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       break;
     case scada::Variant::LOCALIZED_TEXT:
       target.set_localized_text_value(
-          base::SysWideToUTF8(ToString16(source.as_localized_text())));
+          base::UTF16ToUTF8(ToString16(source.as_localized_text())));
       break;
     case scada::Variant::NODE_ID:
       ToProto(source.as_node_id(), *target.mutable_node_id_value());
@@ -149,7 +150,7 @@ scada::Event FromProto(const protocol::Event& source) {
   if (source.has_qualifier())
     result.qualifier = scada::Qualifier(source.qualifier());
   if (source.has_message())
-    result.message = base::SysUTF8ToWide(source.message());
+    result.message = base::UTF8ToUTF16(source.message());
   if (source.has_acknowledged())
     result.acked = source.acknowledged();
   if (source.has_acknowledge_id())
@@ -174,7 +175,7 @@ void ToProto(const scada::Event& source, protocol::Event& target) {
   if (source.qualifier != scada::Qualifier())
     target.set_qualifier(source.qualifier.raw());
   if (!source.message.empty())
-    target.set_message(base::SysWideToUTF8(source.message));
+    target.set_message(base::UTF16ToUTF8(source.message));
   if (source.acked)
     target.set_acknowledged(true);
   if (source.acknowledge_id)
@@ -200,7 +201,7 @@ scada::NodeAttributes FromProto(const protocol::Attributes& source) {
     result.browse_name = scada::QualifiedName{source.browse_name(), 0};
   if (source.has_display_name())
     result.display_name =
-        scada::ToLocalizedText(base::SysUTF8ToWide(source.display_name()));
+        scada::ToLocalizedText(base::UTF8ToUTF16(source.display_name()));
   if (source.has_data_type_id())
     result.data_type = FromProto(source.data_type_id());
   if (source.has_value())
@@ -214,7 +215,7 @@ void ToProto(const scada::NodeAttributes& source,
     target.set_browse_name(source.browse_name.name());
   if (!source.display_name.empty())
     target.set_display_name(
-        base::SysWideToUTF8(ToString16(source.display_name)));
+        base::UTF16ToUTF8(ToString16(source.display_name)));
   if (!source.data_type.is_null())
     ToProto(source.data_type, *target.mutable_data_type_id());
   if (!source.value.is_null())

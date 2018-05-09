@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/strings/string16.h"
 #include "core/basic_types.h"
 #include "core/expanded_node_id.h"
 #include "core/extension_object.h"
@@ -47,7 +48,7 @@ class Variant {
   Variant(QualifiedName value) : data_{std::move(value)} {}
   Variant(LocalizedText str) : data_{std::move(str)} {}
   Variant(const char* str) : data_{str ? String{str} : String{}} {}
-  Variant(const wchar_t* str)
+  Variant(const base::char16* str)
       : data_{str ? LocalizedText{str} : LocalizedText{}} {}
   Variant(NodeId node_id) : data_{std::move(node_id)} {}
   Variant(ExpandedNodeId node_id) : data_{std::move(node_id)} {}
@@ -120,8 +121,8 @@ class Variant {
   template <typename T>
   bool ChangeTypeTo();
 
-  static const wchar_t* kTrueString;
-  static const wchar_t* kFalseString;
+  static const LocalizedText kTrueString;
+  static const LocalizedText kFalseString;
 
  private:
   template <class String>

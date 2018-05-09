@@ -6,6 +6,7 @@
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
 #include "common/node_id_util.h"
 #include "common/scada_node_ids.h"
@@ -18,7 +19,8 @@ const wchar_t* kDefaultCloseLabel = L"Вкл";
 const wchar_t* kDefaultOpenLabel = L"Откл";
 
 void EscapeColoredString(base::string16& str) {
-  base::ReplaceSubstringsAfterOffset(&str, 0, L"&", L"&;");
+  static const base::string16 amp = base::WideToUTF16(L"&");
+  base::ReplaceSubstringsAfterOffset(&str, 0, amp, amp);
 }
 
 std::string FormatFloat(double val, const char* fmt) {
@@ -59,7 +61,7 @@ std::string FormatFloat(double val, const char* fmt) {
 
   } else {
     int n = (std::min)(decimal, l);
-    memcpy_s(buffer + buffer_size, _countof(buffer) - buffer_size, s, n);
+    memcpy(buffer + buffer_size, s, n);
     buffer_size += n;
 
     if (l < decimal) {
@@ -75,8 +77,7 @@ std::string FormatFloat(double val, const char* fmt) {
       buffer_size += -decimal;
       decimal = 0;
     }
-    memcpy_s(buffer + buffer_size, _countof(buffer) - buffer_size, s + decimal,
-             l - decimal);
+    memcpy(buffer + buffer_size, s + decimal, l - decimal);
     buffer_size += l - decimal;
   }
 
@@ -145,6 +146,6 @@ bool StringToValue(base::StringPiece16 str,
     return true;
   }
 
-  return StringToValue(base::SysWideToNativeMB(str.as_string()), data_type_id,
+  return StringToValue(base::SysWideToNativeMB(base::UTF16ToWide(str.as_string())), data_type_id,
                        value);
 }

@@ -4,6 +4,7 @@
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_id_util.h"
 #include "common/scada_node_ids.h"
@@ -21,7 +22,7 @@ namespace {
 const Node* FindNodeByAlias(const Node& parent_node,
                             const base::StringPiece& alias) {
   for (auto* node : GetOrganizes(parent_node)) {
-    auto& node_alias =
+    const auto& node_alias =
         GetPropertyValue(*node, ::id::DataItemType_Alias).get_or(std::string());
     if (IsEqualNoCase(node_alias, alias))
       return node;
@@ -117,14 +118,14 @@ QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id) {
 
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id) {
   auto* node = cfg.GetNode(node_id);
-  return node ? GetFullDisplayName(*node) : kUnknownDisplayName;
+  return node ? GetFullDisplayName(*node) : base::WideToUTF16(kUnknownDisplayName);
 }
 
 base::string16 GetFullDisplayName(const Node& node) {
   auto* parent = GetParent(node);
   if (IsInstanceOf(parent, ::id::DataGroupType) ||
       IsInstanceOf(parent, ::id::DeviceType))
-    return GetFullDisplayName(*parent) + L" : " +
+    return GetFullDisplayName(*parent) + base::WideToUTF16(L" : ") +
            ToString16(node.GetDisplayName());
   else
     return ToString16(node.GetDisplayName());

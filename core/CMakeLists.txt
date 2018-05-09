@@ -5,10 +5,11 @@ list(REMOVE_ITEM scada_core_sources ${scada_core_unittest_sources})
 add_library(scada_core ${scada_core_sources})
 target_link_libraries(scada_core PUBLIC scada_base)
 
-target_compile_options(scada_core PUBLIC "/std:c++latest")
-
-# Conformance mode
-target_compile_options(scada_core PRIVATE "/permissive-")
+if(WIN32)
+  target_compile_options(scada_core PUBLIC "/std:c++latest")
+  # Conformance mode
+  target_compile_options(scada_core PRIVATE "/permissive-")
+endif()
 
 add_executable(scada_core_unittests ${scada_core_unittest_sources})
 target_link_libraries(scada_core_unittests scada_core gmock_main)

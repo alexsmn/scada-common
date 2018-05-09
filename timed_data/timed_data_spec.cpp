@@ -1,5 +1,6 @@
 #include "timed_data/timed_data_spec.h"
 
+#include "base/strings/utf_string_conversions.h"
 #include "common/node_format.h"
 #include "common/node_util.h"
 #include "common/scada_node_ids.h"
@@ -153,7 +154,7 @@ NodeRef TimedDataSpec::GetNode() const {
 }
 
 base::string16 TimedDataSpec::GetTitle() const {
-  return data_ ? data_->GetTitle() : kUnknownDisplayName;
+  return data_ ? data_->GetTitle() : base::WideToUTF16(kUnknownDisplayName);
 }
 
 scada::DataValue TimedDataSpec::GetValueAt(base::Time time) const {

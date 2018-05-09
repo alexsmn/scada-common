@@ -1,7 +1,6 @@
 #include "common/node_service.h"
 
 #include "common/address_space/test/address_space_node_service_test_context.h"
-
 #include "common/node_id_util.h"
 
 using namespace testing;
@@ -94,7 +93,7 @@ TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
-  const scada::LocalizedText kNewDisplayName{L"NewTestNode1"};
+  const scada::LocalizedText kNewDisplayName{base::WideToUTF16(L"NewTestNode1")};
   const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
 
   auto node = context.node_service.GetNode(kNodeId);

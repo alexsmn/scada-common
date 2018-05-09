@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "base/strings/string_number_conversions.h"
+#include "base/strings/string_util.h"
 
 // WARNING: These names are used as names for tables in the configuration DB and
 // mustn't be modified.
@@ -33,7 +34,7 @@ int FindNamespaceIndexByName(base::StringPiece name) {
     return namespace_index;
 
   for (int i = 0; i != NamespaceIndexes::END; ++i) {
-    if (_strnicmp(GetNamespaceName(i), name.data(), name.size()) == 0)
+    if (base::EqualsCaseInsensitiveASCII(GetNamespaceName(i), name) == 0)
       return i;
   }
 

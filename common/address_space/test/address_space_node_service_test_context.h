@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "base/logger.h"
+#include "base/strings/utf_string_conversions.h"
 #include "common/address_space/address_space_node_service.h"
 #include "common/mock_node_observer.h"
 #include "core/test/test_address_space.h"
@@ -13,15 +14,15 @@ struct AddressSpaceNodeServiceTestContext {
   AddressSpaceNodeServiceTestContext() {
     // Create custom types, since we don't transfer types.
     client_address_space.AddStaticNode(std::make_unique<scada::ObjectType>(
-        server_address_space.kTestTypeId, "TestType", L"TestType"));
+        server_address_space.kTestTypeId, "TestType", base::WideToUTF16(L"TestType")));
     DeclareProperty(server_address_space.kTestTypeId,
                     server_address_space.kTestProp1Id, "TestProp1",
-                    L"TestProp1DisplayName", scada::id::String);
+                    base::WideToUTF16(L"TestProp1DisplayName"), scada::id::String);
     DeclareProperty(server_address_space.kTestTypeId,
                     server_address_space.kTestProp2Id, "TestProp2",
-                    L"TestProp2DisplayName", scada::id::String);
+                    base::WideToUTF16(L"TestProp2DisplayName"), scada::id::String);
     client_address_space.AddStaticNode(std::make_unique<scada::ReferenceType>(
-        server_address_space.kTestRefTypeId, "TestRef", L"TestRef"));
+        server_address_space.kTestRefTypeId, "TestRef", base::WideToUTF16(L"TestRef")));
 
     node_service.Subscribe(node_observer);
     node_service.OnChannelOpened();

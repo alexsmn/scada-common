@@ -3,6 +3,7 @@
 #include "base/net_logger_adapter.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "core/monitored_item.h"
 #include "core/session_state_observer.h"
 #include "core/status.h"
@@ -17,6 +18,8 @@
 #include "remote/protocol_utils.h"
 #include "remote/subscription_proxy.h"
 #include "remote/view_service_proxy.h"
+
+#include <stdexcept>
 
 namespace {
 const auto kPingDelay = base::TimeDelta::FromMilliseconds(1000);
@@ -60,7 +63,7 @@ void SessionProxy::OnTransportOpened() {
 
   protocol::Request request;
   auto& create_session = *request.mutable_create_session();
-  create_session.set_user_name(base::SysWideToUTF8(user_name_));
+  create_session.set_user_name(base::UTF16ToUTF8(user_name_));
   create_session.set_password(password_);
   create_session.set_protocol_version_major(protocol::PROTOCOL_VERSION_MAJOR);
   create_session.set_protocol_version_minor(protocol::PROTOCOL_VERSION_MINOR);
@@ -116,7 +119,7 @@ void SessionProxy::OnSessionError(const scada::Status& status) {
 void SessionProxy::OnTransportMessageReceived(const void* data, size_t size) {
   protocol::Message message;
   if (!message.ParseFromArray(data, size))
-    throw E_FAIL;
+    throw std::runtime_error("Can't parse message");
 
   OnMessageReceived(message);
 }
@@ -191,11 +194,11 @@ void SessionProxy::Send(protocol::Message& message) {
 
   std::string string;
   if (!message.AppendToString(&string))
-    throw E_FAIL;
+    throw std::runtime_error("Can't serialize message");
 
   int res = transport_->Write(string.data(), string.size());
   if (res != string.size())
-    throw E_FAIL;
+    throw std::runtime_error("Can't send message");
 }
 
 void SessionProxy::OnMessageReceived(const protocol::Message& message) {

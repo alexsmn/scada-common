@@ -4,12 +4,13 @@
 #include <limits>
 
 #include "base/format.h"
+#include "base/strings/utf_string_conversions.h"
 #include "core/standard_node_ids.h"
 
 namespace scada {
 
-const wchar_t* Variant::kTrueString = L"Да";
-const wchar_t* Variant::kFalseString = L"Нет";
+const LocalizedText Variant::kTrueString = base::WideToUTF16(L"Да");
+const LocalizedText Variant::kFalseString = base::WideToUTF16(L"Нет");
 
 void Variant::clear() {
   data_ = std::monostate{};
@@ -145,44 +146,59 @@ bool Variant::get(double& double_value) const {
   }
 }
 
-template <class String>
-struct FormatHelper;
+namespace {
 
-template <>
-struct FormatHelper<String> {
-  template <typename T>
-  static String Format(const T& value) {
+template <class Target, class Source>
+struct FormatHelperT;
+
+template <class Source>
+struct FormatHelperT<String, Source> {
+  static inline String Format(const Source& value) {
     return ::Format(value);
   }
+};
 
-  template <>
-  static String Format(const QualifiedName& value) {
-    return ToString(value);
-  }
-
-  template <>
-  static String Format(const LocalizedText& value) {
+template <>
+struct FormatHelperT<String, QualifiedName> {
+  static inline String Format(const QualifiedName& value) {
     return ToString(value);
   }
 };
 
 template <>
-struct FormatHelper<LocalizedText> {
-  template <typename T>
-  static LocalizedText Format(const T& value) {
+struct FormatHelperT<String, LocalizedText> {
+  static inline String Format(const LocalizedText& value) {
+    return ToString(value);
+  }
+};
+
+template <class Source>
+struct FormatHelperT<LocalizedText, Source> {
+  static inline LocalizedText Format(const Source& value) {
     return ToLocalizedText(::Format(value));
   }
+};
 
-  template <>
-  static LocalizedText Format(const QualifiedName& value) {
+template <>
+struct FormatHelperT<LocalizedText, QualifiedName> {
+  static inline LocalizedText Format(const QualifiedName& value) {
     return ToString16(value);
   }
+};
 
-  template <>
-  static LocalizedText Format(const LocalizedText& value) {
+template <>
+struct FormatHelperT<LocalizedText, LocalizedText> {
+  static inline LocalizedText Format(const LocalizedText& value) {
     return value;
   }
 };
+
+template <class Target, class Source>
+inline Target FormatHelper(const Source& value) {
+  return FormatHelperT<Target, Source>::Format(value);
+}
+
+} // namespace
 
 template <class String>
 bool Variant::ToStringHelper(String& string_value) const {
@@ -192,28 +208,28 @@ bool Variant::ToStringHelper(String& string_value) const {
   switch (type()) {
     case BOOL:
       string_value =
-          FormatHelper<String>::Format(as_bool() ? kTrueString : kFalseString);
+          FormatHelper<String>(as_bool() ? kTrueString : kFalseString);
       return true;
     case INT32:
-      string_value = FormatHelper<String>::Format(as_int32());
+      string_value = FormatHelper<String>(as_int32());
       return true;
     case INT64:
-      string_value = FormatHelper<String>::Format(as_int64());
+      string_value = FormatHelper<String>(as_int64());
       return true;
     case DOUBLE:
-      string_value = FormatHelper<String>::Format(as_double());
+      string_value = FormatHelper<String>(as_double());
       return true;
     case STRING:
-      string_value = FormatHelper<String>::Format(as_string());
+      string_value = FormatHelper<String>(as_string());
       return true;
     case QUALIFIED_NAME:
-      string_value = FormatHelper<String>::Format(get<QualifiedName>());
+      string_value = FormatHelper<String>(get<QualifiedName>());
       return true;
     case LOCALIZED_TEXT:
-      string_value = FormatHelper<String>::Format(as_localized_text());
+      string_value = FormatHelper<String>(as_localized_text());
       return true;
     case NODE_ID:
-      string_value = FormatHelper<String>::Format(as_node_id().ToString());
+      string_value = FormatHelper<String>(as_node_id().ToString());
       return true;
     case EMPTY:
       string_value.clear();

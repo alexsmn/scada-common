@@ -29,7 +29,7 @@ struct TestContext {
       address_space,
       address_space,
       [&](std::vector<scada::NodeState>&& nodes, NodeFetchErrors&& errors) {
-        OnFetched(std::move(nodes));
+        OnFetched(nodes);
         ProcessFetchedNodes(nodes);
       },
       [&](const scada::NodeId& node_id) {
