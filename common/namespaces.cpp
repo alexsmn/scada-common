@@ -34,7 +34,7 @@ int FindNamespaceIndexByName(base::StringPiece name) {
     return namespace_index;
 
   for (int i = 0; i != NamespaceIndexes::END; ++i) {
-    if (base::EqualsCaseInsensitiveASCII(GetNamespaceName(i), name) == 0)
+    if (base::EqualsCaseInsensitiveASCII(GetNamespaceName(i), name))
       return i;
   }
 

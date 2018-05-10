@@ -9,7 +9,7 @@ DataServicesInfoList& GetMutableDataServicesInfoList() {
   return s_list;
 }
 
-} // namespace
+}  // namespace
 
 const DataServicesInfoList& GetDataServicesInfoList() {
   return GetMutableDataServicesInfoList();
@@ -23,7 +23,9 @@ bool EqualDataServicesName(base::StringPiece name1, base::StringPiece name2) {
   return base::EqualsCaseInsensitiveASCII(name1, name2);
 }
 
-bool CreateDataServices(base::StringPiece name, const DataServicesContext& context, DataServices& services) {
+bool CreateDataServices(base::StringPiece name,
+                        const DataServicesContext& context,
+                        DataServices& services) {
   for (auto& info : GetDataServicesInfoList()) {
     if (EqualDataServicesName(info.name, name))
       return info.factory_method(context, services);
