@@ -4,6 +4,7 @@
 #include "address_space/object.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
+#include "core/monitored_item.h"
 
 #include <gmock/gmock.h>
 
@@ -14,6 +15,15 @@ class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
   MOCK_METHOD2(OnNodeModelFetchRequested,
                void(const scada::NodeId& node_id,
                     const NodeFetchStatus& requested_status));
+  MOCK_METHOD1(OnNodeModelCreateMonitoredItem,
+               std::unique_ptr<scada::MonitoredItem>(
+                   const scada::ReadValueId& read_value_id));
+  MOCK_METHOD5(OnNodeModelCall,
+               void(const scada::NodeId& node_id,
+                    const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
+                    const scada::StatusCallback& callback));
 };
 
 TEST(AddressSpaceNodeModel, Fetch) {

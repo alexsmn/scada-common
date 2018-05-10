@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/monitored_item.h"
+
 #include <memory>
 
 namespace scada {

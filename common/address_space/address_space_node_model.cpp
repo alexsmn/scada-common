@@ -4,6 +4,7 @@
 #include "common/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
+#include "core/monitored_item.h"
 
 AddressSpaceNodeModel::AddressSpaceNodeModel(
     AddressSpaceNodeModelDelegate& delegate,
@@ -102,7 +103,8 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
     return delegate_.GetRemoteNode(declaration);
   } else if (scada::IsInstanceOf(declaration, scada::id::PropertyType)) {
     return std::make_shared<AddressSpacePropertyModel>(
-        shared_from_this(), delegate_.GetRemoteNode(declaration).model());
+        shared_from_this(), delegate_.GetRemoteNode(declaration).model(),
+        delegate_);
   } else {
     return GetAggregate(declaration->GetBrowseName());
   }
@@ -213,4 +215,16 @@ scada::Variant AddressSpaceNodeModel::GetPropertyAttribute(
     default:
       return property_declaration.GetAttribute(attribute_id);
   }
+}
+
+std::unique_ptr<scada::MonitoredItem>
+AddressSpaceNodeModel::CreateMonitoredItem(
+    scada::AttributeId attribute_id) const {
+  return delegate_.OnNodeModelCreateMonitoredItem({node_id_, attribute_id});
+}
+
+void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,
+                                 const std::vector<scada::Variant>& arguments,
+                                 const scada::StatusCallback& callback) const {
+  callback(scada::StatusCode::Bad_Disconnected);
 }

@@ -57,6 +57,11 @@ class RemoteNodeModel final
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
+  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+      scada::AttributeId attribute_id) const override;
+  virtual void Call(const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::StatusCallback& callback) const override;
 
  protected:
   // BaseNodeModel

@@ -7,6 +7,7 @@
 #include "common/node_util.h"
 #include "common/remote_node_service.h"
 #include "core/attribute_service.h"
+#include "core/monitored_item.h"
 #include "core/standard_node_ids.h"
 
 RemoteNodeModel::RemoteNodeModel(RemoteNodeService& service,
@@ -335,4 +336,15 @@ void RemoteNodeModel::OnFetchRequested(
 
   pending_status_ = new_status;
   service_.OnFetchNode(node_id_, requested_status);
+}
+
+std::unique_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
+    scada::AttributeId attribute_id) const {
+  return nullptr;
+}
+
+void RemoteNodeModel::Call(const scada::NodeId& method_id,
+                           const std::vector<scada::Variant>& arguments,
+                           const scada::StatusCallback& callback) const {
+  callback(scada::StatusCode::Bad_Disconnected);
 }

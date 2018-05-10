@@ -23,6 +23,15 @@ class AddressSpaceNodeModelDelegate {
   virtual void OnNodeModelFetchRequested(
       const scada::NodeId& node_id,
       const NodeFetchStatus& requested_status) = 0;
+
+  virtual std::unique_ptr<scada::MonitoredItem> OnNodeModelCreateMonitoredItem(
+      const scada::ReadValueId& read_value_id) = 0;
+
+  virtual void OnNodeModelCall(const scada::NodeId& node_id,
+                               const scada::NodeId& method_id,
+                               const std::vector<scada::Variant>& arguments,
+                               const scada::NodeId& user_id,
+                               const scada::StatusCallback& callback) = 0;
 };
 
 class AddressSpaceNodeModel final
@@ -62,6 +71,11 @@ class AddressSpaceNodeModel final
       const scada::NodeId& declaration_id) const override;
   virtual NodeRef GetAggregate(
       const scada::QualifiedName& aggregate_name) const override;
+  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+      scada::AttributeId attribute_id) const override;
+  virtual void Call(const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::StatusCallback& callback) const override;
 
  protected:
   // BaseNodeModel

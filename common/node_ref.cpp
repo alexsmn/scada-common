@@ -2,7 +2,7 @@
 
 #include "common/node_model.h"
 #include "common/node_util.h"
-#include "core/standard_node_ids.h"
+#include "core/monitored_item.h"
 
 bool NodeRef::fetched() const {
   return !model_ || model_->GetFetchStatus().node_fetched;
@@ -118,7 +118,7 @@ void NodeRef::Fetch(const NodeFetchStatus& requested_status) const {
 }
 
 void NodeRef::Fetch(const NodeFetchStatus& requested_status,
-                            const FetchCallback& callback) const {
+                    const FetchCallback& callback) const {
   assert(!requested_status.empty());
 
   if (model_) {
@@ -147,4 +147,18 @@ void NodeRef::Subscribe(NodeRefObserver& observer) const {
 void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
   if (model_)
     model_->Unsubscribe(observer);
+}
+
+std::unique_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
+    scada::AttributeId attribute_id) const {
+  return model_ ? model_->CreateMonitoredItem(attribute_id) : nullptr;
+}
+
+void NodeRef::Call(const scada::NodeId& method_id,
+                   const std::vector<scada::Variant>& arguments,
+                   const scada::StatusCallback& callback) const {
+  if (model_)
+    model_->Call(method_id, arguments, callback);
+  else
+    callback(scada::StatusCode::Bad_WrongNodeId);
 }

@@ -7,7 +7,8 @@ class AddressSpacePropertyModel final : public NodeModel {
  public:
   AddressSpacePropertyModel(
       std::shared_ptr<const AddressSpaceNodeModel> parent_model,
-      std::shared_ptr<const NodeModel> declaration_model);
+      std::shared_ptr<const NodeModel> declaration_model,
+      AddressSpaceNodeModelDelegate& delegate);
 
   // NodeModel
   virtual scada::Status GetStatus() const override;
@@ -34,17 +35,27 @@ class AddressSpacePropertyModel final : public NodeModel {
       const scada::QualifiedName& aggregate_name) const override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+      scada::AttributeId attribute_id) const override;
+  virtual void Call(const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::StatusCallback& callback) const override;
 
  private:
+  scada::NodeId GetNodeId() const;
+
   const std::shared_ptr<const AddressSpaceNodeModel> parent_model_;
   const std::shared_ptr<const NodeModel> declaration_model_;
+  AddressSpaceNodeModelDelegate& delegate_;
 };
 
 inline AddressSpacePropertyModel::AddressSpacePropertyModel(
     std::shared_ptr<const AddressSpaceNodeModel> parent_model,
-    std::shared_ptr<const NodeModel> declaration_model)
+    std::shared_ptr<const NodeModel> declaration_model,
+    AddressSpaceNodeModelDelegate& delegate)
     : parent_model_{std::move(parent_model)},
-      declaration_model_{std::move(declaration_model)} {
+      declaration_model_{std::move(declaration_model)},
+      delegate_{delegate} {
   assert(parent_model_);
   assert(declaration_model_);
 }
@@ -114,4 +125,22 @@ inline void AddressSpacePropertyModel::Subscribe(
 inline void AddressSpacePropertyModel::Unsubscribe(
     NodeRefObserver& observer) const {
   parent_model_->Unsubscribe(observer);
+}
+
+std::unique_ptr<scada::MonitoredItem> inline AddressSpacePropertyModel::
+    CreateMonitoredItem(scada::AttributeId attribute_id) const {
+  return delegate_.OnNodeModelCreateMonitoredItem({GetNodeId(), attribute_id});
+}
+
+inline void AddressSpacePropertyModel::Call(
+    const scada::NodeId& method_id,
+    const std::vector<scada::Variant>& arguments,
+    const scada::StatusCallback& callback) const {
+  delegate_.OnNodeModelCall(GetNodeId(), method_id, arguments, {}, callback);
+}
+
+inline scada::NodeId AddressSpacePropertyModel::GetNodeId() const {
+  return parent_model_
+      ->GetPropertyAttribute(*declaration_model_, scada::AttributeId::NodeId)
+      .as_node_id();
 }

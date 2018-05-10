@@ -1,0 +1,14 @@
+#pragma once
+
+#include "core/monitored_item_service.h"
+
+namespace scada {
+
+class MockMonitoredItemService : public MonitoredItemService {
+ public:
+  MOCK_METHOD1(
+      CreateMonitoredItem,
+      std::unique_ptr<MonitoredItem>(const ReadValueId& read_value_id));
+};
+
+}  // namespace scada

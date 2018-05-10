@@ -11,6 +11,11 @@
 #include <memory>
 #include <optional>
 
+namespace scada {
+class MonitoredItem;
+using StatusCallback = std::function<void(const Status&)>;
+}  // namespace scada
+
 class NodeModel;
 class NodeRefObserver;
 
@@ -82,6 +87,13 @@ class NodeRef {
 
   void Subscribe(NodeRefObserver& observer) const;
   void Unsubscribe(NodeRefObserver& observer) const;
+
+  std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+      scada::AttributeId attribute_id) const;
+
+  void Call(const scada::NodeId& method_id,
+            const std::vector<scada::Variant>& arguments,
+            const scada::StatusCallback& callback) const;
 
  private:
   std::shared_ptr<const NodeModel> model_;
