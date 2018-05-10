@@ -3,6 +3,7 @@
 #include "common/node_fetch_status.h"
 #include "core/attribute_ids.h"
 #include "core/node_class.h"
+#include "core/standard_node_ids.h"
 #include "core/status.h"
 #include "core/variant.h"
 
@@ -23,64 +24,64 @@ class NodeRef {
 
   scada::Status status() const;
 
-  NodeFetchStatus fetch_status() const;
   bool fetched() const;
+  bool children_fetched() const;
+
+  void Fetch(const NodeFetchStatus& requested_status) const;
+
   using FetchCallback = std::function<void(const NodeRef& node)>;
   void Fetch(const NodeFetchStatus& requested_status,
-             const FetchCallback& callback = {}) const;
+             const FetchCallback& callback) const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 
-  scada::NodeId id() const;
+  scada::NodeId node_id() const;
   std::optional<scada::NodeClass> node_class() const;
   scada::QualifiedName browse_name() const;
   scada::LocalizedText display_name() const;
   scada::Variant value() const;
-  NodeRef type_definition() const;
-  NodeRef supertype() const;
   NodeRef data_type() const;
 
+  NodeRef type_definition() const;
+  NodeRef supertype() const;
   NodeRef parent() const;
 
-  std::vector<NodeRef> children() const;
-  // Includes components and properies.
-  std::vector<NodeRef> aggregates() const;
-  std::vector<NodeRef> components() const;
-  std::vector<NodeRef> organizes() const;
-  std::vector<NodeRef> properties() const;
-
   NodeRef target(const scada::NodeId& reference_type_id) const;
-  NodeRef target(const scada::NodeId& reference_type_id, bool forward) const;
-  std::vector<NodeRef> targets(const scada::NodeId& reference_type_id) const;
-  std::vector<NodeRef> targets(const scada::NodeId& reference_type_id,
-                               bool forward) const;
+  NodeRef inverse_target(const scada::NodeId& reference_type_id) const;
+  std::vector<NodeRef> targets(
+      const scada::NodeId& reference_type_id = scada::id::References) const;
+  std::vector<NodeRef> inverse_targets(
+      const scada::NodeId& reference_type_id = scada::id::References) const;
 
   struct Reference;
   using References = std::vector<Reference>;
 
   // Non-hierarchical references.
-  Reference reference(const scada::NodeId& reference_type_id,
-                      bool forward) const;
-  std::vector<Reference> references() const;
+  Reference reference(const scada::NodeId& reference_type_id) const;
+  Reference inverse_reference(const scada::NodeId& reference_type_id) const;
+  std::vector<Reference> references(
+      const scada::NodeId& reference_type_id = scada::id::References) const;
   std::vector<Reference> inverse_references(
-      const scada::NodeId& reference_type_id) const;
-  std::vector<Reference> references(const scada::NodeId& reference_type_id,
-                                    bool forward) const;
-
-  void Subscribe(NodeRefObserver& observer) const;
-  void Unsubscribe(NodeRefObserver& observer) const;
+      const scada::NodeId& reference_type_id = scada::id::References) const;
 
   NodeRef operator[](const scada::QualifiedName& aggregate_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
 
   explicit operator bool() const noexcept { return model_ != nullptr; }
 
-  bool operator==(const NodeRef& other) const { return id() == other.id(); }
+  bool operator==(const NodeRef& other) const {
+    return node_id() == other.node_id();
+  }
   bool operator!=(const NodeRef& other) const { return !operator==(other); }
 
-  bool operator<(const NodeRef& other) const { return id() < other.id(); }
+  bool operator<(const NodeRef& other) const {
+    return node_id() < other.node_id();
+  }
 
   const std::shared_ptr<const NodeModel>& model() const { return model_; }
+
+  void Subscribe(NodeRefObserver& observer) const;
+  void Unsubscribe(NodeRefObserver& observer) const;
 
  private:
   std::shared_ptr<const NodeModel> model_;

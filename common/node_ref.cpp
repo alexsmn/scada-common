@@ -5,7 +5,11 @@
 #include "core/standard_node_ids.h"
 
 bool NodeRef::fetched() const {
-  return fetch_status().node_fetched;
+  return !model_ || model_->GetFetchStatus().node_fetched;
+}
+
+bool NodeRef::children_fetched() const {
+  return !model_ || model_->GetFetchStatus().children_fetched;
 }
 
 std::optional<scada::NodeClass> NodeRef::node_class() const {
@@ -15,7 +19,7 @@ std::optional<scada::NodeClass> NodeRef::node_class() const {
     return std::nullopt;
 }
 
-scada::NodeId NodeRef::id() const {
+scada::NodeId NodeRef::node_id() const {
   return attribute(scada::AttributeId::NodeId).get_or(scada::NodeId{});
 }
 
@@ -38,53 +42,31 @@ NodeRef NodeRef::type_definition() const {
 }
 
 NodeRef NodeRef::supertype() const {
-  return target(scada::id::HasSubtype, false);
+  return inverse_target(scada::id::HasSubtype);
 }
 
 NodeRef NodeRef::parent() const {
-  return target(scada::id::HierarchicalReferences, false);
-}
-
-std::vector<NodeRef> NodeRef::children() const {
-  return targets(scada::id::HasChild, true);
-}
-
-std::vector<NodeRef> NodeRef::aggregates() const {
-  return targets(scada::id::Aggregates, true);
-}
-
-std::vector<NodeRef> NodeRef::components() const {
-  return targets(scada::id::HasComponent, true);
-}
-
-std::vector<NodeRef> NodeRef::organizes() const {
-  return targets(scada::id::Organizes, true);
-}
-
-std::vector<NodeRef> NodeRef::properties() const {
-  return targets(scada::id::HasProperty, true);
-}
-
-std::vector<NodeRef::Reference> NodeRef::references() const {
-  return references(scada::id::NonHierarchicalReferences, true);
-}
-
-std::vector<NodeRef::Reference> NodeRef::inverse_references(
-    const scada::NodeId& reference_type_id) const {
-  return references(reference_type_id, false);
+  return inverse_target(scada::id::HierarchicalReferences);
 }
 
 NodeRef NodeRef::target(const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetTarget(reference_type_id, true) : NodeRef{};
+  return model_ ? model_->GetTarget(reference_type_id, true) : nullptr;
+}
+
+NodeRef NodeRef::inverse_target(const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetTarget(reference_type_id, false) : nullptr;
 }
 
 std::vector<NodeRef> NodeRef::targets(
     const scada::NodeId& reference_type_id) const {
-  return targets(reference_type_id, true);
+  return model_ ? model_->GetTargets(reference_type_id, true)
+                : std::vector<NodeRef>{};
 }
 
-NodeFetchStatus NodeRef::fetch_status() const {
-  return model_ ? model_->GetFetchStatus() : NodeFetchStatus::Max();
+std::vector<NodeRef> NodeRef::inverse_targets(
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetTargets(reference_type_id, false)
+                : std::vector<NodeRef>{};
 }
 
 scada::Variant NodeRef::attribute(scada::AttributeId attribute_id) const {
@@ -95,27 +77,27 @@ NodeRef NodeRef::data_type() const {
   return model_ ? model_->GetDataType() : nullptr;
 }
 
-NodeRef::Reference NodeRef::reference(const scada::NodeId& reference_type_id,
-                                      bool forward) const {
-  return model_ ? model_->GetReference(reference_type_id, forward)
+NodeRef::Reference NodeRef::reference(
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetReference(reference_type_id, true)
                 : NodeRef::Reference{};
 }
 
-NodeRef NodeRef::target(const scada::NodeId& reference_type_id,
-                        bool forward) const {
-  return model_ ? model_->GetTarget(reference_type_id, forward) : nullptr;
-}
-
-std::vector<NodeRef> NodeRef::targets(const scada::NodeId& reference_type_id,
-                                      bool forward) const {
-  return model_ ? model_->GetTargets(reference_type_id, forward)
-                : std::vector<NodeRef>{};
+NodeRef::Reference NodeRef::inverse_reference(
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetReference(reference_type_id, false)
+                : NodeRef::Reference{};
 }
 
 std::vector<NodeRef::Reference> NodeRef::references(
-    const scada::NodeId& reference_type_id,
-    bool forward) const {
-  return model_ ? model_->GetReferences(reference_type_id, forward)
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetReferences(reference_type_id, true)
+                : std::vector<NodeRef::Reference>{};
+}
+
+std::vector<NodeRef::Reference> NodeRef::inverse_references(
+    const scada::NodeId& reference_type_id) const {
+  return model_ ? model_->GetReferences(reference_type_id, true)
                 : std::vector<NodeRef::Reference>{};
 }
 
@@ -128,8 +110,15 @@ NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
   return model_ ? model_->GetAggregate(aggregate_name) : NodeRef{};
 }
 
+void NodeRef::Fetch(const NodeFetchStatus& requested_status) const {
+  assert(!requested_status.empty());
+
+  if (model_)
+    model_->Fetch(requested_status, {});
+}
+
 void NodeRef::Fetch(const NodeFetchStatus& requested_status,
-                    const FetchCallback& callback) const {
+                            const FetchCallback& callback) const {
   assert(!requested_status.empty());
 
   if (model_) {
@@ -141,7 +130,8 @@ void NodeRef::Fetch(const NodeFetchStatus& requested_status,
     }
 
   } else {
-    callback(*this);
+    if (callback)
+      callback(*this);
   }
 }
 

@@ -7,7 +7,7 @@
 
 bool IsSubtypeOf(NodeRef type_definition, const scada::NodeId& supertype_id) {
   for (; type_definition; type_definition = type_definition.supertype()) {
-    if (type_definition.id() == supertype_id)
+    if (type_definition.node_id() == supertype_id)
       return true;
   }
   return false;
@@ -21,14 +21,14 @@ bool IsInstanceOf(const NodeRef& node,
 bool CanCreate(const NodeRef& parent,
                const NodeRef& component_type_definition) {
   for (const auto& creates : parent.targets(id::Creates)) {
-    if (IsSubtypeOf(component_type_definition, creates.id()))
+    if (IsSubtypeOf(component_type_definition, creates.node_id()))
       return true;
   }
 
   for (auto type_definition = parent.type_definition(); type_definition;
        type_definition = type_definition.supertype()) {
     for (const auto& creates : type_definition.targets(id::Creates)) {
-      if (IsSubtypeOf(component_type_definition, creates.id()))
+      if (IsSubtypeOf(component_type_definition, creates.node_id()))
         return true;
     }
   }
@@ -39,7 +39,7 @@ bool CanCreate(const NodeRef& parent,
 std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
   std::vector<NodeRef> result;
 
-  for (auto& component : node.components()) {
+  for (const auto& component : node.targets(scada::id::HasComponent)) {
     if (component.node_class() == scada::NodeClass::Variable)
       result.emplace_back(component);
   }

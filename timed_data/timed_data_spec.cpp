@@ -57,7 +57,7 @@ void TimedDataSpec::Connect(TimedDataService& service,
 }
 
 void TimedDataSpec::Connect(TimedDataService& service, const NodeRef& node) {
-  SetData(service.GetNodeTimedData(node.id()));
+  SetData(service.GetNodeTimedData(node.node_id()));
 }
 
 base::string16 TimedDataSpec::GetCurrentString(int params) const {

@@ -28,7 +28,7 @@ TimedDataImpl::TimedDataImpl(const NodeRef& node,
   SetNode(node);
 
   monitored_value_ = monitored_item_service_.CreateMonitoredItem(
-      {node_.id(), scada::AttributeId::Value});
+      {node_.node_id(), scada::AttributeId::Value});
   if (!monitored_value_) {
     Delete();
     return;
@@ -50,7 +50,7 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
     return;
 
   if (node_) {
-    event_manager_.RemoveItemObserver(node_.id(), *this);
+    event_manager_.RemoveItemObserver(node_.node_id(), *this);
     node_.Unsubscribe(*this);
   }
 
@@ -58,9 +58,9 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
 
   if (node_) {
     node_.Subscribe(*this);
-    event_manager_.AddItemObserver(node_.id(), *this);
+    event_manager_.AddItemObserver(node_.node_id(), *this);
 
-    alerting_ = event_manager_.IsAlerting(node_.id());
+    alerting_ = event_manager_.IsAlerting(node_.node_id());
   }
 }
 
@@ -79,7 +79,7 @@ void TimedDataImpl::Write(double value,
     return;
   }
 
-  attribute_service_.Write(node.id(), value, user_id, flags, callback);
+  attribute_service_.Write(node.node_id(), value, user_id, flags, callback);
 }
 
 void TimedDataImpl::Call(const scada::NodeId& method_id,
@@ -93,7 +93,7 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
     return;
   }
 
-  method_service_.Call(node.id(), method_id, arguments, user_id, callback);
+  method_service_.Call(node.node_id(), method_id, arguments, user_id, callback);
 }
 
 void TimedDataImpl::QueryValues() {
@@ -127,7 +127,7 @@ void TimedDataImpl::QueryValues() {
   }
 
   history_service_.HistoryRead(
-      {node_.id(), scada::AttributeId::Value}, from_, to, {},
+      {node_.node_id(), scada::AttributeId::Value}, from_, to, {},
       [message_loop, weak_ptr, range](const scada::Status& status,
                                       scada::QueryValuesResults values,
                                       scada::QueryEventsResults events) {
@@ -145,7 +145,7 @@ void TimedDataImpl::OnFromChanged() {
 }
 
 std::string TimedDataImpl::GetFormula(bool aliases) const {
-  return MakeNodeIdFormula(node_.id());
+  return MakeNodeIdFormula(node_.node_id());
 }
 
 scada::LocalizedText TimedDataImpl::GetTitle() const {
@@ -153,7 +153,7 @@ scada::LocalizedText TimedDataImpl::GetTitle() const {
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
-  assert(node_id == node_.id());
+  assert(node_id == node_.node_id());
 
   NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
@@ -176,7 +176,7 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
                                         const events::EventSet& events) {
-  assert(node_id == node_.id());
+  assert(node_id == node_.node_id());
 
   alerting_ = !events.empty();
   NotifyEventsChanged();
@@ -238,13 +238,13 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 
 const events::EventSet* TimedDataImpl::GetEvents() const {
   if (auto node = GetNode())
-    return event_manager_.GetItemUnackedEvents(node.id());
+    return event_manager_.GetItemUnackedEvents(node.node_id());
   return nullptr;
 }
 
 void TimedDataImpl::Acknowledge() {
   if (auto node = GetNode())
-    event_manager_.AcknowledgeItemEvents(node.id());
+    event_manager_.AcknowledgeItemEvents(node.node_id());
 }
 
 }  // namespace rt

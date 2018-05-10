@@ -211,7 +211,7 @@ TEST(AddressSpaceNodeService, ReferencedNodeDeletionAndRestoration) {
 
   EXPECT_TRUE(node.fetched());
   EXPECT_FALSE(node.status());
-  EXPECT_EQ(node.id(), saved_node_state.node_id);
+  EXPECT_EQ(node.node_id(), saved_node_state.node_id);
   EXPECT_EQ(node.display_name(),
             scada::ToLocalizedText(NodeIdToScadaString(kNodeId)));
 
@@ -232,6 +232,6 @@ TEST(AddressSpaceNodeService, ReferencedNodeDeletionAndRestoration) {
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
-  EXPECT_EQ(node.id(), kNodeId);
+  EXPECT_EQ(node.node_id(), kNodeId);
   EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);
 }
