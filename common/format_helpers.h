@@ -30,8 +30,8 @@ inline std::string Format(scada::Qualifier qualifier) {
 }
 
 inline std::string Format(const scada::DataValue& value) {
-  return base::StringPrintf("value={%lf}, qualifier={%s}, time={%s}, collection_time={%s}",
-      value.value, Format(value.qualifier).c_str(),
+  return base::StringPrintf("value={%s}, qualifier={%s}, time={%s}, collection_time={%s}",
+      ToString(value.value).c_str(), Format(value.qualifier).c_str(),
       FormatTime(value.source_timestamp).c_str(),
       FormatTime(value.server_timestamp).c_str());
 }
