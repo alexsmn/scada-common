@@ -70,31 +70,29 @@ MasterDataServices::~MasterDataServices() {
 }
 
 void MasterDataServices::SetServices(DataServices&& services) {
-  if (services_.view_service_)
-    services_.view_service_->Unsubscribe(*this);
-  if (services_.session_service_)
-    services_.session_service_->RemoveObserver(*this);
+  if (connected_) {
+    OnSessionDeleted(scada::StatusCode::Good);
 
-  services_ = std::move(services);
-
-  if (services_.view_service_)
-    services_.view_service_->Subscribe(*this);
-  if (services_.session_service_)
-    services_.session_service_->AddObserver(*this);
-
-  connected_ = services_.session_service_ != nullptr;
-
-  {
-    const scada::ModelChangeEvent event{
-        scada::id::RootFolder, scada::id::FolderType,
-        scada::ModelChangeEvent::ReferenceAdded |
-            scada::ModelChangeEvent::ReferenceDeleted};
-    for (auto& e : view_events_)
-      e.OnModelChanged(event);
+    if (services_.view_service_)
+      services_.view_service_->Unsubscribe(*this);
+    if (services_.session_service_)
+      services_.session_service_->RemoveObserver(*this);
   }
 
-  for (auto* monitored_item : monitored_items_)
-    monitored_item->Reconnect();
+  services_ = std::move(services);
+  connected_ = services_.session_service_ != nullptr;
+
+  if (connected_) {
+    if (services_.view_service_)
+      services_.view_service_->Subscribe(*this);
+    if (services_.session_service_)
+      services_.session_service_->AddObserver(*this);
+
+    OnSessionCreated();
+
+    for (auto* monitored_item : monitored_items_)
+      monitored_item->Reconnect();
+  }
 }
 
 void MasterDataServices::Connect(const std::string& host,
