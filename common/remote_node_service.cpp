@@ -12,7 +12,7 @@
 
 RemoteNodeService::RemoteNodeService(RemoteNodeServiceContext&& context)
     : RemoteNodeServiceContext(std::move(context)),
-      node_fetcher_{MakeNodeFetcherContext()},
+      node_fetcher_{MakeNodeFetcherImplContext()},
       node_children_fetcher_{MakeNodeChildrenFetcherContext()} {
   view_service_.Subscribe(*this);
 }
@@ -37,7 +37,7 @@ std::shared_ptr<RemoteNodeModel> RemoteNodeService::GetNodeImpl(
 
   if (!node) {
     node = std::make_shared<RemoteNodeModel>(*this, node_id);
-    node->Fetch(NodeFetchStatus::NodeOnly(), nullptr);
+    //    node->Fetch(NodeFetchStatus::Max(), nullptr);
   }
 
   return node;
@@ -92,16 +92,22 @@ void RemoteNodeService::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
 
 void RemoteNodeService::OnFetchNode(const scada::NodeId& node_id,
                                     const NodeFetchStatus& requested_status) {
-  if (channel_opened_)
+  if (!channel_opened_) {
+    pending_fetch_nodes_[node_id] |= requested_status;
+    return;
+  }
+
+  if (requested_status.node_fetched)
     node_fetcher_.Fetch(node_id);
-  else
-    pending_fetch_nodes_[node_id] = requested_status;
+  if (requested_status.children_fetched)
+    node_children_fetcher_.Fetch(node_id);
 }
 
-NodeFetcherContext RemoteNodeService::MakeNodeFetcherContext() {
+NodeFetcherImplContext RemoteNodeService::MakeNodeFetcherImplContext() {
   auto fetch_completed_handler =
       [this](std::vector<scada::NodeState>&& node_states,
              NodeFetchErrors&& errors) {
+        // Must update all nodes at first, then notify all together.
         // TODO: Simplify
         for (auto& node_state : node_states) {
           auto i = nodes_.find(node_state.node_id);
@@ -110,16 +116,28 @@ NodeFetcherContext RemoteNodeService::MakeNodeFetcherContext() {
                 std::make_shared<RemoteNodeModel>(*this, node_state.node_id);
             i = nodes_.emplace(node_state.node_id, std::move(model)).first;
           }
-          i->second->OnNodeFetched(scada::StatusCode::Good, std::move(node_state));
+          i->second->OnNodeFetched(std::move(node_state));
         }
+
+        for (auto& node_state : node_states) {
+          auto i = nodes_.find(node_state.node_id);
+          if (i != nodes_.end()) {
+            auto fetch_status = i->second->GetFetchStatus();
+            if (!fetch_status.node_fetched) {
+              fetch_status.node_fetched = true;
+              i->second->SetFetchStatus(scada::StatusCode::Good, fetch_status);
+            }
+          }
+        }
+
+        // Errors
         for (auto& [node_id, status] : errors) {
           auto i = nodes_.find(node_id);
           if (i == nodes_.end()) {
-            auto model =
-                std::make_shared<RemoteNodeModel>(*this, node_id);
+            auto model = std::make_shared<RemoteNodeModel>(*this, node_id);
             i = nodes_.emplace(node_id, std::move(model)).first;
           }
-          i->second->OnNodeFetched(std::move(status), {});
+          i->second->SetFetchStatus(std::move(status), NodeFetchStatus::Max());
         }
       };
 
@@ -162,4 +180,3 @@ void RemoteNodeService::OnChannelClosed() {
 
   channel_opened_ = false;
 }
-

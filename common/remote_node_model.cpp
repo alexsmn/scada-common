@@ -22,11 +22,10 @@ void RemoteNodeModel::OnModelChanged(const scada::ModelChangeEvent& event) {
       o.OnModelChanged(event);
   }
 
-  if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
+  /*if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
                     scada::ModelChangeEvent::ReferenceDeleted)) {
-    pending_status_.children_fetched = true;
     service_.OnFetchNode(node_id_, pending_status_);
-  }
+  }*/
 }
 
 void RemoteNodeModel::OnNodeSemanticChanged() {
@@ -34,13 +33,15 @@ void RemoteNodeModel::OnNodeSemanticChanged() {
     o.OnNodeSemanticChanged(node_id_);
 }
 
-void RemoteNodeModel::OnNodeFetched(scada::Status&& status,
-                                    scada::NodeState&& node_state) {
+void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
   parent_ = service_.GetNodeImpl(node_state.parent_id);
+//  assert(!parent_ || parent_->GetFetchStatus().node_fetched);
 
   node_class_ = node_state.node_class;
   attributes_ = std::move(node_state.attributes);
   data_type_ = service_.GetNodeImpl(node_state.attributes.data_type);
+
+//  assert(!data_type_ || data_type_->GetFetchStatus().node_fetched);
 
   references_.clear();
   for (auto& reference : node_state.references) {
@@ -48,8 +49,13 @@ void RemoteNodeModel::OnNodeFetched(scada::Status&& status,
                   service_.GetNodeImpl(reference.node_id), reference.forward});
   }
 
-  pending_status_.node_fetched = false;
-  SetFetchStatus(status, NodeFetchStatus::NodeOnly());
+  if (!node_state.type_definition_id.is_null())
+    type_definition_ = service_.GetNodeImpl(node_state.type_definition_id);
+  assert(scada::IsTypeDefinition(node_state.node_class) || type_definition_);
+//  assert(!type_definition_ || type_definition_->GetFetchStatus().node_fetched);
+
+  if (!node_state.super_type_id.is_null())
+    supertype_ = service_.GetNodeImpl(node_state.super_type_id);
 
   {
     auto type_definition_id =
@@ -79,8 +85,9 @@ void RemoteNodeModel::OnChildrenFetched(const ReferenceMap& references) {
     }
   }
 
-  pending_status_.children_fetched = false;
-  SetFetchStatus(status_, NodeFetchStatus::NodeAndChildren());
+  auto fetch_status = fetch_status_;
+  fetch_status.children_fetched = true;
+  SetFetchStatus(status_, fetch_status);
 
   {
     auto type_definition_id =
@@ -175,7 +182,7 @@ NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
       return supertype_;
 
     assert(reference_type_id == scada::id::HierarchicalReferences);
-    return parent_.lock();
+    return parent_;
   }
 
   return nullptr;
@@ -306,17 +313,17 @@ NodeRef RemoteNodeModel::GetDataType() const {
 }
 
 void RemoteNodeModel::AddReference(const NodeModelImplReference& reference) {
-  //  assert(reference.reference_type.fetched());
-  //  assert(reference.target.fetched());
+//  assert(reference.reference_type->GetFetchStatus().node_fetched);
+//  assert(reference.target->GetFetchStatus().node_fetched);
 
   if (reference.forward) {
-    if (IsSubtypeOf(reference.reference_type, scada::id::HasTypeDefinition))
-      type_definition_ = reference.target;
+//    if (IsSubtypeOf(reference.reference_type, scada::id::HasTypeDefinition))
+//      type_definition_ = reference.target;
     references_.push_back(reference);
 
   } else {
-    if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))
-      supertype_ = reference.target;
+//    if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))
+//      supertype_ = reference.target;
   }
 }
 
@@ -328,13 +335,6 @@ void RemoteNodeModel::SetError(const scada::Status& status) {
 
 void RemoteNodeModel::OnFetchRequested(
     const NodeFetchStatus& requested_status) {
-  auto new_status = pending_status_;
-  new_status |= requested_status;
-
-  if (pending_status_ == new_status)
-    return;
-
-  pending_status_ = new_status;
   service_.OnFetchNode(node_id_, requested_status);
 }
 

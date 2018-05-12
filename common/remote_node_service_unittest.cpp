@@ -44,7 +44,11 @@ TEST(RemoteNodeService, FetchNode) {
       attribute_service,
   }};
 
-  std::vector<scada::ReadValueId> pending_read_ids;
+  auto node = node_service.GetNode(address_space.kTestNode1Id);
+  node.Fetch(NodeFetchStatus::NodeOnly());
+  EXPECT_TRUE(node.fetched());
+
+  /*std::vector<scada::ReadValueId> pending_read_ids;
   scada::ReadCallback pending_read_callback;
   EXPECT_CALL(attribute_service, Read(_, _))
       .WillOnce(Invoke([&](const std::vector<scada::ReadValueId>& read_ids,
@@ -84,12 +88,12 @@ TEST(RemoteNodeService, FetchNode) {
     }
     pending_read_callback(scada::StatusCode::Good, std::move(read_results));
 
-    /*EXPECT_TRUE(node.fetched());
-    EXPECT_EQ(address_space.kRootNode.browse_name, node.browse_name());*/
+    //EXPECT_TRUE(node.fetched());
+    //EXPECT_EQ(address_space.kRootNode.browse_name, node.browse_name());
   }
 
   // Read fails.
   {
     // TODO:
-  }
+  }*/
 }

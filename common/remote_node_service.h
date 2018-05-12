@@ -2,7 +2,7 @@
 
 #include "base/observer_list.h"
 #include "common/node_children_fetcher.h"
-#include "common/node_fetcher.h"
+#include "common/node_fetcher_impl.h"
 #include "common/node_service.h"
 #include "core/view_service.h"
 
@@ -11,7 +11,7 @@
 namespace scada {
 class AttributeService;
 struct ModelChangeEvent;
-}
+}  // namespace scada
 
 class Logger;
 class NodeFetcher;
@@ -49,7 +49,7 @@ class RemoteNodeService : private RemoteNodeServiceContext,
   void OnFetchNode(const scada::NodeId& node_id,
                    const NodeFetchStatus& requested_status);
 
-  NodeFetcherContext MakeNodeFetcherContext();
+  NodeFetcherImplContext MakeNodeFetcherImplContext();
   NodeChildrenFetcherContext MakeNodeChildrenFetcherContext();
 
   // scada::ViewService
@@ -60,7 +60,7 @@ class RemoteNodeService : private RemoteNodeServiceContext,
 
   std::map<scada::NodeId, std::shared_ptr<RemoteNodeModel>> nodes_;
 
-  NodeFetcher node_fetcher_;
+  NodeFetcherImpl node_fetcher_;
   NodeChildrenFetcher node_children_fetcher_;
 
   bool channel_opened_ = false;

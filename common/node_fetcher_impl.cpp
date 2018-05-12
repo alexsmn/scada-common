@@ -1,4 +1,4 @@
-#include "common/node_fetcher.h"
+#include "common/node_fetcher_impl.h"
 
 #include "base/logger.h"
 #include "common/node_id_util.h"
@@ -114,12 +114,12 @@ inline void Erase(std::vector<T>& c, const T& v) {
 
 }  // namespace
 
-NodeFetcher::NodeFetcher(NodeFetcherContext&& context)
-    : NodeFetcherContext{std::move(context)} {}
+NodeFetcherImpl::NodeFetcherImpl(NodeFetcherImplContext&& context)
+    : NodeFetcherImplContext{std::move(context)} {}
 
-NodeFetcher::~NodeFetcher() {}
+NodeFetcherImpl::~NodeFetcherImpl() {}
 
-NodeFetcher::FetchingNode* NodeFetcher::FetchingNodeGraph::FindNode(
+NodeFetcherImpl::FetchingNode* NodeFetcherImpl::FetchingNodeGraph::FindNode(
     const scada::NodeId& node_id) {
   assert(!node_id.is_null());
 
@@ -127,7 +127,7 @@ NodeFetcher::FetchingNode* NodeFetcher::FetchingNodeGraph::FindNode(
   return i != fetching_nodes_.end() ? &i->second : nullptr;
 }
 
-NodeFetcher::FetchingNode& NodeFetcher::FetchingNodeGraph::AddNode(
+NodeFetcherImpl::FetchingNode& NodeFetcherImpl::FetchingNodeGraph::AddNode(
     const scada::NodeId& node_id) {
   assert(!node_id.is_null());
 
@@ -139,11 +139,11 @@ NodeFetcher::FetchingNode& NodeFetcher::FetchingNodeGraph::AddNode(
   return node;
 }
 
-void NodeFetcher::Fetch(const scada::NodeId& node_id,
-                        bool fetch_parent,
-                        const scada::NodeId& parent_id,
-                        const scada::NodeId& reference_type_id,
-                        bool force) {
+void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
+                            bool fetch_parent,
+                            const scada::NodeId& parent_id,
+                            const scada::NodeId& reference_type_id,
+                            bool force) {
   assert(AssertValid());
 
   auto& node = fetching_nodes_.AddNode(node_id);
@@ -167,7 +167,7 @@ void NodeFetcher::Fetch(const scada::NodeId& node_id,
   assert(AssertValid());
 }
 
-void NodeFetcher::FetchNode(FetchingNode& node) {
+void NodeFetcherImpl::FetchNode(FetchingNode& node) {
   if (node.pending)
     return;
 
@@ -197,7 +197,7 @@ void NodeFetcher::FetchNode(FetchingNode& node) {
   FetchPendingNodes();
 }
 
-void NodeFetcher::Cancel(const scada::NodeId& node_id) {
+void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
   assert(AssertValid());
 
   logger_.WriteF(LogSeverity::Normal, "Cancel fetch node %s",
@@ -227,7 +227,8 @@ void NodeFetcher::Cancel(const scada::NodeId& node_id) {
   assert(AssertValid());
 }
 
-void NodeFetcher::FetchingNodeGraph::RemoveNode(const scada::NodeId& node_id) {
+void NodeFetcherImpl::FetchingNodeGraph::RemoveNode(
+    const scada::NodeId& node_id) {
   assert(AssertValid());
 
   auto i = fetching_nodes_.find(node_id);
@@ -243,7 +244,7 @@ void NodeFetcher::FetchingNodeGraph::RemoveNode(const scada::NodeId& node_id) {
   assert(AssertValid());
 }
 
-void NodeFetcher::FetchPendingNodes() {
+void NodeFetcherImpl::FetchPendingNodes() {
   if (pending_queue_.empty() || running_request_count_ != 0)
     return;
 
@@ -265,7 +266,7 @@ void NodeFetcher::FetchPendingNodes() {
   assert(AssertValid());
 }
 
-void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
+void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   logger_.WriteF(LogSeverity::Normal, "Fetch nodes (%Iu)", nodes.size());
 
   // Increment immediately for the case OnReadResult happens synchronously.
@@ -333,7 +334,7 @@ void NodeFetcher::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
       });
 }
 
-void NodeFetcher::NotifyFetchedNodes() {
+void NodeFetcherImpl::NotifyFetchedNodes() {
   auto [nodes, errors] = fetching_nodes_.GetFetchedNodes();
   if (nodes.empty() && errors.empty())
     return;
@@ -368,20 +369,20 @@ void NodeFetcher::NotifyFetchedNodes() {
   fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
 
-void NodeFetcher::FetchingNode::ClearDependentNodes() {
+void NodeFetcherImpl::FetchingNode::ClearDependentNodes() {
   for (auto* dependent_node : dependent_nodes)
     Erase(dependent_node->depends_of, this);
   dependent_nodes.clear();
 }
 
-void NodeFetcher::FetchingNode::ClearDependsOf() {
+void NodeFetcherImpl::FetchingNode::ClearDependsOf() {
   for (auto* depends_of : depends_of)
     Erase(depends_of->dependent_nodes, this);
   depends_of.clear();
 }
 
 std::pair<std::vector<scada::NodeState>, NodeFetchErrors>
-NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
+NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
   struct Collector {
@@ -444,11 +445,12 @@ NodeFetcher::FetchingNodeGraph::GetFetchedNodes() {
   return {std::move(fetched_nodes), std::move(errors)};
 }
 
-void NodeFetcher::OnReadResult(unsigned request_id,
-                               base::TimeTicks start_ticks,
-                               scada::Status&& status,
-                               const std::vector<scada::ReadValueId>& read_ids,
-                               std::vector<scada::DataValue>&& results) {
+void NodeFetcherImpl::OnReadResult(
+    unsigned request_id,
+    base::TimeTicks start_ticks,
+    scada::Status&& status,
+    const std::vector<scada::ReadValueId>& read_ids,
+    std::vector<scada::DataValue>&& results) {
   assert(AssertValid());
 
   auto duration = base::TimeTicks::Now() - start_ticks;
@@ -504,7 +506,7 @@ void NodeFetcher::OnReadResult(unsigned request_id,
   assert(AssertValid());
 }
 
-void NodeFetcher::OnBrowseResult(
+void NodeFetcherImpl::OnBrowseResult(
     unsigned request_id,
     base::TimeTicks start_ticks,
     scada::Status&& status,
@@ -564,14 +566,14 @@ void NodeFetcher::OnBrowseResult(
   assert(AssertValid());
 }
 
-void NodeFetcher::FetchingNodeGraph::AddDependency(FetchingNode& node,
-                                                   FetchingNode& from) {
+void NodeFetcherImpl::FetchingNodeGraph::AddDependency(FetchingNode& node,
+                                                       FetchingNode& from) {
   assert(&node != &from);
   Insert(from.dependent_nodes, &node);
   Insert(node.depends_of, &from);
 }
 
-void NodeFetcher::AddFetchedReference(
+void NodeFetcherImpl::AddFetchedReference(
     FetchingNode& node,
     const scada::BrowseDescription& description,
     scada::ReferenceDescription&& reference) {
@@ -606,8 +608,10 @@ void NodeFetcher::AddFetchedReference(
     child.parent_id = description.node_id;
     child.force |= node.force;
 
-    if (reference.reference_type_id == scada::id::HasProperty)
+    if (reference.reference_type_id == scada::id::HasProperty) {
+      child.node_class = scada::NodeClass::Variable;
       child.type_definition_id = scada::id::PropertyType;
+    }
 
     fetching_nodes_.AddDependency(child, node);
     if (description.reference_type_id == scada::id::Aggregates)
@@ -634,7 +638,7 @@ void NodeFetcher::AddFetchedReference(
   }
 }
 
-bool NodeFetcher::AssertValid() const {
+bool NodeFetcherImpl::AssertValid() const {
   for (auto* node : pending_queue_) {
     assert(node->pending);
     if (!node->pending)
@@ -674,12 +678,12 @@ bool NodeFetcher::AssertValid() const {
   return fetching_nodes_.AssertValid();
 }
 
-bool NodeFetcher::FetchingNodeGraph::AssertValid() const {
+bool NodeFetcherImpl::FetchingNodeGraph::AssertValid() const {
   return true;
 }
 
-void NodeFetcher::ValidateDependency(FetchingNode& node,
-                                     const scada::NodeId& from_id) {
+void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
+                                         const scada::NodeId& from_id) {
   assert(!from_id.is_null());
   if (!node_validator_(from_id)) {
     auto& from = fetching_nodes_.AddNode(from_id);

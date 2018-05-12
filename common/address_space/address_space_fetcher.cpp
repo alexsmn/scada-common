@@ -46,7 +46,7 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
 
 AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
     : AddressSpaceFetcherContext{std::move(context)},
-      node_fetcher_{MakeNodeFetcherContext()},
+      node_fetcher_{MakeNodeFetcherImplContext()},
       node_children_fetcher_{MakeNodeChildrenFetcherContext()},
       fetch_status_tracker_{
           {node_fetch_status_changed_handler_, address_space_}} {
@@ -120,7 +120,7 @@ void AddressSpaceFetcher::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
     node_fetcher_.Fetch(node_id, false, {}, {}, true);
 }
 
-NodeFetcherContext AddressSpaceFetcher::MakeNodeFetcherContext() {
+NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {
   auto fetch_completed_handler = [this](std::vector<scada::NodeState>&&
                                             fetched_nodes,
                                         NodeFetchErrors&& errors) {

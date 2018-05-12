@@ -35,7 +35,7 @@ class RemoteNodeModel final
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
 
-  void OnNodeFetched(scada::Status&& status, scada::NodeState&& node_state);
+  void OnNodeFetched(scada::NodeState&& node_state);
   void OnChildrenFetched(const ReferenceMap& references);
 
   // NodeModel
@@ -80,13 +80,12 @@ class RemoteNodeModel final
 
   std::optional<scada::NodeClass> node_class_;
   scada::NodeAttributes attributes_;
-  NodeFetchStatus pending_status_;
   scada::Status status_{scada::StatusCode::Good};
 
   std::vector<NodeModelImplReference> references_;
   std::vector<NodeModelImplReference> child_references_;
 
-  std::weak_ptr<const RemoteNodeModel> parent_;
+  std::shared_ptr<const RemoteNodeModel> parent_;
 
   std::shared_ptr<const RemoteNodeModel> type_definition_;
   std::shared_ptr<const RemoteNodeModel> supertype_;

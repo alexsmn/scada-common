@@ -1,4 +1,4 @@
-#include "node_fetcher.h"
+#include "node_fetcher_impl.h"
 
 #include "base/logger.h"
 #include "common/node_id_util.h"
@@ -24,7 +24,7 @@ struct TestContext {
 
   TestAddressSpace address_space;
 
-  NodeFetcher node_fetcher{NodeFetcherContext{
+  NodeFetcherImpl node_fetcher{NodeFetcherImplContext{
       logger,
       address_space,
       address_space,
