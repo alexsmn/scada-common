@@ -27,6 +27,7 @@ class BaseNodeModel : public NodeModel {
   scada::Status status_{scada::StatusCode::Good};
 
   NodeFetchStatus fetch_status_{};
+  mutable NodeFetchStatus fetching_status_{};
   mutable std::vector<std::pair<NodeFetchStatus, FetchCallback>>
       fetch_callbacks_;
 

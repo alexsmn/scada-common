@@ -49,6 +49,10 @@ SessionProxy::SessionProxy(SessionProxyContext&& context)
 }
 
 SessionProxy::~SessionProxy() {
+  Disconnect();
+}
+
+void SessionProxy::Disconnect() {
   if (session_created_) {
     protocol::Request request;
     auto& delete_session = *request.mutable_delete_session();
@@ -255,8 +259,10 @@ void SessionProxy::Connect(const std::string& host,
                            const scada::LocalizedText& user_name,
                            const std::string& password,
                            bool allow_remote_logoff,
-                           ConnectCallback callback) {
+                           const scada::StatusCallback& callback) {
   assert(!transport_);
+
+  Disconnect();
 
   user_name_ = user_name;
   password_ = password;
@@ -264,6 +270,10 @@ void SessionProxy::Connect(const std::string& host,
   allow_remote_logoff_ = allow_remote_logoff;
   connect_callback_ = std::move(callback);
 
+  Reconnect();
+}
+
+void SessionProxy::Connect() {
   std::string connection_string =
       base::StringPrintf("Host=%s;Port=2000", host_.c_str());
 
@@ -377,6 +387,11 @@ void SessionProxy::Call(const scada::NodeId& node_id,
 std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id) {
   return subscription_->CreateMonitoredItem(read_value_id);
+}
+
+void SessionProxy::Reconnect() {
+  Disconnect();
+  Connect();
 }
 
 bool SessionProxy::IsConnected(base::TimeDelta* ping_delay) const {

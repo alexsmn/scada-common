@@ -71,6 +71,9 @@ MasterDataServices::~MasterDataServices() {
 
 void MasterDataServices::SetServices(DataServices&& services) {
   if (connected_) {
+    connected_ = false;
+    services_ = {};
+
     OnSessionDeleted(scada::StatusCode::Good);
 
     if (services_.view_service_)
@@ -99,12 +102,17 @@ void MasterDataServices::Connect(const std::string& host,
                                  const scada::LocalizedText& user_name,
                                  const std::string& password,
                                  bool allow_remote_logoff,
-                                 ConnectCallback callback) {
+                                 const scada::StatusCallback& callback) {
   if (!services_.session_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
   services_.session_service_->Connect(host, user_name, password,
                                       allow_remote_logoff, std::move(callback));
+}
+
+void MasterDataServices::Reconnect() {
+  if (services_.session_service_)
+    services_.session_service_->Reconnect();
 }
 
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {

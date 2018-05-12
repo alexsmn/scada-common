@@ -16,12 +16,12 @@ void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
   } else {
     if (callback)
       fetch_callbacks_.emplace_back(requested_status, callback);
-
-    request = true;
   }
 
-  if (request || !status_)
-    const_cast<BaseNodeModel*>(this)->OnFetchRequested(requested_status);
+  if (fetching_status_ <= requested_status || !status_) {
+    fetching_status_ |= requested_status;
+    const_cast<BaseNodeModel*>(this)->OnFetchRequested(fetching_status_);
+  }
 }
 
 scada::Status BaseNodeModel::GetStatus() const {
@@ -56,6 +56,9 @@ void BaseNodeModel::SetFetchStatus(const scada::Status& status,
     return;
 
   fetch_status_ = fetch_status;
+
+  if (fetching_status_ <= fetch_status_)
+    fetching_status_ = {};
 
   std::vector<FetchCallback> callbacks;
   size_t p = 0;

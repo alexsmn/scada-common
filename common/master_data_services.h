@@ -33,7 +33,8 @@ class MasterDataServices final : public scada::AttributeService,
                        const scada::LocalizedText& user_name,
                        const std::string& password,
                        bool allow_remote_logoff,
-                       ConnectCallback callback) override;
+                       const scada::StatusCallback& callback) override;
+  virtual void Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
