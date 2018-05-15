@@ -626,15 +626,13 @@ void NodeFetcherImpl::AddFetchedReference(
     assert(description.reference_type_id ==
            scada::id::NonHierarchicalReferences);
 
-    if (reference.reference_type_id == scada::id::HasTypeDefinition) {
-      node.type_definition_id = std::move(reference.node_id);
-
-    } else {
+    if (reference.reference_type_id == scada::id::HasTypeDefinition)
+      node.type_definition_id = reference.node_id;
+    else
       node.references.emplace_back(reference);
 
-      if (reference.node_id != node.node_id)
-        ValidateDependency(node, reference.node_id);
-    }
+    if (reference.node_id != node.node_id)
+      ValidateDependency(node, reference.node_id);
   }
 }
 

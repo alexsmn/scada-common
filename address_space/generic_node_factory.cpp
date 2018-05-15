@@ -13,6 +13,8 @@
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {
+  assert(!node_state.node_id.is_null());
+
   logger_->WriteF(
       LogSeverity::Normal,
       "CreateNode [node_id=%s, node_class=%s, type_definition_id=%s, "
@@ -23,7 +25,11 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
       NodeIdToScadaString(node_state.parent_id).c_str(),
       NodeIdToScadaString(node_state.reference_type_id).c_str());
 
-  if (node_state.node_id != scada::id::RootFolder) {
+  // TODO: Remove all except scada::id::RootFolder.
+  if (node_state.node_id != scada::id::RootFolder &&
+      node_state.node_id != scada::id::References &&
+      node_state.node_id != scada::id::HierarchicalReferences &&
+      node_state.node_id != scada::id::NonHierarchicalReferences) {
     assert(!node_state.parent_id.is_null());
     assert(!node_state.reference_type_id.is_null());
   }
@@ -33,38 +39,56 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
 
   auto* type_definition =
       AsTypeDefinition(address_space_.GetNode(node_state.type_definition_id));
-  if (!type_definition)
-    throw scada::Status(scada::StatusCode::Bad_WrongTypeId);
 
   std::unique_ptr<scada::Node> node;
   if (node_state.node_class == scada::NodeClass::Object) {
-    if (!type_definition ||
-        type_definition->GetNodeClass() != scada::NodeClass::ObjectType)
+    auto* object_type = scada::AsObjectType(type_definition);
+    if (!object_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
     node = std::make_unique<scada::GenericObject>();
 
   } else if (node_state.node_class == scada::NodeClass::Variable) {
     auto* variable_type = scada::AsVariableType(type_definition);
     if (!variable_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
     auto* data_type = scada::AsDataType(
         address_space_.GetNode(node_state.attributes.data_type));
     if (!data_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
     node = std::make_unique<scada::GenericVariable>(*data_type);
 
-  } else
+  } else if (node_state.node_class == scada::NodeClass::ObjectType) {
+    node = std::make_unique<scada::ObjectType>();
+
+  } else if (node_state.node_class == scada::NodeClass::VariableType) {
+    auto* data_type = scada::AsDataType(
+        address_space_.GetNode(node_state.attributes.data_type));
+    if (!data_type)
+      return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
+    node = std::make_unique<scada::VariableType>(*data_type);
+
+  } else if (node_state.node_class == scada::NodeClass::ReferenceType) {
+    node = std::make_unique<scada::ReferenceType>();
+
+  } else {
+    assert(false);
     return {scada::StatusCode::Bad_WrongNodeClass, nullptr};
+  }
 
   node->set_id(std::move(node_state.node_id));
-
-  scada::AddReference(address_space_, scada::id::HasTypeDefinition, *node,
-                      *type_definition);
-
   if (!node_state.attributes.browse_name.empty())
     node->SetBrowseName(node_state.attributes.browse_name);
   if (!node_state.attributes.display_name.empty())
     node->SetDisplayName(node_state.attributes.display_name);
+
+  if (type_definition) {
+    scada::AddReference(address_space_, scada::id::HasTypeDefinition, *node,
+                        *type_definition);
+  }
 
   for (auto& prop : node_state.properties) {
     /*logger_->WriteF(LogSeverity::Normal, "Property %s[%s] = %s",

@@ -1,17 +1,17 @@
 #include "common/address_space/address_space_updater.h"
 
-#include "base/logger.h"
-#include "common/node_id_util.h"
-#include "common/node_state.h"
 #include "address_space/address_space_impl.h"
-#include "core/configuration_types.h"
-#include "core/node_class.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
-#include "core/standard_node_ids.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/logger.h"
+#include "common/node_id_util.h"
+#include "common/node_state.h"
+#include "core/configuration_types.h"
+#include "core/node_class.h"
+#include "core/standard_node_ids.h"
 
 namespace {
 
@@ -35,12 +35,12 @@ void MergeProperties(
 
   std::map<scada::NodeId, scada::NodeState*> node_map;
 
-  for (auto& node : nodes) {
-    if (node.reference_type_id != scada::id::HasProperty)
+    for (auto& node : nodes) {
+      if (node.reference_type_id != scada::id::HasProperty)
       node_map.emplace(node.node_id, &node);
-  }
+    }
 
-  for (auto& node : nodes) {
+    for (auto& node : nodes) {
     if (node.reference_type_id != scada::id::HasProperty)
       continue;
 
@@ -52,7 +52,7 @@ void MergeProperties(
       auto i = node_map.find(node.parent_id);
       if (i != node_map.end())
         parent_node = i->second;
-    }
+  }
 
     scada::TypeDefinition* type_definition = nullptr;
 
@@ -89,8 +89,8 @@ void MergeProperties(
       properties.emplace_back(property_declaration->id(),
                               std::move(node.attributes.value));
     }
+    }
   }
-}
 
 }  // namespace
 
@@ -114,6 +114,8 @@ void SortNodes(std::vector<scada::NodeState>& nodes) {
     }
 
     void Visit(const scada::NodeId& node_id) {
+      if (node_id.is_null())
+        return;
       auto i = map.find(node_id);
       if (i != map.end())
         Visit(i->second);
@@ -126,7 +128,9 @@ void SortNodes(std::vector<scada::NodeState>& nodes) {
       visited[index] = true;
 
       auto& node = nodes[index];
-      Visit(nodes[index].parent_id);
+      Visit(node.reference_type_id);
+      Visit(node.parent_id);
+      Visit(node.type_definition_id);
 
       sorted_indexes.emplace_back(index);
     }
@@ -200,8 +204,9 @@ void UpdateNodes(AddressSpaceImpl& address_space,
 
     deleted_references.clear();
 
-    for (const auto& ref : FilterReferences(node->forward_references(),
-                                      scada::id::NonHierarchicalReferences)) {
+    for (const auto& ref :
+         FilterReferences(node->forward_references(),
+                          scada::id::NonHierarchicalReferences)) {
       // TODO: Handle type definition update.
       if (ref.type->id() == scada::id::HasTypeDefinition)
         continue;

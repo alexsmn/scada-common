@@ -44,6 +44,8 @@ class AddressSpaceImpl : public scada::AddressSpace {
   // Deletes owned node.
   void RemoveNode(const scada::NodeId& id);
 
+  void Clear();
+
   void ModifyNode(const scada::NodeId& id,
                   scada::NodeAttributes attributes,
                   scada::NodeProperties properties);
@@ -76,9 +78,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
 
   std::shared_ptr<Logger> logger_;
 
-  std::unique_ptr<StandardAddressSpace> standard_address_space_;
-  std::unique_ptr<StaticAddressSpace> static_address_space_;
-
   NodeMap node_map_;
 
   std::map<scada::NodeId, std::unique_ptr<scada::Node>> static_nodes_;
@@ -87,6 +86,16 @@ class AddressSpaceImpl : public scada::AddressSpace {
   mutable std::map<scada::NodeId, NodeEvents> node_events_;
 
   DISALLOW_COPY_AND_ASSIGN(AddressSpaceImpl);
+};
+
+class AddressSpaceImpl2 : public AddressSpaceImpl {
+ public:
+  explicit AddressSpaceImpl2(std::shared_ptr<Logger> logger);
+  ~AddressSpaceImpl2();
+
+ private:
+  std::unique_ptr<StandardAddressSpace> standard_address_space_;
+  std::unique_ptr<StaticAddressSpace> static_address_space_;
 };
 
 template <class T>

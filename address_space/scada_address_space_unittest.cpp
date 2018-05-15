@@ -8,7 +8,7 @@
 #include "address_space/type_definition.h"
 
 TEST(Types, Test) {
-  AddressSpaceImpl cfg(std::make_shared<NullLogger>());
+  AddressSpaceImpl2 cfg(std::make_shared<NullLogger>());
 
   auto* has_component_ref =
       scada::AsReferenceType(cfg.GetNode(scada::id::HasComponent));

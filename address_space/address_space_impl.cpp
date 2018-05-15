@@ -12,7 +12,10 @@
 #include "core/status.h"
 
 AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger)
-    : logger_(std::move(logger)),
+    : logger_(std::move(logger)) {}
+
+AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
+    : AddressSpaceImpl{std::move(logger)},
       standard_address_space_(std::make_unique<StandardAddressSpace>()),
       static_address_space_(
           std::make_unique<StaticAddressSpace>(*standard_address_space_)) {
@@ -45,15 +48,23 @@ AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger)
   AddNode(static_address_space_->DeviceType.Online);
 }
 
+AddressSpaceImpl2::~AddressSpaceImpl2() {
+  Clear();
+}
+
 AddressSpaceImpl::~AddressSpaceImpl() {
+  Clear();
+}
+
+void AddressSpaceImpl::Clear() {
   for (auto& p : node_map_)
     DeleteAllReferences(*p.second);
   node_map_.clear();
 }
 
 void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
-                                   scada::NodeAttributes attributes,
-                                   scada::NodeProperties properties) {
+                                  scada::NodeAttributes attributes,
+                                  scada::NodeProperties properties) {
   auto* node = GetNode(id);
   assert(node);
 
@@ -99,8 +110,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
   auto* parent = address_space.GetNode(parent_id);
   assert(parent);
 
-  AddNodeAndReference(address_space, node, reference_type_id,
-                      *parent);
+  AddNodeAndReference(address_space, node, reference_type_id, *parent);
 }
 
 void AddNodeAndReference(AddressSpaceImpl& address_space,
@@ -153,12 +163,12 @@ void AddressSpaceImpl::Unsubscribe(scada::NodeObserver& events) const {
 }
 
 void AddressSpaceImpl::SubscribeNode(const scada::NodeId& node_id,
-                                      scada::NodeObserver& events) const {
+                                     scada::NodeObserver& events) const {
   node_events_[node_id].AddObserver(&events);
 }
 
 void AddressSpaceImpl::UnsubscribeNode(const scada::NodeId& node_id,
-                                        scada::NodeObserver& events) const {
+                                       scada::NodeObserver& events) const {
   auto i = node_events_.find(node_id);
   assert(i != node_events_.end());
   auto& e = i->second;
@@ -190,7 +200,7 @@ void AddressSpaceImpl::NotifyNodeDeleted(const scada::Node& node) const {
 }
 
 void AddressSpaceImpl::NotifyNodeMoved(const scada::Node& node,
-                                        const scada::Node* top) const {
+                                       const scada::Node* top) const {
   for (auto* parent = &node; parent && parent != top;
        parent = GetParent(*parent)) {
     if (auto* events = GetNodeEvents(node.id())) {
