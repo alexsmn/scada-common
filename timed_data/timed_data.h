@@ -36,7 +36,7 @@ class TimedData {
   virtual scada::DataValue GetDataValue() const = 0;
   virtual base::Time GetChangeTime() const = 0;
 
-  virtual const TimedVQMap* GetValues() const = 0;
+  virtual const DataValues* GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
   virtual void AddObserver(TimedDataDelegate& observer) = 0;

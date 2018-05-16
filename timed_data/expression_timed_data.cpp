@@ -70,30 +70,25 @@ void ExpressionTimedData::CalculateRange(base::Time from,
   assert(!from.is_null());
   assert(to.is_null() || from <= to);
 
-  std::vector<TimedVQMap::const_iterator> iters(operands_.size());
+  std::vector<DataValues::const_iterator> iters(operands_.size());
 
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
     auto& operand = *operands_[i];
     assert(operand.GetReadyFrom() <= from);
 
-    const TimedVQMap* values = operand.GetValues();
+    const DataValues* values = operand.GetValues();
     assert(values);
 
-    TimedVQMap::const_iterator& iterator = iters[i];
-    iterator = values->lower_bound(from);
+    DataValues::const_iterator& iterator = iters[i];
+    iterator = rt::LowerBound(*values, from);
 
     auto& initial_value = expression_->items[i].value;
     if (iterator != values->end()) {
-      initial_value = scada::DataValue(
-          iterator->second.vq.value, iterator->second.vq.qualifier,
-          iterator->first, iterator->second.server_timestamp);
+      initial_value = *iterator;
     } else {
-      TimedVQMap::const_iterator last = --values->end();
-      assert(last->first <= from);
-      initial_value =
-          scada::DataValue(last->second.vq.value, last->second.vq.qualifier,
-                           last->first, last->second.server_timestamp);
+      assert(values->back().source_timestamp <= from);
+      initial_value = values->back();
     }
   }
 
@@ -109,7 +104,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
 
     for (size_t i = 0; i < operands_.size(); ++i) {
       auto& operand = *operands_[i];
-      const TimedVQMap* values = operand.GetValues();
+      const DataValues* values = operand.GetValues();
       assert(values);
 
       ScadaExpression::Item& item = expression_->items[i];
@@ -118,10 +113,10 @@ void ExpressionTimedData::CalculateRange(base::Time from,
         update_time = item.value.source_timestamp;
 
       // Check iterator reached end.
-      TimedVQMap::const_iterator& iterator = iters[i];
+      DataValues::const_iterator& iterator = iters[i];
       if (iterator == values->end())
         continue;
-      const base::Time& time = iterator->first;
+      const base::Time& time = iterator->source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
       if (!to.is_null() && time > to)
@@ -130,9 +125,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
       calculation_finished = false;
 
       // Setup operand value.
-      item.value = scada::DataValue(
-          iterator->second.vq.value, iterator->second.vq.qualifier,
-          iterator->first, iterator->second.server_timestamp);
+      item.value = *iterator;
 
       // Update total qualifier.
       if (item.value.qualifier.bad())

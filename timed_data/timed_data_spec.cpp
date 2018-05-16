@@ -145,7 +145,7 @@ bool TimedDataSpec::historical() const {
   return from_ != kTimedDataCurrentOnly;
 }
 
-const TimedVQMap* TimedDataSpec::values() const {
+const DataValues* TimedDataSpec::values() const {
   return data_ ? data_->GetValues() : nullptr;
 }
 

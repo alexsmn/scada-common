@@ -51,7 +51,7 @@ class TimedDataSpec : private TimedDataDelegate {
   base::Time change_time() const;
 
   // Historical data.
-  const TimedVQMap* values() const;
+  const DataValues* values() const;
   scada::DataValue GetValueAt(base::Time time) const;
 
   NodeRef GetNode() const;

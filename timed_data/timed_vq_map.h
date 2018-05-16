@@ -1,17 +1,38 @@
 #pragma once
 
-#include <map>
+#include "core/data_value.h"
 
-#include "core/date_time.h"
-#include "core/tvq.h"
+#include <algorithm>
+#include <vector>
 
 namespace rt {
 
-struct TimedDataEntry {
-  scada::VQ vq;
-  scada::DateTime server_timestamp;
-};
+using DataValues = std::vector<scada::DataValue>;
 
-typedef std::map<scada::DateTime /*source_timestamp*/, TimedDataEntry> TimedVQMap;
+inline DataValues::iterator LowerBound(DataValues& values, base::Time time) {
+  assert(!time.is_null());
+  return std::lower_bound(values.begin(), values.end(), time,
+                          [](const scada::DataValue& value, base::Time time) {
+                            return value.source_timestamp < time;
+                          });
+}
 
-} // namespace rt
+inline DataValues::iterator UpperBound(DataValues& values, base::Time time) {
+  assert(!time.is_null());
+  return std::upper_bound(values.begin(), values.end(), time,
+                          [](base::Time time, const scada::DataValue& value) {
+                            return time < value.source_timestamp;
+                          });
+}
+
+inline DataValues::const_iterator LowerBound(const DataValues& values,
+                                             base::Time time) {
+  return LowerBound(const_cast<DataValues&>(values), time);
+}
+
+inline DataValues::const_iterator UpperBound(const DataValues& values,
+                                             base::Time time) {
+  return UpperBound(const_cast<DataValues&>(values), time);
+}
+
+}  // namespace rt

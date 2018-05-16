@@ -18,16 +18,15 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   if (!historical())
     return current_.source_timestamp <= time ? current_ : scada::DataValue();
 
-  auto i = map_.lower_bound(time);
-  if (i == map_.end())
-    return scada::DataValue();
+  auto i = rt::LowerBound(values_, time);
+  if (i == values_.end())
+    return {};
 
   --i;
-  if (i == map_.end())
-    return scada::DataValue();
+  if (i == values_.end())
+    return {};
 
-  return scada::DataValue(i->second.vq.value, i->second.vq.qualifier, i->first,
-                          i->second.server_timestamp);
+  return *i;
 }
 
 void BaseTimedData::AddObserver(TimedDataDelegate& observer) {
@@ -135,14 +134,25 @@ bool BaseTimedData::UpdateMap(const scada::DataValue& value) {
   if (value.source_timestamp.is_null())
     return false;
 
-  TimedDataEntry& entry = map_[value.source_timestamp];
-  if (entry.server_timestamp > value.server_timestamp)
-    return false;
+  // An optimization for the back inserts.
+  if (values_.empty() ||
+      values_.back().source_timestamp < value.source_timestamp) {
+    values_.emplace_back(value);
+    return true;
+  }
 
-  entry.vq.value = value.value;
-  entry.vq.qualifier = value.qualifier;
-  entry.server_timestamp = value.server_timestamp;
-  return true;
+  auto i = LowerBound(values_, value.source_timestamp);
+  if (i != values_.end() && i->source_timestamp == value.source_timestamp) {
+    if (i->server_timestamp > value.server_timestamp)
+      return false;
+
+    *i = value;
+    return true;
+
+  } else {
+    values_.insert(i, value);
+    return true;
+  }
 }
 
 bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
@@ -167,14 +177,9 @@ void BaseTimedData::ClearRange(base::Time from, base::Time to) {
   assert(!from.is_null());
   assert(to.is_null() || from <= to);
 
-  auto i = map_.lower_bound(from);
-  if (i == map_.end())
-    return;
-
-  assert(i->first >= from);
-
-  auto j = to.is_null() ? map_.end() : map_.lower_bound(to);
-  map_.erase(i, j);
+  auto i = LowerBound(values_, from);
+  auto j = to.is_null() ? values_.end() : UpperBound(values_, to);
+  values_.erase(i, j);
 }
 
 }  // namespace rt

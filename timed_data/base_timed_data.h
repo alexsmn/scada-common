@@ -11,16 +11,16 @@ class BaseTimedData : public TimedData {
   ~BaseTimedData();
 
   // TimedData
-  virtual void SetFrom(base::Time from) final;
-  virtual base::Time GetFrom() const final { return from_; }
-  virtual base::Time GetReadyFrom() const final { return ready_from_; }
-  virtual bool IsAlerting() const final { return alerting_; }
-  virtual scada::DataValue GetDataValue() const final { return current_; }
-  virtual base::Time GetChangeTime() const final { return change_time_; }
-  virtual const TimedVQMap* GetValues() const final { return &map_; }
-  virtual scada::DataValue GetValueAt(const base::Time& time) const final;
-  virtual void AddObserver(TimedDataDelegate& observer) final;
-  virtual void RemoveObserver(TimedDataDelegate& observer) final;
+  virtual void SetFrom(base::Time from) override;
+  virtual base::Time GetFrom() const override { return from_; }
+  virtual base::Time GetReadyFrom() const override { return ready_from_; }
+  virtual bool IsAlerting() const override { return alerting_; }
+  virtual scada::DataValue GetDataValue() const override { return current_; }
+  virtual base::Time GetChangeTime() const override { return change_time_; }
+  virtual const DataValues* GetValues() const override { return &values_; }
+  virtual scada::DataValue GetValueAt(const base::Time& time) const override;
+  virtual void AddObserver(TimedDataDelegate& observer) override;
+  virtual void RemoveObserver(TimedDataDelegate& observer) override;
   virtual NodeRef GetNode() const { return nullptr; }
   virtual const events::EventSet* GetEvents() const { return nullptr; }
   virtual void Acknowledge() {}
@@ -70,7 +70,7 @@ class BaseTimedData : public TimedData {
   // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
   base::Time ready_from_ = kTimedDataCurrentOnly;
 
-  TimedVQMap map_;
+  DataValues values_;
 
   DISALLOW_COPY_AND_ASSIGN(BaseTimedData);
 };
