@@ -13,7 +13,6 @@ class HistoryService {
   virtual void HistoryReadRaw(const NodeId& node_id,
                               base::Time from,
                               base::Time to,
-                              const ContinuationPoint& continuation_point,
                               const HistoryReadRawCallback& callback) = 0;
 
   virtual void HistoryReadEvents(const NodeId& node_id,

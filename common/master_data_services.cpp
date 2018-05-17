@@ -302,13 +302,11 @@ void MasterDataServices::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
-    const scada::ContinuationPoint& continuation_point,
     const scada::HistoryReadRawCallback& callback) {
   if (!services_.history_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {}, {});
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.history_service_->HistoryReadRaw(node_id, from, to,
-                                             continuation_point, callback);
+  services_.history_service_->HistoryReadRaw(node_id, from, to, callback);
 }
 
 void MasterDataServices::HistoryReadEvents(

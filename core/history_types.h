@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "core/data_value.h"
@@ -23,12 +22,8 @@ struct ItemInfo {
 using ItemInfosCallback =
     std::function<void(std::vector<ItemInfo>&& item_infos)>;
 
-using ContinuationPoint = std::string;
-
 using HistoryReadRawCallback =
-    std::function<void(Status&&,
-                       std::vector<DataValue>&& values,
-                       scada::ContinuationPoint&& continuation_point)>;
+    std::function<void(Status&&, std::vector<DataValue>&& values)>;
 
 using HistoryReadEventsCallback =
     std::function<void(Status&& status, std::vector<Event>&& events)>;

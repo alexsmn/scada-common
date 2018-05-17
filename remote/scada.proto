@@ -268,7 +268,6 @@ message HistoryReadRaw {
 
 message HistoryReadRawResult {
   repeated DataValue value = 1;
-  optional bytes continuation_point = 2;
 }
 
 message EventFilter {

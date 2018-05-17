@@ -120,7 +120,7 @@ class SessionProxy : private SessionProxyContext,
   void OnSessionCreated();
   void OnSessionDeleted();
 
-  void OnMessageReceived(protocol::Message&& message);
+  void OnMessageReceived(const protocol::Message& message);
   void OnCreateSessionResult(const protocol::Response& response);
 
   void ForwardConnectResult(const scada::Status& status);

@@ -48,7 +48,6 @@ class VidiconSession : public scada::SessionService,
       const scada::NodeId& node_id,
       base::Time from,
       base::Time to,
-      const scada::ContinuationPoint& continuation_point,
       const scada::HistoryReadRawCallback& callback) override;
   virtual void HistoryReadEvents(
       const scada::NodeId& node_id,
