@@ -125,7 +125,7 @@ void SessionProxy::OnTransportMessageReceived(const void* data, size_t size) {
   if (!message.ParseFromArray(data, size))
     throw std::runtime_error("Can't parse message");
 
-  OnMessageReceived(message);
+  OnMessageReceived(std::move(message));
 }
 
 void SessionProxy::OnSessionDeleted() {
@@ -138,13 +138,13 @@ void SessionProxy::OnSessionDeleted() {
 
   // Cancel all requests.
   {
-    protocol::Response response;
-    ToProto(scada::StatusCode::Bad_Disconnected, *response.mutable_status());
     auto requests = std::move(requests_);
     for (auto& p : requests) {
+      protocol::Response response;
+      ToProto(scada::StatusCode::Bad_Disconnected, *response.mutable_status());
       response.set_request_id(p.first);
       if (p.second)
-        p.second(response);
+        p.second(std::move(response));
     }
   }
 
@@ -205,13 +205,13 @@ void SessionProxy::Send(protocol::Message& message) {
     throw std::runtime_error("Can't send message");
 }
 
-void SessionProxy::OnMessageReceived(const protocol::Message& message) {
-  for (auto& response : message.responses()) {
+void SessionProxy::OnMessageReceived(protocol::Message&& message) {
+  for (auto& response : *message.mutable_responses()) {
     auto i = requests_.find(response.request_id());
     if (i != requests_.end()) {
       auto handler = std::move(i->second);
       requests_.erase(i);
-      handler(response);
+      handler(std::move(response));
     }
   }
 

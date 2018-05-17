@@ -39,10 +39,12 @@ void HistoryStub::OnHistoryReadRaw(const protocol::Request& request) {
                   request_id, NodeIdToScadaString(node_id).c_str());
 
   service_.HistoryReadRaw(
-      node_id, from, to,
+      node_id, from, to, {},
       io_context_.wrap([this, weak_ptr = weak_factory_.GetWeakPtr(),
-                        request_id](scada::Status status,
-                                    std::vector<scada::DataValue> values) {
+                        request_id](
+                           scada::Status status,
+                           std::vector<scada::DataValue> values,
+                           scada::ContinuationPoint continuation_point) {
         if (!weak_ptr.get())
           return;
 
@@ -57,6 +59,10 @@ void HistoryStub::OnHistoryReadRaw(const protocol::Request& request) {
         if (!values.empty()) {
           ToProto(std::move(values),
                   *response.mutable_history_read_raw_result()->mutable_value());
+        }
+        if (!continuation_point.empty()) {
+          response.mutable_history_read_raw_result()->set_continuation_point(
+              std::move(continuation_point));
         }
         sender_.Send(message);
       }));

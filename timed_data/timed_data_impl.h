@@ -52,7 +52,8 @@ class TimedDataImpl : private TimedDataContext,
 
   void OnHistoryReadRawComplete(base::Time queried_from,
                                 base::Time queried_to,
-                                std::vector<scada::DataValue>&& values);
+                                std::vector<scada::DataValue>&& values,
+                                scada::ContinuationPoint&& continuation_point);
 
   void OnChannelData(const scada::DataValue& data_value);
 

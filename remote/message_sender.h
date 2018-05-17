@@ -6,7 +6,7 @@ namespace protocol {
 class Message;
 class Request;
 class Response;
-}
+}  // namespace protocol
 
 class MessageSender {
  public:
@@ -14,6 +14,7 @@ class MessageSender {
 
   virtual void Send(protocol::Message& message) = 0;
 
-  typedef std::function<void(const protocol::Response&)> ResponseHandler;
-  virtual void Request(protocol::Request& request, ResponseHandler response_handler) = 0;
+  using ResponseHandler = std::function<void(protocol::Response&&)>;
+  virtual void Request(protocol::Request& request,
+                       ResponseHandler response_handler) = 0;
 };

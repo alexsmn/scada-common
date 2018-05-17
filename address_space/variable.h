@@ -46,9 +46,11 @@ class Variable : public Node {
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
-  virtual void HistoryReadRaw(base::Time from,
-                              base::Time to,
-                              const HistoryReadRawCallback& callback);
+  virtual void HistoryReadRaw(
+      base::Time from,
+      base::Time to,
+      const scada::ContinuationPoint& continuation_point,
+      const HistoryReadRawCallback& callback);
   virtual void HistoryReadEvents(base::Time from,
                                  base::Time to,
                                  const EventFilter& filter,

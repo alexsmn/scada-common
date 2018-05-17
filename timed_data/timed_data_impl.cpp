@@ -121,18 +121,20 @@ void TimedDataImpl::QueryValues() {
   auto range = std::make_pair(from_, to);
 
   if (!node_) {
-    OnHistoryReadRawComplete(range.first, range.second, {});
+    OnHistoryReadRawComplete(range.first, range.second, {}, {});
     return;
   }
 
   history_service_.HistoryReadRaw(
-      node_.node_id(), from_, to,
-      [message_loop, weak_ptr, range](scada::Status&& status,
-                                      std::vector<scada::DataValue>&& values) {
+      node_.node_id(), from_, to, {},
+      [message_loop, weak_ptr, range](
+          scada::Status&& status, std::vector<scada::DataValue>&& values,
+          scada::ContinuationPoint&& continuation_point) {
         message_loop->PostTask(
             FROM_HERE, base::Bind(&TimedDataImpl::OnHistoryReadRawComplete,
                                   weak_ptr, range.first, range.second,
-                                  base::Passed(std::move(values))));
+                                  base::Passed(std::move(values)),
+                                  base::Passed(std::move(continuation_point))));
       });
 }
 
@@ -184,7 +186,8 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
 void TimedDataImpl::OnHistoryReadRawComplete(
     base::Time queried_from,
     base::Time queried_to,
-    std::vector<scada::DataValue>&& values) {
+    std::vector<scada::DataValue>&& values,
+    scada::ContinuationPoint&& continuation_point) {
   assert(querying_);
   assert(queried_from < ready_from_);
   assert(queried_from >= from_);

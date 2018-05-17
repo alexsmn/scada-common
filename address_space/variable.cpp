@@ -46,10 +46,12 @@ void Variable::Call(const NodeId& method_id,
   callback(StatusCode::Bad_WrongMethodId);
 }
 
-void Variable::HistoryReadRaw(base::Time from,
-                              base::Time to,
-                              const HistoryReadRawCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
+void Variable::HistoryReadRaw(
+    base::Time from,
+    base::Time to,
+    const scada::ContinuationPoint& continuation_point,
+    const HistoryReadRawCallback& callback) {
+  callback(scada::StatusCode::Bad, {}, {});
 }
 
 void Variable::HistoryReadEvents(base::Time from,
