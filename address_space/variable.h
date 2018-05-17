@@ -46,11 +46,13 @@ class Variable : public Node {
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
-  virtual void HistoryRead(scada::AttributeId attribute_id,
-                           base::Time from,
-                           base::Time to,
-                           const Filter& filter,
-                           const HistoryReadCallback& callback);
+  virtual void HistoryReadRaw(base::Time from,
+                              base::Time to,
+                              const HistoryReadRawCallback& callback);
+  virtual void HistoryReadEvents(base::Time from,
+                                 base::Time to,
+                                 const EventFilter& filter,
+                                 const HistoryReadEventsCallback& callback);
 
   // Node
   virtual NodeClass GetNodeClass() const override {

@@ -9,30 +9,58 @@ using namespace scada;
 
 HistoryProxy::HistoryProxy() {}
 
-void HistoryProxy::HistoryRead(const scada::ReadValueId& read_value_id,
-                               base::Time from,
-                               base::Time to,
-                               const scada::Filter& filter,
-                               const scada::HistoryReadCallback& callback) {
+void HistoryProxy::HistoryReadRaw(
+    const scada::NodeId& node_id,
+    base::Time from,
+    base::Time to,
+    const scada::HistoryReadRawCallback& callback) {
   if (!sender_) {
     assert(false);
     return;
   }
 
   protocol::Request request;
-  auto& history_read = *request.mutable_history_read();
-  ToProto(read_value_id.node_id, *history_read.mutable_node_id());
-  history_read.set_attribute_id(ToProto(read_value_id.attribute_id));
-  history_read.set_from(from.ToInternalValue());
+  auto& history_read_raw = *request.mutable_history_read_raw();
+  ToProto(node_id, *history_read_raw.mutable_node_id());
+  history_read_raw.set_from(from.ToInternalValue());
   if (!to.is_null())
-    history_read.set_to(to.ToInternalValue());
+    history_read_raw.set_to(to.ToInternalValue());
 
-  if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
-    auto& event_filter = *history_read.mutable_event_filter();
-    if (filter.event_filter.types & Event::ACKED)
-      event_filter.set_acked(true);
-    if (filter.event_filter.types & Event::UNACKED)
-      event_filter.set_unacked(true);
+  sender_->Request(request,
+                   [this, callback](const protocol::Response& response) {
+                     if (!callback)
+                       return;
+
+                     callback(FromProto(response.status()),
+                              VectorFromProto<scada::DataValue>(
+                                  response.history_read_raw_result().value()));
+                   });
+}
+
+void HistoryProxy::HistoryReadEvents(
+    const scada::NodeId& node_id,
+    base::Time from,
+    base::Time to,
+    const scada::EventFilter& filter,
+    const scada::HistoryReadEventsCallback& callback) {
+  if (!sender_) {
+    assert(false);
+    return;
+  }
+
+  protocol::Request request;
+  auto& history_read_events = *request.mutable_history_read_events();
+  ToProto(node_id, *history_read_events.mutable_node_id());
+  history_read_events.set_from(from.ToInternalValue());
+  if (!to.is_null())
+    history_read_events.set_to(to.ToInternalValue());
+
+  if (filter.types) {
+    auto& proto_filter = *history_read_events.mutable_filter();
+    if (filter.types & Event::ACKED)
+      proto_filter.set_acked(true);
+    if (filter.types & Event::UNACKED)
+      proto_filter.set_unacked(true);
   }
 
   sender_->Request(
@@ -40,18 +68,9 @@ void HistoryProxy::HistoryRead(const scada::ReadValueId& read_value_id,
         if (!callback)
           return;
 
-        auto status = FromProto(response.status());
-
-        QueryValuesResults values;
-        QueryEventsResults events;
-        if (response.has_history_read_result()) {
-          values = std::make_shared<DataValueVector>(VectorFromProto<DataValue>(
-              response.history_read_result().values()));
-          events = std::make_shared<EventVector>(
-              VectorFromProto<Event>(response.history_read_result().events()));
-        }
-
-        callback(status, std::move(values), std::move(events));
+        callback(FromProto(response.status()),
+                 VectorFromProto<scada::Event>(
+                     response.history_read_events_result().event()));
       });
 }
 

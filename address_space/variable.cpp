@@ -1,11 +1,11 @@
 #include "address_space/variable.h"
 
 #include "address_space/address_space.h"
-#include "core/data_value.h"
 #include "address_space/node_utils.h"
 #include "address_space/node_variable_handle.h"
-#include "core/standard_node_ids.h"
 #include "address_space/type_definition.h"
+#include "core/data_value.h"
+#include "core/standard_node_ids.h"
 
 namespace scada {
 
@@ -46,12 +46,17 @@ void Variable::Call(const NodeId& method_id,
   callback(StatusCode::Bad_WrongMethodId);
 }
 
-void Variable::HistoryRead(scada::AttributeId attribute_id,
-                           base::Time from,
-                           base::Time to,
-                           const Filter& filter,
-                           const HistoryReadCallback& callback) {
-  callback(scada::StatusCode::Bad, {}, {});
+void Variable::HistoryReadRaw(base::Time from,
+                              base::Time to,
+                              const HistoryReadRawCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
+}
+
+void Variable::HistoryReadEvents(base::Time from,
+                                 base::Time to,
+                                 const EventFilter& filter,
+                                 const HistoryReadEventsCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
 void Variable::Shutdown() {

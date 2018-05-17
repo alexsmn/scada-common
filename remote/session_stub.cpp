@@ -235,7 +235,7 @@ void SessionStub::OnRead(
         response.set_request_id(request_id);
         ToProto(std::move(status), *response.mutable_status());
         ContainerToProto(std::move(results),
-                         *response.mutable_read()->mutable_result());
+                         *response.mutable_read_result()->mutable_value());
         ptr->Send(message);
       });
 }

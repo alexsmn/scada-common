@@ -100,8 +100,8 @@ class EventManager : private EventManagerContext {
 
   void Update();
 
-  void OnQueryEventsResult(scada::Status status,
-                           scada::QueryEventsResults results);
+  void OnHistoryReadEventsComplete(scada::Status&& status,
+                                   std::vector<scada::Event>&& results);
 
   scada::NodeId user_id_;
 

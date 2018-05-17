@@ -121,19 +121,18 @@ void TimedDataImpl::QueryValues() {
   auto range = std::make_pair(from_, to);
 
   if (!node_) {
-    OnQueryValuesComplete(range.first, range.second,
-                          scada::QueryValuesResults());
+    OnHistoryReadRawComplete(range.first, range.second, {});
     return;
   }
 
-  history_service_.HistoryRead(
-      {node_.node_id(), scada::AttributeId::Value}, from_, to, {},
-      [message_loop, weak_ptr, range](const scada::Status& status,
-                                      scada::QueryValuesResults values,
-                                      scada::QueryEventsResults events) {
+  history_service_.HistoryReadRaw(
+      node_.node_id(), from_, to,
+      [message_loop, weak_ptr, range](scada::Status&& status,
+                                      std::vector<scada::DataValue>&& values) {
         message_loop->PostTask(
-            FROM_HERE, base::Bind(&TimedDataImpl::OnQueryValuesComplete,
-                                  weak_ptr, range.first, range.second, values));
+            FROM_HERE, base::Bind(&TimedDataImpl::OnHistoryReadRawComplete,
+                                  weak_ptr, range.first, range.second,
+                                  base::Passed(std::move(values))));
       });
 }
 
@@ -182,9 +181,10 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
   NotifyEventsChanged();
 }
 
-void TimedDataImpl::OnQueryValuesComplete(base::Time queried_from,
-                                          base::Time queried_to,
-                                          scada::QueryValuesResults results) {
+void TimedDataImpl::OnHistoryReadRawComplete(
+    base::Time queried_from,
+    base::Time queried_to,
+    std::vector<scada::DataValue>&& values) {
   assert(querying_);
   assert(queried_from < ready_from_);
   assert(queried_from >= from_);
@@ -194,22 +194,19 @@ void TimedDataImpl::OnQueryValuesComplete(base::Time queried_from,
   querying_ = false;
 
   // Merge requested data with existing realtime data by collection time.
-  if (results) {
-    for (auto& new_entry : *results)
-      UpdateMap(new_entry);
-  }
+  for (auto& new_entry : values)
+    UpdateMap(new_entry);
 
   base::Time new_ready_from = queried_from;
   // Returned data array includes left time bound.
-  if (results && !results->empty() &&
-      results->front().source_timestamp < new_ready_from)
-    new_ready_from = results->front().source_timestamp;
+  if (values.empty() && values.front().source_timestamp < new_ready_from)
+    new_ready_from = values.front().source_timestamp;
 
-  logger_->WriteF(
-      LogSeverity::Normal,
-      "Query result %Iu values from %s to %s. Ready from %s",
-      results ? results->size() : 0, FormatTime(queried_from).c_str(),
-      FormatTime(queried_to).c_str(), FormatTime(new_ready_from).c_str());
+  logger_->WriteF(LogSeverity::Normal,
+                  "Query result %Iu values from %s to %s. Ready from %s",
+                  values.size(), FormatTime(queried_from).c_str(),
+                  FormatTime(queried_to).c_str(),
+                  FormatTime(new_ready_from).c_str());
 
   UpdateReadyFrom(new_ready_from);
 

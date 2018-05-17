@@ -2,7 +2,7 @@ package protocol;
 
 // Protocol version
 enum ProtocolVersionMajor {
-  PROTOCOL_VERSION_MAJOR = 5;
+  PROTOCOL_VERSION_MAJOR = 6;
 }
 enum ProtocolVersionMinor {
   PROTOCOL_VERSION_MINOR = 0;
@@ -232,8 +232,8 @@ message Read {
   repeated ReadValueId value_id = 1;
 }
 
-message ReadResponse {
-  repeated DataValue result = 1;
+message ReadResult {
+  repeated DataValue value = 1;
 }
 
 message Write {
@@ -260,22 +260,30 @@ message Call {
   optional Acknowledge acknowledge = 2;
 }
 
+message HistoryReadRaw {
+  required NodeId node_id = 1;
+  required uint64 from = 3;
+  optional uint64 to = 4;
+}
+
+message HistoryReadRawResult {
+  repeated DataValue value = 1;
+}
+
 message EventFilter {
   optional bool acked = 1;
   optional bool unacked = 2;
 }
 
-message HistoryRead {
+message HistoryReadEvents {
   required NodeId node_id = 1;
-  required AttributeId attribute_id = 2;
   required uint64 from = 3;
   optional uint64 to = 4;
-  optional EventFilter event_filter  = 5;
+  optional EventFilter filter  = 5;
 }
 
-message HistoryReadResult {
-  repeated DataValue values = 1;
-  repeated Event events = 2;
+message HistoryReadEventsResult {
+  repeated Event event = 1;
 }
 
 message CreateSubscription {
@@ -363,7 +371,8 @@ message Request {
   optional CreateMonitoredItem create_monitored_item = 30;
   optional DeleteMonitoredItem delete_monitored_item = 31;
 
-  optional HistoryRead history_read = 40;
+  optional HistoryReadRaw history_read_raw = 40;
+  optional HistoryReadEvents history_read_events = 41;
 
   optional CreateNode create_node = 50;
   optional DeleteNode delete_node = 51;
@@ -383,13 +392,14 @@ message Response {
 
   optional CreateSessionResult create_session_result = 10;
 
-  optional ReadResponse read = 14;
+  optional ReadResult read_result = 14;
 
   optional CreateSubscriptionResult create_subscription_result = 20;
 
   optional CreateMonitoredItemResult create_monitored_item_result = 30;
 
-  optional HistoryReadResult history_read_result = 40;
+  optional HistoryReadRawResult history_read_raw_result = 40;
+  optional HistoryReadEventsResult history_read_events_result = 41;
 
   optional CreateNodeResult create_node_result = 50;
   optional DeleteNodeResult delete_node_result = 51;

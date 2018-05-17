@@ -50,9 +50,9 @@ class TimedDataImpl : private TimedDataContext,
 
   void QueryValues();
 
-  void OnQueryValuesComplete(base::Time queried_from,
-                             base::Time queried_to,
-                             scada::QueryValuesResults results);
+  void OnHistoryReadRawComplete(base::Time queried_from,
+                                base::Time queried_to,
+                                std::vector<scada::DataValue>&& values);
 
   void OnChannelData(const scada::DataValue& data_value);
 

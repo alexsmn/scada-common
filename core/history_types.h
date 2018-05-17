@@ -13,27 +13,19 @@ struct EventFilter {
   unsigned types;
 };
 
-struct Filter {
-  EventFilter event_filter;
-};
-
 struct ItemInfo {
   NodeId item;
   DataValue tvq;
   base::Time change_time;
 };
 
-typedef std::vector<ItemInfo> ItemInfoVector;
+using ItemInfosCallback =
+    std::function<void(std::vector<ItemInfo>&& item_infos)>;
 
-typedef std::vector<DataValue> DataValueVector;
+using HistoryReadRawCallback =
+    std::function<void(Status&&, std::vector<DataValue>&& values)>;
 
-typedef std::vector<Event> EventVector;
+using HistoryReadEventsCallback =
+    std::function<void(Status&& status, std::vector<Event>&& events)>;
 
-typedef std::shared_ptr<ItemInfoVector> ItemInfosResults;
-typedef std::function<void(ItemInfosResults)> ItemInfosCallback;
-
-typedef std::shared_ptr<DataValueVector> QueryValuesResults;
-typedef std::shared_ptr<EventVector> QueryEventsResults;
-typedef std::function<void(Status, QueryValuesResults, QueryEventsResults)> HistoryReadCallback;
-
-} // namespace scada
+}  // namespace scada

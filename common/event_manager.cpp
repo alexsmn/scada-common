@@ -240,16 +240,16 @@ void EventManager::ItemEventsChanged(const ObserverSet& observers,
 }
 
 void EventManager::Update() {
-  history_service_.HistoryRead(
-      {scada::id::RootFolder, scada::AttributeId::EventNotifier}, {}, {},
-      {{scada::Event::UNACKED}},
-      io_context_.wrap([weak_ptr = weak_factory_.GetWeakPtr()](
-                           const scada::Status& status,
-                           scada::QueryValuesResults values,
-                           scada::QueryEventsResults events) {
-        if (auto* self = weak_ptr.get())
-          self->OnQueryEventsResult(status, events);
-      }));
+  history_service_.HistoryReadEvents(
+      scada::id::RootFolder, {}, {}, {scada::Event::UNACKED},
+      io_context_.wrap(
+          [weak_ptr = weak_factory_.GetWeakPtr()](
+              scada::Status status, std::vector<scada::Event> events) {
+            if (auto* self = weak_ptr.get()) {
+              self->OnHistoryReadEventsComplete(std::move(status),
+                                                std::move(events));
+            }
+          }));
 }
 
 void EventManager::OnChannelOpened(const scada::NodeId& user_id) {
@@ -262,11 +262,10 @@ void EventManager::OnChannelClosed() {
   connected_ = false;
 }
 
-void EventManager::OnQueryEventsResult(scada::Status status,
-                                       scada::QueryEventsResults results) {
-  if (!results)
-    return;
-  for (auto& event : *results)
+void EventManager::OnHistoryReadEventsComplete(
+    scada::Status&& status,
+    std::vector<scada::Event>&& events) {
+  for (auto& event : events)
     OnEvent(event);
 }
 

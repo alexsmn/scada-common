@@ -10,8 +10,16 @@ class HistoryService {
  public:
   virtual ~HistoryService() {}
 
-  virtual void HistoryRead(const ReadValueId& read_value_id, base::Time from, base::Time to,
-                           const Filter& filter, const HistoryReadCallback& callback) = 0;
+  virtual void HistoryReadRaw(const NodeId& node_id,
+                              base::Time from,
+                              base::Time to,
+                              const HistoryReadRawCallback& callback) = 0;
+
+  virtual void HistoryReadEvents(const NodeId& node_id,
+                                 base::Time from,
+                                 base::Time to,
+                                 const EventFilter& filter,
+                                 const HistoryReadEventsCallback& callback) = 0;
 };
 
-} // namespace scada
+}  // namespace scada

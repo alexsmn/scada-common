@@ -20,59 +20,90 @@ HistoryStub::HistoryStub(scada::HistoryService& service,
       logger_{std::move(logger)} {}
 
 void HistoryStub::OnRequestReceived(const protocol::Request& request) {
-  if (!request.has_history_read())
-    return;
+  if (request.has_history_read_raw())
+    OnHistoryReadRaw(request);
+  if (request.has_history_read_events())
+    OnHistoryReadEvents(request);
+}
 
+void HistoryStub::OnHistoryReadRaw(const protocol::Request& request) {
   auto request_id = request.request_id();
-
-  auto& history_read = request.history_read();
-
-  scada::ReadValueId read_value_id{FromProto(history_read.node_id()),
-                                   FromProto(history_read.attribute_id())};
-  auto from = base::Time::FromInternalValue(history_read.from());
-  auto to = history_read.has_to()
-                ? base::Time::FromInternalValue(history_read.to())
+  auto& history_read_raw = request.history_read_raw();
+  auto node_id = FromProto(history_read_raw.node_id());
+  auto from = base::Time::FromInternalValue(history_read_raw.from());
+  auto to = history_read_raw.has_to()
+                ? base::Time::FromInternalValue(history_read_raw.to())
                 : base::Time();
 
-  scada::Filter filter;
-  if (history_read.has_event_filter()) {
-    auto& event_filter = history_read.event_filter();
-    if (event_filter.has_acked() && event_filter.acked())
-      filter.event_filter.types |= scada::Event::ACKED;
-    if (event_filter.has_unacked() && event_filter.unacked())
-      filter.event_filter.types |= scada::Event::UNACKED;
-  }
+  logger_->WriteF(LogSeverity::Normal, "History read raw request %u node %s",
+                  request_id, NodeIdToScadaString(node_id).c_str());
 
-  logger_->WriteF(LogSeverity::Normal, "Read history %u node %s", request_id,
-                  NodeIdToScadaString(read_value_id.node_id).c_str());
+  service_.HistoryReadRaw(
+      node_id, from, to,
+      io_context_.wrap([this, weak_ptr = weak_factory_.GetWeakPtr(),
+                        request_id](scada::Status status,
+                                    std::vector<scada::DataValue> values) {
+        if (!weak_ptr.get())
+          return;
 
-  service_.HistoryRead(
-      read_value_id, from, to, filter,
-      io_context_.wrap([weak_ptr = weak_factory_.GetWeakPtr(), request_id](
-                           scada::Status status,
-                           scada::QueryValuesResults values,
-                           scada::QueryEventsResults events) {
-        if (auto* self = weak_ptr.get())
-          self->OnHistoryReadCompleted(request_id, status, values, events);
+        logger_->WriteF(LogSeverity::Normal,
+                        "History read raw request %u completed with status %s",
+                        request_id, ToString(status).c_str());
+
+        protocol::Message message;
+        auto& response = *message.add_responses();
+        response.set_request_id(request_id);
+        ToProto(status, *response.mutable_status());
+        if (!values.empty()) {
+          ToProto(std::move(values),
+                  *response.mutable_history_read_raw_result()->mutable_value());
+        }
+        sender_.Send(message);
       }));
 }
 
-void HistoryStub::OnHistoryReadCompleted(unsigned request_id,
-                                         const scada::Status& status,
-                                         scada::QueryValuesResults values,
-                                         scada::QueryEventsResults events) {
-  logger_->WriteF(LogSeverity::Normal,
-                  "Read history %u completed with result %s", request_id,
-                  ToString(status).c_str());
+void HistoryStub::OnHistoryReadEvents(const protocol::Request& request) {
+  auto request_id = request.request_id();
+  auto& history_read_events = request.history_read_events();
+  const auto node_id = FromProto(history_read_events.node_id());
+  auto from = base::Time::FromInternalValue(history_read_events.from());
+  auto to = history_read_events.has_to()
+                ? base::Time::FromInternalValue(history_read_events.to())
+                : base::Time();
+  scada::EventFilter filter;
+  if (history_read_events.has_filter()) {
+    auto& proto_filter = history_read_events.filter();
+    if (proto_filter.has_acked() && proto_filter.acked())
+      filter.types |= scada::Event::ACKED;
+    if (proto_filter.has_unacked() && proto_filter.unacked())
+      filter.types |= scada::Event::UNACKED;
+  }
 
-  protocol::Message message;
-  auto& response = *message.add_responses();
-  response.set_request_id(request_id);
-  auto& history_read_result = *response.mutable_history_read_result();
-  if (values)
-    ToProto(*values, *history_read_result.mutable_values());
-  if (events)
-    ToProto(*events, *history_read_result.mutable_events());
-  ToProto(status, *response.mutable_status());
-  sender_.Send(message);
+  logger_->WriteF(LogSeverity::Normal, "History read events request %u node %s",
+                  request_id, NodeIdToScadaString(node_id).c_str());
+
+  service_.HistoryReadEvents(
+      node_id, from, to, filter,
+      io_context_.wrap([this, weak_ptr = weak_factory_.GetWeakPtr(),
+                        request_id](scada::Status status,
+                                    std::vector<scada::Event> events) {
+        if (!weak_ptr.get())
+          return;
+
+        logger_->WriteF(
+            LogSeverity::Normal,
+            "History read events request %u completed with status %s",
+            request_id, ToString(status).c_str());
+
+        protocol::Message message;
+        auto& response = *message.add_responses();
+        response.set_request_id(request_id);
+        ToProto(status, *response.mutable_status());
+        if (!events.empty()) {
+          ToProto(
+              std::move(events),
+              *response.mutable_history_read_events_result()->mutable_event());
+        }
+        sender_.Send(message);
+      }));
 }

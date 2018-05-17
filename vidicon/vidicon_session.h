@@ -44,11 +44,17 @@ class VidiconSession : public scada::SessionService,
   virtual void RemoveObserver(scada::SessionStateObserver& observer) override;
 
   // scada::HistoryService
-  virtual void HistoryRead(const scada::ReadValueId& read_value_id,
-                           base::Time from,
-                           base::Time to,
-                           const scada::Filter& filter,
-                           const scada::HistoryReadCallback& callback) override;
+  virtual void HistoryReadRaw(
+      const scada::NodeId& node_id,
+      base::Time from,
+      base::Time to,
+      const scada::HistoryReadRawCallback& callback) override;
+  virtual void HistoryReadEvents(
+      const scada::NodeId& node_id,
+      base::Time from,
+      base::Time to,
+      const scada::EventFilter& filter,
+      const scada::HistoryReadEventsCallback& callback) override;
 
   // scada::MonitoredItemService
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(

@@ -334,8 +334,9 @@ void SessionProxy::Read(const std::vector<scada::ReadValueId>& value_ids,
 
   Request(request, [this, callback](const protocol::Response& response) {
     if (callback)
-      callback(FromProto(response.status()),
-               VectorFromProto<scada::DataValue>(response.read().result()));
+      callback(
+          FromProto(response.status()),
+          VectorFromProto<scada::DataValue>(response.read_result().value()));
   });
 }
 

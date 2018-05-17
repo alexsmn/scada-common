@@ -51,12 +51,21 @@ void VidiconSession::AddObserver(scada::SessionStateObserver& observer) {}
 
 void VidiconSession::RemoveObserver(scada::SessionStateObserver& observer) {}
 
-void VidiconSession::HistoryRead(const scada::ReadValueId& read_value_id,
-                                 base::Time from,
-                                 base::Time to,
-                                 const scada::Filter& filter,
-                                 const scada::HistoryReadCallback& callback) {
-  callback(scada::StatusCode::Bad, nullptr, nullptr);
+void VidiconSession::HistoryReadRaw(
+    const scada::NodeId& node_id,
+    base::Time from,
+    base::Time to,
+    const scada::HistoryReadRawCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
+}
+
+void VidiconSession::HistoryReadEvents(
+    const scada::NodeId& node_id,
+    base::Time from,
+    base::Time to,
+    const scada::EventFilter& filter,
+    const scada::HistoryReadEventsCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
 std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
