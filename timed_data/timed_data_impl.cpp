@@ -199,7 +199,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
 
   base::Time new_ready_from = queried_from;
   // Returned data array includes left time bound.
-  if (values.empty() && values.front().source_timestamp < new_ready_from)
+  if (!values.empty() && values.front().source_timestamp < new_ready_from)
     new_ready_from = values.front().source_timestamp;
 
   logger_->WriteF(LogSeverity::Normal,
