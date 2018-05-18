@@ -50,7 +50,7 @@ class BaseTimedData : public TimedData {
   void NotifyEventsChanged();
 
   bool UpdateCurrent(const scada::DataValue& value);
-  bool UpdateMap(const scada::DataValue& value);
+  bool UpdateHistory(const scada::DataValue& value);
 
   void ClearRange(base::Time from, base::Time to);
 

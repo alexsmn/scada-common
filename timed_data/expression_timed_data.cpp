@@ -146,7 +146,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
                            base::Time());
 
-      bool updated = UpdateMap(tvq);
+      bool updated = UpdateHistory(tvq);
       assert(updated);
 
       if (tvqs) {

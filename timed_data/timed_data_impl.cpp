@@ -20,6 +20,24 @@
 
 namespace rt {
 
+namespace {
+
+std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
+                                                       base::Time from,
+                                                       base::Time to) {
+  auto i = LowerBound(values, from);
+  auto j = LowerBound(values, to);
+  if (i != j)
+    return std::nullopt;
+  if (i != values.end() && i->source_timestamp == from)
+    return std::nullopt;
+  if (j != values.end() && j->source_timestamp == to)
+    return std::nullopt;
+  return i;
+}
+
+}  // namespace
+
 TimedDataImpl::TimedDataImpl(const NodeRef& node,
                              const TimedDataContext& context,
                              std::shared_ptr<const Logger> logger)
@@ -194,8 +212,18 @@ void TimedDataImpl::OnHistoryReadRawComplete(
   querying_ = false;
 
   // Merge requested data with existing realtime data by collection time.
-  for (auto& new_entry : values)
-    UpdateMap(new_entry);
+  if (!values.empty()) {
+    // Optimization: if all new values relate to the same position in history,
+    // not overlaping other values, then insert them as whole.
+    if (auto i = FindInsertPosition(values_, values.front().source_timestamp,
+                                    values.back().source_timestamp)) {
+      values_.insert(*i, std::make_move_iterator(values.begin()),
+                     std::make_move_iterator(values.end()));
+    } else {
+      for (auto& value : values)
+        UpdateHistory(value);
+    }
+  }
 
   base::Time new_ready_from = queried_from;
   // Returned data array includes left time bound.
@@ -228,7 +256,7 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
     if (UpdateCurrent(data_value))
       NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   } else {
-    if (UpdateMap(data_value))
+    if (UpdateHistory(data_value))
       NotifyTimedDataCorrection(1, &data_value);
   }
 }

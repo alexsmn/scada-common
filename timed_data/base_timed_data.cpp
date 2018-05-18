@@ -44,7 +44,7 @@ void BaseTimedData::SetFrom(base::Time from) {
   // When data switches from current-only to historical, add current value
   // into historical values.
   if (!historical() && !current_.source_timestamp.is_null())
-    UpdateMap(current_);
+    UpdateHistory(current_);
 
   from_ = from;
 
@@ -130,7 +130,7 @@ void BaseTimedData::NotifyEventsChanged() {
     o.OnEventsChanged();
 }
 
-bool BaseTimedData::UpdateMap(const scada::DataValue& value) {
+bool BaseTimedData::UpdateHistory(const scada::DataValue& value) {
   if (value.source_timestamp.is_null())
     return false;
 
@@ -164,7 +164,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
 
   // Add new point with time of last change.
   if (historical() && is_change && !value.source_timestamp.is_null())
-    UpdateMap(value);
+    UpdateHistory(value);
 
   if (is_change)
     change_time_ = value.source_timestamp;
