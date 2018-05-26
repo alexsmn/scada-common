@@ -183,6 +183,7 @@ message Node {
   optional NodeId reference_type_id = 7;
   repeated NodeReference reference = 8;
   repeated NodeProperty property = 9;
+  repeated Node children = 10;
 }
 
 message CreateNode {
@@ -316,7 +317,6 @@ message DeleteMonitoredItem {
 
 message NodeTree {
   repeated Node node = 1;
-  repeated Reference reference = 2;
 }
 
 enum BrowseDirection {

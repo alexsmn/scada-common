@@ -39,7 +39,7 @@ void FmtAddMods(const Node& node,
   if (qualifier.limit() != Qualifier::LIMIT_NORMAL)
     mods += L'В';
 
-  if (!mods.empty()) {
+  if (mods.size() > 1) {
     mods += L']';
     mods += L' ';
     text.insert(0, mods);

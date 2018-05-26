@@ -77,7 +77,7 @@ bool Clipboard::SetData(unsigned format, const void* data, size_t size) {
   HGLOBAL global = CreateHGlobal(data, size);
   if (!global)
     return false;
-  
+
   if (!SetClipboardData(format, global)) {
     GlobalFree(global);
     return false;

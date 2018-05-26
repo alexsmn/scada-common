@@ -6,7 +6,7 @@
 
 scada::NodeId FromProto(const protocol::NodeId& source) {
   auto namespace_index =
-      source.has_namespace_index() ? source.namespace_index() : 0;
+      static_cast<scada::NamespaceIndex>(source.namespace_index());
   if (source.has_numeric_id())
     return scada::NodeId(source.numeric_id(), namespace_index);
   else if (source.has_string_id())
@@ -214,8 +214,7 @@ void ToProto(const scada::NodeAttributes& source,
   if (!source.browse_name.empty())
     target.set_browse_name(source.browse_name.name());
   if (!source.display_name.empty())
-    target.set_display_name(
-        base::UTF16ToUTF8(ToString16(source.display_name)));
+    target.set_display_name(base::UTF16ToUTF8(ToString16(source.display_name)));
   if (!source.data_type.is_null())
     ToProto(source.data_type, *target.mutable_data_type_id());
   if (!source.value.is_null())
