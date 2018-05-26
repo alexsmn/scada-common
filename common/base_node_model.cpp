@@ -7,9 +7,7 @@ BaseNodeModel::BaseNodeModel(scada::NodeId node_id)
 
 void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
                           const FetchCallback& callback) const {
-  bool request = false;
-
-  if (requested_status <= fetch_status_) {
+  if (status_ && requested_status <= fetch_status_) {
     if (callback)
       callback();
 
@@ -18,7 +16,7 @@ void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
       fetch_callbacks_.emplace_back(requested_status, callback);
   }
 
-  if (fetching_status_ <= requested_status || !status_) {
+  if (!status_ || fetching_status_ <= requested_status) {
     fetching_status_ |= requested_status;
     const_cast<BaseNodeModel*>(this)->OnFetchRequested(fetching_status_);
   }
