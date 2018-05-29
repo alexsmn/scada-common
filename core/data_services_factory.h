@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/memory/ref_counted.h"
+#include "base/sequenced_task_runner.h"
 #include "base/strings/string_piece.h"
 #include "core/data_services.h"
 
@@ -9,7 +10,7 @@
 #include <vector>
 
 namespace base {
-class SingleThreadTaskRunner;
+class SequencedTaskRunner;
 }
 
 namespace net {
@@ -20,7 +21,7 @@ class Logger;
 
 struct DataServicesContext {
   std::shared_ptr<Logger> logger;
-  scoped_refptr<base::SingleThreadTaskRunner> task_runner;
+  scoped_refptr<base::SequencedTaskRunner> task_runner;
   net::TransportFactory& transport_factory;
 };
 

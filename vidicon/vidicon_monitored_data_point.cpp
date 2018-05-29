@@ -1,8 +1,8 @@
 #include "vidicon_monitored_data_point.h"
 
+#include "base/strings/sys_string_conversions.h"
 #include "base/time/time.h"
 #include "base/win/scoped_variant.h"
-#include "base/strings/sys_string_conversions.h"
 #include "core/qualifier.h"
 
 #include <opcda.h>
@@ -24,14 +24,19 @@ Time ToTime(DATE time) {
 
   SYSTEMTIME utc{};
   ::TzSpecificLocalTimeToSystemTime(nullptr, &system_time, &utc);
-  utc.wMilliseconds = static_cast<int>(std::round((time - floor(time)) * 24 * 60 * 60 * 1000));
+  utc.wMilliseconds =
+      static_cast<int>(std::round((time - floor(time)) * 24 * 60 * 60 * 1000));
 
-  Time::Exploded exploded{system_time.wYear, system_time.wMonth, 0, system_time.wDay,
-      system_time.wHour, system_time.wSecond, system_time.wMilliseconds};
-  return Time::FromUTCExploded(exploded);
+  Time result;
+  Time::Exploded exploded{
+      system_time.wYear,        system_time.wMonth, 0,
+      system_time.wDay,         system_time.wHour,  system_time.wSecond,
+      system_time.wMilliseconds};
+  Time::FromUTCExploded(exploded, &result);
+  return result;
 }
 
-} // namespace base
+}  // namespace base
 
 namespace scada {
 
@@ -63,16 +68,17 @@ scada::Qualifier OpcQualityToQualifier(unsigned quality) {
   return (quality & OPC_QUALITY_MASK) != OPC_QUALITY_GOOD;
 }
 
-} // namespace scada
+}  // namespace scada
 
-VidiconMonitoredDataPoint::VidiconMonitoredDataPoint(base::win::ScopedComPtr<IDataPoint> point)
+VidiconMonitoredDataPoint::VidiconMonitoredDataPoint(
+    Microsoft::WRL::ComPtr<IDataPoint> point)
     : point_(std::move(point)) {
   assert(point_);
-  DispEventAdvise(point_.get(), &DIID__IDataPointEvents);
+  DispEventAdvise(point_.Get(), &DIID__IDataPointEvents);
 }
 
 VidiconMonitoredDataPoint::~VidiconMonitoredDataPoint() {
-  DispEventUnadvise(point_.get(), &DIID__IDataPointEvents);
+  DispEventUnadvise(point_.Get(), &DIID__IDataPointEvents);
 }
 
 void VidiconMonitoredDataPoint::Subscribe() {
@@ -89,7 +95,8 @@ scada::DataValue VidiconMonitoredDataPoint::GetDataValue() const {
   point_->get_Time(&time);
 
   auto timestamp = base::ToTime(time);
-  return {scada::ToVariant(value), scada::OpcQualityToQualifier(quality), timestamp, timestamp};
+  return {scada::ToVariant(value), scada::OpcQualityToQualifier(quality),
+          timestamp, timestamp};
 }
 
 void VidiconMonitoredDataPoint::OnDataChange() {

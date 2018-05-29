@@ -12,7 +12,7 @@
 
 std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::StringType base_name, const char* title) {
   base::FilePath path;
-  PathService::Get(path_service_key, &path);
+  base::PathService::Get(path_service_key, &path);
 
   auto logger = std::make_unique<FileLogger>();
   logger->Init(std::move(path), std::move(base_name));
@@ -20,7 +20,7 @@ std::unique_ptr<Logger> CreateFileLogger(int path_service_key, base::FilePath::S
   // fill log
 
   base::FilePath application_path;
-  PathService::Get(base::FILE_EXE, &application_path);
+  base::PathService::Get(base::FILE_EXE, &application_path);
 
   logger->Write(LogSeverity::Normal, "======================================================");
   logger->Write(LogSeverity::Normal, title);

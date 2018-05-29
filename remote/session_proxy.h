@@ -16,7 +16,7 @@
 #include <map>
 
 namespace base {
-class SingleThreadTaskRunner;
+class SequencedTaskRunner;
 }
 
 namespace net {
@@ -40,7 +40,7 @@ class ViewServiceProxy;
 
 struct SessionProxyContext {
   const std::shared_ptr<Logger> logger_;
-  scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
+  scoped_refptr<base::SequencedTaskRunner> task_runner_;
   net::TransportFactory& transport_factory_;
 };
 

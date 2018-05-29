@@ -7,11 +7,14 @@
 #include "vidicon/vidicon_monitored_data_point.h"
 #include "vidicon/vidicon_monitored_events.h"
 
+#include <wrl/client.h>
+
 namespace {
 
-base::win::ScopedComPtr<IClient> CreateTeleClient() {
-  base::win::ScopedComPtr<IClient> client;
-  client.CreateInstance(CLSID_Client);
+Microsoft::WRL::ComPtr<IClient> CreateTeleClient() {
+  Microsoft::WRL::ComPtr<IClient> client;
+  ::CoCreateInstance(__uuidof(Client), nullptr, CLSCTX_ALL,
+                     IID_PPV_ARGS(&client));
   return client;
 }
 
@@ -75,9 +78,9 @@ std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
       return nullptr;
     auto address =
         base::StringPrintf(L"CF:%d", read_value_id.node_id.numeric_id());
-    base::win::ScopedComPtr<IDataPoint> point;
+    Microsoft::WRL::ComPtr<IDataPoint> point;
     teleclient_->RequestPoint(base::win::ScopedBstr(address.c_str()),
-                              point.Receive());
+                              point.GetAddressOf());
     if (!point)
       return nullptr;
     return std::make_unique<VidiconMonitoredDataPoint>(std::move(point));

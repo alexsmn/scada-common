@@ -1,18 +1,18 @@
 #pragma once
 
-#include "base/win/scoped_comptr.h"
 #include "core/data_value.h"
 #include "core/monitored_item.h"
 #include "vidicon/TeleClient.h"
 
 #include <atlbase.h>
 #include <atlcom.h>
+#include <wrl/client.h>
 
 class VidiconMonitoredDataPoint
     : public scada::MonitoredItem,
       public IDispEventImpl<1, VidiconMonitoredDataPoint, &DIID__IDataPointEvents, &LIBID_TeleClientLib, 0xFFFF, 0xFFFF> {
  public:
-  explicit VidiconMonitoredDataPoint(base::win::ScopedComPtr<IDataPoint> point);
+  explicit VidiconMonitoredDataPoint(Microsoft::WRL::ComPtr<IDataPoint> point);
   ~VidiconMonitoredDataPoint();
 
   BEGIN_SINK_MAP(VidiconMonitoredDataPoint)
@@ -28,6 +28,6 @@ class VidiconMonitoredDataPoint
 
   void __stdcall OnDataChange();
 
-  base::win::ScopedComPtr<IDataPoint> point_;
+  Microsoft::WRL::ComPtr<IDataPoint> point_;
   bool subscribed_ = false;
 };

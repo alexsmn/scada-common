@@ -91,8 +91,8 @@ void SessionProxy::OnSessionCreated() {
 
   ping_timer_.Reset();
 
-  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_,
-                    OnSessionCreated());
+  for (auto& o : observers_)
+    o.OnSessionCreated();
 
   ForwardConnectResult(scada::StatusCode::Good);
 }
@@ -116,8 +116,8 @@ void SessionProxy::OnSessionError(const scada::Status& status) {
 
   ForwardConnectResult(status);
 
-  FOR_EACH_OBSERVER(scada::SessionStateObserver, observers_,
-                    OnSessionDeleted(status));
+  for (auto& o : observers_)
+    o.OnSessionDeleted(status);
 }
 
 void SessionProxy::OnTransportMessageReceived(const void* data, size_t size) {

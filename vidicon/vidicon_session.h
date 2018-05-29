@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/win/scoped_comptr.h"
 #include "core/attribute_service.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
@@ -10,6 +9,8 @@
 #include "core/session_service.h"
 #include "core/view_service.h"
 #include "vidicon/TeleClient.h"
+
+#include <wrl/client.h>
 
 namespace scada {
 class ViewService;
@@ -120,5 +121,5 @@ class VidiconSession : public scada::SessionService,
   virtual void Unsubscribe(scada::ViewEvents& events) override;
 
  private:
-  base::win::ScopedComPtr<IClient> teleclient_;
+  Microsoft::WRL::ComPtr<IClient> teleclient_;
 };

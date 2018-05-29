@@ -30,35 +30,35 @@ base::string16 WideFormat(float value) {
 }
 
 std::string Format(int value) {
-  return base::IntToString(value);
+  return base::NumberToString(value);
 }
 
 base::string16 WideFormat(int value) {
-  return base::IntToString16(value);
+  return base::NumberToString16(value);
 }
 
 std::string Format(unsigned int value) {
-  return base::UintToString(value);
+  return base::NumberToString(value);
 }
 
 base::string16 WideFormat(unsigned int value) {
-  return base::UintToString16(value);
+  return base::NumberToString16(value);
 }
 
 std::string Format(uint64_t value) {
-  return base::Uint64ToString(value);
+  return base::NumberToString(value);
 }
 
 std::string Format(int64_t value) {
-  return base::Int64ToString(value);
+  return base::NumberToString(value);
 }
 
 base::string16 WideFormat(int64_t value) {
-  return base::Int64ToString16(value);
+  return base::NumberToString16(value);
 }
 
 base::string16 WideFormat(uint64_t value) {
-  return base::Uint64ToString16(value);
+  return base::NumberToString16(value);
 }
 
 std::string Format(bool value) {
