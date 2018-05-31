@@ -25,11 +25,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
       NodeIdToScadaString(node_state.parent_id).c_str(),
       NodeIdToScadaString(node_state.reference_type_id).c_str());
 
-  // TODO: Remove all except scada::id::RootFolder.
-  if (node_state.node_id != scada::id::RootFolder &&
-      node_state.node_id != scada::id::References &&
-      node_state.node_id != scada::id::HierarchicalReferences &&
-      node_state.node_id != scada::id::NonHierarchicalReferences) {
+  if (node_state.node_id != scada::id::RootFolder) {
     assert(!node_state.parent_id.is_null());
     assert(!node_state.reference_type_id.is_null());
   }

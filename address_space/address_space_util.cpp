@@ -1,5 +1,11 @@
 ﻿#include "address_space/address_space_util.h"
 
+#include "address_space/address_space.h"
+#include "address_space/address_space_util.h"
+#include "address_space/node.h"
+#include "address_space/node_utils.h"
+#include "address_space/type_definition.h"
+#include "address_space/variable.h"
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
@@ -8,12 +14,6 @@
 #include "common/format.h"
 #include "common/node_id_util.h"
 #include "common/scada_node_ids.h"
-#include "address_space/address_space.h"
-#include "address_space/address_space_util.h"
-#include "address_space/node.h"
-#include "address_space/node_utils.h"
-#include "address_space/type_definition.h"
-#include "address_space/variable.h"
 
 namespace scada {
 
@@ -43,7 +43,7 @@ NodeId NodeIdFromAliasedString(AddressSpace& cfg,
   if (path.find_first_of('.') != std::string::npos)
     return NodeId();
 
-  auto* node = FindNodeByAlias(*cfg.GetNode(id::RootFolder), path);
+  auto* node = FindNodeByAlias(*cfg.GetNode(id::ObjectsFolder), path);
   return node ? node->id() : NodeId();
 }
 
@@ -118,7 +118,8 @@ QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id) {
 
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id) {
   auto* node = cfg.GetNode(node_id);
-  return node ? GetFullDisplayName(*node) : base::WideToUTF16(kUnknownDisplayName);
+  return node ? GetFullDisplayName(*node)
+              : base::WideToUTF16(kUnknownDisplayName);
 }
 
 base::string16 GetFullDisplayName(const Node& node) {
@@ -178,14 +179,13 @@ Variant::Type DataTypeToValueType(const TypeDefinition& type) {
     return Variant::LOCALIZED_TEXT;
   else if (type.id() == id::NodeId)
     return Variant::NODE_ID;
-  else if (auto* supertype = GetSupertype(type))
+  else if (auto* supertype = type.supertype())
     return DataTypeToValueType(*supertype);
   else
     return Variant::EMPTY;
 }
 
-Status ConvertPropertyValue(const DataType& data_type,
-                                   Variant& value) {
+Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
   if (!value.is_null()) {
     if (data_type.id() != id::BaseDataType) {
       auto value_type = DataTypeToValueType(data_type);
@@ -199,9 +199,8 @@ Status ConvertPropertyValue(const DataType& data_type,
   return StatusCode::Good;
 }
 
-Status ConvertPropertyValues(Node& node,
-                                    NodeProperties& properties) {
-  auto* type = GetTypeDefinition(node);
+Status ConvertPropertyValues(Node& node, NodeProperties& properties) {
+  auto* type = node.type_definition();
   assert(type);
 
   for (auto& prop : properties) {

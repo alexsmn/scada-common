@@ -8,6 +8,7 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/variable.h"
 #include "base/logger.h"
+#include "base/strings/utf_string_conversions.h"
 #include "core/test/test_address_space.h"
 
 using namespace testing;
@@ -18,24 +19,26 @@ struct TestContext {
   TestContext() {
     // Create custom types, since we don't transfer types.
     client_address_space.AddStaticNode(std::make_unique<scada::ObjectType>(
-        server_address_space.kTestTypeId, "TestType", base::WideToUTF16(L"TestType")));
+        server_address_space.kTestTypeId, "TestType",
+        base::WideToUTF16(L"TestType")));
     auto* string_node =
         scada::AsDataType(client_address_space.GetNode(scada::id::String));
     assert(string_node);
     client_address_space.AddStaticNode(std::make_unique<scada::GenericVariable>(
-        server_address_space.kTestProp1Id, "TestProp1", base::WideToUTF16(L"TestProp1DisplayName"),
-        *string_node));
+        server_address_space.kTestProp1Id, "TestProp1",
+        base::WideToUTF16(L"TestProp1DisplayName"), *string_node));
     scada::AddReference(client_address_space, scada::id::HasProperty,
                         server_address_space.kTestTypeId,
                         server_address_space.kTestProp1Id);
     client_address_space.AddStaticNode(std::make_unique<scada::GenericVariable>(
-        server_address_space.kTestProp2Id, "TestProp2", base::WideToUTF16(L"TestProp2DisplayName"),
-        *string_node));
+        server_address_space.kTestProp2Id, "TestProp2",
+        base::WideToUTF16(L"TestProp2DisplayName"), *string_node));
     scada::AddReference(client_address_space, scada::id::HasProperty,
                         server_address_space.kTestTypeId,
                         server_address_space.kTestProp2Id);
     client_address_space.AddStaticNode(std::make_unique<scada::ReferenceType>(
-        server_address_space.kTestRefTypeId, "TestRef", base::WideToUTF16(L"TestRef")));
+        server_address_space.kTestRefTypeId, "TestRef",
+        base::WideToUTF16(L"TestRef")));
 
     for (auto& node : server_address_space.nodes) {
       EXPECT_CALL(

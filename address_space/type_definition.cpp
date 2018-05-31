@@ -6,7 +6,29 @@
 
 namespace scada {
 
-TypeDefinition::TypeDefinition() {
+TypeDefinition::TypeDefinition() {}
+
+void TypeDefinition::AddReference(const ReferenceType& reference_type,
+                                  bool forward,
+                                  Node& node) {
+  Node::AddReference(reference_type, forward, node);
+
+  if (!forward && reference_type.id() == scada::id::HasSubtype) {
+    assert(!supertype_);
+    assert(scada::AsTypeDefinition(&node));
+    supertype_ = scada::AsTypeDefinition(&node);
+  }
+}
+
+void TypeDefinition::DeleteReference(const ReferenceType& reference_type,
+                                     bool forward,
+                                     Node& node) {
+  if (!forward && reference_type.id() == scada::id::HasSubtype) {
+    assert(supertype_ == &node);
+    supertype_ = nullptr;
+  }
+
+  Node::DeleteReference(reference_type, forward, node);
 }
 
 Variant DataType::GetPropertyValue(const NodeId& prop_decl_id) const {
@@ -16,4 +38,4 @@ Variant DataType::GetPropertyValue(const NodeId& prop_decl_id) const {
   return TypeDefinition::GetPropertyValue(prop_decl_id);
 }
 
-} // namespace scada
+}  // namespace scada

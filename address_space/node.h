@@ -18,6 +18,7 @@ class MethodService;
 class MonitoredItemService;
 class Node;
 class ReferenceType;
+class TypeDefinition;
 class ViewService;
 struct Reference;
 
@@ -45,6 +46,9 @@ class Node {
 
   const References& forward_references() const { return forward_references_; }
   const References& inverse_references() const { return inverse_references_; }
+
+  TypeDefinition* type_definition() { return type_definition_; }
+  const TypeDefinition* type_definition() const { return type_definition_; }
 
   virtual void Startup() {}
   virtual void Shutdown() {}
@@ -79,6 +83,8 @@ class Node {
 
   References forward_references_;
   References inverse_references_;
+
+  TypeDefinition* type_definition_ = nullptr;
 
   DISALLOW_COPY_AND_ASSIGN(Node);
 };

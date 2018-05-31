@@ -35,7 +35,7 @@ bool ComponentObject::InitNode(AddressSpace& address_space,
   if (!instance_declaration_)
     return false;
 
-  auto* type = GetTypeDefinition(*instance_declaration_);
+  auto* type = instance_declaration_->type_definition();
   if (!type)
     return false;
 

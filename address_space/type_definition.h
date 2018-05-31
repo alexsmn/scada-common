@@ -8,6 +8,19 @@ namespace scada {
 class TypeDefinition : public Node {
  public:
   TypeDefinition();
+
+  TypeDefinition* supertype() { return supertype_; }
+  const TypeDefinition* supertype() const { return supertype_; }
+
+  virtual void AddReference(const ReferenceType& reference_type,
+                            bool forward,
+                            Node& node) override;
+  virtual void DeleteReference(const ReferenceType& reference_type,
+                               bool forward,
+                               Node& node) override;
+
+ private:
+  TypeDefinition* supertype_ = nullptr;
 };
 
 class DataType : public TypeDefinition {

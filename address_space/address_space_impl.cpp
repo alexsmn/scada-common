@@ -19,6 +19,11 @@ AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
       standard_address_space_(std::make_unique<StandardAddressSpace>()),
       static_address_space_(
           std::make_unique<StaticAddressSpace>(*standard_address_space_)) {
+  AddNode(standard_address_space_->RootFolder);
+  AddNode(standard_address_space_->ObjectsFolder);
+  AddNode(standard_address_space_->TypesFolder);
+
+  AddNode(standard_address_space_->References);
   AddNode(standard_address_space_->HierarchicalReference);
   AddNode(standard_address_space_->NonHierarchicalReference);
   AddNode(standard_address_space_->Aggregates);
@@ -28,6 +33,7 @@ AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
   AddNode(standard_address_space_->HasTypeDefinition);
   AddNode(standard_address_space_->HasModellingRule);
   AddNode(standard_address_space_->Organizes);
+
   AddNode(standard_address_space_->BaseDataType);
   AddNode(standard_address_space_->BoolDataType);
   AddNode(standard_address_space_->IntDataType);
@@ -35,9 +41,11 @@ AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
   AddNode(standard_address_space_->StringDataType);
   AddNode(standard_address_space_->LocalizedTextDataType);
   AddNode(standard_address_space_->NodeIdDataType);
+
   AddNode(standard_address_space_->BaseObjectType);
   AddNode(standard_address_space_->ModellingRule_Mandatory);
   AddNode(standard_address_space_->FolderType);
+
   AddNode(standard_address_space_->BaseVariableType);
   AddNode(standard_address_space_->PropertyType);
 

@@ -52,7 +52,7 @@ TEST(AddressSpaceNodeModel, Fetch) {
 
   auto& root_folder =
       address_space.AddStaticNode(std::make_unique<scada::GenericObject>(
-          scada::id::RootFolder, base::WideToUTF16(L"RootFolder")));
+          scada::id::RootFolder, "RootFolder", scada::LocalizedText{}));
   node.SetFetchStatus(&root_folder, scada::StatusCode::Good,
                       NodeFetchStatus::NodeOnly());
 

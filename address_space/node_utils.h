@@ -34,8 +34,6 @@ const DataType* AsDataType(const Node* node);
 const TypeDefinition* AsTypeDefinition(const Node* node);
 TypeDefinition* AsTypeDefinition(Node* node);
 
-const TypeDefinition* GetTypeDefinition(const Node& node);
-TypeDefinition* GetTypeDefinition(Node& node);
 NodeId GetTypeDefinitionId(const Node& node);
 
 const Node* GetReferenceTarget(const TypeDefinition* source, const NodeId& reference_type_id);
@@ -57,8 +55,6 @@ Reference FindReference(const Node& node, const ReferenceDescription& reference)
 inline Node* GetTarget(const Node& node, const NodeId& reference_type_id, bool forward) {
   return FindReference(node, reference_type_id, forward).node;
 }
-
-const TypeDefinition* GetSupertype(const TypeDefinition& type);
 
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
 bool IsSubtypeOf(AddressSpace& address_space, const NodeId& type_id, const NodeId& supertype_id);

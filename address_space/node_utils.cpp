@@ -32,17 +32,9 @@ Variable* AsVariable(Node* node) {
              : nullptr;
 }
 
-const TypeDefinition* GetTypeDefinition(const Node& node) {
-  return AsTypeDefinition(GetReference(node, id::HasTypeDefinition).node);
-}
-
-TypeDefinition* GetTypeDefinition(Node& node) {
-  return AsTypeDefinition(GetReference(node, id::HasTypeDefinition).node);
-}
-
 NodeId GetTypeDefinitionId(const Node& node) {
-  auto* type = GetTypeDefinition(node);
-  return type ? type->id() : NodeId();
+  auto* type_definition = node.type_definition();
+  return type_definition ? type_definition->id() : NodeId{};
 }
 
 const ObjectType* AsObjectType(const Node* node) {
@@ -70,8 +62,10 @@ VariableType* AsVariableType(Node* node) {
 }
 
 bool IsInstanceOf(const Node* node, const NodeId& type_id) {
-  auto* type = node ? GetTypeDefinition(*node) : nullptr;
-  return type && IsSubtypeOf(*type, type_id);
+  if (!node)
+    return false;
+  auto* type_definition = node->type_definition();
+  return type_definition && IsSubtypeOf(*type_definition, type_id);
 }
 
 const ReferenceType* AsReferenceType(const Node* node) {
@@ -88,7 +82,7 @@ const DataType* AsDataType(const Node* node) {
 
 const Node* GetReferenceTarget(const TypeDefinition* source,
                                const NodeId& reference_type_id) {
-  for (; source; source = GetSupertype(*source)) {
+  for (; source; source = source->supertype()) {
     auto ref = GetReference(*source, reference_type_id);
     if (ref.node)
       return ref.node;
@@ -98,8 +92,7 @@ const Node* GetReferenceTarget(const TypeDefinition* source,
 
 const Node* GetAggregateDeclaration(const TypeDefinition& type,
                                     const NodeId& prop_decl_id) {
-  for (auto* supertype = &type; supertype;
-       supertype = GetSupertype(*supertype)) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     for (auto* prop : GetAggregates(*supertype)) {
       if (prop->id() == prop_decl_id)
         return static_cast<const Variable*>(prop);
@@ -116,8 +109,7 @@ const Node* GetDeclaration(const Node& node) {
     return nullptr;
 
   const auto browse_name = node.GetBrowseName();
-  for (auto* type = GetTypeDefinition(*parent); type;
-       type = GetSupertype(*type)) {
+  for (auto* type = parent->type_definition(); type; type = type->supertype()) {
     if (auto* child = FindChild(*type, browse_name.name()))
       return child;
   }
@@ -199,13 +191,8 @@ bool IsNonPropReference::operator()(const Reference& ref) const {
   return !IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
 }
 
-const TypeDefinition* GetSupertype(const TypeDefinition& type) {
-  return AsTypeDefinition(FindReference(type, id::HasSubtype, false).node);
-}
-
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
-  for (auto* supertype = &type; supertype;
-       supertype = GetSupertype(*supertype)) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     if (supertype->id() == supertype_id)
       return true;
   }
@@ -216,7 +203,7 @@ bool IsSubtypeOf(AddressSpace& address_space,
                  const NodeId& type_id,
                  const NodeId& supertype_id) {
   const auto* type = AsTypeDefinition(address_space.GetNode(type_id));
-  for (; type; type = GetSupertype(*type)) {
+  for (; type; type = type->supertype()) {
     if (type->id() == supertype_id)
       return true;
   }
@@ -312,8 +299,7 @@ Node* FindChildByDisplayName(const Node& parent,
 
 Node* FindChildDeclaration(const TypeDefinition& type,
                            base::StringPiece browse_name) {
-  for (auto* supertype = &type; supertype;
-       supertype = GetSupertype(*supertype)) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     if (auto* declaration = FindChild(*supertype, browse_name))
       return declaration;
   }
@@ -330,8 +316,7 @@ Node* FindChildComponent(const Node& parent, base::StringPiece browse_name) {
 
 Node* FindComponentDeclaration(const TypeDefinition& type,
                                base::StringPiece browse_name) {
-  for (auto* supertype = &type; supertype;
-       supertype = GetSupertype(*supertype)) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     if (auto* declaration = FindChildComponent(*supertype, browse_name))
       return declaration;
   }

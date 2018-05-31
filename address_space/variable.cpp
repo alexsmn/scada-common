@@ -16,7 +16,7 @@ Variable::~Variable() {
 }
 
 const DataType& Variable::GetDataType() const {
-  auto* type = scada::AsVariableType(scada::GetTypeDefinition(*this));
+  auto* type = scada::AsVariableType(type_definition());
   assert(type);
   return type->data_type();
 }
@@ -125,7 +125,7 @@ bool DataVariable::InitNode(AddressSpace& address_space,
   if (!instance_declaration_)
     return false;
 
-  auto* type = GetTypeDefinition(*instance_declaration_);
+  auto* type = instance_declaration_->type_definition();
   if (!type)
     return false;
 

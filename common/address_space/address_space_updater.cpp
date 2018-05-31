@@ -81,7 +81,7 @@ void MergeProperties(
       if (scada::IsTypeDefinition(parent_node->GetNodeClass()))
         continue;
 
-      parent_type_definition = scada::GetTypeDefinition(*parent_node);
+      parent_type_definition = parent_node->type_definition();
     }
 
     assert(parent_type_definition);

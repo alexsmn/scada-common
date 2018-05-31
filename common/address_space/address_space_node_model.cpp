@@ -90,7 +90,7 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
 
   auto* type_definition = scada::IsTypeDefinition(node_->GetNodeClass())
                               ? scada::AsTypeDefinition(node_)
-                              : scada::GetTypeDefinition(*node_);
+                              : node_->type_definition();
   if (!type_definition)
     return nullptr;
 
