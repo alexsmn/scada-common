@@ -1,11 +1,10 @@
 #pragma once
 
-#include "base/base_export.h"
 #include "base/logger.h"
 
 #include <vector>
 
-class BASE_EXPORT ForkLogger : public Logger {
+class ForkLogger : public Logger {
  public:
   virtual ~ForkLogger();
  

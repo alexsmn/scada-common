@@ -85,6 +85,10 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
 
   void NotifyFetchedNodes();
 
+  void SetFetchedAttribute(FetchingNode& node,
+                           scada::AttributeId attribute_id,
+                           scada::Variant&& value);
+
   void AddFetchedReference(FetchingNode& node,
                            const scada::BrowseDescription& description,
                            scada::ReferenceDescription&& reference);

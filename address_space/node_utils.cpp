@@ -2,30 +2,34 @@
 
 #include "address_space/address_space.h"
 #include "address_space/object.h"
-#include "core/standard_node_ids.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "core/standard_node_ids.h"
 
 namespace scada {
 
 Object* AsObject(Node* node) {
-  return node && node->GetNodeClass() == NodeClass::Object ?
-      static_cast<Object*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::Object
+             ? static_cast<Object*>(node)
+             : nullptr;
 }
 
 const Object* AsObject(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::Object ?
-      static_cast<const Object*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::Object
+             ? static_cast<const Object*>(node)
+             : nullptr;
 }
 
 const Variable* AsVariable(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::Variable ?
-      static_cast<const Variable*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::Variable
+             ? static_cast<const Variable*>(node)
+             : nullptr;
 }
 
 Variable* AsVariable(Node* node) {
-  return node && node->GetNodeClass() == NodeClass::Variable ?
-      static_cast<Variable*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::Variable
+             ? static_cast<Variable*>(node)
+             : nullptr;
 }
 
 const TypeDefinition* GetTypeDefinition(const Node& node) {
@@ -42,23 +46,27 @@ NodeId GetTypeDefinitionId(const Node& node) {
 }
 
 const ObjectType* AsObjectType(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::ObjectType ?
-      static_cast<const ObjectType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::ObjectType
+             ? static_cast<const ObjectType*>(node)
+             : nullptr;
 }
 
 ObjectType* AsObjectType(Node* node) {
-  return node && node->GetNodeClass() == NodeClass::ObjectType ?
-      static_cast<ObjectType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::ObjectType
+             ? static_cast<ObjectType*>(node)
+             : nullptr;
 }
 
 const VariableType* AsVariableType(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::VariableType ?
-      static_cast<const VariableType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::VariableType
+             ? static_cast<const VariableType*>(node)
+             : nullptr;
 }
 
 VariableType* AsVariableType(Node* node) {
-  return node && node->GetNodeClass() == NodeClass::VariableType ?
-      static_cast<VariableType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::VariableType
+             ? static_cast<VariableType*>(node)
+             : nullptr;
 }
 
 bool IsInstanceOf(const Node* node, const NodeId& type_id) {
@@ -67,16 +75,19 @@ bool IsInstanceOf(const Node* node, const NodeId& type_id) {
 }
 
 const ReferenceType* AsReferenceType(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::ReferenceType ?
-      static_cast<const ReferenceType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::ReferenceType
+             ? static_cast<const ReferenceType*>(node)
+             : nullptr;
 }
 
 const DataType* AsDataType(const Node* node) {
-  return node && node->GetNodeClass() == NodeClass::DataType ?
-      static_cast<const DataType*>(node) : nullptr;
+  return node && node->GetNodeClass() == NodeClass::DataType
+             ? static_cast<const DataType*>(node)
+             : nullptr;
 }
 
-const Node* GetReferenceTarget(const TypeDefinition* source, const NodeId& reference_type_id) {
+const Node* GetReferenceTarget(const TypeDefinition* source,
+                               const NodeId& reference_type_id) {
   for (; source; source = GetSupertype(*source)) {
     auto ref = GetReference(*source, reference_type_id);
     if (ref.node)
@@ -85,8 +96,10 @@ const Node* GetReferenceTarget(const TypeDefinition* source, const NodeId& refer
   return nullptr;
 }
 
-const Node* GetAggregateDeclaration(const TypeDefinition& type, const NodeId& prop_decl_id) {
-  for (auto* supertype = &type; supertype; supertype = GetSupertype(*supertype)) {
+const Node* GetAggregateDeclaration(const TypeDefinition& type,
+                                    const NodeId& prop_decl_id) {
+  for (auto* supertype = &type; supertype;
+       supertype = GetSupertype(*supertype)) {
     for (auto* prop : GetAggregates(*supertype)) {
       if (prop->id() == prop_decl_id)
         return static_cast<const Variable*>(prop);
@@ -103,7 +116,8 @@ const Node* GetDeclaration(const Node& node) {
     return nullptr;
 
   const auto browse_name = node.GetBrowseName();
-  for (auto* type = GetTypeDefinition(*parent); type; type = GetSupertype(*type)) {
+  for (auto* type = GetTypeDefinition(*parent); type;
+       type = GetSupertype(*type)) {
     if (auto* child = FindChild(*type, browse_name.name()))
       return child;
   }
@@ -112,11 +126,15 @@ const Node* GetDeclaration(const Node& node) {
 }
 
 const TypeDefinition* AsTypeDefinition(const Node* node) {
-  return node && IsTypeDefinition(node->GetNodeClass()) ? static_cast<const TypeDefinition*>(node) : nullptr;
+  return node && IsTypeDefinition(node->GetNodeClass())
+             ? static_cast<const TypeDefinition*>(node)
+             : nullptr;
 }
 
 TypeDefinition* AsTypeDefinition(Node* node) {
-  return node && IsTypeDefinition(node->GetNodeClass()) ? static_cast<TypeDefinition*>(node) : nullptr;
+  return node && IsTypeDefinition(node->GetNodeClass())
+             ? static_cast<TypeDefinition*>(node)
+             : nullptr;
 }
 
 Reference GetParentReference(Node& node) {
@@ -135,8 +153,10 @@ Reference GetReference(const Node& source, const NodeId& reference_type_id) {
   return FindReference(source, reference_type_id, true);
 }
 
-Reference FindReference(const Node& node, const ReferenceDescription& reference) {
-  auto& refs = reference.forward ? node.forward_references() : node.inverse_references();
+Reference FindReference(const Node& node,
+                        const ReferenceDescription& reference) {
+  auto& refs =
+      reference.forward ? node.forward_references() : node.inverse_references();
   for (auto& ref : refs) {
     if (IsSubtypeOf(*ref.type, reference.reference_type_id)) {
       if (ref.node->id() == reference.node_id)
@@ -146,7 +166,10 @@ Reference FindReference(const Node& node, const ReferenceDescription& reference)
   return {};
 }
 
-Reference FindReference(const Node& node, const NodeId& reference_type_id, bool forward, const NodeId& referenced_node_id) {
+Reference FindReference(const Node& node,
+                        const NodeId& reference_type_id,
+                        bool forward,
+                        const NodeId& referenced_node_id) {
   auto& refs = forward ? node.forward_references() : node.inverse_references();
   for (auto& ref : refs) {
     if (IsSubtypeOf(*ref.type, reference_type_id)) {
@@ -157,7 +180,9 @@ Reference FindReference(const Node& node, const NodeId& reference_type_id, bool 
   return {};
 }
 
-Reference FindReference(const Node& node, const NodeId& reference_type_id, bool forward) {
+Reference FindReference(const Node& node,
+                        const NodeId& reference_type_id,
+                        bool forward) {
   auto& refs = forward ? node.forward_references() : node.inverse_references();
   for (auto& ref : refs) {
     if (IsSubtypeOf(*ref.type, reference_type_id))
@@ -179,14 +204,17 @@ const TypeDefinition* GetSupertype(const TypeDefinition& type) {
 }
 
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
-  for (auto* supertype = &type; supertype; supertype = GetSupertype(*supertype)) {
+  for (auto* supertype = &type; supertype;
+       supertype = GetSupertype(*supertype)) {
     if (supertype->id() == supertype_id)
       return true;
   }
   return false;
 }
 
-bool IsSubtypeOf(AddressSpace& address_space, const NodeId& type_id, const NodeId& supertype_id) {
+bool IsSubtypeOf(AddressSpace& address_space,
+                 const NodeId& type_id,
+                 const NodeId& supertype_id) {
   const auto* type = AsTypeDefinition(address_space.GetNode(type_id));
   for (; type; type = GetSupertype(*type)) {
     if (type->id() == supertype_id)
@@ -212,7 +240,9 @@ Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
   }
 }
 
-Status SetPropertyValue(Node& node, const NodeId& prop_decl_id, const Variant& value) {
+Status SetPropertyValue(Node& node,
+                        const NodeId& prop_decl_id,
+                        const Variant& value) {
   switch (node.GetNodeClass()) {
     case NodeClass::Object:
       return static_cast<Object&>(node).SetPropertyValue(prop_decl_id, value);
@@ -223,8 +253,10 @@ Status SetPropertyValue(Node& node, const NodeId& prop_decl_id, const Variant& v
   }
 }
 
-void AddReference(scada::AddressSpace& address_space, const scada::NodeId& reference_type_id, const scada::NodeId& source_id,
-                                       const scada::NodeId& target_id) {
+void AddReference(scada::AddressSpace& address_space,
+                  const scada::NodeId& reference_type_id,
+                  const scada::NodeId& source_id,
+                  const scada::NodeId& target_id) {
   auto* source = address_space.GetNode(source_id);
   assert(source);
 
@@ -234,15 +266,22 @@ void AddReference(scada::AddressSpace& address_space, const scada::NodeId& refer
   AddReference(address_space, reference_type_id, *source, *target);
 }
 
-void AddReference(scada::AddressSpace& address_space, const scada::NodeId& reference_type_id, scada::Node& source, scada::Node& target) {
-  auto* reference_type = AsReferenceType(address_space.GetNode(reference_type_id));
+void AddReference(scada::AddressSpace& address_space,
+                  const scada::NodeId& reference_type_id,
+                  scada::Node& source,
+                  scada::Node& target) {
+  auto* reference_type =
+      AsReferenceType(address_space.GetNode(reference_type_id));
   assert(reference_type);
   scada::AddReference(*reference_type, source, target);
 }
 
-void DeleteReference(scada::AddressSpace& address_space, const scada::NodeId& reference_type_id, const scada::NodeId& source_id,
-                                         const scada::NodeId& target_id) {
-  auto* reference_type = AsReferenceType(address_space.GetNode(reference_type_id));
+void DeleteReference(scada::AddressSpace& address_space,
+                     const scada::NodeId& reference_type_id,
+                     const scada::NodeId& source_id,
+                     const scada::NodeId& target_id) {
+  auto* reference_type =
+      AsReferenceType(address_space.GetNode(reference_type_id));
   assert(reference_type);
 
   auto* source = address_space.GetNode(source_id);
@@ -262,7 +301,8 @@ Node* FindChild(const Node& parent, base::StringPiece browse_name) {
   return nullptr;
 }
 
-Node* FindChildByDisplayName(const Node& parent, base::StringPiece16 display_name) {
+Node* FindChildByDisplayName(const Node& parent,
+                             base::StringPiece16 display_name) {
   for (auto* child : GetChildren(parent)) {
     if (child->GetDisplayName() == display_name)
       return child;
@@ -270,8 +310,10 @@ Node* FindChildByDisplayName(const Node& parent, base::StringPiece16 display_nam
   return nullptr;
 }
 
-Node* FindChildDeclaration(const TypeDefinition& type, base::StringPiece browse_name) {
-  for (auto* supertype = &type; supertype; supertype = GetSupertype(*supertype)) {
+Node* FindChildDeclaration(const TypeDefinition& type,
+                           base::StringPiece browse_name) {
+  for (auto* supertype = &type; supertype;
+       supertype = GetSupertype(*supertype)) {
     if (auto* declaration = FindChild(*supertype, browse_name))
       return declaration;
   }
@@ -286,8 +328,10 @@ Node* FindChildComponent(const Node& parent, base::StringPiece browse_name) {
   return nullptr;
 }
 
-Node* FindComponentDeclaration(const TypeDefinition& type, base::StringPiece browse_name) {
-  for (auto* supertype = &type; supertype; supertype = GetSupertype(*supertype)) {
+Node* FindComponentDeclaration(const TypeDefinition& type,
+                               base::StringPiece browse_name) {
+  for (auto* supertype = &type; supertype;
+       supertype = GetSupertype(*supertype)) {
     if (auto* declaration = FindChildComponent(*supertype, browse_name))
       return declaration;
   }
@@ -305,4 +349,4 @@ void DeleteAllReferences(Node& node) {
   }
 }
 
-} // namespace scada
+}  // namespace scada

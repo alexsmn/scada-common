@@ -7,6 +7,7 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/logger.h"
+#include "base/strings/stringprintf.h"
 #include "common/node_id_util.h"
 #include "common/node_state.h"
 #include "core/configuration_types.h"
@@ -26,39 +27,47 @@ bool Contains(const std::vector<T>& range, const T& element) {
          std::end(range);
 }
 
+// Type definition's properties are not merged.
+// Resets |node_id| for deleted nodes.
 void MergeProperties(
     scada::AddressSpace& address_space,
     std::vector<scada::NodeState>& nodes,
     std::map<scada::NodeId, scada::NodeProperties>& modified_properties) {
-  scada::NodeId parent_id;
-  scada::NodeId property_declaration_id;
-
   std::map<scada::NodeId, scada::NodeState*> node_map;
 
-    for (auto& node : nodes) {
-      if (node.reference_type_id != scada::id::HasProperty)
+  for (auto& node : nodes) {
+    if (node.reference_type_id != scada::id::HasProperty) {
+      assert(!node.node_id.is_null());
+      assert(node_map.find(node.node_id) == node_map.end());
       node_map.emplace(node.node_id, &node);
     }
+  }
 
-    for (auto& node : nodes) {
+  for (auto& node : nodes) {
     if (node.reference_type_id != scada::id::HasProperty)
       continue;
 
+    assert(!node.node_id.is_null());
     assert(!node.parent_id.is_null());
     assert(!node.attributes.browse_name.empty());
+    assert(node.references.empty());
 
     scada::NodeState* parent_node = nullptr;
     {
       auto i = node_map.find(node.parent_id);
       if (i != node_map.end())
         parent_node = i->second;
-  }
+    }
 
-    scada::TypeDefinition* type_definition = nullptr;
+    scada::TypeDefinition* parent_type_definition = nullptr;
 
     if (parent_node) {
-      assert(!scada::IsTypeDefinition(parent_node->node_class));
-      type_definition = scada::AsTypeDefinition(
+      // Don't merge type definition's properties. Create a normal variable node
+      // for them.
+      if (scada::IsTypeDefinition(parent_node->node_class))
+        continue;
+
+      parent_type_definition = scada::AsTypeDefinition(
           address_space.GetNode(parent_node->type_definition_id));
 
     } else {
@@ -67,15 +76,20 @@ void MergeProperties(
       if (!parent_node)
         continue;
 
-      type_definition = scada::GetTypeDefinition(*parent_node);
+      // Don't merge type definition's properties. Create a normal variable node
+      // for them.
+      if (scada::IsTypeDefinition(parent_node->GetNodeClass()))
+        continue;
+
+      parent_type_definition = scada::GetTypeDefinition(*parent_node);
     }
 
-    assert(type_definition);
-    if (!type_definition)
+    assert(parent_type_definition);
+    if (!parent_type_definition)
       continue;
 
     auto* property_declaration = scada::FindChildDeclaration(
-        *type_definition, node.attributes.browse_name.name());
+        *parent_type_definition, node.attributes.browse_name.name());
     assert(property_declaration);
     if (!property_declaration)
       continue;
@@ -89,8 +103,26 @@ void MergeProperties(
       properties.emplace_back(property_declaration->id(),
                               std::move(node.attributes.value));
     }
-    }
+
+    // Deleted.
+    node.node_id = {};
   }
+}
+
+std::string FormatReference(scada::AddressSpace& address_space,
+                            const scada::NodeId& node_id,
+                            const scada::ReferenceDescription& reference) {
+  auto& source_id = reference.forward ? node_id : reference.node_id;
+  auto& target_id = reference.forward ? reference.node_id : node_id;
+
+  auto* reference_type = address_space.GetNode(reference.reference_type_id);
+  auto reference_name = reference_type
+                            ? reference_type->GetBrowseName().name()
+                            : NodeIdToScadaString(reference.reference_type_id);
+  return base::StringPrintf("%s %s %s", NodeIdToScadaString(source_id).c_str(),
+                            reference_name.c_str(),
+                            NodeIdToScadaString(target_id).c_str());
+}
 
 }  // namespace
 
@@ -131,6 +163,7 @@ void SortNodes(std::vector<scada::NodeState>& nodes) {
       Visit(node.reference_type_id);
       Visit(node.parent_id);
       Visit(node.type_definition_id);
+      Visit(node.attributes.data_type);
 
       sorted_indexes.emplace_back(index);
     }
@@ -145,6 +178,15 @@ void SortNodes(std::vector<scada::NodeState>& nodes) {
     Visitor{nodes};
 }
 
+bool IsPropertyDeclaration(scada::AddressSpace& address_space,
+                           const scada::NodeState& node_state) {
+  if (node_state.reference_type_id != scada::id::HasProperty)
+    return false;
+
+  auto* parent = address_space.GetNode(node_state.parent_id);
+  return scada::AsTypeDefinition(parent) != nullptr;
+}
+
 void UpdateNodes(AddressSpaceImpl& address_space,
                  NodeFactory& node_factory,
                  std::vector<scada::NodeState>&& nodes,
@@ -152,17 +194,41 @@ void UpdateNodes(AddressSpaceImpl& address_space,
                  std::vector<scada::Node*>* return_added_nodes) {
   SortNodes(nodes);
 
-  std::map<scada::NodeId, scada::NodeProperties> modified_properties;
-  MergeProperties(address_space, nodes, modified_properties);
-
   std::vector<scada::Node*> added_nodes;
   added_nodes.reserve(nodes.size());
 
+  // Create type definitions and their properties to let MergeProperties() work.
+  // Type definitions never update.
   for (auto& node_state : nodes) {
+    assert(!node_state.node_id.is_null());
+
+    if (!scada::IsTypeDefinition(node_state.node_class) &&
+        !IsPropertyDeclaration(address_space, node_state))
+      continue;
+
+    auto [status, added_node] = node_factory.CreateNode(node_state);
+    assert(status);
+    assert(added_node);
+    added_nodes.emplace_back(added_node);
+
+    assert(address_space.GetNode(node_state.node_id));
+  }
+
+  std::map<scada::NodeId, scada::NodeProperties> modified_properties;
+  // Deletes some nodes by resetting |id|.
+  MergeProperties(address_space, nodes, modified_properties);
+
+  for (auto& node_state : nodes) {
+    // Skip properties.
     if (node_state.reference_type_id == scada::id::HasProperty)
       continue;
 
     if (auto* node = address_space.GetNode(node_state.node_id)) {
+      // Skip nodes added above.
+      if (std::find(added_nodes.begin(), added_nodes.end(), node) !=
+          added_nodes.end())
+        continue;
+
       logger.WriteF(
           LogSeverity::Normal,
           "ModifyNode [node_id=%s, node_class=%s, type_definition_id=%s, "
@@ -196,7 +262,10 @@ void UpdateNodes(AddressSpaceImpl& address_space,
     if (node_state.reference_type_id == scada::id::HasProperty)
       continue;
 
+    assert(!node_state.node_id.is_null());
+
     auto* node = address_space.GetNode(node_state.node_id);
+    assert(node);
     if (!node)
       continue;
 
@@ -218,15 +287,15 @@ void UpdateNodes(AddressSpaceImpl& address_space,
     }
 
     for (const auto& reference : deleted_references) {
+      logger.WriteF(
+          LogSeverity::Normal, "Reference deleted: %s",
+          FormatReference(address_space, node_state.node_id, reference)
+              .c_str());
+
       auto& source_id =
           reference.forward ? node_state.node_id : reference.node_id;
       auto& target_id =
           reference.forward ? reference.node_id : node_state.node_id;
-      logger.WriteF(LogSeverity::Normal, "Reference deleted: %s --%s-> %s",
-                    NodeIdToScadaString(source_id).c_str(),
-                    NodeIdToScadaString(reference.reference_type_id).c_str(),
-                    NodeIdToScadaString(target_id).c_str());
-
       scada::DeleteReference(address_space, reference.reference_type_id,
                              node_state.node_id, reference.node_id);
     }
@@ -236,18 +305,19 @@ void UpdateNodes(AddressSpaceImpl& address_space,
     for (const auto& reference : node_state.references) {
       assert(reference.forward);
       assert(node);
+
       if (scada::FindReference(*node, reference))
         continue;
+
+      logger.WriteF(
+          LogSeverity::Normal, "Reference added: %s",
+          FormatReference(address_space, node_state.node_id, reference)
+              .c_str());
 
       auto& source_id =
           reference.forward ? node_state.node_id : reference.node_id;
       auto& target_id =
           reference.forward ? reference.node_id : node_state.node_id;
-      logger.WriteF(LogSeverity::Normal, "Reference added: %s --%s-> %s",
-                    NodeIdToScadaString(source_id).c_str(),
-                    NodeIdToScadaString(reference.reference_type_id).c_str(),
-                    NodeIdToScadaString(target_id).c_str());
-
       scada::AddReference(address_space, reference.reference_type_id, source_id,
                           target_id);
     }

@@ -12,6 +12,8 @@ class TypeDefinition : public Node {
 
 class DataType : public TypeDefinition {
  public:
+  DataType() {}
+
   DataType(NodeId id, QualifiedName browse_name, LocalizedText display_name) {
     set_id(std::move(id));
     SetBrowseName(std::move(browse_name));

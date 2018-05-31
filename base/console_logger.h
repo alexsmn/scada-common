@@ -4,10 +4,9 @@
 #include <windows.h>
 #endif
 
-#include "base/base_export.h"
 #include "base/logger.h"
 
-class BASE_EXPORT ConsoleLogger : public Logger {
+class ConsoleLogger : public Logger {
  public:
   ConsoleLogger();
 

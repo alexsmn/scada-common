@@ -70,35 +70,6 @@ void GetFetchReferences(const scada::NodeState& node,
   }
 }
 
-void SetFetchedAttribute(scada::NodeState& node,
-                         scada::AttributeId attribute_id,
-                         scada::Variant&& value) {
-  switch (attribute_id) {
-    case scada::AttributeId::NodeClass:
-      node.node_class = static_cast<scada::NodeClass>(value.as_int32());
-      break;
-
-    case scada::AttributeId::BrowseName:
-      assert(!value.get<scada::QualifiedName>().empty());
-      node.attributes.browse_name =
-          std::move(value.get<scada::QualifiedName>());
-      break;
-
-    case scada::AttributeId::DisplayName:
-      node.attributes.display_name = std::move(value.as_localized_text());
-      break;
-
-    case scada::AttributeId::DataType:
-      assert(!value.as_node_id().is_null());
-      node.attributes.data_type = std::move(value.as_node_id());
-      break;
-
-    case scada::AttributeId::Value:
-      node.attributes.value = std::move(value);
-      break;
-  }
-}
-
 template <class T>
 inline void Insert(std::vector<T>& c, const T& v) {
   if (std::find(c.begin(), c.end(), v) == c.end())
@@ -349,16 +320,19 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
 
   if (!nodes.empty()) {
     for (auto& node : nodes) {
-      logger_.WriteF(LogSeverity::Normal,
-                     "Node '%s' fetched {parent_id: '%s', reference_type_id: "
-                     "'%s', browse_name: '%s', display_name: '%ls', "
-                     "value: '%ls'}",
-                     NodeIdToScadaString(node.node_id).c_str(),
-                     NodeIdToScadaString(node.parent_id).c_str(),
-                     NodeIdToScadaString(node.reference_type_id).c_str(),
-                     ToString(node.attributes.browse_name).c_str(),
-                     ToString16(node.attributes.display_name).c_str(),
-                     ToString16(node.attributes.value).c_str());
+      logger_.WriteF(
+          LogSeverity::Normal,
+          "Node fetched {node_id: '%s', node_class: '%s', parent_id: '%s', "
+          "reference_type_id: '%s', browse_name: '%s', display_name: '%ls', "
+          "data_type_id: '%s', value: '%ls'}",
+          NodeIdToScadaString(node.node_id).c_str(),
+          ToString(node.node_class).c_str(),
+          NodeIdToScadaString(node.parent_id).c_str(),
+          NodeIdToScadaString(node.reference_type_id).c_str(),
+          ToString(node.attributes.browse_name).c_str(),
+          ToString16(node.attributes.display_name).c_str(),
+          NodeIdToScadaString(node.attributes.data_type).c_str(),
+          ToString16(node.attributes.value).c_str());
     }
   }
 
@@ -504,6 +478,36 @@ void NodeFetcherImpl::OnReadResult(
   FetchPendingNodes();
 
   assert(AssertValid());
+}
+
+void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
+                                          scada::AttributeId attribute_id,
+                                          scada::Variant&& value) {
+  switch (attribute_id) {
+    case scada::AttributeId::NodeClass:
+      node.node_class = static_cast<scada::NodeClass>(value.as_int32());
+      break;
+
+    case scada::AttributeId::BrowseName:
+      assert(!value.get<scada::QualifiedName>().empty());
+      node.attributes.browse_name =
+          std::move(value.get<scada::QualifiedName>());
+      break;
+
+    case scada::AttributeId::DisplayName:
+      node.attributes.display_name = std::move(value.as_localized_text());
+      break;
+
+    case scada::AttributeId::DataType:
+      assert(!value.as_node_id().is_null());
+      node.attributes.data_type = std::move(value.as_node_id());
+      ValidateDependency(node, node.attributes.data_type);
+      break;
+
+    case scada::AttributeId::Value:
+      node.attributes.value = std::move(value);
+      break;
+  }
 }
 
 void NodeFetcherImpl::OnBrowseResult(
