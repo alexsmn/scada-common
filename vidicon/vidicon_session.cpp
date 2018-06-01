@@ -34,6 +34,10 @@ void VidiconSession::Connect(const std::string& connection_string,
 
 void VidiconSession::Reconnect() {}
 
+void VidiconSession::Disconnect(const scada::StatusCallback& callback) {
+  callback(scada::StatusCode::Good);
+}
+
 bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {
   return true;
 }

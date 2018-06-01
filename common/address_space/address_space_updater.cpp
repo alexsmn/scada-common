@@ -210,8 +210,6 @@ void UpdateNodes(AddressSpaceImpl& address_space,
     assert(status);
     assert(added_node);
     added_nodes.emplace_back(added_node);
-
-    assert(address_space.GetNode(node_state.node_id));
   }
 
   std::map<scada::NodeId, scada::NodeProperties> modified_properties;

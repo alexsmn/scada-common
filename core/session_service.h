@@ -2,8 +2,8 @@
 
 #include "core/localized_text.h"
 #include "core/node_id.h"
-#include "core/status.h"
 #include "core/privileges.h"
+#include "core/status.h"
 
 #include <functional>
 #include <string>
@@ -29,6 +29,8 @@ class SessionService {
                        const StatusCallback& callback) = 0;
 
   virtual void Reconnect() = 0;
+
+  virtual void Disconnect(const StatusCallback& callback) = 0;
 
   virtual bool IsConnected(base::TimeDelta* ping_delay = nullptr) const = 0;
 

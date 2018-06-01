@@ -115,6 +115,13 @@ void MasterDataServices::Reconnect() {
     services_.session_service_->Reconnect();
 }
 
+void MasterDataServices::Disconnect(const scada::StatusCallback& callback) {
+  if (!services_.session_service_)
+    return callback(scada::StatusCode::Bad_Disconnected);
+
+  services_.session_service_->Disconnect(callback);
+}
+
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
   if (!connected_)
     return false;

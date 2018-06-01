@@ -35,6 +35,7 @@ class VidiconSession : public scada::SessionService,
                        bool allow_remote_logoff,
                        const scada::StatusCallback& callback) override;
   virtual void Reconnect() override;
+  virtual void Disconnect(const scada::StatusCallback& callback) override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;

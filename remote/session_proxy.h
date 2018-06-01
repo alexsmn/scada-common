@@ -67,6 +67,7 @@ class SessionProxy : private SessionProxyContext,
                        bool allow_remote_logoff,
                        const scada::StatusCallback& callback) override;
   virtual void Reconnect() override;
+  virtual void Disconnect(const scada::StatusCallback& callback) override;
   virtual bool IsConnected(base::TimeDelta* ping_delay) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
   virtual bool IsScada() const override { return false; }
@@ -113,7 +114,6 @@ class SessionProxy : private SessionProxyContext,
   friend class EventServiceProxy;
 
   void Connect();
-  void Disconnect();
 
   void OnSessionError(const scada::Status& status);
 

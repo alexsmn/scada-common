@@ -48,18 +48,23 @@ SessionProxy::SessionProxy(SessionProxyContext&& context)
   history_proxy_ = std::make_unique<HistoryProxy>();
 }
 
-SessionProxy::~SessionProxy() {
-  Disconnect();
-}
+SessionProxy::~SessionProxy() {}
 
-void SessionProxy::Disconnect() {
-  if (session_created_) {
-    protocol::Request request;
-    auto& delete_session = *request.mutable_delete_session();
-    Request(request, nullptr);
-  }
+void SessionProxy::Disconnect(const scada::StatusCallback& callback) {
+  if (!session_created_)
+    return callback(scada::StatusCode::Bad_Disconnected);
 
-  OnSessionDeleted();
+  protocol::Request request;
+  auto& delete_session = *request.mutable_delete_session();
+
+  Request(request, [this, callback](const protocol::Response& response) {
+    auto status = FromProto(response.status());
+    if (status)
+      OnSessionDeleted();
+
+    if (callback)
+      callback(std::move(status));
+  });
 }
 
 void SessionProxy::OnTransportOpened() {
@@ -262,7 +267,8 @@ void SessionProxy::Connect(const std::string& host,
                            const scada::StatusCallback& callback) {
   assert(!transport_);
 
-  Disconnect();
+  if (session_created_)
+    return callback(scada::StatusCode::Bad);
 
   user_name_ = user_name;
   password_ = password;
@@ -391,8 +397,15 @@ std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(
 }
 
 void SessionProxy::Reconnect() {
-  Disconnect();
-  Connect();
+  if (!session_created_) {
+    Connect();
+    return;
+  }
+
+  Disconnect([this](const scada::Status& status) { 
+    if (status)
+      Connect();
+  });
 }
 
 bool SessionProxy::IsConnected(base::TimeDelta* ping_delay) const {
