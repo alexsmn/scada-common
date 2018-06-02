@@ -26,7 +26,7 @@ VidiconSession::~VidiconSession() {}
 
 void VidiconSession::Connect(const std::string& connection_string,
                              const scada::LocalizedText& user_name,
-                             const std::string& password,
+                             const scada::LocalizedText& password,
                              bool allow_remote_logoff,
                              const scada::StatusCallback& callback) {
   callback(scada::StatusCode::Good);

@@ -5,8 +5,6 @@
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
 
-using namespace scada;
-
 HistoryProxy::HistoryProxy() {}
 
 void HistoryProxy::HistoryReadRaw(
@@ -22,9 +20,10 @@ void HistoryProxy::HistoryReadRaw(
   protocol::Request request;
   auto& history_read_raw = *request.mutable_history_read_raw();
   ToProto(node_id, *history_read_raw.mutable_node_id());
-  history_read_raw.set_from(from.ToInternalValue());
+  if (!from.is_null())
+    history_read_raw.set_from_time(from.ToInternalValue());
   if (!to.is_null())
-    history_read_raw.set_to(to.ToInternalValue());
+    history_read_raw.set_to_time(to.ToInternalValue());
 
   sender_->Request(request,
                    [this, callback](const protocol::Response& response) {
@@ -51,15 +50,16 @@ void HistoryProxy::HistoryReadEvents(
   protocol::Request request;
   auto& history_read_events = *request.mutable_history_read_events();
   ToProto(node_id, *history_read_events.mutable_node_id());
-  history_read_events.set_from(from.ToInternalValue());
+  if (!from.is_null())
+    history_read_events.set_from_time(from.ToInternalValue());
   if (!to.is_null())
-    history_read_events.set_to(to.ToInternalValue());
+    history_read_events.set_to_time(to.ToInternalValue());
 
   if (filter.types) {
     auto& proto_filter = *history_read_events.mutable_filter();
-    if (filter.types & Event::ACKED)
+    if (filter.types & scada::Event::ACKED)
       proto_filter.set_acked(true);
-    if (filter.types & Event::UNACKED)
+    if (filter.types & scada::Event::UNACKED)
       proto_filter.set_unacked(true);
   }
 

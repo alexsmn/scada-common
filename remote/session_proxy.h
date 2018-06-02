@@ -5,6 +5,7 @@
 #include "base/timer/timer.h"
 #include "core/attribute_service.h"
 #include "core/configuration_types.h"
+#include "core/logging.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "core/privileges.h"
@@ -40,8 +41,9 @@ class ViewServiceProxy;
 
 struct SessionProxyContext {
   const std::shared_ptr<Logger> logger_;
-  scoped_refptr<base::SequencedTaskRunner> task_runner_;
+  const scoped_refptr<base::SequencedTaskRunner> task_runner_;
   net::TransportFactory& transport_factory_;
+  const scada::ServiceLogParams service_log_params_;
 };
 
 class SessionProxy : private SessionProxyContext,
@@ -63,7 +65,7 @@ class SessionProxy : private SessionProxyContext,
   // scada::SessionService
   virtual void Connect(const std::string& connection_string,
                        const scada::LocalizedText& user_name,
-                       const std::string& password,
+                       const scada::LocalizedText& password,
                        bool allow_remote_logoff,
                        const scada::StatusCallback& callback) override;
   virtual void Reconnect() override;
@@ -127,13 +129,15 @@ class SessionProxy : private SessionProxyContext,
 
   void Ping();
 
+  bool IsMessageLogged(const protocol::Message& message) const;
+
   std::unique_ptr<net::Logger> transport_logger_;
   std::unique_ptr<net::Transport> transport_;
 
   bool session_created_ = false;
 
   scada::LocalizedText user_name_;
-  std::string password_;
+  scada::LocalizedText password_;
   std::string host_;
   bool allow_remote_logoff_ = false;
 
@@ -155,6 +159,7 @@ class SessionProxy : private SessionProxyContext,
 
   int next_request_id_ = 1;
 
+  // Ping.
   base::Timer ping_timer_;
   base::TimeTicks ping_time_;
   base::TimeDelta last_ping_delay_;

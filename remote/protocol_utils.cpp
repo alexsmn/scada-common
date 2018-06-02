@@ -48,15 +48,15 @@ scada::Variant FromProto(const protocol::Variant& source) {
     return source.int64_value();
   else if (source.has_double_value())
     return source.double_value();
-  else if (source.has_string_value())
-    return scada::String{
-        base::SysWideToNativeMB(base::SysUTF8ToWide(source.string_value()))};
-  else if (source.has_qualified_name_value())
+  else if (source.has_string_value_utf8())
+    return scada::String{base::SysWideToNativeMB(
+        base::SysUTF8ToWide(source.string_value_utf8()))};
+  else if (source.has_qualified_name_value_utf8())
     return scada::QualifiedName(base::SysWideToNativeMB(
-        base::SysUTF8ToWide(source.qualified_name_value())));
-  else if (source.has_localized_text_value())
+        base::SysUTF8ToWide(source.qualified_name_value_utf8())));
+  else if (source.has_localized_text_value_utf8())
     return scada::LocalizedText{
-        base::UTF8ToUTF16(source.localized_text_value())};
+        base::UTF8ToUTF16(source.localized_text_value_utf8())};
   else if (source.has_node_id_value())
     return FromProto(source.node_id_value());
   else
@@ -80,15 +80,15 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       target.set_double_value(source.as_double());
       break;
     case scada::Variant::STRING:
-      target.set_string_value(
+      target.set_string_value_utf8(
           base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
       break;
     case scada::Variant::QUALIFIED_NAME:
-      target.set_qualified_name_value(base::SysWideToUTF8(
+      target.set_qualified_name_value_utf8(base::SysWideToUTF8(
           base::SysNativeMBToWide(source.get<scada::QualifiedName>().name())));
       break;
     case scada::Variant::LOCALIZED_TEXT:
-      target.set_localized_text_value(
+      target.set_localized_text_value_utf8(
           base::UTF16ToUTF8(ToString16(source.as_localized_text())));
       break;
     case scada::Variant::NODE_ID:
@@ -102,11 +102,12 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
 
 scada::DataValue FromProto(const protocol::DataValue& source) {
   scada::DataValue result;
-  result.server_timestamp =
-      base::Time::FromInternalValue(source.server_timestamp());
-  if (source.has_source_timestamp())
+  if (source.has_server_time())
+    result.server_timestamp =
+        base::Time::FromInternalValue(source.server_time());
+  if (source.has_source_time())
     result.source_timestamp =
-        base::Time::FromInternalValue(source.source_timestamp());
+        base::Time::FromInternalValue(source.source_time());
   if (source.has_value())
     result.value = FromProto(source.value());
   result.qualifier = scada::Qualifier(source.qualifier());
@@ -118,9 +119,10 @@ scada::DataValue FromProto(const protocol::DataValue& source) {
 }
 
 void ToProto(const scada::DataValue& source, protocol::DataValue& target) {
-  target.set_server_timestamp(source.server_timestamp.ToInternalValue());
+  if (!source.server_timestamp.is_null())
+    target.set_server_time(source.server_timestamp.ToInternalValue());
   if (!source.source_timestamp.is_null())
-    target.set_source_timestamp(source.source_timestamp.ToInternalValue());
+    target.set_source_time(source.source_timestamp.ToInternalValue());
   if (!source.value.is_null())
     ToProto(source.value, *target.mutable_value());
   target.set_qualifier(source.qualifier.raw());
@@ -149,8 +151,8 @@ scada::Event FromProto(const protocol::Event& source) {
     result.value = FromProto(source.value());
   if (source.has_qualifier())
     result.qualifier = scada::Qualifier(source.qualifier());
-  if (source.has_message())
-    result.message = base::UTF8ToUTF16(source.message());
+  if (source.has_message_utf8())
+    result.message = base::UTF8ToUTF16(source.message_utf8());
   if (source.has_acknowledged())
     result.acked = source.acknowledged();
   if (source.has_acknowledge_id())
@@ -175,7 +177,7 @@ void ToProto(const scada::Event& source, protocol::Event& target) {
   if (source.qualifier != scada::Qualifier())
     target.set_qualifier(source.qualifier.raw());
   if (!source.message.empty())
-    target.set_message(base::UTF16ToUTF8(source.message));
+    target.set_message_utf8(base::UTF16ToUTF8(source.message));
   if (source.acked)
     target.set_acknowledged(true);
   if (source.acknowledge_id)
@@ -197,11 +199,11 @@ protocol::NodeClass ToProto(const scada::NodeClass source) {
 
 scada::NodeAttributes FromProto(const protocol::Attributes& source) {
   scada::NodeAttributes result;
-  if (source.has_browse_name())
-    result.browse_name = scada::QualifiedName{source.browse_name(), 0};
-  if (source.has_display_name())
+  if (source.has_browse_name_utf8())
+    result.browse_name = scada::QualifiedName{source.browse_name_utf8(), 0};
+  if (source.has_display_name_utf8())
     result.display_name =
-        scada::ToLocalizedText(base::UTF8ToUTF16(source.display_name()));
+        scada::ToLocalizedText(base::UTF8ToUTF16(source.display_name_utf8()));
   if (source.has_data_type_id())
     result.data_type = FromProto(source.data_type_id());
   if (source.has_value())
@@ -212,9 +214,10 @@ scada::NodeAttributes FromProto(const protocol::Attributes& source) {
 void ToProto(const scada::NodeAttributes& source,
              protocol::Attributes& target) {
   if (!source.browse_name.empty())
-    target.set_browse_name(source.browse_name.name());
+    target.set_browse_name_utf8(source.browse_name.name());
   if (!source.display_name.empty())
-    target.set_display_name(base::UTF16ToUTF8(ToString16(source.display_name)));
+    target.set_display_name_utf8(
+        base::UTF16ToUTF8(ToString16(source.display_name)));
   if (!source.data_type.is_null())
     ToProto(source.data_type, *target.mutable_data_type_id());
   if (!source.value.is_null())

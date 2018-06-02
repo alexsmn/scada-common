@@ -100,7 +100,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
 void MasterDataServices::Connect(const std::string& host,
                                  const scada::LocalizedText& user_name,
-                                 const std::string& password,
+                                 const scada::LocalizedText& password,
                                  bool allow_remote_logoff,
                                  const scada::StatusCallback& callback) {
   if (!services_.session_service_)

@@ -41,8 +41,8 @@ enum AttributeId {
 }
 
 message Attributes {
-  optional bytes browse_name = 3;
-  optional bytes display_name = 4;
+  optional bytes browse_name_utf8 = 3;
+  optional bytes display_name_utf8 = 4;
   optional Variant value = 13;
   optional NodeId data_type_id = 14;
 }
@@ -109,17 +109,17 @@ message Variant {
   optional int32  int32_value   = 2;
   optional int64  int64_value   = 3;
   optional double double_value  = 4;
-  optional bytes  string_value  = 5;
+  optional bytes  string_value_utf8  = 5;
   optional NodeId node_id_value = 6;
-  optional bytes  localized_text_value = 7;
-  optional bytes  qualified_name_value = 8;
+  optional bytes  localized_text_value_utf8 = 7;
+  optional bytes  qualified_name_value_utf8 = 8;
 }
 
 message DataValue {
-  required uint64 server_timestamp = 1;
-  optional uint64 source_timestamp = 2;
+  optional uint64 server_time = 1;
+  optional uint64 source_time = 2;
   optional Variant value = 3;
-  required uint32 qualifier = 4;
+  optional uint32 qualifier = 4;
   optional uint32 status_code = 5;
 }
 
@@ -132,7 +132,7 @@ message Event {
   optional NodeId user_node_id = 5;
   optional Variant value = 6;
   optional uint32 qualifier = 7;
-  optional bytes message = 8;
+  optional bytes message_utf8 = 8;
   optional bool acknowledged = 9;
   optional uint64 acknowledge_id = 10;
   optional uint64 acknowledge_time = 11;
@@ -140,8 +140,8 @@ message Event {
 }
 
 message CreateSession {
-  required bytes user_name = 1;
-  optional bytes password = 2;
+  required bytes user_name_utf8 = 1;
+  optional bytes password_utf8 = 2;
   optional bool delete_existing = 3;
 
   // Assume version 0.0 if it isn't specified.
@@ -220,8 +220,8 @@ message Reference {
 
 message ChangePassword {
   required NodeId user_node_id = 1;
-  required bytes current_password = 2;
-  required bytes new_password = 3;
+  required bytes current_password_utf8 = 2;
+  required bytes new_password_utf8 = 3;
 }
 
 message ReadValueId {
@@ -253,7 +253,7 @@ message DeviceCommand {
 
 message Acknowledge {
   required uint64 event_id = 1;
-  optional bytes comment = 2;
+  optional bytes comment_utf8 = 2;
 }
 
 message Call {
@@ -263,8 +263,8 @@ message Call {
 
 message HistoryReadRaw {
   required NodeId node_id = 1;
-  required uint64 from = 3;
-  optional uint64 to = 4;
+  optional uint64 from_time = 3;
+  optional uint64 to_time = 4;
 }
 
 message HistoryReadRawResult {
@@ -278,8 +278,8 @@ message EventFilter {
 
 message HistoryReadEvents {
   required NodeId node_id = 1;
-  required uint64 from = 3;
-  optional uint64 to = 4;
+  optional uint64 from_time = 3;
+  optional uint64 to_time = 4;
   optional EventFilter filter  = 5;
 }
 
@@ -405,7 +405,7 @@ message Response {
   optional DeleteNodeResult delete_node_result = 51;
   repeated Status modify_node_result = 52;
 
-  optional BrowseResponse browse = 60;
+  optional BrowseResponse browse_result = 60;
 }
 
 message DataChange {

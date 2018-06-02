@@ -30,9 +30,11 @@ void HistoryStub::OnHistoryReadRaw(const protocol::Request& request) {
   auto request_id = request.request_id();
   auto& history_read_raw = request.history_read_raw();
   auto node_id = FromProto(history_read_raw.node_id());
-  auto from = base::Time::FromInternalValue(history_read_raw.from());
-  auto to = history_read_raw.has_to()
-                ? base::Time::FromInternalValue(history_read_raw.to())
+  auto from = history_read_raw.has_from_time()
+                  ? base::Time::FromInternalValue(history_read_raw.from_time())
+                  : base::Time();
+  auto to = history_read_raw.has_to_time()
+                ? base::Time::FromInternalValue(history_read_raw.to_time())
                 : base::Time();
 
   logger_->WriteF(LogSeverity::Normal, "History read raw request %u node %s",
@@ -66,9 +68,12 @@ void HistoryStub::OnHistoryReadEvents(const protocol::Request& request) {
   auto request_id = request.request_id();
   auto& history_read_events = request.history_read_events();
   const auto node_id = FromProto(history_read_events.node_id());
-  auto from = base::Time::FromInternalValue(history_read_events.from());
-  auto to = history_read_events.has_to()
-                ? base::Time::FromInternalValue(history_read_events.to())
+  auto from =
+      history_read_events.has_from_time()
+          ? base::Time::FromInternalValue(history_read_events.from_time())
+          : base::Time();
+  auto to = history_read_events.has_to_time()
+                ? base::Time::FromInternalValue(history_read_events.to_time())
                 : base::Time();
   scada::EventFilter filter;
   if (history_read_events.has_filter()) {

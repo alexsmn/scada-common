@@ -72,8 +72,8 @@ void SessionProxy::OnTransportOpened() {
 
   protocol::Request request;
   auto& create_session = *request.mutable_create_session();
-  create_session.set_user_name(base::UTF16ToUTF8(user_name_));
-  create_session.set_password(password_);
+  create_session.set_user_name_utf8(base::UTF16ToUTF8(user_name_));
+  create_session.set_password_utf8(base::UTF16ToUTF8(password_));
   create_session.set_protocol_version_major(protocol::PROTOCOL_VERSION_MAJOR);
   create_session.set_protocol_version_minor(protocol::PROTOCOL_VERSION_MINOR);
   if (allow_remote_logoff_)
@@ -201,6 +201,11 @@ void SessionProxy::Send(protocol::Message& message) {
     return;
   }
 
+  if (IsMessageLogged(message)) {
+    logger_->WriteF(LogSeverity::Normal, "Send: %s",
+                    message.DebugString().c_str());
+  }
+
   std::string string;
   if (!message.AppendToString(&string))
     throw std::runtime_error("Can't serialize message");
@@ -211,6 +216,11 @@ void SessionProxy::Send(protocol::Message& message) {
 }
 
 void SessionProxy::OnMessageReceived(const protocol::Message& message) {
+  if (IsMessageLogged(message)) {
+    logger_->WriteF(LogSeverity::Normal, "Received: %s",
+                    message.DebugString().c_str());
+  }
+
   for (auto& response : message.responses()) {
     auto i = requests_.find(response.request_id());
     if (i != requests_.end()) {
@@ -262,7 +272,7 @@ void SessionProxy::Request(protocol::Request& request,
 
 void SessionProxy::Connect(const std::string& host,
                            const scada::LocalizedText& user_name,
-                           const std::string& password,
+                           const scada::LocalizedText& password,
                            bool allow_remote_logoff,
                            const scada::StatusCallback& callback) {
   assert(!transport_);
@@ -402,7 +412,7 @@ void SessionProxy::Reconnect() {
     return;
   }
 
-  Disconnect([this](const scada::Status& status) { 
+  Disconnect([this](const scada::Status& status) {
     if (status)
       Connect();
   });
@@ -438,4 +448,58 @@ void SessionProxy::Ping() {
     ping_time_ = {};
     ping_timer_.Reset();
   });
+}
+
+bool SessionProxy::IsMessageLogged(const protocol::Message& message) const {
+  for (const auto& request : message.requests()) {
+    if (service_log_params_.log_read) {
+      if (request.has_read())
+        return true;
+    }
+    if (service_log_params_.log_browse) {
+      if (request.has_browse())
+        return true;
+    }
+    if (service_log_params_.log_history) {
+      if (request.has_history_read_raw() || request.has_history_read_events())
+        return true;
+    }
+  }
+
+  for (const auto& response : message.responses()) {
+    if (service_log_params_.log_read) {
+      if (response.has_read_result())
+        return true;
+    }
+    if (service_log_params_.log_browse) {
+      if (response.has_browse_result())
+        return true;
+    }
+    if (service_log_params_.log_history) {
+      if (response.has_history_read_raw_result() ||
+          response.has_history_read_events_result())
+        return true;
+    }
+  }
+
+  if (service_log_params_.log_event ||
+      service_log_params_.log_model_change_event ||
+      service_log_params_.log_node_semantics_change_event) {
+    for (const auto& notification : message.notifications()) {
+      if (service_log_params_.log_event) {
+        if (!notification.events().empty())
+          return true;
+      }
+      if (service_log_params_.log_model_change_event) {
+        if (!notification.model_change().empty())
+          return true;
+      }
+      if (service_log_params_.log_node_semantics_change_event) {
+        if (!notification.semantics_changed_node_id().empty())
+          return true;
+      }
+    }
+  }
+
+  return false;
 }

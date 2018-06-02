@@ -78,7 +78,9 @@ void NodeManagementProxy::ModifyNodes(
   request.mutable_modify_node()->Reserve(attributes.size());
   for (auto& [node_id, attribute] : attributes) {
     assert(!node_id.is_null());
-    assert(!attribute.empty());
+    // Attributes can be empty when writing a null value.
+    // TODO: Fix it.
+    // assert(!attribute.empty());
     auto& modify_node = *request.add_modify_node();
     ToProto(node_id, *modify_node.mutable_node_id());
     ToProto(std::move(attribute), *modify_node.mutable_attributes());
@@ -144,8 +146,9 @@ void NodeManagementProxy::ChangeUserPassword(
   protocol::Request request;
   auto& change_password = *request.mutable_change_password();
   ToProto(user_node_id, *change_password.mutable_user_node_id());
-  change_password.set_current_password(base::UTF16ToUTF8(current_password));
-  change_password.set_new_password(base::UTF16ToUTF8(new_password));
+  change_password.set_current_password_utf8(
+      base::UTF16ToUTF8(current_password));
+  change_password.set_new_password_utf8(base::UTF16ToUTF8(new_password));
 
   sender_->Request(request,
                    [this, callback](const protocol::Response& response) {

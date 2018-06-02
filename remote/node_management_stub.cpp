@@ -51,8 +51,8 @@ void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
     auto& change_password = request.change_password();
     OnChangeUserPassword(
         request.request_id(), FromProto(change_password.user_node_id()),
-        base::UTF8ToUTF16(change_password.current_password()),
-        base::UTF8ToUTF16(change_password.new_password()));
+        base::UTF8ToUTF16(change_password.current_password_utf8()),
+        base::UTF8ToUTF16(change_password.new_password_utf8()));
   }
 
   if (request.has_add_reference())

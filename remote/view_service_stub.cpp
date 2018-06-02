@@ -98,7 +98,7 @@ void ViewServiceStub::OnBrowse(
     auto& response = *message.add_responses();
     response.set_request_id(request_id);
     ToProto(status, *response.mutable_status());
-    auto& browse = *response.mutable_browse();
+    auto& browse = *response.mutable_browse_result();
     if (status)
       ToProto(results, *browse.mutable_results());
 

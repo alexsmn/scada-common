@@ -4,6 +4,7 @@
 #include "base/sequenced_task_runner.h"
 #include "base/strings/string_piece.h"
 #include "core/data_services.h"
+#include "core/logging.h"
 
 #include <functional>
 #include <memory>
@@ -20,9 +21,10 @@ class TransportFactory;
 class Logger;
 
 struct DataServicesContext {
-  std::shared_ptr<Logger> logger;
-  scoped_refptr<base::SequencedTaskRunner> task_runner;
+  const std::shared_ptr<Logger> logger;
+  const scoped_refptr<base::SequencedTaskRunner> task_runner;
   net::TransportFactory& transport_factory;
+  scada::ServiceLogParams service_log_params;
 };
 
 using DataServicesFactoryMethod =

@@ -59,9 +59,9 @@ void ViewServiceProxy::Browse(
   }
 
   sender_->Request(request, [callback](const protocol::Response& response) {
-    auto& browse = response.browse();
     callback(FromProto(response.status()),
-             VectorFromProto<scada::BrowseResult>(browse.results()));
+             VectorFromProto<scada::BrowseResult>(
+                 response.browse_result().results()));
   });
 }
 
