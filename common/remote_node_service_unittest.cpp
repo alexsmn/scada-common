@@ -37,12 +37,14 @@ class MockAttributeService : public scada::AttributeService {
 TEST(RemoteNodeService, FetchNode) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
-  MockAttributeService attribute_service;
+  NiceMock<MockAttributeService> attribute_service;
   RemoteNodeService node_service{RemoteNodeServiceContext{
       logger,
       address_space,
       attribute_service,
   }};
+
+  node_service.OnChannelOpened();
 
   auto node = node_service.GetNode(address_space.kTestNode1Id);
   node.Fetch(NodeFetchStatus::NodeOnly());

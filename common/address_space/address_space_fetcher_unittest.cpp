@@ -170,19 +170,20 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
   const scada::QualifiedName kNewBrowseName{"NewTestNode1"};
   const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
 
+  auto* node = context.server_address_space.GetNode(kNodeId);
+  ASSERT_NE(node, nullptr);
+
   {
-    auto* node = context.server_address_space.GetNode(kNodeId);
     // Rename
-    EXPECT_EQ("TestNode1", node->attributes.browse_name);
-    node->attributes.browse_name = kNewBrowseName;
+    EXPECT_EQ("TestNode1", node->GetBrowseName());
+    node->SetBrowseName(kNewBrowseName);
     // Change property
-    auto& prop = node->properties[0];
-    EXPECT_EQ(context.server_address_space.kTestProp1Id, prop.first);
-    EXPECT_EQ(scada::Variant{"TestNode1.TestProp1.Value"}, prop.second);
-    prop.second = kNewValue;
+    node->SetPropertyValue(context.server_address_space.kTestProp1Id,
+                           kNewValue);
   }
 
-  context.server_address_space.NotifyNodeSemanticsChanged(kNodeId);
+  context.server_address_space.NotifySemanticChanged(
+      kNodeId, scada::GetTypeDefinitionId(*node));
 
   {
     auto* node = context.client_address_space.GetNode(kNodeId);
@@ -202,7 +203,7 @@ TEST(AddressSpaceFetcher, DeleteNodeByDeletionOfParentReference) {
   // Delete node, but notify only deleted reference deletion.
   // Expect node is deleted on client.
 
-  auto* node = context.server_address_space.GetNode(kNodeId);
+  /*auto* node = context.server_address_space.GetNode(kNodeId);
   ASSERT_NE(node, nullptr);
   const auto saved_node = *node;
   context.server_address_space.DeleteNode(kNodeId);
@@ -224,5 +225,5 @@ TEST(AddressSpaceFetcher, DeleteNodeByDeletionOfParentReference) {
   context.server_address_space.NotifyModelChanged(
       {kParentNodeId, {}, scada::ModelChangeEvent::ReferenceAdded});
 
-  EXPECT_NE(nullptr, context.client_address_space.GetNode(kNodeId));
+  EXPECT_NE(nullptr, context.client_address_space.GetNode(kNodeId));*/
 }

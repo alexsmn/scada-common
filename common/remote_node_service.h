@@ -49,6 +49,9 @@ class RemoteNodeService : private RemoteNodeServiceContext,
   void OnFetchNode(const scada::NodeId& node_id,
                    const NodeFetchStatus& requested_status);
 
+  void ProcessFetchedNodes(std::vector<scada::NodeState>&& node_states);
+  void ProcessFetchErrors(NodeFetchErrors&& errors);
+
   NodeFetcherImplContext MakeNodeFetcherImplContext();
   NodeChildrenFetcherContext MakeNodeChildrenFetcherContext();
 

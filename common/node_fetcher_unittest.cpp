@@ -14,6 +14,8 @@ namespace {
 
 struct TestContext {
   MOCK_METHOD1(OnFetched, void(std::vector<scada::NodeState>& nodes));
+  MOCK_METHOD2(OnFetchError,
+               void(const scada::NodeId& node_id, const scada::Status& status));
 
   void ProcessFetchedNodes(const std::vector<scada::NodeState>& nodes) {
     for (auto& node : nodes)
@@ -31,6 +33,8 @@ struct TestContext {
       [&](std::vector<scada::NodeState>&& nodes, NodeFetchErrors&& errors) {
         OnFetched(nodes);
         ProcessFetchedNodes(nodes);
+        for (auto& [node_id, status] : errors)
+          OnFetchError(node_id, status);
       },
       [&](const scada::NodeId& node_id) {
         return fetched_nodes_.find(node_id) != fetched_nodes_.end();
@@ -58,40 +62,40 @@ TEST(NodeFetcher, Test) {
 
   InSequence s;
 
+  // Don't expect any errors.
+  EXPECT_CALL(context, OnFetchError(_, _)).Times(0);
+
   // Root doesn't depend from anything.
-  EXPECT_CALL(context,
-              OnFetched(UnorderedElementsAre(NodeIs(scada::id::RootFolder))));
+  EXPECT_CALL(context, OnFetched(Contains(NodeIs(scada::id::RootFolder))));
 
   context.node_fetcher.Fetch(scada::id::RootFolder);
 
   Mock::VerifyAndClearExpectations(&context);
 
   // TestNode1 only has a property.
-  EXPECT_CALL(
-      context,
-      OnFetched(UnorderedElementsAre(
-          NodeIs(as.kTestNode1Id),
-          NodeIs(as.MakeNestedNodeId(as.kTestNode1Id, as.kTestProp1Id)))));
+  EXPECT_CALL(context,
+              OnFetched(AllOf(Contains(NodeIs(as.kTestNode1Id)),
+                              Contains(NodeIs(as.MakeNestedNodeId(
+                                  as.kTestNode1Id, as.kTestProp1Id))))));
 
   context.node_fetcher.Fetch(as.kTestNode1Id);
 
   Mock::VerifyAndClearExpectations(&context);
 
-  // TestNode2 depends from TestNode3.
-  EXPECT_CALL(
-      context,
-      OnFetched(UnorderedElementsAre(
-          NodeIs(as.kTestNode2Id), NodeIs(as.kTestNode3Id),
-          NodeIs(as.kTestNode5Id),
-          NodeIs(as.MakeNestedNodeId(as.kTestNode2Id, as.kTestProp1Id)),
-          NodeIs(as.MakeNestedNodeId(as.kTestNode2Id, as.kTestProp2Id)))));
+  EXPECT_CALL(context,
+              OnFetched(AllOf(Contains(NodeIs(as.kTestNode2Id)),
+                              Contains(NodeIs(as.kTestNode3Id)),
+                              Contains(NodeIs(as.kTestNode5Id)),
+                              Contains(NodeIs(as.MakeNestedNodeId(
+                                  as.kTestNode2Id, as.kTestProp1Id))),
+                              Contains(NodeIs(as.MakeNestedNodeId(
+                                  as.kTestNode2Id, as.kTestProp2Id))))));
 
   context.node_fetcher.Fetch(as.kTestNode2Id);
 
   Mock::VerifyAndClearExpectations(&context);
 
-  EXPECT_CALL(context,
-              OnFetched(UnorderedElementsAre(NodeIs(as.kTestNode4Id))));
+  EXPECT_CALL(context, OnFetched(Contains(NodeIs(as.kTestNode4Id))));
 
   context.node_fetcher.Fetch(as.kTestNode4Id);
 
