@@ -252,7 +252,7 @@ message DeviceCommand {
 }
 
 message Acknowledge {
-  required uint64 event_id = 1;
+  required uint64 acknowledge_id = 1;
   optional bytes comment_utf8 = 2;
 }
 

@@ -78,9 +78,9 @@ void HistoryStub::OnHistoryReadEvents(const protocol::Request& request) {
   scada::EventFilter filter;
   if (history_read_events.has_filter()) {
     auto& proto_filter = history_read_events.filter();
-    if (proto_filter.has_acked() && proto_filter.acked())
+    if (proto_filter.acked())
       filter.types |= scada::Event::ACKED;
-    if (proto_filter.has_unacked() && proto_filter.unacked())
+    if (proto_filter.unacked())
       filter.types |= scada::Event::UNACKED;
   }
 

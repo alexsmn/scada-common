@@ -22,7 +22,7 @@ void EventServiceProxy::Acknowledge(int acknowledge_id,
 
   protocol::Request request;
   auto& acknowledge = *request.mutable_call()->mutable_acknowledge();
-  acknowledge.set_event_id(acknowledge_id);
+  acknowledge.set_acknowledge_id(acknowledge_id);
 
   sender_->Request(request, nullptr);
 }

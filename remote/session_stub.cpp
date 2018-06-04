@@ -78,7 +78,7 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
     auto& call = request.call();
     if (call.has_acknowledge()) {
       auto& acknowledge = call.acknowledge();
-      event_service_.Acknowledge(acknowledge.event_id(), user_id_);
+      event_service_.Acknowledge(acknowledge.acknowledge_id(), user_id_);
       protocol::Response response;
       response.set_request_id(request.request_id());
       ToProto(scada::StatusCode::Good, *response.mutable_status());

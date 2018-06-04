@@ -10,7 +10,7 @@
 namespace scada {
 
 struct EventFilter {
-  unsigned types;
+  unsigned types = 0;
 };
 
 struct ItemInfo {

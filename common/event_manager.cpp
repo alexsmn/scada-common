@@ -265,8 +265,10 @@ void EventManager::OnChannelClosed() {
 void EventManager::OnHistoryReadEventsComplete(
     scada::Status&& status,
     std::vector<scada::Event>&& events) {
-  for (auto& event : events)
+  for (auto& event : events) {
+    assert(!event.acked);
     OnEvent(event);
+  }
 }
 
 }  // namespace events
