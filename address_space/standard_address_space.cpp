@@ -77,10 +77,15 @@ StandardAddressSpace::StandardAddressSpace()
   // BaseObjectType
   scada::AddReference(Organizes, TypesFolder, BaseObjectType);
 
-  scada::AddReference(HasSubtype, ModellingRule_Mandatory, BaseObjectType);
   scada::AddReference(HasSubtype, BaseObjectType, FolderType);
 
   // BaseVariableType
   scada::AddReference(Organizes, TypesFolder, BaseVariableType);
   scada::AddReference(HasSubtype, BaseVariableType, PropertyType);
+
+  // ModellingRules
+  scada::AddReference(HasTypeDefinition, ModellingRules, FolderType);
+  scada::AddReference(Organizes, ObjectsFolder, ModellingRules);
+  scada::AddReference(HasTypeDefinition, ModellingRule_Mandatory, BaseObjectType);
+  scada::AddReference(Organizes, ModellingRules, ModellingRule_Mandatory);
 }

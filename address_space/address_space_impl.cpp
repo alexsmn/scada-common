@@ -43,11 +43,13 @@ AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
   AddNode(standard_address_space_->NodeIdDataType);
 
   AddNode(standard_address_space_->BaseObjectType);
-  AddNode(standard_address_space_->ModellingRule_Mandatory);
   AddNode(standard_address_space_->FolderType);
 
   AddNode(standard_address_space_->BaseVariableType);
   AddNode(standard_address_space_->PropertyType);
+
+  AddNode(standard_address_space_->ModellingRules);
+  AddNode(standard_address_space_->ModellingRule_Mandatory);
 
   AddNode(static_address_space_->Creates);
   AddNode(static_address_space_->DeviceType);

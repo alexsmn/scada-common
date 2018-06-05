@@ -16,8 +16,8 @@ class RemoteNodeModel;
 class RemoteNodeService;
 
 struct NodeModelImplReference {
-  std::shared_ptr<const RemoteNodeModel> reference_type;
-  std::shared_ptr<const RemoteNodeModel> target;
+  std::shared_ptr<RemoteNodeModel> reference_type;
+  std::shared_ptr<RemoteNodeModel> target;
   bool forward;
 };
 
@@ -85,11 +85,11 @@ class RemoteNodeModel final
   std::vector<NodeModelImplReference> references_;
   std::vector<NodeModelImplReference> child_references_;
 
-  std::shared_ptr<const RemoteNodeModel> parent_;
+  NodeModelImplReference parent_reference_;
 
-  std::shared_ptr<const RemoteNodeModel> type_definition_;
-  std::shared_ptr<const RemoteNodeModel> supertype_;
-  std::shared_ptr<const RemoteNodeModel> data_type_;
+  std::shared_ptr<RemoteNodeModel> type_definition_;
+  std::shared_ptr<RemoteNodeModel> supertype_;
+  std::shared_ptr<RemoteNodeModel> data_type_;
 
   friend class RemoteNodeService;
 };

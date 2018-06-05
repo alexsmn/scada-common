@@ -48,8 +48,10 @@ struct StandardAddressSpace {
   scada::DataType NodeIdDataType{scada::id::NodeId, "NodeId", {}};
 
   scada::ObjectType BaseObjectType{scada::id::BaseObjectType, "BaseObjectType", {}};
-  scada::ObjectType ModellingRule_Mandatory{scada::id::ModellingRule_Mandatory, "Mandatory", {}};
   scada::ObjectType FolderType{scada::id::FolderType, "FolderType", {}};
+
+  scada::Folder ModellingRules{scada::id::ModellingRules, "ModellingRules", {}};
+  scada::GenericObject ModellingRule_Mandatory{scada::id::ModellingRule_Mandatory, "Mandatory", {}};
 
   scada::VariableType BaseVariableType{scada::id::BaseVariableType, "BaseVariableType", {}, BaseDataType};
   scada::VariableType PropertyType{scada::id::PropertyType, "PropertyType", {}, BaseDataType};

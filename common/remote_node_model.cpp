@@ -34,16 +34,34 @@ void RemoteNodeModel::OnNodeSemanticChanged() {
 }
 
 void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
-  parent_ = service_.GetNodeImpl(node_state.parent_id);
-//  assert(!parent_ || parent_->GetFetchStatus().node_fetched);
+  // |super_type_id| is not used.
+  assert(node_state.super_type_id.is_null());
+  assert(scada::IsTypeDefinition(node_state.node_class) ||
+         !node_state.type_definition_id.is_null());
+  assert(!scada::IsTypeDefinition(node_state.node_class) ||
+         node_state.node_id == scada::id::References ||
+         node_state.node_id == scada::id::BaseDataType ||
+         node_state.node_id == scada::id::BaseObjectType ||
+         node_state.node_id == scada::id::BaseVariableType ||
+         (node_state.reference_type_id == scada::id::HasSubtype &&
+          !node_state.parent_id.is_null()));
+
+  parent_reference_.reference_type =
+      service_.GetNodeImpl(node_state.reference_type_id);
+  parent_reference_.target = service_.GetNodeImpl(node_state.parent_id);
+  parent_reference_.forward = false;
+  if (parent_reference_.target) {
+    parent_reference_.target->references_.push_back(
+        {parent_reference_.reference_type, shared_from_this(), true});
+  }
+  //  assert(!parent_ || parent_->GetFetchStatus().node_fetched);
 
   node_class_ = node_state.node_class;
   attributes_ = std::move(node_state.attributes);
   data_type_ = service_.GetNodeImpl(node_state.attributes.data_type);
 
-//  assert(!data_type_ || data_type_->GetFetchStatus().node_fetched);
+  //  assert(!data_type_ || data_type_->GetFetchStatus().node_fetched);
 
-  references_.clear();
   for (auto& reference : node_state.references) {
     AddReference({service_.GetNodeImpl(reference.reference_type_id),
                   service_.GetNodeImpl(reference.node_id), reference.forward});
@@ -51,11 +69,16 @@ void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
 
   if (!node_state.type_definition_id.is_null())
     type_definition_ = service_.GetNodeImpl(node_state.type_definition_id);
-  assert(scada::IsTypeDefinition(node_state.node_class) || type_definition_);
-//  assert(!type_definition_ || type_definition_->GetFetchStatus().node_fetched);
+  if (type_definition_) {
+    type_definition_->references_.push_back(
+        {service_.GetNodeImpl(scada::id::HasTypeDefinition), shared_from_this(),
+         false});
+  }
+  //  assert(!type_definition_ ||
+  //  type_definition_->GetFetchStatus().node_fetched);
 
-  if (!node_state.super_type_id.is_null())
-    supertype_ = service_.GetNodeImpl(node_state.super_type_id);
+  if (node_state.reference_type_id == scada::id::HasSubtype)
+    supertype_ = parent_reference_.target;
 
   {
     auto type_definition_id =
@@ -167,13 +190,15 @@ NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
 
     for (auto& ref : references_) {
       assert(ref.reference_type->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+      if (ref.forward == forward &&
+          IsSubtypeOf(ref.reference_type, reference_type_id))
         return ref.target;
     }
 
     for (auto& ref : child_references_) {
       assert(ref.reference_type->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
+      if (ref.forward == forward &&
+          IsSubtypeOf(ref.reference_type, reference_type_id))
         return ref.target;
     }
 
@@ -182,7 +207,7 @@ NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
       return supertype_;
 
     assert(reference_type_id == scada::id::HierarchicalReferences);
-    return parent_;
+    return parent_reference_.target;
   }
 
   return nullptr;
@@ -195,22 +220,20 @@ std::vector<NodeRef> RemoteNodeModel::GetTargets(
   if (!fetch_status_.node_fetched)
     return result;
 
-  if (forward) {
-    result.reserve(references_.size() + child_references_.size());
+  for (auto& ref : references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.emplace_back(ref.target);
+  }
 
-    for (auto& ref : references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        result.emplace_back(ref.target);
-    }
-
-    for (auto& ref : child_references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        result.emplace_back(ref.target);
-    }
+  for (auto& ref : child_references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.emplace_back(ref.target);
   }
 
   return result;
@@ -223,22 +246,29 @@ NodeRef::Reference RemoteNodeModel::GetReference(
   if (!fetch_status_.node_fetched)
     return {};
 
-  if (forward) {
-    result.reserve(references_.size() + child_references_.size());
+  // TODO: Optimize.
+  if (!forward && reference_type_id == scada::id::HasSubtype)
+    return {service_.GetNodeImpl(scada::id::HasSubtype), supertype_, false};
 
-    for (auto& ref : references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        return {ref.reference_type, ref.target, ref.forward};
-    }
+  if (!forward && reference_type_id == scada::id::HierarchicalReferences) {
+    return {parent_reference_.reference_type, parent_reference_.target,
+            parent_reference_.forward};
+  }
 
-    for (auto& ref : child_references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        return {ref.reference_type, ref.target, ref.forward};
-    }
+  for (auto& ref : references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      return {ref.reference_type, ref.target, ref.forward};
+  }
+
+  for (auto& ref : child_references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      return {ref.reference_type, ref.target, ref.forward};
   }
 
   return {};
@@ -251,22 +281,20 @@ std::vector<NodeRef::Reference> RemoteNodeModel::GetReferences(
   if (!fetch_status_.node_fetched)
     return result;
 
-  if (forward) {
-    result.reserve(references_.size() + child_references_.size());
+  for (auto& ref : references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.push_back({ref.reference_type, ref.target, ref.forward});
+  }
 
-    for (auto& ref : references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        result.push_back({ref.reference_type, ref.target, ref.forward});
-    }
-
-    for (auto& ref : child_references_) {
-      assert(ref.reference_type->fetch_status_.node_fetched);
-      assert(ref.target->fetch_status_.node_fetched);
-      if (IsSubtypeOf(ref.reference_type, reference_type_id))
-        result.push_back({ref.reference_type, ref.target, ref.forward});
-    }
+  for (auto& ref : child_references_) {
+    assert(ref.reference_type->fetch_status_.node_fetched);
+    assert(ref.target->fetch_status_.node_fetched);
+    if (ref.forward == forward &&
+        IsSubtypeOf(ref.reference_type, reference_type_id))
+      result.push_back({ref.reference_type, ref.target, ref.forward});
   }
 
   return result;
@@ -313,17 +341,21 @@ NodeRef RemoteNodeModel::GetDataType() const {
 }
 
 void RemoteNodeModel::AddReference(const NodeModelImplReference& reference) {
-//  assert(reference.reference_type->GetFetchStatus().node_fetched);
-//  assert(reference.target->GetFetchStatus().node_fetched);
+  //  assert(reference.reference_type->GetFetchStatus().node_fetched);
+  //  assert(reference.target->GetFetchStatus().node_fetched);
 
   if (reference.forward) {
-//    if (IsSubtypeOf(reference.reference_type, scada::id::HasTypeDefinition))
-//      type_definition_ = reference.target;
+    //    if (IsSubtypeOf(reference.reference_type,
+    //    scada::id::HasTypeDefinition))
+    //      type_definition_ = reference.target;
     references_.push_back(reference);
 
+    reference.target->references_.push_back(
+        {reference.reference_type, shared_from_this(), !reference.forward});
+
   } else {
-//    if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))
-//      supertype_ = reference.target;
+    //    if (IsSubtypeOf(reference.reference_type, scada::id::HasSubtype))
+    //      supertype_ = reference.target;
   }
 }
 
