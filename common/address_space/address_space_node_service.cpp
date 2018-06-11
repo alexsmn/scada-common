@@ -15,12 +15,6 @@ AddressSpaceNodeService::AddressSpaceNodeService(
     : AddressSpaceNodeServiceContext{std::move(context)},
       fetcher_{MakeAddressSpaceFetcherContext()} {
   address_space_.Subscribe(*this);
-
-  // The special case for HasSubtype, which is used as reference type for itself.
-  if (!address_space_.GetNode(scada::id::HasSubtype)) {
-    address_space_.AddStaticNode(std::make_unique<scada::ReferenceType>(
-        scada::id::HasSubtype, "HasSubtype", scada::LocalizedText{}));
-  }
 }
 
 AddressSpaceNodeService::~AddressSpaceNodeService() {
