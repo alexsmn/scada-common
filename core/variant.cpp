@@ -153,9 +153,7 @@ struct FormatHelperT;
 
 template <class Source>
 struct FormatHelperT<String, Source> {
-  static inline String Format(const Source& value) {
-    return ::Format(value);
-  }
+  static inline String Format(const Source& value) { return ::Format(value); }
 };
 
 template <>
@@ -198,7 +196,7 @@ inline Target FormatHelper(const Source& value) {
   return FormatHelperT<Target, Source>::Format(value);
 }
 
-} // namespace
+}  // namespace
 
 template <class String>
 bool Variant::ToStringHelper(String& string_value) const {
@@ -316,6 +314,28 @@ NodeId Variant::data_type_id() const {
 }
 
 }  // namespace scada
+
+std::string ToString(scada::Variant::Type type) {
+  const char* kStrings[] = {"EMPTY",
+                            "BOOL",
+                            "INT8",
+                            "UINT8",
+                            "INT32",
+                            "UINT32",
+                            "INT64",
+                            "DOUBLE",
+                            "BYTE_STRING",
+                            "STRING",
+                            "QUALIFIED_NAME",
+                            "LOCALIZED_TEXT",
+                            "NODE_ID",
+                            "EXPANDED_NODE_ID",
+                            "EXTENSION_OBJECT"};
+  static_assert(std::size(kStrings) ==
+                static_cast<size_t>(scada::Variant::COUNT));
+  size_t index = static_cast<size_t>(type);
+  return index < std::size(kStrings) ? kStrings[index] : "(Unknown)";
+}
 
 std::string ToString(const scada::Variant& value) {
   return value.get_or(std::string{});

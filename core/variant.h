@@ -190,8 +190,14 @@ inline const T* Variant::get_if() const {
 
 }  // namespace scada
 
+std::string ToString(scada::Variant::Type type);
+
 std::string ToString(const scada::Variant& value);
 base::string16 ToString16(const scada::Variant& value);
+
+inline std::ostream& operator<<(std::ostream& stream, scada::Variant::Type type) {
+  return stream << ToString(type);
+}
 
 inline std::ostream& operator<<(std::ostream& stream, const scada::Variant& v) {
   return stream << v.get_or("(error)");
