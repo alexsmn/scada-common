@@ -65,7 +65,10 @@ inline std::string ToString(scada::NodeClass node_class) {
   };
 }
 
-inline std::ostream& operator<<(std::ostream& stream,
-                                scada::NodeClass node_class) {
+namespace scada {
+
+inline std::ostream& operator<<(std::ostream& stream, NodeClass node_class) {
   return stream << ToString(node_class);
 }
+
+}  // namespace scada

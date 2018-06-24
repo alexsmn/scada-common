@@ -52,4 +52,11 @@ struct NodeAttributes {
   Variant value;
 };
 
+inline std::ostream& operator<<(std::ostream& stream,
+                                const NodeAttributes& attributes) {
+  return stream << "{" << attributes.browse_name << ", "
+                << attributes.display_name << ", " << attributes.data_type
+                << ", " << attributes.value << "}";
+}
+
 }  // namespace scada

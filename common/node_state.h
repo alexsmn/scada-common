@@ -30,4 +30,14 @@ inline bool operator==(const ReferenceState& a, const ReferenceState& b) {
          a.source_id == b.source_id && a.target_id == b.target_id;
 }
 
-} // namespace scada
+inline std::ostream& operator<<(std::ostream& stream,
+                                const NodeState& node_state) {
+  return stream << "{" << node_state.node_id << ", " << node_state.node_class
+                << ", " << node_state.type_definition_id << ", "
+                << node_state.parent_id << ", " << node_state.reference_type_id
+                << ", " << node_state.attributes << ", "
+                << node_state.properties << ", " << node_state.references
+                << "}";
+}
+
+}  // namespace scada

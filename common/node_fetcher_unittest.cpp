@@ -46,11 +46,6 @@ struct TestContext {
 
 }  // namespace
 
-inline std::ostream& operator<<(std::ostream& stream,
-                                const scada::NodeState& node) {
-  return stream << node.node_id;
-}
-
 MATCHER_P(NodeIs, node_id, "") {
   return arg.node_id == node_id;
 }

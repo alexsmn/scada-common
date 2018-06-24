@@ -34,7 +34,8 @@ struct ReferenceDescription {
   NodeId node_id;
 };
 
-inline bool operator==(const ReferenceDescription& a, const ReferenceDescription& b) {
+inline bool operator==(const ReferenceDescription& a,
+                       const ReferenceDescription& b) {
   return std::tie(a.reference_type_id, a.forward, a.node_id) ==
          std::tie(b.reference_type_id, b.forward, b.node_id);
 }
@@ -56,4 +57,27 @@ inline bool operator==(const ReadValueId& a, const ReadValueId& b) {
          std::tie(b.node_id, b.attribute_id);
 }
 
-} // namespace scada
+inline std::ostream& operator<<(std::ostream& stream,
+                                const NodeProperty& prop) {
+  return stream << "{" << prop.first << ", " << prop.second << "}";
+}
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const ReferenceDescription& ref) {
+  return stream << "{" << ref.reference_type_id << ", " << ref.forward << ", "
+                << ref.node_id << "}";
+}
+
+template <class T>
+inline std::ostream& operator<<(std::ostream& stream, const std::vector<T>& v) {
+  stream << "[";
+  for (size_t i = 0; i < v.size(); ++i) {
+    stream << v[i];
+    if (i != v.size() - 1)
+      stream << ", ";
+  }
+  stream << "]";
+  return stream;
+}
+
+}  // namespace scada

@@ -35,7 +35,7 @@ inline bool operator!=(const QualifiedName& a, const QualifiedName& b) {
 
 inline std::ostream& operator<<(std::ostream& stream,
                                 const QualifiedName& value) {
-  return stream << value.name();
+  return stream << '"' << value.name() << '"';
 }
 
 }  // namespace scada
