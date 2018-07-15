@@ -223,8 +223,16 @@ AddressSpaceNodeModel::CreateMonitoredItem(
   return delegate_.OnNodeModelCreateMonitoredItem({node_id_, attribute_id});
 }
 
+void AddressSpaceNodeModel::Write(const scada::NodeId& node_id,
+                                  double value,
+                                  const scada::NodeId& user_id,
+                                  const scada::WriteFlags& flags,
+                                  const scada::StatusCallback& callback) const {
+  delegate_.OnNodeModelWrite(node_id, value, user_id, flags, callback);
+}
+
 void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,
                                  const std::vector<scada::Variant>& arguments,
                                  const scada::StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad_Disconnected);
+  delegate_.OnNodeModelCall(node_id_, method_id, arguments, {}, callback);
 }

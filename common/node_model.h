@@ -51,4 +51,10 @@ class NodeModel {
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::StatusCallback& callback) const = 0;
+
+  virtual void Write(const scada::NodeId& node_id,
+                     double value,
+                     const scada::NodeId& user_id,
+                     const scada::WriteFlags& flags,
+                     const scada::StatusCallback& callback) const = 0;
 };

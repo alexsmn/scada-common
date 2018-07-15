@@ -37,6 +37,11 @@ class AddressSpacePropertyModel final : public NodeModel {
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const override;
+  virtual void Write(const scada::NodeId& node_id,
+                     double value,
+                     const scada::NodeId& user_id,
+                     const scada::WriteFlags& flags,
+                     const scada::StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::StatusCallback& callback) const override;
@@ -130,6 +135,15 @@ inline void AddressSpacePropertyModel::Unsubscribe(
 std::unique_ptr<scada::MonitoredItem> inline AddressSpacePropertyModel::
     CreateMonitoredItem(scada::AttributeId attribute_id) const {
   return delegate_.OnNodeModelCreateMonitoredItem({GetNodeId(), attribute_id});
+}
+
+void AddressSpacePropertyModel::Write(
+    const scada::NodeId& node_id,
+    double value,
+    const scada::NodeId& user_id,
+    const scada::WriteFlags& flags,
+    const scada::StatusCallback& callback) const {
+  delegate_.OnNodeModelWrite(GetNodeId(), value, user_id, flags, callback);
 }
 
 inline void AddressSpacePropertyModel::Call(

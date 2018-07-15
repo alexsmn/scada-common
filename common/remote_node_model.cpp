@@ -375,6 +375,14 @@ std::unique_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
   return nullptr;
 }
 
+void RemoteNodeModel::Write(const scada::NodeId& node_id,
+                            double value,
+                            const scada::NodeId& user_id,
+                            const scada::WriteFlags& flags,
+                            const scada::StatusCallback& callback) const {
+  callback(scada::StatusCode::Bad_Disconnected);
+}
+
 void RemoteNodeModel::Call(const scada::NodeId& method_id,
                            const std::vector<scada::Variant>& arguments,
                            const scada::StatusCallback& callback) const {

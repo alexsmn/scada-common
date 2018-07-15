@@ -5,6 +5,7 @@
 #include "address_space/node_utils.h"
 #include "common/address_space/address_space_node_model.h"
 #include "common/node_observer.h"
+#include "core/attribute_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 
@@ -179,6 +180,15 @@ std::unique_ptr<scada::MonitoredItem>
 AddressSpaceNodeService::OnNodeModelCreateMonitoredItem(
     const scada::ReadValueId& read_value_id) {
   return monitored_item_service_.CreateMonitoredItem(read_value_id);
+}
+
+void AddressSpaceNodeService::OnNodeModelWrite(
+    const scada::NodeId& node_id,
+    double value,
+    const scada::NodeId& user_id,
+    const scada::WriteFlags& flags,
+    const scada::StatusCallback& callback) {
+  attribute_service_.Write(node_id, value, user_id, flags, callback);
 }
 
 void AddressSpaceNodeService::OnNodeModelCall(

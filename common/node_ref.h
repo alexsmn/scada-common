@@ -6,6 +6,7 @@
 #include "core/standard_node_ids.h"
 #include "core/status.h"
 #include "core/variant.h"
+#include "core/write_flags.h"
 
 #include <functional>
 #include <memory>
@@ -90,6 +91,12 @@ class NodeRef {
 
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const;
+
+  void Write(const scada::NodeId& node_id,
+             double value,
+             const scada::NodeId& user_id,
+             const scada::WriteFlags& flags,
+             const scada::StatusCallback& callback);
 
   void Call(const scada::NodeId& method_id,
             const std::vector<scada::Variant>& arguments,
