@@ -26,7 +26,7 @@ class VariableMonitoredItem : public MonitoredItem {
   bool subscribed_ = false;
 };
 
-using StatusCallback = std::function<void(const Status& status)>;
+using StatusCallback = std::function<void(Status&& status)>;
 
 class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
  public:

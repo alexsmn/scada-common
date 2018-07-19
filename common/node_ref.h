@@ -14,7 +14,7 @@
 
 namespace scada {
 class MonitoredItem;
-using StatusCallback = std::function<void(const Status&)>;
+using StatusCallback = std::function<void(Status&&)>;
 }  // namespace scada
 
 class NodeModel;

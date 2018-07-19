@@ -12,7 +12,7 @@ namespace scada {
 class NodeId;
 class Status;
 
-using StatusCallback = std::function<void(const Status&)>;
+using StatusCallback = std::function<void(Status&&)>;
 using ReadCallback = std::function<void(Status&&, std::vector<DataValue>&& values)>;
 
 class AttributeService {

@@ -12,7 +12,7 @@ namespace scada {
 enum class NodeClass;
 
 using NodeIdSet = std::set<NodeId>;
-using StatusCallback = std::function<void(const Status&)>;
+using StatusCallback = std::function<void(Status&&)>;
 using ModifyNodesCallback =
     std::function<void(const Status&, const std::vector<Status>&)>;
 using DeleteNodeCallback = std::function<void(const Status& /*status*/,

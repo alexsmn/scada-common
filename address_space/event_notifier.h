@@ -1,5 +1,10 @@
 #pragma once
 
+namespace scada {
+class NodeId;
+struct ModelChangeEvent;
+};  // namespace scada
+
 class EventNotifier {
  public:
   virtual ~EventNotifier() {}

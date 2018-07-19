@@ -230,14 +230,7 @@ Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
 Status SetPropertyValue(Node& node,
                         const NodeId& prop_decl_id,
                         const Variant& value) {
-  switch (node.GetNodeClass()) {
-    case NodeClass::Object:
-      return static_cast<Object&>(node).SetPropertyValue(prop_decl_id, value);
-    case NodeClass::Variable:
-      return static_cast<Variable&>(node).SetPropertyValue(prop_decl_id, value);
-    default:
-      return StatusCode::Bad_WrongNodeClass;
-  }
+  return node.SetPropertyValue(prop_decl_id, value);
 }
 
 void AddReference(scada::AddressSpace& address_space,

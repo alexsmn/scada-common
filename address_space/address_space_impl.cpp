@@ -271,7 +271,7 @@ const AddressSpaceImpl::NodeEvents* AddressSpaceImpl::GetNodeEvents(
   return i == node_events_.end() ? nullptr : &i->second;
 }
 
-void AddressSpaceImpl::AddStaticNode(std::unique_ptr<scada::Node> node) {
+void AddressSpaceImpl::AddStaticNodeHelper(std::unique_ptr<scada::Node> node) {
   AddNode(*node);
   static_nodes_.emplace(node->id(), std::move(node));
 }

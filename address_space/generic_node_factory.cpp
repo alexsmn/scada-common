@@ -13,6 +13,12 @@
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {
+  return CreateNodeHelper(node_state, node_state.parent_id);
+}
+
+std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
+    const scada::NodeState& node_state,
+    const scada::NodeId& parent_id) {
   assert(!node_state.node_id.is_null());
 
   logger_->WriteF(
@@ -22,11 +28,11 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
       NodeIdToScadaString(node_state.node_id).c_str(),
       ToString(node_state.node_class).c_str(),
       NodeIdToScadaString(node_state.type_definition_id).c_str(),
-      NodeIdToScadaString(node_state.parent_id).c_str(),
+      NodeIdToScadaString(parent_id).c_str(),
       NodeIdToScadaString(node_state.reference_type_id).c_str());
 
   if (node_state.node_id != scada::id::RootFolder) {
-    assert(!node_state.parent_id.is_null());
+    assert(!parent_id.is_null());
     assert(!node_state.reference_type_id.is_null());
   }
 
@@ -104,13 +110,13 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
                         *type_definition);
   }
 
-  for (auto& prop : node_state.properties) {
+  for (auto& [prop_decl_id, value] : node_state.properties) {
     /*logger_->WriteF(LogSeverity::Normal, "Property %s[%s] = %s",
                   NodeIdToScadaString(node_state.id).c_str(),
                   NodeIdToScadaString(prop.first).c_str(),
                   prop.second.get_or(std::string{"(unknown)"}).c_str());*/
     auto status =
-        scada::SetPropertyValue(*node, prop.first, std::move(prop.second));
+        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
     if (!status)
       return {status, nullptr};
   }
@@ -119,8 +125,8 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
 
   address_space_.AddStaticNode(std::move(node));
 
-  if (!node_state.parent_id.is_null()) {
-    auto* parent = address_space_.GetNode(node_state.parent_id);
+  if (!parent_id.is_null()) {
+    auto* parent = address_space_.GetNode(parent_id);
     if (!parent)
       throw scada::Status(scada::StatusCode::Bad_WrongParentId);
 
@@ -130,6 +136,12 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
       throw scada::Status(scada::StatusCode::Bad_WrongReferenceId);
 
     scada::AddReference(*reference_type, *parent, *node_ptr);
+  }
+
+  for (auto& child : node_state.children) {
+    auto [status, node] = CreateNodeHelper(child, node_state.node_id);
+    if (!status)
+      throw status;
   }
 
   return {scada::StatusCode::Good, node_ptr};

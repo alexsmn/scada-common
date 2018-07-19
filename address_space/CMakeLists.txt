@@ -3,7 +3,8 @@ file(GLOB sources
   "*.h")
 
 file(GLOB unittests
-  "*_unittest.*")
+  "*_unittest.*"
+  "*_mock.*")
 
 list(REMOVE_ITEM sources ${unittests})
 

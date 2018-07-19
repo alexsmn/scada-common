@@ -38,6 +38,8 @@ class DataType : public TypeDefinition {
     return NodeClass::DataType;
   }
   virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const override;
+  virtual Status SetPropertyValue(const NodeId& prop_decl_id,
+                                  const Variant& value) override;
 
   std::vector<scada::LocalizedText> enum_strings;
 };

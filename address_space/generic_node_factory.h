@@ -2,6 +2,10 @@
 
 #include "address_space/node_factory.h"
 
+namespace scada {
+class NodeId;
+}
+
 class AddressSpaceImpl;
 class Logger;
 
@@ -15,6 +19,10 @@ class GenericNodeFactory final : public NodeFactory {
       const scada::NodeState& node_state) override;
 
  private:
+  std::pair<scada::Status, scada::Node*> CreateNodeHelper(
+      const scada::NodeState& node_state,
+      const scada::NodeId& parent_id);
+
   const std::shared_ptr<Logger> logger_;
   AddressSpaceImpl& address_space_;
 };

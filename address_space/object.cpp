@@ -8,6 +8,16 @@
 
 namespace scada {
 
+// Object
+
+void Object::Call(const scada::NodeId& method_id,
+                  const std::vector<scada::Variant>& arguments,
+                  const scada::NodeId& user_id,
+                  const scada::StatusCallback& callback) {
+  if (callback)
+    callback(scada::StatusCode::Bad_WrongMethodId);
+}
+
 // GenericObject
 
 Variant GenericObject::GetPropertyValue(const NodeId& prop_decl_id) const {

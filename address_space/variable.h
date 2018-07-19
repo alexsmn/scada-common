@@ -18,7 +18,7 @@ class VariableHandle;
 class VariableType;
 class WriteFlags;
 
-typedef std::function<void(const Status&)> StatusCallback;
+using StatusCallback = std::function<void(Status&&)>;
 
 class Variable : public Node {
  public:

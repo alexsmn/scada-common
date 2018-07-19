@@ -32,9 +32,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
   // Add not-owned node.
   void AddNode(scada::Node& node);
 
-  // Adds node owned by configuration itself.
-  void AddStaticNode(std::unique_ptr<scada::Node> node);
-
   template <class T>
   T& AddStaticNode(std::unique_ptr<T> node);
 
@@ -70,6 +67,9 @@ class AddressSpaceImpl : public scada::AddressSpace {
                        scada::NodeObserver& events) const override;
 
  private:
+  // Adds node owned by configuration itself.
+  void AddStaticNodeHelper(std::unique_ptr<scada::Node> node);
+
   void NotifyNodeMoved(const scada::Node& node, const scada::Node* top) const;
   void NotifyNodeTitleChanged(const scada::Node& node) const;
 
@@ -102,7 +102,7 @@ template <class T>
 inline T& AddressSpaceImpl::AddStaticNode(std::unique_ptr<T> node) {
   assert(node);
   auto* ptr = node.get();
-  AddStaticNode(std::unique_ptr<scada::Node>{std::move(node)});
+  AddStaticNodeHelper(std::unique_ptr<scada::Node>{std::move(node)});
   return *ptr;
 }
 

@@ -119,7 +119,8 @@ void SessionProxy::OnSessionError(const scada::Status& status) {
 
   OnSessionDeleted();
 
-  ForwardConnectResult(status);
+  auto copied_status = status;
+  ForwardConnectResult(std::move(copied_status));
 
   for (auto& o : observers_)
     o.OnSessionDeleted(status);
@@ -309,11 +310,11 @@ void SessionProxy::Connect() {
     OnTransportClosed(error);
 }
 
-void SessionProxy::ForwardConnectResult(const scada::Status& status) {
+void SessionProxy::ForwardConnectResult(scada::Status&& status) {
   auto callback = std::move(connect_callback_);
   connect_callback_ = nullptr;
   if (callback)
-    callback(status);
+    callback(std::move(status));
 }
 
 void SessionProxy::OnCreateSessionResult(const protocol::Response& response) {

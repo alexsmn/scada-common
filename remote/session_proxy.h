@@ -125,7 +125,7 @@ class SessionProxy : private SessionProxyContext,
   void OnMessageReceived(const protocol::Message& message);
   void OnCreateSessionResult(const protocol::Response& response);
 
-  void ForwardConnectResult(const scada::Status& status);
+  void ForwardConnectResult(scada::Status&& status);
 
   void Ping();
 

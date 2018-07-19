@@ -9,7 +9,7 @@
 
 namespace scada {
 
-using StatusCallback = std::function<void(const Status&)>;
+using StatusCallback = std::function<void(Status&&)>;
 
 class MethodService {
  public:

@@ -16,7 +16,7 @@ namespace scada {
 
 class SessionStateObserver;
 
-using StatusCallback = std::function<void(const Status&)>;
+using StatusCallback = std::function<void(Status&&)>;
 
 class SessionService {
  public:
