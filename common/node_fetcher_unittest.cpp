@@ -22,7 +22,7 @@ struct TestContext {
       fetched_nodes_[node.node_id] = node;
   }
 
-  NullLogger logger;
+  std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
   TestAddressSpace address_space;
 

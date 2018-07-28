@@ -19,7 +19,7 @@ class ViewService;
 class Logger;
 
 struct NodeFetcherImplContext {
-  Logger& logger_;
+  const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   FetchCompletedHandler fetch_completed_handler_;
@@ -55,6 +55,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     bool references_fetched = false;
     scada::Status status{scada::StatusCode::Good};
     bool force = false;
+    bool is_property = false;  // object property (not property declaration)
   };
 
   class FetchingNodeGraph {

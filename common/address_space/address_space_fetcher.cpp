@@ -152,7 +152,7 @@ NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {
     return address_space_.GetNode(node_id) != 0;
   };
 
-  return {*logger_, view_service_, attribute_service_, fetch_completed_handler,
+  return {logger_, view_service_, attribute_service_, fetch_completed_handler,
           node_validator};
 }
 
@@ -195,7 +195,7 @@ AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
   };
 
   return {
-      *logger_,
+      logger_,
       view_service_,
       reference_validator,
   };

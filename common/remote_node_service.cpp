@@ -148,7 +148,7 @@ NodeFetcherImplContext RemoteNodeService::MakeNodeFetcherImplContext() {
     return nodes_.find(node_id) != nodes_.end();
   };
 
-  return {*logger_, view_service_, attribute_service_, fetch_completed_handler,
+  return {logger_, view_service_, attribute_service_, fetch_completed_handler,
           node_validator};
 }
 
@@ -159,7 +159,7 @@ NodeChildrenFetcherContext RemoteNodeService::MakeNodeChildrenFetcherContext() {
       i->second->OnChildrenFetched(std::move(references));
   };
 
-  return {*logger_, view_service_, reference_validator};
+  return {logger_, view_service_, reference_validator};
 }
 
 void RemoteNodeService::OnChannelOpened() {

@@ -27,7 +27,7 @@ using ReferenceValidator =
     std::function<void(const scada::NodeId& node_id, ReferenceMap references)>;
 
 struct NodeChildrenFetcherContext {
-  Logger& logger_;
+  const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   const ReferenceValidator reference_validator_;
 };

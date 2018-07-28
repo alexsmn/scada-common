@@ -40,14 +40,13 @@ void GetFetchAttributes(const scada::NodeId& node_id,
                         std::vector<scada::ReadValueId>& read_ids) {
   if (is_property) {
     read_ids.push_back({node_id, scada::AttributeId::BrowseName});
-    read_ids.push_back({node_id, scada::AttributeId::Value});
-    read_ids.push_back({node_id, scada::AttributeId::DataType});
   } else {
     read_ids.push_back({node_id, scada::AttributeId::NodeClass});
     read_ids.push_back({node_id, scada::AttributeId::BrowseName});
     read_ids.push_back({node_id, scada::AttributeId::DisplayName});
-    read_ids.push_back({node_id, scada::AttributeId::DataType});
   }
+  read_ids.push_back({node_id, scada::AttributeId::DataType});
+  read_ids.push_back({node_id, scada::AttributeId::Value});
 }
 
 const size_t kFetchReferencesReserveFactor = 3;
@@ -146,9 +145,9 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node) {
     if (!node.force)
       return;
 
-    logger_.WriteF(LogSeverity::Normal,
-                   "Canceling old fetching node %s with request %u",
-                   node.node_id.ToString().c_str(), node.fetch_request_id);
+    logger_->WriteF(LogSeverity::Normal,
+                    "Canceling old fetching node %s with request %u",
+                    node.node_id.ToString().c_str(), node.fetch_request_id);
     node.fetch_started = false;
     node.fetch_request_id = 0;
     node.attributes_fetched = false;
@@ -156,8 +155,8 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node) {
     node.status = scada::StatusCode::Good;
   }
 
-  logger_.WriteF(LogSeverity::Normal, "Scheduling fetch node %s",
-                 node.node_id.ToString().c_str());
+  logger_->WriteF(LogSeverity::Normal, "Scheduling fetch node %s",
+                  node.node_id.ToString().c_str());
 
   assert(!node.pending);
   node.pending = true;
@@ -171,8 +170,8 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node) {
 void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
   assert(AssertValid());
 
-  logger_.WriteF(LogSeverity::Normal, "Cancel fetch node %s",
-                 node_id.ToString().c_str());
+  logger_->WriteF(LogSeverity::Normal, "Cancel fetch node %s",
+                  node_id.ToString().c_str());
 
   auto* fetching_node = fetching_nodes_.FindNode(node_id);
   if (!fetching_node)
@@ -238,12 +237,12 @@ void NodeFetcherImpl::FetchPendingNodes() {
 }
 
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
-  logger_.WriteF(LogSeverity::Normal, "Fetch nodes (%Iu)", nodes.size());
+  logger_->WriteF(LogSeverity::Normal, "Fetch nodes (%Iu)", nodes.size());
 
   // Increment immediately for the case OnReadResult happens synchronously.
   running_request_count_ += 2;
-  logger_.WriteF(LogSeverity::Normal, "%Iu requests are running",
-                 running_request_count_);
+  logger_->WriteF(LogSeverity::Normal, "%Iu requests are running",
+                  running_request_count_);
 
   const auto start_ticks = base::TimeTicks::Now();
 
@@ -258,13 +257,11 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   std::vector<scada::ReadValueId> read_ids;
   read_ids.reserve(nodes.size() * kFetchAttributesReserveFactor);
   for (auto* node : nodes) {
-    logger_.WriteF(LogSeverity::Normal, "Fetching node %s with request %u",
-                   ToString(node->node_id).c_str(), request_id);
+    logger_->WriteF(LogSeverity::Normal, "Fetching node %s with request %u",
+                    ToString(node->node_id).c_str(), request_id);
 
     size_t count = read_ids.size();
-    GetFetchAttributes(node->node_id,
-                       node->reference_type_id == scada::id::HasProperty,
-                       read_ids);
+    GetFetchAttributes(node->node_id, node->is_property, read_ids);
     node->attributes_fetched = count == read_ids.size();
     node->fetch_request_id = request_id;
   }
@@ -312,15 +309,15 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
 
   if (!errors.empty()) {
     for (auto& error : errors) {
-      logger_.WriteF(LogSeverity::Warning, "Node %s fetch error %s",
-                     NodeIdToScadaString(error.first).c_str(),
-                     ToString(error.second).c_str());
+      logger_->WriteF(LogSeverity::Warning, "Node %s fetch error %s",
+                      NodeIdToScadaString(error.first).c_str(),
+                      ToString(error.second).c_str());
     }
   }
 
   if (!nodes.empty()) {
     for (auto& node : nodes) {
-      logger_.WriteF(
+      logger_->WriteF(
           LogSeverity::Normal,
           "Node fetched {node_id: '%s', node_class: '%s', parent_id: '%s', "
           "reference_type_id: '%s', browse_name: '%s', display_name: '%ls', "
@@ -336,9 +333,9 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
     }
   }
 
-  logger_.WriteF(LogSeverity::Normal,
-                 "%Iu nodes completed, %Iu incomplete nodes remain",
-                 nodes.size() + errors.size(), fetching_nodes_.size());
+  logger_->WriteF(LogSeverity::Normal,
+                  "%Iu nodes completed, %Iu incomplete nodes remain",
+                  nodes.size() + errors.size(), fetching_nodes_.size());
 
   fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
@@ -428,10 +425,10 @@ void NodeFetcherImpl::OnReadResult(
   assert(AssertValid());
 
   auto duration = base::TimeTicks::Now() - start_ticks;
-  logger_.WriteF(LogSeverity::Normal,
-                 "Read request %u completed in %u ms with status: %s",
-                 request_id, static_cast<unsigned>(duration.InMilliseconds()),
-                 ToString(status).c_str());
+  logger_->WriteF(LogSeverity::Normal,
+                  "Read request %u completed in %u ms with status: %s",
+                  request_id, static_cast<unsigned>(duration.InMilliseconds()),
+                  ToString(status).c_str());
 
   for (size_t i = 0; i < read_ids.size(); ++i) {
     auto& read_id = read_ids[i];
@@ -442,9 +439,9 @@ void NodeFetcherImpl::OnReadResult(
 
     // Request cancelation.
     if (!node->fetch_started || node->fetch_request_id != request_id) {
-      logger_.WriteF(LogSeverity::Normal,
-                     "Ignore read response for canceled node %s",
-                     ToString(node->node_id).c_str());
+      logger_->WriteF(LogSeverity::Normal,
+                      "Ignore read response for canceled node %s",
+                      ToString(node->node_id).c_str());
       continue;
     }
 
@@ -470,8 +467,8 @@ void NodeFetcherImpl::OnReadResult(
 
   assert(running_request_count_ > 0);
   --running_request_count_;
-  logger_.WriteF(LogSeverity::Normal, "%Iu requests are running",
-                 running_request_count_);
+  logger_->WriteF(LogSeverity::Normal, "%Iu requests are running",
+                  running_request_count_);
 
   NotifyFetchedNodes();
 
@@ -519,10 +516,10 @@ void NodeFetcherImpl::OnBrowseResult(
   assert(AssertValid());
 
   const auto duration = base::TimeTicks::Now() - start_ticks;
-  logger_.WriteF(LogSeverity::Normal,
-                 "Browse request %u completed in %u ms with status: %s",
-                 request_id, static_cast<unsigned>(duration.InMilliseconds()),
-                 ToString(status).c_str());
+  logger_->WriteF(LogSeverity::Normal,
+                  "Browse request %u completed in %u ms with status: %s",
+                  request_id, static_cast<unsigned>(duration.InMilliseconds()),
+                  ToString(status).c_str());
 
   for (size_t i = 0; i < descriptions.size(); ++i) {
     auto& description = descriptions[i];
@@ -533,9 +530,9 @@ void NodeFetcherImpl::OnBrowseResult(
 
     // Request cancelation.
     if (!node->fetch_started || node->fetch_request_id != request_id) {
-      logger_.WriteF(LogSeverity::Normal,
-                     "Ignore browse response for canceled node %s",
-                     ToString(node->node_id).c_str());
+      logger_->WriteF(LogSeverity::Normal,
+                      "Ignore browse response for canceled node %s",
+                      ToString(node->node_id).c_str());
       continue;
     }
 
@@ -560,8 +557,8 @@ void NodeFetcherImpl::OnBrowseResult(
 
   assert(running_request_count_ > 0);
   --running_request_count_;
-  logger_.WriteF(LogSeverity::Normal, "%Iu requests are running",
-                 running_request_count_);
+  logger_->WriteF(LogSeverity::Normal, "%Iu requests are running",
+                  running_request_count_);
 
   NotifyFetchedNodes();
 
@@ -615,6 +612,7 @@ void NodeFetcherImpl::AddFetchedReference(
     if (reference.reference_type_id == scada::id::HasProperty) {
       child.node_class = scada::NodeClass::Variable;
       child.type_definition_id = scada::id::PropertyType;
+      child.is_property = !scada::IsTypeDefinition(node.node_class);
     }
 
     fetching_nodes_.AddDependency(child, node);

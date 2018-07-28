@@ -39,10 +39,10 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
   const auto duration = base::TimeTicks::Now() - start_ticks;
-  logger_.WriteF(LogSeverity::Normal,
-                 "Browse children completed in %u ms with status: %ls",
-                 static_cast<unsigned>(duration.InMilliseconds()),
-                 ToString16(status).c_str());
+  logger_->WriteF(LogSeverity::Normal,
+                  "Browse children completed in %u ms with status: %ls",
+                  static_cast<unsigned>(duration.InMilliseconds()),
+                  ToString16(status).c_str());
 
   assert(!descriptions.empty());
 
@@ -69,8 +69,8 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
 
   assert(children_request_count_ > 0);
   --children_request_count_;
-  logger_.WriteF(LogSeverity::Normal, "%Iu children requests are running",
-                 children_request_count_);
+  logger_->WriteF(LogSeverity::Normal, "%Iu children requests are running",
+                  children_request_count_);
 
   FetchPendingNodes();
 
@@ -86,8 +86,8 @@ void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
   if (!pending_children_set_.emplace(node_id).second)
     return;
 
-  logger_.WriteF(LogSeverity::Normal, "Schedule browse children of node %s",
-                 node_id.ToString().c_str());
+  logger_->WriteF(LogSeverity::Normal, "Schedule browse children of node %s",
+                  node_id.ToString().c_str());
 
   pending_children_.emplace_back(node_id);
 
@@ -98,7 +98,8 @@ void NodeChildrenFetcher::FetchChildren(
     const std::vector<scada::NodeId>& node_ids) {
   assert(!node_ids.empty());
 
-  logger_.WriteF(LogSeverity::Normal, "Browse children (%Iu)", node_ids.size());
+  logger_->WriteF(LogSeverity::Normal, "Browse children (%Iu)",
+                  node_ids.size());
 
   const auto start_ticks = base::TimeTicks::Now();
   ++children_request_count_;

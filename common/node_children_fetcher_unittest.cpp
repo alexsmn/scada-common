@@ -17,7 +17,7 @@ struct TestContext {
                void(const scada::NodeId& node_id,
                     const ReferenceMap& references));
 
-  NullLogger logger;
+  const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
   TestAddressSpace address_space;
 

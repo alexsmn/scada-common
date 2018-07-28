@@ -11,7 +11,9 @@ void EventServiceProxy::OnChannelOpened(MessageSender& sender) {
   sender_ = &sender;
 }
 
-void EventServiceProxy::OnChannelClosed() {}
+void EventServiceProxy::OnChannelClosed() {
+  sender_ = nullptr;
+}
 
 void EventServiceProxy::Acknowledge(int acknowledge_id,
                                     const scada::NodeId& user_node_id) {
