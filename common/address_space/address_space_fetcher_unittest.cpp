@@ -86,15 +86,15 @@ TEST(AddressSpaceFetcher, ConfigurationLoad) {
 
   {
     auto* node = context.client_address_space.GetNode(scada::id::RootFolder);
-    ASSERT_NE(nullptr, node);
-    EXPECT_NE(nullptr, FindChild(*node, "TestNode1"));
-    EXPECT_NE(nullptr, FindChild(*node, "TestNode2"));
+    ASSERT_TRUE(node);
+    EXPECT_TRUE(FindChild(*node, "TestNode1"));
+    EXPECT_TRUE(FindChild(*node, "TestNode2"));
   }
 
   {
     auto* node = context.client_address_space.GetNode(
         context.server_address_space.kTestNode1Id);
-    ASSERT_NE(node, nullptr);
+    ASSERT_TRUE(node);
     EXPECT_EQ(node->GetBrowseName(), "TestNode1");
     EXPECT_EQ(
         scada::Variant{"TestNode1.TestProp1.Value"},
@@ -107,7 +107,7 @@ TEST(AddressSpaceFetcher, ConfigurationLoad) {
   {
     auto* node = context.client_address_space.GetNode(
         context.server_address_space.kTestNode2Id);
-    ASSERT_NE(node, nullptr);
+    ASSERT_TRUE(node);
     EXPECT_EQ(node->GetBrowseName(), "TestNode2");
     EXPECT_EQ(
         scada::Variant{"TestNode2.TestProp1.Value"},
@@ -146,7 +146,7 @@ TEST(AddressSpaceFetcher, NodeAdded) {
 
   {
     auto* node = context.client_address_space.GetNode(kNewNode.node_id);
-    ASSERT_NE(node, nullptr);
+    ASSERT_TRUE(node);
     EXPECT_EQ(node->GetBrowseName(), "NewNode");
   }
 }
@@ -155,7 +155,7 @@ TEST(AddressSpaceFetcher, NodeDeleted) {
   TestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
-  ASSERT_NE(nullptr, context.server_address_space.GetNode(kNodeId));
+  ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
 
   context.server_address_space.NotifyModelChanged(
       {kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
@@ -171,7 +171,7 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
   const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
 
   auto* node = context.server_address_space.GetNode(kNodeId);
-  ASSERT_NE(node, nullptr);
+  ASSERT_TRUE(node);
 
   {
     // Rename
@@ -187,7 +187,7 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
 
   {
     auto* node = context.client_address_space.GetNode(kNodeId);
-    ASSERT_NE(node, nullptr);
+    ASSERT_TRUE(node);
     EXPECT_EQ(kNewBrowseName, node->GetBrowseName());
     EXPECT_EQ(kNewValue, node->GetPropertyValue(
                              context.server_address_space.kTestProp1Id));

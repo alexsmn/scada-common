@@ -71,7 +71,7 @@ TEST(AddressSpaceNodeService, NodeDeleted) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
-  ASSERT_NE(nullptr, context.server_address_space.GetNode(kNodeId));
+  ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
 
   EXPECT_CALL(context.node_observer,
               OnModelChanged(scada::ModelChangeEvent{
@@ -101,7 +101,7 @@ TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
   node.Fetch(NodeFetchStatus::NodeOnly());
 
   auto* server_node = context.server_address_space.GetNode(kNodeId);
-  ASSERT_NE(server_node, nullptr);
+  ASSERT_TRUE(server_node);
 
   // Rename & set property.
   {
@@ -126,64 +126,65 @@ TEST(AddressSpaceNodeService, DeleteNodeByDeletionOfParentReference) {
   const scada::NodeId kNodeId = context.server_address_space.kTestNode4Id;
 
   auto* parent_node = context.server_address_space.GetNode(kParentNodeId);
-  ASSERT_NE(parent_node, nullptr);
+  ASSERT_TRUE(parent_node);
 
-/*
-  scada::NodeState saved_node_state;
+  /*
+    scada::NodeState saved_node_state;
 
-  // Works only if parent was pre-fetched.
-  context.node_service.GetNode(parent_node->id())
-      .Fetch(NodeFetchStatus::NodeOnly());
+    // Works only if parent was pre-fetched.
+    context.node_service.GetNode(parent_node->id())
+        .Fetch(NodeFetchStatus::NodeOnly());
 
-  {
-    auto* node = context.server_address_space.GetNode(kNodeId);
-    ASSERT_NE(node, nullptr);
-    saved_node_state = *node;
+    {
+      auto* node = context.server_address_space.GetNode(kNodeId);
+      ASSERT_NE(node, nullptr);
+      saved_node_state = *node;
 
-    // Delete node, but notify only deleted reference deletion.
-    // Expect node is deleted on client.
+      // Delete node, but notify only deleted reference deletion.
+      // Expect node is deleted on client.
+
+      EXPECT_CALL(context.node_observer,
+                  OnModelChanged(scada::ModelChangeEvent{
+                      node->node_id, {},
+    scada::ModelChangeEvent::NodeDeleted}));
+
+      context.server_address_space.RemoveNode(kNodeId);
+      context.server_address_space.NotifyModelChanged(
+          {parent_node->id(), scada::GetTypeDefinitionId(*parent_node),
+           scada::ModelChangeEvent::ReferenceDeleted});
+
+      Mock::VerifyAndClearExpectations(&context.node_observer);
+    }
+
+    {
+      auto node = context.node_service.GetNode(kNodeId);
+      node.Fetch(NodeFetchStatus::NodeOnly());
+      EXPECT_TRUE(node.fetched());
+      EXPECT_FALSE(node.status());
+    }
+
+    // Restore reference. Expect node is refetched on client.
 
     EXPECT_CALL(context.node_observer,
                 OnModelChanged(scada::ModelChangeEvent{
-                    node->node_id, {}, scada::ModelChangeEvent::NodeDeleted}));
+                    saved_node_state.node_id,
+    saved_node_state.type_definition_id, scada::ModelChangeEvent::NodeAdded}));
 
-    context.server_address_space.RemoveNode(kNodeId);
+    context.server_address_space.nodes.emplace_back(saved_node_state);
     context.server_address_space.NotifyModelChanged(
-        {parent_node->id(), scada::GetTypeDefinitionId(*parent_node),
-         scada::ModelChangeEvent::ReferenceDeleted});
+        {saved_node_state.node_id, saved_node_state.type_definition_id,
+         scada::ModelChangeEvent::NodeAdded});
 
     Mock::VerifyAndClearExpectations(&context.node_observer);
-  }
 
-  {
-    auto node = context.node_service.GetNode(kNodeId);
+    EXPECT_CALL(context.node_observer,
+                OnNodeFetched(saved_node_state.node_id, _));
+
+    auto node = context.node_service.GetNode(saved_node_state.node_id);
     node.Fetch(NodeFetchStatus::NodeOnly());
     EXPECT_TRUE(node.fetched());
-    EXPECT_FALSE(node.status());
-  }
-
-  // Restore reference. Expect node is refetched on client.
-
-  EXPECT_CALL(context.node_observer,
-              OnModelChanged(scada::ModelChangeEvent{
-                  saved_node_state.node_id, saved_node_state.type_definition_id,
-                  scada::ModelChangeEvent::NodeAdded}));
-
-  context.server_address_space.nodes.emplace_back(saved_node_state);
-  context.server_address_space.NotifyModelChanged(
-      {saved_node_state.node_id, saved_node_state.type_definition_id,
-       scada::ModelChangeEvent::NodeAdded});
-
-  Mock::VerifyAndClearExpectations(&context.node_observer);
-
-  EXPECT_CALL(context.node_observer,
-              OnNodeFetched(saved_node_state.node_id, _));
-
-  auto node = context.node_service.GetNode(saved_node_state.node_id);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-  EXPECT_TRUE(node.fetched());
-  EXPECT_TRUE(node.status());
-  EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);*/
+    EXPECT_TRUE(node.status());
+    EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);*/
 }
 
 TEST(AddressSpaceNodeService, ReferencedNodeDeletionAndRestoration) {
