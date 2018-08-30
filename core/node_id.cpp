@@ -89,15 +89,15 @@ String NodeId::ToString() const {
   std::string result;
 
   if (namespace_index_ != 0)
-    result +=
-        base::StringPrintf("ns=%u;", static_cast<unsigned>(namespace_index_));
+    base::StringAppendF(&result, "ns=%u;",
+                        static_cast<unsigned>(namespace_index_));
 
   switch (type()) {
     case NodeIdType::Numeric:
-      result += base::StringPrintf("i=%u", static_cast<unsigned>(numeric_id()));
+      base::StringAppendF(&result, "i=%u", static_cast<unsigned>(numeric_id()));
       break;
     case NodeIdType::String:
-      result += base::StringPrintf("s=%s", string_id().c_str());
+      base::StringAppendF(&result, "s=%s", string_id().c_str());
       break;
     case NodeIdType::Opaque:
       // TODO:

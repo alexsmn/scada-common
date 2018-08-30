@@ -1,7 +1,9 @@
 #include "vidicon_session.h"
 
+#include "base/logger.h"
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
+#include "core/date_time.h"
 #include "core/monitored_item.h"
 #include "core/standard_node_ids.h"
 #include "vidicon/vidicon_monitored_data_point.h"
@@ -20,7 +22,10 @@ Microsoft::WRL::ComPtr<IClient> CreateTeleClient() {
 
 }  // namespace
 
-VidiconSession::VidiconSession() : teleclient_(CreateTeleClient()) {}
+VidiconSession::VidiconSession()
+    : address_space_{std::make_shared<NullLogger>()},
+      attribute_service_{{address_space_}},
+      view_service_{{address_space_}} {}
 
 VidiconSession::~VidiconSession() {}
 
@@ -29,12 +34,18 @@ void VidiconSession::Connect(const std::string& connection_string,
                              const scada::LocalizedText& password,
                              bool allow_remote_logoff,
                              const scada::StatusCallback& callback) {
+  teleclient_ = CreateTeleClient();
+  if (!teleclient_)
+    return callback(scada::StatusCode::Bad);
+
   callback(scada::StatusCode::Good);
 }
 
 void VidiconSession::Reconnect() {}
 
 void VidiconSession::Disconnect(const scada::StatusCallback& callback) {
+  teleclient_.Reset();
+
   callback(scada::StatusCode::Good);
 }
 
@@ -43,7 +54,7 @@ bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {
 }
 
 bool VidiconSession::HasPrivilege(scada::Privilege privilege) const {
-  return false;
+  return true;
 }
 
 scada::NodeId VidiconSession::GetUserId() const {
@@ -100,7 +111,7 @@ std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
 
 void VidiconSession::Read(const std::vector<scada::ReadValueId>& nodes,
                           const scada::ReadCallback& callback) {
-  assert(false);
+  attribute_service_.Read(nodes, callback);
 }
 
 void VidiconSession::Write(const scada::NodeId& node_id,
@@ -170,16 +181,20 @@ void VidiconSession::DeleteReference(const scada::NodeId& reference_type_id,
 
 void VidiconSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
                             const scada::BrowseCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
+  view_service_.Browse(nodes, callback);
 }
 
 void VidiconSession::TranslateBrowsePath(
     const scada::NodeId& starting_node_id,
     const scada::RelativePath& relative_path,
     const scada::TranslateBrowsePathCallback& callback) {
-  callback(scada::StatusCode::Bad, {}, 0);
+  view_service_.TranslateBrowsePath(starting_node_id, relative_path, callback);
 }
 
-void VidiconSession::Subscribe(scada::ViewEvents& events) {}
+void VidiconSession::Subscribe(scada::ViewEvents& events) {
+  view_service_.Subscribe(events);
+}
 
-void VidiconSession::Unsubscribe(scada::ViewEvents& events) {}
+void VidiconSession::Unsubscribe(scada::ViewEvents& events) {
+  view_service_.Unsubscribe(events);
+}

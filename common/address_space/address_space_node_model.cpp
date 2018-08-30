@@ -180,6 +180,7 @@ void AddressSpaceNodeModel::SetFetchStatus(
   for (auto& o : observers_) {
     o.OnModelChanged(event);
     o.OnNodeSemanticChanged(node_id_);
+    o.OnNodeFetched(node_id_, fetch_status_.children_fetched);
   }
 }
 

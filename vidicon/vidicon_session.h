@@ -1,5 +1,8 @@
 #pragma once
 
+#include "address_space/address_space_impl.h"
+#include "address_space/attribute_service_impl.h"
+#include "address_space/view_service_impl.h"
 #include "core/attribute_service.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
@@ -122,5 +125,9 @@ class VidiconSession : public scada::SessionService,
   virtual void Unsubscribe(scada::ViewEvents& events) override;
 
  private:
+  AddressSpaceImpl2 address_space_;
+  AttributeServiceImpl attribute_service_;
+  ViewServiceImpl view_service_;
+
   Microsoft::WRL::ComPtr<IClient> teleclient_;
 };

@@ -67,8 +67,11 @@ void AddressSpaceFetcher::OnChannelOpened() {
 
   PostponedFetchNodes postponed_fetch_nodes;
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
-  for (auto& [node_id, requested_status] : postponed_fetch_nodes)
-    InternalFetchNode(node_id, requested_status);
+  for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
+    node_fetcher_.Fetch(node_id, false, {}, {}, true);
+    if (requested_status.children_fetched)
+      node_children_fetcher_.Fetch(node_id);
+  }
 }
 
 void AddressSpaceFetcher::OnChannelClosed() {
@@ -223,10 +226,9 @@ void AddressSpaceFetcher::InternalFetchNode(
 
   auto [status, fetch_status] = fetch_status_tracker_.GetStatus(node_id);
 
-  if (!status || fetch_status.node_fetched < requested_status.node_fetched)
+  if (fetch_status.node_fetched < requested_status.node_fetched)
     node_fetcher_.Fetch(node_id, true);
 
-  if (!status ||
-      fetch_status.children_fetched < requested_status.children_fetched)
+  if (fetch_status.children_fetched < requested_status.children_fetched)
     node_children_fetcher_.Fetch(node_id);
 }
