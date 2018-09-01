@@ -91,12 +91,9 @@ class GenericVariable : public Variable {
 
 class DataVariable : public Variable {
  public:
-  DataVariable();
   DataVariable(AddressSpace& address_space,
+               Node& parent,
                const NodeId& instance_declaration_id);
-
-  bool InitNode(AddressSpace& address_space,
-                const NodeId& instance_declaration_id);
 
   // Node
   virtual QualifiedName GetBrowseName() const override {
@@ -120,6 +117,31 @@ class DataVariable : public Variable {
   base::Time change_time_;
 };
 
-class Property : public DataVariable {};
+class Property : public Variable {
+ public:
+  Property(AddressSpace& address_space,
+           Node& parent,
+           const NodeId& instance_declaration_id);
+
+  // Node
+  virtual QualifiedName GetBrowseName() const override {
+    return instance_declaration_->GetBrowseName();
+  }
+  virtual LocalizedText GetDisplayName() const override {
+    return instance_declaration_->GetDisplayName();
+  }
+
+  // Variable
+  virtual const DataType& GetDataType() const override {
+    return instance_declaration_->GetDataType();
+  }
+  virtual DataValue GetValue() const override { return value_; }
+  virtual void SetValue(const DataValue& data_value) override;
+  virtual base::Time GetChangeTime() const override { return {}; }
+
+ private:
+  Variable* instance_declaration_ = nullptr;
+  DataValue value_;
+};
 
 }  // namespace scada

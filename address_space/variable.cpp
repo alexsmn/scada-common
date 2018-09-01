@@ -111,30 +111,57 @@ Status GenericVariable::SetPropertyValue(const NodeId& prop_decl_id,
 
 // DataVariable
 
-DataVariable::DataVariable() {}
-
 DataVariable::DataVariable(AddressSpace& address_space,
+                           Node& parent,
                            const NodeId& instance_declaration_id) {
-  InitNode(address_space, instance_declaration_id);
-}
-
-bool DataVariable::InitNode(AddressSpace& address_space,
-                            const NodeId& instance_declaration_id) {
   instance_declaration_ =
       AsVariable(address_space.GetNode(instance_declaration_id));
   if (!instance_declaration_)
-    return false;
+    throw std::runtime_error("Instance declaration wasn't found");
 
   auto* type = instance_declaration_->type_definition();
   if (!type)
-    return false;
+    throw std::runtime_error("Instance declaration has no type definition");
 
   value_ = instance_declaration_->GetValue();
+
   scada::AddReference(address_space, id::HasTypeDefinition, *this, *type);
-  return true;
+  scada::AddReference(address_space, scada::id::HasComponent, parent, *this);
 }
 
 void DataVariable::SetValue(const DataValue& data_value) {
+  if (value_ == data_value)
+    return;
+
+  bool is_current = IsUpdate(value_, data_value);
+  if (is_current)
+    value_ = data_value;
+
+  if (auto variable_handle = variable_handle_.lock())
+    variable_handle->ForwardData(data_value);
+}
+
+// Property
+
+Property::Property(AddressSpace& address_space,
+                   Node& parent,
+                   const NodeId& instance_declaration_id) {
+  instance_declaration_ =
+      AsVariable(address_space.GetNode(instance_declaration_id));
+  if (!instance_declaration_)
+    throw std::runtime_error("Instance declaration wasn't found");
+
+  auto* type = instance_declaration_->type_definition();
+  if (!type)
+    throw std::runtime_error("Instance declaration has no type definition");
+
+  value_ = instance_declaration_->GetValue();
+
+  scada::AddReference(address_space, id::HasTypeDefinition, *this, *type);
+  scada::AddReference(address_space, scada::id::HasProperty, parent, *this);
+}
+
+void Property::SetValue(const DataValue& data_value) {
   if (value_ == data_value)
     return;
 

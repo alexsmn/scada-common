@@ -47,8 +47,8 @@ class GenericObject : public Object {
 
 class ComponentObject : public GenericObject {
  public:
-  bool InitNode(AddressSpace& address_space,
-                const NodeId& instance_declaration_id);
+  ComponentObject(AddressSpace& address_space,
+                  const NodeId& instance_declaration_id);
 
   // Node
   virtual QualifiedName GetBrowseName() const final {
