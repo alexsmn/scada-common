@@ -105,32 +105,4 @@ class GenericVariable : public Variable {
   std::map<NodeId, Variant> properties_;
 };
 
-class DataVariable : public Variable {
- public:
-  DataVariable(AddressSpace& address_space,
-               Node& parent,
-               const NodeId& instance_declaration_id);
-
-  // Node
-  virtual QualifiedName GetBrowseName() const override {
-    return instance_declaration_->GetBrowseName();
-  }
-  virtual LocalizedText GetDisplayName() const override {
-    return instance_declaration_->GetDisplayName();
-  }
-
-  // Variable
-  virtual const DataType& GetDataType() const override {
-    return instance_declaration_->GetDataType();
-  }
-  virtual DataValue GetValue() const override { return value_; }
-  virtual Status SetValue(const DataValue& data_value) override;
-  virtual DateTime GetChangeTime() const override { return change_time_; }
-
- private:
-  Variable* instance_declaration_ = nullptr;
-  DataValue value_;
-  DateTime change_time_;
-};
-
 }  // namespace scada
