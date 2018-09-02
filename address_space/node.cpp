@@ -57,12 +57,12 @@ void Node::DeleteReference(const ReferenceType& reference_type,
 }
 
 Variant Node::GetPropertyValue(const NodeId& prop_decl_id) const {
-  return {};
+  return GetPropertyValueHelper(*this, prop_decl_id);
 }
 
 Status Node::SetPropertyValue(const NodeId& prop_decl_id,
                               const Variant& value) {
-  return StatusCode::Bad_WrongPropertyId;
+  return SetPropertyValueHelper(*this, prop_decl_id, value);
 }
 
 QualifiedName Node::GetBrowseName() const {

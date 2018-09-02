@@ -553,7 +553,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
        scada::NodeAttributes().set_display_name(base::WideToUTF16(L"root")),
        {{id::UserType_AccessRights, root_privileges}}});
 
-  // IEC Link Device
+  // IEC-60870 Link Device
   {
     auto* type = CreateObjectType(
         address_space, id::Iec60870LinkType, "Iec60870LinkType",
@@ -621,7 +621,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 base::WideToUTF16(L"Анонимный режим"), scada::id::Boolean);
   }
 
-  // IEC Device
+  // IEC-60870 Device
   {
     CreateObjectType(
         address_space, id::Iec60870DeviceType, "Iec60870DeviceType",
@@ -662,63 +662,63 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
         base::WideToUTF16(L"Период опроса группы 1 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup2, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup2, "Group2PollPeriod",
         base::WideToUTF16(L"Период опроса группы 2 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup3, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup3, "Group3PollPeriod",
         base::WideToUTF16(L"Период опроса группы 3 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup4, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup4, "Group4PollPeriod",
         base::WideToUTF16(L"Период опроса группы 4 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup5, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup5, "Group5PollPeriod",
         base::WideToUTF16(L"Период опроса группы 5 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup6, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup6, "Group6PollPeriod",
         base::WideToUTF16(L"Период опроса группы 6 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup7, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup7, "Group7PollPeriod",
         base::WideToUTF16(L"Период опроса группы 7 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup8, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup8, "Group8PollPeriod",
         base::WideToUTF16(L"Период опроса группы 8 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup9, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup9, "Group9PollPeriod",
         base::WideToUTF16(L"Период опроса группы 9 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup10, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup10, "Group10PollPeriod",
         base::WideToUTF16(L"Период опроса группы 10 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup11, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup11, "Group11PollPeriod",
         base::WideToUTF16(L"Период опроса группы 11 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup12, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup12, "Group12PollPeriod",
         base::WideToUTF16(L"Период опроса группы 12 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup13, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup13, "Group13PollPeriod",
         base::WideToUTF16(L"Период опроса группы 13 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup14, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup14, "Group14PollPeriod",
         base::WideToUTF16(L"Период опроса группы 14 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup15, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup15, "Group15PollPeriod",
         base::WideToUTF16(L"Период опроса группы 15 (с)"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
-        id::Iec60870DeviceType_InterrogationPeriodGroup16, "Group1PollPeriod",
+        id::Iec60870DeviceType_InterrogationPeriodGroup16, "Group16PollPeriod",
         base::WideToUTF16(L"Период опроса группы 16 (с)"), scada::id::Int32, 0);
   }
 

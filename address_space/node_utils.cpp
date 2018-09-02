@@ -217,20 +217,65 @@ NodeId GetModellingRuleId(const Node& node) {
 }
 
 Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
-  switch (node.GetNodeClass()) {
-    case NodeClass::Object:
-      return static_cast<const Object&>(node).GetPropertyValue(prop_decl_id);
-    case NodeClass::Variable:
-      return static_cast<const Variable&>(node).GetPropertyValue(prop_decl_id);
-    default:
-      return {};
-  }
+  return node.GetPropertyValue(prop_decl_id);
 }
 
 Status SetPropertyValue(Node& node,
                         const NodeId& prop_decl_id,
                         const Variant& value) {
   return node.SetPropertyValue(prop_decl_id, value);
+}
+
+const Node* FindDeclaration(const Node& node, const NodeId& declaration_id) {
+  auto* type = node.type_definition();
+  if (!type)
+    return nullptr;
+
+  return GetPropertyDeclaration(*type, declaration_id);
+}
+
+const Variable* GetPropertyDeclaration(const TypeDefinition& type,
+                                       const NodeId& prop_decl_id) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    for (auto* prop : GetProperties(*supertype)) {
+      assert(prop->GetNodeClass() == NodeClass::Variable);
+      if (prop->id() == prop_decl_id)
+        return static_cast<const Variable*>(prop);
+    }
+  }
+  return nullptr;
+}
+
+Variant GetPropertyValueHelper(const Node& node, const NodeId& prop_decl_id) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  assert(declaration);
+  if (!declaration)
+    return {};
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  assert(property);
+  if (!property)
+    return {};
+
+  return property->GetValue().value;
+}
+
+Status SetPropertyValueHelper(Node& node,
+                              const NodeId& prop_decl_id,
+                              const Variant& value) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  assert(declaration);
+  if (!declaration)
+    return StatusCode::Bad_WrongPropertyId;
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  assert(property);
+  if (!property)
+    return StatusCode::Bad_WrongPropertyId;
+
+  return property->SetValue({value, {}, {}, {}});
 }
 
 void AddReference(scada::AddressSpace& address_space,

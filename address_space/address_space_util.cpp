@@ -22,13 +22,17 @@ namespace {
 const Node* FindNodeByAlias(const Node& parent_node,
                             const base::StringPiece& alias) {
   for (auto* node : GetOrganizes(parent_node)) {
-    const auto& node_alias =
-        GetPropertyValue(*node, ::id::DataItemType_Alias).get_or(std::string());
-    if (IsEqualNoCase(node_alias, alias))
-      return node;
+    if (IsInstanceOf(node, ::id::DataItemType)) {
+      const auto& node_alias = GetPropertyValue(*node, ::id::DataItemType_Alias)
+                                   .get_or(std::string());
+      if (IsEqualNoCase(node_alias, alias))
+        return node;
+    }
+
     if (auto* child = FindNodeByAlias(*node, alias))
       return child;
   }
+
   return nullptr;
 }
 
@@ -91,6 +95,9 @@ bool IsSimulated(const Node& node, bool recursive) {
 }
 
 bool IsDisabled(const Node& node, bool recursive) {
+  if (!scada::IsInstanceOf(&node, ::id::DeviceType))
+    return false;
+
   bool disabled =
       GetPropertyValue(node, ::id::DeviceType_Disabled).get_or(false);
   if (disabled)

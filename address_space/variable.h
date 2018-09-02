@@ -29,9 +29,9 @@ class Variable : public Node {
   virtual const DataType& GetDataType() const;
 
   virtual DataValue GetValue() const = 0;
-  virtual void SetValue(const DataValue& data_value) = 0;
+  virtual Status SetValue(const DataValue& data_value) = 0;
 
-  virtual base::Time GetChangeTime() const = 0;
+  virtual DateTime GetChangeTime() const = 0;
 
   virtual std::shared_ptr<VariableHandle> GetVariableHandle();
 
@@ -46,11 +46,11 @@ class Variable : public Node {
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
-  virtual void HistoryReadRaw(base::Time from,
-                              base::Time to,
+  virtual void HistoryReadRaw(DateTime from,
+                              DateTime to,
                               const HistoryReadRawCallback& callback);
-  virtual void HistoryReadEvents(base::Time from,
-                                 base::Time to,
+  virtual void HistoryReadEvents(DateTime from,
+                                 DateTime to,
                                  const EventFilter& filter,
                                  const HistoryReadEventsCallback& callback);
 
@@ -62,6 +62,22 @@ class Variable : public Node {
 
  protected:
   mutable std::weak_ptr<NodeVariableHandle> variable_handle_;
+};
+
+class BaseVariable : public Variable {
+ public:
+  BaseVariable(const DataType& data_type);
+
+  // Variable
+  virtual const DataType& GetDataType() const override { return data_type_; }
+  virtual DataValue GetValue() const override { return value_; }
+  virtual Status SetValue(const DataValue& data_value) override;
+  virtual DateTime GetChangeTime() const override { return change_time_; }
+
+ protected:
+  const DataType& data_type_;
+  DataValue value_;
+  DateTime change_time_;
 };
 
 class GenericVariable : public Variable {
@@ -76,8 +92,8 @@ class GenericVariable : public Variable {
   // Variable
   virtual const DataType& GetDataType() const override { return data_type_; }
   virtual DataValue GetValue() const override { return value_; }
-  virtual void SetValue(const DataValue& data_value) override;
-  virtual base::Time GetChangeTime() const override { return change_time_; }
+  virtual Status SetValue(const DataValue& data_value) override;
+  virtual DateTime GetChangeTime() const override { return change_time_; }
   virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const override;
   virtual Status SetPropertyValue(const NodeId& prop_decl_id,
                                   const Variant& value) override;
@@ -85,7 +101,7 @@ class GenericVariable : public Variable {
  protected:
   const DataType& data_type_;
   DataValue value_;
-  base::Time change_time_;
+  DateTime change_time_;
   std::map<NodeId, Variant> properties_;
 };
 
@@ -108,40 +124,13 @@ class DataVariable : public Variable {
     return instance_declaration_->GetDataType();
   }
   virtual DataValue GetValue() const override { return value_; }
-  virtual void SetValue(const DataValue& data_value) override;
-  virtual base::Time GetChangeTime() const override { return change_time_; }
+  virtual Status SetValue(const DataValue& data_value) override;
+  virtual DateTime GetChangeTime() const override { return change_time_; }
 
  private:
   Variable* instance_declaration_ = nullptr;
   DataValue value_;
-  base::Time change_time_;
-};
-
-class Property : public Variable {
- public:
-  Property(AddressSpace& address_space,
-           Node& parent,
-           const NodeId& instance_declaration_id);
-
-  // Node
-  virtual QualifiedName GetBrowseName() const override {
-    return instance_declaration_->GetBrowseName();
-  }
-  virtual LocalizedText GetDisplayName() const override {
-    return instance_declaration_->GetDisplayName();
-  }
-
-  // Variable
-  virtual const DataType& GetDataType() const override {
-    return instance_declaration_->GetDataType();
-  }
-  virtual DataValue GetValue() const override { return value_; }
-  virtual void SetValue(const DataValue& data_value) override;
-  virtual base::Time GetChangeTime() const override { return {}; }
-
- private:
-  Variable* instance_declaration_ = nullptr;
-  DataValue value_;
+  DateTime change_time_;
 };
 
 }  // namespace scada

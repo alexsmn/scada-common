@@ -134,6 +134,8 @@ scada::DataValue AttributeServiceImpl::ReadNode(
     switch (attribute_id) {
       case scada::AttributeId::DataType:
         return scada::MakeReadResult(variable->GetDataType().id());
+      case scada::AttributeId::Value:
+        return variable->GetValue();
     }
   }
 
@@ -141,6 +143,8 @@ scada::DataValue AttributeServiceImpl::ReadNode(
     switch (attribute_id) {
       case scada::AttributeId::DataType:
         return scada::MakeReadResult(variable_type->data_type().id());
+      case scada::AttributeId::Value:
+        return scada::MakeReadResult(variable_type->default_value());
     }
   }
 

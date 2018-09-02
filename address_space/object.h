@@ -25,6 +25,8 @@ class Object : public Node {
   Object() {}
 };
 
+class BaseObject : public Object {};
+
 class GenericObject : public Object {
  public:
   GenericObject() {}
@@ -45,7 +47,7 @@ class GenericObject : public Object {
   std::map<NodeId, Variant> properties_;
 };
 
-class ComponentObject : public GenericObject {
+class ComponentObject : public Object {
  public:
   ComponentObject(AddressSpace& address_space,
                   const NodeId& instance_declaration_id);
