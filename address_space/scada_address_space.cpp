@@ -90,7 +90,7 @@ scada::Variable* AddProperty(AddressSpaceImpl& address_space,
                              scada::QualifiedName browse_name,
                              scada::LocalizedText display_name,
                              const scada::NodeId& data_type_id,
-                             scada::Variant default_value = scada::Variant()) {
+                             scada::Variant default_value) {
   auto* type = address_space.GetNode(type_id);
   assert(type && (type->GetNodeClass() == scada::NodeClass::ObjectType ||
                   type->GetNodeClass() == scada::NodeClass::VariableType));
@@ -288,7 +288,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddReference(address_space, id::Creates, id::Devices, id::LinkType);
     AddProperty(address_space, id::LinkType, id::LinkType_Transport,
                 "TransportString", base::WideToUTF16(L"Транспорт"),
-                scada::id::String);
+                scada::id::String, scada::String{});
     AddDataVariable(address_space, id::LinkType, id::LinkType_ConnectCount,
                     "ConnectCount", base::WideToUTF16(L"ConnectCount"),
                     scada::id::Int32, 0);
@@ -378,14 +378,15 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddReference(address_space, id::Creates, id::TsFormats, id::TsFormatType);
     AddProperty(address_space, id::TsFormatType, id::TsFormatType_OpenLabel,
                 "OpenLabel", base::WideToUTF16(L"Подпись 0"),
-                scada::id::LocalizedText);
+                scada::id::LocalizedText, scada::LocalizedText{});
     AddProperty(address_space, id::TsFormatType, id::TsFormatType_CloseLabel,
                 "CloseLabel", base::WideToUTF16(L"Подпись 1"),
-                scada::id::LocalizedText);
+                scada::id::LocalizedText, scada::LocalizedText{});
     AddProperty(address_space, id::TsFormatType, id::TsFormatType_OpenColor,
-                "OpenColor", base::WideToUTF16(L"Цвет 0"), scada::id::Int32);
+                "OpenColor", base::WideToUTF16(L"Цвет 0"), scada::id::Int32, 0);
     AddProperty(address_space, id::TsFormatType, id::TsFormatType_CloseColor,
-                "CloseColor", base::WideToUTF16(L"Цвет 1"), scada::id::Int32);
+                "CloseColor", base::WideToUTF16(L"Цвет 1"), scada::id::Int32,
+                0);
   }
 
   // DataGroup
@@ -408,19 +409,24 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddReference(address_space, id::Creates, id::DataGroupType,
                  id::DataItemType);
     AddProperty(address_space, id::DataItemType, id::DataItemType_Alias,
-                "Alias", base::WideToUTF16(L"Алиас"), scada::id::String);
+                "Alias", base::WideToUTF16(L"Алиас"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Severity,
                 "Severity", base::WideToUTF16(L"Важность"), scada::id::Int32,
                 1);
     AddProperty(address_space, id::DataItemType, id::DataItemType_Input1,
-                "Input1", base::WideToUTF16(L"Ввод1"), scada::id::String);
+                "Input1", base::WideToUTF16(L"Ввод1"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Input2,
-                "Input2", base::WideToUTF16(L"Ввод2"), scada::id::String);
+                "Input2", base::WideToUTF16(L"Ввод2"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Output,
-                "Output", base::WideToUTF16(L"Вывод"), scada::id::String);
+                "Output", base::WideToUTF16(L"Вывод"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType,
                 id::DataItemType_OutputCondition, "OutputCondition",
-                base::WideToUTF16(L"Условие (Управление)"), scada::id::String);
+                base::WideToUTF16(L"Условие (Управление)"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_StalePeriod,
                 "StalePeriod", base::WideToUTF16(L"Устаревание (с)"),
                 scada::id::Int32, 0);
@@ -468,30 +474,33 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 "ClampingType", base::WideToUTF16(L"Ограничение диапазона"),
                 scada::id::Boolean, false);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_EuLo,
-                "EuLo", base::WideToUTF16(L"Лог мин"), scada::id::Double, -100);
+                "EuLo", base::WideToUTF16(L"Лог мин"), scada::id::Double,
+                -100.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_EuHi,
-                "EuHi", base::WideToUTF16(L"Лог макс"), scada::id::Double, 100);
+                "EuHi", base::WideToUTF16(L"Лог макс"), scada::id::Double,
+                100.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_IrLo,
-                "IrLo", base::WideToUTF16(L"Физ мин"), scada::id::Double, 0);
+                "IrLo", base::WideToUTF16(L"Физ мин"), scada::id::Double, 0.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_IrHi,
                 "IrHi", base::WideToUTF16(L"Физ макс"), scada::id::Double,
-                65535);
+                65535.0);
+    // TODO: Variant.
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_LimitLo,
                 "LimitLo", base::WideToUTF16(L"Уставка нижняя предаварийная"),
-                scada::id::Double);
+                scada::id::Double, scada::Variant{});
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_LimitHi,
                 "LimitHi", base::WideToUTF16(L"Уставка верхняя предаварийная"),
-                scada::id::Double);
+                scada::id::Double, scada::Variant{});
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_LimitLoLo,
                 "LimitLoLo", base::WideToUTF16(L"Уставка нижняя аварийная"),
-                scada::id::Double);
+                scada::id::Double, scada::Variant{});
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_LimitHiHi,
                 "LimitHiHi", base::WideToUTF16(L"Уставка верхняя аварийная"),
-                scada::id::Double);
+                scada::id::Double, scada::Variant{});
     AddProperty(address_space, id::AnalogItemType,
                 id::AnalogItemType_EngineeringUnits, "EngineeringUnits",
                 base::WideToUTF16(L"Единицы измерения"),
-                scada::id::LocalizedText);
+                scada::id::LocalizedText, scada::LocalizedText{});
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_Aperture,
                 "Aperture", base::WideToUTF16(L"Апертура"), scada::id::Double,
                 0.0);
@@ -618,7 +627,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 30);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_AnonymousMode, "AnonymousMode",
-                base::WideToUTF16(L"Анонимный режим"), scada::id::Boolean);
+                base::WideToUTF16(L"Анонимный режим"), scada::id::Boolean,
+                false);
   }
 
   // IEC-60870 Device
@@ -770,7 +780,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     }
     AddProperty(address_space, id::Iec61850DeviceType,
                 id::Iec61850DeviceType_Host, "Host", base::WideToUTF16(L"Хост"),
-                scada::id::String);
+                scada::id::String, scada::String{});
     AddProperty(address_space, id::Iec61850DeviceType,
                 id::Iec61850DeviceType_Port, "Port", base::WideToUTF16(L"Порт"),
                 scada::id::Int32, 102);
@@ -785,7 +795,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                  id::Iec61850ConfigurableObjectType);
     AddProperty(address_space, id::Iec61850ConfigurableObjectType,
                 id::Iec61850ConfigurableObjectType_Reference, "Address",
-                base::WideToUTF16(L"Адрес"), scada::id::String);
+                base::WideToUTF16(L"Адрес"), scada::id::String,
+                scada::String{});
   }
 
   // IEC-61850 RCB
