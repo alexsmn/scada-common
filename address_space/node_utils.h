@@ -23,8 +23,12 @@ enum class NodeClass;
 
 Object* AsObject(Node* node);
 const Object* AsObject(const Node* node);
+Object& AsObject(Node& node);
+const Object& AsObject(const Node& node);
 const Variable* AsVariable(const Node* node);
 Variable* AsVariable(Node* node);
+const Variable& AsVariable(const Node& node);
+Variable& AsVariable(Node& node);
 const ObjectType* AsObjectType(const Node* node);
 ObjectType* AsObjectType(Node* node);
 const VariableType* AsVariableType(const Node* node);

@@ -20,6 +20,16 @@ const Object* AsObject(const Node* node) {
              : nullptr;
 }
 
+Object& AsObject(Node& node) {
+  assert(node.GetNodeClass() == scada::NodeClass::Object);
+  return static_cast<Object&>(node);
+}
+
+const Object& AsObject(const Node& node) {
+  assert(node.GetNodeClass() == scada::NodeClass::Object);
+  return static_cast<const Object&>(node);
+}
+
 const Variable* AsVariable(const Node* node) {
   return node && node->GetNodeClass() == NodeClass::Variable
              ? static_cast<const Variable*>(node)
@@ -30,6 +40,16 @@ Variable* AsVariable(Node* node) {
   return node && node->GetNodeClass() == NodeClass::Variable
              ? static_cast<Variable*>(node)
              : nullptr;
+}
+
+Variable& AsVariable(Node& node) {
+  assert(node.GetNodeClass() == scada::NodeClass::Variable);
+  return static_cast<Variable&>(node);
+}
+
+const Variable& AsVariable(const Node& node) {
+  assert(node.GetNodeClass() == scada::NodeClass::Variable);
+  return static_cast<const Variable&>(node);
 }
 
 NodeId GetTypeDefinitionId(const Node& node) {

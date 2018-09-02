@@ -6,7 +6,7 @@
 
 namespace scada {
 
-class AddressSpace;
+class NodeBuilder;
 class ObjectType;
 
 using StatusCallback = std::function<void(Status&&)>;
@@ -49,19 +49,19 @@ class GenericObject : public Object {
 
 class ComponentObject : public Object {
  public:
-  ComponentObject(AddressSpace& address_space,
+  ComponentObject(NodeBuilder& builder,
                   const NodeId& instance_declaration_id);
 
   // Node
   virtual QualifiedName GetBrowseName() const final {
-    return instance_declaration_->GetBrowseName();
+    return instance_declaration_.GetBrowseName();
   }
   virtual LocalizedText GetDisplayName() const final {
-    return instance_declaration_->GetDisplayName();
+    return instance_declaration_.GetDisplayName();
   }
 
  private:
-  Object* instance_declaration_ = nullptr;
+  Object& instance_declaration_;
 };
 
 }  // namespace scada

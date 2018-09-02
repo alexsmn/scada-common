@@ -2,6 +2,7 @@
 
 #include "address_space/address_space.h"
 #include "address_space/node.h"
+#include "address_space/node_builder.h"
 #include "address_space/node_utils.h"
 #include "address_space/node_variable_handle.h"
 #include "address_space/type_definition.h"
@@ -16,28 +17,28 @@ namespace scada {
 template <class ValueType>
 class DataVariable : public Variable {
  public:
-  DataVariable(AddressSpace& address_space,
+  DataVariable(NodeBuilder& builder,
                Node& parent,
                const NodeId& instance_declaration_id);
 
   // Node
   virtual QualifiedName GetBrowseName() const override {
-    return instance_declaration_->GetBrowseName();
+    return instance_declaration_.GetBrowseName();
   }
   virtual LocalizedText GetDisplayName() const override {
-    return instance_declaration_->GetDisplayName();
+    return instance_declaration_.GetDisplayName();
   }
 
   // Variable
   virtual const DataType& GetDataType() const override {
-    return instance_declaration_->GetDataType();
+    return instance_declaration_.GetDataType();
   }
   virtual DataValue GetValue() const override { return value_; }
   virtual Status SetValue(const DataValue& data_value) override;
   virtual DateTime GetChangeTime() const override { return change_time_; }
 
  private:
-  Variable* instance_declaration_ = nullptr;
+  Variable& instance_declaration_;
   DataValue value_;
   DateTime change_time_;
 };
@@ -46,22 +47,19 @@ class DataVariable : public Variable {
 
 template <class ValueType>
 inline DataVariable<ValueType>::DataVariable(
-    AddressSpace& address_space,
+    NodeBuilder& builder,
     Node& parent,
-    const NodeId& instance_declaration_id) {
-  instance_declaration_ =
-      AsVariable(address_space.GetNode(instance_declaration_id));
-  if (!instance_declaration_)
-    throw std::runtime_error("Instance declaration wasn't found");
-
-  auto* type = instance_declaration_->type_definition();
+    const NodeId& instance_declaration_id)
+    : instance_declaration_{
+          AsVariable(builder.GetInstanceDeclaration(instance_declaration_id))} {
+  auto* type = instance_declaration_.type_definition();
   if (!type)
     throw std::runtime_error("Instance declaration has no type definition");
 
-  value_ = instance_declaration_->GetValue();
+  value_ = instance_declaration_.GetValue();
 
-  scada::AddReference(address_space, id::HasTypeDefinition, *this, *type);
-  scada::AddReference(address_space, scada::id::HasComponent, parent, *this);
+  builder.AddReference(id::HasTypeDefinition, *this, *type);
+  builder.AddReference(scada::id::HasComponent, parent, *this);
 }
 
 template <class ValueType>

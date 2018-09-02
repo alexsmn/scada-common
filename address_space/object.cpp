@@ -2,6 +2,7 @@
 
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
+#include "address_space/node_builder.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "core/standard_node_ids.h"
@@ -38,18 +39,15 @@ Status GenericObject::SetPropertyValue(const NodeId& prop_decl_id,
 
 // ComponentObject
 
-ComponentObject::ComponentObject(AddressSpace& address_space,
-                                 const NodeId& instance_declaration_id) {
-  instance_declaration_ =
-      AsObject(address_space.GetNode(instance_declaration_id));
-  if (!instance_declaration_)
-    throw std::runtime_error("Instance delaration wasn't found");
-
-  auto* type = instance_declaration_->type_definition();
+ComponentObject::ComponentObject(NodeBuilder& builder,
+                                 const NodeId& instance_declaration_id)
+    : instance_declaration_{
+          AsObject(builder.GetInstanceDeclaration(instance_declaration_id))} {
+  auto* type = instance_declaration_.type_definition();
   if (!type)
     throw std::runtime_error("Instance delaration has no type definition");
 
-  scada::AddReference(address_space, id::HasTypeDefinition, *this, *type);
+  builder.AddReference(id::HasTypeDefinition, *this, *type);
 }
 
 }  // namespace scada

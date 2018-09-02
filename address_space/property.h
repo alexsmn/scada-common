@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/address_space.h"
+#include "address_space/node_builder.h"
 #include "address_space/node_utils.h"
 #include "address_space/node_variable_handle.h"
 #include "address_space/type_definition.h"
@@ -26,7 +27,7 @@ inline bool Convert(const Variant& value, Variant& result) {
 template <class ValueType>
 class Property : public Variable {
  public:
-  Property(AddressSpace& address_space,
+  Property(NodeBuilder& builder,
            Node& parent,
            const NodeId& instance_declaration_id);
 
@@ -34,15 +35,15 @@ class Property : public Variable {
 
   // Node
   virtual QualifiedName GetBrowseName() const override {
-    return instance_declaration_->GetBrowseName();
+    return instance_declaration_.GetBrowseName();
   }
   virtual LocalizedText GetDisplayName() const override {
-    return instance_declaration_->GetDisplayName();
+    return instance_declaration_.GetDisplayName();
   }
 
   // Variable
   virtual const DataType& GetDataType() const override {
-    return instance_declaration_->GetDataType();
+    return instance_declaration_.GetDataType();
   }
   virtual DataValue GetValue() const override {
     auto now = DateTime::Now();
@@ -52,31 +53,28 @@ class Property : public Variable {
   virtual DateTime GetChangeTime() const override { return {}; }
 
  private:
-  Variable* instance_declaration_ = nullptr;
+  Variable& instance_declaration_;
   ValueType value_{};
 };
 
 template <class ValueType>
-inline Property<ValueType>::Property(AddressSpace& address_space,
+inline Property<ValueType>::Property(NodeBuilder& builder,
                                      Node& parent,
-                                     const NodeId& instance_declaration_id) {
-  instance_declaration_ =
-      AsVariable(address_space.GetNode(instance_declaration_id));
-  if (!instance_declaration_)
-    throw std::runtime_error("Instance declaration wasn't found");
+                                     const NodeId& instance_declaration_id)
+    : instance_declaration_{
+          AsVariable(builder.GetInstanceDeclaration(instance_declaration_id))} {
+  assert(!FindChild(parent, instance_declaration_.GetBrowseName().name()));
 
-  assert(!FindChild(parent, instance_declaration_->GetBrowseName().name()));
-
-  auto* type = instance_declaration_->type_definition();
+  auto* type = instance_declaration_.type_definition();
   if (!type)
     throw std::runtime_error("Instance declaration has no type definition");
 
-  auto default_value = instance_declaration_->GetValue();
+  auto default_value = instance_declaration_.GetValue();
   if (!detail::Convert(default_value.value, value_))
     throw std::runtime_error("Wrong data type of default value");
 
-  scada::AddReference(address_space, id::HasTypeDefinition, *this, *type);
-  scada::AddReference(address_space, scada::id::HasProperty, parent, *this);
+  builder.AddReference(id::HasTypeDefinition, *this, *type);
+  builder.AddReference(scada::id::HasProperty, parent, *this);
 }
 
 template <class ValueType>
