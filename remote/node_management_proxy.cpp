@@ -58,7 +58,7 @@ void NodeManagementProxy::CreateNode(const scada::NodeId& requested_id,
         ToString16(status).c_str(), NodeIdToScadaString(node_id).c_str());
 
     if (callback)
-      callback(status, node_id);
+      callback(std::move(status), node_id);
   });
 }
 

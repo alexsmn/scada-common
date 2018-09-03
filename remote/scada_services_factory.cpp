@@ -8,7 +8,7 @@
 bool CreateScadaServices(const DataServicesContext& context,
                          DataServices& services) {
   auto session_proxy = std::make_shared<SessionProxy>(SessionProxyContext{
-      context.logger, context.task_runner, context.transport_factory,
+      context.logger, context.io_context, context.transport_factory,
       context.service_log_params});
 
   services = {

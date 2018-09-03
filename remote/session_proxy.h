@@ -2,7 +2,7 @@
 
 #include "base/nested_logger.h"
 #include "base/observer_list.h"
-#include "base/timer/timer.h"
+#include "base/timer.h"
 #include "core/attribute_service.h"
 #include "core/configuration_types.h"
 #include "core/logging.h"
@@ -16,8 +16,8 @@
 
 #include <map>
 
-namespace base {
-class SequencedTaskRunner;
+namespace boost::asio {
+class io_context;
 }
 
 namespace net {
@@ -41,7 +41,7 @@ class ViewServiceProxy;
 
 struct SessionProxyContext {
   const std::shared_ptr<Logger> logger_;
-  const scoped_refptr<base::SequencedTaskRunner> task_runner_;
+  boost::asio::io_context& io_context_;
   net::TransportFactory& transport_factory_;
   const scada::ServiceLogParams service_log_params_;
 };
@@ -127,6 +127,7 @@ class SessionProxy : private SessionProxyContext,
 
   void ForwardConnectResult(scada::Status&& status);
 
+  void SchedulePing();
   void Ping();
 
   bool IsMessageLogged(const protocol::Message& message) const;
@@ -160,7 +161,7 @@ class SessionProxy : private SessionProxyContext,
   int next_request_id_ = 1;
 
   // Ping.
-  base::Timer ping_timer_;
+  Timer ping_timer_;
   base::TimeTicks ping_time_;
   base::TimeDelta last_ping_delay_;
 };

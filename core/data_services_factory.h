@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/memory/ref_counted.h"
-#include "base/sequenced_task_runner.h"
 #include "base/strings/string_piece.h"
 #include "core/data_services.h"
 #include "core/logging.h"
@@ -10,8 +9,8 @@
 #include <memory>
 #include <vector>
 
-namespace base {
-class SequencedTaskRunner;
+namespace boost::asio {
+class io_context;
 }
 
 namespace net {
@@ -22,7 +21,7 @@ class Logger;
 
 struct DataServicesContext {
   const std::shared_ptr<Logger> logger;
-  const scoped_refptr<base::SequencedTaskRunner> task_runner;
+  boost::asio::io_context& io_context;
   net::TransportFactory& transport_factory;
   scada::ServiceLogParams service_log_params;
 };

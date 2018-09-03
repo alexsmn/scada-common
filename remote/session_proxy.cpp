@@ -21,18 +21,15 @@
 
 #include <stdexcept>
 
+using namespace std::chrono_literals;
+
 namespace {
-const auto kPingDelay = base::TimeDelta::FromMilliseconds(1000);
+const auto kPingDelay = 1s;
 }
 
 SessionProxy::SessionProxy(SessionProxyContext&& context)
-    : SessionProxyContext{std::move(context)},
-      ping_timer_{FROM_HERE, kPingDelay,
-                  base::Bind(&SessionProxy::Ping, base::Unretained(this)),
-                  false} {
+    : SessionProxyContext{std::move(context)}, ping_timer_{io_context_} {
   transport_logger_ = std::make_unique<NetLoggerAdapter>(*logger_);
-
-  ping_timer_.SetTaskRunner(task_runner_);
 
   SubscriptionParams params;
   subscription_ = std::make_unique<SubscriptionProxy>(params);
@@ -94,7 +91,7 @@ void SessionProxy::OnSessionCreated() {
   event_service_proxy_->OnChannelOpened(*this);
   history_proxy_->OnChannelOpened(*this);
 
-  ping_timer_.Reset();
+  SchedulePing();
 
   for (auto& o : observers_)
     o.OnSessionCreated();
@@ -436,6 +433,10 @@ std::string SessionProxy::GetHostName() const {
   return host_;
 }
 
+void SessionProxy::SchedulePing() {
+  ping_timer_.StartOne(kPingDelay, [this] { Ping(); });
+}
+
 void SessionProxy::Ping() {
   assert(ping_time_.is_null());
 
@@ -447,7 +448,7 @@ void SessionProxy::Ping() {
   Request(request, [this](const protocol::Response& response) {
     last_ping_delay_ = base::TimeTicks::Now() - ping_time_;
     ping_time_ = {};
-    ping_timer_.Reset();
+    SchedulePing();
   });
 }
 
