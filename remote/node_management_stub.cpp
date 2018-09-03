@@ -42,9 +42,8 @@ void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
 
   if (request.has_delete_node()) {
     auto& delete_node = request.delete_node();
-    OnDeleteNode(
-        request.request_id(), FromProto(delete_node.node_id()),
-        delete_node.has_return_references() && delete_node.return_references());
+    OnDeleteNode(request.request_id(), FromProto(delete_node.node_id()),
+                 delete_node.return_dependencies());
   }
 
   if (request.has_change_password()) {
@@ -64,7 +63,7 @@ void NodeManagementStub::OnRequestReceived(const protocol::Request& request) {
 
 void NodeManagementStub::OnDeleteNode(unsigned request_id,
                                       const scada::NodeId& id,
-                                      bool return_relations) {
+                                      bool return_dependencies) {
   if (id == user_id_) {
     protocol::Message message;
     auto& response = *message.add_responses();
@@ -78,9 +77,9 @@ void NodeManagementStub::OnDeleteNode(unsigned request_id,
 
   auto weak_ptr = weak_factory_.GetWeakPtr();
   service_.DeleteNode(
-      id, return_relations,
-      [weak_ptr, request_id](const scada::Status& status,
-                             const scada::NodeIdSet* references) {
+      id, return_dependencies,
+      [weak_ptr, request_id](scada::Status&& status,
+                             std::vector<scada::NodeId>&& dependencies) {
         auto ptr = weak_ptr.get();
         if (!ptr)
           return;
@@ -90,9 +89,9 @@ void NodeManagementStub::OnDeleteNode(unsigned request_id,
         response.set_request_id(request_id);
         auto& delete_node_result = *response.mutable_delete_node_result();
         ToProto(status, *response.mutable_status());
-        if (references)
-          ContainerToProto(*references,
-                           *delete_node_result.mutable_references());
+        if (!dependencies.empty())
+          ContainerToProto(dependencies,
+                           *delete_node_result.mutable_dependencies());
         ptr->sender_.Send(message);
       });
 }

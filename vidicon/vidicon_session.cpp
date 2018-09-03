@@ -152,9 +152,9 @@ void VidiconSession::ModifyNodes(
 }
 
 void VidiconSession::DeleteNode(const scada::NodeId& node_id,
-                                bool return_relations,
+                                bool return_dependencies,
                                 const scada::DeleteNodeCallback& callback) {
-  callback(scada::StatusCode::Bad, nullptr);
+  callback(scada::StatusCode::Bad, {});
 }
 
 void VidiconSession::ChangeUserPassword(

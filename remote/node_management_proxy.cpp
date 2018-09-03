@@ -103,35 +103,31 @@ void NodeManagementProxy::ModifyNodes(
 
 void NodeManagementProxy::DeleteNode(
     const scada::NodeId& node_id,
-    bool return_relations,
+    bool return_dependencies,
     const scada::DeleteNodeCallback& callback) {
   logger().WriteF(LogSeverity::Normal, "DeleteNode request [node_id=%s]",
                   NodeIdToScadaString(node_id).c_str());
 
   if (!sender_)
-    return callback(scada::StatusCode::Bad_Disconnected, nullptr);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
   protocol::Request request;
   auto& delete_node = *request.mutable_delete_node();
   ToProto(node_id, *delete_node.mutable_node_id());
-  if (return_relations)
-    delete_node.set_return_references(true);
+  if (return_dependencies)
+    delete_node.set_return_dependencies(true);
 
   sender_->Request(request, [this,
                              callback](const protocol::Response& response) {
     auto status = FromProto(response.status());
-    std::set<scada::NodeId> references;
-    if (response.has_delete_node_result())
-      references = SetFromProto<scada::NodeId>(
-          response.delete_node_result().references());
+    auto dependencies = VectorFromProto<scada::NodeId>(
+        response.delete_node_result().dependencies());
 
     logger().WriteF(LogSeverity::Normal, "DeleteNode response [status='%ls']",
                     ToString16(status).c_str());
 
-    if (!callback)
-      return;
-
-    callback(status, &references);
+    if (callback)
+      callback(std::move(status), std::move(dependencies));
   });
 }
 

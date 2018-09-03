@@ -193,7 +193,7 @@ void MasterDataServices::DeleteNode(const scada::NodeId& node_id,
                                     bool return_references,
                                     const scada::DeleteNodeCallback& callback) {
   if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, nullptr);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
   services_.node_management_service_->DeleteNode(node_id, return_references,
                                                  callback);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <set>
+#include <vector>
 
 #include "core/configuration_types.h"
 #include "core/node_attributes.h"
@@ -11,12 +11,12 @@ namespace scada {
 
 enum class NodeClass;
 
-using NodeIdSet = std::set<NodeId>;
 using StatusCallback = std::function<void(Status&&)>;
 using ModifyNodesCallback =
     std::function<void(Status&&, const std::vector<Status>&)>;
 using DeleteNodeCallback =
-    std::function<void(const Status& status, const NodeIdSet* references)>;
+    std::function<void(Status&& status,
+                       std::vector<scada::NodeId>&& dependencies)>;
 
 class NodeManagementService {
  public:
@@ -35,10 +35,10 @@ class NodeManagementService {
       const std::vector<std::pair<NodeId, NodeAttributes>>& nodes,
       const ModifyNodesCallback& callback) = 0;
 
-  // Delete record from table. If |return_relations| is true and deletion fails,
+  // Delete record from table. If |return_dependencies| is true and deletion fails,
   // it gets list of related records, which must be deleted before.
   virtual void DeleteNode(const NodeId& node_id,
-                          bool return_relations,
+                          bool return_dependencies,
                           const DeleteNodeCallback& callback) = 0;
 
   virtual void ChangeUserPassword(const NodeId& user_node_id,

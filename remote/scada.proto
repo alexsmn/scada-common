@@ -200,11 +200,11 @@ message CreateNodeResult {
 
 message DeleteNode {
   required NodeId node_id = 2;
-  optional bool return_references = 10;
+  optional bool return_dependencies = 10;
 }
 
 message DeleteNodeResult {
-  repeated NodeId references = 1;
+  repeated NodeId dependencies = 1;
 }
 
 message ModifyNode {

@@ -42,7 +42,7 @@ class NodeManagementStub {
           nodes);
   void OnDeleteNode(unsigned request_id,
                     const scada::NodeId& id,
-                    bool return_relations);
+                    bool return_dependencies);
   void OnChangeUserPassword(unsigned request_id,
                             const scada::NodeId& user_node_id,
                             const scada::LocalizedText& current_password,
