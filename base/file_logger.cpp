@@ -1,28 +1,24 @@
 #include "base/file_logger.h"
 
-#include "base/files/file_util.h"
 #include "base/files/file_enumerator.h"
-#include "base/strings/stringprintf.h"
+#include "base/files/file_util.h"
 #include "base/logging.h"
+#include "base/strings/stringprintf.h"
 
 #include <algorithm>
 #include <vector>
 
-FileLogger::FileLogger()
-    : max_files_(10),
-      max_file_size_(200 * 1024),
-      last_time_{} {
-}
-
-FileLogger::~FileLogger() {
-  CloseHandle();
-}
-
-void FileLogger::Init(base::FilePath path, base::FilePath::StringType base_name) {
+FileLogger::FileLogger(base::FilePath path,
+                       base::FilePath::StringType base_name)
+    : max_files_(10), max_file_size_(200 * 1024), last_time_{} {
   path_ = std::move(path);
   base_name_ = std::move(base_name);
 
   CreateNewFile();
+}
+
+FileLogger::~FileLogger() {
+  CloseHandle();
 }
 
 void FileLogger::Write(LogSeverity severity, const char* message) const {
@@ -30,19 +26,20 @@ void FileLogger::Write(LogSeverity severity, const char* message) const {
   if (!file_.IsValid())
     return;
 
-  base::Time::Exploded time={0};
+  base::Time::Exploded time = {0};
   base::Time::Now().LocalExplode(&time);
 
   static const char kSeverityNames[] = "NWEF";
-  static_assert(arraysize(kSeverityNames) == static_cast<size_t>(LogSeverity::Count) + 1,
+  static_assert(
+      arraysize(kSeverityNames) == static_cast<size_t>(LogSeverity::Count) + 1,
       "Not all severities are described");
-  
-  std::string line = base::StringPrintf("%02d:%02d:%02d.%03d | %c | %s\r\n",
-      time.hour, time.minute, time.second, time.millisecond,
-      kSeverityNames[static_cast<int>(severity)], message);
+
+  std::string line = base::StringPrintf(
+      "%02d:%02d:%02d.%03d | %c | %s\r\n", time.hour, time.minute, time.second,
+      time.millisecond, kSeverityNames[static_cast<int>(severity)], message);
 
   _Write(line.data(), line.length());
-  
+
   last_time_ = time;
 }
 
@@ -53,7 +50,9 @@ void FileLogger::WriteF(LogSeverity severity, const char* format, ...) const {
   va_end(args);
 }
 
-void FileLogger::WriteV(LogSeverity severity, const char* format, va_list args) const {
+void FileLogger::WriteV(LogSeverity severity,
+                        const char* format,
+                        va_list args) const {
   if (!file_.IsValid())
     return;
 
@@ -64,9 +63,10 @@ void FileLogger::WriteV(LogSeverity severity, const char* format, va_list args) 
 base::FilePath::StringType FileLogger::GenerateFileName() const {
   base::Time::Exploded time = {0};
   base::Time::Now().LocalExplode(&time);
-  return base_name_ + base::StringPrintf(FILE_PATH_LITERAL("_%d%02d%02d_%02d%02d%02d.log"),
-      time.year, time.month, time.day_of_month, time.hour,
-      time.minute, time.second);
+  return base_name_ +
+         base::StringPrintf(FILE_PATH_LITERAL("_%d%02d%02d_%02d%02d%02d.log"),
+                            time.year, time.month, time.day_of_month, time.hour,
+                            time.minute, time.second);
 }
 
 void FileLogger::CreateNewFile() const {
@@ -79,15 +79,15 @@ void FileLogger::CreateNewFile() const {
   base::FilePath path = path_.Append(GenerateFileName());
 
   file_.Initialize(path, base::File::FLAG_CREATE_ALWAYS |
-                         base::File::FLAG_WRITE |
-                         base::File::FLAG_EXCLUSIVE_WRITE);
+                             base::File::FLAG_WRITE |
+                             base::File::FLAG_EXCLUSIVE_WRITE);
 }
 
 void FileLogger::_Write(const char* data, size_t size) const {
   assert(size > 0);
   if (!file_.IsValid())
     return;
-    
+
   file_.Write(-1, data, size);
 
   base::File::Info file_info;
@@ -106,13 +106,12 @@ void FileLogger::DeleteOldFiles() const {
   std::vector<base::FilePath> paths;
   paths.reserve(16);
 
-  base::FileEnumerator find(path_, false,
-                            base::FileEnumerator::FILES,
+  base::FileEnumerator find(path_, false, base::FileEnumerator::FILES,
                             base_name_ + FILE_PATH_LITERAL("*.log"));
   base::FilePath path;
   while (!(path = find.Next()).empty())
     paths.push_back(path);
-  
+
   if (paths.size() < max_files_)
     return;
 

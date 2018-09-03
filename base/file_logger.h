@@ -9,10 +9,8 @@
 
 class FileLogger : public Logger {
  public:
-  FileLogger();
+  FileLogger(base::FilePath path, base::FilePath::StringType base_name);
   virtual ~FileLogger();
-
-  void Init(base::FilePath path, base::FilePath::StringType base_name);
 
   // Logger overrides
   virtual void Write(LogSeverity severity, const char* message) const override;
