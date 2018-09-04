@@ -13,7 +13,7 @@ enum class NodeClass;
 
 using StatusCallback = std::function<void(Status&&)>;
 using ModifyNodesCallback =
-    std::function<void(Status&&, const std::vector<Status>&)>;
+    std::function<void(Status&&, std::vector<Status>&&)>;
 using DeleteNodeCallback =
     std::function<void(Status&& status,
                        std::vector<scada::NodeId>&& dependencies)>;
@@ -35,8 +35,8 @@ class NodeManagementService {
       const std::vector<std::pair<NodeId, NodeAttributes>>& nodes,
       const ModifyNodesCallback& callback) = 0;
 
-  // Delete record from table. If |return_dependencies| is true and deletion fails,
-  // it gets list of related records, which must be deleted before.
+  // Delete record from table. If |return_dependencies| is true and deletion
+  // fails, it gets list of related records, which must be deleted before.
   virtual void DeleteNode(const NodeId& node_id,
                           bool return_dependencies,
                           const DeleteNodeCallback& callback) = 0;
