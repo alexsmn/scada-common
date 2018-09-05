@@ -1,9 +1,10 @@
 #include "base/win/win_util2.h"
 
+#include "base/format.h"
 #include "base/logging.h"
 #include "base/strings/string_util.h"
-#include "base/format.h"
 
+#include <shellapi.h>
 #include <memory>
 
 namespace win_util {
@@ -20,7 +21,10 @@ void InsertMenuItem(HMENU menu, int pos, UINT id, LPCTSTR text, UINT state) {
   InsertMenuItem(menu, pos, TRUE, &mii);
 }
 
-void InsertSubMenu(HMENU menu, int pos, const base::char16* text, HMENU submenu) {
+void InsertSubMenu(HMENU menu,
+                   int pos,
+                   const base::char16* text,
+                   HMENU submenu) {
   MENUITEMINFO mii;
   memset(&mii, 0, sizeof(mii));
   mii.cbSize = sizeof(mii);
@@ -40,8 +44,7 @@ void InsertMenuSeparator(HMENU menu, int pos) {
   InsertMenuItem(menu, pos, TRUE, &mii);
 }
 
-void RemoveConsequentMenuSeparators(HMENU menu)
-{
+void RemoveConsequentMenuSeparators(HMENU menu) {
   if (GetMenuItemCount(menu) == 0)
     return;
 
@@ -52,12 +55,11 @@ void RemoveConsequentMenuSeparators(HMENU menu)
 
   int count;
   while ((count = GetMenuItemCount(menu)) > 0 &&
-         GetMenuItemInfo(menu, 0, TRUE, &mii) && 
-         mii.fType == MFT_SEPARATOR) {
+         GetMenuItemInfo(menu, 0, TRUE, &mii) && mii.fType == MFT_SEPARATOR) {
     DeleteMenu(menu, 0, MF_BYPOSITION);
   }
 
-  while ((count = GetMenuItemCount(menu)) > 0 && 
+  while ((count = GetMenuItemCount(menu)) > 0 &&
          GetMenuItemInfo(menu, count - 1, TRUE, &mii) &&
          mii.fType == MFT_SEPARATOR) {
     DeleteMenu(menu, count - 1, MF_BYPOSITION);
@@ -65,7 +67,7 @@ void RemoveConsequentMenuSeparators(HMENU menu)
 
   // Remove consequent separators.
   bool last_sep = false;
-  for (int i = 0; i < GetMenuItemCount(menu); ) {
+  for (int i = 0; i < GetMenuItemCount(menu);) {
     GetMenuItemInfo(menu, i, TRUE, &mii);
     if (mii.fType == MFT_SEPARATOR) {
       if (last_sep) {
@@ -104,7 +106,7 @@ base::string16 GetWindowText(HWND window_handle) {
   int len = GetWindowTextLength(window_handle) + 1;
   base::string16 str;
   if (len > 1)
-    ::GetWindowText(window_handle, base::WriteInto(&str, len), len); 
+    ::GetWindowText(window_handle, base::WriteInto(&str, len), len);
   return str;
 }
 
@@ -112,7 +114,7 @@ int GetWindowInt(HWND window_handle) {
   base::string16 str = GetWindowText(window_handle);
   int value;
   if (!Parse(str, value))
-      throw E_INVALIDARG;
+    throw E_INVALIDARG;
   return value;
 }
 
@@ -127,7 +129,7 @@ base::string16 GetListBoxItemText(HWND window_handle, int index) {
 
   std::unique_ptr<base::char16[]> text(new base::char16[len + 1]);
   int res = SendMessage(window_handle, LB_GETTEXT, index,
-      reinterpret_cast<LPARAM>(text.get()));
+                        reinterpret_cast<LPARAM>(text.get()));
   if (res == LB_ERR)
     return base::string16();
   return base::string16(text.get(), text.get() + len);
@@ -140,16 +142,15 @@ base::string16 GetComboBoxItemText(HWND window_handle, int index) {
 
   std::unique_ptr<base::char16[]> text(new base::char16[len + 1]);
   int res = SendMessage(window_handle, CB_GETLBTEXT, index,
-      reinterpret_cast<LPARAM>(text.get()));
+                        reinterpret_cast<LPARAM>(text.get()));
   if (res == LB_ERR)
     return base::string16();
   return base::string16(text.get(), text.get() + len);
 }
 
-
 enum Version {
-  VERSION_PRE_2000 = 0,     // Not supported
-  VERSION_2000 = 1,         // Not supported
+  VERSION_PRE_2000 = 0,  // Not supported
+  VERSION_2000 = 1,      // Not supported
   VERSION_XP = 2,
   VERSION_SERVER_2003 = 3,  // Also includes Windows XP Professional x64 edition
   VERSION_VISTA = 4,
@@ -196,4 +197,8 @@ Version GetVersion() {
   return win_version;
 }
 
-} // namespace win_util
+void OpenWithAssociatedProgram(const std::filesystem::path& path) {
+  ShellExecute(NULL, NULL, path.c_str(), NULL, NULL, SW_SHOW);
+}
+
+}  // namespace win_util

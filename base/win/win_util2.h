@@ -3,12 +3,20 @@
 #include "base/base_export.h"
 #include "base/strings/string16.h"
 
+#include <filesystem>
 #include <windows.h>
 
 namespace win_util {
 
-BASE_EXPORT void InsertMenuItem(HMENU menu, int pos, UINT id, const base::char16* text, UINT state = 0);
-BASE_EXPORT void InsertSubMenu(HMENU menu, int pos, const base::char16* text, HMENU submenu);
+BASE_EXPORT void InsertMenuItem(HMENU menu,
+                                int pos,
+                                UINT id,
+                                const base::char16* text,
+                                UINT state = 0);
+BASE_EXPORT void InsertSubMenu(HMENU menu,
+                               int pos,
+                               const base::char16* text,
+                               HMENU submenu);
 BASE_EXPORT void InsertMenuSeparator(HMENU menu, int pos);
 
 BASE_EXPORT void RemoveConsequentMenuSeparators(HMENU menu);
@@ -26,4 +34,6 @@ BASE_EXPORT void SetWindowTextInt(HWND window_handle, int value);
 BASE_EXPORT base::string16 GetListBoxItemText(HWND window_handle, int index);
 BASE_EXPORT base::string16 GetComboBoxItemText(HWND window_handle, int index);
 
-} // namespace win_util
+BASE_EXPORT void OpenWithAssociatedProgram(const std::filesystem::path& path);
+
+}  // namespace win_util
