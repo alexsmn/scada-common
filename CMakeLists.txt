@@ -25,3 +25,23 @@ add_subdirectory(remote)
 if(WIN32)
   add_subdirectory(vidicon)
 endif()
+
+install(FILES
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_system-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_system-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_thread-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_thread-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log_setup-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log_setup-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_filesystem-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_filesystem-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_date_time-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_date_time-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_regex-vc141-mt-gd-x32-1_68.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_regex-vc141-mt-x32-1_68.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libprotobufd.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libprotobuf.dll>"
+  DESTINATION bin
+  COMPONENT Common)
