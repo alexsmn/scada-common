@@ -205,6 +205,14 @@ void TimedDataImpl::OnHistoryReadRawComplete(
   assert(queried_from >= from_);
   assert((!queried_to.is_null() && ready_from_ == queried_to) ||
          (queried_to.is_null() && ready_from_ == kTimedDataCurrentOnly));
+  assert(
+      std::is_sorted(values.begin(), values.end(),
+                     [](const scada::DataValue& a, const scada::DataValue& b) {
+                       return a.source_timestamp < b.source_timestamp;
+                     }));
+  assert(std::none_of(
+      values.begin(), values.end(),
+      [](const scada::DataValue& v) { return v.server_timestamp.is_null(); }));
 
   querying_ = false;
 

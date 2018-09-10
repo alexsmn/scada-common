@@ -19,7 +19,7 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
     return current_.source_timestamp <= time ? current_ : scada::DataValue();
 
   auto i = rt::LowerBound(values_, time);
-  if (i == values_.end())
+  if (i == values_.begin())
     return {};
 
   --i;
