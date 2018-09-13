@@ -537,6 +537,9 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::ModbusDeviceType_SendRetryCount, "RepeatCount",
                 base::WideToUTF16(L"Попыток повторов передачи"),
                 scada::id::Int32, 3);
+    AddProperty(address_space, id::ModbusDeviceType,
+                id::ModbusDeviceType_ResponseTimeout, "ResponseTimeout",
+                base::WideToUTF16(L"Таймаут ответа"), scada::id::Int32, 1000);
   }
 
   // User
