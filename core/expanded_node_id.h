@@ -3,6 +3,8 @@
 #include "core/node_id.h"
 #include "core/string.h"
 
+#include <ostream>
+
 namespace scada {
 
 class ExpandedNodeId {
@@ -12,7 +14,9 @@ class ExpandedNodeId {
   ExpandedNodeId(NodeId node_id, String namespace_uri, unsigned server_index);
 
   bool operator==(const ExpandedNodeId& other) const;
-  bool operator!=(const ExpandedNodeId& other) const { return !operator==(other); }
+  bool operator!=(const ExpandedNodeId& other) const {
+    return !operator==(other);
+  }
 
   const NodeId& node_id() const { return node_id_; }
   const String& namespace_uri() const { return namespace_uri_; }
@@ -24,16 +28,26 @@ class ExpandedNodeId {
   unsigned server_index_ = 0;
 };
 
-inline ExpandedNodeId::ExpandedNodeId(NodeId node_id, String namespace_uri, unsigned server_index)
+inline ExpandedNodeId::ExpandedNodeId(NodeId node_id,
+                                      String namespace_uri,
+                                      unsigned server_index)
     : node_id_{std::move(node_id)},
       namespace_uri_{std::move(namespace_uri)},
-      server_index_{server_index} {
-}
+      server_index_{server_index} {}
 
 inline bool ExpandedNodeId::operator==(const ExpandedNodeId& other) const {
-  return node_id_ == other.node_id_ &&
-         namespace_uri_ == other.namespace_uri_ &&
+  return node_id_ == other.node_id_ && namespace_uri_ == other.namespace_uri_ &&
          server_index_ == other.server_index_;
 }
 
-} // namespace scada
+inline std::ostream& operator<<(std::ostream& stream,
+                                const ExpandedNodeId& expanded_node_id) {
+  return stream << "{"
+                << "node_id: " << expanded_node_id.node_id() << ", "
+                << "namespace_uri: \"" << expanded_node_id.namespace_uri() << "\", "
+                << "server_index: " << expanded_node_id.server_index()
+                << "}";
+}
+
+}  // namespace scada
+

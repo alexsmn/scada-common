@@ -57,27 +57,13 @@ inline bool operator==(const ReadValueId& a, const ReadValueId& b) {
          std::tie(b.node_id, b.attribute_id);
 }
 
-inline std::ostream& operator<<(std::ostream& stream,
-                                const NodeProperty& prop) {
-  return stream << "{" << prop.first << ", " << prop.second << "}";
-}
-
-inline std::ostream& operator<<(std::ostream& stream,
-                                const ReferenceDescription& ref) {
-  return stream << "{" << ref.reference_type_id << ", " << ref.forward << ", "
-                << ref.node_id << "}";
-}
-
-template <class T>
-inline std::ostream& operator<<(std::ostream& stream, const std::vector<T>& v) {
-  stream << "[";
-  for (size_t i = 0; i < v.size(); ++i) {
-    stream << v[i];
-    if (i != v.size() - 1)
-      stream << ", ";
-  }
-  stream << "]";
-  return stream;
-}
-
 }  // namespace scada
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const scada::ReferenceDescription& ref) {
+  return stream << "{"
+                << "reference_type_id: " << ref.reference_type_id << ", "
+                << "forward: " << ref.forward << ", "
+                << "node_id: " << ref.node_id
+                << "}";
+}

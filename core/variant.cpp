@@ -5,6 +5,7 @@
 
 #include "base/format.h"
 #include "base/strings/utf_string_conversions.h"
+#include "core/debug_util.h"
 #include "core/standard_node_ids.h"
 
 namespace scada {
@@ -311,6 +312,36 @@ NodeId Variant::data_type_id() const {
 
   assert(static_cast<size_t>(type()) < std::size(kNodeIds));
   return kNodeIds[static_cast<size_t>(type())];
+}
+
+template <class T>
+inline void DumpHelper(std::ostream& stream, const T& v) {
+  stream << v;
+}
+
+template <>
+inline void DumpHelper(std::ostream& stream, const std::monostate& v) {
+  stream << "null";
+}
+
+template <>
+inline void DumpHelper(std::ostream& stream, const ByteString& v) {
+  stream << "\"" << FormatHexBuffer(v.data(), v.size()) << "\"";
+}
+
+template<class T>
+inline void DumpHelper(std::ostream& stream, const std::vector<T>& v) {
+  stream << "[";
+  for (size_t i = 0; i < v.size(); ++i) {
+    DumpHelper(stream, v[i]);
+    if (i != v.size() - 1)
+      stream << ", ";
+  }
+  stream << "]";
+}
+
+void Variant::Dump(std::ostream& stream) const {
+  std::visit([&](const auto& v) { DumpHelper(stream, v); }, data_);
 }
 
 }  // namespace scada

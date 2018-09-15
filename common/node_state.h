@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/configuration_types.h"
+#include "core/debug_util.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
 
@@ -30,14 +31,18 @@ inline bool operator==(const ReferenceState& a, const ReferenceState& b) {
          a.source_id == b.source_id && a.target_id == b.target_id;
 }
 
+}  // namespace scada
+
 inline std::ostream& operator<<(std::ostream& stream,
-                                const NodeState& node_state) {
-  return stream << "{" << node_state.node_id << ", " << node_state.node_class
-                << ", " << node_state.type_definition_id << ", "
-                << node_state.parent_id << ", " << node_state.reference_type_id
-                << ", " << node_state.attributes << ", "
-                << node_state.properties << ", " << node_state.references
+                                const scada::NodeState& node_state) {
+  return stream << "{"
+                << "node_id: " << node_state.node_id << ", "
+                << "node_class: " << node_state.node_class << ", "
+                << "type_definition_id: " << node_state.type_definition_id << ", "
+                << "parent_id: " << node_state.parent_id << ", "
+                << "reference_type_id: " << node_state.reference_type_id << ", "
+                << "attributes: " << node_state.attributes << ", "
+                << "properties: " << node_state.properties << ", "
+                << "references: " << node_state.references
                 << "}";
 }
-
-}  // namespace scada

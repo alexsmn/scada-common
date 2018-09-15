@@ -1,6 +1,7 @@
 #include "remote/session_proxy.h"
 
 #include "base/net_logger_adapter.h"
+#include "base/strings/string_split.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
@@ -24,8 +25,20 @@
 using namespace std::chrono_literals;
 
 namespace {
+
 const auto kPingDelay = 1s;
+
+std::string MakeConnectionString(base::StringPiece str) {
+  auto parts = base::SplitString(str, ":", base::TRIM_WHITESPACE,
+                                 base::SplitResult::SPLIT_WANT_ALL);
+  parts.resize(2);
+  if (parts[1].empty())
+    parts[1] = "2000";
+  return base::StringPrintf("Host=%s;Port=%s", parts[0].c_str(),
+                            parts[1].c_str());
 }
+
+}  // namespace
 
 SessionProxy::SessionProxy(SessionProxyContext&& context)
     : SessionProxyContext{std::move(context)}, ping_timer_{io_context_} {
@@ -288,8 +301,7 @@ void SessionProxy::Connect(const std::string& host,
 }
 
 void SessionProxy::Connect() {
-  std::string connection_string =
-      base::StringPrintf("Host=%s;Port=2000", host_.c_str());
+  std::string connection_string = MakeConnectionString(host_);
 
   logger().WriteF(LogSeverity::Normal, "Connecting as '%s' to '%s'",
                   user_name_.c_str(), connection_string.c_str());

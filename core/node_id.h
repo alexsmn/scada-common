@@ -70,7 +70,7 @@ inline bool operator!=(NumericId a, const NodeId& b) {
 }
 
 inline std::ostream& operator<<(std::ostream& stream, const NodeId& node_id) {
-  return stream << node_id.ToString();
+  return stream << "\"" << node_id.ToString() << "\"";
 }
 
 }  // namespace scada

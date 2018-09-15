@@ -121,14 +121,14 @@ class Variant {
   template <typename T>
   bool ChangeTypeTo();
 
+  void Dump(std::ostream& stream) const;
+
   static const LocalizedText kTrueString;
   static const LocalizedText kFalseString;
 
  private:
   template <class String>
   bool ToStringHelper(String& string_value) const;
-
-  struct Placeholder : std::monostate {};
 
   std::variant<std::monostate,
                bool,
@@ -145,7 +145,7 @@ class Variant {
                NodeId,
                ExpandedNodeId,
                ExtensionObject,
-               Placeholder,
+               std::vector<std::monostate>,
                std::vector<bool>,
                std::vector<int8_t>,
                std::vector<uint8_t>,
@@ -195,14 +195,11 @@ std::string ToString(scada::Variant::Type type);
 std::string ToString(const scada::Variant& value);
 base::string16 ToString16(const scada::Variant& value);
 
-namespace scada {
+inline std::ostream& operator<<(std::ostream& stream, const scada::Variant& v) {
+  v.Dump(stream);
+  return stream;
+}
 
-inline std::ostream& operator<<(std::ostream& stream, Variant::Type type) {
+inline std::ostream& operator<<(std::ostream& stream, scada::Variant::Type type) {
   return stream << ToString(type);
 }
-
-inline std::ostream& operator<<(std::ostream& stream, const Variant& v) {
-  return stream << v.get_or("(error)");
-}
-
-}  // namespace scada
