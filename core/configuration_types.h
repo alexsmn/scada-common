@@ -12,9 +12,6 @@ namespace scada {
 typedef std::pair<NodeId /*prop_type_id*/, Variant /*value*/> NodeProperty;
 typedef std::vector<NodeProperty> NodeProperties;
 
-typedef std::pair<NodeId /*ref_type_id*/, NodeId /*ref_node_id*/> NodeReference;
-typedef std::vector<NodeReference> NodeReferences;
-
 enum class BrowseDirection {
   Forward = 0,
   Inverse = 1,

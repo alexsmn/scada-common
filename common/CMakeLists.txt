@@ -5,12 +5,20 @@ file(GLOB sources
   "../timed_data/*.h"
 )
 
-file(GLOB unittests
-  "*_unittest.*")
+file(GLOB unittests "*_unittest.*")
 
 list(REMOVE_ITEM sources ${unittests})
 
 add_library(scada_common STATIC ${sources})
+
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/project.h.src"
+  "project.h"
+)
+
+# Add project.h to includes.
+target_include_directories(scada_common PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
 target_link_libraries(scada_common PUBLIC
   base
   express
