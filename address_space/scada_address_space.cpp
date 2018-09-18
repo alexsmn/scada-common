@@ -323,13 +323,13 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 base::WideToUTF16(L"Тип"), scada::id::Int32, 0);
     AddProperty(address_space, id::SimulationSignalType,
                 id::SimulationSignalType_Period, "Period",
-                base::WideToUTF16(L"Период (мс)"), scada::id::Int32, 60000);
+                base::WideToUTF16(L"Период, мс"), scada::id::Int32, 60000);
     AddProperty(address_space, id::SimulationSignalType,
                 id::SimulationSignalType_Phase, "Phase",
-                base::WideToUTF16(L"Фаза (мс)"), scada::id::Int32, 0);
+                base::WideToUTF16(L"Фаза, мс"), scada::id::Int32, 0);
     AddProperty(address_space, id::SimulationSignalType,
                 id::SimulationSignalType_UpdateInterval, "UpdateInterval",
-                base::WideToUTF16(L"Обновление (мс)"), scada::id::Int32, 1000);
+                base::WideToUTF16(L"Обновление, мс"), scada::id::Int32, 1000);
   }
 
   // Historical DB
@@ -341,7 +341,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                  id::HistoricalDatabaseType);
     AddProperty(address_space, id::HistoricalDatabaseType,
                 id::HistoricalDatabaseType_Depth, "Depth",
-                base::WideToUTF16(L"Глубина (дн)"), scada::id::Int32, 1);
+                base::WideToUTF16(L"Глубина, дн"), scada::id::Int32, 1);
     AddDataVariable(address_space, id::HistoricalDatabaseType,
                     id::HistoricalDatabaseType_WriteValueDuration,
                     "WriteValueDuration",
@@ -415,20 +415,20 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 "Severity", base::WideToUTF16(L"Важность"), scada::id::Int32,
                 1);
     AddProperty(address_space, id::DataItemType, id::DataItemType_Input1,
-                "Input1", base::WideToUTF16(L"Ввод1"), scada::id::String,
-                scada::String{});
+                "Input1", base::WideToUTF16(L"Основной ввод"),
+                scada::id::String, scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Input2,
-                "Input2", base::WideToUTF16(L"Ввод2"), scada::id::String,
-                scada::String{});
+                "Input2", base::WideToUTF16(L"Резервный ввод"),
+                scada::id::String, scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Output,
                 "Output", base::WideToUTF16(L"Вывод"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, id::DataItemType,
                 id::DataItemType_OutputCondition, "OutputCondition",
-                base::WideToUTF16(L"Условие (Управление)"), scada::id::String,
+                base::WideToUTF16(L"Условие управления"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_StalePeriod,
-                "StalePeriod", base::WideToUTF16(L"Устаревание (с)"),
+                "StalePeriod", base::WideToUTF16(L"Устаревание, с"),
                 scada::id::Int32, 0);
     AddProperty(address_space, id::DataItemType, id::DataItemType_Simulated,
                 "Simulated", base::WideToUTF16(L"Эмуляция"), scada::id::Boolean,
@@ -474,16 +474,17 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 "ClampingType", base::WideToUTF16(L"Ограничение диапазона"),
                 scada::id::Boolean, false);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_EuLo,
-                "EuLo", base::WideToUTF16(L"Лог мин"), scada::id::Double,
-                -100.0);
+                "EuLo", base::WideToUTF16(L"Логический минимимум"),
+                scada::id::Double, -100.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_EuHi,
-                "EuHi", base::WideToUTF16(L"Лог макс"), scada::id::Double,
-                100.0);
+                "EuHi", base::WideToUTF16(L"Логический максимум"),
+                scada::id::Double, 100.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_IrLo,
-                "IrLo", base::WideToUTF16(L"Физ мин"), scada::id::Double, 0.0);
+                "IrLo", base::WideToUTF16(L"Физический минимимум"),
+                scada::id::Double, 0.0);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_IrHi,
-                "IrHi", base::WideToUTF16(L"Физ макс"), scada::id::Double,
-                65535.0);
+                "IrHi", base::WideToUTF16(L"Физический максимум"),
+                scada::id::Double, 65535.0);
     // TODO: Variant.
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_LimitLo,
                 "LimitLo", base::WideToUTF16(L"Уставка нижняя предаварийная"),
@@ -522,6 +523,10 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(address_space, id::ModbusLinkType, id::ModbusLinkType_Protocol,
                 "Mode", base::WideToUTF16(L"Режим"), id::ModbusLinkType_Mode,
                 0);
+    AddProperty(address_space, id::ModbusLinkType,
+                id::ModbusLinkType_RequestDelay, "RequestDelay",
+                base::WideToUTF16(L"Задержка запроса, мс"), scada::id::Int32,
+                0);
   }
 
   // Modbus Device
@@ -539,7 +544,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 scada::id::Int32, 3);
     AddProperty(address_space, id::ModbusDeviceType,
                 id::ModbusDeviceType_ResponseTimeout, "ResponseTimeout",
-                base::WideToUTF16(L"Таймаут ответа"), scada::id::Int32, 1000);
+                base::WideToUTF16(L"Таймаут ответа, мс"), scada::id::Int32,
+                1000);
   }
 
   // User
@@ -584,15 +590,15 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 base::WideToUTF16(L"Очередь приема (W)"), scada::id::Int32, 8);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_ConnectTimeout, "ConnectTimeout",
-                base::WideToUTF16(L"Таймаут связи (T0, с)"), scada::id::Int32,
+                base::WideToUTF16(L"Таймаут связи (T0), с"), scada::id::Int32,
                 30);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_ConfirmationTimeout, "ConfirmationTimeout",
-                base::WideToUTF16(L"Таймаут подтверждения (с)"),
+                base::WideToUTF16(L"Таймаут подтверждения, с"),
                 scada::id::Int32, 5);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_TerminationTimeout, "TerminationTimeout",
-                base::WideToUTF16(L"Таймаут операции (с)"), scada::id::Int32,
+                base::WideToUTF16(L"Таймаут операции, с"), scada::id::Int32,
                 20);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_DeviceAddressSize, "DeviceAddressSize",
@@ -618,15 +624,15 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 base::WideToUTF16(L"Защита CRC"), scada::id::Boolean, false);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_SendTimeout, "SendTimeout",
-                base::WideToUTF16(L"Таймаут передачи (T1, с)"),
+                base::WideToUTF16(L"Таймаут передачи (T1), с"),
                 scada::id::Int32, 5);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_ReceiveTimeout, "ReceiveTimeout",
-                base::WideToUTF16(L"Таймаут приема (T2, с)"), scada::id::Int32,
+                base::WideToUTF16(L"Таймаут приема (T2), с"), scada::id::Int32,
                 10);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_IdleTimeout, "IdleTimeout",
-                base::WideToUTF16(L"Таймаут простоя (T3, с)"), scada::id::Int32,
+                base::WideToUTF16(L"Таймаут простоя (T3), с"), scada::id::Int32,
                 30);
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_AnonymousMode, "AnonymousMode",
@@ -655,7 +661,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriod, "InterrogationPeriod",
-        base::WideToUTF16(L"Период полного опроса (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период полного опроса, с"), scada::id::Int32, 0);
     AddProperty(address_space, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_StartupClockSync,
                 "SynchronizeClockOnStart",
@@ -664,7 +670,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(address_space, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_ClockSyncPeriod,
                 "ClockSynchronizationPeriod",
-                base::WideToUTF16(L"Период синхронизации часов (с)"),
+                base::WideToUTF16(L"Период синхронизации часов, с"),
                 scada::id::Int32, 0);
     AddProperty(address_space, id::Iec60870DeviceType,
                 id::Iec60870DeviceType_UtcTime, "UtcTime",
@@ -672,67 +678,67 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup1, "Group1PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 1 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 1, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup2, "Group2PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 2 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 2, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup3, "Group3PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 3 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 3, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup4, "Group4PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 4 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 4, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup5, "Group5PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 5 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 5, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup6, "Group6PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 6 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 6, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup7, "Group7PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 7 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 7, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup8, "Group8PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 8 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 8, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup9, "Group9PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 9 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 9, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup10, "Group10PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 10 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 10, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup11, "Group11PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 11 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 11, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup12, "Group12PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 12 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 12, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup13, "Group13PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 13 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 13, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup14, "Group14PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 14 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 14, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup15, "Group15PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 15 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 15, с"), scada::id::Int32, 0);
     AddProperty(
         address_space, id::Iec60870DeviceType,
         id::Iec60870DeviceType_InterrogationPeriodGroup16, "Group16PollPeriod",
-        base::WideToUTF16(L"Период опроса группы 16 (с)"), scada::id::Int32, 0);
+        base::WideToUTF16(L"Период опроса группы 16, с"), scada::id::Int32, 0);
   }
 
   // IEC-61850 Logical Node

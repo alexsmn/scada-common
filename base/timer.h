@@ -10,6 +10,7 @@ class Timer {
   explicit Timer(boost::asio::io_context& io_context)
       : io_context_{io_context} {}
 
+  // WARNING: Only for repeating mode.
   bool started() const { return core_ != nullptr; }
 
   template <class Callback>
