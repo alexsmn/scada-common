@@ -54,9 +54,7 @@ void BaseNodeModel::SetFetchStatus(const scada::Status& status,
     return;
 
   fetch_status_ = fetch_status;
-
-  if (fetching_status_ <= fetch_status_)
-    fetching_status_ = {};
+  fetching_status_ |= fetch_status;
 
   std::vector<FetchCallback> callbacks;
   size_t p = 0;

@@ -44,7 +44,7 @@ TEST(AddressSpaceNodeService, NodeAdded) {
       scada::NodeAttributes{}.set_browse_name("NewNode"),
   };
 
-  context.server_address_space.nodes.emplace_back(kNewNode);
+  context.server_address_space.CreateNode(kNewNode);
 
   EXPECT_CALL(context.node_observer,
               OnModelChanged(scada::ModelChangeEvent{
@@ -77,9 +77,7 @@ TEST(AddressSpaceNodeService, NodeDeleted) {
               OnModelChanged(scada::ModelChangeEvent{
                   kNodeId, {}, scada::ModelChangeEvent::NodeDeleted}));
 
-  context.server_address_space.RemoveNode(kNodeId);
-  context.server_address_space.NotifyModelChanged(
-      {kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
+  context.server_address_space.DeleteNode(kNodeId);
 
   Mock::VerifyAndClearExpectations(&context.node_observer);
 
@@ -100,20 +98,12 @@ TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
   auto node = context.node_service.GetNode(kNodeId);
   node.Fetch(NodeFetchStatus::NodeOnly());
 
-  auto* server_node = context.server_address_space.GetNode(kNodeId);
-  ASSERT_TRUE(server_node);
-
-  // Rename & set property.
-  {
-    server_node->SetDisplayName(kNewDisplayName);
-    server_node->SetPropertyValue(context.server_address_space.kTestProp1Id,
-                                  kNewValue);
-  }
-
+  EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(_)).Times(AnyNumber());
   EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(kNodeId));
 
-  context.server_address_space.NotifySemanticChanged(
-      kNodeId, scada::GetTypeDefinitionId(*server_node));
+  context.server_address_space.ModifyNode(
+      kNodeId, scada::NodeAttributes{}.set_display_name(kNewDisplayName),
+      {{context.server_address_space.kTestProp1Id, kNewValue}});
 
   EXPECT_EQ(kNewDisplayName, node.display_name());
   EXPECT_EQ(kNewValue, node[context.server_address_space.kTestProp1Id].value());

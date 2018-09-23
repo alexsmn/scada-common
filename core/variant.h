@@ -188,6 +188,8 @@ inline const T* Variant::get_if() const {
   return std::get_if<T>(&data_);
 }
 
+scada::Variant::Type ParseBuiltInType(std::string_view str);
+
 }  // namespace scada
 
 std::string ToString(scada::Variant::Type type);

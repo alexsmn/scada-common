@@ -10,6 +10,29 @@
 
 namespace scada {
 
+namespace {
+
+const char* kBuiltInTypeNames[] = {"EMPTY",
+                                   "BOOL",
+                                   "INT8",
+                                   "UINT8",
+                                   "INT32",
+                                   "UINT32",
+                                   "INT64",
+                                   "DOUBLE",
+                                   "BYTE_STRING",
+                                   "STRING",
+                                   "QUALIFIED_NAME",
+                                   "LOCALIZED_TEXT",
+                                   "NODE_ID",
+                                   "EXPANDED_NODE_ID",
+                                   "EXTENSION_OBJECT"};
+
+static_assert(std::size(kBuiltInTypeNames) ==
+              static_cast<size_t>(scada::Variant::COUNT));
+
+}  // namespace
+
 const LocalizedText Variant::kTrueString = base::WideToUTF16(L"Да");
 const LocalizedText Variant::kFalseString = base::WideToUTF16(L"Нет");
 
@@ -329,7 +352,7 @@ inline void DumpHelper(std::ostream& stream, const ByteString& v) {
   stream << "\"" << FormatHexBuffer(v.data(), v.size()) << "\"";
 }
 
-template<class T>
+template <class T>
 inline void DumpHelper(std::ostream& stream, const std::vector<T>& v) {
   stream << "[";
   for (size_t i = 0; i < v.size(); ++i) {
@@ -344,28 +367,22 @@ void Variant::Dump(std::ostream& stream) const {
   std::visit([&](const auto& v) { DumpHelper(stream, v); }, data_);
 }
 
+scada::Variant::Type ParseBuiltInType(std::string_view str) {
+  auto i = std::find(std::begin(kBuiltInTypeNames), std::end(kBuiltInTypeNames),
+                     str);
+  return i != std::end(kBuiltInTypeNames)
+             ? static_cast<scada::Variant::Type>(i -
+                                                 std::begin(kBuiltInTypeNames))
+             : scada::Variant::COUNT;
+}
+
 }  // namespace scada
 
 std::string ToString(scada::Variant::Type type) {
-  const char* kStrings[] = {"EMPTY",
-                            "BOOL",
-                            "INT8",
-                            "UINT8",
-                            "INT32",
-                            "UINT32",
-                            "INT64",
-                            "DOUBLE",
-                            "BYTE_STRING",
-                            "STRING",
-                            "QUALIFIED_NAME",
-                            "LOCALIZED_TEXT",
-                            "NODE_ID",
-                            "EXPANDED_NODE_ID",
-                            "EXTENSION_OBJECT"};
-  static_assert(std::size(kStrings) ==
-                static_cast<size_t>(scada::Variant::COUNT));
   size_t index = static_cast<size_t>(type);
-  return index < std::size(kStrings) ? kStrings[index] : "(Unknown)";
+  return index < std::size(scada::kBuiltInTypeNames)
+             ? scada::kBuiltInTypeNames[index]
+             : "(Unknown)";
 }
 
 std::string ToString(const scada::Variant& value) {

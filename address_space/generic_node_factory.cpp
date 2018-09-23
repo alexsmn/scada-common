@@ -21,16 +21,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     const scada::NodeId& parent_id) {
   assert(!node_state.node_id.is_null());
 
-  logger_->WriteF(
-      LogSeverity::Normal,
-      "CreateNode [node_id=%s, node_class=%s, type_definition_id=%s, "
-      "parent_id=%s, reference_type_id=%s",
-      NodeIdToScadaString(node_state.node_id).c_str(),
-      ToString(node_state.node_class).c_str(),
-      NodeIdToScadaString(node_state.type_definition_id).c_str(),
-      NodeIdToScadaString(parent_id).c_str(),
-      NodeIdToScadaString(node_state.reference_type_id).c_str());
-
   if (node_state.node_id != scada::id::RootFolder) {
     assert(!parent_id.is_null());
     assert(!node_state.reference_type_id.is_null());
@@ -111,10 +101,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   }
 
   for (auto& [prop_decl_id, value] : node_state.properties) {
-    /*logger_->WriteF(LogSeverity::Normal, "Property %s[%s] = %s",
-                  NodeIdToScadaString(node_state.id).c_str(),
-                  NodeIdToScadaString(prop.first).c_str(),
-                  prop.second.get_or(std::string{"(unknown)"}).c_str());*/
     auto status =
         scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
     if (!status)

@@ -62,9 +62,9 @@ struct AddressSpaceNodeServiceTestContext {
 
   TestAddressSpace server_address_space;
 
-  AddressSpaceImpl client_address_space{logger};
+  AddressSpaceImpl2 client_address_space{logger};
 
-  GenericNodeFactory node_factory{logger, client_address_space};
+  GenericNodeFactory node_factory{client_address_space};
 
   scada::MockMonitoredItemService monitored_item_service;
   scada::MockMethodService method_service;
@@ -73,7 +73,7 @@ struct AddressSpaceNodeServiceTestContext {
       logger, server_address_space, server_address_space, client_address_space,
       node_factory, monitored_item_service, method_service}};
 
-  MockNodeObserver node_observer;
+  NiceMock<MockNodeObserver> node_observer;
 };
 
 }  // namespace testing

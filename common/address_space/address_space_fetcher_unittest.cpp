@@ -40,18 +40,18 @@ struct TestContext {
         server_address_space.kTestRefTypeId, "TestRef",
         base::WideToUTF16(L"TestRef")));
 
-    for (auto& node : server_address_space.nodes) {
+    /*for (auto& node : server_address_space.nodes) {
       EXPECT_CALL(
           *this, OnNodeFetchStatusChanged(node.node_id, scada::StatusCode::Good,
                                           NodeFetchStatus::NodeOnly()));
       EXPECT_CALL(
           *this, OnNodeFetchStatusChanged(node.node_id, scada::StatusCode::Good,
                                           NodeFetchStatus::NodeAndChildren()));
-    }
+    }*/
 
     fetcher.OnChannelOpened();
-    fetcher.FetchNode(scada::id::RootFolder,
-                      NodeFetchStatus::NodeAndChildren());
+    /*fetcher.FetchNode(scada::id::RootFolder,
+                      NodeFetchStatus::NodeAndChildren());*/
     Mock::VerifyAndClearExpectations(this);
   }
 
@@ -66,7 +66,7 @@ struct TestContext {
 
   AddressSpaceImpl2 client_address_space{logger};
 
-  GenericNodeFactory node_factory{logger, client_address_space};
+  GenericNodeFactory node_factory{client_address_space};
 
   AddressSpaceFetcher fetcher{AddressSpaceFetcherContext{
       logger, server_address_space, server_address_space, client_address_space,
@@ -137,9 +137,7 @@ TEST(AddressSpaceFetcher, NodeAdded) {
                            kNewNode.node_id, scada::StatusCode::Good,
                            NodeFetchStatus::NodeAndChildren()));
 
-  context.server_address_space.nodes.emplace_back(kNewNode);
-  context.server_address_space.NotifyModelChanged(
-      {kNewNode.node_id, {}, scada::ModelChangeEvent::NodeAdded});
+  context.server_address_space.CreateNode(kNewNode);
 
   context.fetcher.FetchNode(kNewNode.node_id,
                             NodeFetchStatus::NodeAndChildren());

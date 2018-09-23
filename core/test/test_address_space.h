@@ -26,6 +26,9 @@ class TestAddressSpace : public AddressSpaceImpl2,
   scada::NodeId MakeNestedNodeId(const scada::NodeId& parent_id,
                                  const scada::NodeId& component_decl_id);
 
+  void CreateNode(const scada::NodeState& node_state);
+  void DeleteNode(const scada::NodeId& node_id);
+
   static const unsigned kNamespaceIndex = NamespaceIndexes::SCADA;
   const scada::NodeId kTestTypeId{101, kNamespaceIndex};
   const scada::NodeId kTestRefTypeId{102, kNamespaceIndex};
@@ -39,6 +42,13 @@ class TestAddressSpace : public AddressSpaceImpl2,
   const scada::NodeId kTestProp2Id{302, kNamespaceIndex};
   const char* kTestProp1BrowseName = "TestProp1";
   const char* kTestProp2BrowseName = "TestProp2";
+};
+
+inline TestAddressSpace::TestAddressSpace()
+    : AddressSpaceImpl2{std::make_shared<NullLogger>()},
+      AttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
+      ViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}} {
+  GenericNodeFactory node_factory{*this};
 
   // RootFolder : FolderType
   //   TestNode1 : TestType {TestProp1}
@@ -137,13 +147,6 @@ class TestAddressSpace : public AddressSpaceImpl2,
   std::vector<scada::ReferenceState> references{
       {kTestRefTypeId, kTestNode2Id, kTestNode3Id},
   };
-};
-
-inline TestAddressSpace::TestAddressSpace()
-    : AddressSpaceImpl2{std::make_shared<NullLogger>()},
-      AttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
-      ViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}} {
-  GenericNodeFactory node_factory{std::make_shared<NullLogger>(), *this};
 
   for (auto& node : nodes) {
     node.attributes.display_name =
@@ -163,6 +166,21 @@ inline scada::NodeId TestAddressSpace::MakeNestedNodeId(
   auto* component_decl = GetNode(component_decl_id);
   assert(component_decl);
   return ::MakeNestedNodeId(parent_id, component_decl->GetBrowseName().name());
+}
+
+inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
+  GenericNodeFactory node_factory{*this};
+  auto p = node_factory.CreateNode(node_state);
+  assert(p.first);
+  assert(p.second);
+  NotifyModelChanged(
+      {node_state.node_id, {}, scada::ModelChangeEvent::NodeAdded});
+}
+
+inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
+  assert(GetNode(node_id));
+  RemoveNode(node_id);
+  // NotifyModelChanged({node_id, {}, scada::ModelChangeEvent::NodeDeleted});
 }
 
 }  // namespace testing
