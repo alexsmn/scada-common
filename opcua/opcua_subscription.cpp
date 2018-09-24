@@ -1,0 +1,453 @@
+#include "opcua_subscription.h"
+
+#include "base/bind.h"
+#include "base/threading/sequenced_task_runner_handle.h"
+#include "opcua/opcua_conversion.h"
+
+#include <opcuapp/client/session.h>
+
+using namespace std::chrono_literals;
+
+namespace {
+
+const auto kCommitItemsDelay = base::TimeDelta::FromSeconds(1);
+
+template <typename T>
+inline bool Erase(std::vector<T>& vector, const T& item) {
+  auto i = std::find(vector.begin(), vector.end(), item);
+  if (i == vector.end())
+    return false;
+  auto p = --vector.end();
+  if (i != p)
+    *i = *p;
+  vector.erase(p);
+  return true;
+}
+
+template <typename T>
+inline bool Contains(const std::vector<T>& vector, const T& item) {
+  return std::find(vector.begin(), vector.end(), item) != vector.end();
+}
+
+OpcUaMonitoredItemCreateResult Convert(
+    const OpcUa_MonitoredItemCreateResult& source) {
+  return {
+      source.StatusCode,
+      source.MonitoredItemId,
+      source.RevisedSamplingInterval,
+  };
+}
+
+}  // namespace
+
+// OpcUaMonitoredItem
+
+class OpcUaMonitoredItem : public scada::MonitoredItem {
+ public:
+  OpcUaMonitoredItem(std::shared_ptr<OpcUaSubscription> subscription,
+                     opcua::MonitoredItemClientHandle client_handle,
+                     scada::ReadValueId read_value_id);
+  ~OpcUaMonitoredItem();
+
+  // scada::MonitoredItem
+  virtual void Subscribe() override;
+
+ private:
+  const std::shared_ptr<OpcUaSubscription> subscription_;
+  const opcua::MonitoredItemClientHandle client_handle_;
+  const scada::ReadValueId read_value_id_;
+
+  opcua::MonitoredItemId id_ = 0;
+
+  friend class OpcUaSubscription;
+};
+
+OpcUaMonitoredItem::OpcUaMonitoredItem(
+    std::shared_ptr<OpcUaSubscription> subscription,
+    opcua::MonitoredItemClientHandle client_handle,
+    scada::ReadValueId read_value_id)
+    : subscription_{std::move(subscription)},
+      client_handle_{client_handle},
+      read_value_id_{std::move(read_value_id)} {
+  assert(!read_value_id_.node_id.is_null());
+}
+
+OpcUaMonitoredItem::~OpcUaMonitoredItem() {
+  subscription_->Unsubscribe(client_handle_);
+}
+
+void OpcUaMonitoredItem::Subscribe() {
+  assert(!read_value_id_.node_id.is_null());
+  assert(data_change_handler_ || event_handler_);
+  subscription_->Subscribe(client_handle_, read_value_id_, data_change_handler_,
+                           event_handler_);
+}
+
+// OpcUaSubscription
+
+OpcUaSubscription::OpcUaSubscription(OpcUaSubscriptionContext&& context)
+    : OpcUaSubscriptionContext{std::move(context)}, subscription_{session_} {}
+
+OpcUaSubscription::~OpcUaSubscription() {
+  // TODO: Delete subscription.
+}
+
+// static
+std::shared_ptr<OpcUaSubscription> OpcUaSubscription::Create(
+    OpcUaSubscriptionContext&& context) {
+  auto result = std::shared_ptr<OpcUaSubscription>(
+      new OpcUaSubscription(std::move(context)));
+  result->Init();
+  return result;
+}
+
+void OpcUaSubscription::Init() {
+  CreateSubscription();
+}
+
+void OpcUaSubscription::CreateSubscription() {
+  opcua::client::SubscriptionParams params{
+      500ms,  // publishing_interval
+      3000,   // lifetime_count
+      10000,  // max_keepalive_count
+      0,      // max_notifications_per_publish
+      true,   // publishing_enabled
+      0,      // priority
+  };
+
+  auto ref = shared_from_this();
+  auto runner = base::SequencedTaskRunnerHandle::Get();
+  subscription_.Create(params, [ref, runner](opcua::StatusCode status_code) {
+    runner->PostTask(
+        FROM_HERE, base::Bind(&OpcUaSubscription::OnCreateSubscriptionResponse,
+                              ref, ConvertStatusCode(status_code.code())));
+  });
+}
+
+void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
+  if (!status) {
+    OnError(std::move(status));
+    return;
+  }
+
+  created_ = true;
+
+  auto ref = shared_from_this();
+  auto runner = base::SequencedTaskRunnerHandle::Get();
+
+  subscription_.StartPublishing(
+      [runner, ref](opcua::StatusCode status_code) {
+        if (!status_code)
+          runner->PostTask(FROM_HERE,
+                           base::Bind(&OpcUaSubscription::OnError, ref,
+                                      ConvertStatusCode(status_code.code())));
+      },
+      [runner, ref](OpcUa_DataChangeNotification& notification) {
+        runner->PostTask(
+            FROM_HERE,
+            base::Bind(
+                &OpcUaSubscription::OnDataChange, ref,
+                base::Passed(std::vector<opcua::MonitoredItemNotification>(
+                    std::make_move_iterator(notification.MonitoredItems),
+                    std::make_move_iterator(
+                        notification.MonitoredItems +
+                        notification.NoOfMonitoredItems)))));
+      });
+
+  CommitItems();
+}
+
+std::unique_ptr<scada::MonitoredItem> OpcUaSubscription::CreateMonitoredItem(
+    const scada::ReadValueId& read_value_id) {
+  assert(!read_value_id.node_id.is_null());
+  return std::make_unique<OpcUaMonitoredItem>(
+      shared_from_this(), next_monitored_item_client_handle_++, read_value_id);
+}
+
+void OpcUaSubscription::Subscribe(
+    opcua::MonitoredItemClientHandle client_handle,
+    scada::ReadValueId read_value_id,
+    scada::DataChangeHandler data_change_handler,
+    scada::EventHandler event_handler) {
+  assert(!read_value_id.node_id.is_null());
+  assert(data_change_handler || event_handler);
+  assert(items_.find(client_handle) == items_.end());
+
+  auto& item = items_
+                   .emplace(client_handle,
+                            Item{
+                                client_handle,
+                                std::move(read_value_id),
+                                std::move(data_change_handler),
+                                std::move(event_handler),
+                                true,
+                                false,
+                            })
+                   .first->second;
+
+  assert(!Contains(pending_subscribe_items_, &item));
+  pending_subscribe_items_.emplace_back(&item);
+
+  ScheduleCommitItems();
+}
+
+void OpcUaSubscription::CreateMonitoredItems() {
+  if (!subscribing_items_.empty())
+    return;
+
+  if (pending_subscribe_items_.empty())
+    return;
+
+  std::vector<opcua::MonitoredItemCreateRequest> requests(
+      pending_subscribe_items_.size());
+
+  for (size_t i = 0; i < requests.size(); ++i) {
+    auto& item = *pending_subscribe_items_[i];
+    auto& request = requests[i];
+
+    opcua::ExtensionObject ext_filter;
+
+    if (item.read_value_id.attribute_id != scada::AttributeId::EventNotifier) {
+      opcua::DataChangeFilter filter;
+      filter.DeadbandType = OpcUa_DeadbandType_None;
+      filter.Trigger = OpcUa_DataChangeTrigger_StatusValueTimestamp;
+      ext_filter = opcua::ExtensionObject::Encode(std::move(filter));
+
+    } else {
+      opcua::EventFilter filter;
+      ext_filter = opcua::ExtensionObject::Encode(std::move(filter));
+    }
+
+    request.MonitoringMode = OpcUa_MonitoringMode_Reporting;
+    request.RequestedParameters.ClientHandle = item.client_handle;
+    Convert(item.read_value_id.node_id, request.ItemToMonitor.NodeId);
+    request.ItemToMonitor.AttributeId =
+        static_cast<opcua::AttributeId>(item.read_value_id.attribute_id);
+    ext_filter.release(request.RequestedParameters.Filter);
+  }
+
+  subscribing_items_.swap(pending_subscribe_items_);
+
+  auto ref = shared_from_this();
+  auto runner = base::SequencedTaskRunnerHandle::Get();
+  subscription_.CreateMonitoredItems(
+      {requests.data(), requests.size()}, OpcUa_TimestampsToReturn_Both,
+      [ref, runner](opcua::StatusCode status_code,
+                    opcua::Span<OpcUa_MonitoredItemCreateResult> results) {
+        runner->PostTask(
+            FROM_HERE,
+            base::Bind(
+                &OpcUaSubscription::OnCreateMonitoredItemsResponse, ref,
+                ConvertStatusCode(status_code.code()),
+                base::Passed(
+                    ConvertVector<OpcUaMonitoredItemCreateResult>(results))));
+      });
+}
+
+void OpcUaSubscription::OnCreateMonitoredItemsResponse(
+    scada::Status&& status,
+    std::vector<OpcUaMonitoredItemCreateResult> results) {
+  if (!status) {
+    OnError(std::move(status));
+    return;
+  }
+
+  if (results.size() != subscribing_items_.size()) {
+    OnError(scada::StatusCode::Bad);
+    return;
+  }
+
+  auto items = std::move(subscribing_items_);
+  subscribing_items_.clear();
+
+  for (size_t i = 0; i < results.size(); ++i) {
+    auto& result = results[i];
+    auto& item = *items[i];
+    assert(!item.added);
+    // OutputDebugStringA((std::string{"Subscription "} +
+    // item.read_value_id.first.ToString() + " " +
+    // std::to_string(static_cast<int>(item.read_value_id.second)) + " result =
+    // " +
+    //     std::to_string(static_cast<int>(result.status_code.code())) +
+    //     "\n").c_str());
+    if (result.status_code) {
+      item.id = result.monitored_item_id;
+      item.added = true;
+      if (item.subscribed) {
+        // TODO: Forward status.
+      } else {
+        assert(!Contains(unsubscribing_items_, &item));
+        unsubscribing_items_.emplace_back(&item);
+        // Commit will be done immediately.
+      }
+    } else {
+      if (item.subscribed) {
+        // TODO: Forward status.
+        if (item.data_change_handler)
+          item.data_change_handler(
+              {ConvertStatusCode(result.status_code.code()),
+               scada::DateTime::Now()});
+      } else {
+        assert(items_.find(item.client_handle) != items_.end());
+        items_.erase(item.client_handle);
+      }
+    }
+  }
+
+  CommitItems();
+}
+
+void OpcUaSubscription::Unsubscribe(
+    opcua::MonitoredItemClientHandle client_handle) {
+  auto i = items_.find(client_handle);
+  assert(i != items_.end());
+  auto& item = i->second;
+
+  assert(item.subscribed);
+  item.subscribed = false;
+  item.data_change_handler = nullptr;
+  item.event_handler = nullptr;
+
+  if (Erase(pending_subscribe_items_, &item)) {
+    items_.erase(i);
+  } else if (Contains(subscribing_items_, &item)) {
+    // Wait for the subscription end.
+  } else if (item.added) {
+    assert(!Contains(pending_unsubscribe_items_, &item));
+    pending_unsubscribe_items_.emplace_back(&item);
+    ScheduleCommitItems();
+  } else {
+    // Add failed.
+    items_.erase(i);
+  }
+}
+
+void OpcUaSubscription::DeleteMonitoredItems() {
+  if (!unsubscribing_items_.empty())
+    return;
+
+  if (pending_unsubscribe_items_.empty())
+    return;
+
+  std::vector<opcua::MonitoredItemId> item_ids(
+      pending_unsubscribe_items_.size());
+  for (size_t i = 0; i < item_ids.size(); ++i) {
+    auto& item = *pending_unsubscribe_items_[i];
+    assert(item.added);
+    item_ids[i] = item.id;
+  }
+
+  unsubscribing_items_.swap(pending_unsubscribe_items_);
+
+  auto ref = shared_from_this();
+  auto runner = base::SequencedTaskRunnerHandle::Get();
+  subscription_.DeleteMonitoredItems(
+      {item_ids.data(), item_ids.size()},
+      [ref, runner](opcua::StatusCode status_code,
+                    opcua::Span<OpcUa_StatusCode> results) {
+        std::vector<scada::StatusCode> converted_results(results.size());
+        for (size_t i = 0; i < results.size(); ++i)
+          converted_results[i] = ConvertStatusCode(results[i]);
+        runner->PostTask(
+            FROM_HERE,
+            base::Bind(&OpcUaSubscription::OnDeleteMonitoredItemsResponse, ref,
+                       ConvertStatusCode(status_code.code()),
+                       base::Passed(std::move(converted_results))));
+      });
+}
+
+void OpcUaSubscription::OnDeleteMonitoredItemsResponse(
+    scada::Status&& status,
+    std::vector<scada::StatusCode> results) {
+  if (!status) {
+    OnError(std::move(status));
+    return;
+  }
+
+  if (results.size() != unsubscribing_items_.size()) {
+    OnError(scada::StatusCode::Bad);
+    return;
+  }
+
+  auto items = std::move(unsubscribing_items_);
+  unsubscribing_items_.clear();
+
+  for (size_t i = 0; i < results.size(); ++i) {
+    auto result = results[i];
+    auto& item = *items[i];
+    assert(!item.subscribed);
+    assert(item.added);
+    if (scada::IsGood(result)) {
+      assert(items_.find(item.client_handle) != items_.end());
+      items_.erase(item.client_handle);
+    } else {
+      // Unsubscription failed. Unexpected.
+      assert(false);
+      OnError(result);
+      return;
+    }
+  }
+
+  CommitItems();
+}
+
+void OpcUaSubscription::OnError(scada::Status&& status) {
+  error_handler_(std::move(status));
+}
+
+void OpcUaSubscription::OnDataChange(
+    std::vector<opcua::MonitoredItemNotification> notifications) {
+  for (auto& notification : notifications) {
+    if (auto* item = FindItem(notification.ClientHandle)) {
+      if (!item->subscribed)
+        continue;
+      assert(item->read_value_id.attribute_id !=
+             scada::AttributeId::EventNotifier);
+      assert(item->data_change_handler);
+      if (item->read_value_id.attribute_id !=
+          scada::AttributeId::EventNotifier) {
+        auto data_value = Convert(std::move(notification.Value));
+        item->data_change_handler(std::move(data_value));
+      }
+    }
+  }
+}
+
+OpcUaSubscription::Item* OpcUaSubscription::FindItem(
+    opcua::MonitoredItemClientHandle client_handle) {
+  auto i = std::find_if(items_.begin(), items_.end(),
+                        [client_handle](const auto& p) {
+                          return p.second.client_handle == client_handle;
+                        });
+  return i != items_.end() ? &i->second : nullptr;
+}
+
+void OpcUaSubscription::ScheduleCommitItems() {
+  if (!created_ || commit_items_scheduled_)
+    return;
+
+  commit_items_scheduled_ = true;
+
+  base::SequencedTaskRunnerHandle::Get()->PostDelayedTask(
+      FROM_HERE,
+      base::Bind(&OpcUaSubscription::ScheduleCommitItemsDone,
+                 shared_from_this()),
+      kCommitItemsDelay);
+}
+
+void OpcUaSubscription::ScheduleCommitItemsDone() {
+  commit_items_scheduled_ = false;
+
+  CommitItems();
+}
+
+void OpcUaSubscription::CommitItems() {
+  assert(created_);
+
+  DeleteMonitoredItems();
+  CreateMonitoredItems();
+}
+
+void OpcUaSubscription::Reset() {
+  subscription_.Reset();
+}

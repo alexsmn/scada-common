@@ -35,7 +35,7 @@ class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
 TEST(AddressSpaceNodeModel, Fetch) {
   const scada::NodeId kNodeId = scada::id::RootFolder;
 
-  AddressSpaceImpl2 address_space{std::make_shared<NullLogger>()};
+  AddressSpaceImpl address_space{std::make_shared<NullLogger>()};
   MockAddressSpaceNodeModelDelegate delegate;
   AddressSpaceNodeModel node{delegate, kNodeId};
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/memory/ref_counted.h"
 #include "base/strings/string_piece.h"
 #include "core/data_services.h"
 #include "core/logging.h"

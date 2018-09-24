@@ -29,6 +29,14 @@ class TestAddressSpace : public AddressSpaceImpl2,
   void CreateNode(const scada::NodeState& node_state);
   void DeleteNode(const scada::NodeId& node_id);
 
+  // RootFolder : FolderType
+  //   TestNode1 : TestType {TestProp1}
+  //   TestNode2 : TestType {TestProp1, TestProp2}
+  //   TestNode3 : TestType
+  //     TestNode4 : TestType (Organizes)
+  //     TestNode5 : TestType (HasComponent)
+  //       TestNode6 : TestType (Organizes)
+
   static const unsigned kNamespaceIndex = NamespaceIndexes::SCADA;
   const scada::NodeId kTestTypeId{101, kNamespaceIndex};
   const scada::NodeId kTestRefTypeId{102, kNamespaceIndex};
@@ -49,14 +57,6 @@ inline TestAddressSpace::TestAddressSpace()
       AttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
       ViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}} {
   GenericNodeFactory node_factory{*this};
-
-  // RootFolder : FolderType
-  //   TestNode1 : TestType {TestProp1}
-  //   TestNode2 : TestType {TestProp1, TestProp2}
-  //   TestNode3 : TestType
-  //     TestNode4 : TestType (Organizes)
-  //     TestNode5 : TestType (HasComponent)
-  //       TestNode6 : TestType (Organizes)
 
   std::vector<scada::NodeState> nodes{
       {kTestRefTypeId,

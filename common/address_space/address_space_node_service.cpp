@@ -41,8 +41,8 @@ NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
   auto [status, fetch_status] = fetcher_.GetNodeFetchStatus(node_id);
   model->SetFetchStatus(node, std::move(status), fetch_status);
 
-  if (fetch_status != NodeFetchStatus::Max())
-    fetcher_.FetchNode(node_id, NodeFetchStatus::Max());
+  if (!fetch_status.node_fetched)
+    fetcher_.FetchNode(node_id, NodeFetchStatus::NodeOnly());
 
   return model;
 }

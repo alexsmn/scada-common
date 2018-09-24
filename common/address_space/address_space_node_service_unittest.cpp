@@ -229,3 +229,10 @@ TEST(AddressSpaceNodeService, ReferencedNodeDeletionAndRestoration) {
   EXPECT_EQ(node.node_id(), kNodeId);
   EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);*/
 }
+
+TEST(AddressSpaceNodeService, FetchProperty) {
+  AddressSpaceNodeServiceTestContext context;
+
+  auto node = context.node_service.GetNode(context.server_address_space.kTestNode1Id);
+  auto prop = node[context.server_address_space.kTestProp1Id];
+}

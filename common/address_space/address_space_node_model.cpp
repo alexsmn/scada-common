@@ -112,12 +112,16 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
 
 NodeRef AddressSpaceNodeModel::GetAggregate(
     const scada::QualifiedName& aggregate_name) const {
+  assert(fetch_status_.node_fetched);
+
   if (!node_)
     return nullptr;
+
   for (auto* node : scada::GetAggregates(*node_)) {
     if (node->GetBrowseName() == aggregate_name)
       return delegate_.GetRemoteNode(node);
   }
+
   return nullptr;
 }
 

@@ -1,5 +1,11 @@
 include_directories(".")
 
+# OPC-UA
+set(OPENSSL_ROOT_DIR "${deps}/openssl")
+set(OPCUA_ROOT_DIR "${deps}/UA-AnsiC")
+set(OPCUA_DIR "${deps}/opcuapp")
+set(OPCUAPP_DIR "${deps}/opcuapp")
+
 add_subdirectory("${deps}/googletest" gtest)
 add_subdirectory("${deps}/icu" icu)
 
@@ -16,6 +22,7 @@ add_subdirectory(base)
 add_subdirectory(core)
 add_subdirectory(common)
 add_subdirectory(address_space)
+add_subdirectory(opcua)
 add_subdirectory(remote)
 
 if(WIN32)
