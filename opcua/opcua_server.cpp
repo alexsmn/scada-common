@@ -16,31 +16,6 @@
 
 namespace {
 
-opcua::ProxyStubConfiguration MakeProxyStubConfiguration() {
-  opcua::ProxyStubConfiguration result;
-  result.bProxyStub_Trace_Enabled = OpcUa_True;
-  result.uProxyStub_Trace_Level = OPCUA_TRACE_OUTPUT_LEVEL_WARNING;
-  result.iSerializer_MaxAlloc = -1;
-  result.iSerializer_MaxStringLength = -1;
-  result.iSerializer_MaxByteStringLength = -1;
-  result.iSerializer_MaxArrayLength = -1;
-  result.iSerializer_MaxMessageSize = -1;
-  result.iSerializer_MaxRecursionDepth = -1;
-  result.bSecureListener_ThreadPool_Enabled = OpcUa_False;
-  result.iSecureListener_ThreadPool_MinThreads = -1;
-  result.iSecureListener_ThreadPool_MaxThreads = -1;
-  result.iSecureListener_ThreadPool_MaxJobs = -1;
-  result.bSecureListener_ThreadPool_BlockOnAdd = OpcUa_True;
-  result.uSecureListener_ThreadPool_Timeout = OPCUA_INFINITE;
-  result.bTcpListener_ClientThreadsEnabled = OpcUa_False;
-  result.iTcpListener_DefaultChunkSize = -1;
-  result.iTcpConnection_DefaultChunkSize = -1;
-  result.iTcpTransport_MaxMessageLength = -1;
-  result.iTcpTransport_MaxChunkCount = -1;
-  result.bTcpStream_ExpectWriteToBlock = OpcUa_True;
-  return result;
-}
-
 void SetNodeClass(const scada::DataValue& data_value, OpcUa_NodeClass& result) {
   if (scada::IsGood(data_value.status_code))
     result = static_cast<OpcUa_NodeClass>(data_value.value.get<int32_t>());
@@ -222,6 +197,28 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
 
 }  // namespace
 
+opcua::UInt32 ParseTraceLevel(std::string_view str) {
+  std::pair<std::string_view, opcua::UInt32> kTraceLevels[] = {
+      {"error", OPCUA_TRACE_OUTPUT_LEVEL_ERROR},
+      {"warning", OPCUA_TRACE_OUTPUT_LEVEL_WARNING},
+      {"system", OPCUA_TRACE_OUTPUT_LEVEL_SYSTEM},
+      {"info", OPCUA_TRACE_OUTPUT_LEVEL_INFO},
+      {"debug", OPCUA_TRACE_OUTPUT_LEVEL_DEBUG},
+      {"content", OPCUA_TRACE_OUTPUT_LEVEL_CONTENT},
+      {"all", OPCUA_TRACE_OUTPUT_LEVEL_ALL},
+      {"none", OPCUA_TRACE_OUTPUT_LEVEL_NONE},
+  };
+
+  for (auto& p : kTraceLevels) {
+    if (p.first == str)
+      return p.second;
+  }
+
+  return OPCUA_TRACE_OUTPUT_LEVEL_NONE;
+}
+
+// OpcUaServer
+
 OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
     : OpcUaServerContext{std::move(context)},
       proxy_stub_{platform_, MakeProxyStubConfiguration()} {
@@ -241,6 +238,10 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
       [this](opcua::ReadValueId& read_value_id) {
         return CreateMonitoredItem(read_value_id);
       });
+
+  endpoint_.set_product_uri("TelecontrolScada");
+  endpoint_.set_application_uri("TelecontrolScadaServer");
+  endpoint_.set_application_name("Telecontrol SCADA Server");
 
   endpoint_.Open(url_.c_str(), true, server_certificate_.get(),
                  server_private_key_, &pki_config_, {&security_policy_, 1});
@@ -336,12 +337,28 @@ opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(
           std::make_unique<MonitoredItemAdapter>(std::move(monitored_item))};
 }
 
-std::chrono::milliseconds GetDateTimeDiff(OpcUa_DateTime a_Value1,
-                                          OpcUa_DateTime a_Value2) {
-  auto ullValue1 = (static_cast<int64_t>(a_Value1.dwHighDateTime) << 32) +
-                   a_Value1.dwLowDateTime;
-  auto ullValue2 = (static_cast<int64_t>(a_Value2.dwHighDateTime) << 32) +
-                   a_Value2.dwLowDateTime;
-  auto ullResult = ullValue2 - ullValue1;
-  return std::chrono::milliseconds{ullResult * 10};
+opcua::ProxyStubConfiguration OpcUaServer::MakeProxyStubConfiguration() {
+  opcua::ProxyStubConfiguration result;
+  result.bProxyStub_Trace_Enabled =
+      trace_level_ != OPCUA_TRACE_OUTPUT_LEVEL_NONE;
+  result.uProxyStub_Trace_Level = trace_level_;
+  result.iSerializer_MaxAlloc = -1;
+  result.iSerializer_MaxStringLength = -1;
+  result.iSerializer_MaxByteStringLength = -1;
+  result.iSerializer_MaxArrayLength = -1;
+  result.iSerializer_MaxMessageSize = -1;
+  result.iSerializer_MaxRecursionDepth = -1;
+  result.bSecureListener_ThreadPool_Enabled = OpcUa_False;
+  result.iSecureListener_ThreadPool_MinThreads = -1;
+  result.iSecureListener_ThreadPool_MaxThreads = -1;
+  result.iSecureListener_ThreadPool_MaxJobs = -1;
+  result.bSecureListener_ThreadPool_BlockOnAdd = OpcUa_True;
+  result.uSecureListener_ThreadPool_Timeout = OPCUA_INFINITE;
+  result.bTcpListener_ClientThreadsEnabled = OpcUa_False;
+  result.iTcpListener_DefaultChunkSize = -1;
+  result.iTcpConnection_DefaultChunkSize = -1;
+  result.iTcpTransport_MaxMessageLength = -1;
+  result.iTcpTransport_MaxChunkCount = -1;
+  result.bTcpStream_ExpectWriteToBlock = OpcUa_True;
+  return result;
 }

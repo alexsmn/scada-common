@@ -24,6 +24,7 @@ struct OpcUaServerContext {
   scada::ViewService& view_service_;
   scada::MonitoredItemService& monitored_item_service_;
   const std::string url_;
+  const opcua::UInt32 trace_level_ = OPCUA_TRACE_OUTPUT_LEVEL_WARNING;
 };
 
 class OpcUaServer : private OpcUaServerContext {
@@ -39,6 +40,8 @@ class OpcUaServer : private OpcUaServerContext {
   opcua::server::CreateMonitoredItemResult CreateMonitoredItem(
       opcua::ReadValueId& read_value_id);
 
+  opcua::ProxyStubConfiguration MakeProxyStubConfiguration();
+
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;
 
@@ -50,3 +53,5 @@ class OpcUaServer : private OpcUaServerContext {
   const opcua::server::Endpoint::SecurityPolicyConfiguration security_policy_;
   opcua::server::Endpoint endpoint_{OpcUa_Endpoint_SerializerType_Binary};
 };
+
+opcua::UInt32 ParseTraceLevel(std::string_view str);
