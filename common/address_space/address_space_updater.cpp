@@ -199,7 +199,7 @@ void UpdateNodes(AddressSpaceImpl& address_space,
 
   // Create type definitions and their properties to let MergeProperties() work.
   // Type definitions never update.
-  for (auto& node_state : nodes) {
+  /*for (auto& node_state : nodes) {
     assert(!node_state.node_id.is_null());
 
     if (!scada::IsTypeDefinition(node_state.node_class) &&
@@ -210,11 +210,11 @@ void UpdateNodes(AddressSpaceImpl& address_space,
     assert(status);
     assert(added_node);
     added_nodes.emplace_back(added_node);
-  }
+  }*/
 
   std::map<scada::NodeId, scada::NodeProperties> modified_properties;
   // Deletes some nodes by resetting |id|.
-  MergeProperties(address_space, nodes, modified_properties);
+  // MergeProperties(address_space, nodes, modified_properties);
 
   for (auto& node_state : nodes) {
     // Skip properties.

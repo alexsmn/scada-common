@@ -1,5 +1,6 @@
 ﻿#include "address_space/standard_address_space.h"
 
+#include "address_space/address_space_impl.h"
 #include "base/strings/utf_string_conversions.h"
 
 GenericDataVariable::GenericDataVariable(StandardAddressSpace& std,
@@ -33,13 +34,49 @@ GenericProperty::GenericProperty(StandardAddressSpace& std,
   scada::AddReference(std.HasModellingRule, *this, std.ModellingRule_Mandatory);
 }
 
-StandardAddressSpace::StandardAddressSpace()
+StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
     : RootFolder{scada::id::RootFolder, "RootFolder",
                  base::WideToUTF16(L"Корневая папка")},
       ObjectsFolder{scada::id::ObjectsFolder, "ObjectsFolder",
                     base::WideToUTF16(L"Объекты")},
       TypesFolder{scada::id::TypesFolder, "TypesFolder",
                   base::WideToUTF16(L"Типы")} {
+  address_space.AddNode(RootFolder);
+  address_space.AddNode(ObjectsFolder);
+  address_space.AddNode(TypesFolder);
+
+  address_space.AddNode(EnumStrings);
+
+  address_space.AddNode(References);
+  address_space.AddNode(HierarchicalReference);
+  address_space.AddNode(NonHierarchicalReference);
+  address_space.AddNode(Aggregates);
+  address_space.AddNode(HasProperty);
+  address_space.AddNode(HasComponent);
+  address_space.AddNode(HasSubtype);
+  address_space.AddNode(HasTypeDefinition);
+  address_space.AddNode(HasModellingRule);
+  address_space.AddNode(Organizes);
+
+  address_space.AddNode(BaseDataType);
+  address_space.AddNode(BoolDataType);
+  address_space.AddNode(IntDataType);
+  address_space.AddNode(DoubleDataType);
+  address_space.AddNode(StringDataType);
+  address_space.AddNode(LocalizedTextDataType);
+  address_space.AddNode(NodeIdDataType);
+
+  address_space.AddNode(BaseObjectType);
+  address_space.AddNode(FolderType);
+
+  address_space.AddNode(BaseVariableType);
+  address_space.AddNode(PropertyType);
+
+  address_space.AddNode(ModellingRules);
+  address_space.AddNode(ModellingRule_Mandatory);
+
+  scada::AddReference(HasTypeDefinition, EnumStrings, PropertyType);
+
   scada::AddReference(HasTypeDefinition, RootFolder, FolderType);
 
   // ObjectsFolder
@@ -86,6 +123,7 @@ StandardAddressSpace::StandardAddressSpace()
   // ModellingRules
   scada::AddReference(HasTypeDefinition, ModellingRules, FolderType);
   scada::AddReference(Organizes, ObjectsFolder, ModellingRules);
-  scada::AddReference(HasTypeDefinition, ModellingRule_Mandatory, BaseObjectType);
+  scada::AddReference(HasTypeDefinition, ModellingRule_Mandatory,
+                      BaseObjectType);
   scada::AddReference(Organizes, ModellingRules, ModellingRule_Mandatory);
 }

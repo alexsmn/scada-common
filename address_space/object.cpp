@@ -19,30 +19,12 @@ void Object::Call(const scada::NodeId& method_id,
     callback(scada::StatusCode::Bad_WrongMethodId);
 }
 
-// GenericObject
-
-Variant GenericObject::GetPropertyValue(const NodeId& prop_decl_id) const {
-  auto i = properties_.find(prop_decl_id);
-  return i == properties_.end() ? Variant() : i->second;
-}
-
-Status GenericObject::SetPropertyValue(const NodeId& prop_decl_id,
-                                       const Variant& value) {
-  if (value.is_null()) {
-    properties_.erase(prop_decl_id);
-    return StatusCode::Good;
-  }
-
-  properties_[prop_decl_id] = value;
-  return StatusCode::Good;
-}
-
 // ComponentObject
 
 ComponentObject::ComponentObject(NodeBuilder& builder,
                                  const NodeId& instance_declaration_id)
     : instance_declaration_{
-          AsObject(builder.GetInstanceDeclaration(instance_declaration_id))} {
+          AsObject(builder.GetNode(instance_declaration_id))} {
   auto* type = instance_declaration_.type_definition();
   if (!type)
     throw std::runtime_error("Instance delaration has no type definition");

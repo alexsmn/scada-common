@@ -35,8 +35,11 @@ const VariableType* AsVariableType(const Node* node);
 VariableType* AsVariableType(Node* node);
 const ReferenceType* AsReferenceType(const Node* node);
 const DataType* AsDataType(const Node* node);
-const TypeDefinition* AsTypeDefinition(const Node* node);
+const DataType& AsDataType(const Node& node);
 TypeDefinition* AsTypeDefinition(Node* node);
+const TypeDefinition* AsTypeDefinition(const Node* node);
+TypeDefinition& AsTypeDefinition(Node& node);
+const TypeDefinition& AsTypeDefinition(const Node& node);
 
 NodeId GetTypeDefinitionId(const Node& node);
 

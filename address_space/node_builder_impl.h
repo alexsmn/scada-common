@@ -8,9 +8,8 @@ class NodeBuilderImpl : public scada::NodeBuilder {
   explicit NodeBuilderImpl(scada::AddressSpace& address_space)
       : address_space_{address_space} {}
 
-  virtual scada::Node& GetInstanceDeclaration(
-      const scada::NodeId& instance_declaration_id) override {
-    auto* node = address_space_.GetNode(instance_declaration_id);
+  virtual scada::Node& GetNode(const scada::NodeId& node_id) override {
+    auto* node = address_space_.GetNode(node_id);
     assert(node);
     return *node;
   }

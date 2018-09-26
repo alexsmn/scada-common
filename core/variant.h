@@ -100,6 +100,9 @@ class Variant {
   bool get(LocalizedText& value) const;
   bool get(NodeId& node_id) const;
 
+  template <class T>
+  bool get(T& value) const;
+
   bool get_or(bool or_value) const;
   int32_t get_or(int32_t or_value) const;
   double get_or(double or_value) const;
@@ -184,6 +187,15 @@ inline bool Variant::ChangeTypeTo() {
 }
 
 template <class T>
+inline bool Variant::get(T& value) const {
+  auto* ptr = get_if<T>();
+  if (!ptr)
+    return false;
+  value = *ptr;
+  return true;
+}
+
+template <class T>
 inline const T* Variant::get_if() const {
   return std::get_if<T>(&data_);
 }
@@ -202,6 +214,7 @@ inline std::ostream& operator<<(std::ostream& stream, const scada::Variant& v) {
   return stream;
 }
 
-inline std::ostream& operator<<(std::ostream& stream, scada::Variant::Type type) {
+inline std::ostream& operator<<(std::ostream& stream,
+                                scada::Variant::Type type) {
   return stream << ToString(type);
 }

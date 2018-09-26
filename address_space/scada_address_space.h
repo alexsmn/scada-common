@@ -8,7 +8,8 @@ class AddressSpaceImpl;
 class NodeFactory;
 
 struct StaticAddressSpace {
-  explicit StaticAddressSpace(StandardAddressSpace& std);
+  StaticAddressSpace(AddressSpaceImpl& address_space,
+                     StandardAddressSpace& std);
 
   struct DeviceType : public scada::ObjectType {
     DeviceType(StandardAddressSpace& std,

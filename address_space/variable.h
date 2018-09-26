@@ -94,15 +94,11 @@ class GenericVariable : public Variable {
   virtual DataValue GetValue() const override { return value_; }
   virtual Status SetValue(const DataValue& data_value) override;
   virtual DateTime GetChangeTime() const override { return change_time_; }
-  virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const override;
-  virtual Status SetPropertyValue(const NodeId& prop_decl_id,
-                                  const Variant& value) override;
 
  protected:
   const DataType& data_type_;
   DataValue value_;
   DateTime change_time_;
-  std::map<NodeId, Variant> properties_;
 };
 
 }  // namespace scada

@@ -180,7 +180,8 @@ scada::DataValue AttributeServiceImpl::ReadProperty(
       return scada::MakeReadResult(prop_decl->GetDataType().id());
 
     case scada::AttributeId::Value:
-      return scada::MakeReadResult(node.GetPropertyValue(prop_decl->id()));
+      return scada::MakeReadResult(
+          scada::GetPropertyValue(node, prop_decl->id()));
   }
 
   return {scada::StatusCode::Bad_WrongAttributeId, scada::DateTime::Now()};

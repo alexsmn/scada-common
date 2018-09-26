@@ -56,15 +56,6 @@ void Node::DeleteReference(const ReferenceType& reference_type,
   refs.erase(--i.base());
 }
 
-Variant Node::GetPropertyValue(const NodeId& prop_decl_id) const {
-  return GetPropertyValueHelper(*this, prop_decl_id);
-}
-
-Status Node::SetPropertyValue(const NodeId& prop_decl_id,
-                              const Variant& value) {
-  return SetPropertyValueHelper(*this, prop_decl_id, value);
-}
-
 QualifiedName Node::GetBrowseName() const {
   if (!browse_name_.empty())
     return browse_name_;

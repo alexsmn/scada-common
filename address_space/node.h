@@ -66,10 +66,6 @@ class Node {
                                bool forward,
                                Node& node);
 
-  virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const;
-  virtual Status SetPropertyValue(const NodeId& prop_decl_id,
-                                  const Variant& value);
-
   virtual AttributeService* GetAttributeService() { return nullptr; }
   virtual ViewService* GetViewService() { return nullptr; }
   virtual MethodService* GetMethodService() { return nullptr; }

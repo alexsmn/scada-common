@@ -1,7 +1,10 @@
 #pragma once
 
 #include "address_space/node.h"
+#include "address_space/property.h"
 #include "core/variant.h"
+
+#include <optional>
 
 namespace scada {
 
@@ -27,7 +30,9 @@ class DataType : public TypeDefinition {
  public:
   DataType() {}
 
-  DataType(NodeId id, QualifiedName browse_name, LocalizedText display_name) {
+  DataType(NodeId id,
+           QualifiedName browse_name,
+           LocalizedText display_name) {
     set_id(std::move(id));
     SetBrowseName(std::move(browse_name));
     SetDisplayName(std::move(display_name));
@@ -37,11 +42,9 @@ class DataType : public TypeDefinition {
   virtual NodeClass GetNodeClass() const override {
     return NodeClass::DataType;
   }
-  virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const override;
-  virtual Status SetPropertyValue(const NodeId& prop_decl_id,
-                                  const Variant& value) override;
 
-  std::vector<scada::LocalizedText> enum_strings;
+  std::optional<scada::PropertyDecl<std::vector<scada::LocalizedText>>>
+      enum_strings;
 };
 
 class VariableType : public TypeDefinition {

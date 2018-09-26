@@ -113,20 +113,4 @@ Status GenericVariable::SetValue(const DataValue& data_value) {
   return StatusCode::Good;
 }
 
-Variant GenericVariable::GetPropertyValue(const NodeId& prop_decl_id) const {
-  auto i = properties_.find(prop_decl_id);
-  return i == properties_.end() ? Variant() : i->second;
-}
-
-Status GenericVariable::SetPropertyValue(const NodeId& prop_decl_id,
-                                         const Variant& value) {
-  if (value.is_null()) {
-    properties_.erase(prop_decl_id);
-    return StatusCode::Good;
-  }
-
-  properties_[prop_decl_id] = value;
-  return StatusCode::Good;
-}
-
 }  // namespace scada

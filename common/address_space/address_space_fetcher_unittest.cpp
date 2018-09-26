@@ -96,12 +96,12 @@ TEST(AddressSpaceFetcher, ConfigurationLoad) {
         context.server_address_space.kTestNode1Id);
     ASSERT_TRUE(node);
     EXPECT_EQ(node->GetBrowseName(), "TestNode1");
-    EXPECT_EQ(
-        scada::Variant{"TestNode1.TestProp1.Value"},
-        node->GetPropertyValue(context.server_address_space.kTestProp1Id));
-    EXPECT_TRUE(
-        node->GetPropertyValue(context.server_address_space.kTestProp2Id)
-            .is_null());
+    EXPECT_EQ(scada::Variant{"TestNode1.TestProp1.Value"},
+              scada::GetPropertyValue(
+                  *node, context.server_address_space.kTestProp1Id));
+    EXPECT_TRUE(scada::GetPropertyValue(
+                    *node, context.server_address_space.kTestProp2Id)
+                    .is_null());
   }
 
   {
@@ -109,12 +109,12 @@ TEST(AddressSpaceFetcher, ConfigurationLoad) {
         context.server_address_space.kTestNode2Id);
     ASSERT_TRUE(node);
     EXPECT_EQ(node->GetBrowseName(), "TestNode2");
-    EXPECT_EQ(
-        scada::Variant{"TestNode2.TestProp1.Value"},
-        node->GetPropertyValue(context.server_address_space.kTestProp1Id));
-    EXPECT_EQ(
-        scada::Variant{"TestNode2.TestProp2.Value"},
-        node->GetPropertyValue(context.server_address_space.kTestProp2Id));
+    EXPECT_EQ(scada::Variant{"TestNode2.TestProp1.Value"},
+              scada::GetPropertyValue(
+                  *node, context.server_address_space.kTestProp1Id));
+    EXPECT_EQ(scada::Variant{"TestNode2.TestProp2.Value"},
+              scada::GetPropertyValue(
+                  *node, context.server_address_space.kTestProp2Id));
   }
 }
 
@@ -176,8 +176,8 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
     EXPECT_EQ("TestNode1", node->GetBrowseName());
     node->SetBrowseName(kNewBrowseName);
     // Change property
-    node->SetPropertyValue(context.server_address_space.kTestProp1Id,
-                           kNewValue);
+    scada::SetPropertyValue(*node, context.server_address_space.kTestProp1Id,
+                            kNewValue);
   }
 
   context.server_address_space.NotifySemanticChanged(
@@ -187,8 +187,8 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
     auto* node = context.client_address_space.GetNode(kNodeId);
     ASSERT_TRUE(node);
     EXPECT_EQ(kNewBrowseName, node->GetBrowseName());
-    EXPECT_EQ(kNewValue, node->GetPropertyValue(
-                             context.server_address_space.kTestProp1Id));
+    EXPECT_EQ(kNewValue, scada::GetPropertyValue(
+                             *node, context.server_address_space.kTestProp1Id));
   }
 }
 

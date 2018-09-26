@@ -37,14 +37,6 @@ class GenericObject : public Object {
     SetBrowseName(std::move(browse_name));
     SetDisplayName(std::move(display_name));
   }
-
-  // Node
-  virtual Variant GetPropertyValue(const NodeId& prop_decl_id) const override;
-  virtual Status SetPropertyValue(const NodeId& prop_decl_id,
-                                  const Variant& value) override;
-
- private:
-  std::map<NodeId, Variant> properties_;
 };
 
 class ComponentObject : public Object {

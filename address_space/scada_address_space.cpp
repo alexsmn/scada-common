@@ -1,6 +1,7 @@
 ﻿#include "address_space/scada_address_space.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/node_builder_impl.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
@@ -69,8 +70,8 @@ scada::DataType* CreateDataType(AddressSpaceImpl& address_space,
                                 const scada::NodeId& supertype_id) {
   assert(!address_space.GetNode(id));
 
-  std::unique_ptr<scada::DataType> type(
-      new scada::DataType(id, std::move(browse_name), std::move(display_name)));
+  auto type = std::make_unique<scada::DataType>(id, std::move(browse_name),
+                                                std::move(display_name));
   auto* result = type.get();
   address_space.AddStaticNode(std::move(type));
 
@@ -226,9 +227,16 @@ StaticAddressSpace::DeviceType::DeviceType(StandardAddressSpace& std,
   scada::AddReference(std.HasComponent, *this, Enabled);
 }
 
-StaticAddressSpace::StaticAddressSpace(StandardAddressSpace& std)
+StaticAddressSpace::StaticAddressSpace(AddressSpaceImpl& address_space,
+                                       StandardAddressSpace& std)
     : DeviceType{std, id::DeviceType, "DeviceType",
                  base::WideToUTF16(L"Устройство")} {
+  address_space.AddNode(Creates);
+  address_space.AddNode(DeviceType);
+  address_space.AddNode(DeviceType.Disabled);
+  address_space.AddNode(DeviceType.Enabled);
+  address_space.AddNode(DeviceType.Online);
+
   scada::AddReference(std.HasSubtype, std.NonHierarchicalReference, Creates);
 }
 
@@ -517,9 +525,13 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     auto* mode_type = CreateDataType(
         address_space, id::ModbusLinkType_Mode, "ModbusPortModeType",
         base::WideToUTF16(L"Тип направления MODBUS"), scada::id::Int32);
-    mode_type->enum_strings = {base::WideToUTF16(L"Опрос"),
-                               base::WideToUTF16(L"Ретрансляция"),
-                               base::WideToUTF16(L"Прослушка")};
+    NodeBuilderImpl builder{address_space};
+    mode_type->enum_strings.emplace(builder, *mode_type, scada::id::EnumStrings,
+                                    "EnumStrings", scada::LocalizedText{},
+                                    scada::id::LocalizedText);
+    mode_type->enum_strings->set_value({base::WideToUTF16(L"Опрос"),
+                                        base::WideToUTF16(L"Ретрансляция"),
+                                        base::WideToUTF16(L"Прослушка")});
     AddProperty(address_space, id::ModbusLinkType, id::ModbusLinkType_Protocol,
                 "Mode", base::WideToUTF16(L"Режим"), id::ModbusLinkType_Mode,
                 0);

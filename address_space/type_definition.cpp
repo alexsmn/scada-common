@@ -6,6 +6,8 @@
 
 namespace scada {
 
+// TypeDefinition
+
 TypeDefinition::TypeDefinition() {}
 
 void TypeDefinition::AddReference(const ReferenceType& reference_type,
@@ -29,26 +31,6 @@ void TypeDefinition::DeleteReference(const ReferenceType& reference_type,
   }
 
   Node::DeleteReference(reference_type, forward, node);
-}
-
-Variant DataType::GetPropertyValue(const NodeId& prop_decl_id) const {
-  if (prop_decl_id == id::EnumStrings)
-    return enum_strings;
-
-  return TypeDefinition::GetPropertyValue(prop_decl_id);
-}
-
-Status DataType::SetPropertyValue(const NodeId& prop_decl_id,
-                                  const Variant& value) {
-  if (prop_decl_id == id::EnumStrings) {
-    auto* v = value.get_if<decltype(enum_strings)>();
-    if (!v)
-      return scada::StatusCode::Bad_WrongTypeId;
-    enum_strings = *v;
-    return scada::StatusCode::Good;
-  }
-
-  return TypeDefinition::SetPropertyValue(prop_decl_id, value);
 }
 
 }  // namespace scada

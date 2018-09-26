@@ -1,5 +1,6 @@
 #include "address_space/address_space_impl.h"
 
+#include "address_space/node_builder_impl.h"
 #include "address_space/node_observer.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
@@ -16,46 +17,10 @@ AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger)
 
 AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
     : AddressSpaceImpl{std::move(logger)},
-      standard_address_space_(std::make_unique<StandardAddressSpace>()),
+      standard_address_space_(
+          std::make_unique<StandardAddressSpace>(*this)),
       static_address_space_(
-          std::make_unique<StaticAddressSpace>(*standard_address_space_)) {
-  AddNode(standard_address_space_->RootFolder);
-  AddNode(standard_address_space_->ObjectsFolder);
-  AddNode(standard_address_space_->TypesFolder);
-
-  AddNode(standard_address_space_->References);
-  AddNode(standard_address_space_->HierarchicalReference);
-  AddNode(standard_address_space_->NonHierarchicalReference);
-  AddNode(standard_address_space_->Aggregates);
-  AddNode(standard_address_space_->HasProperty);
-  AddNode(standard_address_space_->HasComponent);
-  AddNode(standard_address_space_->HasSubtype);
-  AddNode(standard_address_space_->HasTypeDefinition);
-  AddNode(standard_address_space_->HasModellingRule);
-  AddNode(standard_address_space_->Organizes);
-
-  AddNode(standard_address_space_->BaseDataType);
-  AddNode(standard_address_space_->BoolDataType);
-  AddNode(standard_address_space_->IntDataType);
-  AddNode(standard_address_space_->DoubleDataType);
-  AddNode(standard_address_space_->StringDataType);
-  AddNode(standard_address_space_->LocalizedTextDataType);
-  AddNode(standard_address_space_->NodeIdDataType);
-
-  AddNode(standard_address_space_->BaseObjectType);
-  AddNode(standard_address_space_->FolderType);
-
-  AddNode(standard_address_space_->BaseVariableType);
-  AddNode(standard_address_space_->PropertyType);
-
-  AddNode(standard_address_space_->ModellingRules);
-  AddNode(standard_address_space_->ModellingRule_Mandatory);
-
-  AddNode(static_address_space_->Creates);
-  AddNode(static_address_space_->DeviceType);
-  AddNode(static_address_space_->DeviceType.Disabled);
-  AddNode(static_address_space_->DeviceType.Enabled);
-  AddNode(static_address_space_->DeviceType.Online);
+          std::make_unique<StaticAddressSpace>(*this, *standard_address_space_)) {
 }
 
 AddressSpaceImpl2::~AddressSpaceImpl2() {

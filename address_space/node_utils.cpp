@@ -100,6 +100,11 @@ const DataType* AsDataType(const Node* node) {
              : nullptr;
 }
 
+const DataType& AsDataType(const Node& node) {
+  assert(node.GetNodeClass() == scada::NodeClass::DataType);
+  return static_cast<const DataType&>(node);
+}
+
 const Node* GetReferenceTarget(const TypeDefinition* source,
                                const NodeId& reference_type_id) {
   for (; source; source = source->supertype()) {
@@ -137,16 +142,26 @@ const Node* GetDeclaration(const Node& node) {
   return nullptr;
 }
 
+TypeDefinition* AsTypeDefinition(Node* node) {
+  return node && IsTypeDefinition(node->GetNodeClass())
+             ? static_cast<TypeDefinition*>(node)
+             : nullptr;
+}
+
 const TypeDefinition* AsTypeDefinition(const Node* node) {
   return node && IsTypeDefinition(node->GetNodeClass())
              ? static_cast<const TypeDefinition*>(node)
              : nullptr;
 }
 
-TypeDefinition* AsTypeDefinition(Node* node) {
-  return node && IsTypeDefinition(node->GetNodeClass())
-             ? static_cast<TypeDefinition*>(node)
-             : nullptr;
+TypeDefinition& AsTypeDefinition(Node& node) {
+  assert(scada::IsTypeDefinition(node.GetNodeClass()));
+  return static_cast<TypeDefinition&>(node);
+}
+
+const TypeDefinition& AsTypeDefinition(const Node& node) {
+  assert(scada::IsTypeDefinition(node.GetNodeClass()));
+  return static_cast<const TypeDefinition&>(node);
 }
 
 Reference GetParentReference(Node& node) {
@@ -237,13 +252,34 @@ NodeId GetModellingRuleId(const Node& node) {
 }
 
 Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
-  return node.GetPropertyValue(prop_decl_id);
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  assert(declaration);
+  if (!declaration)
+    return {};
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  if (!property)
+    return {};
+
+  return property->GetValue().value;
 }
 
 Status SetPropertyValue(Node& node,
                         const NodeId& prop_decl_id,
                         const Variant& value) {
-  return node.SetPropertyValue(prop_decl_id, value);
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  assert(declaration);
+  if (!declaration)
+    return StatusCode::Bad;
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  assert(property);
+  if (!property)
+    return StatusCode::Bad;
+
+  return property->SetValue({value, {}, {}, {}});
 }
 
 const Node* FindDeclaration(const Node& node, const NodeId& declaration_id) {

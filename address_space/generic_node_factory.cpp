@@ -1,6 +1,7 @@
 #include "address_space/generic_node_factory.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/node_builder_impl.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
@@ -100,13 +101,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
                         *type_definition);
   }
 
-  for (auto& [prop_decl_id, value] : node_state.properties) {
-    auto status =
-        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
-    if (!status)
-      return {status, nullptr};
-  }
-
   auto* node_ptr = node.get();
 
   address_space_.AddStaticNode(std::move(node));
@@ -128,6 +122,13 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     auto [status, node] = CreateNodeHelper(child, node_state.node_id);
     if (!status)
       throw status;
+  }
+
+  for (auto& [prop_decl_id, value] : node_state.properties) {
+    auto status =
+        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
+    if (!status)
+      return {status, nullptr};
   }
 
   return {scada::StatusCode::Good, node_ptr};
