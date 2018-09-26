@@ -91,10 +91,20 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   }
 
   node->set_id(std::move(node_state.node_id));
+
   if (!node_state.attributes.browse_name.empty())
     node->SetBrowseName(node_state.attributes.browse_name);
+
   if (!node_state.attributes.display_name.empty())
     node->SetDisplayName(node_state.attributes.display_name);
+
+  if (auto* variable = scada::AsVariable(node.get())) {
+    if (!node_state.attributes.value.is_null()) {
+      const auto time_stamp = scada::DateTime::Now();
+      variable->SetValue(scada::DataValue{
+          std::move(node_state.attributes.value), {}, time_stamp, time_stamp});
+    }
+  }
 
   if (type_definition) {
     scada::AddReference(address_space_, scada::id::HasTypeDefinition, *node,

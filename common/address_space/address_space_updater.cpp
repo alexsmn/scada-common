@@ -218,8 +218,8 @@ void UpdateNodes(AddressSpaceImpl& address_space,
 
   for (auto& node_state : nodes) {
     // Skip properties.
-    if (node_state.reference_type_id == scada::id::HasProperty)
-      continue;
+    //if (node_state.reference_type_id == scada::id::HasProperty)
+    //  continue;
 
     if (auto* node = address_space.GetNode(node_state.node_id)) {
       // Skip nodes added above.
