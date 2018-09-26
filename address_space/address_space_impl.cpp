@@ -17,11 +17,10 @@ AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger)
 
 AddressSpaceImpl2::AddressSpaceImpl2(std::shared_ptr<Logger> logger)
     : AddressSpaceImpl{std::move(logger)},
-      standard_address_space_(
-          std::make_unique<StandardAddressSpace>(*this)),
+      standard_address_space_(std::make_unique<StandardAddressSpace>(*this)),
       static_address_space_(
-          std::make_unique<StaticAddressSpace>(*this, *standard_address_space_)) {
-}
+          std::make_unique<StaticAddressSpace>(*this,
+                                               *standard_address_space_)) {}
 
 AddressSpaceImpl2::~AddressSpaceImpl2() {
   Clear();
@@ -44,13 +43,24 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
   assert(node);
 
   scada::AttributeSet attribute_set;
+
   if (!attributes.browse_name.empty()) {
     attribute_set.Add(scada::AttributeId::BrowseName);
     node->SetBrowseName(std::move(attributes.browse_name));
   }
+
   if (!attributes.display_name.empty()) {
     attribute_set.Add(scada::AttributeId::DisplayName);
     node->SetDisplayName(std::move(attributes.display_name));
+  }
+
+  if (auto* variable = scada::AsVariable(node)) {
+    attribute_set.Add(scada::AttributeId::Value);
+
+    // TODO: Avoid timestamp.
+    const auto timestamp = scada::DateTime::Now();
+    variable->SetValue(scada::DataValue{
+        std::move(attributes.value), {}, timestamp, timestamp});
   }
 
   // Properties.
