@@ -1,6 +1,5 @@
 #include "common/address_space/address_space_node_model.h"
 
-#include "common/address_space/property_node_model.h"
 #include "common/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
@@ -36,26 +35,31 @@ scada::Variant AddressSpaceNodeModel::GetAttribute(
   if (attribute_id == scada::AttributeId::NodeId)
     return node_id_;
 
-  if (node_) {
-    switch (attribute_id) {
-      case scada::AttributeId::NodeClass:
-        return static_cast<int>(node_->GetNodeClass());
-      case scada::AttributeId::BrowseName:
-        return node_->GetBrowseName();
-      case scada::AttributeId::DisplayName:
-        return node_->GetDisplayName();
-      default:
-        return {};
-    }
-
-  } else {
+  if (!node_) {
     switch (attribute_id) {
       case scada::AttributeId::DisplayName:
         return scada::ToLocalizedText(NodeIdToScadaString(node_id_));
-      default:
-        return {};
+    }
+    return {};
+  }
+
+  switch (attribute_id) {
+    case scada::AttributeId::NodeClass:
+      return static_cast<int>(node_->GetNodeClass());
+    case scada::AttributeId::BrowseName:
+      return node_->GetBrowseName();
+    case scada::AttributeId::DisplayName:
+      return node_->GetDisplayName();
+  }
+
+  if (auto* variable = scada::AsVariable(node_)) {
+    switch (attribute_id) {
+      case scada::AttributeId::Value:
+        return variable->GetValue().value;
     }
   }
+
+  return {};
 }
 
 std::vector<NodeRef::Reference> AddressSpaceNodeModel::GetReferences(
@@ -99,15 +103,10 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
   if (!declaration)
     return nullptr;
 
-  if (scada::IsTypeDefinition(node_->GetNodeClass())) {
+  if (scada::IsTypeDefinition(node_->GetNodeClass()))
     return delegate_.GetRemoteNode(declaration);
-  } else if (scada::IsInstanceOf(declaration, scada::id::PropertyType)) {
-    return std::make_shared<AddressSpacePropertyModel>(
-        shared_from_this(), delegate_.GetRemoteNode(declaration).model(),
-        delegate_);
-  } else {
+  else
     return GetAggregate(declaration->GetBrowseName());
-  }
 }
 
 NodeRef AddressSpaceNodeModel::GetAggregate(
@@ -197,29 +196,6 @@ void AddressSpaceNodeModel::OnNodeDeleted() {
   node_ = nullptr;
 
   BaseNodeModel::OnNodeDeleted();
-}
-
-scada::Variant AddressSpaceNodeModel::GetPropertyAttribute(
-    const NodeModel& property_declaration,
-    scada::AttributeId attribute_id) const {
-  switch (attribute_id) {
-    case scada::AttributeId::NodeId:
-      return MakeNestedNodeId(
-          GetAttribute(scada::AttributeId::NodeId).as_node_id(),
-          property_declaration.GetAttribute(scada::AttributeId::BrowseName)
-              .get<scada::QualifiedName>()
-              .name());
-
-    case scada::AttributeId::Value:
-      if (!node_)
-        return {};
-      return scada::GetPropertyValue(
-          *node_, property_declaration.GetAttribute(scada::AttributeId::NodeId)
-                      .as_node_id());
-
-    default:
-      return property_declaration.GetAttribute(attribute_id);
-  }
 }
 
 std::unique_ptr<scada::MonitoredItem>

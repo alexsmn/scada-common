@@ -55,9 +55,6 @@ class AddressSpaceNodeModel final
                       const scada::Status& status,
                       const NodeFetchStatus& fetch_status);
 
-  scada::Variant GetPropertyAttribute(const NodeModel& property_declaration,
-                                      scada::AttributeId attribute_id) const;
-
   // NodeModel
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override;
