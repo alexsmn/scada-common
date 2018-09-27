@@ -35,7 +35,6 @@ void RemoteNodeModel::OnNodeSemanticChanged() {
 
 void RemoteNodeModel::OnNodeFetched(scada::NodeState&& node_state) {
   // |super_type_id| is not used.
-  assert(node_state.super_type_id.is_null());
   assert(scada::IsTypeDefinition(node_state.node_class) ||
          !node_state.type_definition_id.is_null());
   assert(!scada::IsTypeDefinition(node_state.node_class) ||

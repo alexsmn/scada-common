@@ -99,10 +99,10 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     node->SetDisplayName(node_state.attributes.display_name);
 
   if (auto* variable = scada::AsVariable(node.get())) {
+    // Property ignores timestamps.
     // TODO: Avoid timestamp.
-    const auto timestamp = scada::DateTime::Now();
-    variable->SetValue(scada::DataValue{
-        std::move(node_state.attributes.value), {}, timestamp, timestamp});
+    variable->SetValue(
+        scada::DataValue{std::move(node_state.attributes.value), {}, {}, {}});
   }
 
   if (type_definition) {

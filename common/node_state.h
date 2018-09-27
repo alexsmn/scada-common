@@ -22,7 +22,6 @@ struct NodeState {
   NodeAttributes attributes;
   NodeProperties properties;
   std::vector<ReferenceDescription> references;
-  NodeId super_type_id;
   std::vector<NodeState> children;
 };
 
@@ -43,6 +42,7 @@ inline std::ostream& operator<<(std::ostream& stream,
                 << "reference_type_id: " << node_state.reference_type_id << ", "
                 << "attributes: " << node_state.attributes << ", "
                 << "properties: " << node_state.properties << ", "
-                << "references: " << node_state.references
+                << "references: " << node_state.references << ", "
+                << "children: " << node_state.children
                 << "}";
 }
