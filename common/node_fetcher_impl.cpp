@@ -357,14 +357,18 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
   struct Collector {
+    enum class State { None, Fetched, NotFetched };
+
     bool IsFetchedRecursively(FetchingNode& node) {
       if (!node.fetched())
         return false;
 
-      if (std::find(visited.begin(), visited.end(), &node) != visited.end())
-        return true;
+      auto& state = cache[&node];
+      if (state != State::None)
+        return state == State::Fetched;
 
-      visited.emplace_back(&node);
+      // A cycle means fetched as well.
+      state = State::Fetched;
 
       bool fetched = true;
       for (auto* depends_of : node.depends_of) {
@@ -374,12 +378,13 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
         }
       }
 
-      visited.pop_back();
+      state = fetched ? State::Fetched : State::NotFetched;
 
       return fetched;
     }
 
-    std::vector<FetchingNode*> visited;
+    FetchingNodeGraph& graph;
+    std::unordered_map<FetchingNode*, State> cache;
   };
 
   std::vector<scada::NodeState> fetched_nodes;
@@ -387,12 +392,11 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
 
   NodeFetchErrors errors;
 
-  Collector collector;
-  collector.visited.reserve(std::min<size_t>(32, fetching_nodes_.size()));
-
+  Collector collector{*this};
   for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {
     auto& node = i->second;
 
+    collector.cache.clear();
     if (!collector.IsFetchedRecursively(node)) {
       ++i;
       continue;
@@ -570,6 +574,7 @@ void NodeFetcherImpl::OnBrowseResult(
 void NodeFetcherImpl::FetchingNodeGraph::AddDependency(FetchingNode& node,
                                                        FetchingNode& from) {
   assert(&node != &from);
+
   Insert(from.dependent_nodes, &node);
   Insert(node.depends_of, &from);
 }
@@ -682,6 +687,18 @@ bool NodeFetcherImpl::AssertValid() const {
 
 bool NodeFetcherImpl::FetchingNodeGraph::AssertValid() const {
   return true;
+}
+
+std::string NodeFetcherImpl::FetchingNodeGraph::GetDebugString() const {
+  std::stringstream stream;
+  for (auto& p : fetching_nodes_) {
+    auto& node = p.second;
+    stream << node.node_id << ": ";
+    for (auto* depends_of : node.depends_of)
+      stream << depends_of->node_id << ", ";
+    stream << std::endl;
+  }
+  return stream.str();
 }
 
 void NodeFetcherImpl::ValidateDependency(FetchingNode& node,

@@ -54,7 +54,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     bool attributes_fetched = false;
     bool references_fetched = false;
     scada::Status status{scada::StatusCode::Good};
-    bool force = false;
+    bool force = false;  // refetch even if fetching has been already started
     bool is_property = false;  // object property (not property declaration)
   };
 
@@ -72,6 +72,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     std::pair<std::vector<scada::NodeState>, NodeFetchErrors> GetFetchedNodes();
 
     bool AssertValid() const;
+
+    std::string GetDebugString() const;
 
    private:
     std::map<scada::NodeId, FetchingNode> fetching_nodes_;
