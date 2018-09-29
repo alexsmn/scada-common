@@ -11,13 +11,10 @@
 
 namespace scada {
 class ReferenceType;
-struct Reference;
 struct PropertyIds;
 }  // namespace scada
 
 class Logger;
-struct StandardAddressSpace;
-struct StaticAddressSpace;
 
 class AddressSpaceImpl : public scada::AddressSpace {
  public:
@@ -86,16 +83,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
   mutable std::map<scada::NodeId, NodeEvents> node_events_;
 
   DISALLOW_COPY_AND_ASSIGN(AddressSpaceImpl);
-};
-
-class AddressSpaceImpl2 : public AddressSpaceImpl {
- public:
-  explicit AddressSpaceImpl2(std::shared_ptr<Logger> logger);
-  ~AddressSpaceImpl2();
-
- private:
-  std::unique_ptr<StandardAddressSpace> standard_address_space_;
-  std::unique_ptr<StaticAddressSpace> static_address_space_;
 };
 
 template <class T>

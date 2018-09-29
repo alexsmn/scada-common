@@ -1,6 +1,6 @@
 #pragma once
 
-#include "address_space/address_space_impl.h"
+#include "address_space/address_space_impl2.h"
 #include "address_space/attribute_service_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "address_space/node.h"

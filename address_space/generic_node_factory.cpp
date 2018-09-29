@@ -22,7 +22,8 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     const scada::NodeId& parent_id) {
   assert(!node_state.node_id.is_null());
 
-  if (node_state.node_id != scada::id::RootFolder) {
+  if (node_state.node_id != scada::id::RootFolder &&
+      !scada::IsTypeDefinition(node_state.node_class)) {
     assert(!parent_id.is_null());
     assert(!node_state.reference_type_id.is_null());
   }
