@@ -122,12 +122,35 @@ scada::Variable* AddProperty(AddressSpaceImpl& address_space,
   return result;
 }
 
-scada::ReferenceType* CreateReferenceType(AddressSpaceImpl& address_space,
-                                          const scada::NodeId& source_type_id,
-                                          const scada::NodeId& prop_type_id,
-                                          scada::QualifiedName browse_name,
-                                          scada::LocalizedText display_name,
-                                          const scada::NodeId& target_type_id) {
+scada::ReferenceType* CreateReferenceType(
+    AddressSpaceImpl& address_space,
+    const scada::NodeId& reference_type_id,
+    scada::QualifiedName browse_name,
+    scada::LocalizedText display_name) {
+  auto* existing_prop = address_space.GetNode(reference_type_id);
+  assert(!existing_prop ||
+         existing_prop->GetNodeClass() == scada::NodeClass::ReferenceType);
+
+  auto* result = static_cast<scada::ReferenceType*>(existing_prop);
+  assert(!result);
+
+  auto ref_type = std::make_unique<scada::ReferenceType>(
+      reference_type_id, std::move(browse_name), std::move(display_name));
+  result = ref_type.get();
+  address_space.AddStaticNode(std::move(ref_type));
+  AddReference(address_space, scada::id::HasSubtype,
+               scada::id::NonHierarchicalReferences, reference_type_id);
+
+  return result;
+}
+
+scada::ReferenceType* CreateReferenceType(
+    AddressSpaceImpl& address_space,
+    const scada::NodeId& source_type_id,
+    const scada::NodeId& reference_type_id,
+    scada::QualifiedName browse_name,
+    scada::LocalizedText display_name,
+    const scada::NodeId& target_type_id) {
   auto* source_type = address_space.GetNode(source_type_id);
   assert(source_type &&
          (source_type->GetNodeClass() == scada::NodeClass::ObjectType ||
@@ -136,18 +159,18 @@ scada::ReferenceType* CreateReferenceType(AddressSpaceImpl& address_space,
   auto* target_type = address_space.GetNode(target_type_id);
   assert(target_type);
 
-  auto* existing_prop = address_space.GetNode(prop_type_id);
+  auto* existing_prop = address_space.GetNode(reference_type_id);
   assert(!existing_prop ||
          existing_prop->GetNodeClass() == scada::NodeClass::ReferenceType);
 
   auto* result = static_cast<scada::ReferenceType*>(existing_prop);
   if (!result) {
     auto ref_type = std::make_unique<scada::ReferenceType>(
-        prop_type_id, std::move(browse_name), std::move(display_name));
+        reference_type_id, std::move(browse_name), std::move(display_name));
     result = ref_type.get();
     address_space.AddStaticNode(std::move(ref_type));
     AddReference(address_space, scada::id::HasSubtype,
-                 scada::id::NonHierarchicalReferences, prop_type_id);
+                 scada::id::NonHierarchicalReferences, reference_type_id);
   }
 
   AddReference(*result, *source_type, *target_type);
@@ -848,5 +871,18 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::TransmissionItemType_SourceAddress, "InfoAddress",
                 base::WideToUTF16(L"Адрес объекта приемника"), scada::id::Int32,
                 1);
+  }
+
+  // Aliases
+  {
+    node_factory.CreateNode(
+        {id::Aliases, scada::NodeClass::Object, scada::id::FolderType,
+         scada::id::ObjectsFolder, scada::id::Organizes,
+         scada::NodeAttributes{}.set_browse_name("Aliases").set_display_name(
+             base::WideToUTF16(L"Алиасы"))});
+
+    CreateObjectType(address_space, id::AliasType, "AliasType",
+                     base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
+    CreateReferenceType(address_space, id::HasAlias, "HasAlias", {});
   }
 }

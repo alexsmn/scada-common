@@ -39,4 +39,17 @@ base::string16 GetFullDisplayName(const Node& node);
 scada::Status ConvertPropertyValues(scada::Node& node,
                                     scada::NodeProperties& properties);
 
+bool WantsForwardReference(scada::AddressSpace& address_space,
+                           const scada::BrowseDescription& description,
+                           const scada::NodeId& reference_type_id);
+bool WantsInverseReference(scada::AddressSpace& address_space,
+                           const scada::BrowseDescription& description,
+                           const scada::NodeId& reference_type_id);
+bool WantsTypeDefinition(scada::AddressSpace& address_space,
+                         const scada::BrowseDescription& description);
+bool WantsOrganizes(scada::AddressSpace& address_space,
+                    const scada::BrowseDescription& description);
+bool WantsParent(scada::AddressSpace& address_space,
+                 const scada::BrowseDescription& description);
+
 }  // namespace scada

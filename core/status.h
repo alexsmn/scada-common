@@ -95,6 +95,10 @@ inline bool IsGood(StatusCode code) noexcept {
   return GetSeverity(code) == StatusSeverity::Good;
 }
 
+inline bool IsBad(StatusCode code) noexcept {
+  return GetSeverity(code) == StatusSeverity::Bad;
+}
+
 class Status {
  public:
   constexpr Status(StatusCode code) noexcept

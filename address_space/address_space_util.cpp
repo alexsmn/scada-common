@@ -231,4 +231,44 @@ Status ConvertPropertyValues(Node& node, NodeProperties& properties) {
   return StatusCode::Good;
 }
 
+bool WantsTypeDefinition(scada::AddressSpace& address_space,
+                         const scada::BrowseDescription& description) {
+  return WantsForwardReference(address_space, description,
+                               scada::id::HasTypeDefinition);
+}
+
+bool WantsOrganizes(scada::AddressSpace& address_space,
+                    const scada::BrowseDescription& description) {
+  return WantsForwardReference(address_space, description,
+                               scada::id::Organizes);
+}
+
+bool WantsParent(scada::AddressSpace& address_space,
+                 const scada::BrowseDescription& description) {
+  return WantsInverseReference(address_space, description,
+                               scada::id::HierarchicalReferences);
+}
+
+bool WantsForwardReference(scada::AddressSpace& address_space,
+                           const scada::BrowseDescription& description,
+                           const scada::NodeId& reference_type_id) {
+  bool wants_forward =
+      description.direction == scada::BrowseDirection::Forward ||
+      description.direction == scada::BrowseDirection::Both;
+  assert(description.include_subtypes);
+  return wants_forward && scada::IsSubtypeOf(address_space, reference_type_id,
+                                             description.reference_type_id);
+}
+
+bool WantsInverseReference(scada::AddressSpace& address_space,
+                           const scada::BrowseDescription& description,
+                           const scada::NodeId& reference_type_id) {
+  bool wants_inverse =
+      description.direction == scada::BrowseDirection::Inverse ||
+      description.direction == scada::BrowseDirection::Both;
+  assert(description.include_subtypes);
+  return wants_inverse && scada::IsSubtypeOf(address_space, reference_type_id,
+                                             description.reference_type_id);
+}
+
 }  // namespace scada
