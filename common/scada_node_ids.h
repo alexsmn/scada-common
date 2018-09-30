@@ -164,7 +164,7 @@ const scada::NodeId UserType_AccessRights{170, NamespaceIndexes::SCADA};
 const scada::NodeId UserType{16, NamespaceIndexes::SCADA};
 const scada::NodeId Aliases{300, NamespaceIndexes::SCADA};
 const scada::NodeId AliasType{301, NamespaceIndexes::SCADA};
-const scada::NodeId HasAlias{302, NamespaceIndexes::SCADA};
+const scada::NodeId AliasOf{302, NamespaceIndexes::SCADA};
 
 const scada::NodeId NextId{303, NamespaceIndexes::SCADA};
 

@@ -72,8 +72,8 @@ class AddressSpaceNodeModel final
   virtual NodeRef GetDataType() const override;
   virtual NodeRef GetAggregate(
       const scada::NodeId& declaration_id) const override;
-  virtual NodeRef GetAggregate(
-      const scada::QualifiedName& aggregate_name) const override;
+  virtual NodeRef GetChild(
+      const scada::QualifiedName& child_name) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const override;
   virtual void Write(const scada::NodeId& node_id,

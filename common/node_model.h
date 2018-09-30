@@ -39,8 +39,7 @@ class NodeModel {
 
   virtual NodeRef GetAggregate(
       const scada::NodeId& aggregate_declaration_id) const = 0;
-  virtual NodeRef GetAggregate(
-      const scada::QualifiedName& aggregate_name) const = 0;
+  virtual NodeRef GetChild(const scada::QualifiedName& child_name) const = 0;
 
   virtual void Subscribe(NodeRefObserver& observer) const = 0;
   virtual void Unsubscribe(NodeRefObserver& observer) const = 0;

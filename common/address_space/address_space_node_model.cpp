@@ -106,18 +106,18 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
   if (scada::IsTypeDefinition(node_->GetNodeClass()))
     return delegate_.GetRemoteNode(declaration);
   else
-    return GetAggregate(declaration->GetBrowseName());
+    return GetChild(declaration->GetBrowseName());
 }
 
-NodeRef AddressSpaceNodeModel::GetAggregate(
-    const scada::QualifiedName& aggregate_name) const {
+NodeRef AddressSpaceNodeModel::GetChild(
+    const scada::QualifiedName& child_name) const {
   assert(fetch_status_.node_fetched);
 
   if (!node_)
     return nullptr;
 
-  for (auto* node : scada::GetAggregates(*node_)) {
-    if (node->GetBrowseName() == aggregate_name)
+  for (auto* node : scada::GetChildren(*node_)) {
+    if (node->GetBrowseName() == child_name)
       return delegate_.GetRemoteNode(node);
   }
 

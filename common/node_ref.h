@@ -70,7 +70,7 @@ class NodeRef {
   std::vector<Reference> inverse_references(
       const scada::NodeId& reference_type_id = scada::id::References) const;
 
-  NodeRef operator[](const scada::QualifiedName& aggregate_name) const;
+  NodeRef operator[](const scada::QualifiedName& child_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
 
   explicit operator bool() const noexcept { return model_ != nullptr; }

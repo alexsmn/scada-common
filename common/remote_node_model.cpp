@@ -159,21 +159,22 @@ NodeRef RemoteNodeModel::GetAggregate(
   if (scada::IsTypeDefinition(node_class_.value()))
     return aggregate_declaration;
   else
-    return GetAggregate(aggregate_declaration.browse_name());
+    return GetChild(aggregate_declaration.browse_name());
 }
 
-NodeRef RemoteNodeModel::GetAggregate(
-    const scada::QualifiedName& aggregate_name) const {
+NodeRef RemoteNodeModel::GetChild(
+    const scada::QualifiedName& child_name) const {
   if (!fetch_status_.node_fetched)
     return nullptr;
 
   auto i = std::find_if(
       references_.begin(), references_.end(),
-      [aggregate_name](const NodeModelImplReference& reference) {
+      [&child_name](const NodeModelImplReference& reference) {
         assert(reference.reference_type->fetch_status_.node_fetched);
         assert(reference.target->fetch_status_.node_fetched);
-        return IsSubtypeOf(reference.reference_type, scada::id::Aggregates) &&
-               reference.target->attributes_.browse_name == aggregate_name;
+        return IsSubtypeOf(reference.reference_type,
+                           scada::id::HierarchicalReferences) &&
+               reference.target->attributes_.browse_name == child_name;
       });
   return i == references_.end() ? nullptr : i->target;
 }

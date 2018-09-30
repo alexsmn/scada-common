@@ -106,8 +106,8 @@ NodeRef NodeRef::operator[](
   return model_ ? model_->GetAggregate(aggregate_declaration_id) : nullptr;
 }
 
-NodeRef NodeRef::operator[](const scada::QualifiedName& aggregate_name) const {
-  return model_ ? model_->GetAggregate(aggregate_name) : NodeRef{};
+NodeRef NodeRef::operator[](const scada::QualifiedName& child_name) const {
+  return model_ ? model_->GetChild(child_name) : NodeRef{};
 }
 
 void NodeRef::Fetch(const NodeFetchStatus& requested_status) const {

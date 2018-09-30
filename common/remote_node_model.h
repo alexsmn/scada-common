@@ -44,8 +44,8 @@ class RemoteNodeModel final
   virtual NodeRef GetDataType() const override;
   virtual NodeRef GetAggregate(
       const scada::NodeId& aggregate_declaration_id) const override;
-  virtual NodeRef GetAggregate(
-      const scada::QualifiedName& aggregate_name) const override;
+  virtual NodeRef GetChild(
+      const scada::QualifiedName& child_name) const override;
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override;
   virtual std::vector<NodeRef> GetTargets(

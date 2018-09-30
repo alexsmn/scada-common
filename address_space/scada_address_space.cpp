@@ -883,6 +883,6 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
 
     CreateObjectType(address_space, id::AliasType, "AliasType",
                      base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
-    CreateReferenceType(address_space, id::HasAlias, "HasAlias", {});
+    CreateReferenceType(address_space, id::AliasOf, "AliasOf", {});
   }
 }
