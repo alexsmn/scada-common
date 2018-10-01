@@ -56,6 +56,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     scada::Status status{scada::StatusCode::Good};
     bool force = false;  // refetch even if fetching has been already started
     bool is_property = false;  // object property (not property declaration)
+
+    int fetch_cache_iteration = 0;
+    int fetch_cache_state = false;
   };
 
   class FetchingNodeGraph {
@@ -77,6 +80,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
 
    private:
     std::map<scada::NodeId, FetchingNode> fetching_nodes_;
+
+    int fetch_cache_iteration_ = 1;
 
     friend class NodeFetcherImpl;
   };

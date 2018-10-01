@@ -357,18 +357,16 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
   struct Collector {
-    enum class State { None, Fetched, NotFetched };
-
     bool IsFetchedRecursively(FetchingNode& node) {
       if (!node.fetched())
         return false;
 
-      auto& state = cache[&node];
-      if (state != State::None)
-        return state == State::Fetched;
+      if (node.fetch_cache_iteration == fetch_cache_iteration)
+        return node.fetch_cache_state;
 
       // A cycle means fetched as well.
-      state = State::Fetched;
+      node.fetch_cache_iteration = fetch_cache_iteration;
+      node.fetch_cache_state = true;
 
       bool fetched = true;
       for (auto* depends_of : node.depends_of) {
@@ -378,13 +376,13 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
         }
       }
 
-      state = fetched ? State::Fetched : State::NotFetched;
+      node.fetch_cache_state = fetched;
 
       return fetched;
     }
 
     FetchingNodeGraph& graph;
-    std::unordered_map<FetchingNode*, State> cache;
+    int fetch_cache_iteration = 0;
   };
 
   std::vector<scada::NodeState> fetched_nodes;
@@ -396,7 +394,7 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {
     auto& node = i->second;
 
-    collector.cache.clear();
+    collector.fetch_cache_iteration = fetch_cache_iteration_++;
     if (!collector.IsFetchedRecursively(node)) {
       ++i;
       continue;
