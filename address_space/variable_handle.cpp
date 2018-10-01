@@ -27,7 +27,8 @@ VariableMonitoredItem::~VariableMonitoredItem() {
 void VariableMonitoredItem::Subscribe() {
   assert(!subscribed_);
   subscribed_ = true;
-  ForwardData(variable_->last_value());
+  if (!variable_->last_value().server_timestamp.is_null())
+    ForwardData(variable_->last_value());
 }
 
 // VariableHandle
