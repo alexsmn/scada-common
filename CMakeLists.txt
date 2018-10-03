@@ -48,5 +48,11 @@ install(FILES
     "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_program_options-vc141-mt-x32-1_68.dll>"
     "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libprotobufd.dll>"
     "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libprotobuf.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/OPCUA.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/OPCUA.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libeay32.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libeay32.dll>"
+    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/ssleay32.dll>"
+    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/ssleay32.dll>"
   DESTINATION bin
   COMPONENT Common)
