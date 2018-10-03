@@ -39,64 +39,146 @@ void ToProto(const scada::NodeId& source, protocol::NodeId& target) {
   }
 }
 
+scada::LocalizedText LocalizedTextFromProto(const std::string& source) {
+  return scada::LocalizedText{base::UTF8ToUTF16(source)};
+}
+
+std::vector<scada::LocalizedText> LocalizedTextArrayFromProto(
+    const ::google::protobuf::RepeatedPtrField<std::string>& source) {
+  std::vector<scada::LocalizedText> result;
+  result.reserve(source.size());
+  for (auto& s : source)
+    result.emplace_back(LocalizedTextFromProto(s));
+  return result;
+}
+
 scada::Variant FromProto(const protocol::Variant& source) {
-  if (source.has_bool_value())
-    return source.bool_value();
-  else if (source.has_int32_value())
-    return source.int32_value();
-  else if (source.has_int64_value())
-    return source.int64_value();
-  else if (source.has_double_value())
-    return source.double_value();
-  else if (source.has_string_value_utf8())
-    return scada::String{base::SysWideToNativeMB(
-        base::SysUTF8ToWide(source.string_value_utf8()))};
-  else if (source.has_qualified_name_value_utf8())
-    return scada::QualifiedName(base::SysWideToNativeMB(
-        base::SysUTF8ToWide(source.qualified_name_value_utf8())));
-  else if (source.has_localized_text_value_utf8())
-    return scada::LocalizedText{
-        base::UTF8ToUTF16(source.localized_text_value_utf8())};
-  else if (source.has_node_id_value())
-    return FromProto(source.node_id_value());
-  else
+  if (source.rank() == 0) {
+    switch (static_cast<scada::Variant::Type>(source.data_type())) {
+      case scada::Variant::EMPTY:
+        return {};
+      case scada::Variant::BOOL:
+        return source.bool_value();
+      case scada::Variant::INT8:
+        return static_cast<scada::Int8>(source.int_value());
+      case scada::Variant::UINT8:
+        return static_cast<scada::UInt8>(source.int_value());
+      case scada::Variant::INT32:
+        return static_cast<scada::Int32>(source.int_value());
+      case scada::Variant::UINT32:
+        return static_cast<scada::UInt32>(source.int_value());
+      case scada::Variant::INT64:
+        return static_cast<scada::Int64>(source.int_value());
+      case scada::Variant::DOUBLE:
+        return source.double_value();
+      case scada::Variant::STRING:
+        return scada::String{base::SysWideToNativeMB(
+            base::SysUTF8ToWide(source.string_value_utf8()))};
+      case scada::Variant::QUALIFIED_NAME:
+        return scada::QualifiedName(base::SysWideToNativeMB(
+            base::SysUTF8ToWide(source.string_value_utf8())));
+      case scada::Variant::LOCALIZED_TEXT:
+        return LocalizedTextFromProto(source.string_value_utf8());
+      case scada::Variant::NODE_ID:
+        return FromProto(source.node_id_value());
+      default:
+        assert(false);
+        return scada::Variant();
+    }
+
+  } else if (source.rank() == 1) {
+    switch (static_cast<scada::Variant::Type>(source.data_type())) {
+      case scada::Variant::LOCALIZED_TEXT:
+        return LocalizedTextArrayFromProto(source.string_array_utf8());
+      default:
+        assert(false);
+        return scada::Variant();
+    }
+
+  } else {
+    assert(false);
     return scada::Variant();
+  }
+}
+
+void LocalizedTextToProto(const scada::LocalizedText& source,
+                          std::string& target) {
+  target = base::UTF16ToUTF8(ToString16(source));
+}
+
+void LocalizedTextArrayToProto(
+    const std::vector<scada::LocalizedText>& source,
+    ::google::protobuf::RepeatedPtrField<std::string>& target) {
+  assert(target.empty());
+  target.Reserve(source.size());
+  for (auto& s : source)
+    LocalizedTextToProto(s, *target.Add());
 }
 
 void ToProto(const scada::Variant& source, protocol::Variant& target) {
-  switch (source.type()) {
-    case scada::Variant::EMPTY:
-      break;
-    case scada::Variant::BOOL:
-      target.set_bool_value(source.as_bool());
-      break;
-    case scada::Variant::INT32:
-      target.set_int32_value(source.as_int32());
-      break;
-    case scada::Variant::INT64:
-      target.set_int64_value(source.as_int64());
-      break;
-    case scada::Variant::DOUBLE:
-      target.set_double_value(source.as_double());
-      break;
-    case scada::Variant::STRING:
-      target.set_string_value_utf8(
-          base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
-      break;
-    case scada::Variant::QUALIFIED_NAME:
-      target.set_qualified_name_value_utf8(base::SysWideToUTF8(
-          base::SysNativeMBToWide(source.get<scada::QualifiedName>().name())));
-      break;
-    case scada::Variant::LOCALIZED_TEXT:
-      target.set_localized_text_value_utf8(
-          base::UTF16ToUTF8(ToString16(source.as_localized_text())));
-      break;
-    case scada::Variant::NODE_ID:
-      ToProto(source.as_node_id(), *target.mutable_node_id_value());
-      break;
-    default:
-      assert(false);
-      break;
+  if (source.is_null())
+    return;
+
+  target.set_data_type(static_cast<int>(source.type()));
+
+  if (source.is_scalar()) {
+    switch (source.type()) {
+      case scada::Variant::EMPTY:
+        break;
+      case scada::Variant::BOOL:
+        target.set_bool_value(source.as_bool());
+        break;
+      case scada::Variant::INT8:
+        target.set_int_value(source.as_int32());
+        break;
+      case scada::Variant::UINT8:
+        target.set_int_value(source.as_int32());
+        break;
+      case scada::Variant::INT32:
+        target.set_int_value(source.as_int32());
+        break;
+      case scada::Variant::UINT32:
+        target.set_int_value(source.as_int32());
+        break;
+      case scada::Variant::INT64:
+        target.set_int_value(source.as_int64());
+        break;
+      case scada::Variant::DOUBLE:
+        target.set_double_value(source.as_double());
+        break;
+      case scada::Variant::STRING:
+        target.set_string_value_utf8(
+            base::SysWideToUTF8(base::SysNativeMBToWide(source.as_string())));
+        break;
+      case scada::Variant::QUALIFIED_NAME:
+        target.set_string_value_utf8(
+            base::SysWideToUTF8(base::SysNativeMBToWide(
+                source.get<scada::QualifiedName>().name())));
+        break;
+      case scada::Variant::LOCALIZED_TEXT:
+        LocalizedTextToProto(source.as_localized_text(),
+                             *target.mutable_string_value_utf8());
+        break;
+      case scada::Variant::NODE_ID:
+        ToProto(source.as_node_id(), *target.mutable_node_id_value());
+        break;
+      default:
+        assert(false);
+        break;
+    }
+
+  } else {
+    target.set_rank(1);
+    switch (source.type()) {
+      case scada::Variant::LOCALIZED_TEXT:
+        LocalizedTextArrayToProto(
+            source.get<std::vector<scada::LocalizedText>>(),
+            *target.mutable_string_array_utf8());
+        break;
+      default:
+        assert(false);
+        break;
+    }
   }
 }
 

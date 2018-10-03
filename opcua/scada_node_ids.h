@@ -221,7 +221,7 @@ const scada::NumericId ModbusLinkType_Interrogate = 243; // Method
 const scada::NumericId ModbusLinkType_InterrogateChannel = 282; // Method
 const scada::NumericId ModbusLinkType_MessagesIn = 114; // Variable
 const scada::NumericId ModbusLinkType_MessagesOut = 113; // Variable
-const scada::NumericId ModbusLinkType_Mode = 117; // Variable
+const scada::NumericId ModbusLinkProtocol = 117; // DataType
 const scada::NumericId ModbusLinkType_Online = 214; // Variable
 const scada::NumericId ModbusLinkType_Select = 268; // Method
 const scada::NumericId ModbusLinkType_SyncClock = 244; // Method
@@ -486,7 +486,7 @@ const scada::NodeId ModbusLinkType_Interrogate{numeric_id::ModbusLinkType_Interr
 const scada::NodeId ModbusLinkType_InterrogateChannel{numeric_id::ModbusLinkType_InterrogateChannel, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_MessagesIn{numeric_id::ModbusLinkType_MessagesIn, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_MessagesOut{numeric_id::ModbusLinkType_MessagesOut, NamespaceIndexes::SCADA};
-const scada::NodeId ModbusLinkType_Mode{numeric_id::ModbusLinkType_Mode, NamespaceIndexes::SCADA};
+const scada::NodeId ModbusLinkProtocol{numeric_id::ModbusLinkProtocol, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_Online{numeric_id::ModbusLinkType_Online, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_Select{numeric_id::ModbusLinkType_Select, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_SyncClock{numeric_id::ModbusLinkType_SyncClock, NamespaceIndexes::SCADA};

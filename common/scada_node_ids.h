@@ -134,7 +134,8 @@ const scada::NodeId ModbusDeviceType_Address{168, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusDeviceType_SendRetryCount{169, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusDeviceType_ResponseTimeout{298, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusDeviceType{118, NamespaceIndexes::SCADA};
-const scada::NodeId ModbusLinkType_Mode{130, NamespaceIndexes::SCADA};
+const scada::NodeId ModbusLinkProtocol{130, NamespaceIndexes::SCADA};
+const scada::NodeId ModbusLinkModeDataType_EnumStrings{303, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_Protocol{167, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_RequestDelay{299, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType{108, NamespaceIndexes::SCADA};
@@ -166,6 +167,6 @@ const scada::NodeId Aliases{300, NamespaceIndexes::SCADA};
 const scada::NodeId AliasType{301, NamespaceIndexes::SCADA};
 const scada::NodeId AliasOf{302, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{303, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{304, NamespaceIndexes::SCADA};
 
 } // namespace id

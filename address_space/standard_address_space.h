@@ -37,11 +37,6 @@ struct StandardAddressSpace {
   scada::Folder ObjectsFolder;
   scada::Folder TypesFolder;
 
-  scada::GenericVariable EnumStrings{scada::id::EnumStrings,
-                                     "EnumStrings",
-                                     {},
-                                     LocalizedTextDataType};
-
   scada::ReferenceType References{scada::id::References, "References", {}};
   scada::ReferenceType HierarchicalReference{scada::id::HierarchicalReferences,
                                              "HierarchicalReference",

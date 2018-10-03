@@ -2,7 +2,7 @@ package protocol;
 
 // Protocol version
 enum ProtocolVersionMajor {
-  PROTOCOL_VERSION_MAJOR = 6;
+  PROTOCOL_VERSION_MAJOR = 7;
 }
 enum ProtocolVersionMinor {
   PROTOCOL_VERSION_MINOR = 0;
@@ -105,14 +105,21 @@ message NodeId {
 }
 
 message Variant {
-  optional bool   bool_value    = 1;
-  optional int32  int32_value   = 2;
-  optional int64  int64_value   = 3;
-  optional double double_value  = 4;
-  optional bytes  string_value_utf8  = 5;
-  optional NodeId node_id_value = 6;
-  optional bytes  localized_text_value_utf8 = 7;
-  optional bytes  qualified_name_value_utf8 = 8;
+  optional uint32 data_type     = 1;
+
+  // 0 - scalar, 1 - array
+  optional uint32 rank          = 2;
+
+  optional bool   bool_value    = 3;
+  optional int64  int_value     = 4;
+  optional double double_value  = 5;
+
+  // String, QualifiedName, or LocalizedText
+  optional bytes  string_value_utf8  = 6;
+
+  optional NodeId node_id_value = 7;
+
+  repeated bytes  string_array_utf8 = 107;
 }
 
 message DataValue {

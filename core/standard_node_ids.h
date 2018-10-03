@@ -44,7 +44,5 @@ const NumericId TypesFolder = 86;
 const NumericId ModellingRules = 87;
 const NumericId ModellingRule_Mandatory = 78;
 
-const NumericId EnumStrings = 11432;
-
 } // namespace id
 } // namespace scada

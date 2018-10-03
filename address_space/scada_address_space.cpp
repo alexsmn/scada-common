@@ -545,19 +545,20 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
   {
     CreateObjectType(address_space, id::ModbusLinkType, "ModbusLinkType",
                      base::WideToUTF16(L"Направление MODBUS"), id::LinkType);
-    auto* mode_type = CreateDataType(
-        address_space, id::ModbusLinkType_Mode, "ModbusPortModeType",
-        base::WideToUTF16(L"Тип направления MODBUS"), scada::id::Int32);
+    auto* protocol_data_type = CreateDataType(
+        address_space, id::ModbusLinkProtocol, "ModbusLinkProtocol",
+        base::WideToUTF16(L"Тип протокола MODBUS"), scada::id::Int32);
     NodeBuilderImpl builder{address_space};
-    mode_type->enum_strings.emplace(builder, *mode_type, scada::id::EnumStrings,
-                                    "EnumStrings", scada::LocalizedText{},
-                                    scada::id::LocalizedText);
-    mode_type->enum_strings->set_value({base::WideToUTF16(L"Опрос"),
-                                        base::WideToUTF16(L"Ретрансляция"),
-                                        base::WideToUTF16(L"Прослушка")});
+    protocol_data_type->enum_strings.emplace(
+        builder, *protocol_data_type, id::ModbusLinkModeDataType_EnumStrings,
+        "EnumStrings", scada::LocalizedText{}, scada::id::LocalizedText);
+    protocol_data_type->enum_strings->set_value({base::WideToUTF16(L"RTU"),
+                                                 base::WideToUTF16(L"ASCII"),
+                                                 base::WideToUTF16(L"TCP")});
+    address_space.AddNode(*protocol_data_type->enum_strings);
     AddProperty(address_space, id::ModbusLinkType, id::ModbusLinkType_Protocol,
-                "Mode", base::WideToUTF16(L"Режим"), id::ModbusLinkType_Mode,
-                0);
+                "Protocol", base::WideToUTF16(L"Протокол"),
+                id::ModbusLinkProtocol, 0);
     AddProperty(address_space, id::ModbusLinkType,
                 id::ModbusLinkType_RequestDelay, "RequestDelay",
                 base::WideToUTF16(L"Задержка запроса, мс"), scada::id::Int32,

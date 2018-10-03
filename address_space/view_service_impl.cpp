@@ -88,10 +88,6 @@ scada::BrowseResult ViewServiceImpl::BrowseNode(
       assert(!ref.node->id().is_null());
       result.references.push_back({ref.type->id(), true, ref.node->id()});
     }
-
-    if (scada::IsSubtypeOf(address_space_, scada::id::HasProperty,
-                           description.reference_type_id))
-      BrowseProperties(node, result.references);
   }
 
   if (description.direction == scada::BrowseDirection::Inverse ||

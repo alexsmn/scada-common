@@ -45,8 +45,6 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   address_space.AddNode(ObjectsFolder);
   address_space.AddNode(TypesFolder);
 
-  address_space.AddNode(EnumStrings);
-
   address_space.AddNode(References);
   address_space.AddNode(HierarchicalReference);
   address_space.AddNode(NonHierarchicalReference);
@@ -74,8 +72,6 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
 
   address_space.AddNode(ModellingRules);
   address_space.AddNode(ModellingRule_Mandatory);
-
-  scada::AddReference(HasTypeDefinition, EnumStrings, PropertyType);
 
   scada::AddReference(HasTypeDefinition, RootFolder, FolderType);
 

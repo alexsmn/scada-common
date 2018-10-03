@@ -615,6 +615,7 @@ void NodeFetcherImpl::AddFetchedReference(
     if (reference.reference_type_id == scada::id::HasProperty) {
       child.node_class = scada::NodeClass::Variable;
       child.type_definition_id = scada::id::PropertyType;
+      // Force read of DisplayName for type definitions.
       child.is_property = !scada::IsTypeDefinition(node.node_class);
     }
 
