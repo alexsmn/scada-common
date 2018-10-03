@@ -135,7 +135,7 @@ const scada::NodeId ModbusDeviceType_SendRetryCount{169, NamespaceIndexes::SCADA
 const scada::NodeId ModbusDeviceType_ResponseTimeout{298, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusDeviceType{118, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkProtocol{130, NamespaceIndexes::SCADA};
-const scada::NodeId ModbusLinkModeDataType_EnumStrings{303, NamespaceIndexes::SCADA};
+const scada::NodeId ModbusLinkProtocol_EnumStrings{303, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_Protocol{167, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType_RequestDelay{299, NamespaceIndexes::SCADA};
 const scada::NodeId ModbusLinkType{108, NamespaceIndexes::SCADA};

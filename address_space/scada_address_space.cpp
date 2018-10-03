@@ -550,7 +550,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
         base::WideToUTF16(L"Тип протокола MODBUS"), scada::id::Int32);
     NodeBuilderImpl builder{address_space};
     protocol_data_type->enum_strings.emplace(
-        builder, *protocol_data_type, id::ModbusLinkModeDataType_EnumStrings,
+        builder, *protocol_data_type, id::ModbusLinkProtocol_EnumStrings,
         "EnumStrings", scada::LocalizedText{}, scada::id::LocalizedText);
     protocol_data_type->enum_strings->set_value({base::WideToUTF16(L"RTU"),
                                                  base::WideToUTF16(L"ASCII"),
