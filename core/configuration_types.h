@@ -6,6 +6,7 @@
 #include "core/node_id.h"
 #include "core/status.h"
 #include "core/variant.h"
+#include "core/write_flags.h"
 
 namespace scada {
 
@@ -47,6 +48,13 @@ struct BrowseResult {
 struct ReadValueId {
   NodeId node_id;
   AttributeId attribute_id;
+};
+
+struct WriteValue {
+  NodeId node_id;
+  AttributeId attribute_id;
+  Variant value;
+  WriteFlags flags;
 };
 
 inline bool operator==(const ReadValueId& a, const ReadValueId& b) {

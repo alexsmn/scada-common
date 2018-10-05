@@ -92,10 +92,10 @@ class NodeRef {
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const;
 
-  void Write(const scada::NodeId& node_id,
-             double value,
-             const scada::NodeId& user_id,
+  void Write(scada::AttributeId attribute_id,
+             const scada::Variant& value,
              const scada::WriteFlags& flags,
+             const scada::NodeId& user_id,
              const scada::StatusCallback& callback);
 
   void Call(const scada::NodeId& method_id,

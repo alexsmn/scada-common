@@ -59,10 +59,10 @@ class RemoteNodeModel final
       bool forward) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const override;
-  virtual void Write(const scada::NodeId& node_id,
-                     double value,
-                     const scada::NodeId& user_id,
+  virtual void Write(scada::AttributeId attribute_id,
+                     const scada::Variant& value,
                      const scada::WriteFlags& flags,
+                     const scada::NodeId& user_id,
                      const scada::StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,

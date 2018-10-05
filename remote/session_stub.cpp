@@ -70,8 +70,11 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
     scada::WriteFlags flags;
     if (write.select())
       flags.set_select();
-    OnWrite(request.request_id(), FromProto(write.node_id()), write.value(),
-            flags.raw());
+    OnWrite(
+        request.request_id(),
+        scada::WriteValue{FromProto(write.node_id()),
+                          static_cast<scada::AttributeId>(write.attribute_id()),
+                          FromProto(write.value()), flags});
   }
 
   if (request.has_call()) {
@@ -240,12 +243,9 @@ void SessionStub::OnRead(
       });
 }
 
-void SessionStub::OnWrite(unsigned request_id,
-                          const scada::NodeId& item_id,
-                          double value,
-                          unsigned flags) {
+void SessionStub::OnWrite(unsigned request_id, const scada::WriteValue& value) {
   std::weak_ptr<SessionStub> weak_ptr = shared_from_this();
-  attribute_service_.Write(item_id, value, user_id_, scada::WriteFlags(flags),
+  attribute_service_.Write(value, user_id_,
                            [weak_ptr, request_id](const scada::Status& status) {
                              auto ptr = weak_ptr.lock();
                              if (!ptr)

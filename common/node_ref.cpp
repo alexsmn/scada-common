@@ -154,13 +154,13 @@ std::unique_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
   return model_ ? model_->CreateMonitoredItem(attribute_id) : nullptr;
 }
 
-void NodeRef::Write(const scada::NodeId& node_id,
-                    double value,
-                    const scada::NodeId& user_id,
+void NodeRef::Write(scada::AttributeId attribute_id,
+                    const scada::Variant& value,
                     const scada::WriteFlags& flags,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) {
   if (model_)
-    model_->Write(node_id, value, user_id, flags, callback);
+    model_->Write(attribute_id, value, flags, user_id, callback);
   else
     callback(scada::StatusCode::Bad_WrongNodeId);
 }

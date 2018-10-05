@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/node_ref.h"
+#include "core/configuration_types.h"
 
 #include <functional>
 #include <vector>
@@ -51,9 +52,9 @@ class NodeModel {
                     const std::vector<scada::Variant>& arguments,
                     const scada::StatusCallback& callback) const = 0;
 
-  virtual void Write(const scada::NodeId& node_id,
-                     double value,
-                     const scada::NodeId& user_id,
+  virtual void Write(scada::AttributeId attribute_id,
+                     const scada::Variant& value,
                      const scada::WriteFlags& flags,
+                     const scada::NodeId& user_id,
                      const scada::StatusCallback& callback) const = 0;
 };

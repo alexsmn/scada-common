@@ -2,7 +2,7 @@ package protocol;
 
 // Protocol version
 enum ProtocolVersionMajor {
-  PROTOCOL_VERSION_MAJOR = 7;
+  PROTOCOL_VERSION_MAJOR = 8;
 }
 enum ProtocolVersionMinor {
   PROTOCOL_VERSION_MINOR = 0;
@@ -246,7 +246,8 @@ message ReadResult {
 
 message Write {
   required NodeId node_id = 1;
-  required double value = 2;
+  required Variant value = 2;
+  required AttributeId attribute_id = 3;
   optional bool select = 5;
 }
 

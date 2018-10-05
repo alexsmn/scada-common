@@ -18,11 +18,9 @@ class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
   MOCK_METHOD1(OnNodeModelCreateMonitoredItem,
                std::unique_ptr<scada::MonitoredItem>(
                    const scada::ReadValueId& read_value_id));
-  MOCK_METHOD5(OnNodeModelWrite,
-               void(const scada::NodeId& node_id,
-                    double value,
+  MOCK_METHOD3(OnNodeModelWrite,
+               void(const scada::WriteValue& value,
                     const scada::NodeId& user_id,
-                    const scada::WriteFlags& flags,
                     const scada::StatusCallback& callback));
   MOCK_METHOD5(OnNodeModelCall,
                void(const scada::NodeId& node_id,

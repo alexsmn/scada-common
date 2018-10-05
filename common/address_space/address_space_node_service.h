@@ -59,10 +59,8 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
       const NodeFetchStatus& requested_status) override;
   virtual std::unique_ptr<scada::MonitoredItem> OnNodeModelCreateMonitoredItem(
       const scada::ReadValueId& read_value_id) override;
-  virtual void OnNodeModelWrite(const scada::NodeId& node_id,
-                                double value,
+  virtual void OnNodeModelWrite(const scada::WriteValue& value,
                                 const scada::NodeId& user_id,
-                                const scada::WriteFlags& flags,
                                 const scada::StatusCallback& callback) override;
   virtual void OnNodeModelCall(const scada::NodeId& node_id,
                                const scada::NodeId& method_id,

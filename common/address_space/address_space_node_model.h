@@ -27,10 +27,8 @@ class AddressSpaceNodeModelDelegate {
   virtual std::unique_ptr<scada::MonitoredItem> OnNodeModelCreateMonitoredItem(
       const scada::ReadValueId& read_value_id) = 0;
 
-  virtual void OnNodeModelWrite(const scada::NodeId& node_id,
-                                double value,
+  virtual void OnNodeModelWrite(const scada::WriteValue& value,
                                 const scada::NodeId& user_id,
-                                const scada::WriteFlags& flags,
                                 const scada::StatusCallback& callback) = 0;
 
   virtual void OnNodeModelCall(const scada::NodeId& node_id,
@@ -76,10 +74,10 @@ class AddressSpaceNodeModel final
       const scada::QualifiedName& child_name) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const override;
-  virtual void Write(const scada::NodeId& node_id,
-                     double value,
-                     const scada::NodeId& user_id,
+  virtual void Write(scada::AttributeId attribute_id,
+                     const scada::Variant& value,
                      const scada::WriteFlags& flags,
+                     const scada::NodeId& user_id,
                      const scada::StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,

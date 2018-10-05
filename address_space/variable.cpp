@@ -32,9 +32,10 @@ std::shared_ptr<VariableHandle> Variable::GetVariableHandle() {
   return variable_handle;
 }
 
-void Variable::Write(double value,
-                     const NodeId& user_id,
+void Variable::Write(AttributeId attribute_id,
+                     const Variant& value,
                      const WriteFlags& flags,
+                     const NodeId& user_id,
                      const StatusCallback& callback) {
   callback(StatusCode::Bad);
 }

@@ -12,13 +12,15 @@ class NodeVariableHandle : public VariableHandle {
   explicit NodeVariableHandle(Variable& node);
 
   virtual Node& GetNode();
-  virtual void Write(double value,
-                     const NodeId& user_id,
+
+  virtual void Write(AttributeId attribute_id,
+                     const Variant& value,
                      const WriteFlags& flags,
+                     const NodeId& user_id,
                      const StatusCallback& callback) override;
   virtual void Call(const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const scada::NodeId& user_id,
+                    const NodeId& user_id,
                     const StatusCallback& callback) override;
 
  private:

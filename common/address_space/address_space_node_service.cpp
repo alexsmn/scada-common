@@ -183,12 +183,10 @@ AddressSpaceNodeService::OnNodeModelCreateMonitoredItem(
 }
 
 void AddressSpaceNodeService::OnNodeModelWrite(
-    const scada::NodeId& node_id,
-    double value,
+    const scada::WriteValue& value,
     const scada::NodeId& user_id,
-    const scada::WriteFlags& flags,
     const scada::StatusCallback& callback) {
-  attribute_service_.Write(node_id, value, user_id, flags, callback);
+  attribute_service_.Write(value, user_id, callback);
 }
 
 void AddressSpaceNodeService::OnNodeModelCall(

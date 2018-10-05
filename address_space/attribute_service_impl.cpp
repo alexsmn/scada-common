@@ -76,13 +76,11 @@ void AttributeServiceImpl::Read(
   }
 }
 
-void AttributeServiceImpl::Write(const scada::NodeId& node_id,
-                                 double value,
+void AttributeServiceImpl::Write(const scada::WriteValue& value,
                                  const scada::NodeId& user_id,
-                                 const scada::WriteFlags& flags,
                                  const scada::StatusCallback& callback) {
   base::StringPiece nested_name;
-  auto* node = GetNestedNode(address_space_, node_id, nested_name);
+  auto* node = GetNestedNode(address_space_, value.node_id, nested_name);
   if (!node)
     return callback(scada::StatusCode::Bad_WrongNodeId);
 
@@ -90,7 +88,7 @@ void AttributeServiceImpl::Write(const scada::NodeId& node_id,
   if (!node_service)
     return callback(scada::StatusCode::Bad_WrongNodeId);
 
-  node_service->Write(node_id, value, user_id, flags, callback);
+  node_service->Write(value, user_id, callback);
 }
 
 scada::DataValue AttributeServiceImpl::Read(
@@ -106,10 +104,6 @@ scada::DataValue AttributeServiceImpl::Read(
 
   if (nested_name.empty())
     return ReadNode(*node, read_id.attribute_id);
-
-  auto result = ReadProperty(*node, nested_name, read_id.attribute_id);
-  if (scada::Status{result.status_code})
-    return result;
 
   async_view_service = node->GetAttributeService();
   return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
@@ -146,42 +140,6 @@ scada::DataValue AttributeServiceImpl::ReadNode(
       case scada::AttributeId::Value:
         return scada::MakeReadResult(variable_type->default_value());
     }
-  }
-
-  return {scada::StatusCode::Bad_WrongAttributeId, scada::DateTime::Now()};
-}
-
-scada::DataValue AttributeServiceImpl::ReadProperty(
-    const scada::Node& node,
-    base::StringPiece nested_name,
-    scada::AttributeId attribute_id) {
-  auto* type_definition = node.type_definition();
-  auto* prop_decl = type_definition
-                        ? scada::AsVariable(scada::FindChildDeclaration(
-                              *type_definition, nested_name))
-                        : nullptr;
-  if (!prop_decl)
-    return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
-
-  switch (attribute_id) {
-    case scada::AttributeId::NodeClass:
-      assert(!scada::IsTypeDefinition(node.GetNodeClass()));
-      return scada::MakeReadResult(
-          static_cast<int>(scada::NodeClass::Variable));
-
-    case scada::AttributeId::BrowseName:
-      assert(!prop_decl->GetBrowseName().empty());
-      return scada::MakeReadResult(prop_decl->GetBrowseName());
-
-    case scada::AttributeId::DisplayName:
-      return scada::MakeReadResult(prop_decl->GetDisplayName());
-
-    case scada::AttributeId::DataType:
-      return scada::MakeReadResult(prop_decl->GetDataType().id());
-
-    case scada::AttributeId::Value:
-      return scada::MakeReadResult(
-          scada::GetPropertyValue(node, prop_decl->id()));
   }
 
   return {scada::StatusCode::Bad_WrongAttributeId, scada::DateTime::Now()};

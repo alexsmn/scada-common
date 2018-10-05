@@ -207,11 +207,11 @@ void OpcUaSession::Read(const std::vector<scada::ReadValueId>& value_ids,
       [](OpcUa_ReadValueId& value) { ::OpcUa_ReadValueId_Clear(&value); });
 }
 
-void OpcUaSession::Write(const scada::NodeId& node_id,
-                         double value,
+void OpcUaSession::Write(const scada::WriteValue& value,
                          const scada::NodeId& user_id,
-                         const scada::WriteFlags& flags,
-                         const scada::StatusCallback& callback) {}
+                         const scada::StatusCallback& callback) {
+  callback(scada::StatusCode::Bad);
+}
 
 void OpcUaSession::Reset() {
   if (default_subscription_)

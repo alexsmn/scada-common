@@ -94,7 +94,10 @@ void TimedDataImpl::Write(double value,
     return;
   }
 
-  attribute_service_.Write(node.node_id(), value, user_id, flags, callback);
+  attribute_service_.Write(
+      scada::WriteValue{node.node_id(), scada::AttributeId::Value, value,
+                        flags},
+      user_id, callback);
 }
 
 void TimedDataImpl::Call(const scada::NodeId& method_id,

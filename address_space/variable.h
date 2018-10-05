@@ -35,9 +35,10 @@ class Variable : public Node {
 
   virtual std::shared_ptr<VariableHandle> GetVariableHandle();
 
-  virtual void Write(double value,
-                     const NodeId& user_id,
+  virtual void Write(AttributeId attribute_id,
+                     const Variant& value,
                      const WriteFlags& flags,
+                     const NodeId& user_id,
                      const StatusCallback& callback);
 
   // TODO: Move to Object.

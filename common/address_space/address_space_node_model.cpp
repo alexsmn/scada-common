@@ -204,12 +204,14 @@ AddressSpaceNodeModel::CreateMonitoredItem(
   return delegate_.OnNodeModelCreateMonitoredItem({node_id_, attribute_id});
 }
 
-void AddressSpaceNodeModel::Write(const scada::NodeId& node_id,
-                                  double value,
-                                  const scada::NodeId& user_id,
+void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
+                                  const scada::Variant& value,
                                   const scada::WriteFlags& flags,
+                                  const scada::NodeId& user_id,
                                   const scada::StatusCallback& callback) const {
-  delegate_.OnNodeModelWrite(node_id, value, user_id, flags, callback);
+  delegate_.OnNodeModelWrite(
+      scada::WriteValue{node_id_, attribute_id, value, flags}, user_id,
+      callback);
 }
 
 void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,

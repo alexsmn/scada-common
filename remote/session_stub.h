@@ -85,10 +85,7 @@ class SessionStub : public std::enable_shared_from_this<SessionStub>,
 
   void OnRead(unsigned request_id,
               const std::vector<scada::ReadValueId>& read_value_ids);
-  void OnWrite(unsigned request_id,
-               const scada::NodeId& item_id,
-               double value,
-               unsigned flags);
+  void OnWrite(unsigned request_id, const scada::WriteValue& value);
   void OnCall(unsigned request_id,
               const scada::NodeId& node_id,
               const scada::NodeId& method_id,

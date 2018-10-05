@@ -80,9 +80,10 @@ void VariableHandle::Deleted() {
   UpdateQualifier(0, Qualifier::FAILED);
 }
 
-void VariableHandle::Write(double value,
-                           const scada::NodeId& user_id,
+void VariableHandle::Write(AttributeId attribute_id,
+                           const Variant& value,
                            const WriteFlags& flags,
+                           const NodeId& user_id,
                            const StatusCallback& callback) {
   if (callback)
     callback(StatusCode::Bad_WrongMethodId);

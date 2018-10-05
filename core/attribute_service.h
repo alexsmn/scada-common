@@ -24,10 +24,8 @@ class AttributeService {
   virtual void Read(const std::vector<ReadValueId>& value_ids,
                     const ReadCallback& callback) = 0;
 
-  virtual void Write(const NodeId& node_id,
-                     double value,
+  virtual void Write(const WriteValue& value,
                      const NodeId& user_id,
-                     const WriteFlags& flags,
                      const StatusCallback& callback) = 0;
 };
 

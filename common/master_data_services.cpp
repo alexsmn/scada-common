@@ -282,15 +282,13 @@ std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
   return std::make_unique<MasterMonitoredItem>(*this, read_value_id);
 }
 
-void MasterDataServices::Write(const scada::NodeId& node_id,
-                               double value,
+void MasterDataServices::Write(const scada::WriteValue& value,
                                const scada::NodeId& user_id,
-                               const scada::WriteFlags& flags,
                                const scada::StatusCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
-  services_.attribute_service_->Write(node_id, value, user_id, flags, callback);
+  services_.attribute_service_->Write(value, user_id, callback);
 }
 
 void MasterDataServices::Call(const scada::NodeId& node_id,

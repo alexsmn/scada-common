@@ -114,10 +114,8 @@ void VidiconSession::Read(const std::vector<scada::ReadValueId>& nodes,
   attribute_service_.Read(nodes, callback);
 }
 
-void VidiconSession::Write(const scada::NodeId& node_id,
-                           double value,
+void VidiconSession::Write(const scada::WriteValue& value,
                            const scada::NodeId& user_id,
-                           const scada::WriteFlags& flags,
                            const scada::StatusCallback& callback) {
   callback(scada::StatusCode::Bad);
 }
