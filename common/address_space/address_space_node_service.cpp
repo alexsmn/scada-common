@@ -9,6 +9,19 @@
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 
+namespace {
+
+const scada::Node* GetSemanticParent(const scada::Node& node) {
+  auto [reference_type, parent] = scada::GetParentReference(node);
+  if (!reference_type)
+    return nullptr;
+  if (!scada::IsSubtypeOf(*reference_type, scada::id::HasProperty))
+    return nullptr;
+  return parent;
+}
+
+}  // namespace
+
 // AddressSpaceNodeService
 
 AddressSpaceNodeService::AddressSpaceNodeService(
@@ -71,7 +84,11 @@ void AddressSpaceNodeService::OnNodeDeleted(const scada::Node& node) {}
 void AddressSpaceNodeService::OnNodeModified(
     const scada::Node& node,
     const scada::PropertyIds& property_ids) {
-  const auto node_id = node.id();
+  auto* semantic_node = &node;
+  while (auto* n = GetSemanticParent(*semantic_node))
+    semantic_node = n;
+
+  const auto& node_id = semantic_node->id();
 
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(node_id);

@@ -42,12 +42,14 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
   }
 
   if (auto* variable = scada::AsVariable(node)) {
-    attribute_set.Add(scada::AttributeId::Value);
+    if (!attributes.value.is_null()) {
+      attribute_set.Add(scada::AttributeId::Value);
 
-    // Property ignores timestamps.
-    // TODO: Avoid timestamp.
-    variable->SetValue(
-        scada::DataValue{std::move(attributes.value), {}, {}, {}});
+      // Property ignores timestamps.
+      // TODO: Avoid timestamp.
+      variable->SetValue(
+          scada::DataValue{std::move(attributes.value), {}, {}, {}});
+    }
   }
 
   // Properties.

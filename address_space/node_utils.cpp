@@ -164,7 +164,7 @@ const TypeDefinition& AsTypeDefinition(const Node& node) {
   return static_cast<const TypeDefinition&>(node);
 }
 
-Reference GetParentReference(Node& node) {
+Reference GetParentReference(const Node& node) {
   return FindReference(node, id::HierarchicalReferences, false);
 }
 

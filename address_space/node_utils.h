@@ -52,7 +52,7 @@ const Node* GetDeclaration(const Node& node);
 
 bool IsInstanceOf(const Node* node, const NodeId& type_id);
 
-Reference GetParentReference(Node& node);
+Reference GetParentReference(const Node& node);
 Node* GetParent(Node& node);
 const Node* GetParent(const Node& node);
 
