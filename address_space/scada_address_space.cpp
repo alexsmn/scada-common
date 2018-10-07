@@ -1,6 +1,7 @@
 ﻿#include "address_space/scada_address_space.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/generic_node_factory.h"
 #include "address_space/node_builder_impl.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
@@ -885,5 +886,52 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     CreateObjectType(address_space, id::AliasType, "AliasType",
                      base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
     CreateReferenceType(address_space, id::AliasOf, "AliasOf", {});
+  }
+
+  // File System
+  {
+    /*node_factory.CreateNode({id::FileSystem, scada::NodeClass::Object,
+                             scada::id::FolderType, scada::id::ObjectsFolder,
+                             scada::id::Organizes,
+                             scada::NodeAttributes{}
+                                 .set_browse_name("FileSystem")
+                                 .set_display_name(L"Файлы")});*/
+
+    GenericNodeFactory generic_node_factory{address_space};
+    generic_node_factory.CreateNode({id::FileDirectoryType,
+                                     scada::NodeClass::ObjectType,
+                                     {},
+                                     scada::id::BaseObjectType,
+                                     scada::id::HasSubtype,
+                                     scada::NodeAttributes{}
+                                         .set_browse_name("FileDirectoryType")
+                                         .set_display_name(L"Папка")});
+
+    generic_node_factory.CreateNode({id::FileType,
+                                     scada::NodeClass::ObjectType,
+                                     {},
+                                     scada::id::BaseObjectType,
+                                     scada::id::HasSubtype,
+                                     scada::NodeAttributes{}
+                                         .set_browse_name("FileType")
+                                         .set_display_name(L"Файл")});
+
+    generic_node_factory.CreateNode(
+        {id::FileType_Hash, scada::NodeClass::Variable, scada::id::PropertyType,
+         id::FileType, scada::id::HasProperty,
+         scada::NodeAttributes{}
+             .set_browse_name("Hash")
+             .set_display_name(L"Хеш")
+             .set_data_type(scada::id::ByteString)
+             .set_value(scada::ByteString{})});
+
+    generic_node_factory.CreateNode(
+        {id::FileType_Size, scada::NodeClass::Variable, scada::id::PropertyType,
+         id::FileType, scada::id::HasProperty,
+         scada::NodeAttributes{}
+             .set_browse_name("Size")
+             .set_display_name(L"Размер, байт")
+             .set_data_type(scada::id::UInt64)
+             .set_value(static_cast<scada::UInt64>(0))});
   }
 }

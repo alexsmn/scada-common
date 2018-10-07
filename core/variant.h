@@ -24,6 +24,7 @@ class Variant {
     INT32,
     UINT32,
     INT64,
+    UINT64,
     DOUBLE,
     BYTE_STRING,
     STRING,
@@ -37,12 +38,13 @@ class Variant {
 
   Variant() {}
   Variant(bool value) : data_{value} {}
-  Variant(int8_t value) : data_{value} {}
-  Variant(uint8_t value) : data_{value} {}
-  Variant(int32_t value) : data_{value} {}
-  Variant(uint32_t value) : data_{value} {}
-  Variant(int64_t value) : data_{value} {}
-  Variant(double value) : data_{value} {}
+  Variant(Int8 value) : data_{value} {}
+  Variant(UInt8 value) : data_{value} {}
+  Variant(Int32 value) : data_{value} {}
+  Variant(UInt32 value) : data_{value} {}
+  Variant(Int64 value) : data_{value} {}
+  Variant(UInt64 value) : data_{value} {}
+  Variant(Double value) : data_{value} {}
   Variant(ByteString str) : data_{std::move(str)} {}
   Variant(String str) : data_{std::move(str)} {}
   Variant(QualifiedName value) : data_{std::move(value)} {}
@@ -73,9 +75,11 @@ class Variant {
   NodeId data_type_id() const;
 
   bool as_bool() const { return std::get<bool>(data_); }
-  int32_t as_int32() const { return std::get<int32_t>(data_); }
-  int64_t as_int64() const { return std::get<int64_t>(data_); }
-  double as_double() const { return std::get<double>(data_); }
+  Int32 as_int32() const { return std::get<Int32>(data_); }
+  UInt32 as_uint32() const { return std::get<UInt32>(data_); }
+  Int64 as_int64() const { return std::get<Int64>(data_); }
+  UInt64 as_uint64() const { return std::get<UInt64>(data_); }
+  Double as_double() const { return std::get<Double>(data_); }
   const String& as_string() const { return std::get<String>(data_); }
   const LocalizedText& as_localized_text() const {
     return std::get<LocalizedText>(data_);
@@ -135,11 +139,12 @@ class Variant {
 
   std::variant<std::monostate,
                bool,
-               int8_t,
-               uint8_t,
-               int32_t,
-               uint32_t,
-               int64_t,
+               Int8,
+               UInt8,
+               Int32,
+               UInt32,
+               Int64,
+               UInt64,
                double,
                ByteString,
                String,
@@ -150,12 +155,13 @@ class Variant {
                ExtensionObject,
                std::vector<std::monostate>,
                std::vector<bool>,
-               std::vector<int8_t>,
-               std::vector<uint8_t>,
-               std::vector<int32_t>,
-               std::vector<uint32_t>,
-               std::vector<int64_t>,
-               std::vector<double>,
+               std::vector<Int8>,
+               std::vector<UInt8>,
+               std::vector<Int32>,
+               std::vector<UInt32>,
+               std::vector<Int64>,
+               std::vector<UInt64>,
+               std::vector<Double>,
                std::vector<ByteString>,
                std::vector<String>,
                std::vector<QualifiedName>,

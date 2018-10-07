@@ -40,13 +40,13 @@ void GetFetchAttributes(const scada::NodeId& node_id,
                         std::vector<scada::ReadValueId>& read_ids) {
   if (is_property) {
     read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+    read_ids.push_back({node_id, scada::AttributeId::Value});
   } else {
     read_ids.push_back({node_id, scada::AttributeId::NodeClass});
     read_ids.push_back({node_id, scada::AttributeId::BrowseName});
     read_ids.push_back({node_id, scada::AttributeId::DisplayName});
   }
   read_ids.push_back({node_id, scada::AttributeId::DataType});
-  read_ids.push_back({node_id, scada::AttributeId::Value});
 }
 
 const size_t kFetchReferencesReserveFactor = 3;

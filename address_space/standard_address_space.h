@@ -61,13 +61,17 @@ struct StandardAddressSpace {
 
   scada::DataType BaseDataType{scada::id::BaseDataType, "BaseDataType", {}};
   scada::DataType BoolDataType{scada::id::Boolean, "Bool", {}};
-  scada::DataType IntDataType{scada::id::Int32, "Int", {}};
+  scada::DataType Int32DataType{scada::id::Int32, "Int32", {}};
+  scada::DataType UInt32DataType{scada::id::UInt32, "UInt32", {}};
+  scada::DataType Int64DataType{scada::id::Int64, "Int64", {}};
+  scada::DataType UInt64DataType{scada::id::UInt64, "UInt64", {}};
   scada::DataType DoubleDataType{scada::id::Double, "Double", {}};
   scada::DataType StringDataType{scada::id::String, "String", {}};
   scada::DataType LocalizedTextDataType{scada::id::LocalizedText,
                                         "LocalizedText",
                                         {}};
   scada::DataType NodeIdDataType{scada::id::NodeId, "NodeId", {}};
+  scada::DataType ByteStringDataType{scada::id::ByteString, "ByteString", {}};
 
   scada::ObjectType BaseObjectType{scada::id::BaseObjectType,
                                    "BaseObjectType",

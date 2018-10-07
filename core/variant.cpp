@@ -12,21 +12,13 @@ namespace scada {
 
 namespace {
 
-const char* kBuiltInTypeNames[] = {"EMPTY",
-                                   "BOOL",
-                                   "INT8",
-                                   "UINT8",
-                                   "INT32",
-                                   "UINT32",
-                                   "INT64",
-                                   "DOUBLE",
-                                   "BYTE_STRING",
-                                   "STRING",
-                                   "QUALIFIED_NAME",
-                                   "LOCALIZED_TEXT",
-                                   "NODE_ID",
-                                   "EXPANDED_NODE_ID",
-                                   "EXTENSION_OBJECT"};
+const char* kBuiltInTypeNames[] = {
+    "EMPTY",           "BOOL",    "INT8",
+    "UINT8",           "INT32",   "UINT32",
+    "UINT64",          "INT64",   "DOUBLE",
+    "BYTE_STRING",     "STRING",  "QUALIFIED_NAME",
+    "LOCALIZED_TEXT",  "NODE_ID", "EXPANDED_NODE_ID",
+    "EXTENSION_OBJECT"};
 
 static_assert(std::size(kBuiltInTypeNames) ==
               static_cast<size_t>(scada::Variant::COUNT));
@@ -320,17 +312,27 @@ bool Variant::ChangeType(Variant::Type new_type) {
 }
 
 NodeId Variant::data_type_id() const {
-  static_assert(static_cast<size_t>(Type::COUNT) == 15);
+  static_assert(static_cast<size_t>(Type::COUNT) == 16);
 
   if (type() == Type::EXTENSION_OBJECT)
     return get<ExtensionObject>().data_type_id().node_id();
 
   const scada::NumericId kNodeIds[] = {
-      0,          id::Boolean,        id::SByte,
-      id::Byte,   id::Int32,          id::UInt32,
-      id::Int64,  id::Double,         id::ByteString,
-      id::String, id::QualifiedName,  id::LocalizedText,
-      id::NodeId, id::ExpandedNodeId,
+      0,
+      id::Boolean,
+      id::SByte,
+      id::Byte,
+      id::Int32,
+      id::UInt32,
+      id::Int64,
+      id::UInt64,
+      id::Double,
+      id::ByteString,
+      id::String,
+      id::QualifiedName,
+      id::LocalizedText,
+      id::NodeId,
+      id::ExpandedNodeId,
   };
 
   assert(static_cast<size_t>(type()) < std::size(kNodeIds));

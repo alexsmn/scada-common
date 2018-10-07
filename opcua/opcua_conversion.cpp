@@ -170,7 +170,7 @@ OpcUa_VariantArrayValue MakeVariantArrayValue(std::vector<scada::ExtensionObject
 }
 
 void Convert(scada::Variant&& source, OpcUa_Variant& result) {
-  static_assert(scada::Variant::COUNT == 15, "Not all types are declared");
+  static_assert(scada::Variant::COUNT == 16, "Not all types are declared");
 
   if (source.is_array()) {
     assert(source.type() != scada::Variant::EMPTY);
@@ -234,6 +234,11 @@ void Convert(scada::Variant&& source, OpcUa_Variant& result) {
       case scada::Variant::INT64:
         result.Datatype = OpcUaType_Int64;
         result.Value.Int64 = source.as_int64();
+        break;
+
+      case scada::Variant::UINT64:
+        result.Datatype = OpcUaType_UInt64;
+        result.Value.Int64 = source.as_uint64();
         break;
 
       case scada::Variant::DOUBLE:

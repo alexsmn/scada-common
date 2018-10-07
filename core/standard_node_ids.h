@@ -11,6 +11,7 @@ const NumericId Byte = 3;
 const NumericId Int32 = 6;
 const NumericId UInt32 = 7;
 const NumericId Int64 = 8;
+const NumericId UInt64 = 9;
 const NumericId Double = 11;
 const NumericId ByteString = 15;
 const NumericId String = 12;

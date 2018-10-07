@@ -42,7 +42,7 @@ using ReferenceDescriptions = std::vector<ReferenceDescription>;
 
 struct BrowseResult {
   StatusCode status_code;
-  std::vector<ReferenceDescription> references;
+  ReferenceDescriptions references;
 };
 
 struct ReadValueId {
