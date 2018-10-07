@@ -5,7 +5,7 @@ enum ProtocolVersionMajor {
   PROTOCOL_VERSION_MAJOR = 8;
 }
 enum ProtocolVersionMinor {
-  PROTOCOL_VERSION_MINOR = 0;
+  PROTOCOL_VERSION_MINOR = 1;
 }
 
 enum ConstantNodeId {
@@ -118,6 +118,8 @@ message Variant {
   optional bytes  string_value_utf8  = 6;
 
   optional NodeId node_id_value = 7;
+
+  optional bytes  byte_string_value = 8;
 
   repeated bytes  string_array_utf8 = 107;
 }

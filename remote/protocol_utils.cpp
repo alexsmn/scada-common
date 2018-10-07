@@ -43,6 +43,20 @@ scada::LocalizedText LocalizedTextFromProto(const std::string& source) {
   return scada::LocalizedText{base::UTF8ToUTF16(source)};
 }
 
+void LocalizedTextToProto(const scada::LocalizedText& source,
+                          std::string& target) {
+  target = base::UTF16ToUTF8(ToString16(source));
+}
+
+void LocalizedTextArrayToProto(
+    const std::vector<scada::LocalizedText>& source,
+    ::google::protobuf::RepeatedPtrField<std::string>& target) {
+  assert(target.empty());
+  target.Reserve(source.size());
+  for (auto& s : source)
+    LocalizedTextToProto(s, *target.Add());
+}
+
 std::vector<scada::LocalizedText> LocalizedTextArrayFromProto(
     const ::google::protobuf::RepeatedPtrField<std::string>& source) {
   std::vector<scada::LocalizedText> result;
@@ -50,6 +64,14 @@ std::vector<scada::LocalizedText> LocalizedTextArrayFromProto(
   for (auto& s : source)
     result.emplace_back(LocalizedTextFromProto(s));
   return result;
+}
+
+void ByteStringToProto(const scada::ByteString& source, std::string& target) {
+  target.assign(source.begin(), source.end());
+}
+
+scada::ByteString ByteStringFromProto(const std::string& source) {
+  return {source.begin(), source.end()};
 }
 
 scada::Variant FromProto(const protocol::Variant& source) {
@@ -69,6 +91,8 @@ scada::Variant FromProto(const protocol::Variant& source) {
         return static_cast<scada::UInt32>(source.int_value());
       case scada::Variant::INT64:
         return static_cast<scada::Int64>(source.int_value());
+      case scada::Variant::UINT64:
+        return static_cast<scada::UInt64>(source.int_value());
       case scada::Variant::DOUBLE:
         return source.double_value();
       case scada::Variant::STRING:
@@ -79,6 +103,8 @@ scada::Variant FromProto(const protocol::Variant& source) {
             base::SysUTF8ToWide(source.string_value_utf8())));
       case scada::Variant::LOCALIZED_TEXT:
         return LocalizedTextFromProto(source.string_value_utf8());
+      case scada::Variant::BYTE_STRING:
+        return ByteStringFromProto(source.byte_string_value());
       case scada::Variant::NODE_ID:
         return FromProto(source.node_id_value());
       default:
@@ -99,20 +125,6 @@ scada::Variant FromProto(const protocol::Variant& source) {
     assert(false);
     return scada::Variant();
   }
-}
-
-void LocalizedTextToProto(const scada::LocalizedText& source,
-                          std::string& target) {
-  target = base::UTF16ToUTF8(ToString16(source));
-}
-
-void LocalizedTextArrayToProto(
-    const std::vector<scada::LocalizedText>& source,
-    ::google::protobuf::RepeatedPtrField<std::string>& target) {
-  assert(target.empty());
-  target.Reserve(source.size());
-  for (auto& s : source)
-    LocalizedTextToProto(s, *target.Add());
 }
 
 void ToProto(const scada::Variant& source, protocol::Variant& target) {
@@ -143,6 +155,9 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       case scada::Variant::INT64:
         target.set_int_value(source.as_int64());
         break;
+      case scada::Variant::UINT64:
+        target.set_int_value(source.as_uint64());
+        break;
       case scada::Variant::DOUBLE:
         target.set_double_value(source.as_double());
         break;
@@ -158,6 +173,10 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
       case scada::Variant::LOCALIZED_TEXT:
         LocalizedTextToProto(source.as_localized_text(),
                              *target.mutable_string_value_utf8());
+        break;
+      case scada::Variant::BYTE_STRING:
+        ByteStringToProto(source.get<scada::ByteString>(),
+                          *target.mutable_byte_string_value());
         break;
       case scada::Variant::NODE_ID:
         ToProto(source.as_node_id(), *target.mutable_node_id_value());
