@@ -5,12 +5,12 @@
 
 #include <functional>
 
-using NodeFetchErrors = std::vector<std::pair<scada::NodeId, scada::Status>>;
+using NodeFetchStatuses = std::vector<std::pair<scada::NodeId, scada::Status>>;
 
 using NodeValidator = std::function<bool(const scada::NodeId& node_id)>;
 using FetchCompletedHandler =
     std::function<void(std::vector<scada::NodeState>&& nodes,
-                       NodeFetchErrors&& errors)>;
+                       NodeFetchStatuses&& errors)>;
 
 class NodeFetcher {
  public:

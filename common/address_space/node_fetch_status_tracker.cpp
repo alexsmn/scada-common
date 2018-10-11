@@ -3,28 +3,57 @@
 #include "address_space/address_space.h"
 #include "address_space/node_utils.h"
 
+// NodeFetchStatusTracker::ScopedStatusLock
+
+class NodeFetchStatusTracker::ScopedStatusLock {
+ public:
+  explicit ScopedStatusLock(NodeFetchStatusTracker& tracker);
+  ~ScopedStatusLock();
+
+  ScopedStatusLock(const ScopedStatusLock&) = delete;
+  ScopedStatusLock& operator=(const ScopedStatusLock&) = delete;
+
+ private:
+  NodeFetchStatusTracker& tracker_;
+};
+
+NodeFetchStatusTracker::ScopedStatusLock::ScopedStatusLock(
+    NodeFetchStatusTracker& tracker)
+    : tracker_{tracker} {
+  ++tracker_.status_lock_count_;
+}
+
+NodeFetchStatusTracker::ScopedStatusLock::~ScopedStatusLock() {
+  assert(tracker_.status_lock_count_ > 0);
+  --tracker_.status_lock_count_;
+  if (tracker_.status_lock_count_ == 0)
+    tracker_.FetchPendingStatuses();
+}
+
+// NodeFetchStatusTracker
+
 NodeFetchStatusTracker::NodeFetchStatusTracker(
     NodeFetchStatusTrackerContext&& context)
     : NodeFetchStatusTrackerContext{std::move(context)} {}
 
-void NodeFetchStatusTracker::OnNodeFetched(const scada::NodeId& node_id,
-                                           scada::Status status) {
-  assert(!node_id.is_null());
-  assert(!status || IsNodeFetched(node_id));
+void NodeFetchStatusTracker::OnNodesFetched(const NodeFetchStatuses& statuses) {
+  ScopedStatusLock lock{*this};
 
-  if (status)
-    errors_.erase(node_id);
-  else
-    errors_.insert_or_assign(node_id, std::move(status));
+  for (auto& [node_id, status] : statuses) {
+    assert(!node_id.is_null());
+    assert(!status || IsNodeFetched(node_id));
 
-  // Process as parent.
-  const auto [new_status, fetch_status] = GetStatus(node_id);
-  assert(fetch_status.node_fetched);
-  node_fetch_status_changed_handler_(node_id, std::move(new_status),
-                                     std::move(fetch_status));
+    if (status)
+      errors_.erase(node_id);
+    else
+      errors_.insert_or_assign(node_id, std::move(status));
 
-  // Process as child.
-  OnChildFetched(node_id);
+    // Process as parent.
+    NotifyStatusChanged(node_id);
+
+    // Process as child.
+    OnChildFetched(node_id);
+  }
 }
 
 void NodeFetchStatusTracker::DeleteNodeStatesRecursive(
@@ -39,6 +68,8 @@ void NodeFetchStatusTracker::OnChildrenFetched(
     const scada::NodeId& parent_id,
     std::set<scada::NodeId> child_ids) {
   assert(!parent_id.is_null());
+
+  ScopedStatusLock lock{*this};
 
   auto [i, inserted] = parents_.try_emplace(parent_id);
   auto& pending_child_ids = i->second;
@@ -60,14 +91,13 @@ void NodeFetchStatusTracker::OnChildrenFetched(
     }
   }
 
-  if (pending_child_ids.empty()) {
-    auto [status, fetch_status] = GetStatus(parent_id);
-    assert(fetch_status.children_fetched);
-    node_fetch_status_changed_handler_(parent_id, status, fetch_status);
-  }
+  if (pending_child_ids.empty())
+    NotifyStatusChanged(parent_id);
 }
 
 void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
+  ScopedStatusLock lock{*this};
+
   errors_.erase(node_id);
 
   // Process as parent.
@@ -123,9 +153,31 @@ void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
   assert(pending_child_ids.find(child_id) != pending_child_ids.end());
   pending_child_ids.erase(child_id);
 
-  if (pending_child_ids.empty()) {
-    auto [status, fetch_status] = GetStatus(parent_id);
-    node_fetch_status_changed_handler_(parent_id, std::move(status),
-                                       std::move(fetch_status));
+  if (pending_child_ids.empty())
+    NotifyStatusChanged(parent_id);
+}
+
+void NodeFetchStatusTracker::NotifyStatusChanged(const scada::NodeId& node_id) {
+  if (status_lock_count_ == 0) {
+    auto [status, fetch_status] = GetStatus(node_id);
+    node_fetch_status_changed_handler_(node_id, status, fetch_status);
+    return;
+  }
+
+  pending_statuses_.emplace(node_id);
+}
+
+void NodeFetchStatusTracker::FetchPendingStatuses() {
+  assert(status_lock_count_ >= 0);
+
+  if (status_lock_count_ != 0)
+    return;
+
+  auto statuses = std::move(pending_statuses_);
+  pending_statuses_.clear();
+
+  for (auto& node_id : statuses) {
+    auto [status, fetch_status] = GetStatus(node_id);
+    node_fetch_status_changed_handler_(node_id, status, fetch_status);
   }
 }

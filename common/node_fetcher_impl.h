@@ -72,7 +72,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
 
     void AddDependency(FetchingNode& node, FetchingNode& from);
 
-    std::pair<std::vector<scada::NodeState>, NodeFetchErrors> GetFetchedNodes();
+    std::pair<std::vector<scada::NodeState> /*fetched_nodes*/,
+              NodeFetchStatuses /*errors*/>
+    GetFetchedNodes();
 
     bool AssertValid() const;
 

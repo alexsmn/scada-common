@@ -30,7 +30,7 @@ struct TestContext {
       logger,
       address_space,
       address_space,
-      [&](std::vector<scada::NodeState>&& nodes, NodeFetchErrors&& errors) {
+      [&](std::vector<scada::NodeState>&& nodes, NodeFetchStatuses&& errors) {
         OnFetched(nodes);
         ProcessFetchedNodes(nodes);
         for (auto& [node_id, status] : errors)

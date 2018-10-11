@@ -354,7 +354,8 @@ void NodeFetcherImpl::FetchingNode::ClearDependsOf() {
   depends_of.clear();
 }
 
-std::pair<std::vector<scada::NodeState>, NodeFetchErrors>
+std::pair<std::vector<scada::NodeState> /*fetched_nodes*/,
+          NodeFetchStatuses /*errors*/>
 NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
@@ -390,7 +391,7 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
   std::vector<scada::NodeState> fetched_nodes;
   fetched_nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
 
-  NodeFetchErrors errors;
+  NodeFetchStatuses errors;
 
   Collector collector{*this};
   for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {

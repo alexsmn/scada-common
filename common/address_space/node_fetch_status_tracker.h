@@ -13,6 +13,8 @@ class AddressSpace;
 class Node;
 }  // namespace scada
 
+using NodeFetchStatuses = std::vector<std::pair<scada::NodeId, scada::Status>>;
+
 using NodeFetchStatusChangedHandler =
     std::function<void(const scada::NodeId& node_id,
                        const scada::Status& status,
@@ -27,7 +29,7 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
  public:
   explicit NodeFetchStatusTracker(NodeFetchStatusTrackerContext&& context);
 
-  void OnNodeFetched(const scada::NodeId& node_id, scada::Status status);
+  void OnNodesFetched(const NodeFetchStatuses& statuses);
   void OnChildrenFetched(const scada::NodeId& node_id,
                          std::set<scada::NodeId> child_ids);
 
@@ -37,11 +39,17 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
       const scada::NodeId& node_id) const;
 
  private:
+  class ScopedStatusLock;
+
   bool IsNodeFetched(const scada::NodeId& node_id) const;
 
   void DeleteNodeStatesRecursive(const scada::Node& node);
 
   void OnChildFetched(const scada::NodeId& child_id);
+
+  void NotifyStatusChanged(const scada::NodeId& node_id);
+
+  void FetchPendingStatuses();
 
   // Key is absent - not fetched, unknown node
   // Key presents, pending_child_ids.empty() - fetched
@@ -53,4 +61,7 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
   std::map<scada::NodeId /*child_id*/, scada::NodeId /*parent_id*/> children_;
 
   std::map<scada::NodeId, scada::Status> errors_;
+
+  std::set<scada::NodeId> pending_statuses_;
+  int status_lock_count_ = 0;
 };

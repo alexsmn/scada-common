@@ -127,7 +127,7 @@ void RemoteNodeService::ProcessFetchedNodes(
   }
 }
 
-void RemoteNodeService::ProcessFetchErrors(NodeFetchErrors&& errors) {
+void RemoteNodeService::ProcessFetchErrors(NodeFetchStatuses&& errors) {
   for (auto& [node_id, status] : errors) {
     auto& model = nodes_[node_id];
     if (!model)
@@ -139,7 +139,7 @@ void RemoteNodeService::ProcessFetchErrors(NodeFetchErrors&& errors) {
 NodeFetcherImplContext RemoteNodeService::MakeNodeFetcherImplContext() {
   auto fetch_completed_handler =
       [this](std::vector<scada::NodeState>&& node_states,
-             NodeFetchErrors&& errors) {
+             NodeFetchStatuses&& errors) {
         ProcessFetchedNodes(std::move(node_states));
         ProcessFetchErrors(std::move(errors));
       };

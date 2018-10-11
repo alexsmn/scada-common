@@ -126,7 +126,7 @@ void AddressSpaceFetcher::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
 NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {
   auto fetch_completed_handler = [this](std::vector<scada::NodeState>&&
                                             fetched_nodes,
-                                        NodeFetchErrors&& errors) {
+                                        NodeFetchStatuses&& errors) {
     logger_->WriteF(LogSeverity::Normal, "%Iu nodes fetched",
                     fetched_nodes.size());
 
@@ -135,20 +135,19 @@ NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {
                       errors.size());
     }
 
-    for (auto& [node_id, status] : errors)
-      fetch_status_tracker_.OnNodeFetched(node_id, std::move(status));
-
     std::vector<scada::Node*> added_nodes;
     UpdateNodes(address_space_, node_factory_, std::move(fetched_nodes),
                 *logger_, &added_nodes);
 
     for (auto* added_node : added_nodes) {
       const auto added_id = added_node->id();
-      fetch_status_tracker_.OnNodeFetched(added_id, scada::StatusCode::Good);
       address_space_.NotifyNodeAdded(*added_node);
       if (!fetch_status_tracker_.GetStatus(added_id).second.children_fetched)
         node_children_fetcher_.Fetch(added_id);
+      errors.emplace_back(added_id, scada::StatusCode::Good);
     }
+
+    fetch_status_tracker_.OnNodesFetched(errors);
   };
 
   NodeValidator node_validator = [this](const scada::NodeId& node_id) {
