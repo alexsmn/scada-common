@@ -2,6 +2,7 @@
 
 #include "common/node_model.h"
 #include "common/node_util.h"
+#include "core/attribute_service.h"
 #include "core/monitored_item.h"
 
 bool NodeRef::fetched() const {
@@ -154,11 +155,19 @@ std::unique_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
   return model_ ? model_->CreateMonitoredItem(attribute_id) : nullptr;
 }
 
+void NodeRef::Read(scada::AttributeId attribute_id,
+                   const ReadCallback& callback) const {
+  if (model_)
+    model_->Read(attribute_id, callback);
+  else
+    callback(scada::MakeReadError(scada::StatusCode::Bad_WrongNodeId));
+}
+
 void NodeRef::Write(scada::AttributeId attribute_id,
                     const scada::Variant& value,
                     const scada::WriteFlags& flags,
                     const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback) {
+                    const scada::StatusCallback& callback) const {
   if (model_)
     model_->Write(attribute_id, value, flags, user_id, callback);
   else

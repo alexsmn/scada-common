@@ -3,12 +3,13 @@
 #include "common/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
-#include "core/monitored_item.h"
+#include "core/attribute_service.h"
+#include "core/method_service.h"
+#include "core/monitored_item_service.h"
 
 AddressSpaceNodeModel::AddressSpaceNodeModel(
-    AddressSpaceNodeModelDelegate& delegate,
-    scada::NodeId node_id)
-    : BaseNodeModel{std::move(node_id)}, delegate_{delegate} {}
+    AddressSpaceNodeModelContext&& context)
+    : AddressSpaceNodeModelContext{std::move(context)} {}
 
 AddressSpaceNodeModel::~AddressSpaceNodeModel() {
   assert(!observers_.might_have_observers());
@@ -201,7 +202,22 @@ void AddressSpaceNodeModel::OnNodeDeleted() {
 std::unique_ptr<scada::MonitoredItem>
 AddressSpaceNodeModel::CreateMonitoredItem(
     scada::AttributeId attribute_id) const {
-  return delegate_.OnNodeModelCreateMonitoredItem({node_id_, attribute_id});
+  return monitored_item_service_.CreateMonitoredItem({node_id_, attribute_id});
+}
+
+void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,
+                                 const NodeRef::ReadCallback& callback) const {
+  attribute_service_.Read({{node_id_, attribute_id}},
+                          [callback](scada::Status&& status,
+                                     std::vector<scada::DataValue>&& values) {
+                            if (!status)
+                              return callback(scada::MakeReadError(status.code()));
+
+                            // Must be guaranteed above.
+                            assert(values.size() == 1);
+                            auto& value = values.front();
+                            callback(std::move(value));
+                          });
 }
 
 void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
@@ -209,7 +225,7 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
                                   const scada::WriteFlags& flags,
                                   const scada::NodeId& user_id,
                                   const scada::StatusCallback& callback) const {
-  delegate_.OnNodeModelWrite(
+  attribute_service_.Write(
       scada::WriteValue{node_id_, attribute_id, value, flags}, user_id,
       callback);
 }
@@ -217,5 +233,5 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
 void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,
                                  const std::vector<scada::Variant>& arguments,
                                  const scada::StatusCallback& callback) const {
-  delegate_.OnNodeModelCall(node_id_, method_id, arguments, {}, callback);
+  method_service_.Call(node_id_, method_id, arguments, {}, callback);
 }

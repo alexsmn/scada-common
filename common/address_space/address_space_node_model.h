@@ -6,6 +6,9 @@
 #include "common/base_node_model.h"
 
 namespace scada {
+class AttributeService;
+class MethodService;
+class MonitoredItemService;
 struct ModelChangeEvent;
 }
 
@@ -23,27 +26,22 @@ class AddressSpaceNodeModelDelegate {
   virtual void OnNodeModelFetchRequested(
       const scada::NodeId& node_id,
       const NodeFetchStatus& requested_status) = 0;
+};
 
-  virtual std::unique_ptr<scada::MonitoredItem> OnNodeModelCreateMonitoredItem(
-      const scada::ReadValueId& read_value_id) = 0;
-
-  virtual void OnNodeModelWrite(const scada::WriteValue& value,
-                                const scada::NodeId& user_id,
-                                const scada::StatusCallback& callback) = 0;
-
-  virtual void OnNodeModelCall(const scada::NodeId& node_id,
-                               const scada::NodeId& method_id,
-                               const std::vector<scada::Variant>& arguments,
-                               const scada::NodeId& user_id,
-                               const scada::StatusCallback& callback) = 0;
+struct AddressSpaceNodeModelContext {
+  AddressSpaceNodeModelDelegate& delegate_;
+  const scada::NodeId node_id_;
+  scada::AttributeService& attribute_service_;
+  scada::MonitoredItemService& monitored_item_service_;
+  scada::MethodService& method_service_;
 };
 
 class AddressSpaceNodeModel final
-    : public BaseNodeModel,
+    : private AddressSpaceNodeModelContext,
+      public BaseNodeModel,
       public std::enable_shared_from_this<AddressSpaceNodeModel> {
  public:
-  AddressSpaceNodeModel(AddressSpaceNodeModelDelegate& delegate,
-                        scada::NodeId node_id);
+  explicit AddressSpaceNodeModel(AddressSpaceNodeModelContext&& context);
   ~AddressSpaceNodeModel();
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
@@ -74,6 +72,8 @@ class AddressSpaceNodeModel final
       const scada::QualifiedName& child_name) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const override;
+  virtual void Read(scada::AttributeId attribute_id,
+                    const NodeRef::ReadCallback& callback) const override;
   virtual void Write(scada::AttributeId attribute_id,
                      const scada::Variant& value,
                      const scada::WriteFlags& flags,
@@ -89,6 +89,5 @@ class AddressSpaceNodeModel final
       const NodeFetchStatus& requested_status) override;
   virtual void OnNodeDeleted() override;
 
-  AddressSpaceNodeModelDelegate& delegate_;
   const scada::Node* node_ = nullptr;
 };

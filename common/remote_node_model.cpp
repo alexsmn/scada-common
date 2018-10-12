@@ -12,7 +12,7 @@
 
 RemoteNodeModel::RemoteNodeModel(RemoteNodeService& service,
                                  scada::NodeId node_id)
-    : BaseNodeModel{std::move(node_id)}, service_{service} {}
+    : service_{service}, node_id_{std::move(node_id)} {}
 
 void RemoteNodeModel::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
@@ -373,6 +373,11 @@ void RemoteNodeModel::OnFetchRequested(
 std::unique_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
     scada::AttributeId attribute_id) const {
   return nullptr;
+}
+
+void RemoteNodeModel::Read(scada::AttributeId attribute_id,
+                           const NodeRef::ReadCallback& callback) const {
+  callback(scada::MakeReadError(scada::StatusCode::Bad_Disconnected));
 }
 
 void RemoteNodeModel::Write(scada::AttributeId attribute_id,

@@ -47,8 +47,13 @@ NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
   if (model)
     return model;
 
-  auto& delegate = *static_cast<AddressSpaceNodeModelDelegate*>(this);
-  model = std::make_shared<AddressSpaceNodeModel>(delegate, node_id);
+  model = std::make_shared<AddressSpaceNodeModel>(AddressSpaceNodeModelContext{
+      *this,
+      node_id,
+      attribute_service_,
+      monitored_item_service_,
+      method_service_,
+  });
 
   auto* node = address_space_.GetNode(node_id);
   auto [status, fetch_status] = fetcher_.GetNodeFetchStatus(node_id);
@@ -191,26 +196,4 @@ void AddressSpaceNodeService::OnChannelOpened() {
 
 void AddressSpaceNodeService::OnChannelClosed() {
   fetcher_.OnChannelClosed();
-}
-
-std::unique_ptr<scada::MonitoredItem>
-AddressSpaceNodeService::OnNodeModelCreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
-  return monitored_item_service_.CreateMonitoredItem(read_value_id);
-}
-
-void AddressSpaceNodeService::OnNodeModelWrite(
-    const scada::WriteValue& value,
-    const scada::NodeId& user_id,
-    const scada::StatusCallback& callback) {
-  attribute_service_.Write(value, user_id, callback);
-}
-
-void AddressSpaceNodeService::OnNodeModelCall(
-    const scada::NodeId& node_id,
-    const scada::NodeId& method_id,
-    const std::vector<scada::Variant>& arguments,
-    const scada::NodeId& user_id,
-    const scada::StatusCallback& callback) {
-  method_service_.Call(node_id, method_id, arguments, user_id, callback);
 }

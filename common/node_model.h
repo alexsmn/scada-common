@@ -48,13 +48,16 @@ class NodeModel {
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const = 0;
 
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::StatusCallback& callback) const = 0;
+  virtual void Read(scada::AttributeId attribute_id,
+                    const NodeRef::ReadCallback& callback) const = 0;
 
   virtual void Write(scada::AttributeId attribute_id,
                      const scada::Variant& value,
                      const scada::WriteFlags& flags,
                      const scada::NodeId& user_id,
                      const scada::StatusCallback& callback) const = 0;
+
+  virtual void Call(const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::StatusCallback& callback) const = 0;
 };

@@ -2,9 +2,6 @@
 
 #include "common/node_observer.h"
 
-BaseNodeModel::BaseNodeModel(scada::NodeId node_id)
-    : node_id_{std::move(node_id)} {}
-
 void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
                           const FetchCallback& callback) const {
   if (status_ && requested_status <= fetch_status_) {

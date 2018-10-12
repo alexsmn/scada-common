@@ -4,9 +4,14 @@
 #include "address_space/object.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
+#include "core/attribute_service_mock.h"
+#include "core/method_service_mock.h"
 #include "core/monitored_item.h"
+#include "core/monitored_item_service_mock.h"
 
 #include <gmock/gmock.h>
+
+using namespace testing;
 
 class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
  public:
@@ -15,19 +20,6 @@ class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
   MOCK_METHOD2(OnNodeModelFetchRequested,
                void(const scada::NodeId& node_id,
                     const NodeFetchStatus& requested_status));
-  MOCK_METHOD1(OnNodeModelCreateMonitoredItem,
-               std::unique_ptr<scada::MonitoredItem>(
-                   const scada::ReadValueId& read_value_id));
-  MOCK_METHOD3(OnNodeModelWrite,
-               void(const scada::WriteValue& value,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback));
-  MOCK_METHOD5(OnNodeModelCall,
-               void(const scada::NodeId& node_id,
-                    const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback));
 };
 
 TEST(AddressSpaceNodeModel, Fetch) {
@@ -35,8 +27,16 @@ TEST(AddressSpaceNodeModel, Fetch) {
 
   AddressSpaceImpl address_space{std::make_shared<NullLogger>()};
   MockAddressSpaceNodeModelDelegate delegate;
-  AddressSpaceNodeModel node{delegate, kNodeId};
-
+  NiceMock<scada::MockAttributeService> attribute_service;
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  NiceMock<scada::MockMethodService> method_service;
+  AddressSpaceNodeModel node{AddressSpaceNodeModelContext{
+      delegate,
+      kNodeId,
+      attribute_service,
+      monitored_item_service,
+      method_service,
+  }};
   EXPECT_CALL(delegate,
               OnNodeModelFetchRequested(kNodeId, NodeFetchStatus::NodeOnly()));
 

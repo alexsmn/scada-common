@@ -2,10 +2,9 @@
 
 #include "common/node_fetch_status.h"
 #include "core/attribute_ids.h"
+#include "core/data_value.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
-#include "core/status.h"
-#include "core/variant.h"
 #include "core/write_flags.h"
 
 #include <functional>
@@ -92,11 +91,15 @@ class NodeRef {
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id) const;
 
+  using ReadCallback = std::function<void(scada::DataValue&& value)>;
+  void Read(scada::AttributeId attribute_id,
+            const ReadCallback& callback) const;
+
   void Write(scada::AttributeId attribute_id,
              const scada::Variant& value,
              const scada::WriteFlags& flags,
              const scada::NodeId& user_id,
-             const scada::StatusCallback& callback);
+             const scada::StatusCallback& callback) const;
 
   void Call(const scada::NodeId& method_id,
             const std::vector<scada::Variant>& arguments,

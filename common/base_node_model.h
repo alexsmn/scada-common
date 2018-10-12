@@ -14,15 +14,11 @@ class BaseNodeModel : public NodeModel {
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  protected:
-  explicit BaseNodeModel(scada::NodeId node_id);
-
   void SetFetchStatus(const scada::Status& status,
                       const NodeFetchStatus& fetch_status);
 
   virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
   virtual void OnNodeDeleted();
-
-  const scada::NodeId node_id_;
 
   scada::Status status_{scada::StatusCode::Good};
 
