@@ -107,13 +107,8 @@ class Variant {
   template <class T>
   bool get(T& value) const;
 
-  bool get_or(bool or_value) const;
-  int32_t get_or(int32_t or_value) const;
-  double get_or(double or_value) const;
-  std::string get_or(std::string&& or_value) const;
-  QualifiedName get_or(QualifiedName&& or_value) const;
-  LocalizedText get_or(LocalizedText&& or_value) const;
-  NodeId get_or(NodeId&& or_value) const;
+  template <class T>
+  T get_or(T or_value) const;
 
   template <class T>
   const T* get_if() const;
@@ -204,6 +199,13 @@ inline bool Variant::get(T& value) const {
 template <class T>
 inline const T* Variant::get_if() const {
   return std::get_if<T>(&data_);
+}
+
+template <class T>
+inline T Variant::get_or(T or_value) const {
+  auto result = std::move(or_value);
+  get(result);
+  return result;
 }
 
 scada::Variant::Type ParseBuiltInType(std::string_view str);

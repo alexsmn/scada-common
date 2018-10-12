@@ -41,39 +41,6 @@ bool Variant::operator==(const Variant& other) const {
   return data_ == other.data_;
 }
 
-bool Variant::get_or(bool or_value) const {
-  bool bool_value;
-  return get(bool_value) ? bool_value : or_value;
-}
-
-int32_t Variant::get_or(int32_t or_value) const {
-  int32_t int_value;
-  return get(int_value) ? int_value : or_value;
-}
-
-double Variant::get_or(double or_value) const {
-  double double_value;
-  return get(double_value) ? double_value : or_value;
-}
-
-std::string Variant::get_or(std::string&& or_value) const {
-  std::string string_value = std::move(or_value);
-  get(string_value);
-  return string_value;
-}
-
-QualifiedName Variant::get_or(QualifiedName&& or_value) const {
-  QualifiedName value = std::move(or_value);
-  get(value);
-  return value;
-}
-
-LocalizedText Variant::get_or(LocalizedText&& or_value) const {
-  LocalizedText value = std::move(or_value);
-  get(value);
-  return value;
-}
-
 bool Variant::get(bool& bool_value) const {
   if (!is_scalar())
     return false;
@@ -273,12 +240,6 @@ bool Variant::get(NodeId& node_id) const {
     return false;
   node_id = as_node_id();
   return true;
-}
-
-NodeId Variant::get_or(NodeId&& or_value) const {
-  NodeId result = std::move(or_value);
-  get(result);
-  return result;
 }
 
 bool Variant::ChangeType(Variant::Type new_type) {
