@@ -37,18 +37,22 @@ const size_t kFetchAttributesReserveFactor = std::size(kAttributeIds);
 
 void GetFetchAttributes(const scada::NodeId& node_id,
                         bool is_property,
+                        bool is_declaration,
                         std::vector<scada::ReadValueId>& read_ids) {
-  if (is_property) {
-    read_ids.push_back({node_id, scada::AttributeId::BrowseName});
-  } else {
+  read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+
+  if (!is_property || is_declaration) {
     read_ids.push_back({node_id, scada::AttributeId::NodeClass});
-    read_ids.push_back({node_id, scada::AttributeId::BrowseName});
     read_ids.push_back({node_id, scada::AttributeId::DisplayName});
   }
+
   read_ids.push_back({node_id, scada::AttributeId::DataType});
+
+  // Must read only property values.
   // Must read values of type definition properties to correctly read
   // EnumStrings.
-  read_ids.push_back({node_id, scada::AttributeId::Value});
+  if (is_property)
+    read_ids.push_back({node_id, scada::AttributeId::Value});
 }
 
 const size_t kFetchReferencesReserveFactor = 3;
@@ -263,7 +267,8 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
                     ToString(node->node_id).c_str(), request_id);
 
     size_t count = read_ids.size();
-    GetFetchAttributes(node->node_id, node->is_property, read_ids);
+    GetFetchAttributes(node->node_id, node->is_property, node->is_declaration,
+                       read_ids);
     node->attributes_fetched = count == read_ids.size();
     node->fetch_request_id = request_id;
   }
@@ -618,8 +623,8 @@ void NodeFetcherImpl::AddFetchedReference(
     if (reference.reference_type_id == scada::id::HasProperty) {
       child.node_class = scada::NodeClass::Variable;
       child.type_definition_id = scada::id::PropertyType;
-      // Force read of DisplayName for type definitions.
-      child.is_property = !scada::IsTypeDefinition(node.node_class);
+      child.is_property = true;
+      child.is_declaration = scada::IsTypeDefinition(node.node_class);
     }
 
     fetching_nodes_.AddDependency(child, node);

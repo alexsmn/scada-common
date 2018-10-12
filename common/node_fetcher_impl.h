@@ -55,7 +55,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     bool references_fetched = false;
     scada::Status status{scada::StatusCode::Good};
     bool force = false;  // refetch even if fetching has been already started
-    bool is_property = false;  // object property (not property declaration)
+    bool is_property = false;  // instance or type declaration property
+    bool is_declaration = false;
 
     int fetch_cache_iteration = 0;
     int fetch_cache_state = false;
