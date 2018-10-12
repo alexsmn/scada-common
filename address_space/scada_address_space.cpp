@@ -890,12 +890,12 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
 
   // File System
   {
-    /*node_factory.CreateNode({id::FileSystem, scada::NodeClass::Object,
+    node_factory.CreateNode({id::FileSystem, scada::NodeClass::Object,
                              scada::id::FolderType, scada::id::ObjectsFolder,
                              scada::id::Organizes,
                              scada::NodeAttributes{}
                                  .set_browse_name("FileSystem")
-                                 .set_display_name(L"Файлы")});*/
+                                 .set_display_name(L"Файлы")});
 
     GenericNodeFactory generic_node_factory{address_space};
     generic_node_factory.CreateNode({id::FileDirectoryType,
@@ -907,14 +907,16 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                                          .set_browse_name("FileDirectoryType")
                                          .set_display_name(L"Папка")});
 
-    generic_node_factory.CreateNode({id::FileType,
-                                     scada::NodeClass::ObjectType,
-                                     {},
-                                     scada::id::BaseObjectType,
-                                     scada::id::HasSubtype,
-                                     scada::NodeAttributes{}
-                                         .set_browse_name("FileType")
-                                         .set_display_name(L"Файл")});
+    generic_node_factory.CreateNode(
+        {id::FileType,
+         scada::NodeClass::VariableType,
+         {},
+         scada::id::BaseVariableType,
+         scada::id::HasSubtype,
+         scada::NodeAttributes{}
+             .set_browse_name("FileType")
+             .set_display_name(L"Файл")
+             .set_data_type(scada::id::ByteString)});
 
     generic_node_factory.CreateNode(
         {id::FileType_Hash, scada::NodeClass::Variable, scada::id::PropertyType,

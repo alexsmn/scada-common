@@ -95,7 +95,7 @@ bool IsSimulated(const Node& node, bool recursive) {
 }
 
 bool IsDisabled(const Node& node, bool recursive) {
-  if (!scada::IsInstanceOf(&node, ::id::DeviceType))
+  if (!IsInstanceOf(&node, ::id::DeviceType))
     return false;
 
   bool disabled =
@@ -231,40 +231,53 @@ Status ConvertPropertyValues(Node& node, NodeProperties& properties) {
   return StatusCode::Good;
 }
 
-bool WantsTypeDefinition(scada::AddressSpace& address_space,
-                         const scada::BrowseDescription& description) {
-  return WantsReference(address_space, description,
-                        scada::id::HasTypeDefinition, true);
+bool WantsTypeDefinition(AddressSpace& address_space,
+                         const BrowseDescription& description) {
+  return WantsReference(address_space, description, id::HasTypeDefinition,
+                        true);
 }
 
-bool WantsOrganizes(scada::AddressSpace& address_space,
-                    const scada::BrowseDescription& description) {
-  return WantsReference(address_space, description, scada::id::Organizes, true);
+bool WantsOrganizes(AddressSpace& address_space,
+                    const BrowseDescription& description) {
+  return WantsReference(address_space, description, id::Organizes, true);
 }
 
-bool WantsParent(scada::AddressSpace& address_space,
-                 const scada::BrowseDescription& description) {
-  return WantsReference(address_space, description,
-                        scada::id::HierarchicalReferences, false);
+bool WantsParent(AddressSpace& address_space,
+                 const BrowseDescription& description) {
+  return WantsReference(address_space, description, id::HierarchicalReferences,
+                        false);
 }
 
-bool WantsReference(scada::AddressSpace& address_space,
-                    const scada::BrowseDescription& description,
-                    const scada::NodeId& reference_type_id,
+bool WantsReference(AddressSpace& address_space,
+                    const BrowseDescription& description,
+                    const NodeId& reference_type_id,
                     bool forward) {
-  if (description.direction != scada::BrowseDirection::Both) {
+  if (description.direction != BrowseDirection::Both) {
     const bool wants_forward =
-        description.direction == scada::BrowseDirection::Forward;
+        description.direction == BrowseDirection::Forward;
     if (forward != wants_forward)
       return false;
   }
 
   if (description.include_subtypes) {
-    return scada::IsSubtypeOf(address_space, reference_type_id,
-                              description.reference_type_id);
+    return IsSubtypeOf(address_space, reference_type_id,
+                       description.reference_type_id);
   } else {
     return reference_type_id == description.reference_type_id;
   }
+}
+
+ObjectType& BindObjectType(AddressSpace& address_space, const NodeId& node_id) {
+  auto* node = scada::AsObjectType(address_space.GetNode(node_id));
+  assert(node);
+  return *node;
+}
+
+VariableType& BindVariableType(AddressSpace& address_space,
+                               const NodeId& node_id) {
+  auto* node = scada::AsVariableType(address_space.GetNode(node_id));
+  assert(node);
+  return *node;
 }
 
 }  // namespace scada

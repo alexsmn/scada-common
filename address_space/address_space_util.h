@@ -11,8 +11,10 @@ namespace scada {
 
 class AddressSpace;
 class Node;
-class Variable;
+class ObjectType;
 class TypeDefinition;
+class Variable;
+class VariableType;
 
 QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id);
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id);
@@ -36,18 +38,21 @@ Node* GetNestedNode(AddressSpace& address_space,
 
 base::string16 GetFullDisplayName(const Node& node);
 
-scada::Status ConvertPropertyValues(scada::Node& node,
-                                    scada::NodeProperties& properties);
+Status ConvertPropertyValues(Node& node, NodeProperties& properties);
 
-bool WantsReference(scada::AddressSpace& address_space,
-                    const scada::BrowseDescription& description,
-                    const scada::NodeId& reference_type_id,
+bool WantsReference(AddressSpace& address_space,
+                    const BrowseDescription& description,
+                    const NodeId& reference_type_id,
                     bool forward);
-bool WantsTypeDefinition(scada::AddressSpace& address_space,
-                         const scada::BrowseDescription& description);
-bool WantsOrganizes(scada::AddressSpace& address_space,
-                    const scada::BrowseDescription& description);
-bool WantsParent(scada::AddressSpace& address_space,
-                 const scada::BrowseDescription& description);
+bool WantsTypeDefinition(AddressSpace& address_space,
+                         const BrowseDescription& description);
+bool WantsOrganizes(AddressSpace& address_space,
+                    const BrowseDescription& description);
+bool WantsParent(AddressSpace& address_space,
+                 const BrowseDescription& description);
+
+ObjectType& BindObjectType(AddressSpace& address_space, const NodeId& node_id);
+VariableType& BindVariableType(AddressSpace& address_space,
+                               const NodeId& node_id);
 
 }  // namespace scada
