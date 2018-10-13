@@ -123,8 +123,6 @@ void VidiconSession::Write(const scada::WriteValue& value,
 void VidiconSession::Acknowledge(int acknowledge_id,
                                  const scada::NodeId& user_node_id) {}
 
-void VidiconSession::GenerateEvent(const scada::Event& event) {}
-
 void VidiconSession::Call(const scada::NodeId& node_id,
                           const scada::NodeId& method_id,
                           const std::vector<scada::Variant>& arguments,

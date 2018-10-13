@@ -10,25 +10,6 @@
 #include <atomic>
 #include <unordered_map>
 
-namespace {
-
-void BrowseProperties(const scada::Node& node,
-                      std::vector<scada::ReferenceDescription>& references) {
-  const auto node_id = node.id();
-  assert(!node_id.is_null());
-
-  for (auto* type = node.type_definition(); type; type = type->supertype()) {
-    for (auto* prop_decl : scada::GetProperties(*type)) {
-      auto prop_id =
-          MakeNestedNodeId(node_id, prop_decl->GetBrowseName().name());
-      assert(!prop_id.is_null());
-      references.push_back({scada::id::HasProperty, true, std::move(prop_id)});
-    }
-  }
-}
-
-}  // namespace
-
 ViewServiceImpl::ViewServiceImpl(ViewServiceImplContext&& context)
     : ViewServiceImplContext{std::move(context)} {
   address_space_.Subscribe(*this);

@@ -28,7 +28,3 @@ void EventServiceProxy::Acknowledge(int acknowledge_id,
 
   sender_->Request(request, nullptr);
 }
-
-void EventServiceProxy::GenerateEvent(const scada::Event& event) {
-  assert(false);
-}

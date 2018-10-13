@@ -75,8 +75,7 @@ class VidiconSession : public scada::SessionService,
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,
                            const scada::NodeId& user_node_id) override;
-  virtual void GenerateEvent(const scada::Event& event) override;
-
+  
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,

@@ -1,6 +1,7 @@
 #pragma once
 
 namespace scada {
+class Event;
 class NodeId;
 struct ModelChangeEvent;
 };  // namespace scada
@@ -8,6 +9,8 @@ struct ModelChangeEvent;
 class EventNotifier {
  public:
   virtual ~EventNotifier() {}
+
+  virtual void NotifyEvent(const scada::Event& event) = 0;
 
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;
 

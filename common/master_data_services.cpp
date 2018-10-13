@@ -270,13 +270,6 @@ void MasterDataServices::Acknowledge(int acknowledge_id,
   services_.event_service_->Acknowledge(acknowledge_id, user_node_id);
 }
 
-void MasterDataServices::GenerateEvent(const scada::Event& event) {
-  if (!services_.event_service_)
-    return;
-
-  services_.event_service_->GenerateEvent(event);
-}
-
 std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id) {
   return std::make_unique<MasterMonitoredItem>(*this, read_value_id);

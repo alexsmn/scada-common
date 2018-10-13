@@ -15,7 +15,6 @@ class EventServiceProxy : public scada::EventService {
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,
                            const scada::NodeId& user_node_id) override;
-  virtual void GenerateEvent(const scada::Event& event) override;
 
  private:
   MessageSender* sender_ = nullptr;

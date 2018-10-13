@@ -4,7 +4,6 @@
 #include "base/observer_list.h"
 #include "core/model_change_event.h"
 #include "core/view_service.h"
-#include "event_notifier.h"
 
 #include <memory>
 
@@ -18,18 +17,14 @@ struct ViewServiceImplContext {
 
 class ViewServiceImpl : private ViewServiceImplContext,
                         private scada::NodeObserver,
-                        public scada::ViewService,
-                        public EventNotifier {
+                        public scada::ViewService {
  public:
   explicit ViewServiceImpl(ViewServiceImplContext&& context);
   ~ViewServiceImpl();
 
-  // EventNotifier
-  virtual void NotifyModelChanged(
-      const scada::ModelChangeEvent& event) override;
-  virtual void NotifySemanticChanged(
-      const scada::NodeId& node_id,
-      const scada::NodeId& type_definion_id) override;
+  void NotifyModelChanged(const scada::ModelChangeEvent& event);
+  void NotifySemanticChanged(const scada::NodeId& node_id,
+                             const scada::NodeId& type_definion_id);
 
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& descriptions,
@@ -42,11 +37,6 @@ class ViewServiceImpl : private ViewServiceImplContext,
   virtual void Unsubscribe(scada::ViewEvents& events) override;
 
  private:
-  struct AsyncBrowse {
-    scada::ViewService* view_service;
-    scada::NodeId node_id;
-  };
-
   scada::BrowseResult Browse(const scada::BrowseDescription& description,
                              scada::ViewService*& async_view_service);
   scada::BrowseResult BrowseNode(const scada::Node& node,
