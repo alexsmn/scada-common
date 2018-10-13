@@ -919,13 +919,13 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
              .set_data_type(scada::id::ByteString)});
 
     generic_node_factory.CreateNode(
-        {id::FileType_Hash, scada::NodeClass::Variable, scada::id::PropertyType,
-         id::FileType, scada::id::HasProperty,
+        {id::FileType_LastUpdateTime, scada::NodeClass::Variable,
+         scada::id::PropertyType, id::FileType, scada::id::HasProperty,
          scada::NodeAttributes{}
-             .set_browse_name("Hash")
-             .set_display_name(L"Хеш")
-             .set_data_type(scada::id::ByteString)
-             .set_value(scada::ByteString{})});
+             .set_browse_name("LastUpdateTime")
+             .set_display_name(L"Время изменения")
+             .set_data_type(scada::id::DateTime)
+             .set_value(scada::DateTime{})});
 
     generic_node_factory.CreateNode(
         {id::FileType_Size, scada::NodeClass::Variable, scada::id::PropertyType,

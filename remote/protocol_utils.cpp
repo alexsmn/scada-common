@@ -107,6 +107,9 @@ scada::Variant FromProto(const protocol::Variant& source) {
         return ByteStringFromProto(source.byte_string_value());
       case scada::Variant::NODE_ID:
         return FromProto(source.node_id_value());
+      case scada::Variant::DATE_TIME:
+        return scada::DateTime::FromDeltaSinceWindowsEpoch(
+            base::TimeDelta::FromMicroseconds(source.time()));
       default:
         assert(false);
         return scada::Variant();
@@ -180,6 +183,11 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
         break;
       case scada::Variant::NODE_ID:
         ToProto(source.as_node_id(), *target.mutable_node_id_value());
+        break;
+      case scada::Variant::DATE_TIME:
+        target.set_time(source.get<scada::DateTime>()
+                            .ToDeltaSinceWindowsEpoch()
+                            .InMicroseconds());
         break;
       default:
         assert(false);

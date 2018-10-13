@@ -72,6 +72,7 @@ struct StandardAddressSpace {
                                         {}};
   scada::DataType NodeIdDataType{scada::id::NodeId, "NodeId", {}};
   scada::DataType ByteStringDataType{scada::id::ByteString, "ByteString", {}};
+  scada::DataType DateTimeDataType{scada::id::DateTime, "DateTime", {}};
 
   scada::ObjectType BaseObjectType{scada::id::BaseObjectType,
                                    "BaseObjectType",

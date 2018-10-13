@@ -19,6 +19,7 @@ const NumericId QualifiedName = 20;
 const NumericId LocalizedText = 21;
 const NumericId NodeId = 17;
 const NumericId ExpandedNodeId = 18;
+const NumericId DateTime = 13;
 
 const NumericId References = 31;
 const NumericId NonHierarchicalReferences = 32;

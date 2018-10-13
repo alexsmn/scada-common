@@ -2,6 +2,7 @@
 
 #include "base/strings/string16.h"
 #include "core/basic_types.h"
+#include "core/date_time.h"
 #include "core/expanded_node_id.h"
 #include "core/extension_object.h"
 #include "core/localized_text.h"
@@ -33,6 +34,7 @@ class Variant {
     NODE_ID,
     EXPANDED_NODE_ID,
     EXTENSION_OBJECT,
+    DATE_TIME,
     COUNT
   };
 
@@ -49,6 +51,7 @@ class Variant {
   Variant(String str) : data_{std::move(str)} {}
   Variant(QualifiedName value) : data_{std::move(value)} {}
   Variant(LocalizedText str) : data_{std::move(str)} {}
+  Variant(DateTime value) : data_{std::move(value)} {}
   Variant(const char* str) : data_{str ? String{str} : String{}} {}
   Variant(const base::char16* str)
       : data_{str ? LocalizedText{str} : LocalizedText{}} {}
@@ -148,6 +151,7 @@ class Variant {
                NodeId,
                ExpandedNodeId,
                ExtensionObject,
+               DateTime,
                std::vector<std::monostate>,
                std::vector<bool>,
                std::vector<Int8>,
