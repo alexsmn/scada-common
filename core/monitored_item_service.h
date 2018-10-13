@@ -12,8 +12,9 @@ struct ReadValueId;
 class MonitoredItemService {
  public:
   virtual ~MonitoredItemService() {}
-  
-  virtual std::unique_ptr<MonitoredItem> CreateMonitoredItem(const ReadValueId& read_value_id) = 0;
+
+  virtual std::unique_ptr<MonitoredItem> CreateMonitoredItem(
+      const ReadValueId& read_value_id) = 0;
 };
 
-} // namespace scada
+}  // namespace scada

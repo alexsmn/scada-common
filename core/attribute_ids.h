@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace scada {
 
 enum class AttributeId {
@@ -28,3 +30,5 @@ enum class AttributeId {
 };
 
 } // namespace scada
+
+std::string ToString(scada::AttributeId attribute_id);
