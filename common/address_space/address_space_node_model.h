@@ -82,12 +82,12 @@ class AddressSpaceNodeModel final
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::StatusCallback& callback) const override;
+  virtual void OnNodeDeleted() override;
 
  protected:
   // BaseNodeModel
   virtual void OnFetchRequested(
       const NodeFetchStatus& requested_status) override;
-  virtual void OnNodeDeleted() override;
 
   const scada::Node* node_ = nullptr;
 };

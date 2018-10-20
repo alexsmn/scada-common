@@ -5,6 +5,8 @@
 
 class BaseNodeModel : public NodeModel {
  public:
+  virtual void OnNodeDeleted();
+
   // NodeModel
   virtual void Fetch(const NodeFetchStatus& requested_status,
                      const FetchCallback& callback) const override;
@@ -18,7 +20,6 @@ class BaseNodeModel : public NodeModel {
                       const NodeFetchStatus& fetch_status);
 
   virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
-  virtual void OnNodeDeleted();
 
   scada::Status status_{scada::StatusCode::Good};
 

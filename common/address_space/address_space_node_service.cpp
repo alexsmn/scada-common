@@ -86,7 +86,10 @@ void AddressSpaceNodeService::OnModelChanged(
 
 void AddressSpaceNodeService::OnNodeCreated(const scada::Node& node) {}
 
-void AddressSpaceNodeService::OnNodeDeleted(const scada::Node& node) {}
+void AddressSpaceNodeService::OnNodeDeleted(const scada::Node& node) {
+  if (auto i = nodes_.find(node.id()); i != nodes_.end())
+    i->second->OnNodeDeleted();
+}
 
 void AddressSpaceNodeService::OnNodeModified(
     const scada::Node& node,
