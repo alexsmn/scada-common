@@ -75,11 +75,13 @@ void AddressSpaceNodeService::Unsubscribe(NodeRefObserver& observer) const {
 
 void AddressSpaceNodeService::OnModelChanged(
     const scada::ModelChangeEvent& event) {
-  for (auto& o : observers_)
-    o.OnModelChanged(event);
-
+  // Model must handle node deletion first to correctly cleanup a refrence to
+  // the node, since it has already been deleted.
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
     i->second->OnModelChanged(event);
+
+  for (auto& o : observers_)
+    o.OnModelChanged(event);
 }
 
 void AddressSpaceNodeService::OnNodeCreated(const scada::Node& node) {}

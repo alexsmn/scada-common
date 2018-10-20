@@ -19,11 +19,13 @@ AddressSpaceNodeModel::~AddressSpaceNodeModel() {
 
 void AddressSpaceNodeModel::OnModelChanged(
     const scada::ModelChangeEvent& event) {
-  for (auto& o : observers_)
-    o.OnModelChanged(event);
-
+  // The node reference must be cleaned up at first, as the observers may access
+  // to the object.
   if (event.verb & scada::ModelChangeEvent::NodeDeleted)
     OnNodeDeleted();
+
+  for (auto& o : observers_)
+    o.OnModelChanged(event);
 }
 
 void AddressSpaceNodeModel::OnNodeSemanticChanged() {
@@ -207,17 +209,18 @@ AddressSpaceNodeModel::CreateMonitoredItem(
 
 void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,
                                  const NodeRef::ReadCallback& callback) const {
-  attribute_service_.Read({{node_id_, attribute_id}},
-                          [callback](scada::Status&& status,
-                                     std::vector<scada::DataValue>&& values) {
-                            if (!status)
-                              return callback(scada::MakeReadError(status.code()));
+  attribute_service_.Read(
+      {{node_id_, attribute_id}},
+      [callback](scada::Status&& status,
+                 std::vector<scada::DataValue>&& values) {
+        if (!status)
+          return callback(scada::MakeReadError(status.code()));
 
-                            // Must be guaranteed above.
-                            assert(values.size() == 1);
-                            auto& value = values.front();
-                            callback(std::move(value));
-                          });
+        // Must be guaranteed above.
+        assert(values.size() == 1);
+        auto& value = values.front();
+        callback(std::move(value));
+      });
 }
 
 void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
