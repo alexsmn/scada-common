@@ -219,7 +219,10 @@ Reference FindReference(const Node& node,
 }
 
 bool IsRefSubtypeOf::operator()(const Reference& ref) const {
-  return IsSubtypeOf(*ref.type, ref_supertype_id_);
+  if (include_subtypes_)
+    return IsSubtypeOf(*ref.type, reference_type_id_);
+  else
+    return ref.type->id() == reference_type_id_;
 }
 
 bool IsNonPropReference::operator()(const Reference& ref) const {

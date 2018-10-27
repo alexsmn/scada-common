@@ -210,7 +210,7 @@ OpcUa_VariantArrayValue MakeVariantArrayValue(
 }
 
 void Convert(scada::Variant&& source, OpcUa_Variant& result) {
-  static_assert(scada::Variant::COUNT == 17, "Not all types are declared");
+  static_assert(scada::Variant::COUNT == 19, "Not all types are declared");
 
   if (source.is_array()) {
     assert(source.type() != scada::Variant::EMPTY);
@@ -256,12 +256,22 @@ void Convert(scada::Variant&& source, OpcUa_Variant& result) {
 
       case scada::Variant::INT8:
         result.Datatype = OpcUaType_SByte;
-        result.Value.SByte = source.get<int8_t>();
+        result.Value.SByte = source.get<scada::Int8>();
         break;
 
       case scada::Variant::UINT8:
         result.Datatype = OpcUaType_Byte;
-        result.Value.Byte = source.get<uint8_t>();
+        result.Value.Byte = source.get<scada::UInt8>();
+        break;
+
+      case scada::Variant::INT16:
+        result.Datatype = OpcUaType_Int16;
+        result.Value.Int16 = source.get<scada::Int16>();
+        break;
+
+      case scada::Variant::UINT16:
+        result.Datatype = OpcUaType_UInt16;
+        result.Value.UInt16 = source.get<scada::UInt16>();
         break;
 
       case scada::Variant::INT32:
@@ -271,7 +281,7 @@ void Convert(scada::Variant&& source, OpcUa_Variant& result) {
 
       case scada::Variant::UINT32:
         result.Datatype = OpcUaType_UInt32;
-        result.Value.UInt32 = source.get<uint32_t>();
+        result.Value.UInt32 = source.get<scada::UInt32>();
         break;
 
       case scada::Variant::INT64:

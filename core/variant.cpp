@@ -16,6 +16,8 @@ const char* kBuiltInTypeNames[] = {"EMPTY",
                                    "BOOL",
                                    "INT8",
                                    "UINT8",
+                                   "INT16",
+                                   "UINT16",
                                    "INT32",
                                    "UINT32",
                                    "UINT64",
@@ -51,92 +53,82 @@ bool Variant::operator==(const Variant& other) const {
   return data_ == other.data_;
 }
 
-bool Variant::get(bool& bool_value) const {
+bool Variant::get(bool& value) const {
+  if (!is_scalar())
+    return false;
+
+  if (type() == BOOL) {
+      value = as_bool();
+      return true;
+  }
+
+  Int64 int64_value;
+  if (!get(int64_value))
+    return false;
+
+  value = int64_value != 0;
+  return true;
+}
+
+bool Variant::get(Int64& value) const {
   if (!is_scalar())
     return false;
 
   switch (type()) {
     case BOOL:
-      bool_value = as_bool();
+      value = as_bool() ? 1 : 0;
+      return true;
+    case INT8:
+      value = get<Int8>();
+      return true;
+    case UINT8:
+      value = get<UInt8>();
+      return true;
+    case INT16:
+      value = get<Int16>();
+      return true;
+    case UINT16:
+      value = get<UInt16>();
       return true;
     case INT32:
-      bool_value = as_int32() != 0;
+      value = get<Int32>();
+      return true;
+    case UINT32:
+      value = get<UInt32>();
       return true;
     case INT64:
-      bool_value = as_int64() != 0;
+      value = get<Int64>();
+      return true;
+    case UINT64:
+      value = static_cast<Int64>(get<UInt64>());
       return true;
     case DOUBLE:
-      bool_value = abs(as_double()) >= std::numeric_limits<double>::epsilon();
+      value = static_cast<Int64>(get<Double>());
       return true;
     default:
       return false;
   }
 }
 
-bool Variant::get(int32_t& int_value) const {
+bool Variant::get(Double& value) const {
   if (!is_scalar())
     return false;
 
   switch (type()) {
     case BOOL:
-      int_value = as_bool() ? 1 : 0;
-      return true;
-    case INT32:
-      int_value = as_int32();
-      return true;
-    case INT64:
-      int_value = static_cast<int32_t>(as_int64());
+      value = as_bool() ? 1.0 : 0.0;
       return true;
     case DOUBLE:
-      int_value = static_cast<int32_t>(as_double());
+      value = as_double();
       return true;
-    default:
-      return false;
   }
-}
 
-bool Variant::get(int64_t& int64_value) const {
-  if (!is_scalar())
+  Int64 int64_value;
+  if (!get(int64_value))
     return false;
 
-  switch (type()) {
-    case BOOL:
-      int64_value = as_bool() ? 1 : 0;
-      return true;
-    case INT32:
-      int64_value = as_int32();
-      return true;
-    case INT64:
-      int64_value = as_int64();
-      return true;
-    case DOUBLE:
-      int64_value = static_cast<int64_t>(as_double());
-      return true;
-    default:
-      return false;
-  }
-}
-
-bool Variant::get(double& double_value) const {
-  if (!is_scalar())
-    return false;
-
-  switch (type()) {
-    case BOOL:
-      double_value = as_bool() ? 1.0 : 0.0;
-      return true;
-    case INT32:
-      double_value = static_cast<double>(as_int32());
-      return true;
-    case INT64:
-      double_value = static_cast<double>(as_int64());
-      return true;
-    case DOUBLE:
-      double_value = as_double();
-      return true;
-    default:
-      return false;
-  }
+  value = int64_value;
+  return true;
 }
 
 namespace {
@@ -230,7 +222,7 @@ bool Variant::ToStringHelper(String& string_value) const {
   }
 }
 
-bool Variant::get(std::string& string_value) const {
+bool Variant::get(String& string_value) const {
   return ToStringHelper(string_value);
 }
 
@@ -262,6 +254,10 @@ bool Variant::ChangeType(Variant::Type new_type) {
   switch (new_type) {
     case BOOL:
       return ChangeTypeTo<bool>();
+    case INT16:
+      return ChangeTypeTo<Int16>();
+    case UINT16:
+      return ChangeTypeTo<UInt16>();
     case INT32:
       return ChangeTypeTo<int32_t>();
     case INT64:
@@ -283,7 +279,7 @@ bool Variant::ChangeType(Variant::Type new_type) {
 }
 
 NodeId Variant::data_type_id() const {
-  static_assert(static_cast<size_t>(Type::COUNT) == 17);
+  static_assert(static_cast<size_t>(Type::COUNT) == 19);
 
   if (type() == Type::EXTENSION_OBJECT)
     return get<ExtensionObject>().data_type_id().node_id();
@@ -293,6 +289,8 @@ NodeId Variant::data_type_id() const {
       id::Boolean,
       id::SByte,
       id::Byte,
+      id::Int16,
+      id::UInt16,
       id::Int32,
       id::UInt32,
       id::Int64,

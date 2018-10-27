@@ -201,7 +201,7 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
 }  // namespace
 
 opcua::UInt32 ParseTraceLevel(std::string_view str) {
-  std::pair<std::string_view, opcua::UInt32> kTraceLevels[] = {
+  const std::pair<std::string_view, opcua::UInt32> kTraceLevels[] = {
       {"error", OPCUA_TRACE_OUTPUT_LEVEL_ERROR},
       {"warning", OPCUA_TRACE_OUTPUT_LEVEL_WARNING},
       {"system", OPCUA_TRACE_OUTPUT_LEVEL_SYSTEM},

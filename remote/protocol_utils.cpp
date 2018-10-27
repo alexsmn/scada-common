@@ -74,6 +74,8 @@ scada::ByteString ByteStringFromProto(const std::string& source) {
   return {source.begin(), source.end()};
 }
 
+static_assert(static_cast<size_t>(scada::Variant::COUNT) == 19);
+
 scada::Variant FromProto(const protocol::Variant& source) {
   if (source.rank() == 0) {
     switch (static_cast<scada::Variant::Type>(source.data_type())) {
@@ -85,6 +87,10 @@ scada::Variant FromProto(const protocol::Variant& source) {
         return static_cast<scada::Int8>(source.int_value());
       case scada::Variant::UINT8:
         return static_cast<scada::UInt8>(source.int_value());
+      case scada::Variant::INT16:
+        return static_cast<scada::Int16>(source.int_value());
+      case scada::Variant::UINT16:
+        return static_cast<scada::UInt16>(source.int_value());
       case scada::Variant::INT32:
         return static_cast<scada::Int32>(source.int_value());
       case scada::Variant::UINT32:
@@ -130,6 +136,8 @@ scada::Variant FromProto(const protocol::Variant& source) {
   }
 }
 
+static_assert(static_cast<size_t>(scada::Variant::COUNT) == 19);
+
 void ToProto(const scada::Variant& source, protocol::Variant& target) {
   if (source.is_null())
     return;
@@ -148,6 +156,12 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
         break;
       case scada::Variant::UINT8:
         target.set_int_value(source.as_int32());
+        break;
+      case scada::Variant::INT16:
+        target.set_int_value(source.get<scada::Int16>());
+        break;
+      case scada::Variant::UINT16:
+        target.set_int_value(source.get<scada::UInt16>());
         break;
       case scada::Variant::INT32:
         target.set_int_value(source.as_int32());

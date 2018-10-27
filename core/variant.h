@@ -22,6 +22,8 @@ class Variant {
     BOOL,
     INT8,
     UINT8,
+    INT16,
+    UINT16,
     INT32,
     UINT32,
     INT64,
@@ -42,6 +44,8 @@ class Variant {
   Variant(bool value) : data_{value} {}
   Variant(Int8 value) : data_{value} {}
   Variant(UInt8 value) : data_{value} {}
+  Variant(Int16 value) : data_{value} {}
+  Variant(UInt16 value) : data_{value} {}
   Variant(Int32 value) : data_{value} {}
   Variant(UInt32 value) : data_{value} {}
   Variant(Int64 value) : data_{value} {}
@@ -99,13 +103,17 @@ class Variant {
   }
 
   bool get(bool& bool_value) const;
-  bool get(int32_t& int_value) const;
-  bool get(int64_t& int64_value) const;
-  bool get(double& double_value) const;
-  bool get(std::string& string_value) const;
+  bool get(Int16& value) const { return get_int<Int16>(value); }
+  bool get(UInt16& value) const { return get_int<UInt16>(value); }
+  bool get(Int32& value) const { return get_int<Int32>(value); }
+  bool get(UInt32& value) const { return get_int<UInt32>(value); }
+  bool get(Int64& value) const;
+  bool get(UInt64& value) const { return get_int<UInt64>(value); }
+  bool get(Double& value) const;
+  bool get(String& value) const;
   bool get(QualifiedName& value) const;
   bool get(LocalizedText& value) const;
-  bool get(NodeId& node_id) const;
+  bool get(NodeId& value) const;
 
   template <class T>
   bool get(T& value) const;
@@ -132,6 +140,9 @@ class Variant {
   static const LocalizedText kFalseString;
 
  private:
+  template <class T>
+  bool get_int(T& value) const;
+
   template <class String>
   bool ToStringHelper(String& string_value) const;
 
@@ -139,6 +150,8 @@ class Variant {
                bool,
                Int8,
                UInt8,
+               Int16,
+               UInt16,
                Int32,
                UInt32,
                Int64,
@@ -156,6 +169,8 @@ class Variant {
                std::vector<bool>,
                std::vector<Int8>,
                std::vector<UInt8>,
+               std::vector<Int16>,
+               std::vector<UInt16>,
                std::vector<Int32>,
                std::vector<UInt32>,
                std::vector<Int64>,
@@ -210,6 +225,16 @@ inline T Variant::get_or(T or_value) const {
   auto result = std::move(or_value);
   get(result);
   return result;
+}
+
+template<class T>
+inline bool Variant::get_int(T& value) const {
+  Int64 int64_value;
+  if (!get(int64_value))
+    return false;
+
+  value = static_cast<T>(int64_value);
+  return static_cast<Int64>(value) == int64_value;
 }
 
 scada::Variant::Type ParseBuiltInType(std::string_view str);

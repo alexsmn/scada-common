@@ -8,6 +8,8 @@ namespace id {
 const NumericId Boolean = 1;
 const NumericId SByte = 2;
 const NumericId Byte = 3;
+const NumericId Int16 = 4;
+const NumericId UInt16 = 5;
 const NumericId Int32 = 6;
 const NumericId UInt32 = 7;
 const NumericId Int64 = 8;

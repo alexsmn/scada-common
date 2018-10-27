@@ -83,10 +83,10 @@ struct IsNonPropReference {
 };
 
 struct IsRefSubtypeOf {
-  explicit IsRefSubtypeOf(const NodeId& ref_supertype_id)
-      : ref_supertype_id_(ref_supertype_id) {}
   bool operator()(const Reference& ref) const;
-  NodeId ref_supertype_id_;
+
+  const NodeId reference_type_id_;
+  bool include_subtypes_ = true;
 };
 
 inline auto GetNonPropReferences(const Node& node) {
@@ -99,8 +99,10 @@ struct RefNode {
 
 template <class References>
 inline auto FilterReferences(const References& references,
-                             const NodeId& reference_type_id) {
-  return MakeFilterRange(IsRefSubtypeOf(reference_type_id), references);
+                             const NodeId& reference_type_id,
+                             bool include_subtypes = true) {
+  return MakeFilterRange(IsRefSubtypeOf{reference_type_id, include_subtypes},
+                         references);
 }
 
 template <class References>

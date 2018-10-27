@@ -38,16 +38,21 @@ const Node* FindNodeByAlias(const Node& parent_node,
 
 }  // namespace
 
-NodeId NodeIdFromAliasedString(AddressSpace& cfg,
+NodeId NodeIdFromAliasedString(AddressSpace& address_space,
                                const base::StringPiece& path) {
   auto node_id = NodeIdFromScadaString(path);
   if (!node_id.is_null())
     return node_id;
 
   if (path.find_first_of('.') != std::string::npos)
-    return NodeId();
+    return {};
 
-  auto* node = FindNodeByAlias(*cfg.GetNode(id::ObjectsFolder), path);
+  auto* objects = address_space.GetNode(id::ObjectsFolder);
+  assert(objects);
+  if (!objects)
+    return {};
+
+  auto* node = FindNodeByAlias(*objects, path);
   return node ? node->id() : NodeId();
 }
 
@@ -176,6 +181,10 @@ Node* GetNestedNode(AddressSpace& address_space,
 Variant::Type DataTypeToValueType(const TypeDefinition& type) {
   if (type.id() == id::Boolean)
     return Variant::BOOL;
+  else if (type.id() == id::Int16)
+    return Variant::INT16;
+  else if (type.id() == id::UInt16)
+    return Variant::UINT16;
   else if (type.id() == id::Int32)
     return Variant::INT32;
   else if (type.id() == id::Double)
@@ -196,6 +205,7 @@ Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
   if (!value.is_null()) {
     if (data_type.id() != id::BaseDataType) {
       auto value_type = DataTypeToValueType(data_type);
+      assert(value_type != Variant::EMPTY);
       if (!value.ChangeType(value_type)) {
         assert(false);
         return StatusCode::Bad;
