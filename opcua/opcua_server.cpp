@@ -184,10 +184,13 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
   }
 
   virtual void SubscribeEvents(
+      const opcua::EventFilter& filter,
       const opcua::server::EventHandler& event_handler) override {
     monitored_item_->set_event_handler(
         [this, event_handler](const scada::Status& status,
-                              const scada::Event& event) { event_handler(); });
+                              const scada::Event& event) {
+          event_handler({});
+        });
     monitored_item_->Subscribe();
   }
 
@@ -222,22 +225,22 @@ opcua::UInt32 ParseTraceLevel(std::string_view str) {
 OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
     : OpcUaServerContext{std::move(context)},
       proxy_stub_{platform_, MakeProxyStubConfiguration()} {
-  endpoint_.set_read_handler(
+  endpoint_.set_session_handlers({
       [this](OpcUa_ReadRequest& request,
              const opcua::server::ReadCallback& callback) {
         Read(request, callback);
-      });
-
-  endpoint_.set_browse_handler(
+      },
       [this](OpcUa_BrowseRequest& request,
              const opcua::server::BrowseCallback& callback) {
         Browse(request, callback);
-      });
-
-  endpoint_.set_create_monitored_item_handler(
+      },
+      [this](OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
+             const opcua::server::TranslateBrowsePathsToNodeIdsCallback&
+                 callback) { TranslateBrowsePaths(request, callback); },
       [this](opcua::ReadValueId& read_value_id) {
         return CreateMonitoredItem(read_value_id);
-      });
+      },
+  });
 
   endpoint_.set_product_uri("TelecontrolScada");
   endpoint_.set_application_uri("TelecontrolScadaServer");
@@ -325,6 +328,14 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
                   });
             });
       });
+}
+
+void OpcUaServer::TranslateBrowsePaths(
+    OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
+    const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback) {
+  opcua::TranslateBrowsePathsToNodeIdsResponse response;
+  response.ResponseHeader.ServiceResult = OpcUa_Bad;
+  callback(response);
 }
 
 opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(

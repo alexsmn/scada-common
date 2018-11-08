@@ -37,6 +37,9 @@ class OpcUaServer : private OpcUaServerContext {
             const opcua::server::ReadCallback& callback);
   void Browse(OpcUa_BrowseRequest& request,
               const opcua::server::BrowseCallback& callback);
+  void TranslateBrowsePaths(
+      OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
+      const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback);
   opcua::server::CreateMonitoredItemResult CreateMonitoredItem(
       opcua::ReadValueId& read_value_id);
 
