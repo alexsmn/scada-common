@@ -65,6 +65,12 @@ void VariableHandle::ForwardData(const DataValue& value) {
 }
 
 void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
+  if (last_value_.is_null()) {
+    auto timestamp = DateTime::Now();
+    ForwardData({scada::Variant{}, Qualifier{add}, timestamp, timestamp});
+    return;
+  }
+
   Qualifier new_qualifier = last_value_.qualifier;
   new_qualifier.Update(remove, add);
   if (last_value_.qualifier == new_qualifier)
