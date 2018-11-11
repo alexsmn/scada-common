@@ -76,7 +76,7 @@ std::vector<NodeRef::Reference> AddressSpaceNodeModel::GetReferences(
   auto& refs =
       forward ? node_->forward_references() : node_->inverse_references();
   for (auto& r : refs) {
-    if (scada::IsSubtypeOf(*r.type, scada::id::NonHierarchicalReferences))
+    if (scada::IsSubtypeOf(*r.type, reference_type_id))
       result.push_back({delegate_.GetRemoteNode(r.type),
                         delegate_.GetRemoteNode(r.node), forward});
   }
