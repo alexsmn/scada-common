@@ -98,7 +98,7 @@ std::vector<NodeRef::Reference> NodeRef::references(
 
 std::vector<NodeRef::Reference> NodeRef::inverse_references(
     const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetReferences(reference_type_id, true)
+  return model_ ? model_->GetReferences(reference_type_id, false)
                 : std::vector<NodeRef::Reference>{};
 }
 
