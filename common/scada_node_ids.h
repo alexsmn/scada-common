@@ -39,6 +39,7 @@ const scada::NodeId DataItemType_Input1{145, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_Input2{146, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_Locked{151, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_OutputCondition{148, NamespaceIndexes::SCADA};
+const scada::NodeId DataItemType_OutputTwoStaged{309, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_Output{147, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_Severity{144, NamespaceIndexes::SCADA};
 const scada::NodeId DataItemType_Simulated{143, NamespaceIndexes::SCADA};
@@ -172,6 +173,6 @@ const scada::NodeId FileType{306, NamespaceIndexes::SCADA};
 const scada::NodeId FileType_LastUpdateTime{307, NamespaceIndexes::SCADA};
 const scada::NodeId FileType_Size{308, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{309, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{310, NamespaceIndexes::SCADA};
 
 } // namespace id

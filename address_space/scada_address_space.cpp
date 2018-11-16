@@ -459,6 +459,10 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::DataItemType_OutputCondition, "OutputCondition",
                 base::WideToUTF16(L"Условие управления"), scada::id::String,
                 scada::String{});
+    AddProperty(address_space, id::DataItemType,
+                id::DataItemType_OutputTwoStaged, "OutputTwoStaged",
+                base::WideToUTF16(L"Двухэтапное управление"),
+                scada::id::Boolean, true);
     AddProperty(address_space, id::DataItemType, id::DataItemType_StalePeriod,
                 "StalePeriod", base::WideToUTF16(L"Устаревание, с"),
                 scada::id::Int32, 0);
