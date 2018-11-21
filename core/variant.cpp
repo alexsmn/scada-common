@@ -58,8 +58,8 @@ bool Variant::get(bool& value) const {
     return false;
 
   if (type() == BOOL) {
-      value = as_bool();
-      return true;
+    value = as_bool();
+    return true;
   }
 
   Int64 int64_value;
@@ -189,15 +189,12 @@ bool Variant::ToStringHelper(String& string_value) const {
     return false;
 
   switch (type()) {
+    case EMPTY:
+      string_value.clear();
+      return true;
     case BOOL:
       string_value =
           FormatHelper<String>(as_bool() ? kTrueString : kFalseString);
-      return true;
-    case INT32:
-      string_value = FormatHelper<String>(as_int32());
-      return true;
-    case INT64:
-      string_value = FormatHelper<String>(as_int64());
       return true;
     case DOUBLE:
       string_value = FormatHelper<String>(as_double());
@@ -214,11 +211,14 @@ bool Variant::ToStringHelper(String& string_value) const {
     case NODE_ID:
       string_value = FormatHelper<String>(as_node_id().ToString());
       return true;
-    case EMPTY:
-      string_value.clear();
-      return true;
-    default:
+    default: {
+      Int64 int64_value;
+      if (get(int64_value)) {
+        string_value = FormatHelper<String>(int64_value);
+        return true;
+      }
       return false;
+    }
   }
 }
 
@@ -285,24 +285,12 @@ NodeId Variant::data_type_id() const {
     return get<ExtensionObject>().data_type_id().node_id();
 
   const scada::NumericId kNodeIds[] = {
-      0,
-      id::Boolean,
-      id::SByte,
-      id::Byte,
-      id::Int16,
-      id::UInt16,
-      id::Int32,
-      id::UInt32,
-      id::Int64,
-      id::UInt64,
-      id::Double,
-      id::ByteString,
-      id::String,
-      id::QualifiedName,
-      id::LocalizedText,
-      id::NodeId,
-      id::ExpandedNodeId,
-      id::DateTime,
+      0,          id::Boolean,        id::SByte,
+      id::Byte,   id::Int16,          id::UInt16,
+      id::Int32,  id::UInt32,         id::Int64,
+      id::UInt64, id::Double,         id::ByteString,
+      id::String, id::QualifiedName,  id::LocalizedText,
+      id::NodeId, id::ExpandedNodeId, id::DateTime,
   };
 
   assert(static_cast<size_t>(type()) < std::size(kNodeIds));
