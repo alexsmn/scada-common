@@ -14,6 +14,17 @@ void AliasTimedData::SetForwarded(std::shared_ptr<rt::TimedData> timed_data) {
   timed_data->SetFrom(deferred->from);
   for (auto& o : deferred->observers)
     timed_data->AddObserver(o);
+
+  for (auto& o : deferred->observers) {
+    o.OnPropertyChanged(rt::PropertySet{rt::PROPERTY_TITLE | rt::PROPERTY_ITEM |
+                                        rt::PROPERTY_CURRENT});
+    o.OnTimedDataNodeModified();
+    o.OnEventsChanged();
+  }
+}
+
+bool AliasTimedData::IsError() const {
+  return is_forwarded() && forwarded().IsError();
 }
 
 base::Time AliasTimedData::GetFrom() const {

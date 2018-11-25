@@ -41,7 +41,7 @@ class TimedDataSpec : private TimedDataDelegate {
 
   std::string formula() const;
   bool alerting() const;
-  bool connected() const { return !!data_; }
+  bool connected() const { return data_ && !data_->IsError(); }
   base::Time from() const { return from_; }
   base::Time ready_from() const;
   bool historical() const;
