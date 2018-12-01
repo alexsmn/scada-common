@@ -1,5 +1,5 @@
 if(NOT BOOST_FOUND)
-  find_package(Boost REQUIRED COMPONENTS system date_time regex)
+  find_package(Boost REQUIRED COMPONENTS system date_time log regex)
 endif()
 
 file(GLOB sources "*.cpp" "*.h")
@@ -11,6 +11,10 @@ endif()
 
 add_library(scada_base ${sources})
 
+if(NOT WIN32)
+  target_link_libraries(scada_base PUBLIC stdc++fs pthread)
+endif()
+
 target_include_directories(scada_base PUBLIC "..")
-target_link_libraries(scada_base PUBLIC base Boost::boost Boost::system)
+target_link_libraries(scada_base PUBLIC base Boost::boost Boost::log Boost::system)
 set_property(TARGET scada_base PROPERTY FOLDER ${scada_folder})

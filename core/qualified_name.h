@@ -4,6 +4,8 @@
 #include "core/basic_types.h"
 #include "core/string.h"
 
+#include <ostream>
+
 namespace scada {
 
 class QualifiedName {

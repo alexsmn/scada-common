@@ -21,17 +21,17 @@ class BaseTimedData : public TimedData {
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual void AddObserver(TimedDataDelegate& observer) override;
   virtual void RemoveObserver(TimedDataDelegate& observer) override;
-  virtual NodeRef GetNode() const { return nullptr; }
-  virtual const events::EventSet* GetEvents() const { return nullptr; }
-  virtual void Acknowledge() {}
+  virtual NodeRef GetNode() const override { return nullptr; }
+  virtual const events::EventSet* GetEvents() const override { return nullptr; }
+  virtual void Acknowledge() override {}
   virtual void Write(double value,
                      const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const;
+                     const StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
-                    const StatusCallback& callback) const;
+                    const StatusCallback& callback) const override;
 
  protected:
   bool historical() const { return from_ != kTimedDataCurrentOnly; }

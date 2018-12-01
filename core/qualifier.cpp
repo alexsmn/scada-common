@@ -1,5 +1,7 @@
 ﻿#include "core/qualifier.h"
 
+#include "base/strings/utf_string_conversions.h"
+
 std::string ToString(scada::Qualifier qualifier) {
   std::string text;
   if (qualifier.bad())
@@ -26,23 +28,23 @@ std::string ToString(scada::Qualifier qualifier) {
 base::string16 ToString16(scada::Qualifier qualifier) {
   base::string16 text;
   if (qualifier.bad())
-    text += L"Недост ";
+    text += base::WideToUTF16(L"Недост ");
   if (qualifier.backup())
-    text += L"Резерв ";
+    text += base::WideToUTF16(L"Резерв ");
   if (qualifier.offline())
-    text += L"НетСвязи ";
+    text += base::WideToUTF16(L"НетСвязи ");
   if (qualifier.manual())
-    text += L"Ручной ";
+    text += base::WideToUTF16(L"Ручной ");
   if (qualifier.misconfigured())
-    text += L"НеСконф ";
+    text += base::WideToUTF16(L"НеСконф ");
   if (qualifier.simulated())
-    text += L"Эмулирован ";
+    text += base::WideToUTF16(L"Эмулирован ");
   if (qualifier.sporadic())
-    text += L"Спорадика ";
+    text += base::WideToUTF16(L"Спорадика ");
   if (qualifier.stale())
-    text += L"Устарел ";
+    text += base::WideToUTF16(L"Устарел ");
   if (qualifier.failed())
-    text += L"Ошибка ";
+    text += base::WideToUTF16(L"Ошибка ");
   return text;
 }
 
