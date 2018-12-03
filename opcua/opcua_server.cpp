@@ -237,8 +237,8 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
       [this](OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
              const opcua::server::TranslateBrowsePathsToNodeIdsCallback&
                  callback) { TranslateBrowsePaths(request, callback); },
-      [this](opcua::ReadValueId& read_value_id) {
-        return CreateMonitoredItem(read_value_id);
+      [this](opcua::ReadValueId&& read_value_id) {
+        return CreateMonitoredItem(std::move(read_value_id));
       },
   });
 
@@ -280,7 +280,7 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
         }
         response.NoOfResults = ua_values.size();
         response.Results = ua_values.release();
-        callback(response);
+        callback(std::move(response));
       });
 }
 
@@ -299,7 +299,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
           opcua::BrowseResponse response;
           response.ResponseHeader.ServiceResult =
               MakeStatusCode(status.code()).code();
-          callback(response);
+          callback(std::move(response));
           return;
         }
 
@@ -324,7 +324,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
                     response.ResponseHeader.ServiceResult = OpcUa_Good;
                     response.NoOfResults = ua_results->size();
                     response.Results = ua_results->release();
-                    callback(response);
+                    callback(std::move(response));
                   });
             });
       });
@@ -335,11 +335,11 @@ void OpcUaServer::TranslateBrowsePaths(
     const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback) {
   opcua::TranslateBrowsePathsToNodeIdsResponse response;
   response.ResponseHeader.ServiceResult = OpcUa_Bad;
-  callback(response);
+  callback(std::move(response));
 }
 
 opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(
-    opcua::ReadValueId& read_value_id) {
+    opcua::ReadValueId&& read_value_id) {
   auto id = Convert(read_value_id);
   auto monitored_item = monitored_item_service_.CreateMonitoredItem(id);
   if (!monitored_item)

@@ -14,6 +14,9 @@
 #include <opcuapp/structs.h>
 #include <opcuapp/vector.h>
 
+template <class Target, class Source>
+Target Convert(Source&& source);
+
 scada::NodeClass ConvertNodeClass(opcua::NodeClass node_class);
 opcua::NodeClass Convert(scada::NodeClass node_class);
 
@@ -26,6 +29,8 @@ void Convert(scada::Variant&& source, OpcUa_Variant& target);
 scada::Qualifier MakeQualifier(opcua::StatusCode source);
 
 scada::String Convert(const OpcUa_String& source);
+scada::String Convert(OpcUa_String&& source);
+void Convert(const scada::String& source, OpcUa_String& target);
 
 scada::DateTime Convert(OpcUa_DateTime source);
 OpcUa_DateTime Convert(scada::DateTime source);
@@ -43,6 +48,7 @@ scada::AttributeId ConvertAttributeId(OpcUa_Int32 attribute_id);
 OpcUa_Int32 Convert(scada::AttributeId attribute_id);
 
 scada::ReadValueId Convert(const OpcUa_ReadValueId& source);
+scada::ReadValueId Convert(OpcUa_ReadValueId&& source);
 OpcUa_ReadValueId MakeUaReadValueId(const scada::ReadValueId& source);
 
 OpcUa_BrowseDirection Convert(scada::BrowseDirection source);
@@ -63,9 +69,6 @@ void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target);
 scada::ByteString Convert(const OpcUa_ByteString& source);
 void Convert(const scada::ByteString& source, OpcUa_ByteString& target);
 
-scada::String Convert(const opcua::String& source);
-void Convert(const scada::String& source, OpcUa_String& target);
-
 scada::QualifiedName Convert(const OpcUa_QualifiedName& source);
 void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target);
 
@@ -76,7 +79,15 @@ template<typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));
   std::transform(first, last, result.begin(),
-      [](auto&& source) { return Convert(std::move(source)); });
+      [](auto& source) { return Convert(std::move(source)); });
+  return result;
+}
+
+template<typename T, class It>
+inline std::vector<T> ConvertVectorCopy(It first, It last) {
+  std::vector<T> result(std::distance(first, last));
+  std::transform(first, last, result.begin(),
+      [](const auto& source) { return Convert(source); });
   return result;
 }
 

@@ -34,7 +34,8 @@ inline PropertyDecl<ValueType>::PropertyDecl(NodeBuilder& builder,
                                              LocalizedText display_name,
                                              const NodeId& data_type_id)
     : data_type_{scada::AsDataType(builder.GetNode(data_type_id))} {
-  assert(!FindChild(parent, browse_name.name()));
+  // TypeDefinition is incomplete:
+  // assert(!FindChild(parent, browse_name.name()));
 
   set_id(std::move(node_id));
   SetBrowseName(std::move(browse_name));

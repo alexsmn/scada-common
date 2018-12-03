@@ -13,7 +13,7 @@ class AliasTimedData final : public rt::TimedData {
   void SetForwarded(std::shared_ptr<rt::TimedData> timed_data);
 
   // rt::TimedData
-  virtual bool IsError() const;
+  virtual bool IsError() const override;
   virtual base::Time GetFrom() const override;
   virtual void SetFrom(base::Time from) override;
   virtual base::Time GetReadyFrom() const override;

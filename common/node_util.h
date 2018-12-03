@@ -40,7 +40,7 @@ struct TreeFetcher
     queue.pop();
 
     node.Fetch(NodeFetchStatus::NodeAndChildren(),
-               [this, ref = shared_from_this()](const NodeRef& node) {
+               [this, ref = this->shared_from_this()](const NodeRef& node) {
                  for (const auto& child : node.targets(scada::id::Organizes))
                    queue.emplace(child);
                  Run();

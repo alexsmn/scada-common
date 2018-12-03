@@ -1,5 +1,14 @@
 #pragma once
 
+#include <ostream>
+
+namespace scada {
+struct NodeState;
+}
+
+std::ostream& operator<<(std::ostream& stream,
+                         const scada::NodeState& node_state);
+
 #include "core/configuration_types.h"
 #include "core/debug_util.h"
 #include "core/node_attributes.h"

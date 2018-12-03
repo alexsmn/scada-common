@@ -29,8 +29,10 @@ inline bool Contains(const std::vector<T>& vector, const T& item) {
   return std::find(vector.begin(), vector.end(), item) != vector.end();
 }
 
+}  // namespace
+
 OpcUaMonitoredItemCreateResult Convert(
-    const OpcUa_MonitoredItemCreateResult& source) {
+    OpcUa_MonitoredItemCreateResult&& source) {
   return {
       source.StatusCode,
       source.MonitoredItemId,
@@ -38,7 +40,18 @@ OpcUaMonitoredItemCreateResult Convert(
   };
 }
 
-}  // namespace
+template<typename T, class It>
+inline std::vector<T> ConvertVector22(It first, It last) {
+  std::vector<T> result(std::distance(first, last));
+  std::transform(first, last, result.begin(),
+      [](auto& source) { return Convert(std::move(source)); });
+  return result;
+}
+
+template<typename T, class Range>
+inline std::vector<T> ConvertVector22(Range&& range) {
+  return ConvertVector22<T>(std::begin(range), std::end(range));
+}
 
 // OpcUaMonitoredItem
 
@@ -240,7 +253,7 @@ void OpcUaSubscription::CreateMonitoredItems() {
                 &OpcUaSubscription::OnCreateMonitoredItemsResponse, ref,
                 ConvertStatusCode(status_code.code()),
                 base::Passed(
-                    ConvertVector<OpcUaMonitoredItemCreateResult>(results))));
+                    ConvertVector22<OpcUaMonitoredItemCreateResult>(results))));
       });
 }
 

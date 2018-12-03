@@ -47,14 +47,6 @@ opcua::StatusCode MakeStatusCode(scada::StatusCode status_code) {
   return scada::IsGood(status_code) ? OpcUa_Good : OpcUa_Bad;
 }
 
-scada::String Convert(const OpcUa_String& source) {
-  if (::OpcUa_String_IsNull(&source))
-    return {};
-  auto* raw_string = ::OpcUa_String_GetRawString(&source);
-  size_t size = ::OpcUa_String_StrSize(&source);
-  return scada::String{raw_string, size};
-}
-
 scada::Variant ConvertScalar(const OpcUa_Variant& source) {
   assert(source.ArrayType == OpcUa_VariantArrayType_Scalar);
 
@@ -74,13 +66,11 @@ scada::Variant ConvertScalar(const OpcUa_Variant& source) {
     case OpcUaType_Int32:
       return source.Value.Int32;
     case OpcUaType_UInt32:
-      // TODO:
-      return static_cast<int>(source.Value.UInt32);
+      return source.Value.UInt32;
     case OpcUaType_Int64:
-      return source.Value.Int64;
+      return static_cast<scada::Int64>(source.Value.Int64);
     case OpcUaType_UInt64:
-      // TODO:
-      return static_cast<int64_t>(source.Value.UInt64);
+      return static_cast<scada::UInt64>(source.Value.UInt64);
     case OpcUaType_Float:
       return source.Value.Float;
     case OpcUaType_Double:
@@ -169,8 +159,8 @@ OpcUa_DateTime Convert(scada::DateTime time) {
     return bit_cast<OpcUa_DateTime, int64_t>(0);
   if (time.is_max()) {
     OpcUa_DateTime result;
-    result.dwHighDateTime = std::numeric_limits<DWORD>::max();
-    result.dwLowDateTime = std::numeric_limits<DWORD>::max();
+    result.dwHighDateTime = std::numeric_limits<OpcUa_UInt32>::max();
+    result.dwLowDateTime = std::numeric_limits<OpcUa_UInt32>::max();
     return result;
   }
   OpcUa_DateTime utc_ft;
@@ -481,6 +471,26 @@ scada::NodeId Convert(const OpcUa_NodeId& node_id) {
   };
 }
 
+scada::NodeId Convert(OpcUa_NodeId&& node_id) {
+  switch (node_id.IdentifierType) {
+    case OpcUa_IdentifierType_Numeric:
+      return {node_id.Identifier.Numeric, node_id.NamespaceIndex};
+
+    case OpcUa_IdentifierType_String:
+      return {Convert(std::move(node_id.Identifier.String)), node_id.NamespaceIndex};
+
+//    case OpcUa_IdentifierType_Guid:
+//      return {Convert(std::move(*node_id.Identifier.Guid)), node_id.NamespaceIndex};
+
+    case OpcUa_IdentifierType_Opaque:
+      return {Convert(std::move(node_id.Identifier.ByteString)), node_id.NamespaceIndex};
+
+    default:
+      assert(false);
+      return {};
+  };
+}
+
 scada::ExpandedNodeId Convert(const OpcUa_ExpandedNodeId& node_id) {
   return {Convert(node_id.NodeId), Convert(node_id.NamespaceUri),
           node_id.ServerIndex};
@@ -505,6 +515,11 @@ OpcUa_Int32 Convert(scada::AttributeId attribute_id) {
 
 scada::ReadValueId Convert(const OpcUa_ReadValueId& source) {
   return {Convert(source.NodeId), ConvertAttributeId(source.AttributeId)};
+}
+
+scada::ReadValueId Convert(OpcUa_ReadValueId&& source) {
+  return {Convert(std::move(source.NodeId)),
+          ConvertAttributeId(source.AttributeId)};
 }
 
 OpcUa_ReadValueId MakeUaReadValueId(const scada::ReadValueId& source) {
@@ -614,8 +629,16 @@ void Convert(scada::ExtensionObject&& source, OpcUa_ExtensionObject& target) {
     extension_object->release(target);
 }
 
-scada::String Convert(const opcua::String& source) {
-  return source.raw_string();
+scada::String Convert(const OpcUa_String& source) {
+  if (::OpcUa_String_IsNull(&source))
+    return {};
+  auto* raw_string = ::OpcUa_String_GetRawString(&source);
+  size_t size = ::OpcUa_String_StrSize(&source);
+  return scada::String{raw_string, size};
+}
+
+scada::String Convert(OpcUa_String&& source) {
+  return Convert(static_cast<const OpcUa_String&>(source));
 }
 
 void Convert(const scada::String& source, OpcUa_String& target) {

@@ -899,7 +899,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                              scada::id::Organizes,
                              scada::NodeAttributes{}
                                  .set_browse_name("FileSystem")
-                                 .set_display_name(L"Файлы")});
+                                 .set_display_name(base::WideToUTF16(L"Файлы"))});
 
     GenericNodeFactory generic_node_factory{address_space};
     generic_node_factory.CreateNode({id::FileDirectoryType,
@@ -909,7 +909,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                                      scada::id::HasSubtype,
                                      scada::NodeAttributes{}
                                          .set_browse_name("FileDirectoryType")
-                                         .set_display_name(L"Папка")});
+                                         .set_display_name(base::WideToUTF16(L"Папка"))});
 
     generic_node_factory.CreateNode(
         {id::FileType,
@@ -919,7 +919,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
          scada::id::HasSubtype,
          scada::NodeAttributes{}
              .set_browse_name("FileType")
-             .set_display_name(L"Файл")
+             .set_display_name(base::WideToUTF16(L"Файл"))
              .set_data_type(scada::id::ByteString)});
 
     generic_node_factory.CreateNode(
@@ -927,7 +927,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
          scada::id::PropertyType, id::FileType, scada::id::HasProperty,
          scada::NodeAttributes{}
              .set_browse_name("LastUpdateTime")
-             .set_display_name(L"Время изменения")
+             .set_display_name(base::WideToUTF16(L"Время изменения"))
              .set_data_type(scada::id::DateTime)
              .set_value(scada::DateTime{})});
 
@@ -936,7 +936,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
          id::FileType, scada::id::HasProperty,
          scada::NodeAttributes{}
              .set_browse_name("Size")
-             .set_display_name(L"Размер, байт")
+             .set_display_name(base::WideToUTF16(L"Размер, байт"))
              .set_data_type(scada::id::UInt64)
              .set_value(static_cast<scada::UInt64>(0))});
   }
