@@ -29,30 +29,32 @@ if(WIN32)
   add_subdirectory(vidicon)
 endif()
 
-install(FILES
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_system-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_system-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_thread-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_thread-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log_setup-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log_setup-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_filesystem-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_filesystem-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_date_time-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_date_time-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_regex-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_regex-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_program_options-vc141-mt-gd-x32-1_68.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_program_options-vc141-mt-x32-1_68.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libprotobufd.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libprotobuf.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/OPCUA.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/OPCUA.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libeay32.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libeay32.dll>"
-    "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/ssleay32.dll>"
-    "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/ssleay32.dll>"
-  DESTINATION bin
-  COMPONENT Common)
+if(WIN32)
+    install(FILES
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_system-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_system-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_thread-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_thread-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log_setup-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log_setup-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_filesystem-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_filesystem-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_date_time-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_date_time-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_regex-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_regex-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_program_options-vc141-mt-gd-x32-1_68.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_program_options-vc141-mt-x32-1_68.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libprotobufd.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libprotobuf.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/OPCUA.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/OPCUA.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libeay32.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libeay32.dll>"
+        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/ssleay32.dll>"
+        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/ssleay32.dll>"
+      DESTINATION bin
+      COMPONENT Common)
+endif(WIN32)
