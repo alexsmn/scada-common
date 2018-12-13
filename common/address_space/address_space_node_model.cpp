@@ -235,6 +235,7 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
 
 void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,
                                  const std::vector<scada::Variant>& arguments,
+                                 const scada::NodeId& user_id,
                                  const scada::StatusCallback& callback) const {
-  method_service_.Call(node_id_, method_id, arguments, {}, callback);
+  method_service_.Call(node_id_, method_id, arguments, user_id, callback);
 }

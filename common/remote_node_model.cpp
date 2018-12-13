@@ -390,6 +390,7 @@ void RemoteNodeModel::Write(scada::AttributeId attribute_id,
 
 void RemoteNodeModel::Call(const scada::NodeId& method_id,
                            const std::vector<scada::Variant>& arguments,
+                           const scada::NodeId& user_id,
                            const scada::StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
 }

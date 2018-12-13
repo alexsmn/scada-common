@@ -7,6 +7,7 @@
 #include "common/event_set.h"
 #include "common/format.h"
 #include "common/node_ref.h"
+#include "core/aggregation.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
@@ -31,6 +32,8 @@ class TimedDataSpec : private TimedDataDelegate {
   TimedDataSpec(const TimedDataSpec& other);
   TimedDataSpec(std::shared_ptr<TimedData> data);
   ~TimedDataSpec();
+
+  void SetAggregation(scada::Aggregation aggregation);
 
   // Specify |kTimedDataCurrentOnly| to get only current values.
   void SetFrom(base::Time from);
@@ -106,6 +109,7 @@ class TimedDataSpec : private TimedDataDelegate {
 
   std::shared_ptr<TimedData> data_;
 
+  scada::Aggregation aggregation_;
   base::Time from_ = kTimedDataCurrentOnly;
 };
 

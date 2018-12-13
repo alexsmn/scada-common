@@ -23,21 +23,24 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
       logger_{std::move(logger)},
       node_id_cache_{io_context_},
       alias_cache_{io_context_},
-      null_timed_data_{
-          std::make_shared<ErrorTimedData>(std::string{}, base::WideToUTF16(kEmptyDisplayName))} {}
+      null_timed_data_{std::make_shared<ErrorTimedData>(
+          std::string{},
+          base::WideToUTF16(kEmptyDisplayName))} {}
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
-    base::StringPiece formula) {
+    base::StringPiece formula,
+    const scada::Aggregation& aggregation) {
   auto expression = std::make_unique<rt::ScadaExpression>();
 
   // May throw std::exception.
   try {
     expression->Parse(formula.as_string().c_str());
   } catch (const std::exception& e) {
-    return std::make_shared<ErrorTimedData>(formula.as_string(),
-                                            base::WideToUTF16(base::SysNativeMBToWide(e.what())));
+    return std::make_shared<ErrorTimedData>(
+        formula.as_string(),
+        base::WideToUTF16(base::SysNativeMBToWide(e.what())));
   }
 
   std::shared_ptr<rt::TimedData> data;
@@ -48,20 +51,21 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     if (name.size() >= 2 && name[0] == '{' && name[name.size() - 1] == '}')
       unbraced_name = unbraced_name.substr(1, unbraced_name.size() - 2);
 
-    return GetAliasTimedData(unbraced_name);
+    return GetAliasTimedData(unbraced_name, aggregation);
 
   } else {
     std::vector<std::shared_ptr<rt::TimedData>> operands(
         expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i)
-      operands[i] = GetAliasTimedData(expression->items[i].name);
+      operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
     return std::make_shared<rt::ExpressionTimedData>(std::move(expression),
                                                      std::move(operands));
   }
 }
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
-    const scada::NodeId& node_id) {
+    const scada::NodeId& node_id,
+    const scada::Aggregation& aggregation) {
   if (node_id.is_null())
     return null_timed_data_;
 
@@ -75,17 +79,19 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
   auto& context = static_cast<TimedDataContext&>(*this);
   auto logger =
       std::make_shared<NestedLogger>(logger_, NodeIdToScadaString(node_id));
-  auto timed_data = std::make_shared<rt::TimedDataImpl>(node, context, logger);
+  auto timed_data = std::make_shared<rt::TimedDataImpl>(
+      node, std::move(aggregation), context, logger);
 
   node_id_cache_.Add(node_id, timed_data);
   return timed_data;
 }
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
-    base::StringPiece alias) {
+    base::StringPiece alias,
+    const scada::Aggregation& aggregation) {
   auto node_id = NodeIdFromScadaString(alias);
   if (!node_id.is_null())
-    return GetNodeTimedData(node_id);
+    return GetNodeTimedData(node_id, aggregation);
 
   auto alias_string = alias.as_string();
   if (auto timed_data = alias_cache_.Find(alias_string))
@@ -95,16 +101,16 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
 
   auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
   std::weak_ptr<AliasTimedData> weak_timed_data = timed_data;
-  alias_resolver_(alias_string, [weak_ptr, weak_timed_data, alias_string](
-                                    const scada::Status& status,
-                                    const scada::NodeId& node_id) {
+  alias_resolver_(alias_string, [weak_ptr, weak_timed_data, alias_string,
+                                 aggregation](const scada::Status& status,
+                                              const scada::NodeId& node_id) {
     auto ptr = weak_ptr.get();
     auto timed_data = weak_timed_data.lock();
     if (!ptr || !timed_data)
       return;
 
     if (status) {
-      timed_data->SetForwarded(ptr->GetNodeTimedData(node_id));
+      timed_data->SetForwarded(ptr->GetNodeTimedData(node_id, aggregation));
     } else {
       timed_data->SetForwarded(
           std::make_shared<ErrorTimedData>(alias_string, ToString16(status)));

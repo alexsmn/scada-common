@@ -35,15 +35,17 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 
 }  // namespace
 
-TimedDataImpl::TimedDataImpl(const NodeRef& node,
-                             const TimedDataContext& context,
+TimedDataImpl::TimedDataImpl(NodeRef node,
+                             scada::Aggregation aggregation,
+                             TimedDataContext context,
                              std::shared_ptr<const Logger> logger)
-    : TimedDataContext{context}, logger_{std::move(logger)} {
+    : TimedDataContext{std::move(context)},
+      aggregation_{std::move(aggregation)},
+      logger_{std::move(logger)} {
   assert(node);
-  SetNode(node);
+  SetNode(std::move(node));
 
-  monitored_value_ = monitored_item_service_.CreateMonitoredItem(
-      {node_.node_id(), scada::AttributeId::Value});
+  monitored_value_ = node_.CreateMonitoredItem(scada::AttributeId::Value);
   if (!monitored_value_) {
     Delete();
     return;
@@ -87,31 +89,14 @@ void TimedDataImpl::Write(double value,
                           const scada::NodeId& user_id,
                           const scada::WriteFlags& flags,
                           const StatusCallback& callback) const {
-  auto node = GetNode();
-  if (!node) {
-    if (callback)
-      callback(scada::StatusCode::Bad_WrongNodeId);
-    return;
-  }
-
-  attribute_service_.Write(
-      scada::WriteValue{node.node_id(), scada::AttributeId::Value, value,
-                        flags},
-      user_id, callback);
+  node_.Write(scada::AttributeId::Value, value, flags, user_id, callback);
 }
 
 void TimedDataImpl::Call(const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments,
                          const scada::NodeId& user_id,
                          const StatusCallback& callback) const {
-  auto node = GetNode();
-  if (!node) {
-    if (callback)
-      callback(scada::StatusCode::Bad_WrongNodeId);
-    return;
-  }
-
-  method_service_.Call(node.node_id(), method_id, arguments, user_id, callback);
+  node_.Call(method_id, arguments, user_id, callback);
 }
 
 void TimedDataImpl::QueryValues() {
@@ -144,7 +129,7 @@ void TimedDataImpl::QueryValues() {
   }
 
   history_service_.HistoryReadRaw(
-      node_.node_id(), from_, to,
+      node_.node_id(), from_, to, aggregation_,
       [message_loop, weak_ptr, range](scada::Status&& status,
                                       std::vector<scada::DataValue>&& values) {
         message_loop->PostTask(
@@ -270,14 +255,12 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 }
 
 const events::EventSet* TimedDataImpl::GetEvents() const {
-  if (auto node = GetNode())
-    return event_manager_.GetItemUnackedEvents(node.node_id());
-  return nullptr;
+  return node_ ? event_manager_.GetItemUnackedEvents(node_.node_id()) : nullptr;
 }
 
 void TimedDataImpl::Acknowledge() {
-  if (auto node = GetNode())
-    event_manager_.AcknowledgeItemEvents(node.node_id());
+  if (node_)
+    event_manager_.AcknowledgeItemEvents(node_.node_id());
 }
 
 }  // namespace rt

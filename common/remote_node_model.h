@@ -68,6 +68,7 @@ class RemoteNodeModel final
                      const scada::StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) const override;
 
  protected:

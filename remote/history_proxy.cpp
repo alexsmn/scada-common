@@ -11,6 +11,7 @@ void HistoryProxy::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
+    const scada::Aggregation& aggregation,
     const scada::HistoryReadRawCallback& callback) {
   if (!sender_) {
     assert(false);

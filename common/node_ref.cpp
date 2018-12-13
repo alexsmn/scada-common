@@ -176,9 +176,10 @@ void NodeRef::Write(scada::AttributeId attribute_id,
 
 void NodeRef::Call(const scada::NodeId& method_id,
                    const std::vector<scada::Variant>& arguments,
+                   const scada::NodeId& user_id,
                    const scada::StatusCallback& callback) const {
   if (model_)
-    model_->Call(method_id, arguments, callback);
+    model_->Call(method_id, arguments, user_id, callback);
   else
     callback(scada::StatusCode::Bad_WrongNodeId);
 }

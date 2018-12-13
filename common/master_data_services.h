@@ -110,6 +110,7 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::NodeId& node_id,
       base::Time from,
       base::Time to,
+      const scada::Aggregation& aggregation,
       const scada::HistoryReadRawCallback& callback) override;
   virtual void HistoryReadEvents(
       const scada::NodeId& node_id,

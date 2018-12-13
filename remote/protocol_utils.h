@@ -3,6 +3,7 @@
 #include <set>
 #include <vector>
 
+#include "core/aggregation.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/event.h"
@@ -50,7 +51,11 @@ scada::BrowseResult FromProto(const protocol::BrowseResult& source);
 void ToProto(const scada::BrowseResult& source, protocol::BrowseResult& target);
 
 scada::ModelChangeEvent FromProto(const protocol::ModelChangeEvent& source);
-void ToProto(const scada::ModelChangeEvent& source, protocol::ModelChangeEvent& target);
+void ToProto(const scada::ModelChangeEvent& source,
+             protocol::ModelChangeEvent& target);
+
+scada::Aggregation FromProto(const protocol::Aggregation& source);
+void ToProto(const scada::Aggregation& source, protocol::Aggregation& target);
 
 template <typename Target, typename Source>
 inline std::vector<Target> VectorFromProto(

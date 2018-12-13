@@ -6,6 +6,8 @@
 
 namespace scada {
 
+struct Aggregation;
+
 class HistoryService {
  public:
   virtual ~HistoryService() {}
@@ -13,6 +15,7 @@ class HistoryService {
   virtual void HistoryReadRaw(const NodeId& node_id,
                               base::Time from,
                               base::Time to,
+                              const Aggregation& aggregation,
                               const HistoryReadRawCallback& callback) = 0;
 
   virtual void HistoryReadEvents(const NodeId& node_id,

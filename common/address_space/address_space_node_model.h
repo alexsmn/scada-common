@@ -10,7 +10,7 @@ class AttributeService;
 class MethodService;
 class MonitoredItemService;
 struct ModelChangeEvent;
-}
+}  // namespace scada
 
 class AddressSpaceNodeModel;
 
@@ -81,6 +81,7 @@ class AddressSpaceNodeModel final
                      const scada::StatusCallback& callback) const override;
   virtual void Call(const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) const override;
   virtual void OnNodeDeleted() override;
 

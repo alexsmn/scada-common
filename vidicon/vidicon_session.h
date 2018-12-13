@@ -53,6 +53,7 @@ class VidiconSession : public scada::SessionService,
       const scada::NodeId& node_id,
       base::Time from,
       base::Time to,
+      const scada::Aggregation& aggregation,
       const scada::HistoryReadRawCallback& callback) override;
   virtual void HistoryReadEvents(
       const scada::NodeId& node_id,
@@ -75,7 +76,7 @@ class VidiconSession : public scada::SessionService,
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,
                            const scada::NodeId& user_node_id) override;
-  
+
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,

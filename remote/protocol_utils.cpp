@@ -455,3 +455,15 @@ void ToProto(const scada::ModelChangeEvent& source,
   if (source.verb & scada::ModelChangeEvent::ReferenceDeleted)
     target.set_reference_deleted(true);
 }
+
+scada::Aggregation FromProto(const protocol::Aggregation& source) {
+  return {
+      scada::Duration::FromInternalValue(source.interval()),
+      FromProto(source.aggregation_id()),
+  };
+}
+
+void ToProto(const scada::Aggregation& source, protocol::Aggregation& target) {
+  ToProto(source.aggregation_id, *target.mutable_aggregation_id());
+  target.set_interval(source.interval.ToInternalValue());
+}

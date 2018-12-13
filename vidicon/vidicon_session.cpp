@@ -73,6 +73,7 @@ void VidiconSession::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
+    const scada::Aggregation& aggregation,
     const scada::HistoryReadRawCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }

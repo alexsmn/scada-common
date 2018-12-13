@@ -22,12 +22,16 @@ class TimedDataServiceImpl final : private TimedDataContext,
   virtual ~TimedDataServiceImpl();
 
   virtual std::shared_ptr<rt::TimedData> GetFormulaTimedData(
-      base::StringPiece formula) final;
+      base::StringPiece formula,
+      const scada::Aggregation& aggregation) override;
   virtual std::shared_ptr<rt::TimedData> GetNodeTimedData(
-      const scada::NodeId& node_id) final;
+      const scada::NodeId& node_id,
+      const scada::Aggregation& aggregation) override;
 
  private:
-  std::shared_ptr<rt::TimedData> GetAliasTimedData(base::StringPiece alias);
+  std::shared_ptr<rt::TimedData> GetAliasTimedData(
+      base::StringPiece alias,
+      const scada::Aggregation& aggregation);
 
   const std::shared_ptr<const Logger> logger_;
 
