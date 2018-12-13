@@ -39,9 +39,9 @@ TimedDataImpl::TimedDataImpl(NodeRef node,
                              scada::Aggregation aggregation,
                              TimedDataContext context,
                              std::shared_ptr<const Logger> logger)
-    : TimedDataContext{std::move(context)},
-      aggregation_{std::move(aggregation)},
-      logger_{std::move(logger)} {
+    : TimedDataContext{std::move(context)}, logger_{std::move(logger)} {
+  aggregation_ = std::move(aggregation);
+
   assert(node);
   SetNode(std::move(node));
 

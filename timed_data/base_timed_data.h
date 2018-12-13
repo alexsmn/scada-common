@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/observer_list.h"
+#include "core/aggregation.h"
 #include "timed_data/timed_data.h"
 
 namespace rt {
@@ -56,6 +57,8 @@ class BaseTimedData : public TimedData {
 
   void Delete();
   void Failed();
+
+  scada::Aggregation aggregation_;
 
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;

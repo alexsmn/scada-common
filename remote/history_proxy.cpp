@@ -25,6 +25,8 @@ void HistoryProxy::HistoryReadRaw(
     history_read_raw.set_from_time(from.ToInternalValue());
   if (!to.is_null())
     history_read_raw.set_to_time(to.ToInternalValue());
+  if (!aggregation.is_null())
+    ToProto(aggregation, *history_read_raw.mutable_aggregation());
 
   sender_->Request(request,
                    [this, callback](const protocol::Response& response) {

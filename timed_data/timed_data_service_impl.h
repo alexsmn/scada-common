@@ -35,8 +35,12 @@ class TimedDataServiceImpl final : private TimedDataContext,
 
   const std::shared_ptr<const Logger> logger_;
 
-  TimedCache<scada::NodeId, std::shared_ptr<rt::TimedDataImpl>> node_id_cache_;
-  TimedCache<std::string, std::shared_ptr<AliasTimedData>> alias_cache_;
+  TimedCache<std::pair<scada::NodeId, scada::Aggregation>,
+             std::shared_ptr<rt::TimedDataImpl>>
+      node_id_cache_;
+  TimedCache<std::pair<std::string, scada::Aggregation>,
+             std::shared_ptr<AliasTimedData>>
+      alias_cache_;
 
   const std::shared_ptr<rt::TimedData> null_timed_data_;
 

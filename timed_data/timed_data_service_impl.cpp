@@ -69,7 +69,8 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
   if (node_id.is_null())
     return null_timed_data_;
 
-  if (auto timed_data = node_id_cache_.Find(node_id))
+  const auto cache_key = std::make_pair(node_id, aggregation);
+  if (auto timed_data = node_id_cache_.Find(cache_key))
     return timed_data;
 
   auto node = node_service_.GetNode(node_id);
@@ -82,7 +83,7 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
   auto timed_data = std::make_shared<rt::TimedDataImpl>(
       node, std::move(aggregation), context, logger);
 
-  node_id_cache_.Add(node_id, timed_data);
+  node_id_cache_.Add(cache_key, timed_data);
   return timed_data;
 }
 
@@ -93,8 +94,9 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
   if (!node_id.is_null())
     return GetNodeTimedData(node_id, aggregation);
 
-  auto alias_string = alias.as_string();
-  if (auto timed_data = alias_cache_.Find(alias_string))
+  const auto alias_string = alias.as_string();
+  const auto cache_key = std::make_pair(alias_string, aggregation);
+  if (auto timed_data = alias_cache_.Find(cache_key))
     return timed_data;
 
   auto timed_data = std::make_shared<AliasTimedData>(alias_string);
@@ -117,6 +119,6 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
     }
   });
 
-  alias_cache_.Add(alias_string, timed_data);
+  alias_cache_.Add(cache_key, timed_data);
   return timed_data;
 }

@@ -152,10 +152,10 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
         target.set_bool_value(source.as_bool());
         break;
       case scada::Variant::INT8:
-        target.set_int_value(source.as_int32());
+        target.set_int_value(source.get<scada::Int8>());
         break;
       case scada::Variant::UINT8:
-        target.set_int_value(source.as_int32());
+        target.set_int_value(source.get<scada::UInt8>());
         break;
       case scada::Variant::INT16:
         target.set_int_value(source.get<scada::Int16>());
@@ -164,19 +164,19 @@ void ToProto(const scada::Variant& source, protocol::Variant& target) {
         target.set_int_value(source.get<scada::UInt16>());
         break;
       case scada::Variant::INT32:
-        target.set_int_value(source.as_int32());
+        target.set_int_value(source.get<scada::Int32>());
         break;
       case scada::Variant::UINT32:
-        target.set_int_value(source.as_int32());
+        target.set_int_value(source.get<scada::UInt32>());
         break;
       case scada::Variant::INT64:
-        target.set_int_value(source.as_int64());
+        target.set_int_value(source.get<scada::Int64>());
         break;
       case scada::Variant::UINT64:
-        target.set_int_value(source.as_uint64());
+        target.set_int_value(source.get<scada::UInt64>());
         break;
       case scada::Variant::DOUBLE:
-        target.set_double_value(source.as_double());
+        target.set_double_value(source.get<scada::Double>());
         break;
       case scada::Variant::STRING:
         target.set_string_value_utf8(

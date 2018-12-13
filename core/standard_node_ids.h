@@ -48,5 +48,13 @@ const NumericId TypesFolder = 86;
 const NumericId ModellingRules = 87;
 const NumericId ModellingRule_Mandatory = 78;
 
-} // namespace id
-} // namespace scada
+const NumericId AggregateFunction_Average = 2342;
+const NumericId AggregateFunction_Total = 2344;
+const NumericId AggregateFunction_Minimum = 2346;
+const NumericId AggregateFunction_Maximum = 2347;
+const NumericId AggregateFunction_Count = 2352;
+const NumericId AggregateFunction_Start = 2357;
+const NumericId AggregateFunction_End = 2358;
+
+}  // namespace id
+}  // namespace scada
