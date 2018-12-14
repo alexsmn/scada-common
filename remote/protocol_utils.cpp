@@ -456,14 +456,31 @@ void ToProto(const scada::ModelChangeEvent& source,
     target.set_reference_deleted(true);
 }
 
-scada::Aggregation FromProto(const protocol::Aggregation& source) {
+scada::AggregateFilter FromProto(const protocol::AggregateFilter& source) {
   return {
       scada::Duration::FromInternalValue(source.interval()),
-      FromProto(source.aggregation_id()),
+      FromProto(source.aggregate_type()),
   };
 }
 
-void ToProto(const scada::Aggregation& source, protocol::Aggregation& target) {
-  ToProto(source.aggregation_id, *target.mutable_aggregation_id());
+void ToProto(const scada::AggregateFilter& source,
+             protocol::AggregateFilter& target) {
+  ToProto(std::move(source.aggregate_type), *target.mutable_aggregate_type());
   target.set_interval(source.interval.ToInternalValue());
+}
+
+scada::MonitoringParameters FromProto(
+    const protocol::MonitoringParameters& source) {
+  scada::MonitoringParameters target;
+  if (source.has_aggregate_filter())
+    target.filter = FromProto(source.aggregate_filter());
+  return target;
+}
+
+void ToProto(const scada::MonitoringParameters& source,
+             protocol::MonitoringParameters& target) {
+  if (auto* aggregate_filter =
+          std::get_if<scada::AggregateFilter>(&source.filter)) {
+    ToProto(*aggregate_filter, *target.mutable_aggregate_filter());
+  }
 }

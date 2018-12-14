@@ -8,8 +8,11 @@
 class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
  public:
   MasterMonitoredItem(MasterDataServices& owner,
-                      scada::ReadValueId read_value_id)
-      : owner_{owner}, read_value_id_{std::move(read_value_id)} {
+                      scada::ReadValueId read_value_id,
+                      scada::MonitoringParameters params)
+      : owner_{owner},
+        read_value_id_{std::move(read_value_id)},
+        params_{std::move(params)} {
     owner_.monitored_items_.emplace_back(this);
   }
 
@@ -33,7 +36,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
     underlying_item_ =
         owner_.services_.monitored_item_service_->CreateMonitoredItem(
-            read_value_id_);
+            read_value_id_, params_);
     if (!underlying_item_) {
       ForwardData({scada::StatusCode::Bad, base::Time::Now()});
       return;
@@ -58,6 +61,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
  private:
   MasterDataServices& owner_;
   const scada::ReadValueId read_value_id_;
+  const scada::MonitoringParameters params_;
   std::unique_ptr<scada::MonitoredItem> underlying_item_;
 };
 
@@ -271,8 +275,9 @@ void MasterDataServices::Acknowledge(int acknowledge_id,
 }
 
 std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
-  return std::make_unique<MasterMonitoredItem>(*this, read_value_id);
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
+  return std::make_unique<MasterMonitoredItem>(*this, read_value_id, params);
 }
 
 void MasterDataServices::Write(const scada::WriteValue& value,
@@ -300,7 +305,7 @@ void MasterDataServices::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
-    const scada::Aggregation& aggregation,
+    const scada::AggregateFilter& aggregation,
     const scada::HistoryReadRawCallback& callback) {
   if (!services_.history_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});

@@ -2,6 +2,7 @@
 
 #include "base/bind.h"
 #include "base/threading/sequenced_task_runner_handle.h"
+#include "core/monitored_item_service.h"
 #include "opcua/opcua_conversion.h"
 
 #include <opcuapp/client/session.h>
@@ -40,15 +41,15 @@ OpcUaMonitoredItemCreateResult Convert(
   };
 }
 
-template<typename T, class It>
+template <typename T, class It>
 inline std::vector<T> ConvertVector22(It first, It last) {
   std::vector<T> result(std::distance(first, last));
   std::transform(first, last, result.begin(),
-      [](auto& source) { return Convert(std::move(source)); });
+                 [](auto& source) { return Convert(std::move(source)); });
   return result;
 }
 
-template<typename T, class Range>
+template <typename T, class Range>
 inline std::vector<T> ConvertVector22(Range&& range) {
   return ConvertVector22<T>(std::begin(range), std::end(range));
 }
@@ -59,7 +60,8 @@ class OpcUaMonitoredItem : public scada::MonitoredItem {
  public:
   OpcUaMonitoredItem(std::shared_ptr<OpcUaSubscription> subscription,
                      opcua::MonitoredItemClientHandle client_handle,
-                     scada::ReadValueId read_value_id);
+                     scada::ReadValueId read_value_id,
+                     scada::MonitoringParameters params);
   ~OpcUaMonitoredItem();
 
   // scada::MonitoredItem
@@ -69,6 +71,7 @@ class OpcUaMonitoredItem : public scada::MonitoredItem {
   const std::shared_ptr<OpcUaSubscription> subscription_;
   const opcua::MonitoredItemClientHandle client_handle_;
   const scada::ReadValueId read_value_id_;
+  const scada::MonitoringParameters params_;
 
   opcua::MonitoredItemId id_ = 0;
 
@@ -78,10 +81,12 @@ class OpcUaMonitoredItem : public scada::MonitoredItem {
 OpcUaMonitoredItem::OpcUaMonitoredItem(
     std::shared_ptr<OpcUaSubscription> subscription,
     opcua::MonitoredItemClientHandle client_handle,
-    scada::ReadValueId read_value_id)
+    scada::ReadValueId read_value_id,
+    scada::MonitoringParameters params)
     : subscription_{std::move(subscription)},
       client_handle_{client_handle},
-      read_value_id_{std::move(read_value_id)} {
+      read_value_id_{std::move(read_value_id)},
+      params_{std::move(params)} {
   assert(!read_value_id_.node_id.is_null());
 }
 
@@ -171,10 +176,12 @@ void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
 }
 
 std::unique_ptr<scada::MonitoredItem> OpcUaSubscription::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
   assert(!read_value_id.node_id.is_null());
   return std::make_unique<OpcUaMonitoredItem>(
-      shared_from_this(), next_monitored_item_client_handle_++, read_value_id);
+      shared_from_this(), next_monitored_item_client_handle_++, read_value_id,
+      params);
 }
 
 void OpcUaSubscription::Subscribe(

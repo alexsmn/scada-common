@@ -73,7 +73,7 @@ void VidiconSession::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
-    const scada::Aggregation& aggregation,
+    const scada::AggregateFilter& aggregation,
     const scada::HistoryReadRawCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
@@ -88,7 +88,8 @@ void VidiconSession::HistoryReadEvents(
 }
 
 std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
   if (read_value_id.attribute_id == scada::AttributeId::Value) {
     if (read_value_id.node_id.type() != scada::NodeIdType::Numeric)
       return nullptr;

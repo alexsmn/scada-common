@@ -49,7 +49,7 @@ void Variable::Call(const NodeId& method_id,
 
 void Variable::HistoryReadRaw(base::Time from,
                               base::Time to,
-                              const scada::Aggregation& aggregation,
+                              const scada::AggregateFilter& aggregation,
                               const HistoryReadRawCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }

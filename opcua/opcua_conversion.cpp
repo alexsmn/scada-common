@@ -477,13 +477,16 @@ scada::NodeId Convert(OpcUa_NodeId&& node_id) {
       return {node_id.Identifier.Numeric, node_id.NamespaceIndex};
 
     case OpcUa_IdentifierType_String:
-      return {Convert(std::move(node_id.Identifier.String)), node_id.NamespaceIndex};
+      return {Convert(std::move(node_id.Identifier.String)),
+              node_id.NamespaceIndex};
 
-//    case OpcUa_IdentifierType_Guid:
-//      return {Convert(std::move(*node_id.Identifier.Guid)), node_id.NamespaceIndex};
+      //    case OpcUa_IdentifierType_Guid:
+      //      return {Convert(std::move(*node_id.Identifier.Guid)),
+      //      node_id.NamespaceIndex};
 
     case OpcUa_IdentifierType_Opaque:
-      return {Convert(std::move(node_id.Identifier.ByteString)), node_id.NamespaceIndex};
+      return {Convert(std::move(node_id.Identifier.ByteString)),
+              node_id.NamespaceIndex};
 
     default:
       assert(false);
@@ -522,12 +525,43 @@ scada::ReadValueId Convert(OpcUa_ReadValueId&& source) {
           ConvertAttributeId(source.AttributeId)};
 }
 
-OpcUa_ReadValueId MakeUaReadValueId(const scada::ReadValueId& source) {
-  OpcUa_ReadValueId result;
-  ::OpcUa_ReadValueId_Initialize(&result);
-  Convert(source.node_id, result.NodeId);
-  result.AttributeId = Convert(source.attribute_id);
-  return result;
+void Convert(const scada::ReadValueId& source, OpcUa_ReadValueId& target) {
+  ::OpcUa_ReadValueId_Clear(&target);
+  Convert(source.node_id, target.NodeId);
+  target.AttributeId = Convert(source.attribute_id);
+}
+
+scada::AggregateFilter Convert(OpcUa_AggregateFilter&& source) {
+  return {
+      scada::Duration::FromSecondsD(source.ProcessingInterval),
+      Convert(std::move(source.AggregateType)),
+  };
+}
+
+void Convert(const scada::AggregateFilter& source,
+             OpcUa_AggregateFilter& target) {
+  target.ProcessingInterval = source.interval.InSecondsF();
+  Convert(source.aggregate_type, target.AggregateType);
+}
+
+scada::MonitoringParameters Convert(OpcUa_MonitoringParameters&& source) {
+  scada::MonitoringParameters target;
+  opcua::ExtensionObject filter{std::move(source.Filter)};
+  if (auto* aggregate_filter = filter.get_if<OpcUa_AggregateFilter>())
+    target.filter = Convert(std::move(*aggregate_filter));
+  return target;
+}
+
+void Convert(const scada::MonitoringParameters& source,
+             OpcUa_MonitoringParameters& target) {
+  if (auto* aggregate_filter =
+          std::get_if<scada::AggregateFilter>(&source.filter)) {
+    auto target_aggregate_filter = std::make_unique<OpcUa_AggregateFilter>();
+    opcua::Initialize(*target_aggregate_filter);
+    Convert(*aggregate_filter, *target_aggregate_filter);
+    opcua::ExtensionObject target_filter{target_aggregate_filter.release()};
+    target_filter.release(target.Filter);
+  }
 }
 
 OpcUa_BrowseDirection Convert(scada::BrowseDirection source) {

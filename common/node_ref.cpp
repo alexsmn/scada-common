@@ -151,8 +151,9 @@ void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
 }
 
 std::unique_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
-    scada::AttributeId attribute_id) const {
-  return model_ ? model_->CreateMonitoredItem(attribute_id) : nullptr;
+    scada::AttributeId attribute_id,
+    const scada::MonitoringParameters& params) const {
+  return model_ ? model_->CreateMonitoredItem(attribute_id, params) : nullptr;
 }
 
 void NodeRef::Read(scada::AttributeId attribute_id,

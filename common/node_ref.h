@@ -13,6 +13,7 @@
 
 namespace scada {
 class MonitoredItem;
+struct MonitoringParameters;
 using StatusCallback = std::function<void(Status&&)>;
 }  // namespace scada
 
@@ -89,7 +90,8 @@ class NodeRef {
   void Unsubscribe(NodeRefObserver& observer) const;
 
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      scada::AttributeId attribute_id) const;
+      scada::AttributeId attribute_id,
+      const scada::MonitoringParameters& params) const;
 
   using ReadCallback = std::function<void(scada::DataValue&& value)>;
   void Read(scada::AttributeId attribute_id,

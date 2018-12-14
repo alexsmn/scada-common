@@ -108,11 +108,16 @@ void SessionStub::ProcessRequest(const protocol::Request& request) {
 
   if (request.has_create_monitored_item()) {
     auto& create_monitored_item = request.create_monitored_item();
-    OnCreateMonitoredItem(request.request_id(),
-                          create_monitored_item.subscription_id(),
-                          {FromProto(create_monitored_item.node_id()),
-                           static_cast<scada::AttributeId>(
-                               create_monitored_item.attribute_id())});
+    scada::ReadValueId read_value_id{
+        FromProto(create_monitored_item.node_id()),
+        static_cast<scada::AttributeId>(create_monitored_item.attribute_id()),
+    };
+    OnCreateMonitoredItem(
+        request.request_id(), create_monitored_item.subscription_id(),
+        std::move(read_value_id),
+        create_monitored_item.has_monitoring_parameters()
+            ? FromProto(create_monitored_item.monitoring_parameters())
+            : scada::MonitoringParameters{});
   }
 
   if (request.has_delete_monitored_item()) {
@@ -173,13 +178,15 @@ void SessionStub::OnDeleteSubscription(int request_id, int subscription_id) {
   Send(message);
 }
 
-void SessionStub::OnCreateMonitoredItem(
-    int request_id,
-    int subscription_id,
-    const scada::ReadValueId& read_value_id) {
+void SessionStub::OnCreateMonitoredItem(int request_id,
+                                        int subscription_id,
+                                        scada::ReadValueId&& read_value_id,
+                                        scada::MonitoringParameters&& params) {
   auto i = subscriptions_.find(subscription_id);
-  if (i != subscriptions_.end())
-    i->second->OnCreateMonitoredItem(request_id, read_value_id);
+  if (i != subscriptions_.end()) {
+    i->second->OnCreateMonitoredItem(request_id, std::move(read_value_id),
+                                     std::move(params));
+  }
 }
 
 void SessionStub::OnDeleteMonitoredItem(int request_id,

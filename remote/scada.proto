@@ -273,16 +273,20 @@ message Call {
   optional Acknowledge acknowledge = 2;
 }
 
-message Aggregation {
+message AggregateFilter {
   optional uint64 interval = 1;
-  optional NodeId aggregation_id = 2;
+  optional NodeId aggregate_type = 2;
+}
+
+message MonitoringParameters {
+  optional AggregateFilter aggregate_filter = 1;
 }
 
 message HistoryReadRaw {
   required NodeId node_id = 1;
   optional uint64 from_time = 3;
   optional uint64 to_time = 4;
-  optional Aggregation aggregation = 5;
+  optional AggregateFilter aggregate_filter = 5;
 }
 
 message HistoryReadRawResult {
@@ -322,6 +326,7 @@ message CreateMonitoredItem {
   required uint32 subscription_id = 1;
   required NodeId node_id = 2;
   required AttributeId attribute_id = 3;
+  optional MonitoringParameters monitoring_parameters = 4;
 }
 
 message CreateMonitoredItemResult {

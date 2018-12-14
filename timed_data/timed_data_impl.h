@@ -22,7 +22,7 @@ class TimedDataImpl : private TimedDataContext,
                       private events::EventObserver {
  public:
   TimedDataImpl(NodeRef node,
-                scada::Aggregation aggregation,
+                scada::AggregateFilter aggregation,
                 TimedDataContext context,
                 std::shared_ptr<const Logger> logger);
   virtual ~TimedDataImpl();
@@ -66,6 +66,7 @@ class TimedDataImpl : private TimedDataContext,
                                    const events::EventSet& events) override;
 
   const std::shared_ptr<const Logger> logger_;
+  const scada::AggregateFilter aggregation_;
 
   NodeRef node_;
   std::unique_ptr<scada::MonitoredItem> monitored_value_;

@@ -10,6 +10,7 @@ class Event;
 class MonitoredItem;
 class MonitoredItemService;
 struct ReadValueId;
+struct MonitoringParameters;
 }  // namespace scada
 
 class MessageSender;
@@ -24,7 +25,8 @@ class SubscriptionStub {
   ~SubscriptionStub();
 
   void OnCreateMonitoredItem(int request_id,
-                             const scada::ReadValueId& read_value_id);
+                             const scada::ReadValueId& read_value_id,
+                             const scada::MonitoringParameters& params);
   void OnDeleteMonitoredItem(int request_id, int monitored_item_id);
 
  private:

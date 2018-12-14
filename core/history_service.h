@@ -6,7 +6,7 @@
 
 namespace scada {
 
-struct Aggregation;
+struct AggregateFilter;
 
 class HistoryService {
  public:
@@ -15,7 +15,7 @@ class HistoryService {
   virtual void HistoryReadRaw(const NodeId& node_id,
                               base::Time from,
                               base::Time to,
-                              const Aggregation& aggregation,
+                              const AggregateFilter& aggregation,
                               const HistoryReadRawCallback& callback) = 0;
 
   virtual void HistoryReadEvents(const NodeId& node_id,

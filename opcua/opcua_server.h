@@ -41,7 +41,8 @@ class OpcUaServer : private OpcUaServerContext {
       OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
       const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback);
   opcua::server::CreateMonitoredItemResult CreateMonitoredItem(
-      opcua::ReadValueId&& read_value_id);
+      opcua::ReadValueId&& read_value_id,
+      opcua::MonitoringParameters&& params);
 
   opcua::ProxyStubConfiguration MakeProxyStubConfiguration();
 

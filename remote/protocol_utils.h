@@ -7,6 +7,7 @@
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/event.h"
+#include "core/monitored_item_service.h"
 #include "core/node_attributes.h"
 #include "core/status.h"
 #include "core/view_service.h"
@@ -54,8 +55,14 @@ scada::ModelChangeEvent FromProto(const protocol::ModelChangeEvent& source);
 void ToProto(const scada::ModelChangeEvent& source,
              protocol::ModelChangeEvent& target);
 
-scada::Aggregation FromProto(const protocol::Aggregation& source);
-void ToProto(const scada::Aggregation& source, protocol::Aggregation& target);
+scada::AggregateFilter FromProto(const protocol::AggregateFilter& source);
+void ToProto(const scada::AggregateFilter& source,
+             protocol::AggregateFilter& target);
+
+scada::MonitoringParameters FromProto(
+    const protocol::MonitoringParameters& source);
+void ToProto(const scada::MonitoringParameters& source,
+             protocol::MonitoringParameters& target);
 
 template <typename Target, typename Source>
 inline std::vector<Target> VectorFromProto(

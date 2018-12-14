@@ -25,6 +25,7 @@ class MethodService;
 class NodeManagementService;
 class MonitoredItemService;
 class ViewService;
+struct MonitoringParameters;
 }  // namespace scada
 
 class Connection;
@@ -78,7 +79,8 @@ class SessionStub : public std::enable_shared_from_this<SessionStub>,
   void OnDeleteSubscription(int request_id, int subscription_id);
   void OnCreateMonitoredItem(int request_id,
                              int subscription_id,
-                             const scada::ReadValueId& read_value_id);
+                             scada::ReadValueId&& read_value_id,
+                             scada::MonitoringParameters&& params);
   void OnDeleteMonitoredItem(int request_id,
                              int subscription_id,
                              int monitored_item_id);

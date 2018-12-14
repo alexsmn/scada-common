@@ -8,11 +8,13 @@
 #include <memory>
 #include <vector>
 
-namespace opcua {
-namespace client {
+namespace opcua::client {
 class Session;
+}  // namespace opcua::client
+
+namespace scada {
+struct MonitoringParameters;
 }
-}  // namespace opcua
 
 class OpcUaMonitoredItem;
 
@@ -42,7 +44,8 @@ class OpcUaSubscription
   bool created() const { return created_; }
 
   std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::ReadValueId& read_value_id);
+      const scada::ReadValueId& read_value_id,
+      const scada::MonitoringParameters& params);
 
  private:
   explicit OpcUaSubscription(OpcUaSubscriptionContext&& session);

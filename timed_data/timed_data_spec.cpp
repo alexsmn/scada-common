@@ -31,9 +31,9 @@ void TimedDataSpec::SetFrom(base::Time from) {
     data_->SetFrom(from);
 }
 
-void TimedDataSpec::SetAggregation(scada::Aggregation aggregation) {
+void TimedDataSpec::SetAggregateFilter(scada::AggregateFilter filter) {
   assert(!data_);
-  aggregation_ = std::move(aggregation);
+  aggregate_filter_ = std::move(filter);
 }
 
 void TimedDataSpec::SetData(std::shared_ptr<TimedData> data) {
@@ -53,16 +53,16 @@ void TimedDataSpec::SetData(std::shared_ptr<TimedData> data) {
 
 void TimedDataSpec::Connect(TimedDataService& service,
                             base::StringPiece formula) {
-  SetData(service.GetFormulaTimedData(formula, aggregation_));
+  SetData(service.GetFormulaTimedData(formula, aggregate_filter_));
 }
 
 void TimedDataSpec::Connect(TimedDataService& service,
                             const scada::NodeId& node_id) {
-  SetData(service.GetNodeTimedData(node_id, aggregation_));
+  SetData(service.GetNodeTimedData(node_id, aggregate_filter_));
 }
 
 void TimedDataSpec::Connect(TimedDataService& service, const NodeRef& node) {
-  SetData(service.GetNodeTimedData(node.node_id(), aggregation_));
+  SetData(service.GetNodeTimedData(node.node_id(), aggregate_filter_));
 }
 
 base::string16 TimedDataSpec::GetCurrentString(int params) const {

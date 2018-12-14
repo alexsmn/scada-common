@@ -203,8 +203,10 @@ void AddressSpaceNodeModel::OnNodeDeleted() {
 
 std::unique_ptr<scada::MonitoredItem>
 AddressSpaceNodeModel::CreateMonitoredItem(
-    scada::AttributeId attribute_id) const {
-  return monitored_item_service_.CreateMonitoredItem({node_id_, attribute_id});
+    scada::AttributeId attribute_id,
+    const scada::MonitoringParameters& params) const {
+  return monitored_item_service_.CreateMonitoredItem({node_id_, attribute_id},
+                                                     params);
 }
 
 void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,

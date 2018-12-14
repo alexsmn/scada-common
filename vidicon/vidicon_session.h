@@ -53,7 +53,7 @@ class VidiconSession : public scada::SessionService,
       const scada::NodeId& node_id,
       base::Time from,
       base::Time to,
-      const scada::Aggregation& aggregation,
+      const scada::AggregateFilter& aggregation,
       const scada::HistoryReadRawCallback& callback) override;
   virtual void HistoryReadEvents(
       const scada::NodeId& node_id,
@@ -64,7 +64,8 @@ class VidiconSession : public scada::SessionService,
 
   // scada::MonitoredItemService
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::ReadValueId& read_value_id) override;
+      const scada::ReadValueId& read_value_id,
+      const scada::MonitoringParameters& params) override;
 
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& nodes,

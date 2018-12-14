@@ -412,8 +412,9 @@ void SessionProxy::Call(const scada::NodeId& node_id,
 }
 
 std::unique_ptr<scada::MonitoredItem> SessionProxy::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
-  return subscription_->CreateMonitoredItem(read_value_id);
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
+  return subscription_->CreateMonitoredItem(read_value_id, params);
 }
 
 void SessionProxy::Reconnect() {

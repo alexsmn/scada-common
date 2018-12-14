@@ -3,7 +3,7 @@
 #include <cassert>
 
 #include "base/strings/sys_string_conversions.h"
-#include "core/monitored_item.h"
+#include "core/monitored_item_service.h"
 #include "remote/message_sender.h"
 #include "remote/protocol.h"
 #include "remote/protocol_utils.h"
@@ -17,7 +17,8 @@ const auto kInvalidIndex = std::numeric_limits<std::size_t>::max();
 class SubscriptionProxy::MonitoredItemProxy : public scada::MonitoredItem {
  public:
   MonitoredItemProxy(SubscriptionProxy& subscription,
-                     const scada::ReadValueId& read_value_id);
+                     scada::ReadValueId read_value_id,
+                     scada::MonitoringParameters params);
   virtual ~MonitoredItemProxy();
 
   virtual void Subscribe() override;
@@ -38,8 +39,10 @@ class SubscriptionProxy::MonitoredItemProxy : public scada::MonitoredItem {
 
   void UpdateQualifier(unsigned remove, unsigned add);
 
-  SubscriptionProxy* subscription_ = nullptr;
   const scada::ReadValueId read_value_id_;
+  const scada::MonitoringParameters params_;
+
+  SubscriptionProxy* subscription_ = nullptr;
 
   MonitoredItemId monitored_item_id_;
 
@@ -53,9 +56,11 @@ class SubscriptionProxy::MonitoredItemProxy : public scada::MonitoredItem {
 
 SubscriptionProxy::MonitoredItemProxy::MonitoredItemProxy(
     SubscriptionProxy& subscription,
-    const scada::ReadValueId& read_value_id)
+    scada::ReadValueId read_value_id,
+    scada::MonitoringParameters params)
     : subscription_{&subscription},
       read_value_id_{std::move(read_value_id)},
+      params_{std::move(params)},
       cancelation_(std::make_shared<bool>(false)) {}
 
 SubscriptionProxy::MonitoredItemProxy::~MonitoredItemProxy() {
@@ -88,6 +93,8 @@ void SubscriptionProxy::MonitoredItemProxy::CreateStub() {
   ToProto(read_value_id_.node_id, *create_monitored_item.mutable_node_id());
   create_monitored_item.set_attribute_id(
       static_cast<protocol::AttributeId>(read_value_id_.attribute_id));
+  if (!params_.is_null())
+    ToProto(params_, *create_monitored_item.mutable_monitoring_parameters());
 
   std::weak_ptr<bool> cancelation = cancelation_;
   subscription_->sender_->Request(
@@ -228,11 +235,12 @@ SubscriptionProxy::~SubscriptionProxy() {
 }
 
 std::unique_ptr<scada::MonitoredItem> SubscriptionProxy::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
   assert(read_value_id.attribute_id == scada::AttributeId::EventNotifier ||
          !read_value_id.node_id.is_null());
   return std::unique_ptr<scada::MonitoredItem>(
-      new MonitoredItemProxy(*this, read_value_id));
+      new MonitoredItemProxy(*this, read_value_id, params));
 }
 
 void SubscriptionProxy::AddMonitoredItem(MonitoredItemProxy& item) {

@@ -58,8 +58,6 @@ class BaseTimedData : public TimedData {
   void Delete();
   void Failed();
 
-  scada::Aggregation aggregation_;
-
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;
 

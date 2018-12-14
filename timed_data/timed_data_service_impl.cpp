@@ -31,7 +31,7 @@ TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     base::StringPiece formula,
-    const scada::Aggregation& aggregation) {
+    const scada::AggregateFilter& aggregation) {
   auto expression = std::make_unique<rt::ScadaExpression>();
 
   // May throw std::exception.
@@ -65,7 +65,7 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
     const scada::NodeId& node_id,
-    const scada::Aggregation& aggregation) {
+    const scada::AggregateFilter& aggregation) {
   if (node_id.is_null())
     return null_timed_data_;
 
@@ -89,7 +89,7 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
 
 std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
     base::StringPiece alias,
-    const scada::Aggregation& aggregation) {
+    const scada::AggregateFilter& aggregation) {
   auto node_id = NodeIdFromScadaString(alias);
   if (!node_id.is_null())
     return GetNodeTimedData(node_id, aggregation);

@@ -71,7 +71,8 @@ class AddressSpaceNodeModel final
   virtual NodeRef GetChild(
       const scada::QualifiedName& child_name) const override;
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      scada::AttributeId attribute_id) const override;
+      scada::AttributeId attribute_id,
+      const scada::MonitoringParameters& params) const override;
   virtual void Read(scada::AttributeId attribute_id,
                     const NodeRef::ReadCallback& callback) const override;
   virtual void Write(scada::AttributeId attribute_id,

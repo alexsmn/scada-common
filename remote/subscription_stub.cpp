@@ -20,8 +20,10 @@ SubscriptionStub::~SubscriptionStub() {}
 
 void SubscriptionStub::OnCreateMonitoredItem(
     int request_id,
-    const scada::ReadValueId& read_value_id) {
-  auto channel = monitored_item_service_.CreateMonitoredItem(read_value_id);
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
+  auto channel =
+      monitored_item_service_.CreateMonitoredItem(read_value_id, params);
   if (!channel) {
     scada::DataValue data_value;
     data_value.qualifier.set_failed(true);

@@ -11,7 +11,7 @@ void HistoryProxy::HistoryReadRaw(
     const scada::NodeId& node_id,
     base::Time from,
     base::Time to,
-    const scada::Aggregation& aggregation,
+    const scada::AggregateFilter& aggregation,
     const scada::HistoryReadRawCallback& callback) {
   if (!sender_) {
     assert(false);
@@ -26,7 +26,7 @@ void HistoryProxy::HistoryReadRaw(
   if (!to.is_null())
     history_read_raw.set_to_time(to.ToInternalValue());
   if (!aggregation.is_null())
-    ToProto(aggregation, *history_read_raw.mutable_aggregation());
+    ToProto(aggregation, *history_read_raw.mutable_aggregate_filter());
 
   sender_->Request(request,
                    [this, callback](const protocol::Response& response) {

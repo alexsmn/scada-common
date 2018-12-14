@@ -33,7 +33,7 @@ class TimedDataSpec : private TimedDataDelegate {
   TimedDataSpec(std::shared_ptr<TimedData> data);
   ~TimedDataSpec();
 
-  void SetAggregation(scada::Aggregation aggregation);
+  void SetAggregateFilter(scada::AggregateFilter filter);
 
   // Specify |kTimedDataCurrentOnly| to get only current values.
   void SetFrom(base::Time from);
@@ -109,7 +109,7 @@ class TimedDataSpec : private TimedDataDelegate {
 
   std::shared_ptr<TimedData> data_;
 
-  scada::Aggregation aggregation_;
+  scada::AggregateFilter aggregate_filter_;
   base::Time from_ = kTimedDataCurrentOnly;
 };
 

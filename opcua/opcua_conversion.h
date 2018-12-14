@@ -4,11 +4,12 @@
 #include "core/attribute_ids.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
+#include "core/expanded_node_id.h"
+#include "core/extension_object.h"
+#include "core/monitored_item_service.h"
+#include "core/node_class.h"
 #include "core/status.h"
 #include "core/variant.h"
-#include "core/extension_object.h"
-#include "core/expanded_node_id.h"
-#include "core/node_class.h"
 
 #include <opcuapp/basic_types.h>
 #include <opcuapp/structs.h>
@@ -49,7 +50,15 @@ OpcUa_Int32 Convert(scada::AttributeId attribute_id);
 
 scada::ReadValueId Convert(const OpcUa_ReadValueId& source);
 scada::ReadValueId Convert(OpcUa_ReadValueId&& source);
-OpcUa_ReadValueId MakeUaReadValueId(const scada::ReadValueId& source);
+void Convert(const scada::ReadValueId& source, OpcUa_ReadValueId& target);
+
+scada::AggregateFilter Convert(OpcUa_AggregateFilter&& source);
+void Convert(const scada::AggregateFilter& source,
+             OpcUa_AggregateFilter& target);
+
+scada::MonitoringParameters Convert(OpcUa_MonitoringParameters&& source);
+void Convert(const scada::MonitoringParameters& source,
+             OpcUa_MonitoringParameters& target);
 
 OpcUa_BrowseDirection Convert(scada::BrowseDirection source);
 scada::BrowseDirection Convert(OpcUa_BrowseDirection source);
@@ -58,7 +67,8 @@ scada::BrowseDescription Convert(const OpcUa_BrowseDescription& source);
 OpcUa_BrowseDescription Convert(const scada::BrowseDescription& source);
 
 scada::ReferenceDescription Convert(const OpcUa_ReferenceDescription& source);
-void Convert(const scada::ReferenceDescription& source, OpcUa_ReferenceDescription& target);
+void Convert(const scada::ReferenceDescription& source,
+             OpcUa_ReferenceDescription& target);
 
 scada::BrowseResult Convert(const OpcUa_BrowseResult& source);
 void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& target);
@@ -75,28 +85,28 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target);
 scada::LocalizedText Convert(const OpcUa_LocalizedText& source);
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target);
 
-template<typename T, class It>
+template <typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));
   std::transform(first, last, result.begin(),
-      [](auto& source) { return Convert(std::move(source)); });
+                 [](auto& source) { return Convert(std::move(source)); });
   return result;
 }
 
-template<typename T, class It>
+template <typename T, class It>
 inline std::vector<T> ConvertVectorCopy(It first, It last) {
   std::vector<T> result(std::distance(first, last));
   std::transform(first, last, result.begin(),
-      [](const auto& source) { return Convert(source); });
+                 [](const auto& source) { return Convert(source); });
   return result;
 }
 
-template<typename T, class Range>
+template <typename T, class Range>
 inline std::vector<T> ConvertVector(Range&& range) {
   return ConvertVector<T>(std::begin(range), std::end(range));
 }
 
-template<typename T, typename S>
+template <typename T, typename S>
 opcua::Vector<T> MakeVector(opcua::Span<S> values) {
   opcua::Vector<T> result(values.size());
   for (size_t i = 0; i < values.size(); ++i)

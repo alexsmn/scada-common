@@ -177,9 +177,10 @@ OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
 }
 
 std::unique_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id) {
+    const scada::ReadValueId& read_value_id,
+    const scada::MonitoringParameters& params) {
   assert(!read_value_id.node_id.is_null());
-  return GetDefaultSubscription().CreateMonitoredItem(read_value_id);
+  return GetDefaultSubscription().CreateMonitoredItem(read_value_id, params);
 }
 
 void OpcUaSession::Read(const std::vector<scada::ReadValueId>& value_ids,
@@ -187,8 +188,8 @@ void OpcUaSession::Read(const std::vector<scada::ReadValueId>& value_ids,
   assert(session_activated_);
 
   std::vector<OpcUa_ReadValueId> read_array(value_ids.size());
-  std::transform(value_ids.begin(), value_ids.end(), read_array.begin(),
-                 &MakeUaReadValueId);
+  for (size_t i = 0; i < value_ids.size(); ++i)
+    Convert(value_ids[i], read_array[i]);
 
   auto runner = base::SequencedTaskRunnerHandle::Get();
   session_.Read(

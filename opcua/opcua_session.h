@@ -51,7 +51,8 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
 
   // scada::MonitoredItemService
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::ReadValueId& read_value_id) override;
+      const scada::ReadValueId& read_value_id,
+      const scada::MonitoringParameters& params) override;
 
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& value_ids,

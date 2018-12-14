@@ -17,7 +17,7 @@ class NodeVariableHandle;
 class VariableHandle;
 class VariableType;
 class WriteFlags;
-struct Aggregation;
+struct AggregateFilter;
 
 using StatusCallback = std::function<void(Status&&)>;
 
@@ -50,7 +50,7 @@ class Variable : public Node {
 
   virtual void HistoryReadRaw(DateTime from,
                               DateTime to,
-                              const scada::Aggregation& aggregation,
+                              const scada::AggregateFilter& aggregation,
                               const HistoryReadRawCallback& callback);
   virtual void HistoryReadEvents(DateTime from,
                                  DateTime to,

@@ -36,15 +36,15 @@ void HistoryStub::OnHistoryReadRaw(const protocol::Request& request) {
   auto to = history_read_raw.has_to_time()
                 ? base::Time::FromInternalValue(history_read_raw.to_time())
                 : base::Time();
-  auto aggregation = history_read_raw.has_aggregation()
-                         ? FromProto(history_read_raw.aggregation())
-                         : scada::Aggregation{};
+  auto aggregate_filter = history_read_raw.has_aggregate_filter()
+                              ? FromProto(history_read_raw.aggregate_filter())
+                              : scada::AggregateFilter{};
 
   logger_->WriteF(LogSeverity::Normal, "History read raw request %u node %s",
                   request_id, NodeIdToScadaString(node_id).c_str());
 
   service_.HistoryReadRaw(
-      node_id, from, to, aggregation,
+      node_id, from, to, aggregate_filter,
       io_context_.wrap([this, weak_ptr = weak_factory_.GetWeakPtr(),
                         request_id](scada::Status status,
                                     std::vector<scada::DataValue> values) {

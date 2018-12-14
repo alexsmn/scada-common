@@ -237,8 +237,9 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
       [this](OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
              const opcua::server::TranslateBrowsePathsToNodeIdsCallback&
                  callback) { TranslateBrowsePaths(request, callback); },
-      [this](opcua::ReadValueId&& read_value_id) {
-        return CreateMonitoredItem(std::move(read_value_id));
+      [this](opcua::ReadValueId&& read_value_id,
+             opcua::MonitoringParameters&& params) {
+        return CreateMonitoredItem(std::move(read_value_id), std::move(params));
       },
   });
 
@@ -339,9 +340,12 @@ void OpcUaServer::TranslateBrowsePaths(
 }
 
 opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(
-    opcua::ReadValueId&& read_value_id) {
-  auto id = Convert(read_value_id);
-  auto monitored_item = monitored_item_service_.CreateMonitoredItem(id);
+    opcua::ReadValueId&& read_value_id,
+    opcua::MonitoringParameters&& params) {
+  auto scada_id = Convert(std::move(read_value_id));
+  auto scada_params = Convert(std::move(params));
+  auto monitored_item = monitored_item_service_.CreateMonitoredItem(
+      std::move(scada_id), std::move(scada_params));
   if (!monitored_item)
     return {OpcUa_Bad};
   return {OpcUa_Good,

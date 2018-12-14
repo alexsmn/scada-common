@@ -36,16 +36,17 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 }  // namespace
 
 TimedDataImpl::TimedDataImpl(NodeRef node,
-                             scada::Aggregation aggregation,
+                             scada::AggregateFilter aggregation,
                              TimedDataContext context,
                              std::shared_ptr<const Logger> logger)
-    : TimedDataContext{std::move(context)}, logger_{std::move(logger)} {
-  aggregation_ = std::move(aggregation);
-
+    : TimedDataContext{std::move(context)},
+      logger_{std::move(logger)},
+      aggregation_{std::move(aggregation)} {
   assert(node);
   SetNode(std::move(node));
 
-  monitored_value_ = node_.CreateMonitoredItem(scada::AttributeId::Value);
+  monitored_value_ =
+      node_.CreateMonitoredItem(scada::AttributeId::Value, {aggregation_});
   if (!monitored_value_) {
     Delete();
     return;
