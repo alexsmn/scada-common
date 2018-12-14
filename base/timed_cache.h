@@ -44,7 +44,8 @@ class TimedCache {
 };
 
 template <class Key, class Value>
-inline TimedCache<Key, Value>::TimedCache(boost::asio::io_context& io_context) : timer_{io_context} {
+inline TimedCache<Key, Value>::TimedCache(boost::asio::io_context& io_context)
+    : timer_{io_context} {
   using namespace std::chrono_literals;
   timer_.StartRepeating(1s, [this] { OnTimer(); });
 }
@@ -77,6 +78,8 @@ inline void TimedCache<Key, Value>::OnTimer() {
         map_.erase(i++);
         continue;
       }
+    } else {
+      entry.expiration_time = {};
     }
     ++i;
   }
