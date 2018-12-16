@@ -12,25 +12,22 @@ namespace scada {
 namespace {
 
 struct AggregatorContext {
-  scada::DateTime timestamp;
-  size_t count;
-  const scada::DataValue* values;
+  DateTime start_time;
+  DateTime server_timestamp;
+  span<const DataValue> values;
 };
 
-using Aggregator =
-    std::function<scada::DataValue(const AggregatorContext& context)>;
+using Aggregator = std::function<DataValue(const AggregatorContext& context)>;
 
-scada::DateTime CeilAggregationTime(scada::DateTime time,
-                                    scada::Duration interval) {
-  auto origin = scada::DateTime::UnixEpoch();
+DateTime CeilAggregationTime(DateTime time, Duration interval) {
+  auto origin = DateTime::UnixEpoch();
   auto origin_delta = time - origin;
   origin_delta -= origin_delta % interval;
   return origin + origin_delta;
 }
 
 struct CompareVariants {
-  bool operator()(const scada::Variant& left,
-                  const scada::Variant& right) const {
+  bool operator()(const Variant& left, const Variant& right) const {
     double left_double = 0;
     double right_double = 0;
     if (left.get(left_double) && right.get(right_double))
@@ -41,79 +38,82 @@ struct CompareVariants {
 };
 
 struct CompareDataValues {
-  bool operator()(const scada::DataValue& left, const scada::DataValue& right) {
+  bool operator()(const DataValue& left, const DataValue& right) {
     return CompareVariants{}(left.value, right.value);
   }
 };
 
-scada::Double CalculateTotal(size_t count, const scada::DataValue* values) {
+Double CalculateTotal(span<const DataValue> values) {
   return std::accumulate(
-      values, values + count, 0.0,
-      [](scada::Double prev_sum, const scada::DataValue& data_value) {
-        if (auto* double_value = data_value.value.get_if<scada::Double>())
+      values.begin(), values.end(), 0.0,
+      [](Double prev_sum, const DataValue& data_value) {
+        if (auto* double_value = data_value.value.get_if<Double>())
           return prev_sum + *double_value;
         else
           return prev_sum;
       });
 }
 
-std::map<scada::NodeId, Aggregator> BuildAggregatorMap() {
-  std::map<scada::NodeId, Aggregator> aggregators;
+std::map<NodeId, Aggregator> BuildAggregatorMap() {
+  std::map<NodeId, Aggregator> aggregators;
 
   aggregators.emplace(
-      scada::id::AggregateFunction_Total, [](const AggregatorContext& context) {
-        auto total = CalculateTotal(context.count, context.values);
-        return scada::DataValue{
-            total, {}, context.timestamp, context.timestamp};
+      id::AggregateFunction_Total, [](const AggregatorContext& context) {
+        auto total = CalculateTotal(context.values);
+        return DataValue{total, {}, context.start_time, context.start_time};
       });
 
-  aggregators.emplace(
-      scada::id::AggregateFunction_Average,
-      [](const AggregatorContext& context) {
-        auto total = CalculateTotal(context.count, context.values);
-        return scada::DataValue{
-            total / context.count, {}, context.timestamp, context.timestamp};
-      });
-
-  aggregators.emplace(
-      scada::id::AggregateFunction_Count, [](const AggregatorContext& context) {
-        return scada::DataValue{
-            context.count, {}, context.timestamp, context.timestamp};
-      });
-
-  aggregators.emplace(
-      scada::id::AggregateFunction_Minimum,
-      [](const AggregatorContext& context) {
-        auto i =
-            std::min_element(context.values, context.values + context.count,
-                             CompareDataValues{});
-        return scada::DataValue{i->value, i->qualifier, context.timestamp,
-                                context.timestamp};
-      });
-
-  aggregators.emplace(
-      scada::id::AggregateFunction_Maximum,
-      [](const AggregatorContext& context) {
-        auto i =
-            std::max_element(context.values, context.values + context.count,
-                             CompareDataValues{});
-        return scada::DataValue{i->value, i->qualifier, context.timestamp,
-                                context.timestamp};
-      });
-
-  aggregators.emplace(
-      scada::id::AggregateFunction_Start,
-      [](const AggregatorContext& context) { return context.values[0]; });
-
-  aggregators.emplace(scada::id::AggregateFunction_End,
+  aggregators.emplace(id::AggregateFunction_Average,
                       [](const AggregatorContext& context) {
-                        return context.values[context.count - 1];
+                        auto total = CalculateTotal(context.values);
+                        return DataValue{total / context.values.size(),
+                                         {},
+                                         context.start_time,
+                                         context.server_timestamp};
                       });
+
+  aggregators.emplace(id::AggregateFunction_Count,
+                      [](const AggregatorContext& context) {
+                        return DataValue{context.values.size(),
+                                         {},
+                                         context.start_time,
+                                         context.server_timestamp};
+                      });
+
+  aggregators.emplace(
+      id::AggregateFunction_Minimum, [](const AggregatorContext& context) {
+        auto& data_value = *std::min_element(
+            context.values.begin(), context.values.end(), CompareDataValues{});
+        return DataValue{data_value.value, data_value.qualifier,
+                         context.start_time, context.server_timestamp};
+      });
+
+  aggregators.emplace(
+      id::AggregateFunction_Maximum, [](const AggregatorContext& context) {
+        auto& data_value = *std::max_element(
+            context.values.begin(), context.values.end(), CompareDataValues{});
+        return DataValue{data_value.value, data_value.qualifier,
+                         context.start_time, context.server_timestamp};
+      });
+
+  aggregators.emplace(
+      id::AggregateFunction_Start, [](const AggregatorContext& context) {
+        auto& data_value = context.values.back();
+        return DataValue{data_value.value, data_value.qualifier,
+                         context.start_time, context.server_timestamp};
+      });
+
+  aggregators.emplace(
+      id::AggregateFunction_End, [](const AggregatorContext& context) {
+        auto& data_value = context.values.back();
+        return DataValue{data_value.value, data_value.qualifier,
+                         context.start_time, context.server_timestamp};
+      });
 
   return aggregators;
 }
 
-Aggregator GetAggregator(const scada::NodeId& aggregator_id) {
+Aggregator GetAggregator(const NodeId& aggregator_id) {
   const auto kAggregators = BuildAggregatorMap();
   auto i = kAggregators.find(aggregator_id);
   return i != kAggregators.end() ? i->second : nullptr;
@@ -121,45 +121,40 @@ Aggregator GetAggregator(const scada::NodeId& aggregator_id) {
 
 }  // namespace
 
-std::vector<scada::DataValue> Aggregate(
-    const std::vector<scada::DataValue>& values,
-    const scada::AggregateFilter& aggregation) {
+std::vector<DataValue> Aggregate(span<const DataValue> values,
+                                 const AggregateFilter& aggregation) {
   assert(!aggregation.interval.is_zero());
   assert(!aggregation.aggregate_type.is_null());
-  assert(
-      std::is_sorted(values.begin(), values.end(),
-                     [](const scada::DataValue& a, const scada::DataValue& b) {
-                       return a.source_timestamp < b.source_timestamp;
-                     }));
-  assert(std::none_of(
-      values.begin(), values.end(),
-      [](const scada::DataValue& v) { return v.server_timestamp.is_null(); }));
+  assert(std::is_sorted(values.begin(), values.end(),
+                        [](const DataValue& a, const DataValue& b) {
+                          return a.source_timestamp < b.source_timestamp;
+                        }));
+  assert(std::none_of(values.begin(), values.end(), [](const DataValue& v) {
+    return v.server_timestamp.is_null();
+  }));
 
   const auto aggregator = GetAggregator(aggregation.aggregate_type);
   if (!aggregator)
     return {};
 
-  std::vector<scada::DataValue> result;
+  std::vector<DataValue> result;
 
   auto start = values.begin();
   while (start != values.end()) {
-    auto start_timestamp =
+    auto start_time =
         CeilAggregationTime(start->source_timestamp, aggregation.interval);
-    auto end_timestamp = start_timestamp + aggregation.interval;
+    auto end_time = start_time + aggregation.interval;
 
-    auto end = std::upper_bound(
-        start, values.end(), end_timestamp,
-        [](scada::DateTime timestamp, const scada::DataValue& data_value) {
-          assert(!data_value.source_timestamp.is_null());
-          return timestamp < data_value.source_timestamp;
-        });
+    auto end =
+        std::upper_bound(start, values.end(), end_time,
+                         [](DateTime timestamp, const DataValue& data_value) {
+                           assert(!data_value.source_timestamp.is_null());
+                           return timestamp < data_value.source_timestamp;
+                         });
     assert(start < end);
 
-    auto data_value = aggregator(AggregatorContext{
-        start_timestamp, static_cast<size_t>(std::distance(start, end)),
-        &*start});
-    data_value.server_timestamp = start_timestamp;
-    data_value.source_timestamp = start_timestamp;
+    auto data_value = aggregator(
+        AggregatorContext{start_time, DateTime::Now(), span(&*start, &*end)});
     result.emplace_back(std::move(data_value));
 
     start = end;

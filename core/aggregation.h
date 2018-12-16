@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/span.h"
 #include "core/date_time.h"
 #include "core/node_id.h"
 
@@ -21,7 +22,7 @@ struct AggregateFilter {
   NodeId aggregate_type;
 };
 
-std::vector<DataValue> Aggregate(const std::vector<DataValue>& values,
+std::vector<DataValue> Aggregate(span<const DataValue> values,
                                  const AggregateFilter& aggregation);
 
 }  // namespace scada
