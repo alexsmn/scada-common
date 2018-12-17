@@ -25,6 +25,9 @@ class DataValue {
         source_timestamp(source_timestamp),
         server_timestamp(server_timestamp) {}
 
+  DataValue(const DataValue&) = default;
+  DataValue& operator=(const DataValue&) = default;
+
   bool is_null() const { return value.is_null() && (qualifier.raw() == 0); }
 
   bool operator==(const DataValue& other) const {
