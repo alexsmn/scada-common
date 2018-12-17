@@ -28,6 +28,9 @@ class DataValue {
   DataValue(const DataValue&) = default;
   DataValue& operator=(const DataValue&) = default;
 
+  DataValue(DataValue&&) = default;
+  DataValue& operator=(DataValue&&) = default;
+
   bool is_null() const { return value.is_null() && (qualifier.raw() == 0); }
 
   bool operator==(const DataValue& other) const {
@@ -35,6 +38,8 @@ class DataValue {
            server_timestamp == other.server_timestamp && value == other.value &&
            qualifier == other.qualifier && status_code == other.status_code;
   }
+
+  bool operator!=(const DataValue& other) const { return !operator==(other); }
 
   Variant value;
   Qualifier qualifier;
