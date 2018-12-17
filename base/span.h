@@ -16,7 +16,11 @@ class span {
 
   template <class U>
   constexpr span(span<U> source) noexcept
-      : begin_{source.begin_}, end_{source.end_} {}
+      : begin_{source.begin()}, end_{source.end()} {}
+
+  constexpr T& operator[](std::size_t index) const noexcept {
+    return begin_[index];
+  }
 
   constexpr std::size_t size() const noexcept { return end_ - begin_; }
   constexpr bool empty() const noexcept { return begin_ == end_; }
@@ -26,6 +30,14 @@ class span {
 
   constexpr T* begin() const noexcept { return begin_; }
   constexpr T* end() const noexcept { return end_; }
+
+  constexpr span subspan(std::size_t offset) const noexcept {
+    return span{&begin_[offset], end_};
+  }
+
+  constexpr span subspan(std::size_t offset, std::size_t count) const noexcept {
+    return span{begin_[offset], count};
+  }
 
  private:
   T* begin_;
