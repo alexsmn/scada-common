@@ -1,18 +1,31 @@
 #pragma once
 
+#include <cstddef>
+
 template <class T>
 class span {
  public:
-  span(T* begin, T* end) : begin_{begin}, end_{end} {}
+  constexpr span(T* begin, T* end) noexcept : begin_{begin}, end_{end} {}
 
-  size_t size() const { return end_ - begin_; }
-  bool empty() const { return begin_ == end_; }
+  constexpr span(T* data, std::size_t size) noexcept
+      : begin_{data}, end_{data + size} {}
 
-  T& front() const { return *begin_; }
-  T& back() const { return *(end_ - 1); }
+  template <class Container>
+  constexpr span(const Container& c) noexcept
+      : span(std::data(c), std::data(c) + std::size(c)) {}
 
-  T* begin() const { return begin_; }
-  T* end() const { return end_; }
+  template <class U>
+  constexpr span(span<U> source) noexcept
+      : begin_{source.begin_}, end_{source.end_} {}
+
+  constexpr std::size_t size() const noexcept { return end_ - begin_; }
+  constexpr bool empty() const noexcept { return begin_ == end_; }
+
+  constexpr T& front() const noexcept { return *begin_; }
+  constexpr T& back() const noexcept { return *(end_ - 1); }
+
+  constexpr T* begin() const noexcept { return begin_; }
+  constexpr T* end() const noexcept { return end_; }
 
  private:
   T* begin_;
