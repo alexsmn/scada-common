@@ -11,25 +11,12 @@ namespace scada {
 
 namespace {
 
-struct AggregatorContext {
-  DateTime start_time;
-  DateTime server_timestamp;
-  span<const DataValue> values;
-};
-
-using Aggregator = std::function<DataValue(const AggregatorContext& context)>;
-
-DateTime CeilAggregationTime(DateTime time, Duration interval) {
-  auto origin = DateTime::UnixEpoch();
-  auto origin_delta = time - origin;
-  origin_delta -= origin_delta % interval;
-  return origin + origin_delta;
-}
+using AggregatorFactory = std::function<Aggregator(DateTime start_time)>;
 
 struct CompareVariants {
   bool operator()(const Variant& left, const Variant& right) const {
-    double left_double = 0;
-    double right_double = 0;
+    Double left_double = 0;
+    Double right_double = 0;
     if (left.get(left_double) && right.get(right_double))
       return left_double < right_double;
     else
@@ -44,85 +31,117 @@ struct CompareDataValues {
 };
 
 Double CalculateTotal(span<const DataValue> values) {
-  return std::accumulate(
-      values.begin(), values.end(), 0.0,
-      [](Double prev_sum, const DataValue& data_value) {
-        if (auto* double_value = data_value.value.get_if<Double>())
-          return prev_sum + *double_value;
-        else
-          return prev_sum;
-      });
+  return std::accumulate(values.begin(), values.end(), 0.0,
+                         [](Double prev_sum, const DataValue& data_value) {
+                           Double double_value = 0;
+                           if (data_value.value.get(double_value))
+                             return prev_sum + double_value;
+                           else
+                             return prev_sum;
+                         });
 }
 
-std::map<NodeId, Aggregator> BuildAggregatorMap() {
-  std::map<NodeId, Aggregator> aggregators;
+std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
+  std::map<NodeId, AggregatorFactory> aggregators;
 
-  aggregators.emplace(
-      id::AggregateFunction_Total, [](const AggregatorContext& context) {
-        auto total = CalculateTotal(context.values);
-        return DataValue{total, {}, context.start_time, context.start_time};
-      });
+  aggregators.emplace(id::AggregateFunction_Total, [](DateTime start_time) {
+    Double total = 0;
+    return [start_time, total](span<const DataValue> values) mutable {
+      total += CalculateTotal(values);
+      return DataValue{total, {}, start_time, start_time};
+    };
+  });
 
-  aggregators.emplace(id::AggregateFunction_Average,
-                      [](const AggregatorContext& context) {
-                        auto total = CalculateTotal(context.values);
-                        return DataValue{total / context.values.size(),
-                                         {},
-                                         context.start_time,
-                                         context.server_timestamp};
-                      });
+  aggregators.emplace(id::AggregateFunction_Average, [](DateTime start_time) {
+    Double total = 0;
+    size_t count = 0;
+    return [start_time, total, count](span<const DataValue> values) mutable {
+      total += CalculateTotal(values);
+      count += values.size();
+      assert(count != 0);
+      return DataValue{total / count, {}, start_time, DateTime::Now()};
+    };
+  });
 
-  aggregators.emplace(id::AggregateFunction_Count,
-                      [](const AggregatorContext& context) {
-                        return DataValue{context.values.size(),
-                                         {},
-                                         context.start_time,
-                                         context.server_timestamp};
-                      });
+  aggregators.emplace(id::AggregateFunction_Count, [](DateTime start_time) {
+    size_t count = 0;
+    return [start_time, count](span<const DataValue> values) mutable {
+      count += values.size();
+      return DataValue{count, {}, start_time, DateTime::Now()};
+    };
+  });
 
-  aggregators.emplace(
-      id::AggregateFunction_Minimum, [](const AggregatorContext& context) {
-        auto& data_value = *std::min_element(
-            context.values.begin(), context.values.end(), CompareDataValues{});
-        return DataValue{data_value.value, data_value.qualifier,
-                         context.start_time, context.server_timestamp};
-      });
+  aggregators.emplace(id::AggregateFunction_Minimum, [](DateTime start_time) {
+    auto min_value = std::numeric_limits<Double>::max();
+    return [start_time, min_value](span<const DataValue> values) mutable {
+      auto& data_value =
+          *std::min_element(values.begin(), values.end(), CompareDataValues{});
+      Double double_value = 0;
+      if (data_value.value.get(double_value))
+        min_value = std::min(min_value, double_value);
+      return DataValue{min_value, data_value.qualifier, start_time,
+                       DateTime::Now()};
+    };
+  });
 
-  aggregators.emplace(
-      id::AggregateFunction_Maximum, [](const AggregatorContext& context) {
-        auto& data_value = *std::max_element(
-            context.values.begin(), context.values.end(), CompareDataValues{});
-        return DataValue{data_value.value, data_value.qualifier,
-                         context.start_time, context.server_timestamp};
-      });
+  aggregators.emplace(id::AggregateFunction_Maximum, [](DateTime start_time) {
+    auto max_value = std::numeric_limits<Double>::min();
+    return [start_time, max_value](span<const DataValue> values) mutable {
+      auto& data_value =
+          *std::max_element(values.begin(), values.end(), CompareDataValues{});
+      Double double_value = 0;
+      if (data_value.value.get(double_value))
+        max_value = std::max(max_value, double_value);
+      return DataValue{max_value, data_value.qualifier, start_time,
+                       DateTime::Now()};
+    };
+  });
 
-  aggregators.emplace(
-      id::AggregateFunction_Start, [](const AggregatorContext& context) {
-        auto& data_value = context.values.back();
-        return DataValue{data_value.value, data_value.qualifier,
-                         context.start_time, context.server_timestamp};
-      });
+  aggregators.emplace(id::AggregateFunction_Start, [](DateTime start_time) {
+    DataValue start_data_value;
+    return
+        [start_time, start_data_value](span<const DataValue> values) mutable {
+          if (start_data_value.is_null())
+            start_data_value = values.front();
+          return DataValue{start_data_value.value, start_data_value.qualifier,
+                           start_time, DateTime::Now()};
+        };
+  });
 
-  aggregators.emplace(
-      id::AggregateFunction_End, [](const AggregatorContext& context) {
-        auto& data_value = context.values.back();
-        return DataValue{data_value.value, data_value.qualifier,
-                         context.start_time, context.server_timestamp};
-      });
+  aggregators.emplace(id::AggregateFunction_End, [](DateTime start_time) {
+    return [start_time](span<const DataValue> values) {
+      const auto& end_data_value = values.back();
+      return DataValue{end_data_value.value, end_data_value.qualifier,
+                       start_time, DateTime::Now()};
+    };
+  });
 
   return aggregators;
 }
 
-Aggregator GetAggregator(const NodeId& aggregator_id) {
-  const auto kAggregators = BuildAggregatorMap();
-  auto i = kAggregators.find(aggregator_id);
+AggregatorFactory GetAggregatorFactory(const NodeId& aggregate_type) {
+  const auto kAggregators = BuildAggregatorFactoryMap();
+  auto i = kAggregators.find(aggregate_type);
   return i != kAggregators.end() ? i->second : nullptr;
 }
 
 }  // namespace
 
-std::vector<DataValue> Aggregate(span<const DataValue> values,
-                                 const AggregateFilter& aggregation) {
+Aggregator GetAggregator(const NodeId& aggregate_type, DateTime start_time) {
+  auto factory = GetAggregatorFactory(aggregate_type);
+  return factory ? factory(start_time) : nullptr;
+}
+
+DateTime GetAggregateStartTime(DateTime time, Duration interval) {
+  assert(!interval.is_zero());
+  auto origin = DateTime::UnixEpoch();
+  auto origin_delta = time - origin;
+  origin_delta -= origin_delta % interval;
+  return origin + origin_delta;
+}
+
+std::vector<DataValue> AggregateRange(span<const DataValue> values,
+                                      const AggregateFilter& aggregation) {
   assert(!aggregation.interval.is_zero());
   assert(!aggregation.aggregate_type.is_null());
   assert(std::is_sorted(values.begin(), values.end(),
@@ -133,16 +152,12 @@ std::vector<DataValue> Aggregate(span<const DataValue> values,
     return v.server_timestamp.is_null();
   }));
 
-  const auto aggregator = GetAggregator(aggregation.aggregate_type);
-  if (!aggregator)
-    return {};
-
   std::vector<DataValue> result;
 
   auto start = values.begin();
   while (start != values.end()) {
     auto start_time =
-        CeilAggregationTime(start->source_timestamp, aggregation.interval);
+        GetAggregateStartTime(start->source_timestamp, aggregation.interval);
     auto end_time = start_time + aggregation.interval;
 
     auto end =
@@ -153,8 +168,12 @@ std::vector<DataValue> Aggregate(span<const DataValue> values,
                          });
     assert(start < end);
 
-    auto data_value = aggregator(
-        AggregatorContext{start_time, DateTime::Now(), span(&*start, &*end)});
+    const auto aggregator =
+        GetAggregator(aggregation.aggregate_type, start_time);
+    if (!aggregator)
+      break;
+
+    auto data_value = aggregator(span{&*start, &*end});
     result.emplace_back(std::move(data_value));
 
     start = end;

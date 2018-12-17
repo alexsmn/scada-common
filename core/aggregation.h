@@ -22,7 +22,13 @@ struct AggregateFilter {
   NodeId aggregate_type;
 };
 
-std::vector<DataValue> Aggregate(span<const DataValue> values,
-                                 const AggregateFilter& aggregation);
+using Aggregator = std::function<DataValue(span<const DataValue> values)>;
+
+Aggregator GetAggregator(const NodeId& aggregate_type, DateTime start_time);
+
+DateTime GetAggregateStartTime(DateTime time, Duration interval);
+
+std::vector<DataValue> AggregateRange(span<const DataValue> values,
+                                      const AggregateFilter& aggregation);
 
 }  // namespace scada

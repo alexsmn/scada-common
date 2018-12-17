@@ -36,17 +36,21 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 }  // namespace
 
 TimedDataImpl::TimedDataImpl(NodeRef node,
-                             scada::AggregateFilter aggregation,
+                             scada::AggregateFilter aggregate_filter,
                              TimedDataContext context,
                              std::shared_ptr<const Logger> logger)
     : TimedDataContext{std::move(context)},
       logger_{std::move(logger)},
-      aggregation_{std::move(aggregation)} {
+      aggregate_filter_{std::move(aggregate_filter)} {
   assert(node);
   SetNode(std::move(node));
 
+  scada::MonitoringParameters params;
+  if (!aggregate_filter_.is_null())
+    params.filter = aggregate_filter_;
+
   monitored_value_ =
-      node_.CreateMonitoredItem(scada::AttributeId::Value, {aggregation_});
+      node_.CreateMonitoredItem(scada::AttributeId::Value, params);
   if (!monitored_value_) {
     Delete();
     return;
@@ -130,7 +134,7 @@ void TimedDataImpl::QueryValues() {
   }
 
   history_service_.HistoryReadRaw(
-      node_.node_id(), from_, to, aggregation_,
+      node_.node_id(), from_, to, aggregate_filter_,
       [message_loop, weak_ptr, range](scada::Status&& status,
                                       std::vector<scada::DataValue>&& values) {
         message_loop->PostTask(
