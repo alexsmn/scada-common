@@ -458,6 +458,7 @@ void ToProto(const scada::ModelChangeEvent& source,
 
 scada::AggregateFilter FromProto(const protocol::AggregateFilter& source) {
   return {
+      scada::DateTime::FromInternalValue(source.start_time()),
       scada::Duration::FromInternalValue(source.interval()),
       FromProto(source.aggregate_type()),
   };
@@ -465,8 +466,9 @@ scada::AggregateFilter FromProto(const protocol::AggregateFilter& source) {
 
 void ToProto(const scada::AggregateFilter& source,
              protocol::AggregateFilter& target) {
-  ToProto(std::move(source.aggregate_type), *target.mutable_aggregate_type());
+  target.set_start_time(source.start_time.ToInternalValue());
   target.set_interval(source.interval.ToInternalValue());
+  ToProto(std::move(source.aggregate_type), *target.mutable_aggregate_type());
 }
 
 scada::MonitoringParameters FromProto(

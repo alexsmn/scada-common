@@ -274,8 +274,9 @@ message Call {
 }
 
 message AggregateFilter {
-  optional uint64 interval = 1;
-  optional NodeId aggregate_type = 2;
+  optional uint64 start_time = 1;
+  optional uint64 interval = 2;
+  optional NodeId aggregate_type = 3;
 }
 
 message MonitoringParameters {

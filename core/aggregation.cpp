@@ -132,12 +132,20 @@ Aggregator GetAggregator(const NodeId& aggregate_type, DateTime start_time) {
   return factory ? factory(start_time) : nullptr;
 }
 
-DateTime GetAggregateStartTime(DateTime time, Duration interval) {
+DateTime GetLocalAggregateStartTime() {
+  DateTime result;
+  DateTime::Exploded exploded = {2000, 1, 0, 1};
+  DateTime::FromLocalExploded(exploded, &result);
+  return result;
+}
+
+DateTime GetAggregateIntervalStartTime(DateTime time,
+                                       DateTime start_time,
+                                       Duration interval) {
   assert(!interval.is_zero());
-  auto origin = DateTime::UnixEpoch();
-  auto origin_delta = time - origin;
-  origin_delta -= origin_delta % interval;
-  return origin + origin_delta;
+  auto start_delta = time - start_time;
+  start_delta -= start_delta % interval;
+  return start_time + start_delta;
 }
 
 std::vector<DataValue> AggregateRange(span<const DataValue> values,
@@ -156,8 +164,8 @@ std::vector<DataValue> AggregateRange(span<const DataValue> values,
 
   auto start = values.begin();
   while (start != values.end()) {
-    auto start_time =
-        GetAggregateStartTime(start->source_timestamp, aggregation.interval);
+    auto start_time = GetAggregateIntervalStartTime(
+        start->source_timestamp, aggregation.start_time, aggregation.interval);
     auto end_time = start_time + aggregation.interval;
 
     auto end =

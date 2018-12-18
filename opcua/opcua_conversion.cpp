@@ -533,6 +533,7 @@ void Convert(const scada::ReadValueId& source, OpcUa_ReadValueId& target) {
 
 scada::AggregateFilter Convert(OpcUa_AggregateFilter&& source) {
   return {
+      Convert(source.StartTime),
       scada::Duration::FromSecondsD(source.ProcessingInterval),
       Convert(std::move(source.AggregateType)),
   };
@@ -540,6 +541,7 @@ scada::AggregateFilter Convert(OpcUa_AggregateFilter&& source) {
 
 void Convert(const scada::AggregateFilter& source,
              OpcUa_AggregateFilter& target) {
+  target.StartTime = Convert(source.start_time);
   target.ProcessingInterval = source.interval.InSecondsF();
   Convert(source.aggregate_type, target.AggregateType);
 }
