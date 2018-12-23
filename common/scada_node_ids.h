@@ -172,7 +172,17 @@ const scada::NodeId FileDirectoryType{305, NamespaceIndexes::SCADA};
 const scada::NodeId FileType{306, NamespaceIndexes::SCADA};
 const scada::NodeId FileType_LastUpdateTime{307, NamespaceIndexes::SCADA};
 const scada::NodeId FileType_Size{308, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories{310, NamespaceIndexes::SCADA};
+const scada::NodeId HasPropertyCategory{311, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_General{312, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Channels{313, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Conversion{314, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Filtering{315, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Display{316, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_History{317, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Simulation{318, NamespaceIndexes::SCADA};
+const scada::NodeId PropertyCategories_Limits{319, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{310, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{320, NamespaceIndexes::SCADA};
 
 } // namespace id
