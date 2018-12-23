@@ -58,12 +58,18 @@ void GetFetchAttributes(const scada::NodeId& node_id,
 const size_t kFetchReferencesReserveFactor = 3;
 
 void GetFetchReferences(const scada::NodeState& node,
+                        bool is_property,
+                        bool is_declaration,
                         bool fetch_parent,
                         std::vector<scada::BrowseDescription>& descriptions) {
   // Don't request references of a property.
-  if (node.reference_type_id != scada::id::HasProperty) {
+  if (!is_property) {
     descriptions.push_back({node.node_id, scada::BrowseDirection::Forward,
                             scada::id::Aggregates, true});
+  }
+
+  // Request property categories.
+  if (!is_property || is_declaration) {
     descriptions.push_back({node.node_id, scada::BrowseDirection::Forward,
                             scada::id::NonHierarchicalReferences, true});
   }
@@ -289,7 +295,8 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   descriptions.reserve(nodes.size() * kFetchReferencesReserveFactor);
   for (auto* node : nodes) {
     size_t count = descriptions.size();
-    GetFetchReferences(*node, node->fetch_parent, descriptions);
+    GetFetchReferences(*node, node->is_property, node->is_declaration,
+                       node->fetch_parent, descriptions);
     node->references_fetched = count == descriptions.size();
   }
 
