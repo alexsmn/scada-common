@@ -523,22 +523,25 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::PropertyCategories_Channels, "Input2",
                 base::WideToUTF16(L"Резервный ввод"), scada::id::String,
                 scada::String{});
+    AddProperty(address_space, id::DataItemType, id::DataItemType_Locked,
+                id::PropertyCategories_Channels, "Locked",
+                base::WideToUTF16(L"Блокировка"), scada::id::Boolean, false);
+    AddProperty(address_space, id::DataItemType, id::DataItemType_StalePeriod,
+                id::PropertyCategories_Channels, "StalePeriod",
+                base::WideToUTF16(L"Устаревание, с"), scada::id::Int32, 0);
     AddProperty(address_space, id::DataItemType, id::DataItemType_Output,
                 id::PropertyCategories_Channels, "Output",
                 base::WideToUTF16(L"Вывод"), scada::id::String,
-                scada::String{});
-    AddProperty(address_space, id::DataItemType,
-                id::DataItemType_OutputCondition,
-                id::PropertyCategories_Channels, "OutputCondition",
-                base::WideToUTF16(L"Условие управления"), scada::id::String,
                 scada::String{});
     AddProperty(
         address_space, id::DataItemType, id::DataItemType_OutputTwoStaged,
         id::PropertyCategories_Channels, "OutputTwoStaged",
         base::WideToUTF16(L"Двухэтапное управление"), scada::id::Boolean, true);
-    AddProperty(address_space, id::DataItemType, id::DataItemType_StalePeriod,
-                {}, "StalePeriod", base::WideToUTF16(L"Устаревание, с"),
-                scada::id::Int32, 0);
+    AddProperty(address_space, id::DataItemType,
+                id::DataItemType_OutputCondition,
+                id::PropertyCategories_Channels, "OutputCondition",
+                base::WideToUTF16(L"Условие управления"), scada::id::String,
+                scada::String{});
     AddProperty(address_space, id::DataItemType, id::DataItemType_Simulated,
                 id::PropertyCategories_Simulation, "Simulated",
                 base::WideToUTF16(L"Эмуляция"), scada::id::Boolean, false);
@@ -546,9 +549,6 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
         address_space, id::DataItemType, id::HasSimulationSignal,
         id::PropertyCategories_Simulation, "HasSimulationSignal",
         base::WideToUTF16(L"Эмулируемый сигнал"), id::SimulationSignalType);
-    AddProperty(address_space, id::DataItemType, id::DataItemType_Locked,
-                id::PropertyCategories_Channels, "Locked",
-                base::WideToUTF16(L"Блокирован"), scada::id::Boolean, false);
     CreateReferenceType(
         address_space, id::DataItemType, id::HasHistoricalDatabase,
         id::PropertyCategories_History, "ObjectHistoricalDb",
