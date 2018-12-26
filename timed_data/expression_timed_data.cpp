@@ -81,7 +81,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
     assert(values);
 
     DataValues::const_iterator& iterator = iters[i];
-    iterator = rt::LowerBound(*values, from);
+    iterator = LowerBound(*values, from);
 
     auto& initial_value = expression_->items[i].value;
     if (iterator != values->end()) {

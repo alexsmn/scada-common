@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/aggregation.h"
+#include "core/aggregate_filter.h"
 #include "core/monitored_item.h"
 
 #include <memory>

@@ -5,12 +5,12 @@
 #include <set>
 
 #include "base/time/time.h"
+#include "common/data_value_util.h"
 #include "common/node_ref.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
-#include "timed_data/timed_vq_map.h"
 
 namespace events {
 class EventSet;

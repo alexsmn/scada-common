@@ -4,17 +4,17 @@
 #include <memory>
 
 #include "base/strings/string16.h"
+#include "common/data_value_util.h"
 #include "common/event_set.h"
 #include "common/format.h"
 #include "common/node_ref.h"
-#include "core/aggregation.h"
+#include "core/aggregate_filter.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "timed_data/timed_data.h"
 #include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_data_property.h"
-#include "timed_data/timed_vq_map.h"
 
 class TimedDataService;
 

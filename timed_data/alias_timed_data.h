@@ -20,7 +20,7 @@ class AliasTimedData final : public rt::TimedData {
   virtual scada::DataValue GetDataValue() const override;
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
-  virtual const rt::DataValues* GetValues() const override;
+  virtual const DataValues* GetValues() const override;
   virtual void AddObserver(rt::TimedDataDelegate& observer) override;
   virtual void RemoveObserver(rt::TimedDataDelegate& observer) override;
   virtual std::string GetFormula(bool aliases) const override;

@@ -54,7 +54,7 @@ base::Time AliasTimedData::GetChangeTime() const {
   return is_forwarded() ? forwarded().GetChangeTime() : base::Time{};
 }
 
-const rt::DataValues* AliasTimedData::GetValues() const {
+const DataValues* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 

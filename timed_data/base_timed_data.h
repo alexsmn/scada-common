@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/observer_list.h"
-#include "core/aggregation.h"
 #include "timed_data/timed_data.h"
 
 namespace rt {

@@ -3,7 +3,7 @@
 #include <set>
 #include <vector>
 
-#include "core/aggregation.h"
+#include "core/aggregate_filter.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/event.h"

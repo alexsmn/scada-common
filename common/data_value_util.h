@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <vector>
 
-namespace rt {
-
 using DataValues = std::vector<scada::DataValue>;
 
 inline std::size_t LowerBound(span<const scada::DataValue> values,
@@ -47,5 +45,3 @@ inline DataValues::iterator LowerBound(DataValues& values, base::Time time) {
 inline DataValues::iterator UpperBound(DataValues& values, base::Time time) {
   return values.begin() + UpperBound(span{values.data(), values.size()}, time);
 }
-
-}  // namespace rt

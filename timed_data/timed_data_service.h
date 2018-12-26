@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/strings/string_piece.h"
-#include "core/aggregation.h"
+#include "core/aggregate_filter.h"
 
 #include <memory>
 

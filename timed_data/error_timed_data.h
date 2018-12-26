@@ -16,7 +16,7 @@ class ErrorTimedData final : public rt::TimedData {
     return {};
   }
   virtual base::Time GetChangeTime() const override { return {}; }
-  virtual const rt::DataValues* GetValues() const override { return nullptr; }
+  virtual const DataValues* GetValues() const override { return nullptr; }
   virtual void AddObserver(rt::TimedDataDelegate& observer) override {}
   virtual void RemoveObserver(rt::TimedDataDelegate& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {

@@ -36,7 +36,7 @@ class span {
   }
 
   constexpr span subspan(std::size_t offset, std::size_t count) const noexcept {
-    return span{begin_[offset], count};
+    return span{&begin_[offset], count};
   }
 
  private:
