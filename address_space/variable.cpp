@@ -47,11 +47,9 @@ void Variable::Call(const NodeId& method_id,
   callback(StatusCode::Bad_WrongMethodId);
 }
 
-void Variable::HistoryReadRaw(base::Time from,
-                              base::Time to,
-                              const scada::AggregateFilter& aggregation,
+void Variable::HistoryReadRaw(const HistoryReadRawDetails& details,
                               const HistoryReadRawCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
+  callback(scada::StatusCode::Bad, {}, {});
 }
 
 void Variable::HistoryReadEvents(base::Time from,

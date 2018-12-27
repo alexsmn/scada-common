@@ -2,7 +2,7 @@ package protocol;
 
 // Protocol version
 enum ProtocolVersionMajor {
-  PROTOCOL_VERSION_MAJOR = 9;
+  PROTOCOL_VERSION_MAJOR = 10;
 }
 enum ProtocolVersionMinor {
   PROTOCOL_VERSION_MINOR = 0;
@@ -287,11 +287,15 @@ message HistoryReadRaw {
   required NodeId node_id = 1;
   optional uint64 from_time = 3;
   optional uint64 to_time = 4;
+  optional uint64 max_count = 8;
   optional AggregateFilter aggregate_filter = 5;
+  optional bool release_continuation_point = 6;
+  optional bytes continuation_point = 7;
 }
 
 message HistoryReadRawResult {
   repeated DataValue value = 1;
+  optional bytes continuation_point = 2;
 }
 
 message EventFilter {

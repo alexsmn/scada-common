@@ -19,6 +19,8 @@ namespace rt {
 
 namespace {
 
+const size_t kMaxReadCount = 1000;
+
 std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
                                                        base::Time from,
                                                        base::Time to) {
@@ -34,6 +36,46 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 }
 
 }  // namespace
+
+// ScopedContinuationPoint
+
+class ScopedContinuationPoint {
+ public:
+  ScopedContinuationPoint() {}
+
+  ScopedContinuationPoint(scada::HistoryService& service,
+                          scada::ByteString continuation_point)
+      : service_{&service}, continuation_point_{std::move(continuation_point)} {
+    if (continuation_point_.empty())
+      service_ = nullptr;
+  }
+
+  ~ScopedContinuationPoint() {
+    if (!service_)
+      return;
+
+    scada::HistoryReadRawDetails details;
+    details.release_continuation_point = true;
+    details.continuation_point = std::move(continuation_point_);
+    service_->HistoryReadRaw(
+        details, [](scada::Status status, std::vector<scada::DataValue> values,
+                    scada::ByteString continuation_point) {});
+  }
+
+  ScopedContinuationPoint(ScopedContinuationPoint&&) = default;
+  ScopedContinuationPoint& operator=(ScopedContinuationPoint&&) = default;
+
+  scada::ByteString Release() {
+    service_ = nullptr;
+    return std::move(continuation_point_);
+  }
+
+ private:
+  scada::HistoryService* service_ = nullptr;
+  scada::ByteString continuation_point_;
+};
+
+// TimedDataImpl
 
 TimedDataImpl::TimedDataImpl(NodeRef node,
                              scada::AggregateFilter aggregate_filter,
@@ -104,7 +146,7 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
   node_.Call(method_id, arguments, user_id, callback);
 }
 
-void TimedDataImpl::QueryValues() {
+void TimedDataImpl::QueryValues(ScopedContinuationPoint&& continuation_point) {
   assert(historical());
 
   if (from_ >= ready_from_) {
@@ -129,18 +171,22 @@ void TimedDataImpl::QueryValues() {
   auto range = std::make_pair(from_, to);
 
   if (!node_) {
-    OnHistoryReadRawComplete(range.first, range.second, {});
+    OnHistoryReadRawComplete(range.first, range.second, {}, {});
     return;
   }
 
   history_service_.HistoryReadRaw(
-      node_.node_id(), from_, to, aggregate_filter_,
-      [message_loop, weak_ptr, range](scada::Status&& status,
-                                      std::vector<scada::DataValue>&& values) {
+      scada::HistoryReadRawDetails{node_.node_id(), from_, to, kMaxReadCount,
+                                   aggregate_filter_, false,
+                                   continuation_point.Release()},
+      [message_loop, weak_ptr, range](scada::Status status,
+                                      std::vector<scada::DataValue> values,
+                                      scada::ByteString continuation_point) {
         message_loop->PostTask(
             FROM_HERE, base::Bind(&TimedDataImpl::OnHistoryReadRawComplete,
                                   weak_ptr, range.first, range.second,
-                                  base::Passed(std::move(values))));
+                                  base::Passed(std::move(values)),
+                                  base::Passed(std::move(continuation_point))));
       });
 }
 
@@ -148,7 +194,7 @@ void TimedDataImpl::OnFromChanged() {
   assert(historical());
 
   if (!querying_)
-    QueryValues();
+    QueryValues({});
 }
 
 std::string TimedDataImpl::GetFormula(bool aliases) const {
@@ -192,7 +238,8 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
 void TimedDataImpl::OnHistoryReadRawComplete(
     base::Time queried_from,
     base::Time queried_to,
-    std::vector<scada::DataValue>&& values) {
+    std::vector<scada::DataValue>&& values,
+    scada::ByteString&& continuation_point) {
   assert(querying_);
   assert(queried_from < ready_from_);
   assert(queried_from >= from_);
@@ -223,7 +270,8 @@ void TimedDataImpl::OnHistoryReadRawComplete(
     }
   }
 
-  base::Time new_ready_from = queried_from;
+  base::Time new_ready_from =
+      continuation_point.empty() ? queried_from : ready_from_;
   // Returned data array includes left time bound.
   if (!values.empty() && values.front().source_timestamp < new_ready_from)
     new_ready_from = values.front().source_timestamp;
@@ -237,7 +285,8 @@ void TimedDataImpl::OnHistoryReadRawComplete(
   UpdateReadyFrom(new_ready_from);
 
   // Query next fragment of data if |from_| changed from moment of last query.
-  QueryValues();
+  QueryValues(
+      ScopedContinuationPoint{history_service_, std::move(continuation_point)});
 
   // This probably may cause deletion.
   NotifyDataReady();

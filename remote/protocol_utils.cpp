@@ -486,3 +486,12 @@ void ToProto(const scada::MonitoringParameters& source,
     ToProto(*aggregate_filter, *target.mutable_aggregate_filter());
   }
 }
+
+template <>
+scada::ByteString FromProto(const std::string& source) {
+  return {source.begin(), source.end()};
+}
+
+void ToProto(const scada::ByteString& source, std::string& target) {
+  target.assign(source.begin(), source.end());
+}

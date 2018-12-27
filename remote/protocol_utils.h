@@ -64,6 +64,11 @@ scada::MonitoringParameters FromProto(
 void ToProto(const scada::MonitoringParameters& source,
              protocol::MonitoringParameters& target);
 
+template <class Target, class Source>
+Target FromProto(const Source& source);
+
+void ToProto(const scada::ByteString& source, std::string& target);
+
 template <typename Target, typename Source>
 inline std::vector<Target> VectorFromProto(
     const ::google::protobuf::RepeatedPtrField<Source>& source) {

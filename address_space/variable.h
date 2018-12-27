@@ -48,9 +48,7 @@ class Variable : public Node {
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
-  virtual void HistoryReadRaw(DateTime from,
-                              DateTime to,
-                              const scada::AggregateFilter& aggregation,
+  virtual void HistoryReadRaw(const HistoryReadRawDetails& details,
                               const HistoryReadRawCallback& callback);
   virtual void HistoryReadEvents(DateTime from,
                                  DateTime to,

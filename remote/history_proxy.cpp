@@ -8,10 +8,7 @@
 HistoryProxy::HistoryProxy() {}
 
 void HistoryProxy::HistoryReadRaw(
-    const scada::NodeId& node_id,
-    base::Time from,
-    base::Time to,
-    const scada::AggregateFilter& aggregation,
+    const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
   if (!sender_) {
     assert(false);
@@ -20,23 +17,33 @@ void HistoryProxy::HistoryReadRaw(
 
   protocol::Request request;
   auto& history_read_raw = *request.mutable_history_read_raw();
-  ToProto(node_id, *history_read_raw.mutable_node_id());
-  if (!from.is_null())
-    history_read_raw.set_from_time(from.ToInternalValue());
-  if (!to.is_null())
-    history_read_raw.set_to_time(to.ToInternalValue());
-  if (!aggregation.is_null())
-    ToProto(aggregation, *history_read_raw.mutable_aggregate_filter());
+  ToProto(details.node_id, *history_read_raw.mutable_node_id());
+  if (!details.from.is_null())
+    history_read_raw.set_from_time(details.from.ToInternalValue());
+  if (!details.to.is_null())
+    history_read_raw.set_to_time(details.to.ToInternalValue());
+  if (details.max_count != 0)
+    history_read_raw.set_max_count(details.max_count);
+  if (!details.aggregation.is_null())
+    ToProto(details.aggregation, *history_read_raw.mutable_aggregate_filter());
+  if (details.release_continuation_point)
+    history_read_raw.set_release_continuation_point(true);
+  if (!details.continuation_point.empty()) {
+    ToProto(details.continuation_point,
+            *history_read_raw.mutable_continuation_point());
+  }
 
-  sender_->Request(request,
-                   [this, callback](const protocol::Response& response) {
-                     if (!callback)
-                       return;
+  sender_->Request(
+      request, [this, callback](const protocol::Response& response) {
+        if (!callback)
+          return;
 
-                     callback(FromProto(response.status()),
-                              VectorFromProto<scada::DataValue>(
-                                  response.history_read_raw_result().value()));
-                   });
+        callback(FromProto(response.status()),
+                 VectorFromProto<scada::DataValue>(
+                     response.history_read_raw_result().value()),
+                 FromProto<scada::ByteString>(
+                     response.history_read_raw_result().continuation_point()));
+      });
 }
 
 void HistoryProxy::HistoryReadEvents(

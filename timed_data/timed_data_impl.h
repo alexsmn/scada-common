@@ -17,6 +17,8 @@ class MonitoredItemService;
 
 namespace rt {
 
+class ScopedContinuationPoint;
+
 class TimedDataImpl : private TimedDataContext,
                       public BaseTimedData,
                       private NodeRefObserver,
@@ -50,11 +52,12 @@ class TimedDataImpl : private TimedDataContext,
  private:
   void SetNode(const NodeRef& node);
 
-  void QueryValues();
+  void QueryValues(ScopedContinuationPoint&& continuation_point);
 
   void OnHistoryReadRawComplete(base::Time queried_from,
                                 base::Time queried_to,
-                                std::vector<scada::DataValue>&& values);
+                                std::vector<scada::DataValue>&& values,
+                                scada::ByteString&& continuation_point);
 
   void OnChannelData(const scada::DataValue& data_value);
 

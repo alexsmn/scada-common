@@ -50,10 +50,7 @@ class VidiconSession : public scada::SessionService,
 
   // scada::HistoryService
   virtual void HistoryReadRaw(
-      const scada::NodeId& node_id,
-      base::Time from,
-      base::Time to,
-      const scada::AggregateFilter& aggregation,
+      const scada::HistoryReadRawDetails& details,
       const scada::HistoryReadRawCallback& callback) override;
   virtual void HistoryReadEvents(
       const scada::NodeId& node_id,

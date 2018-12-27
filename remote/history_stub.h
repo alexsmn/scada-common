@@ -3,6 +3,8 @@
 #include "base/memory/weak_ptr.h"
 #include "core/history_types.h"
 
+#include <map>
+
 namespace boost::asio {
 class io_context;
 }
@@ -24,6 +26,7 @@ class HistoryStub {
               MessageSender& sender,
               boost::asio::io_context& io_context,
               std::shared_ptr<Logger> logger);
+  ~HistoryStub();
 
   void OnRequestReceived(const protocol::Request& request);
 
@@ -35,6 +38,9 @@ class HistoryStub {
   MessageSender& sender_;
   boost::asio::io_context& io_context_;
   std::shared_ptr<Logger> logger_;
+
+  std::map<scada::ByteString, scada::HistoryReadRawDetails>
+      continuation_points_;
 
   base::WeakPtrFactory<HistoryStub> weak_factory_{this};
 };
