@@ -4,7 +4,9 @@
 
 std::string FormatTime(base::Time time, int flags) {
   if (time.is_null())
-    return std::string();
+    return {};
+  if (time.is_max())
+    return "max";
 
   base::Time::Exploded e = {0};
   if (flags & TIME_FORMAT_UTC)

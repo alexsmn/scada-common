@@ -13,7 +13,8 @@ namespace scada {
 
 namespace {
 
-using AggregatorFactory = std::function<Aggregator(DateTime start_time)>;
+using AggregatorFactory =
+    std::function<Aggregator(DateTime start_time, bool forward)>;
 
 struct CompareVariants {
   bool operator()(const Variant& left, const Variant& right) const {
@@ -43,11 +44,30 @@ Double CalculateTotal(span<const DataValue> values) {
                          });
 }
 
+Aggregator MakeFrontAggregator(DateTime interval_start_time) {
+  return [interval_start_time, start_data_value = DataValue{}](
+             span<const DataValue> values) mutable {
+    if (start_data_value.is_null())
+      start_data_value = values.front();
+    return DataValue{start_data_value.value, start_data_value.qualifier,
+                     interval_start_time, DateTime::Now()};
+  };
+}
+
+Aggregator MakeBackAggregator(DateTime interval_start_time) {
+  return [interval_start_time](span<const DataValue> values) {
+    const auto& end_data_value = values.back();
+    return DataValue{end_data_value.value, end_data_value.qualifier,
+                     interval_start_time, DateTime::Now()};
+  };
+}
+
 std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
   std::map<NodeId, AggregatorFactory> aggregators;
 
   aggregators.emplace(
-      id::AggregateFunction_Total, [](DateTime interval_start_time) {
+      id::AggregateFunction_Total,
+      [](DateTime interval_start_time, bool forward) {
         Double total = 0;
         return [interval_start_time,
                 total](span<const DataValue> values) mutable {
@@ -56,22 +76,23 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
         };
       });
 
-  aggregators.emplace(
-      id::AggregateFunction_Average, [](DateTime interval_start_time) {
-        Double total = 0;
-        size_t count = 0;
-        return [interval_start_time, total,
-                count](span<const DataValue> values) mutable {
-          total += CalculateTotal(values);
-          count += values.size();
-          assert(count != 0);
-          return DataValue{
-              total / count, {}, interval_start_time, DateTime::Now()};
-        };
-      });
+  aggregators.emplace(id::AggregateFunction_Average, [](DateTime
+                                                            interval_start_time,
+                                                        bool forward) {
+    Double total = 0;
+    size_t count = 0;
+    return [interval_start_time, total,
+            count](span<const DataValue> values) mutable {
+      total += CalculateTotal(values);
+      count += values.size();
+      assert(count != 0);
+      return DataValue{total / count, {}, interval_start_time, DateTime::Now()};
+    };
+  });
 
   aggregators.emplace(
-      id::AggregateFunction_Count, [](DateTime interval_start_time) {
+      id::AggregateFunction_Count,
+      [](DateTime interval_start_time, bool forward) {
         size_t count = 0;
         return
             [interval_start_time, count](span<const DataValue> values) mutable {
@@ -81,7 +102,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       });
 
   aggregators.emplace(
-      id::AggregateFunction_Minimum, [](DateTime interval_start_time) {
+      id::AggregateFunction_Minimum,
+      [](DateTime interval_start_time, bool forward) {
         auto min_value = std::numeric_limits<Double>::max();
         return [interval_start_time,
                 min_value](span<const DataValue> values) mutable {
@@ -96,7 +118,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       });
 
   aggregators.emplace(
-      id::AggregateFunction_Maximum, [](DateTime interval_start_time) {
+      id::AggregateFunction_Maximum,
+      [](DateTime interval_start_time, bool forward) {
         auto max_value = std::numeric_limits<Double>::min();
         return [interval_start_time,
                 max_value](span<const DataValue> values) mutable {
@@ -110,26 +133,19 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
         };
       });
 
-  aggregators.emplace(
-      id::AggregateFunction_Start, [](DateTime interval_start_time) {
-        DataValue start_data_value;
-        return [interval_start_time,
-                start_data_value](span<const DataValue> values) mutable {
-          if (start_data_value.is_null())
-            start_data_value = values.front();
-          return DataValue{start_data_value.value, start_data_value.qualifier,
-                           interval_start_time, DateTime::Now()};
-        };
-      });
+  aggregators.emplace(id::AggregateFunction_Start,
+                      [](DateTime interval_start_time, bool forward) {
+                        return forward
+                                   ? MakeFrontAggregator(interval_start_time)
+                                   : MakeBackAggregator(interval_start_time);
+                      });
 
-  aggregators.emplace(
-      id::AggregateFunction_End, [](DateTime interval_start_time) {
-        return [interval_start_time](span<const DataValue> values) {
-          const auto& end_data_value = values.back();
-          return DataValue{end_data_value.value, end_data_value.qualifier,
-                           interval_start_time, DateTime::Now()};
-        };
-      });
+  aggregators.emplace(id::AggregateFunction_End,
+                      [](DateTime interval_start_time, bool forward) {
+                        return forward
+                                   ? MakeBackAggregator(interval_start_time)
+                                   : MakeFrontAggregator(interval_start_time);
+                      });
 
   return aggregators;
 }
@@ -143,9 +159,10 @@ AggregatorFactory GetAggregatorFactory(const NodeId& aggregate_type) {
 }  // namespace
 
 Aggregator GetAggregator(const NodeId& aggregate_type,
-                         DateTime interval_start_time) {
+                         DateTime interval_start_time,
+                         bool forward) {
   auto factory = GetAggregatorFactory(aggregate_type);
-  return factory ? factory(interval_start_time) : nullptr;
+  return factory ? factory(interval_start_time, forward) : nullptr;
 }
 
 DateTime GetLocalAggregateStartTime() {
@@ -164,104 +181,16 @@ DateTime GetAggregateIntervalStartTime(DateTime time,
   return start_time + start_delta;
 }
 
-/*class IterativeAggregator {
- public:
-  void Aggregate(span<const DataValue> data_values);
-
- private:
-  const scada::AggregateFilter filter_;
-  scada::Aggregator aggregator_;
-  scada::DateTime interval_start_time_;
-  std::vector<scada::DataValue> results_;
-};
-
-void IterativeAggregator::Aggregate(span<const DataValue> data_values) {
-  assert(std::is_sorted(data_values.begin(), data_values.end(),
-                        [](const DataValue& a, const DataValue& b) {
-                          return a.source_timestamp < b.source_timestamp;
-                        }));
-  assert(std::none_of(
-      data_values.begin(), data_values.end(),
-      [](const DataValue& v) { return v.server_timestamp.is_null(); }));
-
-  std::vector<DataValue> result;
-
-  while (!data_values.empty()) {
-    auto start_time =
-        GetAggregateIntervalStartTime(data_values.front().source_timestamp,
-                                      filter_.start_time, filter_.interval);
-    auto end_time = start_time + filter_.interval;
-
-    auto end =
-        std::upper_bound(data_values.begin(), data_values.end(), end_time,
-                         [](DateTime timestamp, const DataValue& data_value) {
-                           assert(!data_value.source_timestamp.is_null());
-                           return timestamp < data_value.source_timestamp;
-                         });
-    auto count = end - data_values.begin();
-    assert(count != 0);
-
-    const auto aggregator = GetAggregator(filter_.aggregate_type, start_time);
-    if (!aggregator)
-      break;
-
-    auto data_value = aggregator(data_values.subspan(0, count));
-    result.emplace_back(std::move(data_value));
-
-    data_values = data_values.subspan(count);
-  }
-}*/
-
-std::vector<DataValue> AggregateRange(span<const DataValue> values,
-                                      const AggregateFilter& aggregation) {
-  assert(!aggregation.interval.is_zero());
-  assert(!aggregation.aggregate_type.is_null());
-  assert(std::is_sorted(values.begin(), values.end(),
-                        [](const DataValue& a, const DataValue& b) {
-                          return a.source_timestamp < b.source_timestamp;
-                        }));
-  assert(std::none_of(values.begin(), values.end(), [](const DataValue& v) {
-    return v.server_timestamp.is_null();
-  }));
-
-  std::vector<DataValue> result;
-
-  auto start = values.begin();
-  while (start != values.end()) {
-    auto start_time = GetAggregateIntervalStartTime(
-        start->source_timestamp, aggregation.start_time, aggregation.interval);
-    auto end_time = start_time + aggregation.interval;
-
-    auto end =
-        std::upper_bound(start, values.end(), end_time,
-                         [](DateTime timestamp, const DataValue& data_value) {
-                           assert(!data_value.source_timestamp.is_null());
-                           return timestamp < data_value.source_timestamp;
-                         });
-    assert(start < end);
-
-    const auto aggregator =
-        GetAggregator(aggregation.aggregate_type, start_time);
-    if (!aggregator)
-      break;
-
-    auto data_value = aggregator(span{&*start, &*end});
-    result.emplace_back(std::move(data_value));
-
-    start = end;
-  }
-
-  return result;
-}
-
 void AggregateState::Process(span<const scada::DataValue> raw_span) {
   while (!raw_span.empty()) {
     auto interval_start_time = scada::GetAggregateIntervalStartTime(
         raw_span.front().source_timestamp, aggregation.start_time,
         aggregation.interval);
-    auto interval_end_time = interval_start_time + aggregation.interval;
 
-    auto count = UpperBound(raw_span, interval_end_time);
+    auto count =
+        forward
+            ? UpperBound(raw_span, interval_start_time + aggregation.interval)
+            : ReverseUpperBound(raw_span, interval_start_time);
     assert(count != 0);
 
     if (aggregator_start_time != interval_start_time) {
@@ -271,8 +200,8 @@ void AggregateState::Process(span<const scada::DataValue> raw_span) {
       }
 
       aggregator_start_time = interval_start_time;
-      aggregator =
-          GetAggregator(aggregation.aggregate_type, interval_start_time);
+      aggregator = GetAggregator(aggregation.aggregate_type,
+                                 interval_start_time, forward);
       if (!aggregator)
         break;
     }

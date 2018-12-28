@@ -11,6 +11,8 @@
 namespace scada {
 
 struct HistoryReadRawDetails {
+  bool forward() const { return to.is_null() || from <= to; }
+
   NodeId node_id;
   base::Time from;
   base::Time to;

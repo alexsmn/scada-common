@@ -54,10 +54,8 @@ class TimedDataImpl : private TimedDataContext,
 
   void QueryValues(ScopedContinuationPoint&& continuation_point);
 
-  void OnHistoryReadRawComplete(base::Time queried_from,
-                                base::Time queried_to,
-                                std::vector<scada::DataValue>&& values,
-                                scada::ByteString&& continuation_point);
+  void OnHistoryReadRawComplete(std::vector<scada::DataValue>&& values,
+                                ScopedContinuationPoint&& continuation_point);
 
   void OnChannelData(const scada::DataValue& data_value);
 
@@ -76,6 +74,8 @@ class TimedDataImpl : private TimedDataContext,
   std::unique_ptr<scada::MonitoredItem> monitored_value_;
 
   bool querying_ = false;
+  scada::DateTime querying_from_;
+  scada::DateTime querying_to_;
 
   base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_{this};
 };
