@@ -19,7 +19,7 @@ namespace rt {
 
 namespace {
 
-const size_t kMaxReadCount = 100;
+const size_t kMaxReadCount = 10000;
 
 std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
                                                        base::Time from,
@@ -36,58 +36,6 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 }
 
 }  // namespace
-
-// ScopedContinuationPoint
-
-class ScopedContinuationPoint {
- public:
-  ScopedContinuationPoint() {}
-
-  ScopedContinuationPoint(scada::HistoryService& service,
-                          scada::ByteString continuation_point)
-      : service_{&service}, continuation_point_{std::move(continuation_point)} {
-    if (continuation_point_.empty())
-      service_ = nullptr;
-  }
-
-  ~ScopedContinuationPoint() {
-    if (!service_)
-      return;
-
-    scada::HistoryReadRawDetails details;
-    details.release_continuation_point = true;
-    details.continuation_point = std::move(continuation_point_);
-    service_->HistoryReadRaw(
-        details, [](scada::Status status, std::vector<scada::DataValue> values,
-                    scada::ByteString continuation_point) {});
-  }
-
-  ScopedContinuationPoint(ScopedContinuationPoint&& source)
-      : service_{source.service_},
-        continuation_point_{source.continuation_point_} {
-    source.service_ = nullptr;
-  }
-
-  ScopedContinuationPoint& operator=(ScopedContinuationPoint&& source) {
-    if (&source != this) {
-      service_ = source.service_;
-      continuation_point_ = std::move(source.continuation_point_);
-      source.service_ = nullptr;
-    }
-    return *this;
-  }
-
-  bool empty() const { return !service_; }
-
-  scada::ByteString release() {
-    service_ = nullptr;
-    return std::move(continuation_point_);
-  }
-
- private:
-  scada::HistoryService* service_ = nullptr;
-  scada::ByteString continuation_point_;
-};
 
 // TimedDataImpl
 
@@ -160,7 +108,7 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
   node_.Call(method_id, arguments, user_id, callback);
 }
 
-void TimedDataImpl::QueryValues(ScopedContinuationPoint&& continuation_point) {
+void TimedDataImpl::QueryValues(ScopedContinuationPoint continuation_point) {
   assert(historical());
   assert(continuation_point.empty() || querying_);
 
@@ -198,17 +146,20 @@ void TimedDataImpl::QueryValues(ScopedContinuationPoint&& continuation_point) {
   auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
 
   // Query history in the backward direction.
+  scada::HistoryReadRawDetails details{node_.node_id(),
+                                       querying_to_,
+                                       querying_from_,
+                                       kMaxReadCount,
+                                       aggregate_filter_,
+                                       false,
+                                       continuation_point.release()};
   history_service_.HistoryReadRaw(
-      scada::HistoryReadRawDetails{
-          node_.node_id(), querying_to_, querying_from_, kMaxReadCount,
-          aggregate_filter_, false, continuation_point.release()},
-      [message_loop, weak_ptr](scada::Status status,
-                               std::vector<scada::DataValue> values,
-                               scada::ByteString continuation_point) {
-        if (!weak_ptr.get())
-          return;
+      details,
+      [message_loop, weak_ptr, &history_service = history_service_, details](
+          scada::Status status, std::vector<scada::DataValue> values,
+          scada::ByteString continuation_point) {
         ScopedContinuationPoint scoped_continuation_point{
-            weak_ptr->history_service_, std::move(continuation_point)};
+            history_service, details, std::move(continuation_point)};
         message_loop->PostTask(
             FROM_HERE,
             base::Bind(&TimedDataImpl::OnHistoryReadRawComplete, weak_ptr,
@@ -263,8 +214,8 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
 }
 
 void TimedDataImpl::OnHistoryReadRawComplete(
-    std::vector<scada::DataValue>&& values,
-    ScopedContinuationPoint&& continuation_point) {
+    std::vector<scada::DataValue> values,
+    ScopedContinuationPoint continuation_point) {
   assert(querying_);
   assert(querying_from_ <= ready_from_);
   assert(querying_from_ >= from_);

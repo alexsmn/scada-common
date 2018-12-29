@@ -3,6 +3,7 @@
 #include "base/memory/weak_ptr.h"
 #include "base/nested_logger.h"
 #include "common/event_observer.h"
+#include "common/history_util.h"
 #include "common/node_observer.h"
 #include "core/aggregate_filter.h"
 #include "core/history_service.h"
@@ -16,8 +17,6 @@ class MonitoredItemService;
 }  // namespace scada
 
 namespace rt {
-
-class ScopedContinuationPoint;
 
 class TimedDataImpl : private TimedDataContext,
                       public BaseTimedData,
@@ -52,10 +51,10 @@ class TimedDataImpl : private TimedDataContext,
  private:
   void SetNode(const NodeRef& node);
 
-  void QueryValues(ScopedContinuationPoint&& continuation_point);
+  void QueryValues(ScopedContinuationPoint continuation_point);
 
-  void OnHistoryReadRawComplete(std::vector<scada::DataValue>&& values,
-                                ScopedContinuationPoint&& continuation_point);
+  void OnHistoryReadRawComplete(std::vector<scada::DataValue> values,
+                                ScopedContinuationPoint continuation_point);
 
   void OnChannelData(const scada::DataValue& data_value);
 
