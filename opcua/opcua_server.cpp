@@ -184,7 +184,6 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
   }
 
   virtual void SubscribeEvents(
-      const opcua::EventFilter& filter,
       const opcua::server::EventHandler& event_handler) override {
     monitored_item_->set_event_handler(
         [this, event_handler](const scada::Status& status,
