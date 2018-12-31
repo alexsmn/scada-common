@@ -37,7 +37,7 @@ inline std::optional<Interval<T>> FindFirstGap(
     if (j == ready_ranges.end())
       return *i;
     if (j->first > i->first)
-      return Interval<T>{i->first, j->first};
+      return Interval<T>{i->first, std::min(i->second, j->first)};
     if (j->second < i->second) {
       const auto& gap_start = j->second;
       auto gap_end = i->second;
@@ -64,7 +64,7 @@ inline std::optional<Interval<T>> FindLastGap(
     if (j == ready_ranges.rend())
       return *i;
     if (j->second < i->second)
-      return Interval<T>{j->second, i->second};
+      return Interval<T>{std::max(j->second, i->first), i->second};
     if (j->first > i->first) {
       auto gap_start = i->first;
       const auto& gap_end = j->first;
@@ -76,6 +76,36 @@ inline std::optional<Interval<T>> FindLastGap(
     }
   }
   return std::nullopt;
+}
+
+template <class T, class Compare>
+inline void ReplaceSubrange(std::vector<T>& values,
+                            span<T> updates,
+                            Compare comp) {
+  assert(std::is_sorted(values.begin(), values.end(), comp));
+  assert(std::is_sorted(updates.begin(), updates.end(), comp));
+
+  if (updates.empty())
+    return;
+
+  auto first =
+      std::lower_bound(values.begin(), values.end(), updates.front(), comp);
+  auto last =
+      std::upper_bound(values.begin(), values.end(), updates.back(), comp);
+  auto count = std::distance(first, last);
+
+  auto copy_count = std::min<size_t>(count, updates.size());
+  std::copy(std::make_move_iterator(updates.begin()),
+            std::make_move_iterator(updates.begin() + copy_count), first);
+
+  if (count < updates.size()) {
+    values.insert(last, std::make_move_iterator(updates.begin() + copy_count),
+                  std::make_move_iterator(updates.end()));
+  } else {
+    values.erase(first + copy_count, last);
+  }
+
+  assert(std::is_sorted(values.begin(), values.end(), comp));
 }
 
 }  // namespace rt

@@ -61,6 +61,8 @@ class TimedData {
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const StatusCallback& callback) const = 0;
+
+  virtual std::string DumpDebugInfo() const = 0;
 };
 
 }  // namespace rt

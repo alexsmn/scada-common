@@ -235,4 +235,8 @@ void TimedDataSpec::OnPropertyChanged(const PropertySet& properties) {
     property_change_handler(properties);
 }
 
+std::string TimedDataSpec::DumpDebugInfo() const {
+  return data_ ? data_->DumpDebugInfo() : std::string{};
+}
+
 }  // namespace rt

@@ -10,14 +10,17 @@ using DataValues = std::vector<scada::DataValue>;
 
 struct DataValueTimeLess {
   bool operator()(const scada::DataValue& a, const scada::DataValue& b) const {
-    return a.source_timestamp < b.source_timestamp;
+    return std::tie(a.source_timestamp, a.server_timestamp) <
+           std::tie(b.source_timestamp, b.server_timestamp);
   }
 };
 
 struct DataValueTimeGreater {
   bool operator()(const scada::DataValue& a, const scada::DataValue& b) const {
-    return a.source_timestamp > b.source_timestamp;
+    return less(b, a);
   }
+
+  DataValueTimeLess less;
 };
 
 inline bool IsTimeSorted(span<const scada::DataValue> values) {

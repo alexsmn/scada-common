@@ -34,6 +34,7 @@ class ErrorTimedData final : public rt::TimedData {
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
+  virtual std::string DumpDebugInfo() const override;
 
  private:
   const std::string formula_;
@@ -62,4 +63,8 @@ inline const std::vector<scada::DateTimeRange>& ErrorTimedData::GetReadyRanges()
   static const std::vector<scada::DateTimeRange> kReadyRanges{
       {scada::DateTime::Min(), scada::DateTime::Max()}};
   return kReadyRanges;
+}
+
+std::string ErrorTimedData::DumpDebugInfo() const {
+  return "ErrorTimedData";
 }

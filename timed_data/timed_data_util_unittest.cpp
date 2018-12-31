@@ -2,6 +2,8 @@
 
 #include <gmock/gmock.h>
 
+using namespace testing;
+
 namespace rt {
 
 TEST(TimedDataUtil, FindLastGap1) {
@@ -65,6 +67,32 @@ TEST(TimedDataUtil, FindLastGap5) {
   ASSERT_FALSE(gap);
 }
 
+TEST(TimedDataUtil, FindLastGap6) {
+  std::vector<Interval<int>> ranges = {
+      {10, 20},
+  };
+  std::vector<Interval<int>> ready_ranges = {
+      {30, 40},
+  };
+  auto gap = FindLastGap(ranges, ready_ranges);
+  ASSERT_TRUE(gap);
+  EXPECT_EQ(gap->first, 10);
+  EXPECT_EQ(gap->second, 20);
+}
+
+TEST(TimedDataUtil, FindLastGap7) {
+  std::vector<Interval<int>> ranges = {
+      {30, 40},
+  };
+  std::vector<Interval<int>> ready_ranges = {
+      {10, 20},
+  };
+  auto gap = FindLastGap(ranges, ready_ranges);
+  ASSERT_TRUE(gap);
+  EXPECT_EQ(gap->first, 30);
+  EXPECT_EQ(gap->second, 40);
+}
+
 TEST(TimedDataUtil, FindFirstGap1) {
   std::vector<Interval<int>> ranges = {
       {20, 50},
@@ -124,6 +152,56 @@ TEST(TimedDataUtil, FindFirstGap5) {
   };
   auto gap = FindFirstGap(ranges, ready_ranges);
   ASSERT_FALSE(gap);
+}
+
+TEST(TimedDataUtil, FindFirstGap6) {
+  std::vector<Interval<int>> ranges = {
+      {10, 20},
+  };
+  std::vector<Interval<int>> ready_ranges = {
+      {30, 40},
+  };
+  auto gap = FindFirstGap(ranges, ready_ranges);
+  ASSERT_TRUE(gap);
+  EXPECT_EQ(gap->first, 10);
+  EXPECT_EQ(gap->second, 20);
+}
+
+TEST(TimedDataUtil, FindFirstGap7) {
+  std::vector<Interval<int>> ranges = {
+      {30, 40},
+  };
+  std::vector<Interval<int>> ready_ranges = {
+      {10, 20},
+  };
+  auto gap = FindFirstGap(ranges, ready_ranges);
+  ASSERT_TRUE(gap);
+  EXPECT_EQ(gap->first, 30);
+  EXPECT_EQ(gap->second, 40);
+}
+
+TEST(TimedDataUtil, ReplaceSubrange_Start) {
+  std::vector<int> values = {38, 40, 50, 60, 70, 80};
+  std::vector<int> updates = {30, 35, 40, 45, 50};
+  ReplaceSubrange(values, {updates.data(), updates.size()}, std::less{});
+  std::vector<int> expected = {30, 35, 40, 45, 50, 60, 70, 80};
+  EXPECT_EQ(expected, values);
+}
+
+TEST(TimedDataUtil, ReplaceSubrange_Middle) {
+  std::vector<int> values = {10, 20, 30, 40, 50, 60, 70, 80};
+  std::vector<int> updates = {30, 35, 40, 45, 50};
+  ReplaceSubrange(values, {updates.data(), updates.size()}, std::less{});
+  std::vector<int> expected = {10, 20, 30, 35, 40, 45, 50, 60, 70, 80};
+  EXPECT_EQ(expected, values);
+}
+
+TEST(TimedDataUtil, ReplaceSubrange_End) {
+  std::vector<int> values = {10, 20, 30, 40, 42};
+  std::vector<int> updates = {30, 35, 40, 45, 50};
+  ReplaceSubrange(values, {updates.data(), updates.size()}, std::less{});
+  std::vector<int> expected = {10, 20, 30, 35, 40, 45, 50};
+  EXPECT_EQ(expected, values);
 }
 
 }  // namespace rt

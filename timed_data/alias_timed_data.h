@@ -37,6 +37,7 @@ class AliasTimedData final : public rt::TimedData {
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
+  virtual std::string DumpDebugInfo() const override;
 
  private:
   struct DeferredData {

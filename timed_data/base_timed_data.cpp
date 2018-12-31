@@ -2,13 +2,34 @@
 
 #include "base/format.h"
 #include "base/format_time.h"
+#include "base/strings/stringprintf.h"
 #include "common/data_value_util.h"
 #include "common/event_manager.h"
 #include "common/interval_util.h"
+#include "core/debug_util.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
+#include <sstream>
+
 namespace rt {
+
+namespace {
+
+template <class T>
+void Dump(std::ostream& stream, const std::vector<T>& v) {
+  for (auto& e : v)
+    stream << ToString(e) << std::endl;
+}
+
+void Dump(
+    std::ostream& stream,
+    const std::map<TimedDataDelegate*, scada::DateTimeRange>& observer_ranges) {
+  for (auto& p : observer_ranges)
+    stream << ToString(p.second) << std::endl;
+}
+
+}  // namespace
 
 const base::Time kTimedDataCurrentOnly = base::Time::Max();
 
@@ -205,6 +226,18 @@ void BaseTimedData::Clear(const scada::DateTimeRange& range) {
   auto j = range.second.is_null() ? values_.end()
                                   : UpperBound(values_, range.second);
   values_.erase(i, j);
+}
+
+std::string BaseTimedData::DumpDebugInfo() const {
+  std::stringstream stream;
+  stream << "BaseTimedData" << std::endl;
+  stream << "Observers:" << std::endl;
+  Dump(stream, observer_ranges_);
+  stream << "Requested ranges:" << std::endl;
+  Dump(stream, ranges_);
+  stream << "Ready ranges:" << std::endl;
+  Dump(stream, ready_ranges_);
+  return stream.str();
 }
 
 }  // namespace rt

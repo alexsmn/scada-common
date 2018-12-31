@@ -5,6 +5,10 @@
 std::string FormatTime(base::Time time, int flags) {
   if (time.is_null())
     return {};
+
+  if (time.is_min())
+    return "min";
+
   if (time.is_max())
     return "max";
 

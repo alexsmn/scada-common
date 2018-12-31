@@ -107,3 +107,10 @@ void AliasTimedData::Call(const scada::NodeId& method_id,
   else
     callback(scada::StatusCode::Bad_Disconnected);
 }
+
+std::string AliasTimedData::DumpDebugInfo() const {
+  std::string result = "AliasTimedData\n";
+  if (is_forwarded())
+    result += forwarded().DumpDebugInfo();
+  return result;
+}

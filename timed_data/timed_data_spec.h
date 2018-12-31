@@ -88,6 +88,8 @@ class TimedDataSpec : private TimedDataDelegate {
             const scada::NodeId& user_id,
             const StatusCallback& callback) const;
 
+  std::string DumpDebugInfo() const;
+
   TimedDataSpec& operator=(const TimedDataSpec& other);
 
   bool operator==(const TimedDataSpec& other) const;
