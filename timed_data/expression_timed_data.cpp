@@ -64,30 +64,29 @@ base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
   return ready_from.is_null() ? kTimedDataCurrentOnly : ready_from;
 }
 
-void ExpressionTimedData::CalculateRange(base::Time from,
-                                         base::Time to,
+void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
                                          std::vector<scada::DataValue>* tvqs) {
-  assert(!from.is_null());
-  assert(to.is_null() || from <= to);
+  assert(!range.first.is_null());
+  assert(range.second.is_null() || range.first <= range.second);
 
   std::vector<DataValues::const_iterator> iters(operands_.size());
 
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
     auto& operand = *operands_[i];
-    assert(operand.GetReadyFrom() <= from);
+    assert(operand.GetReadyFrom() <= range.first);
 
     const DataValues* values = operand.GetValues();
     assert(values);
 
     DataValues::const_iterator& iterator = iters[i];
-    iterator = LowerBound(*values, from);
+    iterator = LowerBound(*values, range.first);
 
     auto& initial_value = expression_->items[i].value;
     if (iterator != values->end()) {
       initial_value = *iterator;
     } else {
-      assert(values->back().source_timestamp <= from);
+      assert(values->back().source_timestamp <= range.first);
       initial_value = values->back();
     }
   }
@@ -119,7 +118,7 @@ void ExpressionTimedData::CalculateRange(base::Time from,
       const base::Time& time = iterator->source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
-      if (!to.is_null() && time > to)
+      if (!range.second.is_null() && time > range.second)
         continue;
 
       calculation_finished = false;
@@ -170,7 +169,7 @@ bool ExpressionTimedData::CalculateReadyRange() {
   // Operands can't be less ready than we already know.
   assert(operands_ready_from <= ready_from_);
 
-  CalculateRange(operands_ready_from, ready_from_, NULL);
+  CalculateRange({operands_ready_from, ready_from_}, NULL);
   UpdateReadyFrom(operands_ready_from);
 
   return true;
@@ -226,11 +225,13 @@ void ExpressionTimedData::OnTimedDataCorrections(size_t count,
   assert(count > 0);
   assert(tvqs[0].source_timestamp >= ready_from_);
 
-  ClearRange(tvqs[0].source_timestamp, tvqs[count - 1].source_timestamp);
+  scada::DateTimeRange range{tvqs[0].source_timestamp,
+                             tvqs[count - 1].source_timestamp};
+
+  Clear(range);
 
   std::vector<scada::DataValue> changed_tvqs;
-  CalculateRange(tvqs[0].source_timestamp, tvqs[count - 1].source_timestamp,
-                 &changed_tvqs);
+  CalculateRange(range, &changed_tvqs);
 
   if (!changed_tvqs.empty())
     NotifyTimedDataCorrection(changed_tvqs.size(), &changed_tvqs[0]);

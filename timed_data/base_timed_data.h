@@ -52,7 +52,7 @@ class BaseTimedData : public TimedData {
   bool UpdateCurrent(const scada::DataValue& value);
   bool UpdateHistory(const scada::DataValue& value);
 
-  void ClearRange(base::Time from, base::Time to);
+  void Clear(const scada::DateTimeRange& range);
 
   void Delete();
   void Failed();

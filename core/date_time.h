@@ -8,6 +8,8 @@
 namespace scada {
 
 using DateTime = base::Time;
+using DateTimeRange = std::pair<DateTime, DateTime>;
+
 using Duration = base::TimeDelta;
 
 }  // namespace scada

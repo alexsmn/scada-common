@@ -177,12 +177,13 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
   return true;
 }
 
-void BaseTimedData::ClearRange(base::Time from, base::Time to) {
-  assert(!from.is_null());
-  assert(to.is_null() || from <= to);
+void BaseTimedData::Clear(const scada::DateTimeRange& range) {
+  assert(!range.first.is_null());
+  assert(range.second.is_null() || range.first <= range.second);
 
-  auto i = LowerBound(values_, from);
-  auto j = to.is_null() ? values_.end() : UpperBound(values_, to);
+  auto i = LowerBound(values_, range.first);
+  auto j = range.second.is_null() ? values_.end()
+                                  : UpperBound(values_, range.second);
   values_.erase(i, j);
 }
 
