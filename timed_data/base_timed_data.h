@@ -12,7 +12,6 @@ class BaseTimedData : public TimedData {
 
   // TimedData
   virtual void SetFrom(base::Time from) override;
-  virtual base::Time GetFrom() const override { return from_; }
   virtual base::Time GetReadyFrom() const override { return ready_from_; }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }

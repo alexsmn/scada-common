@@ -37,15 +37,15 @@ class ExpressionTimedData final : public BaseTimedData,
   bool CalculateCurrent();
 
   // TimedData
-  virtual void OnFromChanged() final;
+  virtual void OnFromChanged() override;
 
   // TimedDataDelegate
-  virtual void OnPropertyChanged(const PropertySet& properties) final;
+  virtual void OnPropertyChanged(const PropertySet& properties) override;
   virtual void OnTimedDataCorrections(size_t count,
-                                      const scada::DataValue* tvqs) final;
-  virtual void OnTimedDataReady() final;
-  virtual void OnTimedDataNodeModified() final;
-  virtual void OnTimedDataDeleted() final;
+                                      const scada::DataValue* tvqs) override;
+  virtual void OnTimedDataReady() override;
+  virtual void OnTimedDataNodeModified() override;
+  virtual void OnTimedDataDeleted() override;
 
   std::unique_ptr<ScadaExpression> expression_;
   std::vector<std::shared_ptr<TimedData>> operands_;

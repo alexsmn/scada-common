@@ -33,7 +33,7 @@ void ExpressionTimedData::OnFromChanged() {
 
   // connect operands
   for (size_t i = 0; i < num_operands; ++i)
-    operands_[i]->SetFrom(GetFrom());
+    operands_[i]->SetFrom(from_);
 
   if (historical())
     CalculateReadyRange();

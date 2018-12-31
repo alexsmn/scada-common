@@ -31,7 +31,6 @@ class TimedData {
 
   virtual bool IsError() const { return false; }
 
-  virtual base::Time GetFrom() const = 0;
   virtual void SetFrom(base::Time from) = 0;
   virtual base::Time GetReadyFrom() const = 0;
 

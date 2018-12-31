@@ -27,10 +27,6 @@ bool AliasTimedData::IsError() const {
   return is_forwarded() && forwarded().IsError();
 }
 
-base::Time AliasTimedData::GetFrom() const {
-  return is_forwarded() ? forwarded().GetFrom() : deferred().from;
-}
-
 void AliasTimedData::SetFrom(base::Time from) {
   if (is_forwarded())
     forwarded().SetFrom(from);
