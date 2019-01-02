@@ -11,7 +11,7 @@ ExpressionTimedData::ExpressionTimedData(
     std::vector<std::shared_ptr<TimedData>> operands)
     : expression_{std::move(expression)}, operands_{std::move(operands)} {
   for (auto& operand : operands_)
-    operand->AddObserver(*this);
+    operand->AddObserver(*this, {from_, rt::kTimedDataCurrentOnly});
   CalculateCurrent();
 }
 
@@ -33,7 +33,7 @@ void ExpressionTimedData::OnFromChanged() {
 
   // connect operands
   for (size_t i = 0; i < num_operands; ++i)
-    operands_[i]->SetFrom(from_);
+    operands_[i]->AddObserver(*this, {from_, rt::kTimedDataCurrentOnly});
 
   if (historical())
     CalculateReadyRange();
@@ -169,8 +169,9 @@ bool ExpressionTimedData::CalculateReadyRange() {
   // Operands can't be less ready than we already know.
   assert(operands_ready_from <= ready_from_);
 
-  CalculateRange({operands_ready_from, ready_from_}, NULL);
-  UpdateReadyFrom(operands_ready_from);
+  auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
+  CalculateRange(range, NULL);
+  SetReady(range);
 
   return true;
 }

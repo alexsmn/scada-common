@@ -113,7 +113,6 @@ void TimedDataImpl::QueryValues(ScopedContinuationPoint continuation_point) {
   assert(continuation_point.empty() || querying_);
 
   if (from_ >= ready_from_) {
-    assert(from_ == ready_from_);
     querying_ = false;
     return;
   }
@@ -126,20 +125,16 @@ void TimedDataImpl::QueryValues(ScopedContinuationPoint continuation_point) {
 
   if (continuation_point.empty()) {
     querying_ = true;
-    querying_from_ = from_;
+    querying_range_.first = from_;
 
     // Convert upper time range bound to query specific value:
     // |kTimedDataCurrentOnly| must be replaced on Time() in such case.
-    querying_to_ = ready_from_;
-    assert(!querying_to_.is_null());
-    if (querying_to_ == kTimedDataCurrentOnly)
-      querying_to_ = base::Time::Max();
+    querying_range_.second = ready_from_;
+    assert(!querying_range_.second.is_null());
 
     logger_->WriteF(LogSeverity::Normal, "Querying history from %s to %s",
-                    FormatTime(querying_from_).c_str(),
-                    querying_to_ != base::Time::Max()
-                        ? FormatTime(querying_to_).c_str()
-                        : "Current");
+                    FormatTime(querying_range_.first).c_str(),
+                    FormatTime(querying_range_.second).c_str());
   }
 
   auto message_loop = base::ThreadTaskRunnerHandle::Get();
@@ -147,8 +142,8 @@ void TimedDataImpl::QueryValues(ScopedContinuationPoint continuation_point) {
 
   // Query history in the backward direction.
   scada::HistoryReadRawDetails details{node_.node_id(),
-                                       querying_to_,
-                                       querying_from_,
+                                       querying_range_.second,
+                                       querying_range_.first,
                                        kMaxReadCount,
                                        aggregate_filter_,
                                        false,
@@ -169,9 +164,7 @@ void TimedDataImpl::QueryValues(ScopedContinuationPoint continuation_point) {
 }
 
 void TimedDataImpl::OnFromChanged() {
-  assert(historical());
-
-  if (!querying_)
+  if (historical() && !querying_)
     QueryValues({});
 }
 
@@ -217,8 +210,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
     std::vector<scada::DataValue> values,
     ScopedContinuationPoint continuation_point) {
   assert(querying_);
-  assert(querying_from_ <= ready_from_);
-  assert(querying_from_ >= from_);
+  assert(querying_range_.first <= ready_from_);
   assert(IsReverseTimeSorted(values));
   assert(std::none_of(
       values.begin(), values.end(),
@@ -240,20 +232,24 @@ void TimedDataImpl::OnHistoryReadRawComplete(
     }
   }
 
-  base::Time new_ready_from =
-      continuation_point.empty() ? querying_from_ : ready_from_;
+  scada::DateTimeRange ready_range = querying_range_;
+  ready_range.first =
+      continuation_point.empty() ? querying_range_.first : ready_from_;
   // Returned data array includes left time bound.
-  if (!values.empty() && values.front().source_timestamp < new_ready_from)
-    new_ready_from = values.front().source_timestamp;
+  if (!values.empty()) {
+    ready_range.first =
+        std::min(ready_range.first, values.front().source_timestamp);
+  }
 
   logger_->WriteF(LogSeverity::Normal,
                   "Query result %Iu values from %s. Ready from %s",
-                  values.size(), FormatTime(querying_from_).c_str(),
-                  FormatTime(new_ready_from).c_str());
+                  values.size(), FormatTime(querying_range_.first).c_str(),
+                  FormatTime(ready_range.first).c_str());
 
-  UpdateReadyFrom(new_ready_from);
+  SetReady(ready_range);
 
   // Query next fragment of data if |from_| changed from moment of last query.
+  // Note that |from_| is allowed to be increased.
   QueryValues(std::move(continuation_point));
 
   // This probably may cause deletion.

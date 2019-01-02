@@ -1,12 +1,16 @@
 #include "timed_data/base_timed_data.h"
 
 #include "base/format.h"
+#include "common/data_value_util.h"
 #include "common/event_manager.h"
+#include "common/interval_util.h"
 #include "timed_data/timed_data_spec.h"
 
 namespace rt {
 
 const base::Time kTimedDataCurrentOnly = base::Time::Max();
+
+const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
 BaseTimedData::BaseTimedData() {}
 
@@ -15,8 +19,8 @@ BaseTimedData::~BaseTimedData() {
 }
 
 scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
-  if (!historical())
-    return current_.source_timestamp <= time ? current_ : scada::DataValue();
+  if (!current_.is_null() && current_.source_timestamp <= time)
+    return current_;
 
   auto i = LowerBound(values_, time);
 
@@ -33,21 +37,34 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   return *i;
 }
 
-void BaseTimedData::AddObserver(TimedDataDelegate& observer) {
-  observers_.AddObserver(&observer);
+void BaseTimedData::AddObserver(TimedDataDelegate& observer,
+                                const scada::DateTimeRange& range) {
+  if (!observers_.HasObserver(&observer))
+    observers_.AddObserver(&observer);
+
+  ranges_.insert_or_assign(&observer, range);
+
+  auto from = CalculateFrom();
+  SetFrom(from);
 }
 
 void BaseTimedData::RemoveObserver(TimedDataDelegate& observer) {
   observers_.RemoveObserver(&observer);
 }
 
-void BaseTimedData::SetFrom(base::Time from) {
-  if (from >= from_)
+scada::DateTime BaseTimedData::CalculateFrom() const {
+  auto from = kTimedDataCurrentOnly;
+  for (auto [observer, range] : ranges_)
+    from = std::min(from, range.first);
+  return from;
+}
+
+void BaseTimedData::SetFrom(scada::DateTime from) {
+  if (from == from_)
     return;
 
-  // When data switches from current-only to historical, add current value
-  // into historical values.
-  if (!historical() && !current_.source_timestamp.is_null())
+  // In the 'current only' mode historical values are not maintened.
+  if (!historical() && !current_.is_null())
     UpdateHistory(current_);
 
   from_ = from;
@@ -55,18 +72,13 @@ void BaseTimedData::SetFrom(base::Time from) {
   OnFromChanged();
 }
 
-void BaseTimedData::UpdateReadyFrom(base::Time time) {
-  if (time >= ready_from_)
-    return;
+void BaseTimedData::SetReady(const scada::DateTimeRange& range) {
+  UnionIntervals(ready_ranges_, range);
 
-  ready_from_ = time;
-
-  if (time < from_)
-    from_ = time;
-}
-
-void BaseTimedData::ResetReadyFrom() {
-  ready_from_ = kTimedDataCurrentOnly;
+  if (!ready_ranges_.empty()) {
+    ready_from_ = ready_ranges_.front().first;
+    from_ = std::min(from_, range.first);
+  }
 }
 
 void BaseTimedData::Write(double value,
@@ -98,22 +110,10 @@ void BaseTimedData::Failed() {
     o.OnPropertyChanged(changed_mask);
 }
 
-bool CheckTvqsSorted(size_t count, const scada::DataValue* tvqs) {
-  if (count <= 1)
-    return true;
-
-  for (size_t i = 0; i < count - 1; ++i) {
-    if (tvqs[i].source_timestamp >= tvqs[i + 1].source_timestamp)
-      return false;
-  }
-
-  return true;
-}
-
 void BaseTimedData::NotifyTimedDataCorrection(size_t count,
                                               const scada::DataValue* tvqs) {
   assert(count > 0);
-  assert(CheckTvqsSorted(count, tvqs));
+  assert(IsTimeSorted({tvqs, count}));
 
   for (auto& o : observers_)
     o.OnTimedDataCorrections(count, tvqs);

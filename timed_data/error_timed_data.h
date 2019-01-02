@@ -8,15 +8,16 @@ class ErrorTimedData final : public rt::TimedData {
       : formula_{std::move(formula)}, title_{std::move(title)} {}
 
   virtual bool IsError() const override { return true; }
-  virtual void SetFrom(base::Time from) override {}
   virtual base::Time GetReadyFrom() const override { return {}; }
+  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const;
   virtual scada::DataValue GetDataValue() const override { return {}; }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override {
     return {};
   }
   virtual base::Time GetChangeTime() const override { return {}; }
   virtual const DataValues* GetValues() const override { return nullptr; }
-  virtual void AddObserver(rt::TimedDataDelegate& observer) override {}
+  virtual void AddObserver(rt::TimedDataDelegate& observer,
+                           const scada::DateTimeRange& range) override {}
   virtual void RemoveObserver(rt::TimedDataDelegate& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {
     return formula_;
@@ -55,4 +56,11 @@ inline void ErrorTimedData::Call(const scada::NodeId& method_id,
                                  const scada::NodeId& user_id,
                                  const StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
+}
+
+inline const std::vector<scada::DateTimeRange>& ErrorTimedData::GetReadyRanges()
+    const {
+  static const std::vector<scada::DateTimeRange> kReadyRanges{
+      {scada::DateTime::Min(), scada::DateTime::Max()}};
+  return kReadyRanges;
 }

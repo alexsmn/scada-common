@@ -18,12 +18,10 @@ class EventSet;
 
 namespace rt {
 
-class PropertySet;
-class TimedDataCache;
 class TimedDataDelegate;
-class TimedDataSpec;
 
 extern const base::Time kTimedDataCurrentOnly;
+extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
 
 class TimedData {
  public:
@@ -31,8 +29,8 @@ class TimedData {
 
   virtual bool IsError() const { return false; }
 
-  virtual void SetFrom(base::Time from) = 0;
   virtual base::Time GetReadyFrom() const = 0;
+  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const = 0;
 
   virtual scada::DataValue GetDataValue() const = 0;
   virtual base::Time GetChangeTime() const = 0;
@@ -40,7 +38,8 @@ class TimedData {
   virtual const DataValues* GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
-  virtual void AddObserver(TimedDataDelegate& observer) = 0;
+  virtual void AddObserver(TimedDataDelegate& observer,
+                           const scada::DateTimeRange& range) = 0;
   virtual void RemoveObserver(TimedDataDelegate& observer) = 0;
 
   virtual std::string GetFormula(bool aliases) const = 0;

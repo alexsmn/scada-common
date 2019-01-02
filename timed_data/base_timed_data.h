@@ -5,20 +5,26 @@
 
 namespace rt {
 
+class PropertySet;
+
 class BaseTimedData : public TimedData {
  public:
   BaseTimedData();
   ~BaseTimedData();
 
   // TimedData
-  virtual void SetFrom(base::Time from) override;
   virtual base::Time GetReadyFrom() const override { return ready_from_; }
+  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+      const override {
+    return ready_ranges_;
+  }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }
   virtual base::Time GetChangeTime() const override { return change_time_; }
   virtual const DataValues* GetValues() const override { return &values_; }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
-  virtual void AddObserver(TimedDataDelegate& observer) override;
+  virtual void AddObserver(TimedDataDelegate& observer,
+                           const scada::DateTimeRange& range) override;
   virtual void RemoveObserver(TimedDataDelegate& observer) override;
   virtual NodeRef GetNode() const override { return nullptr; }
   virtual const events::EventSet* GetEvents() const override { return nullptr; }
@@ -33,13 +39,10 @@ class BaseTimedData : public TimedData {
                     const StatusCallback& callback) const override;
 
  protected:
-  bool historical() const { return from_ != kTimedDataCurrentOnly; }
+  bool historical() const { return !ranges_.empty(); }
 
-  // Update |ready_from_| to new |time| if new time is earlier, and also
-  // update |from_| if |time| is earlier than it.
-  void UpdateReadyFrom(base::Time time);
-  // Used when data is disconnected.
-  void ResetReadyFrom();
+  // Update |ready_from_| to new |time| if new time is earlier.
+  void SetReady(const scada::DateTimeRange& range);
   // |from_| parameter was changed. Data needs to be updated.
   virtual void OnFromChanged() = 0;
 
@@ -63,13 +66,20 @@ class BaseTimedData : public TimedData {
   base::Time change_time_;
 
   base::ObserverList<TimedDataDelegate> observers_;
+  std::map<TimedDataDelegate*, scada::DateTimeRange> ranges_;
 
   base::Time from_ = kTimedDataCurrentOnly;
 
   // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
   base::Time ready_from_ = kTimedDataCurrentOnly;
 
+  std::vector<scada::DateTimeRange> ready_ranges_;
+
   DataValues values_;
+
+ private:
+  scada::DateTime CalculateFrom() const;
+  void SetFrom(scada::DateTime from);
 
   DISALLOW_COPY_AND_ASSIGN(BaseTimedData);
 };

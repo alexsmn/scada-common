@@ -5,51 +5,101 @@
 #include <vector>
 
 template <class T>
-inline bool IntervalsOverlap(const std::pair<T, T>& a,
-                             const std::pair<T, T>& b) {
+using Interval = std::pair<T, T>;
+
+template <class T>
+inline bool IsValidInterval(const Interval<T>& interval) {
+  return interval.first <= interval.second;
+}
+
+template <class T>
+inline bool IsValidInterval(const std::vector<Interval<T>>& intervals) {
+  return std::all_of(
+             intervals.begin(), intervals.end(),
+             [](const auto& range) { return IsValidInterval(range); }) &&
+         std::is_sorted(intervals.begin(), intervals.end());
+}
+
+template <class T>
+inline bool IntervalContains(const Interval<T>& a, const Interval<T>& b) {
+  assert(IsValidInterval(a));
+  assert(IsValidInterval(b));
+  return a.first <= b.first && b.second <= a.second;
+}
+
+template <class T>
+inline bool IntervalContains(const std::vector<Interval<T>>& intervals,
+                             const Interval<T>& interval) {
+  assert(IsValidInterval(intervals));
+  assert(IsValidInterval(interval));
+
+  auto i = std::lower_bound(intervals.begin(), intervals.end(), interval.first,
+                            [](const auto& interval, const auto& bound) {
+                              return interval.second < bound;
+                            });
+  if (i == intervals.end())
+    return false;
+
+  auto& found_interval = *i;
+  return IntervalContains(found_interval, interval);
+}
+
+template <class T>
+inline bool IntervalsOverlap(const Interval<T>& a, const Interval<T>& b) {
+  assert(IsValidInterval(a));
+  assert(IsValidInterval(b));
   return a.first < b.second && b.first < a.second;
 }
 
 template <class T>
-inline bool UnionIntervals(std::vector<std::pair<T, T>>& ranges,
-                           const std::pair<T, T>& range) {
-  assert(std::is_sorted(ranges.begin(), ranges.end()));
-  assert(range.first <= range.second);
+inline Interval<T> UnionIntervals(const Interval<T>& a, const Interval<T>& b) {
+  assert(IsValidInterval(a));
+  assert(IsValidInterval(b));
+  return {std::min(a.first, b.first), std::max(a.second, b.second)};
+}
 
-  // Find the position to remove from. It's the last range that ends just before
-  // the new range start.
+template <class T>
+inline bool UnionIntervals(std::vector<Interval<T>>& intervals,
+                           const Interval<T>& interval) {
+  assert(IsValidInterval(intervals));
+  assert(IsValidInterval(interval));
 
-  auto i = std::lower_bound(ranges.begin(), ranges.end(), range.first,
-                            [](const auto& range, const auto& bound) {
-                              return range.second < bound;
+  // Find the position to remove from. It's the last interval that ends just
+  // before the new interval start.
+
+  auto i = std::lower_bound(intervals.begin(), intervals.end(), interval.first,
+                            [](const auto& interval, const auto& bound) {
+                              return interval.second < bound;
                             });
 
-  // If the new range is in the end or it doesn't intersect anything, then
-  // just insert the new range.
-  if (i == ranges.end() || range.second < i->first) {
-    ranges.insert(i, range);
+  // If the new interval is in the end or it doesn't intersect anything, then
+  // just insert the new interval.
+  if (i == intervals.end() || interval.second < i->first) {
+    intervals.insert(i, interval);
     return true;
   }
 
-  // If the range is fully contained, then ignore it.
-  if (i->first <= range.first && range.second <= i->second)
+  // If the interval is fully contained, then ignore it.
+  if (i->first <= interval.first && interval.second <= i->second)
     return false;
 
-  // Find the position to remove until. It's the range that starts after or
-  // exactly on the new range end. The actual position is after this range.
+  // Find the position to remove until. It's the interval that starts after or
+  // exactly on the new interval end. The actual position is after this
+  // interval.
 
-  auto j = std::upper_bound(
-      i, ranges.end(), range.second,
-      [](const auto& bound, const auto& range) { return bound < range.first; });
+  auto j = std::upper_bound(i, intervals.end(), interval.second,
+                            [](const auto& bound, const auto& interval) {
+                              return bound < interval.first;
+                            });
 
-  // Update the first range and remove others.
+  // Update the first interval and remove others.
 
-  i->first = std::min(i->first, range.first);
-  i->second = std::max(std::prev(j)->second, range.second);
+  i->first = std::min(i->first, interval.first);
+  i->second = std::max(std::prev(j)->second, interval.second);
 
   assert(i != j);
-  ranges.erase(std::next(i), j);
+  intervals.erase(std::next(i), j);
 
-  assert(std::is_sorted(ranges.begin(), ranges.end()));
+  assert(std::is_sorted(intervals.begin(), intervals.end()));
   return true;
 }

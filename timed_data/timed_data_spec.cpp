@@ -1,6 +1,7 @@
 #include "timed_data/timed_data_spec.h"
 
 #include "base/strings/utf_string_conversions.h"
+#include "common/interval_util.h"
 #include "common/node_format.h"
 #include "common/node_util.h"
 #include "common/scada_node_ids.h"
@@ -10,15 +11,15 @@
 
 namespace rt {
 
-TimedDataSpec::TimedDataSpec() : from_(kTimedDataCurrentOnly) {}
+TimedDataSpec::TimedDataSpec() {}
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
-    : data_{other.data_}, from_{other.from_} {}
+    : data_{other.data_}, range_{other.range_} {}
 
 TimedDataSpec::TimedDataSpec(std::shared_ptr<TimedData> data)
-    : data_(std::move(data)), from_(kTimedDataCurrentOnly) {
+    : data_(std::move(data)) {
   if (data_)
-    data_->AddObserver(*this);
+    data_->AddObserver(*this, range_);
 }
 
 TimedDataSpec::~TimedDataSpec() {
@@ -26,9 +27,17 @@ TimedDataSpec::~TimedDataSpec() {
 }
 
 void TimedDataSpec::SetFrom(base::Time from) {
-  from_ = from;
+  SetRange({from, kTimedDataCurrentOnly});
+}
+
+void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
+  if (range_ == range)
+    return;
+
+  range_ = range;
+
   if (data_)
-    data_->SetFrom(from);
+    data_->AddObserver(*this, range_);
 }
 
 void TimedDataSpec::SetAggregateFilter(scada::AggregateFilter filter) {
@@ -40,10 +49,8 @@ void TimedDataSpec::SetData(std::shared_ptr<TimedData> data) {
   if (data_ == data)
     return;
 
-  if (data) {
-    data->AddObserver(*this);
-    data->SetFrom(from_);
-  }
+  if (data)
+    data->AddObserver(*this, range_);
 
   if (data_)
     data_->RemoveObserver(*this);
@@ -88,12 +95,13 @@ bool TimedDataSpec::logical() const {
 }
 
 bool TimedDataSpec::ready() const {
-  return data_ ? data_->GetReadyFrom() <= from_ : true;
+  const auto& ready_ranges = data_->GetReadyRanges();
+  return IntervalContains(ready_ranges, range_);
 }
 
 TimedDataSpec& TimedDataSpec::operator=(const TimedDataSpec& other) {
   if (&other != this) {
-    from_ = other.from_;
+    range_ = other.range_;
     SetData(other.data_);
   }
   return *this;
@@ -147,7 +155,7 @@ base::Time TimedDataSpec::change_time() const {
 }
 
 bool TimedDataSpec::historical() const {
-  return from_ != kTimedDataCurrentOnly;
+  return range_.first != kTimedDataCurrentOnly;
 }
 
 const DataValues* TimedDataSpec::values() const {
@@ -183,14 +191,12 @@ void TimedDataSpec::OnTimedDataCorrections(size_t count,
   if (!correction_handler)
     return;
 
-  auto end =
-      std::upper_bound(tvqs, tvqs + count, from_,
-                       [](base::Time from, const scada::DataValue& value) {
-                         return from < value.source_timestamp;
-                       });
-  size_t partial_count = end - tvqs;
-  if (partial_count != 0)
-    correction_handler(partial_count, tvqs);
+  auto data_values = span<const scada::DataValue>{tvqs, count};
+  auto start = LowerBound(data_values, range_.first);
+  auto end = UpperBound(data_values, range_.second);
+
+  if (start != end)
+    correction_handler(end - start, tvqs + start);
 }
 
 void TimedDataSpec::OnTimedDataReady() {

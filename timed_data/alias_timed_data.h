@@ -14,13 +14,15 @@ class AliasTimedData final : public rt::TimedData {
 
   // rt::TimedData
   virtual bool IsError() const override;
-  virtual void SetFrom(base::Time from) override;
   virtual base::Time GetReadyFrom() const override;
+  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+      const override;
   virtual scada::DataValue GetDataValue() const override;
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
   virtual const DataValues* GetValues() const override;
-  virtual void AddObserver(rt::TimedDataDelegate& observer) override;
+  virtual void AddObserver(rt::TimedDataDelegate& observer,
+                           const scada::DateTimeRange& range) override;
   virtual void RemoveObserver(rt::TimedDataDelegate& observer) override;
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
@@ -42,8 +44,7 @@ class AliasTimedData final : public rt::TimedData {
     DeferredData(std::string formula) : formula{std::move(formula)} {}
 
     const std::string formula;
-    base::Time from = rt::kTimedDataCurrentOnly;
-    base::ObserverList<rt::TimedDataDelegate> observers;
+    std::map<rt::TimedDataDelegate*, scada::DateTimeRange /*range*/> observers;
   };
 
   bool is_forwarded() const { return data_.index() == 1; }

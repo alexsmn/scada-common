@@ -16,6 +16,8 @@
 #include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_data_property.h"
 
+#define TIMED_DATA_RANGE_SUPPORT
+
 class TimedDataService;
 
 namespace scada {
@@ -37,6 +39,7 @@ class TimedDataSpec : private TimedDataDelegate {
 
   // Specify |kTimedDataCurrentOnly| to get only current values.
   void SetFrom(base::Time from);
+  void SetRange(const scada::DateTimeRange& range);
 
   void Connect(TimedDataService& service, base::StringPiece formula);
   void Connect(TimedDataService& service, const scada::NodeId& node_id);
@@ -45,7 +48,8 @@ class TimedDataSpec : private TimedDataDelegate {
   std::string formula() const;
   bool alerting() const;
   bool connected() const { return data_ && !data_->IsError(); }
-  base::Time from() const { return from_; }
+  base::Time from() const { return range_.first; }
+  const scada::DateTimeRange& range() const { return range_; }
   base::Time ready_from() const;
   bool historical() const;
   bool logical() const;
@@ -110,7 +114,7 @@ class TimedDataSpec : private TimedDataDelegate {
   std::shared_ptr<TimedData> data_;
 
   scada::AggregateFilter aggregate_filter_;
-  base::Time from_ = kTimedDataCurrentOnly;
+  scada::DateTimeRange range_{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
 };
 
 }  // namespace rt

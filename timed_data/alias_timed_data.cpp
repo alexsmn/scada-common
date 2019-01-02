@@ -11,15 +11,14 @@ void AliasTimedData::SetForwarded(std::shared_ptr<rt::TimedData> timed_data) {
 
   data_ = timed_data;
 
-  timed_data->SetFrom(deferred->from);
-  for (auto& o : deferred->observers)
-    timed_data->AddObserver(o);
+  for (auto [observer, range] : deferred->observers)
+    timed_data->AddObserver(*observer, range);
 
-  for (auto& o : deferred->observers) {
-    o.OnPropertyChanged(rt::PropertySet{rt::PROPERTY_TITLE | rt::PROPERTY_ITEM |
-                                        rt::PROPERTY_CURRENT});
-    o.OnTimedDataNodeModified();
-    o.OnEventsChanged();
+  for (auto [observer, range] : deferred->observers) {
+    observer->OnPropertyChanged(rt::PropertySet{
+        rt::PROPERTY_TITLE | rt::PROPERTY_ITEM | rt::PROPERTY_CURRENT});
+    observer->OnTimedDataNodeModified();
+    observer->OnEventsChanged();
   }
 }
 
@@ -27,16 +26,15 @@ bool AliasTimedData::IsError() const {
   return is_forwarded() && forwarded().IsError();
 }
 
-void AliasTimedData::SetFrom(base::Time from) {
-  if (is_forwarded())
-    forwarded().SetFrom(from);
-  else
-    deferred().from = from;
-}
-
 base::Time AliasTimedData::GetReadyFrom() const {
   return is_forwarded() ? forwarded().GetReadyFrom()
                         : rt::kTimedDataCurrentOnly;
+}
+
+const std::vector<scada::DateTimeRange>& AliasTimedData::GetReadyRanges()
+    const {
+  return is_forwarded() ? forwarded().GetReadyRanges()
+                        : rt::kReadyCurrentTimeOnly;
 }
 
 scada::DataValue AliasTimedData::GetDataValue() const {
@@ -54,18 +52,19 @@ const DataValues* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 
-void AliasTimedData::AddObserver(rt::TimedDataDelegate& observer) {
+void AliasTimedData::AddObserver(rt::TimedDataDelegate& observer,
+                                 const scada::DateTimeRange& range) {
   if (is_forwarded())
-    forwarded().AddObserver(observer);
+    forwarded().AddObserver(observer, range);
   else
-    deferred().observers.AddObserver(&observer);
+    deferred().observers.insert_or_assign(&observer, range);
 }
 
 void AliasTimedData::RemoveObserver(rt::TimedDataDelegate& observer) {
   if (is_forwarded())
     forwarded().RemoveObserver(observer);
   else
-    deferred().observers.RemoveObserver(&observer);
+    deferred().observers.erase(&observer);
 }
 
 std::string AliasTimedData::GetFormula(bool aliases) const {

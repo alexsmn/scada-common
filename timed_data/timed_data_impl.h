@@ -73,8 +73,7 @@ class TimedDataImpl : private TimedDataContext,
   std::unique_ptr<scada::MonitoredItem> monitored_value_;
 
   bool querying_ = false;
-  scada::DateTime querying_from_;
-  scada::DateTime querying_to_;
+  scada::DateTimeRange querying_range_;
 
   base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_{this};
 };
