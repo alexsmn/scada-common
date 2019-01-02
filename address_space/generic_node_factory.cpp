@@ -136,7 +136,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
 
   for (auto& [prop_decl_id, value] : node_state.properties) {
     auto status =
-        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
+        scada::SetPropertyValue(*node_ptr, prop_decl_id, std::move(value));
     if (!status)
       return {status, nullptr};
   }
