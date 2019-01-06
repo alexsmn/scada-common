@@ -14,7 +14,6 @@ class AliasTimedData final : public rt::TimedData {
 
   // rt::TimedData
   virtual bool IsError() const override;
-  virtual base::Time GetReadyFrom() const override;
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override;
   virtual scada::DataValue GetDataValue() const override;

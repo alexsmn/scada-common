@@ -29,7 +29,6 @@ class TimedData {
 
   virtual bool IsError() const { return false; }
 
-  virtual base::Time GetReadyFrom() const = 0;
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const = 0;
 
   virtual scada::DataValue GetDataValue() const = 0;

@@ -14,7 +14,8 @@ class ExpressionTimedData final : public BaseTimedData,
                                   private TimedDataDelegate {
  public:
   ExpressionTimedData(std::unique_ptr<ScadaExpression> expression,
-                      std::vector<std::shared_ptr<TimedData>> operands);
+                      std::vector<std::shared_ptr<TimedData>> operands,
+                      std::shared_ptr<const Logger> logger);
   ~ExpressionTimedData();
 
   // TimedData
@@ -37,7 +38,7 @@ class ExpressionTimedData final : public BaseTimedData,
   bool CalculateCurrent();
 
   // TimedData
-  virtual void OnFromChanged() override;
+  virtual void OnRangesChanged() override;
 
   // TimedDataDelegate
   virtual void OnPropertyChanged(const PropertySet& properties) override;
@@ -49,6 +50,9 @@ class ExpressionTimedData final : public BaseTimedData,
 
   std::unique_ptr<ScadaExpression> expression_;
   std::vector<std::shared_ptr<TimedData>> operands_;
+
+  scada::DateTime from_;
+  scada::DateTime ready_from_;
 };
 
 }  // namespace rt

@@ -26,11 +26,6 @@ bool AliasTimedData::IsError() const {
   return is_forwarded() && forwarded().IsError();
 }
 
-base::Time AliasTimedData::GetReadyFrom() const {
-  return is_forwarded() ? forwarded().GetReadyFrom()
-                        : rt::kTimedDataCurrentOnly;
-}
-
 const std::vector<scada::DateTimeRange>& AliasTimedData::GetReadyRanges()
     const {
   return is_forwarded() ? forwarded().GetReadyRanges()

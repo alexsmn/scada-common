@@ -1,10 +1,12 @@
 #include "timed_data/base_timed_data.h"
 
 #include "base/format.h"
+#include "base/format_time.h"
 #include "common/data_value_util.h"
 #include "common/event_manager.h"
 #include "common/interval_util.h"
 #include "timed_data/timed_data_spec.h"
+#include "timed_data/timed_data_util.h"
 
 namespace rt {
 
@@ -12,7 +14,8 @@ const base::Time kTimedDataCurrentOnly = base::Time::Max();
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
-BaseTimedData::BaseTimedData() {}
+BaseTimedData::BaseTimedData(std::shared_ptr<const Logger> logger)
+    : logger_{std::move(logger)} {}
 
 BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
@@ -39,46 +42,63 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
 
 void BaseTimedData::AddObserver(TimedDataDelegate& observer,
                                 const scada::DateTimeRange& range) {
+  assert(IsValidInterval(range));
+
   if (!observers_.HasObserver(&observer))
     observers_.AddObserver(&observer);
 
-  ranges_.insert_or_assign(&observer, range);
+  bool inserted = observer_ranges_.insert_or_assign(&observer, range).second;
 
-  auto from = CalculateFrom();
-  SetFrom(from);
+  logger_->WriteF(LogSeverity::Normal, "%s range from %s to %s",
+                  inserted ? "Add" : "Update", FormatTime(range.first).c_str(),
+                  FormatTime(range.second).c_str());
+
+  RebuildRanges();
+  UpdateRanges();
 }
 
 void BaseTimedData::RemoveObserver(TimedDataDelegate& observer) {
   observers_.RemoveObserver(&observer);
+
+  scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
+  auto i = observer_ranges_.find(&observer);
+  if (i != observer_ranges_.end()) {
+    range = i->second;
+    observer_ranges_.erase(i);
+  }
+
+  logger_->WriteF(LogSeverity::Normal, "Remove range from %s to %s",
+                  FormatTime(range.first).c_str(),
+                  FormatTime(range.second).c_str());
+
+  RebuildRanges();
+  UpdateRanges();
 }
 
-scada::DateTime BaseTimedData::CalculateFrom() const {
-  auto from = kTimedDataCurrentOnly;
-  for (auto [observer, range] : ranges_)
-    from = std::min(from, range.first);
-  return from;
+void BaseTimedData::RebuildRanges() {
+  ranges_.clear();
+
+  for (auto [observer, range] : observer_ranges_) {
+    if (range.first != kTimedDataCurrentOnly)
+      UnionIntervals(ranges_, range);
+  }
 }
 
-void BaseTimedData::SetFrom(scada::DateTime from) {
-  if (from == from_)
-    return;
-
+void BaseTimedData::UpdateRanges() {
   // In the 'current only' mode historical values are not maintened.
-  if (!historical() && !current_.is_null())
+  if (historical() && !current_.is_null())
     UpdateHistory(current_);
 
-  from_ = from;
+  OnRangesChanged();
+}
 
-  OnFromChanged();
+std::optional<scada::DateTimeRange> BaseTimedData::FindNextGap() const {
+  return FindFirstGap(ranges_, ready_ranges_);
 }
 
 void BaseTimedData::SetReady(const scada::DateTimeRange& range) {
   UnionIntervals(ready_ranges_, range);
-
-  if (!ready_ranges_.empty()) {
-    ready_from_ = ready_ranges_.front().first;
-    from_ = std::min(from_, range.first);
-  }
+  NotifyDataReady();
 }
 
 void BaseTimedData::Write(double value,

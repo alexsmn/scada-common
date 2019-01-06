@@ -5,7 +5,10 @@ file(GLOB sources
   "../timed_data/*.h"
 )
 
-file(GLOB unittests "*_unittest.*")
+file(GLOB unittests
+  "*_unittest.*"
+  "../timed_data/*_unittest.*"
+)
 
 list(REMOVE_ITEM sources ${unittests})
 

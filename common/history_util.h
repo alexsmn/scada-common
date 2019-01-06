@@ -33,10 +33,7 @@ class ScopedContinuationPoint {
     }
   }
 
-  ~ScopedContinuationPoint() {
-    if (service_)
-      CancelHistory(*service_, details_, std::move(continuation_point_));
-  }
+  ~ScopedContinuationPoint() { reset(); }
 
   ScopedContinuationPoint(ScopedContinuationPoint&& source)
       : service_{source.service_},
@@ -56,6 +53,14 @@ class ScopedContinuationPoint {
   }
 
   bool empty() const { return !service_; }
+
+  void reset() {
+    if (service_) {
+      CancelHistory(*service_, details_, std::move(continuation_point_));
+      continuation_point_.clear();
+      service_ = nullptr;
+    }
+  }
 
   scada::ByteString release() {
     service_ = nullptr;

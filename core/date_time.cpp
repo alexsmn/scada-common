@@ -11,6 +11,6 @@ base::string16 ToString16(scada::DateTime time) {
   return base::ASCIIToUTF16(FormatTime(time));
 }
 
-std::ostream& operator<<(std::ostream& stream, scada::DateTime time) {
+/*std::ostream& operator<<(std::ostream& stream, scada::DateTime time) {
   return stream << FormatTime(time);
-}
+}*/

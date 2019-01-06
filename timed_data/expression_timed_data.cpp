@@ -3,13 +3,17 @@
 #include "timed_data/scada_expression.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_spec.h"
+#include "timed_data/timed_data_util.h"
 
 namespace rt {
 
 ExpressionTimedData::ExpressionTimedData(
     std::unique_ptr<ScadaExpression> expression,
-    std::vector<std::shared_ptr<TimedData>> operands)
-    : expression_{std::move(expression)}, operands_{std::move(operands)} {
+    std::vector<std::shared_ptr<TimedData>> operands,
+    std::shared_ptr<const Logger> logger)
+    : BaseTimedData{std::move(logger)},
+      expression_{std::move(expression)},
+      operands_{std::move(operands)} {
   for (auto& operand : operands_)
     operand->AddObserver(*this, {from_, rt::kTimedDataCurrentOnly});
   CalculateCurrent();
@@ -28,7 +32,7 @@ scada::LocalizedText ExpressionTimedData::GetTitle() const {
   return scada::ToLocalizedText(expression_->Format(true));
 }
 
-void ExpressionTimedData::OnFromChanged() {
+void ExpressionTimedData::OnRangesChanged() {
   size_t num_operands = operands_.size();
 
   // connect operands
@@ -49,9 +53,11 @@ void ExpressionTimedData::Acknowledge() {
 base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
   base::Time ready_from;
 
+  scada::DateTimeRange range{from_, kTimedDataCurrentOnly};
   for (size_t i = 0; i < operands_.size(); ++i) {
     const auto& operand = *operands_[i];
-    base::Time operand_ready_from = operand.GetReadyFrom();
+    base::Time operand_ready_from =
+        GetReadyFrom(operand.GetReadyRanges(), range);
 
     if (operand_ready_from == kTimedDataCurrentOnly)
       return kTimedDataCurrentOnly;
@@ -74,7 +80,6 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
     auto& operand = *operands_[i];
-    assert(operand.GetReadyFrom() <= range.first);
 
     const DataValues* values = operand.GetValues();
     assert(values);
@@ -166,8 +171,6 @@ bool ExpressionTimedData::CalculateReadyRange() {
     return false;
 
   assert(!operands_ready_from.is_null());
-  // Operands can't be less ready than we already know.
-  assert(operands_ready_from <= ready_from_);
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
   CalculateRange(range, NULL);

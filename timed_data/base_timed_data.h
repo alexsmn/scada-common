@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/logger.h"
 #include "base/observer_list.h"
 #include "timed_data/timed_data.h"
 
@@ -9,11 +10,10 @@ class PropertySet;
 
 class BaseTimedData : public TimedData {
  public:
-  BaseTimedData();
+  explicit BaseTimedData(std::shared_ptr<const Logger> logger);
   ~BaseTimedData();
 
   // TimedData
-  virtual base::Time GetReadyFrom() const override { return ready_from_; }
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override {
     return ready_ranges_;
@@ -43,8 +43,12 @@ class BaseTimedData : public TimedData {
 
   // Update |ready_from_| to new |time| if new time is earlier.
   void SetReady(const scada::DateTimeRange& range);
-  // |from_| parameter was changed. Data needs to be updated.
-  virtual void OnFromChanged() = 0;
+
+  void RebuildRanges();
+  void UpdateRanges();
+  std::optional<scada::DateTimeRange> FindNextGap() const;
+  // |ranges_| and |from_| were changed. Data needs to be updated.
+  virtual void OnRangesChanged() = 0;
 
   void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
   void NotifyDataReady();
@@ -59,6 +63,8 @@ class BaseTimedData : public TimedData {
   void Delete();
   void Failed();
 
+  const std::shared_ptr<const Logger> logger_;
+
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;
 
@@ -66,20 +72,12 @@ class BaseTimedData : public TimedData {
   base::Time change_time_;
 
   base::ObserverList<TimedDataDelegate> observers_;
-  std::map<TimedDataDelegate*, scada::DateTimeRange> ranges_;
-
-  base::Time from_ = kTimedDataCurrentOnly;
-
-  // Requested historical range. kTimedDataCurrentOnly if is not ready at all.
-  base::Time ready_from_ = kTimedDataCurrentOnly;
+  std::map<TimedDataDelegate*, scada::DateTimeRange> observer_ranges_;
+  std::vector<scada::DateTimeRange> ranges_;
 
   std::vector<scada::DateTimeRange> ready_ranges_;
 
   DataValues values_;
-
- private:
-  scada::DateTime CalculateFrom() const;
-  void SetFrom(scada::DateTime from);
 
   DISALLOW_COPY_AND_ASSIGN(BaseTimedData);
 };

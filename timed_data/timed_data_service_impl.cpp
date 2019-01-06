@@ -1,5 +1,6 @@
 #include "timed_data/timed_data_service_impl.h"
 
+#include "base/nested_logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/node_id_util.h"
@@ -58,8 +59,9 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
         expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i)
       operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
-    return std::make_shared<rt::ExpressionTimedData>(std::move(expression),
-                                                     std::move(operands));
+    auto logger = std::make_shared<NestedLogger>(logger_, formula.as_string());
+    return std::make_shared<rt::ExpressionTimedData>(
+        std::move(expression), std::move(operands), std::move(logger));
   }
 }
 

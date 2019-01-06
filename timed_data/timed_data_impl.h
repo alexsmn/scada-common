@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/memory/weak_ptr.h"
-#include "base/nested_logger.h"
 #include "common/event_observer.h"
 #include "common/history_util.h"
 #include "common/node_observer.h"
@@ -18,7 +17,8 @@ class MonitoredItemService;
 
 namespace rt {
 
-class TimedDataImpl : private TimedDataContext,
+class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
+                      private TimedDataContext,
                       public BaseTimedData,
                       private NodeRefObserver,
                       private events::EventObserver {
@@ -46,12 +46,13 @@ class TimedDataImpl : private TimedDataContext,
 
  protected:
   // TimedData
-  virtual void OnFromChanged() override;
+  virtual void OnRangesChanged() override;
 
  private:
   void SetNode(const NodeRef& node);
 
-  void QueryValues(ScopedContinuationPoint continuation_point);
+  void FetchNextGap();
+  void FetchMore(ScopedContinuationPoint continuation_point);
 
   void OnHistoryReadRawComplete(std::vector<scada::DataValue> values,
                                 ScopedContinuationPoint continuation_point);
@@ -66,7 +67,6 @@ class TimedDataImpl : private TimedDataContext,
   virtual void OnItemEventsChanged(const scada::NodeId& node_id,
                                    const events::EventSet& events) override;
 
-  const std::shared_ptr<const Logger> logger_;
   const scada::AggregateFilter aggregate_filter_;
 
   NodeRef node_;

@@ -6,6 +6,7 @@
 #include "common/node_util.h"
 #include "common/scada_node_ids.h"
 #include "timed_data/timed_data_service.h"
+#include "timed_data/timed_data_util.h"
 
 #include <algorithm>
 
@@ -31,6 +32,8 @@ void TimedDataSpec::SetFrom(base::Time from) {
 }
 
 void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
+  assert(IsValidInterval(range));
+
   if (range_ == range)
     return;
 
@@ -95,8 +98,15 @@ bool TimedDataSpec::logical() const {
 }
 
 bool TimedDataSpec::ready() const {
+  return range_ready(range_);
+}
+
+bool TimedDataSpec::range_ready(const scada::DateTimeRange& range) const {
+  if (!data_)
+    return false;
+
   const auto& ready_ranges = data_->GetReadyRanges();
-  return IntervalContains(ready_ranges, range_);
+  return IntervalContains(ready_ranges, range);
 }
 
 TimedDataSpec& TimedDataSpec::operator=(const TimedDataSpec& other) {
@@ -143,7 +153,8 @@ bool TimedDataSpec::alerting() const {
 }
 
 base::Time TimedDataSpec::ready_from() const {
-  return data_ ? data_->GetReadyFrom() : kTimedDataCurrentOnly;
+  return data_ ? GetReadyFrom(data_->GetReadyRanges(), range_)
+               : kTimedDataCurrentOnly;
 }
 
 scada::DataValue TimedDataSpec::current() const {

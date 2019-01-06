@@ -13,6 +13,12 @@ inline bool IsValidInterval(const Interval<T>& interval) {
 }
 
 template <class T>
+inline bool IsEmptyInterval(const Interval<T>& interval) {
+  assert(IsValidInterval(interval));
+  return interval.first == interval.second;
+}
+
+template <class T>
 inline bool IsValidInterval(const std::vector<Interval<T>>& intervals) {
   return std::all_of(
              intervals.begin(), intervals.end(),
@@ -49,6 +55,13 @@ inline bool IntervalsOverlap(const Interval<T>& a, const Interval<T>& b) {
   assert(IsValidInterval(a));
   assert(IsValidInterval(b));
   return a.first < b.second && b.first < a.second;
+}
+
+template <class T>
+inline Interval<T> IntervalsIntersection(const Interval<T>& a,
+                                         const Interval<T>& b) {
+  assert(IntervalsOverlap(a, b));
+  return {std::max(a.first, b.first), std::min(a.second, b.second)};
 }
 
 template <class T>

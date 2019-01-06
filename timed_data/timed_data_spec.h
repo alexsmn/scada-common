@@ -54,6 +54,7 @@ class TimedDataSpec : private TimedDataDelegate {
   bool historical() const;
   bool logical() const;
   bool ready() const;  // connected and all requested data was received
+  bool range_ready(const scada::DateTimeRange& range) const;
   scada::DataValue current() const;
   base::Time change_time() const;
 
