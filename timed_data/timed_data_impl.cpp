@@ -269,19 +269,19 @@ void TimedDataImpl::OnHistoryReadRawComplete(
     }
   }
 
-  scada::DateTime ready_from;
+  scada::DateTime ready_to;
   if (continuation_point.empty())
-    ready_from = querying_range_.first;
+    ready_to = querying_range_.second;
   else if (!values.empty())
-    ready_from = values.front().source_timestamp;
+    ready_to = values.back().source_timestamp;
 
-  if (!ready_from.is_null()) {
+  if (!ready_to.is_null()) {
     logger_->WriteF(LogSeverity::Normal,
                     "Query result %Iu values. Ready from %s to %s",
-                    values.size(), FormatTime(ready_from).c_str(),
-                    FormatTime(querying_range_.second).c_str());
+                    values.size(), FormatTime(querying_range_.first).c_str(),
+                    FormatTime(ready_to).c_str());
 
-    SetReady({ready_from, querying_range_.second});
+    SetReady({querying_range_.first, ready_to});
   }
 
   // Query next fragment of data if |from_| changed from moment of last query.
