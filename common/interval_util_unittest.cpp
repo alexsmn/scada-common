@@ -89,3 +89,23 @@ TEST(DateTimeUtil, MergeTwoAndExpandBothSides) {
   const std::vector<Range> kExpectedRanges = {{50, 450}};
   EXPECT_EQ(ranges, kExpectedRanges);
 }
+
+TEST(IntervalUtil, IntervalContains) {
+  using Range = std::pair<int, int>;
+  std::vector<Range> ranges = {{100, 200}, {300, 400}, {500, 600}};
+  EXPECT_FALSE(IntervalContains(ranges, {50, 100}));
+  EXPECT_TRUE(IntervalContains(ranges, {100, 150}));
+  EXPECT_TRUE(IntervalContains(ranges, {100, 200}));
+  EXPECT_TRUE(IntervalContains(ranges, {150, 200}));
+  EXPECT_FALSE(IntervalContains(ranges, {200, 250}));
+  EXPECT_FALSE(IntervalContains(ranges, {250, 300}));
+  EXPECT_TRUE(IntervalContains(ranges, {300, 400}));
+  EXPECT_TRUE(IntervalContains(ranges, {300, 350}));
+  EXPECT_TRUE(IntervalContains(ranges, {350, 400}));
+  EXPECT_FALSE(IntervalContains(ranges, {400, 450}));
+  EXPECT_FALSE(IntervalContains(ranges, {450, 500}));
+  EXPECT_TRUE(IntervalContains(ranges, {500, 550}));
+  EXPECT_TRUE(IntervalContains(ranges, {500, 600}));
+  EXPECT_TRUE(IntervalContains(ranges, {550, 600}));
+  EXPECT_FALSE(IntervalContains(ranges, {600, 650}));
+}
