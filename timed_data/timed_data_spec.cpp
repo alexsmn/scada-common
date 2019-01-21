@@ -103,7 +103,7 @@ bool TimedDataSpec::ready() const {
 
 bool TimedDataSpec::range_ready(const scada::DateTimeRange& range) const {
   if (!data_)
-    return false;
+    return true;
 
   const auto& ready_ranges = data_->GetReadyRanges();
   return IntervalContains(ready_ranges, range);
