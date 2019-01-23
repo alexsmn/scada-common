@@ -103,6 +103,9 @@ void BaseTimedData::RebuildRanges() {
     if (range.first != kTimedDataCurrentOnly)
       UnionIntervals(ranges_, range);
   }
+
+  if (!ranges_.empty())
+    historical_ = true;
 }
 
 void BaseTimedData::UpdateRanges() {
@@ -237,6 +240,8 @@ std::string BaseTimedData::DumpDebugInfo() const {
   Dump(stream, ranges_);
   stream << "Ready ranges:" << std::endl;
   Dump(stream, ready_ranges_);
+  stream << "Historical: " << historical_ << std::endl;
+  stream << "Value count: " << values_.size() << std::endl;
   return stream.str();
 }
 

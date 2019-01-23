@@ -40,7 +40,7 @@ class BaseTimedData : public TimedData {
   virtual std::string DumpDebugInfo() const override;
 
  protected:
-  bool historical() const { return !ranges_.empty(); }
+  bool historical() const { return historical_; }
 
   // Update |ready_from_| to new |time| if new time is earlier.
   void SetReady(const scada::DateTimeRange& range);
@@ -75,6 +75,10 @@ class BaseTimedData : public TimedData {
   base::ObserverList<TimedDataDelegate> observers_;
   std::map<TimedDataDelegate*, scada::DateTimeRange> observer_ranges_;
   std::vector<scada::DateTimeRange> ranges_;
+
+  // Populate history with currents. Turns to this mode on a first historical
+  // subscription, and then never changes back.
+  bool historical_ = false;
 
   std::vector<scada::DateTimeRange> ready_ranges_;
 
