@@ -5,6 +5,8 @@
 template <class T>
 class span {
  public:
+  const span() noexcept {}
+
   constexpr span(T* begin, T* end) noexcept : begin_{begin}, end_{end} {}
 
   constexpr span(T* data, std::size_t size) noexcept
@@ -40,6 +42,6 @@ class span {
   }
 
  private:
-  T* begin_;
-  T* end_;
+  T* begin_ = nullptr;
+  T* end_ = nullptr;
 };
