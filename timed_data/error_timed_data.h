@@ -2,7 +2,7 @@
 
 #include "timed_data/timed_data.h"
 
-class ErrorTimedData final : public rt::TimedData {
+class ErrorTimedData final : public TimedData {
  public:
   ErrorTimedData(std::string formula, scada::LocalizedText title)
       : formula_{std::move(formula)}, title_{std::move(title)} {}
@@ -15,16 +15,16 @@ class ErrorTimedData final : public rt::TimedData {
   }
   virtual base::Time GetChangeTime() const override { return {}; }
   virtual const DataValues* GetValues() const override { return nullptr; }
-  virtual void AddObserver(rt::TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataDelegate& observer,
                            const scada::DateTimeRange& range) override {}
-  virtual void RemoveObserver(rt::TimedDataDelegate& observer) override {}
+  virtual void RemoveObserver(TimedDataDelegate& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {
     return formula_;
   }
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override { return NodeRef{}; }
   virtual bool IsAlerting() const override { return false; }
-  virtual const events::EventSet* GetEvents() const override { return nullptr; }
+  virtual const EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}
   virtual void Write(double value,
                      const scada::NodeId& user_id,

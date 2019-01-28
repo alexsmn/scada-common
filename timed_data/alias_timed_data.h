@@ -6,13 +6,13 @@
 
 #include <memory>
 
-class AliasTimedData final : public rt::TimedData {
+class AliasTimedData final : public TimedData {
  public:
   explicit AliasTimedData(std::string formula);
 
-  void SetForwarded(std::shared_ptr<rt::TimedData> timed_data);
+  void SetForwarded(std::shared_ptr<TimedData> timed_data);
 
-  // rt::TimedData
+  // TimedData
   virtual bool IsError() const override;
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override;
@@ -20,14 +20,14 @@ class AliasTimedData final : public rt::TimedData {
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
   virtual const DataValues* GetValues() const override;
-  virtual void AddObserver(rt::TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataDelegate& observer,
                            const scada::DateTimeRange& range) override;
-  virtual void RemoveObserver(rt::TimedDataDelegate& observer) override;
+  virtual void RemoveObserver(TimedDataDelegate& observer) override;
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
   virtual bool IsAlerting() const override;
-  virtual const events::EventSet* GetEvents() const override;
+  virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
   virtual void Write(double value,
                      const scada::NodeId& user_id,
@@ -44,7 +44,7 @@ class AliasTimedData final : public rt::TimedData {
     DeferredData(std::string formula) : formula{std::move(formula)} {}
 
     const std::string formula;
-    std::map<rt::TimedDataDelegate*, scada::DateTimeRange /*range*/> observers;
+    std::map<TimedDataDelegate*, scada::DateTimeRange /*range*/> observers;
   };
 
   bool is_forwarded() const { return data_.index() == 1; }
@@ -65,6 +65,6 @@ class AliasTimedData final : public rt::TimedData {
     return const_cast<AliasTimedData*>(this)->forwarded();
   }
 
-  std::variant<std::unique_ptr<DeferredData>, std::shared_ptr<rt::TimedData>>
+  std::variant<std::unique_ptr<DeferredData>, std::shared_ptr<TimedData>>
       data_;
 };

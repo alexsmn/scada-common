@@ -4,8 +4,6 @@
 
 #include "core/data_value.h"
 
-namespace rt {
-
 struct TimedDataEntry {
   VQ vq;
   base::Time collection_time;
@@ -13,5 +11,3 @@ struct TimedDataEntry {
 
 typedef std::map<base::Time, TimedDataEntry> TimedValues;
 typedef TimedValues::const_iterator TimedValuesIterator;
-
-} // namespace rt

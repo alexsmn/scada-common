@@ -16,8 +16,6 @@ static const Lexem LEX_UNITS = 'u';
 
 }  // namespace expression
 
-namespace rt {
-
 static bool _aliases;
 
 inline bool wp_isalpha(char ch) {
@@ -331,5 +329,3 @@ size_t ScadaExpression::GetNodeCount() const {
 
   return count;
 }
-
-}  // namespace rt

@@ -30,10 +30,10 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
-std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
+std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     base::StringPiece formula,
     const scada::AggregateFilter& aggregation) {
-  auto expression = std::make_unique<rt::ScadaExpression>();
+  auto expression = std::make_unique<ScadaExpression>();
 
   // May throw std::exception.
   try {
@@ -44,7 +44,7 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
         base::WideToUTF16(base::SysNativeMBToWide(e.what())));
   }
 
-  std::shared_ptr<rt::TimedData> data;
+  std::shared_ptr<TimedData> data;
 
   std::string name;
   if (expression->IsSingleName(name)) {
@@ -55,17 +55,16 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     return GetAliasTimedData(unbraced_name, aggregation);
 
   } else {
-    std::vector<std::shared_ptr<rt::TimedData>> operands(
-        expression->items.size());
+    std::vector<std::shared_ptr<TimedData>> operands(expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i)
       operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
     auto logger = std::make_shared<NestedLogger>(logger_, formula.as_string());
-    return std::make_shared<rt::ExpressionTimedData>(
+    return std::make_shared<ExpressionTimedData>(
         std::move(expression), std::move(operands), std::move(logger));
   }
 }
 
-std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
+std::shared_ptr<TimedData> TimedDataServiceImpl::GetNodeTimedData(
     const scada::NodeId& node_id,
     const scada::AggregateFilter& aggregation) {
   if (node_id.is_null())
@@ -82,14 +81,14 @@ std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetNodeTimedData(
   auto& context = static_cast<TimedDataContext&>(*this);
   auto logger =
       std::make_shared<NestedLogger>(logger_, NodeIdToScadaString(node_id));
-  auto timed_data = std::make_shared<rt::TimedDataImpl>(
+  auto timed_data = std::make_shared<TimedDataImpl>(
       node, std::move(aggregation), context, logger);
 
   node_id_cache_.Add(cache_key, timed_data);
   return timed_data;
 }
 
-std::shared_ptr<rt::TimedData> TimedDataServiceImpl::GetAliasTimedData(
+std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
     base::StringPiece alias,
     const scada::AggregateFilter& aggregation) {
   auto node_id = NodeIdFromScadaString(alias);

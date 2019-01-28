@@ -7,8 +7,6 @@
 #include <deque>
 #include <map>
 
-class Logger;
-
 namespace boost::asio {
 class io_context;
 }
@@ -20,8 +18,7 @@ class MonitoredItem;
 class MonitoredItemService;
 }  // namespace scada
 
-namespace events {
-
+class Logger;
 class EventObserver;
 
 struct EventManagerContext {
@@ -140,5 +137,3 @@ inline bool EventManager::IsAlerting(const scada::NodeId& item_id) const {
   const EventSet* events = GetItemUnackedEvents(item_id);
   return events && !events->empty();
 }
-
-}  // namespace events

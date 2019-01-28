@@ -5,19 +5,17 @@
 
 #include <memory>
 
-namespace rt {
 class TimedData;
-}
 
 class TimedDataService {
  public:
   virtual ~TimedDataService() {}
 
-  virtual std::shared_ptr<rt::TimedData> GetNodeTimedData(
+  virtual std::shared_ptr<TimedData> GetNodeTimedData(
       const scada::NodeId& node_id,
       const scada::AggregateFilter& aggregation) = 0;
 
-  virtual std::shared_ptr<rt::TimedData> GetFormulaTimedData(
+  virtual std::shared_ptr<TimedData> GetFormulaTimedData(
       base::StringPiece formula,
       const scada::AggregateFilter& aggregation) = 0;
 };

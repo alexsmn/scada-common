@@ -4,8 +4,6 @@
 
 #include "core/event.h"
 
-namespace events {
-
 struct EventComparer {
   bool operator()(const scada::Event* left, const scada::Event* right) const {
     if (left->time < right->time)
@@ -18,5 +16,3 @@ struct EventComparer {
 
 class EventSet : public std::set<const scada::Event*, EventComparer> {
 };
-
-} // namespace events

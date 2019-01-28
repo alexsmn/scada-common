@@ -6,8 +6,6 @@ namespace scada {
 class DataValue;
 }
 
-namespace rt {
-
 class TimedDataDelegate {
  public:
   virtual void OnTimedDataCorrections(size_t count, const scada::DataValue* tvqs) {}
@@ -17,5 +15,3 @@ class TimedDataDelegate {
   virtual void OnEventsChanged() {}
   virtual void OnPropertyChanged(const PropertySet& properties) {}
 };
-
-} // namespace rt

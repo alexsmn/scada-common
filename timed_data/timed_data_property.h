@@ -1,7 +1,5 @@
 #pragma once
 
-namespace rt {
-
 // Note: Changing of PROPERTY_ITEM means change of PROPERTY_TITLE.
 enum TimedDataPropertyID { PROPERTY_TITLE   = 0x0001,
                            PROPERTY_ITEM    = 0x0002,
@@ -23,5 +21,3 @@ class PropertySet {
  private:
   unsigned mask_;
 };
-
-} // namespace rt

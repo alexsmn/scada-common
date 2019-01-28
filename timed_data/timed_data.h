@@ -12,12 +12,7 @@
 #include "core/status.h"
 #include "core/write_flags.h"
 
-namespace events {
 class EventSet;
-}
-
-namespace rt {
-
 class TimedDataDelegate;
 
 extern const base::Time kTimedDataCurrentOnly;
@@ -46,7 +41,7 @@ class TimedData {
   virtual NodeRef GetNode() const = 0;
 
   virtual bool IsAlerting() const = 0;
-  virtual const events::EventSet* GetEvents() const = 0;
+  virtual const EventSet* GetEvents() const = 0;
   // Acknowledge all active events related to this data.
   virtual void Acknowledge() = 0;
 
@@ -64,5 +59,3 @@ class TimedData {
 
   virtual std::string DumpDebugInfo() const = 0;
 };
-
-}  // namespace rt

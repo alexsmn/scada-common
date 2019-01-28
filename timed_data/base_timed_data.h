@@ -4,8 +4,6 @@
 #include "base/observer_list.h"
 #include "timed_data/timed_data.h"
 
-namespace rt {
-
 class PropertySet;
 
 class BaseTimedData : public TimedData {
@@ -27,7 +25,7 @@ class BaseTimedData : public TimedData {
                            const scada::DateTimeRange& range) override;
   virtual void RemoveObserver(TimedDataDelegate& observer) override;
   virtual NodeRef GetNode() const override { return nullptr; }
-  virtual const events::EventSet* GetEvents() const override { return nullptr; }
+  virtual const EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}
   virtual void Write(double value,
                      const scada::NodeId& user_id,
@@ -86,5 +84,3 @@ class BaseTimedData : public TimedData {
 
   DISALLOW_COPY_AND_ASSIGN(BaseTimedData);
 };
-
-}  // namespace rt

@@ -5,14 +5,9 @@
 #include "timed_data/timed_data_context.h"
 #include "timed_data/timed_data_service.h"
 
+class TimedDataImpl;
 class AliasTimedData;
 class Logger;
-template <class Key, class Value>
-class TimedDataCache;
-
-namespace rt {
-class TimedDataImpl;
-}
 
 class TimedDataServiceImpl final : private TimedDataContext,
                                    public TimedDataService {
@@ -21,28 +16,28 @@ class TimedDataServiceImpl final : private TimedDataContext,
                        std::shared_ptr<const Logger> logger);
   virtual ~TimedDataServiceImpl();
 
-  virtual std::shared_ptr<rt::TimedData> GetFormulaTimedData(
+  virtual std::shared_ptr<TimedData> GetFormulaTimedData(
       base::StringPiece formula,
       const scada::AggregateFilter& aggregation) override;
-  virtual std::shared_ptr<rt::TimedData> GetNodeTimedData(
+  virtual std::shared_ptr<TimedData> GetNodeTimedData(
       const scada::NodeId& node_id,
       const scada::AggregateFilter& aggregation) override;
 
  private:
-  std::shared_ptr<rt::TimedData> GetAliasTimedData(
+  std::shared_ptr<TimedData> GetAliasTimedData(
       base::StringPiece alias,
       const scada::AggregateFilter& aggregation);
 
   const std::shared_ptr<const Logger> logger_;
 
   TimedCache<std::pair<scada::NodeId, scada::AggregateFilter>,
-             std::shared_ptr<rt::TimedDataImpl>>
+             std::shared_ptr<TimedDataImpl>>
       node_id_cache_;
   TimedCache<std::pair<std::string, scada::AggregateFilter>,
              std::shared_ptr<AliasTimedData>>
       alias_cache_;
 
-  const std::shared_ptr<rt::TimedData> null_timed_data_;
+  const std::shared_ptr<TimedData> null_timed_data_;
 
   base::WeakPtrFactory<TimedDataServiceImpl> weak_ptr_factory_{this};
 };

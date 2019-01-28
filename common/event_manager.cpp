@@ -12,8 +12,6 @@
 
 #include <boost/asio/io_context.hpp>
 
-namespace events {
-
 static const size_t kMaxParallelAcks = 5;
 
 EventManager::EventManager(EventManagerContext&& context)
@@ -270,5 +268,3 @@ void EventManager::OnHistoryReadEventsComplete(
     OnEvent(event);
   }
 }
-
-}  // namespace events

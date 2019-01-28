@@ -6,8 +6,6 @@
 
 #include <vector>
 
-namespace rt {
-
 class ScadaExpression : private expression::ExpressionDelegate {
  public:
   struct Item {
@@ -57,5 +55,3 @@ class ScadaExpression : private expression::ExpressionDelegate {
 
   expression::Expression expression_;
 };
-
-}  // namespace rt

@@ -5,8 +5,6 @@
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
-namespace rt {
-
 ExpressionTimedData::ExpressionTimedData(
     std::unique_ptr<ScadaExpression> expression,
     std::vector<std::shared_ptr<TimedData>> operands,
@@ -15,7 +13,7 @@ ExpressionTimedData::ExpressionTimedData(
       expression_{std::move(expression)},
       operands_{std::move(operands)} {
   for (auto& operand : operands_)
-    operand->AddObserver(*this, {from_, rt::kTimedDataCurrentOnly});
+    operand->AddObserver(*this, {from_, kTimedDataCurrentOnly});
   CalculateCurrent();
 }
 
@@ -37,7 +35,7 @@ void ExpressionTimedData::OnRangesChanged() {
 
   // connect operands
   for (size_t i = 0; i < num_operands; ++i)
-    operands_[i]->AddObserver(*this, {from_, rt::kTimedDataCurrentOnly});
+    operands_[i]->AddObserver(*this, {from_, kTimedDataCurrentOnly});
 
   if (historical())
     CalculateReadyRange();
@@ -258,8 +256,6 @@ void ExpressionTimedData::OnTimedDataNodeModified() {}
 
 void ExpressionTimedData::OnTimedDataDeleted() {}
 
-const events::EventSet* ExpressionTimedData::GetEvents() const {
+const EventSet* ExpressionTimedData::GetEvents() const {
   return NULL;
 }
-
-}  // namespace rt

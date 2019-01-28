@@ -19,8 +19,6 @@
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
-namespace rt {
-
 namespace {
 
 const size_t kMaxReadCount = 10000;
@@ -239,7 +237,7 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 }
 
 void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
-                                        const events::EventSet& events) {
+                                        const EventSet& events) {
   assert(node_id == node_.node_id());
 
   alerting_ = !events.empty();
@@ -320,7 +318,7 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
   }
 }
 
-const events::EventSet* TimedDataImpl::GetEvents() const {
+const EventSet* TimedDataImpl::GetEvents() const {
   return node_ ? event_manager_.GetItemUnackedEvents(node_.node_id()) : nullptr;
 }
 
@@ -328,5 +326,3 @@ void TimedDataImpl::Acknowledge() {
   if (node_)
     event_manager_.AcknowledgeItemEvents(node_.node_id());
 }
-
-}  // namespace rt

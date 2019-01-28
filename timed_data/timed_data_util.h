@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <optional>
 
-namespace rt {
-
 inline scada::DateTime GetReadyFrom(
     span<const scada::DateTimeRange> ready_ranges,
     const scada::DateTimeRange& range) {
@@ -107,5 +105,3 @@ inline void ReplaceSubrange(std::vector<T>& values,
 
   assert(std::is_sorted(values.begin(), values.end(), comp));
 }
-
-}  // namespace rt

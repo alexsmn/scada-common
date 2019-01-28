@@ -6,8 +6,6 @@
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_delegate.h"
 
-namespace rt {
-
 class ScadaExpression;
 
 class ExpressionTimedData final : public BaseTimedData,
@@ -21,7 +19,7 @@ class ExpressionTimedData final : public BaseTimedData,
   // TimedData
   virtual std::string GetFormula(bool aliases) const override;
   virtual base::string16 GetTitle() const override;
-  virtual const events::EventSet* GetEvents() const override;
+  virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 
  private:
@@ -54,5 +52,3 @@ class ExpressionTimedData final : public BaseTimedData,
   scada::DateTime from_;
   scada::DateTime ready_from_;
 };
-
-}  // namespace rt

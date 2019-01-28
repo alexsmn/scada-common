@@ -4,8 +4,6 @@
 
 #include <gmock/gmock.h>
 
-namespace rt {
-
 class TestNodeModel final : public NodeModel {
  public:
   virtual scada::Status GetStatus() const override {
@@ -99,5 +97,3 @@ TEST(TimedDataImpl, Test) {
   /*auto timed_data = std::make_shared<TimedDataImpl>(node,
   scada::AggregateFilter{}, );*/
 }
-
-}  // namespace rt

@@ -8,10 +8,6 @@ namespace boost::asio {
 class io_context;
 }
 
-namespace events {
-class EventManager;
-}
-
 namespace scada {
 class AttributeService;
 class AddressSpace;
@@ -21,6 +17,7 @@ class MethodService;
 class MonitoredItemService;
 }
 
+class EventManager;
 class NodeService;
 
 struct TimedDataContext {
@@ -32,5 +29,5 @@ struct TimedDataContext {
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;
-  events::EventManager& event_manager_;
+  EventManager& event_manager_;
 };

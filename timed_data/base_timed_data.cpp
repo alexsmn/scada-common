@@ -12,8 +12,6 @@
 
 #include <sstream>
 
-namespace rt {
-
 namespace {
 
 template <class T>
@@ -244,5 +242,3 @@ std::string BaseTimedData::DumpDebugInfo() const {
   stream << "Value count: " << values_.size() << std::endl;
   return stream.str();
 }
-
-}  // namespace rt

@@ -5,8 +5,6 @@ class NodeId;
 class Event;
 }
 
-namespace events {
-
 class EventSet;
 
 class EventObserver {
@@ -16,5 +14,3 @@ class EventObserver {
   virtual void OnAllEventsAcknowledged() {}
   virtual void OnItemEventsChanged(const scada::NodeId& item_id, const EventSet& events) {}
 };
-
-} // namespace events

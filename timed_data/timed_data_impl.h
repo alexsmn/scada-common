@@ -15,13 +15,11 @@ class EventService;
 class MonitoredItemService;
 }  // namespace scada
 
-namespace rt {
-
 class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                       private TimedDataContext,
                       public BaseTimedData,
                       private NodeRefObserver,
-                      private events::EventObserver {
+                      private EventObserver {
  public:
   TimedDataImpl(NodeRef node,
                 scada::AggregateFilter aggregate_filter,
@@ -41,7 +39,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const StatusCallback& callback) const override;
-  virtual const events::EventSet* GetEvents() const override;
+  virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 
  protected:
@@ -63,9 +61,9 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) override;
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
 
-  // events::EventObserver
+  // EventObserver
   virtual void OnItemEventsChanged(const scada::NodeId& node_id,
-                                   const events::EventSet& events) override;
+                                   const EventSet& events) override;
 
   const scada::AggregateFilter aggregate_filter_;
 
@@ -77,5 +75,3 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
 
   base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_{this};
 };
-
-}  // namespace rt

@@ -24,8 +24,6 @@ namespace scada {
 class WriteFlags;
 }
 
-namespace rt {
-
 class TimedData;
 
 class TimedDataSpec : private TimedDataDelegate {
@@ -71,7 +69,7 @@ class TimedDataSpec : private TimedDataDelegate {
                                 int params = FORMAT_QUALITY |
                                              FORMAT_UNITS) const;
   base::string16 GetTitle() const;
-  const events::EventSet* GetEvents() const;
+  const EventSet* GetEvents() const;
 
   void Reset() { SetData(nullptr); }
 
@@ -119,5 +117,3 @@ class TimedDataSpec : private TimedDataDelegate {
   scada::AggregateFilter aggregate_filter_;
   scada::DateTimeRange range_{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
 };
-
-}  // namespace rt

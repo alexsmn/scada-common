@@ -10,8 +10,6 @@
 
 #include <algorithm>
 
-namespace rt {
-
 TimedDataSpec::TimedDataSpec() {}
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
@@ -185,7 +183,7 @@ scada::DataValue TimedDataSpec::GetValueAt(base::Time time) const {
   return data_ ? data_->GetValueAt(time) : scada::DataValue{};
 }
 
-const events::EventSet* TimedDataSpec::GetEvents() const {
+const EventSet* TimedDataSpec::GetEvents() const {
   return data_ ? data_->GetEvents() : nullptr;
 }
 
@@ -238,5 +236,3 @@ void TimedDataSpec::OnPropertyChanged(const PropertySet& properties) {
 std::string TimedDataSpec::DumpDebugInfo() const {
   return data_ ? data_->DumpDebugInfo() : std::string{};
 }
-
-}  // namespace rt

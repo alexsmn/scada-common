@@ -3,7 +3,7 @@
 AliasTimedData::AliasTimedData(std::string formula)
     : data_{std::make_unique<DeferredData>(std::move(formula))} {}
 
-void AliasTimedData::SetForwarded(std::shared_ptr<rt::TimedData> timed_data) {
+void AliasTimedData::SetForwarded(std::shared_ptr<TimedData> timed_data) {
   assert(!is_forwarded());
   assert(timed_data);
 
@@ -15,8 +15,8 @@ void AliasTimedData::SetForwarded(std::shared_ptr<rt::TimedData> timed_data) {
     timed_data->AddObserver(*observer, range);
 
   for (auto [observer, range] : deferred->observers) {
-    observer->OnPropertyChanged(rt::PropertySet{
-        rt::PROPERTY_TITLE | rt::PROPERTY_ITEM | rt::PROPERTY_CURRENT});
+    observer->OnPropertyChanged(
+        PropertySet{PROPERTY_TITLE | PROPERTY_ITEM | PROPERTY_CURRENT});
     observer->OnTimedDataNodeModified();
     observer->OnEventsChanged();
   }
@@ -28,8 +28,7 @@ bool AliasTimedData::IsError() const {
 
 const std::vector<scada::DateTimeRange>& AliasTimedData::GetReadyRanges()
     const {
-  return is_forwarded() ? forwarded().GetReadyRanges()
-                        : rt::kReadyCurrentTimeOnly;
+  return is_forwarded() ? forwarded().GetReadyRanges() : kReadyCurrentTimeOnly;
 }
 
 scada::DataValue AliasTimedData::GetDataValue() const {
@@ -47,7 +46,7 @@ const DataValues* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 
-void AliasTimedData::AddObserver(rt::TimedDataDelegate& observer,
+void AliasTimedData::AddObserver(TimedDataDelegate& observer,
                                  const scada::DateTimeRange& range) {
   if (is_forwarded())
     forwarded().AddObserver(observer, range);
@@ -55,7 +54,7 @@ void AliasTimedData::AddObserver(rt::TimedDataDelegate& observer,
     deferred().observers.insert_or_assign(&observer, range);
 }
 
-void AliasTimedData::RemoveObserver(rt::TimedDataDelegate& observer) {
+void AliasTimedData::RemoveObserver(TimedDataDelegate& observer) {
   if (is_forwarded())
     forwarded().RemoveObserver(observer);
   else
@@ -79,7 +78,7 @@ bool AliasTimedData::IsAlerting() const {
   return is_forwarded() ? forwarded().IsAlerting() : false;
 }
 
-const events::EventSet* AliasTimedData::GetEvents() const {
+const EventSet* AliasTimedData::GetEvents() const {
   return is_forwarded() ? forwarded().GetEvents() : nullptr;
 }
 

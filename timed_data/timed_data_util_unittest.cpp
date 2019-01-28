@@ -4,8 +4,6 @@
 
 using namespace testing;
 
-namespace rt {
-
 TEST(TimedDataUtil, FindLastGap1) {
   std::vector<Interval<int>> ranges = {
       {20, 50},
@@ -203,5 +201,3 @@ TEST(TimedDataUtil, ReplaceSubrange_End) {
   std::vector<int> expected = {10, 20, 30, 35, 40, 45, 50};
   EXPECT_EQ(expected, values);
 }
-
-}  // namespace rt
