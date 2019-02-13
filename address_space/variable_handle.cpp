@@ -103,4 +103,10 @@ void VariableHandle::Call(const NodeId& method_id,
     callback(StatusCode::Bad_WrongMethodId);
 }
 
+// static
+std::shared_ptr<VariableHandleImpl> VariableHandleImpl::Create() {
+  std::shared_ptr<VariableHandleImpl> result(new VariableHandleImpl);
+  return result;
+}
+
 }  // namespace scada

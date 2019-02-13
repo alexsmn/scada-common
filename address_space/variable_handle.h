@@ -54,6 +54,9 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
+ protected:
+  VariableHandle() {}
+
  private:
   friend class VariableMonitoredItem;
 
@@ -61,6 +64,11 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   base::Time last_change_time_;
 
   std::set<VariableMonitoredItem*> monitored_items_;
+};
+
+class VariableHandleImpl : public VariableHandle {
+ public:
+  static std::shared_ptr<VariableHandleImpl> Create();
 };
 
 std::unique_ptr<VariableMonitoredItem> CreateMonitoredVariable(
