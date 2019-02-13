@@ -46,7 +46,7 @@ class ScadaExpression : private expression::ExpressionDelegate {
                               void* data) const override;
   virtual std::string FormatLexem(const expression::Buffer& buffer,
                                   int pos,
-                                  expression::Lexem lexem) const;
+                                  expression::Lexem lexem) const override;
   virtual void TraverseLexem(const expression::Expression& expr,
                              int pos,
                              expression::Lexem lexem,
