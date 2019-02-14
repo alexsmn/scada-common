@@ -119,6 +119,8 @@ std::optional<scada::DateTimeRange> BaseTimedData::FindNextGap() const {
 }
 
 void BaseTimedData::SetReady(const scada::DateTimeRange& range) {
+  assert(historical());
+
   UnionIntervals(ready_ranges_, range);
   NotifyDataReady();
 }

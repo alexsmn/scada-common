@@ -49,6 +49,6 @@ class ExpressionTimedData final : public BaseTimedData,
   std::unique_ptr<ScadaExpression> expression_;
   std::vector<std::shared_ptr<TimedData>> operands_;
 
-  scada::DateTime from_;
-  scada::DateTime ready_from_;
+  scada::DateTime from_ = kTimedDataCurrentOnly;
+  scada::DateTime ready_from_ = kTimedDataCurrentOnly;
 };

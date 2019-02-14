@@ -122,6 +122,8 @@ void TimedDataImpl::FetchNextGap() {
     return;
 
   assert(!IsEmptyInterval(*gap));
+  assert(historical());
+
   querying_ = true;
   querying_range_ = *gap;
 
@@ -152,6 +154,7 @@ void TimedDataImpl::FetchNextGap() {
 }
 
 void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
+  assert(historical());
   assert(querying_);
   assert(!continuation_point.empty());
 
@@ -247,6 +250,7 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
 void TimedDataImpl::OnHistoryReadRawComplete(
     std::vector<scada::DataValue> values,
     ScopedContinuationPoint continuation_point) {
+  assert(historical());
   assert(querying_);
   assert(IsTimeSorted(values));
   assert(std::none_of(
