@@ -95,9 +95,11 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     std::size_t size() const { return queue_.size(); }
 
     FetchingNode& front() { return *queue_.front(); }
-    void pop() { queue_.pop_front(); }
+
+    std::size_t count(const FetchingNode& node) const;
 
     void push(FetchingNode& node);
+    void pop();
     void erase(FetchingNode& node);
 
    private:

@@ -150,7 +150,7 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
 }
 
 void NodeFetcherImpl::FetchNode(FetchingNode& node) {
-  if (node.pending)
+  if (pending_queue_.count(node))
     return;
 
   if (node.fetch_started) {
@@ -222,10 +222,8 @@ void NodeFetcherImpl::FetchPendingNodes() {
 
   while (!pending_queue_.empty() && nodes.size() < kMaxFetchNodeCount) {
     auto& node = pending_queue_.front();
-    assert(node.pending);
-    assert(!node.fetch_started);
     pending_queue_.pop();
-    node.pending = false;
+    assert(!node.fetch_started);
     node.fetch_started = true;
     nodes.emplace_back(&node);
   }
@@ -403,7 +401,6 @@ NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
     }
 
     assert(node.fetch_started);
-    assert(!node.pending);
 
     if (node.status)
       fetched_nodes.emplace_back(node);
@@ -645,27 +642,25 @@ void NodeFetcherImpl::AddFetchedReference(
 }
 
 bool NodeFetcherImpl::AssertValid() const {
-  return true;
-
   for (auto& p : fetching_nodes_.fetching_nodes_) {
     auto& node = p.second;
 
+    bool pending = !!pending_queue_.count(node);
+
     if (node.fetched()) {
-      assert(!node.pending);
-      if (node.pending)
-        return false;
+      assert(!pending);
 
       assert(node.fetch_started);
       if (!node.fetch_started)
         return false;
 
     } else {
-      assert(node.pending || node.fetch_started);
-      if (!node.pending && !node.fetch_started)
+      assert(pending || node.fetch_started);
+      if (!pending && !node.fetch_started)
         return false;
     }
 
-    if (node.pending) {
+    if (pending) {
       assert(!node.fetched());
       if (node.fetched())
         return false;
@@ -717,6 +712,13 @@ void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
   queue_.emplace_back(&node);
 }
 
+void NodeFetcherImpl::PendingQueue::pop() {
+  auto& node = *queue_.front();
+  assert(node.pending);
+  node.pending = false;
+  queue_.pop_front();
+}
+
 void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
   if (!node.pending)
     return;
@@ -725,4 +727,9 @@ void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
   assert(i != queue_.end());
   queue_.erase(i);
   node.pending = false;
+}
+
+std::size_t NodeFetcherImpl::PendingQueue::count(
+    const FetchingNode& node) const {
+  return node.pending;
 }
