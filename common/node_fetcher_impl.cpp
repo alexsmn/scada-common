@@ -170,11 +170,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node) {
   logger_->WriteF(LogSeverity::Normal, "Scheduling fetch node %s",
                   node.node_id.ToString().c_str());
 
-  assert(!node.pending);
-  node.pending = true;
-  assert(std::find(pending_queue_.begin(), pending_queue_.end(), &node) ==
-         pending_queue_.end());
-  pending_queue_.emplace_back(&node);
+  pending_queue_.push(node);
 
   FetchPendingNodes();
 }
@@ -189,16 +185,7 @@ void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
   if (!fetching_node)
     return;
 
-  if (fetching_node->pending) {
-    auto i =
-        std::find(pending_queue_.begin(), pending_queue_.end(), fetching_node);
-    assert(i != pending_queue_.end());
-    pending_queue_.erase(i);
-    fetching_node->pending = false;
-  }
-
-  assert(std::find(pending_queue_.begin(), pending_queue_.end(),
-                   fetching_node) == pending_queue_.end());
+  pending_queue_.erase(*fetching_node);
 
   fetching_nodes_.RemoveNode(node_id);
 
@@ -234,10 +221,10 @@ void NodeFetcherImpl::FetchPendingNodes() {
   nodes.reserve(std::min(kMaxFetchNodeCount, pending_queue_.size()));
 
   while (!pending_queue_.empty() && nodes.size() < kMaxFetchNodeCount) {
-    auto& node = *pending_queue_.front();
+    auto& node = pending_queue_.front();
     assert(node.pending);
     assert(!node.fetch_started);
-    pending_queue_.pop_front();
+    pending_queue_.pop();
     node.pending = false;
     node.fetch_started = true;
     nodes.emplace_back(&node);
@@ -660,12 +647,6 @@ void NodeFetcherImpl::AddFetchedReference(
 bool NodeFetcherImpl::AssertValid() const {
   return true;
 
-  for (auto* node : pending_queue_) {
-    assert(node->pending);
-    if (!node->pending)
-      return false;
-  }
-
   for (auto& p : fetching_nodes_.fetching_nodes_) {
     auto& node = p.second;
 
@@ -687,11 +668,6 @@ bool NodeFetcherImpl::AssertValid() const {
     if (node.pending) {
       assert(!node.fetched());
       if (node.fetched())
-        return false;
-
-      auto i = std::find(pending_queue_.begin(), pending_queue_.end(), &node);
-      assert(i != pending_queue_.end());
-      if (i == pending_queue_.end())
         return false;
     }
   }
@@ -728,4 +704,25 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
       FetchNode(from);
     }
   }
+}
+
+// NodeFetcherImpl::PendingQueue
+
+void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
+  if (node.pending)
+    return;
+
+  node.pending = true;
+  assert(std::find(queue_.begin(), queue_.end(), &node) == queue_.end());
+  queue_.emplace_back(&node);
+}
+
+void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
+  if (!node.pending)
+    return;
+
+  auto i = std::find(queue_.begin(), queue_.end(), &node);
+  assert(i != queue_.end());
+  queue_.erase(i);
+  node.pending = false;
 }

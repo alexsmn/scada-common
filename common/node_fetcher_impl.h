@@ -89,6 +89,21 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     friend class NodeFetcherImpl;
   };
 
+  class PendingQueue {
+   public:
+    bool empty() const { return queue_.empty(); };
+    std::size_t size() const { return queue_.size(); }
+
+    FetchingNode& front() { return *queue_.front(); }
+    void pop() { queue_.pop_front(); }
+
+    void push(FetchingNode& node);
+    void erase(FetchingNode& node);
+
+   private:
+    std::deque<FetchingNode*> queue_;
+  };
+
   void FetchNode(FetchingNode& node);
 
   void FetchPendingNodes();
@@ -126,7 +141,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
   // Can't be zero.
   unsigned next_request_id_ = 1;
 
-  std::deque<FetchingNode*> pending_queue_;
+  PendingQueue pending_queue_;
 
   base::WeakPtrFactory<NodeFetcherImpl> weak_factory_{this};
 };
