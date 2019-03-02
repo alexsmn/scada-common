@@ -1,52 +1,53 @@
 #pragma once
 
+template <class Value>
 class Metric {
  public:
-  Metric(Logger& logger, const std::string& name)
-      : logger_(logger),
-        name_(name),
-        count_(0) { }
+  std::size_t count() const { return count_; }
+  bool empty() const { return count_ == 0; }
 
-  void Update(unsigned value) {
+  Value min() const {
+    assert(!empty());
+    return min_;
+  }
+
+  Value max() const {
+    assert(!empty());
+    return max_;
+  }
+
+  Value mean() const {
+    assert(!empty());
+    return sum_ / count_;
+  }
+
+  Value total() const {
+    assert(!empty());
+    return sum_;
+  }
+
+  Metric& operator()(Value value) {
     if (count_ == 0) {
-      low_ = high_ = sum_ = value;
+      min_ = max_ = sum_ = value;
+      count_ = 1;
+
     } else {
-      low_ = std::min(low_, value);
-      high_ = std::max(high_, value);
+      if (value < min_)
+        min_ = value;
+      else if (value > max_)
+        max_ = value;
       sum_ += value;
+      ++count_;
     }
-    last_ = value;
-    ++count_;
 
-    if (base::TimeTicks::Now() - last_report_ticks_ >= base::TimeDelta::FromMinutes(1)) {
-      last_report_ticks_ = base::TimeTicks::Now();
-      Report();
-      Reset();
-    }
+    return *this;
   }
 
-  void Reset() {
-    count_ = 0;
-  }
-
-  void Report() {
-    if (count_ == 0)
-      return;
-
-    unsigned avg = sum_ / count_;
-    logger_.WriteF(LogSeverity::Normal, "%s = { last: %u, avg: %u, min: %u, max: %u, count: %u }",
-        name_.c_str(), last_, avg, low_, high_, count_);
-  }
+  void reset() { count_ = 0; }
 
  private:
-  Logger& logger_;
-  std::string name_;
-
-  unsigned low_;
-  unsigned high_;
-  unsigned sum_;
-  unsigned last_;
-  size_t count_;
-
-  base::TimeTicks last_report_ticks_;
+  Value max_;
+  Value min_;
+  Value sum_;
+  std::size_t count_ = 0;
 };
