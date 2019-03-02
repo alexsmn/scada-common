@@ -9,7 +9,7 @@
 
 namespace {
 
-const size_t kMaxFetchNodeCount = 20;
+const size_t kMaxFetchNodeCount = 1000;
 
 const scada::AttributeId kAttributeIds[] = {
     scada::AttributeId::NodeClass, scada::AttributeId::BrowseName,
