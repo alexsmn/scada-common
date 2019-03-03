@@ -144,12 +144,12 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
     ValidateDependency(node, reference_type_id);
   }
 
-  FetchNode(node);
+  FetchNode(node, next_pending_sequence_++);
 
   assert(AssertValid());
 }
 
-void NodeFetcherImpl::FetchNode(FetchingNode& node) {
+void NodeFetcherImpl::FetchNode(FetchingNode& node, unsigned pending_sequence) {
   if (pending_queue_.count(node))
     return;
 
@@ -170,6 +170,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node) {
   logger_->WriteF(LogSeverity::Normal, "Scheduling fetch node %s",
                   node.node_id.ToString().c_str());
 
+  node.pending_sequence = pending_sequence;
   pending_queue_.push(node);
 
   FetchPendingNodes();
@@ -221,7 +222,7 @@ void NodeFetcherImpl::FetchPendingNodes() {
   nodes.reserve(std::min(kMaxFetchNodeCount, pending_queue_.size()));
 
   while (!pending_queue_.empty() && nodes.size() < kMaxFetchNodeCount) {
-    auto& node = pending_queue_.front();
+    auto& node = pending_queue_.top();
     pending_queue_.pop();
     assert(!node.fetch_started);
     node.fetch_started = true;
@@ -622,7 +623,7 @@ void NodeFetcherImpl::AddFetchedReference(
     if (description.reference_type_id == scada::id::Aggregates)
       fetching_nodes_.AddDependency(node, child);
 
-    FetchNode(child);
+    FetchNode(child, node.pending_sequence);
 
   } else {
     // Non-hierarchical forward references, including HasTypeDefinition.
@@ -696,7 +697,7 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
       from.fetch_parent = true;
       from.force |= node.force;
       fetching_nodes_.AddDependency(node, from);
-      FetchNode(from);
+      FetchNode(from, from.pending_sequence);
     }
   }
 }
@@ -708,24 +709,33 @@ void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
     return;
 
   node.pending = true;
-  assert(std::find(queue_.begin(), queue_.end(), &node) == queue_.end());
-  queue_.emplace_back(&node);
+
+  queue_.emplace_back(Node{next_sequence_++, &node});
+  std::push_heap(queue_.begin(), queue_.end());
 }
 
 void NodeFetcherImpl::PendingQueue::pop() {
-  auto& node = *queue_.front();
+  auto& node = *queue_.front().node;
   assert(node.pending);
   node.pending = false;
-  queue_.pop_front();
+  std::pop_heap(queue_.begin(), queue_.end());
+  queue_.pop_back();
 }
 
 void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
   if (!node.pending)
     return;
 
-  auto i = std::find(queue_.begin(), queue_.end(), &node);
+  auto i = std::find_if(queue_.begin(), queue_.end(),
+                        [&node](Node& n) { return n.node == &node; });
   assert(i != queue_.end());
-  queue_.erase(i);
+
+  if (i != std::prev(queue_.end()))
+    std::iter_swap(i, std::prev(queue_.end()));
+  queue_.erase(std::prev(queue_.end()));
+
+  std::make_heap(queue_.begin(), queue_.end());
+
   node.pending = false;
 }
 

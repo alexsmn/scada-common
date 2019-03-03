@@ -45,7 +45,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     void ClearDependsOf();
     void ClearDependentNodes();
 
-    bool pending = false;           // the node is in |pending_queue_|.
+    bool pending = false;  // the node is in |pending_queue_|.
+    unsigned pending_sequence = 0;
+
     bool fetch_started = false;     // requests were sent (can be completed).
     unsigned fetch_request_id = 0;  // for request cancelation
     bool fetch_parent = false;
@@ -94,19 +96,30 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
     bool empty() const { return queue_.empty(); };
     std::size_t size() const { return queue_.size(); }
 
-    FetchingNode& front() { return *queue_.front(); }
+    FetchingNode& top() { return *queue_.front().node; }
 
     std::size_t count(const FetchingNode& node) const;
 
     void push(FetchingNode& node);
     void pop();
+
     void erase(FetchingNode& node);
 
    private:
-    std::deque<FetchingNode*> queue_;
+    struct Node {
+      auto key() const { return std::tie(node->pending_sequence, sequence); }
+
+      bool operator<(const Node& other) const { return key() > other.key(); }
+
+      unsigned sequence = 0;
+      FetchingNode* node = nullptr;
+    };
+
+    std::vector<Node> queue_;
+    unsigned next_sequence_ = 0;
   };
 
-  void FetchNode(FetchingNode& node);
+  void FetchNode(FetchingNode& node, unsigned priority);
 
   void FetchPendingNodes();
   void FetchPendingNodes(std::vector<FetchingNode*>&& nodes);
@@ -144,6 +157,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
   unsigned next_request_id_ = 1;
 
   PendingQueue pending_queue_;
+
+  unsigned next_pending_sequence_ = 0;
 
   base::WeakPtrFactory<NodeFetcherImpl> weak_factory_{this};
 };
