@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/attribute_ids.h"
+#include "core/debug_util.h"
 #include "core/localized_text.h"
 #include "core/node_id.h"
 #include "core/qualified_name.h"
@@ -43,13 +44,13 @@ struct NodeAttributes {
 
   bool empty() const {
     return browse_name.empty() && display_name.empty() && data_type.is_null() &&
-           value.is_null();
+           value.has_value();
   }
 
   QualifiedName browse_name;
   LocalizedText display_name;
   NodeId data_type;
-  Variant value;
+  std::optional<Variant> value;
 };
 
 }  // namespace scada
@@ -60,6 +61,5 @@ inline std::ostream& operator<<(std::ostream& stream,
                 << "browse_name: " << attributes.browse_name << ", "
                 << "display_name: " << attributes.display_name << ", "
                 << "data_type: " << attributes.data_type << ", "
-                << "value: " << attributes.value
-                << "}";
+                << "value: " << attributes.value << "}";
 }

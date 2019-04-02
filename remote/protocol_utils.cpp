@@ -343,8 +343,8 @@ void ToProto(const scada::NodeAttributes& source,
         base::UTF16ToUTF8(ToString16(source.display_name)));
   if (!source.data_type.is_null())
     ToProto(source.data_type, *target.mutable_data_type_id());
-  if (!source.value.is_null())
-    ToProto(source.value, *target.mutable_value());
+  if (source.value.has_value())
+    ToProto(*source.value, *target.mutable_value());
 }
 
 scada::AttributeId FromProto(protocol::AttributeId source) {

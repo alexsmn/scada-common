@@ -41,14 +41,22 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
     node->SetDisplayName(std::move(attributes.display_name));
   }
 
-  if (auto* variable = scada::AsVariable(node)) {
-    if (!attributes.value.is_null()) {
+  if (attributes.value.has_value()) {
+    if (auto* variable = scada::AsVariable(node)) {
       attribute_set.Add(scada::AttributeId::Value);
 
       // Property ignores timestamps.
       // TODO: Avoid timestamp.
-      variable->SetValue(
-          scada::DataValue{std::move(attributes.value), {}, {}, {}});
+      auto status = variable->SetValue(
+          scada::DataValue{std::move(*attributes.value), {}, {}, {}});
+      if (!status) {
+        // TODO: Handle error.
+        assert(false);
+      }
+
+    } else {
+      // TODO: Handle error.
+      assert(false);
     }
   }
 
@@ -59,7 +67,12 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 
     for (auto& p : properties) {
       pids[pid_count++] = p.first;
-      scada::SetPropertyValue(*node, p.first, std::move(p.second));
+      auto status =
+          scada::SetPropertyValue(*node, p.first, std::move(p.second));
+      if (!status) {
+        // TODO: Handle error.
+        assert(false);
+      }
     }
 
     scada::PropertyIds property_ids(pid_count, pids);

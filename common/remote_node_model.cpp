@@ -328,7 +328,8 @@ scada::Variant RemoteNodeModel::GetAttribute(
         return scada::ToLocalizedText(attributes_.browse_name.name());
 
     case scada::AttributeId::Value:
-      return attributes_.value;
+      return attributes_.value.has_value() ? *attributes_.value
+                                           : scada::Variant{};
 
     default:
       assert(false);

@@ -99,11 +99,17 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (!node_state.attributes.display_name.empty())
     node->SetDisplayName(node_state.attributes.display_name);
 
-  if (auto* variable = scada::AsVariable(node.get())) {
+  if (node_state.attributes.value.has_value()) {
+    auto* variable = scada::AsVariable(node.get());
+    if (!variable) {
+      assert(false);
+      return {scada::StatusCode::Bad_WrongAttributeId, nullptr};
+    }
+
     // Property ignores timestamps.
     // TODO: Avoid timestamp.
     variable->SetValue(
-        scada::DataValue{std::move(node_state.attributes.value), {}, {}, {}});
+        scada::DataValue{std::move(*node_state.attributes.value), {}, {}, {}});
   }
 
   if (type_definition) {
