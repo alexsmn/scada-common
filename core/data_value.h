@@ -56,3 +56,11 @@ inline bool IsUpdate(const DataValue& current_data, const DataValue& new_data) {
 }
 
 }  // namespace scada
+  
+inline std::ostream& operator<<(std::ostream& stream,
+                                const scada::DataValue& v) {
+  return stream << "{value: " << v.value << ", qualifier: " << v.qualifier.raw()
+                << ", source_timestamp: " << v.source_timestamp
+                << ", server_timestamp: " << v.server_timestamp
+                << ", status_code: " << ToString(v.status_code) << "}";
+}

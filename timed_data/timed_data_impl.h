@@ -10,11 +10,6 @@
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
 
-namespace scada {
-class EventService;
-class MonitoredItemService;
-}  // namespace scada
-
 class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                       private TimedDataContext,
                       public BaseTimedData,

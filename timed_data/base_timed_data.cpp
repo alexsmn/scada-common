@@ -14,10 +14,13 @@
 
 namespace {
 
+// Should be even.
+const size_t kDumpMaxValueCount = 10;
+
 template <class T>
 void Dump(std::ostream& stream, const std::vector<T>& v) {
   for (auto& e : v)
-    stream << ToString(e) << std::endl;
+    stream << e << std::endl;
 }
 
 void Dump(
@@ -25,6 +28,12 @@ void Dump(
     const std::map<TimedDataDelegate*, scada::DateTimeRange>& observer_ranges) {
   for (auto& p : observer_ranges)
     stream << ToString(p.second) << std::endl;
+}
+
+template <class It>
+void DumpRange(std::ostream& stream, It first, It last) {
+  for (auto i = first; i != last; ++i)
+    stream << *i << std::endl;
 }
 
 }  // namespace
@@ -218,6 +227,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
     change_time_ = value.source_timestamp;
 
   current_ = value;
+
   return true;
 }
 
@@ -242,5 +252,14 @@ std::string BaseTimedData::DumpDebugInfo() const {
   Dump(stream, ready_ranges_);
   stream << "Historical: " << historical_ << std::endl;
   stream << "Value count: " << values_.size() << std::endl;
+  if (values_.size() <= kDumpMaxValueCount) {
+    DumpRange(stream, values_.begin(), values_.end());
+  } else {
+    stream << "First " << kDumpMaxValueCount / 2 << ":" << std::endl;
+    DumpRange(stream, values_.begin(),
+              values_.begin() + kDumpMaxValueCount / 2);
+    stream << "Last " << kDumpMaxValueCount / 2 << ":" << std::endl;
+    DumpRange(stream, values_.end() - kDumpMaxValueCount / 2, values_.end());
+  }
   return stream.str();
 }

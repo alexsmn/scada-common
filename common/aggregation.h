@@ -13,14 +13,14 @@ struct AggregateFilter;
 using Aggregator = std::function<DataValue(span<const DataValue> values)>;
 
 Aggregator GetAggregator(const NodeId& aggregate_type,
-                         DateTime start_time,
+                         const DateTimeRange& interval,
                          bool forward);
 
 DateTime GetLocalAggregateStartTime();
 
-DateTime GetAggregateIntervalStartTime(DateTime time,
-                                       DateTime start_time,
-                                       Duration interval);
+DateTimeRange GetAggregateInterval(DateTime time,
+                                   DateTime start_time,
+                                   Duration interval);
 
 struct AggregateState {
   void Process(span<const scada::DataValue> raw_span);
@@ -31,7 +31,7 @@ struct AggregateState {
   std::vector<scada::DataValue>& data_values;
 
   scada::Aggregator aggregator;
-  scada::DateTime aggregator_start_time;
+  scada::DateTimeRange aggregator_interval;
   scada::DataValue aggregated_value;
 };
 
