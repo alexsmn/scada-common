@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <iterator>
 
 template <class T>
 class span {
  public:
-  const span() noexcept {}
+  constexpr span() noexcept {}
 
   constexpr span(T* begin, T* end) noexcept : begin_{begin}, end_{end} {}
 

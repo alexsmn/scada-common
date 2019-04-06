@@ -8,6 +8,8 @@
 #include "core/test/test_address_space.h"
 #include "core/view_service_mock.h"
 
+#include "core/debug_util-inl.h"
+
 using namespace testing;
 
 namespace {

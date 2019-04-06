@@ -7,6 +7,8 @@
 
 #include <gmock/gmock.h>
 
+#include "core/debug_util-inl.h"
+
 using namespace testing;
 
 /*struct NodeRefServiceImplTestContext {

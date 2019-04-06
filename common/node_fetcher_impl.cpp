@@ -7,6 +7,8 @@
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
+#include "core/debug_util-inl.h"
+
 namespace {
 
 const size_t kMaxFetchNodeCount = 1000;
