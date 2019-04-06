@@ -12,6 +12,8 @@
 
 #include <sstream>
 
+#include "core/debug_util-inl.h"
+
 namespace {
 
 // Should be even.
