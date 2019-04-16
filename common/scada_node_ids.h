@@ -15,6 +15,8 @@ const scada::NumericId Users = 29;
 
 namespace id {
 
+const scada::NodeId AnalogConversionDataType{320, NamespaceIndexes::SCADA};
+const scada::NodeId AnalogConversionDataType_EnumStrings{321, NamespaceIndexes::SCADA};
 const scada::NodeId AnalogItemType_Aperture{295, NamespaceIndexes::SCADA};
 const scada::NodeId AnalogItemType_Clamping{157, NamespaceIndexes::SCADA};
 const scada::NodeId AnalogItemType_Conversion{156, NamespaceIndexes::SCADA};
@@ -183,6 +185,6 @@ const scada::NodeId PropertyCategories_History{317, NamespaceIndexes::SCADA};
 const scada::NodeId PropertyCategories_Simulation{318, NamespaceIndexes::SCADA};
 const scada::NodeId PropertyCategories_Limits{319, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{320, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{322, NamespaceIndexes::SCADA};
 
 } // namespace id

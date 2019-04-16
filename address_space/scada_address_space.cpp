@@ -173,6 +173,23 @@ scada::ReferenceType* CreateReferenceType(
   return &result;
 }
 
+void CreateEnumDataType(AddressSpaceImpl& address_space,
+                        const scada::NodeId& datatype_id,
+                        const scada::NodeId& enumstrings_id,
+                        scada::QualifiedName browse_name,
+                        scada::LocalizedText display_name,
+                        std::vector<scada::LocalizedText> enum_strings) {
+  NodeBuilderImpl builder{address_space};
+  auto* protocol_data_type =
+      CreateDataType(address_space, datatype_id, std::move(browse_name),
+                     std::move(display_name), scada::id::Int32);
+  protocol_data_type->enum_strings.emplace(
+      builder, *protocol_data_type, enumstrings_id, "EnumStrings",
+      scada::LocalizedText{}, scada::id::LocalizedText);
+  protocol_data_type->enum_strings->set_value(std::move(enum_strings));
+  address_space.AddNode(*protocol_data_type->enum_strings);
+}
+
 void AddDataVariable(AddressSpaceImpl& address_space,
                      const scada::NodeId& type_id,
                      const scada::NodeId& variable_decl_id,
@@ -578,12 +595,18 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::AnalogItemType_DisplayFormat,
                 id::PropertyCategories_Display, "DisplayFormat",
                 base::WideToUTF16(L"Формат"), scada::id::String, "0.####");
+    CreateEnumDataType(
+        address_space, id::AnalogConversionDataType,
+        id::AnalogConversionDataType_EnumStrings, "AnalogConversionDataType",
+        base::WideToUTF16(L"Преобразование"),
+        {base::WideToUTF16(L"Нет"), base::WideToUTF16(L"Линейное")});
     AddProperty(address_space, id::AnalogItemType,
                 id::AnalogItemType_Conversion,
-                id::PropertyCategories_Conversion, "ConversionType",
-                base::WideToUTF16(L"Преобразование"), scada::id::Int32, 0);
+                id::PropertyCategories_Conversion, "Conversion",
+                base::WideToUTF16(L"Преобразование"),
+                id::AnalogConversionDataType, static_cast<scada::Int32>(1));
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_Clamping,
-                id::PropertyCategories_Filtering, "ClampingType",
+                id::PropertyCategories_Filtering, "Clamping",
                 base::WideToUTF16(L"Ограничение диапазона"), scada::id::Boolean,
                 false);
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_EuLo,
@@ -636,17 +659,11 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
   {
     CreateObjectType(address_space, id::ModbusLinkType, "ModbusLinkType",
                      base::WideToUTF16(L"Направление MODBUS"), id::LinkType);
-    auto* protocol_data_type = CreateDataType(
-        address_space, id::ModbusLinkProtocol, "ModbusLinkProtocol",
-        base::WideToUTF16(L"Тип протокола MODBUS"), scada::id::Int32);
-    NodeBuilderImpl builder{address_space};
-    protocol_data_type->enum_strings.emplace(
-        builder, *protocol_data_type, id::ModbusLinkProtocol_EnumStrings,
-        "EnumStrings", scada::LocalizedText{}, scada::id::LocalizedText);
-    protocol_data_type->enum_strings->set_value({base::WideToUTF16(L"RTU"),
-                                                 base::WideToUTF16(L"ASCII"),
-                                                 base::WideToUTF16(L"TCP")});
-    address_space.AddNode(*protocol_data_type->enum_strings);
+    CreateEnumDataType(address_space, id::ModbusLinkProtocol,
+                       id::ModbusLinkProtocol_EnumStrings, "ModbusLinkProtocol",
+                       base::WideToUTF16(L"Тип протокола MODBUS"),
+                       {base::WideToUTF16(L"RTU"), base::WideToUTF16(L"ASCII"),
+                        base::WideToUTF16(L"TCP")});
     AddProperty(address_space, id::ModbusLinkType, id::ModbusLinkType_Protocol,
                 {}, "Protocol", base::WideToUTF16(L"Протокол"),
                 id::ModbusLinkProtocol, 0);
