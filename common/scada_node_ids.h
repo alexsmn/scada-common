@@ -97,6 +97,10 @@ const scada::NodeId Iec60870DeviceType_StartupClockSync{197, NamespaceIndexes::S
 const scada::NodeId Iec60870DeviceType_StartupInterrogation{195, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870DeviceType_UtcTime{294, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870DeviceType{331, NamespaceIndexes::SCADA};
+const scada::NodeId Iec60870ProtocolType{322, NamespaceIndexes::SCADA};
+const scada::NodeId Iec60870ProtocolType_EnumStrings{323, NamespaceIndexes::SCADA};
+const scada::NodeId Iec60870ModeType{324, NamespaceIndexes::SCADA};
+const scada::NodeId Iec60870ModeType_EnumStrings{325, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870LinkType_AnonymousMode{192, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870LinkType_ConfirmationTimeout{181, NamespaceIndexes::SCADA};
 const scada::NodeId Iec60870LinkType_ConnectTimeout{180, NamespaceIndexes::SCADA};
@@ -148,6 +152,8 @@ const scada::NodeId Server_Memory{227, NamespaceIndexes::SCADA};
 const scada::NodeId Server_TotalCPU{228, NamespaceIndexes::SCADA};
 const scada::NodeId Server_TotalMemory{229, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignals{numeric_id::SimulationSignals, NamespaceIndexes::SCADA};
+const scada::NodeId SimulationSignalTypeEnum{326, NamespaceIndexes::SCADA};
+const scada::NodeId SimulationSignalTypeEnum_EnumStrings{327, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_Period{173, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_Phase{174, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_Type{172, NamespaceIndexes::SCADA};
@@ -185,6 +191,6 @@ const scada::NodeId PropertyCategories_History{317, NamespaceIndexes::SCADA};
 const scada::NodeId PropertyCategories_Simulation{318, NamespaceIndexes::SCADA};
 const scada::NodeId PropertyCategories_Limits{319, NamespaceIndexes::SCADA};
 
-const scada::NodeId NextId{322, NamespaceIndexes::SCADA};
+const scada::NodeId NextId{328, NamespaceIndexes::SCADA};
 
 } // namespace id

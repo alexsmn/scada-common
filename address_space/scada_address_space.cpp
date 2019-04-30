@@ -436,9 +436,17 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                        scada::id::BaseDataType, scada::id::BaseVariableType);
     AddReference(address_space, id::Creates, id::SimulationSignals,
                  id::SimulationSignalType);
+    CreateEnumDataType(
+        address_space, id::SimulationSignalTypeEnum,
+        id::SimulationSignalTypeEnum_EnumStrings, "SimulationSignalTypeEnum",
+        base::WideToUTF16(L"Тип эмуляции"),
+        {base::WideToUTF16(L"Случайный"), base::WideToUTF16(L"Пилообразный"),
+         base::WideToUTF16(L"Скачкообразный"), base::WideToUTF16(L"Синус"),
+         base::WideToUTF16(L"Косинус")});
     AddProperty(address_space, id::SimulationSignalType,
                 id::SimulationSignalType_Type, {}, "Type",
-                base::WideToUTF16(L"Тип"), scada::id::Int32, 0);
+                base::WideToUTF16(L"Тип"), id::SimulationSignalTypeEnum,
+                static_cast<scada::Int32>(0));
     AddProperty(address_space, id::SimulationSignalType,
                 id::SimulationSignalType_Period, {}, "Period",
                 base::WideToUTF16(L"Период, мс"), scada::id::Int32, 60000);
@@ -720,11 +728,24 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     auto* type = CreateObjectType(
         address_space, id::Iec60870LinkType, "Iec60870LinkType",
         base::WideToUTF16(L"Направление МЭК-60870"), id::LinkType);
+    CreateEnumDataType(address_space, id::Iec60870ProtocolType,
+                       id::Iec60870ProtocolType_EnumStrings,
+                       "Iec60870ProtocolType",
+                       base::WideToUTF16(L"Тип протокола МЭК-60870"),
+                       {base::WideToUTF16(L"МЭК-60870-104"),
+                        base::WideToUTF16(L"МЭК-60870-101")});
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_Protocol, {}, "Protocol",
-                base::WideToUTF16(L"Протокол"), scada::id::Int32, 0);
+                base::WideToUTF16(L"Протокол"), id::Iec60870ProtocolType,
+                static_cast<scada::Int32>(0));
+    CreateEnumDataType(
+        address_space, id::Iec60870ModeType, id::Iec60870ModeType_EnumStrings,
+        "Iec60870ModeType", base::WideToUTF16(L"Режим МЭК-60870"),
+        {base::WideToUTF16(L"Опрос"), base::WideToUTF16(L"Ретрансляция"),
+         base::WideToUTF16(L"Прослушка")});
     AddProperty(address_space, id::Iec60870LinkType, id::Iec60870LinkType_Mode,
-                {}, "Mode", base::WideToUTF16(L"Режим"), scada::id::Int32, 0);
+                {}, "Mode", base::WideToUTF16(L"Режим"), id::Iec60870ModeType,
+                static_cast<scada::Int32>(0));
     AddProperty(address_space, id::Iec60870LinkType,
                 id::Iec60870LinkType_SendQueueSize, {}, "SendQueueSize",
                 base::WideToUTF16(L"Очередь передачи (K)"), scada::id::Int32,
