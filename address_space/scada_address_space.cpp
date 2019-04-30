@@ -604,7 +604,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 id::AnalogItemType_Conversion,
                 id::PropertyCategories_Conversion, "Conversion",
                 base::WideToUTF16(L"Преобразование"),
-                id::AnalogConversionDataType, static_cast<scada::Int32>(1));
+                id::AnalogConversionDataType, static_cast<scada::Int32>(0));
     AddProperty(address_space, id::AnalogItemType, id::AnalogItemType_Clamping,
                 id::PropertyCategories_Filtering, "Clamping",
                 base::WideToUTF16(L"Ограничение диапазона"), scada::id::Boolean,
