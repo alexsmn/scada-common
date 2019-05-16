@@ -10,5 +10,5 @@ inline base::TimeDelta TimeDeltaFromSecondsF(double dt) {
 std::string FormatTimeDelta(base::TimeDelta delta);
 bool ParseTimeDelta(base::StringPiece str, base::TimeDelta& delta);
 
-base::string16 FormatTime16(base::Time time);
-bool ParseTime(base::StringPiece str, base::Time& time);
+base::string16 FormatTime16(base::Time time, bool utc);
+bool ParseTime(base::StringPiece str, base::Time& time, bool utc);

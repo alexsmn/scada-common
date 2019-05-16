@@ -27,14 +27,18 @@ bool ParseTimeDelta(base::StringPiece str, base::TimeDelta& delta) {
   return true;
 }
 
-base::string16 FormatTime16(base::Time time) {
+base::string16 FormatTime16(base::Time time, bool utc) {
   base::Time::Exploded e = {0};
-  time.UTCExplode(&e);
-  return base::ASCIIToUTF16(base::StringPrintf("%02d-%02d-%04d %02d:%02d:%02d.%03d",
-                            e.day_of_month, e.month, e.year, e.hour, e.minute,
-                            e.second, e.millisecond));
+  if (utc)
+    time.UTCExplode(&e);
+  else
+    time.LocalExplode(&e);
+  return base::ASCIIToUTF16(base::StringPrintf(
+      "%02d-%02d-%04d %02d:%02d:%02d.%03d", e.day_of_month, e.month, e.year,
+      e.hour, e.minute, e.second, e.millisecond));
 }
 
-bool ParseTime(base::StringPiece str, base::Time& time) {
-  return base::Time::FromString(str.as_string().c_str(), &time);
+bool ParseTime(base::StringPiece str, base::Time& time, bool utc) {
+  return utc ? base::Time::FromUTCString(str.as_string().c_str(), &time)
+             : base::Time::FromString(str.as_string().c_str(), &time);
 }
