@@ -30,21 +30,18 @@ if(WIN32)
 endif()
 
 if(WIN32)
+	set(BOOST_COMPONENTS thread log log_setup filesystem date_time regex program_options)
+	find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+
+    foreach(BOOST_COMPONENT ${BOOST_COMPONENTS})
+	    install(FILES
+	        ${Boost_${BOOST_COMPONENT}_DEBUG}
+	        ${Boost_${BOOST_COMPONENT}_RELEASE}
+	    DESTINATION bin
+	    COMPONENT Common)
+    endforeach()
+
     install(FILES
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_thread-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_thread-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_log_setup-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_log_setup-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_filesystem-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_filesystem-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_date_time-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_date_time-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_regex-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_regex-vc141-mt-x32-1_69.dll>"
-        "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/boost_program_options-vc141-mt-gd-x32-1_69.dll>"
-        "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/boost_program_options-vc141-mt-x32-1_69.dll>"
         "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/libprotobufd.dll>"
         "$<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo/libprotobuf.dll>"
         "$<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug/OPCUA.dll>"
