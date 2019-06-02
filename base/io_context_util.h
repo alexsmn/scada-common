@@ -13,9 +13,9 @@ inline void PostDelayedTask(boost::asio::io_context& io_context,
 
   auto timer = std::make_shared<boost::asio::steady_timer>(io_context);
   timer->expires_from_now(delay);
-  timer->async_wait(
-      [task = std::forward<Task>(task)](boost::system::error_code ec) mutable {
-        if (ec != boost::asio::error::operation_aborted)
-          task();
-      });
+  timer->async_wait([timer, task = std::forward<Task>(task)](
+                        boost::system::error_code ec) mutable {
+    if (ec != boost::asio::error::operation_aborted)
+      task();
+  });
 }
