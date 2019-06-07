@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/strings/string_piece.h"
 #include "base/time/time.h"
 
 inline base::TimeDelta TimeDeltaFromSecondsF(double dt) {
@@ -7,8 +8,8 @@ inline base::TimeDelta TimeDeltaFromSecondsF(double dt) {
       dt * static_cast<double>(base::Time::kMicrosecondsPerSecond)));
 }
 
-std::string FormatTimeDelta(base::TimeDelta delta);
-bool ParseTimeDelta(base::StringPiece str, base::TimeDelta& delta);
+std::string SerializeToString(base::TimeDelta delta);
+bool Deserialize(base::StringPiece str, base::TimeDelta& delta);
 
-base::string16 FormatTime16(base::Time time, bool utc);
-bool ParseTime(base::StringPiece str, base::Time& time, bool utc);
+std::string SerializeToString(base::Time time);
+bool Deserialize(base::StringPiece str, base::Time& time);

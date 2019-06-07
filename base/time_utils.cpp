@@ -1,10 +1,8 @@
 #include "base/time_utils.h"
 
-#include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
-#include "base/strings/utf_string_conversions.h"
 
-std::string FormatTimeDelta(base::TimeDelta delta) {
+std::string SerializeToString(base::TimeDelta delta) {
   int64 s = delta.InSeconds();
   int64 m = s / 60;
   s = s % 60;
@@ -14,7 +12,7 @@ std::string FormatTimeDelta(base::TimeDelta delta) {
                             static_cast<int>(m), static_cast<int>(s));
 }
 
-bool ParseTimeDelta(base::StringPiece str, base::TimeDelta& delta) {
+bool Deserialize(base::StringPiece str, base::TimeDelta& delta) {
   int h, m, s;
   if (sscanf(str.as_string().c_str(), "%d:%d:%d", &h, &m, &s) != 3)
     return false;
@@ -27,18 +25,26 @@ bool ParseTimeDelta(base::StringPiece str, base::TimeDelta& delta) {
   return true;
 }
 
-base::string16 FormatTime16(base::Time time, bool utc) {
+std::string SerializeToString(base::Time time) {
   base::Time::Exploded e = {0};
-  if (utc)
-    time.UTCExplode(&e);
-  else
-    time.LocalExplode(&e);
-  return base::ASCIIToUTF16(base::StringPrintf(
-      "%02d-%02d-%04d %02d:%02d:%02d.%03d", e.day_of_month, e.month, e.year,
-      e.hour, e.minute, e.second, e.millisecond));
+  time.UTCExplode(&e);
+  auto str =
+      base::StringPrintf("%04d-%02d-%02d %02d:%02d:%02d", e.year, e.month,
+                         e.day_of_month, e.hour, e.minute, e.second);
+
+  if (e.millisecond != 0)
+    str += base::StringPrintf(".%03d", e.millisecond);
+
+#ifndef NDEBUG
+  base::Time parsed_time;
+  bool parse_result = Deserialize(str, parsed_time);
+  assert(parse_result);
+  assert(time == parsed_time);
+#endif
+
+  return str;
 }
 
-bool ParseTime(base::StringPiece str, base::Time& time, bool utc) {
-  return utc ? base::Time::FromUTCString(str.as_string().c_str(), &time)
-             : base::Time::FromString(str.as_string().c_str(), &time);
+bool Deserialize(base::StringPiece str, base::Time& time) {
+  return base::Time::FromUTCString(str.as_string().c_str(), &time);
 }
