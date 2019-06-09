@@ -2,6 +2,16 @@
 
 #include "base/strings/stringprintf.h"
 
+namespace {
+
+base::Time FloorToMilliseconds(base::Time time) {
+  return base::Time::FromDeltaSinceWindowsEpoch(
+      base::TimeDelta::FromMilliseconds(
+          time.ToDeltaSinceWindowsEpoch().InMilliseconds()));
+}
+
+}  // namespace
+
 std::string SerializeToString(base::TimeDelta delta) {
   int64 s = delta.InSeconds();
   int64 m = s / 60;
@@ -39,7 +49,7 @@ std::string SerializeToString(base::Time time) {
   base::Time parsed_time;
   bool parse_result = Deserialize(str, parsed_time);
   assert(parse_result);
-  assert(time == parsed_time);
+  assert(FloorToMilliseconds(time) == parsed_time);
 #endif
 
   return str;
