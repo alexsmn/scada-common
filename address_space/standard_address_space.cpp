@@ -96,7 +96,7 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   scada::AddReference(HasSubtype, HierarchicalReference, Organizes);
   scada::AddReference(HasSubtype, Aggregates, HasProperty);
   scada::AddReference(HasSubtype, Aggregates, HasComponent);
-  scada::AddReference(HasSubtype, Aggregates, HasSubtype);
+  scada::AddReference(HasSubtype, HierarchicalReference, HasSubtype);
 
   scada::AddReference(HasSubtype, References, NonHierarchicalReference);
   scada::AddReference(HasSubtype, NonHierarchicalReference, HasTypeDefinition);
