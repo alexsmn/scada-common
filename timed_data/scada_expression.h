@@ -2,11 +2,14 @@
 
 #include "core/data_value.h"
 #include "express/express.h"
-#include "express/express_delegate.h"
+#include "express/lexer_delegate.h"
+#include "express/parser_delegate.h"
 
 #include <vector>
 
-class ScadaExpression : private expression::ExpressionDelegate {
+class ScadaExpression : private expression::LexerDelegate,
+                        private expression::ParserDelegate,
+                        private expression::FormatterDelegate {
  public:
   struct Item {
     std::string name;
@@ -14,8 +17,6 @@ class ScadaExpression : private expression::ExpressionDelegate {
   };
 
   typedef std::vector<Item> ItemList;
-
-  ScadaExpression();
 
   // Calculate node count of expression tree.
   size_t GetNodeCount() const;
@@ -33,25 +34,14 @@ class ScadaExpression : private expression::ExpressionDelegate {
   ItemList items;
 
  protected:
-  // expression::Expression
-  virtual expression::LexemData ReadLexem(
+  // expression::LexerDelegate
+  virtual std::optional<expression::Lexem> ReadLexem(
       expression::ReadBuffer& buffer) override;
-  virtual int WriteLexem(const expression::LexemData& lexem_data,
-                         expression::Parser& parser,
-                         expression::Buffer& buffer) override;
-  virtual void CalculateLexem(const expression::Buffer& buffer,
-                              int pos,
-                              expression::Lexem lexem,
-                              expression::Value& value,
-                              void* data) const override;
-  virtual std::string FormatLexem(const expression::Buffer& buffer,
-                                  int pos,
-                                  expression::Lexem lexem) const override;
-  virtual void TraverseLexem(const expression::Expression& expr,
-                             int pos,
-                             expression::Lexem lexem,
-                             expression::TraverseCallback callback,
-                             void* param) const override;
+
+  // expression::ParserDelegate
+  virtual expression::Token* CreateToken(expression::Allocator& allocator,
+                                         const expression::Lexem& lexem,
+                                         expression::Parser& parser) override;
 
   expression::Expression expression_;
 };
