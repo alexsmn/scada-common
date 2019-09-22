@@ -1,6 +1,6 @@
 #include "timed_data/expression_timed_data.h"
 
-#include "timed_data/scada_expression.h"
+#include "common/scada_expression.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"

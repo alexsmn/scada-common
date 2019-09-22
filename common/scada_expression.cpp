@@ -1,20 +1,24 @@
-﻿#include "timed_data/scada_expression.h"
+﻿#include "common/scada_expression.h"
 
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "express/function.h"
+#include "express/lexer.h"
+#include "express/lexer_delegate.h"
 #include "express/parser.h"
 
 #include <stdexcept>
 
 namespace expression {
 
+static const LexemType LEX_TRUE = 't';
+static const LexemType LEX_FALSE = 'f';
 static const LexemType LEX_ITEM = 'i';
 static const LexemType LEX_UNITS = 'u';
 
 }  // namespace expression
 
-static bool _aliases;
+namespace {
 
 inline bool wp_isalpha(char ch) {
   return ch && strchr(
@@ -31,6 +35,73 @@ inline bool wp_isnum(char ch) {
 inline bool wp_isalnum(char ch) {
   return wp_isalpha(ch) || wp_isnum(ch);
 }
+
+class ScadaLexerDelegate : public expression::LexerDelegate {
+ public:
+  // expression::LexerDelegate
+  virtual std::optional<expression::Lexem> ReadLexem(
+      expression::ReadBuffer& buffer) override;
+};
+
+std::optional<expression::Lexem> ScadaLexerDelegate::ReadLexem(
+    expression::ReadBuffer& buffer) {
+  if (*buffer.buf == '_' || wp_isalpha(*buffer.buf)) {
+    const char* buf = buffer.buf;
+
+    // read name
+    const char* str = buffer.buf;
+    do {
+      buf++;
+    } while (*buf == '_' || *buf == '.' || *buf == '!' || wp_isalnum(*buf));
+    int strl = static_cast<int>(buf - str);
+    buffer.buf = buf;
+
+    std::string_view s{str, static_cast<size_t>(strl)};
+
+    if (expression::EqualsNoCase(s, "true")) {
+      expression::Lexem result = {};
+      result.lexem = expression::LEX_TRUE;
+      return result;
+    }
+
+    if (expression::EqualsNoCase(s, "false")) {
+      expression::Lexem result = {};
+      result.lexem = expression::LEX_FALSE;
+      return result;
+    }
+
+    // Parse name
+    expression::Lexem result = {};
+    result.lexem = expression::LEX_NAME;
+    result._string = s;
+
+    return result;
+
+  } else if (*buffer.buf == '{') {
+    // Channel path.
+    auto* start = buffer.buf;
+
+    while (*buffer.buf && *buffer.buf != '}')
+      ++buffer.buf;
+    if (*buffer.buf != '}')
+      throw std::runtime_error("no ending bracket");
+
+    ++buffer.buf;
+
+    expression::Lexem result = {};
+    result.lexem = expression::LEX_NAME;
+    result._string =
+        std::string_view{start, static_cast<size_t>(buffer.buf - start)};
+    return result;
+
+  } else {
+    return std::nullopt;
+  }
+}
+
+}  // namespace
+
+static bool _aliases;
 
 expression::Value ScadaToExpressionValue(const scada::Variant& value) {
   switch (value.type()) {
@@ -113,7 +184,8 @@ class Traversers {
 };
 
 void ScadaExpression::Parse(const char* buf) {
-  expression_.Parse(buf, *this, *this);
+  ScadaLexerDelegate lexer_delegate;
+  expression_.Parse(buf, lexer_delegate, *this);
 }
 
 void ScadaExpression::Clear() {
@@ -138,41 +210,24 @@ bool ScadaExpression::IsSingleName(std::string& item_name) const {
   return true;
 }
 
-std::optional<expression::Lexem> ScadaExpression::ReadLexem(
-    expression::ReadBuffer& buffer) {
-  if (*buffer.buf == '_' || wp_isalpha(*buffer.buf)) {
-    const char* buf = buffer.buf;
-
-    // read name
-    const char* str = buffer.buf;
-    do {
-      buf++;
-    } while (*buf == '_' || *buf == '.' || *buf == '!' || wp_isalnum(*buf));
-    int strl = static_cast<int>(buf - str);
-    buffer.buf = buf;
-    // Parse name
-    expression::Lexem result = {};
-    result.lexem = expression::LEX_NAME;
-    result._string = std::string_view{str, static_cast<size_t>(strl)};
-
-  } else if (*buffer.buf == '{') {
-    // Channel path.
-    auto* start = buffer.buf;
-
-    while (*buffer.buf && *buffer.buf != '}')
-      ++buffer.buf;
-    if (*buffer.buf != '}')
-      throw std::runtime_error("no ending bracket");
-
-    ++buffer.buf;
-
-    expression::Lexem result = {};
-    result.lexem = expression::LEX_NAME;
-    result._string =
-        std::string_view{start, static_cast<size_t>(buffer.buf - start)};
+// static
+bool ScadaExpression::IsSingleName(base::StringPiece formula,
+                                   std::string& item_name) {
+  const auto& buf = formula.as_string();
+  ScadaLexerDelegate delegate;
+  expression::Lexer lexer{buf.c_str(), delegate, 0};
+  try {
+    const auto& lexem1 = lexer.ReadLexem();
+    if (lexem1.lexem != expression::LEX_NAME)
+      return false;
+    const auto& lexem2 = lexer.ReadLexem();
+    if (lexem2.lexem != expression::LEX_END)
+      return false;
+    item_name = lexem1._string;
+  } catch (const std::runtime_error&) {
+    return false;
   }
-
-  return std::nullopt;
+  return true;
 }
 
 expression::Token* ScadaExpression::CreateToken(
@@ -180,13 +235,12 @@ expression::Token* ScadaExpression::CreateToken(
     const expression::Lexem& lexem,
     expression::Parser& parser) {
   switch (lexem.lexem) {
+    case expression::LEX_TRUE:
+    case expression::LEX_FALSE:
+      return expression::CreateToken<BoolToken>(
+          allocator, lexem.lexem == expression::LEX_TRUE);
+
     case expression::LEX_NAME: {
-      if (expression::EqualsNoCase(lexem._string, "true"))
-        return expression::CreateToken<BoolToken>(allocator, true);
-
-      if (expression::EqualsNoCase(lexem._string, "false"))
-        return expression::CreateToken<BoolToken>(allocator, false);
-
       // variable
       auto& item = items.emplace_back();
       item.name = lexem._string;

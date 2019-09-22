@@ -1,14 +1,13 @@
 #pragma once
 
+#include "base/strings/string_piece.h"
 #include "core/data_value.h"
 #include "express/express.h"
-#include "express/lexer_delegate.h"
 #include "express/parser_delegate.h"
 
 #include <vector>
 
-class ScadaExpression : private expression::LexerDelegate,
-                        private expression::ParserDelegate,
+class ScadaExpression : private expression::ParserDelegate,
                         private expression::FormatterDelegate {
  public:
   struct Item {
@@ -22,6 +21,7 @@ class ScadaExpression : private expression::LexerDelegate,
   size_t GetNodeCount() const;
   // Check expression consists from single item and return item name.
   bool IsSingleName(std::string& item_name) const;
+  static bool IsSingleName(base::StringPiece formula, std::string& item_name);
 
   void Parse(const char* buf);
 
@@ -34,10 +34,6 @@ class ScadaExpression : private expression::LexerDelegate,
   ItemList items;
 
  protected:
-  // expression::LexerDelegate
-  virtual std::optional<expression::Lexem> ReadLexem(
-      expression::ReadBuffer& buffer) override;
-
   // expression::ParserDelegate
   virtual expression::Token* CreateToken(expression::Allocator& allocator,
                                          const expression::Lexem& lexem,
