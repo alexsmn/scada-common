@@ -5,10 +5,10 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/node_id_util.h"
 #include "common/node_service.h"
+#include "common/scada_expression.h"
 #include "timed_data/alias_timed_data.h"
 #include "timed_data/error_timed_data.h"
 #include "timed_data/expression_timed_data.h"
-#include "timed_data/scada_expression.h"
 #include "timed_data/timed_data_impl.h"
 
 template <class T>

@@ -9,14 +9,10 @@
 
 #include <stdexcept>
 
-namespace expression {
-
-static const LexemType LEX_TRUE = 't';
-static const LexemType LEX_FALSE = 'f';
-static const LexemType LEX_ITEM = 'i';
-static const LexemType LEX_UNITS = 'u';
-
-}  // namespace expression
+static const expression::LexemType LEX_TRUE = 't';
+static const expression::LexemType LEX_FALSE = 'f';
+static const expression::LexemType LEX_ITEM = 'i';
+static const expression::LexemType LEX_UNITS = 'u';
 
 namespace {
 
@@ -58,24 +54,13 @@ std::optional<expression::Lexem> ScadaLexerDelegate::ReadLexem(
 
     std::string_view s{str, static_cast<size_t>(strl)};
 
-    if (expression::EqualsNoCase(s, "true")) {
-      expression::Lexem result = {};
-      result.lexem = expression::LEX_TRUE;
-      return result;
-    }
-
-    if (expression::EqualsNoCase(s, "false")) {
-      expression::Lexem result = {};
-      result.lexem = expression::LEX_FALSE;
-      return result;
-    }
+    if (expression::EqualsNoCase(s, "true"))
+      return expression::Lexem{LEX_TRUE};
+    if (expression::EqualsNoCase(s, "false"))
+      return expression::Lexem{LEX_FALSE};
 
     // Parse name
-    expression::Lexem result = {};
-    result.lexem = expression::LEX_NAME;
-    result._string = s;
-
-    return result;
+    return expression::Lexem::String(expression::LEX_NAME, s);
 
   } else if (*buffer.buf == '{') {
     // Channel path.
@@ -88,11 +73,8 @@ std::optional<expression::Lexem> ScadaLexerDelegate::ReadLexem(
 
     ++buffer.buf;
 
-    expression::Lexem result = {};
-    result.lexem = expression::LEX_NAME;
-    result._string =
-        std::string_view{start, static_cast<size_t>(buffer.buf - start)};
-    return result;
+    std::string_view s{start, static_cast<size_t>(buffer.buf - start)};
+    return expression::Lexem::String(expression::LEX_NAME, s);
 
   } else {
     return std::nullopt;
@@ -235,10 +217,10 @@ expression::Token* ScadaExpression::CreateToken(
     const expression::Lexem& lexem,
     expression::Parser& parser) {
   switch (lexem.lexem) {
-    case expression::LEX_TRUE:
-    case expression::LEX_FALSE:
-      return expression::CreateToken<BoolToken>(
-          allocator, lexem.lexem == expression::LEX_TRUE);
+    case LEX_TRUE:
+    case LEX_FALSE:
+      return expression::CreateToken<BoolToken>(allocator,
+                                                lexem.lexem == LEX_TRUE);
 
     case expression::LEX_NAME: {
       // variable
