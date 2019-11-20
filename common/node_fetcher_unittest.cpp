@@ -52,7 +52,7 @@ MATCHER_P(NodeIs, node_id, "") {
   return arg.node_id == node_id;
 }
 
-TEST(NodeFetcher, Test) {
+TEST(NodeFetcher, DISABLED_Test) {
   TestContext context;
 
   auto& as = context.address_space;

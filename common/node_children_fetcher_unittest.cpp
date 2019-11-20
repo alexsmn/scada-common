@@ -38,7 +38,7 @@ MATCHER_P(NodeIs, node_id, "") {
   return arg.id == node_id;
 }
 
-TEST(NodeChildrenFetcher, Test) {
+TEST(NodeChildrenFetcher, DISABLED_Test) {
   TestContext context;
 
   /*auto& as = context.address_space;

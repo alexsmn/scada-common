@@ -23,7 +23,7 @@ using namespace testing;
   }};
 };*/
 
-TEST(RemoteNodeService, FetchTypeDefinition) {
+TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
   RemoteNodeService node_service{RemoteNodeServiceContext{
@@ -46,7 +46,7 @@ TEST(RemoteNodeService, FetchTypeDefinition) {
   EXPECT_EQ(prop1.browse_name().name(), address_space.kTestProp1BrowseName);
 }
 
-TEST(RemoteNodeService, FetchObject) {
+TEST(RemoteNodeService, DISABLED_FetchObject) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
   RemoteNodeService node_service{RemoteNodeServiceContext{
