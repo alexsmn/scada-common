@@ -5,7 +5,7 @@
 #include "address_space/type_definition.h"
 #include "base/logger.h"
 #include "common/address_space/address_space_updater.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "core/standard_node_ids.h"
 
 namespace {

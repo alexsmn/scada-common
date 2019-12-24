@@ -1,8 +1,8 @@
 #include "view_service_impl.h"
 
 #include "base/logger.h"
-#include "common/namespaces.h"
-#include "common/node_id_util.h"
+#include "model/namespaces.h"
+#include "model/node_id_util.h"
 #include "core/attribute_service.h"
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"

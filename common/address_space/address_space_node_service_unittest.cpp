@@ -1,7 +1,7 @@
 #include "common/node_service.h"
 
 #include "common/address_space/test/address_space_node_service_test_context.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 
 using namespace testing;
 

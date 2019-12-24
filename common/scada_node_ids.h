@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/standard_node_ids.h"
-#include "common/namespaces.h"
+#include "model/namespaces.h"
 
 namespace numeric_id {
 

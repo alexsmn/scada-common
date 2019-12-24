@@ -2,7 +2,7 @@
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_util.h"
 #include "common/remote_node_service.h"

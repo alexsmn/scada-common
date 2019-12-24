@@ -1,6 +1,6 @@
 #include "common/address_space/address_space_node_model.h"
 
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
 #include "core/attribute_service.h"

@@ -3,7 +3,7 @@
 #include "base/nested_logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "common/node_service.h"
 #include "common/scada_expression.h"
 #include "timed_data/alias_timed_data.h"

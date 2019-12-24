@@ -14,6 +14,7 @@ target_link_libraries(address_space
   base
   express
   scada_common
+  scada_model
 )
 
 add_executable(address_space_unittests ${unittests})

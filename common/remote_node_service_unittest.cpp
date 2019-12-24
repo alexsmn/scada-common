@@ -1,7 +1,7 @@
 #include "common/remote_node_service.h"
 
 #include "base/logger.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "core/attribute_service.h"
 #include "core/test/test_address_space.h"
 

@@ -2,7 +2,7 @@
 
 #include "base/strings/strcat.h"
 #include "common/scada_expression.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 
 bool IsNodeIdFormula(base::StringPiece formula, scada::NodeId& node_id) {
   std::string item_name;

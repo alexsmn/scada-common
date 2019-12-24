@@ -2,7 +2,7 @@
 
 #include "base/logger.h"
 #include "common/node_fetcher.h"
-#include "common/node_id_util.h"
+#include "model/node_id_util.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
