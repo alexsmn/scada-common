@@ -11,7 +11,7 @@
 #include <unordered_map>
 
 // TODO: Remove
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 
 AttributeServiceImpl::AttributeServiceImpl(
     AttributeServiceImplContext&& context)

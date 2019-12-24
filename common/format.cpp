@@ -9,7 +9,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
 #include "model/node_id_util.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 #include "core/variant.h"
 
 const wchar_t* kEmptyDisplayName = L"#ИМЯ?";

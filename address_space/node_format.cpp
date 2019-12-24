@@ -5,7 +5,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 
 namespace scada {
 

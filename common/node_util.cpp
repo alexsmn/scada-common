@@ -3,7 +3,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_service.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 
 bool IsSubtypeOf(NodeRef type_definition, const scada::NodeId& supertype_id) {
   for (; type_definition; type_definition = type_definition.supertype()) {

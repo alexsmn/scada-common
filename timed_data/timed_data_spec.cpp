@@ -4,7 +4,7 @@
 #include "common/interval_util.h"
 #include "common/node_format.h"
 #include "common/node_util.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_util.h"
 

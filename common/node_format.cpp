@@ -10,7 +10,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
 #include "common/node_util.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 #include "core/tvq.h"
 
 void FmtAddMods(const NodeRef& node,

@@ -10,7 +10,7 @@
 #include "address_space/variable.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/node_state.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 #include "core/privileges.h"
 
 namespace {

@@ -13,7 +13,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "model/node_id_util.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 
 namespace scada {
 

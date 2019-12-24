@@ -5,7 +5,7 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "model/node_id_util.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 
 #include <atomic>
 #include <unordered_map>

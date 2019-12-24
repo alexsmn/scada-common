@@ -1,7 +1,7 @@
 #pragma once
 
 #include "address_space/standard_address_space.h"
-#include "common/scada_node_ids.h"
+#include "model/scada_node_ids.h"
 #include "core/configuration_types.h"
 
 class AddressSpaceImpl;
