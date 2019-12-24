@@ -1,9 +1,9 @@
 #include "common/remote_node_service.h"
 
+#include "address_space/test/test_address_space.h"
 #include "base/logger.h"
-#include "model/node_id_util.h"
 #include "core/attribute_service.h"
-#include "core/test/test_address_space.h"
+#include "model/node_id_util.h"
 
 #include <gmock/gmock.h>
 

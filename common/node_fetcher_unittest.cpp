@@ -1,12 +1,12 @@
 #include "node_fetcher_impl.h"
 
+#include "address_space/test/test_address_space.h"
 #include "base/logger.h"
-#include "model/node_id_util.h"
 #include "core/attribute_service_mock.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
-#include "core/test/test_address_space.h"
 #include "core/view_service_mock.h"
+#include "model/node_id_util.h"
 
 #include "core/debug_util-inl.h"
 

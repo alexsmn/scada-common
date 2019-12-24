@@ -6,10 +6,10 @@
 #include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/standard_address_space.h"
+#include "address_space/test/test_address_space.h"
 #include "address_space/variable.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
-#include "core/test/test_address_space.h"
 
 using namespace testing;
 

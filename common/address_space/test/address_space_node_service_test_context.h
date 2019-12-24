@@ -2,13 +2,13 @@
 
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
+#include "address_space/test/test_address_space.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/address_space/address_space_node_service.h"
 #include "common/mock_node_observer.h"
 #include "core/method_service_mock.h"
 #include "core/monitored_item_service_mock.h"
-#include "core/test/test_address_space.h"
 
 namespace testing {
 
