@@ -75,6 +75,11 @@ std::pair<NodeId, DataValueFieldId> ParseAliasedString(
   auto property_name = path.substr(sep_pos + 1);
   if (IsEqualNoCase(property_name, "Quality"))
     return {std::move(node_id), DataValueFieldId::Qualifier};
+  else if (IsEqualNoCase(property_name, "ServerTimeStamp"))
+    return {std::move(node_id), DataValueFieldId::ServerTimeStamp};
+  else if (IsEqualNoCase(property_name, "SourceTimeStamp"))
+    return {std::move(node_id), DataValueFieldId::SourceTimeStamp};
+
   return {};
 }
 

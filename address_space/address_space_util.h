@@ -19,7 +19,12 @@ class VariableType;
 QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id);
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id);
 
-enum class DataValueFieldId { Qualifier, Count };
+enum class DataValueFieldId {
+  Qualifier,
+  SourceTimeStamp,
+  ServerTimeStamp,
+  Count
+};
 
 NodeId NodeIdFromAliasedString(AddressSpace& address_space,
                                const base::StringPiece& path);
