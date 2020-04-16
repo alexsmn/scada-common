@@ -7,10 +7,10 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/logger.h"
-#include "model/node_id_util.h"
 #include "common/node_state.h"
 #include "common/node_util.h"
 #include "core/standard_node_ids.h"
+#include "model/node_id_util.h"
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {
@@ -112,14 +112,13 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
         scada::DataValue{std::move(*node_state.attributes.value), {}, {}, {}});
   }
 
+  auto& node_ref = address_space_.AddStaticNode(std::move(node));
+
   if (type_definition) {
-    scada::AddReference(address_space_, scada::id::HasTypeDefinition, *node,
+    scada::AddReference(address_space_, scada::id::HasTypeDefinition, node_ref,
                         *type_definition);
+    CreateProperties(node_ref, *type_definition);
   }
-
-  auto* node_ptr = node.get();
-
-  address_space_.AddStaticNode(std::move(node));
 
   if (!parent_id.is_null()) {
     auto* parent = address_space_.GetNode(parent_id);
@@ -131,7 +130,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     if (!reference_type)
       throw scada::Status(scada::StatusCode::Bad_WrongReferenceId);
 
-    scada::AddReference(*reference_type, *parent, *node_ptr);
+    scada::AddReference(*reference_type, *parent, node_ref);
   }
 
   for (auto& child : node_state.children) {
@@ -142,10 +141,32 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
 
   for (auto& [prop_decl_id, value] : node_state.properties) {
     auto status =
-        scada::SetPropertyValue(*node_ptr, prop_decl_id, std::move(value));
+        scada::SetPropertyValue(node_ref, prop_decl_id, std::move(value));
     if (!status)
       return {status, nullptr};
   }
 
-  return {scada::StatusCode::Good, node_ptr};
+  return {scada::StatusCode::Good, &node_ref};
+}
+
+void GenericNodeFactory::CreateProperties(
+    scada::Node& node,
+    const scada::TypeDefinition& type_definition) {
+  for (auto* type = &type_definition; type; type = type->supertype()) {
+    for (const auto* prop_node : scada::GetProperties(*type)) {
+      auto& prop_decl = scada::AsVariable(*prop_node);
+      auto prop_id =
+          MakeNestedNodeId(node.id(), prop_decl.GetBrowseName().name());
+      auto [status, prop] = CreateNode(
+          {std::move(prop_id), scada::NodeClass::Variable,
+           scada::id::PropertyType, node.id(), scada::id::HasProperty,
+           scada::NodeAttributes{}
+               .set_browse_name(prop_decl.GetBrowseName())
+               .set_display_name(prop_decl.GetDisplayName())
+               .set_data_type(prop_decl.GetDataType().id())
+               .set_value(prop_decl.GetValue().value)});
+      if (!status)
+        throw status;
+    }
+  }
 }
