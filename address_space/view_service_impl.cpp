@@ -41,8 +41,6 @@ scada::BrowseResult ViewServiceImpl::Browse(
   if (!node)
     return {scada::StatusCode::Bad_WrongNodeId};
 
-  async_view_service = node->GetViewService();
-
   if (nested_name.empty())
     return BrowseNode(*node, description);
 

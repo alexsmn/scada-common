@@ -13,13 +13,9 @@
 
 namespace scada {
 
-class AttributeService;
-class MethodService;
-class MonitoredItemService;
 class Node;
 class ReferenceType;
 class TypeDefinition;
-class ViewService;
 struct Reference;
 
 using References = std::vector<Reference>;
@@ -65,11 +61,6 @@ class Node {
   virtual void DeleteReference(const ReferenceType& reference_type,
                                bool forward,
                                Node& node);
-
-  virtual AttributeService* GetAttributeService() { return nullptr; }
-  virtual ViewService* GetViewService() { return nullptr; }
-  virtual MethodService* GetMethodService() { return nullptr; }
-  virtual MonitoredItemService* GetMonitoredItemService() { return nullptr; }
 
  private:
   NodeId id_;

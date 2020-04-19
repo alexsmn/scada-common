@@ -82,16 +82,7 @@ void AttributeServiceImpl::Read(
 void AttributeServiceImpl::Write(const scada::WriteValue& value,
                                  const scada::NodeId& user_id,
                                  const scada::StatusCallback& callback) {
-  base::StringPiece nested_name;
-  auto* node = GetNestedNode(address_space_, value.node_id, nested_name);
-  if (!node)
-    return callback(scada::StatusCode::Bad_WrongNodeId);
-
-  auto* node_service = node->GetAttributeService();
-  if (!node_service)
-    return callback(scada::StatusCode::Bad_WrongNodeId);
-
-  node_service->Write(value, user_id, callback);
+  callback(scada::StatusCode::Bad_WrongNodeId);
 }
 
 scada::DataValue AttributeServiceImpl::Read(
@@ -108,7 +99,6 @@ scada::DataValue AttributeServiceImpl::Read(
   if (nested_name.empty())
     return ReadNode(*node, read_id.attribute_id);
 
-  async_view_service = node->GetAttributeService();
   return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 }
 
