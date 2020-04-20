@@ -80,8 +80,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
     OnSessionDeleted(scada::StatusCode::Good);
 
-    if (services_.view_service_)
-      services_.view_service_->Unsubscribe(*this);
+    view_events_subscription_.reset();
     if (services_.session_service_)
       services_.session_service_->RemoveObserver(*this);
   }
@@ -90,8 +89,10 @@ void MasterDataServices::SetServices(DataServices&& services) {
   connected_ = services_.session_service_ != nullptr;
 
   if (connected_) {
-    if (services_.view_service_)
-      services_.view_service_->Subscribe(*this);
+    if (services_.view_service_) {
+      view_events_subscription_.emplace(*services_.view_service_,
+                                        *static_cast<scada::ViewEvents*>(this));
+    }
     if (services_.session_service_)
       services_.session_service_->AddObserver(*this);
 

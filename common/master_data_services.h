@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/observer_list.h"
+#include "common/view_events_subscription.h"
 #include "core/attribute_service.h"
 #include "core/data_services.h"
 #include "core/event_service.h"
@@ -11,6 +12,8 @@
 #include "core/session_service.h"
 #include "core/session_state_observer.h"
 #include "core/view_service.h"
+
+#include <optional>
 
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
@@ -135,4 +138,6 @@ class MasterDataServices final : public scada::AttributeService,
 
   DataServices services_;
   bool connected_ = false;
+
+  std::optional<ViewEventsSubscription> view_events_subscription_;
 };

@@ -13,13 +13,9 @@
 RemoteNodeService::RemoteNodeService(RemoteNodeServiceContext&& context)
     : RemoteNodeServiceContext(std::move(context)),
       node_fetcher_{MakeNodeFetcherImplContext()},
-      node_children_fetcher_{MakeNodeChildrenFetcherContext()} {
-  view_service_.Subscribe(*this);
-}
+      node_children_fetcher_{MakeNodeChildrenFetcherContext()} {}
 
-RemoteNodeService::~RemoteNodeService() {
-  view_service_.Unsubscribe(*this);
-}
+RemoteNodeService::~RemoteNodeService() {}
 
 NodeRef RemoteNodeService::GetNode(const scada::NodeId& node_id) {
   if (node_id.is_null())

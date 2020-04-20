@@ -4,6 +4,7 @@
 #include "common/node_children_fetcher.h"
 #include "common/node_fetcher_impl.h"
 #include "common/node_service.h"
+#include "common/view_events_subscription.h"
 #include "core/view_service.h"
 
 #include <map>
@@ -68,6 +69,8 @@ class RemoteNodeService : private RemoteNodeServiceContext,
 
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
+
+  ViewEventsSubscription view_events_subscription_{view_service_, *this};
 
   friend class RemoteNodeModel;
 };

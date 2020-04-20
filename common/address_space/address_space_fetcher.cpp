@@ -5,8 +5,8 @@
 #include "address_space/type_definition.h"
 #include "base/logger.h"
 #include "common/address_space/address_space_updater.h"
-#include "model/node_id_util.h"
 #include "core/standard_node_ids.h"
+#include "model/node_id_util.h"
 
 namespace {
 
@@ -49,13 +49,9 @@ AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
       node_fetcher_{MakeNodeFetcherImplContext()},
       node_children_fetcher_{MakeNodeChildrenFetcherContext()},
       fetch_status_tracker_{
-          {node_fetch_status_changed_handler_, address_space_}} {
-  view_service_.Subscribe(*this);
-}
+          {node_fetch_status_changed_handler_, address_space_}} {}
 
-AddressSpaceFetcher::~AddressSpaceFetcher() {
-  view_service_.Unsubscribe(*this);
-}
+AddressSpaceFetcher::~AddressSpaceFetcher() {}
 
 void AddressSpaceFetcher::OnChannelOpened() {
   channel_opened_ = true;

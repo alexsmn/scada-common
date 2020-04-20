@@ -3,6 +3,7 @@
 #include "common/address_space/node_fetch_status_tracker.h"
 #include "common/node_children_fetcher.h"
 #include "common/node_fetcher_impl.h"
+#include "common/view_events_subscription.h"
 #include "core/configuration_types.h"
 #include "core/view_service.h"
 
@@ -63,4 +64,6 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
 
   using PostponedFetchNodes = std::map<scada::NodeId, NodeFetchStatus>;
   PostponedFetchNodes postponed_fetch_nodes_;
+
+  ViewEventsSubscription view_events_subscription_{view_service_, *this};
 };
