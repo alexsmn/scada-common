@@ -10,6 +10,7 @@
 #include "address_space/variable.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
+#include "core/monitored_item_service_mock.h"
 
 using namespace testing;
 
@@ -64,13 +65,15 @@ struct TestContext {
 
   TestAddressSpace server_address_space;
 
+  scada::MockMonitoredItemService monitored_item_service;
+
   AddressSpaceImpl2 client_address_space{logger};
 
   GenericNodeFactory node_factory{client_address_space};
 
   AddressSpaceFetcher fetcher{AddressSpaceFetcherContext{
-      logger, server_address_space, server_address_space, client_address_space,
-      node_factory,
+      logger, server_address_space, server_address_space,
+      monitored_item_service, client_address_space, node_factory,
       [this](const scada::NodeId& node_id,
              const scada::Status& status,
              const NodeFetchStatus& fetch_status) {
@@ -155,8 +158,8 @@ TEST(AddressSpaceFetcher, NodeDeleted) {
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
   ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
 
-  context.server_address_space.NotifyModelChanged(
-      {kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
+  // context.server_address_space.NotifyModelChanged(
+  //     {kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
 
   EXPECT_EQ(nullptr, context.client_address_space.GetNode(kNodeId));
 }
@@ -180,8 +183,8 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
                             kNewValue);
   }
 
-  context.server_address_space.NotifySemanticChanged(
-      kNodeId, scada::GetTypeDefinitionId(*node));
+  // context.server_address_space.NotifySemanticChanged(
+  //     scada::SemanticChangeEvent{kNodeId});
 
   {
     auto* node = context.client_address_space.GetNode(kNodeId);

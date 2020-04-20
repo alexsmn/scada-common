@@ -3,6 +3,7 @@
 #include "address_space/test/test_address_space.h"
 #include "base/logger.h"
 #include "core/attribute_service.h"
+#include "core/monitored_item_service_mock.h"
 #include "model/node_id_util.h"
 
 #include <gmock/gmock.h>
@@ -26,10 +27,12 @@ using namespace testing;
 TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
+  scada::MockMonitoredItemService monitored_item_service;
   RemoteNodeService node_service{RemoteNodeServiceContext{
       logger,
       address_space,
       address_space,
+      monitored_item_service,
   }};
 
   node_service.OnChannelOpened();
@@ -49,10 +52,12 @@ TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
 TEST(RemoteNodeService, DISABLED_FetchObject) {
   const auto logger = std::make_shared<NullLogger>();
   TestAddressSpace address_space;
+  scada::MockMonitoredItemService monitored_item_service;
   RemoteNodeService node_service{RemoteNodeServiceContext{
       logger,
       address_space,
       address_space,
+      monitored_item_service,
   }};
 
   node_service.OnChannelOpened();

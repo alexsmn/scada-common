@@ -7,12 +7,12 @@
 #include "core/view_service.h"
 #include "opcua/opcua_conversion.h"
 
-#include <opcuapp/data_value.h>
-#include <opcuapp/requests.h>
-#include <opcuapp/status_code.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <opcuapp/data_value.h>
+#include <opcuapp/requests.h>
+#include <opcuapp/status_code.h>
 
 namespace {
 
@@ -187,9 +187,7 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
       const opcua::server::EventHandler& event_handler) override {
     monitored_item_->set_event_handler(
         [this, event_handler](const scada::Status& status,
-                              const scada::Event& event) {
-          event_handler({});
-        });
+                              const std::any& event) { event_handler({}); });
     monitored_item_->Subscribe();
   }
 

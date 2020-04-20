@@ -11,25 +11,9 @@
 #include <unordered_map>
 
 ViewServiceImpl::ViewServiceImpl(ViewServiceImplContext&& context)
-    : ViewServiceImplContext{std::move(context)} {
-  address_space_.Subscribe(*this);
-}
+    : ViewServiceImplContext{std::move(context)} {}
 
-ViewServiceImpl::~ViewServiceImpl() {
-  address_space_.Unsubscribe(*this);
-}
-
-void ViewServiceImpl::NotifyModelChanged(const scada::ModelChangeEvent& event) {
-  for (auto& o : events_)
-    o.OnModelChanged(event);
-}
-
-void ViewServiceImpl::NotifySemanticChanged(
-    const scada::NodeId& node_id,
-    const scada::NodeId& type_definion_id) {
-  for (auto& o : events_)
-    o.OnNodeSemanticsChanged(node_id);
-}
+ViewServiceImpl::~ViewServiceImpl() {}
 
 scada::BrowseResult ViewServiceImpl::Browse(
     const scada::BrowseDescription& description,
@@ -197,93 +181,4 @@ void ViewServiceImpl::TranslateBrowsePath(
     const scada::TranslateBrowsePathCallback& callback) {
   assert(false);
   callback(scada::StatusCode::Bad, {}, 0);
-}
-
-void ViewServiceImpl::Subscribe(scada::ViewEvents& events) {
-  events_.AddObserver(&events);
-}
-
-void ViewServiceImpl::Unsubscribe(scada::ViewEvents& events) {
-  events_.RemoveObserver(&events);
-}
-
-void ViewServiceImpl::OnNodeCreated(const scada::Node& node) {
-  assert(scada::IsInstance(node.GetNodeClass()));
-
-  {
-    const scada::ModelChangeEvent event{
-        node.id(), scada::GetTypeDefinitionId(node),
-        scada::ModelChangeEvent::NodeAdded |
-            scada::ModelChangeEvent::ReferenceAdded};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
-
-  if (auto* parent = scada::GetParent(node)) {
-    const scada::ModelChangeEvent event{
-        parent->id(), scada::GetTypeDefinitionId(*parent),
-        scada::ModelChangeEvent::ReferenceAdded};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
-}
-
-void ViewServiceImpl::OnNodeDeleted(const scada::Node& node) {
-  assert(scada::IsInstance(node.GetNodeClass()));
-
-  const scada::ModelChangeEvent event{
-      node.id(), {}, scada::ModelChangeEvent::NodeDeleted};
-  for (auto& o : events_)
-    o.OnModelChanged(event);
-}
-
-void ViewServiceImpl::OnNodeModified(const scada::Node& node,
-                                     const scada::PropertyIds& property_ids) {
-  assert(scada::IsInstance(node.GetNodeClass()));
-
-  const auto node_id = node.id();
-  for (auto& o : events_)
-    o.OnNodeSemanticsChanged(node_id);
-}
-
-void ViewServiceImpl::OnReferenceAdded(
-    const scada::ReferenceType& reference_type,
-    const scada::Node& source,
-    const scada::Node& target) {
-  if (scada::IsInstance(source.GetNodeClass())) {
-    const scada::ModelChangeEvent event{
-        source.id(), scada::GetTypeDefinitionId(source),
-        scada::ModelChangeEvent::ReferenceAdded};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
-
-  if (scada::IsInstance(target.GetNodeClass())) {
-    const scada::ModelChangeEvent event{
-        target.id(), scada::GetTypeDefinitionId(target),
-        scada::ModelChangeEvent::ReferenceAdded};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
-}
-
-void ViewServiceImpl::OnReferenceDeleted(
-    const scada::ReferenceType& reference_type,
-    const scada::Node& source,
-    const scada::Node& target) {
-  if (scada::IsInstance(source.GetNodeClass())) {
-    const scada::ModelChangeEvent event{
-        source.id(), scada::GetTypeDefinitionId(source),
-        scada::ModelChangeEvent::ReferenceDeleted};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
-
-  if (scada::IsInstance(target.GetNodeClass())) {
-    const scada::ModelChangeEvent event{
-        target.id(), scada::GetTypeDefinitionId(target),
-        scada::ModelChangeEvent::ReferenceDeleted};
-    for (auto& o : events_)
-      o.OnModelChanged(event);
-  }
 }

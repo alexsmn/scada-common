@@ -189,6 +189,7 @@ AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
   return {logger_,
           view_service_,
           attribute_service_,
+          monitored_item_service_,
           address_space_,
           node_factory_,
           node_fetch_status_changed_handler,

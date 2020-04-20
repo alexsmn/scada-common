@@ -23,6 +23,7 @@ struct RemoteNodeServiceContext {
   const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
+  scada::MonitoredItemService& monitored_item_service_;
 };
 
 class RemoteNodeService : private RemoteNodeServiceContext,
@@ -58,7 +59,8 @@ class RemoteNodeService : private RemoteNodeServiceContext,
 
   // scada::ViewService
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
-  virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
+  virtual void OnNodeSemanticsChanged(
+      const scada::SemanticChangeEvent& event) override;
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 
@@ -70,7 +72,8 @@ class RemoteNodeService : private RemoteNodeServiceContext,
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
 
-  ViewEventsSubscription view_events_subscription_{view_service_, *this};
+  ViewEventsSubscription view_events_subscription_{monitored_item_service_,
+                                                   *this};
 
   friend class RemoteNodeModel;
 };

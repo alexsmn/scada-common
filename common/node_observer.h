@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-
-#include "core/model_change_event.h"
+#include "core/event.h"
 #include "core/node_id.h"
+
+#include <cstdint>
 
 class NodeRefObserver {
  public:

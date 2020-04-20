@@ -185,11 +185,3 @@ void VidiconSession::TranslateBrowsePath(
     const scada::TranslateBrowsePathCallback& callback) {
   view_service_.TranslateBrowsePath(starting_node_id, relative_path, callback);
 }
-
-void VidiconSession::Subscribe(scada::ViewEvents& events) {
-  view_service_.Subscribe(events);
-}
-
-void VidiconSession::Unsubscribe(scada::ViewEvents& events) {
-  view_service_.Unsubscribe(events);
-}

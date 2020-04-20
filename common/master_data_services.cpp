@@ -50,7 +50,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
     } else {
       underlying_item_->set_event_handler(
-          [this](const scada::Status& status, const scada::Event& event) {
+          [this](const scada::Status& status, const std::any& event) {
             ForwardEvent(status, event);
           });
     }
@@ -80,7 +80,6 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
     OnSessionDeleted(scada::StatusCode::Good);
 
-    view_events_subscription_.reset();
     if (services_.session_service_)
       services_.session_service_->RemoveObserver(*this);
   }
@@ -89,10 +88,6 @@ void MasterDataServices::SetServices(DataServices&& services) {
   connected_ = services_.session_service_ != nullptr;
 
   if (connected_) {
-    if (services_.view_service_) {
-      view_events_subscription_.emplace(*services_.view_service_,
-                                        *static_cast<scada::ViewEvents*>(this));
-    }
     if (services_.session_service_)
       services_.session_service_->AddObserver(*this);
 
@@ -259,14 +254,6 @@ void MasterDataServices::TranslateBrowsePath(
                                                callback);
 }
 
-void MasterDataServices::Subscribe(scada::ViewEvents& events) {
-  view_events_.AddObserver(&events);
-}
-
-void MasterDataServices::Unsubscribe(scada::ViewEvents& events) {
-  view_events_.RemoveObserver(&events);
-}
-
 void MasterDataServices::Acknowledge(int acknowledge_id,
                                      const scada::NodeId& user_node_id) {
   if (!services_.event_service_)
@@ -340,14 +327,4 @@ void MasterDataServices::OnSessionCreated() {
 void MasterDataServices::OnSessionDeleted(const scada::Status& status) {
   for (auto& obs : session_state_observers_)
     obs.OnSessionDeleted(status);
-}
-
-void MasterDataServices::OnModelChanged(const scada::ModelChangeEvent& event) {
-  for (auto& obs : view_events_)
-    obs.OnModelChanged(event);
-}
-
-void MasterDataServices::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
-  for (auto& obs : view_events_)
-    obs.OnNodeSemanticsChanged(node_id);
 }

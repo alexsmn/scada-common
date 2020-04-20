@@ -51,9 +51,9 @@ TEST(AddressSpaceNodeService, NodeAdded) {
                   kNewNode.node_id, kNewNode.type_definition_id,
                   scada::ModelChangeEvent::NodeAdded}));
 
-  context.server_address_space.NotifyModelChanged(
-      {kNewNode.node_id, kNewNode.type_definition_id,
-       scada::ModelChangeEvent::NodeAdded});
+  // context.server_address_space.NotifyModelChanged(
+  //     {kNewNode.node_id, kNewNode.type_definition_id,
+  //      scada::ModelChangeEvent::NodeAdded});
 
   Mock::VerifyAndClearExpectations(&context.node_observer);
 

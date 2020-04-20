@@ -174,8 +174,8 @@ inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
   auto p = node_factory.CreateNode(node_state);
   assert(p.first);
   assert(p.second);
-  NotifyModelChanged(
-      {node_state.node_id, {}, scada::ModelChangeEvent::NodeAdded});
+  // NotifyModelChanged(
+  //     {node_state.node_id, {}, scada::ModelChangeEvent::NodeAdded});
 }
 
 inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {

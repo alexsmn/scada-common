@@ -73,14 +73,6 @@ class Audit final : public scada::AttributeService,
                                        callback);
   }
 
-  virtual void Subscribe(scada::ViewEvents& events) override {
-    view_service_->Subscribe(events);
-  }
-
-  virtual void Unsubscribe(scada::ViewEvents& events) override {
-    view_service_->Unsubscribe(events);
-  }
-
  private:
   using Clock = std::chrono::steady_clock;
   using Duration = Clock::duration;

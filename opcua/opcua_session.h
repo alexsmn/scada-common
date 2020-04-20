@@ -46,8 +46,6 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
       const scada::NodeId& starting_node_id,
       const scada::RelativePath& relative_path,
       const scada::TranslateBrowsePathCallback& callback) override;
-  virtual void Subscribe(scada::ViewEvents& events) override;
-  virtual void Unsubscribe(scada::ViewEvents& events) override;
 
   // scada::MonitoredItemService
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(

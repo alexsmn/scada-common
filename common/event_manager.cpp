@@ -17,12 +17,16 @@ static const size_t kMaxParallelAcks = 5;
 EventManager::EventManager(EventManagerContext&& context)
     : EventManagerContext{std::move(context)} {
   monitored_item_ = monitored_item_service_.CreateMonitoredItem(
-      {scada::id::RootFolder, scada::AttributeId::EventNotifier}, {});
+      {scada::id::RootFolder, scada::AttributeId::EventNotifier},
+      {scada::EventFilter{{}, {scada::id::SystemEventType}}});
   assert(monitored_item_);
   monitored_item_->set_event_handler(
-      [this](const scada::Status& status, const scada::Event& event) {
+      [this](const scada::Status& status, const std::any& event) {
         // TODO: Handle |status|
-        OnEvent(event);
+        assert(status);
+        assert(std::any_cast<scada::Event>(&event));
+        if (auto* system_event = std::any_cast<scada::Event>(&event))
+          OnEvent(*system_event);
       });
   monitored_item_->Subscribe();
 }
@@ -239,7 +243,7 @@ void EventManager::ItemEventsChanged(const ObserverSet& observers,
 
 void EventManager::Update() {
   history_service_.HistoryReadEvents(
-      scada::id::RootFolder, {}, {}, {scada::Event::UNACKED},
+      scada::id::RootFolder, {}, {}, {scada::EventFilter::UNACKED},
       io_context_.wrap(
           [weak_ptr = weak_factory_.GetWeakPtr()](
               scada::Status status, std::vector<scada::Event> events) {

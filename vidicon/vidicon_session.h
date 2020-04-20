@@ -117,8 +117,6 @@ class VidiconSession : public scada::SessionService,
       const scada::NodeId& starting_node_id,
       const scada::RelativePath& relative_path,
       const scada::TranslateBrowsePathCallback& callback) override;
-  virtual void Subscribe(scada::ViewEvents& events) override;
-  virtual void Unsubscribe(scada::ViewEvents& events) override;
 
  private:
   AddressSpaceImpl2 address_space_;

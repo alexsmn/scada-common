@@ -161,10 +161,6 @@ void OpcUaSession::TranslateBrowsePath(
   assert(false);
 }
 
-void OpcUaSession::Subscribe(scada::ViewEvents& events) {}
-
-void OpcUaSession::Unsubscribe(scada::ViewEvents& events) {}
-
 OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
   if (!default_subscription_) {
     std::weak_ptr<OpcUaSession> weak_ptr = shared_from_this();

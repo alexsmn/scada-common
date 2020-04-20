@@ -81,8 +81,9 @@ void RemoteNodeService::OnModelChanged(const scada::ModelChangeEvent& event) {
     i->second->OnModelChanged(event);
 }
 
-void RemoteNodeService::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
-  if (auto i = nodes_.find(node_id); i != nodes_.end())
+void RemoteNodeService::OnNodeSemanticsChanged(
+    const scada::SemanticChangeEvent& event) {
+  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
     i->second->OnNodeSemanticChanged();
 }
 

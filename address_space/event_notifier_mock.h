@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/model_change_event.h"
+#include "core/event.h"
 #include "core/node_id.h"
 #include "event_notifier.h"
 
@@ -12,7 +12,6 @@ class MockEventNotifier : public EventNotifier {
 
   MOCK_METHOD1(NotifyModelChanged, void(const scada::ModelChangeEvent& event));
 
-  MOCK_METHOD2(NotifySemanticChanged,
-               void(const scada::NodeId& node_id,
-                    const scada::NodeId& type_definion_id));
+  MOCK_METHOD1(NotifySemanticChanged,
+               void(const scada::SemanticChangeEvent& event));
 };

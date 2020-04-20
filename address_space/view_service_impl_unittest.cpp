@@ -53,9 +53,6 @@ class VirtualObject : public scada::GenericObject,
     callback(scada::StatusCode::Bad, {}, 0);
   }
 
-  virtual void Subscribe(scada::ViewEvents& events) override {}
-  virtual void Unsubscribe(scada::ViewEvents& events) override {}
-
   std::vector<std::string> items;
 
  private:

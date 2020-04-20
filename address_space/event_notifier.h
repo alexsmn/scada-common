@@ -4,6 +4,7 @@ namespace scada {
 class Event;
 class NodeId;
 struct ModelChangeEvent;
+struct SemanticChangeEvent;
 };  // namespace scada
 
 class EventNotifier {
@@ -14,6 +15,6 @@ class EventNotifier {
 
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;
 
-  virtual void NotifySemanticChanged(const scada::NodeId& node_id,
-                                     const scada::NodeId& type_definion_id) = 0;
+  virtual void NotifySemanticChanged(
+      const scada::SemanticChangeEvent& event) = 0;
 };

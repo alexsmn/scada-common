@@ -22,6 +22,7 @@ struct AddressSpaceFetcherContext {
   const std::shared_ptr<Logger> logger_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
+  scada::MonitoredItemService& monitored_item_service_;
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
@@ -54,7 +55,8 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
 
   // scada::ViewEvents
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
-  virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
+  virtual void OnNodeSemanticsChanged(
+      const scada::SemanticChangeEvent& event) override;
 
   NodeFetcherImpl node_fetcher_;
   NodeChildrenFetcher node_children_fetcher_;
@@ -65,5 +67,6 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
   using PostponedFetchNodes = std::map<scada::NodeId, NodeFetchStatus>;
   PostponedFetchNodes postponed_fetch_nodes_;
 
-  ViewEventsSubscription view_events_subscription_{view_service_, *this};
+  ViewEventsSubscription view_events_subscription_{monitored_item_service_,
+                                                   *this};
 };

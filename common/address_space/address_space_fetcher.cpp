@@ -111,12 +111,13 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
   model_changed_handler_(event);
 }
 
-void AddressSpaceFetcher::OnNodeSemanticsChanged(const scada::NodeId& node_id) {
+void AddressSpaceFetcher::OnNodeSemanticsChanged(
+    const scada::SemanticChangeEvent& event) {
   logger_->WriteF(LogSeverity::Normal, "NodeSemanticsChanged [node_id=%s]",
-                  NodeIdToScadaString(node_id).c_str());
+                  NodeIdToScadaString(event.node_id).c_str());
 
-  if (address_space_.GetNode(node_id))
-    node_fetcher_.Fetch(node_id, false, {}, {}, true);
+  if (address_space_.GetNode(event.node_id))
+    node_fetcher_.Fetch(event.node_id, false, {}, {}, true);
 }
 
 NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {

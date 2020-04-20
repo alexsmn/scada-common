@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/observer_list.h"
-#include "common/view_events_subscription.h"
 #include "core/attribute_service.h"
 #include "core/data_services.h"
 #include "core/event_service.h"
@@ -13,8 +12,6 @@
 #include "core/session_state_observer.h"
 #include "core/view_service.h"
 
-#include <optional>
-
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
                                  public scada::SessionService,
@@ -23,8 +20,7 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
                                  public scada::NodeManagementService,
-                                 private scada::SessionStateObserver,
-                                 private scada::ViewEvents {
+                                 private scada::SessionStateObserver {
  public:
   MasterDataServices();
   ~MasterDataServices();
@@ -83,8 +79,6 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::NodeId& starting_node_id,
       const scada::RelativePath& relative_path,
       const scada::TranslateBrowsePathCallback& callback) override;
-  virtual void Subscribe(scada::ViewEvents& events) override;
-  virtual void Unsubscribe(scada::ViewEvents& events) override;
 
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,
@@ -127,17 +121,10 @@ class MasterDataServices final : public scada::AttributeService,
   virtual void OnSessionCreated() override;
   virtual void OnSessionDeleted(const scada::Status& status) override;
 
-  // scada::ViewEvents
-  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
-  virtual void OnNodeSemanticsChanged(const scada::NodeId& node_id) override;
-
   std::vector<MasterMonitoredItem*> monitored_items_;
 
   base::ObserverList<scada::SessionStateObserver> session_state_observers_;
-  base::ObserverList<scada::ViewEvents> view_events_;
 
   DataServices services_;
   bool connected_ = false;
-
-  std::optional<ViewEventsSubscription> view_events_subscription_;
 };
