@@ -25,8 +25,7 @@ class AttributeServiceImpl : public scada::AttributeService,
                      const scada::StatusCallback& callback) override;
 
  private:
-  scada::DataValue Read(const scada::ReadValueId& read_id,
-                        scada::AttributeService*& async_view_service);
+  scada::DataValue Read(const scada::ReadValueId& read_id);
   scada::DataValue ReadNode(const scada::Node& node,
                             scada::AttributeId attribute_id);
 

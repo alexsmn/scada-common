@@ -7,7 +7,7 @@
 namespace scada {
 class AddressSpace;
 class Node;
-}
+}  // namespace scada
 
 struct ViewServiceImplContext {
   scada::AddressSpace& address_space_;
@@ -28,8 +28,7 @@ class ViewServiceImpl : private ViewServiceImplContext,
       const scada::TranslateBrowsePathCallback& callback) override;
 
  private:
-  scada::BrowseResult Browse(const scada::BrowseDescription& description,
-                             scada::ViewService*& async_view_service);
+  scada::BrowseResult Browse(const scada::BrowseDescription& description);
   scada::BrowseResult BrowseNode(const scada::Node& node,
                                  const scada::BrowseDescription& description);
   scada::BrowseResult BrowseProperty(

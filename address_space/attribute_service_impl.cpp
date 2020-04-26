@@ -27,56 +27,12 @@ void AttributeServiceImpl::Read(
     std::vector<size_t> result_indexes;
   };
 
-  std::unordered_map<scada::AttributeService*, AsyncRequest> async_requests;
-
   for (size_t index = 0; index < descriptions.size(); ++index) {
     scada::AttributeService* async_service = nullptr;
-    results[index] = Read(descriptions[index], async_service);
-    if (async_service) {
-      auto& async_request = async_requests[async_service];
-      async_request.descriptions.emplace_back(descriptions[index]);
-      async_request.result_indexes.emplace_back(index);
-    }
+    results[index] = Read(descriptions[index]);
   }
 
-  if (async_requests.empty())
-    return callback(scada::StatusCode::Good, std::move(results));
-
-  struct SharedResults {
-    std::vector<scada::DataValue> results;
-    scada::ReadCallback callback;
-    std::atomic<int> count;
-  };
-
-  auto shared_data = std::make_shared<SharedResults>();
-  shared_data->results = std::move(results);
-  shared_data->callback = std::move(callback);
-  shared_data->count = static_cast<int>(async_requests.size());
-
-  for (auto& p : async_requests) {
-    auto& service = *p.first;
-    auto& async_request = p.second;
-
-    service.Read(
-        async_request.descriptions,
-        [shared_data, result_indexes = std::move(async_request.result_indexes)](
-            scada::Status&& status, std::vector<scada::DataValue>&& results) {
-          assert(!status || result_indexes.size() == results.size());
-          for (size_t i = 0; i < result_indexes.size(); ++i) {
-            auto& result = shared_data->results[result_indexes[i]];
-            if (status)
-              result = std::move(results[i]);
-            else
-              result = {status.code(), scada::DateTime::Now()};
-          }
-
-          auto remaining_count = --shared_data->count;
-          assert(remaining_count >= 0);
-          if (remaining_count == 0)
-            shared_data->callback(scada::StatusCode::Good,
-                                  std::move(shared_data->results));
-        });
-  }
+  return callback(scada::StatusCode::Good, std::move(results));
 }
 
 void AttributeServiceImpl::Write(const scada::WriteValue& value,
@@ -85,11 +41,7 @@ void AttributeServiceImpl::Write(const scada::WriteValue& value,
   callback(scada::StatusCode::Bad_WrongNodeId);
 }
 
-scada::DataValue AttributeServiceImpl::Read(
-    const scada::ReadValueId& read_id,
-    scada::AttributeService*& async_view_service) {
-  async_view_service = nullptr;
-
+scada::DataValue AttributeServiceImpl::Read(const scada::ReadValueId& read_id) {
   base::StringPiece nested_name;
   auto* node =
       scada::GetNestedNode(address_space_, read_id.node_id, nested_name);

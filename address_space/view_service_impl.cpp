@@ -16,10 +16,7 @@ ViewServiceImpl::ViewServiceImpl(ViewServiceImplContext&& context)
 ViewServiceImpl::~ViewServiceImpl() {}
 
 scada::BrowseResult ViewServiceImpl::Browse(
-    const scada::BrowseDescription& description,
-    scada::ViewService*& async_view_service) {
-  async_view_service = nullptr;
-
+    const scada::BrowseDescription& description) {
   base::StringPiece nested_name;
   auto* node = GetNestedNode(address_space_, description.node_id, nested_name);
   if (!node)
@@ -116,63 +113,10 @@ void ViewServiceImpl::Browse(
     std::vector<size_t> result_indexes;
   };
 
-  std::unordered_map<scada::ViewService*, AsyncBrowseData> async_nodes;
+  for (size_t index = 0; index < descriptions.size(); ++index)
+    results[index] = Browse(descriptions[index]);
 
-  for (size_t index = 0; index < descriptions.size(); ++index) {
-    scada::ViewService* async_view_service = nullptr;
-    results[index] = Browse(descriptions[index], async_view_service);
-    if (async_view_service) {
-      auto& browse_data = async_nodes[async_view_service];
-      browse_data.descriptions.emplace_back(descriptions[index]);
-      browse_data.result_indexes.emplace_back(index);
-    }
-  }
-
-  if (async_nodes.empty())
-    return callback(scada::StatusCode::Good, std::move(results));
-
-  struct SharedResults {
-    std::vector<scada::BrowseResult> results;
-    scada::BrowseCallback callback;
-    std::atomic<int> count;
-  };
-
-  auto shared_data = std::make_shared<SharedResults>();
-  shared_data->results = std::move(results);
-  shared_data->callback = std::move(callback);
-  shared_data->count = static_cast<int>(async_nodes.size());
-
-  for (auto& p : async_nodes) {
-    auto& view_service = *p.first;
-    auto& browse_data = p.second;
-
-    view_service.Browse(
-        browse_data.descriptions,
-        [shared_data, result_indexes = std::move(browse_data.result_indexes)](
-            scada::Status&& status,
-            std::vector<scada::BrowseResult>&& results) {
-          if (status) {
-            assert(result_indexes.size() == results.size());
-            for (size_t i = 0; i < result_indexes.size(); ++i) {
-              auto& result = shared_data->results[result_indexes[i]];
-              auto& references = results[i].references;
-              if (scada::Status{results[i].status_code}) {
-                result.references.insert(
-                    result.references.end(),
-                    std::make_move_iterator(references.begin()),
-                    std::make_move_iterator(references.end()));
-                result.status_code = results[i].status_code;
-              }
-            }
-          }
-
-          auto remaining_count = --shared_data->count;
-          assert(remaining_count >= 0);
-          if (remaining_count == 0)
-            shared_data->callback(scada::StatusCode::Good,
-                                  std::move(shared_data->results));
-        });
-  }
+  return callback(scada::StatusCode::Good, std::move(results));
 }
 
 void ViewServiceImpl::TranslateBrowsePath(
