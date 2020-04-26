@@ -1,14 +1,14 @@
 #include "view_service_impl.h"
 
-#include "base/logger.h"
-#include "model/namespaces.h"
-#include "model/node_id_util.h"
-#include "core/attribute_service.h"
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
+#include "base/logger.h"
+#include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
+#include "model/namespaces.h"
+#include "model/node_id_util.h"
 
 #include <gmock/gmock.h>
 
@@ -46,11 +46,10 @@ class VirtualObject : public scada::GenericObject,
     callback(scada::StatusCode::Good, std::move(results));
   }
 
-  virtual void TranslateBrowsePath(
-      const scada::NodeId& starting_node_id,
-      const scada::RelativePath& relative_path,
+  virtual void TranslateBrowsePaths(
+      const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathCallback& callback) override {
-    callback(scada::StatusCode::Bad, {}, 0);
+    callback(scada::StatusCode::Bad, {});
   }
 
   std::vector<std::string> items;

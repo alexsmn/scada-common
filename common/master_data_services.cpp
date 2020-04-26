@@ -170,7 +170,7 @@ void MasterDataServices::CreateNode(const scada::NodeId& requested_id,
                                     scada::NodeClass node_class,
                                     const scada::NodeId& type_id,
                                     scada::NodeAttributes attributes,
-                                    const CreateNodeCallback& callback) {
+                                    const scada::CreateNodeCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -243,15 +243,13 @@ void MasterDataServices::Browse(
   services_.view_service_->Browse(nodes, callback);
 }
 
-void MasterDataServices::TranslateBrowsePath(
-    const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path,
+void MasterDataServices::TranslateBrowsePaths(
+    const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathCallback& callback) {
   if (!services_.view_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {}, 0);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.view_service_->TranslateBrowsePath(starting_node_id, relative_path,
-                                               callback);
+  services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
 }
 
 void MasterDataServices::Acknowledge(int acknowledge_id,

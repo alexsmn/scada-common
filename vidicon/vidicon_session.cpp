@@ -135,7 +135,7 @@ void VidiconSession::CreateNode(const scada::NodeId& requested_id,
                                 scada::NodeClass node_class,
                                 const scada::NodeId& type_id,
                                 scada::NodeAttributes attributes,
-                                const CreateNodeCallback& callback) {
+                                const scada::CreateNodeCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
 
@@ -179,9 +179,8 @@ void VidiconSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
   view_service_.Browse(nodes, callback);
 }
 
-void VidiconSession::TranslateBrowsePath(
-    const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path,
+void VidiconSession::TranslateBrowsePaths(
+    const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathCallback& callback) {
-  view_service_.TranslateBrowsePath(starting_node_id, relative_path, callback);
+  view_service_.TranslateBrowsePaths(browse_paths, callback);
 }

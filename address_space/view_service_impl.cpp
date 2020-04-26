@@ -119,10 +119,9 @@ void ViewServiceImpl::Browse(
   return callback(scada::StatusCode::Good, std::move(results));
 }
 
-void ViewServiceImpl::TranslateBrowsePath(
-    const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path,
+void ViewServiceImpl::TranslateBrowsePaths(
+    const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathCallback& callback) {
   assert(false);
-  callback(scada::StatusCode::Bad, {}, 0);
+  callback(scada::StatusCode::Bad, {});
 }

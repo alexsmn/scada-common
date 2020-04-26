@@ -22,15 +22,8 @@ void AttributeServiceImpl::Read(
     const scada::ReadCallback& callback) {
   std::vector<scada::DataValue> results(descriptions.size());
 
-  struct AsyncRequest {
-    std::vector<scada::ReadValueId> descriptions;
-    std::vector<size_t> result_indexes;
-  };
-
-  for (size_t index = 0; index < descriptions.size(); ++index) {
-    scada::AttributeService* async_service = nullptr;
+  for (size_t index = 0; index < descriptions.size(); ++index)
     results[index] = Read(descriptions[index]);
-  }
 
   return callback(scada::StatusCode::Good, std::move(results));
 }

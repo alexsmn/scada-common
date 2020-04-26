@@ -50,7 +50,7 @@ class MasterDataServices final : public scada::AttributeService,
                           scada::NodeClass node_class,
                           const scada::NodeId& type_id,
                           scada::NodeAttributes attributes,
-                          const CreateNodeCallback& callback) override;
+                          const scada::CreateNodeCallback& callback) override;
   virtual void ModifyNodes(
       const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
           attributes,
@@ -75,9 +75,8 @@ class MasterDataServices final : public scada::AttributeService,
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& nodes,
                       const scada::BrowseCallback& callback) override;
-  virtual void TranslateBrowsePath(
-      const scada::NodeId& starting_node_id,
-      const scada::RelativePath& relative_path,
+  virtual void TranslateBrowsePaths(
+      const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathCallback& callback) override;
 
   // scada::EventService

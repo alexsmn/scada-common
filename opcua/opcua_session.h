@@ -42,9 +42,8 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& nodes,
                       const scada::BrowseCallback& callback) override;
-  virtual void TranslateBrowsePath(
-      const scada::NodeId& starting_node_id,
-      const scada::RelativePath& relative_path,
+  virtual void TranslateBrowsePaths(
+      const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathCallback& callback) override;
 
   // scada::MonitoredItemService

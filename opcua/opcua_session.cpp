@@ -154,9 +154,8 @@ void OpcUaSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
       });
 }
 
-void OpcUaSession::TranslateBrowsePath(
-    const scada::NodeId& starting_node_id,
-    const scada::RelativePath& relative_path,
+void OpcUaSession::TranslateBrowsePaths(
+    const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathCallback& callback) {
   assert(false);
 }
