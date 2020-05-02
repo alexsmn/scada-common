@@ -12,6 +12,8 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
+#include "model/data_items_node_ids.h"
+#include "model/devices_node_ids.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
@@ -22,9 +24,10 @@ namespace {
 const Node* FindNodeByAlias(const Node& parent_node,
                             const base::StringPiece& alias) {
   for (auto* node : GetOrganizes(parent_node)) {
-    if (IsInstanceOf(node, ::id::DataItemType)) {
-      const auto& node_alias = GetPropertyValue(*node, ::id::DataItemType_Alias)
-                                   .get_or(std::string());
+    if (IsInstanceOf(node, data_items::id::DataItemType)) {
+      const auto& node_alias =
+          GetPropertyValue(*node, data_items::id::DataItemType_Alias)
+              .get_or(std::string());
       if (IsEqualNoCase(node_alias, alias))
         return node;
     }
@@ -85,12 +88,12 @@ std::pair<NodeId, DataValueFieldId> ParseAliasedString(
 
 bool IsSimulated(const Node& node, bool recursive) {
   bool simulated = false;
-  if (IsInstanceOf(&node, ::id::DataGroupType)) {
-    simulated =
-        GetPropertyValue(node, ::id::DataGroupType_Simulated).get_or(false);
-  } else if (IsInstanceOf(&node, ::id::DataItemType)) {
-    simulated =
-        GetPropertyValue(node, ::id::DataItemType_Simulated).get_or(false);
+  if (IsInstanceOf(&node, data_items::id::DataGroupType)) {
+    simulated = GetPropertyValue(node, data_items::id::DataGroupType_Simulated)
+                    .get_or(false);
+  } else if (IsInstanceOf(&node, data_items::id::DataItemType)) {
+    simulated = GetPropertyValue(node, data_items::id::DataItemType_Simulated)
+                    .get_or(false);
   }
   if (simulated)
     return true;
@@ -105,11 +108,11 @@ bool IsSimulated(const Node& node, bool recursive) {
 }
 
 bool IsDisabled(const Node& node, bool recursive) {
-  if (!IsInstanceOf(&node, ::id::DeviceType))
+  if (!IsInstanceOf(&node, devices::id::DeviceType))
     return false;
 
   bool disabled =
-      GetPropertyValue(node, ::id::DeviceType_Disabled).get_or(false);
+      GetPropertyValue(node, devices::id::DeviceType_Disabled).get_or(false);
   if (disabled)
     return true;
 
@@ -123,7 +126,7 @@ bool IsDisabled(const Node& node, bool recursive) {
 }
 
 const Node* GetTsFormat(const Node& ts_node) {
-  return GetReference(ts_node, ::id::HasTsFormat).node;
+  return GetReference(ts_node, data_items::id::HasTsFormat).node;
 }
 
 QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id) {
@@ -141,8 +144,8 @@ LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id) {
 
 base::string16 GetFullDisplayName(const Node& node) {
   auto* parent = GetParent(node);
-  if (IsInstanceOf(parent, ::id::DataGroupType) ||
-      IsInstanceOf(parent, ::id::DeviceType))
+  if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
+      IsInstanceOf(parent, devices::id::DeviceType))
     return GetFullDisplayName(*parent) + base::WideToUTF16(L" : ") +
            ToString16(node.GetDisplayName());
   else
