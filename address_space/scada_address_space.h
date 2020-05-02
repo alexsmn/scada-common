@@ -1,8 +1,8 @@
 #pragma once
 
 #include "address_space/standard_address_space.h"
-#include "model/scada_node_ids.h"
 #include "core/configuration_types.h"
+#include "model/scada_node_ids.h"
 
 class AddressSpaceImpl;
 class NodeFactory;
@@ -22,7 +22,7 @@ struct StaticAddressSpace {
     GenericDataVariable Enabled;
   };
 
-  scada::ReferenceType Creates{id::Creates, "Creates", {}};
+  scada::ReferenceType Creates{scada::id::Creates, "Creates", {}};
 
   DeviceType DeviceType;
 };

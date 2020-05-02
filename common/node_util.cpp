@@ -3,6 +3,8 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_service.h"
+#include "model/data_items_node_ids.h"
+#include "model/devices_node_ids.h"
 #include "model/scada_node_ids.h"
 
 bool IsSubtypeOf(NodeRef type_definition, const scada::NodeId& supertype_id) {
@@ -20,14 +22,14 @@ bool IsInstanceOf(const NodeRef& node,
 
 bool CanCreate(const NodeRef& parent,
                const NodeRef& component_type_definition) {
-  for (const auto& creates : parent.targets(id::Creates)) {
+  for (const auto& creates : parent.targets(scada::id::Creates)) {
     if (IsSubtypeOf(component_type_definition, creates.node_id()))
       return true;
   }
 
   for (auto type_definition = parent.type_definition(); type_definition;
        type_definition = type_definition.supertype()) {
-    for (const auto& creates : type_definition.targets(id::Creates)) {
+    for (const auto& creates : type_definition.targets(scada::id::Creates)) {
       if (IsSubtypeOf(component_type_definition, creates.node_id()))
         return true;
     }
@@ -49,8 +51,8 @@ std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
 
 base::string16 GetFullDisplayName(const NodeRef& node) {
   auto parent = node.parent();
-  if (IsInstanceOf(parent, ::id::DataGroupType) ||
-      IsInstanceOf(parent, ::id::DeviceType))
+  if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
+      IsInstanceOf(parent, devices::id::DeviceType))
     return GetFullDisplayName(parent) + base::WideToUTF16(L" : ") +
            ToString16(node.display_name());
   else

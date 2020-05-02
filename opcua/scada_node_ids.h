@@ -239,7 +239,7 @@ const scada::NumericId Scada_XmlSchema_NamespaceUri = 100; // Variable
 const scada::NumericId SimulationSignalType = 67; // VariableType
 const scada::NumericId SimulationSignalType_Period = 230; // Variable
 const scada::NumericId SimulationSignalType_Phase = 231; // Variable
-const scada::NumericId SimulationSignalType_Type = 229; // Variable
+const scada::NumericId SimulationSignalType_Function = 229; // Variable
 const scada::NumericId SimulationSignalType_UpdateInterval = 232; // Variable
 const scada::NumericId SimulationSignals = 28; // Object
 const scada::NumericId Statistics = 363; // Object
@@ -504,7 +504,7 @@ const scada::NodeId Scada_XmlSchema_NamespaceUri{numeric_id::Scada_XmlSchema_Nam
 const scada::NodeId SimulationSignalType{numeric_id::SimulationSignalType, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_Period{numeric_id::SimulationSignalType_Period, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_Phase{numeric_id::SimulationSignalType_Phase, NamespaceIndexes::SCADA};
-const scada::NodeId SimulationSignalType_Type{numeric_id::SimulationSignalType_Type, NamespaceIndexes::SCADA};
+const scada::NodeId SimulationSignalType_Function{numeric_id::SimulationSignalType_Function, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignalType_UpdateInterval{numeric_id::SimulationSignalType_UpdateInterval, NamespaceIndexes::SCADA};
 const scada::NodeId SimulationSignals{numeric_id::SimulationSignals, NamespaceIndexes::SCADA};
 const scada::NodeId Statistics{numeric_id::Statistics, NamespaceIndexes::SCADA};

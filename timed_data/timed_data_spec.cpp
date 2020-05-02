@@ -4,7 +4,7 @@
 #include "common/interval_util.h"
 #include "common/node_format.h"
 #include "common/node_util.h"
-#include "model/scada_node_ids.h"
+#include "model/data_items_node_ids.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_util.h"
 
@@ -92,7 +92,7 @@ base::string16 TimedDataSpec::GetValueString(const scada::Variant& value,
 }
 
 bool TimedDataSpec::logical() const {
-  return IsInstanceOf(GetNode(), id::DiscreteItemType);
+  return IsInstanceOf(GetNode(), data_items::id::DiscreteItemType);
 }
 
 bool TimedDataSpec::ready() const {

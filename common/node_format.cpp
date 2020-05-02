@@ -10,8 +10,8 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
 #include "common/node_util.h"
-#include "model/scada_node_ids.h"
 #include "core/tvq.h"
+#include "model/data_items_node_ids.h"
 
 void FmtAddMods(const NodeRef& node,
                 scada::Qualifier qualifier,
@@ -34,8 +34,8 @@ void FmtAddMods(const NodeRef& node,
   else if (qualifier.backup())
     mods += L'2';
 
-  if (IsInstanceOf(node, id::DataItemType) &&
-      node[id::DataItemType_Locked].value().get_or(false))
+  if (IsInstanceOf(node, data_items::id::DataItemType) &&
+      node[data_items::id::DataItemType_Locked].value().get_or(false))
     mods += L'Б';
 
   if (qualifier.stale())
@@ -65,13 +65,14 @@ base::string16 FormatTsValue(const NodeRef& node,
 
   bool bool_value;
   if (value.get(bool_value)) {
-    auto format = node.target(id::HasTsFormat);
+    auto format = node.target(data_items::id::HasTsFormat);
     if (format) {
-      auto pid =
-          bool_value ? id::TsFormatType_CloseLabel : id::TsFormatType_OpenLabel;
+      auto pid = bool_value ? data_items::id::TsFormatType_CloseLabel
+                            : data_items::id::TsFormatType_OpenLabel;
       text = ToString16(format[pid].value().get_or(scada::LocalizedText()));
     } else {
-      text = base::WideToUTF16(bool_value ? kDefaultCloseLabel : kDefaultOpenLabel);
+      text = base::WideToUTF16(bool_value ? kDefaultCloseLabel
+                                          : kDefaultOpenLabel);
     }
   }
 
@@ -93,14 +94,18 @@ base::string16 FormatTitValue(const NodeRef& node,
   double double_value;
   if (value.get(double_value)) {
     auto format =
-        node[id::AnalogItemType_DisplayFormat].value().get_or(scada::String());
+        node[data_items::id::AnalogItemType_DisplayFormat].value().get_or(
+            scada::String());
     auto units =
-        node[id::AnalogItemType_EngineeringUnits].value().get_or(scada::LocalizedText());
-    text = base::WideToUTF16(base::SysNativeMBToWide(FormatFloat(double_value, format.c_str())));
+        node[data_items::id::AnalogItemType_EngineeringUnits].value().get_or(
+            scada::LocalizedText());
+    text = base::WideToUTF16(
+        base::SysNativeMBToWide(FormatFloat(double_value, format.c_str())));
     if ((flags & FORMAT_UNITS) && !units.empty()) {
       text += L' ';
       if (flags & FORMAT_COLOR)
-        text += base::WideToUTF16(base::SysNativeMBToWide(base::StringPrintf("&color:%d;", 0x7f7f7f)));
+        text += base::WideToUTF16(base::SysNativeMBToWide(
+            base::StringPrintf("&color:%d;", 0x7f7f7f)));
       text += units;
     }
   }
@@ -138,9 +143,9 @@ base::string16 FormatValue(const NodeRef& node,
                            const scada::Variant& value,
                            scada::Qualifier qualifier,
                            int flags) {
-  if (IsInstanceOf(node, id::DiscreteItemType))
+  if (IsInstanceOf(node, data_items::id::DiscreteItemType))
     return FormatTsValue(node, value, qualifier, flags);
-  else if (IsInstanceOf(node, id::AnalogItemType))
+  else if (IsInstanceOf(node, data_items::id::AnalogItemType))
     return FormatTitValue(node, value, qualifier, flags);
   else
     return FormatUnknownValue(node, value, qualifier, flags);
