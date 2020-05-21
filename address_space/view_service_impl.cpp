@@ -34,16 +34,11 @@ scada::BrowseResult ViewServiceImpl::BrowseNode(
   scada::BrowseResult result;
   result.status_code = scada::StatusCode::Good;
 
-  if (!description.include_subtypes) {
-    assert(false);
-    result.status_code = scada::StatusCode::Bad;
-    return result;
-  }
-
   if (description.direction == scada::BrowseDirection::Forward ||
       description.direction == scada::BrowseDirection::Both) {
     for (const auto& ref : scada::FilterReferences(
-             node.forward_references(), description.reference_type_id)) {
+             node.forward_references(), description.reference_type_id,
+             description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
       result.references.push_back({ref.type->id(), true, ref.node->id()});
@@ -53,7 +48,8 @@ scada::BrowseResult ViewServiceImpl::BrowseNode(
   if (description.direction == scada::BrowseDirection::Inverse ||
       description.direction == scada::BrowseDirection::Both) {
     for (const auto& ref : scada::FilterReferences(
-             node.inverse_references(), description.reference_type_id)) {
+             node.inverse_references(), description.reference_type_id,
+             description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
       result.references.push_back({ref.type->id(), false, ref.node->id()});
