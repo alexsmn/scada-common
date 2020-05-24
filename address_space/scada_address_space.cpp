@@ -352,14 +352,14 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
              .set_display_name(base::WideToUTF16(L"Категории свойств"))});
 
     generic_node_factory.CreateNode(
-        {scada::id::PropertyCategories_General, scada::NodeClass::Object,
+        {scada::id::GeneralPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes().set_browse_name("General").set_display_name(
              base::WideToUTF16(L"Общие"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Channels, scada::NodeClass::Object,
+        {data_items::id::ChannelsPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes()
@@ -367,15 +367,15 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
              .set_display_name(base::WideToUTF16(L"Каналы"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Conversion,
-         scada::NodeClass::Object, scada::id::FolderType,
-         scada::id::PropertyCategories, scada::id::Organizes,
+        {data_items::id::ConversionPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
          scada::NodeAttributes()
              .set_browse_name("Conversion")
              .set_display_name(base::WideToUTF16(L"Преобразование"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Filtering, scada::NodeClass::Object,
+        {data_items::id::FilteringPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes()
@@ -383,29 +383,29 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
              .set_display_name(base::WideToUTF16(L"Фильтрация"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Display, scada::NodeClass::Object,
+        {data_items::id::DisplayPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes().set_browse_name("Display").set_display_name(
              base::WideToUTF16(L"Отображение"))});
 
     generic_node_factory.CreateNode(
-        {history::id::PropertyCategories_History, scada::NodeClass::Object,
+        {history::id::HistoryPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes().set_browse_name("History").set_display_name(
              base::WideToUTF16(L"Архивирование"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Simulation,
-         scada::NodeClass::Object, scada::id::FolderType,
-         scada::id::PropertyCategories, scada::id::Organizes,
+        {data_items::id::SimulationPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
          scada::NodeAttributes()
              .set_browse_name("Simulation")
              .set_display_name(base::WideToUTF16(L"Эмуляция"))});
 
     generic_node_factory.CreateNode(
-        {data_items::id::PropertyCategories_Limits, scada::NodeClass::Object,
+        {data_items::id::LimitsPropertyCategory, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::PropertyCategories,
          scada::id::Organizes,
          scada::NodeAttributes().set_browse_name("Limits").set_display_name(
@@ -454,8 +454,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                  data_items::id::SimulationSignals,
                  data_items::id::SimulationSignalType);
     CreateEnumDataType(
-        address_space, data_items::id::SimulationSignalTypeEnum,
-        data_items::id::SimulationSignalTypeEnum_EnumStrings,
+        address_space, data_items::id::SimulationFunctionDataType,
+        data_items::id::SimulationFunctionDataType_EnumStrings,
         "SimulationSignalTypeEnum", base::WideToUTF16(L"Тип эмуляции"),
         {base::WideToUTF16(L"Случайный"), base::WideToUTF16(L"Пилообразный"),
          base::WideToUTF16(L"Скачкообразный"), base::WideToUTF16(L"Синус"),
@@ -463,7 +463,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(address_space, data_items::id::SimulationSignalType,
                 data_items::id::SimulationSignalType_Function, {}, "Type",
                 base::WideToUTF16(L"Тип"),
-                data_items::id::SimulationSignalTypeEnum,
+                data_items::id::SimulationFunctionDataType,
                 static_cast<scada::Int32>(0));
     AddProperty(address_space, data_items::id::SimulationSignalType,
                 data_items::id::SimulationSignalType_Period, {}, "Period",
@@ -555,7 +555,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                  data_items::id::DataGroupType);  // recursive
     AddProperty(address_space, data_items::id::DataGroupType,
                 data_items::id::DataGroupType_Simulated,
-                data_items::id::PropertyCategories_Simulation, "Simulated",
+                data_items::id::SimulationPropertyCategory, "Simulated",
                 base::WideToUTF16(L"Эмуляция"), scada::id::Boolean, false);
   }
 
@@ -575,50 +575,50 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 base::WideToUTF16(L"Важность"), scada::id::Int32, 1);
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_Input1,
-                data_items::id::PropertyCategories_Channels, "Input1",
+                data_items::id::ChannelsPropertyCategory, "Input1",
                 base::WideToUTF16(L"Основной ввод"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_Input2,
-                data_items::id::PropertyCategories_Channels, "Input2",
+                data_items::id::ChannelsPropertyCategory, "Input2",
                 base::WideToUTF16(L"Резервный ввод"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_Locked,
-                data_items::id::PropertyCategories_Channels, "Locked",
+                data_items::id::ChannelsPropertyCategory, "Locked",
                 base::WideToUTF16(L"Блокировка"), scada::id::Boolean, false);
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_StalePeriod,
-                data_items::id::PropertyCategories_Channels, "StalePeriod",
+                data_items::id::ChannelsPropertyCategory, "StalePeriod",
                 base::WideToUTF16(L"Устаревание, с"), scada::id::Int32, 0);
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_Output,
-                data_items::id::PropertyCategories_Channels, "Output",
+                data_items::id::ChannelsPropertyCategory, "Output",
                 base::WideToUTF16(L"Вывод"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_OutputTwoStaged,
-                data_items::id::PropertyCategories_Channels, "OutputTwoStaged",
+                data_items::id::ChannelsPropertyCategory, "OutputTwoStaged",
                 base::WideToUTF16(L"Двухэтапное управление"),
                 scada::id::Boolean, true);
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_OutputCondition,
-                data_items::id::PropertyCategories_Channels, "OutputCondition",
+                data_items::id::ChannelsPropertyCategory, "OutputCondition",
                 base::WideToUTF16(L"Условие управления"), scada::id::String,
                 scada::String{});
     AddProperty(address_space, data_items::id::DataItemType,
                 data_items::id::DataItemType_Simulated,
-                data_items::id::PropertyCategories_Simulation, "Simulated",
+                data_items::id::SimulationPropertyCategory, "Simulated",
                 base::WideToUTF16(L"Эмуляция"), scada::id::Boolean, false);
     CreateReferenceType(address_space, data_items::id::DataItemType,
                         data_items::id::HasSimulationSignal,
-                        data_items::id::PropertyCategories_Simulation,
+                        data_items::id::SimulationPropertyCategory,
                         "HasSimulationSignal",
                         base::WideToUTF16(L"Эмулируемый сигнал"),
                         data_items::id::SimulationSignalType);
     CreateReferenceType(address_space, data_items::id::DataItemType,
                         history::id::HasHistoricalDatabase,
-                        history::id::PropertyCategories_History,
+                        history::id::HistoryPropertyCategory,
                         "ObjectHistoricalDb", base::WideToUTF16(L"База данных"),
                         history::id::HistoricalDatabaseType);
   }
@@ -630,12 +630,12 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                        scada::id::BaseDataType, data_items::id::DataItemType);
     AddProperty(address_space, data_items::id::DiscreteItemType,
                 data_items::id::DiscreteItemType_Inversion,
-                data_items::id::PropertyCategories_Conversion, "Inverted",
+                data_items::id::ConversionPropertyCategory, "Inverted",
                 base::WideToUTF16(L"Инверсия"), scada::id::Boolean, false);
     CreateReferenceType(address_space, data_items::id::DiscreteItemType,
                         data_items::id::HasTsFormat,
-                        data_items::id::PropertyCategories_Display,
-                        "HasTsFormat", base::WideToUTF16(L"Параметры"),
+                        data_items::id::DisplayPropertyCategory, "HasTsFormat",
+                        base::WideToUTF16(L"Параметры"),
                         data_items::id::TsFormatType);
   }
 
@@ -646,7 +646,7 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                        scada::id::BaseDataType, data_items::id::DataItemType);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_DisplayFormat,
-                data_items::id::PropertyCategories_Display, "DisplayFormat",
+                data_items::id::DisplayPropertyCategory, "DisplayFormat",
                 base::WideToUTF16(L"Формат"), scada::id::String, "0.####");
     CreateEnumDataType(
         address_space, data_items::id::AnalogConversionDataType,
@@ -655,68 +655,68 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
         {base::WideToUTF16(L"Нет"), base::WideToUTF16(L"Линейное")});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_Conversion,
-                data_items::id::PropertyCategories_Conversion, "Conversion",
+                data_items::id::ConversionPropertyCategory, "Conversion",
                 base::WideToUTF16(L"Преобразование"),
                 data_items::id::AnalogConversionDataType,
                 static_cast<scada::Int32>(0));
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_Clamping,
-                data_items::id::PropertyCategories_Filtering, "Clamping",
+                data_items::id::FilteringPropertyCategory, "Clamping",
                 base::WideToUTF16(L"Ограничение диапазона"), scada::id::Boolean,
                 false);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_EuLo,
-                data_items::id::PropertyCategories_Conversion, "EuLo",
+                data_items::id::ConversionPropertyCategory, "EuLo",
                 base::WideToUTF16(L"Логический минимимум"), scada::id::Double,
                 -100.0);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_EuHi,
-                data_items::id::PropertyCategories_Conversion, "EuHi",
+                data_items::id::ConversionPropertyCategory, "EuHi",
                 base::WideToUTF16(L"Логический максимум"), scada::id::Double,
                 100.0);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_IrLo,
-                data_items::id::PropertyCategories_Conversion, "IrLo",
+                data_items::id::ConversionPropertyCategory, "IrLo",
                 base::WideToUTF16(L"Физический минимимум"), scada::id::Double,
                 0.0);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_IrHi,
-                data_items::id::PropertyCategories_Conversion, "IrHi",
+                data_items::id::ConversionPropertyCategory, "IrHi",
                 base::WideToUTF16(L"Физический максимум"), scada::id::Double,
                 65535.0);
     // TODO: Variant.
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_LimitLo,
-                data_items::id::PropertyCategories_Limits, "LimitLo",
+                data_items::id::LimitsPropertyCategory, "LimitLo",
                 base::WideToUTF16(L"Уставка нижняя предаварийная"),
                 scada::id::Double, scada::Variant{});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_LimitHi,
-                data_items::id::PropertyCategories_Limits, "LimitHi",
+                data_items::id::LimitsPropertyCategory, "LimitHi",
                 base::WideToUTF16(L"Уставка верхняя предаварийная"),
                 scada::id::Double, scada::Variant{});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_LimitLoLo,
-                data_items::id::PropertyCategories_Limits, "LimitLoLo",
+                data_items::id::LimitsPropertyCategory, "LimitLoLo",
                 base::WideToUTF16(L"Уставка нижняя аварийная"),
                 scada::id::Double, scada::Variant{});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_LimitHiHi,
-                data_items::id::PropertyCategories_Limits, "LimitHiHi",
+                data_items::id::LimitsPropertyCategory, "LimitHiHi",
                 base::WideToUTF16(L"Уставка верхняя аварийная"),
                 scada::id::Double, scada::Variant{});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_EngineeringUnits,
-                data_items::id::PropertyCategories_Display, "EngineeringUnits",
+                data_items::id::DisplayPropertyCategory, "EngineeringUnits",
                 base::WideToUTF16(L"Единицы измерения"),
                 scada::id::LocalizedText, scada::LocalizedText{});
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_Aperture,
-                data_items::id::PropertyCategories_Filtering, "Aperture",
+                data_items::id::FilteringPropertyCategory, "Aperture",
                 base::WideToUTF16(L"Апертура"), scada::id::Double, 0.0);
     AddProperty(address_space, data_items::id::AnalogItemType,
                 data_items::id::AnalogItemType_Deadband,
-                data_items::id::PropertyCategories_Filtering, "Deadband",
+                data_items::id::FilteringPropertyCategory, "Deadband",
                 base::WideToUTF16(L"Мертвая зона"), scada::id::Double, 0.0);
   }
 
@@ -791,8 +791,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     auto* type = CreateObjectType(
         address_space, devices::id::Iec60870LinkType, "Iec60870LinkType",
         base::WideToUTF16(L"Направление МЭК-60870"), devices::id::LinkType);
-    CreateEnumDataType(address_space, devices::id::Iec60870ProtocolType,
-                       devices::id::Iec60870ProtocolType_EnumStrings,
+    CreateEnumDataType(address_space, devices::id::Iec60870ProtocolDataType,
+                       devices::id::Iec60870ProtocolDataType_EnumStrings,
                        "Iec60870ProtocolType",
                        base::WideToUTF16(L"Тип протокола МЭК-60870"),
                        {base::WideToUTF16(L"МЭК-60870-104"),
@@ -800,17 +800,17 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddProperty(address_space, devices::id::Iec60870LinkType,
                 devices::id::Iec60870LinkType_Protocol, {}, "Protocol",
                 base::WideToUTF16(L"Протокол"),
-                devices::id::Iec60870ProtocolType,
+                devices::id::Iec60870ProtocolDataType,
                 static_cast<scada::Int32>(0));
     CreateEnumDataType(
-        address_space, devices::id::Iec60870ModeType,
-        devices::id::Iec60870ModeType_EnumStrings, "Iec60870ModeType",
+        address_space, devices::id::Iec60870ModeDataType,
+        devices::id::Iec60870ModeDataType_EnumStrings, "Iec60870ModeType",
         base::WideToUTF16(L"Режим МЭК-60870"),
         {base::WideToUTF16(L"Опрос"), base::WideToUTF16(L"Ретрансляция"),
          base::WideToUTF16(L"Прослушка")});
     AddProperty(address_space, devices::id::Iec60870LinkType,
                 devices::id::Iec60870LinkType_Mode, {}, "Mode",
-                base::WideToUTF16(L"Режим"), devices::id::Iec60870ModeType,
+                base::WideToUTF16(L"Режим"), devices::id::Iec60870ModeDataType,
                 static_cast<scada::Int32>(0));
     AddProperty(address_space, devices::id::Iec60870LinkType,
                 devices::id::Iec60870LinkType_SendQueueSize, {},
