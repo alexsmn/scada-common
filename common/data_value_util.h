@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/span.h"
+#include "base/containers/span.h"
 #include "core/data_value.h"
 
 #include <algorithm>
@@ -23,15 +23,15 @@ struct DataValueTimeGreater {
   DataValueTimeLess less;
 };
 
-inline bool IsTimeSorted(span<const scada::DataValue> values) {
+inline bool IsTimeSorted(base::span<const scada::DataValue> values) {
   return std::is_sorted(values.begin(), values.end(), DataValueTimeLess{});
 }
 
-inline bool IsReverseTimeSorted(span<const scada::DataValue> values) {
+inline bool IsReverseTimeSorted(base::span<const scada::DataValue> values) {
   return std::is_sorted(values.begin(), values.end(), DataValueTimeGreater{});
 }
 
-inline std::size_t LowerBound(span<const scada::DataValue> values,
+inline std::size_t LowerBound(base::span<const scada::DataValue> values,
                               base::Time time) {
   assert(IsTimeSorted(values));
   assert(!time.is_null());
@@ -42,7 +42,7 @@ inline std::size_t LowerBound(span<const scada::DataValue> values,
   return i - values.begin();
 }
 
-inline std::size_t UpperBound(span<const scada::DataValue> values,
+inline std::size_t UpperBound(base::span<const scada::DataValue> values,
                               base::Time time) {
   assert(IsTimeSorted(values));
   assert(!time.is_null());
@@ -53,7 +53,7 @@ inline std::size_t UpperBound(span<const scada::DataValue> values,
   return i - values.begin();
 }
 
-inline std::size_t ReverseUpperBound(span<const scada::DataValue> values,
+inline std::size_t ReverseUpperBound(base::span<const scada::DataValue> values,
                                      base::Time time) {
   assert(!time.is_null());
   assert(IsReverseTimeSorted(values));
@@ -66,18 +66,22 @@ inline std::size_t ReverseUpperBound(span<const scada::DataValue> values,
 
 inline DataValues::const_iterator LowerBound(const DataValues& values,
                                              base::Time time) {
-  return values.begin() + LowerBound(span{values.data(), values.size()}, time);
+  return values.begin() +
+         LowerBound(base::span{values.data(), values.size()}, time);
 }
 
 inline DataValues::const_iterator UpperBound(const DataValues& values,
                                              base::Time time) {
-  return values.begin() + UpperBound(span{values.data(), values.size()}, time);
+  return values.begin() +
+         UpperBound(base::span{values.data(), values.size()}, time);
 }
 
 inline DataValues::iterator LowerBound(DataValues& values, base::Time time) {
-  return values.begin() + LowerBound(span{values.data(), values.size()}, time);
+  return values.begin() +
+         LowerBound(base::span{values.data(), values.size()}, time);
 }
 
 inline DataValues::iterator UpperBound(DataValues& values, base::Time time) {
-  return values.begin() + UpperBound(span{values.data(), values.size()}, time);
+  return values.begin() +
+         UpperBound(base::span{values.data(), values.size()}, time);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/span.h"
+#include "base/containers/span.h"
 #include "core/data_value.h"
 #include "core/node_id.h"
 
@@ -10,7 +10,7 @@ namespace scada {
 
 struct AggregateFilter;
 
-using Aggregator = std::function<DataValue(span<const DataValue> values)>;
+using Aggregator = std::function<DataValue(base::span<const DataValue> values)>;
 
 Aggregator GetAggregator(const NodeId& aggregate_type,
                          const DateTimeRange& interval,
@@ -23,7 +23,7 @@ DateTimeRange GetAggregateInterval(DateTime time,
                                    Duration interval);
 
 struct AggregateState {
-  void Process(span<const scada::DataValue> raw_span);
+  void Process(base::span<const scada::DataValue> raw_span);
   void Finish();
 
   bool forward = true;

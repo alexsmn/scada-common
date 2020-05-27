@@ -67,9 +67,9 @@ class VidiconSession : public scada::SessionService,
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& nodes,
                     const scada::ReadCallback& callback) override;
-  virtual void Write(const scada::WriteValue& value,
+  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
                      const scada::NodeId& user_id,
-                     const scada::StatusCallback& callback) override;
+                     const scada::WriteCallback& callback) override;
 
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,
@@ -89,10 +89,6 @@ class VidiconSession : public scada::SessionService,
                           const scada::NodeId& type_id,
                           scada::NodeAttributes attributes,
                           const scada::CreateNodeCallback& callback) override;
-  virtual void ModifyNodes(
-      const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
-          attributes,
-      const scada::ModifyNodesCallback& callback) override;
   virtual void DeleteNode(const scada::NodeId& node_id,
                           bool return_dependencies,
                           const scada::DeleteNodeCallback& callback) override;

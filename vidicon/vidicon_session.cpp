@@ -113,10 +113,10 @@ void VidiconSession::Read(const std::vector<scada::ReadValueId>& nodes,
   attribute_service_.Read(nodes, callback);
 }
 
-void VidiconSession::Write(const scada::WriteValue& value,
+void VidiconSession::Write(const std::vector<scada::WriteValueId>& value_ids,
                            const scada::NodeId& user_id,
-                           const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
+                           const scada::WriteCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
 void VidiconSession::Acknowledge(int acknowledge_id,
@@ -136,13 +136,6 @@ void VidiconSession::CreateNode(const scada::NodeId& requested_id,
                                 const scada::NodeId& type_id,
                                 scada::NodeAttributes attributes,
                                 const scada::CreateNodeCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
-void VidiconSession::ModifyNodes(
-    const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
-        attributes,
-    const scada::ModifyNodesCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
 

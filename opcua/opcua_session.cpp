@@ -203,10 +203,10 @@ void OpcUaSession::Read(const std::vector<scada::ReadValueId>& value_ids,
       [](OpcUa_ReadValueId& value) { ::OpcUa_ReadValueId_Clear(&value); });
 }
 
-void OpcUaSession::Write(const scada::WriteValue& value,
+void OpcUaSession::Write(const std::vector<scada::WriteValueId>& value_ids,
                          const scada::NodeId& user_id,
-                         const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
+                         const scada::WriteCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
 void OpcUaSession::Reset() {

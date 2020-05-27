@@ -33,7 +33,7 @@ struct CompareDataValues {
   }
 };
 
-Double CalculateTotal(span<const DataValue> values) {
+Double CalculateTotal(base::span<const DataValue> values) {
   return std::accumulate(values.begin(), values.end(), 0.0,
                          [](Double prev_sum, const DataValue& data_value) {
                            Double double_value = 0;
@@ -45,18 +45,18 @@ Double CalculateTotal(span<const DataValue> values) {
 }
 
 Aggregator MakeFrontAggregator(const DateTimeRange& interval) {
-  return [interval, start_data_value =
-                        DataValue{}](span<const DataValue> values) mutable {
+  return [interval, start_data_value = DataValue{}](
+             base::span<const DataValue> values) mutable {
     if (start_data_value.is_null())
-      start_data_value = values.front();
+      start_data_value = values[0];
     return DataValue{start_data_value.value, start_data_value.qualifier,
                      interval.first, interval.second};
   };
 }
 
 Aggregator MakeBackAggregator(const DateTimeRange& interval) {
-  return [interval](span<const DataValue> values) {
-    const auto& end_data_value = values.back();
+  return [interval](base::span<const DataValue> values) {
+    const auto& end_data_value = values[values.size() - 1];
     return DataValue{end_data_value.value, end_data_value.qualifier,
                      interval.first, interval.second};
   };
@@ -74,7 +74,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       id::AggregateFunction_Total,
       [](const DateTimeRange& interval, bool forward) {
         Double total = 0;
-        return [interval, total](span<const DataValue> values) mutable {
+        return [interval, total](base::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
           return DataValue{total, {}, interval.first, interval.second};
         };
@@ -85,7 +85,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       [](const DateTimeRange& interval, bool forward) {
         Double total = 0;
         size_t count = 0;
-        return [interval, total, count](span<const DataValue> values) mutable {
+        return [interval, total,
+                count](base::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
           count += values.size();
           assert(count != 0);
@@ -97,7 +98,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       id::AggregateFunction_Count,
       [](const DateTimeRange& interval, bool forward) {
         size_t count = 0;
-        return [interval, count](span<const DataValue> values) mutable {
+        return [interval, count](base::span<const DataValue> values) mutable {
           count += values.size();
           return DataValue{count, {}, interval.first, interval.second};
         };
@@ -107,30 +108,32 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       id::AggregateFunction_Minimum,
       [](const DateTimeRange& interval, bool forward) {
         auto min_value = std::numeric_limits<Double>::max();
-        return [interval, min_value](span<const DataValue> values) mutable {
-          auto& data_value = *std::min_element(values.begin(), values.end(),
-                                               CompareDataValues{});
-          Double double_value = 0;
-          if (data_value.value.get(double_value))
-            min_value = std::min(min_value, double_value);
-          return DataValue{min_value, data_value.qualifier, interval.first,
-                           interval.second};
-        };
+        return
+            [interval, min_value](base::span<const DataValue> values) mutable {
+              auto& data_value = *std::min_element(values.begin(), values.end(),
+                                                   CompareDataValues{});
+              Double double_value = 0;
+              if (data_value.value.get(double_value))
+                min_value = std::min(min_value, double_value);
+              return DataValue{min_value, data_value.qualifier, interval.first,
+                               interval.second};
+            };
       });
 
   aggregators.emplace(
       id::AggregateFunction_Maximum,
       [](const DateTimeRange& interval, bool forward) {
         auto max_value = std::numeric_limits<Double>::min();
-        return [interval, max_value](span<const DataValue> values) mutable {
-          auto& data_value = *std::max_element(values.begin(), values.end(),
-                                               CompareDataValues{});
-          Double double_value = 0;
-          if (data_value.value.get(double_value))
-            max_value = std::max(max_value, double_value);
-          return DataValue{max_value, data_value.qualifier, interval.first,
-                           interval.second};
-        };
+        return
+            [interval, max_value](base::span<const DataValue> values) mutable {
+              auto& data_value = *std::max_element(values.begin(), values.end(),
+                                                   CompareDataValues{});
+              Double double_value = 0;
+              if (data_value.value.get(double_value))
+                max_value = std::max(max_value, double_value);
+              return DataValue{max_value, data_value.qualifier, interval.first,
+                               interval.second};
+            };
       });
 
   aggregators.emplace(id::AggregateFunction_Start,
@@ -180,11 +183,11 @@ DateTimeRange GetAggregateInterval(DateTime time,
   return {start_time, start_time + interval};
 }
 
-void AggregateState::Process(span<const scada::DataValue> raw_span) {
+void AggregateState::Process(base::span<const scada::DataValue> raw_span) {
   while (!raw_span.empty()) {
-    auto interval = scada::GetAggregateInterval(
-        raw_span.front().source_timestamp, aggregation.start_time,
-        aggregation.interval);
+    auto interval = scada::GetAggregateInterval(raw_span[0].source_timestamp,
+                                                aggregation.start_time,
+                                                aggregation.interval);
 
     auto count = forward ? UpperBound(raw_span, interval.second)
                          : ReverseUpperBound(raw_span, interval.first);

@@ -200,7 +200,7 @@ void TimedDataSpec::OnTimedDataCorrections(size_t count,
   if (!correction_handler)
     return;
 
-  auto data_values = span<const scada::DataValue>{tvqs, count};
+  auto data_values = base::span<const scada::DataValue>{tvqs, count};
   auto start = LowerBound(data_values, range_.first);
   auto end = UpperBound(data_values, range_.second);
 

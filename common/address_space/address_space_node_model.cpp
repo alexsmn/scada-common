@@ -1,11 +1,11 @@
 #include "common/address_space/address_space_node_model.h"
 
-#include "model/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_service.h"
 #include "core/attribute_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
+#include "model/node_id_util.h"
 
 AddressSpaceNodeModel::AddressSpaceNodeModel(
     AddressSpaceNodeModelContext&& context)
@@ -230,9 +230,17 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
                                   const scada::WriteFlags& flags,
                                   const scada::NodeId& user_id,
                                   const scada::StatusCallback& callback) const {
+  std::vector<scada::WriteValueId> value_ids(
+      1, scada::WriteValueId{node_id_, attribute_id, value, flags});
   attribute_service_.Write(
-      scada::WriteValue{node_id_, attribute_id, value, flags}, user_id,
-      callback);
+      std::move(value_ids), user_id,
+      [callback](scada::Status status,
+                 std::vector<scada::StatusCode> status_codes) {
+        if (!status)
+          return callback(std::move(status));
+        assert(status_codes.size() == 1);
+        callback(status_codes.front());
+      });
 }
 
 void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,

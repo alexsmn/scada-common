@@ -179,16 +179,6 @@ void MasterDataServices::CreateNode(const scada::NodeId& requested_id,
       callback);
 }
 
-void MasterDataServices::ModifyNodes(
-    const std::vector<std::pair<scada::NodeId, scada::NodeAttributes>>&
-        attributes,
-    const scada::ModifyNodesCallback& callback) {
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.node_management_service_->ModifyNodes(attributes, callback);
-}
-
 void MasterDataServices::DeleteNode(const scada::NodeId& node_id,
                                     bool return_references,
                                     const scada::DeleteNodeCallback& callback) {
@@ -266,13 +256,14 @@ std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
   return std::make_unique<MasterMonitoredItem>(*this, read_value_id, params);
 }
 
-void MasterDataServices::Write(const scada::WriteValue& value,
-                               const scada::NodeId& user_id,
-                               const scada::StatusCallback& callback) {
+void MasterDataServices::Write(
+    const std::vector<scada::WriteValueId>& value_ids,
+    const scada::NodeId& user_id,
+    const scada::WriteCallback& callback) {
   if (!services_.attribute_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.attribute_service_->Write(value, user_id, callback);
+  services_.attribute_service_->Write(value_ids, user_id, callback);
 }
 
 void MasterDataServices::Call(const scada::NodeId& node_id,

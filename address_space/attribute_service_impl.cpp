@@ -28,10 +28,11 @@ void AttributeServiceImpl::Read(
   return callback(scada::StatusCode::Good, std::move(results));
 }
 
-void AttributeServiceImpl::Write(const scada::WriteValue& value,
-                                 const scada::NodeId& user_id,
-                                 const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad_WrongNodeId);
+void AttributeServiceImpl::Write(
+    const std::vector<scada::WriteValueId>& value_ids,
+    const scada::NodeId& user_id,
+    const scada::WriteCallback& callback) {
+  callback(scada::StatusCode::Bad_WrongNodeId, {});
 }
 
 scada::DataValue AttributeServiceImpl::Read(const scada::ReadValueId& read_id) {

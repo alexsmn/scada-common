@@ -43,10 +43,10 @@ class Audit final : public scada::AttributeService,
         });
   }
 
-  virtual void Write(const scada::WriteValue& value,
+  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
                      const scada::NodeId& user_id,
-                     const scada::StatusCallback& callback) override {
-    attribute_service_->Write(value, user_id, callback);
+                     const scada::WriteCallback& callback) override {
+    attribute_service_->Write(value_ids, user_id, callback);
   }
 
   // scada::ViewService
