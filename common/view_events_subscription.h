@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
 #include "core/view_service.h"
 
@@ -21,7 +22,7 @@ inline ViewEventsSubscription::ViewEventsSubscription(
     scada::ViewEvents& events)
     : events_{events},
       monitored_item_{monitored_item_service.CreateMonitoredItem(
-          {scada::id::RootFolder, scada::AttributeId::EventNotifier},
+          {scada::id::Server, scada::AttributeId::EventNotifier},
           {scada::EventFilter{{},
                               {scada::id::GeneralModelChangeEventType,
                                scada::id::SemanticChangeEventType}}})} {

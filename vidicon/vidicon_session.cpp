@@ -101,7 +101,7 @@ std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
   }
 
   if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
-    assert(read_value_id.node_id == scada::id::RootFolder);
+    assert(read_value_id.node_id == scada::id::Server);
     return std::make_unique<VidiconMonitoredEvents>();
   }
 
@@ -153,18 +153,16 @@ void VidiconSession::ChangeUserPassword(
   callback(scada::StatusCode::Bad);
 }
 
-void VidiconSession::AddReference(const scada::NodeId& reference_type_id,
-                                  const scada::NodeId& source_id,
-                                  const scada::NodeId& target_id,
-                                  const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
+void VidiconSession::AddReferences(
+    const std::vector<scada::AddReferencesItem>& inputs,
+    const scada::AddReferencesCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::DeleteReference(const scada::NodeId& reference_type_id,
-                                     const scada::NodeId& source_id,
-                                     const scada::NodeId& target_id,
-                                     const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
+void VidiconSession::DeleteReferences(
+    const std::vector<scada::DeleteReferencesItem>& inputs,
+    const scada::DeleteReferencesCallback& callback) {
+  callback(scada::StatusCode::Bad, {});
 }
 
 void VidiconSession::Browse(const std::vector<scada::BrowseDescription>& nodes,

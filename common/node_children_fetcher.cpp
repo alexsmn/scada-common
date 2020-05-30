@@ -2,11 +2,11 @@
 
 #include "base/logger.h"
 #include "common/node_fetcher.h"
-#include "model/node_id_util.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
+#include "model/node_id_util.h"
 
 namespace {
 const size_t kMaxFetchChildCount = 100;

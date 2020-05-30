@@ -1,10 +1,11 @@
 #pragma once
 
-#include <memory>
-#include <set>
-
+#include "core/attribute_ids.h"
 #include "core/data_value.h"
 #include "core/monitored_item.h"
+
+#include <memory>
+#include <set>
 
 namespace scada {
 

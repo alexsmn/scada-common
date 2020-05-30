@@ -2,7 +2,7 @@
 
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
-#include "core/configuration_types.h"
+#include "core/node_id.h"
 
 #include <deque>
 #include <functional>
@@ -12,9 +12,10 @@
 #include <set>
 
 namespace scada {
-class NodeId;
 class Status;
 class ViewService;
+struct BrowseDescription;
+struct BrowseResult;
 }  // namespace scada
 
 class Logger;

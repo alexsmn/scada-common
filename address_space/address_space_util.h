@@ -15,6 +15,7 @@ class ObjectType;
 class TypeDefinition;
 class Variable;
 class VariableType;
+struct BrowseDescription;
 
 QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id);
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id);

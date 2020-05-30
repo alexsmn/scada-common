@@ -201,27 +201,22 @@ void MasterDataServices::ChangeUserPassword(
       user_id, current_password, new_password, callback);
 }
 
-void MasterDataServices::AddReference(const scada::NodeId& reference_type_id,
-                                      const scada::NodeId& source_id,
-                                      const scada::NodeId& target_id,
-                                      const scada::StatusCallback& callback) {
+void MasterDataServices::AddReferences(
+    const std::vector<scada::AddReferencesItem>& inputs,
+    const scada::AddReferencesCallback& callback) {
   if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.node_management_service_->AddReference(reference_type_id, source_id,
-                                                   target_id, callback);
+  services_.node_management_service_->AddReferences(inputs, callback);
 }
 
-void MasterDataServices::DeleteReference(
-    const scada::NodeId& reference_type_id,
-    const scada::NodeId& source_id,
-    const scada::NodeId& target_id,
-    const scada::StatusCallback& callback) {
+void MasterDataServices::DeleteReferences(
+    const std::vector<scada::DeleteReferencesItem>& inputs,
+    const scada::DeleteReferencesCallback& callback) {
   if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
+    return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.node_management_service_->DeleteReference(
-      reference_type_id, source_id, target_id, callback);
+  services_.node_management_service_->DeleteReferences(inputs, callback);
 }
 
 void MasterDataServices::Browse(

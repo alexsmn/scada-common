@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
-
 #include "address_space/node.h"
 #include "address_space/reference.h"
 #include "base/ranges.h"
+#include "core/node_class.h"
 #include "core/standard_node_ids.h"
+
+#include <string>
 
 namespace scada {
 
@@ -19,7 +20,7 @@ class ReferenceType;
 class TypeDefinition;
 class Variable;
 class VariableType;
-enum class NodeClass;
+struct ReferenceDescription;
 
 Object* AsObject(Node* node);
 const Object* AsObject(const Node* node);

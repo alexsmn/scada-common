@@ -2,6 +2,7 @@
 
 #include "common/node_state.h"
 #include "core/node_id.h"
+#include "core/status.h"
 
 #include <functional>
 

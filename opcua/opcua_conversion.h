@@ -2,6 +2,7 @@
 
 #include "base/time/time.h"
 #include "core/attribute_ids.h"
+#include "core/attribute_service.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/expanded_node_id.h"
@@ -10,6 +11,7 @@
 #include "core/node_class.h"
 #include "core/status.h"
 #include "core/variant.h"
+#include "core/view_service.h"
 
 #include <opcuapp/basic_types.h>
 #include <opcuapp/structs.h>

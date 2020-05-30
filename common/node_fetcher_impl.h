@@ -2,7 +2,6 @@
 
 #include "base/memory/weak_ptr.h"
 #include "common/node_fetcher.h"
-#include "core/configuration_types.h"
 #include "core/data_value.h"
 
 #include <map>
@@ -14,6 +13,9 @@ class AttributeService;
 class NodeId;
 class Status;
 class ViewService;
+struct BrowseDescription;
+struct BrowseResult;
+struct ReadValueId;
 }  // namespace scada
 
 class Logger;

@@ -4,6 +4,7 @@
 #include "base/location.h"
 #include "base/logger.h"
 #include "common/event_observer.h"
+#include "core/attribute_ids.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/monitored_item.h"
@@ -17,7 +18,7 @@ static const size_t kMaxParallelAcks = 5;
 EventManager::EventManager(EventManagerContext&& context)
     : EventManagerContext{std::move(context)} {
   monitored_item_ = monitored_item_service_.CreateMonitoredItem(
-      {scada::id::RootFolder, scada::AttributeId::EventNotifier},
+      {scada::id::Server, scada::AttributeId::EventNotifier},
       {scada::EventFilter{{}, {scada::id::SystemEventType}}});
   assert(monitored_item_);
   monitored_item_->set_event_handler(
@@ -243,7 +244,7 @@ void EventManager::ItemEventsChanged(const ObserverSet& observers,
 
 void EventManager::Update() {
   history_service_.HistoryReadEvents(
-      scada::id::RootFolder, {}, {}, {scada::EventFilter::UNACKED},
+      scada::id::Server, {}, {}, {scada::EventFilter::UNACKED},
       io_context_.wrap(
           [weak_ptr = weak_factory_.GetWeakPtr()](
               scada::Status status, std::vector<scada::Event> events) {

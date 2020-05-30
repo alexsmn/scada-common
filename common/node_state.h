@@ -1,11 +1,12 @@
 #pragma once
 
-#include <ostream>
-
 #include "core/configuration_types.h"
 #include "core/debug_util.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
+#include "core/view_service.h"
+
+#include <ostream>
 
 namespace scada {
 
@@ -39,12 +40,12 @@ inline std::ostream& operator<<(std::ostream& stream,
   return stream << "{"
                 << "node_id: " << node_state.node_id << ", "
                 << "node_class: " << node_state.node_class << ", "
-                << "type_definition_id: " << node_state.type_definition_id << ", "
+                << "type_definition_id: " << node_state.type_definition_id
+                << ", "
                 << "parent_id: " << node_state.parent_id << ", "
                 << "reference_type_id: " << node_state.reference_type_id << ", "
                 << "attributes: " << node_state.attributes << ", "
                 << "properties: " << node_state.properties << ", "
                 << "references: " << node_state.references << ", "
-                << "children: " << node_state.children
-                << "}";
+                << "children: " << node_state.children << "}";
 }
