@@ -109,7 +109,7 @@ class VidiconSession : public scada::SessionService,
                       const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override;
+      const scada::TranslateBrowsePathsCallback& callback) override;
 
  private:
   AddressSpaceImpl2 address_space_;

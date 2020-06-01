@@ -117,7 +117,7 @@ void ViewServiceImpl::Browse(
 
 void ViewServiceImpl::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathCallback& callback) {
+    const scada::TranslateBrowsePathsCallback& callback) {
   assert(false);
   callback(scada::StatusCode::Bad, {});
 }

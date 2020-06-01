@@ -10,9 +10,8 @@ inline void CancelHistory(scada::HistoryService& service,
   auto cancel_details = details;
   cancel_details.release_continuation_point = true;
   cancel_details.continuation_point = std::move(continuation_point);
-  service.HistoryReadRaw(
-      cancel_details,
-      [](scada::Status, std::vector<scada::DataValue>, scada::ByteString) {});
+  service.HistoryReadRaw(cancel_details,
+                         [](scada::HistoryReadRawResult&& result) {});
 }
 
 // ScopedContinuationPoint

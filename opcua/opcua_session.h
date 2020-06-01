@@ -44,7 +44,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
                       const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override;
+      const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::MonitoredItemService
   virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(

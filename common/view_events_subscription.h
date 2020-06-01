@@ -2,7 +2,7 @@
 
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
-#include "core/view_service.h"
+#include "core/view_events.h"
 
 class ViewEventsSubscription {
  public:

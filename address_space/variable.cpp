@@ -49,7 +49,7 @@ void Variable::Call(const NodeId& method_id,
 
 void Variable::HistoryReadRaw(const HistoryReadRawDetails& details,
                               const HistoryReadRawCallback& callback) {
-  callback(scada::StatusCode::Bad, {}, {});
+  callback({scada::StatusCode::Bad});
 }
 
 void Variable::HistoryReadEvents(base::Time from,

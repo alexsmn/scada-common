@@ -72,7 +72,7 @@ void VidiconSession::RemoveObserver(scada::SessionStateObserver& observer) {}
 void VidiconSession::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
-  callback(scada::StatusCode::Bad, {}, {});
+  callback({scada::StatusCode::Bad});
 }
 
 void VidiconSession::HistoryReadEvents(
@@ -172,6 +172,6 @@ void VidiconSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
 
 void VidiconSession::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathCallback& callback) {
+    const scada::TranslateBrowsePathsCallback& callback) {
   view_service_.TranslateBrowsePaths(browse_paths, callback);
 }

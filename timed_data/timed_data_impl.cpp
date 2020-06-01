@@ -8,7 +8,6 @@
 #include "common/event_manager.h"
 #include "common/formula_util.h"
 #include "common/interval_util.h"
-#include "model/node_id_util.h"
 #include "common/node_service.h"
 #include "core/attribute_service.h"
 #include "core/debug_util.h"
@@ -16,6 +15,7 @@
 #include "core/history_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
+#include "model/node_id_util.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
@@ -141,16 +141,14 @@ void TimedDataImpl::FetchNextGap() {
                                        querying_range_.second, kMaxReadCount,
                                        aggregate_filter_};
   history_service_.HistoryReadRaw(
-      details,
-      [message_loop, weak_ptr, &history_service = history_service_, details](
-          scada::Status status, std::vector<scada::DataValue> values,
-          scada::ByteString continuation_point) {
+      details, [message_loop, weak_ptr, &history_service = history_service_,
+                details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
-            history_service, details, std::move(continuation_point)};
+            history_service, details, std::move(result.continuation_point)};
         message_loop->PostTask(
             FROM_HERE,
             base::Bind(&TimedDataImpl::OnHistoryReadRawComplete, weak_ptr,
-                       base::Passed(std::move(values)),
+                       base::Passed(std::move(result.values)),
                        base::Passed(std::move(scoped_continuation_point))));
       });
 }
@@ -193,16 +191,14 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
                                        false,
                                        continuation_point.release()};
   history_service_.HistoryReadRaw(
-      details,
-      [message_loop, weak_ptr, &history_service = history_service_, details](
-          scada::Status status, std::vector<scada::DataValue> values,
-          scada::ByteString continuation_point) {
+      details, [message_loop, weak_ptr, &history_service = history_service_,
+                details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
-            history_service, details, std::move(continuation_point)};
+            history_service, details, std::move(result.continuation_point)};
         message_loop->PostTask(
             FROM_HERE,
             base::Bind(&TimedDataImpl::OnHistoryReadRawComplete, weak_ptr,
-                       base::Passed(std::move(values)),
+                       base::Passed(std::move(result.values)),
                        base::Passed(std::move(scoped_continuation_point))));
       });
 }

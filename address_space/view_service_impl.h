@@ -24,7 +24,7 @@ class ViewServiceImpl : private ViewServiceImplContext,
                       const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override;
+      const scada::TranslateBrowsePathsCallback& callback) override;
 
  private:
   scada::BrowseResult Browse(const scada::BrowseDescription& description);

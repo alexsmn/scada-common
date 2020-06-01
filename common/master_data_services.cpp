@@ -230,7 +230,7 @@ void MasterDataServices::Browse(
 
 void MasterDataServices::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathCallback& callback) {
+    const scada::TranslateBrowsePathsCallback& callback) {
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -277,7 +277,7 @@ void MasterDataServices::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
   if (!services_.history_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {}, {});
+    return callback({scada::StatusCode::Bad_Disconnected});
 
   services_.history_service_->HistoryReadRaw(details, callback);
 }

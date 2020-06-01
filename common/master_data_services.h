@@ -71,7 +71,7 @@ class MasterDataServices final : public scada::AttributeService,
                       const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override;
+      const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::EventService
   virtual void Acknowledge(int acknowledge_id,

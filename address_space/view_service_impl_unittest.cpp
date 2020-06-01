@@ -48,7 +48,7 @@ class VirtualObject : public scada::GenericObject,
 
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override {
+      const scada::TranslateBrowsePathsCallback& callback) override {
     callback(scada::StatusCode::Bad, {});
   }
 

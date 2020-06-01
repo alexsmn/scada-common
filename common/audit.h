@@ -67,7 +67,7 @@ class Audit final : public scada::AttributeService,
 
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathCallback& callback) override {
+      const scada::TranslateBrowsePathsCallback& callback) override {
     view_service_->TranslateBrowsePaths(browse_paths, callback);
   }
 
