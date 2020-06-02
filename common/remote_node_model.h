@@ -57,7 +57,7 @@ class RemoteNodeModel final
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
-  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id,
       const scada::MonitoringParameters& params) const override;
   virtual void Read(scada::AttributeId attribute_id,

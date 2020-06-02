@@ -89,7 +89,7 @@ class NodeRef {
   void Subscribe(NodeRefObserver& observer) const;
   void Unsubscribe(NodeRefObserver& observer) const;
 
-  std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id,
       const scada::MonitoringParameters& params) const;
 

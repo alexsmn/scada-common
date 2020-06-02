@@ -2,13 +2,13 @@
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
-#include "model/node_id_util.h"
 #include "common/node_observer.h"
 #include "common/node_util.h"
 #include "common/remote_node_service.h"
 #include "core/attribute_service.h"
 #include "core/monitored_item.h"
 #include "core/standard_node_ids.h"
+#include "model/node_id_util.h"
 
 RemoteNodeModel::RemoteNodeModel(RemoteNodeService& service,
                                  scada::NodeId node_id)
@@ -371,7 +371,7 @@ void RemoteNodeModel::OnFetchRequested(
   service_.OnFetchNode(node_id_, requested_status);
 }
 
-std::unique_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
   return nullptr;

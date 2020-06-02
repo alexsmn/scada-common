@@ -150,7 +150,7 @@ void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
     model_->Unsubscribe(observer);
 }
 
-std::unique_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
   return model_ ? model_->CreateMonitoredItem(attribute_id, params) : nullptr;

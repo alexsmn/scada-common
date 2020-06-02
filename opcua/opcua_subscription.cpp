@@ -175,7 +175,7 @@ void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
   CommitItems();
 }
 
-std::unique_ptr<scada::MonitoredItem> OpcUaSubscription::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> OpcUaSubscription::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   assert(!read_value_id.node_id.is_null());

@@ -4,12 +4,11 @@
 
 namespace scada {
 
-std::unique_ptr<VariableMonitoredItem> CreateMonitoredVariable(
+std::shared_ptr<VariableMonitoredItem> CreateMonitoredVariable(
     std::shared_ptr<VariableHandle> variable) {
   if (!variable)
     return nullptr;
-  return std::unique_ptr<VariableMonitoredItem>(
-      new VariableMonitoredItem(std::move(variable)));
+  return std::make_shared<VariableMonitoredItem>(std::move(variable));
 }
 
 // VariableMonitoredItem

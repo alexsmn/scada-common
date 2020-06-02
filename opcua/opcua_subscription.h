@@ -44,7 +44,7 @@ class OpcUaSubscription
 
   bool created() const { return created_; }
 
-  std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& read_value_id,
       const scada::MonitoringParameters& params);
 

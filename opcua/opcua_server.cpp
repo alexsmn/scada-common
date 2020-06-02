@@ -165,7 +165,7 @@ void FillBrowseResultsAttributes(
 class MonitoredItemAdapter : public opcua::server::MonitoredItem {
  public:
   explicit MonitoredItemAdapter(
-      std::unique_ptr<scada::MonitoredItem> monitored_item)
+      std::shared_ptr<scada::MonitoredItem> monitored_item)
       : monitored_item_{std::move(monitored_item)} {}
 
   ~MonitoredItemAdapter() {}
@@ -192,7 +192,7 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
   }
 
  private:
-  std::unique_ptr<scada::MonitoredItem> monitored_item_;
+  const std::shared_ptr<scada::MonitoredItem> monitored_item_;
 };
 
 }  // namespace
@@ -346,7 +346,7 @@ opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(
   if (!monitored_item)
     return {OpcUa_Bad};
   return {OpcUa_Good,
-          std::make_unique<MonitoredItemAdapter>(std::move(monitored_item))};
+          std::make_shared<MonitoredItemAdapter>(std::move(monitored_item))};
 }
 
 opcua::ProxyStubConfiguration OpcUaServer::MakeProxyStubConfiguration() {

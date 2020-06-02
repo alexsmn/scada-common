@@ -84,7 +84,7 @@ void VidiconSession::HistoryReadEvents(
   callback(scada::StatusCode::Bad, {});
 }
 
-std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   if (read_value_id.attribute_id == scada::AttributeId::Value) {
@@ -97,12 +97,12 @@ std::unique_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
                               point.GetAddressOf());
     if (!point)
       return nullptr;
-    return std::make_unique<VidiconMonitoredDataPoint>(std::move(point));
+    return std::make_shared<VidiconMonitoredDataPoint>(std::move(point));
   }
 
   if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
     assert(read_value_id.node_id == scada::id::Server);
-    return std::make_unique<VidiconMonitoredEvents>();
+    return std::make_shared<VidiconMonitoredEvents>();
   }
 
   return nullptr;

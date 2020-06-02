@@ -62,7 +62,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   MasterDataServices& owner_;
   const scada::ReadValueId read_value_id_;
   const scada::MonitoringParameters params_;
-  std::unique_ptr<scada::MonitoredItem> underlying_item_;
+  std::shared_ptr<scada::MonitoredItem> underlying_item_;
 };
 
 // MasterDataServices
@@ -245,10 +245,10 @@ void MasterDataServices::Acknowledge(int acknowledge_id,
   services_.event_service_->Acknowledge(acknowledge_id, user_node_id);
 }
 
-std::unique_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
-  return std::make_unique<MasterMonitoredItem>(*this, read_value_id, params);
+  return std::make_shared<MasterMonitoredItem>(*this, read_value_id, params);
 }
 
 void MasterDataServices::Write(

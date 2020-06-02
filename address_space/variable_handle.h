@@ -72,7 +72,7 @@ class VariableHandleImpl : public VariableHandle {
   static std::shared_ptr<VariableHandleImpl> Create();
 };
 
-std::unique_ptr<VariableMonitoredItem> CreateMonitoredVariable(
+std::shared_ptr<VariableMonitoredItem> CreateMonitoredVariable(
     std::shared_ptr<VariableHandle> variable);
 
 }  // namespace scada

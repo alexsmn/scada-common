@@ -104,7 +104,7 @@ class EventManager : private EventManagerContext {
 
   bool connected_ = false;
 
-  std::unique_ptr<scada::MonitoredItem> monitored_item_;
+  std::shared_ptr<scada::MonitoredItem> monitored_item_;
 
   unsigned severity_min_ = scada::kSeverityMin;
 

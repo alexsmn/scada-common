@@ -66,7 +66,7 @@ class TestNodeModel final : public NodeModel {
   virtual void Unsubscribe(NodeRefObserver& observer) const override {
     assert(false);
   }
-  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id,
       const scada::MonitoringParameters& params) const override {
     assert(false);

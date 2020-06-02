@@ -45,7 +45,7 @@ class NodeModel {
   virtual void Subscribe(NodeRefObserver& observer) const = 0;
   virtual void Unsubscribe(NodeRefObserver& observer) const = 0;
 
-  virtual std::unique_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id,
       const scada::MonitoringParameters& params) const = 0;
 

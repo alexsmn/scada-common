@@ -63,7 +63,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   const scada::AggregateFilter aggregate_filter_;
 
   NodeRef node_;
-  std::unique_ptr<scada::MonitoredItem> monitored_value_;
+  std::shared_ptr<scada::MonitoredItem> monitored_value_;
 
   bool querying_ = false;
   scada::DateTimeRange querying_range_;

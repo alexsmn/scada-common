@@ -171,7 +171,7 @@ OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
   return *default_subscription_;
 }
 
-std::unique_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   assert(!read_value_id.node_id.is_null());

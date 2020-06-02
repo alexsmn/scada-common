@@ -14,7 +14,7 @@ class ViewEventsSubscription {
   void OnEvent(const std::any& event);
 
   scada::ViewEvents& events_;
-  std::unique_ptr<scada::MonitoredItem> monitored_item_;
+  const std::shared_ptr<scada::MonitoredItem> monitored_item_;
 };
 
 inline ViewEventsSubscription::ViewEventsSubscription(
