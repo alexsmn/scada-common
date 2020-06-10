@@ -3,6 +3,7 @@
 #include "core/configuration_types.h"
 #include "core/node_id.h"
 
+#include <map>
 #include <opcua_serverapi.h>
 #include <opcuapp/basic_types.h>
 #include <opcuapp/platform.h>
@@ -10,7 +11,6 @@
 #include <opcuapp/server/endpoint.h>
 #include <opcuapp/structs.h>
 #include <opcuapp/vector.h>
-#include <map>
 #include <vector>
 
 namespace scada {
@@ -23,8 +23,10 @@ struct OpcUaServerContext {
   scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
   scada::MonitoredItemService& monitored_item_service_;
-  const std::string url_;
-  const opcua::UInt32 trace_level_ = OPCUA_TRACE_OUTPUT_LEVEL_WARNING;
+  std::string url_;
+  std::vector<char> server_certificate_data_;
+  std::vector<char> server_private_key_data_;
+  opcua::UInt32 trace_level_ = OPCUA_TRACE_OUTPUT_LEVEL_WARNING;
 };
 
 class OpcUaServer : private OpcUaServerContext {
@@ -49,9 +51,12 @@ class OpcUaServer : private OpcUaServerContext {
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;
 
-  const opcua::ByteString server_certificate_;
-  const OpcUa_Key server_private_key_{OpcUa_Crypto_KeyType_Invalid,
-                                      {0, (OpcUa_Byte*)""}};
+  const opcua::ByteString server_certificate_{server_certificate_data_.data(),
+                                              server_certificate_data_.size()};
+  const opcua::Key server_private_key_{
+      OpcUa_Crypto_KeyType_Rsa_Private,
+      opcua::ByteString{server_private_key_data_.data(),
+                        server_private_key_data_.size()}};
   const OpcUa_P_OpenSSL_CertificateStore_Config pki_config_{
       OpcUa_NO_PKI, OpcUa_Null, OpcUa_Null, OpcUa_Null, 0, OpcUa_Null};
   const opcua::server::Endpoint::SecurityPolicyConfiguration security_policy_;

@@ -245,7 +245,8 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
   endpoint_.set_application_name("Telecontrol SCADA Server");
 
   endpoint_.Open(url_.c_str(), true, server_certificate_.get(),
-                 server_private_key_, &pki_config_, {&security_policy_, 1});
+                 server_private_key_.get(), &pki_config_,
+                 {&security_policy_, 1});
 }
 
 OpcUaServer::~OpcUaServer() {}

@@ -67,7 +67,7 @@ void OpcUaSession::Connect(const std::string& connection_string,
   opcua::client::ChannelContext context{
       const_cast<OpcUa_StringA>(connection_string.c_str()),
       &client_certificate_.get(),
-      &client_private_key_,
+      &client_private_key_.get(),
       &server_certificate_.get(),
       &pki_config_,
       requested_security_policy_uri.pass(),
