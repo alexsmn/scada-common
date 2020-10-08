@@ -1,13 +1,13 @@
 #pragma once
 
-#include <functional>
-#include <map>
-#include <memory>
-
 #include "address_space/node.h"
 #include "base/time/time.h"
 #include "core/configuration_types.h"
 #include "core/history_types.h"
+
+#include <functional>
+#include <map>
+#include <memory>
 
 namespace scada {
 

@@ -12,8 +12,6 @@ class ReferenceType;
 struct PropertyIds {
   PropertyIds(size_t count, const NodeId* ids) : count(count), ids(ids) {}
 
-  PropertyIds(const std::initializer_list<NodeId>& ids) : ids(&*ids.begin()), count(ids.size()) {}
-
   bool Has(const NodeId& prop_type_id) const {
     return std::find(ids, ids + count, prop_type_id) != ids + count;
   }

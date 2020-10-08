@@ -25,6 +25,9 @@ class Node {
   Node();
   virtual ~Node();
 
+  Node(const Node&) = delete;
+  Node& operator=(const Node&) = delete;
+
   const NodeId& id() const { return id_; }
   void set_id(NodeId id) { id_ = std::move(id); }
 
@@ -72,8 +75,6 @@ class Node {
   References inverse_references_;
 
   TypeDefinition* type_definition_ = nullptr;
-
-  DISALLOW_COPY_AND_ASSIGN(Node);
 };
 
 void AddReference(const ReferenceType& reference_type,
