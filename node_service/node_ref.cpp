@@ -58,6 +58,12 @@ NodeRef NodeRef::inverse_target(const scada::NodeId& reference_type_id) const {
   return model_ ? model_->GetTarget(reference_type_id, false) : nullptr;
 }
 
+bool NodeRef::has_target(const scada::NodeId& reference_type_id,
+                         bool forward,
+                         const scada::NodeId& node_id) const {
+  return !!reference(reference_type_id, forward, node_id).target;
+}
+
 std::vector<NodeRef> NodeRef::targets(
     const scada::NodeId& reference_type_id) const {
   return model_ ? model_->GetTargets(reference_type_id, true)
@@ -80,13 +86,20 @@ NodeRef NodeRef::data_type() const {
 
 NodeRef::Reference NodeRef::reference(
     const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetReference(reference_type_id, true)
+  return model_ ? model_->GetReference(reference_type_id, true, {})
                 : NodeRef::Reference{};
 }
 
 NodeRef::Reference NodeRef::inverse_reference(
     const scada::NodeId& reference_type_id) const {
-  return model_ ? model_->GetReference(reference_type_id, false)
+  return model_ ? model_->GetReference(reference_type_id, false, {})
+                : NodeRef::Reference{};
+}
+
+NodeRef::Reference NodeRef::reference(const scada::NodeId& reference_type_id,
+                                      bool forward,
+                                      const scada::NodeId& node_id) const {
+  return model_ ? model_->GetReference(reference_type_id, forward, node_id)
                 : NodeRef::Reference{};
 }
 
@@ -127,7 +140,7 @@ void NodeRef::Fetch(const NodeFetchStatus& requested_status,
       model_->Fetch(requested_status,
                     [copy = *this, callback] { callback(copy); });
     } else {
-      model_->Fetch(requested_status, {});
+      model_->Fetch(requested_status, nullptr);
     }
 
   } else {

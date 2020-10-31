@@ -66,7 +66,7 @@ void NodeFetchStatusTracker::DeleteNodeStatesRecursive(
 
 void NodeFetchStatusTracker::OnChildrenFetched(
     const scada::NodeId& parent_id,
-    std::set<scada::NodeId> child_ids) {
+    scada::ReferenceDescriptions&& references) {
   assert(!parent_id.is_null());
 
   ScopedStatusLock lock{*this};
@@ -83,11 +83,17 @@ void NodeFetchStatusTracker::OnChildrenFetched(
   pending_child_ids.clear();
 
   // Insert new pending children.
-  for (auto& child_id : child_ids) {
-    if (!IsNodeFetched(child_id)) {
-      pending_child_ids.insert(child_id);
-      assert(children_.find(child_id) == children_.end());
-      children_.emplace(child_id, parent_id);
+  for (auto& reference : references) {
+    if (reference.reference_type_id != parent_id &&
+        !IsNodeFetched(reference.reference_type_id)) {
+      pending_child_ids.emplace(reference.reference_type_id);
+      children_[reference.reference_type_id].emplace(parent_id);
+      node_validator_(reference.reference_type_id);
+    }
+    if (reference.node_id != parent_id && !IsNodeFetched(reference.node_id)) {
+      pending_child_ids.emplace(reference.node_id);
+      children_[reference.node_id].emplace(parent_id);
+      node_validator_(reference.node_id);
     }
   }
 
@@ -103,8 +109,13 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
   // Process as parent.
   if (auto i = parents_.find(node_id); i != parents_.end()) {
     auto& pending_child_ids = i->second;
-    for (auto& child_id : pending_child_ids)
-      children_.erase(child_id);
+    for (auto& child_id : pending_child_ids) {
+      auto j = children_.find(child_id);
+      auto& parent_ids = j->second;
+      parent_ids.erase(node_id);
+      if (parent_ids.empty())
+        children_.erase(j);
+    }
     parents_.erase(i);
   }
 
@@ -145,16 +156,18 @@ void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
   if (i == children_.end())
     return;
 
-  const auto parent_id = std::move(i->second);
+  const auto parent_ids = std::move(i->second);
   children_.erase(i);
 
-  assert(parents_.find(parent_id) != parents_.end());
-  auto& pending_child_ids = parents_[parent_id];
-  assert(pending_child_ids.find(child_id) != pending_child_ids.end());
-  pending_child_ids.erase(child_id);
+  for (const auto& parent_id : parent_ids) {
+    assert(parents_.find(parent_id) != parents_.end());
+    auto& pending_child_ids = parents_[parent_id];
+    assert(pending_child_ids.find(child_id) != pending_child_ids.end());
+    pending_child_ids.erase(child_id);
 
-  if (pending_child_ids.empty())
-    NotifyStatusChanged(parent_id);
+    if (pending_child_ids.empty())
+      NotifyStatusChanged(parent_id);
+  }
 }
 
 void NodeFetchStatusTracker::NotifyStatusChanged(const scada::NodeId& node_id) {

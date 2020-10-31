@@ -2,6 +2,7 @@
 
 #include "address_space/test/test_address_space.h"
 #include "base/logger.h"
+#include "base/test/test_executor.h"
 #include "core/attribute_service_mock.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
@@ -9,6 +10,8 @@
 #include "model/node_id_util.h"
 
 #include "core/debug_util-inl.h"
+
+#include <boost/asio/io_context.hpp>
 
 using namespace testing;
 
@@ -24,24 +27,29 @@ struct TestContext {
       fetched_nodes_[node.node_id] = node;
   }
 
-  std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
+  boost::asio::io_context io_context;
+  const std::shared_ptr<TestExecutor> executor =
+      std::make_shared<TestExecutor>();
 
   TestAddressSpace address_space;
 
-  NodeFetcherImpl node_fetcher{NodeFetcherImplContext{
-      logger,
-      address_space,
-      address_space,
-      [&](std::vector<scada::NodeState>&& nodes, NodeFetchStatuses&& errors) {
-        OnFetched(nodes);
-        ProcessFetchedNodes(nodes);
-        for (auto& [node_id, status] : errors)
-          OnFetchError(node_id, status);
-      },
-      [&](const scada::NodeId& node_id) {
-        return fetched_nodes_.find(node_id) != fetched_nodes_.end();
-      },
-  }};
+  const std::shared_ptr<NodeFetcherImpl> node_fetcher{
+      NodeFetcherImpl::Create(NodeFetcherImplContext{
+          io_context,
+          executor,
+          address_space,
+          address_space,
+          [&](std::vector<scada::NodeState>&& nodes,
+              NodeFetchStatuses&& errors) {
+            OnFetched(nodes);
+            ProcessFetchedNodes(nodes);
+            for (auto& [node_id, status] : errors)
+              OnFetchError(node_id, status);
+          },
+          [&](const scada::NodeId& node_id) {
+            return fetched_nodes_.find(node_id) != fetched_nodes_.end();
+          },
+      })};
 
   std::map<scada::NodeId, scada::NodeState> fetched_nodes_;
 };
@@ -65,7 +73,7 @@ TEST(NodeFetcher, DISABLED_Test) {
   // Root doesn't depend from anything.
   EXPECT_CALL(context, OnFetched(Contains(NodeIs(scada::id::RootFolder))));
 
-  context.node_fetcher.Fetch(scada::id::RootFolder);
+  context.node_fetcher->Fetch(scada::id::RootFolder);
 
   Mock::VerifyAndClearExpectations(&context);
 
@@ -75,7 +83,7 @@ TEST(NodeFetcher, DISABLED_Test) {
                               Contains(NodeIs(as.MakeNestedNodeId(
                                   as.kTestNode1Id, as.kTestProp1Id))))));
 
-  context.node_fetcher.Fetch(as.kTestNode1Id);
+  context.node_fetcher->Fetch(as.kTestNode1Id);
 
   Mock::VerifyAndClearExpectations(&context);
 
@@ -88,13 +96,13 @@ TEST(NodeFetcher, DISABLED_Test) {
                               Contains(NodeIs(as.MakeNestedNodeId(
                                   as.kTestNode2Id, as.kTestProp2Id))))));
 
-  context.node_fetcher.Fetch(as.kTestNode2Id);
+  context.node_fetcher->Fetch(as.kTestNode2Id);
 
   Mock::VerifyAndClearExpectations(&context);
 
   EXPECT_CALL(context, OnFetched(Contains(NodeIs(as.kTestNode4Id))));
 
-  context.node_fetcher.Fetch(as.kTestNode4Id);
+  context.node_fetcher->Fetch(as.kTestNode4Id);
 
   Mock::VerifyAndClearExpectations(&context);
 }

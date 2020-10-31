@@ -2,19 +2,27 @@
 
 #include "node_service/node_observer.h"
 
+BaseNodeModel::ScopedCallbackLock::ScopedCallbackLock(BaseNodeModel& model)
+    : model_{model} {
+  ++model_.callback_lock_count_;
+}
+
+BaseNodeModel::ScopedCallbackLock::~ScopedCallbackLock() {
+  --model_.callback_lock_count_;
+  if (model_.callback_lock_count_ == 0)
+    model_.NotifyCallbacks();
+}
+
 void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
                           const FetchCallback& callback) const {
-  if (status_ && requested_status <= fetch_status_) {
+  if (requested_status.all_less_or_equal(fetch_status_)) {
     if (callback)
       callback();
 
   } else {
+    fetching_status_ |= requested_status;
     if (callback)
       fetch_callbacks_.emplace_back(requested_status, callback);
-  }
-
-  if (!status_ || fetching_status_ <= requested_status) {
-    fetching_status_ |= requested_status;
     const_cast<BaseNodeModel*>(this)->OnFetchRequested(fetching_status_);
   }
 }
@@ -53,12 +61,19 @@ void BaseNodeModel::SetFetchStatus(const scada::Status& status,
   fetch_status_ = fetch_status;
   fetching_status_ |= fetch_status;
 
+  NotifyCallbacks();
+}
+
+void BaseNodeModel::NotifyCallbacks() {
+  if (callback_lock_count_ != 0)
+    return;
+
   std::vector<FetchCallback> callbacks;
   size_t p = 0;
   for (size_t i = 0; i < fetch_callbacks_.size(); ++i) {
     auto& c = fetch_callbacks_[i];
     assert(c.second);
-    if (c.first <= fetch_status_)
+    if (c.first.all_less_or_equal(fetch_status_))
       callbacks.emplace_back(std::move(c.second));
     else
       fetch_callbacks_[p++] = std::move(c);

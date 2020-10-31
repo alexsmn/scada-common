@@ -1,8 +1,8 @@
 #pragma once
 
-#include "base/memory/weak_ptr.h"
+#include "base/boost_log.h"
 #include "base/time/time.h"
-#include "core/node_id.h"
+#include "core/view_service.h"
 
 #include <deque>
 #include <functional>
@@ -10,32 +10,40 @@
 #include <memory>
 #include <queue>
 #include <set>
+#include <vector>
+
+namespace boost::asio {
+class io_context;
+}
 
 namespace scada {
+class NodeId;
 class Status;
 class ViewService;
 struct BrowseDescription;
 struct BrowseResult;
 }  // namespace scada
 
-class Logger;
+class Executor;
 
-using ReferenceMap =
-    std::map<scada::NodeId /*reference_type_id*/,
-             std::map<scada::NodeId /*target_id*/,
-                      scada::NodeId /*child_reference_type_id*/>>;
-using ReferenceValidator =
-    std::function<void(const scada::NodeId& node_id, ReferenceMap references)>;
+using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
+                                              scada::BrowseResult&& result)>;
 
 struct NodeChildrenFetcherContext {
-  const std::shared_ptr<Logger> logger_;
+  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   const ReferenceValidator reference_validator_;
 };
 
-class NodeChildrenFetcher : private NodeChildrenFetcherContext {
+class NodeChildrenFetcher
+    : private NodeChildrenFetcherContext,
+      public std::enable_shared_from_this<NodeChildrenFetcher> {
  public:
   explicit NodeChildrenFetcher(NodeChildrenFetcherContext&& context);
+
+  static std::shared_ptr<NodeChildrenFetcher> Create(
+      NodeChildrenFetcherContext&& context);
 
   void Fetch(const scada::NodeId& node_id);
   void Cancel(const scada::NodeId& node_id);
@@ -51,9 +59,9 @@ class NodeChildrenFetcher : private NodeChildrenFetcherContext {
 
   void FetchChildren(const std::vector<scada::NodeId>& node_ids);
 
+  BoostLogger logger_{LOG_NAME("NodeChildrenFetcher")};
+
   size_t children_request_count_ = 0;
   std::deque<scada::NodeId> pending_children_;
   std::set<scada::NodeId> pending_children_set_;
-
-  base::WeakPtrFactory<NodeChildrenFetcher> weak_factory_{this};
 };

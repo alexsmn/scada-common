@@ -15,10 +15,10 @@ struct ModelChangeEvent;
 class RemoteNodeModel;
 class RemoteNodeService;
 
-struct NodeModelImplReference {
-  std::shared_ptr<RemoteNodeModel> reference_type;
-  std::shared_ptr<RemoteNodeModel> target;
-  bool forward;
+struct RemoteReference {
+  RemoteNodeModel* reference_type = nullptr;
+  RemoteNodeModel* target = nullptr;
+  bool forward = true;
 };
 
 using ReferenceMap =
@@ -35,7 +35,9 @@ class RemoteNodeModel final
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
 
-  void OnNodeFetched(scada::NodeState&& node_state);
+  void OnFetched(const scada::NodeState& node_state);
+  void OnFetchCompleted();
+  void OnFetchError(scada::Status&& status);
   void OnChildrenFetched(const ReferenceMap& references);
 
   // NodeModel
@@ -53,7 +55,8 @@ class RemoteNodeModel final
       bool forward) const override;
   virtual NodeRef::Reference GetReference(
       const scada::NodeId& reference_type_id,
-      bool forward) const override;
+      bool forward,
+      const scada::NodeId& node_id) const override;
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
@@ -78,28 +81,24 @@ class RemoteNodeModel final
       const NodeFetchStatus& requested_status) override;
 
  private:
-  void AddReference(const NodeModelImplReference& reference);
-
   NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const;
 
   void SetError(const scada::Status& status);
 
+  void NotifyModelChanged();
+  void NotifySemanticChanged();
+
   RemoteNodeService& service_;
   const scada::NodeId node_id_;
 
-  std::optional<scada::NodeClass> node_class_;
-  scada::NodeAttributes attributes_;
-  scada::Status status_{scada::StatusCode::Good};
+  scada::NodeState node_state_;
+  scada::ReferenceDescriptions child_references_;
 
-  std::vector<NodeModelImplReference> references_;
-  std::vector<NodeModelImplReference> child_references_;
+  std::shared_ptr<bool> reference_request_;
 
-  NodeModelImplReference parent_reference_;
-
-  std::shared_ptr<RemoteNodeModel> type_definition_;
-  std::shared_ptr<RemoteNodeModel> supertype_;
-  std::shared_ptr<RemoteNodeModel> data_type_;
+  bool pending_model_changed_ = false;
+  bool pending_semantic_changed_ = false;
 
   friend class RemoteNodeService;
 };

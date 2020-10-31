@@ -1,5 +1,9 @@
 #pragma once
 
+#include "base/boost_log.h"
+#include "core/view_service.h"
+
+#include <map>
 #include <set>
 #include <vector>
 
@@ -10,19 +14,19 @@ struct NodeState;
 }  // namespace scada
 
 class AddressSpaceImpl;
-class Logger;
 class NodeFactory;
 
+using ModelChangeVerbs = std::map<scada::NodeId, uint8_t>;
+
+// |model_change_verbs| maps node id to scada::ModelChangeEvent::Verb.
 void UpdateNodes(AddressSpaceImpl& address_space,
                  NodeFactory& node_factory,
                  std::vector<scada::NodeState>&& nodes,
-                 Logger& logger,
-                 std::vector<scada::Node*>* added_nodes = nullptr);
+                 BoostLogger& logger,
+                 ModelChangeVerbs& model_change_verbs);
 
 void SortNodes(std::vector<scada::NodeState>& nodes);
 
-void FindMissingTargets(AddressSpaceImpl& address_space,
-                        const scada::NodeId& node_id,
-                        const scada::NodeId& reference_type_id,
-                        const std::set<scada::NodeId>& target_ids,
-                        std::vector<scada::Node*>& missing_targets);
+std::vector<const scada::Node*> FindDeletedChildren(
+    const scada::Node& node,
+    const scada::ReferenceDescriptions& references);

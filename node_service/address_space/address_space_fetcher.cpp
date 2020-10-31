@@ -3,22 +3,12 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
-#include "base/logger.h"
-#include "node_service/address_space/address_space_updater.h"
-#include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
+#include "node_service/address_space/address_space_updater.h"
 
 namespace {
 
-template <class Key, class Value>
-std::set<Key> MakeKeySet(const std::map<Key, Value>& map) {
-  std::set<Key> set;
-  for (auto& p : map)
-    set.emplace(p.first);
-  return set;
-}
-
-void GetAllNodeIdsHelper(scada::Node& parent,
+void GetAllNodeIdsHelper(const scada::Node& parent,
                          std::vector<scada::NodeId>& result) {
   result.emplace_back(parent.id());
 
@@ -46,27 +36,67 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
 
 AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
     : AddressSpaceFetcherContext{std::move(context)},
-      node_fetcher_{MakeNodeFetcherImplContext()},
-      node_children_fetcher_{MakeNodeChildrenFetcherContext()},
-      fetch_status_tracker_{
-          {node_fetch_status_changed_handler_, address_space_}} {}
+      fetch_status_tracker_{{node_fetch_status_changed_handler_,
+                             [this](const scada::NodeId& node_id) {
+                               node_fetcher_->Fetch(node_id, true);
+                               return false;
+                             },
+                             address_space_}} {}
 
 AddressSpaceFetcher::~AddressSpaceFetcher() {}
+
+// static
+std::shared_ptr<AddressSpaceFetcher> AddressSpaceFetcher::Create(
+    AddressSpaceFetcherContext&& context) {
+  auto fetcher = std::make_shared<AddressSpaceFetcher>(std::move(context));
+  fetcher->Init();
+  return fetcher;
+}
+
+void AddressSpaceFetcher::Init() {
+  const FetchCompletedHandler fetch_completed_handler =
+      [weak_ptr = weak_from_this()](
+          std::vector<scada::NodeState>&& fetched_nodes,
+          NodeFetchStatuses&& errors) {
+        if (auto ptr = weak_ptr.lock())
+          ptr->OnFetchCompleted(std::move(fetched_nodes), std::move(errors));
+      };
+
+  const NodeValidator node_validator = [this](const scada::NodeId& node_id) {
+    return address_space_.GetNode(node_id) != 0;
+  };
+
+  node_fetcher_ = NodeFetcherImpl::Create(
+      {io_context_, executor_, view_service_, attribute_service_,
+       fetch_completed_handler, node_validator});
+
+  ReferenceValidator reference_validator =
+      [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
+        OnChildrenFetched(node_id, std::move(result.references));
+      };
+
+  node_children_fetcher_ = NodeChildrenFetcher::Create({
+      io_context_,
+      executor_,
+      view_service_,
+      reference_validator,
+  });
+}
 
 void AddressSpaceFetcher::OnChannelOpened() {
   channel_opened_ = true;
 
   for (const auto& node_id : GetAllNodeIds(address_space_)) {
-    node_fetcher_.Fetch(node_id, false, {}, {}, true);
-    node_children_fetcher_.Fetch(node_id);
+    node_fetcher_->Fetch(node_id, false, std::nullopt, true);
+    node_children_fetcher_->Fetch(node_id);
   }
 
   PostponedFetchNodes postponed_fetch_nodes;
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
   for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
-    node_fetcher_.Fetch(node_id, false, {}, {}, true);
+    node_fetcher_->Fetch(node_id, false, std::nullopt, true);
     if (requested_status.children_fetched)
-      node_children_fetcher_.Fetch(node_id);
+      node_children_fetcher_->Fetch(node_id);
   }
 }
 
@@ -74,36 +104,46 @@ void AddressSpaceFetcher::OnChannelClosed() {
   channel_opened_ = false;
 }
 
+void AddressSpaceFetcher::DeleteNode(const scada::NodeId& node_id) {
+  node_fetcher_->Cancel(node_id);
+  node_children_fetcher_->Cancel(node_id);
+  fetch_status_tracker_.Delete(node_id);
+  address_space_.RemoveNode(node_id);
+}
+
 void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
-    logger_->WriteF(LogSeverity::Normal, "NodeDeleted [node_id=%s]",
-                    NodeIdToScadaString(event.node_id).c_str());
+    LOG_INFO(logger_) << "Node deleted"
+                      << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
-    node_fetcher_.Cancel(event.node_id);
-    node_children_fetcher_.Cancel(event.node_id);
-    fetch_status_tracker_.Delete(event.node_id);
-    address_space_.RemoveNode(event.node_id);
+    DeleteNode(event.node_id);
 
   } else {
     if (event.verb & scada::ModelChangeEvent::NodeAdded) {
-      logger_->WriteF(LogSeverity::Normal, "NodeAdded [node_id=%s]",
-                      NodeIdToScadaString(event.node_id).c_str());
+      LOG_INFO(logger_) << "Node added"
+                        << LOG_TAG("NodeId",
+                                   NodeIdToScadaString(event.node_id));
     }
 
     if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
                       scada::ModelChangeEvent::ReferenceDeleted)) {
-      logger_->WriteF(
-          LogSeverity::Normal,
-          "ReferenceChanged [node_id=%s, added=%d, deleted=%d]",
-          NodeIdToScadaString(event.node_id).c_str(),
-          (event.verb & scada::ModelChangeEvent::ReferenceAdded) ? 1 : 0,
-          (event.verb & scada::ModelChangeEvent::ReferenceDeleted) ? 1 : 0);
+      LOG_INFO(logger_)
+          << "Reference changed"
+          << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id))
+          << LOG_TAG("Added",
+                     !!(event.verb & scada::ModelChangeEvent::ReferenceAdded))
+          << LOG_TAG("Deleted", !!(event.verb &
+                                   scada::ModelChangeEvent::ReferenceDeleted));
 
       if (address_space_.GetNode(event.node_id)) {
+        LOG_INFO(logger_) << "Fetch references"
+                          << LOG_TAG("NodeId",
+                                     NodeIdToScadaString(event.node_id));
+
         // Fetch forward references.
-        node_fetcher_.Fetch(event.node_id, false, {}, {}, true);
+        node_fetcher_->Fetch(event.node_id, false, std::nullopt, true);
         // Fetch child references.
-        node_children_fetcher_.Fetch(event.node_id);
+        node_children_fetcher_->Fetch(event.node_id);
       }
     }
   }
@@ -113,88 +153,91 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void AddressSpaceFetcher::OnNodeSemanticsChanged(
     const scada::SemanticChangeEvent& event) {
-  logger_->WriteF(LogSeverity::Normal, "NodeSemanticsChanged [node_id=%s]",
-                  NodeIdToScadaString(event.node_id).c_str());
+  LOG_INFO(logger_) << "NodeSemanticsChanged"
+                    << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (address_space_.GetNode(event.node_id))
-    node_fetcher_.Fetch(event.node_id, false, {}, {}, true);
+    node_fetcher_->Fetch(event.node_id, false, std::nullopt, true);
 }
 
-NodeFetcherImplContext AddressSpaceFetcher::MakeNodeFetcherImplContext() {
-  auto fetch_completed_handler = [this](std::vector<scada::NodeState>&&
-                                            fetched_nodes,
-                                        NodeFetchStatuses&& errors) {
-    logger_->WriteF(LogSeverity::Normal, "%Iu nodes fetched",
-                    fetched_nodes.size());
+void AddressSpaceFetcher::OnFetchCompleted(
+    std::vector<scada::NodeState>&& fetched_nodes,
+    NodeFetchStatuses&& errors) {
+  LOG_INFO(logger_) << "Nodes fetched"
+                    << LOG_TAG("Count", fetched_nodes.size());
 
-    if (!errors.empty()) {
-      logger_->WriteF(LogSeverity::Warning, "%Iu node fetch errors",
-                      errors.size());
+  if (!errors.empty()) {
+    LOG_WARNING(logger_) << "Nodes fetch errors"
+                         << LOG_TAG("Count", errors.size());
+  }
+
+  std::map<scada::NodeId, uint8_t> model_change_verbs;
+  UpdateNodes(address_space_, node_factory_, std::move(fetched_nodes), logger_,
+              model_change_verbs);
+
+  for (auto& [node_id, verb] : model_change_verbs) {
+    if (verb & scada::ModelChangeEvent::NodeAdded) {
+      if (!fetch_status_tracker_.GetStatus(node_id).second.children_fetched)
+        node_children_fetcher_->Fetch(node_id);
+      errors.emplace_back(node_id, scada::StatusCode::Good);
     }
+  }
 
-    std::vector<scada::Node*> added_nodes;
-    UpdateNodes(address_space_, node_factory_, std::move(fetched_nodes),
-                *logger_, &added_nodes);
+  fetch_status_tracker_.OnNodesFetched(errors);
 
-    for (auto* added_node : added_nodes) {
-      const auto added_id = added_node->id();
-      address_space_.NotifyNodeAdded(*added_node);
-      if (!fetch_status_tracker_.GetStatus(added_id).second.children_fetched)
-        node_children_fetcher_.Fetch(added_id);
-      errors.emplace_back(added_id, scada::StatusCode::Good);
+  for (auto& [node_id, verb] : model_change_verbs) {
+    if (auto* node = address_space_.GetNode(node_id)) {
+      model_changed_handler_(scada::ModelChangeEvent{
+          node->id(), scada::GetTypeDefinitionId(*node), verb});
     }
+  }
+}
 
-    fetch_status_tracker_.OnNodesFetched(errors);
-  };
+void AddressSpaceFetcher::OnChildrenFetched(
+    const scada::NodeId& node_id,
+    scada::ReferenceDescriptions&& references) {
+  auto* node = address_space_.GetNode(node_id);
+  if (!node)
+    return;
 
-  NodeValidator node_validator = [this](const scada::NodeId& node_id) {
-    return address_space_.GetNode(node_id) != 0;
-  };
+  for (const auto* deleted_child : FindDeletedChildren(*node, references)) {
+    const auto deleted_child_id = deleted_child->id();
+    const auto deleted_child_type_definition_id =
+        scada::GetTypeDefinitionId(*deleted_child);
+    LOG_INFO(logger_) << "Child node was deleted"
+                      << LOG_TAG("ParentId", NodeIdToScadaString(node_id))
+                      << LOG_TAG("ChildId",
+                                 NodeIdToScadaString(deleted_child_id));
+    DeleteNode(deleted_child_id);
+    model_changed_handler_(scada::ModelChangeEvent{
+        deleted_child_id, deleted_child_type_definition_id,
+        scada::ModelChangeEvent::NodeDeleted});
+  }
 
-  return {logger_, view_service_, attribute_service_, fetch_completed_handler,
-          node_validator};
+  for (auto& reference : references) {
+    assert(reference.forward);
+    // The node could be fetched via non-hierarchical reference with no
+    // children.
+    if (!address_space_.GetNode(reference.node_id)) {
+      node_fetcher_->Fetch(
+          reference.node_id, false,
+          NodeFetcher::ParentInfo{node_id, reference.reference_type_id});
+    }
+  }
+
+  fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
 }
 
 NodeChildrenFetcherContext
 AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
-  ReferenceValidator reference_validator = [this](const scada::NodeId& node_id,
-                                                  ReferenceMap references) {
-    std::set<scada::NodeId> child_ids;
-    std::vector<scada::Node*> missing_children;
-
-    for (auto& [reference_type_id, children] : references) {
-      missing_children.clear();
-      FindMissingTargets(address_space_, node_id, reference_type_id,
-                         MakeKeySet(children), missing_children);
-      for (auto* missing_child : missing_children) {
-        const auto missing_child_id = missing_child->id();
-        logger_->WriteF(LogSeverity::Normal,
-                        "Node %s: Missing target %s was deleted",
-                        NodeIdToScadaString(node_id).c_str(),
-                        NodeIdToScadaString(missing_child_id).c_str());
-        fetch_status_tracker_.Delete(missing_child_id);
-        address_space_.RemoveNode(missing_child_id);
-        model_changed_handler_(
-            {missing_child_id, {}, scada::ModelChangeEvent::NodeDeleted});
-      }
-
-      for (auto& [child_id, child_reference_type_id] : children) {
-        child_ids.insert(child_id);
-        // The node could be fetched via non-hierarchical reference with no
-        // children.
-        if (!address_space_.GetNode(child_id)) {
-          node_fetcher_.Fetch(child_id, false, node_id,
-                              child_reference_type_id);
-        }
-        // Children are fetched from OnNodeFetched().
-      }
-    }
-
-    fetch_status_tracker_.OnChildrenFetched(node_id, std::move(child_ids));
-  };
+  ReferenceValidator reference_validator =
+      [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
+        OnChildrenFetched(node_id, std::move(result.references));
+      };
 
   return {
-      logger_,
+      io_context_,
+      executor_,
       view_service_,
       reference_validator,
   };
@@ -223,8 +266,8 @@ void AddressSpaceFetcher::InternalFetchNode(
   auto [status, fetch_status] = fetch_status_tracker_.GetStatus(node_id);
 
   if (fetch_status.node_fetched < requested_status.node_fetched)
-    node_fetcher_.Fetch(node_id, true);
+    node_fetcher_->Fetch(node_id, true);
 
   if (fetch_status.children_fetched < requested_status.children_fetched)
-    node_children_fetcher_.Fetch(node_id);
+    node_children_fetcher_->Fetch(node_id);
 }

@@ -3,11 +3,13 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include "node_service/address_space/address_space_node_model.h"
-#include "node_service/node_observer.h"
 #include "core/attribute_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
+#include "node_service/address_space/address_space_node_model.h"
+#include "node_service/node_observer.h"
+
+#include "core/debug_util-inl.h"
 
 namespace {
 
@@ -27,7 +29,7 @@ const scada::Node* GetSemanticParent(const scada::Node& node) {
 AddressSpaceNodeService::AddressSpaceNodeService(
     AddressSpaceNodeServiceContext&& context)
     : AddressSpaceNodeServiceContext{std::move(context)},
-      fetcher_{MakeAddressSpaceFetcherContext()} {
+      fetcher_{AddressSpaceFetcher::Create(MakeAddressSpaceFetcherContext())} {
   address_space_.Subscribe(*this);
 }
 
@@ -56,11 +58,11 @@ NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
   });
 
   auto* node = address_space_.GetNode(node_id);
-  auto [status, fetch_status] = fetcher_.GetNodeFetchStatus(node_id);
+  auto [status, fetch_status] = fetcher_->GetNodeFetchStatus(node_id);
   model->SetFetchStatus(node, std::move(status), fetch_status);
 
   if (!fetch_status.node_fetched)
-    fetcher_.FetchNode(node_id, NodeFetchStatus::NodeOnly());
+    fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
 
   return model;
 }
@@ -142,15 +144,15 @@ void AddressSpaceNodeService::OnNodeModelDeleted(const scada::NodeId& node_id) {
 void AddressSpaceNodeService::OnNodeModelFetchRequested(
     const scada::NodeId& node_id,
     const NodeFetchStatus& requested_status) {
-  fetcher_.FetchNode(node_id, requested_status);
+  fetcher_->FetchNode(node_id, requested_status);
 }
 
 void AddressSpaceNodeService::OnNodeFetchStatusChanged(
     const scada::NodeId& node_id,
     const scada::Status& status,
     const NodeFetchStatus& fetch_status) {
-  assert(fetcher_.GetNodeFetchStatus(node_id).first.code() == status.code());
-  assert(fetcher_.GetNodeFetchStatus(node_id).second == fetch_status);
+  assert(fetcher_->GetNodeFetchStatus(node_id).first.code() == status.code());
+  assert(fetcher_->GetNodeFetchStatus(node_id).second == fetch_status);
 
   auto* node = address_space_.GetNode(node_id);
 
@@ -177,16 +179,11 @@ AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
       };
 
   auto model_changed_handler = [this](const scada::ModelChangeEvent& event) {
-    const auto verb_mask = scada::ModelChangeEvent::NodeAdded |
-                           scada::ModelChangeEvent::NodeDeleted;
-    if (event.verb & verb_mask) {
-      auto new_event = event;
-      new_event.verb &= verb_mask;
-      OnModelChanged(new_event);
-    }
+    OnModelChanged(event);
   };
 
-  return {logger_,
+  return {io_context_,
+          executor_,
           view_service_,
           attribute_service_,
           monitored_item_service_,
@@ -197,9 +194,9 @@ AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
 }
 
 void AddressSpaceNodeService::OnChannelOpened() {
-  fetcher_.OnChannelOpened();
+  fetcher_->OnChannelOpened();
 }
 
 void AddressSpaceNodeService::OnChannelClosed() {
-  fetcher_.OnChannelClosed();
+  fetcher_->OnChannelClosed();
 }

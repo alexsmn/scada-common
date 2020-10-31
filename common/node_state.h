@@ -26,6 +26,7 @@ struct NodeState {
   NodeProperties properties;
   std::vector<ReferenceDescription> references;
   std::vector<NodeState> children;
+  NodeId supertype_id;
 };
 
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {

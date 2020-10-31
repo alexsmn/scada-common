@@ -16,14 +16,27 @@ class BaseNodeModel : public NodeModel {
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  protected:
+  class ScopedCallbackLock {
+   public:
+    explicit ScopedCallbackLock(BaseNodeModel& model);
+    ~ScopedCallbackLock();
+
+   private:
+    BaseNodeModel& model_;
+  };
+
   void SetFetchStatus(const scada::Status& status,
                       const NodeFetchStatus& fetch_status);
+
+  void NotifyCallbacks();
 
   virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
 
   scada::Status status_{scada::StatusCode::Good};
 
   NodeFetchStatus fetch_status_{};
+
+  int callback_lock_count_ = 0;
   mutable NodeFetchStatus fetching_status_{};
   mutable std::vector<std::pair<NodeFetchStatus, FetchCallback>>
       fetch_callbacks_;

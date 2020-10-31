@@ -1,8 +1,10 @@
 #pragma once
 
-#include "node_service/node_fetch_status.h"
+#include "core/configuration_types.h"
 #include "core/node_id.h"
 #include "core/status.h"
+#include "core/view_service.h"
+#include "node_service/node_fetch_status.h"
 
 #include <functional>
 #include <map>
@@ -20,8 +22,11 @@ using NodeFetchStatusChangedHandler =
                        const scada::Status& status,
                        const NodeFetchStatus& fetch_status)>;
 
+using NodeValidator = std::function<bool(const scada::NodeId& node_id)>;
+
 struct NodeFetchStatusTrackerContext {
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;
+  const NodeValidator node_validator_;
   scada::AddressSpace& address_space_;
 };
 
@@ -31,7 +36,7 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   void OnNodesFetched(const NodeFetchStatuses& statuses);
   void OnChildrenFetched(const scada::NodeId& node_id,
-                         std::set<scada::NodeId> child_ids);
+                         scada::ReferenceDescriptions&& references);
 
   void Delete(const scada::NodeId& node_id);
 
@@ -58,7 +63,8 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
            std::set<scada::NodeId> /*pending_child_ids*/>
       parents_;
 
-  std::map<scada::NodeId /*child_id*/, scada::NodeId /*parent_id*/> children_;
+  std::map<scada::NodeId /*child_id*/, std::set<scada::NodeId> /*parent_ids*/>
+      children_;
 
   std::map<scada::NodeId, scada::Status> errors_;
 

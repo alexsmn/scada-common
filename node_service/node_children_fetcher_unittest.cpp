@@ -1,10 +1,10 @@
 #include "node_children_fetcher.h"
 
-#include "address_space/test/test_address_space.h"
 #include "base/logger.h"
 #include "core/attribute_service_mock.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
+//#include "core/test/test_address_space.h"
 #include "core/view_service_mock.h"
 #include "model/node_id_util.h"
 
@@ -13,23 +13,23 @@ using namespace testing;
 namespace {
 
 struct TestContext {
-  MOCK_METHOD2(OnFetched,
+/*  MOCK_METHOD2(OnFetched,
                void(const scada::NodeId& node_id,
-                    const ReferenceMap& references));
+                    const ReferenceMap& references));*/
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
-  TestAddressSpace address_space;
+  //TestAddressSpace address_space;
 
-  NodeChildrenFetcher node_children_fetcher{NodeChildrenFetcherContext{
+  /*NodeChildrenFetcher node_children_fetcher{NodeChildrenFetcherContext{
       logger,
       address_space,
       [&](const scada::NodeId& node_id, ReferenceMap references) {
         this->references[node_id] = std::move(references);
       },
-  }};
+  }};*/
 
-  std::map<scada::NodeId, ReferenceMap> references;
+//  std::map<scada::NodeId, ReferenceMap> references;
 };
 
 }  // namespace
@@ -38,7 +38,7 @@ MATCHER_P(NodeIs, node_id, "") {
   return arg.id == node_id;
 }
 
-TEST(NodeChildrenFetcher, DISABLED_Test) {
+TEST(NodeChildrenFetcher, Test) {
   TestContext context;
 
   /*auto& as = context.address_space;

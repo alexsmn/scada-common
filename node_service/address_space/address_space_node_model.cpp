@@ -162,7 +162,8 @@ std::vector<NodeRef> AddressSpaceNodeModel::GetTargets(
 
 NodeRef::Reference AddressSpaceNodeModel::GetReference(
     const scada::NodeId& reference_type_id,
-    bool forward) const {
+    bool forward,
+    const scada::NodeId& node_id) const {
   if (!node_)
     return {};
 
@@ -211,10 +212,12 @@ AddressSpaceNodeModel::CreateMonitoredItem(
 
 void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,
                                  const NodeRef::ReadCallback& callback) const {
+  std::vector<scada::ReadValueId> inputs;
+  inputs.emplace_back(scada::ReadValueId{node_id_, attribute_id});
+
   attribute_service_.Read(
-      {{node_id_, attribute_id}},
-      [callback](scada::Status&& status,
-                 std::vector<scada::DataValue>&& values) {
+      inputs, [callback](scada::Status&& status,
+                         std::vector<scada::DataValue>&& values) {
         if (!status)
           return callback(scada::MakeReadError(status.code()));
 
@@ -230,16 +233,15 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
                                   const scada::WriteFlags& flags,
                                   const scada::NodeId& user_id,
                                   const scada::StatusCallback& callback) const {
-  std::vector<scada::WriteValueId> value_ids(
-      1, scada::WriteValueId{node_id_, attribute_id, value, flags});
+  std::vector<scada::WriteValueId> inputs;
+  inputs.emplace_back(
+      scada::WriteValueId{node_id_, attribute_id, value, flags});
+
   attribute_service_.Write(
-      std::move(value_ids), user_id,
-      [callback](scada::Status status,
-                 std::vector<scada::StatusCode> status_codes) {
-        if (!status)
-          return callback(std::move(status));
-        assert(status_codes.size() == 1);
-        callback(status_codes.front());
+      inputs, user_id,
+      [callback](scada::Status&& status,
+                 std::vector<scada::StatusCode>&& results) {
+        callback(status ? std::move(results.front()) : std::move(status));
       });
 }
 

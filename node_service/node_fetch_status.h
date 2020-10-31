@@ -15,6 +15,16 @@ struct NodeFetchStatus {
 
   bool empty() const { return !node_fetched && !children_fetched; }
 
+  bool any_less(const NodeFetchStatus& other) const {
+    return children_fetched < other.children_fetched ||
+           node_fetched < other.node_fetched;
+  }
+
+  bool all_less_or_equal(const NodeFetchStatus& other) const {
+    return children_fetched <= other.children_fetched &&
+           node_fetched <= other.node_fetched;
+  }
+
   bool node_fetched = false;
   bool children_fetched = false;
 };
@@ -28,17 +38,8 @@ inline bool operator!=(const NodeFetchStatus& a, const NodeFetchStatus& b) {
   return !(a == b);
 }
 
-inline bool operator<(const NodeFetchStatus& a, const NodeFetchStatus& b) {
-  return a.children_fetched < b.children_fetched &&
-         a.node_fetched < b.node_fetched;
-}
-
-inline bool operator<=(const NodeFetchStatus& a, const NodeFetchStatus& b) {
-  return a.children_fetched <= b.children_fetched &&
-         a.node_fetched <= b.node_fetched;
-}
-
-inline NodeFetchStatus& operator|=(NodeFetchStatus& a, const NodeFetchStatus& b) {
+inline NodeFetchStatus& operator|=(NodeFetchStatus& a,
+                                   const NodeFetchStatus& b) {
   a.node_fetched |= b.node_fetched;
   a.children_fetched |= b.children_fetched;
   return a;

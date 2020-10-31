@@ -15,9 +15,9 @@
 
 void FmtAddMods(const NodeRef& node,
                 scada::Qualifier qualifier,
-                base::string16& text,
+                std::wstring& text,
                 int flags) {
-  base::string16 mods;
+  std::wstring mods;
   mods.reserve(16);
 
   mods += L'[';
@@ -57,11 +57,11 @@ void FmtAddMods(const NodeRef& node,
   }
 }
 
-base::string16 FormatTsValue(const NodeRef& node,
+std::wstring FormatTsValue(const NodeRef& node,
                              const scada::Variant& value,
                              scada::Qualifier qualifier,
                              int flags) {
-  base::string16 text;
+  std::wstring text;
 
   bool bool_value;
   if (value.get(bool_value)) {
@@ -85,11 +85,11 @@ base::string16 FormatTsValue(const NodeRef& node,
   return text;
 }
 
-base::string16 FormatTitValue(const NodeRef& node,
+std::wstring FormatTitValue(const NodeRef& node,
                               const scada::Variant& value,
                               scada::Qualifier qualifier,
                               int flags) {
-  base::string16 text;
+  std::wstring text;
 
   double double_value;
   if (value.get(double_value)) {
@@ -119,11 +119,11 @@ base::string16 FormatTitValue(const NodeRef& node,
   return text;
 }
 
-base::string16 FormatUnknownValue(const NodeRef& node,
+std::wstring FormatUnknownValue(const NodeRef& node,
                                   const scada::Variant& value,
                                   scada::Qualifier qualifier,
                                   int flags) {
-  base::string16 text;
+  std::wstring text;
 
   if (value.get(text)) {
     if (flags & FORMAT_COLOR)
@@ -139,7 +139,7 @@ base::string16 FormatUnknownValue(const NodeRef& node,
   return text;
 }
 
-base::string16 FormatValue(const NodeRef& node,
+std::wstring FormatValue(const NodeRef& node,
                            const scada::Variant& value,
                            scada::Qualifier qualifier,
                            int flags) {

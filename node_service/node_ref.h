@@ -54,6 +54,9 @@ class NodeRef {
 
   NodeRef target(const scada::NodeId& reference_type_id) const;
   NodeRef inverse_target(const scada::NodeId& reference_type_id) const;
+  bool has_target(const scada::NodeId& reference_type_id,
+                  bool forward,
+                  const scada::NodeId& node_id) const;
   std::vector<NodeRef> targets(
       const scada::NodeId& reference_type_id = scada::id::References) const;
   std::vector<NodeRef> inverse_targets(
@@ -65,6 +68,9 @@ class NodeRef {
   // Non-hierarchical references.
   Reference reference(const scada::NodeId& reference_type_id) const;
   Reference inverse_reference(const scada::NodeId& reference_type_id) const;
+  Reference reference(const scada::NodeId& reference_type_id,
+                      bool forward,
+                      const scada::NodeId& node_id) const;
   std::vector<Reference> references(
       const scada::NodeId& reference_type_id = scada::id::References) const;
   std::vector<Reference> inverse_references(

@@ -7,6 +7,12 @@
 #include "node_service/address_space/address_space_node_model.h"
 #include "node_service/node_service.h"
 
+class Executor;
+
+namespace boost::asio {
+class io_context;
+}
+
 namespace scada {
 class AddressSpace;
 class Node;
@@ -14,10 +20,10 @@ struct ModelChangeEvent;
 }  // namespace scada
 
 class AddressSpaceNodeModel;
-class Logger;
 
 struct AddressSpaceNodeServiceContext {
-  const std::shared_ptr<Logger> logger_;
+  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
@@ -74,7 +80,7 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
 
   std::map<scada::NodeId, std::shared_ptr<AddressSpaceNodeModel>> nodes_;
 
-  AddressSpaceFetcher fetcher_;
+  const std::shared_ptr<AddressSpaceFetcher> fetcher_;
 
   friend class AddressSpaceNodeModel;
 };

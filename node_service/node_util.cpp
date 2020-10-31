@@ -49,8 +49,8 @@ std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
   return result;
 }
 
-base::string16 GetFullDisplayName(const NodeRef& node) {
-  auto parent = node.parent();
+std::wstring GetFullDisplayName(const NodeRef& node) {
+  auto parent = node.inverse_target(scada::id::Organizes);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
     return GetFullDisplayName(parent) + base::WideToUTF16(L" : ") +

@@ -5,10 +5,13 @@
 #include "address_space/test/test_address_space.h"
 #include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
-#include "node_service/address_space/address_space_node_service.h"
-#include "node_service/mock_node_observer.h"
+#include "base/test/test_executor.h"
 #include "core/method_service_mock.h"
 #include "core/monitored_item_service_mock.h"
+#include "node_service/address_space/address_space_node_service.h"
+#include "node_service/mock_node_observer.h"
+
+#include <boost/asio/io_context.hpp>
 
 namespace testing {
 
@@ -59,6 +62,9 @@ struct AddressSpaceNodeServiceTestContext {
   }
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
+  boost::asio::io_context io_context;
+  const std::shared_ptr<TestExecutor> executor =
+      std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space;
 
@@ -70,8 +76,9 @@ struct AddressSpaceNodeServiceTestContext {
   scada::MockMethodService method_service;
 
   AddressSpaceNodeService node_service{AddressSpaceNodeServiceContext{
-      logger, server_address_space, server_address_space, client_address_space,
-      node_factory, monitored_item_service, method_service}};
+      io_context, executor, server_address_space, server_address_space,
+      client_address_space, node_factory, monitored_item_service,
+      method_service}};
 
   NiceMock<MockNodeObserver> node_observer;
 };

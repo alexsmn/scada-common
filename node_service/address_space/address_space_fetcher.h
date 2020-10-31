@@ -1,25 +1,31 @@
 #pragma once
 
-#include "node_service/address_space/node_fetch_status_tracker.h"
-#include "node_service/node_children_fetcher.h"
-#include "node_service/node_fetcher_impl.h"
 #include "common/view_events_subscription.h"
 #include "core/configuration_types.h"
 #include "core/view_service.h"
+#include "node_service/address_space/node_fetch_status_tracker.h"
+#include "node_service/node_children_fetcher.h"
+#include "node_service/node_fetcher_impl.h"
 
 #include <map>
 #include <memory>
+
+class Executor;
+
+namespace boost::asio {
+class io_context;
+}
 
 namespace scada {
 class AttributeService;
 }  // namespace scada
 
 class AddressSpaceImpl;
-class Logger;
 class NodeFactory;
 
 struct AddressSpaceFetcherContext {
-  const std::shared_ptr<Logger> logger_;
+  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
@@ -31,11 +37,16 @@ struct AddressSpaceFetcherContext {
       model_changed_handler_;
 };
 
-class AddressSpaceFetcher : private AddressSpaceFetcherContext,
-                            private scada::ViewEvents {
+class AddressSpaceFetcher
+    : private AddressSpaceFetcherContext,
+      private scada::ViewEvents,
+      public std::enable_shared_from_this<AddressSpaceFetcher> {
  public:
   explicit AddressSpaceFetcher(AddressSpaceFetcherContext&& context);
   ~AddressSpaceFetcher();
+
+  static std::shared_ptr<AddressSpaceFetcher> Create(
+      AddressSpaceFetcherContext&& context);
 
   void OnChannelOpened();
   void OnChannelClosed();
@@ -47,19 +58,28 @@ class AddressSpaceFetcher : private AddressSpaceFetcherContext,
                  const NodeFetchStatus& requested_status);
 
  private:
-  NodeFetcherImplContext MakeNodeFetcherImplContext();
+  void Init();
+
   NodeChildrenFetcherContext MakeNodeChildrenFetcherContext();
 
   void InternalFetchNode(const scada::NodeId& node_id,
                          const NodeFetchStatus& requested_status);
+  void OnFetchCompleted(std::vector<scada::NodeState>&& fetched_nodes,
+                        NodeFetchStatuses&& errors);
+
+  void DeleteNode(const scada::NodeId& node_id);
+  void OnChildrenFetched(const scada::NodeId& node_id,
+                         scada::ReferenceDescriptions&& references);
 
   // scada::ViewEvents
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(
       const scada::SemanticChangeEvent& event) override;
 
-  NodeFetcherImpl node_fetcher_;
-  NodeChildrenFetcher node_children_fetcher_;
+  BoostLogger logger_{LOG_NAME("AddressSpaceFetcher")};
+
+  std::shared_ptr<NodeFetcherImpl> node_fetcher_;
+  std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;
   NodeFetchStatusTracker fetch_status_tracker_;
 
   bool channel_opened_ = false;

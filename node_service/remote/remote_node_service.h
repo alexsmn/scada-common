@@ -11,24 +11,27 @@
 
 namespace scada {
 class AttributeService;
+class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
 
-class Logger;
 class NodeFetcher;
 class RemoteNodeModel;
 struct NodeModelImplReference;
 
 struct RemoteNodeServiceContext {
-  const std::shared_ptr<Logger> logger_;
+  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
 };
 
-class RemoteNodeService : private RemoteNodeServiceContext,
-                          private scada::ViewEvents,
-                          public NodeService {
+class RemoteNodeService
+    : private RemoteNodeServiceContext,
+      private scada::ViewEvents,
+      public NodeService,
+      public std::enable_shared_from_this<RemoteNodeService> {
  public:
   explicit RemoteNodeService(RemoteNodeServiceContext&& context);
   ~RemoteNodeService();
@@ -42,8 +45,7 @@ class RemoteNodeService : private RemoteNodeServiceContext,
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
 
  private:
-  // Returns fetched or unfetched node impl.
-  std::shared_ptr<RemoteNodeModel> GetNodeImpl(const scada::NodeId& node_id);
+  std::shared_ptr<RemoteNodeModel> GetNodeModel(const scada::NodeId& node_id);
 
   void NotifyModelChanged(const scada::ModelChangeEvent& event);
   void NotifySemanticsChanged(const scada::NodeId& node_id);
@@ -66,7 +68,7 @@ class RemoteNodeService : private RemoteNodeServiceContext,
 
   std::map<scada::NodeId, std::shared_ptr<RemoteNodeModel>> nodes_;
 
-  NodeFetcherImpl node_fetcher_;
+  const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   NodeChildrenFetcher node_children_fetcher_;
 
   bool channel_opened_ = false;

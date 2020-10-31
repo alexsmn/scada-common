@@ -1,42 +1,51 @@
 #pragma once
 
-#include "base/memory/weak_ptr.h"
-#include "node_service/node_fetcher.h"
+#include "base/boost_log.h"
+#include "core/attribute_service.h"
 #include "core/data_value.h"
+#include "node_service/node_fetcher.h"
 
 #include <map>
 #include <memory>
 #include <queue>
+
+namespace boost::asio {
+class io_context;
+}
 
 namespace scada {
 class AttributeService;
 class NodeId;
 class Status;
 class ViewService;
-struct BrowseDescription;
-struct BrowseResult;
-struct ReadValueId;
+struct ServiceContext;
 }  // namespace scada
 
-class Logger;
+class Executor;
 
 struct NodeFetcherImplContext {
-  const std::shared_ptr<Logger> logger_;
+  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
-  FetchCompletedHandler fetch_completed_handler_;
-  NodeValidator node_validator_;
+  const FetchCompletedHandler fetch_completed_handler_;
+  const NodeValidator node_validator_;
+  const std::shared_ptr<const scada::ServiceContext> service_context_;
 };
 
-class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
+class NodeFetcherImpl : private NodeFetcherImplContext,
+                        public NodeFetcher,
+                        public std::enable_shared_from_this<NodeFetcherImpl> {
  public:
   explicit NodeFetcherImpl(NodeFetcherImplContext&& context);
   ~NodeFetcherImpl();
 
+  static std::shared_ptr<NodeFetcherImpl> Create(
+      NodeFetcherImplContext&& context);
+
   virtual void Fetch(const scada::NodeId& node_id,
                      bool fetch_parent = false,
-                     const scada::NodeId& parent_id = {},
-                     const scada::NodeId& reference_type_id = {},
+                     const std::optional<ParentInfo> parent_info = {},
                      bool force = false) override;
   virtual void Cancel(const scada::NodeId& node_id) override;
 
@@ -117,6 +126,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
       FetchingNode* node = nullptr;
     };
 
+    std::vector<Node>::iterator find(const FetchingNode& node);
+    std::vector<Node>::const_iterator find(const FetchingNode& node) const;
+
     std::vector<Node> queue_;
     unsigned next_sequence_ = 0;
   };
@@ -151,6 +163,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
 
   bool AssertValid() const;
 
+  BoostLogger logger_{LOG_NAME("NodeFetcher")};
+
   FetchingNodeGraph fetching_nodes_;
 
   size_t running_request_count_ = 0;
@@ -161,6 +175,4 @@ class NodeFetcherImpl : private NodeFetcherImplContext, public NodeFetcher {
   PendingQueue pending_queue_;
 
   unsigned next_pending_sequence_ = 0;
-
-  base::WeakPtrFactory<NodeFetcherImpl> weak_factory_{this};
 };

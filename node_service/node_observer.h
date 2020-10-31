@@ -1,9 +1,12 @@
 #pragma once
 
-#include "core/event.h"
 #include "core/node_id.h"
 
 #include <cstdint>
+
+namespace scada {
+struct ModelChangeEvent;
+}
 
 class NodeRefObserver {
  public:

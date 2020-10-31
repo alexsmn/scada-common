@@ -56,7 +56,8 @@ class AddressSpaceNodeModel final
       scada::AttributeId attribute_id) const override;
   virtual NodeRef::Reference GetReference(
       const scada::NodeId& reference_type_id,
-      bool forward) const override;
+      bool forward,
+      const scada::NodeId& node_id) const override;
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override;
   virtual std::vector<NodeRef> GetTargets(

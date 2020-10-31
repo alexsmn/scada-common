@@ -1,19 +1,44 @@
 #include "node_service/node_children_fetcher.h"
 
-#include "base/logger.h"
-#include "node_service/node_fetcher.h"
+#include "base/executor.h"
+#include "base/strings/strcat.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 #include "model/node_id_util.h"
+#include "node_service/node_fetcher.h"
+
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+
+#include "core/debug_util-inl.h"
 
 namespace {
+
 const size_t kMaxFetchChildCount = 100;
+
+std::string NodeIdsToString(
+    const std::vector<scada::ReferenceDescription>& references) {
+  const std::string& node_ids = boost::algorithm::join(
+      references | boost::adaptors::transformed(
+                       [](const scada::ReferenceDescription& reference) {
+                         return ToString(reference.node_id);
+                       }),
+      ", ");
+  return base::StrCat({"[", node_ids, "]"});
 }
+
+}  // namespace
 
 NodeChildrenFetcher::NodeChildrenFetcher(NodeChildrenFetcherContext&& context)
     : NodeChildrenFetcherContext{std::move(context)} {}
+
+// static
+std::shared_ptr<NodeChildrenFetcher> NodeChildrenFetcher::Create(
+    NodeChildrenFetcherContext&& context) {
+  return std::make_shared<NodeChildrenFetcher>(std::move(context));
+}
 
 void NodeChildrenFetcher::FetchPendingNodes() {
   if (children_request_count_ == 0 && !pending_children_.empty()) {
@@ -39,43 +64,40 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
   const auto duration = base::TimeTicks::Now() - start_ticks;
-  logger_->WriteF(LogSeverity::Normal,
-                  "Browse children completed in %u ms with status: %ls",
-                  static_cast<unsigned>(duration.InMilliseconds()),
-                  ToString16(status).c_str());
+  LOG_INFO(logger_) << "Browse children completed"
+                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("Status", ToString(status));
 
   assert(!descriptions.empty());
-
-  std::map<scada::NodeId, ReferenceMap> references;
 
   for (size_t i = 0; i < descriptions.size(); ++i) {
     auto& description = descriptions[i];
 
-    // WARNING: Map elements must be inserted even if status is bad.
-    auto& target_ids =
-        references[description.node_id][description.reference_type_id];
+    if (!status) {
+      LOG_WARNING(logger_) << "Node browse children error"
+                           << LOG_TAG("NodeId", ToString(description.node_id))
+                           << LOG_TAG("Status", ToString(status));
 
-    if (!status)
+      reference_validator_(description.node_id, {status.code()});
       continue;
-
-    assert(descriptions.size() == results.size());
-    auto& result = results[i];
-    for (auto& reference : result.references) {
-      assert(reference.forward);
-      target_ids.emplace(std::move(reference.node_id),
-                         std::move(reference.reference_type_id));
     }
+
+    auto& result = results[i];
+
+    LOG_INFO(logger_) << "Node browse children completed"
+                      << LOG_TAG("NodeId", ToString(description.node_id))
+                      << LOG_TAG("Children", NodeIdsToString(result.references))
+                      << LOG_TAG("Status", ToString(result.status_code));
+
+    reference_validator_(description.node_id, std::move(result));
   }
 
   assert(children_request_count_ > 0);
   --children_request_count_;
-  logger_->WriteF(LogSeverity::Normal, "%Iu children requests are running",
-                  children_request_count_);
+  LOG_INFO(logger_) << "Running requests"
+                    << LOG_TAG("Count", children_request_count_);
 
   FetchPendingNodes();
-
-  for (auto& [node_id, references] : references)
-    reference_validator_(node_id, std::move(references));
 }
 
 void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
@@ -86,8 +108,8 @@ void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
   if (!pending_children_set_.emplace(node_id).second)
     return;
 
-  logger_->WriteF(LogSeverity::Normal, "Schedule browse children of node %s",
-                  node_id.ToString().c_str());
+  LOG_INFO(logger_) << "Schedule browse children"
+                    << LOG_TAG("NodeId", ToString(node_id));
 
   pending_children_.emplace_back(node_id);
 
@@ -98,31 +120,31 @@ void NodeChildrenFetcher::FetchChildren(
     const std::vector<scada::NodeId>& node_ids) {
   assert(!node_ids.empty());
 
-  logger_->WriteF(LogSeverity::Normal, "Browse children (%Iu)",
-                  node_ids.size());
+  LOG_INFO(logger_) << "Browse nodes children"
+                    << LOG_TAG("Count", node_ids.size());
 
   const auto start_ticks = base::TimeTicks::Now();
   ++children_request_count_;
 
   std::vector<scada::BrowseDescription> descriptions;
-  descriptions.reserve(node_ids.size() * 2);
+  descriptions.reserve(node_ids.size());
   for (auto& node_id : node_ids) {
     descriptions.push_back(
         {node_id, scada::BrowseDirection::Forward, scada::id::Organizes, true});
-    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
-                            scada::id::HasSubtype, true});
   }
 
   view_service_.Browse(
       descriptions,
-      [weak_ptr = weak_factory_.GetWeakPtr(), start_ticks, descriptions](
-          scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        if (auto* ptr = weak_ptr.get()) {
-          ptr->OnBrowseChildrenResult(start_ticks, std::move(status),
-                                      std::move(descriptions),
-                                      std::move(results));
-        }
-      });
+      BindExecutor(
+          executor_,
+          [weak_ptr = weak_from_this(), start_ticks, descriptions](
+              scada::Status status, std::vector<scada::BrowseResult> results) {
+            if (auto ptr = weak_ptr.lock()) {
+              ptr->OnBrowseChildrenResult(start_ticks, std::move(status),
+                                          std::move(descriptions),
+                                          std::move(results));
+            }
+          }));
 }
 
 void NodeChildrenFetcher::Cancel(const scada::NodeId& node_id) {

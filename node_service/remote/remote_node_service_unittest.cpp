@@ -1,11 +1,12 @@
 #include "node_service/remote/remote_node_service.h"
 
 #include "address_space/test/test_address_space.h"
-#include "base/logger.h"
+#include "base/test/test_executor.h"
 #include "core/attribute_service.h"
 #include "core/monitored_item_service_mock.h"
 #include "model/node_id_util.h"
 
+#include <boost/asio/io_context.hpp>
 #include <gmock/gmock.h>
 
 #include "core/debug_util-inl.h"
@@ -25,11 +26,13 @@ using namespace testing;
 };*/
 
 TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
-  const auto logger = std::make_shared<NullLogger>();
+  boost::asio::io_context io_context;
+  auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
   RemoteNodeService node_service{RemoteNodeServiceContext{
-      logger,
+      io_context,
+      executor,
       address_space,
       address_space,
       monitored_item_service,
@@ -50,11 +53,13 @@ TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
 }
 
 TEST(RemoteNodeService, DISABLED_FetchObject) {
-  const auto logger = std::make_shared<NullLogger>();
+  boost::asio::io_context io_context;
+  auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
   RemoteNodeService node_service{RemoteNodeServiceContext{
-      logger,
+      io_context,
+      executor,
       address_space,
       address_space,
       monitored_item_service,

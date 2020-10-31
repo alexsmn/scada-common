@@ -27,7 +27,8 @@ class NodeModel {
 
   virtual NodeRef::Reference GetReference(
       const scada::NodeId& reference_type_id,
-      bool forward) const = 0;
+      bool forward,
+      const scada::NodeId& node_id) const = 0;
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const = 0;
