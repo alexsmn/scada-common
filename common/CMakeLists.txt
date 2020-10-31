@@ -29,8 +29,6 @@ target_link_libraries(scada_common PUBLIC
   scada_core
 )
 
-add_subdirectory(address_space)
-
 # UT
 
 add_executable(scada_common_unittests ${unittests})

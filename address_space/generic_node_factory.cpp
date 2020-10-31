@@ -8,7 +8,7 @@
 #include "address_space/variable.h"
 #include "base/logger.h"
 #include "common/node_state.h"
-#include "common/node_util.h"
+#include "node_service/node_util.h"
 #include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
 

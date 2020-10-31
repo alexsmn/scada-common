@@ -10,6 +10,7 @@ add_subdirectory("${deps}/express" express)
 
 add_subdirectory(common)
 add_subdirectory(address_space)
+add_subdirectory(node_service)
 add_subdirectory(opcua)
 
 if(WIN32)

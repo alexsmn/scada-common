@@ -7,7 +7,7 @@
 #include "common/data_value_util.h"
 #include "common/event_set.h"
 #include "common/format.h"
-#include "common/node_ref.h"
+#include "node_service/node_ref.h"
 #include "core/aggregate_filter.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"

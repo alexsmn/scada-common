@@ -8,7 +8,7 @@
 #include "common/event_manager.h"
 #include "common/formula_util.h"
 #include "common/interval_util.h"
-#include "common/node_service.h"
+#include "node_service/node_service.h"
 #include "core/attribute_service.h"
 #include "core/debug_util.h"
 #include "core/event_service.h"

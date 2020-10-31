@@ -2,8 +2,8 @@
 
 #include "base/strings/utf_string_conversions.h"
 #include "common/interval_util.h"
-#include "common/node_format.h"
-#include "common/node_util.h"
+#include "node_service/node_format.h"
+#include "node_service/node_util.h"
 #include "model/data_items_node_ids.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_util.h"

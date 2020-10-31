@@ -1,6 +1,6 @@
 #include "timed_data/timed_data_impl.h"
 
-#include "common/node_model.h"
+#include "node_service/node_model.h"
 
 #include <gmock/gmock.h>
 
