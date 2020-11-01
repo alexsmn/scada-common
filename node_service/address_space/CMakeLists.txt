@@ -7,5 +7,5 @@ target_link_libraries(address_space_node_service PUBLIC
 )
 
 target_link_libraries(address_space_node_service_unittests PUBLIC
-  node_manager
+  address_space_node_service
 )
