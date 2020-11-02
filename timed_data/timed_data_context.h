@@ -17,7 +17,7 @@ class MethodService;
 class MonitoredItemService;
 }
 
-class EventManager;
+class EventFetcher;
 class NodeService;
 
 struct TimedDataContext {
@@ -29,5 +29,5 @@ struct TimedDataContext {
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;
-  EventManager& event_manager_;
+  EventFetcher& event_fetcher_;
 };

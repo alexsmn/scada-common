@@ -21,7 +21,7 @@ class MonitoredItemService;
 class Logger;
 class EventObserver;
 
-struct EventManagerContext {
+struct EventFetcherContext {
   boost::asio::io_context& io_context_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
@@ -31,12 +31,12 @@ struct EventManagerContext {
 
 // Holds new events, arranged by objects.
 // Handles multiple event acknowledgement.
-class EventManager : private EventManagerContext {
+class EventFetcher : private EventFetcherContext {
  public:
   typedef std::map<unsigned, scada::Event> EventContainer;
 
-  explicit EventManager(EventManagerContext&& context);
-  ~EventManager();
+  explicit EventFetcher(EventFetcherContext&& context);
+  ~EventFetcher();
 
   void OnChannelOpened(const scada::NodeId& user_id);
   void OnChannelClosed();
@@ -124,16 +124,16 @@ class EventManager : private EventManagerContext {
 
   bool ack_pending_ = false;
 
-  base::WeakPtrFactory<EventManager> weak_factory_{this};
+  base::WeakPtrFactory<EventFetcher> weak_factory_{this};
 };
 
-inline const EventSet* EventManager::GetItemUnackedEvents(
+inline const EventSet* EventFetcher::GetItemUnackedEvents(
     const scada::NodeId& item_id) const {
   ItemEventMap::const_iterator i = item_unacked_events_.find(item_id);
   return i != item_unacked_events_.end() ? &i->second.events : nullptr;
 }
 
-inline bool EventManager::IsAlerting(const scada::NodeId& item_id) const {
+inline bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
   const EventSet* events = GetItemUnackedEvents(item_id);
   return events && !events->empty();
 }

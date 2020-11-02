@@ -1,4 +1,4 @@
-#include "common/event_manager.h"
+#include "common/event_fetcher.h"
 
 #include "base/bind.h"
 #include "base/location.h"
@@ -15,8 +15,8 @@
 
 static const size_t kMaxParallelAcks = 5;
 
-EventManager::EventManager(EventManagerContext&& context)
-    : EventManagerContext{std::move(context)} {
+EventFetcher::EventFetcher(EventFetcherContext&& context)
+    : EventFetcherContext{std::move(context)} {
   monitored_item_ = monitored_item_service_.CreateMonitoredItem(
       {scada::id::Server, scada::AttributeId::EventNotifier},
       {scada::EventFilter{{}, {scada::id::SystemEventType}}});
@@ -32,9 +32,9 @@ EventManager::EventManager(EventManagerContext&& context)
   monitored_item_->Subscribe();
 }
 
-EventManager::~EventManager() {}
+EventFetcher::~EventFetcher() {}
 
-void EventManager::SetSeverityMin(unsigned severity) {
+void EventFetcher::SetSeverityMin(unsigned severity) {
   if (severity_min_ == severity)
     return;
 
@@ -49,14 +49,14 @@ void EventManager::SetSeverityMin(unsigned severity) {
   Update();
 }
 
-void EventManager::OnEvent(const scada::Event& event) {
+void EventFetcher::OnEvent(const scada::Event& event) {
   if (event.acked)
     RemoveUnackedEvent(event);
   else
     AddUnackedEvent(event);
 }
 
-void EventManager::AddUnackedEvent(const scada::Event& event) {
+void EventFetcher::AddUnackedEvent(const scada::Event& event) {
   if (event.severity < severity_min_)
     return;
 
@@ -90,7 +90,7 @@ void EventManager::AddUnackedEvent(const scada::Event& event) {
   UpdateAlarming();
 }
 
-void EventManager::RemoveUnackedEvent(const scada::Event& event) {
+void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
   EventContainer::iterator i = unacked_events_.find(event.acknowledge_id);
   if (i == unacked_events_.end())
     return;
@@ -140,7 +140,7 @@ void EventManager::RemoveUnackedEvent(const scada::Event& event) {
   UpdateAlarming();
 }
 
-void EventManager::ClearUackedEvents() {
+void EventFetcher::ClearUackedEvents() {
   for (ItemEventMap::iterator i = item_unacked_events_.begin();
        i != item_unacked_events_.end();) {
     auto& item_id = i->first;
@@ -165,7 +165,7 @@ void EventManager::ClearUackedEvents() {
   UpdateAlarming();
 }
 
-void EventManager::PostAckPendingEvents() {
+void EventFetcher::PostAckPendingEvents() {
   if (running_ack_event_ids_.size() >= kMaxParallelAcks ||
       pending_ack_event_ids_.empty()) {
     assert(!ack_pending_);
@@ -178,7 +178,7 @@ void EventManager::PostAckPendingEvents() {
   }
 }
 
-void EventManager::AckPendingEvents() {
+void EventFetcher::AckPendingEvents() {
   assert(ack_pending_);
   ack_pending_ = false;
 
@@ -196,7 +196,7 @@ void EventManager::AckPendingEvents() {
   PostAckPendingEvents();
 }
 
-void EventManager::AcknowledgeItemEvents(const scada::NodeId& item_id) {
+void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   const EventSet* events = GetItemUnackedEvents(item_id);
   if (!events)
     return;
@@ -207,7 +207,7 @@ void EventManager::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   }
 }
 
-void EventManager::AcknowledgeEvent(unsigned ack_id) {
+void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
   if (running_ack_event_ids_.find(ack_id) != running_ack_event_ids_.end())
     return;
 
@@ -219,14 +219,14 @@ void EventManager::AcknowledgeEvent(unsigned ack_id) {
   PostAckPendingEvents();
 }
 
-void EventManager::AcknowledgeAll() {
+void EventFetcher::AcknowledgeAll() {
   for (EventContainer::const_iterator i = unacked_events_.begin();
        i != unacked_events_.end(); ++i) {
     AcknowledgeEvent(i->second.acknowledge_id);
   }
 }
 
-void EventManager::UpdateAlarming() {
+void EventFetcher::UpdateAlarming() {
   bool alarming = !unacked_events_.empty();
 
   if (alarming == alarming_)
@@ -235,14 +235,14 @@ void EventManager::UpdateAlarming() {
   alarming_ = alarming;
 }
 
-void EventManager::ItemEventsChanged(const ObserverSet& observers,
+void EventFetcher::ItemEventsChanged(const ObserverSet& observers,
                                      const scada::NodeId& item_id,
                                      const EventSet& events) {
   for (ObserverSet::const_iterator i = observers.begin(); i != observers.end();)
     (*i++)->OnItemEventsChanged(item_id, events);
 }
 
-void EventManager::Update() {
+void EventFetcher::Update() {
   history_service_.HistoryReadEvents(
       scada::id::Server, {}, {}, {scada::EventFilter::UNACKED},
       io_context_.wrap(
@@ -255,17 +255,17 @@ void EventManager::Update() {
           }));
 }
 
-void EventManager::OnChannelOpened(const scada::NodeId& user_id) {
+void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {
   connected_ = true;
   user_id_ = user_id;
   Update();
 }
 
-void EventManager::OnChannelClosed() {
+void EventFetcher::OnChannelClosed() {
   connected_ = false;
 }
 
-void EventManager::OnHistoryReadEventsComplete(
+void EventFetcher::OnHistoryReadEventsComplete(
     scada::Status&& status,
     std::vector<scada::Event>&& events) {
   for (auto& event : events) {

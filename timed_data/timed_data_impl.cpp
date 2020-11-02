@@ -5,10 +5,9 @@
 #include "base/location.h"
 #include "base/threading/thread_task_runner_handle.h"
 #include "common/data_value_util.h"
-#include "common/event_manager.h"
+#include "common/event_fetcher.h"
 #include "common/formula_util.h"
 #include "common/interval_util.h"
-#include "node_service/node_service.h"
 #include "core/attribute_service.h"
 #include "core/debug_util.h"
 #include "core/event_service.h"
@@ -16,6 +15,7 @@
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "model/node_id_util.h"
+#include "node_service/node_service.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
@@ -80,7 +80,7 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
     return;
 
   if (node_) {
-    event_manager_.RemoveItemObserver(node_.node_id(), *this);
+    event_fetcher_.RemoveItemObserver(node_.node_id(), *this);
     node_.Unsubscribe(*this);
   }
 
@@ -88,9 +88,9 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
 
   if (node_) {
     node_.Subscribe(*this);
-    event_manager_.AddItemObserver(node_.node_id(), *this);
+    event_fetcher_.AddItemObserver(node_.node_id(), *this);
 
-    alerting_ = event_manager_.IsAlerting(node_.node_id());
+    alerting_ = event_fetcher_.IsAlerting(node_.node_id());
   }
 }
 
@@ -321,10 +321,10 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 }
 
 const EventSet* TimedDataImpl::GetEvents() const {
-  return node_ ? event_manager_.GetItemUnackedEvents(node_.node_id()) : nullptr;
+  return node_ ? event_fetcher_.GetItemUnackedEvents(node_.node_id()) : nullptr;
 }
 
 void TimedDataImpl::Acknowledge() {
   if (node_)
-    event_manager_.AcknowledgeItemEvents(node_.node_id());
+    event_fetcher_.AcknowledgeItemEvents(node_.node_id());
 }
