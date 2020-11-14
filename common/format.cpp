@@ -109,10 +109,25 @@ bool StringToValue(std::string_view str,
     return StringToValueHelper<bool>(str, value);
 
   } else if (data_type_id == scada::id::Double) {
-    return StringToValueHelper<double>(str, value);
+    return StringToValueHelper<scada::Double>(str, value);
+
+  } else if (data_type_id == scada::id::Int16) {
+    return StringToValueHelper<scada::Int16>(str, value);
+
+  } else if (data_type_id == scada::id::UInt16) {
+    return StringToValueHelper<scada::UInt16>(str, value);
 
   } else if (data_type_id == scada::id::Int32) {
-    return StringToValueHelper<int>(str, value);
+    return StringToValueHelper<scada::Int32>(str, value);
+
+  } else if (data_type_id == scada::id::UInt32) {
+    return StringToValueHelper<scada::UInt32>(str, value);
+
+  } else if (data_type_id == scada::id::Int64) {
+    return StringToValueHelper<scada::Int64>(str, value);
+
+  } else if (data_type_id == scada::id::UInt64) {
+    return StringToValueHelper<scada::UInt64>(str, value);
 
   } else if (data_type_id == scada::id::String) {
     value = std::string{str};
