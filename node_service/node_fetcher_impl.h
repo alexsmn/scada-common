@@ -37,7 +37,6 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
                         public NodeFetcher,
                         public std::enable_shared_from_this<NodeFetcherImpl> {
  public:
-  explicit NodeFetcherImpl(NodeFetcherImplContext&& context);
   ~NodeFetcherImpl();
 
   static std::shared_ptr<NodeFetcherImpl> Create(
@@ -50,6 +49,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
   virtual void Cancel(const scada::NodeId& node_id) override;
 
  private:
+  explicit NodeFetcherImpl(NodeFetcherImplContext&& context);
+
   struct FetchingNode : scada::NodeState {
     bool fetched() const { return attributes_fetched && references_fetched; }
 

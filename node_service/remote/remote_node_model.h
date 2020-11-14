@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/observer_list.h"
-#include "node_service/base_node_model.h"
 #include "common/node_state.h"
+#include "node_service/base_node_model.h"
 
 #include <map>
 #include <optional>
@@ -38,7 +38,7 @@ class RemoteNodeModel final
   void OnFetched(const scada::NodeState& node_state);
   void OnFetchCompleted();
   void OnFetchError(scada::Status&& status);
-  void OnChildrenFetched(const ReferenceMap& references);
+  void OnChildrenFetched(scada::ReferenceDescriptions&& references);
 
   // NodeModel
   virtual scada::Variant GetAttribute(

@@ -89,7 +89,8 @@ NodeFetcherImpl::~NodeFetcherImpl() {}
 // static
 std::shared_ptr<NodeFetcherImpl> NodeFetcherImpl::Create(
     NodeFetcherImplContext&& context) {
-  return std::make_shared<NodeFetcherImpl>(std::move(context));
+  return std::shared_ptr<NodeFetcherImpl>(
+      new NodeFetcherImpl(std::move(context)));
 }
 
 NodeFetcherImpl::FetchingNode* NodeFetcherImpl::FetchingNodeGraph::FindNode(
@@ -620,8 +621,7 @@ void NodeFetcherImpl::AddFetchedReference(
     }
 
     fetching_nodes_.AddDependency(child, node);
-    if (description.reference_type_id == scada::id::Aggregates)
-      fetching_nodes_.AddDependency(node, child);
+    fetching_nodes_.AddDependency(node, child);
 
     FetchNode(child, node.pending_sequence);
 

@@ -9,7 +9,8 @@
 RemoteNodeService::RemoteNodeService(RemoteNodeServiceContext&& context)
     : RemoteNodeServiceContext(std::move(context)),
       node_fetcher_{NodeFetcherImpl::Create(MakeNodeFetcherImplContext())},
-      node_children_fetcher_{MakeNodeChildrenFetcherContext()} {}
+      node_children_fetcher_{
+          NodeChildrenFetcher::Create(MakeNodeChildrenFetcherContext())} {}
 
 RemoteNodeService::~RemoteNodeService() {}
 
@@ -93,7 +94,7 @@ void RemoteNodeService::OnFetchNode(const scada::NodeId& node_id,
   if (requested_status.node_fetched)
     node_fetcher_->Fetch(node_id);
   if (requested_status.children_fetched)
-    node_children_fetcher_.Fetch(node_id);
+    node_children_fetcher_->Fetch(node_id);
 }
 
 void RemoteNodeService::ProcessFetchedNodes(
@@ -144,8 +145,8 @@ NodeFetcherImplContext RemoteNodeService::MakeNodeFetcherImplContext() {
 NodeChildrenFetcherContext RemoteNodeService::MakeNodeChildrenFetcherContext() {
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
-        /*if (auto node = GetNodeModel(node_id))
-          node->OnChildrenFetched(std::move(result.references));*/
+        if (auto node = GetNodeModel(node_id))
+          node->OnChildrenFetched(std::move(result.references));
       };
 
   return {io_context_, executor_, view_service_, reference_validator};
@@ -162,7 +163,7 @@ void RemoteNodeService::OnChannelOpened() {
     if (requested_status.node_fetched)
       node_fetcher_->Fetch(node_id);
     if (requested_status.children_fetched)
-      node_children_fetcher_.Fetch(node_id);
+      node_children_fetcher_->Fetch(node_id);
   }
 }
 

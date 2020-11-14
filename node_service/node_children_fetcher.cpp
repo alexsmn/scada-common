@@ -37,7 +37,8 @@ NodeChildrenFetcher::NodeChildrenFetcher(NodeChildrenFetcherContext&& context)
 // static
 std::shared_ptr<NodeChildrenFetcher> NodeChildrenFetcher::Create(
     NodeChildrenFetcherContext&& context) {
-  return std::make_shared<NodeChildrenFetcher>(std::move(context));
+  return std::shared_ptr<NodeChildrenFetcher>(
+      new NodeChildrenFetcher(std::move(context)));
 }
 
 void NodeChildrenFetcher::FetchPendingNodes() {

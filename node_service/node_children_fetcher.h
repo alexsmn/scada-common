@@ -40,8 +40,6 @@ class NodeChildrenFetcher
     : private NodeChildrenFetcherContext,
       public std::enable_shared_from_this<NodeChildrenFetcher> {
  public:
-  explicit NodeChildrenFetcher(NodeChildrenFetcherContext&& context);
-
   static std::shared_ptr<NodeChildrenFetcher> Create(
       NodeChildrenFetcherContext&& context);
 
@@ -49,6 +47,8 @@ class NodeChildrenFetcher
   void Cancel(const scada::NodeId& node_id);
 
  private:
+  explicit NodeChildrenFetcher(NodeChildrenFetcherContext&& context);
+
   void FetchPendingNodes();
 
   void OnBrowseChildrenResult(

@@ -69,7 +69,7 @@ class RemoteNodeService
   std::map<scada::NodeId, std::shared_ptr<RemoteNodeModel>> nodes_;
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
-  NodeChildrenFetcher node_children_fetcher_;
+  const std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;
 
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;

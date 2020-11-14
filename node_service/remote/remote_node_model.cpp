@@ -32,22 +32,20 @@ struct JoinedRequest {
 
 template <class Callback>
 void FetchReferences(NodeService& service,
-                     const ReferenceMap& references,
+                     const scada::ReferenceDescriptions& references,
                      Callback&& callback) {
   auto request = std::make_shared<JoinedRequest<Callback>>(
       std::forward<Callback>(callback));
 
   int count = 0;
-  for (auto& p : references) {
-    for (auto& [target_id, reference_type_id] : p.second) {
-      service.GetNode(target_id).Fetch(
-          NodeFetchStatus::NodeOnly(),
-          [request](const NodeRef& node) { request->CountDown(); });
-      service.GetNode(reference_type_id)
-          .Fetch(NodeFetchStatus::NodeOnly(),
-                 [request](const NodeRef& node) { request->CountDown(); });
-      count += 2;
-    }
+  for (auto& ref : references) {
+    service.GetNode(ref.node_id)
+        .Fetch(NodeFetchStatus::NodeOnly(),
+               [request](const NodeRef& node) { request->CountDown(); });
+    service.GetNode(ref.reference_type_id)
+        .Fetch(NodeFetchStatus::NodeOnly(),
+               [request](const NodeRef& node) { request->CountDown(); });
+    count += 2;
   }
 
   request->Wait(count);
@@ -122,28 +120,26 @@ void RemoteNodeModel::OnFetchError(scada::Status&& status) {
   SetFetchStatus(std::move(status), NodeFetchStatus::Max());
 }
 
-void RemoteNodeModel::OnChildrenFetched(const ReferenceMap& references) {
-  auto copied_references = std::make_shared<ReferenceMap>(references);
+void RemoteNodeModel::OnChildrenFetched(
+    scada::ReferenceDescriptions&& references) {
+  auto shared_references =
+      std::make_shared<scada::ReferenceDescriptions>(std::move(references));
 
   reference_request_ = std::make_shared<bool>(false);
   std::weak_ptr<bool> reference_request = reference_request_;
-  FetchReferences(
-      service_, references, [reference_request, this, copied_references] {
-        if (!reference_request.lock())
-          return;
+  FetchReferences(service_, *shared_references,
+                  [reference_request, this, shared_references] {
+                    if (!reference_request.lock())
+                      return;
 
-        child_references_.clear();
-        for (auto& p : *copied_references) {
-          for (auto& [target_id, reference_type_id] : p.second)
-            child_references_.push_back({reference_type_id, true, target_id});
-        }
+                    child_references_ = *shared_references;
 
-        auto fetch_status = fetch_status_;
-        fetch_status.children_fetched = true;
-        SetFetchStatus(status_, fetch_status);
+                    auto fetch_status = fetch_status_;
+                    fetch_status.children_fetched = true;
+                    SetFetchStatus(status_, fetch_status);
 
-        NotifyModelChanged();
-      });
+                    NotifyModelChanged();
+                  });
 }
 
 NodeRef RemoteNodeModel::GetAggregateDeclaration(
@@ -234,7 +230,6 @@ NodeRef::Reference RemoteNodeModel::GetReference(
     const scada::NodeId& reference_type_id,
     bool forward,
     const scada::NodeId& node_id) const {
-
   // TODO: Optimize.
   if (!forward && reference_type_id == scada::id::HierarchicalReferences &&
       node_id.is_null() && !node_state_.parent_id.is_null()) {
