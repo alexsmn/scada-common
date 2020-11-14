@@ -13,29 +13,7 @@ namespace {
 
 const size_t kMaxFetchNodeCount = 1000;
 
-const scada::AttributeId kAttributeIds[] = {
-    scada::AttributeId::NodeClass, scada::AttributeId::BrowseName,
-    scada::AttributeId::DisplayName,
-    // scada::AttributeId::Description,
-    // scada::AttributeId::WriteMask,
-    // scada::AttributeId::UserWriteMask,
-    // scada::AttributeId::IsAbstract,
-    // scada::AttributeId::Symmetric,
-    // scada::AttributeId::InverseName,
-    // scada::AttributeId::ContainsNoLoops,
-    // scada::AttributeId::EventNotifier,
-    scada::AttributeId::Value, scada::AttributeId::DataType,
-    // scada::AttributeId::ValueRank,
-    // scada::AttributeId::ArrayDimensions,
-    // scada::AttributeId::AccessLevel,
-    // scada::AttributeId::UserAccessLevel,
-    // scada::AttributeId::MinimumSamplingInterval,
-    // scada::AttributeId::Historizing,
-    // scada::AttributeId::Executable,
-    // scada::AttributeId::UserExecutable,
-};
-
-const size_t kFetchAttributesReserveFactor = std::size(kAttributeIds);
+const size_t kFetchAttributesReserveFactor = 5;
 
 void GetFetchAttributes(const scada::NodeId& node_id,
                         bool is_property,

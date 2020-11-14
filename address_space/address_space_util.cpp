@@ -143,7 +143,7 @@ LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id) {
               : base::WideToUTF16(kUnknownDisplayName);
 }
 
-base::string16 GetFullDisplayName(const Node& node) {
+std::wstring GetFullDisplayName(const Node& node) {
   auto* parent = GetParent(node);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))

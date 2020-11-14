@@ -1,20 +1,20 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-
-#include "base/strings/string16.h"
 #include "common/data_value_util.h"
 #include "common/event_set.h"
 #include "common/format.h"
-#include "node_service/node_ref.h"
 #include "core/aggregate_filter.h"
 #include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
+#include "node_service/node_ref.h"
 #include "timed_data/timed_data.h"
 #include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_data_property.h"
+
+#include <functional>
+#include <memory>
+#include <string>
 
 #define TIMED_DATA_RANGE_SUPPORT
 
@@ -62,13 +62,12 @@ class TimedDataSpec : private TimedDataDelegate {
 
   NodeRef GetNode() const;
 
-  base::string16 GetCurrentString(int params = FORMAT_QUALITY |
-                                               FORMAT_UNITS) const;
-  base::string16 GetValueString(const scada::Variant& value,
-                                scada::Qualifier qualifier,
-                                int params = FORMAT_QUALITY |
+  std::wstring GetCurrentString(int params = FORMAT_QUALITY |
                                              FORMAT_UNITS) const;
-  base::string16 GetTitle() const;
+  std::wstring GetValueString(const scada::Variant& value,
+                              scada::Qualifier qualifier,
+                              int params = FORMAT_QUALITY | FORMAT_UNITS) const;
+  std::wstring GetTitle() const;
   const EventSet* GetEvents() const;
 
   void Reset() { SetData(nullptr); }

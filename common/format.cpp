@@ -18,8 +18,8 @@ const wchar_t* kUnknownDisplayName = L"#ИМЯ?";
 const wchar_t* kDefaultCloseLabel = L"Вкл";
 const wchar_t* kDefaultOpenLabel = L"Откл";
 
-void EscapeColoredString(base::string16& str) {
-  static const base::string16 amp = base::WideToUTF16(L"&");
+void EscapeColoredString(std::wstring& str) {
+  static const std::wstring amp = base::WideToUTF16(L"&");
   base::ReplaceSubstringsAfterOffset(&str, 0, amp, amp);
 }
 

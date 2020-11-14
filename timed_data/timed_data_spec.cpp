@@ -73,12 +73,12 @@ void TimedDataSpec::Connect(TimedDataService& service, const NodeRef& node) {
   SetData(service.GetNodeTimedData(node.node_id(), aggregate_filter_));
 }
 
-base::string16 TimedDataSpec::GetCurrentString(int params) const {
+std::wstring TimedDataSpec::GetCurrentString(int params) const {
   auto value = current();
   return GetValueString(value.value, value.qualifier, params);
 }
 
-base::string16 TimedDataSpec::GetValueString(const scada::Variant& value,
+std::wstring TimedDataSpec::GetValueString(const scada::Variant& value,
                                              scada::Qualifier qualifier,
                                              int params) const {
   if (data_) {
@@ -86,7 +86,7 @@ base::string16 TimedDataSpec::GetValueString(const scada::Variant& value,
       return FormatValue(node, value, qualifier, params);
   }
 
-  base::string16 string_value;
+  std::wstring string_value;
   value.get(string_value);
   return string_value;
 }
@@ -175,7 +175,7 @@ NodeRef TimedDataSpec::GetNode() const {
   return data_ ? data_->GetNode() : NodeRef{};
 }
 
-base::string16 TimedDataSpec::GetTitle() const {
+std::wstring TimedDataSpec::GetTitle() const {
   return data_ ? data_->GetTitle() : base::WideToUTF16(kUnknownDisplayName);
 }
 

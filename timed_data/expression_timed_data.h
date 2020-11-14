@@ -18,7 +18,7 @@ class ExpressionTimedData final : public BaseTimedData,
 
   // TimedData
   virtual std::string GetFormula(bool aliases) const override;
-  virtual base::string16 GetTitle() const override;
+  virtual std::wstring GetTitle() const override;
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 

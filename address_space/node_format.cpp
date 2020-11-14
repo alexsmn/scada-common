@@ -12,9 +12,9 @@ namespace scada {
 
 void FmtAddMods(const Node& node,
                 Qualifier qualifier,
-                base::string16& text,
+                std::wstring& text,
                 int flags) {
-  base::string16 mods;
+  std::wstring mods;
   mods.reserve(16);
 
   mods += L'[';
@@ -47,11 +47,11 @@ void FmtAddMods(const Node& node,
   }
 }
 
-base::string16 FormatTsValue(const Node& node,
+std::wstring FormatTsValue(const Node& node,
                              const Variant& value,
                              Qualifier qualifier,
                              int flags) {
-  base::string16 text;
+  std::wstring text;
 
   bool bool_value;
   if (value.get(bool_value)) {
@@ -75,11 +75,11 @@ base::string16 FormatTsValue(const Node& node,
   return text;
 }
 
-base::string16 FormatTitValue(const Node& node,
+std::wstring FormatTitValue(const Node& node,
                               const Variant& value,
                               Qualifier qualifier,
                               int flags) {
-  base::string16 text;
+  std::wstring text;
 
   double double_value;
   if (value.get(double_value)) {
@@ -109,11 +109,11 @@ base::string16 FormatTitValue(const Node& node,
   return text;
 }
 
-base::string16 FormatUnknownValue(const Node& node,
+std::wstring FormatUnknownValue(const Node& node,
                                   const Variant& value,
                                   Qualifier qualifier,
                                   int flags) {
-  base::string16 text;
+  std::wstring text;
 
   value.get(text);
 
@@ -126,7 +126,7 @@ base::string16 FormatUnknownValue(const Node& node,
   return text;
 }
 
-base::string16 FormatValue(const Node& node,
+std::wstring FormatValue(const Node& node,
                            const Variant& value,
                            Qualifier qualifier,
                            int flags) {

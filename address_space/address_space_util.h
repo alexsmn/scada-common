@@ -42,7 +42,7 @@ Node* GetNestedNode(AddressSpace& address_space,
                     const NodeId& node_id,
                     base::StringPiece& nested_name);
 
-base::string16 GetFullDisplayName(const Node& node);
+std::wstring GetFullDisplayName(const Node& node);
 
 Status ConvertPropertyValues(Node& node, NodeProperties& properties);
 

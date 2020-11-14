@@ -15,7 +15,7 @@ bool CanCreate(const NodeRef& parent, const NodeRef& component_type_definition);
 
 std::vector<NodeRef> GetDataVariables(const NodeRef& node);
 
-base::string16 GetFullDisplayName(const NodeRef& node);
+std::wstring GetFullDisplayName(const NodeRef& node);
 
 scada::LocalizedText GetDisplayName(NodeService& node_service,
                                     const scada::NodeId& node_id);
