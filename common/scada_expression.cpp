@@ -193,9 +193,9 @@ bool ScadaExpression::IsSingleName(std::string& item_name) const {
 }
 
 // static
-bool ScadaExpression::IsSingleName(base::StringPiece formula,
+bool ScadaExpression::IsSingleName(std::string_view formula,
                                    std::string& item_name) {
-  const auto& buf = formula.as_string();
+  const auto& buf = std::string{formula};
   ScadaLexerDelegate delegate;
   expression::Lexer lexer{buf.c_str(), delegate, 0};
   try {

@@ -378,7 +378,7 @@ void DeleteReference(scada::AddressSpace& address_space,
   scada::DeleteReference(*reference_type, *source, *target);
 }
 
-Node* FindChild(const Node& parent, base::StringPiece browse_name) {
+Node* FindChild(const Node& parent, std::string_view browse_name) {
   for (auto* child : GetChildren(parent)) {
     if (child->GetBrowseName().name() == browse_name)
       return child;
@@ -387,7 +387,7 @@ Node* FindChild(const Node& parent, base::StringPiece browse_name) {
 }
 
 Node* FindChildByDisplayName(const Node& parent,
-                             base::StringPiece16 display_name) {
+                             std::wstring_view display_name) {
   for (auto* child : GetChildren(parent)) {
     if (child->GetDisplayName() == display_name)
       return child;
@@ -396,7 +396,7 @@ Node* FindChildByDisplayName(const Node& parent,
 }
 
 Node* FindChildDeclaration(const TypeDefinition& type,
-                           base::StringPiece browse_name) {
+                           std::string_view browse_name) {
   for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     if (auto* declaration = FindChild(*supertype, browse_name))
       return declaration;
@@ -404,7 +404,7 @@ Node* FindChildDeclaration(const TypeDefinition& type,
   return nullptr;
 }
 
-Node* FindChildComponent(const Node& parent, base::StringPiece browse_name) {
+Node* FindChildComponent(const Node& parent, std::string_view browse_name) {
   for (auto* component : GetComponents(parent)) {
     if (component->GetBrowseName().name() == browse_name)
       return component;
@@ -413,7 +413,7 @@ Node* FindChildComponent(const Node& parent, base::StringPiece browse_name) {
 }
 
 Node* FindComponentDeclaration(const TypeDefinition& type,
-                               base::StringPiece browse_name) {
+                               std::string_view browse_name) {
   for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     if (auto* declaration = FindChildComponent(*supertype, browse_name))
       return declaration;

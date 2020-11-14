@@ -1,12 +1,12 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "core/node_id.h"
 #include "core/status.h"
 
 #include <functional>
+#include <string_view>
 
 using AliasResolveCallback =
     std::function<void(scada::Status status, const scada::NodeId& node_id)>;
-using AliasResolver = std::function<void(base::StringPiece alias,
+using AliasResolver = std::function<void(std::string_view alias,
                                          const AliasResolveCallback& callback)>;

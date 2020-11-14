@@ -1,10 +1,10 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "core/data_value.h"
 #include "express/express.h"
 #include "express/parser_delegate.h"
 
+#include <string_view>
 #include <vector>
 
 class ScadaExpression : private expression::ParserDelegate,
@@ -21,7 +21,7 @@ class ScadaExpression : private expression::ParserDelegate,
   size_t GetNodeCount() const;
   // Check expression consists from single item and return item name.
   bool IsSingleName(std::string& item_name) const;
-  static bool IsSingleName(base::StringPiece formula, std::string& item_name);
+  static bool IsSingleName(std::string_view formula, std::string& item_name);
 
   void Parse(const char* buf);
 

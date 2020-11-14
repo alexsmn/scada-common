@@ -23,7 +23,7 @@ namespace scada {
 namespace {
 
 const Node* FindNodeByAlias(const Node& parent_node,
-                            const base::StringPiece& alias) {
+                            const std::string_view& alias) {
   for (auto* node : GetOrganizes(parent_node)) {
     if (IsInstanceOf(node, data_items::id::DataItemType)) {
       const auto& node_alias =
@@ -43,7 +43,7 @@ const Node* FindNodeByAlias(const Node& parent_node,
 }  // namespace
 
 NodeId NodeIdFromAliasedString(AddressSpace& address_space,
-                               const base::StringPiece& path) {
+                               const std::string_view& path) {
   auto node_id = NodeIdFromScadaString(path);
   if (!node_id.is_null())
     return node_id;
@@ -62,7 +62,7 @@ NodeId NodeIdFromAliasedString(AddressSpace& address_space,
 
 std::pair<NodeId, DataValueFieldId> ParseAliasedString(
     AddressSpace& address_space,
-    const base::StringPiece& path) {
+    const std::string_view& path) {
   std::string::size_type sep_pos = path.find_first_of('!');
   if (sep_pos == std::string::npos) {
     auto node_id = NodeIdFromAliasedString(address_space, path);
@@ -155,8 +155,8 @@ std::wstring GetFullDisplayName(const Node& node) {
 
 Node* GetNestedNode(AddressSpace& address_space,
                     const NodeId& node_id,
-                    base::StringPiece& nested_name) {
-  nested_name.clear();
+                    std::string_view& nested_name) {
+  nested_name = {};
 
   auto* node = address_space.GetNode(node_id);
   if (node)
@@ -172,7 +172,7 @@ Node* GetNestedNode(AddressSpace& address_space,
 
   while (!nested_name.empty()) {
     auto p = nested_name.find('!');
-    if (p == base::StringPiece::npos)
+    if (p == std::string_view::npos)
       p = nested_name.size();
 
     auto next_nested_part = nested_name.substr(0, p);

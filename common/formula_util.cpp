@@ -4,13 +4,13 @@
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 
-bool IsNodeIdFormula(base::StringPiece formula, scada::NodeId& node_id) {
+bool IsNodeIdFormula(std::string_view formula, scada::NodeId& node_id) {
   std::string item_name;
   if (!ScadaExpression::IsSingleName(formula, item_name))
     return false;
 
   if (item_name.size() >= 2 && item_name.front() == '{' && item_name.back() == '}') {
-    const auto& s = base::StringPiece{item_name}.substr(1, item_name.size() - 2);
+    const auto& s = std::string_view{item_name}.substr(1, item_name.size() - 2);
     node_id = NodeIdFromScadaString(s);
     return !node_id.is_null();
   }

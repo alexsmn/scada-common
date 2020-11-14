@@ -1,9 +1,9 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "core/aggregate_filter.h"
 
 #include <memory>
+#include <string_view>
 
 class TimedData;
 
@@ -16,6 +16,6 @@ class TimedDataService {
       const scada::AggregateFilter& aggregation) = 0;
 
   virtual std::shared_ptr<TimedData> GetFormulaTimedData(
-      base::StringPiece formula,
+      std::string_view formula,
       const scada::AggregateFilter& aggregation) = 0;
 };

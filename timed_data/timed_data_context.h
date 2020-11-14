@@ -1,8 +1,9 @@
 #pragma once
 
-#include "core/node_id.h"
-#include "base/strings/string_piece.h"
 #include "common/aliases.h"
+#include "core/node_id.h"
+
+#include <string_view>
 
 namespace boost::asio {
 class io_context;
@@ -15,7 +16,7 @@ class EventService;
 class HistoryService;
 class MethodService;
 class MonitoredItemService;
-}
+}  // namespace scada
 
 class EventFetcher;
 class NodeService;

@@ -8,9 +8,9 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
+#include "core/variant.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
-#include "core/variant.h"
 
 const wchar_t* kEmptyDisplayName = L"#ИМЯ?";
 const wchar_t* kUnknownDisplayName = L"#ИМЯ?";
@@ -95,7 +95,7 @@ bool StringToValueHelper(String str, scada::Variant& value) {
   return true;
 }
 
-bool StringToValue(base::StringPiece str,
+bool StringToValue(std::string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
   assert(!data_type_id.is_null());
@@ -115,7 +115,7 @@ bool StringToValue(base::StringPiece str,
     return StringToValueHelper<int>(str, value);
 
   } else if (data_type_id == scada::id::String) {
-    value = str.as_string();
+    value = std::string{str};
     return true;
 
   } else if (data_type_id == scada::id::NodeId) {
@@ -129,7 +129,7 @@ bool StringToValue(base::StringPiece str,
     return false;
 }
 
-bool StringToValue(base::StringPiece16 str,
+bool StringToValue(std::wstring_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
   if (data_type_id == scada::id::Boolean) {
@@ -142,10 +142,11 @@ bool StringToValue(base::StringPiece16 str,
     }
 
   } else if (data_type_id == scada::id::LocalizedText) {
-    value = scada::ToLocalizedText(str.as_string());
+    value = scada::ToLocalizedText(std::wstring{str});
     return true;
   }
 
-  return StringToValue(base::SysWideToNativeMB(base::UTF16ToWide(str.as_string())), data_type_id,
-                       value);
+  return StringToValue(
+      base::SysWideToNativeMB(base::UTF16ToWide(std::wstring{str})),
+      data_type_id, value);
 }

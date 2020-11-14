@@ -28,10 +28,10 @@ enum class DataValueFieldId {
 };
 
 NodeId NodeIdFromAliasedString(AddressSpace& address_space,
-                               const base::StringPiece& path);
+                               const std::string_view& path);
 std::pair<NodeId, DataValueFieldId> ParseAliasedString(
     AddressSpace& address_space,
-    const base::StringPiece& path);
+    const std::string_view& path);
 
 const Node* GetTsFormat(const Node& ts_node);
 
@@ -40,7 +40,7 @@ bool IsDisabled(const Node& node, bool recursive);
 
 Node* GetNestedNode(AddressSpace& address_space,
                     const NodeId& node_id,
-                    base::StringPiece& nested_name);
+                    std::string_view& nested_name);
 
 std::wstring GetFullDisplayName(const Node& node);
 

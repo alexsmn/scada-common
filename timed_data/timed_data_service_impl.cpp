@@ -3,9 +3,9 @@
 #include "base/nested_logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
+#include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"
-#include "common/scada_expression.h"
 #include "timed_data/alias_timed_data.h"
 #include "timed_data/error_timed_data.h"
 #include "timed_data/expression_timed_data.h"
@@ -31,16 +31,16 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
 std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
-    base::StringPiece formula,
+    std::string_view formula,
     const scada::AggregateFilter& aggregation) {
   auto expression = std::make_unique<ScadaExpression>();
 
   // May throw std::exception.
   try {
-    expression->Parse(formula.as_string().c_str());
+    expression->Parse(std::string{formula}.c_str());
   } catch (const std::exception& e) {
     return std::make_shared<ErrorTimedData>(
-        formula.as_string(),
+        std::string{formula},
         base::WideToUTF16(base::SysNativeMBToWide(e.what())));
   }
 
@@ -48,7 +48,7 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
 
   std::string name;
   if (expression->IsSingleName(name)) {
-    base::StringPiece unbraced_name = name;
+    std::string_view unbraced_name = name;
     if (name.size() >= 2 && name[0] == '{' && name[name.size() - 1] == '}')
       unbraced_name = unbraced_name.substr(1, unbraced_name.size() - 2);
 
@@ -58,7 +58,7 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     std::vector<std::shared_ptr<TimedData>> operands(expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i)
       operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
-    auto logger = std::make_shared<NestedLogger>(logger_, formula.as_string());
+    auto logger = std::make_shared<NestedLogger>(logger_, std::string{formula});
     return std::make_shared<ExpressionTimedData>(
         std::move(expression), std::move(operands), std::move(logger));
   }
@@ -89,13 +89,13 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetNodeTimedData(
 }
 
 std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
-    base::StringPiece alias,
+    std::string_view alias,
     const scada::AggregateFilter& aggregation) {
   auto node_id = NodeIdFromScadaString(alias);
   if (!node_id.is_null())
     return GetNodeTimedData(node_id, aggregation);
 
-  const auto alias_string = alias.as_string();
+  const auto alias_string = std::string{alias};
   const auto cache_key = std::make_pair(alias_string, aggregation);
   if (auto timed_data = alias_cache_.Find(cache_key))
     return timed_data;

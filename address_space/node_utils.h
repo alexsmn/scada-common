@@ -167,14 +167,14 @@ void DeleteReference(AddressSpace& address_space,
                      const NodeId& target_id);
 void DeleteAllReferences(Node& node);
 
-Node* FindChild(const Node& parent, base::StringPiece browse_name);
+Node* FindChild(const Node& parent, std::string_view browse_name);
 Node* FindChildDeclaration(const TypeDefinition& type,
-                           base::StringPiece browse_name);
-Node* FindChildComponent(const Node& parent, base::StringPiece browse_name);
+                           std::string_view browse_name);
+Node* FindChildComponent(const Node& parent, std::string_view browse_name);
 Node* FindComponentDeclaration(const TypeDefinition& type,
-                               base::StringPiece browse_name);
+                               std::string_view browse_name);
 
 Node* FindChildByDisplayName(const Node& parent,
-                             base::StringPiece16 display_name);
+                             std::wstring_view display_name);
 
 }  // namespace scada

@@ -17,7 +17,7 @@ ViewServiceImpl::~ViewServiceImpl() {}
 
 scada::BrowseResult ViewServiceImpl::Browse(
     const scada::BrowseDescription& description) {
-  base::StringPiece nested_name;
+  std::string_view nested_name;
   auto* node = GetNestedNode(address_space_, description.node_id, nested_name);
   if (!node)
     return {scada::StatusCode::Bad_WrongNodeId};
@@ -61,7 +61,7 @@ scada::BrowseResult ViewServiceImpl::BrowseNode(
 
 scada::BrowseResult ViewServiceImpl::BrowseProperty(
     const scada::Node& node,
-    base::StringPiece nested_name,
+    std::string_view nested_name,
     const scada::BrowseDescription& description) {
   scada::BrowseResult result;
 

@@ -36,7 +36,7 @@ void AttributeServiceImpl::Write(
 }
 
 scada::DataValue AttributeServiceImpl::Read(const scada::ReadValueId& read_id) {
-  base::StringPiece nested_name;
+  std::string_view nested_name;
   auto* node =
       scada::GetNestedNode(address_space_, read_id.node_id, nested_name);
   if (!node)

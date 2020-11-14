@@ -1,9 +1,9 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "core/qualifier.h"
 
 #include <string>
+#include <string_view>
 
 namespace scada {
 class NodeId;
@@ -29,9 +29,9 @@ std::string FormatFloat(double val, const char* fmt);
 
 void EscapeColoredString(std::wstring& str);
 
-bool StringToValue(base::StringPiece str,
+bool StringToValue(std::string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value);
-bool StringToValue(base::StringPiece16 str,
+bool StringToValue(std::wstring_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value);

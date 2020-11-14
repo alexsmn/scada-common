@@ -60,7 +60,7 @@ void TimedDataSpec::SetData(std::shared_ptr<TimedData> data) {
 }
 
 void TimedDataSpec::Connect(TimedDataService& service,
-                            base::StringPiece formula) {
+                            std::string_view formula) {
   SetData(service.GetFormulaTimedData(formula, aggregate_filter_));
 }
 

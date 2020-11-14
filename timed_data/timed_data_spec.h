@@ -39,7 +39,7 @@ class TimedDataSpec : private TimedDataDelegate {
   void SetFrom(base::Time from);
   void SetRange(const scada::DateTimeRange& range);
 
-  void Connect(TimedDataService& service, base::StringPiece formula);
+  void Connect(TimedDataService& service, std::string_view formula);
   void Connect(TimedDataService& service, const scada::NodeId& node_id);
   void Connect(TimedDataService& service, const NodeRef& node);
 

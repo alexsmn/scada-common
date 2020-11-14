@@ -32,6 +32,6 @@ class ViewServiceImpl : private ViewServiceImplContext,
                                  const scada::BrowseDescription& description);
   scada::BrowseResult BrowseProperty(
       const scada::Node& node,
-      base::StringPiece nested_name,
+      std::string_view nested_name,
       const scada::BrowseDescription& description);
 };
