@@ -1,6 +1,7 @@
 #include "node_service/address_space/address_space_updater.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/address_space_util.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
@@ -45,61 +46,6 @@ std::string FormatReference(scada::AddressSpace& address_space,
 }
 
 }  // namespace
-
-void SortNodes(std::vector<scada::NodeState>& nodes) {
-  struct Visitor {
-    Visitor(std::vector<scada::NodeState>& nodes)
-        : nodes{nodes}, visited(nodes.size(), false) {
-      for (size_t index = 0; index < nodes.size(); ++index)
-        map.emplace(nodes[index].node_id, index);
-
-      sorted_indexes.reserve(nodes.size());
-      for (size_t index = 0; index < nodes.size(); ++index)
-        VisitIndex(index);
-
-      assert(sorted_indexes.size() == nodes.size());
-
-      std::vector<scada::NodeState> sorted_nodes(sorted_indexes.size());
-      for (size_t index = 0; index < nodes.size(); ++index)
-        sorted_nodes[index] = std::move(nodes[sorted_indexes[index]]);
-      nodes = std::move(sorted_nodes);
-    }
-
-    void Visit(const scada::NodeId& node_id) {
-      if (node_id.is_null())
-        return;
-      auto i = map.find(node_id);
-      if (i != map.end())
-        VisitIndex(i->second);
-    }
-
-    void VisitIndex(size_t index) {
-      if (visited[index])
-        return;
-
-      visited[index] = true;
-
-      auto& node = nodes[index];
-      if (!node.supertype_id.is_null())
-        Visit(scada::id::HasSubtype);
-      Visit(node.supertype_id);
-      Visit(node.reference_type_id);
-      Visit(node.parent_id);
-      Visit(node.type_definition_id);
-      Visit(node.attributes.data_type);
-
-      sorted_indexes.emplace_back(index);
-    }
-
-    std::vector<scada::NodeState>& nodes;
-    std::vector<bool> visited;
-    std::map<scada::NodeId, size_t /*index*/> map;
-    std::vector<size_t /*indexes*/> sorted_indexes;
-  };
-
-  if (nodes.size() >= 2)
-    Visitor{nodes};
-}
 
 struct TypeDefinitionPatch {
   void Patch(std::vector<scada::NodeState>& node_states) {
@@ -185,7 +131,7 @@ void UpdateNodes(AddressSpaceImpl& address_space,
   TypeDefinitionPatch type_definition_patch{address_space};
   type_definition_patch.Patch(nodes);
 
-  SortNodes(nodes);
+  SortNodesHierarchically(nodes);
 
   for (auto& node_state : nodes) {
     if (auto* node = address_space.GetNode(node_state.node_id)) {

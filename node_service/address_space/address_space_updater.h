@@ -25,8 +25,6 @@ void UpdateNodes(AddressSpaceImpl& address_space,
                  BoostLogger& logger,
                  ModelChangeVerbs& model_change_verbs);
 
-void SortNodes(std::vector<scada::NodeState>& nodes);
-
 std::vector<const scada::Node*> FindDeletedChildren(
     const scada::Node& node,
     const scada::ReferenceDescriptions& references);

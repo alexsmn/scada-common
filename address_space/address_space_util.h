@@ -1,11 +1,11 @@
 #pragma once
 
+#include "core/configuration_types.h"
+#include "core/data_value.h"
+
 #include <cassert>
 #include <string>
 #include <vector>
-
-#include "core/configuration_types.h"
-#include "core/data_value.h"
 
 namespace scada {
 
@@ -16,6 +16,7 @@ class TypeDefinition;
 class Variable;
 class VariableType;
 struct BrowseDescription;
+struct NodeState;
 
 QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id);
 LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id);
@@ -62,3 +63,5 @@ VariableType& BindVariableType(AddressSpace& address_space,
                                const NodeId& node_id);
 
 }  // namespace scada
+
+void SortNodesHierarchically(std::vector<scada::NodeState>& nodes);

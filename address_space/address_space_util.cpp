@@ -12,6 +12,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
+#include "common/node_state.h"
 #include "core/view_service.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
@@ -300,3 +301,58 @@ VariableType& BindVariableType(AddressSpace& address_space,
 }
 
 }  // namespace scada
+
+void SortNodesHierarchically(std::vector<scada::NodeState>& nodes) {
+  struct Visitor {
+    Visitor(std::vector<scada::NodeState>& nodes)
+        : nodes{nodes}, visited(nodes.size(), false) {
+      for (size_t index = 0; index < nodes.size(); ++index)
+        map.emplace(nodes[index].node_id, index);
+
+      sorted_indexes.reserve(nodes.size());
+      for (size_t index = 0; index < nodes.size(); ++index)
+        VisitIndex(index);
+
+      assert(sorted_indexes.size() == nodes.size());
+
+      std::vector<scada::NodeState> sorted_nodes(sorted_indexes.size());
+      for (size_t index = 0; index < nodes.size(); ++index)
+        sorted_nodes[index] = std::move(nodes[sorted_indexes[index]]);
+      nodes = std::move(sorted_nodes);
+    }
+
+    void Visit(const scada::NodeId& node_id) {
+      if (node_id.is_null())
+        return;
+      auto i = map.find(node_id);
+      if (i != map.end())
+        VisitIndex(i->second);
+    }
+
+    void VisitIndex(size_t index) {
+      if (visited[index])
+        return;
+
+      visited[index] = true;
+
+      auto& node = nodes[index];
+      if (!node.supertype_id.is_null())
+        Visit(scada::id::HasSubtype);
+      Visit(node.supertype_id);
+      Visit(node.reference_type_id);
+      Visit(node.parent_id);
+      Visit(node.type_definition_id);
+      Visit(node.attributes.data_type);
+
+      sorted_indexes.emplace_back(index);
+    }
+
+    std::vector<scada::NodeState>& nodes;
+    std::vector<bool> visited;
+    std::map<scada::NodeId, size_t /*index*/> map;
+    std::vector<size_t /*indexes*/> sorted_indexes;
+  };
+
+  if (nodes.size() >= 2)
+    Visitor{nodes};
+}
