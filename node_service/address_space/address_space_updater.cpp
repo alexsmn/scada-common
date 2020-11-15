@@ -97,12 +97,11 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
 
   for (auto& node_state : nodes) {
     if (auto* node = address_space_.GetNode(node_state.node_id)) {
-      LOG_INFO(logger_) << "Node modified"
-                        << LOG_TAG("Node", ToString(node_state));
-
       address_space_.ModifyNode(node_state.node_id,
                                 std::move(node_state.attributes),
                                 std::move(node_state.properties));
+
+      modified_nodes_.push_back(node_state.node_id);
 
     } else {
       auto [status, added_node] = node_factory_.CreateNode(node_state);
@@ -111,6 +110,8 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
                              << LOG_TAG("NodeId", ToString(node_state.node_id));
         continue;
       }
+
+      added_nodes_.push_back(node_state.node_id);
 
       model_change_verbs_[node_state.node_id] |=
           scada::ModelChangeEvent::NodeAdded |
@@ -152,6 +153,8 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
   }
 
   type_definition_patch.Fix();
+
+  ReportStatistics();
 }
 
 void AddressSpaceUpdater::AddReference(
@@ -159,34 +162,40 @@ void AddressSpaceUpdater::AddReference(
     const scada::ReferenceDescription& reference) {
   assert(reference.forward);
 
-  LOG_INFO(logger_) << "Add reference"
-                    << LOG_TAG(
-                           "Reference",
-                           FormatReference(address_space_, node_id, reference));
-
   auto* reference_type =
       AsReferenceType(address_space_.GetNode(reference.reference_type_id));
   if (!reference_type) {
-    LOG_WARNING(logger_) << "Reference type wasn't found";
+    LOG_WARNING(logger_) << "Reference type wasn't found"
+                         << LOG_TAG("Reference",
+                                    FormatReference(address_space_, node_id,
+                                                    reference));
     return;
   }
 
   auto& source_id = reference.forward ? node_id : reference.node_id;
   auto* source = address_space_.GetNode(source_id);
   if (!source) {
-    LOG_WARNING(logger_) << "Source wasn't found";
+    LOG_WARNING(logger_) << "Source wasn't found"
+                         << LOG_TAG("Reference",
+                                    FormatReference(address_space_, node_id,
+                                                    reference));
     return;
   }
 
   auto& target_id = reference.forward ? reference.node_id : node_id;
   auto* target = address_space_.GetNode(target_id);
   if (!target) {
-    LOG_WARNING(logger_) << "Target wasn't found";
+    LOG_WARNING(logger_) << "Target wasn't found"
+                         << LOG_TAG("Reference",
+                                    FormatReference(address_space_, node_id,
+                                                    reference));
     return;
   }
 
   scada::AddReference(address_space_, reference.reference_type_id, *source,
                       *target);
+
+  added_references_.push_back(std::make_pair(node_id, reference));
 
   model_change_verbs_[source_id] |= scada::ModelChangeEvent::ReferenceAdded;
   model_change_verbs_[target_id] |= scada::ModelChangeEvent::ReferenceAdded;
@@ -195,15 +204,12 @@ void AddressSpaceUpdater::AddReference(
 void AddressSpaceUpdater::DeleteReference(
     const scada::NodeId& node_id,
     const scada::ReferenceDescription& reference) {
-  LOG_INFO(logger_) << "Reference deleted"
-                    << LOG_TAG(
-                           "Reference",
-                           FormatReference(address_space_, node_id, reference));
-
   auto& source_id = reference.forward ? node_id : reference.node_id;
   auto& target_id = reference.forward ? reference.node_id : node_id;
   scada::DeleteReference(address_space_, reference.reference_type_id, node_id,
                          reference.node_id);
+
+  deleted_references_.push_back(std::make_pair(node_id, reference));
 
   model_change_verbs_[source_id] |= scada::ModelChangeEvent::ReferenceDeleted;
   model_change_verbs_[target_id] |= scada::ModelChangeEvent::ReferenceDeleted;
@@ -223,6 +229,15 @@ void AddressSpaceUpdater::FindDeletedReferences(
     if (!Contains(references, reference))
       deleted_references.emplace_back(std::move(reference));
   }
+}
+
+void AddressSpaceUpdater::ReportStatistics() {
+  LOG_INFO(logger_) << "Update completed"
+                    << LOG_TAG("AddedNodes", ToString(added_nodes_))
+                    << LOG_TAG("ModifiedNodes", ToString(modified_nodes_))
+                    << LOG_TAG("AddedReferences", ToString(added_references_))
+                    << LOG_TAG("DeletedReferences",
+                               ToString(added_references_));
 }
 
 std::vector<const scada::Node*> FindDeletedChildren(

@@ -67,7 +67,9 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   const auto duration = base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse children completed"
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status));
+                    << LOG_TAG("Status", ToString(status))
+                    << LOG_TAG("Inputs", ToString(descriptions))
+                    << LOG_TAG("Results", ToString(results));
 
   assert(!descriptions.empty());
 
@@ -75,21 +77,11 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     auto& description = descriptions[i];
 
     if (!status) {
-      LOG_WARNING(logger_) << "Node browse children error"
-                           << LOG_TAG("NodeId", ToString(description.node_id))
-                           << LOG_TAG("Status", ToString(status));
-
       reference_validator_(description.node_id, {status.code()});
       continue;
     }
 
     auto& result = results[i];
-
-    LOG_INFO(logger_) << "Node browse children completed"
-                      << LOG_TAG("NodeId", ToString(description.node_id))
-                      << LOG_TAG("Children", NodeIdsToString(result.references))
-                      << LOG_TAG("Status", ToString(result.status_code));
-
     reference_validator_(description.node_id, std::move(result));
   }
 
@@ -109,8 +101,8 @@ void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
   if (!pending_children_set_.emplace(node_id).second)
     return;
 
-  LOG_INFO(logger_) << "Schedule browse children"
-                    << LOG_TAG("NodeId", ToString(node_id));
+  // LOG_INFO(logger_) << "Schedule browse children"
+  //                   << LOG_TAG("NodeId", ToString(node_id));
 
   pending_children_.emplace_back(node_id);
 
@@ -122,7 +114,7 @@ void NodeChildrenFetcher::FetchChildren(
   assert(!node_ids.empty());
 
   LOG_INFO(logger_) << "Browse nodes children"
-                    << LOG_TAG("Count", node_ids.size());
+                    << LOG_TAG("NodeIds", ToString(node_ids));
 
   const auto start_ticks = base::TimeTicks::Now();
   ++children_request_count_;

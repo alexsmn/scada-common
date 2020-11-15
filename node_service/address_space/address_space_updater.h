@@ -37,12 +37,21 @@ class AddressSpaceUpdater {
                              const scada::ReferenceDescriptions& references,
                              scada::ReferenceDescriptions& deleted_references);
 
+  void ReportStatistics();
+
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
   BoostLogger logger_{LOG_NAME("AddressSpaceUpdater")};
 
   ModelChangeVerbs model_change_verbs_;
+
+  std::vector<scada::NodeId> added_nodes_;
+  std::vector<scada::NodeId> modified_nodes_;
+  std::vector<std::pair<scada::NodeId, scada::ReferenceDescription>>
+      added_references_;
+  std::vector<std::pair<scada::NodeId, scada::ReferenceDescription>>
+      deleted_references_;
 };
 
 std::vector<const scada::Node*> FindDeletedChildren(

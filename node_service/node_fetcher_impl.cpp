@@ -159,8 +159,8 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node, unsigned pending_sequence) {
     node.status = scada::StatusCode::Good;
   }
 
-  LOG_INFO(logger_) << "Schedule fetch node"
-                    << LOG_TAG("NodeId", ToString(node.node_id));
+  // LOG_INFO(logger_) << "Schedule fetch node"
+  //                   << LOG_TAG("NodeId", ToString(node.node_id));
 
   node.pending_sequence = pending_sequence;
   pending_queue_.push(node);
@@ -404,7 +404,9 @@ void NodeFetcherImpl::OnReadResult(
   LOG_INFO(logger_) << "Read request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status));
+                    << LOG_TAG("Status", ToString(status))
+                    << LOG_TAG("Inputs", ToString(read_ids))
+                    << LOG_TAG("Results", ToString(results));
 
   for (size_t i = 0; i < read_ids.size(); ++i) {
     auto& read_id = read_ids[i];
@@ -495,7 +497,9 @@ void NodeFetcherImpl::OnBrowseResult(
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("Count", descriptions.size())
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status));
+                    << LOG_TAG("Status", ToString(status))
+                    << LOG_TAG("Inputs", ToString(descriptions))
+                    << LOG_TAG("Results", ToString(results));
 
   for (size_t i = 0; i < descriptions.size(); ++i) {
     auto& description = descriptions[i];
