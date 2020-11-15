@@ -164,6 +164,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
 
   bool AssertValid() const;
 
+  static std::vector<scada::NodeId> CollectNodeIds(
+      const std::vector<FetchingNode*> nodes);
+
   BoostLogger logger_{LOG_NAME("NodeFetcher")};
 
   FetchingNodeGraph fetching_nodes_;

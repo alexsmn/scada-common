@@ -4,7 +4,6 @@
 #include "core/view_service.h"
 
 #include <map>
-#include <set>
 #include <vector>
 
 namespace scada {
@@ -16,14 +15,35 @@ struct NodeState;
 class AddressSpaceImpl;
 class NodeFactory;
 
+// Maps node id to scada::ModelChangeEvent::Verb.
 using ModelChangeVerbs = std::map<scada::NodeId, uint8_t>;
 
-// |model_change_verbs| maps node id to scada::ModelChangeEvent::Verb.
-void UpdateNodes(AddressSpaceImpl& address_space,
-                 NodeFactory& node_factory,
-                 std::vector<scada::NodeState>&& nodes,
-                 BoostLogger& logger,
-                 ModelChangeVerbs& model_change_verbs);
+class AddressSpaceUpdater {
+ public:
+  AddressSpaceUpdater(AddressSpaceImpl& address_space,
+                      NodeFactory& node_factory);
+
+  void UpdateNodes(std::vector<scada::NodeState>&& nodes);
+
+  const ModelChangeVerbs& model_change_verbs() { return model_change_verbs_; }
+
+ private:
+  void AddReference(const scada::NodeId& node_id,
+                    const scada::ReferenceDescription& reference);
+  void DeleteReference(const scada::NodeId& node_id,
+                       const scada::ReferenceDescription& reference);
+
+  void FindDeletedReferences(scada::Node& node,
+                             const scada::ReferenceDescriptions& references,
+                             scada::ReferenceDescriptions& deleted_references);
+
+  AddressSpaceImpl& address_space_;
+  NodeFactory& node_factory_;
+
+  BoostLogger logger_{LOG_NAME("AddressSpaceUpdater")};
+
+  ModelChangeVerbs model_change_verbs_;
+};
 
 std::vector<const scada::Node*> FindDeletedChildren(
     const scada::Node& node,

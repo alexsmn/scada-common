@@ -1,7 +1,6 @@
 #include "node_service/node_fetcher_impl.h"
 
 #include "base/executor.h"
-#include "base/logger.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
@@ -232,27 +231,25 @@ void NodeFetcherImpl::FetchPendingNodes() {
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   assert(AssertValid());
 
-  // Increment immediately for the case OnReadResult happens synchronously.
-  running_request_count_ += 2;
-
-  LOG_INFO(logger_) << "Fetch pending nodes" << LOG_TAG("Count", nodes.size())
-                    << LOG_TAG("RequestCount", running_request_count_);
-
   const auto start_ticks = base::TimeTicks::Now();
 
   const auto request_id = next_request_id_++;
   if (next_request_id_ == 0)
     next_request_id_ = 1;
 
+  LOG_INFO(logger_) << "Fetch pending nodes"
+                    << LOG_TAG("NodeIds", ToString(CollectNodeIds(nodes)))
+                    << LOG_TAG("RequestId", request_id)
+                    << LOG_TAG("RequestCount", running_request_count_);
+
+  // Increment immediately for the case OnReadResult happens synchronously.
+  running_request_count_ += 2;
+
   // Attributes
 
   auto read_ids = std::make_shared<std::vector<scada::ReadValueId>>();
   read_ids->reserve(nodes.size() * kFetchAttributesReserveFactor);
   for (auto* node : nodes) {
-    LOG_INFO(logger_) << "Fetch node"
-                      << LOG_TAG("NodeId", ToString(node->node_id))
-                      << LOG_TAG("RequestId", request_id);
-
     size_t count = read_ids->size();
     GetFetchAttributes(node->node_id, node->is_property, node->is_declaration,
                        *read_ids);
@@ -308,22 +305,11 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
   if (nodes.empty() && errors.empty())
     return;
 
-  if (!errors.empty()) {
-    for (auto& error : errors) {
-      LOG_WARNING(logger_) << "Node fetch error"
-                           << LOG_TAG("Node Id", ToString(error.first))
-                           << LOG_TAG("Status", ToString(error.second));
-    }
-  }
-
-  if (!nodes.empty()) {
-    for (auto& node : nodes)
-      LOG_INFO(logger_) << "Node fetched" << LOG_TAG("Node", ToString(node));
-  }
-
-  LOG_INFO(logger_) << "Nodes fetched" << LOG_TAG("SuccessCount", nodes.size())
+  LOG_INFO(logger_) << "Nodes fetched" << LOG_TAG("NodeCount", nodes.size())
                     << LOG_TAG("ErrorCount", errors.size())
-                    << LOG_TAG("FetchingCount", fetching_nodes_.size());
+                    << LOG_TAG("FetchingCount", fetching_nodes_.size())
+                    << LOG_TAG("Nodes", ToString(nodes))
+                    << LOG_TAG("Errors", ToString(errors));
 
   fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
@@ -713,6 +699,16 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
     fetching_nodes_.AddDependency(node, from);
     FetchNode(from, from.pending_sequence);
   }
+}
+
+// static
+std::vector<scada::NodeId> NodeFetcherImpl::CollectNodeIds(
+    const std::vector<FetchingNode*> nodes) {
+  std::vector<scada::NodeId> result;
+  result.reserve(nodes.size());
+  for (auto* node : nodes)
+    result.push_back(node->node_id);
+  return result;
 }
 
 // NodeFetcherImpl::PendingQueue

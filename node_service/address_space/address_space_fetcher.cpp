@@ -171,11 +171,10 @@ void AddressSpaceFetcher::OnFetchCompleted(
                          << LOG_TAG("Count", errors.size());
   }
 
-  std::map<scada::NodeId, uint8_t> model_change_verbs;
-  UpdateNodes(address_space_, node_factory_, std::move(fetched_nodes), logger_,
-              model_change_verbs);
+  AddressSpaceUpdater updater{address_space_, node_factory_};
+  updater.UpdateNodes(std::move(fetched_nodes));
 
-  for (auto& [node_id, verb] : model_change_verbs) {
+  for (auto& [node_id, verb] : updater.model_change_verbs()) {
     if (verb & scada::ModelChangeEvent::NodeAdded) {
       if (!fetch_status_tracker_.GetStatus(node_id).second.children_fetched)
         node_children_fetcher_->Fetch(node_id);
@@ -185,7 +184,7 @@ void AddressSpaceFetcher::OnFetchCompleted(
 
   fetch_status_tracker_.OnNodesFetched(errors);
 
-  for (auto& [node_id, verb] : model_change_verbs) {
+  for (auto& [node_id, verb] : updater.model_change_verbs()) {
     if (auto* node = address_space_.GetNode(node_id)) {
       model_changed_handler_(scada::ModelChangeEvent{
           node->id(), scada::GetTypeDefinitionId(*node), verb});
