@@ -1,11 +1,11 @@
-#include "address_space_updater.h"
+#include "address_space_util.h"
 
 #include "common/node_state.h"
 #include "core/node_class.h"
 
 #include <gmock/gmock.h>
 
-TEST(AddressSpaceUpdater, SortNodesHierarchically) {
+TEST(AddressSpaceUtil, SortNodesHierarchically) {
   std::vector<scada::NodeState> nodes = {
       {1, scada::NodeClass::Object, 0, 2},
       {2, scada::NodeClass::Object, 0, 3},
