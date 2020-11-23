@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/configuration_types.h"
 #include "core/debug_util.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
@@ -18,7 +17,7 @@ struct ReferenceState {
 
 struct NodeState {
   NodeId node_id;
-  NodeClass node_class;
+  NodeClass node_class = scada::NodeClass::Object;
   NodeId type_definition_id;
   NodeId parent_id;
   NodeId reference_type_id;
@@ -44,6 +43,7 @@ inline std::ostream& operator<<(std::ostream& stream,
                 << ", "
                 << "parent_id: " << node_state.parent_id << ", "
                 << "reference_type_id: " << node_state.reference_type_id << ", "
+                << "supertype_id: " << node_state.supertype_id << ", "
                 << "attributes: " << node_state.attributes << ", "
                 << "properties: " << node_state.properties << ", "
                 << "references: " << node_state.references << ", "

@@ -20,7 +20,7 @@ void GetFetchAttributes(const scada::NodeId& node_id,
                         std::vector<scada::ReadValueId>& read_ids) {
   read_ids.push_back({node_id, scada::AttributeId::BrowseName});
 
-  // Have to fetch diplayname for instance properties as well, since property
+  // Have to fetch diplay names for instance properties as well, since property
   // declaration might not be created.
   read_ids.push_back({node_id, scada::AttributeId::DisplayName});
 
