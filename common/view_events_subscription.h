@@ -4,7 +4,12 @@
 #include "core/monitored_item_service.h"
 #include "core/view_events.h"
 
-class ViewEventsSubscription {
+class IViewEventsSubscription {
+ public:
+  virtual ~IViewEventsSubscription() = default;
+};
+
+class ViewEventsSubscription : public IViewEventsSubscription {
  public:
   explicit ViewEventsSubscription(
       scada::MonitoredItemService& monitored_item_service,

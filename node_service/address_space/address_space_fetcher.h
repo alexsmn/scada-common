@@ -28,11 +28,16 @@ struct AddressSpaceFetcherContext {
   const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
-  scada::MonitoredItemService& monitored_item_service_;
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
+  using ViewEventsProvider =
+      std::function<std::unique_ptr<IViewEventsSubscription>(
+          scada::ViewEvents& events)>;
+  const ViewEventsProvider view_events_provider_;
+
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;
+
   const std::function<void(const scada::ModelChangeEvent& event)>
       model_changed_handler_;
 };
@@ -87,6 +92,6 @@ class AddressSpaceFetcher
   using PostponedFetchNodes = std::map<scada::NodeId, NodeFetchStatus>;
   PostponedFetchNodes postponed_fetch_nodes_;
 
-  ViewEventsSubscription view_events_subscription_{monitored_item_service_,
-                                                   *this};
+  std::unique_ptr<IViewEventsSubscription> view_events_subscription_ =
+      view_events_provider_(*this);
 };

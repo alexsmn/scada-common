@@ -41,10 +41,16 @@ struct TestContext {
 
   GenericNodeFactory node_factory{client_address_space};
 
+  scada::ViewEvents* view_events = nullptr;
+
   const std::shared_ptr<AddressSpaceFetcher> fetcher =
       AddressSpaceFetcher::Create({AddressSpaceFetcherContext{
           io_context, executor, server_address_space, server_address_space,
-          monitored_item_service, client_address_space, node_factory,
+          client_address_space, node_factory,
+          [&](scada::ViewEvents& events) {
+            view_events = &events;
+            return std::make_unique<IViewEventsSubscription>();
+          },
           [this](const scada::NodeId& node_id,
                  const scada::Status& status,
                  const NodeFetchStatus& fetch_status) {
@@ -132,13 +138,13 @@ TEST(AddressSpaceFetcher, NodeDeleted) {
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
   ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
 
-  // context.server_address_space.NotifyEvent(scada::ModelChangeEvent{
-  //     kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
+  context.view_events->OnModelChanged(scada::ModelChangeEvent{
+      kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
 
   EXPECT_EQ(nullptr, context.client_address_space.GetNode(kNodeId));
 }
 
-TEST(AddressSpaceFetcher, DISABLED_NodeSemanticsChanged) {
+TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
   NiceMock<TestContext> context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
@@ -157,7 +163,8 @@ TEST(AddressSpaceFetcher, DISABLED_NodeSemanticsChanged) {
                             kNewValue);
   }
 
-  // context.server_address_space.NotifyEvent(scada::SemanticChangeEvent{kNodeId});
+  context.view_events->OnNodeSemanticsChanged(
+      scada::SemanticChangeEvent{kNodeId});
 
   {
     auto* node = context.client_address_space.GetNode(kNodeId);
