@@ -13,11 +13,22 @@ struct ViewServiceImplContext {
   scada::AddressSpace& address_space_;
 };
 
-class SyncViewServiceImpl : protected ViewServiceImplContext {
+class SyncViewService {
+ public:
+  virtual ~SyncViewService() = default;
+
+  virtual scada::BrowseResult Browse(
+      const scada::BrowseDescription& description) = 0;
+};
+
+class SyncViewServiceImpl : private ViewServiceImplContext,
+                            public SyncViewService {
  public:
   explicit SyncViewServiceImpl(ViewServiceImplContext&& context);
 
-  scada::BrowseResult Browse(const scada::BrowseDescription& description);
+  // SyncViewService
+  virtual scada::BrowseResult Browse(
+      const scada::BrowseDescription& description) override;
 
  private:
   scada::BrowseResult BrowseNode(const scada::Node& node,
@@ -30,7 +41,7 @@ class SyncViewServiceImpl : protected ViewServiceImplContext {
 
 class ViewServiceImpl : public scada::ViewService {
  public:
-  explicit ViewServiceImpl(SyncViewServiceImpl& sync_service_impl);
+  explicit ViewServiceImpl(SyncViewService& sync_service);
 
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& descriptions,
@@ -40,5 +51,5 @@ class ViewServiceImpl : public scada::ViewService {
       const scada::TranslateBrowsePathsCallback& callback) override;
 
  private:
-  SyncViewServiceImpl& sync_view_service_impl_;
+  SyncViewService& sync_view_service_;
 };

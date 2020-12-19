@@ -12,11 +12,20 @@ struct AttributeServiceImplContext {
   scada::AddressSpace& address_space_;
 };
 
-class SyncAttributeServiceImpl : private AttributeServiceImplContext {
+class SyncAttributeService {
+ public:
+  virtual ~SyncAttributeService() = default;
+
+  virtual scada::DataValue Read(const scada::ReadValueId& read_id) = 0;
+};
+
+class SyncAttributeServiceImpl : private AttributeServiceImplContext,
+                                 public SyncAttributeService {
  public:
   explicit SyncAttributeServiceImpl(AttributeServiceImplContext&& context);
 
-  scada::DataValue Read(const scada::ReadValueId& read_id);
+  // SyncAttributeService
+  virtual scada::DataValue Read(const scada::ReadValueId& read_id) override;
 
  private:
   scada::DataValue ReadNode(const scada::Node& node,
@@ -25,8 +34,7 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext {
 
 class AttributeServiceImpl : public scada::AttributeService {
  public:
-  explicit AttributeServiceImpl(
-      SyncAttributeServiceImpl& sync_attribute_service_impl);
+  explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
 
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
@@ -36,5 +44,5 @@ class AttributeServiceImpl : public scada::AttributeService {
                      const scada::WriteCallback& callback) override;
 
  private:
-  SyncAttributeServiceImpl& sync_attribute_service_impl_;
+  SyncAttributeService& sync_attribute_service_;
 };

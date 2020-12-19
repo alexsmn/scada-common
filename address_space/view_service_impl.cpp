@@ -7,14 +7,11 @@
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
-#include <atomic>
-#include <unordered_map>
-
 SyncViewServiceImpl::SyncViewServiceImpl(ViewServiceImplContext&& context)
     : ViewServiceImplContext{std::move(context)} {}
 
-ViewServiceImpl::ViewServiceImpl(SyncViewServiceImpl& sync_view_service_impl)
-    : sync_view_service_impl_{sync_view_service_impl} {}
+ViewServiceImpl::ViewServiceImpl(SyncViewService& sync_view_service)
+    : sync_view_service_{sync_view_service} {}
 
 scada::BrowseResult SyncViewServiceImpl::Browse(
     const scada::BrowseDescription& description) {
@@ -106,7 +103,7 @@ void ViewServiceImpl::Browse(
   std::vector<scada::BrowseResult> results(descriptions.size());
 
   for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = sync_view_service_impl_.Browse(descriptions[index]);
+    results[index] = sync_view_service_.Browse(descriptions[index]);
 
   return callback(scada::StatusCode::Good, std::move(results));
 }

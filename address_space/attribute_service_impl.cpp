@@ -7,19 +7,13 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 
-#include <atomic>
-#include <unordered_map>
-
-// TODO: Remove
-#include "model/scada_node_ids.h"
-
 SyncAttributeServiceImpl::SyncAttributeServiceImpl(
     AttributeServiceImplContext&& context)
     : AttributeServiceImplContext{std::move(context)} {}
 
 AttributeServiceImpl::AttributeServiceImpl(
-    SyncAttributeServiceImpl& sync_attribute_service_impl)
-    : sync_attribute_service_impl_{sync_attribute_service_impl} {}
+    SyncAttributeService& sync_attribute_service)
+    : sync_attribute_service_{sync_attribute_service} {}
 
 void AttributeServiceImpl::Read(
     const std::vector<scada::ReadValueId>& descriptions,
@@ -27,7 +21,7 @@ void AttributeServiceImpl::Read(
   std::vector<scada::DataValue> results(descriptions.size());
 
   for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = sync_attribute_service_impl_.Read(descriptions[index]);
+    results[index] = sync_attribute_service_.Read(descriptions[index]);
 
   return callback(scada::StatusCode::Good, std::move(results));
 }
