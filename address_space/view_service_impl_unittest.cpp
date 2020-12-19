@@ -109,7 +109,8 @@ struct TestContext {
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
   AddressSpaceImpl2 address_space{logger};
-  ViewServiceImpl view_service{{address_space}};
+  SyncViewServiceImpl sync_view_service{{address_space}};
+  ViewServiceImpl view_service{sync_view_service};
 
   // Node id-s must be correct to parse.
   const scada::NodeId kObjectId{23, NamespaceIndexes::GROUP};

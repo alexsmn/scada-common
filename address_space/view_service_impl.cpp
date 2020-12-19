@@ -10,12 +10,13 @@
 #include <atomic>
 #include <unordered_map>
 
-ViewServiceImpl::ViewServiceImpl(ViewServiceImplContext&& context)
+SyncViewServiceImpl::SyncViewServiceImpl(ViewServiceImplContext&& context)
     : ViewServiceImplContext{std::move(context)} {}
 
-ViewServiceImpl::~ViewServiceImpl() {}
+ViewServiceImpl::ViewServiceImpl(SyncViewServiceImpl& sync_view_service_impl)
+    : sync_view_service_impl_{sync_view_service_impl} {}
 
-scada::BrowseResult ViewServiceImpl::Browse(
+scada::BrowseResult SyncViewServiceImpl::Browse(
     const scada::BrowseDescription& description) {
   std::string_view nested_name;
   auto* node = GetNestedNode(address_space_, description.node_id, nested_name);
@@ -28,7 +29,7 @@ scada::BrowseResult ViewServiceImpl::Browse(
   return BrowseProperty(*node, nested_name, description);
 }
 
-scada::BrowseResult ViewServiceImpl::BrowseNode(
+scada::BrowseResult SyncViewServiceImpl::BrowseNode(
     const scada::Node& node,
     const scada::BrowseDescription& description) {
   scada::BrowseResult result;
@@ -59,7 +60,7 @@ scada::BrowseResult ViewServiceImpl::BrowseNode(
   return result;
 }
 
-scada::BrowseResult ViewServiceImpl::BrowseProperty(
+scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
     const scada::Node& node,
     std::string_view nested_name,
     const scada::BrowseDescription& description) {
@@ -104,13 +105,8 @@ void ViewServiceImpl::Browse(
     const scada::BrowseCallback& callback) {
   std::vector<scada::BrowseResult> results(descriptions.size());
 
-  struct AsyncBrowseData {
-    std::vector<scada::BrowseDescription> descriptions;
-    std::vector<size_t> result_indexes;
-  };
-
   for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = Browse(descriptions[index]);
+    results[index] = sync_view_service_impl_.Browse(descriptions[index]);
 
   return callback(scada::StatusCode::Good, std::move(results));
 }

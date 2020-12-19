@@ -113,8 +113,10 @@ class VidiconSession : public scada::SessionService,
 
  private:
   AddressSpaceImpl2 address_space_;
-  AttributeServiceImpl attribute_service_;
-  ViewServiceImpl view_service_;
+  SyncAttributeServiceImpl sync_attribute_service_;
+  AttributeServiceImpl attribute_service_{sync_attribute_service_};
+  SyncViewServiceImpl sync_view_service_;
+  ViewServiceImpl view_service_{sync_view_service_};
 
   Microsoft::WRL::ComPtr<IClient> teleclient_;
 };

@@ -19,7 +19,9 @@
 namespace testing {
 
 class TestAddressSpace : public AddressSpaceImpl2,
+                         private SyncAttributeServiceImpl,
                          public AttributeServiceImpl,
+                         private SyncViewServiceImpl,
                          public ViewServiceImpl {
  public:
   TestAddressSpace();
@@ -55,8 +57,10 @@ class TestAddressSpace : public AddressSpaceImpl2,
 
 inline TestAddressSpace::TestAddressSpace()
     : AddressSpaceImpl2{std::make_shared<NullLogger>()},
-      AttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
-      ViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}} {
+      SyncAttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
+      AttributeServiceImpl{{*static_cast<SyncAttributeServiceImpl*>(this)}},
+      SyncViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
+      ViewServiceImpl{*static_cast<SyncViewServiceImpl*>(this)} {
   GenericNodeFactory node_factory{*this};
 
   std::vector<scada::NodeState> nodes{

@@ -24,8 +24,8 @@ Microsoft::WRL::ComPtr<IClient> CreateTeleClient() {
 
 VidiconSession::VidiconSession()
     : address_space_{std::make_shared<NullLogger>()},
-      attribute_service_{{address_space_}},
-      view_service_{{address_space_}} {}
+      sync_attribute_service_{{address_space_}},
+      sync_view_service_{{address_space_}} {}
 
 VidiconSession::~VidiconSession() {}
 

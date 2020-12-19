@@ -13,9 +13,13 @@
 // TODO: Remove
 #include "model/scada_node_ids.h"
 
-AttributeServiceImpl::AttributeServiceImpl(
+SyncAttributeServiceImpl::SyncAttributeServiceImpl(
     AttributeServiceImplContext&& context)
     : AttributeServiceImplContext{std::move(context)} {}
+
+AttributeServiceImpl::AttributeServiceImpl(
+    SyncAttributeServiceImpl& sync_attribute_service_impl)
+    : sync_attribute_service_impl_{sync_attribute_service_impl} {}
 
 void AttributeServiceImpl::Read(
     const std::vector<scada::ReadValueId>& descriptions,
@@ -23,7 +27,7 @@ void AttributeServiceImpl::Read(
   std::vector<scada::DataValue> results(descriptions.size());
 
   for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = Read(descriptions[index]);
+    results[index] = sync_attribute_service_impl_.Read(descriptions[index]);
 
   return callback(scada::StatusCode::Good, std::move(results));
 }
@@ -35,7 +39,8 @@ void AttributeServiceImpl::Write(
   callback(scada::StatusCode::Bad_WrongNodeId, {});
 }
 
-scada::DataValue AttributeServiceImpl::Read(const scada::ReadValueId& read_id) {
+scada::DataValue SyncAttributeServiceImpl::Read(
+    const scada::ReadValueId& read_id) {
   std::string_view nested_name;
   auto* node =
       scada::GetNestedNode(address_space_, read_id.node_id, nested_name);
@@ -48,7 +53,7 @@ scada::DataValue AttributeServiceImpl::Read(const scada::ReadValueId& read_id) {
   return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 }
 
-scada::DataValue AttributeServiceImpl::ReadNode(
+scada::DataValue SyncAttributeServiceImpl::ReadNode(
     const scada::Node& node,
     scada::AttributeId attribute_id) {
   switch (attribute_id) {
