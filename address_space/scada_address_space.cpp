@@ -133,14 +133,15 @@ scada::ReferenceType* CreateReferenceType(
     AddressSpaceImpl& address_space,
     const scada::NodeId& reference_type_id,
     scada::QualifiedName browse_name,
-    scada::LocalizedText display_name) {
+    scada::LocalizedText display_name,
+    const scada::NodeId& supertype_id) {
   assert(!address_space.GetNode(reference_type_id));
 
   auto ref_type = std::make_unique<scada::ReferenceType>(
       reference_type_id, std::move(browse_name), std::move(display_name));
   auto& result = address_space.AddStaticNode(std::move(ref_type));
-  AddReference(address_space, scada::id::HasSubtype,
-               scada::id::NonHierarchicalReferences, reference_type_id);
+  AddReference(address_space, scada::id::HasSubtype, supertype_id,
+               reference_type_id);
 
   return &result;
 }
@@ -236,53 +237,12 @@ void AddDataVariable(AddressSpaceImpl& address_space,
 
 }  // namespace
 
-StaticAddressSpace::DeviceType::DeviceType(StandardAddressSpace& std,
-                                           scada::NodeId id,
-                                           scada::QualifiedName browse_name,
-                                           scada::LocalizedText display_name)
-    : scada::ObjectType(id, std::move(browse_name), std::move(display_name)),
-      Disabled{std,
-               devices::id::DeviceType_Disabled,
-               "Disabled",
-               base::WideToUTF16(L"Отключено"),
-               std.BoolDataType,
-               true},
-      Online{std,
-             devices::id::DeviceType_Online,
-             "Online",
-             base::WideToUTF16(L"Связь"),
-             std.BaseVariableType,
-             std.BoolDataType,
-             false},
-      Enabled{std,
-              devices::id::DeviceType_Enabled,
-              "Enabled",
-              base::WideToUTF16(L"Включено"),
-              std.BaseVariableType,
-              std.BoolDataType,
-              false} {
-  SetDisplayName(std::move(display_name));
-  scada::AddReference(std.HasSubtype, std.BaseObjectType, *this);
-  scada::AddReference(std.HasProperty, *this, Disabled);
-  scada::AddReference(std.HasComponent, *this, Online);
-  scada::AddReference(std.HasComponent, *this, Enabled);
-}
-
-StaticAddressSpace::StaticAddressSpace(AddressSpaceImpl& address_space,
-                                       StandardAddressSpace& std)
-    : DeviceType{std, devices::id::DeviceType, "DeviceType",
-                 base::WideToUTF16(L"Устройство")} {
-  address_space.AddNode(Creates);
-  address_space.AddNode(DeviceType);
-  address_space.AddNode(DeviceType.Disabled);
-  address_space.AddNode(DeviceType.Enabled);
-  address_space.AddNode(DeviceType.Online);
-
-  scada::AddReference(std.HasSubtype, std.NonHierarchicalReference, Creates);
-}
-
 void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                              NodeFactory& node_factory) {
+  CreateReferenceType(address_space, scada::id::Creates, "Creates",
+                      base::WideToUTF16(L"Можно создать"),
+                      scada::id::NonHierarchicalReferences);
+
   node_factory.CreateNode(
       {data_items::id::DataItems, scada::NodeClass::Object,
        scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
@@ -410,38 +370,6 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
          scada::id::Organizes,
          scada::NodeAttributes().set_browse_name("Limits").set_display_name(
              base::WideToUTF16(L"Уставки"))});
-  }
-
-  // Link
-  {
-    CreateObjectType(address_space, devices::id::LinkType, "LinkType",
-                     base::WideToUTF16(L"Направление"),
-                     devices::id::DeviceType);
-    AddReference(address_space, scada::id::Creates, devices::id::Devices,
-                 devices::id::LinkType);
-    AddProperty(address_space, devices::id::LinkType,
-                devices::id::LinkType_Transport, {}, "TransportString",
-                base::WideToUTF16(L"Транспорт"), scada::id::String,
-                scada::String{});
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_ConnectCount, "ConnectCount",
-                    base::WideToUTF16(L"ConnectCount"), scada::id::Int32, 0);
-    AddDataVariable(
-        address_space, devices::id::LinkType,
-        devices::id::LinkType_ActiveConnections, "ActiveConnections",
-        base::WideToUTF16(L"ActiveConnections"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_MessagesOut, "MessagesOut",
-                    base::WideToUTF16(L"MessagesOut"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_MessagesIn, "MessagesIn",
-                    base::WideToUTF16(L"MessagesIn"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_BytesOut, "BytesOut",
-                    base::WideToUTF16(L"BytesOut"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_BytesIn, "BytesIn",
-                    base::WideToUTF16(L"BytesIn"), scada::id::Int32, 0);
   }
 
   // Simulation Item
@@ -718,6 +646,54 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
                 data_items::id::AnalogItemType_Deadband,
                 data_items::id::FilteringPropertyCategory, "Deadband",
                 base::WideToUTF16(L"Мертвая зона"), scada::id::Double, 0.0);
+  }
+
+  // Device
+  {
+    CreateObjectType(address_space, devices::id::DeviceType, "DeviceType",
+                     base::WideToUTF16(L"Устройство"),
+                     scada::id::BaseObjectType);
+    AddProperty(address_space, devices::id::DeviceType,
+                devices::id::DeviceType_Disabled, {}, "Disabled",
+                base::WideToUTF16(L"Отключено"), scada::id::Boolean, true);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_Online, "Online",
+                    base::WideToUTF16(L"Связь"), scada::id::Boolean, false);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_Enabled, "Enabled",
+                    base::WideToUTF16(L"Включено"), scada::id::Boolean, false);
+  }
+
+  // Link
+  {
+    CreateObjectType(address_space, devices::id::LinkType, "LinkType",
+                     base::WideToUTF16(L"Направление"),
+                     devices::id::DeviceType);
+    AddReference(address_space, scada::id::Creates, devices::id::Devices,
+                 devices::id::LinkType);
+    AddProperty(address_space, devices::id::LinkType,
+                devices::id::LinkType_Transport, {}, "TransportString",
+                base::WideToUTF16(L"Транспорт"), scada::id::String,
+                scada::String{});
+    AddDataVariable(address_space, devices::id::LinkType,
+                    devices::id::LinkType_ConnectCount, "ConnectCount",
+                    base::WideToUTF16(L"ConnectCount"), scada::id::Int32, 0);
+    AddDataVariable(
+        address_space, devices::id::LinkType,
+        devices::id::LinkType_ActiveConnections, "ActiveConnections",
+        base::WideToUTF16(L"ActiveConnections"), scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::LinkType,
+                    devices::id::LinkType_MessagesOut, "MessagesOut",
+                    base::WideToUTF16(L"MessagesOut"), scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::LinkType,
+                    devices::id::LinkType_MessagesIn, "MessagesIn",
+                    base::WideToUTF16(L"MessagesIn"), scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::LinkType,
+                    devices::id::LinkType_BytesOut, "BytesOut",
+                    base::WideToUTF16(L"BytesOut"), scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::LinkType,
+                    devices::id::LinkType_BytesIn, "BytesIn",
+                    base::WideToUTF16(L"BytesIn"), scada::id::Int32, 0);
   }
 
   // Modbus Port Device
@@ -1106,7 +1082,8 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
 
     CreateObjectType(address_space, data_items::id::AliasType, "AliasType",
                      base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
-    CreateReferenceType(address_space, data_items::id::AliasOf, "AliasOf", {});
+    CreateReferenceType(address_space, data_items::id::AliasOf, "AliasOf", {},
+                        scada::id::NonHierarchicalReferences);
   }
 
   // File System
