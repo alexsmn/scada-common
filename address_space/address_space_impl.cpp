@@ -10,8 +10,9 @@
 #include "core/standard_node_ids.h"
 #include "core/status.h"
 
-AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger)
-    : logger_(std::move(logger)) {}
+AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger,
+                                   scada::AddressSpace* parent_address_space)
+    : logger_(std::move(logger)), parent_address_space_{parent_address_space} {}
 
 AddressSpaceImpl::~AddressSpaceImpl() {
   Clear();
@@ -137,21 +138,38 @@ void AddressSpaceImpl::RemoveNode(const scada::NodeId& id) {
 
 scada::Node* AddressSpaceImpl::GetNode(const scada::NodeId& node_id) {
   auto i = node_map_.find(node_id);
-  return i != node_map_.end() ? i->second : nullptr;
+  if (i != node_map_.end())
+    return i->second;
+
+  if (parent_address_space_) {
+    if (auto* node = parent_address_space_->GetNode(node_id))
+      return node;
+  }
+
+  return nullptr;
 }
 
 void AddressSpaceImpl::Subscribe(scada::NodeObserver& events) const {
   observers_.AddObserver(&events);
+
+  if (parent_address_space_)
+    parent_address_space_->Subscribe(events);
 }
 
 void AddressSpaceImpl::Unsubscribe(scada::NodeObserver& events) const {
   assert(observers_.HasObserver(&events));
   observers_.RemoveObserver(&events);
+
+  if (parent_address_space_)
+    parent_address_space_->Unsubscribe(events);
 }
 
 void AddressSpaceImpl::SubscribeNode(const scada::NodeId& node_id,
                                      scada::NodeObserver& events) const {
   node_events_[node_id].AddObserver(&events);
+
+  if (parent_address_space_)
+    parent_address_space_->SubscribeNode(node_id, events);
 }
 
 void AddressSpaceImpl::UnsubscribeNode(const scada::NodeId& node_id,
@@ -160,6 +178,9 @@ void AddressSpaceImpl::UnsubscribeNode(const scada::NodeId& node_id,
   assert(i != node_events_.end());
   auto& e = i->second;
   e.RemoveObserver(&events);
+
+  if (parent_address_space_)
+    parent_address_space_->UnsubscribeNode(node_id, events);
 }
 
 void AddressSpaceImpl::NotifyNodeAdded(const scada::Node& node) const {

@@ -18,7 +18,9 @@ class Logger;
 
 class AddressSpaceImpl : public scada::AddressSpace {
  public:
-  explicit AddressSpaceImpl(std::shared_ptr<Logger> logger);
+  explicit AddressSpaceImpl(
+      std::shared_ptr<Logger> logger,
+      scada::AddressSpace* parent_address_space = nullptr);
   virtual ~AddressSpaceImpl();
 
   const Logger& logger() const { return *logger_; }
@@ -74,6 +76,8 @@ class AddressSpaceImpl : public scada::AddressSpace {
   const NodeEvents* GetNodeEvents(const scada::NodeId& node_id) const;
 
   std::shared_ptr<Logger> logger_;
+
+  scada::AddressSpace* parent_address_space_ = nullptr;
 
   NodeMap node_map_;
 
