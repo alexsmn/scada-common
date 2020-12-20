@@ -72,8 +72,8 @@ class VidiconSession : public scada::SessionService,
                      const scada::WriteCallback& callback) override;
 
   // scada::EventService
-  virtual void Acknowledge(int acknowledge_id,
-                           const scada::NodeId& user_node_id) override;
+  virtual void Acknowledge(base::span<const int> acknowledge_ids,
+                           const scada::NodeId& user_id) override;
 
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,

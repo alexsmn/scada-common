@@ -119,8 +119,8 @@ void VidiconSession::Write(const std::vector<scada::WriteValueId>& value_ids,
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::Acknowledge(int acknowledge_id,
-                                 const scada::NodeId& user_node_id) {}
+void VidiconSession::Acknowledge(base::span<const int> acknowledge_ids,
+                                 const scada::NodeId& user_ids) {}
 
 void VidiconSession::Call(const scada::NodeId& node_id,
                           const scada::NodeId& method_id,

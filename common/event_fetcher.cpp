@@ -182,15 +182,20 @@ void EventFetcher::AckPendingEvents() {
   assert(ack_pending_);
   ack_pending_ = false;
 
+  std::vector<int> acknowledge_ids;
   while (running_ack_event_ids_.size() < kMaxParallelAcks &&
          !pending_ack_event_ids_.empty()) {
     auto ack_id = pending_ack_event_ids_.front();
     pending_ack_event_ids_.pop_front();
 
-    logger_->WriteF(LogSeverity::Normal, "Acknowledge event %u", ack_id);
-
-    event_service_.Acknowledge(ack_id, user_id_);
+    acknowledge_ids.emplace_back(ack_id);
     running_ack_event_ids_.insert(ack_id);
+  }
+
+  if (!acknowledge_ids.empty()) {
+    logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
+                    ToString(acknowledge_ids).c_str());
+    event_service_.Acknowledge(acknowledge_ids, user_id_);
   }
 
   PostAckPendingEvents();

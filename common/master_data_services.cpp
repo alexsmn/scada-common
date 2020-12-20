@@ -237,12 +237,12 @@ void MasterDataServices::TranslateBrowsePaths(
   services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
 }
 
-void MasterDataServices::Acknowledge(int acknowledge_id,
-                                     const scada::NodeId& user_node_id) {
+void MasterDataServices::Acknowledge(base::span<const int> acknowledge_ids,
+                                     const scada::NodeId& user_id) {
   if (!services_.event_service_)
     return;
 
-  services_.event_service_->Acknowledge(acknowledge_id, user_node_id);
+  services_.event_service_->Acknowledge(acknowledge_ids, user_id);
 }
 
 std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
