@@ -68,6 +68,7 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   address_space.AddNode(NodeIdDataType);
   address_space.AddNode(ByteStringDataType);
   address_space.AddNode(DateTimeDataType);
+  address_space.AddNode(EnumerationDataType);
 
   address_space.AddNode(BaseObjectType);
   address_space.AddNode(FolderType);
@@ -94,9 +95,9 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   scada::AddReference(HasSubtype, References, HierarchicalReference);
   scada::AddReference(HasSubtype, HierarchicalReference, Aggregates);
   scada::AddReference(HasSubtype, HierarchicalReference, Organizes);
+  scada::AddReference(HasSubtype, HierarchicalReference, HasSubtype);
   scada::AddReference(HasSubtype, Aggregates, HasProperty);
   scada::AddReference(HasSubtype, Aggregates, HasComponent);
-  scada::AddReference(HasSubtype, HierarchicalReference, HasSubtype);
 
   scada::AddReference(HasSubtype, References, NonHierarchicalReference);
   scada::AddReference(HasSubtype, NonHierarchicalReference, HasTypeDefinition);
@@ -116,6 +117,7 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   scada::AddReference(HasSubtype, BaseDataType, NodeIdDataType);
   scada::AddReference(HasSubtype, BaseDataType, ByteStringDataType);
   scada::AddReference(HasSubtype, BaseDataType, DateTimeDataType);
+  scada::AddReference(HasSubtype, BaseDataType, EnumerationDataType);
 
   // BaseObjectType
   scada::AddReference(Organizes, TypesFolder, BaseObjectType);

@@ -1,8 +1,8 @@
-file(GLOB sources
+file(GLOB sources CONFIGURE_DEPENDS
   "*.cpp"
   "*.h")
 
-file(GLOB unittests
+file(GLOB unittests CONFIGURE_DEPENDS
   "*_unittest.*"
   "*_mock.*")
 

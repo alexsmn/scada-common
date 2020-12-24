@@ -1,7 +1,8 @@
 #pragma once
 
-#include "address_space/address_space_impl2.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/attribute_service_impl.h"
+#include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "core/attribute_service.h"
 #include "core/event_service.h"
@@ -112,7 +113,8 @@ class VidiconSession : public scada::SessionService,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
  private:
-  AddressSpaceImpl2 address_space_;
+  AddressSpaceImpl address_space_;
+  StandardAddressSpace standard_address_space_{address_space_};
   SyncAttributeServiceImpl sync_attribute_service_;
   AttributeServiceImpl attribute_service_{sync_attribute_service_};
   SyncViewServiceImpl sync_view_service_;

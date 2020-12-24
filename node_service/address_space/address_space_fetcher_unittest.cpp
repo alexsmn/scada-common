@@ -37,7 +37,7 @@ struct TestContext {
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
-  AddressSpaceImpl2 client_address_space{logger};
+  AddressSpaceImpl client_address_space{logger};
 
   GenericNodeFactory node_factory{client_address_space};
 
@@ -153,6 +153,8 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
 
   auto* node = context.server_address_space.GetNode(kNodeId);
   ASSERT_TRUE(node);
+
+  context.fetcher->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());
 
   {
     // Rename

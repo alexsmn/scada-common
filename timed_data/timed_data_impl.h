@@ -20,7 +20,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                 scada::AggregateFilter aggregate_filter,
                 TimedDataContext context,
                 std::shared_ptr<const Logger> logger);
-  virtual ~TimedDataImpl();
+  ~TimedDataImpl();
 
   // TimedData overrides
   virtual std::string GetFormula(bool aliases) const override;

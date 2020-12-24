@@ -1,7 +1,6 @@
 #pragma once
 
 #include "address_space/folder.h"
-#include "address_space/node_builder_impl.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "core/standard_node_ids.h"
@@ -73,6 +72,9 @@ struct StandardAddressSpace {
   scada::DataType NodeIdDataType{scada::id::NodeId, "NodeId", {}};
   scada::DataType ByteStringDataType{scada::id::ByteString, "ByteString", {}};
   scada::DataType DateTimeDataType{scada::id::DateTime, "DateTime", {}};
+  scada::DataType EnumerationDataType{scada::id::Enumeration,
+                                      "Enumeration",
+                                      {}};
 
   scada::ObjectType BaseObjectType{scada::id::BaseObjectType,
                                    "BaseObjectType",

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "address_space/address_space_impl2.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/attribute_service_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "address_space/node.h"
 #include "address_space/node_utils.h"
+#include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "base/logger.h"
 #include "base/observer_list.h"
@@ -18,19 +19,22 @@
 
 namespace testing {
 
-class TestAddressSpace : public AddressSpaceImpl2,
+class TestAddressSpace : public AddressSpaceImpl,
                          private SyncAttributeServiceImpl,
                          public AttributeServiceImpl,
                          private SyncViewServiceImpl,
                          public ViewServiceImpl {
  public:
   TestAddressSpace();
+  ~TestAddressSpace();
 
   scada::NodeId MakeNestedNodeId(const scada::NodeId& parent_id,
                                  const scada::NodeId& component_decl_id);
 
   void CreateNode(const scada::NodeState& node_state);
   void DeleteNode(const scada::NodeId& node_id);
+
+  StandardAddressSpace standard_address_space{*this};
 
   // RootFolder : FolderType
   //   TestNode1 : TestType {TestProp1}
@@ -56,7 +60,7 @@ class TestAddressSpace : public AddressSpaceImpl2,
 };
 
 inline TestAddressSpace::TestAddressSpace()
-    : AddressSpaceImpl2{std::make_shared<NullLogger>()},
+    : AddressSpaceImpl{std::make_shared<NullLogger>()},
       SyncAttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
       AttributeServiceImpl{{*static_cast<SyncAttributeServiceImpl*>(this)}},
       SyncViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
@@ -163,6 +167,10 @@ inline TestAddressSpace::TestAddressSpace()
     scada::AddReference(*this, reference.reference_type_id, reference.source_id,
                         reference.target_id);
   }
+}
+
+inline TestAddressSpace::~TestAddressSpace() {
+  Clear();
 }
 
 inline scada::NodeId TestAddressSpace::MakeNestedNodeId(

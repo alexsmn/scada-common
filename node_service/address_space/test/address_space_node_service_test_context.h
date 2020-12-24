@@ -68,7 +68,7 @@ struct AddressSpaceNodeServiceTestContext {
 
   TestAddressSpace server_address_space;
 
-  AddressSpaceImpl2 client_address_space{logger};
+  AddressSpaceImpl client_address_space{logger};
 
   GenericNodeFactory node_factory{client_address_space};
 
