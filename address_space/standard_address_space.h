@@ -95,4 +95,6 @@ struct StandardAddressSpace {
                                    "PropertyType",
                                    {},
                                    BaseDataType};
+
+  scada::GenericObject Server;
 };

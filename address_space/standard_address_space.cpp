@@ -40,7 +40,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
       ObjectsFolder{scada::id::ObjectsFolder, "ObjectsFolder",
                     base::WideToUTF16(L"Объекты")},
       TypesFolder{scada::id::TypesFolder, "TypesFolder",
-                  base::WideToUTF16(L"Типы")} {
+                  base::WideToUTF16(L"Типы")},
+      Server{scada::id::Server, "Server", base::WideToUTF16(L"Сервер")} {
   address_space.AddNode(RootFolder);
   address_space.AddNode(ObjectsFolder);
   address_space.AddNode(TypesFolder);
@@ -78,6 +79,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
 
   address_space.AddNode(ModellingRules);
   address_space.AddNode(ModellingRule_Mandatory);
+
+  address_space.AddNode(Server);
 
   scada::AddReference(HasTypeDefinition, RootFolder, FolderType);
 
@@ -134,4 +137,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   scada::AddReference(HasTypeDefinition, ModellingRule_Mandatory,
                       BaseObjectType);
   scada::AddReference(Organizes, ModellingRules, ModellingRule_Mandatory);
+
+  // Server
+  scada::AddReference(Organizes, ObjectsFolder, Server);
+  scada::AddReference(HasTypeDefinition, Server, BaseObjectType);
 }
