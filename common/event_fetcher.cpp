@@ -11,6 +11,8 @@
 #include "core/monitored_item_service.h"
 #include "core/standard_node_ids.h"
 
+#include "core/debug_util-inl.h"
+
 #include <boost/asio/io_context.hpp>
 
 static const size_t kMaxParallelAcks = 5;

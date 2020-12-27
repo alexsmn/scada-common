@@ -10,7 +10,7 @@
 
 namespace scada {
 
-void FmtAddMods(const Node& node,
+void FmtAddMods(bool locked,
                 Qualifier qualifier,
                 std::wstring& text,
                 int flags) {
@@ -31,7 +31,7 @@ void FmtAddMods(const Node& node,
   else if (qualifier.backup())
     mods += L'2';
 
-  if (GetPropertyValue(node, data_items::id::DataItemType_Locked).get_or(false))
+  if (locked)
     mods += L'Б';
 
   if (qualifier.stale())
@@ -47,56 +47,46 @@ void FmtAddMods(const Node& node,
   }
 }
 
-std::wstring FormatTsValue(const Node& node,
-                             const Variant& value,
-                             Qualifier qualifier,
-                             int flags) {
+std::wstring FormatDiscreteValue(const LocalizedText& open_label,
+                                 const LocalizedText& close_label,
+                                 bool locked,
+                                 const Variant& value,
+                                 Qualifier qualifier,
+                                 int flags) {
   std::wstring text;
 
   bool bool_value;
   if (value.get(bool_value)) {
-    auto* format = GetTsFormat(node);
-    if (format) {
-      auto pid = bool_value ? data_items::id::TsFormatType_CloseLabel
-                            : data_items::id::TsFormatType_OpenLabel;
-      text = GetPropertyValue(*format, pid).get_or(scada::LocalizedText());
-    } else {
-      text = bool_value ? base::WideToUTF16(kDefaultCloseLabel)
-                        : base::WideToUTF16(kDefaultOpenLabel);
-    }
+    text = bool_value ? close_label : open_label;
   }
 
   if ((flags & FORMAT_QUALITY) && qualifier.bad())
     text += L'?';
 
   if (flags & FORMAT_STATUS)
-    FmtAddMods(node, qualifier, text, flags);
+    FmtAddMods(locked, qualifier, text, flags);
 
   return text;
 }
 
-std::wstring FormatTitValue(const Node& node,
-                              const Variant& value,
-                              Qualifier qualifier,
-                              int flags) {
+std::wstring FormatAnalogValue(const String& display_format,
+                               const LocalizedText& eu_units,
+                               bool locked,
+                               const Variant& value,
+                               Qualifier qualifier,
+                               int flags) {
   std::wstring text;
 
   double double_value;
   if (value.get(double_value)) {
-    auto format =
-        GetPropertyValue(node, data_items::id::AnalogItemType_DisplayFormat)
-            .get_or(scada::String());
-    auto units =
-        GetPropertyValue(node, data_items::id::AnalogItemType_EngineeringUnits)
-            .get_or(scada::LocalizedText());
-    text = base::WideToUTF16(
-        base::SysNativeMBToWide(FormatFloat(double_value, format.c_str())));
-    if ((flags & FORMAT_UNITS) && !units.empty()) {
+    text = base::WideToUTF16(base::SysNativeMBToWide(
+        FormatFloat(double_value, display_format.c_str())));
+    if ((flags & FORMAT_UNITS) && !eu_units.empty()) {
       text += L' ';
       if (flags & FORMAT_COLOR)
         text += base::WideToUTF16(base::SysNativeMBToWide(
             base::StringPrintf("&color:%d;", 0x7f7f7f)));
-      text += units;
+      text += eu_units;
     }
   }
 
@@ -104,15 +94,15 @@ std::wstring FormatTitValue(const Node& node,
     text += L'?';
 
   if (flags & FORMAT_STATUS)
-    FmtAddMods(node, qualifier, text, flags);
+    FmtAddMods(locked, qualifier, text, flags);
 
   return text;
 }
 
-std::wstring FormatUnknownValue(const Node& node,
-                                  const Variant& value,
-                                  Qualifier qualifier,
-                                  int flags) {
+std::wstring FormatUnknownValue(bool locked,
+                                const Variant& value,
+                                Qualifier qualifier,
+                                int flags) {
   std::wstring text;
 
   value.get(text);
@@ -121,21 +111,48 @@ std::wstring FormatUnknownValue(const Node& node,
     text += L'?';
 
   if (flags & FORMAT_STATUS)
-    FmtAddMods(node, qualifier, text, flags);
+    FmtAddMods(locked, qualifier, text, flags);
 
   return text;
 }
 
 std::wstring FormatValue(const Node& node,
-                           const Variant& value,
-                           Qualifier qualifier,
-                           int flags) {
-  if (IsInstanceOf(&node, data_items::id::DiscreteItemType))
-    return FormatTsValue(node, value, qualifier, flags);
-  else if (IsInstanceOf(&node, data_items::id::AnalogItemType))
-    return FormatTitValue(node, value, qualifier, flags);
-  else
-    return FormatUnknownValue(node, value, qualifier, flags);
+                         const Variant& value,
+                         Qualifier qualifier,
+                         int flags) {
+  const auto locked =
+      GetPropertyValue(node, data_items::id::DataItemType_Locked).get_or(false);
+
+  if (IsInstanceOf(&node, data_items::id::DiscreteItemType)) {
+    LocalizedText open_label, close_label;
+    if (auto* format = GetTsFormat(node)) {
+      open_label =
+          GetPropertyValue(*format, data_items::id::TsFormatType_OpenLabel)
+              .get_or(LocalizedText());
+      close_label =
+          GetPropertyValue(*format, data_items::id::TsFormatType_CloseLabel)
+              .get_or(LocalizedText());
+    } else {
+      open_label = base::WideToUTF16(kDefaultOpenLabel);
+      close_label = base::WideToUTF16(kDefaultCloseLabel);
+    }
+
+    return FormatDiscreteValue(open_label, close_label, locked, value,
+                               qualifier, flags);
+
+  } else if (IsInstanceOf(&node, data_items::id::AnalogItemType)) {
+    auto display_format =
+        GetPropertyValue(node, data_items::id::AnalogItemType_DisplayFormat)
+            .get_or(String());
+    auto eu_units =
+        GetPropertyValue(node, data_items::id::AnalogItemType_EngineeringUnits)
+            .get_or(LocalizedText());
+    return FormatAnalogValue(display_format, eu_units, locked, value, qualifier,
+                             flags);
+
+  } else {
+    return FormatUnknownValue(locked, value, qualifier, flags);
+  }
 }
 
 }  // namespace scada
