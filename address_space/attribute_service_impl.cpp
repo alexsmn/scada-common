@@ -49,9 +49,9 @@ scada::DataValue SyncAttributeServiceImpl::Read(
 }
 
 std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
-    base::span<const scada::WriteValue> values,
+    base::span<const scada::WriteValueId> value_ids,
     const scada::NodeId& user_id) {
-  return std::vector<scada::StatusCode>(values.size(),
+  return std::vector<scada::StatusCode>(value_ids.size(),
                                         scada::StatusCode::Bad_WrongNodeId);
 }
 
