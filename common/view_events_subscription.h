@@ -41,11 +41,13 @@ inline ViewEventsSubscription::ViewEventsSubscription(
 }
 
 inline void ViewEventsSubscription::OnEvent(const std::any& event) {
-  if (auto* e = std::any_cast<scada::ModelChangeEvent>(&event))
-    events_.OnModelChanged(*e);
-  else if (auto* e = std::any_cast<scada::SemanticChangeEvent>(&event))
-    events_.OnNodeSemanticsChanged(*e);
-  else {
+  if (auto* model_change_event =
+          std::any_cast<scada::ModelChangeEvent>(&event)) {
+    events_.OnModelChanged(*model_change_event);
+  } else if (auto* semantic_change_event =
+                 std::any_cast<scada::SemanticChangeEvent>(&event)) {
+    events_.OnNodeSemanticsChanged(*semantic_change_event);
+  } else {
     assert(false);
   }
 }

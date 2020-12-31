@@ -8,9 +8,9 @@
 #include "address_space/variable.h"
 #include "base/logger.h"
 #include "common/node_state.h"
-#include "node_service/node_util.h"
 #include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
+#include "node_service/node_util.h"
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {
@@ -133,8 +133,9 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     scada::AddReference(*reference_type, *parent, node_ref);
   }
 
-  for (auto& child : node_state.children) {
-    auto [status, node] = CreateNodeHelper(child, node_state.node_id);
+  for (auto& child_state : node_state.children) {
+    auto [status, child_node] =
+        CreateNodeHelper(child_state, node_state.node_id);
     if (!status)
       throw status;
   }

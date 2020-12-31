@@ -14,8 +14,8 @@ TEST(AddressSpaceUtil, SortNodesHierarchically) {
 
   SortNodesHierarchically(nodes);
 
-  ASSERT_EQ(3, nodes.size());
-  EXPECT_EQ(3, nodes[0].node_id.numeric_id());
-  EXPECT_EQ(2, nodes[1].node_id.numeric_id());
-  EXPECT_EQ(1, nodes[2].node_id.numeric_id());
+  ASSERT_EQ(static_cast<size_t>(3), nodes.size());
+  EXPECT_EQ(static_cast<scada::NumericId>(3), nodes[0].node_id.numeric_id());
+  EXPECT_EQ(static_cast<scada::NumericId>(2), nodes[1].node_id.numeric_id());
+  EXPECT_EQ(static_cast<scada::NumericId>(1), nodes[2].node_id.numeric_id());
 }

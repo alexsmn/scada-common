@@ -59,6 +59,10 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
 
   address_space.AddNode(BaseDataType);
   address_space.AddNode(BoolDataType);
+  address_space.AddNode(Int8DataType);
+  address_space.AddNode(UInt8DataType);
+  address_space.AddNode(Int16DataType);
+  address_space.AddNode(UInt16DataType);
   address_space.AddNode(Int32DataType);
   address_space.AddNode(UInt32DataType);
   address_space.AddNode(Int64DataType);
@@ -110,6 +114,10 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   scada::AddReference(Organizes, TypesFolder, BaseDataType);
 
   scada::AddReference(HasSubtype, BaseDataType, BoolDataType);
+  scada::AddReference(HasSubtype, BaseDataType, Int8DataType);
+  scada::AddReference(HasSubtype, BaseDataType, UInt8DataType);
+  scada::AddReference(HasSubtype, BaseDataType, Int16DataType);
+  scada::AddReference(HasSubtype, BaseDataType, UInt16DataType);
   scada::AddReference(HasSubtype, BaseDataType, Int32DataType);
   scada::AddReference(HasSubtype, BaseDataType, UInt32DataType);
   scada::AddReference(HasSubtype, BaseDataType, Int64DataType);

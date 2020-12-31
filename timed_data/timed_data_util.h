@@ -90,7 +90,7 @@ inline void ReplaceSubrange(std::vector<T>& values,
   auto first = std::lower_bound(values.begin(), values.end(), updates[0], comp);
   auto last = std::upper_bound(values.begin(), values.end(),
                                updates[updates.size() - 1], comp);
-  auto count = std::distance(first, last);
+  auto count = static_cast<size_t>(std::distance(first, last));
 
   auto copy_count = std::min<size_t>(count, updates.size());
   std::copy(std::make_move_iterator(updates.begin()),

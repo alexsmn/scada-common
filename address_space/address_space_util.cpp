@@ -189,26 +189,13 @@ Node* GetNestedNode(AddressSpace& address_space,
 }
 
 Variant::Type DataTypeToValueType(const TypeDefinition& type) {
-  if (type.id() == id::Boolean)
-    return Variant::BOOL;
-  else if (type.id() == id::Int16)
-    return Variant::INT16;
-  else if (type.id() == id::UInt16)
-    return Variant::UINT16;
-  else if (type.id() == id::Int32)
-    return Variant::INT32;
-  else if (type.id() == id::Double)
-    return Variant::DOUBLE;
-  else if (type.id() == id::String)
-    return Variant::STRING;
-  else if (type.id() == id::LocalizedText)
-    return Variant::LOCALIZED_TEXT;
-  else if (type.id() == id::NodeId)
-    return Variant::NODE_ID;
-  else if (auto* supertype = type.supertype())
-    return DataTypeToValueType(*supertype);
-  else
-    return Variant::EMPTY;
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    auto build_in_data_type = scada::ToBuiltInDataType(supertype->id());
+    if (build_in_data_type != scada::Variant::COUNT)
+      return build_in_data_type;
+  }
+
+  return Variant::EMPTY;
 }
 
 Status ConvertPropertyValue(const DataType& data_type, Variant& value) {

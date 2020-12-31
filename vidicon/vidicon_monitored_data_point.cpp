@@ -25,7 +25,7 @@ Time ToTime(DATE time) {
   SYSTEMTIME utc{};
   ::TzSpecificLocalTimeToSystemTime(nullptr, &system_time, &utc);
   utc.wMilliseconds =
-      static_cast<int>(std::round((time - floor(time)) * 24 * 60 * 60 * 1000));
+      static_cast<WORD>(std::round((time - floor(time)) * 24 * 60 * 60 * 1000));
 
   Time result;
   Time::Exploded exploded{

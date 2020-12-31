@@ -641,7 +641,7 @@ void NodeFetcherImpl::AddFetchedReference(
 bool NodeFetcherImpl::AssertValid() const {
   return true;
 
-  for (auto& p : fetching_nodes_.fetching_nodes_) {
+  /*for (auto& p : fetching_nodes_.fetching_nodes_) {
     auto& node = p.second;
 
     bool pending = !!pending_queue_.count(node);
@@ -654,9 +654,9 @@ bool NodeFetcherImpl::AssertValid() const {
         return false;
 
     } else {
-      /*assert(pending || node.fetch_started);
-      if (!pending && !node.fetch_started)
-        return false;*/
+      //assert(pending || node.fetch_started);
+      //if (!pending && !node.fetch_started)
+      //  return false;*
     }
 
     if (pending) {
@@ -666,7 +666,7 @@ bool NodeFetcherImpl::AssertValid() const {
     }
   }
 
-  return fetching_nodes_.AssertValid();
+  return fetching_nodes_.AssertValid();*/
 }
 
 bool NodeFetcherImpl::FetchingNodeGraph::AssertValid() const {

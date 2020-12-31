@@ -10,7 +10,7 @@ TEST(ScadaExpression, IsSingleName) {
 TEST(ScadaExpression, Function) {
   ScadaExpression expression;
   expression.Parse("or(TIT.1, TIT.2)");
-  EXPECT_EQ(2, expression.items.size());
+  EXPECT_EQ(static_cast<size_t>(2), expression.items.size());
   EXPECT_EQ("TIT.1", expression.items[0].name);
   EXPECT_EQ("TIT.2", expression.items[1].name);
   expression.items[0].value = scada::DataValue{1, {}, {}, {}};

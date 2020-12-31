@@ -99,9 +99,9 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
 
   // Acknowledge confirmation.
   {
-    EventIdSet::iterator i = running_ack_event_ids_.find(event.acknowledge_id);
-    if (i != running_ack_event_ids_.end()) {
-      running_ack_event_ids_.erase(i);
+    auto j = running_ack_event_ids_.find(event.acknowledge_id);
+    if (j != running_ack_event_ids_.end()) {
+      running_ack_event_ids_.erase(j);
       logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
                       event.acknowledge_id);
       PostAckPendingEvents();
@@ -118,12 +118,11 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
   }
 
   if (!contained_event.node_id.is_null()) {
-    ItemEventMap::iterator i =
-        item_unacked_events_.find(contained_event.node_id);
-    if (i != item_unacked_events_.end()) {
-      ItemEventData& item_event_data = i->second;
+    auto p = item_unacked_events_.find(contained_event.node_id);
+    if (p != item_unacked_events_.end()) {
+      ItemEventData& item_event_data = p->second;
 
-      EventSet::iterator j = item_event_data.events.find(&contained_event);
+      auto j = item_event_data.events.find(&contained_event);
       assert(j != item_event_data.events.end());
       item_event_data.events.erase(j);
 
@@ -133,7 +132,7 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
                         item_event_data.events);
 
       if (item_event_data.events.empty() && item_event_data.observers.empty())
-        item_unacked_events_.erase(i);
+        item_unacked_events_.erase(p);
     }
   }
 
@@ -143,7 +142,7 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
 }
 
 void EventFetcher::ClearUackedEvents() {
-  for (ItemEventMap::iterator i = item_unacked_events_.begin();
+  for (auto i = item_unacked_events_.begin();
        i != item_unacked_events_.end();) {
     auto& item_id = i->first;
     ItemEventData& data = i->second;

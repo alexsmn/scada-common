@@ -148,7 +148,7 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
       [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         called = true;
         ASSERT_TRUE(status);
-        ASSERT_EQ(1, results.size());
+        ASSERT_EQ(static_cast<size_t>(1), results.size());
         auto& result = results.front();
         ASSERT_TRUE(scada::Status{result.status_code});
         auto& references = result.references;
@@ -168,12 +168,12 @@ TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
       [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         called = true;
         ASSERT_TRUE(status);
-        ASSERT_EQ(1, results.size());
+        ASSERT_EQ(static_cast<size_t>(1), results.size());
         auto& result = results.front();
         ASSERT_TRUE(scada::Status{result.status_code});
         auto& references = result.references;
         // Parent
-        ASSERT_EQ(1, references.size());
+        ASSERT_EQ(static_cast<size_t>(1), references.size());
         auto& reference = references[0];
         EXPECT_EQ(scada::NodeId{scada::id::Organizes},
                   reference.reference_type_id);
