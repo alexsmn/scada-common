@@ -115,6 +115,12 @@ scada::Variant ConvertArray(OpcUa_Variant&& source) {
   assert(source.ArrayType == OpcUa_VariantArrayType_Array);
   auto& value = source.Value.Array;
   switch (source.Datatype) {
+    case OpcUaType_Int32:
+      return std::vector<scada::Int32>(value.Value.Int32Array,
+                                       value.Value.Int32Array + value.Length);
+    case OpcUaType_UInt32:
+      return std::vector<scada::UInt32>(value.Value.UInt32Array,
+                                        value.Value.UInt32Array + value.Length);
     case OpcUaType_String:
       return ConvertVector<scada::String>(
           value.Value.StringArray, value.Value.StringArray + value.Length);
@@ -695,12 +701,12 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target) {
 }
 
 scada::LocalizedText Convert(const OpcUa_LocalizedText& source) {
-  return scada::ToLocalizedText(Convert(source.Text));
+  return base::SysUTF8ToWide(Convert(source.Text));
 }
 
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target) {
   ::OpcUa_String_Clear(&target.Locale);
-  Convert(ToString(source), target.Text);
+  Convert(base::SysWideToUTF8(source), target.Text);
 }
 
 scada::ByteString Convert(const OpcUa_ByteString& source) {

@@ -46,8 +46,9 @@ void FillBrowseResultsTypeDefinitions(
     if (!opcua::StatusCode{result.StatusCode})
       continue;
 
-    for (auto& reference : opcua::MakeSpan(
-             result.References, static_cast<size_t>(result.NoOfReferences))) {
+    auto references = opcua::MakeSpan(
+        result.References, static_cast<size_t>(result.NoOfReferences));
+    for (auto& reference : references) {
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       nodes.push_back(scada::BrowseDescription{
@@ -69,16 +70,17 @@ void FillBrowseResultsTypeDefinitions(
         size_t browse_index = 0;
         for (size_t i = 0; i < descriptions.size(); ++i) {
           auto& description = descriptions[i];
+          auto& result = results[i];
+
           if (!(description.ResultMask & OpcUa_BrowseResultMask_TypeDefinition))
             continue;
 
-          auto& result = results[i];
           if (!opcua::StatusCode{result.StatusCode})
             continue;
 
-          for (auto& reference :
-               opcua::MakeSpan(result.References,
-                               static_cast<size_t>(result.NoOfReferences))) {
+          auto references = opcua::MakeSpan(
+              result.References, static_cast<size_t>(result.NoOfReferences));
+          for (auto& reference : references) {
             auto& browse_result = browse_results[browse_index++];
             if (!scada::IsGood(browse_result.status_code))
               continue;
@@ -117,8 +119,9 @@ void FillBrowseResultsAttributes(
     if (!opcua::StatusCode{result.StatusCode})
       continue;
 
-    for (auto& reference : opcua::MakeSpan(
-             result.References, static_cast<size_t>(result.NoOfReferences))) {
+    auto references = opcua::MakeSpan(
+        result.References, static_cast<size_t>(result.NoOfReferences));
+    for (auto& reference : references) {
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
@@ -146,8 +149,9 @@ void FillBrowseResultsAttributes(
       if (!opcua::StatusCode{result.StatusCode})
         continue;
 
-      for (auto& reference : opcua::MakeSpan(
-               result.References, static_cast<size_t>(result.NoOfReferences))) {
+      auto references = opcua::MakeSpan(
+          result.References, static_cast<size_t>(result.NoOfReferences));
+      for (auto& reference : references) {
         if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
           SetNodeClass(values[index++], reference.NodeClass);
         if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
@@ -244,12 +248,21 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
   endpoint_.set_application_uri("TelecontrolScadaServer");
   endpoint_.set_application_name("Telecontrol SCADA Server");
 
-  endpoint_.Open(url_.c_str(), true, server_certificate_.get(),
-                 server_private_key_.get(), &pki_config_,
-                 {&security_policy_, 1});
+  LOG_INFO(logger_) << "Opening endpoint..." << LOG_TAG("Url", url_);
+  try {
+    endpoint_.Open(url_.c_str(), true, server_certificate_.get(),
+                   server_private_key_.get(), &pki_config_,
+                   {&security_policy_, 1});
+  } catch (const opcua::StatusCodeException& e) {
+    LOG_ERROR(logger_) << "Open endpoint error"
+                       << LOG_TAG("StatusCode", e.status_code().code());
+    throw e;
+  }
 }
 
-OpcUaServer::~OpcUaServer() {}
+OpcUaServer::~OpcUaServer() {
+  LOG_INFO(logger_) << "Destroying";
+}
 
 void OpcUaServer::Read(OpcUa_ReadRequest& request,
                        const opcua::server::ReadCallback& callback) {
@@ -305,19 +318,12 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
         auto ua_results = std::make_shared<opcua::Vector<OpcUa_BrowseResult>>(
             MakeVector<OpcUa_BrowseResult>(
                 opcua::MakeSpan(results.data(), results.size())));
+
         FillBrowseResultsTypeDefinitions(
-            view_service_,
-            opcua::Span<const OpcUa_BrowseDescription>(descriptions->data(),
-                                                       descriptions->size()),
-            opcua::Span<OpcUa_BrowseResult>(ua_results->data(),
-                                            ua_results->size()),
+            view_service_, *descriptions, *ua_results,
             [this, descriptions, ua_results, callback] {
               FillBrowseResultsAttributes(
-                  attribute_service_,
-                  opcua::Span<const OpcUa_BrowseDescription>(
-                      descriptions->data(), descriptions->size()),
-                  opcua::Span<OpcUa_BrowseResult>(ua_results->data(),
-                                                  ua_results->size()),
+                  attribute_service_, *descriptions, *ua_results,
                   [descriptions, ua_results, callback] {
                     opcua::BrowseResponse response;
                     response.ResponseHeader.ServiceResult = OpcUa_Good;

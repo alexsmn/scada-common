@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/boost_log.h"
 #include "core/configuration_types.h"
 #include "core/node_id.h"
 
@@ -48,18 +49,26 @@ class OpcUaServer : private OpcUaServerContext {
 
   opcua::ProxyStubConfiguration MakeProxyStubConfiguration();
 
+  BoostLogger logger_{LOG_NAME("OpcUaServer")};
+
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;
 
   const opcua::ByteString server_certificate_{server_certificate_data_.data(),
                                               server_certificate_data_.size()};
-  const opcua::Key server_private_key_{
-      OpcUa_Crypto_KeyType_Rsa_Private,
-      opcua::ByteString{server_private_key_data_.data(),
-                        server_private_key_data_.size()}};
+
+  const opcua::Key server_private_key_ =
+      server_private_key_data_.empty()
+          ? opcua::Key{}
+          : opcua::Key{OpcUa_Crypto_KeyType_Rsa_Private,
+                       opcua::ByteString{server_private_key_data_.data(),
+                                         server_private_key_data_.size()}};
+
   const OpcUa_P_OpenSSL_CertificateStore_Config pki_config_{
       OpcUa_NO_PKI, OpcUa_Null, OpcUa_Null, OpcUa_Null, 0, OpcUa_Null};
+
   const opcua::server::Endpoint::SecurityPolicyConfiguration security_policy_;
+
   opcua::server::Endpoint endpoint_{OpcUa_Endpoint_SerializerType_Binary};
 };
 
