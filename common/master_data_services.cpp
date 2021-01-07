@@ -165,28 +165,22 @@ void MasterDataServices::RemoveObserver(scada::SessionStateObserver& observer) {
   session_state_observers_.RemoveObserver(&observer);
 }
 
-void MasterDataServices::CreateNode(const scada::NodeId& requested_id,
-                                    const scada::NodeId& parent_id,
-                                    scada::NodeClass node_class,
-                                    const scada::NodeId& type_id,
-                                    scada::NodeAttributes attributes,
-                                    const scada::CreateNodeCallback& callback) {
+void MasterDataServices::AddNodes(
+    const std::vector<scada::AddNodesItem>& inputs,
+    const scada::AddNodesCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.node_management_service_->CreateNode(
-      requested_id, parent_id, node_class, type_id, std::move(attributes),
-      callback);
+  services_.node_management_service_->AddNodes(inputs, callback);
 }
 
-void MasterDataServices::DeleteNode(const scada::NodeId& node_id,
-                                    bool return_references,
-                                    const scada::DeleteNodeCallback& callback) {
+void MasterDataServices::DeleteNodes(
+    const std::vector<scada::DeleteNodesItem>& inputs,
+    const scada::DeleteNodesCallback& callback) {
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.node_management_service_->DeleteNode(node_id, return_references,
-                                                 callback);
+  services_.node_management_service_->DeleteNodes(inputs, callback);
 }
 
 void MasterDataServices::ChangeUserPassword(

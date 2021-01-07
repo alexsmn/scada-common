@@ -45,15 +45,10 @@ class MasterDataServices final : public scada::AttributeService,
   virtual void RemoveObserver(scada::SessionStateObserver& observer) override;
 
   // scada::NodeManagementService
-  virtual void CreateNode(const scada::NodeId& requested_id,
-                          const scada::NodeId& parent_id,
-                          scada::NodeClass node_class,
-                          const scada::NodeId& type_id,
-                          scada::NodeAttributes attributes,
-                          const scada::CreateNodeCallback& callback) override;
-  virtual void DeleteNode(const scada::NodeId& node_id,
-                          bool return_dependencies,
-                          const scada::DeleteNodeCallback& callback) override;
+  virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,
+                        const scada::AddNodesCallback& callback) override;
+  virtual void DeleteNodes(const std::vector<scada::DeleteNodesItem>& inputs,
+                           const scada::DeleteNodesCallback& callback) override;
   virtual void ChangeUserPassword(
       const scada::NodeId& user_id,
       const scada::LocalizedText& current_password,

@@ -17,6 +17,7 @@
 namespace scada {
 class AttributeService;
 class MonitoredItemService;
+class NodeManagementService;
 class ViewService;
 }  // namespace scada
 
@@ -24,6 +25,7 @@ struct OpcUaServerContext {
   scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
   scada::MonitoredItemService& monitored_item_service_;
+  scada::NodeManagementService& node_management_service_;
   std::string url_;
   std::vector<char> server_certificate_data_;
   std::vector<char> server_private_key_data_;
@@ -43,6 +45,13 @@ class OpcUaServer : private OpcUaServerContext {
   void TranslateBrowsePaths(
       OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
       const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback);
+  void AddNodes(
+      OpcUa_AddNodesRequest& request,
+      const opcua::server::SimpleCallback<OpcUa_AddNodesResponse>& callback);
+  void DeleteNodes(
+      OpcUa_DeleteNodesRequest& request,
+      const opcua::server::SimpleCallback<OpcUa_DeleteNodesResponse>& callback);
+
   opcua::server::CreateMonitoredItemResult CreateMonitoredItem(
       opcua::ReadValueId&& read_value_id,
       opcua::MonitoringParameters&& params);

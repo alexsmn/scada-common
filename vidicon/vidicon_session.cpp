@@ -130,18 +130,14 @@ void VidiconSession::Call(const scada::NodeId& node_id,
   callback(scada::StatusCode::Bad);
 }
 
-void VidiconSession::CreateNode(const scada::NodeId& requested_id,
-                                const scada::NodeId& parent_id,
-                                scada::NodeClass node_class,
-                                const scada::NodeId& type_id,
-                                scada::NodeAttributes attributes,
-                                const scada::CreateNodeCallback& callback) {
+void VidiconSession::AddNodes(const std::vector<scada::AddNodesItem>& inputs,
+                              const scada::AddNodesCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::DeleteNode(const scada::NodeId& node_id,
-                                bool return_dependencies,
-                                const scada::DeleteNodeCallback& callback) {
+void VidiconSession::DeleteNodes(
+    const std::vector<scada::DeleteNodesItem>& inputs,
+    const scada::DeleteNodesCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
 

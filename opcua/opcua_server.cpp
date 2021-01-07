@@ -4,6 +4,7 @@
 #include "core/expanded_node_id.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
+#include "core/node_management_service.h"
 #include "core/view_service.h"
 #include "opcua/opcua_conversion.h"
 
@@ -242,6 +243,12 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
              opcua::MonitoringParameters&& params) {
         return CreateMonitoredItem(std::move(read_value_id), std::move(params));
       },
+      [this](OpcUa_AddNodesRequest& request,
+             const opcua::server::SimpleCallback<OpcUa_AddNodesResponse>&
+                 callback) { AddNodes(request, callback); },
+      [this](OpcUa_DeleteNodesRequest& request,
+             const opcua::server::SimpleCallback<OpcUa_DeleteNodesResponse>&
+                 callback) { DeleteNodes(request, callback); },
   });
 
   endpoint_.set_product_uri("TelecontrolScada");
@@ -341,6 +348,42 @@ void OpcUaServer::TranslateBrowsePaths(
   opcua::TranslateBrowsePathsToNodeIdsResponse response;
   response.ResponseHeader.ServiceResult = OpcUa_Bad;
   callback(std::move(response));
+}
+
+void OpcUaServer::AddNodes(
+    OpcUa_AddNodesRequest& request,
+    const opcua::server::SimpleCallback<OpcUa_AddNodesResponse>& callback) {
+  node_management_service_.AddNodes(
+      ConvertVector<scada::AddNodesItem>(
+          opcua::MakeSpan(request.NodesToAdd, request.NoOfNodesToAdd)),
+      [callback](scada::Status&& status,
+                 std::vector<scada::AddNodesResult>&& results) {
+        opcua::AddNodesResponse response;
+        response.ResponseHeader.ServiceResult =
+            MakeStatusCode(status.code()).code();
+        response.NoOfResults = results.size();
+        response.Results =
+            ConvertFromVector<OpcUa_AddNodesResult>(results).release();
+        callback(std::move(response));
+      });
+}
+
+void OpcUaServer::DeleteNodes(
+    OpcUa_DeleteNodesRequest& request,
+    const opcua::server::SimpleCallback<OpcUa_DeleteNodesResponse>& callback) {
+  node_management_service_.DeleteNodes(
+      ConvertVector<scada::DeleteNodesItem>(
+          opcua::MakeSpan(request.NodesToDelete, request.NoOfNodesToDelete)),
+      [callback](scada::Status&& status,
+                 std::vector<scada::StatusCode>&& results) {
+        opcua::DeleteNodesResponse response;
+        response.ResponseHeader.ServiceResult =
+            MakeStatusCode(status.code()).code();
+        auto ua_results = ConvertStatusCodesFromVector(results);
+        response.NoOfResults = ua_results.size();
+        response.Results = ua_results.release();
+        callback(std::move(response));
+      });
 }
 
 opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(

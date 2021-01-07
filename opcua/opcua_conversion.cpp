@@ -723,3 +723,22 @@ void Convert(const scada::ByteString& source, OpcUa_ByteString& target) {
   target.Length = static_cast<OpcUa_UInt32>(source.size());
   target.Data = data;
 }
+
+scada::AddNodesItem Convert(const OpcUa_AddNodesItem& source) {
+  return {
+      Convert(source.RequestedNewNodeId.NodeId),
+      Convert(source.ParentNodeId.NodeId),
+      ConvertNodeClass(source.NodeClass),
+      Convert(source.TypeDefinition.NodeId),
+  };
+}
+
+void Convert(const scada::AddNodesResult& source,
+             OpcUa_AddNodesResult& target) {
+  target.StatusCode = MakeStatusCode(source.status_code).code();
+  Convert(source.added_node_id, target.AddedNodeId);
+}
+
+scada::DeleteNodesItem Convert(const OpcUa_DeleteNodesItem& source) {
+  return {Convert(source.NodeId), source.DeleteTargetReferences != OpcUa_False};
+}

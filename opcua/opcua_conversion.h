@@ -9,6 +9,7 @@
 #include "core/extension_object.h"
 #include "core/monitored_item_service.h"
 #include "core/node_class.h"
+#include "core/node_management_service.h"
 #include "core/status.h"
 #include "core/variant.h"
 #include "core/view_service.h"
@@ -87,6 +88,11 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target);
 scada::LocalizedText Convert(const OpcUa_LocalizedText& source);
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target);
 
+scada::AddNodesItem Convert(const OpcUa_AddNodesItem& source);
+void Convert(const scada::AddNodesResult& source, OpcUa_AddNodesResult& target);
+
+scada::DeleteNodesItem Convert(const OpcUa_DeleteNodesItem& source);
+
 template <typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));
@@ -106,6 +112,22 @@ inline std::vector<T> ConvertVectorCopy(It first, It last) {
 template <typename T, class Range>
 inline std::vector<T> ConvertVector(Range&& range) {
   return ConvertVector<T>(std::begin(range), std::end(range));
+}
+
+template <typename T, class Range>
+inline opcua::Vector<T> ConvertFromVector(Range&& range) {
+  opcua::Vector<T> result(std::size(range));
+  for (size_t i = 0; i < std::size(range); ++i)
+    Convert(std::move(range[i]), result[i]);
+  return result;
+}
+
+inline opcua::Vector<OpcUa_StatusCode> ConvertStatusCodesFromVector(
+    const std::vector<scada::StatusCode>& range) {
+  opcua::Vector<OpcUa_StatusCode> result(std::size(range));
+  for (size_t i = 0; i < std::size(range); ++i)
+    result[i] = MakeStatusCode(range[i]).code();
+  return result;
 }
 
 template <typename T, typename S>
