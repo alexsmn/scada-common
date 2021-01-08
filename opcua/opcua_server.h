@@ -40,6 +40,9 @@ class OpcUaServer : private OpcUaServerContext {
  private:
   void Read(OpcUa_ReadRequest& request,
             const opcua::server::ReadCallback& callback);
+  void Write(
+      OpcUa_WriteRequest& request,
+      const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback);
   void Browse(OpcUa_BrowseRequest& request,
               const opcua::server::BrowseCallback& callback);
   void TranslateBrowsePaths(

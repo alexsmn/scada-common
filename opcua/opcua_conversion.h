@@ -93,6 +93,9 @@ void Convert(const scada::AddNodesResult& source, OpcUa_AddNodesResult& target);
 
 scada::DeleteNodesItem Convert(const OpcUa_DeleteNodesItem& source);
 
+scada::WriteValueId Convert(OpcUa_WriteValue&& source);
+void Convert(scada::WriteValueId&& source, OpcUa_WriteValue& target);
+
 template <typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));

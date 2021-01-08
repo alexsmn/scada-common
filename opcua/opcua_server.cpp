@@ -232,6 +232,11 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
              const opcua::server::ReadCallback& callback) {
         Read(request, callback);
       },
+      [this](
+          OpcUa_WriteRequest& request,
+          const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback) {
+        Write(request, callback);
+      },
       [this](OpcUa_BrowseRequest& request,
              const opcua::server::BrowseCallback& callback) {
         Browse(request, callback);
@@ -277,7 +282,7 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
   attribute_service_.Read(
       ConvertVector<scada::ReadValueId>(
           opcua::MakeSpan(request.NodesToRead, request.NoOfNodesToRead)),
-      [timestamps_to_return, callback](const scada::Status& status,
+      [timestamps_to_return, callback](scada::Status&& status,
                                        std::vector<scada::DataValue> values) {
         opcua::ReadResponse response;
         response.ResponseHeader.ServiceResult =
@@ -301,6 +306,26 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
         response.Results = ua_values.release();
         callback(std::move(response));
       });
+}
+
+void OpcUaServer::Write(
+    OpcUa_WriteRequest& request,
+    const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback) {
+  // TODO: UserID.
+  attribute_service_.Write(ConvertVector<scada::WriteValueId>(opcua::MakeSpan(
+                               request.NodesToWrite, request.NoOfNodesToWrite)),
+                           {},
+                           [callback](scada::Status&& status,
+                                      std::vector<scada::StatusCode> results) {
+                             opcua::WriteResponse response;
+                             response.ResponseHeader.ServiceResult =
+                                 MakeStatusCode(status.code()).code();
+                             auto us_results =
+                                 ConvertStatusCodesFromVector(results);
+                             response.NoOfResults = us_results.size();
+                             response.Results = us_results.release();
+                             callback(std::move(response));
+                           });
 }
 
 void OpcUaServer::Browse(OpcUa_BrowseRequest& request,

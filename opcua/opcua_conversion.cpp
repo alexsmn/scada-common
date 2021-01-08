@@ -742,3 +742,20 @@ void Convert(const scada::AddNodesResult& source,
 scada::DeleteNodesItem Convert(const OpcUa_DeleteNodesItem& source) {
   return {Convert(source.NodeId), source.DeleteTargetReferences != OpcUa_False};
 }
+
+scada::WriteValueId Convert(OpcUa_WriteValue&& source) {
+  return {
+      Convert(source.NodeId),
+      static_cast<scada::AttributeId>(source.AttributeId),
+      Convert(std::move(source.Value.Value)),
+      {},
+  };
+}
+
+void Convert(scada::WriteValueId&& source, OpcUa_WriteValue& target) {
+  target.AttributeId = static_cast<OpcUa_UInt32>(source.attribute_id);
+  Convert(std::move(source.node_id), target.NodeId);
+  auto now = scada::DateTime::Now();
+  Convert(scada::DataValue{std::move(source.value), {}, now, now},
+          target.Value);
+}
