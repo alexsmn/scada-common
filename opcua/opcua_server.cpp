@@ -93,10 +93,8 @@ void FillBrowseResultsTypeDefinitions(
                    OpcUaId_HasTypeDefinition);
             auto& type_definition_id = browse_result.references[0].node_id;
             assert(!type_definition_id.is_null());
-            Convert(
-                scada::ExpandedNodeId{
-                    browse_result.references[0].node_id, {}, 0},
-                reference.TypeDefinition);
+            Convert(scada::ExpandedNodeId{type_definition_id, {}, 0},
+                    reference.TypeDefinition);
           }
         }
 
