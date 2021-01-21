@@ -182,18 +182,18 @@ AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
     OnModelChanged(event);
   };
 
-  auto view_events_provider =
+  /*auto view_events_provider =
       [&monitored_item_service =
            monitored_item_service_](scada::ViewEvents& events) {
         return std::make_unique<ViewEventsSubscription>(monitored_item_service,
                                                         events);
-      };
+      };*/
 
   return {
       io_context_,           executor_,
       view_service_,         attribute_service_,
       address_space_,        node_factory_,
-      view_events_provider,  node_fetch_status_changed_handler,
+      view_events_provider_, node_fetch_status_changed_handler,
       model_changed_handler,
   };
 }

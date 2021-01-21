@@ -1,11 +1,12 @@
 #pragma once
 
-#include <map>
-
 #include "base/observer_list.h"
+#include "common/view_events_subscription.h"
 #include "node_service/address_space/address_space_fetcher.h"
 #include "node_service/address_space/address_space_node_model.h"
 #include "node_service/node_service.h"
+
+#include <map>
 
 class Executor;
 
@@ -24,6 +25,7 @@ class AddressSpaceNodeModel;
 struct AddressSpaceNodeServiceContext {
   boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
+  const ViewEventsProvider view_events_provider_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;

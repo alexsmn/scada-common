@@ -31,9 +31,6 @@ struct AddressSpaceFetcherContext {
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
-  using ViewEventsProvider =
-      std::function<std::unique_ptr<IViewEventsSubscription>(
-          scada::ViewEvents& events)>;
   const ViewEventsProvider view_events_provider_;
 
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;

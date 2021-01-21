@@ -9,6 +9,10 @@ class IViewEventsSubscription {
   virtual ~IViewEventsSubscription() = default;
 };
 
+using ViewEventsProvider =
+    std::function<std::unique_ptr<IViewEventsSubscription>(
+        scada::ViewEvents& events)>;
+
 class ViewEventsSubscription : public IViewEventsSubscription {
  public:
   explicit ViewEventsSubscription(

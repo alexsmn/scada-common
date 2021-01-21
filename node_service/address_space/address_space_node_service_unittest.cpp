@@ -1,11 +1,11 @@
 #include "node_service/node_service.h"
 
-#include "node_service/address_space/test/address_space_node_service_test_context.h"
 #include "model/node_id_util.h"
+#include "node_service/address_space/test/address_space_node_service_test_context.h"
 
 using namespace testing;
 
-TEST(AddressSpaceNodeService, DISABLED_FetchNode) {
+TEST(AddressSpaceNodeService, FetchNode) {
   AddressSpaceNodeServiceTestContext context;
 
   auto node =
@@ -21,7 +21,7 @@ TEST(AddressSpaceNodeService, DISABLED_FetchNode) {
             node[context.server_address_space.kTestProp2Id].value());
 }
 
-TEST(AddressSpaceNodeService, DISABLED_FetchUnknownNode) {
+TEST(AddressSpaceNodeService, FetchUnknownNode) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeId kUnknownNodeId{1, 100};
@@ -32,7 +32,7 @@ TEST(AddressSpaceNodeService, DISABLED_FetchUnknownNode) {
   EXPECT_FALSE(node.status());
 }
 
-TEST(AddressSpaceNodeService, DISABLED_NodeAdded) {
+TEST(AddressSpaceNodeService, NodeAdded) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeState kNewNode{
@@ -50,7 +50,7 @@ TEST(AddressSpaceNodeService, DISABLED_NodeAdded) {
                                       kNewNode.type_definition_id,
                                       scada::ModelChangeEvent::NodeAdded};
   EXPECT_CALL(context.node_observer, OnModelChanged(event));
-  // context.server_address_space.NotifyEvent(event);
+  context.view_events->OnModelChanged(event);
 
   Mock::VerifyAndClearExpectations(&context.node_observer);
 
@@ -64,7 +64,7 @@ TEST(AddressSpaceNodeService, DISABLED_NodeAdded) {
   EXPECT_EQ(node.browse_name(), "NewNode");
 }
 
-TEST(AddressSpaceNodeService, DISABLED_NodeDeleted) {
+TEST(AddressSpaceNodeService, NodeDeleted) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
@@ -73,6 +73,7 @@ TEST(AddressSpaceNodeService, DISABLED_NodeDeleted) {
   const scada::ModelChangeEvent event{
       kNodeId, {}, scada::ModelChangeEvent::NodeDeleted};
   EXPECT_CALL(context.node_observer, OnModelChanged(event));
+  context.view_events->OnModelChanged(event);
 
   context.server_address_space.DeleteNode(kNodeId);
 
@@ -84,7 +85,7 @@ TEST(AddressSpaceNodeService, DISABLED_NodeDeleted) {
   EXPECT_FALSE(node.status());
 }
 
-TEST(AddressSpaceNodeService, DISABLED_NodeSemanticsChanged) {
+TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
   AddressSpaceNodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
@@ -95,13 +96,13 @@ TEST(AddressSpaceNodeService, DISABLED_NodeSemanticsChanged) {
   auto node = context.node_service.GetNode(kNodeId);
   node.Fetch(NodeFetchStatus::NodeOnly());
 
-  EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(_))
-      .Times(AnyNumber());
-  EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(kNodeId));
-
+  EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(kNodeId))
+      .Times(AtLeast(1));
   context.server_address_space.ModifyNode(
       kNodeId, scada::NodeAttributes{}.set_display_name(kNewDisplayName),
       {{context.server_address_space.kTestProp1Id, kNewValue}});
+  context.view_events->OnNodeSemanticsChanged(
+      scada::SemanticChangeEvent{kNodeId});
 
   EXPECT_EQ(kNewDisplayName, node.display_name());
   EXPECT_EQ(kNewValue, node[context.server_address_space.kTestProp1Id].value());
