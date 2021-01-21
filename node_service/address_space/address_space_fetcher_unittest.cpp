@@ -151,7 +151,7 @@ TEST(AddressSpaceFetcher, NodeSemanticsChanged) {
   const scada::QualifiedName kNewBrowseName{"NewTestNode1"};
   const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
 
-  auto* node = context.server_address_space.GetNode(kNodeId);
+  auto* node = context.server_address_space.GetMutableNode(kNodeId);
   ASSERT_TRUE(node);
 
   context.fetcher->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());

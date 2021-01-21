@@ -33,7 +33,7 @@ class AddressSpaceUpdater {
   void DeleteReference(const scada::NodeId& node_id,
                        const scada::ReferenceDescription& reference);
 
-  void FindDeletedReferences(scada::Node& node,
+  void FindDeletedReferences(const scada::Node& node,
                              const scada::ReferenceDescriptions& references,
                              scada::ReferenceDescriptions& deleted_references);
 

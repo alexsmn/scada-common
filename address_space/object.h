@@ -41,8 +41,7 @@ class GenericObject : public Object {
 
 class ComponentObject : public Object {
  public:
-  ComponentObject(NodeBuilder& builder,
-                  const NodeId& instance_declaration_id);
+  ComponentObject(NodeBuilder& builder, const NodeId& instance_declaration_id);
 
   // Node
   virtual QualifiedName GetBrowseName() const final {

@@ -159,7 +159,7 @@ Node* GetNestedNode(AddressSpace& address_space,
                     std::string_view& nested_name) {
   nested_name = {};
 
-  auto* node = address_space.GetNode(node_id);
+  auto* node = address_space.GetMutableNode(node_id);
   if (node)
     return node;
 
@@ -167,7 +167,7 @@ Node* GetNestedNode(AddressSpace& address_space,
   if (!IsNestedNodeId(node_id, parent_id, nested_name))
     parent_id = node_id;
 
-  node = address_space.GetNode(parent_id);
+  node = address_space.GetMutableNode(parent_id);
   if (!node)
     return nullptr;
 
@@ -213,7 +213,7 @@ Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
   return StatusCode::Good;
 }
 
-Status ConvertPropertyValues(Node& node, NodeProperties& properties) {
+Status ConvertPropertyValues(const Node& node, NodeProperties& properties) {
   auto* type = node.type_definition();
   assert(type);
 
@@ -274,14 +274,15 @@ bool WantsReference(AddressSpace& address_space,
   }
 }
 
-ObjectType& BindObjectType(AddressSpace& address_space, const NodeId& node_id) {
+const ObjectType& BindObjectType(const AddressSpace& address_space,
+                                 const NodeId& node_id) {
   auto* node = scada::AsObjectType(address_space.GetNode(node_id));
   assert(node);
   return *node;
 }
 
-VariableType& BindVariableType(AddressSpace& address_space,
-                               const NodeId& node_id) {
+const VariableType& BindVariableType(const AddressSpace& address_space,
+                                     const NodeId& node_id) {
   auto* node = scada::AsVariableType(address_space.GetNode(node_id));
   assert(node);
   return *node;

@@ -51,7 +51,7 @@ inline DataVariable<ValueType>::DataVariable(
     Node& parent,
     const NodeId& instance_declaration_id)
     : instance_declaration_{
-          AsVariable(builder.GetNode(instance_declaration_id))} {
+          AsVariable(builder.GetMutableNode(instance_declaration_id))} {
   auto* type_definition = instance_declaration_.type_definition();
   assert(type_definition);
   if (!type_definition)

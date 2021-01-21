@@ -57,7 +57,8 @@ class AddressSpaceImpl : public scada::AddressSpace {
                        bool added) const;
 
   // scada::AddressSpace
-  scada::Node* GetNode(const scada::NodeId& node_id) override;
+  scada::Node* GetMutableNode(const scada::NodeId& node_id) override;
+  const scada::Node* GetNode(const scada::NodeId& node_id) const override;
   void Subscribe(scada::NodeObserver& events) const override;
   void Unsubscribe(scada::NodeObserver& events) const override;
   void SubscribeNode(const scada::NodeId& node_id,

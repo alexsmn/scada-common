@@ -31,8 +31,8 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (address_space_.GetNode(node_state.node_id))
     throw scada::Status(scada::StatusCode::Bad_DuplicateNodeId);
 
-  auto* type_definition =
-      AsTypeDefinition(address_space_.GetNode(node_state.type_definition_id));
+  auto* type_definition = AsTypeDefinition(
+      address_space_.GetMutableNode(node_state.type_definition_id));
 
   std::unique_ptr<scada::Node> node;
   if (node_state.node_class == scada::NodeClass::Object) {
@@ -121,7 +121,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   }
 
   if (!parent_id.is_null()) {
-    auto* parent = address_space_.GetNode(parent_id);
+    auto* parent = address_space_.GetMutableNode(parent_id);
     if (!parent)
       throw scada::Status(scada::StatusCode::Bad_WrongParentId);
 

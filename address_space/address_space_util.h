@@ -45,7 +45,7 @@ Node* GetNestedNode(AddressSpace& address_space,
 
 std::wstring GetFullDisplayName(const Node& node);
 
-Status ConvertPropertyValues(Node& node, NodeProperties& properties);
+Status ConvertPropertyValues(const Node& node, NodeProperties& properties);
 
 bool WantsReference(AddressSpace& address_space,
                     const BrowseDescription& description,
@@ -58,9 +58,10 @@ bool WantsOrganizes(AddressSpace& address_space,
 bool WantsParent(AddressSpace& address_space,
                  const BrowseDescription& description);
 
-ObjectType& BindObjectType(AddressSpace& address_space, const NodeId& node_id);
-VariableType& BindVariableType(AddressSpace& address_space,
-                               const NodeId& node_id);
+const ObjectType& BindObjectType(const AddressSpace& address_space,
+                                 const NodeId& node_id);
+const VariableType& BindVariableType(const AddressSpace& address_space,
+                                     const NodeId& node_id);
 
 }  // namespace scada
 

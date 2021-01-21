@@ -173,7 +173,7 @@ void AddressSpaceUpdater::AddReference(
   }
 
   auto& source_id = reference.forward ? node_id : reference.node_id;
-  auto* source = address_space_.GetNode(source_id);
+  auto* source = address_space_.GetMutableNode(source_id);
   if (!source) {
     LOG_WARNING(logger_) << "Source wasn't found"
                          << LOG_TAG("Reference",
@@ -183,7 +183,7 @@ void AddressSpaceUpdater::AddReference(
   }
 
   auto& target_id = reference.forward ? reference.node_id : node_id;
-  auto* target = address_space_.GetNode(target_id);
+  auto* target = address_space_.GetMutableNode(target_id);
   if (!target) {
     LOG_WARNING(logger_) << "Target wasn't found"
                          << LOG_TAG("Reference",
@@ -216,7 +216,7 @@ void AddressSpaceUpdater::DeleteReference(
 }
 
 void AddressSpaceUpdater::FindDeletedReferences(
-    scada::Node& node,
+    const scada::Node& node,
     const scada::ReferenceDescriptions& references,
     scada::ReferenceDescriptions& deleted_references) {
   for (const auto& ref : FilterReferences(

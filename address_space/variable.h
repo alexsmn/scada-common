@@ -34,7 +34,7 @@ class Variable : public Node {
 
   virtual DateTime GetChangeTime() const = 0;
 
-  virtual std::shared_ptr<VariableHandle> GetVariableHandle();
+  virtual std::shared_ptr<VariableHandle> GetVariableHandle() const;
 
   virtual void Write(AttributeId attribute_id,
                      const Variant& value,

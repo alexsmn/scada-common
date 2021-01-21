@@ -24,7 +24,7 @@ void Object::Call(const scada::NodeId& method_id,
 ComponentObject::ComponentObject(NodeBuilder& builder,
                                  const NodeId& instance_declaration_id)
     : instance_declaration_{
-          AsObject(builder.GetNode(instance_declaration_id))} {
+          AsObject(builder.GetMutableNode(instance_declaration_id))} {
   auto* type = instance_declaration_.type_definition();
   if (!type)
     throw std::runtime_error("Instance delaration has no type definition");

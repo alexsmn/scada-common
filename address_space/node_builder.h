@@ -11,7 +11,8 @@ class NodeBuilder {
  public:
   virtual ~NodeBuilder() {}
 
-  virtual Node& GetNode(const NodeId& node_id) = 0;
+  virtual const Node& GetNode(const NodeId& node_id) const = 0;
+  virtual Node& GetMutableNode(const NodeId& node_id) = 0;
 
   virtual void AddReference(const NodeId& reference_type_id,
                             Node& source,

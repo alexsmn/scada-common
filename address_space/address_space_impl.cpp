@@ -27,7 +27,7 @@ void AddressSpaceImpl::Clear() {
 void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
                                   scada::NodeAttributes attributes,
                                   scada::NodeProperties properties) {
-  auto* node = GetNode(id);
+  auto* node = GetMutableNode(id);
   assert(node);
 
   scada::AttributeSet attribute_set;
@@ -95,7 +95,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
                          scada::Node& node,
                          const scada::NodeId& reference_type_id,
                          const scada::NodeId& parent_id) {
-  auto* parent = address_space.GetNode(parent_id);
+  auto* parent = address_space.GetMutableNode(parent_id);
   assert(parent);
 
   AddNodeAndReference(address_space, node, reference_type_id, *parent);
@@ -136,7 +136,21 @@ void AddressSpaceImpl::RemoveNode(const scada::NodeId& id) {
   static_nodes_.erase(id);
 }
 
-scada::Node* AddressSpaceImpl::GetNode(const scada::NodeId& node_id) {
+scada::Node* AddressSpaceImpl::GetMutableNode(const scada::NodeId& node_id) {
+  auto i = node_map_.find(node_id);
+  if (i != node_map_.end())
+    return i->second;
+
+  if (parent_address_space_) {
+    if (auto* node = parent_address_space_->GetMutableNode(node_id))
+      return node;
+  }
+
+  return nullptr;
+}
+
+const scada::Node* AddressSpaceImpl::GetNode(
+    const scada::NodeId& node_id) const {
   auto i = node_map_.find(node_id);
   if (i != node_map_.end())
     return i->second;

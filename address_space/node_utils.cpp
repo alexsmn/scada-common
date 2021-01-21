@@ -342,10 +342,10 @@ void AddReference(scada::AddressSpace& address_space,
                   const scada::NodeId& reference_type_id,
                   const scada::NodeId& source_id,
                   const scada::NodeId& target_id) {
-  auto* source = address_space.GetNode(source_id);
+  auto* source = address_space.GetMutableNode(source_id);
   assert(source);
 
-  auto* target = address_space.GetNode(target_id);
+  auto* target = address_space.GetMutableNode(target_id);
   assert(target);
 
   AddReference(address_space, reference_type_id, *source, *target);
@@ -369,10 +369,10 @@ void DeleteReference(scada::AddressSpace& address_space,
       AsReferenceType(address_space.GetNode(reference_type_id));
   assert(reference_type);
 
-  auto* source = address_space.GetNode(source_id);
+  auto* source = address_space.GetMutableNode(source_id);
   assert(source);
 
-  auto* target = address_space.GetNode(target_id);
+  auto* target = address_space.GetMutableNode(target_id);
   assert(target);
 
   scada::DeleteReference(*reference_type, *source, *target);

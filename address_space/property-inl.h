@@ -42,7 +42,7 @@ inline PropertyDecl<ValueType>::PropertyDecl(NodeBuilder& builder,
   SetDisplayName(std::move(display_name));
 
   auto& type_definition =
-      scada::AsTypeDefinition(builder.GetNode(scada::id::PropertyType));
+      scada::AsTypeDefinition(builder.GetMutableNode(scada::id::PropertyType));
 
   builder.AddReference(id::HasTypeDefinition, *this, type_definition);
   builder.AddReference(scada::id::HasProperty, parent, *this);
@@ -55,7 +55,7 @@ inline Property<ValueType>::Property(NodeBuilder& builder,
                                      Node& parent,
                                      const NodeId& instance_declaration_id)
     : instance_declaration_{
-          AsVariable(builder.GetNode(instance_declaration_id))} {
+          AsVariable(builder.GetMutableNode(instance_declaration_id))} {
   assert(!FindChild(parent, instance_declaration_.GetBrowseName().name()));
 
   auto* type_definition = instance_declaration_.type_definition();

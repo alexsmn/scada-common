@@ -21,10 +21,11 @@ const DataType& Variable::GetDataType() const {
   return type->data_type();
 }
 
-std::shared_ptr<VariableHandle> Variable::GetVariableHandle() {
+std::shared_ptr<VariableHandle> Variable::GetVariableHandle() const {
   auto variable_handle = variable_handle_.lock();
   if (!variable_handle) {
-    variable_handle = std::make_shared<NodeVariableHandle>(*this);
+    variable_handle =
+        std::make_shared<NodeVariableHandle>(const_cast<Variable&>(*this));
     variable_handle->set_last_value(GetValue());
     variable_handle->set_last_change_time(GetChangeTime());
     variable_handle_ = variable_handle;
