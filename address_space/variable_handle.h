@@ -44,15 +44,15 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   const DataValue& last_value() const { return last_value_; }
   DateTime last_change_time() const { return last_change_time_; }
 
-  virtual void Write(scada::AttributeId attribute_id,
-                     const scada::Variant& value,
+  virtual void Write(AttributeId attribute_id,
+                     const Variant& value,
                      const WriteFlags& flags,
                      const NodeId& user_id,
                      const StatusCallback& callback);
 
   virtual void Call(const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const scada::NodeId& user_id,
+                    const NodeId& user_id,
                     const StatusCallback& callback);
 
  protected:

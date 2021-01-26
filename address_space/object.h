@@ -13,11 +13,6 @@ using StatusCallback = std::function<void(Status&&)>;
 
 class Object : public Node {
  public:
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback);
-
   // Node
   virtual NodeClass GetNodeClass() const override { return NodeClass::Object; }
 
