@@ -105,7 +105,7 @@ void ViewServiceImpl::Browse(
   for (size_t index = 0; index < descriptions.size(); ++index)
     results[index] = sync_view_service_.Browse(descriptions[index]);
 
-  return callback(scada::StatusCode::Good, std::move(results));
+  callback(scada::StatusCode::Good, std::move(results));
 }
 
 void ViewServiceImpl::TranslateBrowsePaths(

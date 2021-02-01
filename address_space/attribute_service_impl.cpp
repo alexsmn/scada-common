@@ -23,7 +23,7 @@ void AttributeServiceImpl::Read(
   for (size_t index = 0; index < descriptions.size(); ++index)
     results[index] = sync_attribute_service_.Read(descriptions[index]);
 
-  return callback(scada::StatusCode::Good, std::move(results));
+  callback(scada::StatusCode::Good, std::move(results));
 }
 
 void AttributeServiceImpl::Write(

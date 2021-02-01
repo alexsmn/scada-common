@@ -21,59 +21,19 @@
 
 namespace scada {
 
-namespace {
-
-const Node* FindNodeByAlias(const Node& parent_node,
-                            const std::string_view& alias) {
-  for (auto* node : GetOrganizes(parent_node)) {
-    if (IsInstanceOf(node, data_items::id::DataItemType)) {
-      const auto& node_alias =
-          GetPropertyValue(*node, data_items::id::DataItemType_Alias)
-              .get_or(std::string());
-      if (IsEqualNoCase(node_alias, alias))
-        return node;
-    }
-
-    if (auto* child = FindNodeByAlias(*node, alias))
-      return child;
-  }
-
-  return nullptr;
-}
-
-}  // namespace
-
-NodeId NodeIdFromAliasedString(AddressSpace& address_space,
-                               const std::string_view& path) {
-  auto node_id = NodeIdFromScadaString(path);
-  if (!node_id.is_null())
-    return node_id;
-
-  if (path.find_first_of('.') != std::string::npos)
-    return {};
-
-  auto* objects = address_space.GetNode(id::ObjectsFolder);
-  assert(objects);
-  if (!objects)
-    return {};
-
-  auto* node = FindNodeByAlias(*objects, path);
-  return node ? node->id() : NodeId();
-}
-
-std::pair<NodeId, DataValueFieldId> ParseAliasedString(
+std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
     AddressSpace& address_space,
     const std::string_view& path) {
   std::string::size_type sep_pos = path.find_first_of('!');
   if (sep_pos == std::string::npos) {
-    auto node_id = NodeIdFromAliasedString(address_space, path);
+    auto node_id = NodeIdFromScadaString(path);
     if (node_id.is_null())
       return {};
     return {std::move(node_id), DataValueFieldId::Count};
   }
 
   auto str = path.substr(0, sep_pos);
-  auto node_id = NodeIdFromAliasedString(address_space, str);
+  auto node_id = NodeIdFromScadaString(str);
   if (node_id.is_null())
     return {};
 

@@ -30,7 +30,7 @@ enum class DataValueFieldId {
 
 NodeId NodeIdFromAliasedString(AddressSpace& address_space,
                                const std::string_view& path);
-std::pair<NodeId, DataValueFieldId> ParseAliasedString(
+std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
     AddressSpace& address_space,
     const std::string_view& path);
 
