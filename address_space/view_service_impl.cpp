@@ -7,6 +7,46 @@
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
+namespace {
+
+const scada::Node* TranslateBrowsePathHelper2(
+    const scada::Node& node,
+    const scada::RelativePathElement& element) {
+  const auto& references =
+      element.inverse ? node.inverse_references() : node.forward_references();
+  std::vector<scada::Node*> result;
+  for (const auto& ref : scada::FilterReferences(
+           references, element.reference_type_id, element.include_subtypes)) {
+    // TODO: Compare namespace indexes.
+    if (ref.node->GetBrowseName().name() == element.target_name.name())
+      return ref.node;
+  }
+  return nullptr;
+}
+
+scada::BrowsePathResult TranslateBrowsePathHelper(
+    const scada::Node& node,
+    const scada::RelativePath& relative_path) {
+  if (relative_path.empty())
+    return {scada::StatusCode::Bad_NothingToDo, {}};
+
+  auto* current_node = &node;
+  size_t i = 0;
+  for (; i < relative_path.size(); ++i) {
+    auto* next_node =
+        TranslateBrowsePathHelper2(*current_node, relative_path[i]);
+    if (!next_node)
+      return {scada::StatusCode::Bad_BrowseNameInvalid, {}};
+    current_node = next_node;
+  }
+
+  return {scada::StatusCode::Good, {{current_node->id(), i}}};
+}
+
+}  // namespace
+
+// SyncViewServiceImpl
+
 SyncViewServiceImpl::SyncViewServiceImpl(ViewServiceImplContext&& context)
     : ViewServiceImplContext{std::move(context)} {}
 
@@ -24,6 +64,15 @@ scada::BrowseResult SyncViewServiceImpl::Browse(
     return BrowseNode(*node, description);
 
   return BrowseProperty(*node, nested_name, description);
+}
+
+scada::BrowsePathResult SyncViewServiceImpl::TranslateBrowsePath(
+    const scada::BrowsePath& input) {
+  auto* node = address_space_.GetNode(input.node_id);
+  if (!node)
+    return {scada::StatusCode::Bad_WrongNodeId};
+
+  return TranslateBrowsePathHelper(*node, input.relative_path);
 }
 
 scada::BrowseResult SyncViewServiceImpl::BrowseNode(

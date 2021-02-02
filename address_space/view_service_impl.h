@@ -19,6 +19,9 @@ class SyncViewService {
 
   virtual scada::BrowseResult Browse(
       const scada::BrowseDescription& description) = 0;
+
+  virtual scada::BrowsePathResult TranslateBrowsePath(
+      const scada::BrowsePath& input) = 0;
 };
 
 class SyncViewServiceImpl : private ViewServiceImplContext,
@@ -29,6 +32,8 @@ class SyncViewServiceImpl : private ViewServiceImplContext,
   // SyncViewService
   virtual scada::BrowseResult Browse(
       const scada::BrowseDescription& description) override;
+  virtual scada::BrowsePathResult TranslateBrowsePath(
+      const scada::BrowsePath& input) override;
 
  private:
   scada::BrowseResult BrowseNode(const scada::Node& node,

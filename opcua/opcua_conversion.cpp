@@ -759,3 +759,33 @@ void Convert(scada::WriteValueId&& source, OpcUa_WriteValue& target) {
   Convert(scada::DataValue{std::move(source.value), {}, now, now},
           target.Value);
 }
+
+scada::RelativePathElement Convert(OpcUa_RelativePathElement&& source) {
+  return {
+      Convert(std::move(source.ReferenceTypeId)),
+      source.IsInverse != OpcUa_False,
+      source.IncludeSubtypes != OpcUa_False,
+      Convert(std::move(source.TargetName)),
+  };
+}
+
+scada::BrowsePath Convert(OpcUa_BrowsePath&& source) {
+  return {
+      Convert(std::move(source.StartingNode)),
+      ConvertVector<scada::RelativePathElement>(opcua::MakeSpan(
+          source.RelativePath.Elements, source.RelativePath.NoOfElements)),
+  };
+}
+
+void Convert(scada::BrowsePathTarget&& source, OpcUa_BrowsePathTarget& target) {
+  target.RemainingPathIndex = source.remaining_path_index;
+  Convert(std::move(source.target_id), target.TargetId);
+}
+
+void Convert(scada::BrowsePathResult&& source, OpcUa_BrowsePathResult& target) {
+  target.StatusCode = MakeStatusCode(source.status_code).code();
+  auto opcua_targets =
+      ConvertFromVector<OpcUa_BrowsePathTarget>(std::move(source.targets));
+  target.NoOfTargets = opcua_targets.size();
+  target.Targets = opcua_targets.release();
+}
