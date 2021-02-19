@@ -94,6 +94,10 @@ std::shared_ptr<NodeFetcherImpl> NodeFetcherImpl::Create(
       new NodeFetcherImpl(std::move(context)));
 }
 
+size_t NodeFetcherImpl::GetPendingNodeCount() const {
+  return fetching_nodes_.size();
+}
+
 NodeFetcherImpl::FetchingNode* NodeFetcherImpl::FetchingNodeGraph::FindNode(
     const scada::NodeId& node_id) {
   assert(!node_id.is_null());

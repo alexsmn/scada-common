@@ -173,3 +173,7 @@ void RemoteNodeService::OnChannelClosed() {
 
   channel_opened_ = false;
 }
+
+size_t RemoteNodeService::GetPendingTaskCount() const {
+  return pending_fetch_nodes_.size();
+}

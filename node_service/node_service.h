@@ -13,4 +13,6 @@ class NodeService {
 
   virtual void Subscribe(NodeRefObserver& observer) const = 0;
   virtual void Unsubscribe(NodeRefObserver& observer) const = 0;
+
+  virtual size_t GetPendingTaskCount() const = 0;
 };

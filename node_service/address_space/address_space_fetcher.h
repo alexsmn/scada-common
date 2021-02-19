@@ -59,6 +59,8 @@ class AddressSpaceFetcher
   void FetchNode(const scada::NodeId& node_id,
                  const NodeFetchStatus& requested_status);
 
+  size_t GetPendingTaskCount() const;
+
  private:
   void Init();
 

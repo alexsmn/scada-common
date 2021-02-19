@@ -270,3 +270,7 @@ void AddressSpaceFetcher::InternalFetchNode(
   if (fetch_status.children_fetched < requested_status.children_fetched)
     node_children_fetcher_->Fetch(node_id);
 }
+
+size_t AddressSpaceFetcher::GetPendingTaskCount() const {
+  return node_fetcher_->GetPendingNodeCount();
+}

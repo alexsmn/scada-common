@@ -47,6 +47,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
                      const std::optional<ParentInfo> parent_info = {},
                      bool force = false) override;
   virtual void Cancel(const scada::NodeId& node_id) override;
+  virtual size_t GetPendingNodeCount() const override;
 
  private:
   explicit NodeFetcherImpl(NodeFetcherImplContext&& context);

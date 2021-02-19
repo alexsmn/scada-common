@@ -205,3 +205,7 @@ void AddressSpaceNodeService::OnChannelOpened() {
 void AddressSpaceNodeService::OnChannelClosed() {
   fetcher_->OnChannelClosed();
 }
+
+size_t AddressSpaceNodeService::GetPendingTaskCount() const {
+  return fetcher_->GetPendingTaskCount();
+}

@@ -43,6 +43,7 @@ class RemoteNodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  virtual size_t GetPendingTaskCount() const override;
 
  private:
   std::shared_ptr<RemoteNodeModel> GetNodeModel(const scada::NodeId& node_id);

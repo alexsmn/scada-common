@@ -28,4 +28,6 @@ class NodeFetcher {
                      bool force = false) = 0;
 
   virtual void Cancel(const scada::NodeId& node_id) = 0;
+
+  virtual size_t GetPendingNodeCount() const = 0;
 };
