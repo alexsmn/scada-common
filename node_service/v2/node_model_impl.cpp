@@ -1,4 +1,4 @@
-#include "node_service/remote/remote_node_model.h"
+#include "node_service/v2/node_model_impl.h"
 
 #include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
@@ -8,7 +8,9 @@
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
-#include "node_service/remote/remote_node_service.h"
+#include "node_service/v2/node_service_impl.h"
+
+namespace v2 {
 
 namespace {
 
@@ -53,13 +55,12 @@ void FetchReferences(NodeService& service,
 
 }  // namespace
 
-// RemoteNodeModel
+// NodeModelImpl
 
-RemoteNodeModel::RemoteNodeModel(RemoteNodeService& service,
-                                 scada::NodeId node_id)
+NodeModelImpl::NodeModelImpl(NodeServiceImpl& service, scada::NodeId node_id)
     : service_{service}, node_id_{std::move(node_id)} {}
 
-void RemoteNodeModel::OnModelChanged(const scada::ModelChangeEvent& event) {
+void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
 
@@ -68,12 +69,12 @@ void RemoteNodeModel::OnModelChanged(const scada::ModelChangeEvent& event) {
   }
 }
 
-void RemoteNodeModel::OnNodeSemanticChanged() {
+void NodeModelImpl::OnNodeSemanticChanged() {
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(node_id_);
 }
 
-void RemoteNodeModel::OnFetched(const scada::NodeState& node_state) {
+void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
   ++callback_lock_count_;
 
   node_state_ = std::move(node_state);
@@ -103,7 +104,7 @@ void RemoteNodeModel::OnFetched(const scada::NodeState& node_state) {
   NotifySemanticChanged();
 }
 
-void RemoteNodeModel::OnFetchCompleted() {
+void NodeModelImpl::OnFetchCompleted() {
   assert(callback_lock_count_ > 0);
   --callback_lock_count_;
 
@@ -116,11 +117,11 @@ void RemoteNodeModel::OnFetchCompleted() {
   NotifyCallbacks();
 }
 
-void RemoteNodeModel::OnFetchError(scada::Status&& status) {
+void NodeModelImpl::OnFetchError(scada::Status&& status) {
   SetFetchStatus(std::move(status), NodeFetchStatus::Max());
 }
 
-void RemoteNodeModel::OnChildrenFetched(
+void NodeModelImpl::OnChildrenFetched(
     scada::ReferenceDescriptions&& references) {
   auto shared_references =
       std::make_shared<scada::ReferenceDescriptions>(std::move(references));
@@ -142,7 +143,7 @@ void RemoteNodeModel::OnChildrenFetched(
                   });
 }
 
-NodeRef RemoteNodeModel::GetAggregateDeclaration(
+NodeRef NodeModelImpl::GetAggregateDeclaration(
     const scada::NodeId& aggregate_declaration_id) const {
   if (!fetch_status_.node_fetched || !status_)
     return nullptr;
@@ -164,7 +165,7 @@ NodeRef RemoteNodeModel::GetAggregateDeclaration(
   return nullptr;
 }
 
-NodeRef RemoteNodeModel::GetAggregate(
+NodeRef NodeModelImpl::GetAggregate(
     const scada::NodeId& aggregate_declaration_id) const {
   auto aggregate_declaration =
       GetAggregateDeclaration(aggregate_declaration_id);
@@ -177,8 +178,7 @@ NodeRef RemoteNodeModel::GetAggregate(
     return GetChild(aggregate_declaration.browse_name());
 }
 
-NodeRef RemoteNodeModel::GetChild(
-    const scada::QualifiedName& child_name) const {
+NodeRef NodeModelImpl::GetChild(const scada::QualifiedName& child_name) const {
   if (!fetch_status_.node_fetched)
     return nullptr;
 
@@ -191,8 +191,8 @@ NodeRef RemoteNodeModel::GetChild(
   return nullptr;
 }
 
-NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
-                                   bool forward) const {
+NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
+                                 bool forward) const {
   // An optimization for type definition.
   if (forward && reference_type_id == scada::id::HasTypeDefinition)
     return service_.GetNode(node_state_.type_definition_id);
@@ -213,7 +213,7 @@ NodeRef RemoteNodeModel::GetTarget(const scada::NodeId& reference_type_id,
   return GetReference(reference_type_id, forward, {}).target;
 }
 
-std::vector<NodeRef> RemoteNodeModel::GetTargets(
+std::vector<NodeRef> NodeModelImpl::GetTargets(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef> result;
@@ -226,7 +226,7 @@ std::vector<NodeRef> RemoteNodeModel::GetTargets(
   return result;
 }
 
-NodeRef::Reference RemoteNodeModel::GetReference(
+NodeRef::Reference NodeModelImpl::GetReference(
     const scada::NodeId& reference_type_id,
     bool forward,
     const scada::NodeId& node_id) const {
@@ -251,7 +251,7 @@ NodeRef::Reference RemoteNodeModel::GetReference(
   return {};
 }
 
-std::vector<NodeRef::Reference> RemoteNodeModel::GetReferences(
+std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef::Reference> result;
@@ -281,7 +281,7 @@ std::vector<NodeRef::Reference> RemoteNodeModel::GetReferences(
   return result;
 }
 
-scada::Variant RemoteNodeModel::GetAttribute(
+scada::Variant NodeModelImpl::GetAttribute(
     scada::AttributeId attribute_id) const {
   switch (attribute_id) {
     case scada::AttributeId::NodeId:
@@ -318,48 +318,47 @@ scada::Variant RemoteNodeModel::GetAttribute(
   }
 }
 
-NodeRef RemoteNodeModel::GetDataType() const {
+NodeRef NodeModelImpl::GetDataType() const {
   return service_.GetNode(node_state_.attributes.data_type);
 }
 
-void RemoteNodeModel::SetError(const scada::Status& status) {
+void NodeModelImpl::SetError(const scada::Status& status) {
   assert(status_.good());
 
   status_ = status;
 }
 
-void RemoteNodeModel::OnFetchRequested(
-    const NodeFetchStatus& requested_status) {
+void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {
   service_.OnFetchNode(node_id_, requested_status);
 }
 
-std::shared_ptr<scada::MonitoredItem> RemoteNodeModel::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
   return nullptr;
 }
 
-void RemoteNodeModel::Read(scada::AttributeId attribute_id,
-                           const NodeRef::ReadCallback& callback) const {
+void NodeModelImpl::Read(scada::AttributeId attribute_id,
+                         const NodeRef::ReadCallback& callback) const {
   callback(scada::MakeReadError(scada::StatusCode::Bad_Disconnected));
 }
 
-void RemoteNodeModel::Write(scada::AttributeId attribute_id,
-                            const scada::Variant& value,
-                            const scada::WriteFlags& flags,
-                            const scada::NodeId& user_id,
-                            const scada::StatusCallback& callback) const {
+void NodeModelImpl::Write(scada::AttributeId attribute_id,
+                          const scada::Variant& value,
+                          const scada::WriteFlags& flags,
+                          const scada::NodeId& user_id,
+                          const scada::StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
 }
 
-void RemoteNodeModel::Call(const scada::NodeId& method_id,
-                           const std::vector<scada::Variant>& arguments,
-                           const scada::NodeId& user_id,
-                           const scada::StatusCallback& callback) const {
+void NodeModelImpl::Call(const scada::NodeId& method_id,
+                         const std::vector<scada::Variant>& arguments,
+                         const scada::NodeId& user_id,
+                         const scada::StatusCallback& callback) const {
   callback(scada::StatusCode::Bad_Disconnected);
 }
 
-void RemoteNodeModel::NotifyModelChanged() {
+void NodeModelImpl::NotifyModelChanged() {
   if (callback_lock_count_ != 0) {
     pending_model_changed_ = true;
     return;
@@ -377,7 +376,7 @@ void RemoteNodeModel::NotifyModelChanged() {
   service_.NotifyModelChanged(event);
 }
 
-void RemoteNodeModel::NotifySemanticChanged() {
+void NodeModelImpl::NotifySemanticChanged() {
   if (callback_lock_count_ != 0) {
     pending_semantic_changed_ = true;
     return;
@@ -390,3 +389,5 @@ void RemoteNodeModel::NotifySemanticChanged() {
 
   service_.NotifySemanticsChanged(node_id_);
 }
+
+}  // namespace v2

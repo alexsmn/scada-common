@@ -15,11 +15,13 @@ class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
 
+namespace v2 {
+
 class NodeFetcher;
-class RemoteNodeModel;
+class NodeModelImpl;
 struct NodeModelImplReference;
 
-struct RemoteNodeServiceContext {
+struct NodeServiceImplContext {
   boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
@@ -27,14 +29,13 @@ struct RemoteNodeServiceContext {
   scada::MonitoredItemService& monitored_item_service_;
 };
 
-class RemoteNodeService
-    : private RemoteNodeServiceContext,
-      private scada::ViewEvents,
-      public NodeService,
-      public std::enable_shared_from_this<RemoteNodeService> {
+class NodeServiceImpl : private NodeServiceImplContext,
+                        private scada::ViewEvents,
+                        public NodeService,
+                        public std::enable_shared_from_this<NodeServiceImpl> {
  public:
-  explicit RemoteNodeService(RemoteNodeServiceContext&& context);
-  ~RemoteNodeService();
+  explicit NodeServiceImpl(NodeServiceImplContext&& context);
+  ~NodeServiceImpl();
 
   void OnChannelOpened();
   void OnChannelClosed();
@@ -46,7 +47,7 @@ class RemoteNodeService
   virtual size_t GetPendingTaskCount() const override;
 
  private:
-  std::shared_ptr<RemoteNodeModel> GetNodeModel(const scada::NodeId& node_id);
+  std::shared_ptr<NodeModelImpl> GetNodeModel(const scada::NodeId& node_id);
 
   void NotifyModelChanged(const scada::ModelChangeEvent& event);
   void NotifySemanticsChanged(const scada::NodeId& node_id);
@@ -67,7 +68,7 @@ class RemoteNodeService
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 
-  std::map<scada::NodeId, std::shared_ptr<RemoteNodeModel>> nodes_;
+  std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   const std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;
@@ -78,5 +79,7 @@ class RemoteNodeService
   ViewEventsSubscription view_events_subscription_{monitored_item_service_,
                                                    *this};
 
-  friend class RemoteNodeModel;
+  friend class NodeModelImpl;
 };
+
+}  // namespace v2

@@ -12,12 +12,14 @@ namespace scada {
 struct ModelChangeEvent;
 }
 
-class RemoteNodeModel;
-class RemoteNodeService;
+namespace v2 {
+
+class NodeModelImpl;
+class NodeServiceImpl;
 
 struct RemoteReference {
-  RemoteNodeModel* reference_type = nullptr;
-  RemoteNodeModel* target = nullptr;
+  NodeModelImpl* reference_type = nullptr;
+  NodeModelImpl* target = nullptr;
   bool forward = true;
 };
 
@@ -26,11 +28,10 @@ using ReferenceMap =
              std::map<scada::NodeId /*target_id*/,
                       scada::NodeId /*child_reference_type_id*/>>;
 
-class RemoteNodeModel final
-    : public BaseNodeModel,
-      public std::enable_shared_from_this<RemoteNodeModel> {
+class NodeModelImpl final : public BaseNodeModel,
+                            public std::enable_shared_from_this<NodeModelImpl> {
  public:
-  RemoteNodeModel(RemoteNodeService& service, scada::NodeId node_id);
+  NodeModelImpl(NodeServiceImpl& service, scada::NodeId node_id);
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
@@ -89,7 +90,7 @@ class RemoteNodeModel final
   void NotifyModelChanged();
   void NotifySemanticChanged();
 
-  RemoteNodeService& service_;
+  NodeServiceImpl& service_;
   const scada::NodeId node_id_;
 
   scada::NodeState node_state_;
@@ -100,5 +101,7 @@ class RemoteNodeModel final
   bool pending_model_changed_ = false;
   bool pending_semantic_changed_ = false;
 
-  friend class RemoteNodeService;
+  friend class NodeServiceImpl;
 };
+
+}  // namespace v2

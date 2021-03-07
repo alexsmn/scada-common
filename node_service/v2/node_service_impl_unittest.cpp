@@ -1,4 +1,4 @@
-#include "node_service/remote/remote_node_service.h"
+#include "node_service/v2/node_service_impl.h"
 
 #include "address_space/test/test_address_space.h"
 #include "base/test/test_executor.h"
@@ -11,6 +11,8 @@
 
 #include "core/debug_util-inl.h"
 
+namespace v2 {
+
 using namespace testing;
 
 /*struct NodeRefServiceImplTestContext {
@@ -18,19 +20,19 @@ using namespace testing;
   TestAddressSpace address_space;
   TestViewService view_service{address_space};
   MockAttributeService attribute_service;
-  RemoteNodeService node_service{NodeRefServiceImplContext{
+  NodeServiceImpl node_service{NodeRefServiceImplContext{
       logger,
       view_service,
       attribute_service,
   }};
 };*/
 
-TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
+TEST(NodeServiceImpl, DISABLED_FetchTypeDefinition) {
   boost::asio::io_context io_context;
   auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
-  RemoteNodeService node_service{RemoteNodeServiceContext{
+  NodeServiceImpl node_service{NodeServiceImplContext{
       io_context,
       executor,
       address_space,
@@ -52,12 +54,12 @@ TEST(RemoteNodeService, DISABLED_FetchTypeDefinition) {
   EXPECT_EQ(prop1.browse_name().name(), address_space.kTestProp1BrowseName);
 }
 
-TEST(RemoteNodeService, DISABLED_FetchObject) {
+TEST(NodeServiceImpl, DISABLED_FetchObject) {
   boost::asio::io_context io_context;
   auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
-  RemoteNodeService node_service{RemoteNodeServiceContext{
+  NodeServiceImpl node_service{NodeServiceImplContext{
       io_context,
       executor,
       address_space,
@@ -84,3 +86,5 @@ TEST(RemoteNodeService, DISABLED_FetchObject) {
   EXPECT_EQ(prop1.browse_name().name(), address_space.kTestProp1BrowseName);
   EXPECT_EQ(prop1.value(), "TestNode1.TestProp1.Value");
 }
+
+}  // namespace v2
