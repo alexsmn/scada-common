@@ -1,4 +1,4 @@
-#include "node_service/address_space/address_space_node_service.h"
+#include "node_service/v1/node_service_impl.h"
 
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
@@ -6,10 +6,12 @@
 #include "core/attribute_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
-#include "node_service/address_space/address_space_node_model.h"
 #include "node_service/node_observer.h"
+#include "node_service/v1/node_model_impl.h"
 
 #include "core/debug_util-inl.h"
+
+namespace v1 {
 
 namespace {
 
@@ -24,16 +26,15 @@ const scada::Node* GetSemanticParent(const scada::Node& node) {
 
 }  // namespace
 
-// AddressSpaceNodeService
+// NodeServiceImpl
 
-AddressSpaceNodeService::AddressSpaceNodeService(
-    AddressSpaceNodeServiceContext&& context)
-    : AddressSpaceNodeServiceContext{std::move(context)},
+NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
+    : NodeServiceImplContext{std::move(context)},
       fetcher_{AddressSpaceFetcher::Create(MakeAddressSpaceFetcherContext())} {
   address_space_.Subscribe(*this);
 }
 
-AddressSpaceNodeService::~AddressSpaceNodeService() {
+NodeServiceImpl::~NodeServiceImpl() {
   assert(!observers_.might_have_observers());
 
   address_space_.Unsubscribe(*this);
@@ -41,7 +42,7 @@ AddressSpaceNodeService::~AddressSpaceNodeService() {
   nodes_.clear();
 }
 
-NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
+NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   if (node_id.is_null())
     return nullptr;
 
@@ -49,7 +50,7 @@ NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
   if (model)
     return model;
 
-  model = std::make_shared<AddressSpaceNodeModel>(AddressSpaceNodeModelContext{
+  model = std::make_shared<NodeModelImpl>(AddressSpaceNodeModelContext{
       *this,
       node_id,
       attribute_service_,
@@ -67,16 +68,15 @@ NodeRef AddressSpaceNodeService::GetNode(const scada::NodeId& node_id) {
   return model;
 }
 
-void AddressSpaceNodeService::Subscribe(NodeRefObserver& observer) const {
+void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
   observers_.AddObserver(&observer);
 }
 
-void AddressSpaceNodeService::Unsubscribe(NodeRefObserver& observer) const {
+void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
   observers_.RemoveObserver(&observer);
 }
 
-void AddressSpaceNodeService::OnModelChanged(
-    const scada::ModelChangeEvent& event) {
+void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   // Model must handle node deletion first to correctly cleanup a refrence to
   // the node, since it has already been deleted.
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
@@ -86,16 +86,15 @@ void AddressSpaceNodeService::OnModelChanged(
     o.OnModelChanged(event);
 }
 
-void AddressSpaceNodeService::OnNodeCreated(const scada::Node& node) {}
+void NodeServiceImpl::OnNodeCreated(const scada::Node& node) {}
 
-void AddressSpaceNodeService::OnNodeDeleted(const scada::Node& node) {
+void NodeServiceImpl::OnNodeDeleted(const scada::Node& node) {
   if (auto i = nodes_.find(node.id()); i != nodes_.end())
     i->second->OnNodeDeleted();
 }
 
-void AddressSpaceNodeService::OnNodeModified(
-    const scada::Node& node,
-    const scada::PropertyIds& property_ids) {
+void NodeServiceImpl::OnNodeModified(const scada::Node& node,
+                                     const scada::PropertyIds& property_ids) {
   auto* semantic_node = &node;
   while (auto* n = GetSemanticParent(*semantic_node))
     semantic_node = n;
@@ -109,7 +108,7 @@ void AddressSpaceNodeService::OnNodeModified(
     i->second->OnNodeSemanticChanged();
 }
 
-void AddressSpaceNodeService::OnReferenceAdded(
+void NodeServiceImpl::OnReferenceAdded(
     const scada::ReferenceType& reference_type,
     const scada::Node& source,
     const scada::Node& target) {
@@ -121,7 +120,7 @@ void AddressSpaceNodeService::OnReferenceAdded(
   }
 }
 
-void AddressSpaceNodeService::OnReferenceDeleted(
+void NodeServiceImpl::OnReferenceDeleted(
     const scada::ReferenceType& reference_type,
     const scada::Node& source,
     const scada::Node& target) {
@@ -133,21 +132,21 @@ void AddressSpaceNodeService::OnReferenceDeleted(
   }
 }
 
-NodeRef AddressSpaceNodeService::GetRemoteNode(const scada::Node* node) {
+NodeRef NodeServiceImpl::GetRemoteNode(const scada::Node* node) {
   return node ? GetNode(node->id()) : nullptr;
 }
 
-void AddressSpaceNodeService::OnNodeModelDeleted(const scada::NodeId& node_id) {
+void NodeServiceImpl::OnNodeModelDeleted(const scada::NodeId& node_id) {
   nodes_.erase(node_id);
 }
 
-void AddressSpaceNodeService::OnNodeModelFetchRequested(
+void NodeServiceImpl::OnNodeModelFetchRequested(
     const scada::NodeId& node_id,
     const NodeFetchStatus& requested_status) {
   fetcher_->FetchNode(node_id, requested_status);
 }
 
-void AddressSpaceNodeService::OnNodeFetchStatusChanged(
+void NodeServiceImpl::OnNodeFetchStatusChanged(
     const scada::NodeId& node_id,
     const scada::Status& status,
     const NodeFetchStatus& fetch_status) {
@@ -170,8 +169,7 @@ void AddressSpaceNodeService::OnNodeFetchStatusChanged(
   }
 }
 
-AddressSpaceFetcherContext
-AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
+AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
   auto node_fetch_status_changed_handler =
       [this](const scada::NodeId& node_id, const scada::Status& status,
              const NodeFetchStatus& fetch_status) {
@@ -198,14 +196,16 @@ AddressSpaceNodeService::MakeAddressSpaceFetcherContext() {
   };
 }
 
-void AddressSpaceNodeService::OnChannelOpened() {
+void NodeServiceImpl::OnChannelOpened() {
   fetcher_->OnChannelOpened();
 }
 
-void AddressSpaceNodeService::OnChannelClosed() {
+void NodeServiceImpl::OnChannelClosed() {
   fetcher_->OnChannelClosed();
 }
 
-size_t AddressSpaceNodeService::GetPendingTaskCount() const {
+size_t NodeServiceImpl::GetPendingTaskCount() const {
   return fetcher_->GetPendingTaskCount();
 }
+
+}  // namespace v1

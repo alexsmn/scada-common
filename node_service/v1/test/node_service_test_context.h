@@ -8,20 +8,20 @@
 #include "base/test/test_executor.h"
 #include "core/method_service_mock.h"
 #include "core/monitored_item_service_mock.h"
-#include "node_service/address_space/address_space_node_service.h"
 #include "node_service/mock_node_observer.h"
+#include "node_service/v1/node_service_impl.h"
 
 #include <boost/asio/io_context.hpp>
 
-namespace testing {
+namespace v1 {
 
-struct AddressSpaceNodeServiceTestContext {
-  AddressSpaceNodeServiceTestContext() {
+struct NodeServiceTestContext {
+  NodeServiceTestContext() {
     node_service.Subscribe(node_observer);
     node_service.OnChannelOpened();
   }
 
-  ~AddressSpaceNodeServiceTestContext() {
+  ~NodeServiceTestContext() {
     node_service.Unsubscribe(node_observer);
 
     client_address_space.Clear();
@@ -51,12 +51,12 @@ struct AddressSpaceNodeServiceTestContext {
     return std::make_unique<IViewEventsSubscription>();
   };
 
-  AddressSpaceNodeService node_service{AddressSpaceNodeServiceContext{
+  NodeServiceImpl node_service{NodeServiceImplContext{
       io_context, executor, view_events_provider, server_address_space,
       server_address_space, client_address_space, node_factory,
       monitored_item_service, method_service}};
 
-  NiceMock<MockNodeObserver> node_observer;
+  testing::NiceMock<MockNodeObserver> node_observer;
 };
 
-}  // namespace testing
+}  // namespace v1

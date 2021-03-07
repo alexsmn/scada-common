@@ -1,4 +1,4 @@
-#include "node_service/address_space/address_space_fetcher.h"
+#include "node_service/v1/address_space_fetcher.h"
 
 #include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"

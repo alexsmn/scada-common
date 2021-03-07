@@ -3,9 +3,9 @@
 #include "common/view_events_subscription.h"
 #include "core/configuration_types.h"
 #include "core/view_service.h"
-#include "node_service/address_space/node_fetch_status_tracker.h"
 #include "node_service/node_children_fetcher.h"
 #include "node_service/node_fetcher_impl.h"
+#include "node_service/v1/node_fetch_status_tracker.h"
 
 #include <map>
 #include <memory>

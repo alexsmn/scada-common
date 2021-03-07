@@ -1,10 +1,10 @@
-#include "node_service/address_space/address_space_fetcher.h"
+#include "node_service/v1/address_space_fetcher.h"
 
 #include "address_space/address_space_impl.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "model/node_id_util.h"
-#include "node_service/address_space/address_space_updater.h"
+#include "node_service/v1/address_space_updater.h"
 
 namespace {
 

@@ -1,12 +1,14 @@
 #include "node_service/node_service.h"
 
 #include "model/node_id_util.h"
-#include "node_service/address_space/test/address_space_node_service_test_context.h"
+#include "node_service/v1/test/node_service_test_context.h"
+
+namespace v1 {
 
 using namespace testing;
 
-TEST(AddressSpaceNodeService, FetchNode) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, FetchNode) {
+  NodeServiceTestContext context;
 
   auto node =
       context.node_service.GetNode(context.server_address_space.kTestNode2Id);
@@ -21,8 +23,8 @@ TEST(AddressSpaceNodeService, FetchNode) {
             node[context.server_address_space.kTestProp2Id].value());
 }
 
-TEST(AddressSpaceNodeService, FetchUnknownNode) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, FetchUnknownNode) {
+  NodeServiceTestContext context;
 
   const scada::NodeId kUnknownNodeId{1, 100};
 
@@ -32,8 +34,8 @@ TEST(AddressSpaceNodeService, FetchUnknownNode) {
   EXPECT_FALSE(node.status());
 }
 
-TEST(AddressSpaceNodeService, NodeAdded) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, NodeAdded) {
+  NodeServiceTestContext context;
 
   const scada::NodeState kNewNode{
       scada::NodeId{"NewNodeId", 0},
@@ -64,8 +66,8 @@ TEST(AddressSpaceNodeService, NodeAdded) {
   EXPECT_EQ(node.browse_name(), "NewNode");
 }
 
-TEST(AddressSpaceNodeService, NodeDeleted) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, NodeDeleted) {
+  NodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
   ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
@@ -85,8 +87,8 @@ TEST(AddressSpaceNodeService, NodeDeleted) {
   EXPECT_FALSE(node.status());
 }
 
-TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, NodeSemanticsChanged) {
+  NodeServiceTestContext context;
 
   const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
   const scada::LocalizedText kNewDisplayName{
@@ -108,8 +110,8 @@ TEST(AddressSpaceNodeService, NodeSemanticsChanged) {
   EXPECT_EQ(kNewValue, node[context.server_address_space.kTestProp1Id].value());
 }
 
-TEST(AddressSpaceNodeService, DISABLED_DeleteNodeByDeletionOfParentReference) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, DISABLED_DeleteNodeByDeletionOfParentReference) {
+  NodeServiceTestContext context;
 
   const scada::NodeId kParentNodeId = context.server_address_space.kTestNode3Id;
   const scada::NodeId kNodeId = context.server_address_space.kTestNode4Id;
@@ -176,8 +178,8 @@ TEST(AddressSpaceNodeService, DISABLED_DeleteNodeByDeletionOfParentReference) {
     EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);*/
 }
 
-TEST(AddressSpaceNodeService, DISABLED_ReferencedNodeDeletionAndRestoration) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, DISABLED_ReferencedNodeDeletionAndRestoration) {
+  NodeServiceTestContext context;
 
   /*const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
   scada::NodeState saved_node_state;
@@ -229,10 +231,12 @@ TEST(AddressSpaceNodeService, DISABLED_ReferencedNodeDeletionAndRestoration) {
   EXPECT_EQ(node.display_name(), saved_node_state.attributes.display_name);*/
 }
 
-TEST(AddressSpaceNodeService, DISABLED_FetchProperty) {
-  AddressSpaceNodeServiceTestContext context;
+TEST(NodeServiceImpl, DISABLED_FetchProperty) {
+  NodeServiceTestContext context;
 
   auto node =
       context.node_service.GetNode(context.server_address_space.kTestNode1Id);
   auto prop = node[context.server_address_space.kTestProp1Id];
 }
+
+}  // namespace v1

@@ -11,6 +11,6 @@ target_link_libraries(node_service_unittests PUBLIC
 
 # Subdirectories
 
-add_subdirectory(address_space)
+add_subdirectory(v1)
 add_subdirectory(v2)
 add_subdirectory(v3)

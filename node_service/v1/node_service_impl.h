@@ -2,9 +2,9 @@
 
 #include "base/observer_list.h"
 #include "common/view_events_subscription.h"
-#include "node_service/address_space/address_space_fetcher.h"
-#include "node_service/address_space/address_space_node_model.h"
 #include "node_service/node_service.h"
+#include "node_service/v1/address_space_fetcher.h"
+#include "node_service/v1/node_model_impl.h"
 
 #include <map>
 
@@ -20,9 +20,11 @@ class Node;
 struct ModelChangeEvent;
 }  // namespace scada
 
-class AddressSpaceNodeModel;
+namespace v1 {
 
-struct AddressSpaceNodeServiceContext {
+class NodeModelImpl;
+
+struct NodeServiceImplContext {
   boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   const ViewEventsProvider view_events_provider_;
@@ -34,13 +36,13 @@ struct AddressSpaceNodeServiceContext {
   scada::MethodService& method_service_;
 };
 
-class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
-                                      public NodeService,
-                                      private AddressSpaceNodeModelDelegate,
-                                      private scada::NodeObserver {
+class NodeServiceImpl final : private NodeServiceImplContext,
+                              public NodeService,
+                              private NodeModelDelegate,
+                              private scada::NodeObserver {
  public:
-  explicit AddressSpaceNodeService(AddressSpaceNodeServiceContext&& context);
-  ~AddressSpaceNodeService();
+  explicit NodeServiceImpl(NodeServiceImplContext&& context);
+  ~NodeServiceImpl();
 
   void OnChannelOpened();
   void OnChannelClosed();
@@ -60,7 +62,7 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
 
-  // AddressSpaceNodeModelDelegate
+  // NodeModelDelegate
   virtual NodeRef GetRemoteNode(const scada::Node* node) override;
   virtual void OnNodeModelDeleted(const scada::NodeId& node_id) override;
   virtual void OnNodeModelFetchRequested(
@@ -81,9 +83,11 @@ class AddressSpaceNodeService final : private AddressSpaceNodeServiceContext,
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 
-  std::map<scada::NodeId, std::shared_ptr<AddressSpaceNodeModel>> nodes_;
+  std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 
   const std::shared_ptr<AddressSpaceFetcher> fetcher_;
 
-  friend class AddressSpaceNodeModel;
+  friend class NodeModelImpl;
 };
+
+}  // namespace v1

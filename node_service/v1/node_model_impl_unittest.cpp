@@ -1,4 +1,4 @@
-#include "address_space_node_model.h"
+#include "node_service/v1/node_model_impl.h"
 
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
@@ -11,9 +11,11 @@
 
 #include <gmock/gmock.h>
 
+namespace v1 {
+
 using namespace testing;
 
-class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
+class MockAddressSpaceNodeModelDelegate : public NodeModelDelegate {
  public:
   MOCK_METHOD1(GetRemoteNode, NodeRef(const scada::Node* node));
   MOCK_METHOD1(OnNodeModelDeleted, void(const scada::NodeId& node_id));
@@ -22,7 +24,7 @@ class MockAddressSpaceNodeModelDelegate : public AddressSpaceNodeModelDelegate {
                     const NodeFetchStatus& requested_status));
 };
 
-TEST(AddressSpaceNodeModel, Fetch) {
+TEST(NodeModelImpl, Fetch) {
   const scada::NodeId kNodeId = scada::id::RootFolder;
 
   AddressSpaceImpl address_space{std::make_shared<NullLogger>()};
@@ -30,7 +32,7 @@ TEST(AddressSpaceNodeModel, Fetch) {
   NiceMock<scada::MockAttributeService> attribute_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   NiceMock<scada::MockMethodService> method_service;
-  AddressSpaceNodeModel node{AddressSpaceNodeModelContext{
+  NodeModelImpl node{AddressSpaceNodeModelContext{
       delegate,
       kNodeId,
       attribute_service,
@@ -68,3 +70,5 @@ TEST(AddressSpaceNodeModel, Fetch) {
   EXPECT_TRUE(fetched);
   EXPECT_TRUE(children_fetched);
 }
+
+}  // namespace v1

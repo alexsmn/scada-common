@@ -1,4 +1,4 @@
-#include "node_service/address_space/address_space_updater.h"
+#include "node_service/v1/address_space_updater.h"
 
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"

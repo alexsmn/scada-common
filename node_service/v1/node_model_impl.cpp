@@ -1,4 +1,4 @@
-#include "node_service/address_space/address_space_node_model.h"
+#include "node_service/v1/node_model_impl.h"
 
 #include "core/attribute_service.h"
 #include "core/method_service.h"
@@ -7,18 +7,18 @@
 #include "node_service/node_observer.h"
 #include "node_service/node_service.h"
 
-AddressSpaceNodeModel::AddressSpaceNodeModel(
-    AddressSpaceNodeModelContext&& context)
+namespace v1 {
+
+NodeModelImpl::NodeModelImpl(AddressSpaceNodeModelContext&& context)
     : AddressSpaceNodeModelContext{std::move(context)} {}
 
-AddressSpaceNodeModel::~AddressSpaceNodeModel() {
+NodeModelImpl::~NodeModelImpl() {
   assert(!observers_.might_have_observers());
 
   // delegate_.OnNodeModelDeleted(node_id_);
 }
 
-void AddressSpaceNodeModel::OnModelChanged(
-    const scada::ModelChangeEvent& event) {
+void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   // The node reference must be cleaned up at first, as the observers may access
   // to the object.
   if (event.verb & scada::ModelChangeEvent::NodeDeleted)
@@ -28,12 +28,12 @@ void AddressSpaceNodeModel::OnModelChanged(
     o.OnModelChanged(event);
 }
 
-void AddressSpaceNodeModel::OnNodeSemanticChanged() {
+void NodeModelImpl::OnNodeSemanticChanged() {
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(node_id_);
 }
 
-scada::Variant AddressSpaceNodeModel::GetAttribute(
+scada::Variant NodeModelImpl::GetAttribute(
     scada::AttributeId attribute_id) const {
   if (attribute_id == scada::AttributeId::NodeId)
     return node_id_;
@@ -65,7 +65,7 @@ scada::Variant AddressSpaceNodeModel::GetAttribute(
   return {};
 }
 
-std::vector<NodeRef::Reference> AddressSpaceNodeModel::GetReferences(
+std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef::Reference> result;
@@ -84,14 +84,13 @@ std::vector<NodeRef::Reference> AddressSpaceNodeModel::GetReferences(
   return result;
 }
 
-NodeRef AddressSpaceNodeModel::GetDataType() const {
+NodeRef NodeModelImpl::GetDataType() const {
   auto* variable = scada::AsVariable(node_);
   auto* data_type = variable ? &variable->GetDataType() : nullptr;
   return delegate_.GetRemoteNode(data_type);
 }
 
-NodeRef AddressSpaceNodeModel::GetAggregate(
-    const scada::NodeId& declaration_id) const {
+NodeRef NodeModelImpl::GetAggregate(const scada::NodeId& declaration_id) const {
   if (!node_)
     return nullptr;
 
@@ -112,8 +111,7 @@ NodeRef AddressSpaceNodeModel::GetAggregate(
     return GetChild(declaration->GetBrowseName());
 }
 
-NodeRef AddressSpaceNodeModel::GetChild(
-    const scada::QualifiedName& child_name) const {
+NodeRef NodeModelImpl::GetChild(const scada::QualifiedName& child_name) const {
   assert(fetch_status_.node_fetched);
 
   if (!node_)
@@ -127,8 +125,8 @@ NodeRef AddressSpaceNodeModel::GetChild(
   return nullptr;
 }
 
-NodeRef AddressSpaceNodeModel::GetTarget(const scada::NodeId& reference_type_id,
-                                         bool forward) const {
+NodeRef NodeModelImpl::GetTarget(const scada::NodeId& reference_type_id,
+                                 bool forward) const {
   if (!node_)
     return nullptr;
 
@@ -142,7 +140,7 @@ NodeRef AddressSpaceNodeModel::GetTarget(const scada::NodeId& reference_type_id,
   return nullptr;
 }
 
-std::vector<NodeRef> AddressSpaceNodeModel::GetTargets(
+std::vector<NodeRef> NodeModelImpl::GetTargets(
     const scada::NodeId& reference_type_id,
     bool forward) const {
   std::vector<NodeRef> result;
@@ -160,7 +158,7 @@ std::vector<NodeRef> AddressSpaceNodeModel::GetTargets(
   return result;
 }
 
-NodeRef::Reference AddressSpaceNodeModel::GetReference(
+NodeRef::Reference NodeModelImpl::GetReference(
     const scada::NodeId& reference_type_id,
     bool forward,
     const scada::NodeId& node_id) const {
@@ -172,10 +170,9 @@ NodeRef::Reference AddressSpaceNodeModel::GetReference(
           delegate_.GetRemoteNode(reference.node), forward};
 }
 
-void AddressSpaceNodeModel::SetFetchStatus(
-    const scada::Node* node,
-    const scada::Status& status,
-    const NodeFetchStatus& fetch_status) {
+void NodeModelImpl::SetFetchStatus(const scada::Node* node,
+                                   const scada::Status& status,
+                                   const NodeFetchStatus& fetch_status) {
   node_ = node;
 
   BaseNodeModel::SetFetchStatus(status, fetch_status);
@@ -191,27 +188,25 @@ void AddressSpaceNodeModel::SetFetchStatus(
   }
 }
 
-void AddressSpaceNodeModel::OnFetchRequested(
-    const NodeFetchStatus& requested_status) {
+void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {
   delegate_.OnNodeModelFetchRequested(node_id_, requested_status);
 }
 
-void AddressSpaceNodeModel::OnNodeDeleted() {
+void NodeModelImpl::OnNodeDeleted() {
   node_ = nullptr;
 
   BaseNodeModel::OnNodeDeleted();
 }
 
-std::shared_ptr<scada::MonitoredItem>
-AddressSpaceNodeModel::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
   return monitored_item_service_.CreateMonitoredItem({node_id_, attribute_id},
                                                      params);
 }
 
-void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,
-                                 const NodeRef::ReadCallback& callback) const {
+void NodeModelImpl::Read(scada::AttributeId attribute_id,
+                         const NodeRef::ReadCallback& callback) const {
   std::vector<scada::ReadValueId> inputs;
   inputs.emplace_back(scada::ReadValueId{node_id_, attribute_id});
 
@@ -228,11 +223,11 @@ void AddressSpaceNodeModel::Read(scada::AttributeId attribute_id,
       });
 }
 
-void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
-                                  const scada::Variant& value,
-                                  const scada::WriteFlags& flags,
-                                  const scada::NodeId& user_id,
-                                  const scada::StatusCallback& callback) const {
+void NodeModelImpl::Write(scada::AttributeId attribute_id,
+                          const scada::Variant& value,
+                          const scada::WriteFlags& flags,
+                          const scada::NodeId& user_id,
+                          const scada::StatusCallback& callback) const {
   std::vector<scada::WriteValueId> inputs;
   inputs.emplace_back(
       scada::WriteValueId{node_id_, attribute_id, value, flags});
@@ -245,9 +240,11 @@ void AddressSpaceNodeModel::Write(scada::AttributeId attribute_id,
       });
 }
 
-void AddressSpaceNodeModel::Call(const scada::NodeId& method_id,
-                                 const std::vector<scada::Variant>& arguments,
-                                 const scada::NodeId& user_id,
-                                 const scada::StatusCallback& callback) const {
+void NodeModelImpl::Call(const scada::NodeId& method_id,
+                         const std::vector<scada::Variant>& arguments,
+                         const scada::NodeId& user_id,
+                         const scada::StatusCallback& callback) const {
   method_service_.Call(node_id_, method_id, arguments, user_id, callback);
 }
+
+}  // namespace v1

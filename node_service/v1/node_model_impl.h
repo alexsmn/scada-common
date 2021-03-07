@@ -12,11 +12,13 @@ class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
 
-class AddressSpaceNodeModel;
+namespace v1 {
 
-class AddressSpaceNodeModelDelegate {
+class NodeModelImpl;
+
+class NodeModelDelegate {
  public:
-  virtual ~AddressSpaceNodeModelDelegate() {}
+  virtual ~NodeModelDelegate() {}
 
   // If |node| is nullptr, empty node model is returned.
   virtual NodeRef GetRemoteNode(const scada::Node* node) = 0;
@@ -29,20 +31,19 @@ class AddressSpaceNodeModelDelegate {
 };
 
 struct AddressSpaceNodeModelContext {
-  AddressSpaceNodeModelDelegate& delegate_;
+  NodeModelDelegate& delegate_;
   const scada::NodeId node_id_;
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;
 };
 
-class AddressSpaceNodeModel final
-    : private AddressSpaceNodeModelContext,
-      public BaseNodeModel,
-      public std::enable_shared_from_this<AddressSpaceNodeModel> {
+class NodeModelImpl final : private AddressSpaceNodeModelContext,
+                            public BaseNodeModel,
+                            public std::enable_shared_from_this<NodeModelImpl> {
  public:
-  explicit AddressSpaceNodeModel(AddressSpaceNodeModelContext&& context);
-  ~AddressSpaceNodeModel();
+  explicit NodeModelImpl(AddressSpaceNodeModelContext&& context);
+  ~NodeModelImpl();
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
@@ -94,3 +95,5 @@ class AddressSpaceNodeModel final
 
   const scada::Node* node_ = nullptr;
 };
+
+}  // namespace v1

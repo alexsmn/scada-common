@@ -17,8 +17,6 @@
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 
-namespace testing {
-
 class TestAddressSpace : public AddressSpaceImpl,
                          private SyncAttributeServiceImpl,
                          public AttributeServiceImpl,
@@ -195,5 +193,3 @@ inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
   RemoveNode(node_id);
   // NotifyModelChanged({node_id, {}, scada::ModelChangeEvent::NodeDeleted});
 }
-
-}  // namespace testing
