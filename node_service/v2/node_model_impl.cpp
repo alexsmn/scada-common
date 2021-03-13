@@ -39,18 +39,31 @@ void FetchReferences(NodeService& service,
   auto request = std::make_shared<JoinedRequest<Callback>>(
       std::forward<Callback>(callback));
 
+  NodeRef::FetchCallback fetch_callback = [request](const NodeRef& node) {
+    request->CountDown();
+  };
+
   int count = 0;
   for (auto& ref : references) {
     service.GetNode(ref.node_id)
-        .Fetch(NodeFetchStatus::NodeOnly(),
-               [request](const NodeRef& node) { request->CountDown(); });
+        .Fetch(NodeFetchStatus::NodeOnly(), fetch_callback);
     service.GetNode(ref.reference_type_id)
-        .Fetch(NodeFetchStatus::NodeOnly(),
-               [request](const NodeRef& node) { request->CountDown(); });
+        .Fetch(NodeFetchStatus::NodeOnly(), fetch_callback);
     count += 2;
   }
 
   request->Wait(count);
+}
+
+template <class Callback>
+void FetchTypeTree(const NodeRef& type_definition, Callback&& callback) {
+  if (!type_definition)
+    return;
+
+  type_definition.Fetch(NodeFetchStatus::NodeOnly(),
+                        [callback](const NodeRef& node) {
+                          FetchTypeTree(node.supertype(), callback);
+                        });
 }
 
 }  // namespace
@@ -70,11 +83,18 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 }
 
 void NodeModelImpl::OnNodeSemanticChanged() {
+  LOG_INFO(service_.logger_)
+      << "Node semantics changed"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(node_id_);
 }
 
 void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
+  LOG_INFO(service_.logger_)
+      << "Node fetched" << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+
   ++callback_lock_count_;
 
   node_state_ = std::move(node_state);
@@ -89,24 +109,28 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
         scada::id::HasSubtype, false, node_state_.supertype_id});
   }
 
-  for (const auto& ref : node_state_.references) {
+  /*for (const auto& ref : node_state_.references) {
     if (ref.node_id != node_id_) {
       if (auto target = service_.GetNodeModel(ref.node_id)) {
         target->node_state_.references.push_back(scada::ReferenceDescription{
             ref.reference_type_id, !ref.forward, node_id_});
       }
     }
-  }
-
-  SetFetchStatus(scada::StatusCode::Good, NodeFetchStatus::NodeOnly());
+  }*/
 
   NotifyModelChanged();
   NotifySemanticChanged();
 }
 
 void NodeModelImpl::OnFetchCompleted() {
+  LOG_INFO(service_.logger_)
+      << "Node fetch completed"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+
   assert(callback_lock_count_ > 0);
   --callback_lock_count_;
+
+  SetFetchStatus(scada::StatusCode::Good, NodeFetchStatus::NodeOnly());
 
   if (pending_model_changed_)
     NotifyModelChanged();
@@ -118,11 +142,19 @@ void NodeModelImpl::OnFetchCompleted() {
 }
 
 void NodeModelImpl::OnFetchError(scada::Status&& status) {
+  LOG_WARNING(service_.logger_)
+      << "Node fetch error" << LOG_TAG("NodeId", NodeIdToScadaString(node_id_))
+      << LOG_TAG("Status", ToString(status));
+
   SetFetchStatus(std::move(status), NodeFetchStatus::Max());
 }
 
 void NodeModelImpl::OnChildrenFetched(
     scada::ReferenceDescriptions&& references) {
+  LOG_INFO(service_.logger_) << "Node child references fetched"
+                             << LOG_TAG("NodeId", NodeIdToScadaString(node_id_))
+                             << LOG_TAG("ReferenceCount", references.size());
+
   auto shared_references =
       std::make_shared<scada::ReferenceDescriptions>(std::move(references));
 
@@ -132,6 +164,10 @@ void NodeModelImpl::OnChildrenFetched(
                   [reference_request, this, shared_references] {
                     if (!reference_request.lock())
                       return;
+
+                    LOG_INFO(service_.logger_)
+                        << "Node children fetched"
+                        << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
 
                     child_references_ = *shared_references;
 
@@ -364,6 +400,10 @@ void NodeModelImpl::NotifyModelChanged() {
     return;
   }
 
+  LOG_INFO(service_.logger_)
+      << "Notify node model changed"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+
   pending_model_changed_ = false;
 
   scada::ModelChangeEvent event{node_id_, node_state_.type_definition_id,
@@ -381,6 +421,10 @@ void NodeModelImpl::NotifySemanticChanged() {
     pending_semantic_changed_ = true;
     return;
   }
+
+  LOG_INFO(service_.logger_)
+      << "Notify node semantics changed"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
 
   pending_semantic_changed_ = false;
 

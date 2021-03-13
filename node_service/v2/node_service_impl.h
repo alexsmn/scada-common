@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "common/view_events_subscription.h"
 #include "core/view_service.h"
@@ -65,6 +66,8 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(
       const scada::SemanticChangeEvent& event) override;
+
+  BoostLogger logger_{LOG_NAME("v2::NodeService")};
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 

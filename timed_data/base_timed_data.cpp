@@ -25,11 +25,32 @@ void Dump(std::ostream& stream, const std::vector<T>& v) {
     stream << e << std::endl;
 }
 
+void Dump(std::ostream& stream, scada::DateTime time) {
+  if (time.is_min())
+    stream << "min";
+  else if (time.is_max())
+    stream << "max";
+  else if (time.is_null())
+    stream << "null";
+  else
+    stream << time;
+}
+
+void Dump(std::ostream& stream, const scada::DateTimeRange& range) {
+  stream << "(";
+  Dump(stream, range.first);
+  stream << ",";
+  Dump(stream, range.second);
+  stream << ")";
+}
+
 void Dump(
     std::ostream& stream,
     const std::map<TimedDataDelegate*, scada::DateTimeRange>& observer_ranges) {
-  for (auto& p : observer_ranges)
-    stream << ToString(p.second) << std::endl;
+  for (auto& p : observer_ranges) {
+    Dump(stream, p.second);
+    stream << std::endl;
+  }
 }
 
 template <class It>

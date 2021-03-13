@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "common/node_state.h"
 #include "node_service/base_node_model.h"

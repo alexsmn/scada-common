@@ -2,9 +2,12 @@
 
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
+#include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v2/node_model_impl.h"
+
+#include "core/debug_util-inl.h"
 
 namespace v2 {
 
@@ -92,6 +95,10 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
     return;
   }
 
+  LOG_INFO(logger_) << "Fetch node"
+                    << LOG_TAG("NodeId", NodeIdToScadaString(node_id))
+                    << LOG_TAG("RequestedStatus", ToString(requested_status));
+
   if (requested_status.node_fetched)
     node_fetcher_->Fetch(node_id);
   if (requested_status.children_fetched)
@@ -154,6 +161,8 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
 }
 
 void NodeServiceImpl::OnChannelOpened() {
+  LOG_INFO(logger_) << "Channel opened";
+
   assert(!channel_opened_);
   channel_opened_ = true;
 
@@ -161,6 +170,10 @@ void NodeServiceImpl::OnChannelOpened() {
   pending_fetch_nodes_.clear();
 
   for (auto& [node_id, requested_status] : pending_fetch_nodes) {
+    LOG_INFO(logger_) << "Fetch node"
+                      << LOG_TAG("NodeId", NodeIdToScadaString(node_id))
+                      << LOG_TAG("RequestedStatus", ToString(requested_status));
+
     if (requested_status.node_fetched)
       node_fetcher_->Fetch(node_id);
     if (requested_status.children_fetched)
@@ -169,6 +182,8 @@ void NodeServiceImpl::OnChannelOpened() {
 }
 
 void NodeServiceImpl::OnChannelClosed() {
+  LOG_INFO(logger_) << "Channel closed";
+
   assert(channel_opened_);
   assert(pending_fetch_nodes_.empty());
 
