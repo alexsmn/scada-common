@@ -66,6 +66,11 @@ void FetchTypeTree(const NodeRef& type_definition, Callback&& callback) {
                         });
 }
 
+template <class C, class E>
+inline bool Contains(const C& c, const E& e) {
+  return std::find(std::begin(c), std::end(c), e) != std::end(c);
+}
+
 }  // namespace
 
 // NodeModelImpl
@@ -109,11 +114,34 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
         scada::id::HasSubtype, false, node_state_.supertype_id});
   }
 
-  /*for (const auto& ref : node_state_.references) {
-    if (ref.node_id != node_id_) {
-      if (auto target = service_.GetNodeModel(ref.node_id)) {
-        target->node_state_.references.push_back(scada::ReferenceDescription{
-            ref.reference_type_id, !ref.forward, node_id_});
+  {
+    std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> updated_nodes;
+    for (const auto& ref : node_state_.references) {
+      if (ref.node_id != node_id_) {
+        if (auto target = service_.GetNodeModel(ref.node_id)) {
+          scada::ReferenceDescription inverse_reference{ref.reference_type_id,
+                                                        !ref.forward, node_id_};
+          if (!Contains(target->node_state_.references, inverse_reference)) {
+            target->node_state_.references.push_back(
+                std::move(inverse_reference));
+            updated_nodes.emplace(ref.node_id, target);
+          }
+        }
+      }
+    }
+    for (auto& [node_id, target] : updated_nodes)
+      target->NotifyModelChanged();
+  }
+
+  /*{
+    if (scada::IsInstance(node_state_.node_class)) {
+      assert(!node_state_.type_definition_id.is_null());
+      auto type_definition_id = node_state_.type_definition_id;
+      while (!type_definition_id.is_null()) {
+        auto type_definition = service_.GetNodeModel(type_definition_id);
+        assert(type_definition);
+        assert(type_definition->fetch_status_.node_fetched);
+        type_definition_id = type_definition->node_state_.supertype_id;
       }
     }
   }*/

@@ -1,5 +1,6 @@
 #include "node_service/v2/node_service_impl.h"
 
+#include "address_space/address_space_util.h"
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
@@ -110,6 +111,8 @@ void NodeServiceImpl::ProcessFetchedNodes(
   // Must update all nodes at first, then notify all together.
   // TODO: Simplify
 
+  SortNodesHierarchically(node_states);
+
   for (auto& node_state : node_states) {
     if (auto node = GetNodeModel(node_state.node_id))
       node->OnFetched(node_state);
@@ -137,7 +140,9 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
       };
 
   NodeValidator node_validator = [this](const scada::NodeId& node_id) -> bool {
-    return nodes_.find(node_id) != nodes_.end();
+    auto i = nodes_.find(node_id);
+    // TODO: Optimize |GetFetchStatus()|.
+    return i != nodes_.end() && i->second->GetFetchStatus().node_fetched;
   };
 
   return {

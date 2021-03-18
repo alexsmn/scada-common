@@ -80,6 +80,14 @@ inline void Erase(std::vector<T>& c, const T& v) {
     c.erase(i);
 }
 
+scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
+  auto i = std::find_if(references.begin(), references.end(),
+                        [](const scada::ReferenceDescription& ref) {
+                          return ref.reference_type_id == scada::id::HasSubtype;
+                        });
+  return i != references.end() ? i->node_id : scada::NodeId{};
+}
+
 }  // namespace
 
 NodeFetcherImpl::NodeFetcherImpl(NodeFetcherImplContext&& context)
@@ -316,6 +324,31 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
                     << LOG_TAG("FetchingCount", fetching_nodes_.size())
                     << LOG_TAG("Nodes", ToString(nodes))
                     << LOG_TAG("Errors", ToString(errors));
+
+#if !defined(NDEBUG)
+  // Validation.
+  {
+    std::map<scada::NodeId, const scada::NodeState*> type_definition_map;
+    for (auto& node : nodes)
+      type_definition_map.emplace(node.node_id, &node);
+    for (auto& node : nodes) {
+      if (scada::IsInstance(node.node_class)) {
+        assert(!node.type_definition_id.is_null());
+        auto type_definition_id = node.type_definition_id;
+        while (!type_definition_id.is_null()) {
+          if (node_validator_(type_definition_id))
+            break;
+          /*auto supertype_id = FindSupertypeId(node.references);
+          assert(!supertype_id.is_null());*/
+          auto* type_definiton = type_definition_map[type_definition_id];
+          assert(type_definiton);
+          assert(scada::IsTypeDefinition(type_definiton->node_class));
+          type_definition_id = type_definiton->supertype_id;
+        }
+      }
+    }
+  }
+#endif
 
   fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
