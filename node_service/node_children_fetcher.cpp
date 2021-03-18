@@ -29,6 +29,20 @@ std::string NodeIdsToString(
   return base::StrCat({"[", node_ids, "]"});
 }
 
+void MergeResult(std::map<scada::NodeId, scada::BrowseResult>& results,
+                 const scada::NodeId& node_id,
+                 scada::BrowseResult&& result) {
+  auto [i, ok] = results.try_emplace(node_id, std::move(result));
+  if (!ok) {
+    scada::BrowseResult& existing_result = i->second;
+    existing_result.references.insert(existing_result.references.end(),
+                                      result.references.begin(),
+                                      result.references.end());
+    if (scada::IsBad(existing_result.status_code))
+      existing_result.status_code = result.status_code;
+  }
+}
+
 }  // namespace
 
 NodeChildrenFetcher::NodeChildrenFetcher(NodeChildrenFetcherContext&& context)
@@ -73,17 +87,24 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
 
   assert(!descriptions.empty());
 
+  std::map<scada::NodeId, scada::BrowseResult> merged_results;
+
   for (size_t i = 0; i < descriptions.size(); ++i) {
     auto& description = descriptions[i];
 
     if (!status) {
-      reference_validator_(description.node_id, {status.code()});
+      MergeResult(merged_results, description.node_id,
+                  scada::BrowseResult{status.code()});
       continue;
     }
 
     auto& result = results[i];
-    reference_validator_(description.node_id, std::move(result));
+    MergeResult(merged_results, description.node_id, std::move(result));
   }
+
+  // TODO: Bulk update.
+  for (auto& [node_id, result] : merged_results)
+    reference_validator_(node_id, std::move(result));
 
   assert(children_request_count_ > 0);
   --children_request_count_;
@@ -124,6 +145,8 @@ void NodeChildrenFetcher::FetchChildren(
   for (auto& node_id : node_ids) {
     descriptions.push_back(
         {node_id, scada::BrowseDirection::Forward, scada::id::Organizes, true});
+    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
+                            scada::id::HasSubtype, true});
   }
 
   view_service_.Browse(
