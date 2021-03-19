@@ -143,11 +143,16 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
            node.parent_id == parent_info->parent_id);
     assert(node.reference_type_id.is_null() ||
            node.reference_type_id == parent_info->reference_type_id);
+    assert(node.supertype_id.is_null() ||
+           node.supertype_id == parent_info->supertype_id);
+
     node.parent_id = parent_info->parent_id;
     node.reference_type_id = parent_info->reference_type_id;
+    node.supertype_id = parent_info->supertype_id;
 
     ValidateDependency(node, node.parent_id);
     ValidateDependency(node, node.reference_type_id);
+    ValidateDependency(node, node.supertype_id);
   }
 
   FetchNode(node, next_pending_sequence_++);

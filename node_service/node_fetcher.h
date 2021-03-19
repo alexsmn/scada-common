@@ -20,6 +20,7 @@ class NodeFetcher {
   struct ParentInfo {
     scada::NodeId parent_id;
     scada::NodeId reference_type_id;
+    scada::NodeId supertype_id;
   };
 
   virtual void Fetch(const scada::NodeId& node_id,
