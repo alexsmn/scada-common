@@ -4,6 +4,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "core/attribute_service.h"
 #include "core/monitored_item.h"
+#include "core/monitored_item_service.h"
 #include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
@@ -399,7 +400,8 @@ void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {
 std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
-  return nullptr;
+  return service_.monitored_item_service_.CreateMonitoredItem(
+      scada::ReadValueId{node_id_, attribute_id}, params);
 }
 
 void NodeModelImpl::Read(scada::AttributeId attribute_id,
