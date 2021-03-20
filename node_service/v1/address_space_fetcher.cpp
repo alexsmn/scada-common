@@ -218,9 +218,11 @@ void AddressSpaceFetcher::OnChildrenFetched(
     // The node could be fetched via non-hierarchical reference with no
     // children.
     if (!address_space_.GetNode(reference.node_id)) {
-      node_fetcher_->Fetch(
-          reference.node_id, false,
-          NodeFetcher::ParentInfo{node_id, reference.reference_type_id});
+      auto parent_info =
+          reference.reference_type_id == scada::id::HasSubtype
+              ? NodeFetcher::ParentInfo{{}, {}, node_id}
+              : NodeFetcher::ParentInfo{node_id, reference.reference_type_id};
+      node_fetcher_->Fetch(reference.node_id, false, parent_info);
     }
   }
 
