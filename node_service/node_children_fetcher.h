@@ -46,6 +46,8 @@ class NodeChildrenFetcher
   void Fetch(const scada::NodeId& node_id);
   void Cancel(const scada::NodeId& node_id);
 
+  size_t GetPendingNodeCount() const;
+
  private:
   explicit NodeChildrenFetcher(NodeChildrenFetcherContext&& context);
 

@@ -274,5 +274,6 @@ void AddressSpaceFetcher::InternalFetchNode(
 }
 
 size_t AddressSpaceFetcher::GetPendingTaskCount() const {
-  return node_fetcher_->GetPendingNodeCount();
+  return node_fetcher_->GetPendingNodeCount() +
+         node_children_fetcher_->GetPendingNodeCount();
 }

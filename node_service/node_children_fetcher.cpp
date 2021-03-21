@@ -172,3 +172,7 @@ void NodeChildrenFetcher::Cancel(const scada::NodeId& node_id) {
   assert(i != pending_children_.end());
   pending_children_.erase(i);
 }
+
+size_t NodeChildrenFetcher::GetPendingNodeCount() const {
+  return pending_children_.size() + children_request_count_;
+}

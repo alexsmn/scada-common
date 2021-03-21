@@ -205,7 +205,8 @@ void NodeServiceImpl::OnChannelClosed() {
 }
 
 size_t NodeServiceImpl::GetPendingTaskCount() const {
-  return pending_fetch_nodes_.size();
+  return pending_fetch_nodes_.size() + node_fetcher_->GetPendingNodeCount() +
+         node_children_fetcher_->GetPendingNodeCount();
 }
 
 }  // namespace v2
