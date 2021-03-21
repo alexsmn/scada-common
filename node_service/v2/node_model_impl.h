@@ -35,7 +35,6 @@ class NodeModelImpl final : public BaseNodeModel,
   NodeModelImpl(NodeServiceImpl& service, scada::NodeId node_id);
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
-  void OnNodeSemanticChanged();
 
   void OnFetched(const scada::NodeState& node_state);
   void OnFetchCompleted();

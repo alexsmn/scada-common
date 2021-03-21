@@ -88,15 +88,6 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   }
 }
 
-void NodeModelImpl::OnNodeSemanticChanged() {
-  LOG_INFO(service_.logger_)
-      << "Node semantics changed"
-      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
-
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(node_id_);
-}
-
 void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
   LOG_INFO(service_.logger_)
       << "Node fetched" << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));

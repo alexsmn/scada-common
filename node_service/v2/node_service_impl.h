@@ -10,6 +10,8 @@
 
 #include <map>
 
+class NodeFetcher;
+
 namespace scada {
 class AttributeService;
 class MonitoredItemService;
@@ -18,7 +20,6 @@ struct ModelChangeEvent;
 
 namespace v2 {
 
-class NodeFetcher;
 class NodeModelImpl;
 struct NodeModelImplReference;
 
