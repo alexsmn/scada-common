@@ -1,5 +1,6 @@
 #pragma once
 
+#include "address_space/sync_view_service.h"
 #include "core/view_service.h"
 
 #include <memory>
@@ -11,17 +12,6 @@ class Node;
 
 struct ViewServiceImplContext {
   scada::AddressSpace& address_space_;
-};
-
-class SyncViewService {
- public:
-  virtual ~SyncViewService() = default;
-
-  virtual scada::BrowseResult Browse(
-      const scada::BrowseDescription& description) = 0;
-
-  virtual scada::BrowsePathResult TranslateBrowsePath(
-      const scada::BrowsePath& input) = 0;
 };
 
 class SyncViewServiceImpl : private ViewServiceImplContext,
