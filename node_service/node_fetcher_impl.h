@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/boost_log.h"
+#include "base/threading/thread_checker.h"
 #include "core/attribute_service.h"
 #include "core/data_value.h"
 #include "node_service/node_fetcher.h"
@@ -130,6 +131,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
 
     std::vector<Node>::iterator find(const FetchingNode& node);
     std::vector<Node>::const_iterator find(const FetchingNode& node) const;
+
+    THREAD_CHECKER(thread_checker_);
 
     std::vector<Node> queue_;
     unsigned next_sequence_ = 0;

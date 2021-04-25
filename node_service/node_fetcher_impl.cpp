@@ -310,13 +310,15 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   view_service_.Browse(
       descriptions,
-      [weak_ptr = weak_from_this(), request_id, start_ticks, descriptions](
-          scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        if (auto ptr = weak_ptr.lock()) {
-          ptr->OnBrowseResult(request_id, start_ticks, std::move(status),
-                              std::move(descriptions), std::move(results));
-        }
-      });
+      BindExecutor(
+          executor_,
+          [weak_ptr = weak_from_this(), request_id, start_ticks, descriptions](
+              scada::Status status, std::vector<scada::BrowseResult> results) {
+            if (auto ptr = weak_ptr.lock()) {
+              ptr->OnBrowseResult(request_id, start_ticks, std::move(status),
+                                  std::move(descriptions), std::move(results));
+            }
+          }));
 }
 
 void NodeFetcherImpl::NotifyFetchedNodes() {
@@ -762,6 +764,8 @@ std::vector<scada::NodeId> NodeFetcherImpl::CollectNodeIds(
 // NodeFetcherImpl::PendingQueue
 
 void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
+  assert(thread_checker_.CalledOnValidThread());
+
   if (node.pending) {
     assert(find(node) != queue_.end());
     return;
@@ -776,6 +780,8 @@ void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
 }
 
 void NodeFetcherImpl::PendingQueue::pop() {
+  assert(thread_checker_.CalledOnValidThread());
+
   auto& node = *queue_.front().node;
   assert(node.pending);
   node.pending = false;
@@ -784,6 +790,8 @@ void NodeFetcherImpl::PendingQueue::pop() {
 }
 
 void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
+  assert(thread_checker_.CalledOnValidThread());
+
   if (!node.pending) {
     assert(find(node) == queue_.end());
     return;
@@ -803,18 +811,21 @@ void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
 
 std::vector<NodeFetcherImpl::PendingQueue::Node>::iterator
 NodeFetcherImpl::PendingQueue::find(const FetchingNode& node) {
+  assert(thread_checker_.CalledOnValidThread());
   return std::find_if(queue_.begin(), queue_.end(),
                       [&node](const Node& n) { return n.node == &node; });
 }
 
 std::vector<NodeFetcherImpl::PendingQueue::Node>::const_iterator
 NodeFetcherImpl::PendingQueue::find(const FetchingNode& node) const {
+  assert(thread_checker_.CalledOnValidThread());
   return std::find_if(queue_.cbegin(), queue_.cend(),
                       [&node](const Node& n) { return n.node == &node; });
 }
 
 std::size_t NodeFetcherImpl::PendingQueue::count(
     const FetchingNode& node) const {
+  assert(thread_checker_.CalledOnValidThread());
   assert(node.pending == (find(node) != queue_.cend()));
-  return node.pending;
+  return node.pending ? 1 : 0;
 }
