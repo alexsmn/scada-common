@@ -1,18 +1,12 @@
 #include "core/data_services_factory.h"
 #include "opcua/opcua_session.h"
 
-bool CreateOpcUaServices(const DataServicesContext& context, DataServices& services) {
+bool CreateOpcUaServices(const DataServicesContext& context,
+                         DataServices& services) {
   try {
-    auto session = std::make_shared<OpcUaSession>();
+    auto session = std::make_shared<OpcUaSession>(context.io_context);
     services = {
-        session,
-        session,
-        nullptr,
-        nullptr,
-        nullptr,
-        session,
-        nullptr,
-        session,
+        session, session, nullptr, nullptr, nullptr, session, nullptr, session,
     };
     return true;
 

@@ -789,3 +789,9 @@ void Convert(scada::BrowsePathResult&& source, OpcUa_BrowsePathResult& target) {
   target.NoOfTargets = opcua_targets.size();
   target.Targets = opcua_targets.release();
 }
+
+scada::EventFilter Convert(const OpcUa_EventFilter& source) {
+  return {};
+}
+
+void Convert(const scada::EventFilter& source, OpcUa_EventFilter& target) {}

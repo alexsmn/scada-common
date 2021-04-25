@@ -30,16 +30,16 @@ void SetValue(const scada::DataValue& data_value, R& result) {
 
 void FillBrowseResultsTypeDefinitions(
     scada::ViewService& view_service,
-    opcua::Span<const OpcUa_BrowseDescription> descriptions,
+    opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
-  assert(descriptions.size() == results.size());
+  assert(inputs.size() == results.size());
 
   std::vector<scada::BrowseDescription> nodes;
-  nodes.reserve(descriptions.size());
+  nodes.reserve(inputs.size());
 
-  for (size_t i = 0; i < descriptions.size(); ++i) {
-    auto& description = descriptions[i];
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    auto& description = inputs[i];
     if (!(description.ResultMask & OpcUa_BrowseResultMask_TypeDefinition))
       continue;
 
@@ -47,9 +47,8 @@ void FillBrowseResultsTypeDefinitions(
     if (!opcua::StatusCode{result.StatusCode})
       continue;
 
-    auto references = opcua::MakeSpan(
-        result.References, static_cast<size_t>(result.NoOfReferences));
-    for (auto& reference : references) {
+    for (auto& reference : opcua::MakeSpan(
+             result.References, static_cast<size_t>(result.NoOfReferences))) {
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       nodes.push_back(scada::BrowseDescription{
@@ -62,26 +61,25 @@ void FillBrowseResultsTypeDefinitions(
     return callback();
 
   view_service.Browse(
-      nodes, [descriptions, results, callback](
+      nodes, [inputs, results, callback](
                  const scada::Status& status,
                  std::vector<scada::BrowseResult> browse_results) {
         if (!status)
           return callback();
 
         size_t browse_index = 0;
-        for (size_t i = 0; i < descriptions.size(); ++i) {
-          auto& description = descriptions[i];
-          auto& result = results[i];
-
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto& description = inputs[i];
           if (!(description.ResultMask & OpcUa_BrowseResultMask_TypeDefinition))
             continue;
 
+          auto& result = results[i];
           if (!opcua::StatusCode{result.StatusCode})
             continue;
 
-          auto references = opcua::MakeSpan(
-              result.References, static_cast<size_t>(result.NoOfReferences));
-          for (auto& reference : references) {
+          for (auto& reference :
+               opcua::MakeSpan(result.References,
+                               static_cast<size_t>(result.NoOfReferences))) {
             auto& browse_result = browse_results[browse_index++];
             if (!scada::IsGood(browse_result.status_code))
               continue;
@@ -104,23 +102,22 @@ void FillBrowseResultsTypeDefinitions(
 
 void FillBrowseResultsAttributes(
     scada::AttributeService& attribute_service,
-    opcua::Span<const OpcUa_BrowseDescription> descriptions,
+    opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
-  assert(descriptions.size() == results.size());
+  assert(inputs.size() == results.size());
 
   std::vector<scada::ReadValueId> read_ids;
   read_ids.reserve(16);
 
-  for (size_t i = 0; i < descriptions.size(); ++i) {
-    auto& description = descriptions[i];
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    auto& description = inputs[i];
     auto& result = results[i];
     if (!opcua::StatusCode{result.StatusCode})
       continue;
 
-    auto references = opcua::MakeSpan(
-        result.References, static_cast<size_t>(result.NoOfReferences));
-    for (auto& reference : references) {
+    for (auto& reference : opcua::MakeSpan(
+             result.References, static_cast<size_t>(result.NoOfReferences))) {
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
@@ -135,22 +132,21 @@ void FillBrowseResultsAttributes(
   if (read_ids.empty())
     return callback();
 
-  attribute_service.Read(read_ids, [descriptions, results, callback](
+  attribute_service.Read(read_ids, [inputs, results, callback](
                                        const scada::Status& status,
                                        std::vector<scada::DataValue> values) {
     if (!status)
       return callback();
 
     size_t index = 0;
-    for (size_t i = 0; i < descriptions.size(); ++i) {
-      auto& description = descriptions[i];
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      auto& description = inputs[i];
       auto& result = results[i];
       if (!opcua::StatusCode{result.StatusCode})
         continue;
 
-      auto references = opcua::MakeSpan(
-          result.References, static_cast<size_t>(result.NoOfReferences));
-      for (auto& reference : references) {
+      for (auto& reference : opcua::MakeSpan(
+               result.References, static_cast<size_t>(result.NoOfReferences))) {
         if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
           SetNodeClass(values[index++], reference.NodeClass);
         if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
@@ -276,7 +272,7 @@ OpcUaServer::~OpcUaServer() {
 
 void OpcUaServer::Read(OpcUa_ReadRequest& request,
                        const opcua::server::ReadCallback& callback) {
-  auto timestamps_to_return = request.TimestampsToReturn;
+  const auto timestamps_to_return = request.TimestampsToReturn;
   attribute_service_.Read(
       ConvertVector<scada::ReadValueId>(
           opcua::MakeSpan(request.NodesToRead, request.NoOfNodesToRead)),
@@ -328,15 +324,13 @@ void OpcUaServer::Write(
 
 void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
                          const opcua::server::BrowseCallback& callback) {
-  auto descriptions = std::make_shared<opcua::Vector<OpcUa_BrowseDescription>>(
+  const auto inputs = std::make_shared<opcua::Vector<OpcUa_BrowseDescription>>(
       opcua::Attach{}, request.NodesToBrowse, request.NoOfNodesToBrowse);
-  request.NodesToBrowse = OpcUa_Null;
-  request.NoOfNodesToBrowse = 0;
 
   view_service_.Browse(
-      ConvertVector<scada::BrowseDescription>(*descriptions),
-      [this, descriptions, callback](
-          scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
+      ConvertVector<scada::BrowseDescription>(*inputs),
+      [this, inputs, callback](scada::Status&& status,
+                               std::vector<scada::BrowseResult>&& results) {
         if (!status) {
           opcua::BrowseResponse response;
           response.ResponseHeader.ServiceResult =
@@ -351,11 +345,11 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
                     opcua::MakeSpan(results.data(), results.size())));
 
         FillBrowseResultsTypeDefinitions(
-            view_service_, *descriptions, *opcua_results,
-            [this, descriptions, opcua_results, callback] {
+            view_service_, *inputs, *opcua_results,
+            [this, inputs, opcua_results, callback] {
               FillBrowseResultsAttributes(
-                  attribute_service_, *descriptions, *opcua_results,
-                  [descriptions, opcua_results, callback] {
+                  attribute_service_, *inputs, *opcua_results,
+                  [inputs, opcua_results, callback] {
                     opcua::BrowseResponse response;
                     response.ResponseHeader.ServiceResult = OpcUa_Good;
                     response.NoOfResults = opcua_results->size();
@@ -374,10 +368,10 @@ void OpcUaServer::TranslateBrowsePaths(
           opcua::MakeSpan(request.BrowsePaths, request.NoOfBrowsePaths)),
       [callback](scada::Status&& status,
                  std::vector<scada::BrowsePathResult>&& results) {
+        auto opcua_results = ConvertFromVector<OpcUa_BrowsePathResult>(results);
         opcua::TranslateBrowsePathsToNodeIdsResponse response;
         response.ResponseHeader.ServiceResult =
             MakeStatusCode(status.code()).code();
-        auto opcua_results = ConvertFromVector<OpcUa_BrowsePathResult>(results);
         response.NoOfResults = opcua_results.size();
         response.Results = opcua_results.release();
         callback(std::move(response));

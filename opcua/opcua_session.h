@@ -10,6 +10,11 @@
 #include <opcuapp/platform.h>
 #include <opcuapp/proxy_stub.h>
 #include <opcuapp/status_code.h>
+#include <boost/asio/io_context_strand.hpp>
+
+namespace boost::asio {
+class io_context;
+}
 
 class OpcUaSubscription;
 
@@ -19,7 +24,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
                      public scada::AttributeService,
                      public scada::MonitoredItemService {
  public:
-  OpcUaSession();
+  explicit OpcUaSession(boost::asio::io_context& io_context);
   virtual ~OpcUaSession();
 
   // scada::SessionService
@@ -72,6 +77,9 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   void OnError(scada::Status&& status);
 
   OpcUaSubscription& GetDefaultSubscription();
+
+  boost::asio::io_context& io_context_;
+  boost::asio::io_context::strand executor_{io_context_};
 
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;

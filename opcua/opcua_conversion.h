@@ -99,6 +99,9 @@ void Convert(scada::WriteValueId&& source, OpcUa_WriteValue& target);
 scada::BrowsePath Convert(OpcUa_BrowsePath&& source);
 void Convert(scada::BrowsePathResult&& source, OpcUa_BrowsePathResult& target);
 
+scada::EventFilter Convert(const OpcUa_EventFilter& source);
+void Convert(const scada::EventFilter& source, OpcUa_EventFilter& target);
+
 template <typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));
