@@ -97,8 +97,8 @@ OpcUaMonitoredItem::~OpcUaMonitoredItem() {
 void OpcUaMonitoredItem::Subscribe() {
   assert(!read_value_id_.node_id.is_null());
   assert(data_change_handler_ || event_handler_);
-  subscription_->Subscribe(client_handle_, read_value_id_, data_change_handler_,
-                           event_handler_);
+  subscription_->Subscribe(client_handle_, read_value_id_, params_,
+                           data_change_handler_, event_handler_);
 }
 
 // OpcUaSubscription
@@ -187,6 +187,7 @@ std::shared_ptr<scada::MonitoredItem> OpcUaSubscription::CreateMonitoredItem(
 void OpcUaSubscription::Subscribe(
     opcua::MonitoredItemClientHandle client_handle,
     scada::ReadValueId read_value_id,
+    scada::MonitoringParameters params,
     scada::DataChangeHandler data_change_handler,
     scada::EventHandler event_handler) {
   assert(!read_value_id.node_id.is_null());
@@ -198,6 +199,7 @@ void OpcUaSubscription::Subscribe(
                             Item{
                                 client_handle,
                                 std::move(read_value_id),
+                                std::move(params),
                                 std::move(data_change_handler),
                                 std::move(event_handler),
                                 true,
@@ -209,6 +211,23 @@ void OpcUaSubscription::Subscribe(
   pending_subscribe_items_.emplace_back(&item);
 
   ScheduleCommitItems();
+}
+
+opcua::ExtensionObject ConvertFilter(const scada::MonitoringFilter& filter) {
+  /*if (const auto* data_change_filter = std::get_if<) {
+      opcua::DataChangeFilter filter;
+      filter.DeadbandType = OpcUa_DeadbandType_None;
+      filter.Trigger = OpcUa_DataChangeTrigger_StatusValueTimestamp;
+      return opcua::ExtensionObject::Encode(std::move(filter));
+    }*/
+
+  if (const auto* event_filter = std::get_if<scada::EventFilter>(&filter)) {
+    opcua::EventFilter opcua_event_filter;
+    Convert(*event_filter, opcua_event_filter);
+    return opcua::ExtensionObject::Encode(std::move(opcua_event_filter));
+  }
+
+  return opcua::ExtensionObject{};
 }
 
 void OpcUaSubscription::CreateMonitoredItems() {
@@ -225,25 +244,14 @@ void OpcUaSubscription::CreateMonitoredItems() {
     auto& item = *pending_subscribe_items_[i];
     auto& request = requests[i];
 
-    opcua::ExtensionObject ext_filter;
-
-    if (item.read_value_id.attribute_id != scada::AttributeId::EventNotifier) {
-      opcua::DataChangeFilter filter;
-      filter.DeadbandType = OpcUa_DeadbandType_None;
-      filter.Trigger = OpcUa_DataChangeTrigger_StatusValueTimestamp;
-      ext_filter = opcua::ExtensionObject::Encode(std::move(filter));
-
-    } else {
-      opcua::EventFilter filter;
-      ext_filter = opcua::ExtensionObject::Encode(std::move(filter));
-    }
+    auto opcua_filter = ConvertFilter(item.params.filter);
 
     request.MonitoringMode = OpcUa_MonitoringMode_Reporting;
     request.RequestedParameters.ClientHandle = item.client_handle;
     Convert(item.read_value_id.node_id, request.ItemToMonitor.NodeId);
     request.ItemToMonitor.AttributeId =
         static_cast<opcua::AttributeId>(item.read_value_id.attribute_id);
-    ext_filter.release(request.RequestedParameters.Filter);
+    opcua_filter.release(request.RequestedParameters.Filter);
   }
 
   subscribing_items_.swap(pending_subscribe_items_);

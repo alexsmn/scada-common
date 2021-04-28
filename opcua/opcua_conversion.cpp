@@ -31,10 +31,9 @@ scada::StatusCode ConvertStatusCode(OpcUa_StatusCode status_code) {
   if (i != std::end(kStatusCodeMapping))
     return i->second;
 
-  return OpcUa_IsGood(status_code)
-             ? scada::StatusCode::Good
-             : OpcUa_IsUncertain(status_code) ? scada::StatusCode::Uncertain
-                                              : scada::StatusCode::Bad;
+  return OpcUa_IsGood(status_code)        ? scada::StatusCode::Good
+         : OpcUa_IsUncertain(status_code) ? scada::StatusCode::Uncertain
+                                          : scada::StatusCode::Bad;
 }
 
 opcua::StatusCode MakeStatusCode(scada::StatusCode status_code) {
@@ -555,15 +554,24 @@ void Convert(const scada::AggregateFilter& source,
 scada::MonitoringParameters Convert(OpcUa_MonitoringParameters&& source) {
   scada::MonitoringParameters target;
   opcua::ExtensionObject filter{std::move(source.Filter)};
-  if (auto* aggregate_filter = filter.get_if<OpcUa_AggregateFilter>())
+  if (auto* event_filter = filter.get_if<OpcUa_EventFilter>())
+    target.filter = Convert(std::move(*event_filter));
+  else if (auto* aggregate_filter = filter.get_if<OpcUa_AggregateFilter>())
     target.filter = Convert(std::move(*aggregate_filter));
   return target;
 }
 
 void Convert(const scada::MonitoringParameters& source,
              OpcUa_MonitoringParameters& target) {
-  if (auto* aggregate_filter =
-          std::get_if<scada::AggregateFilter>(&source.filter)) {
+  if (auto* event_filter = std::get_if<scada::EventFilter>(&source.filter)) {
+    auto target_event_filter = std::make_unique<OpcUa_EventFilter>();
+    opcua::Initialize(*target_event_filter);
+    Convert(*event_filter, *target_event_filter);
+    opcua::ExtensionObject target_filter{target_event_filter.release()};
+    target_filter.release(target.Filter);
+
+  } else if (auto* aggregate_filter =
+                 std::get_if<scada::AggregateFilter>(&source.filter)) {
     auto target_aggregate_filter = std::make_unique<OpcUa_AggregateFilter>();
     opcua::Initialize(*target_aggregate_filter);
     Convert(*aggregate_filter, *target_aggregate_filter);

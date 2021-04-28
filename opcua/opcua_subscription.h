@@ -2,6 +2,7 @@
 
 #include "core/attribute_service.h"
 #include "core/monitored_item.h"
+#include "core/monitored_item_service.h"
 
 #include <map>
 #include <memory>
@@ -12,10 +13,6 @@
 namespace opcua::client {
 class Session;
 }  // namespace opcua::client
-
-namespace scada {
-struct MonitoringParameters;
-}
 
 class OpcUaMonitoredItem;
 
@@ -56,6 +53,7 @@ class OpcUaSubscription
   struct Item {
     const opcua::MonitoredItemClientHandle client_handle;
     const scada::ReadValueId read_value_id;
+    const scada::MonitoringParameters params;
     scada::DataChangeHandler data_change_handler;
     scada::EventHandler event_handler;
     bool subscribed;
@@ -65,6 +63,7 @@ class OpcUaSubscription
 
   void Subscribe(opcua::MonitoredItemClientHandle client_handle,
                  scada::ReadValueId read_value_id,
+                 scada::MonitoringParameters params,
                  scada::DataChangeHandler data_change_handler,
                  scada::EventHandler event_handler);
   void Unsubscribe(opcua::MonitoredItemClientHandle client_handle);
