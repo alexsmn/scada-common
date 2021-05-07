@@ -306,7 +306,7 @@ void OpcUaServer::Write(
     OpcUa_WriteRequest& request,
     const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback) {
   // TODO: UserID.
-  attribute_service_.Write(ConvertVector<scada::WriteValueId>(opcua::MakeSpan(
+  attribute_service_.Write(ConvertVector<scada::WriteValue>(opcua::MakeSpan(
                                request.NodesToWrite, request.NoOfNodesToWrite)),
                            {},
                            [callback](scada::Status&& status,

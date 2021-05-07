@@ -246,13 +246,13 @@ std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
 }
 
 void MasterDataServices::Write(
-    const std::vector<scada::WriteValueId>& value_ids,
+    const std::vector<scada::WriteValue>& values,
     const scada::NodeId& user_id,
     const scada::WriteCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.attribute_service_->Write(value_ids, user_id, callback);
+  services_.attribute_service_->Write(values, user_id, callback);
 }
 
 void MasterDataServices::Call(const scada::NodeId& node_id,

@@ -22,7 +22,7 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
   // SyncAttributeService
   virtual scada::DataValue Read(const scada::ReadValueId& read_id) override;
   virtual std::vector<scada::StatusCode> Write(
-      base::span<const scada::WriteValueId> value_ids,
+      base::span<const scada::WriteValue> values,
       const scada::NodeId& user_id) override;
 
  private:
@@ -37,7 +37,7 @@ class AttributeServiceImpl : public scada::AttributeService {
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
                     const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
+  virtual void Write(const std::vector<scada::WriteValue>& values,
                      const scada::NodeId& user_id,
                      const scada::WriteCallback& callback) override;
 

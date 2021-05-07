@@ -59,7 +59,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
                     const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
+  virtual void Write(const std::vector<scada::WriteValue>& values,
                      const scada::NodeId& user_id,
                      const scada::WriteCallback& callback) override;
 

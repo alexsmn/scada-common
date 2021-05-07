@@ -31,7 +31,7 @@ class VirtualObject : public scada::GenericObject,
     callback(scada::StatusCode::Good, std::move(results));
   }
 
-  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
+  virtual void Write(const std::vector<scada::WriteValue>& values,
                      const scada::NodeId& user_id,
                      const scada::WriteCallback& callback) override {
     assert(false);

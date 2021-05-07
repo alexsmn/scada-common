@@ -27,10 +27,10 @@ void AttributeServiceImpl::Read(
 }
 
 void AttributeServiceImpl::Write(
-    const std::vector<scada::WriteValueId>& value_ids,
+    const std::vector<scada::WriteValue>& values,
     const scada::NodeId& user_id,
     const scada::WriteCallback& callback) {
-  auto results = sync_attribute_service_.Write(value_ids, user_id);
+  auto results = sync_attribute_service_.Write(values, user_id);
   callback(scada::StatusCode::Good, std::move(results));
 }
 
@@ -49,9 +49,9 @@ scada::DataValue SyncAttributeServiceImpl::Read(
 }
 
 std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
-    base::span<const scada::WriteValueId> value_ids,
+    base::span<const scada::WriteValue> values,
     const scada::NodeId& user_id) {
-  return std::vector<scada::StatusCode>(value_ids.size(),
+  return std::vector<scada::StatusCode>(values.size(),
                                         scada::StatusCode::Bad_WrongNodeId);
 }
 

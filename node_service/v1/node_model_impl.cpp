@@ -228,9 +228,9 @@ void NodeModelImpl::Write(scada::AttributeId attribute_id,
                           const scada::WriteFlags& flags,
                           const scada::NodeId& user_id,
                           const scada::StatusCallback& callback) const {
-  std::vector<scada::WriteValueId> inputs;
+  std::vector<scada::WriteValue> inputs;
   inputs.emplace_back(
-      scada::WriteValueId{node_id_, attribute_id, value, flags});
+      scada::WriteValue{node_id_, attribute_id, value, flags});
 
   attribute_service_.Write(
       inputs, user_id,

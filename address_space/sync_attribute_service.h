@@ -10,6 +10,6 @@ class SyncAttributeService {
   virtual scada::DataValue Read(const scada::ReadValueId& read_id) = 0;
 
   virtual std::vector<scada::StatusCode> Write(
-      base::span<const scada::WriteValueId> value_ids,
+      base::span<const scada::WriteValue> values,
       const scada::NodeId& user_id) = 0;
 };

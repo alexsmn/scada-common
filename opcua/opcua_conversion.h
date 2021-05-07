@@ -93,8 +93,8 @@ void Convert(const scada::AddNodesResult& source, OpcUa_AddNodesResult& target);
 
 scada::DeleteNodesItem Convert(const OpcUa_DeleteNodesItem& source);
 
-scada::WriteValueId Convert(OpcUa_WriteValue&& source);
-void Convert(scada::WriteValueId&& source, OpcUa_WriteValue& target);
+scada::WriteValue Convert(OpcUa_WriteValue&& source);
+void Convert(scada::WriteValue&& source, OpcUa_WriteValue& target);
 
 scada::BrowsePath Convert(OpcUa_BrowsePath&& source);
 void Convert(scada::BrowsePathResult&& source, OpcUa_BrowsePathResult& target);

@@ -68,7 +68,7 @@ class VidiconSession : public scada::SessionService,
   // scada::AttributeService
   virtual void Read(const std::vector<scada::ReadValueId>& nodes,
                     const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValueId>& value_ids,
+  virtual void Write(const std::vector<scada::WriteValue>& values,
                      const scada::NodeId& user_id,
                      const scada::WriteCallback& callback) override;
 

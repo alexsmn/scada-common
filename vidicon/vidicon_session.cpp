@@ -113,7 +113,7 @@ void VidiconSession::Read(const std::vector<scada::ReadValueId>& nodes,
   attribute_service_.Read(nodes, callback);
 }
 
-void VidiconSession::Write(const std::vector<scada::WriteValueId>& value_ids,
+void VidiconSession::Write(const std::vector<scada::WriteValue>& values,
                            const scada::NodeId& user_id,
                            const scada::WriteCallback& callback) {
   callback(scada::StatusCode::Bad, {});
