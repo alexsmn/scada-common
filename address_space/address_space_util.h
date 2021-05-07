@@ -45,7 +45,8 @@ Node* GetNestedNode(AddressSpace& address_space,
 
 std::wstring GetFullDisplayName(const Node& node);
 
-Status ConvertPropertyValues(const Node& node, NodeProperties& properties);
+StatusCode ConvertPropertyValues(const TypeDefinition& type_definition,
+                                 NodeProperties& properties);
 
 bool WantsReference(AddressSpace& address_space,
                     const BrowseDescription& description,

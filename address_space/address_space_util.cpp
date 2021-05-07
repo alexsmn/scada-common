@@ -173,15 +173,12 @@ Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
   return StatusCode::Good;
 }
 
-Status ConvertPropertyValues(const Node& node, NodeProperties& properties) {
-  auto* type = node.type_definition();
-  assert(type);
-
+StatusCode ConvertPropertyValues(const TypeDefinition& type_definition,
+                                 NodeProperties& properties) {
   for (auto& prop : properties) {
     auto prop_decl_id = prop.first;
     auto* prop_decl =
-        type ? AsVariable(GetAggregateDeclaration(*type, prop_decl_id))
-             : nullptr;
+        AsVariable(GetAggregateDeclaration(type_definition, prop_decl_id));
     if (!prop_decl) {
       assert(false);
       return StatusCode::Bad_WrongPropertyId;
