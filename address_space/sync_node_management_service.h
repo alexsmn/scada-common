@@ -7,17 +7,14 @@ class SyncNodeManagementService {
   virtual ~SyncNodeManagementService() = default;
 
   virtual std::pair<scada::Status, scada::NodeId> CreateNode(
-      const scada::AddNodesItem& item) = 0;
+      const scada::AddNodesItem& input) = 0;
   virtual scada::Status DeleteNode(
       const scada::NodeId& node_id,
       std::vector<scada::NodeId>* dependencies) = 0;
 
-  virtual scada::Status AddReference(const scada::NodeId& reference_type_id,
-                                     const scada::NodeId& source_id,
-                                     const scada::NodeId& target_id) = 0;
-  virtual scada::Status DeleteReference(const scada::NodeId& reference_type_id,
-                                        const scada::NodeId& source_id,
-                                        const scada::NodeId& target_id) = 0;
+  virtual scada::Status AddReference(const scada::AddReferencesItem& input) = 0;
+  virtual scada::Status DeleteReference(
+      const scada::DeleteReferencesItem& input) = 0;
 
   virtual scada::Status ChangeUserPassword(
       const scada::NodeId& user_id,
