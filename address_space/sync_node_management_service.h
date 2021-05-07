@@ -7,11 +7,7 @@ class SyncNodeManagementService {
   virtual ~SyncNodeManagementService() = default;
 
   virtual std::pair<scada::Status, scada::NodeId> CreateNode(
-      scada::NodeClass node_class,
-      const scada::NodeId& requested_id,
-      const scada::NodeId& parent_id,
-      const scada::NodeId& type_id,
-      scada::NodeAttributes attributes) = 0;
+      const scada::AddNodesItem& item) = 0;
   virtual scada::Status DeleteNode(
       const scada::NodeId& node_id,
       std::vector<scada::NodeId>* dependencies) = 0;
