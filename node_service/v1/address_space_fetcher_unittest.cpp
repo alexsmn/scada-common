@@ -51,10 +51,9 @@ struct TestContext {
             view_events = &events;
             return std::make_unique<IViewEventsSubscription>();
           },
-          [this](const scada::NodeId& node_id,
-                 const scada::Status& status,
-                 const NodeFetchStatus& fetch_status) {
-            OnNodeFetchStatusChanged(node_id, status.code(), fetch_status);
+          [this](base::span<const NodeFetchStatusChangedItem> items) {
+            for (const auto& [node_id, status, fetch_status] : items)
+              OnNodeFetchStatusChanged(node_id, status.code(), fetch_status);
           },
           [](const scada::ModelChangeEvent& event) {}}});
 };

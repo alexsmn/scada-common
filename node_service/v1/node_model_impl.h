@@ -51,6 +51,7 @@ class NodeModelImpl final : private AddressSpaceNodeModelContext,
   void SetFetchStatus(const scada::Node* node,
                       const scada::Status& status,
                       const NodeFetchStatus& fetch_status);
+  void NotifyFetchStatus();
 
   // NodeModel
   virtual scada::Variant GetAttribute(

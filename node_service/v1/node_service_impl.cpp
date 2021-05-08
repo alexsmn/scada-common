@@ -147,33 +147,41 @@ void NodeServiceImpl::OnNodeModelFetchRequested(
 }
 
 void NodeServiceImpl::OnNodeFetchStatusChanged(
-    const scada::NodeId& node_id,
-    const scada::Status& status,
-    const NodeFetchStatus& fetch_status) {
-  assert(fetcher_->GetNodeFetchStatus(node_id).first.code() == status.code());
-  assert(fetcher_->GetNodeFetchStatus(node_id).second == fetch_status);
+    base::span<const NodeFetchStatusChangedItem> items) {
+  // First: update node impl statuses.
+  for (const auto& [node_id, status, fetch_status] : items) {
+    assert(fetcher_->GetNodeFetchStatus(node_id).first.code() == status.code());
+    assert(fetcher_->GetNodeFetchStatus(node_id).second == fetch_status);
 
-  auto* node = address_space_.GetNode(node_id);
+    auto* node = address_space_.GetNode(node_id);
 
-  if (auto i = nodes_.find(node_id); i != nodes_.end())
-    i->second->SetFetchStatus(node, status, fetch_status);
+    if (auto i = nodes_.find(node_id); i != nodes_.end())
+      i->second->SetFetchStatus(node, status, fetch_status);
+  }
 
-  const scada::ModelChangeEvent event{
-      node_id, node ? scada::GetTypeDefinitionId(*node) : scada::NodeId{},
-      scada::ModelChangeEvent::ReferenceAdded |
-          scada::ModelChangeEvent::ReferenceDeleted};
-  for (auto& o : observers_) {
-    o.OnNodeFetched(node_id, fetch_status.children_fetched);
-    o.OnModelChanged(event);
-    o.OnNodeSemanticChanged(node_id);
+  // Second: report all statuses.
+  for (const auto& [node_id, status, fetch_status] : items) {
+    auto* node = address_space_.GetNode(node_id);
+
+    if (auto i = nodes_.find(node_id); i != nodes_.end())
+      i->second->NotifyFetchStatus();
+
+    const scada::ModelChangeEvent event{
+        node_id, node ? scada::GetTypeDefinitionId(*node) : scada::NodeId{},
+        scada::ModelChangeEvent::ReferenceAdded |
+            scada::ModelChangeEvent::ReferenceDeleted};
+    for (auto& o : observers_) {
+      o.OnNodeFetched(node_id, fetch_status.children_fetched);
+      o.OnModelChanged(event);
+      o.OnNodeSemanticChanged(node_id);
+    }
   }
 }
 
 AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
   auto node_fetch_status_changed_handler =
-      [this](const scada::NodeId& node_id, const scada::Status& status,
-             const NodeFetchStatus& fetch_status) {
-        OnNodeFetchStatusChanged(node_id, status, fetch_status);
+      [this](base::span<const NodeFetchStatusChangedItem> items) {
+        OnNodeFetchStatusChanged(items);
       };
 
   auto model_changed_handler = [this](const scada::ModelChangeEvent& event) {

@@ -176,7 +176,9 @@ void NodeModelImpl::SetFetchStatus(const scada::Node* node,
   node_ = node;
 
   BaseNodeModel::SetFetchStatus(status, fetch_status);
+}
 
+void NodeModelImpl::NotifyFetchStatus() {
   const scada::ModelChangeEvent event{
       node_id_, node_ ? scada::GetTypeDefinitionId(*node_) : scada::NodeId{},
       scada::ModelChangeEvent::ReferenceAdded |

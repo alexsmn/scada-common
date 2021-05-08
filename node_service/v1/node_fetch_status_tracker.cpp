@@ -2,6 +2,8 @@
 
 #include "address_space/address_space.h"
 #include "address_space/node_utils.h"
+#include "base/auto_reset.h"
+#include "base/range_util.h"
 
 // NodeFetchStatusTracker::ScopedStatusLock
 
@@ -20,14 +22,16 @@ class NodeFetchStatusTracker::ScopedStatusLock {
 NodeFetchStatusTracker::ScopedStatusLock::ScopedStatusLock(
     NodeFetchStatusTracker& tracker)
     : tracker_{tracker} {
+  assert(tracker_.thread_checker_.CalledOnValidThread());
   ++tracker_.status_lock_count_;
 }
 
 NodeFetchStatusTracker::ScopedStatusLock::~ScopedStatusLock() {
+  assert(tracker_.thread_checker_.CalledOnValidThread());
   assert(tracker_.status_lock_count_ > 0);
   --tracker_.status_lock_count_;
   if (tracker_.status_lock_count_ == 0)
-    tracker_.FetchPendingStatuses();
+    tracker_.NotifyPendingStatusChanged();
 }
 
 // NodeFetchStatusTracker
@@ -37,6 +41,8 @@ NodeFetchStatusTracker::NodeFetchStatusTracker(
     : NodeFetchStatusTrackerContext{std::move(context)} {}
 
 void NodeFetchStatusTracker::OnNodesFetched(const NodeFetchStatuses& statuses) {
+  assert(thread_checker_.CalledOnValidThread());
+
   ScopedStatusLock lock{*this};
 
   for (auto& [node_id, status] : statuses) {
@@ -67,6 +73,8 @@ void NodeFetchStatusTracker::DeleteNodeStatesRecursive(
 void NodeFetchStatusTracker::OnChildrenFetched(
     const scada::NodeId& parent_id,
     scada::ReferenceDescriptions&& references) {
+  assert(thread_checker_.CalledOnValidThread());
+  assert(!notifying_);
   assert(!parent_id.is_null());
 
   ScopedStatusLock lock{*this};
@@ -102,6 +110,9 @@ void NodeFetchStatusTracker::OnChildrenFetched(
 }
 
 void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
+  assert(thread_checker_.CalledOnValidThread());
+  assert(!notifying_);
+
   ScopedStatusLock lock{*this};
 
   errors_.erase(node_id);
@@ -128,6 +139,8 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
 
 std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     const scada::NodeId& node_id) const {
+  assert(thread_checker_.CalledOnValidThread());
+
   scada::Status status{scada::StatusCode::Good};
 
   NodeFetchStatus fetch_status{};
@@ -150,6 +163,7 @@ bool NodeFetchStatusTracker::IsNodeFetched(const scada::NodeId& node_id) const {
 }
 
 void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
+  assert(!notifying_);
   assert(!child_id.is_null());
 
   auto i = children_.find(child_id);
@@ -173,24 +187,41 @@ void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
 void NodeFetchStatusTracker::NotifyStatusChanged(const scada::NodeId& node_id) {
   if (status_lock_count_ == 0) {
     auto [status, fetch_status] = GetStatus(node_id);
-    node_fetch_status_changed_handler_(node_id, status, fetch_status);
+    NodeFetchStatusChangedItem item{node_id, status, fetch_status};
+    node_fetch_status_changed_handler_(base::span{&item, 1});
     return;
   }
 
   pending_statuses_.emplace(node_id);
 }
 
-void NodeFetchStatusTracker::FetchPendingStatuses() {
+void NodeFetchStatusTracker::NotifyPendingStatusChanged() {
+  assert(!notifying_);
   assert(status_lock_count_ >= 0);
 
   if (status_lock_count_ != 0)
     return;
 
+  if (pending_statuses_.empty())
+    return;
+
+  base::AutoReset notifying{&notifying_, true};
+
   auto statuses = std::move(pending_statuses_);
   pending_statuses_.clear();
 
-  for (auto& node_id : statuses) {
+  /*auto items = Map(statuses, [this](const scada::NodeId& node_id) {
     auto [status, fetch_status] = GetStatus(node_id);
-    node_fetch_status_changed_handler_(node_id, status, fetch_status);
+    return NodeFetchStatusChangedItem{node_id, std::move(status), fetch_status};
+  });*/
+
+  std::vector<NodeFetchStatusChangedItem> items;
+  items.reserve(statuses.size());
+  for (const scada::NodeId& node_id : statuses) {
+    auto [status, fetch_status] = GetStatus(node_id);
+    items.emplace_back(
+        NodeFetchStatusChangedItem{node_id, std::move(status), fetch_status});
   }
+
+  node_fetch_status_changed_handler_(items);
 }

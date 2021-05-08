@@ -56,9 +56,8 @@ class NodeServiceImpl final : private NodeServiceImplContext,
  private:
   AddressSpaceFetcherContext MakeAddressSpaceFetcherContext();
 
-  void OnNodeFetchStatusChanged(const scada::NodeId& node_id,
-                                const scada::Status& status,
-                                const NodeFetchStatus& fetch_status);
+  void OnNodeFetchStatusChanged(
+      base::span<const NodeFetchStatusChangedItem> items);
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
 

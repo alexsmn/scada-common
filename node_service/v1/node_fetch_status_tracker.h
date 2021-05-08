@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/containers/span.h"
+#include "base/threading/thread_checker.h"
 #include "core/configuration_types.h"
 #include "core/node_id.h"
 #include "core/status.h"
@@ -17,10 +19,14 @@ class Node;
 
 using NodeFetchStatuses = std::vector<std::pair<scada::NodeId, scada::Status>>;
 
+struct NodeFetchStatusChangedItem {
+  scada::NodeId node_id;
+  scada::Status status;
+  NodeFetchStatus fetch_status;
+};
+
 using NodeFetchStatusChangedHandler =
-    std::function<void(const scada::NodeId& node_id,
-                       const scada::Status& status,
-                       const NodeFetchStatus& fetch_status)>;
+    std::function<void(base::span<const NodeFetchStatusChangedItem> items)>;
 
 using NodeValidator = std::function<bool(const scada::NodeId& node_id)>;
 
@@ -54,7 +60,9 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   void NotifyStatusChanged(const scada::NodeId& node_id);
 
-  void FetchPendingStatuses();
+  void NotifyPendingStatusChanged();
+
+  base::ThreadChecker thread_checker_;
 
   // Key is absent - not fetched, unknown node
   // Key presents, pending_child_ids.empty() - fetched
@@ -69,5 +77,6 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
   std::map<scada::NodeId, scada::Status> errors_;
 
   std::set<scada::NodeId> pending_statuses_;
+  bool notifying_ = false;
   int status_lock_count_ = 0;
 };
