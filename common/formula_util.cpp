@@ -4,19 +4,28 @@
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 
-bool IsNodeIdFormula(std::string_view formula, scada::NodeId& node_id) {
-  std::string item_name;
-  if (!ScadaExpression::IsSingleName(formula, item_name))
-    return false;
+#include <optional>
 
-  if (item_name.size() >= 2 && item_name.front() == '{' && item_name.back() == '}') {
-    const auto& s = std::string_view{item_name}.substr(1, item_name.size() - 2);
-    node_id = NodeIdFromScadaString(s);
-    return !node_id.is_null();
+std::optional<std::string_view> Unquote(std::string_view str,
+                                        char left_quote,
+                                        char right_quote) {
+  if (str.size() >= 2 && str.front() == left_quote &&
+      str.back() == right_quote) {
+    return str.substr(1, str.size() - 2);
+  } else {
+    return std::nullopt;
   }
+}
 
-  node_id = NodeIdFromScadaString(item_name);
-  return !node_id.is_null();
+scada::NodeId GetFormulaSingleNodeId(std::string_view formula) {
+  std::string name;
+  if (!ScadaExpression::IsSingleName(formula, name))
+    return {};
+
+  if (auto str = Unquote(name, '{', '}'))
+    return NodeIdFromScadaString(*str);
+
+  return NodeIdFromScadaString(name);
 }
 
 std::string MakeNodeIdFormula(const scada::NodeId& id) {

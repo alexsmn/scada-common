@@ -4,5 +4,5 @@
 
 #include <string_view>
 
-bool IsNodeIdFormula(std::string_view formula, scada::NodeId& node_id);
+scada::NodeId GetFormulaSingleNodeId(std::string_view formula);
 std::string MakeNodeIdFormula(const scada::NodeId& id);
