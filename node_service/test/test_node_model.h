@@ -1,9 +1,14 @@
 #pragma once
 
+#include "common/node_state.h"
+#include "common/node_state_util.h"
 #include "node_service/node_model.h"
 
 class TestNodeModel final : public NodeModel {
  public:
+  TestNodeModel() {}
+  TestNodeModel(const scada::NodeState& node_state) : node_state_{node_state} {}
+
   virtual scada::Status GetStatus() const override {
     assert(false);
     return scada::StatusCode::Bad;
@@ -21,8 +26,7 @@ class TestNodeModel final : public NodeModel {
 
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override {
-    assert(false);
-    return {};
+    return scada::Read(node_state_, attribute_id);
   }
 
   virtual NodeRef GetDataType() const override {
@@ -104,4 +108,7 @@ class TestNodeModel final : public NodeModel {
                     const scada::StatusCallback& callback) const override {
     assert(false);
   }
+
+ private:
+  const scada::NodeState node_state_;
 };

@@ -111,6 +111,12 @@ bool StringToValue(std::string_view str,
   } else if (data_type_id == scada::id::Double) {
     return StringToValueHelper<scada::Double>(str, value);
 
+  } else if (data_type_id == scada::id::Int8) {
+    return StringToValueHelper<scada::Int8>(str, value);
+
+  } else if (data_type_id == scada::id::UInt8) {
+    return StringToValueHelper<scada::UInt8>(str, value);
+
   } else if (data_type_id == scada::id::Int16) {
     return StringToValueHelper<scada::Int16>(str, value);
 

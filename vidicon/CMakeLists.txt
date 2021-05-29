@@ -1,9 +1,5 @@
-file(GLOB sources "*.cpp" "*.h")
+scada_module(scada_core_vidicon)
 
-add_library(scada_core_vidicon ${sources})
+target_link_libraries(scada_core_vidicon PUBLIC scada_core)
 
-target_link_libraries(scada_core_vidicon scada_core)
-
-target_include_directories(scada_core_vidicon PUBLIC "${deps}/OPCFoundation")
-
-set_property(TARGET scada_core_vidicon PROPERTY FOLDER ${scada_folder})
+target_include_directories(scada_core_vidicon PUBLIC ".." "${deps}/OPCFoundation")

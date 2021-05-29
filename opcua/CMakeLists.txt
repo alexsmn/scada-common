@@ -1,9 +1,7 @@
 find_package(OPCUAPP REQUIRED)
 
-file(GLOB sources "*.cpp" "*.h")
+scada_module(scada_core_opcua)
 
-add_library(scada_core_opcua ${sources})
+target_include_directories(scada_core_opcua PUBLIC "..")
 
-target_link_libraries(scada_core_opcua scada_core OPCUAPP)
-
-set_property(TARGET scada_core_opcua PROPERTY FOLDER ${scada_folder})
+target_link_libraries(scada_core_opcua PUBLIC scada_core OPCUAPP)
