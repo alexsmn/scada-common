@@ -3,8 +3,6 @@
 #include "core/configuration_types.h"
 #include "core/status.h"
 
-#include <memory>
-
 namespace scada {
 class Node;
 struct NodeState;
