@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/debug_util.h"
+#include "base/debug_util.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
 #include "core/view_service.h"

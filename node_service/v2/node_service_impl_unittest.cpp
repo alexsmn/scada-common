@@ -9,7 +9,7 @@
 #include <boost/asio/io_context.hpp>
 #include <gmock/gmock.h>
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace v2 {
 

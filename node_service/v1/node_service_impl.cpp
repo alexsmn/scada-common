@@ -9,7 +9,7 @@
 #include "node_service/node_observer.h"
 #include "node_service/v1/node_model_impl.h"
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace v1 {
 

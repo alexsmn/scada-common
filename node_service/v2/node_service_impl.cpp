@@ -8,7 +8,7 @@
 #include "node_service/node_util.h"
 #include "node_service/v2/node_model_impl.h"
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace v2 {
 

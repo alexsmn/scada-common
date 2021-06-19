@@ -6,7 +6,7 @@
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace {
 

@@ -14,7 +14,7 @@
 #include "core/standard_node_ids.h"
 #include "model/node_id_util.h"
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace {
 

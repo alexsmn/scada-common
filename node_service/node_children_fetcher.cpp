@@ -12,7 +12,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace {
 

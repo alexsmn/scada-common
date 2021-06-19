@@ -6,13 +6,13 @@
 #include "common/data_value_util.h"
 #include "common/event_fetcher.h"
 #include "common/interval_util.h"
-#include "core/debug_util.h"
+#include "base/debug_util.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
 #include <sstream>
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace {
 

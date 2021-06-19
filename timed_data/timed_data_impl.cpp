@@ -9,7 +9,7 @@
 #include "common/formula_util.h"
 #include "common/interval_util.h"
 #include "core/attribute_service.h"
-#include "core/debug_util.h"
+#include "base/debug_util.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
@@ -19,7 +19,7 @@
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
-#include "core/debug_util-inl.h"
+#include "base/debug_util-inl.h"
 
 namespace {
 
