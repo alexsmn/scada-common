@@ -26,6 +26,16 @@ struct NodeState {
   std::vector<ReferenceDescription> references;
   std::vector<NodeState> children;
   NodeId supertype_id;
+
+  NodeState& set_attributes(const NodeAttributes& attributes) {
+    this->attributes = attributes;
+    return *this;
+  }
+
+  NodeState& set_display_name(const LocalizedText& display_name) {
+    attributes.display_name = display_name;
+    return *this;
+  }
 };
 
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {

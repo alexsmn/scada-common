@@ -10,12 +10,10 @@ class TestNodeModel final : public NodeModel {
   TestNodeModel(const scada::NodeState& node_state) : node_state_{node_state} {}
 
   virtual scada::Status GetStatus() const override {
-    assert(false);
-    return scada::StatusCode::Bad;
+    return scada::StatusCode::Good;
   }
 
   virtual NodeFetchStatus GetFetchStatus() const override {
-    assert(false);
     return NodeFetchStatus::Max();
   }
 
