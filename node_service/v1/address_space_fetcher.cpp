@@ -164,10 +164,16 @@ void AddressSpaceFetcher::OnFetchCompleted(
     NodeFetchStatuses&& errors) {
   LOG_INFO(logger_) << "Nodes fetched"
                     << LOG_TAG("Count", fetched_nodes.size());
+  LOG_DEBUG(logger_) << "Nodes fetched"
+                     << LOG_TAG("Count", fetched_nodes.size())
+                     << LOG_TAG("Nodes", ToString(fetched_nodes));
 
   if (!errors.empty()) {
     LOG_WARNING(logger_) << "Nodes fetch errors"
                          << LOG_TAG("Count", errors.size());
+    LOG_DEBUG(logger_) << "Nodes fetch errors"
+                       << LOG_TAG("Count", errors.size())
+                       << LOG_TAG("Errors", ToString(errors));
   }
 
   AddressSpaceUpdater updater{address_space_, node_factory_};

@@ -6,8 +6,16 @@
 
 class MockNodeObserver : public NodeRefObserver {
  public:
-  MOCK_METHOD1(OnModelChanged, void(const scada::ModelChangeEvent& event));
-  MOCK_METHOD1(OnNodeSemanticChanged, void(const scada::NodeId& node_id));
-  MOCK_METHOD2(OnNodeFetched,
-               void(const scada::NodeId& node_id, bool children));
+  MOCK_METHOD(void,
+              OnModelChanged,
+              (const scada::ModelChangeEvent& event),
+              (override));
+  MOCK_METHOD(void,
+              OnNodeSemanticChanged,
+              (const scada::NodeId& node_id),
+              (override));
+  MOCK_METHOD(void,
+              OnNodeFetched,
+              (const scada::NodeId& node_id, bool children),
+              (override));
 };

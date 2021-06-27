@@ -81,9 +81,12 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   const auto duration = base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse children completed"
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status))
-                    << LOG_TAG("Inputs", ToString(descriptions))
-                    << LOG_TAG("Results", ToString(results));
+                    << LOG_TAG("Status", ToString(status));
+  LOG_DEBUG(logger_) << "Browse children completed"
+                     << LOG_TAG("DurationMs", duration.InMilliseconds())
+                     << LOG_TAG("Status", ToString(status))
+                     << LOG_TAG("Inputs", ToString(descriptions))
+                     << LOG_TAG("Results", ToString(results));
 
   assert(!descriptions.empty());
 

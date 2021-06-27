@@ -11,8 +11,6 @@
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/node_service_impl.h"
 
-#include <boost/asio/io_context.hpp>
-
 namespace v1 {
 
 struct NodeServiceTestContext {
@@ -28,7 +26,6 @@ struct NodeServiceTestContext {
   }
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
-  boost::asio::io_context io_context;
   const std::shared_ptr<TestExecutor> executor =
       std::make_shared<TestExecutor>();
 

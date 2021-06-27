@@ -1,3 +1,5 @@
+// WARNING: This is being migrated to common NodeService UTs.
+
 #include "node_service/node_service.h"
 
 #include "model/node_id_util.h"
@@ -6,109 +8,6 @@
 namespace v1 {
 
 using namespace testing;
-
-TEST(NodeServiceImpl, FetchNode) {
-  NodeServiceTestContext context;
-
-  auto node =
-      context.node_service.GetNode(context.server_address_space.kTestNode2Id);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-
-  EXPECT_TRUE(node.fetched());
-  EXPECT_TRUE(node.status());
-  EXPECT_EQ(node.browse_name(), "TestNode2");
-  EXPECT_EQ(scada::Variant{"TestNode2.TestProp1.Value"},
-            node[context.server_address_space.kTestProp1Id].value());
-  EXPECT_EQ(scada::Variant{"TestNode2.TestProp2.Value"},
-            node[context.server_address_space.kTestProp2Id].value());
-}
-
-TEST(NodeServiceImpl, FetchUnknownNode) {
-  NodeServiceTestContext context;
-
-  const scada::NodeId kUnknownNodeId{1, 100};
-
-  auto node = context.node_service.GetNode(kUnknownNodeId);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-  EXPECT_TRUE(node.fetched());
-  EXPECT_FALSE(node.status());
-}
-
-TEST(NodeServiceImpl, NodeAdded) {
-  NodeServiceTestContext context;
-
-  const scada::NodeState kNewNode{
-      scada::NodeId{"NewNodeId", 0},
-      scada::NodeClass::Object,
-      context.server_address_space.kTestTypeId,
-      scada::id::RootFolder,
-      scada::id::Organizes,
-      scada::NodeAttributes{}.set_browse_name("NewNode"),
-  };
-
-  context.server_address_space.CreateNode(kNewNode);
-
-  const scada::ModelChangeEvent event{kNewNode.node_id,
-                                      kNewNode.type_definition_id,
-                                      scada::ModelChangeEvent::NodeAdded};
-  EXPECT_CALL(context.node_observer, OnModelChanged(event));
-  context.view_events->OnModelChanged(event);
-
-  Mock::VerifyAndClearExpectations(&context.node_observer);
-
-  // With smart fetch only:
-  // EXPECT_CALL(context.node_observer, OnNodeFetched(kNewNode.node_id, false));
-
-  auto node = context.node_service.GetNode(kNewNode.node_id);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-  EXPECT_TRUE(node.fetched());
-  EXPECT_TRUE(node.status());
-  EXPECT_EQ(node.browse_name(), "NewNode");
-}
-
-TEST(NodeServiceImpl, NodeDeleted) {
-  NodeServiceTestContext context;
-
-  const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
-  ASSERT_TRUE(context.server_address_space.GetNode(kNodeId));
-
-  const scada::ModelChangeEvent event{
-      kNodeId, {}, scada::ModelChangeEvent::NodeDeleted};
-  EXPECT_CALL(context.node_observer, OnModelChanged(event));
-  context.view_events->OnModelChanged(event);
-
-  context.server_address_space.DeleteNode(kNodeId);
-
-  Mock::VerifyAndClearExpectations(&context.node_observer);
-
-  auto node = context.node_service.GetNode(kNodeId);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-  EXPECT_TRUE(node.fetched());
-  EXPECT_FALSE(node.status());
-}
-
-TEST(NodeServiceImpl, NodeSemanticsChanged) {
-  NodeServiceTestContext context;
-
-  const scada::NodeId kNodeId = context.server_address_space.kTestNode1Id;
-  const scada::LocalizedText kNewDisplayName{
-      base::WideToUTF16(L"NewTestNode1")};
-  const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
-
-  auto node = context.node_service.GetNode(kNodeId);
-  node.Fetch(NodeFetchStatus::NodeOnly());
-
-  EXPECT_CALL(context.node_observer, OnNodeSemanticChanged(kNodeId))
-      .Times(AtLeast(1));
-  context.server_address_space.ModifyNode(
-      kNodeId, scada::NodeAttributes{}.set_display_name(kNewDisplayName),
-      {{context.server_address_space.kTestProp1Id, kNewValue}});
-  context.view_events->OnNodeSemanticsChanged(
-      scada::SemanticChangeEvent{kNodeId});
-
-  EXPECT_EQ(kNewDisplayName, node.display_name());
-  EXPECT_EQ(kNewValue, node[context.server_address_space.kTestProp1Id].value());
-}
 
 TEST(NodeServiceImpl, DISABLED_DeleteNodeByDeletionOfParentReference) {
   NodeServiceTestContext context;

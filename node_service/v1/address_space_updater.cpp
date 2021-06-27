@@ -85,8 +85,9 @@ AddressSpaceUpdater::AddressSpaceUpdater(AddressSpaceImpl& address_space,
     : address_space_{address_space}, node_factory_{node_factory} {}
 
 void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
-  LOG_INFO(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size())
-                    << LOG_TAG("Nodes", ToString(nodes));
+  LOG_INFO(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size());
+  LOG_DEBUG(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size())
+                     << LOG_TAG("Nodes", ToString(nodes));
 
   TypeDefinitionPatch type_definition_patch{address_space_};
   type_definition_patch.Patch(nodes);

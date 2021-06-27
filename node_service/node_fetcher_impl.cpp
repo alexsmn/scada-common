@@ -328,9 +328,12 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
 
   LOG_INFO(logger_) << "Nodes fetched" << LOG_TAG("NodeCount", nodes.size())
                     << LOG_TAG("ErrorCount", errors.size())
-                    << LOG_TAG("FetchingCount", fetching_nodes_.size())
-                    << LOG_TAG("Nodes", ToString(nodes))
-                    << LOG_TAG("Errors", ToString(errors));
+                    << LOG_TAG("FetchingCount", fetching_nodes_.size());
+  LOG_DEBUG(logger_) << "Nodes fetched" << LOG_TAG("NodeCount", nodes.size())
+                     << LOG_TAG("ErrorCount", errors.size())
+                     << LOG_TAG("FetchingCount", fetching_nodes_.size())
+                     << LOG_TAG("Nodes", ToString(nodes))
+                     << LOG_TAG("Errors", ToString(errors));
 
 #if !defined(NDEBUG)
   // Validation.
@@ -450,9 +453,13 @@ void NodeFetcherImpl::OnReadResult(
   LOG_INFO(logger_) << "Read request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status))
-                    << LOG_TAG("Inputs", ToString(read_ids))
-                    << LOG_TAG("Results", ToString(results));
+                    << LOG_TAG("Status", ToString(status));
+  LOG_DEBUG(logger_) << "Read request completed"
+                     << LOG_TAG("RequestId", request_id)
+                     << LOG_TAG("DurationMs", duration.InMilliseconds())
+                     << LOG_TAG("Status", ToString(status))
+                     << LOG_TAG("Inputs", ToString(read_ids))
+                     << LOG_TAG("Results", ToString(results));
 
   for (size_t i = 0; i < read_ids.size(); ++i) {
     auto& read_id = read_ids[i];
@@ -543,9 +550,14 @@ void NodeFetcherImpl::OnBrowseResult(
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("Count", descriptions.size())
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                    << LOG_TAG("Status", ToString(status))
-                    << LOG_TAG("Inputs", ToString(descriptions))
-                    << LOG_TAG("Results", ToString(results));
+                    << LOG_TAG("Status", ToString(status));
+  LOG_DEBUG(logger_) << "Browse request completed"
+                     << LOG_TAG("RequestId", request_id)
+                     << LOG_TAG("Count", descriptions.size())
+                     << LOG_TAG("DurationMs", duration.InMilliseconds())
+                     << LOG_TAG("Status", ToString(status))
+                     << LOG_TAG("Inputs", ToString(descriptions))
+                     << LOG_TAG("Results", ToString(results));
 
   for (size_t i = 0; i < descriptions.size(); ++i) {
     auto& description = descriptions[i];
