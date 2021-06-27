@@ -155,11 +155,8 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
   };
 
   return {
-      io_context_,
-      executor_,
-      view_service_,
-      attribute_service_,
-      fetch_completed_handler,
+      executor_,          view_service_,
+      attribute_service_, fetch_completed_handler,
       node_validator,
   };
 }
@@ -171,7 +168,7 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
           node->OnChildrenFetched(std::move(result.references));
       };
 
-  return {io_context_, executor_, view_service_, reference_validator};
+  return {executor_, view_service_, reference_validator};
 }
 
 void NodeServiceImpl::OnChannelOpened() {

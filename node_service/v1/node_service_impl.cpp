@@ -196,10 +196,13 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
       };*/
 
   return {
-      io_context_,           executor_,
-      view_service_,         attribute_service_,
-      address_space_,        node_factory_,
-      view_events_provider_, node_fetch_status_changed_handler,
+      executor_,
+      view_service_,
+      attribute_service_,
+      address_space_,
+      node_factory_,
+      view_events_provider_,
+      node_fetch_status_changed_handler,
       model_changed_handler,
   };
 }

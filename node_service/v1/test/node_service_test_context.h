@@ -52,7 +52,7 @@ struct NodeServiceTestContext {
   };
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      io_context, executor, view_events_provider, server_address_space,
+      executor, view_events_provider, server_address_space,
       server_address_space, client_address_space, node_factory,
       monitored_item_service, method_service}};
 

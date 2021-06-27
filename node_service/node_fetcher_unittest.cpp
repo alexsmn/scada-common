@@ -11,8 +11,6 @@
 
 #include "base/debug_util-inl.h"
 
-#include <boost/asio/io_context.hpp>
-
 using namespace testing;
 
 namespace {
@@ -27,7 +25,6 @@ struct TestContext {
       fetched_nodes_[node.node_id] = node;
   }
 
-  boost::asio::io_context io_context;
   const std::shared_ptr<TestExecutor> executor =
       std::make_shared<TestExecutor>();
 
@@ -35,7 +32,6 @@ struct TestContext {
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          io_context,
           executor,
           address_space,
           address_space,

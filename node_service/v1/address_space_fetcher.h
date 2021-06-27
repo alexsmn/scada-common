@@ -12,10 +12,6 @@
 
 class Executor;
 
-namespace boost::asio {
-class io_context;
-}
-
 namespace scada {
 class AttributeService;
 }  // namespace scada
@@ -24,7 +20,6 @@ class AddressSpaceImpl;
 class NodeFactory;
 
 struct AddressSpaceFetcherContext {
-  boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;

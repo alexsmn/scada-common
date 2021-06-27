@@ -12,10 +12,6 @@
 #include <set>
 #include <vector>
 
-namespace boost::asio {
-class io_context;
-}
-
 namespace scada {
 class NodeId;
 class Status;
@@ -30,7 +26,6 @@ using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
                                               scada::BrowseResult&& result)>;
 
 struct NodeChildrenFetcherContext {
-  boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   const ReferenceValidator reference_validator_;

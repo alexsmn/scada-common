@@ -24,7 +24,6 @@ class NodeModelImpl;
 struct NodeModelImplReference;
 
 struct NodeServiceImplContext {
-  boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;

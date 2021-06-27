@@ -66,9 +66,9 @@ void AddressSpaceFetcher::Init() {
     return address_space_.GetNode(node_id) != 0;
   };
 
-  node_fetcher_ = NodeFetcherImpl::Create(
-      {io_context_, executor_, view_service_, attribute_service_,
-       fetch_completed_handler, node_validator});
+  node_fetcher_ =
+      NodeFetcherImpl::Create({executor_, view_service_, attribute_service_,
+                               fetch_completed_handler, node_validator});
 
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
@@ -76,7 +76,6 @@ void AddressSpaceFetcher::Init() {
       };
 
   node_children_fetcher_ = NodeChildrenFetcher::Create({
-      io_context_,
       executor_,
       view_service_,
       reference_validator,
@@ -237,7 +236,6 @@ AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
       };
 
   return {
-      io_context_,
       executor_,
       view_service_,
       reference_validator,

@@ -6,7 +6,6 @@
 #include "core/monitored_item_service_mock.h"
 #include "model/node_id_util.h"
 
-#include <boost/asio/io_context.hpp>
 #include <gmock/gmock.h>
 
 #include "base/debug_util-inl.h"
@@ -28,12 +27,10 @@ using namespace testing;
 };*/
 
 TEST(NodeServiceImpl, DISABLED_FetchTypeDefinition) {
-  boost::asio::io_context io_context;
   auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
   NodeServiceImpl node_service{NodeServiceImplContext{
-      io_context,
       executor,
       address_space,
       address_space,
@@ -55,12 +52,10 @@ TEST(NodeServiceImpl, DISABLED_FetchTypeDefinition) {
 }
 
 TEST(NodeServiceImpl, DISABLED_FetchObject) {
-  boost::asio::io_context io_context;
   auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   scada::MockMonitoredItemService monitored_item_service;
   NodeServiceImpl node_service{NodeServiceImplContext{
-      io_context,
       executor,
       address_space,
       address_space,

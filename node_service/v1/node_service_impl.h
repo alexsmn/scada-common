@@ -10,10 +10,6 @@
 
 class Executor;
 
-namespace boost::asio {
-class io_context;
-}
-
 namespace scada {
 class AddressSpace;
 class Node;
@@ -25,7 +21,6 @@ namespace v1 {
 class NodeModelImpl;
 
 struct NodeServiceImplContext {
-  boost::asio::io_context& io_context_;
   const std::shared_ptr<Executor> executor_;
   const ViewEventsProvider view_events_provider_;
   scada::ViewService& view_service_;

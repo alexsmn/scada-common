@@ -8,7 +8,6 @@
 #include "base/test/test_executor.h"
 #include "core/monitored_item_service_mock.h"
 
-#include <boost/asio/io_context.hpp>
 #include <gmock/gmock.h>
 
 using namespace testing;
@@ -29,7 +28,6 @@ struct TestContext {
                     const NodeFetchStatus& fetch_status));
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
-  boost::asio::io_context io_context;
   const std::shared_ptr<TestExecutor> executor =
       std::make_shared<TestExecutor>();
 
@@ -45,7 +43,7 @@ struct TestContext {
 
   const std::shared_ptr<AddressSpaceFetcher> fetcher =
       AddressSpaceFetcher::Create({AddressSpaceFetcherContext{
-          io_context, executor, server_address_space, server_address_space,
+          executor, server_address_space, server_address_space,
           client_address_space, node_factory,
           [&](scada::ViewEvents& events) {
             view_events = &events;
