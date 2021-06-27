@@ -8,18 +8,20 @@
 #include "core/view_service_mock.h"
 #include "model/node_id_util.h"
 
+#include "base/debug_util-inl.h"
+
 using namespace testing;
 
 namespace {
 
 struct TestContext {
-/*  MOCK_METHOD2(OnFetched,
-               void(const scada::NodeId& node_id,
-                    const ReferenceMap& references));*/
+  /*  MOCK_METHOD2(OnFetched,
+                 void(const scada::NodeId& node_id,
+                      const ReferenceMap& references));*/
 
   const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
-  //TestAddressSpace address_space;
+  // TestAddressSpace address_space;
 
   /*NodeChildrenFetcher node_children_fetcher{NodeChildrenFetcherContext{
       logger,
@@ -29,7 +31,7 @@ struct TestContext {
       },
   }};*/
 
-//  std::map<scada::NodeId, ReferenceMap> references;
+  //  std::map<scada::NodeId, ReferenceMap> references;
 };
 
 }  // namespace

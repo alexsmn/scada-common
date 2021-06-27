@@ -11,17 +11,17 @@
 #include "base/observer_list.h"
 #include "common/node_state.h"
 #include "core/attribute_service.h"
+#include "core/attribute_service_mock.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
+#include "core/view_service_mock.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 
 class TestAddressSpace : public AddressSpaceImpl,
-                         private SyncAttributeServiceImpl,
-                         public AttributeServiceImpl,
-                         private SyncViewServiceImpl,
-                         public ViewServiceImpl {
+                         public scada::MockAttributeService,
+                         public scada::MockViewService {
  public:
   TestAddressSpace();
   ~TestAddressSpace();
@@ -34,10 +34,18 @@ class TestAddressSpace : public AddressSpaceImpl,
 
   StandardAddressSpace standard_address_space{*this};
 
+  SyncAttributeServiceImpl sync_attribute_service_impl{
+      {*static_cast<scada::AddressSpace*>(this)}};
+  AttributeServiceImpl attribute_service_impl{sync_attribute_service_impl};
+
+  SyncViewServiceImpl sync_view_service_impl{
+      {*static_cast<scada::AddressSpace*>(this)}};
+  ViewServiceImpl view_service_impl{sync_view_service_impl};
+
   // RootFolder : FolderType
-  //   TestNode1 : TestType {TestProp1}
+  //   TestNode1 : TestType {TestProp1, TestProp2}
   //   TestNode2 : TestType {TestProp1, TestProp2}
-  //   TestNode3 : TestType
+  //   TestNode3 : TestType {TestProp1, TestProp2}
   //     TestNode4 : TestType (Organizes)
   //     TestNode5 : TestType (HasComponent)
   //       TestNode6 : TestType (Organizes)
@@ -58,13 +66,25 @@ class TestAddressSpace : public AddressSpaceImpl,
 };
 
 inline TestAddressSpace::TestAddressSpace()
-    : AddressSpaceImpl{std::make_shared<NullLogger>()},
-      SyncAttributeServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
-      AttributeServiceImpl{{*static_cast<SyncAttributeServiceImpl*>(this)}},
-      SyncViewServiceImpl{{*static_cast<scada::AddressSpace*>(this)}},
-      ViewServiceImpl{*static_cast<SyncViewServiceImpl*>(this)} {
+    : AddressSpaceImpl{std::make_shared<NullLogger>()} {
+  using namespace testing;
+
+  ON_CALL(*this, Read(_, _))
+      .WillByDefault(
+          Invoke(&attribute_service_impl, &scada::AttributeService::Read));
+  ON_CALL(*this, Write(_, _, _))
+      .WillByDefault(
+          Invoke(&attribute_service_impl, &scada::AttributeService::Write));
+
+  ON_CALL(*this, Browse(_, _))
+      .WillByDefault(Invoke(&view_service_impl, &scada::ViewService::Browse));
+  ON_CALL(*this, TranslateBrowsePaths(_, _))
+      .WillByDefault(Invoke(&view_service_impl,
+                            &scada::ViewService::TranslateBrowsePaths));
+
   GenericNodeFactory node_factory{*this};
 
+  // TODO: Load from file.
   std::vector<scada::NodeState> nodes{
       {kTestRefTypeId,
        scada::NodeClass::ReferenceType,
@@ -102,6 +122,7 @@ inline TestAddressSpace::TestAddressSpace()
           {
               // properties
               {kTestProp1Id, "TestNode1.TestProp1.Value"},
+              {kTestProp2Id, "TestNode1.TestProp2.Value"},
           },
       },
       {
