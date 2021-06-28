@@ -69,6 +69,8 @@ class NodeServiceTest : public Test {
   std::shared_ptr<NodeServiceImpl> CreateNodeServiceImpl();
   ViewEventsProvider MakeViewEventsProvider();
 
+  void ValidateFetchUnknownNode(const scada::NodeId& unknown_node_id);
+
   MockNodeObserver node_observer_;
 
   const std::shared_ptr<TestExecutor> executor_ =
@@ -152,9 +154,9 @@ TYPED_TEST(NodeServiceTest, FetchNode) {
             node[this->server_address_space_->kTestProp2Id].value());
 }
 
-TYPED_TEST(NodeServiceTest, FetchUnknownNode) {
-  const scada::NodeId unknown_node_id{1, 100};
-
+template <class NodeServiceImpl>
+void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
+    const scada::NodeId& unknown_node_id) {
   const scada::ModelChangeEvent reference_added_deleted_event{
       unknown_node_id,
       {},
@@ -179,6 +181,11 @@ TYPED_TEST(NodeServiceTest, FetchUnknownNode) {
 
   EXPECT_TRUE(node.fetched());
   EXPECT_FALSE(node.status());
+}
+
+TYPED_TEST(NodeServiceTest, FetchUnknownNode) {
+  const scada::NodeId unknown_node_id{1, 100};
+  this->ValidateFetchUnknownNode(unknown_node_id);
 }
 
 TYPED_TEST(NodeServiceTest, NodeAdded) {
@@ -219,7 +226,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
       .Times(3);
   EXPECT_CALL(this->node_observer_,
               OnNodeSemanticChanged(new_node_state.node_id))
-      .Times(4);
+      .Times(3);
   EXPECT_CALL(this->node_observer_, OnNodeFetched(new_node_state.node_id, true))
       .Times(2);
 
@@ -254,30 +261,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 
   // Now node is unknown.
 
-  const scada::ModelChangeEvent reference_added_deleted_event{
-      deleted_node_id,
-      {},
-      scada::ModelChangeEvent::ReferenceAdded |
-          scada::ModelChangeEvent::ReferenceDeleted};
-
-  EXPECT_CALL(*this->server_address_space_,
-              Read(Each(NodeIs(deleted_node_id)), _));
-  EXPECT_CALL(*this->server_address_space_,
-              Browse(Each(NodeIs(deleted_node_id)), _));
-  EXPECT_CALL(this->node_observer_,
-              OnModelChanged(reference_added_deleted_event));
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(deleted_node_id));
-  EXPECT_CALL(this->node_observer_, OnNodeFetched(deleted_node_id, false));
-
-  auto node = this->node_service_->GetNode(deleted_node_id);
-
-  MockFunction<void(const NodeRef& node)> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
-
-  EXPECT_TRUE(node.fetched());
-  EXPECT_FALSE(node.status());
+  this->ValidateFetchUnknownNode(deleted_node_id);
 }
 
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
@@ -297,8 +281,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   const scada::LocalizedText new_display_name{
       base::WideToUTF16(L"NewTestNode1")};
 
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(changed_node_id))
-      .Times(3);
+  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(changed_node_id));
 
   this->server_address_space_->ModifyNode(
       changed_node_id,
@@ -316,6 +299,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
       scada::SemanticChangeEvent{changed_node_id});
 
   EXPECT_TRUE(node.fetched());
+  EXPECT_TRUE(node.status());
   EXPECT_EQ(new_display_name, node.display_name());
   EXPECT_EQ(new_property_value,
             node[this->server_address_space_->kTestProp1Id].value());

@@ -55,7 +55,8 @@ struct TestContext {
             for (const auto& [node_id, status, fetch_status] : items)
               OnNodeFetchStatusChanged(node_id, status.code(), fetch_status);
           },
-          [](const scada::ModelChangeEvent& event) {}}});
+          [](const scada::ModelChangeEvent& event) {},
+          [](const scada::SemanticChangeEvent& event) {}}});
 };
 
 }  // namespace

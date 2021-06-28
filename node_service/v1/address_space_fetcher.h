@@ -32,6 +32,9 @@ struct AddressSpaceFetcherContext {
 
   const std::function<void(const scada::ModelChangeEvent& event)>
       model_changed_handler_;
+
+  const std::function<void(const scada::SemanticChangeEvent& event)>
+      semantic_changed_handler_;
 };
 
 class AddressSpaceFetcher

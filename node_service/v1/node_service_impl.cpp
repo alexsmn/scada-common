@@ -86,6 +86,15 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
     o.OnModelChanged(event);
 }
 
+void NodeServiceImpl::OnSemanticChanged(
+    const scada::SemanticChangeEvent& event) {
+  for (auto& o : observers_)
+    o.OnNodeSemanticChanged(event.node_id);
+
+  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
+    i->second->OnNodeSemanticChanged();
+}
+
 void NodeServiceImpl::OnNodeCreated(const scada::Node& node) {}
 
 void NodeServiceImpl::OnNodeDeleted(const scada::Node& node) {
@@ -95,17 +104,7 @@ void NodeServiceImpl::OnNodeDeleted(const scada::Node& node) {
 
 void NodeServiceImpl::OnNodeModified(const scada::Node& node,
                                      const scada::PropertyIds& property_ids) {
-  auto* semantic_node = &node;
-  while (auto* n = GetSemanticParent(*semantic_node))
-    semantic_node = n;
-
-  const auto& node_id = semantic_node->id();
-
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(node_id);
-
-  if (auto i = nodes_.find(node_id); i != nodes_.end())
-    i->second->OnNodeSemanticChanged();
+  // This is handled in |OnSemanticChanged()|.
 }
 
 void NodeServiceImpl::OnReferenceAdded(
@@ -188,6 +187,11 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
     OnModelChanged(event);
   };
 
+  auto semantic_changed_handler =
+      [this](const scada::SemanticChangeEvent& event) {
+        OnSemanticChanged(event);
+      };
+
   /*auto view_events_provider =
       [&monitored_item_service =
            monitored_item_service_](scada::ViewEvents& events) {
@@ -204,6 +208,7 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
       view_events_provider_,
       node_fetch_status_changed_handler,
       model_changed_handler,
+      semantic_changed_handler,
   };
 }
 

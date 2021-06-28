@@ -55,6 +55,7 @@ class NodeServiceImpl final : private NodeServiceImplContext,
       base::span<const NodeFetchStatusChangedItem> items);
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
+  void OnSemanticChanged(const scada::SemanticChangeEvent& event);
 
   // NodeModelDelegate
   virtual NodeRef GetRemoteNode(const scada::Node* node) override;

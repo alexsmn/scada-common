@@ -195,6 +195,11 @@ void AddressSpaceFetcher::OnFetchCompleted(
           node->id(), scada::GetTypeDefinitionId(*node), verb});
     }
   }
+
+  for (auto& node_id : updater.semantic_change_node_ids()) {
+    if (auto* node = address_space_.GetNode(node_id))
+      semantic_changed_handler_(scada::SemanticChangeEvent{node->id()});
+  }
 }
 
 void AddressSpaceFetcher::OnChildrenFetched(

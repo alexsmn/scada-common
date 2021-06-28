@@ -39,6 +39,23 @@ std::string FormatReference(scada::AddressSpace& address_space,
                             NodeIdToScadaString(target_id).c_str());
 }
 
+const scada::Node& GetTransitiveParent(const scada::Node& node,
+                                       const scada::NodeId& reference_type_id) {
+  auto* semantic_parent = &node;
+  while (auto parent_reference = scada::GetParentReference(*semantic_parent)) {
+    if (scada::IsSubtypeOf(*parent_reference.type, reference_type_id))
+      semantic_parent = parent_reference.node;
+    else
+      break;
+  }
+  assert(semantic_parent);
+  return *semantic_parent;
+}
+
+const scada::Node& GetSemanticChangeNode(const scada::Node& node) {
+  return GetTransitiveParent(node, scada::id::HasProperty);
+}
+
 }  // namespace
 
 struct TypeDefinitionPatch {
@@ -102,7 +119,8 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
                                 std::move(node_state.attributes),
                                 std::move(node_state.properties));
 
-      modified_nodes_.push_back(node_state.node_id);
+      modified_nodes_.emplace_back(node_state.node_id);
+      semantic_change_node_ids_.emplace(GetSemanticChangeNode(*node).id());
 
     } else {
       auto [status, added_node] = node_factory_.CreateNode(node_state);

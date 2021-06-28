@@ -4,6 +4,7 @@
 #include "core/view_service.h"
 
 #include <map>
+#include <set>
 #include <vector>
 
 namespace scada {
@@ -25,7 +26,13 @@ class AddressSpaceUpdater {
 
   void UpdateNodes(std::vector<scada::NodeState>&& nodes);
 
-  const ModelChangeVerbs& model_change_verbs() { return model_change_verbs_; }
+  const ModelChangeVerbs& model_change_verbs() const {
+    return model_change_verbs_;
+  }
+
+  const std::set<scada::NodeId>& semantic_change_node_ids() const {
+    return semantic_change_node_ids_;
+  }
 
  private:
   void AddReference(const scada::NodeId& node_id,
@@ -45,6 +52,7 @@ class AddressSpaceUpdater {
   BoostLogger logger_{LOG_NAME("AddressSpaceUpdater")};
 
   ModelChangeVerbs model_change_verbs_;
+  std::set<scada::NodeId> semantic_change_node_ids_;
 
   std::vector<scada::NodeId> added_nodes_;
   std::vector<scada::NodeId> modified_nodes_;
