@@ -157,18 +157,10 @@ TYPED_TEST(NodeServiceTest, FetchNode) {
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
     const scada::NodeId& unknown_node_id) {
-  const scada::ModelChangeEvent reference_added_deleted_event{
-      unknown_node_id,
-      {},
-      scada::ModelChangeEvent::ReferenceAdded |
-          scada::ModelChangeEvent::ReferenceDeleted};
-
   EXPECT_CALL(*this->server_address_space_,
               Read(Each(NodeIs(unknown_node_id)), _));
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIs(unknown_node_id)), _));
-  EXPECT_CALL(this->node_observer_,
-              OnModelChanged(reference_added_deleted_event));
   EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(unknown_node_id));
   EXPECT_CALL(this->node_observer_, OnNodeFetched(unknown_node_id, false));
 

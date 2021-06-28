@@ -160,18 +160,19 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
   // Second: report all statuses.
   for (const auto& [node_id, status, fetch_status] : items) {
-    auto* node = address_space_.GetNode(node_id);
-
     if (auto i = nodes_.find(node_id); i != nodes_.end())
       i->second->NotifyFetchStatus();
 
-    const scada::ModelChangeEvent event{
+    auto* node = address_space_.GetNode(node_id);
+    const scada::ModelChangeEvent reference_added_deleted_event{
         node_id, node ? scada::GetTypeDefinitionId(*node) : scada::NodeId{},
         scada::ModelChangeEvent::ReferenceAdded |
             scada::ModelChangeEvent::ReferenceDeleted};
+
     for (auto& o : observers_) {
       o.OnNodeFetched(node_id, fetch_status.children_fetched);
-      o.OnModelChanged(event);
+      if (status)
+        o.OnModelChanged(reference_added_deleted_event);
       o.OnNodeSemanticChanged(node_id);
     }
   }
