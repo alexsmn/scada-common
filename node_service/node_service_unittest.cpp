@@ -55,9 +55,12 @@ class NodeServiceTest : public Test {
   std::shared_ptr<NodeServiceImpl> CreateNodeServiceImpl();
   ViewEventsProvider MakeViewEventsProvider();
 
-  void ValidateFetchUnknownNode(const scada::NodeId& unknown_node_id);
+  void OpenChannel();
 
-  MockNodeObserver node_observer_;
+  void ValidateFetchUnknownNode(const scada::NodeId& unknown_node_id);
+  void ValidateNodeFetched(const NodeRef& node);
+
+  StrictMock<MockNodeObserver> node_service_observer_;
 
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
@@ -92,28 +95,12 @@ MATCHER_P(NodeIsOrIsNestedOf, node_id, "") {
 
 template <class NodeServiceImpl>
 NodeServiceTest<NodeServiceImpl>::NodeServiceTest() {
-  node_service_->Subscribe(node_observer_);
-
-  // v1's |AddressSpaceFetcher| fetches the whole address space on channel open.
-  EXPECT_CALL(*this->server_address_space_, Read(_, _)).Times(AnyNumber());
-  EXPECT_CALL(*this->server_address_space_, Browse(_, _)).Times(AnyNumber());
-  EXPECT_CALL(this->node_observer_, OnModelChanged(_)).Times(AnyNumber());
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(_))
-      .Times(AnyNumber());
-  EXPECT_CALL(this->node_observer_, OnNodeFetched(_, _)).Times(AnyNumber());
-
-  node_service_->OnChannelOpened();
-
-  EXPECT_CALL(*this->server_address_space_, Read(_, _)).Times(0);
-  EXPECT_CALL(*this->server_address_space_, Browse(_, _)).Times(0);
-  EXPECT_CALL(this->node_observer_, OnModelChanged(_)).Times(0);
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(_)).Times(0);
-  EXPECT_CALL(this->node_observer_, OnNodeFetched(_, _)).Times(0);
+  node_service_->Subscribe(node_service_observer_);
 }
 
 template <class NodeServiceImpl>
 NodeServiceTest<NodeServiceImpl>::~NodeServiceTest() {
-  node_service_->Unsubscribe(node_observer_);
+  node_service_->Unsubscribe(node_service_observer_);
 }
 
 template <>
@@ -134,24 +121,111 @@ ViewEventsProvider NodeServiceTest<NodeServiceImpl>::MakeViewEventsProvider() {
   };
 }
 
-TYPED_TEST(NodeServiceTest, FetchNode) {
-  const auto node_id = this->server_address_space_->kTestNode2Id;
+template <class NodeServiceImpl>
+void NodeServiceTest<NodeServiceImpl>::OpenChannel() {
+  // v1's |AddressSpaceFetcher| fetches the whole address space on channel open.
+  EXPECT_CALL(*this->server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(*this->server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
+      .Times(AnyNumber());
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(_))
+      .Times(AnyNumber());
+  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(_, _))
+      .Times(AnyNumber());
 
-  auto node = this->node_service_->GetNode(node_id);
+  node_service_->OnChannelOpened();
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
+  EXPECT_CALL(*this->server_address_space_, Read(_, _)).Times(0);
+  EXPECT_CALL(*this->server_address_space_, Browse(_, _)).Times(0);
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(_)).Times(0);
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(_)).Times(0);
+  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(_, _)).Times(0);
+}
 
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
-
+template <class NodeServiceImpl>
+void NodeServiceTest<NodeServiceImpl>::ValidateNodeFetched(
+    const NodeRef& node) {
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.children_fetched());
   EXPECT_TRUE(node.status());
+
+  // Type definition.
+  auto type_definition = node.type_definition();
+  EXPECT_TRUE(type_definition);
+  EXPECT_TRUE(type_definition.fetched());
+  EXPECT_EQ(type_definition.node_id(),
+            this->server_address_space_->kTestTypeId);
+
+  // Supertype.
+  auto supertype = type_definition.supertype();
+  EXPECT_TRUE(supertype);
+  EXPECT_TRUE(supertype.fetched());
+  EXPECT_EQ(supertype.node_id(), scada::id::BaseObjectType);
+
+  // Attributes.
+  EXPECT_EQ(node.node_class(), scada::NodeClass::Object);
   EXPECT_EQ(node.browse_name(), "TestNode2");
+  EXPECT_EQ(node.display_name(), L"TestNode2DisplayName");
+
+  // Properties.
   EXPECT_EQ(scada::Variant{"TestNode2.TestProp1.Value"},
             node[this->server_address_space_->kTestProp1Id].value());
   EXPECT_EQ(scada::Variant{"TestNode2.TestProp2.Value"},
             node[this->server_address_space_->kTestProp2Id].value());
+}
+
+TYPED_TEST(NodeServiceTest, FetchNode_BeforeChannelOpen) {
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockNodeObserver> node_observer;
+  node.Subscribe(node_observer);
+
+  MockFunction<void(const NodeRef& node)> fetch_callback;
+  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  EXPECT_CALL(node_observer, OnNodeFetched(node_id, false));
+  EXPECT_CALL(node_observer, OnNodeFetched(node_id, true));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(4);
+  EXPECT_CALL(node_observer,
+              OnModelChanged(scada::ModelChangeEvent{
+                  node_id, this->server_address_space_->kTestTypeId,
+                  scada::ModelChangeEvent::ReferenceAdded |
+                      scada::ModelChangeEvent::ReferenceDeleted}))
+      .Times(2);
+  EXPECT_CALL(node_observer,
+              OnModelChanged(scada::ModelChangeEvent{
+                  node_id, this->server_address_space_->kTestTypeId,
+                  scada::ModelChangeEvent::NodeAdded |
+                      scada::ModelChangeEvent::ReferenceAdded}));
+
+  this->OpenChannel();
+
+  this->ValidateNodeFetched(node);
+
+  node.Unsubscribe(node_observer);
+}
+
+TYPED_TEST(NodeServiceTest, FetchNode) {
+  this->OpenChannel();
+
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockNodeObserver> node_observer;
+  node.Subscribe(node_observer);
+
+  MockFunction<void(const NodeRef& node)> fetch_callback;
+
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+
+  this->ValidateNodeFetched(node);
+
+  node.Unsubscribe(node_observer);
 }
 
 template <class NodeServiceImpl>
@@ -161,8 +235,10 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
               Read(Each(NodeIs(unknown_node_id)), _));
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIs(unknown_node_id)), _));
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(unknown_node_id));
-  EXPECT_CALL(this->node_observer_, OnNodeFetched(unknown_node_id, false));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeSemanticChanged(unknown_node_id));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(unknown_node_id, false));
 
   auto node = this->node_service_->GetNode(unknown_node_id);
 
@@ -177,11 +253,15 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
 }
 
 TYPED_TEST(NodeServiceTest, FetchUnknownNode) {
+  this->OpenChannel();
+
   const scada::NodeId unknown_node_id{1, 100};
   this->ValidateFetchUnknownNode(unknown_node_id);
 }
 
 TYPED_TEST(NodeServiceTest, NodeAdded) {
+  this->OpenChannel();
+
   // New node is created with properties having default values.
   const scada::NodeState new_node_state{
       scada::NodeId{111, 1},
@@ -199,11 +279,11 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
       new_node_state.node_id, new_node_state.type_definition_id,
       scada::ModelChangeEvent::NodeAdded};
 
-  EXPECT_CALL(this->node_observer_, OnModelChanged(node_added_event));
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(node_added_event));
 
   this->view_events_->OnModelChanged(node_added_event);
 
-  Mock::VerifyAndClearExpectations(&this->node_observer_);
+  Mock::VerifyAndClearExpectations(&this->node_service_observer_);
 
   // Fetches the node, its aggregates, and children.
   EXPECT_CALL(*this->server_address_space_,
@@ -212,25 +292,26 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIsOrIsNestedOf(new_node_state.node_id)), _))
       .Times(3);
-  EXPECT_CALL(this->node_observer_,
+  EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   scada::id::RootFolder, scada::id::FolderType,
                   scada::ModelChangeEvent::ReferenceAdded}));
-  EXPECT_CALL(this->node_observer_,
+  EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   new_node_state.node_id, new_node_state.type_definition_id,
                   scada::ModelChangeEvent::NodeAdded |
                       scada::ModelChangeEvent::ReferenceAdded}));
-  EXPECT_CALL(this->node_observer_,
+  EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   new_node_state.node_id, new_node_state.type_definition_id,
                   scada::ModelChangeEvent::ReferenceAdded |
                       scada::ModelChangeEvent::ReferenceDeleted}))
       .Times(2);
-  EXPECT_CALL(this->node_observer_,
+  EXPECT_CALL(this->node_service_observer_,
               OnNodeSemanticChanged(new_node_state.node_id))
       .Times(3);
-  EXPECT_CALL(this->node_observer_, OnNodeFetched(new_node_state.node_id, true))
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(new_node_state.node_id, true))
       .Times(2);
 
   auto node = this->node_service_->GetNode(new_node_state.node_id);
@@ -248,6 +329,8 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 }
 
 TYPED_TEST(NodeServiceTest, NodeDeleted) {
+  this->OpenChannel();
+
   const scada::NodeId deleted_node_id =
       this->server_address_space_->kTestNode1Id;
   ASSERT_TRUE(this->server_address_space_->GetNode(deleted_node_id));
@@ -255,13 +338,13 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   const scada::ModelChangeEvent node_deleted_event{
       deleted_node_id, {}, scada::ModelChangeEvent::NodeDeleted};
 
-  EXPECT_CALL(this->node_observer_, OnModelChanged(node_deleted_event));
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(node_deleted_event));
 
   this->view_events_->OnModelChanged(node_deleted_event);
 
   this->server_address_space_->DeleteNode(deleted_node_id);
 
-  Mock::VerifyAndClearExpectations(&this->node_observer_);
+  Mock::VerifyAndClearExpectations(&this->node_service_observer_);
 
   // Now node is unknown.
 
@@ -269,6 +352,8 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 }
 
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
+  this->OpenChannel();
+
   const scada::NodeId changed_node_id =
       this->server_address_space_->kTestNode1Id;
   const scada::Variant new_property_value{"TestNode1.TestProp1.NewValue"};
@@ -285,7 +370,8 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   const scada::LocalizedText new_display_name{
       base::WideToUTF16(L"NewTestNode1")};
 
-  EXPECT_CALL(this->node_observer_, OnNodeSemanticChanged(changed_node_id));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeSemanticChanged(changed_node_id));
 
   this->server_address_space_->ModifyNode(
       changed_node_id,
