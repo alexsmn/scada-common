@@ -3,7 +3,10 @@
 #include "address_space/address_space.h"
 #include "address_space/node_utils.h"
 #include "base/auto_reset.h"
+#include "base/debug_util.h"
 #include "base/range_util.h"
+
+#include "base/debug_util-inl.h"
 
 // NodeFetchStatusTracker::ScopedStatusLock
 
@@ -41,6 +44,10 @@ NodeFetchStatusTracker::NodeFetchStatusTracker(
     : NodeFetchStatusTrackerContext{std::move(context)} {}
 
 void NodeFetchStatusTracker::OnNodesFetched(const NodeFetchStatuses& statuses) {
+  LOG_INFO(logger_) << "Nodes fetched"
+                    << LOG_TAG("statuses", ToString(statuses));
+
+  assert(!statuses.empty());
   assert(thread_checker_.CalledOnValidThread());
 
   ScopedStatusLock lock{*this};
@@ -73,6 +80,14 @@ void NodeFetchStatusTracker::DeleteNodeStatesRecursive(
 void NodeFetchStatusTracker::OnChildrenFetched(
     const scada::NodeId& parent_id,
     scada::ReferenceDescriptions&& references) {
+  LOG_INFO(logger_) << "Children fetched"
+                    << LOG_TAG("parent_id", ToString(parent_id))
+                    << LOG_TAG("references.size", references.size());
+  LOG_DEBUG(logger_) << "Children fetched"
+                     << LOG_TAG("parent_id", ToString(parent_id))
+                     << LOG_TAG("references.size", references.size())
+                     << LOG_TAG("references", ToString(references));
+
   assert(thread_checker_.CalledOnValidThread());
   assert(!notifying_);
   assert(!parent_id.is_null());
@@ -110,6 +125,8 @@ void NodeFetchStatusTracker::OnChildrenFetched(
 }
 
 void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
+  LOG_INFO(logger_) << "Delete" << LOG_TAG("node_id", ToString(node_id));
+
   assert(thread_checker_.CalledOnValidThread());
   assert(!notifying_);
 
@@ -191,6 +208,9 @@ void NodeFetchStatusTracker::NotifyStatusChanged(const scada::NodeId& node_id) {
     node_fetch_status_changed_handler_(base::span{&item, 1});
     return;
   }
+
+  LOG_INFO(logger_) << "Node status changed"
+                    << LOG_TAG("NodeId", ToString(node_id));
 
   pending_statuses_.emplace(node_id);
 }

@@ -187,7 +187,8 @@ void AddressSpaceFetcher::OnFetchCompleted(
     }
   }
 
-  fetch_status_tracker_.OnNodesFetched(errors);
+  if (!errors.empty())
+    fetch_status_tracker_.OnNodesFetched(errors);
 
   for (auto& [node_id, verb] : updater.model_change_verbs()) {
     if (auto* node = address_space_.GetNode(node_id)) {

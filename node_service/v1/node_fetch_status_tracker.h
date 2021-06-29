@@ -1,6 +1,8 @@
 #pragma once
 
+#include "base/boost_log.h"
 #include "base/containers/span.h"
+#include "base/struct_writer.h"
 #include "base/threading/thread_checker.h"
 #include "core/configuration_types.h"
 #include "core/node_id.h"
@@ -62,6 +64,8 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   void NotifyPendingStatusChanged();
 
+  BoostLogger logger_{LOG_NAME("NodeFetchStatusTracker")};
+
   base::ThreadChecker thread_checker_;
 
   // Key is absent - not fetched, unknown node
@@ -80,3 +84,12 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
   bool notifying_ = false;
   int status_lock_count_ = 0;
 };
+
+inline std::ostream& operator<<(std::ostream& stream,
+                                const NodeFetchStatusChangedItem& item) {
+  StructWriter{stream}
+      .AddField("node_id", ToString(item.node_id))
+      .AddField("status", ToString(item.status))
+      .AddField("fetch_status", ToString(item.fetch_status));
+  return stream;
+}

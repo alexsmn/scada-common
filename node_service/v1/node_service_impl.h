@@ -76,6 +76,8 @@ class NodeServiceImpl final : private NodeServiceImplContext,
                                   const scada::Node& source,
                                   const scada::Node& target) override;
 
+  BoostLogger logger_{LOG_NAME("v1::NodeServiceImpl")};
+
   mutable base::ObserverList<NodeRefObserver> observers_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;

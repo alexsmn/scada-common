@@ -77,6 +77,8 @@ void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
+  LOG_INFO(logger_) << "Model changed" << LOG_TAG("Event", ToString(event));
+
   // Model must handle node deletion first to correctly cleanup a refrence to
   // the node, since it has already been deleted.
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
@@ -88,6 +90,8 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void NodeServiceImpl::OnSemanticChanged(
     const scada::SemanticChangeEvent& event) {
+  LOG_INFO(logger_) << "Semantic changed" << LOG_TAG("Event", ToString(event));
+
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(event.node_id);
 
@@ -147,6 +151,12 @@ void NodeServiceImpl::OnNodeModelFetchRequested(
 
 void NodeServiceImpl::OnNodeFetchStatusChanged(
     base::span<const NodeFetchStatusChangedItem> items) {
+  LOG_INFO(logger_) << "Node fetch status changed"
+                    << LOG_TAG("items.size", items.size());
+  LOG_DEBUG(logger_) << "Node fetch status changed"
+                     << LOG_TAG("items.size", items.size())
+                     << LOG_TAG("items", ToString(items));
+
   // First: update node impl statuses.
   for (const auto& [node_id, status, fetch_status] : items) {
     assert(fetcher_->GetNodeFetchStatus(node_id).first.code() == status.code());
