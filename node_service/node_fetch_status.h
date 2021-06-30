@@ -12,6 +12,7 @@ struct NodeFetchStatus {
   static NodeFetchStatus NodeAndChildren() {
     return NodeFetchStatus{true, true};
   }
+  static NodeFetchStatus ChildrenOnly() { return NodeFetchStatus{false, true}; }
 
   bool empty() const { return !node_fetched && !children_fetched; }
 
