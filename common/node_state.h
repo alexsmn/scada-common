@@ -17,7 +17,7 @@ struct ReferenceState {
 
 struct NodeState {
   NodeId node_id;
-  NodeClass node_class = scada::NodeClass::Object;
+  NodeClass node_class = NodeClass::Object;
   NodeId type_definition_id;
   NodeId parent_id;
   NodeId reference_type_id;
@@ -27,6 +27,27 @@ struct NodeState {
   std::vector<NodeState> children;
   NodeId supertype_id;
 
+  NodeState& set_node_id(NodeId node_id) {
+    this->node_id = std::move(node_id);
+    return *this;
+  }
+
+  NodeState& set_node_class(NodeClass node_class) {
+    this->node_class = node_class;
+    return *this;
+  }
+
+  NodeState& set_type_definition_id(NodeId type_definition_id) {
+    this->type_definition_id = std::move(type_definition_id);
+    return *this;
+  }
+
+  NodeState& set_parent(NodeId reference_type_id, NodeId parent_id) {
+    this->reference_type_id = std::move(reference_type_id);
+    this->parent_id = std::move(parent_id);
+    return *this;
+  }
+
   NodeState& set_attributes(const NodeAttributes& attributes) {
     this->attributes = attributes;
     return *this;
@@ -34,6 +55,11 @@ struct NodeState {
 
   NodeState& set_display_name(const LocalizedText& display_name) {
     attributes.display_name = display_name;
+    return *this;
+  }
+
+  NodeState& set_supertype_id(NodeId supertype_id) {
+    this->supertype_id = std::move(supertype_id);
     return *this;
   }
 };

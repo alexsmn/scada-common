@@ -75,13 +75,29 @@ struct TypeDefinitionPatch {
 
   void Fix() {
     for (auto& [node_id, entry] : parents) {
-      if (!entry.parent_id.is_null())
-        scada::AddReference(address_space, entry.reference_type_id,
-                            entry.parent_id, node_id);
-      if (!entry.supertype_id.is_null())
-        scada::AddReference(address_space, scada::id::HasSubtype,
-                            entry.supertype_id, node_id);
+      UpdateReference(address_space, entry.reference_type_id, entry.parent_id,
+                      node_id);
+      UpdateReference(address_space, scada::id::HasSubtype, entry.supertype_id,
+                      node_id);
     }
+  }
+
+  void UpdateReference(scada::AddressSpace& address_space,
+                       const scada::NodeId& reference_type_id,
+                       const scada::NodeId& source_id,
+                       const scada::NodeId& target_id) {
+    if (source_id.is_null())
+      return;
+
+    auto* node = address_space.GetMutableNode(source_id);
+    assert(node);
+    if (!node)
+      return;
+
+    if (scada::FindReference(*node, reference_type_id, true, target_id))
+      return;
+
+    scada::AddReference(address_space, reference_type_id, source_id, target_id);
   }
 
   scada::AddressSpace& address_space;
@@ -103,8 +119,8 @@ AddressSpaceUpdater::AddressSpaceUpdater(AddressSpaceImpl& address_space,
 
 void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
   LOG_INFO(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size());
-  LOG_DEBUG(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size())
-                     << LOG_TAG("Nodes", ToString(nodes));
+  LOG_INFO(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size())
+                    << LOG_TAG("Nodes", ToString(nodes));
 
   TypeDefinitionPatch type_definition_patch{address_space_};
   type_definition_patch.Patch(nodes);
