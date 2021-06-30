@@ -42,7 +42,9 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
  public:
   explicit NodeFetchStatusTracker(NodeFetchStatusTrackerContext&& context);
 
+  // For good statuses the node must exist in the address space.
   void OnNodesFetched(const NodeFetchStatuses& statuses);
+
   void OnChildrenFetched(const scada::NodeId& node_id,
                          scada::ReferenceDescriptions&& references);
 
@@ -84,6 +86,12 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
   bool notifying_ = false;
   int status_lock_count_ = 0;
 };
+
+inline bool operator==(const NodeFetchStatusChangedItem& a,
+                       const NodeFetchStatusChangedItem& b) {
+  return a.node_id == b.node_id && a.status == b.status &&
+         a.fetch_status == b.fetch_status;
+}
 
 inline std::ostream& operator<<(std::ostream& stream,
                                 const NodeFetchStatusChangedItem& item) {
