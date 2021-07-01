@@ -45,6 +45,29 @@ struct NodeServiceTestContext {
 
 }  // namespace v1
 
+namespace v2 {
+
+struct NodeServiceTestContext {
+  NodeServiceTestContext(std::shared_ptr<Executor> executor,
+                         std::shared_ptr<TestAddressSpace> server_address_space,
+                         ViewEventsProvider view_events_provider)
+      : executor{std::move(executor)},
+        server_address_space{std::move(server_address_space)},
+        view_events_provider{std::move(view_events_provider)} {}
+
+  const std::shared_ptr<Executor> executor;
+  const std::shared_ptr<TestAddressSpace> server_address_space;
+  const ViewEventsProvider view_events_provider;
+
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+
+  NodeServiceImpl node_service{NodeServiceImplContext{
+      executor, *server_address_space, *server_address_space,
+      monitored_item_service, view_events_provider}};
+};
+
+}  // namespace v2
+
 template <class NodeServiceImpl>
 class NodeServiceTest : public Test {
  public:
@@ -109,6 +132,14 @@ NodeServiceTest<v1::NodeServiceImpl>::CreateNodeServiceImpl() {
   auto context = std::make_shared<v1::NodeServiceTestContext>(
       executor_, server_address_space_, view_events_provider_);
   return std::shared_ptr<v1::NodeServiceImpl>(context, &context->node_service);
+}
+
+template <>
+std::shared_ptr<v2::NodeServiceImpl>
+NodeServiceTest<v2::NodeServiceImpl>::CreateNodeServiceImpl() {
+  auto context = std::make_shared<v2::NodeServiceTestContext>(
+      executor_, server_address_space_, view_events_provider_);
+  return std::shared_ptr<v2::NodeServiceImpl>(context, &context->node_service);
 }
 
 template <class NodeServiceImpl>

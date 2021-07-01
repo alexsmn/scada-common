@@ -16,7 +16,8 @@ NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)),
       node_fetcher_{NodeFetcherImpl::Create(MakeNodeFetcherImplContext())},
       node_children_fetcher_{
-          NodeChildrenFetcher::Create(MakeNodeChildrenFetcherContext())} {}
+          NodeChildrenFetcher::Create(MakeNodeChildrenFetcherContext())},
+      view_events_subscription_{view_events_provider_(*this)} {}
 
 NodeServiceImpl::~NodeServiceImpl() {}
 

@@ -28,6 +28,7 @@ struct NodeServiceImplContext {
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
+  const ViewEventsProvider view_events_provider_;
 };
 
 class NodeServiceImpl : private NodeServiceImplContext,
@@ -75,12 +76,10 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   const std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;
+  const std::unique_ptr<IViewEventsSubscription> view_events_subscription_;
 
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
-
-  ViewEventsSubscription view_events_subscription_{monitored_item_service_,
-                                                   *this};
 
   friend class NodeModelImpl;
 };
