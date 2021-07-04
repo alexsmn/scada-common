@@ -15,39 +15,27 @@ using namespace testing;
 
 namespace {
 
-struct TestContext {
-  MOCK_METHOD1(OnFetched, void(std::vector<scada::NodeState>& nodes));
-  MOCK_METHOD2(OnFetchError,
-               void(const scada::NodeId& node_id, const scada::Status& status));
+class NodeFetcherTest : public Test {
+ protected:
+  StrictMock<MockFunction<void(std::vector<scada::NodeState>&& nodes,
+                               NodeFetchStatuses&& errors)>>
+      fetch_completed_handler_;
 
-  void ProcessFetchedNodes(const std::vector<scada::NodeState>& nodes) {
-    for (auto& node : nodes)
-      fetched_nodes_[node.node_id] = node;
-  }
+  StrictMock<MockFunction<bool(const scada::NodeId& node_id)>> node_validator_;
 
-  const std::shared_ptr<TestExecutor> executor =
+  const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
 
-  TestAddressSpace address_space;
+  TestAddressSpace server_address_space_;
 
-  const std::shared_ptr<NodeFetcherImpl> node_fetcher{
+  const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          executor,
-          address_space,
-          address_space,
-          [&](std::vector<scada::NodeState>&& nodes,
-              NodeFetchStatuses&& errors) {
-            OnFetched(nodes);
-            ProcessFetchedNodes(nodes);
-            for (auto& [node_id, status] : errors)
-              OnFetchError(node_id, status);
-          },
-          [&](const scada::NodeId& node_id) {
-            return fetched_nodes_.find(node_id) != fetched_nodes_.end();
-          },
+          executor_,
+          server_address_space_,
+          server_address_space_,
+          fetch_completed_handler_.AsStdFunction(),
+          node_validator_.AsStdFunction(),
       })};
-
-  std::map<scada::NodeId, scada::NodeState> fetched_nodes_;
 };
 
 }  // namespace
@@ -56,51 +44,15 @@ MATCHER_P(NodeIs, node_id, "") {
   return arg.node_id == node_id;
 }
 
-TEST(NodeFetcher, DISABLED_Test) {
-  TestContext context;
+TEST_F(NodeFetcherTest, Fetch) {
+  const auto node_id = server_address_space_.kTestNode1Id;
 
-  auto& as = context.address_space;
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
 
-  InSequence s;
-
-  // Don't expect any errors.
-  EXPECT_CALL(context, OnFetchError(_, _)).Times(0);
-
-  // Root doesn't depend from anything.
-  EXPECT_CALL(context, OnFetched(Contains(NodeIs(scada::id::RootFolder))));
-
-  context.node_fetcher->Fetch(scada::id::RootFolder);
-
-  Mock::VerifyAndClearExpectations(&context);
-
-  // TestNode1 only has a property.
-  EXPECT_CALL(context,
-              OnFetched(AllOf(Contains(NodeIs(as.kTestNode1Id)),
-                              Contains(NodeIs(as.MakeNestedNodeId(
-                                  as.kTestNode1Id, as.kTestProp1Id))))));
-
-  context.node_fetcher->Fetch(as.kTestNode1Id);
-
-  Mock::VerifyAndClearExpectations(&context);
-
-  EXPECT_CALL(context,
-              OnFetched(AllOf(Contains(NodeIs(as.kTestNode2Id)),
-                              Contains(NodeIs(as.kTestNode3Id)),
-                              Contains(NodeIs(as.kTestNode5Id)),
-                              Contains(NodeIs(as.MakeNestedNodeId(
-                                  as.kTestNode2Id, as.kTestProp1Id))),
-                              Contains(NodeIs(as.MakeNestedNodeId(
-                                  as.kTestNode2Id, as.kTestProp2Id))))));
-
-  context.node_fetcher->Fetch(as.kTestNode2Id);
-
-  Mock::VerifyAndClearExpectations(&context);
-
-  EXPECT_CALL(context, OnFetched(Contains(NodeIs(as.kTestNode4Id))));
-
-  context.node_fetcher->Fetch(as.kTestNode4Id);
-
-  Mock::VerifyAndClearExpectations(&context);
+  node_fetcher_->Fetch(node_id);
 }
 
 TEST(NodeFetcher, UnknownNode) {
