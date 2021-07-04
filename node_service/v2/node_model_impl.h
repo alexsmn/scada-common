@@ -17,6 +17,7 @@ namespace v2 {
 
 class NodeModelImpl;
 class NodeServiceImpl;
+class PendingEvents;
 
 struct RemoteReference {
   NodeModelImpl* reference_type = nullptr;
@@ -80,6 +81,7 @@ class NodeModelImpl final : public BaseNodeModel,
   // BaseNodeModel
   virtual void OnFetchRequested(
       const NodeFetchStatus& requested_status) override;
+  virtual void OnFetchStatusChanged() override;
 
  private:
   NodeRef GetAggregateDeclaration(
@@ -95,13 +97,12 @@ class NodeModelImpl final : public BaseNodeModel,
 
   scada::NodeState node_state_;
   scada::ReferenceDescriptions child_references_;
+  scada::ReferenceDescriptions inverse_references_;
 
   std::shared_ptr<bool> reference_request_;
 
-  bool pending_model_changed_ = false;
-  bool pending_semantic_changed_ = false;
-
   friend class NodeServiceImpl;
+  friend class PendingEvents;
 };
 
 }  // namespace v2

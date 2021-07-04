@@ -62,6 +62,8 @@ void BaseNodeModel::SetFetchStatus(const scada::Status& status,
   fetching_status_ |= fetch_status;
 
   NotifyCallbacks();
+
+  OnFetchStatusChanged();
 }
 
 void BaseNodeModel::NotifyCallbacks() {

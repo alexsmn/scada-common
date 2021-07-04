@@ -168,8 +168,12 @@ std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     status = i->second;
   }
 
-  if (auto i = parents_.find(node_id); i != parents_.end())
-    fetch_status.children_fetched = i->second.empty();
+  if (status) {
+    if (auto i = parents_.find(node_id); i != parents_.end())
+      fetch_status.children_fetched = i->second.empty();
+  } else {
+    fetch_status.children_fetched = true;
+  }
 
   return {std::move(status), std::move(fetch_status)};
 }

@@ -63,12 +63,12 @@ TEST_F(NodeFetchStatusTrackerTest, OnNodesFetched_BadStatus) {
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-                  node_id, bad_status, NodeFetchStatus::NodeOnly()})));
+                  node_id, bad_status, NodeFetchStatus::Max()})));
 
   node_fetch_status_tracker_.OnNodesFetched({{node_id, bad_status}});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(node_id),
-            std::make_pair(bad_status, NodeFetchStatus::NodeOnly()));
+            std::make_pair(bad_status, NodeFetchStatus::Max()));
 }
 
 TEST_F(NodeFetchStatusTrackerTest,

@@ -12,6 +12,70 @@
 
 namespace v2 {
 
+// PendingEvents
+
+PendingEvents::PendingEvents(NodeServiceImpl& service) : service_{service} {}
+
+void PendingEvents::Lock() {
+  ++lock_count_;
+}
+
+void PendingEvents::Unlock() {
+  --lock_count_;
+
+  if (lock_count_ != 0)
+    return;
+
+  auto events = event_queue_.GetEvents();
+
+  for (auto& event : events)
+    std::visit([this](const auto& event) { FireEvent(event); }, event);
+}
+
+void PendingEvents::PostEvent(const scada::ModelChangeEvent& event) {
+  if (lock_count_ == 0) {
+    FireEvent(event);
+    return;
+  }
+
+  event_queue_.AddModelChange(event);
+}
+
+void PendingEvents::PostEvent(const scada::SemanticChangeEvent& event) {
+  if (lock_count_ == 0) {
+    FireEvent(event);
+    return;
+  }
+
+  event_queue_.AddNodeSemanticChange(event);
+}
+
+void PendingEvents::FireEvent(const scada::ModelChangeEvent& event) {
+  LOG_INFO(service_.logger_)
+      << "Notify node model changed" << LOG_TAG("Event", ToString(event));
+
+  if (auto node_model = service_.GetNodeModel(event.node_id)) {
+    for (auto& obs : node_model->observers_)
+      obs.OnModelChanged(event);
+  }
+
+  service_.NotifyModelChanged(event);
+}
+
+void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
+  LOG_INFO(service_.logger_)
+      << "Notify node semantics changed" << LOG_TAG("Event", ToString(event));
+
+  if (auto node_model = service_.GetNodeModel(event.node_id)) {
+    for (auto& obs : node_model->observers_)
+      obs.OnNodeSemanticChanged(event.node_id);
+  }
+
+  service_.NotifySemanticsChanged(event.node_id);
+}
+
+// NodeServiceImpl
+
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)),
       node_fetcher_{NodeFetcherImpl::Create(MakeNodeFetcherImplContext())},
@@ -62,26 +126,19 @@ void NodeServiceImpl::NotifySemanticsChanged(const scada::NodeId& node_id) {
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
-  if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
-    if (auto i = nodes_.find(event.node_id); i != nodes_.end()) {
-      /*auto model = std::move(i->second);
-      nodes_.erase(i);
-      model->OnModelChanged(
-          {event.node_id, {}, scada::ModelChangeEvent::NodeDeleted});*/
-    }
-    return;
+  if (auto i = nodes_.find(event.node_id); i != nodes_.end()) {
+    i->second->OnModelChanged(event);
+
+    if (event.verb & scada::ModelChangeEvent::NodeDeleted)
+      NotifyModelChanged(event);
   }
 
   if (event.verb & scada::ModelChangeEvent::NodeAdded) {
-    if (nodes_.find(event.node_id) != nodes_.end()) {
-      // TODO: Log error.
-      return;
-    }
-    return;
+    // Notify only node added events immediately.
+    auto node_added_event = scada::ModelChangeEvent{event}.set_verb(
+        scada::ModelChangeEvent::NodeAdded);
+    NotifyModelChanged(node_added_event);
   }
-
-  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
-    i->second->OnModelChanged(event);
 }
 
 void NodeServiceImpl::OnNodeSemanticsChanged(
@@ -89,14 +146,12 @@ void NodeServiceImpl::OnNodeSemanticsChanged(
   LOG_INFO(logger_) << "Node semantics changed"
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
-  auto node = GetNodeModel(event.node_id);
-  if (!node)
-    return;
-
-  NodeFetcher::ParentInfo parent_info{node->node_state_.parent_id,
-                                      node->node_state_.reference_type_id,
-                                      node->node_state_.supertype_id};
-  node_fetcher_->Fetch(event.node_id, false, std::move(parent_info), true);
+  if (auto node = GetNodeModel(event.node_id)) {
+    NodeFetcher::ParentInfo parent_info{node->node_state_.parent_id,
+                                        node->node_state_.reference_type_id,
+                                        node->node_state_.supertype_id};
+    node_fetcher_->Fetch(event.node_id, false, std::move(parent_info), true);
+  }
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
@@ -111,9 +166,17 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
                     << LOG_TAG("RequestedStatus", ToString(requested_status));
 
   if (requested_status.node_fetched)
-    node_fetcher_->Fetch(node_id);
+    node_fetcher_->Fetch(node_id, true);
   if (requested_status.children_fetched)
     node_children_fetcher_->Fetch(node_id);
+}
+
+void NodeServiceImpl::OnNodeFetchStatusChanged(
+    const scada::NodeId& node_id,
+    const scada::Status& status,
+    const NodeFetchStatus& fetch_status) {
+  for (auto& o : observers_)
+    o.OnNodeFetched(node_id, fetch_status.children_fetched);
 }
 
 void NodeServiceImpl::ProcessFetchedNodes(
@@ -122,6 +185,8 @@ void NodeServiceImpl::ProcessFetchedNodes(
   // TODO: Simplify
 
   SortNodesHierarchically(node_states);
+
+  ScopedLock pending_events_lock{pending_events_};
 
   for (auto& node_state : node_states) {
     if (auto node = GetNodeModel(node_state.node_id))

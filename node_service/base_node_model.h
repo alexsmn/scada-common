@@ -32,6 +32,8 @@ class BaseNodeModel : public NodeModel {
 
   virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
 
+  virtual void OnFetchStatusChanged() {}
+
   scada::Status status_{scada::StatusCode::Good};
 
   NodeFetchStatus fetch_status_{};

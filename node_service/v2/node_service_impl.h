@@ -7,6 +7,7 @@
 #include "node_service/node_children_fetcher.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
+#include "remote/view_event_queue.h"
 
 #include <map>
 
@@ -20,6 +21,7 @@ struct ModelChangeEvent;
 
 namespace v2 {
 
+class NodeServiceImpl;
 class NodeModelImpl;
 struct NodeModelImplReference;
 
@@ -29,6 +31,37 @@ struct NodeServiceImplContext {
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   const ViewEventsProvider view_events_provider_;
+};
+
+template <class Object>
+class ScopedLock {
+ public:
+  explicit ScopedLock(Object& object) : object_{object} { object_.Lock(); }
+  ~ScopedLock() { object_.Unlock(); }
+
+ private:
+  Object& object_;
+};
+
+class PendingEvents {
+ public:
+  explicit PendingEvents(NodeServiceImpl& service);
+
+  void Lock();
+  void Unlock();
+
+  void PostEvent(const scada::ModelChangeEvent& event);
+  void PostEvent(const scada::SemanticChangeEvent& event);
+
+ private:
+  void FireEvent(const scada::ModelChangeEvent& event);
+  void FireEvent(const scada::SemanticChangeEvent& event);
+
+  NodeServiceImpl& service_;
+
+  ViewEventQueue event_queue_;
+
+  int lock_count_ = 0;
 };
 
 class NodeServiceImpl : private NodeServiceImplContext,
@@ -56,6 +89,9 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   void OnFetchNode(const scada::NodeId& node_id,
                    const NodeFetchStatus& requested_status);
+  void OnNodeFetchStatusChanged(const scada::NodeId& node_id,
+                                const scada::Status& status,
+                                const NodeFetchStatus& fetch_status);
 
   void ProcessFetchedNodes(std::vector<scada::NodeState>&& node_states);
   void ProcessFetchErrors(NodeFetchStatuses&& errors);
@@ -81,7 +117,10 @@ class NodeServiceImpl : private NodeServiceImplContext,
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
 
+  PendingEvents pending_events_{*this};
+
   friend class NodeModelImpl;
+  friend class PendingEvents;
 };
 
 }  // namespace v2
