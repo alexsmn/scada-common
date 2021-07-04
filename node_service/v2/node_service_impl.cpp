@@ -146,12 +146,8 @@ void NodeServiceImpl::OnNodeSemanticsChanged(
   LOG_INFO(logger_) << "Node semantics changed"
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
-  if (auto node = GetNodeModel(event.node_id)) {
-    NodeFetcher::ParentInfo parent_info{node->node_state_.parent_id,
-                                        node->node_state_.reference_type_id,
-                                        node->node_state_.supertype_id};
-    node_fetcher_->Fetch(event.node_id, false, std::move(parent_info), true);
-  }
+  if (auto node = GetNodeModel(event.node_id))
+    node_fetcher_->Fetch(event.node_id, true);
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,

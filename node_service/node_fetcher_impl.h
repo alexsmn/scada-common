@@ -38,10 +38,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
   static std::shared_ptr<NodeFetcherImpl> Create(
       NodeFetcherImplContext&& context);
 
-  virtual void Fetch(const scada::NodeId& node_id,
-                     bool fetch_parent = false,
-                     const std::optional<ParentInfo> parent_info = {},
-                     bool force = false) override;
+  virtual void Fetch(const scada::NodeId& node_id, bool force = false) override;
   virtual void Cancel(const scada::NodeId& node_id) override;
   virtual size_t GetPendingNodeCount() const override;
 
@@ -59,7 +56,6 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
 
     bool fetch_started = false;     // requests were sent (can be completed).
     unsigned fetch_request_id = 0;  // for request cancelation
-    bool fetch_parent = false;
     std::vector<FetchingNode*> depends_of;
     std::vector<FetchingNode*> dependent_nodes;
     bool attributes_fetched = false;

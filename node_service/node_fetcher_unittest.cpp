@@ -15,12 +15,39 @@ using namespace testing;
 
 namespace {
 
+class TestNodeValidator {
+ public:
+  const scada::NodeState* GetNodeState(const scada::NodeId& node_id) const {
+    auto i = fetched_nodes_.find(node_id);
+    return i != fetched_nodes_.end() ? &i->second : nullptr;
+  }
+
+  bool IsNodeValid(const scada::NodeId& node_id) const {
+    return fetched_nodes_.find(node_id) != fetched_nodes_.end();
+  }
+
+  void OnFetchCompleted(std::vector<scada::NodeState>&& nodes,
+                        NodeFetchStatuses&& errors) {
+    for (auto& node_state : nodes)
+      fetched_nodes_.try_emplace(node_state.node_id, std::move(node_state));
+    for (auto& [node_id, status] : errors)
+      fetched_nodes_.try_emplace(node_id, scada::NodeState{});
+  }
+
+ private:
+  std::map<scada::NodeId, scada::NodeState> fetched_nodes_;
+};
+
 class NodeFetcherTest : public Test {
+ public:
+  NodeFetcherTest();
+
  protected:
   StrictMock<MockFunction<void(std::vector<scada::NodeState>&& nodes,
                                NodeFetchStatuses&& errors)>>
       fetch_completed_handler_;
 
+  TestNodeValidator node_validator_impl_;
   StrictMock<MockFunction<bool(const scada::NodeId& node_id)>> node_validator_;
 
   const std::shared_ptr<TestExecutor> executor_ =
@@ -44,6 +71,15 @@ MATCHER_P(NodeIs, node_id, "") {
   return arg.node_id == node_id;
 }
 
+NodeFetcherTest::NodeFetcherTest() {
+  ON_CALL(fetch_completed_handler_, Call(_, _))
+      .WillByDefault(
+          Invoke(&node_validator_impl_, &TestNodeValidator::OnFetchCompleted));
+  ON_CALL(node_validator_, Call(_))
+      .WillByDefault(
+          Invoke(&node_validator_impl_, &TestNodeValidator::IsNodeValid));
+}
+
 TEST_F(NodeFetcherTest, Fetch) {
   const auto node_id = server_address_space_.kTestNode1Id;
 
@@ -54,6 +90,12 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
 
   node_fetcher_->Fetch(node_id);
+
+  auto* node_state = node_validator_impl_.GetNodeState(node_id);
+
+  ASSERT_TRUE(node_state);
+  EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
+  EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
 }
 
 TEST_F(NodeFetcherTest, Fetch_Force) {
@@ -65,7 +107,13 @@ TEST_F(NodeFetcherTest, Fetch_Force) {
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
 
-  node_fetcher_->Fetch(node_id, false, {}, true);
+  node_fetcher_->Fetch(node_id, true);
+
+  auto* node_state = node_validator_impl_.GetNodeState(node_id);
+
+  ASSERT_TRUE(node_state);
+  EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
+  EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
 }
 
 TEST(NodeFetcher, UnknownNode) {

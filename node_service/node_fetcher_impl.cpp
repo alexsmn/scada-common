@@ -41,7 +41,6 @@ const size_t kFetchReferencesReserveFactor = 3;
 void GetFetchReferences(const scada::NodeState& node,
                         bool is_property,
                         bool is_declaration,
-                        bool fetch_parent,
                         std::vector<scada::BrowseDescription>& descriptions) {
   // Don't request references of a property.
   if (!is_property) {
@@ -57,13 +56,8 @@ void GetFetchReferences(const scada::NodeState& node,
 
   // Request parent if unknown. It may happen when node is created.
   if (node.node_id != scada::id::RootFolder) {
-    if (fetch_parent) {
-      descriptions.push_back({node.node_id, scada::BrowseDirection::Inverse,
-                              scada::id::HierarchicalReferences, true});
-    } else {
-      descriptions.push_back({node.node_id, scada::BrowseDirection::Inverse,
-                              scada::id::HasSubtype, true});
-    }
+    descriptions.push_back({node.node_id, scada::BrowseDirection::Inverse,
+                            scada::id::HierarchicalReferences, true});
   }
 }
 
@@ -126,33 +120,10 @@ NodeFetcherImpl::FetchingNode& NodeFetcherImpl::FetchingNodeGraph::AddNode(
   return node;
 }
 
-void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
-                            bool fetch_parent,
-                            const std::optional<ParentInfo> parent_info,
-                            bool force) {
+void NodeFetcherImpl::Fetch(const scada::NodeId& node_id, bool force) {
   assert(AssertValid());
-  assert(!parent_info.has_value() ||
-         parent_info->reference_type_id != scada::id::HasSubtype);
 
   auto& node = fetching_nodes_.AddNode(node_id);
-  node.fetch_parent |= fetch_parent;
-
-  if (parent_info) {
-    assert(node.parent_id.is_null() ||
-           node.parent_id == parent_info->parent_id);
-    assert(node.reference_type_id.is_null() ||
-           node.reference_type_id == parent_info->reference_type_id);
-    assert(node.supertype_id.is_null() ||
-           node.supertype_id == parent_info->supertype_id);
-
-    node.parent_id = parent_info->parent_id;
-    node.reference_type_id = parent_info->reference_type_id;
-    node.supertype_id = parent_info->supertype_id;
-
-    ValidateDependency(node, node.parent_id);
-    ValidateDependency(node, node.reference_type_id);
-    ValidateDependency(node, node.supertype_id);
-  }
 
   FetchNode(node, next_pending_sequence_++, force);
 
@@ -299,7 +270,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   for (auto* node : nodes) {
     size_t count = descriptions.size();
     GetFetchReferences(*node, node->is_property, node->is_declaration,
-                       node->fetch_parent, descriptions);
+                       descriptions);
     node->references_fetched = count == descriptions.size();
   }
 
@@ -758,7 +729,6 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
 
   // The equality is possible for references.
   if (&from != &node) {
-    from.fetch_parent = true;
     from.force |= node.force;
     fetching_nodes_.AddDependency(node, from);
     FetchNode(from, from.pending_sequence, false);

@@ -30,7 +30,6 @@ struct NodeServiceTestContext {
   const ViewEventsProvider view_events_provider;
 
   AddressSpaceImpl client_address_space{std::make_shared<NullLogger>()};
-  StandardAddressSpace client_standard_address_space{client_address_space};
 
   GenericNodeFactory node_factory{client_address_space};
 
@@ -221,7 +220,6 @@ TYPED_TEST(NodeServiceTest, FetchNode_BeforeChannelOpen) {
   EXPECT_CALL(node_observer, OnNodeFetched(node_id, false));
   // TODO: Cannot validate because of |OpenChannel()| v1 implementation.
   // EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, false));
-  EXPECT_CALL(node_observer, OnNodeFetched(node_id, true)).Times(AtMost(1));
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id))
       .Times(Between(1, 4));
   // TODO: Cannot validate because of |OpenChannel()| v1 implementation.

@@ -73,6 +73,8 @@ class AddressSpaceFetcher
   void OnChildrenFetched(const scada::NodeId& node_id,
                          scada::ReferenceDescriptions&& references);
 
+  void FillMissingParent(scada::NodeState& node_state);
+
   // scada::ViewEvents
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(

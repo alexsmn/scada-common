@@ -17,16 +17,7 @@ class NodeFetcher {
  public:
   virtual ~NodeFetcher() {}
 
-  struct ParentInfo {
-    scada::NodeId parent_id;
-    scada::NodeId reference_type_id;
-    scada::NodeId supertype_id;
-  };
-
-  virtual void Fetch(const scada::NodeId& node_id,
-                     bool fetch_parent = false,
-                     const std::optional<ParentInfo> parent_info = {},
-                     bool force = false) = 0;
+  virtual void Fetch(const scada::NodeId& node_id, bool force = false) = 0;
 
   virtual void Cancel(const scada::NodeId& node_id) = 0;
 

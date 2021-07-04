@@ -86,14 +86,14 @@ void AddressSpaceFetcher::OnChannelOpened() {
   channel_opened_ = true;
 
   for (const auto& node_id : GetAllNodeIds(address_space_)) {
-    node_fetcher_->Fetch(node_id, false, std::nullopt, true);
+    node_fetcher_->Fetch(node_id, true);
     node_children_fetcher_->Fetch(node_id);
   }
 
   PostponedFetchNodes postponed_fetch_nodes;
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
   for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
-    node_fetcher_->Fetch(node_id, false, std::nullopt, true);
+    node_fetcher_->Fetch(node_id, true);
     if (requested_status.children_fetched)
       node_children_fetcher_->Fetch(node_id);
   }
@@ -140,7 +140,7 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
                                      NodeIdToScadaString(event.node_id));
 
         // Fetch forward references.
-        node_fetcher_->Fetch(event.node_id, false, std::nullopt, true);
+        node_fetcher_->Fetch(event.node_id, true);
         // Fetch child references.
         node_children_fetcher_->Fetch(event.node_id);
       }
@@ -156,7 +156,27 @@ void AddressSpaceFetcher::OnNodeSemanticsChanged(
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (address_space_.GetNode(event.node_id))
-    node_fetcher_->Fetch(event.node_id, false, std::nullopt, true);
+    node_fetcher_->Fetch(event.node_id, true);
+}
+
+void AddressSpaceFetcher::FillMissingParent(scada::NodeState& node_state) {
+  if (!node_state.parent_id.is_null() && !node_state.supertype_id.is_null())
+    return;
+
+  auto* node = address_space_.GetNode(node_state.node_id);
+  if (!node)
+    return;
+
+  auto parent_reference = scada::GetParentReference(*node);
+  if (!parent_reference)
+    return;
+
+  if (scada::IsSubtypeOf(*parent_reference.type, scada::id::HasSubtype)) {
+    node_state.supertype_id = parent_reference.node->id();
+  } else {
+    node_state.parent_id = parent_reference.node->id();
+    node_state.reference_type_id = parent_reference.type->id();
+  }
 }
 
 void AddressSpaceFetcher::OnFetchCompleted(
@@ -176,15 +196,15 @@ void AddressSpaceFetcher::OnFetchCompleted(
                        << LOG_TAG("Errors", ToString(errors));
   }
 
+  for (auto& node_state : fetched_nodes)
+    FillMissingParent(node_state);
+
   AddressSpaceUpdater updater{address_space_, node_factory_};
   updater.UpdateNodes(std::move(fetched_nodes));
 
   for (auto& [node_id, verb] : updater.model_change_verbs()) {
-    if (verb & scada::ModelChangeEvent::NodeAdded) {
-      if (!fetch_status_tracker_.GetStatus(node_id).second.children_fetched)
-        node_children_fetcher_->Fetch(node_id);
+    if (verb & scada::ModelChangeEvent::NodeAdded)
       errors.emplace_back(node_id, scada::StatusCode::Good);
-    }
   }
 
   if (!errors.empty())
@@ -228,13 +248,8 @@ void AddressSpaceFetcher::OnChildrenFetched(
     assert(reference.forward);
     // The node could be fetched via non-hierarchical reference with no
     // children.
-    if (!address_space_.GetNode(reference.node_id)) {
-      auto parent_info =
-          reference.reference_type_id == scada::id::HasSubtype
-              ? NodeFetcher::ParentInfo{{}, {}, node_id}
-              : NodeFetcher::ParentInfo{node_id, reference.reference_type_id};
-      node_fetcher_->Fetch(reference.node_id, false, parent_info);
-    }
+    if (!address_space_.GetNode(reference.node_id))
+      node_fetcher_->Fetch(reference.node_id);
   }
 
   fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
