@@ -133,7 +133,7 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
     unsigned next_sequence_ = 0;
   };
 
-  void FetchNode(FetchingNode& node, unsigned priority);
+  void FetchNode(FetchingNode& node, unsigned priority, bool force);
 
   void FetchPendingNodes();
   void FetchPendingNodes(std::vector<FetchingNode*>&& nodes);

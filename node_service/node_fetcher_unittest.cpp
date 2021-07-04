@@ -51,8 +51,21 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
 
   node_fetcher_->Fetch(node_id);
+}
+
+TEST_F(NodeFetcherTest, Fetch_Force) {
+  const auto node_id = server_address_space_.kTestNode1Id;
+
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
+
+  node_fetcher_->Fetch(node_id, false, {}, true);
 }
 
 TEST(NodeFetcher, UnknownNode) {

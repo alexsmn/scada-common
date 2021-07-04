@@ -136,7 +136,6 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
 
   auto& node = fetching_nodes_.AddNode(node_id);
   node.fetch_parent |= fetch_parent;
-  node.force |= force;
 
   if (parent_info) {
     assert(node.parent_id.is_null() ||
@@ -155,17 +154,19 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
     ValidateDependency(node, node.supertype_id);
   }
 
-  FetchNode(node, next_pending_sequence_++);
+  FetchNode(node, next_pending_sequence_++, force);
 
   assert(AssertValid());
 }
 
-void NodeFetcherImpl::FetchNode(FetchingNode& node, unsigned pending_sequence) {
+void NodeFetcherImpl::FetchNode(FetchingNode& node,
+                                unsigned pending_sequence,
+                                bool force) {
   if (pending_queue_.count(node))
     return;
 
   if (node.fetch_started) {
-    if (!node.force)
+    if (!force)
       return;
 
     LOG_INFO(logger_) << "Cancel started fetching node"
@@ -181,6 +182,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node, unsigned pending_sequence) {
   // LOG_INFO(logger_) << "Schedule fetch node"
   //                   << LOG_TAG("NodeId", ToString(node.node_id));
 
+  node.force |= force;
   node.pending_sequence = pending_sequence;
   pending_queue_.push(node);
 
@@ -671,7 +673,7 @@ void NodeFetcherImpl::AddFetchedReference(
     fetching_nodes_.AddDependency(child, node);
     fetching_nodes_.AddDependency(node, child);
 
-    FetchNode(child, node.pending_sequence);
+    FetchNode(child, node.pending_sequence, false);
 
   } else {
     // Non-hierarchical forward references, including HasTypeDefinition.
@@ -759,7 +761,7 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
     from.fetch_parent = true;
     from.force |= node.force;
     fetching_nodes_.AddDependency(node, from);
-    FetchNode(from, from.pending_sequence);
+    FetchNode(from, from.pending_sequence, false);
   }
 }
 
