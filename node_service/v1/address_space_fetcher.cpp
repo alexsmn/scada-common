@@ -93,7 +93,8 @@ void AddressSpaceFetcher::OnChannelOpened() {
   PostponedFetchNodes postponed_fetch_nodes;
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
   for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
-    node_fetcher_->Fetch(node_id, true);
+    if (requested_status.node_fetched)
+      node_fetcher_->Fetch(node_id, true);
     if (requested_status.children_fetched)
       node_children_fetcher_->Fetch(node_id);
   }
@@ -226,22 +227,23 @@ void AddressSpaceFetcher::OnFetchCompleted(
 void AddressSpaceFetcher::OnChildrenFetched(
     const scada::NodeId& node_id,
     scada::ReferenceDescriptions&& references) {
-  auto* node = address_space_.GetNode(node_id);
-  if (!node)
-    return;
+  // Children can be fetched before the node.
+  if (auto* node = address_space_.GetNode(node_id)) {
+    auto deleted_children = FindDeletedChildren(*node, references);
+    for (const auto* deleted_child : deleted_children) {
+      const auto deleted_child_id = deleted_child->id();
+      const auto deleted_child_type_definition_id =
+          scada::GetTypeDefinitionId(*deleted_child);
 
-  for (const auto* deleted_child : FindDeletedChildren(*node, references)) {
-    const auto deleted_child_id = deleted_child->id();
-    const auto deleted_child_type_definition_id =
-        scada::GetTypeDefinitionId(*deleted_child);
-    LOG_INFO(logger_) << "Child node was deleted"
-                      << LOG_TAG("ParentId", NodeIdToScadaString(node_id))
-                      << LOG_TAG("ChildId",
-                                 NodeIdToScadaString(deleted_child_id));
-    DeleteNode(deleted_child_id);
-    model_changed_handler_(scada::ModelChangeEvent{
-        deleted_child_id, deleted_child_type_definition_id,
-        scada::ModelChangeEvent::NodeDeleted});
+      LOG_INFO(logger_) << "Child node was deleted"
+                        << LOG_TAG("ParentId", NodeIdToScadaString(node_id))
+                        << LOG_TAG("ChildId",
+                                   NodeIdToScadaString(deleted_child_id));
+      DeleteNode(deleted_child_id);
+      model_changed_handler_(scada::ModelChangeEvent{
+          deleted_child_id, deleted_child_type_definition_id,
+          scada::ModelChangeEvent::NodeDeleted});
+    }
   }
 
   for (auto& reference : references) {

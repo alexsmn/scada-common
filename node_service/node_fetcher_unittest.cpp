@@ -1,6 +1,7 @@
 #include "node_fetcher_impl.h"
 
 #include "address_space/test/test_address_space.h"
+#include "address_space/test/test_matchers.h"
 #include "base/logger.h"
 #include "base/test/test_executor.h"
 #include "core/attribute_service_mock.h"
@@ -66,10 +67,6 @@ class NodeFetcherTest : public Test {
 };
 
 }  // namespace
-
-MATCHER_P(NodeIs, node_id, "") {
-  return arg.node_id == node_id;
-}
 
 NodeFetcherTest::NodeFetcherTest() {
   ON_CALL(fetch_completed_handler_, Call(_, _))

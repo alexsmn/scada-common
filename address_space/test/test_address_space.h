@@ -32,6 +32,9 @@ class TestAddressSpace : public AddressSpaceImpl,
   void CreateNode(const scada::NodeState& node_state);
   void DeleteNode(const scada::NodeId& node_id);
 
+  void SuspendReadResponses();
+  void ResumeReadResponses();
+
   StandardAddressSpace standard_address_space{*this};
 
   SyncAttributeServiceImpl sync_attribute_service_impl{
