@@ -54,8 +54,9 @@ class TestAddressSpace : public AddressSpaceImpl,
   //       TestNode6 : TestType (Organizes)
 
   static const unsigned kNamespaceIndex = NamespaceIndexes::SCADA;
+  // TODO: Create a custom reference type.
   const scada::NodeId kTestTypeId{101, kNamespaceIndex};
-  const scada::NodeId kTestRefTypeId{102, kNamespaceIndex};
+  const scada::NodeId kTestReferenceTypeId{102, kNamespaceIndex};
   const scada::NodeId kTestNode1Id{1, kNamespaceIndex};
   const scada::NodeId kTestNode2Id{2, kNamespaceIndex};
   const scada::NodeId kTestNode3Id{3, kNamespaceIndex};
@@ -64,8 +65,8 @@ class TestAddressSpace : public AddressSpaceImpl,
   const scada::NodeId kTestNode6Id{6, kNamespaceIndex};
   const scada::NodeId kTestProp1Id{301, kNamespaceIndex};
   const scada::NodeId kTestProp2Id{302, kNamespaceIndex};
-  const char* kTestProp1BrowseName = "TestProp1";
-  const char* kTestProp2BrowseName = "TestProp2";
+  const std::string_view kTestProp1BrowseName = "TestProp1";
+  const std::string_view kTestProp2BrowseName = "TestProp2";
 };
 
 inline TestAddressSpace::TestAddressSpace()
@@ -89,7 +90,7 @@ inline TestAddressSpace::TestAddressSpace()
 
   // TODO: Load from file.
   std::vector<scada::NodeState> nodes{
-      {kTestRefTypeId,
+      {kTestReferenceTypeId,
        scada::NodeClass::ReferenceType,
        {},                                    // type id
        scada::id::NonHierarchicalReferences,  // parent id
@@ -110,7 +111,7 @@ inline TestAddressSpace::TestAddressSpace()
        kTestTypeId,              // parent id
        scada::id::HasProperty,   // reference type id
        scada::NodeAttributes{}
-           .set_browse_name(kTestProp1BrowseName)
+           .set_browse_name(std::string{kTestProp1BrowseName})
            .set_display_name(L"TestProp1DisplayName")
            .set_data_type(scada::id::String)},
       {kTestProp2Id, scada::NodeClass::Variable,
@@ -118,7 +119,7 @@ inline TestAddressSpace::TestAddressSpace()
        kTestTypeId,              // parent id
        scada::id::HasProperty,   // reference type id
        scada::NodeAttributes{}
-           .set_browse_name(kTestProp2BrowseName)
+           .set_browse_name(std::string{kTestProp2BrowseName})
            .set_display_name(L"TestProp2DisplayName")
            .set_data_type(scada::id::String)},
       {
@@ -194,7 +195,7 @@ inline TestAddressSpace::TestAddressSpace()
   };
 
   std::vector<scada::ReferenceState> references{
-      {kTestRefTypeId, kTestNode2Id, kTestNode3Id},
+      {kTestReferenceTypeId, kTestNode2Id, kTestNode3Id},
   };
 
   for (auto& node : nodes)

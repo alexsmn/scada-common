@@ -44,6 +44,8 @@ class NodeFetcherTest : public Test {
   NodeFetcherTest();
 
  protected:
+  void ValidateFetchedNode();
+
   StrictMock<MockFunction<void(std::vector<scada::NodeState>&& nodes,
                                NodeFetchStatuses&& errors)>>
       fetch_completed_handler_;
@@ -64,6 +66,10 @@ class NodeFetcherTest : public Test {
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction(),
       })};
+
+  const scada::NodeId node_id = server_address_space_.kTestNode2Id;
+  const scada::NodeId property_id =
+      MakeNestedNodeId(node_id, server_address_space_.kTestProp1BrowseName);
 };
 
 }  // namespace
@@ -77,9 +83,28 @@ NodeFetcherTest::NodeFetcherTest() {
           Invoke(&node_validator_impl_, &TestNodeValidator::IsNodeValid));
 }
 
-TEST_F(NodeFetcherTest, Fetch) {
-  const auto node_id = server_address_space_.kTestNode1Id;
+void NodeFetcherTest::ValidateFetchedNode() {
+  {
+    auto* node_state = node_validator_impl_.GetNodeState(node_id);
+    ASSERT_TRUE(node_state);
+    EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
+    EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
+    EXPECT_THAT(node_state->references,
+                UnorderedElementsAre(scada::ReferenceDescription{
+                    server_address_space_.kTestReferenceTypeId, true,
+                    server_address_space_.kTestNode3Id}));
+  }
 
+  {
+    auto* node_state = node_validator_impl_.GetNodeState(property_id);
+    ASSERT_TRUE(node_state);
+    EXPECT_EQ(node_state->parent_id, node_id);
+    EXPECT_EQ(node_state->reference_type_id, scada::id::HasProperty);
+    EXPECT_EQ(node_state->attributes.value, "TestNode2.TestProp1.Value");
+  }
+}
+
+TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
@@ -88,16 +113,10 @@ TEST_F(NodeFetcherTest, Fetch) {
 
   node_fetcher_->Fetch(node_id);
 
-  auto* node_state = node_validator_impl_.GetNodeState(node_id);
-
-  ASSERT_TRUE(node_state);
-  EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
-  EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
+  ValidateFetchedNode();
 }
 
 TEST_F(NodeFetcherTest, Fetch_Force) {
-  const auto node_id = server_address_space_.kTestNode1Id;
-
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
@@ -106,11 +125,7 @@ TEST_F(NodeFetcherTest, Fetch_Force) {
 
   node_fetcher_->Fetch(node_id, true);
 
-  auto* node_state = node_validator_impl_.GetNodeState(node_id);
-
-  ASSERT_TRUE(node_state);
-  EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
-  EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
+  ValidateFetchedNode();
 }
 
 TEST(NodeFetcher, UnknownNode) {

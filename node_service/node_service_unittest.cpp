@@ -3,6 +3,7 @@
 #include "node_service/v3/node_service_impl.h"
 
 #include "address_space/test/test_address_space.h"
+#include "address_space/test/test_matchers.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/test_executor.h"
 #include "core/method_service_mock.h"
@@ -104,20 +105,6 @@ using NodeServiceImpls =
     Types<v1::NodeServiceImpl, v2::NodeServiceImpl /*, v3::NodeServiceImpl*/>;
 TYPED_TEST_SUITE(NodeServiceTest, NodeServiceImpls);
 
-MATCHER_P(NodeIs, node_id, "") {
-  return arg.node_id == node_id;
-}
-
-MATCHER_P(NodeIsOrIsNestedOf, node_id, "") {
-  if (arg.node_id == node_id)
-    return true;
-
-  scada::NodeId parent_id;
-  std::string_view nested_name;
-  return IsNestedNodeId(arg.node_id, parent_id, nested_name) &&
-         parent_id == node_id;
-}
-
 template <class NodeServiceImpl>
 NodeServiceTest<NodeServiceImpl>::NodeServiceTest() {
   node_service_->Subscribe(node_service_observer_);
@@ -188,6 +175,11 @@ void NodeServiceTest<NodeServiceImpl>::ValidateNodeFetched(
             node[this->server_address_space_->kTestProp1Id].value());
   EXPECT_EQ(scada::Variant{"TestNode2.TestProp2.Value"},
             node[this->server_address_space_->kTestProp2Id].value());
+
+  // References.
+  EXPECT_EQ(
+      node.target(this->server_address_space_->kTestReferenceTypeId).node_id(),
+      this->server_address_space_->kTestNode3Id);
 }
 
 template <class NodeServiceImpl>
@@ -434,6 +426,8 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   const scada::NodeId changed_node_id =
       this->server_address_space_->kTestNode1Id;
+  const scada::LocalizedText new_display_name{
+      base::WideToUTF16(L"NewTestNode1")};
   const scada::Variant new_property_value{"TestNode1.TestProp1.NewValue"};
 
   // INIT
@@ -453,9 +447,6 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
 
   // ACT
 
-  const scada::LocalizedText new_display_name{
-      base::WideToUTF16(L"NewTestNode1")};
-
   this->server_address_space_->ModifyNode(
       changed_node_id,
       scada::NodeAttributes{}.set_display_name(new_display_name),
@@ -468,7 +459,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
       .Times(2);
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIsOrIsNestedOf(changed_node_id)), _))
-      .Times(2);
+      .Times(1);
 
   this->view_events_->OnNodeSemanticsChanged(
       scada::SemanticChangeEvent{changed_node_id});
