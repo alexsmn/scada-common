@@ -218,10 +218,8 @@ TYPED_TEST(NodeServiceTest, FetchNode_BeforeChannelOpen) {
   EXPECT_CALL(fetch_callback, Call(_));
 
   EXPECT_CALL(node_observer, OnNodeFetched(node_id, false));
-  // TODO: Cannot validate because of |OpenChannel()| v1 implementation.
   // EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, false));
-  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id))
-      .Times(Between(1, 4));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
   // TODO: Cannot validate because of |OpenChannel()| v1 implementation.
   // EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
   EXPECT_CALL(node_observer,
@@ -229,7 +227,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_BeforeChannelOpen) {
                   node_id, type_definition_id,
                   scada::ModelChangeEvent::ReferenceAdded |
                       scada::ModelChangeEvent::ReferenceDeleted}))
-      .Times(AtMost(2));
+      .Times(AtMost(1));
   EXPECT_CALL(node_observer, OnModelChanged(scada::ModelChangeEvent{
                                  node_id, type_definition_id,
                                  scada::ModelChangeEvent::NodeAdded |
@@ -409,15 +407,15 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   MockFunction<void(const NodeRef& node)> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
-  const scada::ModelChangeEvent node_deleted_event{
-      deleted_node_id, {}, scada::ModelChangeEvent::NodeDeleted};
-
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
 
   Mock::VerifyAndClearExpectations(this->server_address_space_.get());
   Mock::VerifyAndClearExpectations(&this->node_service_observer_);
 
   // ACT
+
+  const scada::ModelChangeEvent node_deleted_event{
+      deleted_node_id, {}, scada::ModelChangeEvent::NodeDeleted};
 
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(node_deleted_event));
   EXPECT_CALL(node_observer, OnModelChanged(node_deleted_event));
@@ -441,6 +439,8 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 }
 
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
+  // INIT
+
   this->OpenChannel();
 
   EXPECT_CALL(*this->server_address_space_, Read(_, _)).Times(AnyNumber());
