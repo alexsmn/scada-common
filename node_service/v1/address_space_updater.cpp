@@ -129,67 +129,77 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
 
   // Create/modify nodes.
 
-  for (auto& node_state : nodes) {
-    if (auto* node = address_space_.GetNode(node_state.node_id)) {
-      address_space_.ModifyNode(node_state.node_id,
-                                std::move(node_state.attributes),
-                                std::move(node_state.properties));
-
-      modified_nodes_.emplace_back(node_state.node_id);
-      semantic_change_node_ids_.emplace(GetSemanticChangeNode(*node).id());
-
-    } else {
-      auto [status, added_node] = node_factory_.CreateNode(node_state);
-      if (!status) {
-        LOG_WARNING(logger_) << "Can't update node"
-                             << LOG_TAG("NodeId", ToString(node_state.node_id));
-        continue;
-      }
-
-      added_nodes_.push_back(node_state.node_id);
-
-      model_change_verbs_[node_state.node_id] |=
-          scada::ModelChangeEvent::NodeAdded |
-          scada::ModelChangeEvent::ReferenceAdded;
-
-      if (!node_state.parent_id.is_null()) {
-        model_change_verbs_[node_state.parent_id] |=
-            scada::ModelChangeEvent::ReferenceAdded;
-      }
-    }
-  }
+  for (auto& node_state : nodes)
+    UpdateNode(node_state);
 
   // Add/delete references.
 
-  scada::ReferenceDescriptions deleted_references;
-
-  for (auto& node_state : nodes) {
-    assert(!node_state.node_id.is_null());
-
-    auto* node = address_space_.GetNode(node_state.node_id);
-    if (!node) {
-      LOG_WARNING(logger_) << "Node wasn't found"
-                           << LOG_TAG("NodeId",
-                                      NodeIdToScadaString(node_state.node_id));
-      continue;
-    }
-
-    // Deleted references.
-    FindDeletedReferences(*node, node_state.references, deleted_references);
-    for (const auto& reference : deleted_references)
-      DeleteReference(node_state.node_id, reference);
-    deleted_references.clear();
-
-    // Added references.
-    for (const auto& reference : node_state.references) {
-      if (!scada::FindReference(*node, reference))
-        AddReference(node_state.node_id, reference);
-    }
-  }
+  for (auto& node_state : nodes)
+    UpdateNodeReferences(node_state.node_id, node_state.references);
 
   type_definition_patch.Fix();
 
   ReportStatistics();
+}
+
+void AddressSpaceUpdater::UpdateNode(const scada::NodeState& node_state) {
+  if (auto* node = address_space_.GetNode(node_state.node_id)) {
+    const bool changed = address_space_.ModifyNode(
+        node_state.node_id, std::move(node_state.attributes),
+        std::move(node_state.properties));
+
+    if (changed) {
+      modified_nodes_.emplace_back(node_state.node_id);
+      semantic_change_node_ids_.emplace(GetSemanticChangeNode(*node).id());
+    }
+
+  } else {
+    auto [status, added_node] = node_factory_.CreateNode(node_state);
+    if (!status) {
+      LOG_WARNING(logger_) << "Can't update node"
+                           << LOG_TAG("NodeId", ToString(node_state.node_id));
+      return;
+    }
+
+    added_nodes_.push_back(node_state.node_id);
+
+    model_change_verbs_[node_state.node_id] |=
+        scada::ModelChangeEvent::NodeAdded |
+        scada::ModelChangeEvent::ReferenceAdded;
+
+    if (!node_state.parent_id.is_null()) {
+      model_change_verbs_[node_state.parent_id] |=
+          scada::ModelChangeEvent::ReferenceAdded;
+    }
+  }
+}
+
+void AddressSpaceUpdater::UpdateNodeReferences(
+    const scada::NodeId& node_id,
+    const scada::ReferenceDescriptions& references) {
+  assert(!node_id.is_null());
+
+  auto* node = address_space_.GetNode(node_id);
+  if (!node) {
+    LOG_WARNING(logger_) << "Node wasn't found"
+                         << LOG_TAG("NodeId", NodeIdToScadaString(node_id));
+    return;
+  }
+
+  auto& deleted_references = allocated_deleted_references_;
+  assert(deleted_references.empty());
+
+  // Deleted references.
+  FindDeletedReferences(*node, references, deleted_references);
+  for (const auto& reference : deleted_references)
+    DeleteReference(node_id, reference);
+  deleted_references.clear();
+
+  // Added references.
+  for (const auto& reference : references) {
+    if (!scada::FindReference(*node, reference))
+      AddReference(node_id, reference);
+  }
 }
 
 void AddressSpaceUpdater::AddReference(

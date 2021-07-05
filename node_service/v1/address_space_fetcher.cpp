@@ -142,7 +142,9 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
 
         // Fetch forward references.
         node_fetcher_->Fetch(event.node_id, true);
+
         // Fetch child references.
+        // TODO: This can be avoided if no children were requested.
         node_children_fetcher_->Fetch(event.node_id);
       }
     }

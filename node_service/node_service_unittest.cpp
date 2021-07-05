@@ -501,7 +501,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
 
-  EXPECT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
+  ASSERT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
 
   // ACT
 
@@ -514,8 +514,8 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(3));
 
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
-      .Times(AtMost(2));
-  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(2));
+      .Times(AtMost(1));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
 
   // TODO: Shouldn't happen. v1 triggers this.
   EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, _))

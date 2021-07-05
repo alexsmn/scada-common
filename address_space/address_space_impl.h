@@ -42,7 +42,8 @@ class AddressSpaceImpl : public scada::AddressSpace {
 
   void Clear();
 
-  void ModifyNode(const scada::NodeId& id,
+  // Returns false if nothing was changed.
+  bool ModifyNode(const scada::NodeId& id,
                   scada::NodeAttributes attributes,
                   scada::NodeProperties properties);
 

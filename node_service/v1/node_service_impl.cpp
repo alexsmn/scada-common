@@ -203,13 +203,6 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
         OnSemanticChanged(event);
       };
 
-  /*auto view_events_provider =
-      [&monitored_item_service =
-           monitored_item_service_](scada::ViewEvents& events) {
-        return std::make_unique<ViewEventsSubscription>(monitored_item_service,
-                                                        events);
-      };*/
-
   return {
       executor_,
       view_service_,

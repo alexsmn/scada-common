@@ -35,6 +35,10 @@ class AddressSpaceUpdater {
   }
 
  private:
+  void UpdateNode(const scada::NodeState& node_state);
+  void UpdateNodeReferences(const scada::NodeId& node_id,
+                            const scada::ReferenceDescriptions& references);
+
   void AddReference(const scada::NodeId& node_id,
                     const scada::ReferenceDescription& reference);
   void DeleteReference(const scada::NodeId& node_id,
@@ -60,6 +64,9 @@ class AddressSpaceUpdater {
       added_references_;
   std::vector<std::pair<scada::NodeId, scada::ReferenceDescription>>
       deleted_references_;
+
+  // Optimization.
+  scada::ReferenceDescriptions allocated_deleted_references_;
 };
 
 std::vector<const scada::Node*> FindDeletedChildren(

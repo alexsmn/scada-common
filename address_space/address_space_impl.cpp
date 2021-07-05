@@ -24,7 +24,7 @@ void AddressSpaceImpl::Clear() {
   node_map_.clear();
 }
 
-void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
+bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
                                   scada::NodeAttributes attributes,
                                   scada::NodeProperties properties) {
   auto* node = GetMutableNode(id);
@@ -32,27 +32,31 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 
   scada::AttributeSet attribute_set;
 
-  if (!attributes.browse_name.empty()) {
+  if (!attributes.browse_name.empty() &&
+      node->GetBrowseName() != attributes.browse_name) {
     attribute_set.Add(scada::AttributeId::BrowseName);
     node->SetBrowseName(std::move(attributes.browse_name));
   }
 
-  if (!attributes.display_name.empty()) {
+  if (!attributes.display_name.empty() &&
+      node->GetDisplayName() != attributes.display_name) {
     attribute_set.Add(scada::AttributeId::DisplayName);
     node->SetDisplayName(std::move(attributes.display_name));
   }
 
   if (attributes.value.has_value()) {
     if (auto* variable = scada::AsVariable(node)) {
-      attribute_set.Add(scada::AttributeId::Value);
+      scada::DataValue new_data_value{std::move(*attributes.value), {}, {}, {}};
+      if (variable->GetValue() != new_data_value) {
+        attribute_set.Add(scada::AttributeId::Value);
 
-      // Property ignores timestamps.
-      // TODO: Avoid timestamp.
-      auto status = variable->SetValue(
-          scada::DataValue{std::move(*attributes.value), {}, {}, {}});
-      if (!status) {
-        // TODO: Handle error.
-        assert(false);
+        // Property ignores timestamps.
+        // TODO: Avoid timestamp.
+        auto status = variable->SetValue(std::move(new_data_value));
+        if (!status) {
+          // TODO: Handle error.
+          assert(false);
+        }
       }
 
     } else {
@@ -62,24 +66,33 @@ void AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
   }
 
   // Properties.
-  {
-    scada::NodeId pids[50];
-    size_t pid_count = 0;
+  scada::NodeId pids[50];
+  size_t pid_count = 0;
 
-    for (auto& p : properties) {
-      pids[pid_count++] = p.first;
-      auto status =
-          scada::SetPropertyValue(*node, p.first, std::move(p.second));
-      if (!status) {
-        // TODO: Handle error.
-        assert(false);
-      }
+  for (auto& [prop_decl_id, value] : properties) {
+    auto old_value = scada::GetPropertyValue(*node, prop_decl_id);
+    if (value == old_value)
+      continue;
+
+    pids[pid_count++] = prop_decl_id;
+    auto status =
+        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
+    if (!status) {
+      // TODO: Handle error.
+      assert(false);
     }
-
-    scada::PropertyIds property_ids(pid_count, pids);
-    node->OnNodeModified(attribute_set, property_ids);
-    NotifyNodeModified(*node, property_ids);
   }
+
+  // Notify.
+
+  if (attribute_set.empty() && pid_count == 0)
+    return false;
+
+  scada::PropertyIds property_ids(pid_count, pids);
+  node->OnNodeModified(attribute_set, property_ids);
+  NotifyNodeModified(*node, property_ids);
+
+  return true;
 }
 
 void AddressSpaceImpl::AddNode(scada::Node& node) {

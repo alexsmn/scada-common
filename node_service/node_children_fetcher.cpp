@@ -144,7 +144,7 @@ void NodeChildrenFetcher::FetchChildren(
   ++children_request_count_;
 
   std::vector<scada::BrowseDescription> descriptions;
-  descriptions.reserve(node_ids.size());
+  descriptions.reserve(node_ids.size() * 2);
   for (auto& node_id : node_ids) {
     descriptions.push_back(
         {node_id, scada::BrowseDirection::Forward, scada::id::Organizes, true});
