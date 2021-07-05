@@ -424,8 +424,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 }
 
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
-  const scada::NodeId changed_node_id =
-      this->server_address_space_->kTestNode1Id;
+  const scada::NodeId node_id = this->server_address_space_->kTestNode1Id;
   const scada::LocalizedText new_display_name{
       base::WideToUTF16(L"NewTestNode1")};
   const scada::Variant new_property_value{"TestNode1.TestProp1.NewValue"};
@@ -436,7 +435,10 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
 
   this->ExpectAnyUpdates();
 
-  auto node = this->node_service_->GetNode(changed_node_id);
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockNodeObserver> node_observer;
+  node.Subscribe(node_observer);
 
   MockFunction<void(const NodeRef& node)> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
@@ -448,21 +450,21 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   // ACT
 
   this->server_address_space_->ModifyNode(
-      changed_node_id,
-      scada::NodeAttributes{}.set_display_name(new_display_name),
+      node_id, scada::NodeAttributes{}.set_display_name(new_display_name),
       {{this->server_address_space_->kTestProp1Id, new_property_value}});
 
-  EXPECT_CALL(this->node_service_observer_,
-              OnNodeSemanticChanged(changed_node_id));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+
   EXPECT_CALL(*this->server_address_space_,
-              Read(Each(NodeIsOrIsNestedOf(changed_node_id)), _))
+              Read(Each(NodeIsOrIsNestedOf(node_id)), _))
       .Times(2);
   EXPECT_CALL(*this->server_address_space_,
-              Browse(Each(NodeIsOrIsNestedOf(changed_node_id)), _))
+              Browse(Each(NodeIsOrIsNestedOf(node_id)), _))
       .Times(1);
 
   this->view_events_->OnNodeSemanticsChanged(
-      scada::SemanticChangeEvent{changed_node_id});
+      scada::SemanticChangeEvent{node_id});
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
@@ -471,4 +473,71 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
             node[this->server_address_space_->kTestProp1Id].value());
   EXPECT_EQ(scada::Variant{"TestNode1.TestProp2.Value"},
             node[this->server_address_space_->kTestProp2Id].value());
+
+  node.Unsubscribe(node_observer);
+}
+
+TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+  const auto type_definition_id = this->server_address_space_->kTestTypeId;
+  const auto reference_type_id =
+      this->server_address_space_->kTestReferenceTypeId;
+  const auto old_target_node_id = this->server_address_space_->kTestNode3Id;
+  const auto new_target_node_id = this->server_address_space_->kTestNode4Id;
+
+  // INIT
+
+  this->OpenChannel();
+
+  this->ExpectAnyUpdates();
+
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockNodeObserver> node_observer;
+  node.Subscribe(node_observer);
+
+  MockFunction<void(const NodeRef& node)> fetch_callback;
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+
+  EXPECT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
+
+  // ACT
+
+  EXPECT_CALL(*this->server_address_space_, Read(Each(NodeIs(node_id)), _));
+  EXPECT_CALL(*this->server_address_space_, Browse(Each(NodeIs(node_id)), _))
+      .Times(AtMost(2));
+
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
+      .Times(AtMost(3));
+  EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(3));
+
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
+      .Times(AtMost(2));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(2));
+
+  // TODO: Shouldn't happen. v1 triggers this.
+  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, _))
+      .Times(AtMost(1));
+  EXPECT_CALL(node_observer, OnNodeFetched(node_id, _)).Times(AtMost(1));
+
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(new_target_node_id, false));
+
+  scada::DeleteReference(*this->server_address_space_, reference_type_id,
+                         node_id, old_target_node_id);
+  scada::AddReference(*this->server_address_space_, reference_type_id, node_id,
+                      new_target_node_id);
+
+  this->view_events_->OnModelChanged(
+      scada::ModelChangeEvent{node_id, type_definition_id,
+                              scada::ModelChangeEvent::ReferenceAdded |
+                                  scada::ModelChangeEvent::ReferenceDeleted});
+
+  EXPECT_TRUE(node.fetched());
+  EXPECT_TRUE(node.status());
+  EXPECT_EQ(node.target(reference_type_id).node_id(), new_target_node_id);
+
+  node.Unsubscribe(node_observer);
 }

@@ -91,6 +91,13 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
     for (auto& o : observers_)
       o.OnModelChanged(event);
+
+    return;
+  }
+
+  if (event.verb & (scada::ModelChangeEvent::ReferenceAdded |
+                    scada::ModelChangeEvent::ReferenceDeleted)) {
+    service_.OnFetchNode(node_id_, fetching_status_);
   }
 }
 
