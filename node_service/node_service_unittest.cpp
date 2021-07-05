@@ -294,6 +294,40 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
   node.Unsubscribe(node_observer);
 }
 
+TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+
+  this->OpenChannel();
+
+  this->ExpectAnyUpdates();
+
+  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, true));
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
+      .Times(Between(1, 3));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
+      .Times(Between(1, 2));
+
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockNodeObserver> node_observer;
+  node.Subscribe(node_observer);
+
+  EXPECT_CALL(node_observer, OnNodeFetched(node_id, true));
+  EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(1));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
+
+  MockFunction<void(const NodeRef& node)> fetch_callback;
+
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  node.Fetch(NodeFetchStatus::NodeAndChildren(),
+             fetch_callback.AsStdFunction());
+
+  this->ValidateNodeFetched(node);
+
+  node.Unsubscribe(node_observer);
+}
+
 TYPED_TEST(NodeServiceTest, Fetch_UnknownNode) {
   this->OpenChannel();
 

@@ -206,15 +206,15 @@ void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
 }
 
 void NodeFetchStatusTracker::NotifyStatusChanged(const scada::NodeId& node_id) {
+  LOG_INFO(logger_) << "Node status changed"
+                    << LOG_TAG("NodeId", ToString(node_id));
+
   if (status_lock_count_ == 0) {
     auto [status, fetch_status] = GetStatus(node_id);
     NodeFetchStatusChangedItem item{node_id, status, fetch_status};
     node_fetch_status_changed_handler_(base::span{&item, 1});
     return;
   }
-
-  LOG_INFO(logger_) << "Node status changed"
-                    << LOG_TAG("NodeId", ToString(node_id));
 
   pending_statuses_.emplace(node_id);
 }
