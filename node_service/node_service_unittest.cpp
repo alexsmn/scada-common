@@ -505,6 +505,11 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   // ACT
 
+  scada::DeleteReference(*this->server_address_space_, reference_type_id,
+                         node_id, old_target_node_id);
+  scada::AddReference(*this->server_address_space_, reference_type_id, node_id,
+                      new_target_node_id);
+
   EXPECT_CALL(*this->server_address_space_, Read(Each(NodeIs(node_id)), _));
   EXPECT_CALL(*this->server_address_space_, Browse(Each(NodeIs(node_id)), _))
       .Times(AtMost(2));
@@ -524,11 +529,6 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   EXPECT_CALL(this->node_service_observer_,
               OnNodeFetched(new_target_node_id, false));
-
-  scada::DeleteReference(*this->server_address_space_, reference_type_id,
-                         node_id, old_target_node_id);
-  scada::AddReference(*this->server_address_space_, reference_type_id, node_id,
-                      new_target_node_id);
 
   this->view_events_->OnModelChanged(
       scada::ModelChangeEvent{node_id, type_definition_id,

@@ -84,7 +84,7 @@ class AddressSpaceFetcher
 
   std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;
-  NodeFetchStatusTracker fetch_status_tracker_;
+  NodeFetchStatusTracker node_fetch_status_tracker_;
 
   bool channel_opened_ = false;
 

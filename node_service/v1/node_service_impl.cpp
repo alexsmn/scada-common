@@ -30,7 +30,8 @@ const scada::Node* GetSemanticParent(const scada::Node& node) {
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext{std::move(context)},
-      fetcher_{AddressSpaceFetcher::Create(MakeAddressSpaceFetcherContext())} {
+      address_space_fetcher_{
+          AddressSpaceFetcher::Create(MakeAddressSpaceFetcherContext())} {
   address_space_.Subscribe(*this);
 }
 
@@ -59,11 +60,12 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   });
 
   auto* node = address_space_.GetNode(node_id);
-  auto [status, fetch_status] = fetcher_->GetNodeFetchStatus(node_id);
+  auto [status, fetch_status] =
+      address_space_fetcher_->GetNodeFetchStatus(node_id);
   model->SetFetchStatus(node, std::move(status), fetch_status);
 
   if (!fetch_status.node_fetched)
-    fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
+    address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
 
   return model;
 }
@@ -146,7 +148,7 @@ void NodeServiceImpl::OnNodeModelDeleted(const scada::NodeId& node_id) {
 void NodeServiceImpl::OnNodeModelFetchRequested(
     const scada::NodeId& node_id,
     const NodeFetchStatus& requested_status) {
-  fetcher_->FetchNode(node_id, requested_status);
+  address_space_fetcher_->FetchNode(node_id, requested_status);
 }
 
 void NodeServiceImpl::OnNodeFetchStatusChanged(
@@ -159,8 +161,10 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
   // First: update node impl statuses.
   for (const auto& [node_id, status, fetch_status] : items) {
-    assert(fetcher_->GetNodeFetchStatus(node_id).first.code() == status.code());
-    assert(fetcher_->GetNodeFetchStatus(node_id).second == fetch_status);
+    assert(address_space_fetcher_->GetNodeFetchStatus(node_id).first.code() ==
+           status.code());
+    assert(address_space_fetcher_->GetNodeFetchStatus(node_id).second ==
+           fetch_status);
 
     auto* node = address_space_.GetNode(node_id);
 
@@ -217,15 +221,15 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
 }
 
 void NodeServiceImpl::OnChannelOpened() {
-  fetcher_->OnChannelOpened();
+  address_space_fetcher_->OnChannelOpened();
 }
 
 void NodeServiceImpl::OnChannelClosed() {
-  fetcher_->OnChannelClosed();
+  address_space_fetcher_->OnChannelClosed();
 }
 
 size_t NodeServiceImpl::GetPendingTaskCount() const {
-  return fetcher_->GetPendingTaskCount();
+  return address_space_fetcher_->GetPendingTaskCount();
 }
 
 }  // namespace v1

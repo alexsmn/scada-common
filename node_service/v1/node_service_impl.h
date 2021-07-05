@@ -82,7 +82,7 @@ class NodeServiceImpl final : private NodeServiceImplContext,
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 
-  const std::shared_ptr<AddressSpaceFetcher> fetcher_;
+  const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_;
 
   friend class NodeModelImpl;
 };

@@ -36,12 +36,12 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
 
 AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
     : AddressSpaceFetcherContext{std::move(context)},
-      fetch_status_tracker_{{node_fetch_status_changed_handler_,
-                             [this](const scada::NodeId& node_id) {
-                               node_fetcher_->Fetch(node_id, true);
-                               return false;
-                             },
-                             address_space_}} {}
+      node_fetch_status_tracker_{{node_fetch_status_changed_handler_,
+                                  [this](const scada::NodeId& node_id) {
+                                    node_fetcher_->Fetch(node_id, true);
+                                    return false;
+                                  },
+                                  address_space_}} {}
 
 AddressSpaceFetcher::~AddressSpaceFetcher() {}
 
@@ -107,7 +107,7 @@ void AddressSpaceFetcher::OnChannelClosed() {
 void AddressSpaceFetcher::DeleteNode(const scada::NodeId& node_id) {
   node_fetcher_->Cancel(node_id);
   node_children_fetcher_->Cancel(node_id);
-  fetch_status_tracker_.Delete(node_id);
+  node_fetch_status_tracker_.Delete(node_id);
   address_space_.RemoveNode(node_id);
 }
 
@@ -211,7 +211,7 @@ void AddressSpaceFetcher::OnFetchCompleted(
   }
 
   if (!errors.empty())
-    fetch_status_tracker_.OnNodesFetched(errors);
+    node_fetch_status_tracker_.OnNodesFetched(errors);
 
   for (auto& [node_id, verb] : updater.model_change_verbs()) {
     if (auto* node = address_space_.GetNode(node_id)) {
@@ -256,7 +256,7 @@ void AddressSpaceFetcher::OnChildrenFetched(
       node_fetcher_->Fetch(reference.node_id);
   }
 
-  fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
+  node_fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
 }
 
 NodeChildrenFetcherContext
@@ -275,7 +275,7 @@ AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
 
 std::pair<scada::Status, NodeFetchStatus>
 AddressSpaceFetcher::GetNodeFetchStatus(const scada::NodeId& node_id) const {
-  return fetch_status_tracker_.GetStatus(node_id);
+  return node_fetch_status_tracker_.GetStatus(node_id);
 }
 
 void AddressSpaceFetcher::FetchNode(const scada::NodeId& node_id,
@@ -293,7 +293,7 @@ void AddressSpaceFetcher::InternalFetchNode(
     const NodeFetchStatus& requested_status) {
   assert(channel_opened_);
 
-  auto [status, fetch_status] = fetch_status_tracker_.GetStatus(node_id);
+  auto [status, fetch_status] = node_fetch_status_tracker_.GetStatus(node_id);
 
   if (fetch_status.node_fetched < requested_status.node_fetched)
     node_fetcher_->Fetch(node_id, true);
