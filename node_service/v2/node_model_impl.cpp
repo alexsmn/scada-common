@@ -11,6 +11,8 @@
 #include "node_service/node_util.h"
 #include "node_service/v2/node_service_impl.h"
 
+#include "base/debug_util-inl.h"
+
 namespace v2 {
 
 namespace {
