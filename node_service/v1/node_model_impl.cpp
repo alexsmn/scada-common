@@ -7,6 +7,8 @@
 #include "node_service/node_observer.h"
 #include "node_service/node_service.h"
 
+#include "base/debug_util-inl.h"
+
 namespace v1 {
 
 NodeModelImpl::NodeModelImpl(AddressSpaceNodeModelContext&& context)

@@ -1,11 +1,13 @@
 #include "node_service/v1/node_fetch_status_tracker.h"
 
-#include <gmock/gmock.h>
-
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
 #include "address_space/standard_address_space.h"
 #include "base/logger.h"
+
+#include <gmock/gmock.h>
+
+#include "base/debug_util-inl.h"
 
 using namespace testing;
 
