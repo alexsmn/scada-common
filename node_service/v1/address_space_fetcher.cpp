@@ -6,6 +6,8 @@
 #include "model/node_id_util.h"
 #include "node_service/v1/address_space_updater.h"
 
+#include "base/debug_util-inl.h"
+
 namespace {
 
 void GetAllNodeIdsHelper(const scada::Node& parent,
