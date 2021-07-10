@@ -23,12 +23,25 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     owner_.monitored_items_.erase(i);
   }
 
-  virtual void Subscribe() override { Reconnect(); }
+  virtual void Subscribe(scada::MonitoredItemHandler handler) override {
+    assert(!handler_);
+
+    handler_ = std::move(handler);
+
+    Reconnect();
+  }
 
   void Reconnect() {
+    assert(handler_.has_value());
+    if (!handler_.has_value())
+      return;
+
     if (!owner_.connected_) {
-      ForwardData(
-          {scada::StatusCode::Uncertain_Disconnected, base::Time::Now()});
+      if (auto* data_change_handler =
+              std::get_if<scada::DataChangeHandler>(&*handler_)) {
+        (*data_change_handler)(
+            {scada::StatusCode::Uncertain_Disconnected, base::Time::Now()});
+      }
       return;
     }
 
@@ -38,24 +51,17 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
         owner_.services_.monitored_item_service_->CreateMonitoredItem(
             read_value_id_, params_);
     if (!underlying_item_) {
-      ForwardData({scada::StatusCode::Bad, base::Time::Now()});
+      if (auto* data_change_handler =
+              std::get_if<scada::DataChangeHandler>(&*handler_)) {
+        (*data_change_handler)({scada::StatusCode::Bad, base::Time::Now()});
+      } else if (auto* event_handler =
+                     std::get_if<scada::EventHandler>(&*handler_)) {
+        (*event_handler)(scada::StatusCode::Bad, {});
+      }
       return;
     }
 
-    if (read_value_id_.attribute_id != scada::AttributeId::EventNotifier) {
-      underlying_item_->set_data_change_handler(
-          [this](const scada::DataValue& data_value) {
-            ForwardData(data_value);
-          });
-
-    } else {
-      underlying_item_->set_event_handler(
-          [this](const scada::Status& status, const std::any& event) {
-            ForwardEvent(status, event);
-          });
-    }
-
-    underlying_item_->Subscribe();
+    underlying_item_->Subscribe(*handler_);
   }
 
  private:
@@ -63,6 +69,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   const scada::ReadValueId read_value_id_;
   const scada::MonitoringParameters params_;
   std::shared_ptr<scada::MonitoredItem> underlying_item_;
+  std::optional<scada::MonitoredItemHandler> handler_;
 };
 
 // MasterDataServices

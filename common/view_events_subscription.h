@@ -36,12 +36,12 @@ inline ViewEventsSubscription::ViewEventsSubscription(
                               {scada::id::GeneralModelChangeEventType,
                                scada::id::SemanticChangeEventType}}})} {
   assert(monitored_item_);
-  monitored_item_->set_event_handler(
+  // FIXME: Capturing |this|.
+  monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {
         assert(status);
         OnEvent(event);
       });
-  monitored_item_->Subscribe();
 }
 
 inline void ViewEventsSubscription::OnEvent(const std::any& event) {

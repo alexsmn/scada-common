@@ -1,6 +1,7 @@
 #include "timed_data/timed_data_impl.h"
 
 #include "base/bind.h"
+#include "base/debug_util.h"
 #include "base/format_time.h"
 #include "base/location.h"
 #include "base/threading/thread_task_runner_handle.h"
@@ -9,7 +10,6 @@
 #include "common/formula_util.h"
 #include "common/interval_util.h"
 #include "core/attribute_service.h"
-#include "base/debug_util.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
@@ -64,11 +64,10 @@ TimedDataImpl::TimedDataImpl(NodeRef node,
     return;
   }
 
-  monitored_value_->set_data_change_handler(
-      [this](const scada::DataValue& data_value) {
-        OnChannelData(data_value);
-      });
-  monitored_value_->Subscribe();
+  // FIXME: Captures |this|.
+  monitored_value_->Subscribe([this](const scada::DataValue& data_value) {
+    OnChannelData(data_value);
+  });
 }
 
 TimedDataImpl::~TimedDataImpl() {

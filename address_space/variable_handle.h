@@ -18,14 +18,17 @@ class VariableMonitoredItem : public MonitoredItem {
   explicit VariableMonitoredItem(std::shared_ptr<VariableHandle> variable);
   virtual ~VariableMonitoredItem();
 
-  bool subscribed() const { return subscribed_; }
+  const scada::DataChangeHandler& data_change_handler() const {
+    return data_change_handler_;
+  }
 
   // MonitoredItem
-  virtual void Subscribe() override;
+  virtual void Subscribe(scada::MonitoredItemHandler handler) override;
 
  private:
   const std::shared_ptr<VariableHandle> variable_;
-  bool subscribed_ = false;
+
+  scada::DataChangeHandler data_change_handler_;
 };
 
 class VariableHandle : public std::enable_shared_from_this<VariableHandle> {

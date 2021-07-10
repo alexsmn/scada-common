@@ -54,8 +54,8 @@ class OpcUaSubscription
     const opcua::MonitoredItemClientHandle client_handle;
     const scada::ReadValueId read_value_id;
     const scada::MonitoringParameters params;
-    scada::DataChangeHandler data_change_handler;
-    scada::EventHandler event_handler;
+    // The handler is reset on unsubscribe, supposedly to release functor.
+    std::optional<scada::MonitoredItemHandler> handler;
     bool subscribed;
     bool added;
     opcua::MonitoredItemId id;
@@ -64,8 +64,7 @@ class OpcUaSubscription
   void Subscribe(opcua::MonitoredItemClientHandle client_handle,
                  scada::ReadValueId read_value_id,
                  scada::MonitoringParameters params,
-                 scada::DataChangeHandler data_change_handler,
-                 scada::EventHandler event_handler);
+                 scada::MonitoredItemHandler handler);
   void Unsubscribe(opcua::MonitoredItemClientHandle client_handle);
   Item* FindItem(opcua::MonitoredItemClientHandle client_handle);
   void ScheduleCommitItems();

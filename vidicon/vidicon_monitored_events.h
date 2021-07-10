@@ -4,5 +4,5 @@
 
 class VidiconMonitoredEvents : public scada::MonitoredItem {
  public:
-  virtual void Subscribe() override {}
+  virtual void Subscribe(scada::MonitoredItemHandler handler) override {}
 };

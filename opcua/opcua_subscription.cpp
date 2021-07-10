@@ -65,7 +65,7 @@ class OpcUaMonitoredItem : public scada::MonitoredItem {
   ~OpcUaMonitoredItem();
 
   // scada::MonitoredItem
-  virtual void Subscribe() override;
+  virtual void Subscribe(scada::MonitoredItemHandler handler) override;
 
  private:
   const std::shared_ptr<OpcUaSubscription> subscription_;
@@ -94,11 +94,11 @@ OpcUaMonitoredItem::~OpcUaMonitoredItem() {
   subscription_->Unsubscribe(client_handle_);
 }
 
-void OpcUaMonitoredItem::Subscribe() {
+void OpcUaMonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {
   assert(!read_value_id_.node_id.is_null());
-  assert(data_change_handler_ || event_handler_);
+
   subscription_->Subscribe(client_handle_, read_value_id_, params_,
-                           data_change_handler_, event_handler_);
+                           std::move(handler));
 }
 
 // OpcUaSubscription
@@ -188,10 +188,8 @@ void OpcUaSubscription::Subscribe(
     opcua::MonitoredItemClientHandle client_handle,
     scada::ReadValueId read_value_id,
     scada::MonitoringParameters params,
-    scada::DataChangeHandler data_change_handler,
-    scada::EventHandler event_handler) {
+    scada::MonitoredItemHandler handler) {
   assert(!read_value_id.node_id.is_null());
-  assert(data_change_handler || event_handler);
   assert(items_.find(client_handle) == items_.end());
 
   auto& item = items_
@@ -200,8 +198,7 @@ void OpcUaSubscription::Subscribe(
                                 client_handle,
                                 std::move(read_value_id),
                                 std::move(params),
-                                std::move(data_change_handler),
-                                std::move(event_handler),
+                                std::move(handler),
                                 true,
                                 false,
                             })
@@ -308,13 +305,17 @@ void OpcUaSubscription::OnCreateMonitoredItemsResponse(
         unsubscribing_items_.emplace_back(&item);
         // Commit will be done immediately.
       }
+
     } else {
       if (item.subscribed) {
+        assert(item.handler.has_value());
         // TODO: Forward status.
-        if (item.data_change_handler)
-          item.data_change_handler(
-              {ConvertStatusCode(result.status_code.code()),
-               scada::DateTime::Now()});
+        if (auto* data_change_handler =
+                std::get_if<scada::DataChangeHandler>(&*item.handler)) {
+          (*data_change_handler)({ConvertStatusCode(result.status_code.code()),
+                                  scada::DateTime::Now()});
+        }
+
       } else {
         assert(items_.find(item.client_handle) != items_.end());
         items_.erase(item.client_handle);
@@ -333,8 +334,7 @@ void OpcUaSubscription::Unsubscribe(
 
   assert(item.subscribed);
   item.subscribed = false;
-  item.data_change_handler = nullptr;
-  item.event_handler = nullptr;
+  item.handler.reset();
 
   if (Erase(pending_subscribe_items_, &item)) {
     items_.erase(i);
@@ -429,13 +429,15 @@ void OpcUaSubscription::OnDataChange(
     if (auto* item = FindItem(notification.ClientHandle)) {
       if (!item->subscribed)
         continue;
+      assert(item->handler.has_value());
       assert(item->read_value_id.attribute_id !=
              scada::AttributeId::EventNotifier);
-      assert(item->data_change_handler);
       if (item->read_value_id.attribute_id !=
           scada::AttributeId::EventNotifier) {
+        auto& data_change_handler =
+            std::get<scada::DataChangeHandler>(*item->handler);
         auto data_value = Convert(std::move(notification.Value));
-        item->data_change_handler(std::move(data_value));
+        data_change_handler(std::move(data_value));
       }
     }
   }

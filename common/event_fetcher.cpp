@@ -23,7 +23,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
       {scada::id::Server, scada::AttributeId::EventNotifier},
       {scada::EventFilter{{}, {scada::id::SystemEventType}}});
   assert(monitored_item_);
-  monitored_item_->set_event_handler(
+  monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {
         // TODO: Handle |status|
         assert(status);
@@ -31,7 +31,6 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
         if (auto* system_event = std::any_cast<scada::Event>(&event))
           OnEvent(*system_event);
       });
-  monitored_item_->Subscribe();
 }
 
 EventFetcher::~EventFetcher() {}

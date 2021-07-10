@@ -177,21 +177,20 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
 
   virtual void SubscribeDataChange(
       const opcua::server::DataChangeHandler& data_change_handler) override {
-    monitored_item_->set_data_change_handler(
-        [this, data_change_handler](const scada::DataValue& data_value) {
+    monitored_item_->SubscribeData(
+        [data_change_handler](const scada::DataValue& data_value) {
           opcua::DataValue ua_data_value;
           Convert(scada::DataValue{data_value}, ua_data_value.get());
           data_change_handler(std::move(ua_data_value));
         });
-    monitored_item_->Subscribe();
   }
 
   virtual void SubscribeEvents(
       const opcua::server::EventHandler& event_handler) override {
-    monitored_item_->set_event_handler(
-        [this, event_handler](const scada::Status& status,
-                              const std::any& event) { event_handler({}); });
-    monitored_item_->Subscribe();
+    monitored_item_->SubscribeEvents(
+        [event_handler](const scada::Status& status, const std::any& event) {
+          event_handler({});
+        });
   }
 
  private:

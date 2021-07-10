@@ -81,9 +81,11 @@ VidiconMonitoredDataPoint::~VidiconMonitoredDataPoint() {
   DispEventUnadvise(point_.Get(), &DIID__IDataPointEvents);
 }
 
-void VidiconMonitoredDataPoint::Subscribe() {
-  subscribed_ = true;
-  ForwardData(GetDataValue());
+void VidiconMonitoredDataPoint::Subscribe(scada::MonitoredItemHandler handler) {
+  assert(!data_change_handler_);
+
+  data_change_handler_ = std::move(std::get<scada::DataChangeHandler>(handler));
+  data_change_handler_(GetDataValue());
 }
 
 scada::DataValue VidiconMonitoredDataPoint::GetDataValue() const {
@@ -100,6 +102,6 @@ scada::DataValue VidiconMonitoredDataPoint::GetDataValue() const {
 }
 
 void VidiconMonitoredDataPoint::OnDataChange() {
-  if (subscribed_)
-    ForwardData(GetDataValue());
+  if (data_change_handler_)
+    data_change_handler_(GetDataValue());
 }

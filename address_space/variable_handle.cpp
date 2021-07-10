@@ -23,11 +23,12 @@ VariableMonitoredItem::~VariableMonitoredItem() {
   variable_->monitored_items_.erase(this);
 }
 
-void VariableMonitoredItem::Subscribe() {
-  assert(!subscribed_);
-  subscribed_ = true;
+void VariableMonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {
+  assert(!data_change_handler_);
+
+  data_change_handler_ = std::move(std::get<scada::DataChangeHandler>(handler));
   if (!variable_->last_value().server_timestamp.is_null())
-    ForwardData(variable_->last_value());
+    data_change_handler_(variable_->last_value());
 }
 
 // VariableHandle
@@ -58,8 +59,8 @@ void VariableHandle::ForwardData(const DataValue& value) {
 
   for (auto i = monitored_items_.begin(); i != monitored_items_.end();) {
     auto* monitored_item = *i++;
-    if (monitored_item->subscribed())
-      monitored_item->ForwardData(value);
+    if (monitored_item->data_change_handler())
+      monitored_item->data_change_handler()(value);
   }
 }
 
