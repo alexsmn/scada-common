@@ -10,9 +10,8 @@
 #include "core/standard_node_ids.h"
 #include "core/status.h"
 
-AddressSpaceImpl::AddressSpaceImpl(std::shared_ptr<Logger> logger,
-                                   scada::AddressSpace* parent_address_space)
-    : logger_(std::move(logger)), parent_address_space_{parent_address_space} {}
+AddressSpaceImpl::AddressSpaceImpl(scada::AddressSpace* parent_address_space)
+    : parent_address_space_{parent_address_space} {}
 
 AddressSpaceImpl::~AddressSpaceImpl() {
   Clear();

@@ -2,7 +2,6 @@
 
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
-#include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
 #include "core/attribute_service_mock.h"
 #include "core/method_service_mock.h"
@@ -27,7 +26,7 @@ class MockAddressSpaceNodeModelDelegate : public NodeModelDelegate {
 TEST(NodeModelImpl, Fetch) {
   const scada::NodeId kNodeId = scada::id::RootFolder;
 
-  AddressSpaceImpl address_space{std::make_shared<NullLogger>()};
+  AddressSpaceImpl address_space;
   MockAddressSpaceNodeModelDelegate delegate;
   NiceMock<scada::MockAttributeService> attribute_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;

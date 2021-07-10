@@ -3,7 +3,6 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "address_space/test/test_address_space.h"
-#include "base/logger.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/test_executor.h"
 #include "core/method_service_mock.h"
@@ -25,13 +24,12 @@ struct NodeServiceTestContext {
     client_address_space.Clear();
   }
 
-  const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
   const std::shared_ptr<TestExecutor> executor =
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space;
 
-  AddressSpaceImpl client_address_space{logger};
+  AddressSpaceImpl client_address_space;
   StandardAddressSpace client_standard_address_space{client_address_space};
 
   GenericNodeFactory node_factory{client_address_space};

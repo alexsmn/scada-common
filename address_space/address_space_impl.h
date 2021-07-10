@@ -14,16 +14,14 @@ class ReferenceType;
 struct PropertyIds;
 }  // namespace scada
 
-class Logger;
-
 class AddressSpaceImpl : public scada::AddressSpace {
  public:
   explicit AddressSpaceImpl(
-      std::shared_ptr<Logger> logger,
       scada::AddressSpace* parent_address_space = nullptr);
-  virtual ~AddressSpaceImpl();
+  ~AddressSpaceImpl();
 
-  const Logger& logger() const { return *logger_; }
+  AddressSpaceImpl(const AddressSpaceImpl&) = delete;
+  AddressSpaceImpl& operator=(const AddressSpaceImpl&) = delete;
 
   typedef std::map<scada::NodeId, scada::Node*> NodeMap;
   const NodeMap& node_map() const { return node_map_; }
@@ -77,8 +75,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
   typedef base::ObserverList<scada::NodeObserver> NodeEvents;
   const NodeEvents* GetNodeEvents(const scada::NodeId& node_id) const;
 
-  std::shared_ptr<Logger> logger_;
-
   scada::AddressSpace* parent_address_space_ = nullptr;
 
   NodeMap node_map_;
@@ -87,8 +83,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
 
   mutable NodeEvents observers_;
   mutable std::map<scada::NodeId, NodeEvents> node_events_;
-
-  DISALLOW_COPY_AND_ASSIGN(AddressSpaceImpl);
 };
 
 template <class T>

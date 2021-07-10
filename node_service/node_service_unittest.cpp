@@ -30,7 +30,7 @@ struct NodeServiceTestContext {
   const std::shared_ptr<TestAddressSpace> server_address_space;
   const ViewEventsProvider view_events_provider;
 
-  AddressSpaceImpl client_address_space{std::make_shared<NullLogger>()};
+  AddressSpaceImpl client_address_space;
 
   GenericNodeFactory node_factory{client_address_space};
 

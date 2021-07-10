@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include "base/ranges.h"
 #include "core/configuration_types.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
@@ -10,6 +7,8 @@
 #include "address_space/reference.h"
 #include "core/status.h"
 #include "core/variant.h"
+
+#include <memory>
 
 namespace scada {
 

@@ -35,7 +35,7 @@ class AddressSpaceFetcherTest : public Test {
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
 
-  AddressSpaceImpl client_address_space_{std::make_shared<NullLogger>()};
+  AddressSpaceImpl client_address_space_;
 
   GenericNodeFactory node_factory{client_address_space_};
 

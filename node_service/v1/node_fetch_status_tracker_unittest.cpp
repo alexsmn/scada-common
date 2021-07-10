@@ -3,7 +3,6 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
 #include "address_space/standard_address_space.h"
-#include "base/logger.h"
 
 #include <gmock/gmock.h>
 
@@ -24,7 +23,7 @@ class NodeFetchStatusTrackerTest : public Test {
 
   StrictMock<MockFunction<bool(const scada::NodeId& node_id)>> node_validator_;
 
-  AddressSpaceImpl address_space_{std::make_shared<NullLogger>()};
+  AddressSpaceImpl address_space_;
   StandardAddressSpace standard_address_space_{address_space_};
 
   NodeFetchStatusTracker node_fetch_status_tracker_{

@@ -4,7 +4,6 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
-#include "base/logger.h"
 #include "core/attribute_service.h"
 #include "core/standard_node_ids.h"
 #include "model/namespaces.h"
@@ -110,8 +109,7 @@ struct TestContext {
                         kChildId);
   }
 
-  const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
-  AddressSpaceImpl address_space{logger};
+  AddressSpaceImpl address_space;
   SyncViewServiceImpl sync_view_service{{address_space}};
   ViewServiceImpl view_service{sync_view_service};
 

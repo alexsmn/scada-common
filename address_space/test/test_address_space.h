@@ -7,7 +7,6 @@
 #include "address_space/node_utils.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
-#include "base/logger.h"
 #include "base/observer_list.h"
 #include "common/node_state.h"
 #include "core/attribute_service.h"
@@ -31,9 +30,6 @@ class TestAddressSpace : public AddressSpaceImpl,
 
   void CreateNode(const scada::NodeState& node_state);
   void DeleteNode(const scada::NodeId& node_id);
-
-  void SuspendReadResponses();
-  void ResumeReadResponses();
 
   StandardAddressSpace standard_address_space{*this};
 
@@ -69,8 +65,7 @@ class TestAddressSpace : public AddressSpaceImpl,
   const std::string_view kTestProp2BrowseName = "TestProp2";
 };
 
-inline TestAddressSpace::TestAddressSpace()
-    : AddressSpaceImpl{std::make_shared<NullLogger>()} {
+inline TestAddressSpace::TestAddressSpace() {
   using namespace testing;
 
   ON_CALL(*this, Read(_, _, _))

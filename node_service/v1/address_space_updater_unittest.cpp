@@ -6,7 +6,6 @@
 #include "address_space/object.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/type_definition.h"
-#include "base/logger.h"
 #include "base/range_util.h"
 #include "common/node_state.h"
 #include "core/standard_node_ids.h"
@@ -43,7 +42,7 @@ class AddressSpaceUpdaterTest : public Test {
   ~AddressSpaceUpdaterTest();
 
  protected:
-  AddressSpaceImpl address_space_{std::make_shared<NullLogger>()};
+  AddressSpaceImpl address_space_;
   StandardAddressSpace standard_address_space_{address_space_};
 
   GenericNodeFactory node_factory_impl_{address_space_};

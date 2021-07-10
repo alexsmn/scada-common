@@ -2,10 +2,11 @@
 
 #include "address_space/node.h"
 #include "address_space/reference.h"
-#include "base/ranges.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 
+#include <boost/range/adaptor/filtered.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <string>
 
 namespace scada {
@@ -91,7 +92,8 @@ struct IsRefSubtypeOf {
 };
 
 inline auto GetNonPropReferences(const Node& node) {
-  return MakeFilterRange(IsNonPropReference(), node.forward_references());
+  return node.forward_references() |
+         boost::adaptors::filtered(IsNonPropReference{});
 }
 
 struct RefNode {
@@ -102,13 +104,13 @@ template <class References>
 inline auto FilterReferences(const References& references,
                              const NodeId& reference_type_id,
                              bool include_subtypes = true) {
-  return MakeFilterRange(IsRefSubtypeOf{reference_type_id, include_subtypes},
-                         references);
+  return references | boost::adaptors::filtered(
+                          IsRefSubtypeOf{reference_type_id, include_subtypes});
 }
 
 template <class References>
 inline auto GetNodes(const References& references) {
-  return MakeTransformRange(RefNode(), references);
+  return references | boost::adaptors::transformed(RefNode{});
 }
 
 inline auto GetForwardReferenceNodes(const Node& node,
