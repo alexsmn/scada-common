@@ -246,13 +246,13 @@ std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
 }
 
 void MasterDataServices::Write(
-    const std::vector<scada::WriteValue>& values,
-    const scada::NodeId& user_id,
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.attribute_service_->Write(values, user_id, callback);
+  services_.attribute_service_->Write(context, inputs, callback);
 }
 
 void MasterDataServices::Call(const scada::NodeId& node_id,
@@ -289,12 +289,14 @@ void MasterDataServices::HistoryReadEvents(
                                                 callback);
 }
 
-void MasterDataServices::Read(const std::vector<scada::ReadValueId>& nodes,
-                              const scada::ReadCallback& callback) {
+void MasterDataServices::Read(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+    const scada::ReadCallback& callback) {
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.attribute_service_->Read(nodes, callback);
+  services_.attribute_service_->Read(context, inputs, callback);
 }
 
 void MasterDataServices::OnSessionCreated() {

@@ -73,7 +73,7 @@ inline TestAddressSpace::TestAddressSpace()
     : AddressSpaceImpl{std::make_shared<NullLogger>()} {
   using namespace testing;
 
-  ON_CALL(*this, Read(_, _))
+  ON_CALL(*this, Read(_, _, _))
       .WillByDefault(
           Invoke(&attribute_service_impl, &scada::AttributeService::Read));
   ON_CALL(*this, Write(_, _, _))

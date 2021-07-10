@@ -22,8 +22,8 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
   // SyncAttributeService
   virtual scada::DataValue Read(const scada::ReadValueId& read_id) override;
   virtual std::vector<scada::StatusCode> Write(
-      base::span<const scada::WriteValue> values,
-      const scada::NodeId& user_id) override;
+      const scada::ServiceContext& context,
+      base::span<const scada::WriteValue> inputs) override;
 
  private:
   scada::DataValue ReadNode(const scada::Node& node,
@@ -35,11 +35,14 @@ class AttributeServiceImpl : public scada::AttributeService {
   explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
 
   // scada::AttributeService
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
-                    const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValue>& values,
-                     const scada::NodeId& user_id,
-                     const scada::WriteCallback& callback) override;
+  virtual void Read(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+      const scada::ReadCallback& callback) override;
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+      const scada::WriteCallback& callback) override;
 
  private:
   SyncAttributeService& sync_attribute_service_;

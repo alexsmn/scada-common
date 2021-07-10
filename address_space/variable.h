@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "base/time/time.h"
+#include "core/attribute_service.h"
 #include "core/configuration_types.h"
 #include "core/history_types.h"
 
@@ -36,11 +37,10 @@ class Variable : public Node {
 
   virtual std::shared_ptr<VariableHandle> GetVariableHandle() const;
 
-  virtual void Write(AttributeId attribute_id,
-                     const Variant& value,
-                     const WriteFlags& flags,
-                     const NodeId& user_id,
-                     const StatusCallback& callback);
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::WriteValue& input,
+      const scada::StatusCallback& callback);
 
   // TODO: Move to Object.
   virtual void Call(const NodeId& method_id,

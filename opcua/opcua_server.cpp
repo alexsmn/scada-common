@@ -102,13 +102,14 @@ void FillBrowseResultsTypeDefinitions(
 
 void FillBrowseResultsAttributes(
     scada::AttributeService& attribute_service,
+    const std::shared_ptr<const scada::ServiceContext>& context,
     opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
   assert(inputs.size() == results.size());
 
-  std::vector<scada::ReadValueId> read_ids;
-  read_ids.reserve(16);
+  auto read_ids = std::make_shared<std::vector<scada::ReadValueId>>();
+  read_ids->reserve(16);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     auto& description = inputs[i];
@@ -121,44 +122,47 @@ void FillBrowseResultsAttributes(
       auto node_id = Convert(reference.NodeId).node_id();
       assert(!node_id.is_null());
       if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
-        read_ids.push_back({node_id, scada::AttributeId::NodeClass});
+        read_ids->push_back({node_id, scada::AttributeId::NodeClass});
       if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
-        read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+        read_ids->push_back({node_id, scada::AttributeId::BrowseName});
       if (description.ResultMask & OpcUa_BrowseResultMask_DisplayName)
-        read_ids.push_back({node_id, scada::AttributeId::DisplayName});
+        read_ids->push_back({node_id, scada::AttributeId::DisplayName});
     }
   }
 
-  if (read_ids.empty())
+  if (read_ids->empty())
     return callback();
 
-  attribute_service.Read(read_ids, [inputs, results, callback](
-                                       const scada::Status& status,
-                                       std::vector<scada::DataValue> values) {
-    if (!status)
-      return callback();
+  attribute_service.Read(
+      context, read_ids,
+      [inputs, results, callback](const scada::Status& status,
+                                  std::vector<scada::DataValue> values) {
+        if (!status)
+          return callback();
 
-    size_t index = 0;
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      auto& description = inputs[i];
-      auto& result = results[i];
-      if (!opcua::StatusCode{result.StatusCode})
-        continue;
+        size_t index = 0;
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto& description = inputs[i];
+          auto& result = results[i];
+          if (!opcua::StatusCode{result.StatusCode})
+            continue;
 
-      for (auto& reference : opcua::MakeSpan(
-               result.References, static_cast<size_t>(result.NoOfReferences))) {
-        if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
-          SetNodeClass(values[index++], reference.NodeClass);
-        if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
-          SetValue<scada::QualifiedName>(values[index++], reference.BrowseName);
-        if (description.ResultMask & OpcUa_BrowseResultMask_DisplayName)
-          SetValue<scada::LocalizedText>(values[index++],
-                                         reference.DisplayName);
-      }
-    }
+          for (auto& reference :
+               opcua::MakeSpan(result.References,
+                               static_cast<size_t>(result.NoOfReferences))) {
+            if (description.ResultMask & OpcUa_BrowseResultMask_NodeClass)
+              SetNodeClass(values[index++], reference.NodeClass);
+            if (description.ResultMask & OpcUa_BrowseResultMask_BrowseName)
+              SetValue<scada::QualifiedName>(values[index++],
+                                             reference.BrowseName);
+            if (description.ResultMask & OpcUa_BrowseResultMask_DisplayName)
+              SetValue<scada::LocalizedText>(values[index++],
+                                             reference.DisplayName);
+          }
+        }
 
-    callback();
-  });
+        callback();
+      });
 }
 
 class MonitoredItemAdapter : public opcua::server::MonitoredItem {
@@ -274,8 +278,10 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
                        const opcua::server::ReadCallback& callback) {
   const auto timestamps_to_return = request.TimestampsToReturn;
   attribute_service_.Read(
-      ConvertVector<scada::ReadValueId>(
-          opcua::MakeSpan(request.NodesToRead, request.NoOfNodesToRead)),
+      service_context_,
+      std::make_shared<std::vector<scada::ReadValueId>>(
+          ConvertVector<scada::ReadValueId>(
+              opcua::MakeSpan(request.NodesToRead, request.NoOfNodesToRead))),
       [timestamps_to_return, callback](scada::Status&& status,
                                        std::vector<scada::DataValue> values) {
         opcua::ReadResponse response;
@@ -305,21 +311,21 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
 void OpcUaServer::Write(
     OpcUa_WriteRequest& request,
     const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback) {
-  // TODO: UserID.
-  attribute_service_.Write(ConvertVector<scada::WriteValue>(opcua::MakeSpan(
-                               request.NodesToWrite, request.NoOfNodesToWrite)),
-                           {},
-                           [callback](scada::Status&& status,
-                                      std::vector<scada::StatusCode> results) {
-                             opcua::WriteResponse response;
-                             response.ResponseHeader.ServiceResult =
-                                 MakeStatusCode(status.code()).code();
-                             auto opcua_results =
-                                 ConvertStatusCodesFromVector(results);
-                             response.NoOfResults = opcua_results.size();
-                             response.Results = opcua_results.release();
-                             callback(std::move(response));
-                           });
+  attribute_service_.Write(
+      service_context_,
+      std::make_shared<std::vector<scada::WriteValue>>(
+          ConvertVector<scada::WriteValue>(
+              opcua::MakeSpan(request.NodesToWrite, request.NoOfNodesToWrite))),
+      [callback](scada::Status&& status,
+                 std::vector<scada::StatusCode> results) {
+        opcua::WriteResponse response;
+        response.ResponseHeader.ServiceResult =
+            MakeStatusCode(status.code()).code();
+        auto opcua_results = ConvertStatusCodesFromVector(results);
+        response.NoOfResults = opcua_results.size();
+        response.Results = opcua_results.release();
+        callback(std::move(response));
+      });
 }
 
 void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
@@ -348,7 +354,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
             view_service_, *inputs, *opcua_results,
             [this, inputs, opcua_results, callback] {
               FillBrowseResultsAttributes(
-                  attribute_service_, *inputs, *opcua_results,
+                  attribute_service_, service_context_, *inputs, *opcua_results,
                   [inputs, opcua_results, callback] {
                     opcua::BrowseResponse response;
                     response.ResponseHeader.ServiceResult = OpcUa_Good;

@@ -253,7 +253,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   assert(AssertValid());
 
   attribute_service_.Read(
-      *read_ids,
+      service_context_, read_ids,
       BindExecutor(
           executor_,
           [weak_ptr = weak_from_this(), request_id, start_ticks, read_ids](

@@ -3,6 +3,7 @@
 #include "base/boost_log.h"
 #include "core/configuration_types.h"
 #include "core/node_id.h"
+#include "core/service.h"
 
 #include <map>
 #include <opcua_serverapi.h>
@@ -82,6 +83,9 @@ class OpcUaServer : private OpcUaServerContext {
   const opcua::server::Endpoint::SecurityPolicyConfiguration security_policy_;
 
   opcua::server::Endpoint endpoint_{OpcUa_Endpoint_SerializerType_Binary};
+
+  const std::shared_ptr<const scada::ServiceContext> service_context_ =
+      scada::ServiceContext::default_instance();
 };
 
 opcua::UInt32 ParseTraceLevel(std::string_view str);

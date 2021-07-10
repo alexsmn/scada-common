@@ -78,11 +78,14 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::MonitoringParameters& params) override;
 
   // scada::AttributeService
-  virtual void Read(const std::vector<scada::ReadValueId>& nodes,
-                    const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValue>& values,
-                     const scada::NodeId& user_id,
-                     const scada::WriteCallback& callback) override;
+  virtual void Read(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+      const scada::ReadCallback& callback) override;
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+      const scada::WriteCallback& callback) override;
 
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,

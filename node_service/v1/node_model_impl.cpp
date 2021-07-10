@@ -211,12 +211,13 @@ std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
 
 void NodeModelImpl::Read(scada::AttributeId attribute_id,
                          const NodeRef::ReadCallback& callback) const {
-  std::vector<scada::ReadValueId> inputs;
-  inputs.emplace_back(scada::ReadValueId{node_id_, attribute_id});
+  auto inputs = std::make_shared<std::vector<scada::ReadValueId>>();
+  inputs->emplace_back(scada::ReadValueId{node_id_, attribute_id});
 
   attribute_service_.Read(
-      inputs, [callback](scada::Status&& status,
-                         std::vector<scada::DataValue>&& values) {
+      scada::ServiceContext::default_instance(), inputs,
+      [callback](scada::Status&& status,
+                 std::vector<scada::DataValue>&& values) {
         if (!status)
           return callback(scada::MakeReadError(status.code()));
 
@@ -232,12 +233,11 @@ void NodeModelImpl::Write(scada::AttributeId attribute_id,
                           const scada::WriteFlags& flags,
                           const scada::NodeId& user_id,
                           const scada::StatusCallback& callback) const {
-  std::vector<scada::WriteValue> inputs;
-  inputs.emplace_back(
-      scada::WriteValue{node_id_, attribute_id, value, flags});
+  auto inputs = std::make_shared<std::vector<scada::WriteValue>>();
+  inputs->emplace_back(scada::WriteValue{node_id_, attribute_id, value, flags});
 
   attribute_service_.Write(
-      inputs, user_id,
+      scada::ServiceContext::default_instance(), inputs,
       [callback](scada::Status&& status,
                  std::vector<scada::StatusCode>&& results) {
         callback(status ? std::move(results.front()) : std::move(status));

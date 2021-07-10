@@ -16,21 +16,23 @@ AttributeServiceImpl::AttributeServiceImpl(
     : sync_attribute_service_{sync_attribute_service} {}
 
 void AttributeServiceImpl::Read(
-    const std::vector<scada::ReadValueId>& descriptions,
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  std::vector<scada::DataValue> results(descriptions.size());
+  std::vector<scada::DataValue> results(inputs->size());
 
-  for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = sync_attribute_service_.Read(descriptions[index]);
+  for (size_t index = 0; index < inputs->size(); ++index)
+    results[index] = sync_attribute_service_.Read((*inputs)[index]);
 
   callback(scada::StatusCode::Good, std::move(results));
 }
 
 void AttributeServiceImpl::Write(
-    const std::vector<scada::WriteValue>& values,
-    const scada::NodeId& user_id,
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  auto results = sync_attribute_service_.Write(values, user_id);
+  assert(context);
+  auto results = sync_attribute_service_.Write(*context, *inputs);
   callback(scada::StatusCode::Good, std::move(results));
 }
 
@@ -49,9 +51,9 @@ scada::DataValue SyncAttributeServiceImpl::Read(
 }
 
 std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
-    base::span<const scada::WriteValue> values,
-    const scada::NodeId& user_id) {
-  return std::vector<scada::StatusCode>(values.size(),
+    const scada::ServiceContext& context,
+    base::span<const scada::WriteValue> inputs) {
+  return std::vector<scada::StatusCode>(inputs.size(),
                                         scada::StatusCode::Bad_WrongNodeId);
 }
 

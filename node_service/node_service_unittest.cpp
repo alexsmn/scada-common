@@ -186,7 +186,7 @@ template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
     const scada::NodeId& unknown_node_id) {
   EXPECT_CALL(*this->server_address_space_,
-              Read(Each(NodeIs(unknown_node_id)), _))
+              Read(_, Pointee(Each(NodeIs(unknown_node_id))), _))
       .Times(AtMost(1));
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIs(unknown_node_id)), _))
@@ -212,7 +212,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
 
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ExpectAnyUpdates() {
-  EXPECT_CALL(*server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(*server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(*server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnModelChanged(_)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnNodeSemanticChanged(_))
@@ -368,8 +368,9 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   this->ExpectAnyUpdates();
 
   // Fetches the node, its aggregates, and children.
-  EXPECT_CALL(*this->server_address_space_,
-              Read(Each(NodeIsOrIsNestedOf(new_node_state.node_id)), _));
+  EXPECT_CALL(
+      *this->server_address_space_,
+      Read(_, Pointee(Each(NodeIsOrIsNestedOf(new_node_state.node_id))), _));
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIsOrIsNestedOf(new_node_state.node_id)), _));
   EXPECT_CALL(this->node_service_observer_,
@@ -491,7 +492,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
 
   EXPECT_CALL(*this->server_address_space_,
-              Read(Each(NodeIsOrIsNestedOf(node_id)), _))
+              Read(_, Pointee(Each(NodeIsOrIsNestedOf(node_id))), _))
       .Times(2);
   EXPECT_CALL(*this->server_address_space_,
               Browse(Each(NodeIsOrIsNestedOf(node_id)), _))
@@ -544,7 +545,8 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   scada::AddReference(*this->server_address_space_, reference_type_id, node_id,
                       new_target_node_id);
 
-  EXPECT_CALL(*this->server_address_space_, Read(Each(NodeIs(node_id)), _));
+  EXPECT_CALL(*this->server_address_space_,
+              Read(_, Pointee(Each(NodeIs(node_id))), _));
   EXPECT_CALL(*this->server_address_space_, Browse(Each(NodeIs(node_id)), _))
       .Times(AtMost(2));
 

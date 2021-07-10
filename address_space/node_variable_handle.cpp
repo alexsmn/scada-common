@@ -10,12 +10,11 @@ scada::Node& NodeVariableHandle::GetNode() {
   return node_;
 }
 
-void NodeVariableHandle::Write(scada::AttributeId attribute_id,
-                               const scada::Variant& value,
-                               const WriteFlags& flags,
-                               const NodeId& user_id,
-                               const StatusCallback& callback) {
-  node_.Write(attribute_id, value, flags, user_id, callback);
+void NodeVariableHandle::Write(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::WriteValue& write_value,
+    const scada::StatusCallback& callback) {
+  node_.Write(context, write_value, callback);
 }
 
 void NodeVariableHandle::Call(const scada::NodeId& method_id,

@@ -105,7 +105,7 @@ void NodeFetcherTest::ValidateFetchedNode() {
 }
 
 TEST_F(NodeFetcherTest, Fetch) {
-  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
@@ -117,7 +117,7 @@ TEST_F(NodeFetcherTest, Fetch) {
 }
 
 TEST_F(NodeFetcherTest, Fetch_Force) {
-  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());

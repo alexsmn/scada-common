@@ -85,21 +85,18 @@ void VariableHandle::Deleted() {
   UpdateQualifier(0, Qualifier::FAILED);
 }
 
-void VariableHandle::Write(AttributeId attribute_id,
-                           const Variant& value,
-                           const WriteFlags& flags,
-                           const NodeId& user_id,
-                           const StatusCallback& callback) {
-  if (callback)
-    callback(StatusCode::Bad_WrongMethodId);
+void VariableHandle::Write(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::WriteValue& input,
+    const scada::StatusCallback& callback) {
+  callback(StatusCode::Bad_WrongMethodId);
 }
 
 void VariableHandle::Call(const NodeId& method_id,
                           const std::vector<Variant>& arguments,
                           const scada::NodeId& user_id,
                           const StatusCallback& callback) {
-  if (callback)
-    callback(StatusCode::Bad_WrongMethodId);
+  callback(StatusCode::Bad_WrongMethodId);
 }
 
 // static

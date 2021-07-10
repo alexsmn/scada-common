@@ -23,17 +23,20 @@ class VirtualObject : public scada::GenericObject,
   virtual AttributeService* GetAttributeService() final { return this; }
   virtual ViewService* GetViewService() final { return this; }
 
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
-                    const scada::ReadCallback& callback) override {
-    std::vector<scada::DataValue> results(value_ids.size());
-    for (size_t i = 0; i < value_ids.size(); ++i)
-      results[i] = Read(value_ids[i]);
+  virtual void Read(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+      const scada::ReadCallback& callback) override {
+    std::vector<scada::DataValue> results(inputs->size());
+    for (size_t i = 0; i < inputs->size(); ++i)
+      results[i] = Read((*inputs)[i]);
     callback(scada::StatusCode::Good, std::move(results));
   }
 
-  virtual void Write(const std::vector<scada::WriteValue>& values,
-                     const scada::NodeId& user_id,
-                     const scada::WriteCallback& callback) override {
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+      const scada::WriteCallback& callback) override {
     assert(false);
     callback(scada::StatusCode::Bad, {});
   }

@@ -57,7 +57,7 @@ class AddressSpaceFetcherTest : public Test {
 TEST_F(AddressSpaceFetcherTest, FetchNode_NodeOnly) {
   const auto node_id = server_address_space_.kTestNode1Id;
 
-  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
 
   EXPECT_CALL(
@@ -74,17 +74,20 @@ TEST_F(AddressSpaceFetcherTest, FetchNode_NodeAndChildren_WhenReadIsDelayed) {
 
   const auto node_id = server_address_space_.kTestNode1Id;
 
-  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeIs(node_id))))
       .Times(AnyNumber());
 
-  std::pair<std::vector<scada::ReadValueId>, scada::ReadCallback> pending_read;
-  EXPECT_CALL(server_address_space_, Read(Contains(NodeIs(node_id)), _))
-      .WillOnce(DoAll(SaveArg<0>(&pending_read.first),
-                      SaveArg<1>(&pending_read.second)))
+  std::pair<std::shared_ptr<const std::vector<scada::ReadValueId>>,
+            scada::ReadCallback>
+      pending_read;
+  EXPECT_CALL(server_address_space_,
+              Read(_, Pointee(Contains(NodeIs(node_id))), _))
+      .WillOnce(DoAll(SaveArg<1>(&pending_read.first),
+                      SaveArg<2>(&pending_read.second)))
       .WillRepeatedly(DoDefault());
 
   address_space_fetcher_->FetchNode(node_id,
@@ -98,7 +101,8 @@ TEST_F(AddressSpaceFetcherTest, FetchNode_NodeAndChildren_WhenReadIsDelayed) {
                   node_id, scada::StatusCode::Good,
                   NodeFetchStatus::NodeAndChildren()})));
 
-  server_address_space_.attribute_service_impl.Read(read_inputs, read_callback);
+  server_address_space_.attribute_service_impl.Read(nullptr, read_inputs,
+                                                    read_callback);
 }
 
 TEST_F(AddressSpaceFetcherTest, DISABLED_ConfigurationLoad) {
@@ -188,7 +192,7 @@ TEST_F(AddressSpaceFetcherTest, NodeSemanticsChanged) {
   auto* node = server_address_space_.GetMutableNode(kNodeId);
   ASSERT_TRUE(node);
 
-  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_));
 

@@ -30,10 +30,12 @@ class Audit final : public scada::AttributeService,
 
   // scada::AttributeService
 
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
-                    const scada::ReadCallback& callback) override {
+  virtual void Read(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+      const scada::ReadCallback& callback) override {
     attribute_service_->Read(
-        value_ids,
+        context, inputs,
         [this, ref = shared_from_this(), start_time = Clock::now(), callback](
             scada::Status&& status, std::vector<scada::DataValue>&& results) {
           executor_.dispatch([this, ref, duration = Clock::now() - start_time] {
@@ -43,10 +45,11 @@ class Audit final : public scada::AttributeService,
         });
   }
 
-  virtual void Write(const std::vector<scada::WriteValue>& values,
-                     const scada::NodeId& user_id,
-                     const scada::WriteCallback& callback) override {
-    attribute_service_->Write(values, user_id, callback);
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+      const scada::WriteCallback& callback) override {
+    attribute_service_->Write(context, inputs, callback);
   }
 
   // scada::ViewService

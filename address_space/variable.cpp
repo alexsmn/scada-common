@@ -33,11 +33,10 @@ std::shared_ptr<VariableHandle> Variable::GetVariableHandle() const {
   return variable_handle;
 }
 
-void Variable::Write(AttributeId attribute_id,
-                     const Variant& value,
-                     const WriteFlags& flags,
-                     const NodeId& user_id,
-                     const StatusCallback& callback) {
+void Variable::Write(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::WriteValue& input,
+    const scada::StatusCallback& callback) {
   callback(StatusCode::Bad);
 }
 

@@ -5,12 +5,12 @@
 #include "core/session_service.h"
 #include "core/view_service.h"
 
+#include <boost/asio/io_context_strand.hpp>
 #include <opcuapp/client/channel.h>
 #include <opcuapp/client/session.h>
 #include <opcuapp/platform.h>
 #include <opcuapp/proxy_stub.h>
 #include <opcuapp/status_code.h>
-#include <boost/asio/io_context_strand.hpp>
 
 namespace boost::asio {
 class io_context;
@@ -57,11 +57,14 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
       const scada::MonitoringParameters& params) override;
 
   // scada::AttributeService
-  virtual void Read(const std::vector<scada::ReadValueId>& value_ids,
-                    const scada::ReadCallback& callback) override;
-  virtual void Write(const std::vector<scada::WriteValue>& values,
-                     const scada::NodeId& user_id,
-                     const scada::WriteCallback& callback) override;
+  virtual void Read(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+      const scada::ReadCallback& callback) override;
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+      const scada::WriteCallback& callback) override;
 
  private:
   void Reset();

@@ -10,17 +10,17 @@ class MockVariableHandle : public VariableHandle {
  public:
   MOCK_METHOD(void,
               Write,
-              (AttributeId attribute_id,
-               const Variant& value,
-               const WriteFlags& flags,
-               const NodeId& user_id,
-               const StatusCallback& callback));
+              (const std::shared_ptr<const scada::ServiceContext>& context,
+               const scada::WriteValue& input,
+               const scada::StatusCallback& callback),
+              (override));
   MOCK_METHOD(void,
               Call,
               (const NodeId& method_id,
                const std::vector<Variant>& arguments,
                const NodeId& user_id,
-               const StatusCallback& callback));
+               const StatusCallback& callback),
+              (override));
 };
 
 }  // namespace scada

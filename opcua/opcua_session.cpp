@@ -136,13 +136,15 @@ std::shared_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
   return GetDefaultSubscription().CreateMonitoredItem(read_value_id, params);
 }
 
-void OpcUaSession::Read(const std::vector<scada::ReadValueId>& inputs,
-                        const scada::ReadCallback& callback) {
+void OpcUaSession::Read(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+    const scada::ReadCallback& callback) {
   assert(session_activated_);
 
-  std::vector<OpcUa_ReadValueId> read_array(inputs.size());
-  for (size_t i = 0; i < inputs.size(); ++i)
-    Convert(inputs[i], read_array[i]);
+  std::vector<OpcUa_ReadValueId> read_array(inputs->size());
+  for (size_t i = 0; i < inputs->size(); ++i)
+    Convert((*inputs)[i], read_array[i]);
 
   session_.Read({read_array.data(), read_array.size()},
                 [callback](opcua::StatusCode status_code,
@@ -156,9 +158,10 @@ void OpcUaSession::Read(const std::vector<scada::ReadValueId>& inputs,
       [](OpcUa_ReadValueId& value) { ::OpcUa_ReadValueId_Clear(&value); });
 }
 
-void OpcUaSession::Write(const std::vector<scada::WriteValue>& values,
-                         const scada::NodeId& user_id,
-                         const scada::WriteCallback& callback) {
+void OpcUaSession::Write(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+    const scada::WriteCallback& callback) {
   callback(scada::StatusCode::Bad, {});
 }
 

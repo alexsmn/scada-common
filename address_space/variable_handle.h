@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/attribute_ids.h"
+#include "core/attribute_service.h"
 #include "core/data_value.h"
 #include "core/monitored_item.h"
 
@@ -27,8 +28,6 @@ class VariableMonitoredItem : public MonitoredItem {
   bool subscribed_ = false;
 };
 
-using StatusCallback = std::function<void(Status&& status)>;
-
 class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
  public:
   virtual ~VariableHandle();
@@ -44,11 +43,10 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   const DataValue& last_value() const { return last_value_; }
   DateTime last_change_time() const { return last_change_time_; }
 
-  virtual void Write(AttributeId attribute_id,
-                     const Variant& value,
-                     const WriteFlags& flags,
-                     const NodeId& user_id,
-                     const StatusCallback& callback);
+  virtual void Write(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::WriteValue& input,
+      const scada::StatusCallback& callback);
 
   virtual void Call(const NodeId& method_id,
                     const std::vector<Variant>& arguments,
