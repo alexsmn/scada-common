@@ -10,6 +10,7 @@
 #include "common/node_state.h"
 #include "core/standard_node_ids.h"
 
+#include <boost/range/adaptor/transformed.hpp>
 #include <gmock/gmock.h>
 
 #include "base/debug_util-inl.h"
@@ -21,10 +22,13 @@ namespace {
 std::vector<scada::ReferenceDescription> CollectReferenceDescriptions(
     const scada::References& references,
     bool forward) {
-  return Map(references, [forward](const scada::Reference& reference) {
-    return scada::ReferenceDescription{reference.type->id(), forward,
-                                       reference.node->id()};
-  });
+  return references |
+         boost::adaptors::transformed(
+             [forward](const scada::Reference& reference) {
+               return scada::ReferenceDescription{reference.type->id(), forward,
+                                                  reference.node->id()};
+             }) |
+         to_vector;
 }
 
 std::vector<scada::ReferenceDescription> CollectReferenceDescriptions(

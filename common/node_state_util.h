@@ -1,9 +1,6 @@
 #pragma once
 
-#include "base/range_util.h"
 #include "common/node_state.h"
-#include "common/type_system.h"
-#include "model/node_id_util.h"
 
 namespace scada {
 
