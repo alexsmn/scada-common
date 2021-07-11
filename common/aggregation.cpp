@@ -174,13 +174,13 @@ DateTime GetLocalAggregateStartTime() {
 }
 
 DateTimeRange GetAggregateInterval(DateTime time,
-                                   DateTime start_time,
+                                   DateTime origin_time,
                                    Duration interval) {
   assert(!interval.is_zero());
-  auto start_delta = time - start_time;
-  start_delta -= start_delta % interval;
-  start_time += start_delta;
-  return {start_time, start_time + interval};
+  assert(time >= origin_time);
+  auto delta = time - origin_time;
+  delta -= delta % interval;
+  return {origin_time + delta, origin_time + delta + interval};
 }
 
 void AggregateState::Process(base::span<const scada::DataValue> raw_span) {
