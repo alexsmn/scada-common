@@ -238,7 +238,7 @@ bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
   return false;
 }
 
-bool IsSubtypeOf(AddressSpace& address_space,
+bool IsSubtypeOf(const AddressSpace& address_space,
                  const NodeId& type_id,
                  const NodeId& supertype_id) {
   const auto* type = AsTypeDefinition(address_space.GetNode(type_id));

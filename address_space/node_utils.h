@@ -76,7 +76,7 @@ inline Node* GetTarget(const Node& node,
 }
 
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
-bool IsSubtypeOf(AddressSpace& address_space,
+bool IsSubtypeOf(const AddressSpace& address_space,
                  const NodeId& type_id,
                  const NodeId& supertype_id);
 

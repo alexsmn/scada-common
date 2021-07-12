@@ -212,7 +212,7 @@ bool WantsParent(AddressSpace& address_space,
                         false);
 }
 
-bool WantsReference(AddressSpace& address_space,
+bool WantsReference(const AddressSpace& address_space,
                     const BrowseDescription& description,
                     const NodeId& reference_type_id,
                     bool forward) {
