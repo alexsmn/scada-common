@@ -8,10 +8,15 @@
 
 class MockEventNotifier : public EventNotifier {
  public:
-  MOCK_METHOD1(NotifyEvent, void(const scada::Event& event));
+  MOCK_METHOD(void, NotifyEvent, (const scada::Event& event), (override));
 
-  MOCK_METHOD1(NotifyModelChanged, void(const scada::ModelChangeEvent& event));
+  MOCK_METHOD(void,
+              NotifyModelChanged,
+              (const scada::ModelChangeEvent& event),
+              (override));
 
-  MOCK_METHOD1(NotifySemanticChanged,
-               void(const scada::SemanticChangeEvent& event));
+  MOCK_METHOD(void,
+              NotifySemanticChanged,
+              (const scada::SemanticChangeEvent& event),
+              (override));
 };
