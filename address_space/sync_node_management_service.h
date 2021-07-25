@@ -12,10 +12,10 @@ class SyncNodeManagementService {
       const scada::NodeId& node_id,
       std::vector<scada::NodeId>* dependencies) = 0;
 
-  virtual scada::StatusCode AddReference(
-      const scada::AddReferencesItem& input) = 0;
-  virtual scada::StatusCode DeleteReference(
-      const scada::DeleteReferencesItem& input) = 0;
+  virtual std::vector<scada::StatusCode> AddReferences(
+      base::span<const scada::AddReferencesItem> inputs) = 0;
+  virtual std::vector<scada::StatusCode> DeleteReferences(
+      base::span<const scada::DeleteReferencesItem> inputs) = 0;
 
   virtual scada::Status ChangeUserPassword(
       const scada::NodeId& user_id,
