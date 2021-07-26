@@ -65,6 +65,7 @@ class NodeFetcherTest : public Test {
           server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction(),
+          std::make_shared<const scada::ServiceContext>(),
       })};
 
   const scada::NodeId node_id = server_address_space_.kTestNode2Id;

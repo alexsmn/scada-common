@@ -6,6 +6,9 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/range_util.h"
+
+#include <boost/range/adaptor/transformed.hpp>
 
 SyncAttributeServiceImpl::SyncAttributeServiceImpl(
     AttributeServiceImplContext&& context)
@@ -19,10 +22,11 @@ void AttributeServiceImpl::Read(
     const std::shared_ptr<const scada::ServiceContext>& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  std::vector<scada::DataValue> results(inputs->size());
+  assert(context);
+  assert(inputs);
 
-  for (size_t index = 0; index < inputs->size(); ++index)
-    results[index] = sync_attribute_service_.Read((*inputs)[index]);
+  auto results = sync_attribute_service_.Read(*context, *inputs);
+  assert(results.size() == inputs->size());
 
   callback(scada::StatusCode::Good, std::move(results));
 }
@@ -32,20 +36,30 @@ void AttributeServiceImpl::Write(
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   assert(context);
+  assert(inputs);
+
   auto results = sync_attribute_service_.Write(*context, *inputs);
   callback(scada::StatusCode::Good, std::move(results));
 }
 
+std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(
+    const scada::ServiceContext& context,
+    base::span<const scada::ReadValueId> inputs) {
+  return inputs |
+         boost::adaptors::transformed(
+             [this](const scada::ReadValueId& input) { return Read(input); }) |
+         to_vector;
+}
+
 scada::DataValue SyncAttributeServiceImpl::Read(
-    const scada::ReadValueId& read_id) {
+    const scada::ReadValueId& input) {
   std::string_view nested_name;
-  auto* node =
-      scada::GetNestedNode(address_space_, read_id.node_id, nested_name);
+  auto* node = scada::GetNestedNode(address_space_, input.node_id, nested_name);
   if (!node)
     return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 
   if (nested_name.empty())
-    return ReadNode(*node, read_id.attribute_id);
+    return ReadNode(*node, input.attribute_id);
 
   return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 }

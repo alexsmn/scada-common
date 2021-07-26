@@ -81,28 +81,32 @@ TEST_F(AddressSpaceFetcherTest, FetchNode_NodeAndChildren_WhenReadIsDelayed) {
               Call(Contains(NodeIs(node_id))))
       .Times(AnyNumber());
 
-  std::pair<std::shared_ptr<const std::vector<scada::ReadValueId>>,
-            scada::ReadCallback>
-      pending_read;
+  std::function<void()> pending_read;
   EXPECT_CALL(server_address_space_,
               Read(_, Pointee(Contains(NodeIs(node_id))), _))
-      .WillOnce(DoAll(SaveArg<1>(&pending_read.first),
-                      SaveArg<2>(&pending_read.second)))
+      .WillOnce(Invoke(
+          [&](const std::shared_ptr<const scada::ServiceContext>& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
+              const scada::ReadCallback& callback) {
+            pending_read = [&, context, inputs, callback] {
+              server_address_space_.attribute_service_impl.Read(context, inputs,
+                                                                callback);
+            };
+          }))
       .WillRepeatedly(DoDefault());
 
   address_space_fetcher_->FetchNode(node_id,
                                     NodeFetchStatus::NodeAndChildren());
 
-  auto& [read_inputs, read_callback] = pending_read;
-  ASSERT_TRUE(read_callback);
+  ASSERT_TRUE(pending_read);
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeFetchStatusChangedItem{
                   node_id, scada::StatusCode::Good,
                   NodeFetchStatus::NodeAndChildren()})));
 
-  server_address_space_.attribute_service_impl.Read(nullptr, read_inputs,
-                                                    read_callback);
+  pending_read();
 }
 
 TEST_F(AddressSpaceFetcherTest, DISABLED_ConfigurationLoad) {

@@ -20,12 +20,15 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
   explicit SyncAttributeServiceImpl(AttributeServiceImplContext&& context);
 
   // SyncAttributeService
-  virtual scada::DataValue Read(const scada::ReadValueId& read_id) override;
+  virtual std::vector<scada::DataValue> Read(
+      const scada::ServiceContext& context,
+      base::span<const scada::ReadValueId> inputs) override;
   virtual std::vector<scada::StatusCode> Write(
       const scada::ServiceContext& context,
       base::span<const scada::WriteValue> inputs) override;
 
  private:
+  scada::DataValue Read(const scada::ReadValueId& input);
   scada::DataValue ReadNode(const scada::Node& node,
                             scada::AttributeId attribute_id);
 };

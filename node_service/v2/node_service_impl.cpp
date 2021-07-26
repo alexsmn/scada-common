@@ -203,7 +203,7 @@ void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
 }
 
 NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
-  auto fetch_completed_handler =
+  FetchCompletedHandler fetch_completed_handler =
       [this](std::vector<scada::NodeState>&& node_states,
              NodeFetchStatuses&& errors) {
         ProcessFetchedNodes(std::move(node_states));
@@ -216,11 +216,13 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
     return i != nodes_.end() && i->second->GetFetchStatus().node_fetched;
   };
 
-  return {
-      executor_,          view_service_,
-      attribute_service_, fetch_completed_handler,
-      node_validator,
-  };
+  return NodeFetcherImplContext{
+      executor_,
+      view_service_,
+      attribute_service_,
+      std::move(fetch_completed_handler),
+      std::move(node_validator),
+      std::make_shared<const scada::ServiceContext>()};
 }
 
 NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {

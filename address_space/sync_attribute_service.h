@@ -7,7 +7,9 @@ class SyncAttributeService {
  public:
   virtual ~SyncAttributeService() = default;
 
-  virtual scada::DataValue Read(const scada::ReadValueId& input) = 0;
+  virtual std::vector<scada::DataValue> Read(
+      const scada::ServiceContext& context,
+      base::span<const scada::ReadValueId> inputs) = 0;
 
   virtual std::vector<scada::StatusCode> Write(
       const scada::ServiceContext& context,

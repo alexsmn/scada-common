@@ -56,7 +56,7 @@ std::shared_ptr<AddressSpaceFetcher> AddressSpaceFetcher::Create(
 }
 
 void AddressSpaceFetcher::Init() {
-  const FetchCompletedHandler fetch_completed_handler =
+  FetchCompletedHandler fetch_completed_handler =
       [weak_ptr = weak_from_this()](
           std::vector<scada::NodeState>&& fetched_nodes,
           NodeFetchStatuses&& errors) {
@@ -64,13 +64,14 @@ void AddressSpaceFetcher::Init() {
           ptr->OnFetchCompleted(std::move(fetched_nodes), std::move(errors));
       };
 
-  const NodeValidator node_validator = [this](const scada::NodeId& node_id) {
+  NodeValidator node_validator = [this](const scada::NodeId& node_id) {
     return address_space_.GetNode(node_id) != 0;
   };
 
-  node_fetcher_ =
-      NodeFetcherImpl::Create({executor_, view_service_, attribute_service_,
-                               fetch_completed_handler, node_validator});
+  node_fetcher_ = NodeFetcherImpl::Create(NodeFetcherImplContext{
+      executor_, view_service_, attribute_service_,
+      std::move(fetch_completed_handler), std::move(node_validator),
+      std::make_shared<const scada::ServiceContext>()});
 
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
