@@ -10,6 +10,8 @@
 
 #include <gmock/gmock.h>
 
+#include "base/debug_util-inl.h"
+
 namespace v1 {
 
 using namespace testing;

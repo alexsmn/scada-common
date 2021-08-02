@@ -12,6 +12,8 @@
 
 #include <gmock/gmock.h>
 
+#include "base/debug_util-inl.h"
+
 using namespace testing;
 
 namespace v1 {
