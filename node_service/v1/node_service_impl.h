@@ -1,32 +1,32 @@
 #pragma once
 
+#include "base/boost_log.h"
 #include "base/observer_list.h"
-#include "common/view_events_subscription.h"
 #include "node_service/node_service.h"
-#include "node_service/v1/address_space_fetcher.h"
+#include "node_service/v1/address_space_fetcher_factory.h"
 #include "node_service/v1/node_model_impl.h"
 
 #include <map>
 
+class AddressSpaceImpl;
 class Executor;
 
 namespace scada {
-class AddressSpace;
 class Node;
 struct ModelChangeEvent;
 }  // namespace scada
 
 namespace v1 {
 
+class AddressSpaceFetcher;
 class NodeModelImpl;
+struct NodeFetchStatusChangedItem;
 
 struct NodeServiceImplContext {
   const std::shared_ptr<Executor> executor_;
-  const ViewEventsProvider view_events_provider_;
-  scada::ViewService& view_service_;
+  const AddressSpaceFetcherFactory address_space_fetcher_factory_;
   scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
-  NodeFactory& node_factory_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;
 };
@@ -49,7 +49,7 @@ class NodeServiceImpl final : private NodeServiceImplContext,
   virtual size_t GetPendingTaskCount() const override;
 
  private:
-  AddressSpaceFetcherContext MakeAddressSpaceFetcherContext();
+  AddressSpaceFetcherFactoryContext MakeAddressSpaceFetcherFactoryContext();
 
   void OnNodeFetchStatusChanged(
       base::span<const NodeFetchStatusChangedItem> items);

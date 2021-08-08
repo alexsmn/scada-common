@@ -1,4 +1,4 @@
-#include "node_service/v1/address_space_fetcher.h"
+#include "node_service/v1/address_space_fetcher_impl.h"
 
 #include "address_space/address_space_impl.h"
 #include "address_space/node_utils.h"
@@ -7,6 +7,8 @@
 #include "node_service/v1/address_space_updater.h"
 
 #include "base/debug_util-inl.h"
+
+namespace v1 {
 
 namespace {
 
@@ -34,10 +36,11 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
 
 }  // namespace
 
-// AddressSpaceFetcher
+// AddressSpaceFetcherImpl
 
-AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
-    : AddressSpaceFetcherContext{std::move(context)},
+AddressSpaceFetcherImpl::AddressSpaceFetcherImpl(
+    AddressSpaceFetcherImplContext&& context)
+    : AddressSpaceFetcherImplContext{std::move(context)},
       node_fetch_status_tracker_{{node_fetch_status_changed_handler_,
                                   [this](const scada::NodeId& node_id) {
                                     node_fetcher_->Fetch(node_id, true);
@@ -45,17 +48,17 @@ AddressSpaceFetcher::AddressSpaceFetcher(AddressSpaceFetcherContext&& context)
                                   },
                                   address_space_}} {}
 
-AddressSpaceFetcher::~AddressSpaceFetcher() {}
+AddressSpaceFetcherImpl::~AddressSpaceFetcherImpl() {}
 
 // static
-std::shared_ptr<AddressSpaceFetcher> AddressSpaceFetcher::Create(
-    AddressSpaceFetcherContext&& context) {
-  auto fetcher = std::make_shared<AddressSpaceFetcher>(std::move(context));
+std::shared_ptr<AddressSpaceFetcherImpl> AddressSpaceFetcherImpl::Create(
+    AddressSpaceFetcherImplContext&& context) {
+  auto fetcher = std::make_shared<AddressSpaceFetcherImpl>(std::move(context));
   fetcher->Init();
   return fetcher;
 }
 
-void AddressSpaceFetcher::Init() {
+void AddressSpaceFetcherImpl::Init() {
   FetchCompletedHandler fetch_completed_handler =
       [weak_ptr = weak_from_this()](
           std::vector<scada::NodeState>&& fetched_nodes,
@@ -85,7 +88,7 @@ void AddressSpaceFetcher::Init() {
   });
 }
 
-void AddressSpaceFetcher::OnChannelOpened() {
+void AddressSpaceFetcherImpl::OnChannelOpened() {
   channel_opened_ = true;
 
   for (const auto& node_id : GetAllNodeIds(address_space_)) {
@@ -103,18 +106,19 @@ void AddressSpaceFetcher::OnChannelOpened() {
   }
 }
 
-void AddressSpaceFetcher::OnChannelClosed() {
+void AddressSpaceFetcherImpl::OnChannelClosed() {
   channel_opened_ = false;
 }
 
-void AddressSpaceFetcher::DeleteNode(const scada::NodeId& node_id) {
+void AddressSpaceFetcherImpl::DeleteNode(const scada::NodeId& node_id) {
   node_fetcher_->Cancel(node_id);
   node_children_fetcher_->Cancel(node_id);
   node_fetch_status_tracker_.Delete(node_id);
   address_space_.RemoveNode(node_id);
 }
 
-void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
+void AddressSpaceFetcherImpl::OnModelChanged(
+    const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     LOG_INFO(logger_) << "Node deleted"
                       << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
@@ -156,7 +160,7 @@ void AddressSpaceFetcher::OnModelChanged(const scada::ModelChangeEvent& event) {
   model_changed_handler_(event);
 }
 
-void AddressSpaceFetcher::OnNodeSemanticsChanged(
+void AddressSpaceFetcherImpl::OnNodeSemanticsChanged(
     const scada::SemanticChangeEvent& event) {
   LOG_INFO(logger_) << "NodeSemanticsChanged"
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
@@ -165,7 +169,7 @@ void AddressSpaceFetcher::OnNodeSemanticsChanged(
     node_fetcher_->Fetch(event.node_id, true);
 }
 
-void AddressSpaceFetcher::FillMissingParent(scada::NodeState& node_state) {
+void AddressSpaceFetcherImpl::FillMissingParent(scada::NodeState& node_state) {
   if (!node_state.parent_id.is_null() && !node_state.supertype_id.is_null())
     return;
 
@@ -185,7 +189,7 @@ void AddressSpaceFetcher::FillMissingParent(scada::NodeState& node_state) {
   }
 }
 
-void AddressSpaceFetcher::OnFetchCompleted(
+void AddressSpaceFetcherImpl::OnFetchCompleted(
     std::vector<scada::NodeState>&& fetched_nodes,
     NodeFetchStatuses&& errors) {
   LOG_INFO(logger_) << "Nodes fetched"
@@ -229,7 +233,7 @@ void AddressSpaceFetcher::OnFetchCompleted(
   }
 }
 
-void AddressSpaceFetcher::OnChildrenFetched(
+void AddressSpaceFetcherImpl::OnChildrenFetched(
     const scada::NodeId& node_id,
     scada::ReferenceDescriptions&& references) {
   // Children can be fetched before the node.
@@ -263,7 +267,7 @@ void AddressSpaceFetcher::OnChildrenFetched(
 }
 
 NodeChildrenFetcherContext
-AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
+AddressSpaceFetcherImpl::MakeNodeChildrenFetcherContext() {
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
         OnChildrenFetched(node_id, std::move(result.references));
@@ -277,12 +281,14 @@ AddressSpaceFetcher::MakeNodeChildrenFetcherContext() {
 }
 
 std::pair<scada::Status, NodeFetchStatus>
-AddressSpaceFetcher::GetNodeFetchStatus(const scada::NodeId& node_id) const {
+AddressSpaceFetcherImpl::GetNodeFetchStatus(
+    const scada::NodeId& node_id) const {
   return node_fetch_status_tracker_.GetStatus(node_id);
 }
 
-void AddressSpaceFetcher::FetchNode(const scada::NodeId& node_id,
-                                    const NodeFetchStatus& requested_status) {
+void AddressSpaceFetcherImpl::FetchNode(
+    const scada::NodeId& node_id,
+    const NodeFetchStatus& requested_status) {
   if (!channel_opened_) {
     postponed_fetch_nodes_[node_id] |= requested_status;
     return;
@@ -291,7 +297,7 @@ void AddressSpaceFetcher::FetchNode(const scada::NodeId& node_id,
   InternalFetchNode(node_id, requested_status);
 }
 
-void AddressSpaceFetcher::InternalFetchNode(
+void AddressSpaceFetcherImpl::InternalFetchNode(
     const scada::NodeId& node_id,
     const NodeFetchStatus& requested_status) {
   assert(channel_opened_);
@@ -305,7 +311,9 @@ void AddressSpaceFetcher::InternalFetchNode(
     node_children_fetcher_->Fetch(node_id);
 }
 
-size_t AddressSpaceFetcher::GetPendingTaskCount() const {
+size_t AddressSpaceFetcherImpl::GetPendingTaskCount() const {
   return node_fetcher_->GetPendingNodeCount() +
          node_children_fetcher_->GetPendingNodeCount();
 }
+
+}  // namespace v1

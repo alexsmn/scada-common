@@ -1,4 +1,4 @@
-#include "node_service/v1/address_space_fetcher.h"
+#include "node_service/v1/address_space_fetcher_impl.h"
 
 #include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"
@@ -15,9 +15,11 @@
 
 using namespace testing;
 
-class AddressSpaceFetcherTest : public Test {
+namespace v1 {
+
+class AddressSpaceFetcherImplTest : public Test {
  public:
-  AddressSpaceFetcherTest() {
+  AddressSpaceFetcherImplTest() {
     address_space_fetcher_->OnChannelOpened();
     /*address_space_fetcher_->FetchNode(scada::id::RootFolder,
                       NodeFetchStatus::NodeAndChildren());*/
@@ -42,7 +44,7 @@ class AddressSpaceFetcherTest : public Test {
   scada::ViewEvents* view_events = nullptr;
 
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
-      AddressSpaceFetcher::Create({AddressSpaceFetcherContext{
+      AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
           executor_, server_address_space_, server_address_space_,
           client_address_space_, node_factory,
           [&](scada::ViewEvents& events) {
@@ -54,7 +56,7 @@ class AddressSpaceFetcherTest : public Test {
           [](const scada::SemanticChangeEvent& event) {}}});
 };
 
-TEST_F(AddressSpaceFetcherTest, FetchNode_NodeOnly) {
+TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
   const auto node_id = server_address_space_.kTestNode1Id;
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
@@ -68,7 +70,8 @@ TEST_F(AddressSpaceFetcherTest, FetchNode_NodeOnly) {
   address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
 }
 
-TEST_F(AddressSpaceFetcherTest, FetchNode_NodeAndChildren_WhenReadIsDelayed) {
+TEST_F(AddressSpaceFetcherImplTest,
+       FetchNode_NodeAndChildren_WhenReadIsDelayed) {
   // When read is delayed, NodeChildrenFetcher completes first before the node
   // is created.
 
@@ -109,7 +112,7 @@ TEST_F(AddressSpaceFetcherTest, FetchNode_NodeAndChildren_WhenReadIsDelayed) {
   pending_read();
 }
 
-TEST_F(AddressSpaceFetcherTest, DISABLED_ConfigurationLoad) {
+TEST_F(AddressSpaceFetcherImplTest, DISABLED_ConfigurationLoad) {
   address_space_fetcher_->FetchNode(scada::id::RootFolder,
                                     NodeFetchStatus::NodeAndChildren());
 
@@ -147,7 +150,7 @@ TEST_F(AddressSpaceFetcherTest, DISABLED_ConfigurationLoad) {
   }
 }
 
-TEST_F(AddressSpaceFetcherTest, DISABLED_NodeAdded) {
+TEST_F(AddressSpaceFetcherImplTest, DISABLED_NodeAdded) {
   const scada::NodeState new_node_state{
       scada::NodeId{"NewNodeId", 0},
       scada::NodeClass::Object,
@@ -178,7 +181,7 @@ TEST_F(AddressSpaceFetcherTest, DISABLED_NodeAdded) {
   }
 }
 
-TEST_F(AddressSpaceFetcherTest, NodeDeleted) {
+TEST_F(AddressSpaceFetcherImplTest, NodeDeleted) {
   const scada::NodeId kNodeId = server_address_space_.kTestNode1Id;
   ASSERT_TRUE(server_address_space_.GetNode(kNodeId));
 
@@ -188,7 +191,7 @@ TEST_F(AddressSpaceFetcherTest, NodeDeleted) {
   EXPECT_FALSE(client_address_space_.GetNode(kNodeId));
 }
 
-TEST_F(AddressSpaceFetcherTest, NodeSemanticsChanged) {
+TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   const scada::NodeId kNodeId = server_address_space_.kTestNode1Id;
   const scada::QualifiedName kNewBrowseName{"NewTestNode1"};
   const scada::Variant kNewValue{"TestNode1.TestProp1.NewValue"};
@@ -222,7 +225,7 @@ TEST_F(AddressSpaceFetcherTest, NodeSemanticsChanged) {
   }
 }
 
-TEST_F(AddressSpaceFetcherTest,
+TEST_F(AddressSpaceFetcherImplTest,
        DISABLED_DeleteNodeByDeletionOfParentReference) {
   const scada::NodeId kParentNodeId = server_address_space_.kTestNode3Id;
   const scada::NodeId kNodeId = server_address_space_.kTestNode4Id;
@@ -254,3 +257,5 @@ TEST_F(AddressSpaceFetcherTest,
 
   EXPECT_NE(nullptr, client_address_space_.GetNode(kNodeId));*/
 }
+
+}  // namespace v1

@@ -8,6 +8,8 @@
 
 #include "base/debug_util-inl.h"
 
+namespace v1 {
+
 // NodeFetchStatusTracker::ScopedStatusLock
 
 class NodeFetchStatusTracker::ScopedStatusLock {
@@ -249,3 +251,5 @@ void NodeFetchStatusTracker::NotifyPendingStatusChanged() {
 
   node_fetch_status_changed_handler_(items);
 }
+
+}  // namespace v1

@@ -9,6 +9,7 @@
 #include "core/method_service_mock.h"
 #include "core/monitored_item_service_mock.h"
 #include "node_service/mock_node_observer.h"
+#include "node_service/v1/address_space_fetcher_impl.h"
 
 #include <gmock/gmock.h>
 
@@ -40,10 +41,29 @@ struct NodeServiceTestContext {
   NiceMock<scada::MockMethodService> method_service;
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      executor, view_events_provider, *server_address_space,
-      *server_address_space, client_address_space, node_factory,
-      monitored_item_service, method_service}};
+      executor, MakeAddressSpaceFetcherFactory(), *server_address_space,
+      *server_address_space, monitored_item_service, method_service}};
+
+ private:
+  AddressSpaceFetcherFactory MakeAddressSpaceFetcherFactory();
 };
+
+AddressSpaceFetcherFactory
+NodeServiceTestContext::MakeAddressSpaceFetcherFactory() {
+  return [this](AddressSpaceFetcherFactoryContext&& context) {
+    return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
+        executor,
+        *server_address_space,
+        *server_address_space,
+        client_address_space,
+        node_factory,
+        view_events_provider,
+        std::move(context.node_fetch_status_changed_handler_),
+        std::move(context.model_changed_handler_),
+        std::move(context.semantic_changed_handler_),
+    });
+  };
+}
 
 }  // namespace v1
 

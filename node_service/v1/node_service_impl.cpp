@@ -7,6 +7,8 @@
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "node_service/node_observer.h"
+#include "node_service/v1/address_space_fetcher.h"
+#include "node_service/v1/node_fetch_status_types.h"
 #include "node_service/v1/node_model_impl.h"
 
 #include "base/debug_util-inl.h"
@@ -30,8 +32,8 @@ const scada::Node* GetSemanticParent(const scada::Node& node) {
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext{std::move(context)},
-      address_space_fetcher_{
-          AddressSpaceFetcher::Create(MakeAddressSpaceFetcherContext())} {
+      address_space_fetcher_{address_space_fetcher_factory_(
+          MakeAddressSpaceFetcherFactoryContext())} {
   address_space_.Subscribe(*this);
 }
 
@@ -192,7 +194,8 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
   }
 }
 
-AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
+AddressSpaceFetcherFactoryContext
+NodeServiceImpl::MakeAddressSpaceFetcherFactoryContext() {
   auto node_fetch_status_changed_handler =
       [this](base::span<const NodeFetchStatusChangedItem> items) {
         OnNodeFetchStatusChanged(items);
@@ -208,12 +211,6 @@ AddressSpaceFetcherContext NodeServiceImpl::MakeAddressSpaceFetcherContext() {
       };
 
   return {
-      executor_,
-      view_service_,
-      attribute_service_,
-      address_space_,
-      node_factory_,
-      view_events_provider_,
       node_fetch_status_changed_handler,
       model_changed_handler,
       semantic_changed_handler,
