@@ -33,7 +33,7 @@ TEST(NodeModelImpl, Fetch) {
   NiceMock<scada::MockAttributeService> attribute_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   NiceMock<scada::MockMethodService> method_service;
-  NodeModelImpl node{AddressSpaceNodeModelContext{
+  NodeModelImpl node{NodeModelImplContext{
       delegate,
       kNodeId,
       attribute_service,

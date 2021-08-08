@@ -11,8 +11,8 @@
 
 namespace v1 {
 
-NodeModelImpl::NodeModelImpl(AddressSpaceNodeModelContext&& context)
-    : AddressSpaceNodeModelContext{std::move(context)} {}
+NodeModelImpl::NodeModelImpl(NodeModelImplContext&& context)
+    : NodeModelImplContext{std::move(context)} {}
 
 NodeModelImpl::~NodeModelImpl() {
   assert(!observers_.might_have_observers());

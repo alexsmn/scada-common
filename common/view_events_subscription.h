@@ -9,6 +9,7 @@ class IViewEventsSubscription {
   virtual ~IViewEventsSubscription() = default;
 };
 
+// TODO: Extract to a separate file.
 using ViewEventsProvider =
     std::function<std::unique_ptr<IViewEventsSubscription>(
         scada::ViewEvents& events)>;
@@ -54,4 +55,12 @@ inline void ViewEventsSubscription::OnEvent(const std::any& event) {
   } else {
     assert(false);
   }
+}
+
+inline ViewEventsProvider MakeViewEventsProvider(
+    scada::MonitoredItemService& monitored_item_service) {
+  return [&monitored_item_service](scada::ViewEvents& events) {
+    return std::make_unique<ViewEventsSubscription>(monitored_item_service,
+                                                    events);
+  };
 }

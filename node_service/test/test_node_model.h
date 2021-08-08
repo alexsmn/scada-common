@@ -4,10 +4,24 @@
 #include "common/node_state_util.h"
 #include "node_service/node_model.h"
 
+class TestNodeModel;
+
+class TestNodeService {
+ public:
+  std::shared_ptr<TestNodeModel> GetNodeModel(const scada::NodeId& node_id);
+
+  NodeRef GetNode(const scada::NodeId& node_id) {
+    return GetNodeModel(node_id);
+  }
+};
+
 class TestNodeModel final : public NodeModel {
  public:
-  TestNodeModel() {}
-  TestNodeModel(const scada::NodeState& node_state) : node_state_{node_state} {}
+  explicit TestNodeModel(TestNodeService& node_service)
+      : node_service_{node_service} {}
+
+  TestNodeModel(TestNodeService& node_service, scada::NodeState node_state)
+      : node_service_{node_service}, node_state{std::move(node_state)} {}
 
   virtual scada::Status GetStatus() const override {
     return scada::StatusCode::Good;
@@ -24,7 +38,7 @@ class TestNodeModel final : public NodeModel {
 
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override {
-    return scada::Read(node_state_, attribute_id);
+    return scada::Read(node_state, attribute_id);
   }
 
   virtual NodeRef GetDataType() const override {
@@ -36,33 +50,30 @@ class TestNodeModel final : public NodeModel {
       const scada::NodeId& reference_type_id,
       bool forward,
       const scada::NodeId& node_id) const override {
-    assert(false);
     return {};
   }
 
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override {
-    assert(false);
     return {};
   }
 
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override {
-    assert(false);
+    if (forward && reference_type_id == scada::id::HasTypeDefinition)
+      return node_service_.GetNode(node_state.type_definition_id);
     return nullptr;
   }
 
   virtual std::vector<NodeRef> GetTargets(
       const scada::NodeId& reference_type_id,
       bool forward) const override {
-    assert(false);
     return {};
   }
 
   virtual NodeRef GetAggregate(
       const scada::NodeId& aggregate_declaration_id) const override {
-    assert(false);
     return nullptr;
   }
 
@@ -72,13 +83,9 @@ class TestNodeModel final : public NodeModel {
     return nullptr;
   }
 
-  virtual void Subscribe(NodeRefObserver& observer) const override {
-    assert(false);
-  }
+  virtual void Subscribe(NodeRefObserver& observer) const override {}
 
-  virtual void Unsubscribe(NodeRefObserver& observer) const override {
-    assert(false);
-  }
+  virtual void Unsubscribe(NodeRefObserver& observer) const override {}
 
   virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       scada::AttributeId attribute_id,
@@ -107,6 +114,16 @@ class TestNodeModel final : public NodeModel {
     assert(false);
   }
 
+  scada::NodeState node_state;
+
  private:
-  const scada::NodeState node_state_;
+  TestNodeService& node_service_;
 };
+
+inline std::shared_ptr<TestNodeModel> TestNodeService::GetNodeModel(
+    const scada::NodeId& node_id) {
+  if (node_id.is_null())
+    return nullptr;
+
+  return std::make_shared<TestNodeModel>(*this);
+}

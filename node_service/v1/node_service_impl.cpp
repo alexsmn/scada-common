@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
+#include "base/executor.h"
 #include "core/attribute_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
@@ -53,7 +54,7 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   if (model)
     return model;
 
-  model = std::make_shared<NodeModelImpl>(AddressSpaceNodeModelContext{
+  model = std::make_shared<NodeModelImpl>(NodeModelImplContext{
       *this,
       node_id,
       attribute_service_,
@@ -196,24 +197,24 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
 AddressSpaceFetcherFactoryContext
 NodeServiceImpl::MakeAddressSpaceFetcherFactoryContext() {
-  auto node_fetch_status_changed_handler =
-      [this](base::span<const NodeFetchStatusChangedItem> items) {
+  auto node_fetch_status_changed_handler = BindExecutor(
+      executor_, [this](base::span<const NodeFetchStatusChangedItem> items) {
         OnNodeFetchStatusChanged(items);
-      };
+      });
 
-  auto model_changed_handler = [this](const scada::ModelChangeEvent& event) {
-    OnModelChanged(event);
-  };
+  auto model_changed_handler = BindExecutor(
+      executor_,
+      [this](const scada::ModelChangeEvent& event) { OnModelChanged(event); });
 
   auto semantic_changed_handler =
-      [this](const scada::SemanticChangeEvent& event) {
+      BindExecutor(executor_, [this](const scada::SemanticChangeEvent& event) {
         OnSemanticChanged(event);
-      };
+      });
 
-  return {
-      node_fetch_status_changed_handler,
-      model_changed_handler,
-      semantic_changed_handler,
+  return AddressSpaceFetcherFactoryContext{
+      std::move(node_fetch_status_changed_handler),
+      std::move(model_changed_handler),
+      std::move(semantic_changed_handler),
   };
 }
 

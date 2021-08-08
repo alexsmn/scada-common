@@ -30,7 +30,7 @@ class NodeModelDelegate {
       const NodeFetchStatus& requested_status) = 0;
 };
 
-struct AddressSpaceNodeModelContext {
+struct NodeModelImplContext {
   NodeModelDelegate& delegate_;
   const scada::NodeId node_id_;
   scada::AttributeService& attribute_service_;
@@ -38,11 +38,11 @@ struct AddressSpaceNodeModelContext {
   scada::MethodService& method_service_;
 };
 
-class NodeModelImpl final : private AddressSpaceNodeModelContext,
+class NodeModelImpl final : private NodeModelImplContext,
                             public BaseNodeModel,
                             public std::enable_shared_from_this<NodeModelImpl> {
  public:
-  explicit NodeModelImpl(AddressSpaceNodeModelContext&& context);
+  explicit NodeModelImpl(NodeModelImplContext&& context);
   ~NodeModelImpl();
 
   void OnModelChanged(const scada::ModelChangeEvent& event);

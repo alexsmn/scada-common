@@ -25,8 +25,8 @@ struct NodeFetchStatusChangedItem;
 struct NodeServiceImplContext {
   const std::shared_ptr<Executor> executor_;
   const AddressSpaceFetcherFactory address_space_fetcher_factory_;
-  scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
+  scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;
 };

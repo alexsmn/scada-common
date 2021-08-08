@@ -5,7 +5,8 @@
 #include <gmock/gmock.h>
 
 TEST(TimedDataImpl, Test) {
-  NodeRef node{std::make_shared<TestNodeModel>()};
+  TestNodeService node_service;
+  auto node = node_service.GetNode(scada::NodeId{1, 1});
 
   /*auto timed_data = std::make_shared<TimedDataImpl>(node,
   scada::AggregateFilter{}, );*/
