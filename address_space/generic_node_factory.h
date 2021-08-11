@@ -22,8 +22,5 @@ class GenericNodeFactory final : public NodeFactory {
       const scada::NodeState& node_state,
       const scada::NodeId& parent_id);
 
-  void CreateProperties(scada::Node& node,
-                        const scada::TypeDefinition& type_definition);
-
   AddressSpaceImpl& address_space_;
 };

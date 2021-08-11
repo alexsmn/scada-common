@@ -2,6 +2,7 @@
 
 #include "address_space/address_space_impl.h"
 #include "address_space/node_builder_impl.h"
+#include "address_space/node_factory_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
@@ -117,7 +118,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (type_definition) {
     scada::AddReference(address_space_, scada::id::HasTypeDefinition, node_ref,
                         *type_definition);
-    CreateProperties(node_ref, *type_definition);
+    CreateProperties(*this, node_ref.id(), *type_definition);
   }
 
   if (!parent_id.is_null()) {
@@ -148,26 +149,4 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   }
 
   return {scada::StatusCode::Good, &node_ref};
-}
-
-void GenericNodeFactory::CreateProperties(
-    scada::Node& node,
-    const scada::TypeDefinition& type_definition) {
-  for (auto* type = &type_definition; type; type = type->supertype()) {
-    for (const auto* prop_node : scada::GetProperties(*type)) {
-      auto& prop_decl = scada::AsVariable(*prop_node);
-      auto prop_id =
-          MakeNestedNodeId(node.id(), prop_decl.GetBrowseName().name());
-      auto [status, prop] = CreateNode(
-          {std::move(prop_id), scada::NodeClass::Variable,
-           scada::id::PropertyType, node.id(), scada::id::HasProperty,
-           scada::NodeAttributes{}
-               .set_browse_name(prop_decl.GetBrowseName())
-               .set_display_name(prop_decl.GetDisplayName())
-               .set_data_type(prop_decl.GetDataType().id())
-               .set_value(prop_decl.GetValue().value)});
-      if (!status)
-        throw status;
-    }
-  }
 }
