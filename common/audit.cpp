@@ -1,5 +1,42 @@
 #include "common/audit.h"
 
+#include "base/containers/span.h"
+
+namespace {
+
+bool Validate(base::span<const scada::ReferenceDescription> references) {
+  std::vector<scada::ReferenceDescription> sorted_references(references.begin(),
+                                                             references.end());
+  std::sort(sorted_references.begin(), sorted_references.end(),
+            [](const scada::ReferenceDescription& a,
+               const scada::ReferenceDescription& b) {
+              return std::tie(a.reference_type_id, a.forward, a.node_id) <
+                     std::tie(b.reference_type_id, b.forward, b.node_id);
+            });
+  bool contain_duplicates =
+      std::adjacent_find(sorted_references.begin(), sorted_references.end(),
+                         std::equal_to{}) != sorted_references.end();
+  assert(!contain_duplicates);
+  return !contain_duplicates;
+}
+
+bool Validate(const scada::BrowseResult& result) {
+  if (scada::IsGood(result.status_code)) {
+    return Validate(result.references);
+  } else {
+    assert(result.references.empty());
+    return result.references.empty();
+  }
+}
+
+bool Validate(base::span<const scada::BrowseResult> results) {
+  return std::all_of(
+      results.begin(), results.end(),
+      [](const scada::BrowseResult& result) { return Validate(result); });
+}
+
+}  // namespace
+
 Audit::Audit(boost::asio::io_context& io_context,
              std::shared_ptr<AuditLogger> logger,
              std::shared_ptr<scada::AttributeService> attribute_service,
@@ -42,9 +79,12 @@ void Audit::Browse(const std::vector<scada::BrowseDescription>& descriptions,
       descriptions,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
+        assert(Validate(results));
+
         executor_.dispatch([this, ref, duration = Clock::now() - start_time] {
           browse_metric_(duration);
         });
+
         callback(std::move(status), std::move(results));
       });
 }
