@@ -7,6 +7,6 @@
 std::shared_ptr<NodeService> CreateNodeService(
     const NodeServiceContext& context) {
   return base::CommandLine::ForCurrentProcess()->HasSwitch("node-service-v2")
-             ? v1::CreateNodeService(context)
-             : v2::CreateNodeService(context);
+             ? v2::CreateNodeService(context)
+             : v1::CreateNodeService(context);
 }
