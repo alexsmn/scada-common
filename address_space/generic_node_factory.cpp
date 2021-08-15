@@ -45,15 +45,15 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     node = std::make_unique<scada::GenericObject>();
 
   } else if (node_state.node_class == scada::NodeClass::Variable) {
-    assert(!node_state.attributes.data_type.is_null());
-
     auto* variable_type = scada::AsVariableType(type_definition);
     assert(variable_type);
     if (!variable_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
 
-    auto* data_type = scada::AsDataType(
-        address_space_.GetNode(node_state.attributes.data_type));
+    auto* data_type = node_state.attributes.data_type.is_null()
+                          ? &variable_type->data_type()
+                          : scada::AsDataType(address_space_.GetNode(
+                                node_state.attributes.data_type));
     assert(data_type);
     if (!data_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
