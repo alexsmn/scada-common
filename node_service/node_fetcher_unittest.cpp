@@ -129,7 +129,51 @@ TEST_F(NodeFetcherTest, Fetch_Force) {
   ValidateFetchedNode();
 }
 
-TEST(NodeFetcher, UnknownNode) {
+TEST_F(NodeFetcherTest, UnknownNode) {
   // TODO: Read failure
   // TODO: Browse failure
+}
+
+TEST_F(NodeFetcherTest, Cancel) {
+  // 1. A node is requested.
+  // 2. The network request is started and takes a long time.
+  // 3. The node is canceled.
+  // 4. The node is requested again.
+  // 5. Another network request is started and takes a long time.
+  // 6. The first network request finishes, and this way is considered as a
+  // response for the first network request.
+  // 7. The second network requequest finished, and is considered an unexpected
+  // second response.
+
+  scada::ReadCallback read_callback1;
+  scada::BrowseCallback browse_callback1;
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _))
+      .WillOnce(SaveArg<2>(&read_callback1));
+  EXPECT_CALL(server_address_space_, Browse(_, _))
+      .WillOnce(SaveArg<1>(&browse_callback1));
+
+  node_fetcher_->Fetch(node_id);
+
+  node_fetcher_->Cancel(node_id);
+
+  // Second fetch.
+
+  scada::ReadCallback read_callback2;
+  scada::BrowseCallback browse_callback2;
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _))
+      .WillOnce(SaveArg<2>(&read_callback2));
+  EXPECT_CALL(server_address_space_, Browse(_, _))
+      .WillOnce(SaveArg<1>(&browse_callback2));
+
+  node_fetcher_->Fetch(node_id);
+
+  // First network request finishes.
+
+  read_callback1(scada::StatusCode::Bad, {});
+
+  // Second network request finishes.
+
+  read_callback2(scada::StatusCode::Bad, {});
 }

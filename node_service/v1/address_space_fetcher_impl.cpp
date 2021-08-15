@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
+#include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "node_service/v1/address_space_updater.h"
 
@@ -212,22 +213,38 @@ void AddressSpaceFetcherImpl::OnFetchCompleted(
   AddressSpaceUpdater updater{address_space_, node_factory_};
   updater.UpdateNodes(std::move(fetched_nodes));
 
-  for (auto& [node_id, verb] : updater.model_change_verbs()) {
-    if (verb & scada::ModelChangeEvent::NodeAdded)
-      errors.emplace_back(node_id, scada::StatusCode::Good);
-  }
+  const std::set<scada::NodeId> added_node_ids =
+      updater.model_change_verbs() |
+      boost::adaptors::filtered([](const auto& p) {
+        return p.second & scada::ModelChangeEvent::NodeAdded;
+      }) |
+      boost::adaptors::transformed([](const auto& p) { return p.first; }) |
+      to_set;
+
+  for (const auto& added_node_id : added_node_ids)
+    errors.emplace_back(added_node_id, scada::StatusCode::Good);
 
   if (!errors.empty())
     node_fetch_status_tracker_.OnNodesFetched(errors);
 
-  for (auto& [node_id, verb] : updater.model_change_verbs()) {
+  for (const auto& [node_id, verb] : updater.model_change_verbs()) {
+    // Added nodes were already notified via
+    // |node_fetch_status_tracker_.OnNodesFetched()|.
+    if (added_node_ids.find(node_id) != added_node_ids.end())
+      continue;
+
     if (auto* node = address_space_.GetNode(node_id)) {
       model_changed_handler_(scada::ModelChangeEvent{
           node->id(), scada::GetTypeDefinitionId(*node), verb});
     }
   }
 
-  for (auto& node_id : updater.semantic_change_node_ids()) {
+  for (const auto& node_id : updater.semantic_change_node_ids()) {
+    // Added nodes were already notified via
+    // |node_fetch_status_tracker_.OnNodesFetched()|.
+    if (added_node_ids.find(node_id) != added_node_ids.end())
+      continue;
+
     if (auto* node = address_space_.GetNode(node_id))
       semantic_changed_handler_(scada::SemanticChangeEvent{node->id()});
   }

@@ -73,16 +73,19 @@ TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
 TEST_F(AddressSpaceFetcherImplTest,
        FetchNode_NodeAndChildren_WhenReadIsDelayed) {
   // When read is delayed, NodeChildrenFetcher completes first before the node
-  // is created.
+  // is created. That causes status transition as: None -> ChildrenOnly ->
+  // NodeAndChildren.
 
   const auto node_id = server_address_space_.kTestNode1Id;
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
 
-  EXPECT_CALL(node_fetch_status_changed_handler_,
-              Call(Contains(NodeIs(node_id))))
-      .Times(AnyNumber());
+  EXPECT_CALL(node_fetch_status_changed_handler_, Call(_)).Times(AnyNumber());
+  EXPECT_CALL(
+      node_fetch_status_changed_handler_,
+      Call(Contains(NodeFetchStatusChangedItem{
+          node_id, scada::StatusCode::Good, NodeFetchStatus::ChildrenOnly()})));
 
   std::function<void()> pending_read;
   EXPECT_CALL(server_address_space_,

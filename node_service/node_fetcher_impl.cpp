@@ -1,5 +1,6 @@
 #include "node_service/node_fetcher_impl.h"
 
+#include "base/auto_reset.h"
 #include "base/executor.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
@@ -10,8 +11,10 @@
 
 namespace {
 
-const size_t kMaxFetchNodeCount = 1000;
-
+const size_t kMaxRequestNodeCount = 100;
+const size_t kMaxParallelRequestCount = 5;
+// Read + Browse.
+const size_t kPrimitiveRequestCount = 2;
 const size_t kFetchAttributesReserveFactor = 5;
 
 void GetFetchAttributes(const scada::NodeId& node_id,
@@ -202,13 +205,19 @@ void NodeFetcherImpl::FetchingNodeGraph::RemoveNode(
 void NodeFetcherImpl::FetchPendingNodes() {
   assert(AssertValid());
 
-  if (pending_queue_.empty() || running_request_count_ != 0)
+  if (processing_response_)
     return;
 
-  std::vector<FetchingNode*> nodes;
-  nodes.reserve(std::min(kMaxFetchNodeCount, pending_queue_.size()));
+  if (pending_queue_.empty() ||
+      running_request_count_ + kPrimitiveRequestCount >
+          kMaxParallelRequestCount) {
+    return;
+  }
 
-  while (!pending_queue_.empty() && nodes.size() < kMaxFetchNodeCount) {
+  std::vector<FetchingNode*> nodes;
+  nodes.reserve(std::min(kMaxRequestNodeCount, pending_queue_.size()));
+
+  while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
     auto& node = pending_queue_.top();
     pending_queue_.pop();
     assert(!node.fetch_started);
@@ -221,14 +230,18 @@ void NodeFetcherImpl::FetchPendingNodes() {
   assert(AssertValid());
 }
 
+unsigned NodeFetcherImpl::MakeRequestId() {
+  const auto request_id = next_request_id_++;
+  if (next_request_id_ == 0)
+    next_request_id_ = 1;
+  return request_id;
+}
+
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   assert(AssertValid());
 
   const auto start_ticks = base::TimeTicks::Now();
-
-  const auto request_id = next_request_id_++;
-  if (next_request_id_ == 0)
-    next_request_id_ = 1;
+  const auto request_id = MakeRequestId();
 
   LOG_INFO(logger_) << "Fetch pending nodes"
                     << LOG_TAG("NodeIds", ToString(CollectNodeIds(nodes)))
@@ -236,7 +249,10 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
                     << LOG_TAG("RequestCount", running_request_count_);
 
   // Increment immediately for the case OnReadResult happens synchronously.
-  running_request_count_ += 2;
+  running_request_count_ += kPrimitiveRequestCount;
+
+  for (auto* node : nodes)
+    node->fetch_request_id = request_id;
 
   // Attributes
 
@@ -247,7 +263,6 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
     GetFetchAttributes(node->node_id, node->is_property, node->is_declaration,
                        *read_ids);
     node->attributes_fetched = count == read_ids->size();
-    node->fetch_request_id = request_id;
   }
 
   assert(AssertValid());
@@ -438,44 +453,49 @@ void NodeFetcherImpl::OnReadResult(
                      << LOG_TAG("Inputs", ToString(read_ids))
                      << LOG_TAG("Results", ToString(results));
 
-  for (size_t i = 0; i < read_ids.size(); ++i) {
-    auto& read_id = read_ids[i];
+  {
+    assert(!processing_response_);
+    base::AutoReset processing_response{&processing_response_, true};
 
-    auto* node = fetching_nodes_.FindNode(read_id.node_id);
-    if (!node)
-      continue;
+    for (size_t i = 0; i < read_ids.size(); ++i) {
+      auto& read_id = read_ids[i];
 
-    // Request cancelation.
-    if (!node->fetch_started || node->fetch_request_id != request_id) {
-      LOG_INFO(logger_) << "Ignore read response for canceled node"
-                        << LOG_TAG("NodeId", ToString(node->node_id));
-      continue;
+      auto* node = fetching_nodes_.FindNode(read_id.node_id);
+      if (!node)
+        continue;
+
+      // Request cancelation.
+      if (!node->fetch_started || node->fetch_request_id != request_id) {
+        LOG_INFO(logger_) << "Ignore read response for canceled node"
+                          << LOG_TAG("NodeId", ToString(node->node_id));
+        continue;
+      }
+
+      node->attributes_fetched = true;
+
+      if (!status) {
+        node->status = status;
+        continue;
+      }
+
+      assert(read_ids.size() == results.size());
+      auto& result = results[i];
+
+      if (!scada::Status{result.status_code}) {
+        // Consider failure to obtain browse name as generic failure.
+        if (read_id.attribute_id == scada::AttributeId::BrowseName)
+          node->status = scada::Status{result.status_code};
+        continue;
+      }
+
+      SetFetchedAttribute(*node, read_id.attribute_id, std::move(result.value));
     }
 
-    node->attributes_fetched = true;
-
-    if (!status) {
-      node->status = status;
-      continue;
-    }
-
-    assert(read_ids.size() == results.size());
-    auto& result = results[i];
-
-    if (!scada::Status{result.status_code}) {
-      // Consider failure to obtain browse name as generic failure.
-      if (read_id.attribute_id == scada::AttributeId::BrowseName)
-        node->status = scada::Status{result.status_code};
-      continue;
-    }
-
-    SetFetchedAttribute(*node, read_id.attribute_id, std::move(result.value));
+    assert(running_request_count_ > 0);
+    --running_request_count_;
+    LOG_INFO(logger_) << "Remaining requests"
+                      << LOG_TAG("RequestCount", running_request_count_);
   }
-
-  assert(running_request_count_ > 0);
-  --running_request_count_;
-  LOG_INFO(logger_) << "Remaining requests"
-                    << LOG_TAG("RequestCount", running_request_count_);
 
   NotifyFetchedNodes();
 
@@ -536,45 +556,50 @@ void NodeFetcherImpl::OnBrowseResult(
                      << LOG_TAG("Inputs", ToString(descriptions))
                      << LOG_TAG("Results", ToString(results));
 
-  for (size_t i = 0; i < descriptions.size(); ++i) {
-    auto& description = descriptions[i];
+  {
+    assert(!processing_response_);
+    base::AutoReset processing_response{&processing_response_, true};
 
-    auto* node = fetching_nodes_.FindNode(description.node_id);
-    if (!node)
-      continue;
+    for (size_t i = 0; i < descriptions.size(); ++i) {
+      auto& description = descriptions[i];
 
-    // Request cancelation.
-    if (!node->fetch_started || node->fetch_request_id != request_id) {
-      LOG_INFO(logger_) << "Ignore browse response for canceled node"
-                        << LOG_TAG("NodeId", ToString(node->node_id));
-      continue;
+      auto* node = fetching_nodes_.FindNode(description.node_id);
+      if (!node)
+        continue;
+
+      // Request cancelation.
+      if (!node->fetch_started || node->fetch_request_id != request_id) {
+        LOG_INFO(logger_) << "Ignore browse response for canceled node"
+                          << LOG_TAG("NodeId", ToString(node->node_id));
+        continue;
+      }
+
+      node->references_fetched = true;
+
+      if (!status) {
+        node->status = status;
+        continue;
+      }
+
+      assert(descriptions.size() == results.size());
+      auto& result = results[i];
+
+      if (!scada::Status{result.status_code}) {
+        node->status = scada::Status{result.status_code};
+        continue;
+      }
+
+      for (auto& reference : result.references)
+        AddFetchedReference(*node, description, std::move(reference));
     }
 
-    node->references_fetched = true;
+    assert(running_request_count_ > 0);
+    --running_request_count_;
+    LOG_INFO(logger_) << "Remaining requests"
+                      << LOG_TAG("RequestCount", running_request_count_);
 
-    if (!status) {
-      node->status = status;
-      continue;
-    }
-
-    assert(descriptions.size() == results.size());
-    auto& result = results[i];
-
-    if (!scada::Status{result.status_code}) {
-      node->status = scada::Status{result.status_code};
-      continue;
-    }
-
-    for (auto& reference : result.references)
-      AddFetchedReference(*node, description, std::move(reference));
+    NotifyFetchedNodes();
   }
-
-  assert(running_request_count_ > 0);
-  --running_request_count_;
-  LOG_INFO(logger_) << "Remaining requests"
-                    << LOG_TAG("RequestCount", running_request_count_);
-
-  NotifyFetchedNodes();
 
   FetchPendingNodes();
 

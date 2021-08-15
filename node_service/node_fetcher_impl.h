@@ -129,6 +129,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
     unsigned next_sequence_ = 0;
   };
 
+  unsigned MakeRequestId();
+
   void FetchNode(FetchingNode& node, unsigned priority, bool force);
 
   void FetchPendingNodes();
@@ -174,4 +176,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
   PendingQueue pending_queue_;
 
   unsigned next_pending_sequence_ = 0;
+
+  // Blocks |FetchPendingNodes()| so |OnReadResult()| and |OnBrowseResult()| may
+  // not be called recursively.
+  bool processing_response_ = false;
 };

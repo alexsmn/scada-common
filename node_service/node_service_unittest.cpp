@@ -222,7 +222,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
 
   auto node = this->node_service_->GetNode(unknown_node_id);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
@@ -257,7 +257,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_ChannelClosed) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
 
   this->ExpectAnyUpdates();
@@ -298,15 +298,18 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
   this->ExpectAnyUpdates();
 
   EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id, false));
-  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
+      .WillOnce(InvokeWithoutArgs([] {
+        BoostLogger logger;
+        LOG_WARNING(logger) << "Hello";
+      }));
 
   auto node = this->node_service_->GetNode(node_id);
 
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
-
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
@@ -338,8 +341,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(1));
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
-
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeAndChildren(),
@@ -419,7 +421,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 
   auto node = this->node_service_->GetNode(new_node_state.node_id);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
@@ -445,7 +447,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
@@ -497,7 +499,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
@@ -553,7 +555,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  MockFunction<void(const NodeRef& node)> fetch_callback;
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
