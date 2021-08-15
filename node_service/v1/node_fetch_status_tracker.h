@@ -5,6 +5,7 @@
 #include "core/configuration_types.h"
 #include "core/view_service.h"
 #include "node_service/node_fetch_status.h"
+#include "node_service/v1/node_fetch_status_queue.h"
 #include "node_service/v1/node_fetch_status_types.h"
 
 #include <functional>
@@ -44,17 +45,11 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
       const scada::NodeId& node_id) const;
 
  private:
-  class ScopedStatusLock;
-
   bool IsNodeFetched(const scada::NodeId& node_id) const;
 
   void DeleteNodeStatesRecursive(const scada::Node& node);
 
   void OnChildFetched(const scada::NodeId& child_id);
-
-  void NotifyStatusChanged(const scada::NodeId& node_id);
-
-  void NotifyPendingStatusChanged();
 
   BoostLogger logger_{LOG_NAME("NodeFetchStatusTracker")};
 
@@ -72,9 +67,9 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   std::map<scada::NodeId, scada::Status> errors_;
 
-  std::set<scada::NodeId> pending_statuses_;
-  bool notifying_ = false;
-  int status_lock_count_ = 0;
+  NodeFetchStatusQueue status_queue_{
+      node_fetch_status_changed_handler_,
+      [this](const scada::NodeId& node_id) { return GetStatus(node_id); }};
 };
 
 }  // namespace v1

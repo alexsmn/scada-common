@@ -4,6 +4,7 @@
 #include "base/struct_writer.h"
 #include "core/node_id.h"
 #include "core/status.h"
+#include "node_service/node_fetch_status.h"
 
 #include <functional>
 
