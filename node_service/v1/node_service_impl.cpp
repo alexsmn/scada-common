@@ -197,19 +197,23 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
 AddressSpaceFetcherFactoryContext
 NodeServiceImpl::MakeAddressSpaceFetcherFactoryContext() {
-  auto node_fetch_status_changed_handler = BindExecutor(
-      executor_, [this](base::span<const NodeFetchStatusChangedItem> items) {
-        OnNodeFetchStatusChanged(items);
-      });
+  // There is not need ot use |BindExecutor()|. It's important to process these
+  // events synchronously. Also |BindExecutor()| will capture all passed
+  // arguments, be careful about |span|.
 
-  auto model_changed_handler = BindExecutor(
-      executor_,
-      [this](const scada::ModelChangeEvent& event) { OnModelChanged(event); });
+  NodeFetchStatusChangedHandler node_fetch_status_changed_handler =
+      [this](base::span<const NodeFetchStatusChangedItem> items) {
+        OnNodeFetchStatusChanged(items);
+      };
+
+  auto model_changed_handler = [this](const scada::ModelChangeEvent& event) {
+    OnModelChanged(event);
+  };
 
   auto semantic_changed_handler =
-      BindExecutor(executor_, [this](const scada::SemanticChangeEvent& event) {
+      [this](const scada::SemanticChangeEvent& event) {
         OnSemanticChanged(event);
-      });
+      };
 
   return AddressSpaceFetcherFactoryContext{
       std::move(node_fetch_status_changed_handler),
