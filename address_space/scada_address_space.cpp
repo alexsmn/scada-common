@@ -720,6 +720,20 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
     AddDataVariable(address_space, devices::id::DeviceType,
                     devices::id::DeviceType_Enabled, "Enabled",
                     base::WideToUTF16(L"Включено"), scada::id::Boolean, false);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_MessagesOut, "MessagesOut",
+                    base::WideToUTF16(L"Отправлено сообщений"),
+                    scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_MessagesIn, "MessagesIn",
+                    base::WideToUTF16(L"Принято сообщений"), scada::id::Int32,
+                    0);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_BytesOut, "BytesOut",
+                    base::WideToUTF16(L"Отправлено байт"), scada::id::Int32, 0);
+    AddDataVariable(address_space, devices::id::DeviceType,
+                    devices::id::DeviceType_BytesIn, "BytesIn",
+                    base::WideToUTF16(L"Принято байт"), scada::id::Int32, 0);
   }
 
   // Link
@@ -740,18 +754,6 @@ void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
         address_space, devices::id::LinkType,
         devices::id::LinkType_ActiveConnections, "ActiveConnections",
         base::WideToUTF16(L"ActiveConnections"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_MessagesOut, "MessagesOut",
-                    base::WideToUTF16(L"MessagesOut"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_MessagesIn, "MessagesIn",
-                    base::WideToUTF16(L"MessagesIn"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_BytesOut, "BytesOut",
-                    base::WideToUTF16(L"BytesOut"), scada::id::Int32, 0);
-    AddDataVariable(address_space, devices::id::LinkType,
-                    devices::id::LinkType_BytesIn, "BytesIn",
-                    base::WideToUTF16(L"BytesIn"), scada::id::Int32, 0);
   }
 
   // MODBUS Protocol
