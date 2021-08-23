@@ -20,8 +20,9 @@ static const size_t kMaxParallelAcks = 5;
 EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)} {
   monitored_item_ = monitored_item_service_.CreateMonitoredItem(
-      {scada::id::Server, scada::AttributeId::EventNotifier},
-      {scada::EventFilter{{}, {scada::id::SystemEventType}}});
+      scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
+      scada::MonitoringParameters{}.set_filter(
+          scada::EventFilter{}.set_of_type({scada::id::SystemEventType})));
   assert(monitored_item_);
   monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {

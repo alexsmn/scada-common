@@ -32,10 +32,12 @@ inline ViewEventsSubscription::ViewEventsSubscription(
     scada::ViewEvents& events)
     : events_{events},
       monitored_item_{monitored_item_service.CreateMonitoredItem(
-          {scada::id::Server, scada::AttributeId::EventNotifier},
-          {scada::EventFilter{{},
-                              {scada::id::GeneralModelChangeEventType,
-                               scada::id::SemanticChangeEventType}}})} {
+          scada::ReadValueId{scada::id::Server,
+                             scada::AttributeId::EventNotifier},
+          scada::MonitoringParameters{}.set_filter(
+              scada::EventFilter{}.set_of_type(
+                  {scada::id::GeneralModelChangeEventType,
+                   scada::id::SemanticChangeEventType})))} {
   assert(monitored_item_);
   // FIXME: Capturing |this|.
   monitored_item_->Subscribe(
