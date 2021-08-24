@@ -27,7 +27,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
         assert(status);
         assert(std::any_cast<scada::Event>(&event));
         if (auto* system_event = std::any_cast<scada::Event>(&event))
-          OnEvent(*system_event);
+          OnSystemEvents({system_event, 1});
       })));
 }
 
@@ -48,16 +48,33 @@ void EventFetcher::SetSeverityMin(unsigned severity) {
   Update();
 }
 
-void EventFetcher::OnEvent(const scada::Event& event) {
-  if (event.acked)
-    RemoveUnackedEvent(event);
-  else
-    AddUnackedEvent(event);
+void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
+  std::vector<EventContainer::node_type> deleted_nodes;
+  std::vector<const scada::Event*> notify_events;
+  for (auto& event : events) {
+    if (event.acked) {
+      auto node = RemoveUnackedEvent(event);
+      notify_events.emplace_back(&node.mapped());
+      deleted_nodes.emplace_back(std::move(node));
+    } else {
+      notify_events.emplace_back(AddUnackedEvent(event));
+    }
+  }
+
+  // Notify observers about new event.
+  if (!notify_events.empty()) {
+    for (auto& event : notify_events) {
+      for (auto i = observers_.begin(); i != observers_.end();) {
+        EventObserver& observer = **i++;
+        observer.OnEvent(*event);
+      }
+    }
+  }
 }
 
-void EventFetcher::AddUnackedEvent(const scada::Event& event) {
+const scada::Event* EventFetcher::AddUnackedEvent(const scada::Event& event) {
   if (event.severity < severity_min_)
-    return;
+    return nullptr;
 
   std::pair<EventContainer::iterator, bool> p = unacked_events_.insert(
       EventContainer::value_type(event.acknowledge_id, event));
@@ -72,13 +89,6 @@ void EventFetcher::AddUnackedEvent(const scada::Event& event) {
     contained_event = event;
   }
 
-  // Notify observers about new event.
-  assert(!contained_event.acked);
-  for (ObserverSet::iterator i = observers_.begin(); i != observers_.end();) {
-    EventObserver& observer = **i++;
-    observer.OnEvent(contained_event);
-  }
-
   if (inserted && !event.node_id.is_null()) {
     ItemEventData& item_event_data = item_unacked_events_[event.node_id];
     item_event_data.events.insert(&contained_event);
@@ -88,12 +98,15 @@ void EventFetcher::AddUnackedEvent(const scada::Event& event) {
   }
 
   UpdateAlarming();
+
+  return &contained_event;
 }
 
-void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
+EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
+    const scada::Event& event) {
   EventContainer::iterator i = unacked_events_.find(event.acknowledge_id);
   if (i == unacked_events_.end())
-    return;
+    return {};
 
   // Acknowledge confirmation.
   {
@@ -109,12 +122,6 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
   scada::Event& contained_event = i->second;
   // Update fields of contained event before notificaition to observers.
   contained_event = event;
-
-  assert(contained_event.acked);
-  for (ObserverSet::iterator j = observers_.begin(); j != observers_.end();) {
-    EventObserver& observer = **j++;
-    observer.OnEvent(contained_event);
-  }
 
   if (!contained_event.node_id.is_null()) {
     auto p = item_unacked_events_.find(contained_event.node_id);
@@ -135,9 +142,11 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
     }
   }
 
-  unacked_events_.erase(i);
+  auto node = unacked_events_.extract(i);
 
   UpdateAlarming();
+
+  return node;
 }
 
 void EventFetcher::ClearUackedEvents() {
@@ -274,8 +283,5 @@ void EventFetcher::OnChannelClosed() {
 void EventFetcher::OnHistoryReadEventsComplete(
     scada::Status&& status,
     std::vector<scada::Event>&& events) {
-  for (auto& event : events) {
-    assert(!event.acked);
-    OnEvent(event);
-  }
+  OnSystemEvents(events);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/containers/span.h"
 #include "base/observer_list.h"
 #include "common/event_set.h"
 #include "core/history_service.h"
@@ -75,8 +76,8 @@ class EventFetcher : private EventFetcherContext {
 
   typedef std::map<scada::NodeId, ItemEventData> ItemEventMap;
 
-  void AddUnackedEvent(const scada::Event& event);
-  void RemoveUnackedEvent(const scada::Event& event);
+  const scada::Event* AddUnackedEvent(const scada::Event& event);
+  EventContainer::node_type RemoveUnackedEvent(const scada::Event& event);
   void ClearUackedEvents();
 
   void UpdateAlarming();
@@ -91,6 +92,7 @@ class EventFetcher : private EventFetcherContext {
   void Update();
 
   void OnEvent(const scada::Event& event);
+  void OnSystemEvents(base::span<const scada::Event> events);
   void OnHistoryReadEventsComplete(scada::Status&& status,
                                    std::vector<scada::Event>&& results);
 
