@@ -4,7 +4,6 @@
 #include "base/location.h"
 #include "base/logger.h"
 #include "common/event_observer.h"
-#include "core/attribute_ids.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/monitored_item.h"
@@ -74,9 +73,10 @@ void EventFetcher::AddUnackedEvent(const scada::Event& event) {
   }
 
   // Notify observers about new event.
+  assert(!contained_event.acked);
   for (ObserverSet::iterator i = observers_.begin(); i != observers_.end();) {
     EventObserver& observer = **i++;
-    observer.OnEventReported(contained_event);
+    observer.OnEvent(contained_event);
   }
 
   if (inserted && !event.node_id.is_null()) {
@@ -110,9 +110,10 @@ void EventFetcher::RemoveUnackedEvent(const scada::Event& event) {
   // Update fields of contained event before notificaition to observers.
   contained_event = event;
 
+  assert(contained_event.acked);
   for (ObserverSet::iterator j = observers_.begin(); j != observers_.end();) {
     EventObserver& observer = **j++;
-    observer.OnEventAcknowledged(contained_event);
+    observer.OnEvent(contained_event);
   }
 
   if (!contained_event.node_id.is_null()) {

@@ -65,10 +65,6 @@ class EventFetcher : private EventFetcherContext {
     item_unacked_events_[item_id].observers.erase(&observer);
   }
 
- protected:
-  // EventSource::Delegate
-  virtual void OnEvent(const scada::Event& event);
-
  private:
   typedef std::set<EventObserver*> ObserverSet;
 
@@ -94,6 +90,7 @@ class EventFetcher : private EventFetcherContext {
 
   void Update();
 
+  void OnEvent(const scada::Event& event);
   void OnHistoryReadEventsComplete(scada::Status&& status,
                                    std::vector<scada::Event>&& results);
 

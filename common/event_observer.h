@@ -1,6 +1,11 @@
 #pragma once
 
-#include "core/event.h"
+namespace scada {
+class NodeId;
+class Event;
+struct ModelChangeEvent;
+struct SemanticChangeEvent;
+}  // namespace scada
 
 class EventSet;
 
@@ -8,8 +13,7 @@ class EventObserver {
  public:
   virtual ~EventObserver() = default;
 
-  virtual void OnEventReported(const scada::Event& event) {}
-  virtual void OnEventAcknowledged(const scada::Event& event) {}
+  virtual void OnEvent(const scada::Event& event) {}
   virtual void OnAllEventsAcknowledged() {}
   virtual void OnItemEventsChanged(const scada::NodeId& item_id,
                                    const EventSet& events) {}
