@@ -7,10 +7,6 @@
 #include <deque>
 #include <map>
 
-namespace boost::asio {
-class io_context;
-}
-
 namespace scada {
 class EventService;
 class HistoryService;
@@ -18,11 +14,12 @@ class MonitoredItem;
 class MonitoredItemService;
 }  // namespace scada
 
-class Logger;
+class Executor;
 class EventObserver;
+class Logger;
 
 struct EventFetcherContext {
-  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::EventService& event_service_;
   scada::HistoryService& history_service_;

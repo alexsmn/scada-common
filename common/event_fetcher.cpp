@@ -1,6 +1,6 @@
 #include "common/event_fetcher.h"
 
-#include "base/bind.h"
+#include "base/executor.h"
 #include "base/location.h"
 #include "base/logger.h"
 #include "common/event_observer.h"
@@ -13,8 +13,6 @@
 
 #include "base/debug_util-inl.h"
 
-#include <boost/asio/io_context.hpp>
-
 static const size_t kMaxParallelAcks = 5;
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
@@ -24,14 +22,14 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
       scada::MonitoringParameters{}.set_filter(
           scada::EventFilter{}.set_of_type({scada::id::SystemEventType})));
   assert(monitored_item_);
-  monitored_item_->Subscribe(
-      [this](const scada::Status& status, const std::any& event) {
+  monitored_item_->Subscribe(static_cast<scada::EventHandler>(BindExecutor(
+      executor_, [this](const scada::Status& status, const std::any& event) {
         // TODO: Handle |status|
         assert(status);
         assert(std::any_cast<scada::Event>(&event));
         if (auto* system_event = std::any_cast<scada::Event>(&event))
           OnEvent(*system_event);
-      });
+      })));
 }
 
 EventFetcher::~EventFetcher() {}
@@ -175,7 +173,7 @@ void EventFetcher::PostAckPendingEvents() {
 
   if (!ack_pending_) {
     ack_pending_ = true;
-    io_context_.post([this] { AckPendingEvents(); });
+    Dispatch(*executor_, [this] { AckPendingEvents(); });
   }
 }
 
@@ -250,15 +248,16 @@ void EventFetcher::ItemEventsChanged(const ObserverSet& observers,
 
 void EventFetcher::Update() {
   history_service_.HistoryReadEvents(
-      scada::id::Server, {}, {}, {scada::EventFilter::UNACKED},
-      io_context_.wrap(
-          [weak_ptr = weak_factory_.GetWeakPtr()](
-              scada::Status status, std::vector<scada::Event> events) {
-            if (auto* self = weak_ptr.get()) {
-              self->OnHistoryReadEventsComplete(std::move(status),
-                                                std::move(events));
-            }
-          }));
+      scada::id::Server, {}, {},
+      scada::EventFilter{scada::EventFilter::UNACKED},
+      BindExecutor(executor_,
+                   [weak_ptr = weak_factory_.GetWeakPtr()](
+                       scada::Status status, std::vector<scada::Event> events) {
+                     if (auto* self = weak_ptr.get()) {
+                       self->OnHistoryReadEventsComplete(std::move(status),
+                                                         std::move(events));
+                     }
+                   }));
 }
 
 void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {
