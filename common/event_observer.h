@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/containers/span.h"
+
 namespace scada {
 class NodeId;
 class Event;
@@ -13,7 +15,7 @@ class EventObserver {
  public:
   virtual ~EventObserver() = default;
 
-  virtual void OnEvent(const scada::Event& event) {}
+  virtual void OnEvents(base::span<const scada::Event* const> events) {}
   virtual void OnAllEventsAcknowledged() {}
   virtual void OnItemEventsChanged(const scada::NodeId& item_id,
                                    const EventSet& events) {}

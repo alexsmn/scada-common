@@ -34,6 +34,9 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 EventFetcher::~EventFetcher() {}
 
 void EventFetcher::SetSeverityMin(unsigned severity) {
+  if (severity < scada::kSeverityMin || severity > scada::kSeverityMax)
+    return;
+
   if (severity_min_ == severity)
     return;
 
@@ -53,21 +56,21 @@ void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
   std::vector<const scada::Event*> notify_events;
   for (auto& event : events) {
     if (event.acked) {
-      auto node = RemoveUnackedEvent(event);
-      notify_events.emplace_back(&node.mapped());
-      deleted_nodes.emplace_back(std::move(node));
+      if (auto node = RemoveUnackedEvent(event)) {
+        notify_events.emplace_back(&node.mapped());
+        deleted_nodes.emplace_back(std::move(node));
+      }
     } else {
-      notify_events.emplace_back(AddUnackedEvent(event));
+      if (auto* added_event = AddUnackedEvent(event))
+        notify_events.emplace_back(added_event);
     }
   }
 
-  // Notify observers about new event.
+  // Notify observers about new events.
   if (!notify_events.empty()) {
-    for (auto& event : notify_events) {
-      for (auto i = observers_.begin(); i != observers_.end();) {
-        EventObserver& observer = **i++;
-        observer.OnEvent(*event);
-      }
+    for (auto i = observers_.begin(); i != observers_.end();) {
+      EventObserver& observer = **i++;
+      observer.OnEvents(notify_events);
     }
   }
 }
