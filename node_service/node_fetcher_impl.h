@@ -157,6 +157,14 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
                       const std::vector<scada::BrowseDescription>& descriptions,
                       std::vector<scada::BrowseResult>&& results);
 
+  void ApplyReadResult(unsigned request_id,
+                       const scada::ReadValueId& read_id,
+                       scada::DataValue&& result);
+
+  void ApplyBrowseResult(unsigned request_id,
+                         const scada::BrowseDescription& description,
+                         scada::BrowseResult&& result);
+
   void ValidateDependency(FetchingNode& node, const scada::NodeId& from_id);
 
   bool AssertValid() const;

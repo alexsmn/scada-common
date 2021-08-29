@@ -2,12 +2,16 @@
 
 #include "base/auto_reset.h"
 #include "base/executor.h"
+#include "base/range_util.h"
 #include "core/attribute_service.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
 #include "base/debug_util-inl.h"
+
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/combine.hpp>
 
 namespace {
 
@@ -84,6 +88,28 @@ scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
                           return ref.reference_type_id == scada::id::HasSubtype;
                         });
   return i != references.end() ? i->node_id : scada::NodeId{};
+}
+
+template <class Input, class Result>
+inline std::map<scada::NodeId, std::vector<std::pair<Input, Result>>>
+GroupResults(const std::vector<Input>& inputs,
+             const scada::Status& status,
+             const std::vector<Result>& results) {
+  if (!status) {
+    assert(results.empty());
+    return {};
+  }
+
+  assert(inputs.size() == results.size());
+  return boost::combine(inputs, results) |
+         boost::adaptors::transformed(
+             [](const boost::tuple<Input, Result>& tuple) {
+               return std::make_pair(boost::get<0>(tuple),
+                                     boost::get<1>(tuple));
+             }) |
+         grouped([](const std::pair<Input, Result>& pair) {
+           return pair.first.node_id;
+         });
 }
 
 }  // namespace
@@ -450,45 +476,21 @@ void NodeFetcherImpl::OnReadResult(
                      << LOG_TAG("RequestId", request_id)
                      << LOG_TAG("DurationMs", duration.InMilliseconds())
                      << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Inputs", ToString(read_ids))
-                     << LOG_TAG("Results", ToString(results));
+                     << LOG_TAG("Results", ToString(GroupResults(
+                                               read_ids, status, results)));
 
   {
     assert(!processing_response_);
     base::AutoReset processing_response{&processing_response_, true};
 
+    auto result =
+        status ? scada::DataValue{} : scada::MakeReadError(status.code());
+
     for (size_t i = 0; i < read_ids.size(); ++i) {
-      auto& read_id = read_ids[i];
-
-      auto* node = fetching_nodes_.FindNode(read_id.node_id);
-      if (!node)
-        continue;
-
-      // Request cancelation.
-      if (!node->fetch_started || node->fetch_request_id != request_id) {
-        LOG_INFO(logger_) << "Ignore read response for canceled node"
-                          << LOG_TAG("NodeId", ToString(node->node_id));
-        continue;
-      }
-
-      node->attributes_fetched = true;
-
-      if (!status) {
-        node->status = status;
-        continue;
-      }
-
-      assert(read_ids.size() == results.size());
-      auto& result = results[i];
-
-      if (!scada::Status{result.status_code}) {
-        // Consider failure to obtain browse name as generic failure.
-        if (read_id.attribute_id == scada::AttributeId::BrowseName)
-          node->status = scada::Status{result.status_code};
-        continue;
-      }
-
-      SetFetchedAttribute(*node, read_id.attribute_id, std::move(result.value));
+      if (status)
+        ApplyReadResult(request_id, read_ids[i], std::move(results[i]));
+      else
+        ApplyReadResult(request_id, read_ids[i], scada::DataValue{result});
     }
 
     assert(running_request_count_ > 0);
@@ -502,6 +504,32 @@ void NodeFetcherImpl::OnReadResult(
   FetchPendingNodes();
 
   assert(AssertValid());
+}
+
+void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
+                                      const scada::ReadValueId& read_id,
+                                      scada::DataValue&& result) {
+  auto* node = fetching_nodes_.FindNode(read_id.node_id);
+  if (!node)
+    return;
+
+  // Request cancelation.
+  if (!node->fetch_started || node->fetch_request_id != request_id) {
+    LOG_INFO(logger_) << "Ignore read response for canceled node"
+                      << LOG_TAG("NodeId", ToString(node->node_id));
+    return;
+  }
+
+  node->attributes_fetched = true;
+
+  if (scada::IsBad(result.status_code)) {
+    // Consider failure to obtain browse name as generic failure.
+    if (read_id.attribute_id == scada::AttributeId::BrowseName)
+      node->status = scada::Status{result.status_code};
+    return;
+  }
+
+  SetFetchedAttribute(*node, read_id.attribute_id, std::move(result.value));
 }
 
 void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
@@ -553,57 +581,59 @@ void NodeFetcherImpl::OnBrowseResult(
                      << LOG_TAG("Count", descriptions.size())
                      << LOG_TAG("DurationMs", duration.InMilliseconds())
                      << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Inputs", ToString(descriptions))
-                     << LOG_TAG("Results", ToString(results));
+                     << LOG_TAG("Results", ToString(GroupResults(
+                                               descriptions, status, results)));
 
   {
     assert(!processing_response_);
     base::AutoReset processing_response{&processing_response_, true};
 
     for (size_t i = 0; i < descriptions.size(); ++i) {
-      auto& description = descriptions[i];
-
-      auto* node = fetching_nodes_.FindNode(description.node_id);
-      if (!node)
-        continue;
-
-      // Request cancelation.
-      if (!node->fetch_started || node->fetch_request_id != request_id) {
-        LOG_INFO(logger_) << "Ignore browse response for canceled node"
-                          << LOG_TAG("NodeId", ToString(node->node_id));
-        continue;
+      if (status) {
+        ApplyBrowseResult(request_id, descriptions[i], std::move(results[i]));
+      } else {
+        ApplyBrowseResult(request_id, descriptions[i],
+                          scada::BrowseResult{status.code()});
       }
-
-      node->references_fetched = true;
-
-      if (!status) {
-        node->status = status;
-        continue;
-      }
-
-      assert(descriptions.size() == results.size());
-      auto& result = results[i];
-
-      if (!scada::Status{result.status_code}) {
-        node->status = scada::Status{result.status_code};
-        continue;
-      }
-
-      for (auto& reference : result.references)
-        AddFetchedReference(*node, description, std::move(reference));
     }
 
     assert(running_request_count_ > 0);
     --running_request_count_;
     LOG_INFO(logger_) << "Remaining requests"
                       << LOG_TAG("RequestCount", running_request_count_);
-
-    NotifyFetchedNodes();
   }
+
+  NotifyFetchedNodes();
 
   FetchPendingNodes();
 
   assert(AssertValid());
+}
+
+void NodeFetcherImpl::ApplyBrowseResult(
+    unsigned request_id,
+    const scada::BrowseDescription& description,
+    scada::BrowseResult&& result) {
+  auto* node = fetching_nodes_.FindNode(description.node_id);
+  if (!node)
+    return;
+
+  // Request cancelation.
+  if (!node->fetch_started || node->fetch_request_id != request_id) {
+    LOG_INFO(logger_) << "Ignore browse response for canceled node"
+                      << LOG_TAG("NodeId", ToString(node->node_id));
+    return;
+  }
+
+  node->references_fetched = true;
+
+  if (scada::IsBad(result.status_code)) {
+    node->status = scada::Status{result.status_code};
+    return;
+  }
+
+  for (auto& reference : result.references)
+    AddFetchedReference(*node, description, std::move(reference));
 }
 
 void NodeFetcherImpl::FetchingNodeGraph::AddDependency(FetchingNode& node,
