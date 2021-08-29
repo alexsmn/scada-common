@@ -69,25 +69,21 @@ void GetFetchReferences(const scada::NodeState& node,
   }
 }
 
-template <class T>
-inline void Insert(std::vector<T>& c, const T& v) {
-  if (std::find(c.begin(), c.end(), v) == c.end())
-    c.push_back(v);
-}
-
-template <class T>
-inline void Erase(std::vector<T>& c, const T& v) {
-  auto i = std::find(c.begin(), c.end(), v);
-  if (i != c.end())
-    c.erase(i);
-}
-
 scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
   auto i = std::find_if(references.begin(), references.end(),
                         [](const scada::ReferenceDescription& ref) {
                           return ref.reference_type_id == scada::id::HasSubtype;
                         });
   return i != references.end() ? i->node_id : scada::NodeId{};
+}
+
+std::vector<scada::NodeId> CollectNodeIds(
+    const std::vector<FetchingNode*> nodes) {
+  std::vector<scada::NodeId> result;
+  result.reserve(nodes.size());
+  for (auto* node : nodes)
+    result.push_back(node->node_id);
+  return result;
 }
 
 template <class Input, class Result>
@@ -128,26 +124,6 @@ std::shared_ptr<NodeFetcherImpl> NodeFetcherImpl::Create(
 
 size_t NodeFetcherImpl::GetPendingNodeCount() const {
   return fetching_nodes_.size();
-}
-
-NodeFetcherImpl::FetchingNode* NodeFetcherImpl::FetchingNodeGraph::FindNode(
-    const scada::NodeId& node_id) {
-  assert(!node_id.is_null());
-
-  auto i = fetching_nodes_.find(node_id);
-  return i != fetching_nodes_.end() ? &i->second : nullptr;
-}
-
-NodeFetcherImpl::FetchingNode& NodeFetcherImpl::FetchingNodeGraph::AddNode(
-    const scada::NodeId& node_id) {
-  assert(!node_id.is_null());
-
-  auto p = fetching_nodes_.try_emplace(node_id);
-  auto& node = p.first->second;
-  if (p.second)
-    node.node_id = node_id;
-
-  return node;
 }
 
 void NodeFetcherImpl::Fetch(const scada::NodeId& node_id, bool force) {
@@ -207,23 +183,6 @@ void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
   NotifyFetchedNodes();
 
   FetchPendingNodes();
-
-  assert(AssertValid());
-}
-
-void NodeFetcherImpl::FetchingNodeGraph::RemoveNode(
-    const scada::NodeId& node_id) {
-  assert(AssertValid());
-
-  auto i = fetching_nodes_.find(node_id);
-  if (i == fetching_nodes_.end())
-    return;
-
-  auto& node = i->second;
-  node.ClearDependsOf();
-  node.ClearDependentNodes();
-
-  fetching_nodes_.erase(i);
 
   assert(AssertValid());
 }
@@ -381,84 +340,6 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
   fetch_completed_handler_(std::move(nodes), std::move(errors));
 }
 
-void NodeFetcherImpl::FetchingNode::ClearDependentNodes() {
-  for (auto* dependent_node : dependent_nodes)
-    Erase(dependent_node->depends_of, this);
-  dependent_nodes.clear();
-}
-
-void NodeFetcherImpl::FetchingNode::ClearDependsOf() {
-  for (auto* depends_of : depends_of)
-    Erase(depends_of->dependent_nodes, this);
-  depends_of.clear();
-}
-
-std::pair<std::vector<scada::NodeState> /*fetched_nodes*/,
-          NodeFetchStatuses /*errors*/>
-NodeFetcherImpl::FetchingNodeGraph::GetFetchedNodes() {
-  assert(AssertValid());
-
-  struct Collector {
-    bool IsFetchedRecursively(FetchingNode& node) {
-      if (!node.fetched())
-        return false;
-
-      if (node.fetch_cache_iteration == fetch_cache_iteration)
-        return node.fetch_cache_state;
-
-      // A cycle means fetched as well.
-      node.fetch_cache_iteration = fetch_cache_iteration;
-      node.fetch_cache_state = true;
-
-      bool fetched = true;
-      for (auto* depends_of : node.depends_of) {
-        if (!IsFetchedRecursively(*depends_of)) {
-          fetched = false;
-          break;
-        }
-      }
-
-      node.fetch_cache_state = fetched;
-
-      return fetched;
-    }
-
-    FetchingNodeGraph& graph;
-    int fetch_cache_iteration = 0;
-  };
-
-  std::vector<scada::NodeState> fetched_nodes;
-  fetched_nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
-
-  NodeFetchStatuses errors;
-
-  Collector collector{*this};
-  for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {
-    auto& node = i->second;
-
-    collector.fetch_cache_iteration = fetch_cache_iteration_++;
-    if (!collector.IsFetchedRecursively(node)) {
-      ++i;
-      continue;
-    }
-
-    assert(node.fetch_started);
-
-    if (node.status)
-      fetched_nodes.emplace_back(node);
-    else
-      errors.emplace_back(node.node_id, node.status);
-
-    node.ClearDependsOf();
-    node.ClearDependentNodes();
-    i = fetching_nodes_.erase(i);
-  }
-
-  assert(AssertValid());
-
-  return {std::move(fetched_nodes), std::move(errors)};
-}
-
 void NodeFetcherImpl::OnReadResult(
     unsigned request_id,
     base::TimeTicks start_ticks,
@@ -492,12 +373,12 @@ void NodeFetcherImpl::OnReadResult(
       else
         ApplyReadResult(request_id, read_ids[i], scada::DataValue{result});
     }
-
-    assert(running_request_count_ > 0);
-    --running_request_count_;
-    LOG_INFO(logger_) << "Remaining requests"
-                      << LOG_TAG("RequestCount", running_request_count_);
   }
+
+  assert(running_request_count_ > 0);
+  --running_request_count_;
+  LOG_INFO(logger_) << "Remaining requests"
+                    << LOG_TAG("RequestCount", running_request_count_);
 
   NotifyFetchedNodes();
 
@@ -596,12 +477,12 @@ void NodeFetcherImpl::OnBrowseResult(
                           scada::BrowseResult{status.code()});
       }
     }
-
-    assert(running_request_count_ > 0);
-    --running_request_count_;
-    LOG_INFO(logger_) << "Remaining requests"
-                      << LOG_TAG("RequestCount", running_request_count_);
   }
+
+  assert(running_request_count_ > 0);
+  --running_request_count_;
+  LOG_INFO(logger_) << "Remaining requests"
+                    << LOG_TAG("RequestCount", running_request_count_);
 
   NotifyFetchedNodes();
 
@@ -634,14 +515,6 @@ void NodeFetcherImpl::ApplyBrowseResult(
 
   for (auto& reference : result.references)
     AddFetchedReference(*node, description, std::move(reference));
-}
-
-void NodeFetcherImpl::FetchingNodeGraph::AddDependency(FetchingNode& node,
-                                                       FetchingNode& from) {
-  assert(&node != &from);
-
-  Insert(from.dependent_nodes, &node);
-  Insert(node.depends_of, &from);
 }
 
 void NodeFetcherImpl::AddFetchedReference(
@@ -757,22 +630,6 @@ bool NodeFetcherImpl::AssertValid() const {
   return fetching_nodes_.AssertValid();*/
 }
 
-bool NodeFetcherImpl::FetchingNodeGraph::AssertValid() const {
-  return true;
-}
-
-std::string NodeFetcherImpl::FetchingNodeGraph::GetDebugString() const {
-  std::stringstream stream;
-  for (auto& p : fetching_nodes_) {
-    auto& node = p.second;
-    stream << node.node_id << ": ";
-    for (auto* depends_of : node.depends_of)
-      stream << depends_of->node_id << ", ";
-    stream << std::endl;
-  }
-  return stream.str();
-}
-
 void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
                                          const scada::NodeId& from_id) {
   if (from_id.is_null())
@@ -792,83 +649,4 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
     fetching_nodes_.AddDependency(node, from);
     FetchNode(from, from.pending_sequence, false);
   }
-}
-
-// static
-std::vector<scada::NodeId> NodeFetcherImpl::CollectNodeIds(
-    const std::vector<FetchingNode*> nodes) {
-  std::vector<scada::NodeId> result;
-  result.reserve(nodes.size());
-  for (auto* node : nodes)
-    result.push_back(node->node_id);
-  return result;
-}
-
-// NodeFetcherImpl::PendingQueue
-
-void NodeFetcherImpl::PendingQueue::push(FetchingNode& node) {
-  assert(thread_checker_.CalledOnValidThread());
-
-  if (node.pending) {
-    assert(find(node) != queue_.end());
-    return;
-  }
-
-  assert(find(node) == queue_.end());
-
-  node.pending = true;
-
-  queue_.emplace_back(Node{next_sequence_++, &node});
-  std::push_heap(queue_.begin(), queue_.end());
-}
-
-void NodeFetcherImpl::PendingQueue::pop() {
-  assert(thread_checker_.CalledOnValidThread());
-
-  auto& node = *queue_.front().node;
-  assert(node.pending);
-  node.pending = false;
-  std::pop_heap(queue_.begin(), queue_.end());
-  queue_.pop_back();
-}
-
-void NodeFetcherImpl::PendingQueue::erase(FetchingNode& node) {
-  assert(thread_checker_.CalledOnValidThread());
-
-  if (!node.pending) {
-    assert(find(node) == queue_.end());
-    return;
-  }
-
-  auto i = find(node);
-  assert(i != queue_.end());
-
-  if (i != std::prev(queue_.end()))
-    std::iter_swap(i, std::prev(queue_.end()));
-  queue_.erase(std::prev(queue_.end()));
-
-  std::make_heap(queue_.begin(), queue_.end());
-
-  node.pending = false;
-}
-
-std::vector<NodeFetcherImpl::PendingQueue::Node>::iterator
-NodeFetcherImpl::PendingQueue::find(const FetchingNode& node) {
-  assert(thread_checker_.CalledOnValidThread());
-  return std::find_if(queue_.begin(), queue_.end(),
-                      [&node](const Node& n) { return n.node == &node; });
-}
-
-std::vector<NodeFetcherImpl::PendingQueue::Node>::const_iterator
-NodeFetcherImpl::PendingQueue::find(const FetchingNode& node) const {
-  assert(thread_checker_.CalledOnValidThread());
-  return std::find_if(queue_.cbegin(), queue_.cend(),
-                      [&node](const Node& n) { return n.node == &node; });
-}
-
-std::size_t NodeFetcherImpl::PendingQueue::count(
-    const FetchingNode& node) const {
-  assert(thread_checker_.CalledOnValidThread());
-  assert(node.pending == (find(node) != queue_.cend()));
-  return node.pending ? 1 : 0;
 }
