@@ -6,24 +6,27 @@
 #include "common/node_state.h"
 #include "model/node_id_util.h"
 
-void CreateProperties(NodeFactory& node_factory,
-                      const scada::NodeId& node_id,
-                      const scada::TypeDefinition& type_definition) {
+void CreateMissingProperties(NodeFactory& node_factory,
+                             const scada::NodeId& node_id,
+                             const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto* prop_node : scada::GetProperties(*type)) {
+      assert(scada::AsVariable(prop_node));
       auto& prop_decl = scada::AsVariable(*prop_node);
-      auto prop_id =
-          MakeNestedNodeId(node_id, prop_decl.GetBrowseName().name());
-      auto [status, prop] = node_factory.CreateNode(scada::NodeState{
-          std::move(prop_id), scada::NodeClass::Variable,
-          scada::id::PropertyType, node_id, scada::id::HasProperty,
-          scada::NodeAttributes{}
-              .set_browse_name(prop_decl.GetBrowseName())
-              .set_display_name(prop_decl.GetDisplayName())
-              .set_data_type(prop_decl.GetDataType().id())
-              .set_value(prop_decl.GetValue().value)});
-      if (!status)
-        throw status;
+      const auto& prop_name = prop_decl.GetBrowseName();
+      if (!scada::FindChild(*prop_node, prop_name.name())) {
+        auto prop_id = MakeNestedNodeId(node_id, prop_name.name());
+        auto [status, prop] = node_factory.CreateNode(scada::NodeState{
+            std::move(prop_id), scada::NodeClass::Variable,
+            scada::id::PropertyType, node_id, scada::id::HasProperty,
+            scada::NodeAttributes{}
+                .set_browse_name(prop_decl.GetBrowseName())
+                .set_display_name(prop_decl.GetDisplayName())
+                .set_data_type(prop_decl.GetDataType().id())
+                .set_value(prop_decl.GetValue().value)});
+        if (!status)
+          throw status;
+      }
     }
   }
 }

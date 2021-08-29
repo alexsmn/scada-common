@@ -1,14 +1,80 @@
 #pragma once
 
-#include "address_space/standard_address_space.h"
-#include "core/configuration_types.h"
-#include "model/scada_node_ids.h"
+#include "core/variant.h"
+
+namespace scada {
+class DataType;
+class Node;
+class ObjectType;
+class ReferenceType;
+class Variable;
+class VariableType;
+struct NodeState;
+}  // namespace scada
 
 class AddressSpaceImpl;
 class NodeFactory;
 
-void CreateFileSystemAddressSpace(AddressSpaceImpl& address_space,
-                                  NodeFactory& node_factory);
+class ScadaAddressSpaceBuilder {
+ public:
+  void CreateFileSystemAddressSpace();
 
-void CreateScadaAddressSpace(AddressSpaceImpl& address_space,
-                             NodeFactory& node_factory);
+  void CreateScadaAddressSpace();
+
+  AddressSpaceImpl& address_space_;
+  NodeFactory& node_factory_;
+
+ private:
+  scada::Node* CreateNode(const scada::NodeState& node_state);
+
+  scada::ObjectType* CreateObjectType(const scada::NodeId& id,
+                                      scada::QualifiedName qualified_name,
+                                      scada::LocalizedText display_name,
+                                      const scada::NodeId& supertype_id);
+
+  scada::VariableType* CreateVariableType(const scada::NodeId& id,
+                                          scada::QualifiedName browse_name,
+                                          scada::LocalizedText display_name,
+                                          const scada::NodeId& data_type_id,
+                                          const scada::NodeId& supertype_id);
+
+  scada::DataType* CreateDataType(const scada::NodeId& id,
+                                  scada::QualifiedName browse_name,
+                                  scada::LocalizedText display_name,
+                                  const scada::NodeId& supertype_id);
+
+  scada::ReferenceType* CreateReferenceType(
+      const scada::NodeId& reference_type_id,
+      scada::QualifiedName browse_name,
+      scada::LocalizedText display_name,
+      const scada::NodeId& supertype_id);
+
+  scada::ReferenceType* CreateReferenceType(
+      const scada::NodeId& source_type_id,
+      const scada::NodeId& reference_type_id,
+      const scada::NodeId& category_id,
+      scada::QualifiedName browse_name,
+      scada::LocalizedText display_name,
+      const scada::NodeId& target_type_id);
+
+  void CreateEnumDataType(const scada::NodeId& datatype_id,
+                          const scada::NodeId& enumstrings_id,
+                          scada::QualifiedName browse_name,
+                          scada::LocalizedText display_name,
+                          std::vector<scada::LocalizedText> enum_strings);
+
+  void AddDataVariable(const scada::NodeId& type_id,
+                       const scada::NodeId& variable_decl_id,
+                       scada::QualifiedName browse_name,
+                       scada::LocalizedText display_name,
+                       const scada::NodeId& data_type_id,
+                       scada::Variant default_value = scada::Variant());
+
+  scada::Variable* AddProperty(const scada::NodeId& type_id,
+                               const scada::NodeId& prop_type_id,
+                               const scada::NodeId& category_id,
+                               scada::QualifiedName browse_name,
+                               scada::LocalizedText display_name,
+                               const scada::NodeId& data_type_id,
+                               scada::Variant default_value);
+};

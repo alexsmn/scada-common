@@ -54,7 +54,11 @@ struct NodeServiceHolder {
   }
 
   AddressSpaceImpl address_space;
-  GenericNodeFactory node_factory{address_space};
+
+  // Don't create properties automatically, as server must provide valid
+  // property IDs.
+  GenericNodeFactory node_factory{address_space, false};
+
   NodeServiceImpl node_service;
   SessionProxyNotifier<NodeServiceImpl> node_service_notifier;
 };

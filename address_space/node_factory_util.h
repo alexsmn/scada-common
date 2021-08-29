@@ -7,10 +7,11 @@ class TypeDefinition;
 
 class NodeFactory;
 
+// WARNING: This method generates artificial IDs for property nodes.
 // Throws an exception on error.
-void CreateProperties(NodeFactory& node_factory,
-                      const scada::NodeId& node_id,
-                      const scada::TypeDefinition& type_definition);
+void CreateMissingProperties(NodeFactory& node_factory,
+                             const scada::NodeId& node_id,
+                             const scada::TypeDefinition& type_definition);
 
 void CreateDataVariables(NodeFactory& node_factory,
                          const scada::NodeId& node_id,

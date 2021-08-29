@@ -163,6 +163,8 @@ void AddressSpaceUpdater::UpdateNode(const scada::NodeState& node_state) {
 
     added_nodes_.push_back(node_state.node_id);
 
+    // TODO: Maybe don't report model change events for properties.
+
     model_change_verbs_[node_state.node_id] |=
         scada::ModelChangeEvent::NodeAdded |
         scada::ModelChangeEvent::ReferenceAdded;
