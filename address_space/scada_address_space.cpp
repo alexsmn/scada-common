@@ -257,6 +257,9 @@ void ScadaAddressSpaceBuilder::CreateFileSystemAddressSpace() {
                   .set_browse_name("FileDirectoryType")
                   .set_display_name(base::WideToUTF16(L"Папка"))});
 
+  AddReference(address_space_, scada::id::Creates, filesystem::id::FileSystem,
+               filesystem::id::FileDirectoryType);
+
   CreateNode({filesystem::id::FileType,
               scada::NodeClass::VariableType,
               {},
@@ -284,6 +287,9 @@ void ScadaAddressSpaceBuilder::CreateFileSystemAddressSpace() {
                   .set_display_name(base::WideToUTF16(L"Размер, байт"))
                   .set_data_type(scada::id::UInt64)
                   .set_value(static_cast<scada::UInt64>(0))});
+
+  AddReference(address_space_, scada::id::Creates, filesystem::id::FileSystem,
+               filesystem::id::FileType);
 }
 
 void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {

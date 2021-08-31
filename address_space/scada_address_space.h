@@ -17,14 +17,15 @@ class NodeFactory;
 
 class ScadaAddressSpaceBuilder {
  public:
-  void CreateFileSystemAddressSpace();
-
   void CreateScadaAddressSpace();
 
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
  private:
+  // Depends on Scada address space, e.g. |id::Creates| reference.
+  void CreateFileSystemAddressSpace();
+
   scada::Node* CreateNode(const scada::NodeState& node_state);
 
   scada::ObjectType* CreateObjectType(const scada::NodeId& id,
