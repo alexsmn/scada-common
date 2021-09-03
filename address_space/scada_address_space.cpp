@@ -259,6 +259,9 @@ void ScadaAddressSpaceBuilder::CreateFileSystemAddressSpace() {
 
   AddReference(address_space_, scada::id::Creates, filesystem::id::FileSystem,
                filesystem::id::FileDirectoryType);
+  AddReference(address_space_, scada::id::Creates,
+               filesystem::id::FileDirectoryType,
+               filesystem::id::FileDirectoryType);
 
   CreateNode({filesystem::id::FileType,
               scada::NodeClass::VariableType,
@@ -290,6 +293,8 @@ void ScadaAddressSpaceBuilder::CreateFileSystemAddressSpace() {
 
   AddReference(address_space_, scada::id::Creates, filesystem::id::FileSystem,
                filesystem::id::FileType);
+  AddReference(address_space_, scada::id::Creates,
+               filesystem::id::FileDirectoryType, filesystem::id::FileType);
 }
 
 void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
