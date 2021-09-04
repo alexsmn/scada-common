@@ -19,11 +19,14 @@ class ScadaAddressSpaceBuilder {
  public:
   void CreateScadaAddressSpace();
 
+  ScadaAddressSpaceBuilder(const ScadaAddressSpaceBuilder&) = delete;
+  ScadaAddressSpaceBuilder& operator=(const ScadaAddressSpaceBuilder&) = delete;
+
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
  private:
-  // Depends on Scada address space, e.g. |id::Creates| reference.
+  void CreateSecurityAddressSpace();
   void CreateFileSystemAddressSpace();
 
   scada::Node* CreateNode(const scada::NodeState& node_state);

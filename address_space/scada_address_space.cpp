@@ -297,6 +297,39 @@ void ScadaAddressSpaceBuilder::CreateFileSystemAddressSpace() {
                filesystem::id::FileDirectoryType, filesystem::id::FileType);
 }
 
+void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
+  CreateNode({security::id::Users, scada::NodeClass::Object,
+              scada::id::FolderType, scada::id::ObjectsFolder,
+              scada::id::Organizes,
+              scada::NodeAttributes{}.set_browse_name("Users").set_display_name(
+                  base::WideToUTF16(L"Пользователи"))});
+
+  // User
+  {
+    CreateObjectType(security::id::UserType, "UserType",
+                     base::WideToUTF16(L"Пользователь"),
+                     scada::id::BaseObjectType);
+    AddReference(address_space_, scada::id::Creates, security::id::Users,
+                 security::id::UserType);
+    AddProperty(security::id::UserType, security::id::UserType_AccessRights, {},
+                "AccessRights", base::WideToUTF16(L"Права"), scada::id::Int32,
+                0);
+  }
+
+  // Root user.
+  int root_privileges = (1 << static_cast<int>(scada::Privilege::Configure)) |
+                        (1 << static_cast<int>(scada::Privilege::Control));
+  CreateNode({
+      security::id::RootUser,
+      scada::NodeClass::Object,
+      security::id::UserType,
+      security::id::Users,
+      scada::id::Organizes,
+      scada::NodeAttributes().set_display_name(base::WideToUTF16(L"root")),
+      {{security::id::UserType_AccessRights, root_privileges}},
+  });
+}
+
 void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
   CreateReferenceType(scada::id::Creates, "Creates",
                       base::WideToUTF16(L"Можно создать"),
@@ -314,12 +347,6 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
        scada::id::ObjectsFolder, scada::id::Organizes,
        scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
            base::WideToUTF16(L"Все оборудование"))});
-
-  CreateNode({security::id::Users, scada::NodeClass::Object,
-              scada::id::FolderType, scada::id::ObjectsFolder,
-              scada::id::Organizes,
-              scada::NodeAttributes{}.set_browse_name("Users").set_display_name(
-                  base::WideToUTF16(L"Пользователи"))});
 
   CreateNode({data_items::id::TsFormats, scada::NodeClass::Object,
               scada::id::FolderType, scada::id::ObjectsFolder,
@@ -796,31 +823,6 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
                 scada::id::Int32, 1000);
   }
 
-  // User
-  {
-    CreateObjectType(security::id::UserType, "UserType",
-                     base::WideToUTF16(L"Пользователь"),
-                     scada::id::BaseObjectType);
-    AddReference(address_space_, scada::id::Creates, security::id::Users,
-                 security::id::UserType);
-    AddProperty(security::id::UserType, security::id::UserType_AccessRights, {},
-                "AccessRights", base::WideToUTF16(L"Права"), scada::id::Int32,
-                0);
-  }
-
-  // Root user.
-  int root_privileges = (1 << static_cast<int>(scada::Privilege::Configure)) |
-                        (1 << static_cast<int>(scada::Privilege::Control));
-  CreateNode({
-      security::id::RootUser,
-      scada::NodeClass::Object,
-      security::id::UserType,
-      security::id::Users,
-      scada::id::Organizes,
-      scada::NodeAttributes().set_display_name(base::WideToUTF16(L"root")),
-      {{security::id::UserType_AccessRights, root_privileges}},
-  });
-
   // IEC-60870 Protocol
 
   CreateEnumDataType(devices::id::Iec60870ProtocolDataType,
@@ -1149,8 +1151,6 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
                         scada::id::NonHierarchicalReferences);
   }
 
-  CreateFileSystemAddressSpace();
-
   // OPC
   {
     CreateNode({opc::id::OPC, scada::NodeClass::Object, scada::id::FolderType,
@@ -1163,4 +1163,7 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
                       data_items::id::ChannelsPropertyCategory, "HasDevice",
                       base::WideToUTF16(L"Устройство"),
                       devices::id::DeviceType);
+
+  CreateSecurityAddressSpace();
+  CreateFileSystemAddressSpace();
 }
