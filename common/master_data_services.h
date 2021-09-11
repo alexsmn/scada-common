@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/observer_list.h"
 #include "core/attribute_service.h"
 #include "core/data_services.h"
 #include "core/event_service.h"
@@ -9,8 +8,9 @@
 #include "core/monitored_item_service.h"
 #include "core/node_management_service.h"
 #include "core/session_service.h"
-#include "core/session_state_observer.h"
 #include "core/view_service.h"
+
+#include <boost/signals2/signal.hpp>
 
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
@@ -19,8 +19,7 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::EventService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
-                                 public scada::NodeManagementService,
-                                 private scada::SessionStateObserver {
+                                 public scada::NodeManagementService {
  public:
   MasterDataServices();
   ~MasterDataServices();
@@ -41,8 +40,8 @@ class MasterDataServices final : public scada::AttributeService,
   virtual bool IsScada() const override;
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
-  virtual void AddObserver(scada::SessionStateObserver& observer) override;
-  virtual void RemoveObserver(scada::SessionStateObserver& observer) override;
+  virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override;
 
   // scada::NodeManagementService
   virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,
@@ -108,13 +107,12 @@ class MasterDataServices final : public scada::AttributeService,
  private:
   class MasterMonitoredItem;
 
-  // scada::SessionStateObserver
-  virtual void OnSessionCreated() override;
-  virtual void OnSessionDeleted(const scada::Status& status) override;
-
   std::vector<MasterMonitoredItem*> monitored_items_;
 
-  base::ObserverList<scada::SessionStateObserver> session_state_observers_;
+  boost::signals2::scoped_connection session_state_changed_connection_;
+
+  boost::signals2::signal<void(bool connected, const scada::Status& status)>
+      session_state_changed_signal_;
 
   DataServices services_;
   bool connected_ = false;

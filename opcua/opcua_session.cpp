@@ -94,9 +94,10 @@ std::string OpcUaSession::GetHostName() const {
   return {};
 }
 
-void OpcUaSession::AddObserver(scada::SessionStateObserver& observer) {}
-
-void OpcUaSession::RemoveObserver(scada::SessionStateObserver& observer) {}
+boost::signals2::scoped_connection OpcUaSession::SubscribeSessionStateChanged(
+    const SessionStateChangedCallback& callback) {
+  return boost::signals2::scoped_connection{};
+}
 
 void OpcUaSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
                           const scada::BrowseCallback& callback) {

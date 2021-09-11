@@ -41,8 +41,8 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   virtual bool IsScada() const override { return false; }
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
-  virtual void AddObserver(scada::SessionStateObserver& observer) override;
-  virtual void RemoveObserver(scada::SessionStateObserver& observer) override;
+  virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override;
 
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& nodes,

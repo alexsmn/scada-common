@@ -64,9 +64,10 @@ std::string VidiconSession::GetHostName() const {
   return "Vidicon";
 }
 
-void VidiconSession::AddObserver(scada::SessionStateObserver& observer) {}
-
-void VidiconSession::RemoveObserver(scada::SessionStateObserver& observer) {}
+boost::signals2::scoped_connection VidiconSession::SubscribeSessionStateChanged(
+    const SessionStateChangedCallback& callback) {
+  return boost::signals2::scoped_connection{};
+}
 
 void VidiconSession::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,

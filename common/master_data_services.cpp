@@ -85,20 +85,24 @@ void MasterDataServices::SetServices(DataServices&& services) {
     connected_ = false;
     services_ = {};
 
-    OnSessionDeleted(scada::StatusCode::Good);
+    session_state_changed_connection_.disconnect();
 
-    if (services_.session_service_)
-      services_.session_service_->RemoveObserver(*this);
+    session_state_changed_signal_(false, scada::StatusCode::Good);
   }
 
   services_ = std::move(services);
   connected_ = services_.session_service_ != nullptr;
 
   if (connected_) {
-    if (services_.session_service_)
-      services_.session_service_->AddObserver(*this);
+    if (services_.session_service_) {
+      session_state_changed_connection_ =
+          services_.session_service_->SubscribeSessionStateChanged(
+              [this](bool connected, const scada::Status& status) {
+                session_state_changed_signal_(connected, status);
+              });
+    }
 
-    OnSessionCreated();
+    session_state_changed_signal_(true, scada::StatusCode::Good);
 
     for (auto* monitored_item : monitored_items_)
       monitored_item->Reconnect();
@@ -164,12 +168,10 @@ bool MasterDataServices::IsScada() const {
   return services_.session_service_->IsScada();
 }
 
-void MasterDataServices::AddObserver(scada::SessionStateObserver& observer) {
-  session_state_observers_.AddObserver(&observer);
-}
-
-void MasterDataServices::RemoveObserver(scada::SessionStateObserver& observer) {
-  session_state_observers_.RemoveObserver(&observer);
+boost::signals2::scoped_connection
+MasterDataServices::SubscribeSessionStateChanged(
+    const SessionStateChangedCallback& callback) {
+  return session_state_changed_signal_.connect(callback);
 }
 
 void MasterDataServices::AddNodes(
@@ -304,14 +306,4 @@ void MasterDataServices::Read(
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
   services_.attribute_service_->Read(context, inputs, callback);
-}
-
-void MasterDataServices::OnSessionCreated() {
-  for (auto& obs : session_state_observers_)
-    obs.OnSessionCreated();
-}
-
-void MasterDataServices::OnSessionDeleted(const scada::Status& status) {
-  for (auto& obs : session_state_observers_)
-    obs.OnSessionDeleted(status);
 }
