@@ -144,14 +144,6 @@ void VidiconSession::DeleteNodes(
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::ChangeUserPassword(
-    const scada::NodeId& user_node_id,
-    const scada::LocalizedText& current_password,
-    const scada::LocalizedText& new_password,
-    const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
-}
-
 void VidiconSession::AddReferences(
     const std::vector<scada::AddReferencesItem>& inputs,
     const scada::AddReferencesCallback& callback) {

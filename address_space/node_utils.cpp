@@ -177,6 +177,11 @@ const Node* GetParent(const Node& node) {
   return GetParent(const_cast<Node&>(node));
 }
 
+NodeId GetParentId(const Node& node) {
+  auto* parent = GetParent(node);
+  return parent ? parent->id() : NodeId{};
+}
+
 Reference GetReference(const Node& source, const NodeId& reference_type_id) {
   return FindReference(source, reference_type_id, true);
 }

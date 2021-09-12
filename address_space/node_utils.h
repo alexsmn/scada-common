@@ -57,6 +57,7 @@ bool IsInstanceOf(const Node* node, const NodeId& type_id);
 Reference GetParentReference(const Node& node);
 Node* GetParent(Node& node);
 const Node* GetParent(const Node& node);
+NodeId GetParentId(const Node& node);
 
 Reference GetReference(const Node& source, const NodeId& reference_type_id);
 Reference FindReference(const Node& node,

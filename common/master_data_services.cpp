@@ -192,18 +192,6 @@ void MasterDataServices::DeleteNodes(
   services_.node_management_service_->DeleteNodes(inputs, callback);
 }
 
-void MasterDataServices::ChangeUserPassword(
-    const scada::NodeId& user_id,
-    const scada::LocalizedText& current_password,
-    const scada::LocalizedText& new_password,
-    const scada::StatusCallback& callback) {
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
-
-  services_.node_management_service_->ChangeUserPassword(
-      user_id, current_password, new_password, callback);
-}
-
 void MasterDataServices::AddReferences(
     const std::vector<scada::AddReferencesItem>& inputs,
     const scada::AddReferencesCallback& callback) {

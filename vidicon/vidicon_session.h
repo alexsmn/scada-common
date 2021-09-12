@@ -91,11 +91,6 @@ class VidiconSession : public scada::SessionService,
                         const scada::AddNodesCallback& callback) override;
   virtual void DeleteNodes(const std::vector<scada::DeleteNodesItem>& inputs,
                            const scada::DeleteNodesCallback& callback) override;
-  virtual void ChangeUserPassword(
-      const scada::NodeId& user_node_id,
-      const scada::LocalizedText& current_password,
-      const scada::LocalizedText& new_password,
-      const scada::StatusCallback& callback) override;
   virtual void AddReferences(
       const std::vector<scada::AddReferencesItem>& inputs,
       const scada::AddReferencesCallback& callback) override;
