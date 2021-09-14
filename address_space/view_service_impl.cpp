@@ -4,6 +4,7 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
+#include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
@@ -53,17 +54,36 @@ SyncViewServiceImpl::SyncViewServiceImpl(ViewServiceImplContext&& context)
 ViewServiceImpl::ViewServiceImpl(SyncViewService& sync_view_service)
     : sync_view_service_{sync_view_service} {}
 
-scada::BrowseResult SyncViewServiceImpl::Browse(
-    const scada::BrowseDescription& description) {
+std::vector<scada::BrowseResult> SyncViewServiceImpl::Browse(
+    base::span<const scada::BrowseDescription> inputs) {
+  return inputs |
+         boost::adaptors::transformed(
+             [this](const scada::BrowseDescription& input) {
+               return BrowseOne(input);
+             }) |
+         to_vector;
+}
+
+scada::BrowseResult SyncViewServiceImpl::BrowseOne(
+    const scada::BrowseDescription& input) {
   std::string_view nested_name;
-  auto* node = GetNestedNode(address_space_, description.node_id, nested_name);
+  auto* node = GetNestedNode(address_space_, input.node_id, nested_name);
   if (!node)
     return {scada::StatusCode::Bad_WrongNodeId};
 
   if (nested_name.empty())
-    return BrowseNode(*node, description);
+    return BrowseNode(*node, input);
 
-  return BrowseProperty(*node, nested_name, description);
+  return BrowseProperty(*node, nested_name, input);
+}
+
+std::vector<scada::BrowsePathResult> SyncViewServiceImpl::TranslateBrowsePaths(
+    base::span<const scada::BrowsePath> inputs) {
+  return inputs |
+         boost::adaptors::transformed([this](const scada::BrowsePath& input) {
+           return TranslateBrowsePath(input);
+         }) |
+         to_vector;
 }
 
 scada::BrowsePathResult SyncViewServiceImpl::TranslateBrowsePath(
@@ -149,17 +169,13 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
 void ViewServiceImpl::Browse(
     const std::vector<scada::BrowseDescription>& descriptions,
     const scada::BrowseCallback& callback) {
-  std::vector<scada::BrowseResult> results(descriptions.size());
-
-  for (size_t index = 0; index < descriptions.size(); ++index)
-    results[index] = sync_view_service_.Browse(descriptions[index]);
-
+  auto results = sync_view_service_.Browse(descriptions);
   callback(scada::StatusCode::Good, std::move(results));
 }
 
 void ViewServiceImpl::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
-  assert(false);
-  callback(scada::StatusCode::Bad, {});
+  auto results = sync_view_service_.TranslateBrowsePaths(browse_paths);
+  callback(scada::StatusCode::Good, std::move(results));
 }

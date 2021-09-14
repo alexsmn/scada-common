@@ -1,13 +1,23 @@
 #pragma once
 
+#include "base/containers/span.h"
 #include "core/view_service.h"
 
 class SyncViewService {
  public:
   virtual ~SyncViewService() = default;
 
-  virtual scada::BrowseResult Browse(const scada::BrowseDescription& input) = 0;
+  virtual std::vector<scada::BrowseResult> Browse(
+      base::span<const scada::BrowseDescription> inputs) = 0;
 
-  virtual scada::BrowsePathResult TranslateBrowsePath(
-      const scada::BrowsePath& input) = 0;
+  virtual std::vector<scada::BrowsePathResult> TranslateBrowsePaths(
+      base::span<const scada::BrowsePath> inputs) = 0;
 };
+
+inline scada::BrowseResult Browse(SyncViewService& view_service,
+                                  const scada::BrowseDescription& input) {
+  base::span<const scada::BrowseDescription> inputs{&input, 1};
+  auto results = view_service.Browse(inputs);
+  assert(results.size() == 1);
+  return results.front();
+}

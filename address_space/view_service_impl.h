@@ -20,18 +20,21 @@ class SyncViewServiceImpl : private ViewServiceImplContext,
   explicit SyncViewServiceImpl(ViewServiceImplContext&& context);
 
   // SyncViewService
-  virtual scada::BrowseResult Browse(
-      const scada::BrowseDescription& description) override;
-  virtual scada::BrowsePathResult TranslateBrowsePath(
-      const scada::BrowsePath& input) override;
+  virtual std::vector<scada::BrowseResult> Browse(
+      base::span<const scada::BrowseDescription> inputs) override;
+  virtual std::vector<scada::BrowsePathResult> TranslateBrowsePaths(
+      base::span<const scada::BrowsePath> inputs) override;
 
  private:
+  scada::BrowseResult BrowseOne(const scada::BrowseDescription& inputs);
   scada::BrowseResult BrowseNode(const scada::Node& node,
                                  const scada::BrowseDescription& description);
   scada::BrowseResult BrowseProperty(
       const scada::Node& node,
       std::string_view nested_name,
       const scada::BrowseDescription& description);
+
+  scada::BrowsePathResult TranslateBrowsePath(const scada::BrowsePath& input);
 };
 
 class ViewServiceImpl : public scada::ViewService {
