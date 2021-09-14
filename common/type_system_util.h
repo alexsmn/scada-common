@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/type_system.h"
+#include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
 inline bool WantsReference(const TypeSystem& type_system,
@@ -20,6 +21,23 @@ inline bool WantsReference(const TypeSystem& type_system,
   } else {
     return reference_type_id == description.reference_type_id;
   }
+}
+
+inline bool WantsTypeDefinition(const TypeSystem& type_system,
+                                const scada::BrowseDescription& description) {
+  return WantsReference(type_system, description, scada::id::HasTypeDefinition,
+                        true);
+}
+
+inline bool WantsOrganizes(const TypeSystem& type_system,
+                           const scada::BrowseDescription& description) {
+  return WantsReference(type_system, description, scada::id::Organizes, true);
+}
+
+inline bool WantsParent(const TypeSystem& type_system,
+                        const scada::BrowseDescription& description) {
+  return WantsReference(type_system, description,
+                        scada::id::HierarchicalReferences, false);
 }
 
 inline bool MightWantReferenceSubtype(
