@@ -3,6 +3,7 @@
 #include "base/containers/span.h"
 #include "base/observer_list.h"
 #include "common/event_set.h"
+#include "common/node_event_provider.h"
 #include "core/history_service.h"
 
 #include <deque>
@@ -29,7 +30,7 @@ struct EventFetcherContext {
 
 // Holds new events, arranged by objects.
 // Handles multiple event acknowledgement.
-class EventFetcher : private EventFetcherContext {
+class EventFetcher : public NodeEventProvider, private EventFetcherContext {
  public:
   typedef std::map<unsigned, scada::Event> EventContainer;
 
@@ -49,7 +50,6 @@ class EventFetcher : private EventFetcherContext {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
   }
 
-  const EventSet* GetItemUnackedEvents(const scada::NodeId& item_id) const;
   bool IsAlerting(const scada::NodeId& item_id) const;
 
   void AcknowledgeItemEvents(const scada::NodeId& item_id);
@@ -65,6 +65,10 @@ class EventFetcher : private EventFetcherContext {
                           EventObserver& observer) {
     item_unacked_events_[item_id].observers.erase(&observer);
   }
+
+  // NodeEventProvider
+  virtual const EventSet* GetItemUnackedEvents(
+      const scada::NodeId& item_id) const override;
 
  private:
   typedef std::set<EventObserver*> ObserverSet;

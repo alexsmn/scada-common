@@ -17,10 +17,10 @@ class TestNodeService {
 
 class TestNodeModel final : public NodeModel {
  public:
-  explicit TestNodeModel(TestNodeService& node_service)
+  explicit TestNodeModel(TestNodeService* node_service)
       : node_service_{node_service} {}
 
-  TestNodeModel(TestNodeService& node_service, scada::NodeState node_state)
+  TestNodeModel(TestNodeService* node_service, scada::NodeState node_state)
       : node_service_{node_service}, node_state{std::move(node_state)} {}
 
   virtual scada::Status GetStatus() const override {
@@ -61,8 +61,12 @@ class TestNodeModel final : public NodeModel {
 
   virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
                             bool forward) const override {
+    if (!node_service_)
+      return nullptr;
+
     if (forward && reference_type_id == scada::id::HasTypeDefinition)
-      return node_service_.GetNode(node_state.type_definition_id);
+      return node_service_->GetNode(node_state.type_definition_id);
+
     return nullptr;
   }
 
@@ -117,7 +121,7 @@ class TestNodeModel final : public NodeModel {
   scada::NodeState node_state;
 
  private:
-  TestNodeService& node_service_;
+  TestNodeService* node_service_ = nullptr;
 };
 
 inline std::shared_ptr<TestNodeModel> TestNodeService::GetNodeModel(
@@ -125,5 +129,5 @@ inline std::shared_ptr<TestNodeModel> TestNodeService::GetNodeModel(
   if (node_id.is_null())
     return nullptr;
 
-  return std::make_shared<TestNodeModel>(*this);
+  return std::make_shared<TestNodeModel>(this);
 }

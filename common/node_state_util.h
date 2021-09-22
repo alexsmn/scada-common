@@ -7,6 +7,8 @@ namespace scada {
 // Returns empty variant on error.
 inline Variant Read(const NodeState& node_state, AttributeId attribute_id) {
   switch (attribute_id) {
+    case AttributeId::NodeId:
+      return node_state.node_id;
     case AttributeId::NodeClass:
       return static_cast<scada::Int32>(node_state.node_class);
     case AttributeId::BrowseName:
