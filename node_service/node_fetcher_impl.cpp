@@ -79,33 +79,10 @@ scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
 
 std::vector<scada::NodeId> CollectNodeIds(
     const std::vector<FetchingNode*> nodes) {
-  std::vector<scada::NodeId> result;
-  result.reserve(nodes.size());
-  for (auto* node : nodes)
-    result.push_back(node->node_id);
-  return result;
-}
-
-template <class Input, class Result>
-inline std::map<scada::NodeId, std::vector<std::pair<Input, Result>>>
-GroupResults(const std::vector<Input>& inputs,
-             const scada::Status& status,
-             const std::vector<Result>& results) {
-  if (!status) {
-    assert(results.empty());
-    return {};
-  }
-
-  assert(inputs.size() == results.size());
-  return boost::combine(inputs, results) |
-         boost::adaptors::transformed(
-             [](const boost::tuple<Input, Result>& tuple) {
-               return std::make_pair(boost::get<0>(tuple),
-                                     boost::get<1>(tuple));
-             }) |
-         grouped([](const std::pair<Input, Result>& pair) {
-           return pair.first.node_id;
-         });
+  return nodes | boost::adaptors::transformed([](const FetchingNode* node) {
+           return node->node_id;
+         }) |
+         to_vector;
 }
 
 }  // namespace
@@ -154,6 +131,8 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
     node.attributes_fetched = false;
     node.references_fetched = false;
     node.status = scada::StatusCode::Good;
+    // It's important to refrence references, because they will be refetched.
+    node.references.clear();
   }
 
   // LOG_INFO(logger_) << "Schedule fetch node"
@@ -346,6 +325,7 @@ void NodeFetcherImpl::OnReadResult(
     scada::Status&& status,
     const std::vector<scada::ReadValueId>& read_ids,
     std::vector<scada::DataValue>&& results) {
+  assert(!status || results.size() == read_ids.size());
   assert(AssertValid());
 
   auto duration = base::TimeTicks::Now() - start_ticks;
@@ -353,12 +333,17 @@ void NodeFetcherImpl::OnReadResult(
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
                     << LOG_TAG("Status", ToString(status));
-  LOG_DEBUG(logger_) << "Read request completed"
-                     << LOG_TAG("RequestId", request_id)
-                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                     << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Results", ToString(GroupResults(
-                                               read_ids, status, results)));
+  for (size_t i = 0; i < read_ids.size(); ++i) {
+    const auto& input = read_ids[i];
+    LOG_DEBUG(logger_) << "Read request completed"
+                       << LOG_TAG("RequestId", request_id)
+                       << LOG_TAG("Input", ToString(input))
+                       << LOG_TAG("StatusCode",
+                                  status ? ToString(results[i].status_code)
+                                         : ToString(status))
+                       << LOG_TAG("Result", status ? ToString(results[i].value)
+                                                   : std::string{});
+  }
 
   {
     assert(!processing_response_);
@@ -449,6 +434,7 @@ void NodeFetcherImpl::OnBrowseResult(
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
+  assert(!status || results.size() == descriptions.size());
   assert(AssertValid());
 
   const auto duration = base::TimeTicks::Now() - start_ticks;
@@ -457,13 +443,17 @@ void NodeFetcherImpl::OnBrowseResult(
                     << LOG_TAG("Count", descriptions.size())
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
                     << LOG_TAG("Status", ToString(status));
-  LOG_DEBUG(logger_) << "Browse request completed"
-                     << LOG_TAG("RequestId", request_id)
-                     << LOG_TAG("Count", descriptions.size())
-                     << LOG_TAG("DurationMs", duration.InMilliseconds())
-                     << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Results", ToString(GroupResults(
-                                               descriptions, status, results)));
+  for (size_t i = 0; i < descriptions.size(); ++i) {
+    const auto& input = descriptions[i];
+    LOG_DEBUG(logger_) << "Browse request completed"
+                       << LOG_TAG("RequestId", request_id)
+                       << LOG_TAG("Input", ToString(input))
+                       << LOG_TAG("StatusCode",
+                                  status ? ToString(results[i].status_code)
+                                         : ToString(status))
+                       << LOG_TAG("Result", status ? ToString(results[i])
+                                                   : std::string{});
+  }
 
   {
     assert(!processing_response_);
