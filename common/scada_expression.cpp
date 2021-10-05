@@ -6,6 +6,7 @@
 #include "express/lexer.h"
 #include "express/lexer_delegate.h"
 #include "express/parser.h"
+#include "express/strings.h"
 
 #include <stdexcept>
 
@@ -81,10 +82,6 @@ std::optional<expression::Lexem> ScadaLexerDelegate::ReadLexem(
   }
 }
 
-}  // namespace
-
-static bool _aliases;
-
 expression::Value ScadaToExpressionValue(const scada::Variant& value) {
   switch (value.type()) {
     case scada::Variant::BOOL:
@@ -150,6 +147,44 @@ class ItemToken : public expression::Token {
   const int index_;
 };
 
+struct ParserDelegate {
+  template <class Parser>
+  std::optional<expression::PolymorphicToken> MakeCustomToken(
+      expression::Allocator& allocator,
+      const expression::Lexem& lexem,
+      Parser& parser) {
+    switch (lexem.lexem) {
+      case LEX_TRUE:
+      case LEX_FALSE:
+        return expression::MakePolymorphicToken<BoolToken>(
+            allocator, lexem.lexem == LEX_TRUE);
+
+      case expression::LEX_NAME: {
+        // variable
+        auto& item = expression.items.emplace_back();
+        item.name = lexem._string;
+        return expression::MakePolymorphicToken<ItemToken>(
+            allocator, expression, expression.items.size() - 1);
+      }
+
+      default:
+        return std::nullopt;
+    }
+  }
+
+  const expression::BasicFunction<expression::PolymorphicToken>*
+  FindBasicFunction(std::string_view name) {
+    return expression::functions::FindDefaultFunction<
+        expression::PolymorphicToken>(name);
+  }
+
+  ScadaExpression& expression;
+};
+
+}  // namespace
+
+static bool _aliases;
+
 class Traversers {
  public:
   static bool GetNodeCount(const expression::Token* token, void* param) {
@@ -167,7 +202,13 @@ class Traversers {
 
 void ScadaExpression::Parse(const char* buf) {
   ScadaLexerDelegate lexer_delegate;
-  expression_.Parse(buf, lexer_delegate, *this);
+  expression::Lexer lexer{buf, lexer_delegate, 0};
+  expression::Allocator allocator;
+  ParserDelegate parser_delegate{*this};
+  expression::BasicParser<expression::Lexer, expression::PolymorphicToken,
+                          ParserDelegate>
+      parser{lexer, allocator, parser_delegate};
+  expression_.Parse(parser, allocator);
 }
 
 void ScadaExpression::Clear() {
@@ -212,29 +253,6 @@ bool ScadaExpression::IsSingleName(std::string_view formula,
   return true;
 }
 
-expression::Token* ScadaExpression::CreateToken(
-    expression::Allocator& allocator,
-    const expression::Lexem& lexem,
-    expression::Parser& parser) {
-  switch (lexem.lexem) {
-    case LEX_TRUE:
-    case LEX_FALSE:
-      return expression::CreateToken<BoolToken>(allocator,
-                                                lexem.lexem == LEX_TRUE);
-
-    case expression::LEX_NAME: {
-      // variable
-      auto& item = items.emplace_back();
-      item.name = lexem._string;
-      return expression::CreateToken<ItemToken>(allocator, *this,
-                                                items.size() - 1);
-    }
-
-    default:
-      return nullptr;
-  }
-}
-
 scada::Variant ScadaExpression::Calculate() const {
   for (size_t i = 0; i < items.size(); ++i)
     if (items[i].value.value.is_null())
@@ -245,7 +263,8 @@ scada::Variant ScadaExpression::Calculate() const {
 
 std::string ScadaExpression::Format(bool aliases) const {
   _aliases = aliases;
-  return expression_.Format(*this);
+  expression::FormatterDelegate formatter_delegate;
+  return expression_.Format(formatter_delegate);
 }
 
 size_t ScadaExpression::GetNodeCount() const {

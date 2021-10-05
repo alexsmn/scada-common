@@ -2,13 +2,11 @@
 
 #include "core/data_value.h"
 #include "express/express.h"
-#include "express/parser_delegate.h"
 
 #include <string_view>
 #include <vector>
 
-class ScadaExpression : private expression::ParserDelegate,
-                        private expression::FormatterDelegate {
+class ScadaExpression {
  public:
   struct Item {
     std::string name;
@@ -34,10 +32,5 @@ class ScadaExpression : private expression::ParserDelegate,
   ItemList items;
 
  protected:
-  // expression::ParserDelegate
-  virtual expression::Token* CreateToken(expression::Allocator& allocator,
-                                         const expression::Lexem& lexem,
-                                         expression::Parser& parser) override;
-
   expression::Expression expression_;
 };

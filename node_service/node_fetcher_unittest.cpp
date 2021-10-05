@@ -135,15 +135,16 @@ TEST_F(NodeFetcherTest, UnknownNode) {
 }
 
 TEST_F(NodeFetcherTest, Cancel) {
-  // 1. A node is requested.
-  // 2. The network request is started and takes a long time.
-  // 3. The node is canceled.
-  // 4. The node is requested again.
-  // 5. Another network request is started and takes a long time.
-  // 6. The first network request finishes, and this way is considered as a
-  // response for the first network request.
-  // 7. The second network requequest finished, and is considered an unexpected
-  // second response.
+  // 1. Node fetch A is started.
+  // 2. Network request A is started and takes a long time.
+  // 2a. Browse request A finishes and is its references are stored in
+  // |NodeFetcher|. Read request is still pending, so fetch A does not finish.
+  // 3. Node fetch A canceled.
+  // 4. Node fetch B is started.
+  // 5. Network request B is started and takes a long time.
+  // 6. Network request A finishes and is dropped.
+  // 7. Network request B finished and is processed as a response for node fetch
+  // B.
 
   scada::ReadCallback read_callback1;
   scada::BrowseCallback browse_callback1;
