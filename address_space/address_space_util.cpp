@@ -22,7 +22,6 @@
 namespace scada {
 
 std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
-    AddressSpace& address_space,
     const std::string_view& path) {
   std::string::size_type sep_pos = path.find_first_of('!');
   if (sep_pos == std::string::npos) {
@@ -91,15 +90,17 @@ const Node* GetTsFormat(const Node& ts_node) {
   return GetReference(ts_node, data_items::id::HasTsFormat).node;
 }
 
-QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id) {
+QualifiedName GetBrowseName(const AddressSpace& address_space,
+                            const NodeId& node_id) {
   if (node_id.is_null())
     return {};
-  auto* node = cfg.GetNode(node_id);
+  auto* node = address_space.GetNode(node_id);
   return node ? node->GetBrowseName() : QualifiedName{};
 }
 
-LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id) {
-  auto* node = cfg.GetNode(node_id);
+LocalizedText GetDisplayName(const AddressSpace& address_space,
+                             const NodeId& node_id) {
+  auto* node = address_space.GetNode(node_id);
   return node ? GetFullDisplayName(*node)
               : base::WideToUTF16(kUnknownDisplayName);
 }
@@ -229,6 +230,13 @@ bool WantsReference(const AddressSpace& address_space,
   } else {
     return reference_type_id == description.reference_type_id;
   }
+}
+
+const ReferenceType& BindReferenceType(const AddressSpace& address_space,
+                                       const NodeId& node_id) {
+  auto* node = scada::AsReferenceType(address_space.GetNode(node_id));
+  assert(node);
+  return *node;
 }
 
 const ObjectType& BindObjectType(const AddressSpace& address_space,

@@ -12,14 +12,17 @@ namespace scada {
 class AddressSpace;
 class Node;
 class ObjectType;
+class ReferenceType;
 class TypeDefinition;
 class Variable;
 class VariableType;
 struct BrowseDescription;
 struct NodeState;
 
-QualifiedName GetBrowseName(AddressSpace& cfg, const NodeId& node_id);
-LocalizedText GetDisplayName(AddressSpace& cfg, const NodeId& node_id);
+QualifiedName GetBrowseName(const AddressSpace& address_space,
+                            const NodeId& node_id);
+LocalizedText GetDisplayName(const AddressSpace& address_space,
+                             const NodeId& node_id);
 
 enum class DataValueFieldId {
   Qualifier,
@@ -28,10 +31,7 @@ enum class DataValueFieldId {
   Count
 };
 
-NodeId NodeIdFromAliasedString(AddressSpace& address_space,
-                               const std::string_view& path);
 std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
-    AddressSpace& address_space,
     const std::string_view& path);
 
 const Node* GetTsFormat(const Node& ts_node);
@@ -59,6 +59,8 @@ bool WantsOrganizes(AddressSpace& address_space,
 bool WantsParent(AddressSpace& address_space,
                  const BrowseDescription& description);
 
+const ReferenceType& BindReferenceType(const AddressSpace& address_space,
+                                       const NodeId& node_id);
 const ObjectType& BindObjectType(const AddressSpace& address_space,
                                  const NodeId& node_id);
 const VariableType& BindVariableType(const AddressSpace& address_space,
