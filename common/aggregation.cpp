@@ -169,7 +169,8 @@ Aggregator GetAggregator(const NodeId& aggregate_type,
 DateTime GetLocalAggregateStartTime() {
   DateTime result;
   DateTime::Exploded exploded = {2000, 1, 0, 1};
-  DateTime::FromLocalExploded(exploded, &result);
+  if (!DateTime::FromLocalExploded(exploded, &result))
+    result = DateTime::UnixEpoch();
   return result;
 }
 
