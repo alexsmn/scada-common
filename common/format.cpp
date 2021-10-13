@@ -29,7 +29,6 @@ std::string FormatFloat(double val, const char* fmt) {
   size_t rlen;  // right part len (after dot)
 
   const char* left = fmt;
-  const char* right = nullptr;
 
   while (*left == '#')
     left++;
@@ -38,7 +37,6 @@ std::string FormatFloat(double val, const char* fmt) {
   if (dot) {
     llen = dot - left;
     rlen = flen - llen - 1;
-    right = dot + 1;
   } else {
     llen = flen;
     rlen = 0;

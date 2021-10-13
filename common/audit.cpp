@@ -4,6 +4,7 @@
 
 namespace {
 
+#if !defined(NDEBUG)
 bool Validate(base::span<const scada::ReferenceDescription> references) {
   std::vector<scada::ReferenceDescription> sorted_references(references.begin(),
                                                              references.end());
@@ -34,6 +35,7 @@ bool Validate(base::span<const scada::BrowseResult> results) {
       results.begin(), results.end(),
       [](const scada::BrowseResult& result) { return Validate(result); });
 }
+#endif
 
 }  // namespace
 

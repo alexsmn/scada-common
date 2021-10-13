@@ -43,6 +43,7 @@ class Audit final : public scada::AttributeService,
   void LogAndReset(const char* name, Metric<Duration>& metric);
 
   boost::asio::io_context& io_context_;
+  const std::shared_ptr<AuditLogger> logger_;
   const std::shared_ptr<scada::AttributeService> attribute_service_;
   const std::shared_ptr<scada::ViewService> view_service_;
 
@@ -51,6 +52,5 @@ class Audit final : public scada::AttributeService,
   Metric<Duration> read_metric_;
   Metric<Duration> browse_metric_;
 
-  const std::shared_ptr<AuditLogger> logger_;
   Timer timer_{io_context_};
 };
