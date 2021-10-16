@@ -115,9 +115,9 @@ std::wstring GetFullDisplayName(const Node& node) {
     return ToString16(node.GetDisplayName());
 }
 
-Node* GetNestedNode(AddressSpace& address_space,
-                    const NodeId& node_id,
-                    std::string_view& nested_name) {
+Node* GetMutableNestedNode(AddressSpace& address_space,
+                           const NodeId& node_id,
+                           std::string_view& nested_name) {
   nested_name = {};
 
   auto* node = address_space.GetMutableNode(node_id);
@@ -147,6 +147,13 @@ Node* GetNestedNode(AddressSpace& address_space,
   }
 
   return node;
+}
+
+const Node* GetNestedNode(const AddressSpace& address_space,
+                          const NodeId& node_id,
+                          std::string_view& nested_name) {
+  return GetMutableNestedNode(const_cast<AddressSpace&>(address_space), node_id,
+                              nested_name);
 }
 
 Variant::Type DataTypeToValueType(const TypeDefinition& type) {

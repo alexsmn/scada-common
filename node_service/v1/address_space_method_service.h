@@ -31,7 +31,7 @@ inline void AddressSpaceMethodService::Call(
     const scada::NodeId& user_id,
     const scada::StatusCallback& callback) {
   std::string_view nested_name;
-  auto* node = GetNestedNode(address_space_, node_id, nested_name);
+  auto* node =  GetNestedNode(address_space_, node_id, nested_name);
   if (!node)
     return callback(scada::StatusCode::Bad_WrongNodeId);
 

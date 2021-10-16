@@ -39,7 +39,10 @@ const Node* GetTsFormat(const Node& ts_node);
 bool IsSimulated(const Node& node, bool recursive);
 bool IsDisabled(const Node& node, bool recursive);
 
-Node* GetNestedNode(AddressSpace& address_space,
+Node* GetMutableNestedNode(AddressSpace& address_space,
+                    const NodeId& node_id,
+                    std::string_view& nested_name);
+const Node* GetNestedNode(const AddressSpace& address_space,
                     const NodeId& node_id,
                     std::string_view& nested_name);
 

@@ -11,7 +11,7 @@ class Node;
 }  // namespace scada
 
 struct ViewServiceImplContext {
-  scada::AddressSpace& address_space_;
+  const scada::AddressSpace& address_space_;
 };
 
 class SyncViewServiceImpl : private ViewServiceImplContext,
