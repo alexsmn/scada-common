@@ -66,6 +66,23 @@ const ObjectType& BindObjectType(const AddressSpace& address_space,
 const VariableType& BindVariableType(const AddressSpace& address_space,
                                      const NodeId& node_id);
 
+bool IsSubtypeOf(const AddressSpace& address_space,
+                 const NodeId& type_id,
+                 const NodeId& supertype_id);
+
+void AddReference(AddressSpace& address_space,
+                  const NodeId& reference_type_id,
+                  const NodeId& source_id,
+                  const NodeId& target_id);
+void AddReference(AddressSpace& address_space,
+                  const NodeId& reference_type_id,
+                  Node& source,
+                  Node& target);
+void DeleteReference(AddressSpace& address_space,
+                     const NodeId& reference_type_id,
+                     const NodeId& source_id,
+                     const NodeId& target_id);
+
 }  // namespace scada
 
 void SortNodesHierarchically(std::vector<scada::NodeState>& nodes);

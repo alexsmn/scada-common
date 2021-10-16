@@ -77,9 +77,6 @@ inline Node* GetTarget(const Node& node,
 }
 
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
-bool IsSubtypeOf(const AddressSpace& address_space,
-                 const NodeId& type_id,
-                 const NodeId& supertype_id);
 
 struct IsNonPropReference {
   bool operator()(const Reference& ref) const;
@@ -156,18 +153,6 @@ Status SetPropertyValueHelper(Node& node,
                               const NodeId& prop_decl_id,
                               const Variant& value);
 
-void AddReference(AddressSpace& address_space,
-                  const NodeId& reference_type_id,
-                  const NodeId& source_id,
-                  const NodeId& target_id);
-void AddReference(AddressSpace& address_space,
-                  const NodeId& reference_type_id,
-                  Node& source,
-                  Node& target);
-void DeleteReference(AddressSpace& address_space,
-                     const NodeId& reference_type_id,
-                     const NodeId& source_id,
-                     const NodeId& target_id);
 void DeleteAllReferences(Node& node);
 
 Node* FindChild(const Node& parent, std::string_view browse_name);

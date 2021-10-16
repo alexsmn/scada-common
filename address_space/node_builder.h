@@ -1,7 +1,5 @@
 #pragma once
 
-#include "address_space/node_utils.h"
-
 namespace scada {
 
 class NodeId;

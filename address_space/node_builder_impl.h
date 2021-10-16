@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/address_space.h"
+#include "address_space/address_space_util.h"
 #include "address_space/node_builder.h"
 
 class NodeBuilderImpl : public scada::NodeBuilder {

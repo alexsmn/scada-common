@@ -41,7 +41,7 @@ struct NodeServiceTestContext {
   NiceMock<scada::MockMethodService> method_service;
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      executor, MakeAddressSpaceFetcherFactory(), *server_address_space,
+      MakeAddressSpaceFetcherFactory(), *server_address_space,
       *server_address_space, monitored_item_service, method_service}};
 
  private:

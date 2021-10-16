@@ -8,10 +8,8 @@
 
 #include <map>
 
-class AddressSpaceImpl;
-class Executor;
-
 namespace scada {
+class AddressSpace;
 class Node;
 struct ModelChangeEvent;
 }  // namespace scada
@@ -23,9 +21,9 @@ class NodeModelImpl;
 struct NodeFetchStatusChangedItem;
 
 struct NodeServiceImplContext {
-  const std::shared_ptr<Executor> executor_;
   const AddressSpaceFetcherFactory address_space_fetcher_factory_;
-  AddressSpaceImpl& address_space_;
+  scada::AddressSpace& address_space_;
+  // For node async calls.
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;

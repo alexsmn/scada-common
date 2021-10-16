@@ -23,7 +23,6 @@ struct NodeServiceHolder {
         MakeAddressSpaceFetcherFactory(node_service_context);
 
     return NodeServiceImplContext{
-        node_service_context.executor,
         std::move(address_space_fetcher_factory),
         address_space,
         node_service_context.attribute_service_,

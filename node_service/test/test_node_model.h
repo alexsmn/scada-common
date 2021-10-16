@@ -17,6 +17,8 @@ class TestNodeService {
 
 class TestNodeModel final : public NodeModel {
  public:
+  TestNodeModel() {}
+
   explicit TestNodeModel(TestNodeService* node_service)
       : node_service_{node_service} {}
 

@@ -253,6 +253,57 @@ const VariableType& BindVariableType(const AddressSpace& address_space,
   return *node;
 }
 
+bool IsSubtypeOf(const AddressSpace& address_space,
+                 const NodeId& type_id,
+                 const NodeId& supertype_id) {
+  const auto* type = AsTypeDefinition(address_space.GetNode(type_id));
+  for (; type; type = type->supertype()) {
+    if (type->id() == supertype_id)
+      return true;
+  }
+  return false;
+}
+
+void AddReference(scada::AddressSpace& address_space,
+                  const scada::NodeId& reference_type_id,
+                  const scada::NodeId& source_id,
+                  const scada::NodeId& target_id) {
+  auto* source = address_space.GetMutableNode(source_id);
+  assert(source);
+
+  auto* target = address_space.GetMutableNode(target_id);
+  assert(target);
+
+  AddReference(address_space, reference_type_id, *source, *target);
+}
+
+void AddReference(scada::AddressSpace& address_space,
+                  const scada::NodeId& reference_type_id,
+                  scada::Node& source,
+                  scada::Node& target) {
+  auto* reference_type =
+      AsReferenceType(address_space.GetNode(reference_type_id));
+  assert(reference_type);
+  scada::AddReference(*reference_type, source, target);
+}
+
+void DeleteReference(scada::AddressSpace& address_space,
+                     const scada::NodeId& reference_type_id,
+                     const scada::NodeId& source_id,
+                     const scada::NodeId& target_id) {
+  auto* reference_type =
+      AsReferenceType(address_space.GetNode(reference_type_id));
+  assert(reference_type);
+
+  auto* source = address_space.GetMutableNode(source_id);
+  assert(source);
+
+  auto* target = address_space.GetMutableNode(target_id);
+  assert(target);
+
+  scada::DeleteReference(*reference_type, *source, *target);
+}
+
 }  // namespace scada
 
 void SortNodesHierarchically(std::vector<scada::NodeState>& nodes) {

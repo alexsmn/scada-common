@@ -1,7 +1,7 @@
 #include "address_space/address_space_impl.h"
 
+#include "address_space/address_space_util.h"
 #include "address_space/node_observer.h"
-#include "address_space/node_utils.h"
 #include "address_space/object.h"
 #include "address_space/reference.h"
 #include "address_space/type_definition.h"
