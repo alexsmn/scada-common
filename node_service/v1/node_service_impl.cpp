@@ -3,6 +3,7 @@
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
+#include "core/event.h"
 #include "node_service/node_observer.h"
 #include "node_service/v1/address_space_fetcher.h"
 #include "node_service/v1/node_fetch_status_types.h"

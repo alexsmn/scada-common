@@ -47,18 +47,6 @@ void Variable::Call(const NodeId& method_id,
   callback(StatusCode::Bad_WrongMethodId);
 }
 
-void Variable::HistoryReadRaw(const HistoryReadRawDetails& details,
-                              const HistoryReadRawCallback& callback) {
-  callback({scada::StatusCode::Bad});
-}
-
-void Variable::HistoryReadEvents(base::Time from,
-                                 base::Time to,
-                                 const EventFilter& filter,
-                                 const HistoryReadEventsCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
 void Variable::Shutdown() {
   if (auto variable_handle = variable_handle_.lock())
     variable_handle->Deleted();

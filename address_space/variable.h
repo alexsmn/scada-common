@@ -4,7 +4,6 @@
 #include "base/time/time.h"
 #include "core/attribute_service.h"
 #include "core/configuration_types.h"
-#include "core/history_types.h"
 
 #include <functional>
 #include <map>
@@ -47,13 +46,6 @@ class Variable : public Node {
                     const std::vector<Variant>& arguments,
                     const scada::NodeId& user_id,
                     const StatusCallback& callback);
-
-  virtual void HistoryReadRaw(const HistoryReadRawDetails& details,
-                              const HistoryReadRawCallback& callback);
-  virtual void HistoryReadEvents(DateTime from,
-                                 DateTime to,
-                                 const EventFilter& filter,
-                                 const HistoryReadEventsCallback& callback);
 
   // Node
   virtual NodeClass GetNodeClass() const override {
