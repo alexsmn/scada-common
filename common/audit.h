@@ -1,23 +1,23 @@
 #pragma once
 
+#include "base/executor.h"
+#include "base/executor_timer.h"
 #include "base/logger.h"
 #include "base/metric.h"
-#include "base/timer.h"
 #include "common/audit_logger.h"
 #include "core/attribute_service.h"
 #include "core/view_service.h"
 
-#include <boost/asio/io_context_strand.hpp>
 #include <memory>
 
 class Audit final : public scada::AttributeService,
                     public scada::ViewService,
                     public std::enable_shared_from_this<Audit> {
  public:
-  Audit(boost::asio::io_context& io_context,
+  Audit(std::shared_ptr<Executor> executor,
         std::shared_ptr<AuditLogger> logger,
-        std::shared_ptr<scada::AttributeService> attribute_service,
-        std::shared_ptr<scada::ViewService> view_service);
+        scada::AttributeService& attribute_service,
+        scada::ViewService& view_service);
 
   // scada::AttributeService
   virtual void Read(
@@ -42,15 +42,13 @@ class Audit final : public scada::AttributeService,
 
   void LogAndReset(const char* name, Metric<Duration>& metric);
 
-  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   const std::shared_ptr<AuditLogger> logger_;
-  const std::shared_ptr<scada::AttributeService> attribute_service_;
-  const std::shared_ptr<scada::ViewService> view_service_;
-
-  boost::asio::io_context::strand executor_{io_context_};
+  scada::AttributeService& attribute_service_;
+  scada::ViewService& view_service_;
 
   Metric<Duration> read_metric_;
   Metric<Duration> browse_metric_;
 
-  Timer timer_{io_context_};
+  ExecutorTimer timer_{executor_};
 };
