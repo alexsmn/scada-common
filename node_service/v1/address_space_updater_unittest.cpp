@@ -32,9 +32,8 @@ std::vector<scada::ReferenceDescription> CollectReferenceDescriptions(
 }
 
 auto CollectReferenceDescriptions(const scada::Node& node) {
-  return Join(std::array<scada::ReferenceDescriptions, 2>{
-      CollectReferenceDescriptions(node.forward_references(), true),
-      CollectReferenceDescriptions(node.inverse_references(), false)});
+  return Join({CollectReferenceDescriptions(node.forward_references(), true),
+               CollectReferenceDescriptions(node.inverse_references(), false)});
 }
 
 }  // namespace
