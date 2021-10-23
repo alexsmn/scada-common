@@ -23,10 +23,10 @@ VariableMonitoredItem::~VariableMonitoredItem() {
   variable_->monitored_items_.erase(this);
 }
 
-void VariableMonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {
+void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
   assert(!data_change_handler_);
 
-  data_change_handler_ = std::move(std::get<scada::DataChangeHandler>(handler));
+  data_change_handler_ = std::move(std::get<DataChangeHandler>(handler));
   if (!variable_->last_value().server_timestamp.is_null())
     data_change_handler_(variable_->last_value());
 }
@@ -65,9 +65,12 @@ void VariableHandle::ForwardData(const DataValue& value) {
 }
 
 void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
+  // |SourceTimestamp| is not updated, because next device value with a valid
+  // |SourceTimestamp| overwrites this value.
+  auto server_timestamp = DateTime::Now();
+
   if (last_value_.is_null()) {
-    auto timestamp = DateTime::Now();
-    ForwardData({scada::Variant{}, Qualifier{add}, timestamp, timestamp});
+    ForwardData({Variant{}, Qualifier{add}, DateTime{}, server_timestamp});
     return;
   }
 
@@ -78,6 +81,7 @@ void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
 
   DataValue data = last_value_;
   data.qualifier = new_qualifier;
+  data.server_timestamp = server_timestamp;
 
   ForwardData(data);
 }
@@ -86,16 +90,15 @@ void VariableHandle::Deleted() {
   UpdateQualifier(0, Qualifier::FAILED);
 }
 
-void VariableHandle::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
-    const scada::WriteValue& input,
-    const scada::StatusCallback& callback) {
+void VariableHandle::Write(const std::shared_ptr<const ServiceContext>& context,
+                           const WriteValue& input,
+                           const StatusCallback& callback) {
   callback(StatusCode::Bad_WrongMethodId);
 }
 
 void VariableHandle::Call(const NodeId& method_id,
                           const std::vector<Variant>& arguments,
-                          const scada::NodeId& user_id,
+                          const NodeId& user_id,
                           const StatusCallback& callback) {
   callback(StatusCode::Bad_WrongMethodId);
 }

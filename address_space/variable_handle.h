@@ -18,17 +18,17 @@ class VariableMonitoredItem : public MonitoredItem {
   explicit VariableMonitoredItem(std::shared_ptr<VariableHandle> variable);
   virtual ~VariableMonitoredItem();
 
-  const scada::DataChangeHandler& data_change_handler() const {
+  const DataChangeHandler& data_change_handler() const {
     return data_change_handler_;
   }
 
   // MonitoredItem
-  virtual void Subscribe(scada::MonitoredItemHandler handler) override;
+  virtual void Subscribe(MonitoredItemHandler handler) override;
 
  private:
   const std::shared_ptr<VariableHandle> variable_;
 
-  scada::DataChangeHandler data_change_handler_;
+  DataChangeHandler data_change_handler_;
 };
 
 class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
@@ -46,18 +46,14 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   const DataValue& last_value() const { return last_value_; }
   DateTime last_change_time() const { return last_change_time_; }
 
-  virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
-      const scada::WriteValue& input,
-      const scada::StatusCallback& callback);
+  virtual void Write(const std::shared_ptr<const ServiceContext>& context,
+                     const WriteValue& input,
+                     const StatusCallback& callback);
 
   virtual void Call(const NodeId& method_id,
                     const std::vector<Variant>& arguments,
                     const NodeId& user_id,
                     const StatusCallback& callback);
-
- protected:
-  VariableHandle() {}
 
  private:
   friend class VariableMonitoredItem;
