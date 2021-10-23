@@ -34,7 +34,6 @@ inline bool IsReverseTimeSorted(base::span<const scada::DataValue> values) {
 inline std::size_t LowerBound(base::span<const scada::DataValue> values,
                               base::Time time) {
   assert(IsTimeSorted(values));
-  assert(!time.is_null());
   auto i = std::lower_bound(values.begin(), values.end(), time,
                             [](const scada::DataValue& value, base::Time time) {
                               return value.source_timestamp < time;
@@ -45,7 +44,6 @@ inline std::size_t LowerBound(base::span<const scada::DataValue> values,
 inline std::size_t UpperBound(base::span<const scada::DataValue> values,
                               base::Time time) {
   assert(IsTimeSorted(values));
-  assert(!time.is_null());
   auto i = std::upper_bound(values.begin(), values.end(), time,
                             [](base::Time time, const scada::DataValue& value) {
                               return time < value.source_timestamp;
@@ -55,7 +53,6 @@ inline std::size_t UpperBound(base::span<const scada::DataValue> values,
 
 inline std::size_t ReverseUpperBound(base::span<const scada::DataValue> values,
                                      base::Time time) {
-  assert(!time.is_null());
   assert(IsReverseTimeSorted(values));
   auto i = std::upper_bound(values.begin(), values.end(), time,
                             [](base::Time time, const scada::DataValue& value) {

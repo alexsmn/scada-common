@@ -1,12 +1,13 @@
 #include "timed_data/base_timed_data.h"
 
+#include "base/constraints.h"
+#include "base/debug_util.h"
 #include "base/format.h"
 #include "base/format_time.h"
 #include "base/strings/stringprintf.h"
 #include "common/data_value_util.h"
 #include "common/event_fetcher.h"
 #include "common/interval_util.h"
-#include "base/debug_util.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
@@ -211,6 +212,8 @@ void BaseTimedData::NotifyEventsChanged() {
 }
 
 bool BaseTimedData::UpdateHistory(const scada::DataValue& value) {
+  ScopedInvariant values_sorted{[&] { return IsTimeSorted(values_); }};
+
   if (value.source_timestamp.is_null())
     return false;
 

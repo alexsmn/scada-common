@@ -16,8 +16,6 @@
 #include <memory>
 #include <string>
 
-#define TIMED_DATA_RANGE_SUPPORT
-
 class TimedDataService;
 
 namespace scada {
