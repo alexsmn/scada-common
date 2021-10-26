@@ -10,25 +10,20 @@ using DataValues = std::vector<scada::DataValue>;
 
 struct DataValueTimeLess {
   bool operator()(const scada::DataValue& a, const scada::DataValue& b) const {
-    return std::tie(a.source_timestamp, a.server_timestamp) <
-           std::tie(b.source_timestamp, b.server_timestamp);
+    return a.source_timestamp < b.source_timestamp;
   }
-};
-
-struct DataValueTimeGreater {
-  bool operator()(const scada::DataValue& a, const scada::DataValue& b) const {
-    return less(b, a);
-  }
-
-  DataValueTimeLess less;
 };
 
 inline bool IsTimeSorted(base::span<const scada::DataValue> values) {
-  return std::is_sorted(values.begin(), values.end(), DataValueTimeLess{});
+  // Sorted with no duplicates.
+  return std::adjacent_find(values.begin(), values.end(),
+                            std::not_fn(DataValueTimeLess{})) == values.end();
 }
 
 inline bool IsReverseTimeSorted(base::span<const scada::DataValue> values) {
-  return std::is_sorted(values.begin(), values.end(), DataValueTimeGreater{});
+  // Sorted with no duplicates.
+  return std::adjacent_find(values.rbegin(), values.rend(),
+                            std::not_fn(DataValueTimeLess{})) == values.rend();
 }
 
 inline std::size_t LowerBound(base::span<const scada::DataValue> values,
