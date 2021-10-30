@@ -104,9 +104,11 @@ void NodeFetcherTest::ValidateFetchedNode() {
 }
 
 TEST_F(NodeFetcherTest, Fetch) {
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
       .Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_,
@@ -117,10 +119,28 @@ TEST_F(NodeFetcherTest, Fetch) {
   ValidateFetchedNode();
 }
 
-TEST_F(NodeFetcherTest, Fetch_Force) {
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+
+  // Don't let upstream requests to resolve.
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).WillOnce([] {});
+  EXPECT_CALL(server_address_space_, Browse(_, _)).WillOnce([] {});
+  EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(0);
+
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+
+  // Non-forced refetch doesn't trigger more upstream requests.
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(0);
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(0);
+
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+
+  // Forced refetch triggers another set of requests.
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
       .Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_,
