@@ -426,7 +426,7 @@ void NodeModelImpl::OnFetchStatusChanged() {
                              << LOG_TAG("FetchStatus", ToString(fetch_status_));
 
   for (auto& o : observers_)
-    o.OnNodeFetched(node_id_, fetch_status_.children_fetched);
+    o.OnNodeFetched(node_id_);
 
   service_.OnNodeFetchStatusChanged(node_id_, status_, fetch_status_);
 }

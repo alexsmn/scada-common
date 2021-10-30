@@ -14,8 +14,5 @@ class MockNodeObserver : public NodeRefObserver {
               OnNodeSemanticChanged,
               (const scada::NodeId& node_id),
               (override));
-  MOCK_METHOD(void,
-              OnNodeFetched,
-              (const scada::NodeId& node_id, bool children),
-              (override));
+  MOCK_METHOD(void, OnNodeFetched, (const scada::NodeId& node_id), (override));
 };
