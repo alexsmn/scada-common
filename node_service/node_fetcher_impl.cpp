@@ -20,18 +20,19 @@ const size_t kMaxParallelRequestCount = 5;
 // Read + Browse.
 const size_t kPrimitiveRequestCount = 2;
 const size_t kFetchAttributesReserveFactor = 5;
+const size_t kFetchReferencesReserveFactor = 3;
 
-void GetFetchAttributes(const scada::NodeId& node_id,
-                        bool is_property,
-                        bool is_declaration,
+void GetFetchAttributes(const FetchingNode& fetching_node,
                         std::vector<scada::ReadValueId>& read_ids) {
+  const auto& node_id = fetching_node.node_state.node_id;
+
   read_ids.push_back({node_id, scada::AttributeId::BrowseName});
 
   // Have to fetch diplay names for instance properties as well, since property
   // declaration might not be created.
   read_ids.push_back({node_id, scada::AttributeId::DisplayName});
 
-  if (!is_property || is_declaration)
+  if (!fetching_node.is_property || fetching_node.is_declaration)
     read_ids.push_back({node_id, scada::AttributeId::NodeClass});
 
   read_ids.push_back({node_id, scada::AttributeId::DataType});
@@ -39,32 +40,33 @@ void GetFetchAttributes(const scada::NodeId& node_id,
   // Must read only property values.
   // Must read values of type definition properties to correctly read
   // EnumStrings.
-  if (is_property)
+  if (fetching_node.is_property)
     read_ids.push_back({node_id, scada::AttributeId::Value});
 }
 
-const size_t kFetchReferencesReserveFactor = 3;
-
-void GetFetchReferences(const scada::NodeState& node,
-                        bool is_property,
-                        bool is_declaration,
-                        bool fetch_parent,
+void GetFetchReferences(const FetchingNode& fetching_node,
                         std::vector<scada::BrowseDescription>& descriptions) {
+  const auto& node_id = fetching_node.node_state.node_id;
+
   // Don't request references of a property.
-  if (!is_property) {
-    descriptions.push_back({node.node_id, scada::BrowseDirection::Forward,
+  if (!fetching_node.is_property) {
+    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
                             scada::id::Aggregates, true});
   }
 
   // Request property categories.
-  if (!is_property || is_declaration) {
-    descriptions.push_back({node.node_id, scada::BrowseDirection::Forward,
+  if (!fetching_node.is_property || fetching_node.is_declaration) {
+    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
                             scada::id::NonHierarchicalReferences, true});
   }
 
   // Request parent if unknown. It may happen when node is created.
+  const bool fetch_parent =
+      node_id != scada::id::RootFolder &&
+      fetching_node.node_state.parent_id.is_null() &&
+      fetching_node.node_state.reference_type_id.is_null();
   if (fetch_parent) {
-    descriptions.push_back({node.node_id, scada::BrowseDirection::Inverse,
+    descriptions.push_back({node_id, scada::BrowseDirection::Inverse,
                             scada::id::HierarchicalReferences, true});
   }
 }
@@ -232,8 +234,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   read_ids->reserve(nodes.size() * kFetchAttributesReserveFactor);
   for (auto* node : nodes) {
     size_t count = read_ids->size();
-    GetFetchAttributes(node->node_state.node_id, node->is_property,
-                       node->is_declaration, *read_ids);
+    GetFetchAttributes(*node, *read_ids);
     node->attributes_fetched = count == read_ids->size();
   }
 
@@ -257,11 +258,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   descriptions.reserve(nodes.size() * kFetchReferencesReserveFactor);
   for (auto* node : nodes) {
     size_t count = descriptions.size();
-    bool fetch_parent = node->node_state.node_id != scada::id::RootFolder &&
-                        node->node_state.parent_id.is_null() &&
-                        node->node_state.reference_type_id.is_null();
-    GetFetchReferences(node->node_state, node->is_property,
-                       node->is_declaration, fetch_parent, descriptions);
+    GetFetchReferences(*node, descriptions);
     node->references_fetched = count == descriptions.size();
   }
 
@@ -286,26 +283,28 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 }
 
 void NodeFetcherImpl::NotifyFetchedNodes() {
-  auto [nodes, errors] = fetching_nodes_.GetFetchedNodes();
-  if (nodes.empty() && errors.empty())
+  auto result = fetching_nodes_.GetFetchedNodes();
+  if (result.nodes.empty() && result.errors.empty())
     return;
 
-  LOG_INFO(logger_) << "Nodes fetched" << LOG_TAG("NodeCount", nodes.size())
-                    << LOG_TAG("ErrorCount", errors.size())
+  LOG_INFO(logger_) << "Nodes fetched"
+                    << LOG_TAG("NodeCount", result.nodes.size())
+                    << LOG_TAG("ErrorCount", result.errors.size())
                     << LOG_TAG("FetchingCount", fetching_nodes_.size());
-  LOG_DEBUG(logger_) << "Nodes fetched" << LOG_TAG("NodeCount", nodes.size())
-                     << LOG_TAG("ErrorCount", errors.size())
+  LOG_DEBUG(logger_) << "Nodes fetched"
+                     << LOG_TAG("NodeCount", result.nodes.size())
+                     << LOG_TAG("ErrorCount", result.errors.size())
                      << LOG_TAG("FetchingCount", fetching_nodes_.size())
-                     << LOG_TAG("Nodes", ToString(nodes))
-                     << LOG_TAG("Errors", ToString(errors));
+                     << LOG_TAG("Nodes", ToString(result.nodes))
+                     << LOG_TAG("Errors", ToString(result.errors));
 
 #if !defined(NDEBUG)
   // Validation.
   {
     std::map<scada::NodeId, const scada::NodeState*> type_definition_map;
-    for (auto& node : nodes)
+    for (auto& node : result.nodes)
       type_definition_map.emplace(node.node_id, &node);
-    for (auto& node : nodes) {
+    for (auto& node : result.nodes) {
       if (scada::IsInstance(node.node_class)) {
         assert(!node.type_definition_id.is_null());
         auto type_definition_id = node.type_definition_id;
@@ -324,7 +323,7 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
   }
 #endif
 
-  fetch_completed_handler_(std::move(nodes), std::move(errors));
+  fetch_completed_handler_(std::move(result));
 }
 
 void NodeFetcherImpl::OnReadResult(

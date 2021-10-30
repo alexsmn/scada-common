@@ -204,10 +204,9 @@ void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
 
 NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
   FetchCompletedHandler fetch_completed_handler =
-      [this](std::vector<scada::NodeState>&& node_states,
-             NodeFetchStatuses&& errors) {
-        ProcessFetchedNodes(std::move(node_states));
-        ProcessFetchErrors(std::move(errors));
+      [this](FetchCompletedResult&& result) {
+        ProcessFetchedNodes(std::move(result.nodes));
+        ProcessFetchErrors(std::move(result.errors));
       };
 
   NodeValidator node_validator = [this](const scada::NodeId& node_id) -> bool {

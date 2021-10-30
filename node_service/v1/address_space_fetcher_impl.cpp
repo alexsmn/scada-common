@@ -62,11 +62,10 @@ std::shared_ptr<AddressSpaceFetcherImpl> AddressSpaceFetcherImpl::Create(
 
 void AddressSpaceFetcherImpl::Init() {
   FetchCompletedHandler fetch_completed_handler =
-      [weak_ptr = weak_from_this()](
-          std::vector<scada::NodeState>&& fetched_nodes,
-          NodeFetchStatuses&& errors) {
+      [weak_ptr = weak_from_this()](FetchCompletedResult&& result) {
         if (auto ptr = weak_ptr.lock())
-          ptr->OnFetchCompleted(std::move(fetched_nodes), std::move(errors));
+          ptr->OnFetchCompleted(std::move(result.nodes),
+                                std::move(result.errors));
       };
 
   NodeValidator node_validator = [this](const scada::NodeId& node_id) {

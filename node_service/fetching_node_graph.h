@@ -14,9 +14,7 @@ class FetchingNodeGraph {
 
   void AddDependency(FetchingNode& node, FetchingNode& from);
 
-  std::pair<std::vector<scada::NodeState> /*fetched_nodes*/,
-            NodeFetchStatuses /*errors*/>
-  GetFetchedNodes();
+  FetchCompletedResult GetFetchedNodes();
 
   bool AssertValid() const;
 

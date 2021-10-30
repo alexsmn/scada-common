@@ -27,11 +27,10 @@ class TestNodeValidator {
     return fetched_nodes_.find(node_id) != fetched_nodes_.end();
   }
 
-  void OnFetchCompleted(std::vector<scada::NodeState>&& nodes,
-                        NodeFetchStatuses&& errors) {
-    for (auto& node_state : nodes)
+  void OnFetchCompleted(FetchCompletedResult&& result) {
+    for (auto& node_state : result.nodes)
       fetched_nodes_.try_emplace(node_state.node_id, std::move(node_state));
-    for (auto& [node_id, status] : errors)
+    for (auto& [node_id, status] : result.errors)
       fetched_nodes_.try_emplace(node_id, scada::NodeState{});
   }
 
@@ -46,8 +45,7 @@ class NodeFetcherTest : public Test {
  protected:
   void ValidateFetchedNode();
 
-  StrictMock<MockFunction<void(std::vector<scada::NodeState>&& nodes,
-                               NodeFetchStatuses&& errors)>>
+  StrictMock<MockFunction<void(FetchCompletedResult&& result)>>
       fetch_completed_handler_;
 
   TestNodeValidator node_validator_impl_;
@@ -76,7 +74,7 @@ class NodeFetcherTest : public Test {
 }  // namespace
 
 NodeFetcherTest::NodeFetcherTest() {
-  ON_CALL(fetch_completed_handler_, Call(_, _))
+  ON_CALL(fetch_completed_handler_, Call(_))
       .WillByDefault(
           Invoke(&node_validator_impl_, &TestNodeValidator::OnFetchCompleted));
   ON_CALL(node_validator_, Call(_))
@@ -109,8 +107,10 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
-  EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
-  EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
+      .Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_,
+              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
@@ -121,8 +121,10 @@ TEST_F(NodeFetcherTest, Fetch_Force) {
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
-  EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
-  EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
+      .Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_,
+              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
 

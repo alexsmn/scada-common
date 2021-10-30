@@ -44,9 +44,7 @@ void FetchingNodeGraph::RemoveNode(const scada::NodeId& node_id) {
   assert(AssertValid());
 }
 
-std::pair<std::vector<scada::NodeState> /*fetched_nodes*/,
-          NodeFetchStatuses /*errors*/>
-FetchingNodeGraph::GetFetchedNodes() {
+FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
   assert(AssertValid());
 
   struct Collector {
