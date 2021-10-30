@@ -60,6 +60,11 @@ void GetFetchReferences(const FetchingNode& fetching_node,
                             scada::id::NonHierarchicalReferences, true});
   }
 
+  if (fetching_node.fetch_started.non_hierarchical_inverse_references) {
+    descriptions.push_back({node_id, scada::BrowseDirection::Inverse,
+                            scada::id::NonHierarchicalReferences, true});
+  }
+
   // Request parent if unknown. It may happen when node is created.
   const bool fetch_parent =
       node_id != scada::id::RootFolder &&
@@ -109,7 +114,7 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
                             NodeFetchStatus status,
                             bool force) {
   assert(!node_id.is_null());
-  assert(!status.empty());
+  assert(status.node_fetched);
   assert(AssertValid());
 
   auto& node = fetching_nodes_.AddNode(node_id);
@@ -123,7 +128,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
                                 NodeFetchStatus status,
                                 bool force) {
-  assert(!status.empty());
+  assert(status.node_fetched);
 
   if (!node.fetch_started.empty()) {
     if (status.all_less_or_equal(node.fetch_started) && !force)

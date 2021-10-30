@@ -64,8 +64,7 @@ void AddressSpaceFetcherImpl::Init() {
   FetchCompletedHandler fetch_completed_handler =
       [weak_ptr = weak_from_this()](FetchCompletedResult&& result) {
         if (auto ptr = weak_ptr.lock())
-          ptr->OnFetchCompleted(std::move(result.nodes),
-                                std::move(result.errors));
+          ptr->OnFetchCompleted(std::move(result));
       };
 
   NodeValidator node_validator = [this](const scada::NodeId& node_id) {
@@ -191,8 +190,9 @@ void AddressSpaceFetcherImpl::FillMissingParent(scada::NodeState& node_state) {
 }
 
 void AddressSpaceFetcherImpl::OnFetchCompleted(
-    std::vector<scada::NodeState>&& fetched_nodes,
-    NodeFetchStatuses&& errors) {
+    FetchCompletedResult&& fetch_completed_result) {
+  auto& [fetched_nodes, errors, fetch_statuses] = fetch_completed_result;
+
   LOG_INFO(logger_) << "Nodes fetched"
                     << LOG_TAG("Count", fetched_nodes.size());
   LOG_DEBUG(logger_) << "Nodes fetched"

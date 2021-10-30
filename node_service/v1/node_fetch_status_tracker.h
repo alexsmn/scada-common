@@ -67,6 +67,7 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   std::map<scada::NodeId, scada::Status> errors_;
 
+  // Status notification consolidation queue.
   NodeFetchStatusQueue status_queue_{
       node_fetch_status_changed_handler_,
       [this](const scada::NodeId& node_id) { return GetStatus(node_id); }};

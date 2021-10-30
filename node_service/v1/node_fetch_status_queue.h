@@ -9,6 +9,9 @@
 
 namespace v1 {
 
+// Consolidates status notifications using locks.
+// Takes actual statuses from |NodeFetchStatusProvider| and reports consolidates
+// statuses to |NodeFetchStatusChangedHandler|.
 class NodeFetchStatusQueue {
  public:
   using NodeStatus = std::pair<scada::Status, NodeFetchStatus>;

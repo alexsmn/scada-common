@@ -6,14 +6,22 @@ struct NodeFetchStatus {
   constexpr static NodeFetchStatus Max() {
     return NodeFetchStatus{true, true, true};
   }
+
   constexpr static NodeFetchStatus NodeOnly() {
     return NodeFetchStatus{true, false};
   }
+
   constexpr static NodeFetchStatus NodeAndChildren() {
     return NodeFetchStatus{true, true};
   }
+
   constexpr static NodeFetchStatus ChildrenOnly() {
     return NodeFetchStatus{false, true};
+  }
+
+  NodeFetchStatus& with_non_hierarchical_inverse_references() {
+    non_hierarchical_inverse_references = true;
+    return *this;
   }
 
   constexpr bool empty() const { return !node_fetched && !children_fetched; }

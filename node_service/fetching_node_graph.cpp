@@ -76,10 +76,9 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
     int fetch_cache_iteration = 0;
   };
 
-  std::vector<scada::NodeState> fetched_nodes;
-  fetched_nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
-
-  NodeFetchStatuses errors;
+  FetchCompletedResult result;
+  result.nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
+  result.fetch_statuses.reserve(std::min<size_t>(32, fetching_nodes_.size()));
 
   Collector collector{*this};
   for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {
@@ -94,10 +93,12 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
     assert(!node.fetch_started.empty());
 
     if (node.status) {
-      fetched_nodes.emplace_back(std::move(node.node_state));
+      result.fetch_statuses.emplace_back(node.node_state.node_id,
+                                         node.fetch_started);
+      result.nodes.emplace_back(std::move(node.node_state));
     } else {
-      errors.emplace_back(std::move(node.node_state.node_id),
-                          std::move(node.status));
+      result.errors.emplace_back(std::move(node.node_state.node_id),
+                                 std::move(node.status));
     }
 
     node.ClearDependsOf();
@@ -108,7 +109,7 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
 
   assert(AssertValid());
 
-  return {std::move(fetched_nodes), std::move(errors)};
+  return result;
 }
 
 void FetchingNodeGraph::AddDependency(FetchingNode& node, FetchingNode& from) {

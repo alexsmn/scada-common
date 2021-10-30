@@ -106,13 +106,18 @@ void NodeFetcherTest::ValidateFetchedNode() {
 TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_,
+              Read(_, Pointee(Contains(NodeIs(node_id))), _));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
 
-  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_,
-              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
+              Call(FieldsAre(Contains(NodeIs(node_id)), _,
+                             Contains(std::make_pair(
+                                 node_id, NodeFetchStatus::NodeOnly())))));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
@@ -138,15 +143,43 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
 
   // Forced refetch triggers another set of requests.
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_,
+              Read(_, Pointee(Contains(NodeIs(node_id))), _));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
 
-  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_,
-              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
+              Call(FieldsAre(Contains(NodeIs(node_id)), _,
+                             Contains(std::make_pair(
+                                 node_id, NodeFetchStatus::NodeOnly())))));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+
+  ValidateFetchedNode();
+}
+
+TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
+  EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+
+  auto fetch_status =
+      NodeFetchStatus::NodeOnly().with_non_hierarchical_inverse_references();
+
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_,
+              Read(_, Pointee(Contains(NodeIs(node_id))), _));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
+
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
+      .Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_,
+              Call(FieldsAre(Contains(NodeIs(node_id)), _,
+                             Contains(std::make_pair(node_id, fetch_status)))));
+
+  node_fetcher_->Fetch(node_id, fetch_status);
 
   ValidateFetchedNode();
 }

@@ -68,8 +68,7 @@ class AddressSpaceFetcherImpl
 
   void InternalFetchNode(const scada::NodeId& node_id,
                          const NodeFetchStatus& requested_status);
-  void OnFetchCompleted(std::vector<scada::NodeState>&& fetched_nodes,
-                        NodeFetchStatuses&& errors);
+  void OnFetchCompleted(FetchCompletedResult&& fetch_completed_result);
 
   void DeleteNode(const scada::NodeId& node_id);
   void OnChildrenFetched(const scada::NodeId& node_id,

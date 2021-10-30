@@ -12,6 +12,7 @@ using NodeFetchStatuses = std::vector<std::pair<scada::NodeId, scada::Status>>;
 struct FetchCompletedResult {
   std::vector<scada::NodeState> nodes;
   NodeFetchStatuses errors;
+  std::vector<std::pair<scada::NodeId, NodeFetchStatus>> fetch_statuses;
 };
 
 using NodeValidator = std::function<bool(const scada::NodeId& node_id)>;
