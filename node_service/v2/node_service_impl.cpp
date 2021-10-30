@@ -147,7 +147,7 @@ void NodeServiceImpl::OnNodeSemanticsChanged(
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (auto node = GetNodeModel(event.node_id))
-    node_fetcher_->Fetch(event.node_id, true);
+    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
@@ -162,7 +162,7 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
                     << LOG_TAG("RequestedStatus", ToString(requested_status));
 
   if (requested_status.node_fetched)
-    node_fetcher_->Fetch(node_id, true);
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
   if (requested_status.children_fetched)
     node_children_fetcher_->Fetch(node_id);
 }
@@ -250,7 +250,7 @@ void NodeServiceImpl::OnChannelOpened() {
                       << LOG_TAG("RequestedStatus", ToString(requested_status));
 
     if (requested_status.node_fetched)
-      node_fetcher_->Fetch(node_id);
+      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
     if (requested_status.children_fetched)
       node_children_fetcher_->Fetch(node_id);
   }

@@ -39,7 +39,9 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
       NodeFetcherImplContext&& context);
 
   // NodeFetcher
-  virtual void Fetch(const scada::NodeId& node_id, bool force = false) override;
+  virtual void Fetch(const scada::NodeId& node_id,
+                     const NodeFetchStatus& status,
+                     bool force = false) override;
   virtual void Cancel(const scada::NodeId& node_id) override;
   virtual size_t GetPendingNodeCount() const override;
 
@@ -48,7 +50,10 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
 
   unsigned MakeRequestId();
 
-  void FetchNode(FetchingNode& node, unsigned priority, bool force);
+  void FetchNode(FetchingNode& node,
+                 unsigned pending_sequence,
+                 const NodeFetchStatus& status,
+                 bool force);
 
   void FetchPendingNodes();
   void FetchPendingNodes(std::vector<FetchingNode*>&& nodes);

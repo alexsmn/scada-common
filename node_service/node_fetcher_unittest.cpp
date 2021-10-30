@@ -112,7 +112,7 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
 
-  node_fetcher_->Fetch(node_id);
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
   ValidateFetchedNode();
 }
@@ -124,7 +124,7 @@ TEST_F(NodeFetcherTest, Fetch_Force) {
   EXPECT_CALL(fetch_completed_handler_, Call(_, IsEmpty())).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(Contains(NodeIs(node_id)), _));
 
-  node_fetcher_->Fetch(node_id, true);
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
 
   ValidateFetchedNode();
 }
@@ -154,7 +154,7 @@ TEST_F(NodeFetcherTest, Cancel) {
   EXPECT_CALL(server_address_space_, Browse(_, _))
       .WillOnce(SaveArg<1>(&browse_callback1));
 
-  node_fetcher_->Fetch(node_id);
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
   node_fetcher_->Cancel(node_id);
 
@@ -168,7 +168,7 @@ TEST_F(NodeFetcherTest, Cancel) {
   EXPECT_CALL(server_address_space_, Browse(_, _))
       .WillOnce(SaveArg<1>(&browse_callback2));
 
-  node_fetcher_->Fetch(node_id);
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
   // First network request finishes.
 

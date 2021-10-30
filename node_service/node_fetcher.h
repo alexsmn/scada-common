@@ -2,6 +2,7 @@
 
 #include "common/node_state.h"
 #include "core/node_id.h"
+#include "node_service/node_fetch_status.h"
 
 #include <functional>
 #include <optional>
@@ -17,7 +18,9 @@ class NodeFetcher {
  public:
   virtual ~NodeFetcher() {}
 
-  virtual void Fetch(const scada::NodeId& node_id, bool force = false) = 0;
+  virtual void Fetch(const scada::NodeId& node_id,
+                     const NodeFetchStatus& status,
+                     bool force = false) = 0;
 
   virtual void Cancel(const scada::NodeId& node_id) = 0;
 

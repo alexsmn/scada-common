@@ -42,12 +42,13 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
 AddressSpaceFetcherImpl::AddressSpaceFetcherImpl(
     AddressSpaceFetcherImplContext&& context)
     : AddressSpaceFetcherImplContext{std::move(context)},
-      node_fetch_status_tracker_{{node_fetch_status_changed_handler_,
-                                  [this](const scada::NodeId& node_id) {
-                                    node_fetcher_->Fetch(node_id, true);
-                                    return false;
-                                  },
-                                  address_space_}} {}
+      node_fetch_status_tracker_{
+          {node_fetch_status_changed_handler_,
+           [this](const scada::NodeId& node_id) {
+             node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+             return false;
+           },
+           address_space_}} {}
 
 AddressSpaceFetcherImpl::~AddressSpaceFetcherImpl() {}
 
@@ -93,7 +94,7 @@ void AddressSpaceFetcherImpl::OnChannelOpened() {
   channel_opened_ = true;
 
   for (const auto& node_id : GetAllNodeIds(address_space_)) {
-    node_fetcher_->Fetch(node_id, true);
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
     node_children_fetcher_->Fetch(node_id);
   }
 
@@ -101,7 +102,7 @@ void AddressSpaceFetcherImpl::OnChannelOpened() {
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
   for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
     if (requested_status.node_fetched)
-      node_fetcher_->Fetch(node_id, true);
+      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
     if (requested_status.children_fetched)
       node_children_fetcher_->Fetch(node_id);
   }
@@ -149,7 +150,7 @@ void AddressSpaceFetcherImpl::OnModelChanged(
                                      NodeIdToScadaString(event.node_id));
 
         // Fetch forward references.
-        node_fetcher_->Fetch(event.node_id, true);
+        node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
 
         // Fetch child references.
         // TODO: This can be avoided if no children were requested.
@@ -167,7 +168,7 @@ void AddressSpaceFetcherImpl::OnNodeSemanticsChanged(
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (address_space_.GetNode(event.node_id))
-    node_fetcher_->Fetch(event.node_id, true);
+    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
 }
 
 void AddressSpaceFetcherImpl::FillMissingParent(scada::NodeState& node_state) {
@@ -277,7 +278,7 @@ void AddressSpaceFetcherImpl::OnChildrenFetched(
     // The node could be fetched via non-hierarchical reference with no
     // children.
     if (!address_space_.GetNode(reference.node_id))
-      node_fetcher_->Fetch(reference.node_id);
+      node_fetcher_->Fetch(reference.node_id, NodeFetchStatus::NodeOnly());
   }
 
   node_fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
@@ -322,7 +323,7 @@ void AddressSpaceFetcherImpl::InternalFetchNode(
   auto [status, fetch_status] = node_fetch_status_tracker_.GetStatus(node_id);
 
   if (fetch_status.node_fetched < requested_status.node_fetched)
-    node_fetcher_->Fetch(node_id, true);
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
 
   if (fetch_status.children_fetched < requested_status.children_fetched)
     node_children_fetcher_->Fetch(node_id);
