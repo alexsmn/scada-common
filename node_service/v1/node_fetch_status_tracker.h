@@ -33,6 +33,12 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
  public:
   explicit NodeFetchStatusTracker(NodeFetchStatusTrackerContext&& context);
 
+  // Experimental.
+  void SetFetchStatusesHint(
+      const NodeFetchStatuses& errors,
+      const std::vector<std::pair<scada::NodeId, NodeFetchStatus>>&
+          fetch_statuses);
+
   // For good statuses the node must exist in the address space.
   void OnNodesFetched(const NodeFetchStatuses& statuses);
 
@@ -51,6 +57,12 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   void OnChildFetched(const scada::NodeId& child_id);
 
+  std::pair<scada::Status, NodeFetchStatus> GetStatusHelper(
+      const scada::NodeId& node_id) const;
+
+  std::pair<scada::Status, NodeFetchStatus> GetExperimentalStatus(
+      const scada::NodeId& node_id) const;
+
   BoostLogger logger_{LOG_NAME("NodeFetchStatusTracker")};
 
   base::ThreadChecker thread_checker_;
@@ -66,6 +78,9 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
       children_;
 
   std::map<scada::NodeId, scada::Status> errors_;
+
+  std::map<scada::NodeId, std::pair<scada::Status, NodeFetchStatus>>
+      experimental_fetch_statuses_;
 
   // Status notification consolidation queue.
   NodeFetchStatusQueue status_queue_{

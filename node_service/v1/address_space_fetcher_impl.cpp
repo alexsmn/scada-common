@@ -213,6 +213,8 @@ void AddressSpaceFetcherImpl::OnFetchCompleted(
   AddressSpaceUpdater updater{address_space_, node_factory_};
   updater.UpdateNodes(std::move(fetched_nodes));
 
+  node_fetch_status_tracker_.SetFetchStatusesHint(errors, fetch_statuses);
+
   const std::set<scada::NodeId> added_node_ids =
       updater.model_change_verbs() |
       boost::adaptors::filtered([](const auto& p) {
