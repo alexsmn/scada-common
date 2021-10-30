@@ -80,7 +80,7 @@ scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
 std::vector<scada::NodeId> CollectNodeIds(
     const std::vector<FetchingNode*> nodes) {
   return nodes | boost::adaptors::transformed([](const FetchingNode* node) {
-           return node->node_id;
+           return node->node_state.node_id;
          }) |
          to_vector;
 }
@@ -128,7 +128,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
       return;
 
     LOG_INFO(logger_) << "Cancel started fetching node"
-                      << LOG_TAG("NodeId", ToString(node.node_id))
+                      << LOG_TAG("NodeId", ToString(node.node_state.node_id))
                       << LOG_TAG("RequestId", node.fetch_request_id)
                       << LOG_TAG("FetchStarted", node.fetch_started);
 
@@ -138,7 +138,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
     node.references_fetched = false;
     node.status = scada::StatusCode::Good;
     // It's important to reset references, because they will be refetched.
-    node.references.clear();
+    node.node_state.references.clear();
   }
 
   // LOG_INFO(logger_) << "Schedule fetch node"
@@ -232,8 +232,8 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   read_ids->reserve(nodes.size() * kFetchAttributesReserveFactor);
   for (auto* node : nodes) {
     size_t count = read_ids->size();
-    GetFetchAttributes(node->node_id, node->is_property, node->is_declaration,
-                       *read_ids);
+    GetFetchAttributes(node->node_state.node_id, node->is_property,
+                       node->is_declaration, *read_ids);
     node->attributes_fetched = count == read_ids->size();
   }
 
@@ -257,11 +257,11 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   descriptions.reserve(nodes.size() * kFetchReferencesReserveFactor);
   for (auto* node : nodes) {
     size_t count = descriptions.size();
-    bool fetch_parent = node->node_id != scada::id::RootFolder &&
-                        node->parent_id.is_null() &&
-                        node->reference_type_id.is_null();
-    GetFetchReferences(*node, node->is_property, node->is_declaration,
-                       fetch_parent, descriptions);
+    bool fetch_parent = node->node_state.node_id != scada::id::RootFolder &&
+                        node->node_state.parent_id.is_null() &&
+                        node->node_state.reference_type_id.is_null();
+    GetFetchReferences(node->node_state, node->is_property,
+                       node->is_declaration, fetch_parent, descriptions);
     node->references_fetched = count == descriptions.size();
   }
 
@@ -390,7 +390,7 @@ void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
   // Request cancelation.
   if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore read response for canceled node"
-                      << LOG_TAG("NodeId", ToString(node->node_id));
+                      << LOG_TAG("NodeId", ToString(node->node_state.node_id));
     return;
   }
 
@@ -411,27 +411,29 @@ void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
                                           scada::Variant&& value) {
   switch (attribute_id) {
     case scada::AttributeId::NodeClass:
-      node.node_class = static_cast<scada::NodeClass>(value.as_int32());
+      node.node_state.node_class =
+          static_cast<scada::NodeClass>(value.as_int32());
       break;
 
     case scada::AttributeId::BrowseName:
       assert(!value.get<scada::QualifiedName>().empty());
-      node.attributes.browse_name =
+      node.node_state.attributes.browse_name =
           std::move(value.get<scada::QualifiedName>());
       break;
 
     case scada::AttributeId::DisplayName:
-      node.attributes.display_name = std::move(value.as_localized_text());
+      node.node_state.attributes.display_name =
+          std::move(value.as_localized_text());
       break;
 
     case scada::AttributeId::DataType:
       assert(!value.as_node_id().is_null());
-      node.attributes.data_type = std::move(value.as_node_id());
-      ValidateDependency(node, node.attributes.data_type);
+      node.node_state.attributes.data_type = std::move(value.as_node_id());
+      ValidateDependency(node, node.node_state.attributes.data_type);
       break;
 
     case scada::AttributeId::Value:
-      node.attributes.value = std::move(value);
+      node.node_state.attributes.value = std::move(value);
       break;
   }
 }
@@ -500,7 +502,7 @@ void NodeFetcherImpl::ApplyBrowseResult(
   // Request cancelation.
   if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore browse response for canceled node"
-                      << LOG_TAG("NodeId", ToString(node->node_id));
+                      << LOG_TAG("NodeId", ToString(node->node_state.node_id));
     return;
   }
 
@@ -534,16 +536,17 @@ void NodeFetcherImpl::AddFetchedReference(
            description.reference_type_id == scada::id::HasSubtype);
 
     if (reference.reference_type_id == scada::id::HasSubtype) {
-      assert(node.supertype_id.is_null() ||
-             node.supertype_id == reference.node_id);
-      node.supertype_id = reference.node_id;
+      assert(node.node_state.supertype_id.is_null() ||
+             node.node_state.supertype_id == reference.node_id);
+      node.node_state.supertype_id = reference.node_id;
     } else {
-      assert(node.parent_id.is_null() || node.parent_id == reference.node_id);
-      assert(node.reference_type_id.is_null() ||
-             node.reference_type_id == reference.reference_type_id);
+      assert(node.node_state.parent_id.is_null() ||
+             node.node_state.parent_id == reference.node_id);
+      assert(node.node_state.reference_type_id.is_null() ||
+             node.node_state.reference_type_id == reference.reference_type_id);
       assert(reference.reference_type_id != scada::id::HasSubtype);
-      node.parent_id = reference.node_id;
-      node.reference_type_id = reference.reference_type_id;
+      node.node_state.parent_id = reference.node_id;
+      node.node_state.reference_type_id = reference.reference_type_id;
     }
 
     ValidateDependency(node, reference.node_id);
@@ -557,15 +560,16 @@ void NodeFetcherImpl::AddFetchedReference(
     // Save parent for the pending child.
     // WARNING: |reference.node_id|.
     auto& child = fetching_nodes_.AddNode(reference.node_id);
-    child.reference_type_id = reference.reference_type_id;
-    child.parent_id = description.node_id;
+    child.node_state.reference_type_id = reference.reference_type_id;
+    child.node_state.parent_id = description.node_id;
     child.force |= node.force;
 
     if (reference.reference_type_id == scada::id::HasProperty) {
-      child.node_class = scada::NodeClass::Variable;
-      child.type_definition_id = scada::id::PropertyType;
+      child.node_state.node_class = scada::NodeClass::Variable;
+      child.node_state.type_definition_id = scada::id::PropertyType;
       child.is_property = true;
-      child.is_declaration = scada::IsTypeDefinition(node.node_class);
+      child.is_declaration =
+          scada::IsTypeDefinition(node.node_state.node_class);
 
       // TODO: Optimize. May be done once.
       ValidateDependency(node, scada::id::PropertyType);
@@ -584,13 +588,14 @@ void NodeFetcherImpl::AddFetchedReference(
            scada::id::NonHierarchicalReferences);
 
     if (reference.reference_type_id == scada::id::HasTypeDefinition) {
-      assert(node.type_definition_id.is_null() ||
-             node.type_definition_id == reference.node_id);
-      node.type_definition_id = reference.node_id;
+      assert(node.node_state.type_definition_id.is_null() ||
+             node.node_state.type_definition_id == reference.node_id);
+      node.node_state.type_definition_id = reference.node_id;
     } else {
-      assert(std::find(node.references.begin(), node.references.end(),
-                       reference) == node.references.end());
-      node.references.emplace_back(reference);
+      assert(std::find(node.node_state.references.begin(),
+                       node.node_state.references.end(),
+                       reference) == node.node_state.references.end());
+      node.node_state.references.emplace_back(reference);
     }
 
     ValidateDependency(node, reference.node_id);
@@ -633,7 +638,7 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
   if (from_id.is_null())
     return;
 
-  if (node.node_id == from_id)
+  if (node.node_state.node_id == from_id)
     return;
 
   if (node_validator_(from_id))

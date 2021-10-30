@@ -3,11 +3,13 @@
 #include "common/node_state.h"
 #include "node_service/node_fetch_status.h"
 
-struct FetchingNode : scada::NodeState {
+struct FetchingNode {
   bool fetched() const { return attributes_fetched && references_fetched; }
 
   void ClearDependsOf();
   void ClearDependentNodes();
+
+  scada::NodeState node_state;
 
   bool pending = false;  // the node is in |pending_queue_|.
   NodeFetchStatus pending_status;

@@ -23,7 +23,7 @@ FetchingNode& FetchingNodeGraph::AddNode(const scada::NodeId& node_id) {
   auto p = fetching_nodes_.try_emplace(node_id);
   auto& node = p.first->second;
   if (p.second)
-    node.node_id = node_id;
+    node.node_state.node_id = node_id;
 
   return node;
 }
@@ -96,10 +96,10 @@ FetchingNodeGraph::GetFetchedNodes() {
     assert(!node.fetch_started.empty());
 
     if (node.status) {
-      fetched_nodes.emplace_back(
-          std::move(static_cast<scada::NodeState&>(node)));
+      fetched_nodes.emplace_back(std::move(node.node_state));
     } else {
-      errors.emplace_back(std::move(node.node_id), std::move(node.status));
+      errors.emplace_back(std::move(node.node_state.node_id),
+                          std::move(node.status));
     }
 
     node.ClearDependsOf();
@@ -128,9 +128,9 @@ std::string FetchingNodeGraph::GetDebugString() const {
   std::stringstream stream;
   for (auto& p : fetching_nodes_) {
     auto& node = p.second;
-    stream << node.node_id << ": ";
+    stream << node.node_state.node_id << ": ";
     for (auto* depends_of : node.depends_of)
-      stream << depends_of->node_id << ", ";
+      stream << depends_of->node_state.node_id << ", ";
     stream << std::endl;
   }
   return stream.str();
