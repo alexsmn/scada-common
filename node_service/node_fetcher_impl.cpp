@@ -121,9 +121,6 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
                                 const NodeFetchStatus& status,
                                 bool force) {
-  if (pending_queue_.count(node))
-    return;
-
   if (node.fetch_started) {
     if (!force)
       return;
