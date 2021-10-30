@@ -205,9 +205,8 @@ void ScadaExpression::Parse(const char* buf) {
   expression::Lexer lexer{buf, lexer_delegate, 0};
   expression::Allocator allocator;
   ParserDelegate parser_delegate{*this};
-  expression::BasicParser<expression::Lexer, expression::PolymorphicToken,
-                          ParserDelegate>
-      parser{lexer, allocator, parser_delegate};
+  expression::BasicParser<expression::Lexer, ParserDelegate> parser{
+      lexer, allocator, parser_delegate};
   expression_.Parse(parser, allocator);
 }
 
