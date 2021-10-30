@@ -104,7 +104,7 @@ size_t NodeFetcherImpl::GetPendingNodeCount() const {
 }
 
 void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
-                            const NodeFetchStatus& status,
+                            NodeFetchStatus status,
                             bool force) {
   assert(!node_id.is_null());
   assert(!status.empty());
@@ -119,21 +119,25 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
 
 void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
-                                const NodeFetchStatus& status,
+                                NodeFetchStatus status,
                                 bool force) {
-  if (node.fetch_started) {
-    if (!force)
+  assert(!status.empty());
+
+  if (!node.fetch_started.empty()) {
+    if (status.all_less_or_equal(node.fetch_started) && !force)
       return;
 
     LOG_INFO(logger_) << "Cancel started fetching node"
                       << LOG_TAG("NodeId", ToString(node.node_id))
-                      << LOG_TAG("RequestId", node.fetch_request_id);
-    node.fetch_started = false;
+                      << LOG_TAG("RequestId", node.fetch_request_id)
+                      << LOG_TAG("FetchStarted", node.fetch_started);
+
+    node.fetch_started = NodeFetchStatus{};
     node.fetch_request_id = 0;
     node.attributes_fetched = false;
     node.references_fetched = false;
     node.status = scada::StatusCode::Good;
-    // It's important to refrence references, because they will be refetched.
+    // It's important to reset references, because they will be refetched.
     node.references.clear();
   }
 
@@ -141,6 +145,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
   //                   << LOG_TAG("NodeId", ToString(node.node_id));
 
   node.force |= force;
+  node.pending_status |= status;
   node.pending_sequence = pending_sequence;
   pending_queue_.push(node);
 
@@ -186,8 +191,9 @@ void NodeFetcherImpl::FetchPendingNodes() {
   while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
     auto& node = pending_queue_.top();
     pending_queue_.pop();
-    assert(!node.fetch_started);
-    node.fetch_started = true;
+    assert(node.fetch_started.empty());
+    assert(!node.pending_status.empty());
+    node.fetch_started = node.pending_status;
     nodes.emplace_back(&node);
   }
 
@@ -382,7 +388,7 @@ void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
     return;
 
   // Request cancelation.
-  if (!node->fetch_started || node->fetch_request_id != request_id) {
+  if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore read response for canceled node"
                       << LOG_TAG("NodeId", ToString(node->node_id));
     return;
@@ -492,7 +498,7 @@ void NodeFetcherImpl::ApplyBrowseResult(
     return;
 
   // Request cancelation.
-  if (!node->fetch_started || node->fetch_request_id != request_id) {
+  if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore browse response for canceled node"
                       << LOG_TAG("NodeId", ToString(node->node_id));
     return;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/node_state.h"
+#include "node_service/node_fetch_status.h"
 
 struct FetchingNode : scada::NodeState {
   bool fetched() const { return attributes_fetched && references_fetched; }
@@ -9,9 +10,13 @@ struct FetchingNode : scada::NodeState {
   void ClearDependentNodes();
 
   bool pending = false;  // the node is in |pending_queue_|.
+  NodeFetchStatus pending_status;
   unsigned pending_sequence = 0;
 
-  bool fetch_started = false;     // requests were sent (can be completed).
+  // Requests were sent for specified requested status (requests can be already
+  // completed).
+  NodeFetchStatus fetch_started;
+
   unsigned fetch_request_id = 0;  // for request cancelation
   std::vector<FetchingNode*> depends_of;
   std::vector<FetchingNode*> dependent_nodes;

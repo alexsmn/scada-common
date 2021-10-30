@@ -19,7 +19,7 @@ class NodeFetcher {
   virtual ~NodeFetcher() {}
 
   virtual void Fetch(const scada::NodeId& node_id,
-                     const NodeFetchStatus& status,
+                     NodeFetchStatus status,
                      bool force = false) = 0;
 
   virtual void Cancel(const scada::NodeId& node_id) = 0;

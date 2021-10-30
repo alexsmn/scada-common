@@ -93,15 +93,18 @@ FetchingNodeGraph::GetFetchedNodes() {
       continue;
     }
 
-    assert(node.fetch_started);
+    assert(!node.fetch_started.empty());
 
-    if (node.status)
-      fetched_nodes.emplace_back(node);
-    else
-      errors.emplace_back(node.node_id, node.status);
+    if (node.status) {
+      fetched_nodes.emplace_back(
+          std::move(static_cast<scada::NodeState&>(node)));
+    } else {
+      errors.emplace_back(std::move(node.node_id), std::move(node.status));
+    }
 
     node.ClearDependsOf();
     node.ClearDependentNodes();
+
     i = fetching_nodes_.erase(i);
   }
 
