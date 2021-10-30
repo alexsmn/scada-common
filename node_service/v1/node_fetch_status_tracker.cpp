@@ -128,24 +128,18 @@ std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     const scada::NodeId& node_id) const {
   assert(thread_checker_.CalledOnValidThread());
 
-  scada::Status status{scada::StatusCode::Good};
+  if (auto i = errors_.find(node_id); i != errors_.end()) {
+    assert(!i->second);
+    return {i->second, NodeFetchStatus::Max()};
+  }
 
   NodeFetchStatus fetch_status{};
   fetch_status.node_fetched = IsNodeFetched(node_id);
 
-  if (auto i = errors_.find(node_id); i != errors_.end()) {
-    assert(!i->second);
-    status = i->second;
-  }
+  if (auto i = parents_.find(node_id); i != parents_.end())
+    fetch_status.children_fetched = i->second.empty();
 
-  if (status) {
-    if (auto i = parents_.find(node_id); i != parents_.end())
-      fetch_status.children_fetched = i->second.empty();
-  } else {
-    fetch_status.children_fetched = true;
-  }
-
-  return {std::move(status), std::move(fetch_status)};
+  return {scada::StatusCode::Good, std::move(fetch_status)};
 }
 
 bool NodeFetchStatusTracker::IsNodeFetched(const scada::NodeId& node_id) const {
