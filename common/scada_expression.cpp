@@ -147,24 +147,29 @@ class ItemToken : public expression::Token {
   const int index_;
 };
 
-struct ParserDelegate {
+struct ParserDelegate
+    : public expression::BasicParserDelegate<expression::PolymorphicToken> {
+  ParserDelegate(expression::Allocator& allocator, ScadaExpression& expression)
+      : expression::BasicParserDelegate<
+            expression::PolymorphicToken>{allocator},
+        expression{expression} {}
+
   template <class Parser>
   std::optional<expression::PolymorphicToken> MakeCustomToken(
-      expression::Allocator& allocator,
       const expression::Lexem& lexem,
       Parser& parser) {
     switch (lexem.lexem) {
       case LEX_TRUE:
       case LEX_FALSE:
         return expression::MakePolymorphicToken<BoolToken>(
-            allocator, lexem.lexem == LEX_TRUE);
+            allocator_, lexem.lexem == LEX_TRUE);
 
       case expression::LEX_NAME: {
         // variable
         auto& item = expression.items.emplace_back();
         item.name = lexem._string;
         return expression::MakePolymorphicToken<ItemToken>(
-            allocator, expression, expression.items.size() - 1);
+            allocator_, expression, expression.items.size() - 1);
       }
 
       default:
@@ -204,9 +209,9 @@ void ScadaExpression::Parse(const char* buf) {
   ScadaLexerDelegate lexer_delegate;
   expression::Lexer lexer{buf, lexer_delegate, 0};
   expression::Allocator allocator;
-  ParserDelegate parser_delegate{*this};
+  ParserDelegate parser_delegate{allocator, *this};
   expression::BasicParser<expression::Lexer, ParserDelegate> parser{
-      lexer, allocator, parser_delegate};
+      lexer, parser_delegate};
   expression_.Parse(parser, allocator);
 }
 
