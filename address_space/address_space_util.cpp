@@ -184,7 +184,7 @@ Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
 StatusCode ConvertPropertyValues(const TypeDefinition& type_definition,
                                  NodeProperties& properties) {
   for (auto& prop : properties) {
-    auto prop_decl_id = prop.first;
+    auto& prop_decl_id = prop.first;
     auto* prop_decl =
         AsVariable(GetAggregateDeclaration(type_definition, prop_decl_id));
     if (!prop_decl) {

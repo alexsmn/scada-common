@@ -89,6 +89,12 @@ bool IsInstanceOf(const Node* node, const NodeId& type_id) {
   return type_definition && IsSubtypeOf(*type_definition, type_id);
 }
 
+bool IsChildOf(const Node* node, const NodeId& parent_id) {
+  while (node && node->id() != parent_id)
+    node = scada::GetParent(*node);
+  return node != nullptr;
+}
+
 const ReferenceType* AsReferenceType(const Node* node) {
   return node && node->GetNodeClass() == NodeClass::ReferenceType
              ? static_cast<const ReferenceType*>(node)

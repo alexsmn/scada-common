@@ -52,7 +52,9 @@ const Node* GetAggregateDeclaration(const TypeDefinition& type,
                                     const NodeId& prop_decl_id);
 const Node* GetDeclaration(const Node& node);
 
+bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
 bool IsInstanceOf(const Node* node, const NodeId& type_id);
+bool IsChildOf(const Node* node, const NodeId& parent_id);
 
 Reference GetParentReference(const Node& node);
 Node* GetParent(Node& node);
@@ -75,8 +77,6 @@ inline Node* GetTarget(const Node& node,
                        bool forward) {
   return FindReference(node, reference_type_id, forward).node;
 }
-
-bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
 
 struct IsNonPropReference {
   bool operator()(const Reference& ref) const;
