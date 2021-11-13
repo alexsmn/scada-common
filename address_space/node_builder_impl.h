@@ -1,12 +1,12 @@
 #pragma once
 
-#include "address_space/address_space.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_builder.h"
 
 class NodeBuilderImpl : public scada::NodeBuilder {
  public:
-  explicit NodeBuilderImpl(scada::AddressSpace& address_space)
+  explicit NodeBuilderImpl(MutableAddressSpace& address_space)
       : address_space_{address_space} {}
 
   virtual const scada::Node& GetNode(
@@ -29,5 +29,5 @@ class NodeBuilderImpl : public scada::NodeBuilder {
   }
 
  private:
-  scada::AddressSpace& address_space_;
+  MutableAddressSpace& address_space_;
 };

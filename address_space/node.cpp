@@ -7,16 +7,6 @@
 
 namespace scada {
 
-void AddReference(const ReferenceType& type, Node& source, Node& target) {
-  source.AddReference(type, true, target);
-  target.AddReference(type, false, source);
-}
-
-void DeleteReference(const ReferenceType& type, Node& source, Node& target) {
-  source.DeleteReference(type, true, target);
-  target.DeleteReference(type, false, source);
-}
-
 // Node
 
 Node::Node() {}

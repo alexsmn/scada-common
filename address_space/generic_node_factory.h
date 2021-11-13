@@ -7,11 +7,11 @@ class NodeId;
 class TypeDefinition;
 }  // namespace scada
 
-class AddressSpaceImpl;
+class MutableAddressSpace;
 
 class GenericNodeFactory final : public NodeFactory {
  public:
-  explicit GenericNodeFactory(AddressSpaceImpl& address_space,
+  explicit GenericNodeFactory(MutableAddressSpace& address_space,
                               bool create_properties = true)
       : address_space_{address_space}, create_properties_{create_properties} {}
 
@@ -23,6 +23,6 @@ class GenericNodeFactory final : public NodeFactory {
       const scada::NodeState& node_state,
       const scada::NodeId& parent_id);
 
-  AddressSpaceImpl& address_space_;
+  MutableAddressSpace& address_space_;
   const bool create_properties_ = false;
 };

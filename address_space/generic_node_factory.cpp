@@ -1,6 +1,6 @@
 #include "address_space/generic_node_factory.h"
 
-#include "address_space/address_space_impl.h"
+#include "address_space/mutable_address_space.h"
 #include "address_space/node_builder_impl.h"
 #include "address_space/node_factory_util.h"
 #include "address_space/node_utils.h"
@@ -113,7 +113,8 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
         scada::DataValue{std::move(*node_state.attributes.value), {}, {}, {}});
   }
 
-  auto& node_ref = address_space_.AddStaticNode(std::move(node));
+  auto& node_ref = *node;
+  address_space_.AddNode(std::move(node));
 
   if (type_definition) {
     scada::AddReference(address_space_, scada::id::HasTypeDefinition, node_ref,
@@ -133,7 +134,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     if (!reference_type)
       throw scada::Status(scada::StatusCode::Bad_WrongReferenceId);
 
-    scada::AddReference(*reference_type, *parent, node_ref);
+    address_space_.AddReference(*reference_type, *parent, node_ref);
   }
 
   for (auto& child_state : node_state.children) {

@@ -114,7 +114,7 @@ void AddressSpaceFetcherImpl::DeleteNode(const scada::NodeId& node_id) {
   node_fetcher_->Cancel(node_id);
   node_children_fetcher_->Cancel(node_id);
   node_fetch_status_tracker_.Delete(node_id);
-  address_space_.RemoveNode(node_id);
+  address_space_.DeleteNode(node_id);
 }
 
 void AddressSpaceFetcherImpl::OnModelChanged(

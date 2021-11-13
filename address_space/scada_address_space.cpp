@@ -180,7 +180,7 @@ scada::ReferenceType* ScadaAddressSpaceBuilder::CreateReferenceType(
                  reference_type_id, category_id);
   }
 
-  AddReference(result, *source_type, *target_type);
+  address_space_.AddReference(result, *source_type, *target_type);
   return &result;
 }
 

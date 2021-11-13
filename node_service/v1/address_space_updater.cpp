@@ -1,7 +1,7 @@
 #include "node_service/v1/address_space_updater.h"
 
-#include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
+#include "address_space/mutable_address_space.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
@@ -75,15 +75,12 @@ struct TypeDefinitionPatch {
 
   void Fix() {
     for (auto& [node_id, entry] : parents) {
-      UpdateReference(address_space, entry.reference_type_id, entry.parent_id,
-                      node_id);
-      UpdateReference(address_space, scada::id::HasSubtype, entry.supertype_id,
-                      node_id);
+      UpdateReference(entry.reference_type_id, entry.parent_id, node_id);
+      UpdateReference(scada::id::HasSubtype, entry.supertype_id, node_id);
     }
   }
 
-  void UpdateReference(scada::AddressSpace& address_space,
-                       const scada::NodeId& reference_type_id,
+  void UpdateReference(const scada::NodeId& reference_type_id,
                        const scada::NodeId& source_id,
                        const scada::NodeId& target_id) {
     if (source_id.is_null())
@@ -100,7 +97,7 @@ struct TypeDefinitionPatch {
     scada::AddReference(address_space, reference_type_id, source_id, target_id);
   }
 
-  scada::AddressSpace& address_space;
+  MutableAddressSpace& address_space;
 
   struct Entry {
     scada::NodeId parent_id;
@@ -113,7 +110,7 @@ struct TypeDefinitionPatch {
 
 // AddressSpaceUpdater
 
-AddressSpaceUpdater::AddressSpaceUpdater(AddressSpaceImpl& address_space,
+AddressSpaceUpdater::AddressSpaceUpdater(MutableAddressSpace& address_space,
                                          NodeFactory& node_factory)
     : address_space_{address_space}, node_factory_{node_factory} {}
 

@@ -29,7 +29,7 @@ class TestAddressSpace : public AddressSpaceImpl,
                                  const scada::NodeId& component_decl_id);
 
   void CreateNode(const scada::NodeState& node_state);
-  void DeleteNode(const scada::NodeId& node_id);
+  virtual void DeleteNode(const scada::NodeId& node_id) override;
 
   StandardAddressSpace standard_address_space{*this};
 
@@ -220,12 +220,9 @@ inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
   ALLOW_UNUSED_LOCAL(p);
   assert(p.first);
   assert(p.second);
-  // NotifyModelChanged(
-  //     {node_state.node_id, {}, scada::ModelChangeEvent::NodeAdded});
 }
 
 inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
   assert(GetNode(node_id));
-  RemoveNode(node_id);
-  // NotifyModelChanged({node_id, {}, scada::ModelChangeEvent::NodeDeleted});
+  AddressSpaceImpl::DeleteNode(node_id);
 }

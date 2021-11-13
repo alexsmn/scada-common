@@ -13,7 +13,7 @@ class NodeId;
 struct NodeState;
 }  // namespace scada
 
-class AddressSpaceImpl;
+class MutableAddressSpace;
 class NodeFactory;
 
 // Maps node id to scada::ModelChangeEvent::Verb.
@@ -21,7 +21,7 @@ using ModelChangeVerbs = std::map<scada::NodeId, uint8_t>;
 
 class AddressSpaceUpdater {
  public:
-  AddressSpaceUpdater(AddressSpaceImpl& address_space,
+  AddressSpaceUpdater(MutableAddressSpace& address_space,
                       NodeFactory& node_factory);
 
   void UpdateNodes(std::vector<scada::NodeState>&& nodes);
@@ -50,7 +50,7 @@ class AddressSpaceUpdater {
 
   void ReportStatistics();
 
-  AddressSpaceImpl& address_space_;
+  MutableAddressSpace& address_space_;
   NodeFactory& node_factory_;
 
   BoostLogger logger_{LOG_NAME("AddressSpaceUpdater")};

@@ -4,6 +4,7 @@
 #include "base/strings/utf_string_conversions.h"
 
 GenericDataVariable::GenericDataVariable(StandardAddressSpace& std,
+                                         AddressSpaceImpl& address_space,
                                          scada::NodeId id,
                                          scada::QualifiedName browse_name,
                                          scada::LocalizedText display_name,
@@ -15,11 +16,13 @@ GenericDataVariable::GenericDataVariable(StandardAddressSpace& std,
                       std::move(display_name),
                       data_type,
                       std::move(default_value)) {
-  scada::AddReference(std.HasTypeDefinition, *this, variable_type);
-  scada::AddReference(std.HasModellingRule, *this, std.ModellingRule_Mandatory);
+  address_space.AddReference(std.HasTypeDefinition, *this, variable_type);
+  address_space.AddReference(std.HasModellingRule, *this,
+                             std.ModellingRule_Mandatory);
 }
 
 GenericProperty::GenericProperty(StandardAddressSpace& std,
+                                 AddressSpaceImpl& address_space,
                                  scada::NodeId id,
                                  scada::QualifiedName browse_name,
                                  scada::LocalizedText display_name,
@@ -30,8 +33,9 @@ GenericProperty::GenericProperty(StandardAddressSpace& std,
                       std::move(display_name),
                       data_type,
                       std::move(default_value)) {
-  scada::AddReference(std.HasTypeDefinition, *this, std.PropertyType);
-  scada::AddReference(std.HasModellingRule, *this, std.ModellingRule_Mandatory);
+  address_space.AddReference(std.HasTypeDefinition, *this, std.PropertyType);
+  address_space.AddReference(std.HasModellingRule, *this,
+                             std.ModellingRule_Mandatory);
 }
 
 StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
@@ -86,67 +90,70 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
 
   address_space.AddNode(Server);
 
-  scada::AddReference(HasTypeDefinition, RootFolder, FolderType);
+  address_space.AddReference(HasTypeDefinition, RootFolder, FolderType);
 
   // ObjectsFolder
-  scada::AddReference(HasTypeDefinition, ObjectsFolder, FolderType);
-  scada::AddReference(Organizes, RootFolder, ObjectsFolder);
+  address_space.AddReference(HasTypeDefinition, ObjectsFolder, FolderType);
+  address_space.AddReference(Organizes, RootFolder, ObjectsFolder);
 
   // TypesFolder
-  scada::AddReference(HasTypeDefinition, TypesFolder, FolderType);
-  scada::AddReference(Organizes, RootFolder, TypesFolder);
+  address_space.AddReference(HasTypeDefinition, TypesFolder, FolderType);
+  address_space.AddReference(Organizes, RootFolder, TypesFolder);
 
   // References
-  scada::AddReference(Organizes, TypesFolder, References);
+  address_space.AddReference(Organizes, TypesFolder, References);
 
-  scada::AddReference(HasSubtype, References, HierarchicalReference);
-  scada::AddReference(HasSubtype, HierarchicalReference, Aggregates);
-  scada::AddReference(HasSubtype, HierarchicalReference, Organizes);
-  scada::AddReference(HasSubtype, HierarchicalReference, HasSubtype);
-  scada::AddReference(HasSubtype, Aggregates, HasProperty);
-  scada::AddReference(HasSubtype, Aggregates, HasComponent);
+  address_space.AddReference(HasSubtype, References, HierarchicalReference);
+  address_space.AddReference(HasSubtype, HierarchicalReference, Aggregates);
+  address_space.AddReference(HasSubtype, HierarchicalReference, Organizes);
+  address_space.AddReference(HasSubtype, HierarchicalReference, HasSubtype);
+  address_space.AddReference(HasSubtype, Aggregates, HasProperty);
+  address_space.AddReference(HasSubtype, Aggregates, HasComponent);
 
-  scada::AddReference(HasSubtype, References, NonHierarchicalReference);
-  scada::AddReference(HasSubtype, NonHierarchicalReference, HasTypeDefinition);
-  scada::AddReference(HasSubtype, NonHierarchicalReference, HasModellingRule);
+  address_space.AddReference(HasSubtype, References, NonHierarchicalReference);
+  address_space.AddReference(HasSubtype, NonHierarchicalReference,
+                             HasTypeDefinition);
+  address_space.AddReference(HasSubtype, NonHierarchicalReference,
+                             HasModellingRule);
 
   // BaseDataType
-  scada::AddReference(Organizes, TypesFolder, BaseDataType);
+  address_space.AddReference(Organizes, TypesFolder, BaseDataType);
 
-  scada::AddReference(HasSubtype, BaseDataType, BoolDataType);
-  scada::AddReference(HasSubtype, BaseDataType, Int8DataType);
-  scada::AddReference(HasSubtype, BaseDataType, UInt8DataType);
-  scada::AddReference(HasSubtype, BaseDataType, Int16DataType);
-  scada::AddReference(HasSubtype, BaseDataType, UInt16DataType);
-  scada::AddReference(HasSubtype, BaseDataType, Int32DataType);
-  scada::AddReference(HasSubtype, BaseDataType, UInt32DataType);
-  scada::AddReference(HasSubtype, BaseDataType, Int64DataType);
-  scada::AddReference(HasSubtype, BaseDataType, UInt64DataType);
-  scada::AddReference(HasSubtype, BaseDataType, DoubleDataType);
-  scada::AddReference(HasSubtype, BaseDataType, StringDataType);
-  scada::AddReference(HasSubtype, BaseDataType, LocalizedTextDataType);
-  scada::AddReference(HasSubtype, BaseDataType, NodeIdDataType);
-  scada::AddReference(HasSubtype, BaseDataType, ByteStringDataType);
-  scada::AddReference(HasSubtype, BaseDataType, DateTimeDataType);
-  scada::AddReference(HasSubtype, BaseDataType, EnumerationDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, BoolDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, Int8DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, UInt8DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, Int16DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, UInt16DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, Int32DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, UInt32DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, Int64DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, UInt64DataType);
+  address_space.AddReference(HasSubtype, BaseDataType, DoubleDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, StringDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, LocalizedTextDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, NodeIdDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, ByteStringDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, DateTimeDataType);
+  address_space.AddReference(HasSubtype, BaseDataType, EnumerationDataType);
 
   // BaseObjectType
-  scada::AddReference(Organizes, TypesFolder, BaseObjectType);
+  address_space.AddReference(Organizes, TypesFolder, BaseObjectType);
 
-  scada::AddReference(HasSubtype, BaseObjectType, FolderType);
+  address_space.AddReference(HasSubtype, BaseObjectType, FolderType);
 
   // BaseVariableType
-  scada::AddReference(Organizes, TypesFolder, BaseVariableType);
-  scada::AddReference(HasSubtype, BaseVariableType, PropertyType);
+  address_space.AddReference(Organizes, TypesFolder, BaseVariableType);
+  address_space.AddReference(HasSubtype, BaseVariableType, PropertyType);
 
   // ModellingRules
-  scada::AddReference(HasTypeDefinition, ModellingRules, FolderType);
-  scada::AddReference(Organizes, ObjectsFolder, ModellingRules);
-  scada::AddReference(HasTypeDefinition, ModellingRule_Mandatory,
-                      BaseObjectType);
-  scada::AddReference(Organizes, ModellingRules, ModellingRule_Mandatory);
+  address_space.AddReference(HasTypeDefinition, ModellingRules, FolderType);
+  address_space.AddReference(Organizes, ObjectsFolder, ModellingRules);
+  address_space.AddReference(HasTypeDefinition, ModellingRule_Mandatory,
+                             BaseObjectType);
+  address_space.AddReference(Organizes, ModellingRules,
+                             ModellingRule_Mandatory);
 
   // Server
-  scada::AddReference(Organizes, ObjectsFolder, Server);
-  scada::AddReference(HasTypeDefinition, Server, BaseObjectType);
+  address_space.AddReference(Organizes, ObjectsFolder, Server);
+  address_space.AddReference(HasTypeDefinition, Server, BaseObjectType);
 }

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+class MutableAddressSpace;
+
 namespace scada {
 
 class AddressSpace;
@@ -40,11 +42,11 @@ bool IsSimulated(const Node& node, bool recursive);
 bool IsDisabled(const Node& node, bool recursive);
 
 Node* GetMutableNestedNode(AddressSpace& address_space,
-                    const NodeId& node_id,
-                    std::string_view& nested_name);
+                           const NodeId& node_id,
+                           std::string_view& nested_name);
 const Node* GetNestedNode(const AddressSpace& address_space,
-                    const NodeId& node_id,
-                    std::string_view& nested_name);
+                          const NodeId& node_id,
+                          std::string_view& nested_name);
 
 std::wstring GetFullDisplayName(const Node& node);
 
@@ -73,18 +75,21 @@ bool IsSubtypeOf(const AddressSpace& address_space,
                  const NodeId& type_id,
                  const NodeId& supertype_id);
 
-void AddReference(AddressSpace& address_space,
+void AddReference(MutableAddressSpace& address_space,
                   const NodeId& reference_type_id,
                   const NodeId& source_id,
                   const NodeId& target_id);
-void AddReference(AddressSpace& address_space,
+void AddReference(MutableAddressSpace& address_space,
                   const NodeId& reference_type_id,
                   Node& source,
                   Node& target);
-void DeleteReference(AddressSpace& address_space,
+
+void DeleteReference(MutableAddressSpace& address_space,
                      const NodeId& reference_type_id,
                      const NodeId& source_id,
                      const NodeId& target_id);
+
+void DeleteAllReferences(MutableAddressSpace& address_space, Node& node);
 
 }  // namespace scada
 

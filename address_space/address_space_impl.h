@@ -1,20 +1,16 @@
 #pragma once
 
-#include "address_space/address_space.h"
+#include "address_space/mutable_address_space.h"
 #include "base/observer_list.h"
-#include "core/configuration_types.h"
-#include "core/node_attributes.h"
 #include "core/status.h"
 
 #include <map>
-#include <memory>
 
 namespace scada {
-class ReferenceType;
 struct PropertyIds;
 }  // namespace scada
 
-class AddressSpaceImpl : public scada::AddressSpace {
+class AddressSpaceImpl : public MutableAddressSpace {
  public:
   explicit AddressSpaceImpl(
       scada::AddressSpace* parent_address_space = nullptr);
@@ -29,6 +25,8 @@ class AddressSpaceImpl : public scada::AddressSpace {
   // Add not-owned node.
   void AddNode(scada::Node& node);
 
+  virtual void AddNode(std::unique_ptr<scada::Node> node) override;
+
   template <class T>
   T& AddStaticNode(std::unique_ptr<T> node);
 
@@ -36,14 +34,22 @@ class AddressSpaceImpl : public scada::AddressSpace {
   T& AddStaticNode(Args&&... args);
 
   // Deletes owned node.
-  void RemoveNode(const scada::NodeId& id);
+  virtual void DeleteNode(const scada::NodeId& id) override;
 
   void Clear();
 
   // Returns false if nothing was changed.
-  bool ModifyNode(const scada::NodeId& id,
-                  scada::NodeAttributes attributes,
-                  scada::NodeProperties properties);
+  virtual bool ModifyNode(const scada::NodeId& id,
+                          scada::NodeAttributes attributes,
+                          scada::NodeProperties properties) override;
+
+  virtual void AddReference(const scada::ReferenceType& type,
+                            scada::Node& source,
+                            scada::Node& target) override;
+
+  virtual void DeleteReference(const scada::ReferenceType& type,
+                               scada::Node& source,
+                               scada::Node& target) override;
 
   void NotifyNodeAdded(const scada::Node& node) const;
   void NotifyNodeDeleted(const scada::Node& node) const;
@@ -66,9 +72,6 @@ class AddressSpaceImpl : public scada::AddressSpace {
                        scada::NodeObserver& events) const override;
 
  private:
-  // Adds node owned by configuration itself.
-  void AddStaticNodeHelper(std::unique_ptr<scada::Node> node);
-
   void NotifyNodeMoved(const scada::Node& node, const scada::Node* top) const;
   void NotifyNodeTitleChanged(const scada::Node& node) const;
 
@@ -88,9 +91,9 @@ class AddressSpaceImpl : public scada::AddressSpace {
 template <class T>
 inline T& AddressSpaceImpl::AddStaticNode(std::unique_ptr<T> node) {
   assert(node);
-  auto* ptr = node.get();
-  AddStaticNodeHelper(std::unique_ptr<scada::Node>{std::move(node)});
-  return *ptr;
+  auto& ref = *node;
+  AddNode(std::move(node));
+  return ref;
 }
 
 template <class T, class... Args>

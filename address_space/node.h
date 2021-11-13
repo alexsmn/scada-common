@@ -1,10 +1,10 @@
 #pragma once
 
+#include "address_space/node_observer.h"
+#include "address_space/reference.h"
 #include "core/configuration_types.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
-#include "address_space/node_observer.h"
-#include "address_space/reference.h"
 #include "core/status.h"
 #include "core/variant.h"
 
@@ -75,12 +75,5 @@ class Node {
 
   TypeDefinition* type_definition_ = nullptr;
 };
-
-void AddReference(const ReferenceType& reference_type,
-                  Node& source,
-                  Node& target);
-void DeleteReference(const ReferenceType& reference_type,
-                     Node& source,
-                     Node& target);
 
 }  // namespace scada

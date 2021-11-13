@@ -381,15 +381,4 @@ Node* FindComponentDeclaration(const TypeDefinition& type,
   return nullptr;
 }
 
-void DeleteAllReferences(Node& node) {
-  while (!node.inverse_references().empty()) {
-    auto ref = node.inverse_references().back();
-    DeleteReference(*ref.type, *ref.node, node);
-  }
-  while (!node.forward_references().empty()) {
-    auto ref = node.forward_references().back();
-    DeleteReference(*ref.type, node, *ref.node);
-  }
-}
-
 }  // namespace scada

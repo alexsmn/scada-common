@@ -11,6 +11,7 @@ struct StandardAddressSpace;
 class GenericDataVariable : public scada::GenericVariable {
  public:
   GenericDataVariable(StandardAddressSpace& std,
+                      AddressSpaceImpl& address_space,
                       scada::NodeId id,
                       scada::QualifiedName browse_name,
                       scada::LocalizedText display_name,
@@ -22,6 +23,7 @@ class GenericDataVariable : public scada::GenericVariable {
 class GenericProperty : public scada::GenericVariable {
  public:
   GenericProperty(StandardAddressSpace& std,
+                  AddressSpaceImpl& address_space,
                   scada::NodeId id,
                   scada::QualifiedName browse_name,
                   scada::LocalizedText display_name,

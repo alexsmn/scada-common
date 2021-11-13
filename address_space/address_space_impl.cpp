@@ -19,7 +19,7 @@ AddressSpaceImpl::~AddressSpaceImpl() {
 
 void AddressSpaceImpl::Clear() {
   for (auto& p : node_map_)
-    DeleteAllReferences(*p.second);
+    DeleteAllReferences(*this, *p.second);
   node_map_.clear();
 }
 
@@ -122,7 +122,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
   AddReference(address_space, reference_type_id, parent, node);
 }
 
-void AddressSpaceImpl::RemoveNode(const scada::NodeId& id) {
+void AddressSpaceImpl::DeleteNode(const scada::NodeId& id) {
   auto i = node_map_.find(id);
   if (i == node_map_.end())
     return;
@@ -134,10 +134,10 @@ void AddressSpaceImpl::RemoveNode(const scada::NodeId& id) {
     if (children.empty())
       break;
     auto& child = *children.front();
-    RemoveNode(child.id());
+    DeleteNode(child.id());
   }
 
-  DeleteAllReferences(*node);
+  DeleteAllReferences(*this, *node);
 
   NotifyNodeDeleted(*node);
 
@@ -295,7 +295,25 @@ const AddressSpaceImpl::NodeEvents* AddressSpaceImpl::GetNodeEvents(
   return i == node_events_.end() ? nullptr : &i->second;
 }
 
-void AddressSpaceImpl::AddStaticNodeHelper(std::unique_ptr<scada::Node> node) {
+void AddressSpaceImpl::AddNode(std::unique_ptr<scada::Node> node) {
   AddNode(*node);
   static_nodes_.emplace(node->id(), std::move(node));
+}
+
+void AddressSpaceImpl::AddReference(const scada::ReferenceType& type,
+                                    scada::Node& source,
+                                    scada::Node& target) {
+  source.AddReference(type, true, target);
+  target.AddReference(type, false, source);
+
+  NotifyReference(type, source, target, true);
+}
+
+void AddressSpaceImpl::DeleteReference(const scada::ReferenceType& type,
+                                       scada::Node& source,
+                                       scada::Node& target) {
+  source.DeleteReference(type, true, target);
+  target.DeleteReference(type, false, source);
+
+  NotifyReference(type, source, target, false);
 }

@@ -1,6 +1,7 @@
 ﻿#include "address_space/address_space_util.h"
 
 #include "address_space/address_space.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node.h"
 #include "address_space/node_utils.h"
@@ -158,8 +159,8 @@ const Node* GetNestedNode(const AddressSpace& address_space,
 
 Variant::Type DataTypeToValueType(const TypeDefinition& type) {
   for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
-    auto build_in_data_type = scada::ToBuiltInDataType(supertype->id());
-    if (build_in_data_type != scada::Variant::COUNT)
+    auto build_in_data_type = ToBuiltInDataType(supertype->id());
+    if (build_in_data_type != Variant::COUNT)
       return build_in_data_type;
   }
 
@@ -241,21 +242,21 @@ bool WantsReference(const AddressSpace& address_space,
 
 const ReferenceType& BindReferenceType(const AddressSpace& address_space,
                                        const NodeId& node_id) {
-  auto* node = scada::AsReferenceType(address_space.GetNode(node_id));
+  auto* node = AsReferenceType(address_space.GetNode(node_id));
   assert(node);
   return *node;
 }
 
 const ObjectType& BindObjectType(const AddressSpace& address_space,
                                  const NodeId& node_id) {
-  auto* node = scada::AsObjectType(address_space.GetNode(node_id));
+  auto* node = AsObjectType(address_space.GetNode(node_id));
   assert(node);
   return *node;
 }
 
 const VariableType& BindVariableType(const AddressSpace& address_space,
                                      const NodeId& node_id) {
-  auto* node = scada::AsVariableType(address_space.GetNode(node_id));
+  auto* node = AsVariableType(address_space.GetNode(node_id));
   assert(node);
   return *node;
 }
@@ -271,10 +272,10 @@ bool IsSubtypeOf(const AddressSpace& address_space,
   return false;
 }
 
-void AddReference(scada::AddressSpace& address_space,
-                  const scada::NodeId& reference_type_id,
-                  const scada::NodeId& source_id,
-                  const scada::NodeId& target_id) {
+void AddReference(MutableAddressSpace& address_space,
+                  const NodeId& reference_type_id,
+                  const NodeId& source_id,
+                  const NodeId& target_id) {
   auto* source = address_space.GetMutableNode(source_id);
   assert(source);
 
@@ -284,20 +285,20 @@ void AddReference(scada::AddressSpace& address_space,
   AddReference(address_space, reference_type_id, *source, *target);
 }
 
-void AddReference(scada::AddressSpace& address_space,
-                  const scada::NodeId& reference_type_id,
-                  scada::Node& source,
-                  scada::Node& target) {
+void AddReference(MutableAddressSpace& address_space,
+                  const NodeId& reference_type_id,
+                  Node& source,
+                  Node& target) {
   auto* reference_type =
       AsReferenceType(address_space.GetNode(reference_type_id));
   assert(reference_type);
-  scada::AddReference(*reference_type, source, target);
+  address_space.AddReference(*reference_type, source, target);
 }
 
-void DeleteReference(scada::AddressSpace& address_space,
-                     const scada::NodeId& reference_type_id,
-                     const scada::NodeId& source_id,
-                     const scada::NodeId& target_id) {
+void DeleteReference(MutableAddressSpace& address_space,
+                     const NodeId& reference_type_id,
+                     const NodeId& source_id,
+                     const NodeId& target_id) {
   auto* reference_type =
       AsReferenceType(address_space.GetNode(reference_type_id));
   assert(reference_type);
@@ -308,7 +309,18 @@ void DeleteReference(scada::AddressSpace& address_space,
   auto* target = address_space.GetMutableNode(target_id);
   assert(target);
 
-  scada::DeleteReference(*reference_type, *source, *target);
+  address_space.DeleteReference(*reference_type, *source, *target);
+}
+
+void DeleteAllReferences(MutableAddressSpace& address_space, Node& node) {
+  while (!node.inverse_references().empty()) {
+    auto ref = node.inverse_references().back();
+    address_space.DeleteReference(*ref.type, *ref.node, node);
+  }
+  while (!node.forward_references().empty()) {
+    auto ref = node.forward_references().back();
+    address_space.DeleteReference(*ref.type, node, *ref.node);
+  }
 }
 
 }  // namespace scada

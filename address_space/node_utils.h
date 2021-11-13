@@ -153,8 +153,6 @@ Status SetPropertyValueHelper(Node& node,
                               const NodeId& prop_decl_id,
                               const Variant& value);
 
-void DeleteAllReferences(Node& node);
-
 Node* FindChild(const Node& parent, std::string_view browse_name);
 Node* FindChildDeclaration(const TypeDefinition& type,
                            std::string_view browse_name);
