@@ -67,6 +67,9 @@ class ScadaAddressSpaceBuilder {
                           scada::LocalizedText display_name,
                           std::vector<scada::LocalizedText> enum_strings);
 
+  scada::ObjectType* CreateEventType(const scada::NodeId& event_type_id,
+                                     const scada::QualifiedName& browse_name);
+
   void AddDataVariable(const scada::NodeId& type_id,
                        const scada::NodeId& variable_decl_id,
                        scada::QualifiedName browse_name,

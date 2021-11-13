@@ -201,6 +201,14 @@ void ScadaAddressSpaceBuilder::CreateEnumDataType(
   address_space_.AddNode(*protocol_data_type->enum_strings);
 }
 
+scada::ObjectType* ScadaAddressSpaceBuilder::CreateEventType(
+    const scada::NodeId& event_type_id,
+    const scada::QualifiedName& browse_name) {
+  return CreateObjectType(event_type_id, browse_name,
+                          scada::ToLocalizedText(browse_name.name()),
+                          scada::id::BaseObjectType);
+}
+
 void ScadaAddressSpaceBuilder::AddDataVariable(
     const scada::NodeId& type_id,
     const scada::NodeId& variable_decl_id,
@@ -331,6 +339,8 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
 }
 
 void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
+  CreateEventType(scada::id::SystemEventType, "SystemEventType");
+
   CreateReferenceType(scada::id::Creates, "Creates",
                       base::WideToUTF16(L"Можно создать"),
                       scada::id::NonHierarchicalReferences);
@@ -625,8 +635,9 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
         data_items::id::SimulationSignalType);
     CreateReferenceType(
         data_items::id::DataItemType, history::id::HasHistoricalDatabase,
-        history::id::HistoryPropertyCategory, "ObjectHistoricalDb",
-        base::WideToUTF16(L"База данных"), history::id::HistoricalDatabaseType);
+        history::id::HistoryPropertyCategory, "HasHistoricalDatabase",
+        base::WideToUTF16(L"Архив значений"),
+        history::id::HistoricalDatabaseType);
   }
 
   // DiscreteItem
@@ -747,6 +758,11 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_BytesIn,
                     "BytesIn", base::WideToUTF16(L"Принято байт"),
                     scada::id::Int32, 0);
+    CreateReferenceType(devices::id::DeviceType, history::id::HasEventDatabase,
+                        history::id::HistoryPropertyCategory,
+                        "HasEventDatabase", base::WideToUTF16(L"Архив событий"),
+                        history::id::HistoricalDatabaseType);
+    CreateEventType(devices::id::DeviceWatchEventType, "DeviceWatchEventType");
   }
 
   // Link
