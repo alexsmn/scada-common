@@ -339,6 +339,10 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
 }
 
 void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
+  CreateEventType(scada::id::GeneralModelChangeEventType,
+                  "GeneralModelChangeEventType");
+  CreateEventType(scada::id::SemanticChangeEventType,
+                  "SemanticChangeEventType");
   CreateEventType(scada::id::SystemEventType, "SystemEventType");
 
   CreateReferenceType(scada::id::Creates, "Creates",
