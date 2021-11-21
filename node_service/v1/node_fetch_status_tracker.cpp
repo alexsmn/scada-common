@@ -147,11 +147,13 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
 std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     const scada::NodeId& node_id) const {
   auto result = GetStatusHelper(node_id);
+#ifndef NDEBUG
   auto experimental_result = GetExperimentalStatus(node_id);
   assert(result.first == experimental_result.first);
   assert(result.second.node_fetched == experimental_result.second.node_fetched);
   assert(result.second.non_hierarchical_inverse_references ==
          experimental_result.second.non_hierarchical_inverse_references);
+#endif
   return result;
 }
 
