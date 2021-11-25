@@ -155,9 +155,8 @@ struct ParserDelegate
         expression{expression} {}
 
   template <class Parser>
-  std::optional<expression::PolymorphicToken> MakeCustomToken(
-      const expression::Lexem& lexem,
-      Parser& parser) {
+  expression::PolymorphicToken MakeCustomToken(const expression::Lexem& lexem,
+                                               Parser& parser) {
     switch (lexem.lexem) {
       case LEX_TRUE:
       case LEX_FALSE:
@@ -173,7 +172,7 @@ struct ParserDelegate
       }
 
       default:
-        return std::nullopt;
+        throw std::runtime_error{"Unexpected lexem"};
     }
   }
 
