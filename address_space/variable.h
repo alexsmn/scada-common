@@ -48,7 +48,7 @@ class Variable : public Node {
                     const StatusCallback& callback);
 
   // Node
-  virtual NodeClass GetNodeClass() const override {
+  virtual NodeClass GetNodeClass() const override final {
     return NodeClass::Variable;
   }
   virtual void Shutdown() override;

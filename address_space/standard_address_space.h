@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/folder.h"
+#include "address_space/method.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "core/standard_node_ids.h"
@@ -103,4 +104,9 @@ struct StandardAddressSpace {
                                    BaseDataType};
 
   scada::GenericObject Server;
+
+  scada::GenericMethod AcknowledgeableConditionType_Acknowledge{
+      scada::id::AcknowledgeableConditionType_Acknowledge,
+      "Acknowledge",
+      {}};
 };

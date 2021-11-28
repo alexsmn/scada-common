@@ -90,7 +90,11 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
 
   address_space.AddNode(Server);
 
+  address_space.AddNode(AcknowledgeableConditionType_Acknowledge);
+
   address_space.AddReference(HasTypeDefinition, RootFolder, FolderType);
+  /*address_space.AddReference(HasMethod, AcknowledgeableConditionType,
+                             AcknowledgeableConditionType_Acknowledge);*/
 
   // ObjectsFolder
   address_space.AddReference(HasTypeDefinition, ObjectsFolder, FolderType);
