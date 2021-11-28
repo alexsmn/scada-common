@@ -17,7 +17,7 @@ class NodeFactory;
 
 class ScadaAddressSpaceBuilder {
  public:
-  void CreateScadaAddressSpace();
+  void BuildAll();
 
   ScadaAddressSpaceBuilder(const ScadaAddressSpaceBuilder&) = delete;
   ScadaAddressSpaceBuilder& operator=(const ScadaAddressSpaceBuilder&) = delete;
@@ -26,8 +26,13 @@ class ScadaAddressSpaceBuilder {
   NodeFactory& node_factory_;
 
  private:
+  void CreateScadaAddressSpace();
   void CreateSecurityAddressSpace();
+  void CreateDataItemAddressSpace();
+  void CreateDeviceAddressSpace();
+  void CreateHistoryAddressSpace();
   void CreateFileSystemAddressSpace();
+  void CreateOpcAddressSpace();
 
   scada::Node* CreateNode(const scada::NodeState& node_state);
 

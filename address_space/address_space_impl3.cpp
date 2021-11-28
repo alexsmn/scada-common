@@ -5,5 +5,5 @@
 
 AddressSpaceImpl3::AddressSpaceImpl3() {
   GenericNodeFactory node_factory{*this};
-  ScadaAddressSpaceBuilder{*this, node_factory}.CreateScadaAddressSpace();
+  ScadaAddressSpaceBuilder{*this, node_factory}.BuildAll();
 }

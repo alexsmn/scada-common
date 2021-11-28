@@ -12,8 +12,7 @@ TEST(ScadaAddressSpace, Test) {
   AddressSpaceImpl2 address_space;
 
   GenericNodeFactory node_factory{address_space};
-  ScadaAddressSpaceBuilder{address_space, node_factory}
-      .CreateScadaAddressSpace();
+  ScadaAddressSpaceBuilder{address_space, node_factory}.BuildAll();
 
   auto* has_component_ref =
       scada::AsReferenceType(address_space.GetNode(scada::id::HasComponent));

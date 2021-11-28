@@ -338,166 +338,13 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
   });
 }
 
-void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
-  CreateEventType(scada::id::GeneralModelChangeEventType,
-                  "GeneralModelChangeEventType");
-  CreateEventType(scada::id::SemanticChangeEventType,
-                  "SemanticChangeEventType");
-  CreateEventType(scada::id::SystemEventType, "SystemEventType");
-
-  CreateReferenceType(scada::id::Creates, "Creates",
-                      base::WideToUTF16(L"Можно создать"),
-                      scada::id::NonHierarchicalReferences);
-
-  CreateNode({data_items::id::DataItems, scada::NodeClass::Object,
-              scada::id::FolderType, scada::id::ObjectsFolder,
-              scada::id::Organizes,
-              scada::NodeAttributes{}
-                  .set_browse_name("DataItems")
-                  .set_display_name(base::WideToUTF16(L"Все объекты"))});
-
-  CreateNode(
-      {devices::id::Devices, scada::NodeClass::Object, scada::id::FolderType,
-       scada::id::ObjectsFolder, scada::id::Organizes,
-       scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
-           base::WideToUTF16(L"Все оборудование"))});
-
-  CreateNode({data_items::id::TsFormats, scada::NodeClass::Object,
-              scada::id::FolderType, scada::id::ObjectsFolder,
-              scada::id::Organizes,
-              scada::NodeAttributes{}
-                  .set_browse_name("TsFormats")
-                  .set_display_name(base::WideToUTF16(L"Форматы"))});
-
-  CreateNode(
-      {data_items::id::SimulationSignals, scada::NodeClass::Object,
-       scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
-       scada::NodeAttributes{}
-           .set_browse_name("SimulationSignals")
-           .set_display_name(base::WideToUTF16(L"Эмулируемые сигналы"))});
-
+void ScadaAddressSpaceBuilder::CreateHistoryAddressSpace() {
   CreateNode({history::id::HistoricalDatabases, scada::NodeClass::Object,
               scada::id::FolderType, scada::id::ObjectsFolder,
               scada::id::Organizes,
               scada::NodeAttributes{}
                   .set_browse_name("HistoricalDatabases")
                   .set_display_name(base::WideToUTF16(L"Базы данных"))});
-
-  CreateNode({devices::id::TransmissionItems, scada::NodeClass::Object,
-              scada::id::FolderType, scada::id::ObjectsFolder,
-              scada::id::Organizes,
-              scada::NodeAttributes{}
-                  .set_browse_name("TransmissionItems")
-                  .set_display_name(base::WideToUTF16(L"Ретрансляция"))});
-
-  // Property Categories.
-  {
-    CreateNode(
-        {scada::id::HasPropertyCategory,
-         scada::NodeClass::ReferenceType,
-         {},
-         scada::id::NonHierarchicalReferences,
-         scada::id::HasSubtype,
-         scada::NodeAttributes{}
-             .set_browse_name("HasPropertyCategory")
-             .set_display_name(base::WideToUTF16(L"Категория свойства"))});
-
-    CreateNode(
-        {scada::id::PropertyCategories, scada::NodeClass::Object,
-         scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
-         scada::NodeAttributes{}
-             .set_browse_name("PropertyCategories")
-             .set_display_name(base::WideToUTF16(L"Категории свойств"))});
-
-    CreateNode(
-        {scada::id::GeneralPropertyCategory, scada::NodeClass::Object,
-         scada::id::FolderType, scada::id::PropertyCategories,
-         scada::id::Organizes,
-         scada::NodeAttributes().set_browse_name("General").set_display_name(
-             base::WideToUTF16(L"Общие"))});
-
-    CreateNode({data_items::id::ChannelsPropertyCategory,
-                scada::NodeClass::Object, scada::id::FolderType,
-                scada::id::PropertyCategories, scada::id::Organizes,
-                scada::NodeAttributes()
-                    .set_browse_name("Channels")
-                    .set_display_name(base::WideToUTF16(L"Каналы"))});
-
-    CreateNode({data_items::id::ConversionPropertyCategory,
-                scada::NodeClass::Object, scada::id::FolderType,
-                scada::id::PropertyCategories, scada::id::Organizes,
-                scada::NodeAttributes()
-                    .set_browse_name("Conversion")
-                    .set_display_name(base::WideToUTF16(L"Преобразование"))});
-
-    CreateNode({data_items::id::FilteringPropertyCategory,
-                scada::NodeClass::Object, scada::id::FolderType,
-                scada::id::PropertyCategories, scada::id::Organizes,
-                scada::NodeAttributes()
-                    .set_browse_name("Filtering")
-                    .set_display_name(base::WideToUTF16(L"Фильтрация"))});
-
-    CreateNode(
-        {data_items::id::DisplayPropertyCategory, scada::NodeClass::Object,
-         scada::id::FolderType, scada::id::PropertyCategories,
-         scada::id::Organizes,
-         scada::NodeAttributes().set_browse_name("Display").set_display_name(
-             base::WideToUTF16(L"Отображение"))});
-
-    CreateNode(
-        {history::id::HistoryPropertyCategory, scada::NodeClass::Object,
-         scada::id::FolderType, scada::id::PropertyCategories,
-         scada::id::Organizes,
-         scada::NodeAttributes().set_browse_name("History").set_display_name(
-             base::WideToUTF16(L"Архивирование"))});
-
-    CreateNode({data_items::id::SimulationPropertyCategory,
-                scada::NodeClass::Object, scada::id::FolderType,
-                scada::id::PropertyCategories, scada::id::Organizes,
-                scada::NodeAttributes()
-                    .set_browse_name("Simulation")
-                    .set_display_name(base::WideToUTF16(L"Эмуляция"))});
-
-    CreateNode(
-        {data_items::id::LimitsPropertyCategory, scada::NodeClass::Object,
-         scada::id::FolderType, scada::id::PropertyCategories,
-         scada::id::Organizes,
-         scada::NodeAttributes().set_browse_name("Limits").set_display_name(
-             base::WideToUTF16(L"Уставки"))});
-  }
-
-  // Simulation Item
-  {
-    CreateVariableType(data_items::id::SimulationSignalType,
-                       "SimulationSignalType",
-                       base::WideToUTF16(L"Эмулируемый сигнал"),
-                       scada::id::BaseDataType, scada::id::BaseVariableType);
-    AddReference(address_space_, scada::id::Creates,
-                 data_items::id::SimulationSignals,
-                 data_items::id::SimulationSignalType);
-    CreateEnumDataType(
-        data_items::id::SimulationFunctionDataType,
-        data_items::id::SimulationFunctionDataType_EnumStrings,
-        "SimulationSignalTypeEnum", base::WideToUTF16(L"Тип эмуляции"),
-        {base::WideToUTF16(L"Случайный"), base::WideToUTF16(L"Пилообразный"),
-         base::WideToUTF16(L"Скачкообразный"), base::WideToUTF16(L"Синус"),
-         base::WideToUTF16(L"Косинус")});
-    AddProperty(data_items::id::SimulationSignalType,
-                data_items::id::SimulationSignalType_Function, {}, "Type",
-                base::WideToUTF16(L"Тип"),
-                data_items::id::SimulationFunctionDataType,
-                static_cast<scada::Int32>(0));
-    AddProperty(data_items::id::SimulationSignalType,
-                data_items::id::SimulationSignalType_Period, {}, "Period",
-                base::WideToUTF16(L"Период, мс"), scada::id::Int32, 60000);
-    AddProperty(data_items::id::SimulationSignalType,
-                data_items::id::SimulationSignalType_Phase, {}, "Phase",
-                base::WideToUTF16(L"Фаза, мс"), scada::id::Int32, 0);
-    AddProperty(data_items::id::SimulationSignalType,
-                data_items::id::SimulationSignalType_UpdateInterval, {},
-                "UpdateInterval", base::WideToUTF16(L"Обновление, мс"),
-                scada::id::Int32, 1000);
-  }
 
   // Historical DB
   {
@@ -544,6 +391,62 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
        scada::NodeAttributes().set_browse_name("System").set_display_name(
            base::WideToUTF16(L"Системная база данных")),
        {{history::id::HistoricalDatabaseType_Depth, 30}}});
+}
+
+void ScadaAddressSpaceBuilder::CreateDataItemAddressSpace() {
+  CreateNode({data_items::id::DataItems, scada::NodeClass::Object,
+              scada::id::FolderType, scada::id::ObjectsFolder,
+              scada::id::Organizes,
+              scada::NodeAttributes{}
+                  .set_browse_name("DataItems")
+                  .set_display_name(base::WideToUTF16(L"Все объекты"))});
+
+  CreateNode({data_items::id::TsFormats, scada::NodeClass::Object,
+              scada::id::FolderType, scada::id::ObjectsFolder,
+              scada::id::Organizes,
+              scada::NodeAttributes{}
+                  .set_browse_name("TsFormats")
+                  .set_display_name(base::WideToUTF16(L"Форматы"))});
+
+  CreateNode(
+      {data_items::id::SimulationSignals, scada::NodeClass::Object,
+       scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
+       scada::NodeAttributes{}
+           .set_browse_name("SimulationSignals")
+           .set_display_name(base::WideToUTF16(L"Эмулируемые сигналы"))});
+
+  // Simulation Item
+  {
+    CreateVariableType(data_items::id::SimulationSignalType,
+                       "SimulationSignalType",
+                       base::WideToUTF16(L"Эмулируемый сигнал"),
+                       scada::id::BaseDataType, scada::id::BaseVariableType);
+    AddReference(address_space_, scada::id::Creates,
+                 data_items::id::SimulationSignals,
+                 data_items::id::SimulationSignalType);
+    CreateEnumDataType(
+        data_items::id::SimulationFunctionDataType,
+        data_items::id::SimulationFunctionDataType_EnumStrings,
+        "SimulationSignalTypeEnum", base::WideToUTF16(L"Тип эмуляции"),
+        {base::WideToUTF16(L"Случайный"), base::WideToUTF16(L"Пилообразный"),
+         base::WideToUTF16(L"Скачкообразный"), base::WideToUTF16(L"Синус"),
+         base::WideToUTF16(L"Косинус")});
+    AddProperty(data_items::id::SimulationSignalType,
+                data_items::id::SimulationSignalType_Function, {}, "Type",
+                base::WideToUTF16(L"Тип"),
+                data_items::id::SimulationFunctionDataType,
+                static_cast<scada::Int32>(0));
+    AddProperty(data_items::id::SimulationSignalType,
+                data_items::id::SimulationSignalType_Period, {}, "Period",
+                base::WideToUTF16(L"Период, мс"), scada::id::Int32, 60000);
+    AddProperty(data_items::id::SimulationSignalType,
+                data_items::id::SimulationSignalType_Phase, {}, "Phase",
+                base::WideToUTF16(L"Фаза, мс"), scada::id::Int32, 0);
+    AddProperty(data_items::id::SimulationSignalType,
+                data_items::id::SimulationSignalType_UpdateInterval, {},
+                "UpdateInterval", base::WideToUTF16(L"Обновление, мс"),
+                scada::id::Int32, 1000);
+  }
 
   // TsFormat
   {
@@ -637,11 +540,6 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
         data_items::id::SimulationPropertyCategory, "HasSimulationSignal",
         base::WideToUTF16(L"Эмулируемый сигнал"),
         data_items::id::SimulationSignalType);
-    CreateReferenceType(
-        data_items::id::DataItemType, history::id::HasHistoricalDatabase,
-        history::id::HistoryPropertyCategory, "HasHistoricalDatabase",
-        base::WideToUTF16(L"Архив значений"),
-        history::id::HistoricalDatabaseType);
   }
 
   // DiscreteItem
@@ -735,6 +633,35 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
                 base::WideToUTF16(L"Мертвая зона"), scada::id::Double, 0.0);
   }
 
+  // Aliases
+  {
+    CreateNode(
+        {data_items::id::Aliases, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
+         scada::NodeAttributes{}.set_browse_name("Aliases").set_display_name(
+             base::WideToUTF16(L"Алиасы"))});
+
+    CreateObjectType(data_items::id::AliasType, "AliasType",
+                     base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
+    CreateReferenceType(data_items::id::AliasOf, "AliasOf", {},
+                        scada::id::NonHierarchicalReferences);
+  }
+}
+
+void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
+  CreateNode(
+      {devices::id::Devices, scada::NodeClass::Object, scada::id::FolderType,
+       scada::id::ObjectsFolder, scada::id::Organizes,
+       scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
+           base::WideToUTF16(L"Все оборудование"))});
+
+  CreateNode({devices::id::TransmissionItems, scada::NodeClass::Object,
+              scada::id::FolderType, scada::id::ObjectsFolder,
+              scada::id::Organizes,
+              scada::NodeAttributes{}
+                  .set_browse_name("TransmissionItems")
+                  .set_display_name(base::WideToUTF16(L"Ретрансляция"))});
+
   // Device
   {
     CreateObjectType(devices::id::DeviceType, "DeviceType",
@@ -762,10 +689,6 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_BytesIn,
                     "BytesIn", base::WideToUTF16(L"Принято байт"),
                     scada::id::Int32, 0);
-    CreateReferenceType(devices::id::DeviceType, history::id::HasEventDatabase,
-                        history::id::HistoryPropertyCategory,
-                        "HasEventDatabase", base::WideToUTF16(L"Архив событий"),
-                        history::id::HistoricalDatabaseType);
     CreateEventType(devices::id::DeviceWatchEventType, "DeviceWatchEventType");
   }
 
@@ -1156,34 +1079,124 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
                 "InfoAddress", base::WideToUTF16(L"Адрес объекта приемника"),
                 scada::id::Int32, 1);
   }
+}
 
-  // Aliases
+void ScadaAddressSpaceBuilder::CreateOpcAddressSpace() {
+  CreateNode({opc::id::OPC, scada::NodeClass::Object, scada::id::FolderType,
+              scada::id::ObjectsFolder, scada::id::Organizes,
+              scada::NodeAttributes{}.set_browse_name("OPC").set_display_name(
+                  base::WideToUTF16(L"OPC"))});
+}
+
+void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
+  CreateEventType(scada::id::GeneralModelChangeEventType,
+                  "GeneralModelChangeEventType");
+  CreateEventType(scada::id::SemanticChangeEventType,
+                  "SemanticChangeEventType");
+  CreateEventType(scada::id::SystemEventType, "SystemEventType");
+
+  CreateReferenceType(scada::id::Creates, "Creates",
+                      base::WideToUTF16(L"Можно создать"),
+                      scada::id::NonHierarchicalReferences);
+
+  // Property Categories.
   {
     CreateNode(
-        {data_items::id::Aliases, scada::NodeClass::Object,
+        {scada::id::HasPropertyCategory,
+         scada::NodeClass::ReferenceType,
+         {},
+         scada::id::NonHierarchicalReferences,
+         scada::id::HasSubtype,
+         scada::NodeAttributes{}
+             .set_browse_name("HasPropertyCategory")
+             .set_display_name(base::WideToUTF16(L"Категория свойства"))});
+
+    CreateNode(
+        {scada::id::PropertyCategories, scada::NodeClass::Object,
          scada::id::FolderType, scada::id::ObjectsFolder, scada::id::Organizes,
-         scada::NodeAttributes{}.set_browse_name("Aliases").set_display_name(
-             base::WideToUTF16(L"Алиасы"))});
+         scada::NodeAttributes{}
+             .set_browse_name("PropertyCategories")
+             .set_display_name(base::WideToUTF16(L"Категории свойств"))});
 
-    CreateObjectType(data_items::id::AliasType, "AliasType",
-                     base::WideToUTF16(L"Алиас"), scada::id::BaseObjectType);
-    CreateReferenceType(data_items::id::AliasOf, "AliasOf", {},
-                        scada::id::NonHierarchicalReferences);
-  }
+    CreateNode(
+        {scada::id::GeneralPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
+         scada::NodeAttributes().set_browse_name("General").set_display_name(
+             base::WideToUTF16(L"Общие"))});
 
-  // OPC
-  {
-    CreateNode({opc::id::OPC, scada::NodeClass::Object, scada::id::FolderType,
-                scada::id::ObjectsFolder, scada::id::Organizes,
-                scada::NodeAttributes{}.set_browse_name("OPC").set_display_name(
-                    base::WideToUTF16(L"OPC"))});
+    CreateNode({data_items::id::ChannelsPropertyCategory,
+                scada::NodeClass::Object, scada::id::FolderType,
+                scada::id::PropertyCategories, scada::id::Organizes,
+                scada::NodeAttributes()
+                    .set_browse_name("Channels")
+                    .set_display_name(base::WideToUTF16(L"Каналы"))});
+
+    CreateNode({data_items::id::ConversionPropertyCategory,
+                scada::NodeClass::Object, scada::id::FolderType,
+                scada::id::PropertyCategories, scada::id::Organizes,
+                scada::NodeAttributes()
+                    .set_browse_name("Conversion")
+                    .set_display_name(base::WideToUTF16(L"Преобразование"))});
+
+    CreateNode({data_items::id::FilteringPropertyCategory,
+                scada::NodeClass::Object, scada::id::FolderType,
+                scada::id::PropertyCategories, scada::id::Organizes,
+                scada::NodeAttributes()
+                    .set_browse_name("Filtering")
+                    .set_display_name(base::WideToUTF16(L"Фильтрация"))});
+
+    CreateNode(
+        {data_items::id::DisplayPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
+         scada::NodeAttributes().set_browse_name("Display").set_display_name(
+             base::WideToUTF16(L"Отображение"))});
+
+    CreateNode(
+        {history::id::HistoryPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
+         scada::NodeAttributes().set_browse_name("History").set_display_name(
+             base::WideToUTF16(L"Архивирование"))});
+
+    CreateNode({data_items::id::SimulationPropertyCategory,
+                scada::NodeClass::Object, scada::id::FolderType,
+                scada::id::PropertyCategories, scada::id::Organizes,
+                scada::NodeAttributes()
+                    .set_browse_name("Simulation")
+                    .set_display_name(base::WideToUTF16(L"Эмуляция"))});
+
+    CreateNode(
+        {data_items::id::LimitsPropertyCategory, scada::NodeClass::Object,
+         scada::id::FolderType, scada::id::PropertyCategories,
+         scada::id::Organizes,
+         scada::NodeAttributes().set_browse_name("Limits").set_display_name(
+             base::WideToUTF16(L"Уставки"))});
   }
+}
+
+void ScadaAddressSpaceBuilder::BuildAll() {
+  CreateScadaAddressSpace();
+  CreateSecurityAddressSpace();
+  CreateFileSystemAddressSpace();
+  CreateHistoryAddressSpace();
+  CreateDataItemAddressSpace();
+  CreateDeviceAddressSpace();
+  CreateOpcAddressSpace();
 
   CreateReferenceType(data_items::id::DataGroupType, data_items::id::HasDevice,
                       data_items::id::ChannelsPropertyCategory, "HasDevice",
                       base::WideToUTF16(L"Устройство"),
                       devices::id::DeviceType);
 
-  CreateSecurityAddressSpace();
-  CreateFileSystemAddressSpace();
+  CreateReferenceType(
+      data_items::id::DataItemType, history::id::HasHistoricalDatabase,
+      history::id::HistoryPropertyCategory, "HasHistoricalDatabase",
+      base::WideToUTF16(L"Архив значений"),
+      history::id::HistoricalDatabaseType);
+  CreateReferenceType(devices::id::DeviceType, history::id::HasEventDatabase,
+                      history::id::HistoryPropertyCategory, "HasEventDatabase",
+                      base::WideToUTF16(L"Архив событий"),
+                      history::id::HistoricalDatabaseType);
 }
