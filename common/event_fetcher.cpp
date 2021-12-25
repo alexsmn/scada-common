@@ -6,6 +6,7 @@
 #include "common/event_observer.h"
 #include "core/event_service.h"
 #include "core/history_service.h"
+#include "core/method_service.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
 #include "core/standard_node_ids.h"
@@ -207,6 +208,10 @@ void EventFetcher::AckPendingEvents() {
   if (!acknowledge_ids.empty()) {
     logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
                     ToString(acknowledge_ids).c_str());
+    /*method_service_.Call(scada::id::Server,
+                         scada::id::AcknowledgeableConditionType_Acknowledge,
+                         {acknowledge_ids, scada::DateTime::Now()}, user_id_,
+                         [](scada::Status&& status) {});*/
     event_service_.Acknowledge(acknowledge_ids, user_id_);
   }
 

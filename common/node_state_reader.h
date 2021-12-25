@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/node_state.h"
 #include "core/variant_utils.h"
 
 template <class T>

@@ -79,6 +79,7 @@ class ScadaAddressSpaceBuilder {
                        const scada::NodeId& variable_decl_id,
                        scada::QualifiedName browse_name,
                        scada::LocalizedText display_name,
+                       const scada::NodeId& variable_type_id,
                        const scada::NodeId& data_type_id,
                        scada::Variant default_value = scada::Variant());
 

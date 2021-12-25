@@ -214,6 +214,7 @@ void ScadaAddressSpaceBuilder::AddDataVariable(
     const scada::NodeId& variable_decl_id,
     scada::QualifiedName browse_name,
     scada::LocalizedText display_name,
+    const scada::NodeId& variable_type_id,
     const scada::NodeId& data_type_id,
     scada::Variant default_value) {
   auto* type = address_space_.GetMutableNode(type_id);
@@ -227,8 +228,8 @@ void ScadaAddressSpaceBuilder::AddDataVariable(
 
   auto* result = static_cast<scada::Variable*>(existing_prop);
   if (!result) {
-    auto* variable_type = scada::AsVariableType(
-        address_space_.GetMutableNode(scada::id::BaseVariableType));
+    auto* variable_type =
+        scada::AsVariableType(address_space_.GetMutableNode(variable_type_id));
     assert(variable_type);
     auto* data_type = scada::AsDataType(address_space_.GetNode(data_type_id));
     assert(data_type);
@@ -361,36 +362,25 @@ void ScadaAddressSpaceBuilder::CreateHistoryAddressSpace() {
                     history::id::HistoricalDatabaseType_WriteValueDuration,
                     "WriteValueDuration",
                     base::WideToUTF16(L"Задержка записи измерений, мкс"),
-                    scada::id::UInt32);
+                    scada::id::BaseVariableType, scada::id::UInt32);
     AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_PendingTaskCount,
                     "PendingTaskCount",
                     base::WideToUTF16(L"Очередь записи измерений"),
-                    scada::id::UInt32);
+                    scada::id::BaseVariableType, scada::id::UInt32);
     AddDataVariable(
         history::id::HistoricalDatabaseType,
         history::id::HistoricalDatabaseType_EventCleanupDuration,
         "EventCleanupDuration",
         base::WideToUTF16(L"Продолжительность очистки событий, мкс"),
-        scada::id::UInt32);
+        scada::id::BaseVariableType, scada::id::Int32);
     AddDataVariable(
         history::id::HistoricalDatabaseType,
         history::id::HistoricalDatabaseType_ValueCleanupDuration,
         "ValueCleanupDuration",
         base::WideToUTF16(L"Продолжительность очистки измерений, мкс"),
-        scada::id::UInt32);
+        scada::id::BaseVariableType, scada::id::UInt32);
   }
-
-  // System historical database.
-  CreateNode(
-      {history::id::SystemDatabase,
-       scada::NodeClass::Object,
-       history::id::HistoricalDatabaseType,
-       history::id::HistoricalDatabases,
-       scada::id::Organizes,
-       scada::NodeAttributes().set_browse_name("System").set_display_name(
-           base::WideToUTF16(L"Системная база данных")),
-       {{history::id::HistoricalDatabaseType_Depth, 30}}});
 }
 
 void ScadaAddressSpaceBuilder::CreateDataItemAddressSpace() {
@@ -671,24 +661,24 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                 "Disabled", base::WideToUTF16(L"Отключено"), scada::id::Boolean,
                 true);
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_Online,
-                    "Online", base::WideToUTF16(L"Связь"), scada::id::Boolean,
-                    false);
+                    "Online", base::WideToUTF16(L"Связь"),
+                    scada::id::BaseVariableType, scada::id::Boolean, false);
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_Enabled,
                     "Enabled", base::WideToUTF16(L"Включено"),
-                    scada::id::Boolean, false);
+                    scada::id::BaseVariableType, scada::id::Boolean, false);
     AddDataVariable(devices::id::DeviceType,
                     devices::id::DeviceType_MessagesOut, "MessagesOut",
                     base::WideToUTF16(L"Отправлено сообщений"),
-                    scada::id::Int32, 0);
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_MessagesIn,
                     "MessagesIn", base::WideToUTF16(L"Принято сообщений"),
-                    scada::id::Int32, 0);
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_BytesOut,
                     "BytesOut", base::WideToUTF16(L"Отправлено байт"),
-                    scada::id::Int32, 0);
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_BytesIn,
                     "BytesIn", base::WideToUTF16(L"Принято байт"),
-                    scada::id::Int32, 0);
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     CreateEventType(devices::id::DeviceWatchEventType, "DeviceWatchEventType");
   }
 
@@ -704,11 +694,11 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                 scada::id::String, scada::String{});
     AddDataVariable(devices::id::LinkType, devices::id::LinkType_ConnectCount,
                     "ConnectCount", base::WideToUTF16(L"ConnectCount"),
-                    scada::id::Int32, 0);
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     AddDataVariable(
         devices::id::LinkType, devices::id::LinkType_ActiveConnections,
         "ActiveConnections", base::WideToUTF16(L"ActiveConnections"),
-        scada::id::Int32, 0);
+        scada::id::BaseVariableType, scada::id::Int32, 0);
   }
 
   // MODBUS Protocol
@@ -1098,6 +1088,10 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
   CreateReferenceType(scada::id::Creates, "Creates",
                       base::WideToUTF16(L"Можно создать"),
                       scada::id::NonHierarchicalReferences);
+
+  /*CreateVariableType(scada::id::MetricType, "MetricType",
+                     base::WideToUTF16(L"Метрика"), scada::id::Int64,
+                     scada::id::BaseVariableType);*/
 
   // Property Categories.
   {
