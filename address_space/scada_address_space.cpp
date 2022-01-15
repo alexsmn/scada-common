@@ -324,19 +324,6 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
                 "AccessRights", base::WideToUTF16(L"Права"), scada::id::Int32,
                 0);
   }
-
-  // Root user.
-  int root_privileges = (1 << static_cast<int>(scada::Privilege::Configure)) |
-                        (1 << static_cast<int>(scada::Privilege::Control));
-  CreateNode({
-      security::id::RootUser,
-      scada::NodeClass::Object,
-      security::id::UserType,
-      security::id::Users,
-      scada::id::Organizes,
-      scada::NodeAttributes().set_display_name(base::WideToUTF16(L"root")),
-      {{security::id::UserType_AccessRights, root_privileges}},
-  });
 }
 
 void ScadaAddressSpaceBuilder::CreateHistoryAddressSpace() {

@@ -64,6 +64,16 @@ struct NodeState {
   }
 };
 
+inline const NodeId* FindReference(
+    const std::vector<ReferenceDescription>& references,
+    const NodeId& reference_type_id,
+    bool forward) {
+  auto i = std::find_if(references.begin(), references.end(), [&](auto& p) {
+    return p.forward == forward && p.reference_type_id == reference_type_id;
+  });
+  return i != references.end() ? &i->node_id : nullptr;
+}
+
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {
   return a.reference_type_id == b.reference_type_id &&
          a.source_id == b.source_id && a.target_id == b.target_id;
