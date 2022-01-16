@@ -1,17 +1,13 @@
 #include "address_space/generic_node_factory.h"
 
+#include "address_space/address_space_util.h"
 #include "address_space/mutable_address_space.h"
-#include "address_space/node_builder_impl.h"
 #include "address_space/node_factory_util.h"
-#include "address_space/node_utils.h"
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "base/logger.h"
 #include "common/node_state.h"
 #include "core/standard_node_ids.h"
-#include "model/node_id_util.h"
-#include "node_service/node_util.h"
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {
@@ -25,12 +21,14 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
 
   if (node_state.node_id != scada::id::RootFolder &&
       !scada::IsTypeDefinition(node_state.node_class)) {
-    assert(!parent_id.is_null());
-    assert(!node_state.reference_type_id.is_null());
+    if (parent_id.is_null())
+      return {scada::StatusCode::Bad_WrongParentId, nullptr};
+    if (node_state.reference_type_id.is_null())
+      return {scada::StatusCode::Bad_WrongReferenceId, nullptr};
   }
 
   if (address_space_.GetNode(node_state.node_id))
-    throw scada::Status(scada::StatusCode::Bad_DuplicateNodeId);
+    return {scada::StatusCode::Bad_DuplicateNodeId, nullptr};
 
   auto* type_definition = AsTypeDefinition(
       address_space_.GetMutableNode(node_state.type_definition_id));
@@ -110,7 +108,7 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     // Property ignores timestamps.
     // TODO: Avoid timestamp.
     variable->SetValue(
-        scada::DataValue{std::move(*node_state.attributes.value), {}, {}, {}});
+        scada::DataValue{*node_state.attributes.value, {}, {}, {}});
   }
 
   auto& node_ref = *node;
@@ -127,12 +125,12 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (!parent_id.is_null()) {
     auto* parent = address_space_.GetMutableNode(parent_id);
     if (!parent)
-      throw scada::Status(scada::StatusCode::Bad_WrongParentId);
+      return {scada::StatusCode::Bad_WrongParentId, nullptr};
 
     auto* reference_type =
         AsReferenceType(address_space_.GetNode(node_state.reference_type_id));
     if (!reference_type)
-      throw scada::Status(scada::StatusCode::Bad_WrongReferenceId);
+      return {scada::StatusCode::Bad_WrongReferenceId, nullptr};
 
     address_space_.AddReference(*reference_type, *parent, node_ref);
   }
@@ -140,15 +138,15 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   for (auto& child_state : node_state.children) {
     auto [status, child_node] =
         CreateNodeHelper(child_state, node_state.node_id);
-    if (!status)
-      throw status;
+    if (!status) {
+      // TODO: Log.
+    }
   }
 
   for (auto& [prop_decl_id, value] : node_state.properties) {
-    auto status =
-        scada::SetPropertyValue(node_ref, prop_decl_id, std::move(value));
+    auto status = scada::SetPropertyValue(node_ref, prop_decl_id, value);
     if (!status)
-      return {status, nullptr};
+      return {std::move(status), nullptr};
   }
 
   return {scada::StatusCode::Good, &node_ref};
