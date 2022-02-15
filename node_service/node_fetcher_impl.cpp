@@ -307,8 +307,10 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
   // Validation.
   {
     std::map<scada::NodeId, const scada::NodeState*> type_definition_map;
-    for (auto& node : result.nodes)
-      type_definition_map.emplace(node.node_id, &node);
+    for (auto& node : result.nodes) {
+      if (scada::IsTypeDefinition(node.node_class))
+        type_definition_map.emplace(node.node_id, &node);
+    }
     for (auto& node : result.nodes) {
       if (scada::IsInstance(node.node_class)) {
         assert(!node.type_definition_id.is_null());
@@ -318,6 +320,7 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
             break;
           /*auto supertype_id = FindSupertypeId(node.references);
           assert(!supertype_id.is_null());*/
+          assert(type_definition_map.count(type_definition_id));
           auto* type_definiton = type_definition_map[type_definition_id];
           assert(type_definiton);
           assert(scada::IsTypeDefinition(type_definiton->node_class));

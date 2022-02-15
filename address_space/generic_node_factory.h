@@ -4,7 +4,6 @@
 
 namespace scada {
 class NodeId;
-class TypeDefinition;
 }  // namespace scada
 
 class MutableAddressSpace;
