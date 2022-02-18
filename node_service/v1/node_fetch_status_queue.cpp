@@ -39,7 +39,7 @@ void NodeFetchStatusQueue::NotifyStatusChanged(const scada::NodeId& node_id) {
     auto node_status = node_fetch_status_provider_(node_id);
     NodeFetchStatusChangedItem item{node_id, std::move(node_status.first),
                                     node_status.second};
-    node_fetch_status_changed_handler_(base::span{&item, 1});
+    node_fetch_status_changed_handler_(base::make_span(&item, 1));
     return;
   }
 

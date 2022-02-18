@@ -24,9 +24,8 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
       logger_{std::move(logger)},
       node_id_cache_{io_context_},
       alias_cache_{io_context_},
-      null_timed_data_{std::make_shared<ErrorTimedData>(
-          std::string{},
-          base::WideToUTF16(kEmptyDisplayName))} {}
+      null_timed_data_{
+          std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 

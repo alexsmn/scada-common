@@ -190,7 +190,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateNodeFetched(
   // Attributes.
   EXPECT_EQ(node.node_class(), scada::NodeClass::Object);
   EXPECT_EQ(node.browse_name(), "TestNode2");
-  EXPECT_EQ(node.display_name(), L"TestNode2DisplayName");
+  EXPECT_EQ(node.display_name(), u"TestNode2DisplayName");
 
   // Properties.
   EXPECT_EQ(scada::Variant{"TestNode2.TestProp1.Value"},
@@ -370,7 +370,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
       scada::id::RootFolder,
       scada::id::Organizes,
       scada::NodeAttributes{}.set_browse_name("NewNode").set_display_name(
-          L"NewNodeDisplayName"),
+          u"NewNodeDisplayName"),
   };
 
   // Process add node notification.
@@ -442,7 +442,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
   EXPECT_EQ(node.browse_name(), "NewNode");
-  EXPECT_EQ(node.display_name(), L"NewNodeDisplayName");
+  EXPECT_EQ(node.display_name(), u"NewNodeDisplayName");
 }
 
 TYPED_TEST(NodeServiceTest, NodeDeleted) {
@@ -509,8 +509,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 
 TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   const scada::NodeId node_id = this->server_address_space_->kTestNode1Id;
-  const scada::LocalizedText new_display_name{
-      base::WideToUTF16(L"NewTestNode1")};
+  const scada::LocalizedText new_display_name{u"NewTestNode1"};
   const scada::Variant new_property_value{"TestNode1.TestProp1.NewValue"};
 
   // INIT

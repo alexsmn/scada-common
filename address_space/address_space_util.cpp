@@ -9,6 +9,7 @@
 #include "address_space/variable.h"
 #include "base/format.h"
 #include "base/string_util.h"
+#include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
@@ -102,16 +103,15 @@ QualifiedName GetBrowseName(const AddressSpace& address_space,
 LocalizedText GetDisplayName(const AddressSpace& address_space,
                              const NodeId& node_id) {
   auto* node = address_space.GetNode(node_id);
-  return node ? GetFullDisplayName(*node)
-              : base::WideToUTF16(kUnknownDisplayName);
+  return node ? GetFullDisplayName(*node) : LocalizedText{kUnknownDisplayName};
 }
 
-std::wstring GetFullDisplayName(const Node& node) {
+std::u16string GetFullDisplayName(const Node& node) {
   auto* parent = GetParent(node);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
-    return GetFullDisplayName(*parent) + base::WideToUTF16(L" : ") +
-           ToString16(node.GetDisplayName());
+    return base::StrCat({GetFullDisplayName(*parent), u" : ",
+                         ToString16(node.GetDisplayName())});
   else
     return ToString16(node.GetDisplayName());
 }

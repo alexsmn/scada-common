@@ -1,7 +1,6 @@
 ﻿#include "address_space/standard_address_space.h"
 
 #include "address_space/address_space_impl.h"
-#include "base/strings/utf_string_conversions.h"
 
 GenericDataVariable::GenericDataVariable(StandardAddressSpace& std,
                                          AddressSpaceImpl& address_space,
@@ -39,13 +38,10 @@ GenericProperty::GenericProperty(StandardAddressSpace& std,
 }
 
 StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
-    : RootFolder{scada::id::RootFolder, "RootFolder",
-                 base::WideToUTF16(L"Корневая папка")},
-      ObjectsFolder{scada::id::ObjectsFolder, "ObjectsFolder",
-                    base::WideToUTF16(L"Объекты")},
-      TypesFolder{scada::id::TypesFolder, "TypesFolder",
-                  base::WideToUTF16(L"Типы")},
-      Server{scada::id::Server, "Server", base::WideToUTF16(L"Сервер")} {
+    : RootFolder{scada::id::RootFolder, "RootFolder", u"Корневая папка"},
+      ObjectsFolder{scada::id::ObjectsFolder, "ObjectsFolder", u"Объекты"},
+      TypesFolder{scada::id::TypesFolder, "TypesFolder", u"Типы"},
+      Server{scada::id::Server, "Server", u"Сервер"} {
   address_space.AddNode(RootFolder);
   address_space.AddNode(ObjectsFolder);
   address_space.AddNode(TypesFolder);

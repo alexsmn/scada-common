@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <vector>
-
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_delegate.h"
+
+#include <memory>
+#include <vector>
 
 class ScadaExpression;
 
@@ -18,7 +18,7 @@ class ExpressionTimedData final : public BaseTimedData,
 
   // TimedData
   virtual std::string GetFormula(bool aliases) const override;
-  virtual std::wstring GetTitle() const override;
+  virtual scada::LocalizedText GetTitle() const override;
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 

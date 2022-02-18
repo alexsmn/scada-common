@@ -1,8 +1,7 @@
 ﻿#include "common/format.h"
 
-#include <algorithm>
-
 #include "base/format.h"
+#include "base/string_piece_util.h"
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
@@ -12,14 +11,16 @@
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
-const wchar_t* kEmptyDisplayName = L"#ИМЯ?";
-const wchar_t* kUnknownDisplayName = L"#ИМЯ?";
+#include <algorithm>
 
-const wchar_t* kDefaultCloseLabel = L"Вкл";
-const wchar_t* kDefaultOpenLabel = L"Откл";
+const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
+const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
 
-void EscapeColoredString(std::wstring& str) {
-  static const std::wstring amp = base::WideToUTF16(L"&");
+const char16_t kDefaultCloseLabel[] = u"Вкл";
+const char16_t kDefaultOpenLabel[] = u"Откл";
+
+void EscapeColoredString(std::u16string& str) {
+  static const char16_t amp[] = u"&";
   base::ReplaceSubstringsAfterOffset(&str, 0, amp, amp);
 }
 
@@ -148,7 +149,7 @@ bool StringToValue(std::string_view str,
     return false;
 }
 
-bool StringToValue(std::wstring_view str,
+bool StringToValue(std::u16string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
   if (data_type_id == scada::id::Boolean) {
@@ -161,11 +162,10 @@ bool StringToValue(std::wstring_view str,
     }
 
   } else if (data_type_id == scada::id::LocalizedText) {
-    value = scada::ToLocalizedText(std::wstring{str});
+    value = scada::ToLocalizedText(str);
     return true;
   }
 
-  return StringToValue(
-      base::SysWideToNativeMB(base::UTF16ToWide(std::wstring{str})),
-      data_type_id, value);
+  return StringToValue(base::UTF16ToUTF8(AsStringPiece(str)), data_type_id,
+                       value);
 }

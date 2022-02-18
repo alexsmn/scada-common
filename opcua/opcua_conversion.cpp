@@ -2,7 +2,7 @@
 
 #include "base/bit_cast.h"
 #include "base/format_time.h"
-#include "base/strings/sys_string_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 
 #include <opcuapp/structs.h>
 
@@ -709,12 +709,12 @@ void Convert(const scada::QualifiedName& source, OpcUa_QualifiedName& target) {
 }
 
 scada::LocalizedText Convert(const OpcUa_LocalizedText& source) {
-  return base::SysUTF8ToWide(Convert(source.Text));
+  return base::UTF8ToUTF16(Convert(source.Text));
 }
 
 void Convert(const scada::LocalizedText& source, OpcUa_LocalizedText& target) {
   ::OpcUa_String_Clear(&target.Locale);
-  Convert(base::SysWideToUTF8(source), target.Text);
+  Convert(base::UTF16ToUTF8(source), target.Text);
 }
 
 scada::ByteString Convert(const OpcUa_ByteString& source) {

@@ -48,7 +48,7 @@ const Node* GetNestedNode(const AddressSpace& address_space,
                           const NodeId& node_id,
                           std::string_view& nested_name);
 
-std::wstring GetFullDisplayName(const Node& node);
+std::u16string GetFullDisplayName(const Node& node);
 
 StatusCode ConvertPropertyValues(const TypeDefinition& type_definition,
                                  NodeProperties& properties);

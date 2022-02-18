@@ -347,7 +347,7 @@ Node* FindChild(const Node& parent, std::string_view browse_name) {
 }
 
 Node* FindChildByDisplayName(const Node& parent,
-                             std::wstring_view display_name) {
+                             std::u16string_view display_name) {
   for (auto* child : GetChildren(parent)) {
     if (child->GetDisplayName() == display_name)
       return child;

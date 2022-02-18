@@ -12,9 +12,9 @@ namespace scada {
 
 void FmtAddMods(bool locked,
                 Qualifier qualifier,
-                std::wstring& text,
+                std::u16string& text,
                 int flags) {
-  std::wstring mods;
+  std::u16string mods;
   mods.reserve(16);
 
   mods += L'[';
@@ -47,13 +47,13 @@ void FmtAddMods(bool locked,
   }
 }
 
-std::wstring FormatDiscreteValue(const LocalizedText& open_label,
-                                 const LocalizedText& close_label,
-                                 bool locked,
-                                 const Variant& value,
-                                 Qualifier qualifier,
-                                 int flags) {
-  std::wstring text;
+std::u16string FormatDiscreteValue(const LocalizedText& open_label,
+                                   const LocalizedText& close_label,
+                                   bool locked,
+                                   const Variant& value,
+                                   Qualifier qualifier,
+                                   int flags) {
+  std::u16string text;
 
   bool bool_value;
   if (value.get(bool_value)) {
@@ -69,13 +69,13 @@ std::wstring FormatDiscreteValue(const LocalizedText& open_label,
   return text;
 }
 
-std::wstring FormatAnalogValue(const String& display_format,
-                               const LocalizedText& eu_units,
-                               bool locked,
-                               const Variant& value,
-                               Qualifier qualifier,
-                               int flags) {
-  std::wstring text;
+std::u16string FormatAnalogValue(const String& display_format,
+                                 const LocalizedText& eu_units,
+                                 bool locked,
+                                 const Variant& value,
+                                 Qualifier qualifier,
+                                 int flags) {
+  std::u16string text;
 
   double double_value;
   if (value.get(double_value)) {
@@ -99,11 +99,11 @@ std::wstring FormatAnalogValue(const String& display_format,
   return text;
 }
 
-std::wstring FormatUnknownValue(bool locked,
-                                const Variant& value,
-                                Qualifier qualifier,
-                                int flags) {
-  std::wstring text;
+std::u16string FormatUnknownValue(bool locked,
+                                  const Variant& value,
+                                  Qualifier qualifier,
+                                  int flags) {
+  std::u16string text;
 
   value.get(text);
 
@@ -116,10 +116,10 @@ std::wstring FormatUnknownValue(bool locked,
   return text;
 }
 
-std::wstring FormatValue(const Node& node,
-                         const Variant& value,
-                         Qualifier qualifier,
-                         int flags) {
+std::u16string FormatValue(const Node& node,
+                           const Variant& value,
+                           Qualifier qualifier,
+                           int flags) {
   const auto locked =
       GetPropertyValue(node, data_items::id::DataItemType_Locked).get_or(false);
 
@@ -133,8 +133,8 @@ std::wstring FormatValue(const Node& node,
           GetPropertyValue(*format, data_items::id::TsFormatType_CloseLabel)
               .get_or(LocalizedText());
     } else {
-      open_label = base::WideToUTF16(kDefaultOpenLabel);
-      close_label = base::WideToUTF16(kDefaultCloseLabel);
+      open_label = kDefaultOpenLabel;
+      close_label = kDefaultCloseLabel;
     }
 
     return FormatDiscreteValue(open_label, close_label, locked, value,

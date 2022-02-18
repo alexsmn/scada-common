@@ -1,5 +1,6 @@
 #include "node_service/node_util.h"
 
+#include "base/strings/strcat.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "model/data_items_node_ids.h"
@@ -49,12 +50,12 @@ std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
   return result;
 }
 
-std::wstring GetFullDisplayName(const NodeRef& node) {
+std::u16string GetFullDisplayName(const NodeRef& node) {
   auto parent = node.inverse_target(scada::id::Organizes);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
-    return GetFullDisplayName(parent) + base::WideToUTF16(L" : ") +
-           ToString16(node.display_name());
+    return base::StrCat(
+        {GetFullDisplayName(parent), u" : ", ToString16(node.display_name())});
   else
     return ToString16(node.display_name());
 }
@@ -65,5 +66,5 @@ scada::LocalizedText GetDisplayName(NodeService& node_service,
     return {};
 
   auto node = node_service.GetNode(node_id);
-  return node ? node.display_name() : base::WideToUTF16(kUnknownDisplayName);
+  return node ? node.display_name() : scada::LocalizedText{kUnknownDisplayName};
 }

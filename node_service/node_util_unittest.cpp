@@ -22,9 +22,9 @@ TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
   const scada::NodeId device_id{1, NamespaceIndexes::IEC61850_DEVICE};
 
   address_space.AddStaticNode<scada::GenericObject>(model_id, "ModelBrowseName",
-                                                    L"ModelDisplayName");
+                                                    u"ModelDisplayName");
   address_space.AddStaticNode<scada::GenericObject>(
-      device_id, "DeviceBrowseName", L"DeviceDisplayName");
+      device_id, "DeviceBrowseName", u"DeviceDisplayName");
   scada::AddReference(address_space, scada::id::Organizes, devices::id::Devices,
                       device_id);
   scada::AddReference(address_space, scada::id::HasTypeDefinition, device_id,
@@ -35,8 +35,8 @@ TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
 
   auto node_service = v1::CreateTestNodeService(address_space);
 
-  const std::wstring expected_full_display_name =
-      L"DeviceDisplayName : ModelDisplayName";
+  const std::u16string expected_full_display_name =
+      u"DeviceDisplayName : ModelDisplayName";
   EXPECT_EQ(expected_full_display_name,
             GetFullDisplayName(node_service->GetNode(model_id)));
 }

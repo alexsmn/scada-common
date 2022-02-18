@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "address_space/reference.h"
+#include "base/strings/string_piece.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 
@@ -161,6 +162,6 @@ Node* FindComponentDeclaration(const TypeDefinition& type,
                                std::string_view browse_name);
 
 Node* FindChildByDisplayName(const Node& parent,
-                             std::wstring_view display_name);
+                             std::u16string_view display_name);
 
 }  // namespace scada

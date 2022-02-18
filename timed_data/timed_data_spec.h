@@ -60,12 +60,13 @@ class TimedDataSpec : private TimedDataDelegate {
 
   NodeRef GetNode() const;
 
-  std::wstring GetCurrentString(int params = FORMAT_QUALITY |
+  std::u16string GetCurrentString(int params = FORMAT_QUALITY |
+                                               FORMAT_UNITS) const;
+  std::u16string GetValueString(const scada::Variant& value,
+                                scada::Qualifier qualifier,
+                                int params = FORMAT_QUALITY |
                                              FORMAT_UNITS) const;
-  std::wstring GetValueString(const scada::Variant& value,
-                              scada::Qualifier qualifier,
-                              int params = FORMAT_QUALITY | FORMAT_UNITS) const;
-  std::wstring GetTitle() const;
+  std::u16string GetTitle() const;
   const EventSet* GetEvents() const;
 
   void Reset() { SetData(nullptr); }

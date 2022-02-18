@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/strings/string16.h"
+#include "base/strings/string_piece.h"
 #include "core/qualifier.h"
 
 #include <string>
@@ -10,11 +12,11 @@ class NodeId;
 class Variant;
 }  // namespace scada
 
-extern const wchar_t* kEmptyDisplayName;
-extern const wchar_t* kUnknownDisplayName;
+extern const char16_t kEmptyDisplayName[];
+extern const char16_t kUnknownDisplayName[];
 
-extern const wchar_t* kDefaultCloseLabel;
-extern const wchar_t* kDefaultOpenLabel;
+extern const char16_t kDefaultCloseLabel[];
+extern const char16_t kDefaultOpenLabel[];
 
 enum FormatFlags {
   FORMAT_QUALITY = 0x0001,
@@ -27,11 +29,11 @@ enum FormatFlags {
 
 std::string FormatFloat(double val, const char* fmt);
 
-void EscapeColoredString(std::wstring& str);
+void EscapeColoredString(std::u16string& str);
 
 bool StringToValue(std::string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value);
-bool StringToValue(std::wstring_view str,
+bool StringToValue(std::u16string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value);

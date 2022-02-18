@@ -1,9 +1,9 @@
 #pragma once
 
+#include "base/strings/string_piece.h"
 #include "core/aggregate_filter.h"
 
 #include <memory>
-#include <string_view>
 
 class TimedData;
 

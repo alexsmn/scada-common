@@ -7,8 +7,8 @@
 #include <optional>
 
 std::optional<std::string_view> Unquote(std::string_view str,
-                                        char left_quote,
-                                        char right_quote) {
+                                         char left_quote,
+                                         char right_quote) {
   if (str.size() >= 2 && str.front() == left_quote &&
       str.back() == right_quote) {
     return str.substr(1, str.size() - 2);

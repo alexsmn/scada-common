@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/strings/string16.h"
 #include "node_service/node_ref.h"
 
 #include <memory>
@@ -15,7 +16,7 @@ bool CanCreate(const NodeRef& parent, const NodeRef& component_type_definition);
 
 std::vector<NodeRef> GetDataVariables(const NodeRef& node);
 
-std::wstring GetFullDisplayName(const NodeRef& node);
+std::u16string GetFullDisplayName(const NodeRef& node);
 
 scada::LocalizedText GetDisplayName(NodeService& node_service,
                                     const scada::NodeId& node_id);

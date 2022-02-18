@@ -128,7 +128,7 @@ TEST_F(NodeFetchStatusTrackerTest,
                                      NodeFetchStatus::NodeAndChildren()})));
 
   address_space_.AddStaticNode<scada::GenericObject>(child_id, "ChildName",
-                                                     L"ChildDisplayName");
+                                                     u"ChildDisplayName");
 
   node_fetch_status_tracker_.SetFetchStatusesHint(
       {}, {{child_id, NodeFetchStatus::NodeOnly()}});
@@ -162,7 +162,7 @@ TEST_F(NodeFetchStatusTrackerTest,
             std::make_pair(kGoodStatus, NodeFetchStatus::ChildrenOnly()));
 
   address_space_.AddStaticNode<scada::GenericObject>(parent_id, "ParentName",
-                                                     L"ParentDisplayName");
+                                                     u"ParentDisplayName");
 
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
