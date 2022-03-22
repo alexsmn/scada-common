@@ -2,7 +2,6 @@
 
 #include "address_space/node_observer.h"
 #include "address_space/reference.h"
-#include "core/configuration_types.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
 #include "core/status.h"

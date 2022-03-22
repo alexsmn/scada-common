@@ -8,7 +8,6 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/time/time.h"
-#include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/standard_node_ids.h"
 

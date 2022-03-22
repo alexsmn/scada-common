@@ -3,7 +3,7 @@
 #include "base/time/time.h"
 #include "core/attribute_ids.h"
 #include "core/attribute_service.h"
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/data_value.h"
 #include "core/expanded_node_id.h"
 #include "core/extension_object.h"

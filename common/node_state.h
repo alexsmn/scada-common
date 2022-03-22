@@ -3,9 +3,12 @@
 #include "base/debug_util.h"
 #include "core/node_attributes.h"
 #include "core/node_class.h"
+#include "core/node_id.h"
+#include "core/variant.h"
 #include "core/view_service.h"
 
 #include <ostream>
+#include <vector>
 
 namespace scada {
 
@@ -14,6 +17,9 @@ struct ReferenceState {
   NodeId source_id;
   NodeId target_id;
 };
+
+using NodeProperty = std::pair<NodeId /*prop_type_id*/, Variant /*value*/>;
+using NodeProperties = std::vector<NodeProperty>;
 
 struct NodeState {
   NodeId node_id;
@@ -72,6 +78,19 @@ inline const NodeId* FindReference(
     return p.forward == forward && p.reference_type_id == reference_type_id;
   });
   return i != references.end() ? &i->node_id : nullptr;
+}
+
+inline const Variant* FindProperty(const NodeProperties& properties,
+                                   const NodeId& prop_decl_id) {
+  auto i = std::find_if(properties.begin(), properties.end(),
+                        [&](auto& p) { return p.first == prop_decl_id; });
+  return i != properties.end() ? &i->second : nullptr;
+}
+
+inline Variant GetProperty(const NodeProperties& properties,
+                           const NodeId& prop_decl_id) {
+  auto* p = FindProperty(properties, prop_decl_id);
+  return p ? *p : Variant{};
 }
 
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {

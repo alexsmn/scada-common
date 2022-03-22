@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/data_value.h"
 
 #include <cassert>

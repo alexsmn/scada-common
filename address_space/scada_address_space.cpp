@@ -9,7 +9,7 @@
 #include "address_space/variable.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/node_state.h"
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/privileges.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"

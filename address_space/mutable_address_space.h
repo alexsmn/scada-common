@@ -1,7 +1,7 @@
 #pragma once
 
 #include "address_space/address_space.h"
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/node_attributes.h"
 
 #include <memory>

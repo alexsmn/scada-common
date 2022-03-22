@@ -3,7 +3,6 @@
 #include "address_space/node.h"
 #include "base/time/time.h"
 #include "core/attribute_service.h"
-#include "core/configuration_types.h"
 
 #include <functional>
 #include <map>

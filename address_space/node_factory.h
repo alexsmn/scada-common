@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/configuration_types.h"
 #include "core/status.h"
 
 namespace scada {

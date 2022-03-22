@@ -1,7 +1,6 @@
 #pragma once
 
 #include "node_service/node_ref.h"
-#include "core/configuration_types.h"
 
 #include <functional>
 #include <vector>

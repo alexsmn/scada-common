@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/boost_log.h"
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/node_id.h"
 #include "core/service.h"
 

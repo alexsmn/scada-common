@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/view_events_subscription.h"
-#include "core/configuration_types.h"
+#include "common/node_state.h"
 #include "core/view_service.h"
 #include "node_service/node_children_fetcher.h"
 #include "node_service/node_fetcher_impl.h"

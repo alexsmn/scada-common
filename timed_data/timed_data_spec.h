@@ -4,7 +4,6 @@
 #include "common/event_set.h"
 #include "common/format.h"
 #include "core/aggregate_filter.h"
-#include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "node_service/node_ref.h"

@@ -7,7 +7,6 @@
 #include "base/time/time.h"
 #include "common/data_value_util.h"
 #include "node_service/node_ref.h"
-#include "core/configuration_types.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
