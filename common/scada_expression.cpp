@@ -19,11 +19,14 @@ static const expression::LexemType LEX_UNITS = 'u';
 namespace {
 
 inline bool wp_isalpha(char ch) {
+#pragma warning(push)
+#pragma warning(disable:4566)
   return ch && strchr(
                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
                    "абвгдеёжзийклмнопрстуфхцчшщьыъэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШ"
                    "ЩЬЫЪЭЮЯ",
                    ch) != 0;
+#pragma warning(pop)
 }
 
 inline bool wp_isnum(char ch) {
