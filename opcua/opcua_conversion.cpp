@@ -738,6 +738,7 @@ scada::AddNodesItem Convert(const OpcUa_AddNodesItem& source) {
       Convert(source.ParentNodeId.NodeId),
       ConvertNodeClass(source.NodeClass),
       Convert(source.TypeDefinition.NodeId),
+      scada::NodeAttributes{}.set_browse_name(Convert(source.BrowseName)),
   };
 }
 
