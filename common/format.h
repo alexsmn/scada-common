@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/strings/string_piece.h"
 #include "core/qualifier.h"
 
 #include <string>

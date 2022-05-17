@@ -2,7 +2,6 @@
 
 #include "address_space/node.h"
 #include "address_space/reference.h"
-#include "base/strings/string_piece.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 

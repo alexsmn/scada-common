@@ -1,6 +1,7 @@
 #include "vidicon_session.h"
 
 #include "base/logger.h"
+#include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
 #include "core/date_time.h"
@@ -93,7 +94,7 @@ std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
     auto address =
         base::StringPrintf(L"CF:%d", read_value_id.node_id.numeric_id());
     Microsoft::WRL::ComPtr<IDataPoint> point;
-    teleclient_->RequestPoint(base::win::ScopedBstr(address.c_str()),
+    teleclient_->RequestPoint(base::win::ScopedBstr(address),
                               point.GetAddressOf());
     if (!point)
       return nullptr;
