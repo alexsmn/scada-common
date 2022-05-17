@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/strings/string16.h"
 #include "node_service/node_ref.h"
 
 #include <memory>
