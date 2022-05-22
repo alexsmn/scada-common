@@ -1,14 +1,17 @@
 #include "common/formula_util.h"
 
+#include "base/string_piece_util.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_util.h"
 #include "common/scada_expression.h"
+#include "common/static_types.h"
 #include "model/node_id_util.h"
 
 #include <optional>
 
 std::optional<std::string_view> Unquote(std::string_view str,
-                                         char left_quote,
-                                         char right_quote) {
+                                        char left_quote,
+                                        char right_quote) {
   if (str.size() >= 2 && str.front() == left_quote &&
       str.back() == right_quote) {
     return str.substr(1, str.size() - 2);
@@ -17,15 +20,20 @@ std::optional<std::string_view> Unquote(std::string_view str,
   }
 }
 
-scada::NodeId GetFormulaSingleNodeId(std::string_view formula) {
+std::string GetFormulaSingleName(std::string_view formula) {
   std::string name;
   if (!ScadaExpression::IsSingleName(formula, name))
     return {};
 
   if (auto str = Unquote(name, '{', '}'))
-    return NodeIdFromScadaString(*str);
+    return std::string{*str};
 
-  return NodeIdFromScadaString(name);
+  return name;
+}
+
+scada::NodeId GetFormulaSingleNodeId(std::string_view formula) {
+  auto name = GetFormulaSingleName(formula);
+  return name.empty() ? scada::NodeId{} : NodeIdFromScadaString(name);
 }
 
 std::string MakeNodeIdFormula(const scada::NodeId& id) {
@@ -38,4 +46,17 @@ std::string MakeNodeIdFormula(const scada::NodeId& id) {
       assert(false);
       return std::string();
   }
+}
+
+std::string_view GetParentGroupChannelPath(std::string_view path) {
+  bool matches =
+      base::StartsWith(AsStringPiece(path), cfg::kDataGroupDevicePlaceholder);
+  if (!matches)
+    return {};
+
+  path = path.substr(std::string_view{cfg::kDataGroupDevicePlaceholder}.size());
+  if (path.empty() || path[0] != '!')
+    return {};
+
+  return path.substr(1);
 }

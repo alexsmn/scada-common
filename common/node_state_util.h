@@ -1,11 +1,14 @@
 #pragma once
 
 #include "common/node_state.h"
+#include "core/attribute_service.h"
+
+#include <optional>
 
 namespace scada {
 
-// Returns empty variant on error.
-inline Variant Read(const NodeState& node_state, AttributeId attribute_id) {
+inline std::optional<scada::Variant> ReadAttribute(const NodeState& node_state,
+                                                   AttributeId attribute_id) {
   switch (attribute_id) {
     case AttributeId::NodeId:
       return node_state.node_id;
@@ -20,8 +23,16 @@ inline Variant Read(const NodeState& node_state, AttributeId attribute_id) {
     case AttributeId::Value:
       return node_state.attributes.value.value_or(scada::Variant{});
     default:
-      return {};
+      return std::nullopt;
   }
+}
+
+inline scada::DataValue ReadAttributeResult(const NodeState& node_state,
+                                            AttributeId attribute_id) {
+  auto optional_value = ReadAttribute(node_state, attribute_id);
+  return optional_value.has_value()
+             ? scada::MakeReadResult(optional_value.value())
+             : scada::MakeReadError(scada::StatusCode::Bad_WrongAttributeId);
 }
 
 /*inline std::vector<scada::ReferenceDescription> Browse(

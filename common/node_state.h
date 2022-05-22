@@ -59,6 +59,11 @@ struct NodeState {
     return *this;
   }
 
+  NodeState& set_browse_name(const QualifiedName& browse_name) {
+    attributes.browse_name = browse_name;
+    return *this;
+  }
+
   NodeState& set_display_name(const LocalizedText& display_name) {
     attributes.display_name = display_name;
     return *this;

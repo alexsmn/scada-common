@@ -40,7 +40,8 @@ class TestNodeModel final : public NodeModel {
 
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override {
-    return scada::Read(node_state, attribute_id);
+    return scada::ReadAttribute(node_state, attribute_id)
+        .value_or(scada::Variant{});
   }
 
   virtual NodeRef GetDataType() const override {
