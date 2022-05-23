@@ -31,13 +31,16 @@ scada::BrowsePathResult TranslateBrowsePathHelper(
   if (relative_path.empty())
     return {scada::StatusCode::Bad_NothingToDo, {}};
 
-  auto* current_node = &node;
-  size_t i = 0;
+  auto* current_node = TranslateBrowsePathHelper2(node, relative_path[0]);
+  if (!current_node)
+    return {scada::StatusCode::Bad_BrowseNameInvalid};
+
+  size_t i = 1;
   for (; i < relative_path.size(); ++i) {
     auto* next_node =
         TranslateBrowsePathHelper2(*current_node, relative_path[i]);
     if (!next_node)
-      return {scada::StatusCode::Bad_BrowseNameInvalid, {}};
+      break;
     current_node = next_node;
   }
 
