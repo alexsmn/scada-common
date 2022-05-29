@@ -175,6 +175,13 @@ void OpcUaSession::Call(const scada::NodeId& node_id,
                         const scada::NodeId& user_id,
                         const scada::StatusCallback& callback) {
   opcua::CallMethodRequest request;
+  Convert(node_id, request.ObjectId);
+  Convert(method_id, request.MethodId);
+  auto opcua_arguments =
+      ConvertFromVector<OpcUa_Variant>(std::vector<scada::Variant>{arguments});
+  request.NoOfInputArguments = opcua_arguments.size();
+  request.InputArguments = opcua_arguments.release();
+
   session_.Call({&request, 1},
                 [callback](opcua::StatusCode status_code,
                            opcua::Span<const OpcUa_CallMethodResult> results) {

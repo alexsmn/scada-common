@@ -173,6 +173,24 @@ OpcUa_DateTime Convert(scada::DateTime time) {
   return utc_ft;
 }
 
+template <class T>
+T* CreatePrimitiveArray(const T* data, size_t size) {
+  auto* copied_data =
+      reinterpret_cast<T*>(::OpcUa_Memory_Alloc(sizeof(T) * size));
+  if (!copied_data)
+    throw OpcUa_BadOutOfMemory;
+  std::copy(data, data + size, copied_data);
+  return copied_data;
+}
+
+OpcUa_VariantArrayValue MakeVariantArrayValue(
+    const std::vector<scada::Int32>& value) {
+  OpcUa_VariantArrayValue result;
+  result.Length = value.size();
+  result.Value.Int32Array = CreatePrimitiveArray(value.data(), value.size());
+  return result;
+}
+
 OpcUa_VariantArrayValue MakeVariantArrayValue(
     const std::vector<scada::String>& value) {
   auto vector =
@@ -210,6 +228,13 @@ void Convert(scada::Variant&& source, OpcUa_Variant& result) {
     assert(source.type() != scada::Variant::EMPTY);
 
     switch (source.type()) {
+      case scada::Variant::INT32:
+        result.Datatype = OpcUaType_Int32;
+        result.ArrayType = OpcUa_VariantArrayType_Array;
+        result.Value.Array =
+            MakeVariantArrayValue(source.get<std::vector<scada::Int32>>());
+        break;
+
       case scada::Variant::STRING:
         result.Datatype = OpcUaType_String;
         result.ArrayType = OpcUa_VariantArrayType_Array;
