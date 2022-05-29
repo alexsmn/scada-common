@@ -1,5 +1,6 @@
 #include "opcua_session.h"
 
+#include "base/executor.h"
 #include "opcua/opcua_conversion.h"
 #include "opcua_subscription.h"
 
@@ -33,8 +34,8 @@ OpcUa_ProxyStubConfiguration MakeProxyStubConfiguration() {
 
 }  // namespace
 
-OpcUaSession::OpcUaSession(boost::asio::io_context& io_context)
-    : io_context_{io_context},
+OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
+    : executor_{std::move(executor)},
       proxy_stub_{platform_, MakeProxyStubConfiguration()},
       session_{channel_} {}
 
@@ -63,11 +64,12 @@ void OpcUaSession::Connect(const std::string& connection_string,
       10000,
   };
 
-  channel_.Connect(context, executor_.wrap([ref = shared_from_this()](
-                                               opcua::StatusCode status_code,
-                                               OpcUa_Channel_Event event) {
-    ref->OnConnectionStateChanged(status_code, event);
-  }));
+  channel_.Connect(context, BindExecutor(executor_, weak_from_this(),
+                                         [this](opcua::StatusCode status_code,
+                                                OpcUa_Channel_Event event) {
+                                           OnConnectionStateChanged(status_code,
+                                                                    event);
+                                         }));
 }
 
 void OpcUaSession::Reconnect() {}
@@ -124,6 +126,7 @@ OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
     std::weak_ptr<OpcUaSession> weak_ptr = shared_from_this();
     default_subscription_ = OpcUaSubscription::Create(OpcUaSubscriptionContext{
         session_,
+        executor_,
         [this](scada::Status&& status) { OnError(std::move(status)); },
     });
   }
@@ -166,6 +169,25 @@ void OpcUaSession::Write(
   callback(scada::StatusCode::Bad, {});
 }
 
+void OpcUaSession::Call(const scada::NodeId& node_id,
+                        const scada::NodeId& method_id,
+                        const std::vector<scada::Variant>& arguments,
+                        const scada::NodeId& user_id,
+                        const scada::StatusCallback& callback) {
+  opcua::CallMethodRequest request;
+  session_.Call({&request, 1},
+                [callback](opcua::StatusCode status_code,
+                           opcua::Span<const OpcUa_CallMethodResult> results) {
+                  if (status_code.IsNotGood()) {
+                    callback(ConvertStatusCode(status_code.code()));
+                    return;
+                  }
+                  assert(results.size() == 1);
+                  auto& result = results[0];
+                  callback(ConvertStatusCode(result.StatusCode));
+                });
+}
+
 void OpcUaSession::Reset() {
   if (default_subscription_)
     default_subscription_->Reset();
@@ -202,9 +224,10 @@ void OpcUaSession::CreateSession() {
 
   session_.Create(
       request,
-      executor_.wrap([ref = shared_from_this()](opcua::StatusCode status_code) {
-        ref->OnCreateSessionResponse(ConvertStatusCode(status_code.code()));
-      }));
+      BindExecutor(
+          executor_, weak_from_this(), [this](opcua::StatusCode status_code) {
+            OnCreateSessionResponse(ConvertStatusCode(status_code.code()));
+          }));
 }
 
 void OpcUaSession::OnCreateSessionResponse(scada::Status&& status) {
@@ -225,9 +248,9 @@ void OpcUaSession::ActivateSession() {
   assert(session_created_);
   assert(!session_activated_);
 
-  session_.Activate(
-      executor_.wrap([ref = shared_from_this()](opcua::StatusCode status_code) {
-        ref->OnActivateSessionResponse(ConvertStatusCode(status_code.code()));
+  session_.Activate(BindExecutor(
+      executor_, weak_from_this(), [this](opcua::StatusCode status_code) {
+        OnActivateSessionResponse(ConvertStatusCode(status_code.code()));
       }));
 }
 

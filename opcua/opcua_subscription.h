@@ -14,6 +14,7 @@ namespace opcua::client {
 class Session;
 }  // namespace opcua::client
 
+class Executor;
 class OpcUaMonitoredItem;
 
 struct OpcUaMonitoredItemCreateResult {
@@ -24,6 +25,7 @@ struct OpcUaMonitoredItemCreateResult {
 
 struct OpcUaSubscriptionContext {
   opcua::client::Session& session_;
+  const std::shared_ptr<Executor> executor_;
   std::function<void(scada::Status&& status)> error_handler_;
 };
 

@@ -1,30 +1,28 @@
 #pragma once
 
 #include "core/attribute_service.h"
+#include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "core/session_service.h"
 #include "core/view_service.h"
 
-#include <boost/asio/io_context_strand.hpp>
 #include <opcuapp/client/channel.h>
 #include <opcuapp/client/session.h>
 #include <opcuapp/platform.h>
 #include <opcuapp/proxy_stub.h>
 #include <opcuapp/status_code.h>
 
-namespace boost::asio {
-class io_context;
-}
-
+class Executor;
 class OpcUaSubscription;
 
 class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
                      public scada::SessionService,
                      public scada::ViewService,
                      public scada::AttributeService,
-                     public scada::MonitoredItemService {
+                     public scada::MonitoredItemService,
+                     public scada::MethodService {
  public:
-  explicit OpcUaSession(boost::asio::io_context& io_context);
+  explicit OpcUaSession(std::shared_ptr<Executor> executor);
   virtual ~OpcUaSession();
 
   // scada::SessionService
@@ -66,6 +64,13 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
+  // scada::MethodService
+  virtual void Call(const scada::NodeId& node_id,
+                    const scada::NodeId& method_id,
+                    const std::vector<scada::Variant>& arguments,
+                    const scada::NodeId& user_id,
+                    const scada::StatusCallback& callback) override;
+
  private:
   void Reset();
 
@@ -81,8 +86,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
 
   OpcUaSubscription& GetDefaultSubscription();
 
-  boost::asio::io_context& io_context_;
-  boost::asio::io_context::strand executor_{io_context_};
+  const std::shared_ptr<Executor> executor_;
 
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;

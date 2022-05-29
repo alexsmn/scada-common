@@ -4,9 +4,9 @@
 bool CreateOpcUaServices(const DataServicesContext& context,
                          DataServices& services) {
   try {
-    auto session = std::make_shared<OpcUaSession>(context.io_context);
+    auto session = std::make_shared<OpcUaSession>(context.executor);
     services = {
-        session, session, nullptr, nullptr, nullptr, session, nullptr, session,
+        session, session, nullptr, nullptr, nullptr, session, session, session,
     };
     return true;
 

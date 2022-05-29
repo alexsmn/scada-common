@@ -1,8 +1,10 @@
 #include "opcua_server.h"
 
+#include "base/promise.h"
 #include "core/attribute_service.h"
 #include "core/event_util.h"
 #include "core/expanded_node_id.h"
+#include "core/method_service.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
 #include "core/node_management_service.h"
@@ -11,6 +13,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <boost/range/adaptor/transformed.hpp>
 #include <chrono>
 #include <opcuapp/data_value.h>
 #include <opcuapp/requests.h>
@@ -166,6 +169,25 @@ void FillBrowseResultsAttributes(
       });
 }
 
+promise<scada::Status> Call(scada::MethodService& method_service,
+                            const scada::NodeId& node_id,
+                            const scada::NodeId& method_id,
+                            const std::vector<scada::Variant>& arguments,
+                            const scada::NodeId& user_id) {
+  promise<scada::Status> promise;
+  method_service.Call(node_id, method_id, arguments, user_id,
+                      [promise](scada::Status status) mutable {
+                        promise.resolve(std::move(status));
+                      });
+  return promise;
+}
+
+opcua::CallMethodResult BuildCallMethodResult(OpcUa_StatusCode status_code) {
+  opcua::CallMethodResult result;
+  result.StatusCode = status_code;
+  return result;
+}
+
 class MonitoredItemAdapter : public opcua::server::MonitoredItem {
  public:
   explicit MonitoredItemAdapter(
@@ -243,6 +265,10 @@ OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
       [this](OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
              const opcua::server::TranslateBrowsePathsToNodeIdsCallback&
                  callback) { TranslateBrowsePaths(request, callback); },
+      [this](OpcUa_CallRequest& request,
+             const opcua::server::CallCallback& callback) {
+        Call(request, callback);
+      },
       [this](opcua::ReadValueId&& read_value_id,
              opcua::MonitoringParameters&& params) {
         return CreateMonitoredItem(std::move(read_value_id), std::move(params));
@@ -381,6 +407,33 @@ void OpcUaServer::TranslateBrowsePaths(
             MakeStatusCode(status.code()).code();
         response.NoOfResults = opcua_results.size();
         response.Results = opcua_results.release();
+        callback(std::move(response));
+      });
+}
+
+void OpcUaServer::Call(OpcUa_CallRequest& request,
+                       const opcua::server::CallCallback& callback) {
+  auto promises =
+      base::make_span(request.MethodsToCall, request.NoOfMethodsToCall) |
+      boost::adaptors::transformed([&](const OpcUa_CallMethodRequest& method) {
+        return ::Call(method_service_, Convert(method.ObjectId),
+                      Convert(method.MethodId),
+                      ConvertVector<scada::Variant>(opcua::MakeSpan(
+                          method.InputArguments, method.NoOfInputArguments)),
+                      service_context_->user_id);
+      });
+
+  make_all_promise(promises).then(
+      [callback](const std::vector<scada::Status>& results) {
+        opcua::Vector<OpcUa_CallMethodResult> method_results(results.size());
+        for (size_t i = 0; i < results.size(); ++i) {
+          BuildCallMethodResult(MakeStatusCode(results[i].code()).code())
+              .release(method_results[i]);
+        }
+        opcua::CallResponse response;
+        response.ResponseHeader.ServiceResult = OpcUa_Good;
+        response.NoOfResults = method_results.size();
+        response.Results = method_results.release();
         callback(std::move(response));
       });
 }

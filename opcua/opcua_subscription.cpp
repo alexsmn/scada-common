@@ -1,7 +1,6 @@
 #include "opcua_subscription.h"
 
-#include "base/bind.h"
-#include "base/threading/sequenced_task_runner_handle.h"
+#include "base/executor.h"
 #include "core/event_util.h"
 #include "core/monitored_item_service.h"
 #include "opcua/opcua_conversion.h"
@@ -12,7 +11,7 @@ using namespace std::chrono_literals;
 
 namespace {
 
-const auto kCommitItemsDelay = base::TimeDelta::FromSeconds(1);
+const auto kCommitItemsDelay = 1s;
 
 template <typename T>
 inline bool Erase(std::vector<T>& vector, const T& item) {
@@ -134,13 +133,12 @@ void OpcUaSubscription::CreateSubscription() {
       0,      // priority
   };
 
-  auto ref = shared_from_this();
-  auto runner = base::SequencedTaskRunnerHandle::Get();
-  subscription_.Create(params, [ref, runner](opcua::StatusCode status_code) {
-    runner->PostTask(
-        FROM_HERE, base::Bind(&OpcUaSubscription::OnCreateSubscriptionResponse,
-                              ref, ConvertStatusCode(status_code.code())));
-  });
+  subscription_.Create(
+      params,
+      BindExecutor(
+          executor_, weak_from_this(), [this](opcua::StatusCode status_code) {
+            OnCreateSubscriptionResponse(ConvertStatusCode(status_code.code()));
+          }));
 }
 
 void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
@@ -151,39 +149,30 @@ void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
 
   created_ = true;
 
-  auto ref = shared_from_this();
-  auto runner = base::SequencedTaskRunnerHandle::Get();
-
   subscription_.StartPublishing(
-      [runner, ref](opcua::StatusCode status_code) {
-        if (!status_code)
-          runner->PostTask(FROM_HERE,
-                           base::Bind(&OpcUaSubscription::OnError, ref,
-                                      ConvertStatusCode(status_code.code())));
-      },
-      [runner, ref](OpcUa_DataChangeNotification& data_change_notification) {
-        runner->PostTask(
-            FROM_HERE,
-            base::Bind(
-                &OpcUaSubscription::OnDataChange, ref,
-                base::Passed(std::vector<opcua::MonitoredItemNotification>(
-                    std::make_move_iterator(
-                        data_change_notification.MonitoredItems),
-                    std::make_move_iterator(
-                        data_change_notification.MonitoredItems +
-                        data_change_notification.NoOfMonitoredItems)))));
-      },
-      [runner, ref](OpcUa_EventNotificationList& event_notification_list) {
-        runner->PostTask(
-            FROM_HERE,
-            base::Bind(
-                &OpcUaSubscription::OnEvents, ref,
-                base::Passed(std::vector<opcua::EventFieldList>(
-                    std::make_move_iterator(event_notification_list.Events),
-                    std::make_move_iterator(
-                        event_notification_list.Events +
-                        event_notification_list.NoOfEvents)))));
-      });
+      BindExecutor(executor_, weak_from_this(),
+                   [this](opcua::StatusCode status_code) {
+                     if (!status_code)
+                       OnError(ConvertStatusCode(status_code.code()));
+                   }),
+      BindExecutor(
+          executor_, weak_from_this(),
+          [this](OpcUa_DataChangeNotification data_change_notification) {
+            OnDataChange(std::vector<opcua::MonitoredItemNotification>(
+                std::make_move_iterator(
+                    data_change_notification.MonitoredItems),
+                std::make_move_iterator(
+                    data_change_notification.MonitoredItems +
+                    data_change_notification.NoOfMonitoredItems)));
+          }),
+      BindExecutor(
+          executor_, weak_from_this(),
+          [this](OpcUa_EventNotificationList event_notification_list) {
+            OnEvents(std::vector<opcua::EventFieldList>(
+                std::make_move_iterator(event_notification_list.Events),
+                std::make_move_iterator(event_notification_list.Events +
+                                        event_notification_list.NoOfEvents)));
+          }));
 
   CommitItems();
 }
@@ -266,20 +255,16 @@ void OpcUaSubscription::CreateMonitoredItems() {
 
   subscribing_items_.swap(pending_subscribe_items_);
 
-  auto ref = shared_from_this();
-  auto runner = base::SequencedTaskRunnerHandle::Get();
   subscription_.CreateMonitoredItems(
       {requests.data(), requests.size()}, OpcUa_TimestampsToReturn_Both,
-      [ref, runner](opcua::StatusCode status_code,
-                    opcua::Span<OpcUa_MonitoredItemCreateResult> results) {
-        runner->PostTask(
-            FROM_HERE,
-            base::Bind(
-                &OpcUaSubscription::OnCreateMonitoredItemsResponse, ref,
+      BindExecutor(
+          executor_, weak_from_this(),
+          [this](opcua::StatusCode status_code,
+                 opcua::Span<OpcUa_MonitoredItemCreateResult> results) {
+            OnCreateMonitoredItemsResponse(
                 ConvertStatusCode(status_code.code()),
-                base::Passed(
-                    ConvertVector22<OpcUaMonitoredItemCreateResult>(results))));
-      });
+                ConvertVector22<OpcUaMonitoredItemCreateResult>(results));
+          }));
 }
 
 void OpcUaSubscription::OnCreateMonitoredItemsResponse(
@@ -380,21 +365,19 @@ void OpcUaSubscription::DeleteMonitoredItems() {
 
   unsubscribing_items_.swap(pending_unsubscribe_items_);
 
-  auto ref = shared_from_this();
-  auto runner = base::SequencedTaskRunnerHandle::Get();
   subscription_.DeleteMonitoredItems(
       {item_ids.data(), item_ids.size()},
-      [ref, runner](opcua::StatusCode status_code,
-                    opcua::Span<OpcUa_StatusCode> results) {
-        std::vector<scada::StatusCode> converted_results(results.size());
-        for (size_t i = 0; i < results.size(); ++i)
-          converted_results[i] = ConvertStatusCode(results[i]);
-        runner->PostTask(
-            FROM_HERE,
-            base::Bind(&OpcUaSubscription::OnDeleteMonitoredItemsResponse, ref,
-                       ConvertStatusCode(status_code.code()),
-                       base::Passed(std::move(converted_results))));
-      });
+      BindExecutor(executor_, weak_from_this(),
+                   [this](opcua::StatusCode status_code,
+                          opcua::Span<OpcUa_StatusCode> results) {
+                     std::vector<scada::StatusCode> converted_results(
+                         results.size());
+                     for (size_t i = 0; i < results.size(); ++i)
+                       converted_results[i] = ConvertStatusCode(results[i]);
+                     OnDeleteMonitoredItemsResponse(
+                         ConvertStatusCode(status_code.code()),
+                         std::move(converted_results));
+                   }));
 }
 
 void OpcUaSubscription::OnDeleteMonitoredItemsResponse(
@@ -495,11 +478,9 @@ void OpcUaSubscription::ScheduleCommitItems() {
 
   commit_items_scheduled_ = true;
 
-  base::SequencedTaskRunnerHandle::Get()->PostDelayedTask(
-      FROM_HERE,
-      base::Bind(&OpcUaSubscription::ScheduleCommitItemsDone,
-                 shared_from_this()),
-      kCommitItemsDelay);
+  executor_->PostDelayedTask(
+      kCommitItemsDelay,
+      BindCancelation(weak_from_this(), [this] { ScheduleCommitItemsDone(); }));
 }
 
 void OpcUaSubscription::ScheduleCommitItemsDone() {
