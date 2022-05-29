@@ -1,6 +1,7 @@
 #include "opcua_server.h"
 
 #include "core/attribute_service.h"
+#include "core/event_util.h"
 #include "core/expanded_node_id.h"
 #include "core/monitored_item.h"
 #include "core/monitored_item_service.h"
@@ -189,7 +190,8 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
       const opcua::server::EventHandler& event_handler) override {
     monitored_item_->Subscribe(
         [event_handler](const scada::Status& status, const std::any& event) {
-          event_handler({});
+          auto fields = scada::DisassembleEvent(event);
+          event_handler(ConvertFromVector<OpcUa_Variant>(std::move(fields)));
         });
   }
 

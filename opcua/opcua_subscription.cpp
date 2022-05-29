@@ -2,6 +2,7 @@
 
 #include "base/bind.h"
 #include "base/threading/sequenced_task_runner_handle.h"
+#include "core/event_util.h"
 #include "core/monitored_item_service.h"
 #include "opcua/opcua_conversion.h"
 
@@ -160,16 +161,28 @@ void OpcUaSubscription::OnCreateSubscriptionResponse(scada::Status&& status) {
                            base::Bind(&OpcUaSubscription::OnError, ref,
                                       ConvertStatusCode(status_code.code())));
       },
-      [runner, ref](OpcUa_DataChangeNotification& notification) {
+      [runner, ref](OpcUa_DataChangeNotification& data_change_notification) {
         runner->PostTask(
             FROM_HERE,
             base::Bind(
                 &OpcUaSubscription::OnDataChange, ref,
                 base::Passed(std::vector<opcua::MonitoredItemNotification>(
-                    std::make_move_iterator(notification.MonitoredItems),
                     std::make_move_iterator(
-                        notification.MonitoredItems +
-                        notification.NoOfMonitoredItems)))));
+                        data_change_notification.MonitoredItems),
+                    std::make_move_iterator(
+                        data_change_notification.MonitoredItems +
+                        data_change_notification.NoOfMonitoredItems)))));
+      },
+      [runner, ref](OpcUa_EventNotificationList& event_notification_list) {
+        runner->PostTask(
+            FROM_HERE,
+            base::Bind(
+                &OpcUaSubscription::OnEvents, ref,
+                base::Passed(std::vector<opcua::EventFieldList>(
+                    std::make_move_iterator(event_notification_list.Events),
+                    std::make_move_iterator(
+                        event_notification_list.Events +
+                        event_notification_list.NoOfEvents)))));
       });
 
   CommitItems();
@@ -438,6 +451,30 @@ void OpcUaSubscription::OnDataChange(
             std::get<scada::DataChangeHandler>(*item->handler);
         auto data_value = Convert(std::move(notification.Value));
         data_change_handler(std::move(data_value));
+      }
+    }
+  }
+}
+
+void OpcUaSubscription::OnEvents(
+    std::vector<opcua::EventFieldList> notifications) {
+  for (auto& notification : notifications) {
+    if (auto* item = FindItem(notification.ClientHandle)) {
+      if (!item->subscribed)
+        continue;
+      assert(item->handler.has_value());
+      assert(item->read_value_id.attribute_id ==
+             scada::AttributeId::EventNotifier);
+      if (item->read_value_id.attribute_id ==
+          scada::AttributeId::EventNotifier) {
+        auto& event_handler = std::get<scada::EventHandler>(*item->handler);
+        const auto& fields = ConvertVector<scada::Variant>(
+            std::make_move_iterator(notification.EventFields),
+            std::make_move_iterator(notification.EventFields +
+                                    notification.NoOfEventFields));
+        auto event = AssembleEvent(fields);
+        if (event.has_value())
+          event_handler(scada::StatusCode::Good, std::move(event));
       }
     }
   }

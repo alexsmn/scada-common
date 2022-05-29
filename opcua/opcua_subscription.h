@@ -85,6 +85,7 @@ class OpcUaSubscription
 
   void OnDataChange(
       std::vector<opcua::MonitoredItemNotification> notifications);
+  void OnEvents(std::vector<opcua::EventFieldList> notifications);
   void OnError(scada::Status&& status);
 
   opcua::client::Subscription subscription_;

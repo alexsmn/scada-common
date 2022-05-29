@@ -1,9 +1,9 @@
 #pragma once
 
 #include "base/time/time.h"
+#include "common/node_state.h"
 #include "core/attribute_ids.h"
 #include "core/attribute_service.h"
-#include "common/node_state.h"
 #include "core/data_value.h"
 #include "core/expanded_node_id.h"
 #include "core/extension_object.h"
@@ -106,7 +106,7 @@ template <typename T, class It>
 inline std::vector<T> ConvertVector(It first, It last) {
   std::vector<T> result(std::distance(first, last));
   std::transform(first, last, result.begin(),
-                 [](auto& source) { return Convert(std::move(source)); });
+                 [](auto&& source) { return Convert(std::move(source)); });
   return result;
 }
 

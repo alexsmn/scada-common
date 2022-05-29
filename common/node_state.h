@@ -73,6 +73,11 @@ struct NodeState {
     this->supertype_id = std::move(supertype_id);
     return *this;
   }
+
+  NodeState& add_reference(scada::ReferenceDescription ref) {
+    this->references.emplace_back(std::move(ref));
+    return *this;
+  }
 };
 
 inline const NodeId* FindReference(

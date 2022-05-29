@@ -800,7 +800,79 @@ void Convert(scada::BrowsePathResult&& source, OpcUa_BrowsePathResult& target) {
 }
 
 scada::EventFilter Convert(const OpcUa_EventFilter& source) {
-  return {};
+  auto where_clauses = opcua::MakeSpan(source.WhereClause.Elements,
+                                       source.WhereClause.NoOfElements);
+  auto select_clauses =
+      opcua::MakeSpan(source.SelectClauses, source.NoOfSelectClauses);
+
+  assert(select_clauses.empty());
+
+  scada::EventFilter event_filter;
+  for (auto& where_clause : where_clauses) {
+    auto filter_operands = opcua::MakeSpan(where_clause.FilterOperands,
+                                           where_clause.NoOfFilterOperands);
+    assert(filter_operands.size() == 1);
+    opcua::ExtensionObject encoded_operand{std::move(filter_operands[0])};
+    auto* literal_operand = encoded_operand.get_if<OpcUa_LiteralOperand>();
+    assert(literal_operand);
+    auto value = Convert(std::move(literal_operand->Value));
+    auto* value_node_id = value.get_if<scada::NodeId>();
+    assert(value_node_id);
+    if (where_clause.FilterOperator == OpcUa_FilterOperator_OfType)
+      event_filter.of_type.emplace_back(*value_node_id);
+    else if (where_clause.FilterOperator == OpcUa_FilterOperator_RelatedTo)
+      event_filter.child_of.emplace_back(*value_node_id);
+    else
+      assert(false);
+  }
+
+  return event_filter;
 }
 
-void Convert(const scada::EventFilter& source, OpcUa_EventFilter& target) {}
+opcua::ContentFilterElement BuildContentFilterElement(
+    OpcUa_FilterOperator filter_operator,
+    std::initializer_list<scada::Variant> operands) {
+  opcua::Vector<OpcUa_ExtensionObject> encoded_operands(operands.size());
+  for (size_t i = 0; i < operands.size(); ++i) {
+    auto& operand = *(operands.begin() + i);
+    opcua::LiteralOperand literal_operand;
+    Convert(scada::Variant{operand}, literal_operand.Value);
+    opcua::ExtensionObject::Encode(std::move(literal_operand))
+        .release(encoded_operands[i]);
+  }
+
+  opcua::ContentFilterElement filter_element;
+  filter_element.NoOfFilterOperands = encoded_operands.size();
+  filter_element.FilterOperands = encoded_operands.release();
+  filter_element.FilterOperator = filter_operator;
+  return filter_element;
+}
+
+void Convert(const scada::EventFilter& source, OpcUa_EventFilter& target) {
+  assert(source.types == 0);
+  /*if (!source.of_type.empty()) {
+    opcua::Vector<OpcUa_SimpleAttributeOperand> select_clauses(
+        source.of_type.size());
+    for (size_t i = 0; i < source.of_type.size(); ++i) {
+      Convert(source.of_type[i], select_clauses[i].TypeDefinitionId);
+    }
+    target.NoOfSelectClauses = select_clauses.size();
+    target.SelectClauses = select_clauses.release();
+  }*/
+  opcua::Vector<OpcUa_ContentFilterElement> content_filter_elements(
+      source.of_type.size() + source.child_of.size());
+  size_t count = 0;
+  for (size_t i = 0; i < source.of_type.size(); ++i) {
+    auto& of_type = source.of_type[i];
+    BuildContentFilterElement(OpcUa_FilterOperator_OfType, {of_type})
+        .release(content_filter_elements[count++]);
+  }
+  for (size_t i = 0; i < source.child_of.size(); ++i) {
+    auto& child_of = source.child_of[i];
+    BuildContentFilterElement(OpcUa_FilterOperator_RelatedTo, {child_of})
+        .release(content_filter_elements[count++]);
+  }
+  assert(count == content_filter_elements.size());
+  target.WhereClause.NoOfElements = content_filter_elements.size();
+  target.WhereClause.Elements = content_filter_elements.release();
+}
