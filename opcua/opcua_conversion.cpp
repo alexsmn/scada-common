@@ -75,8 +75,7 @@ scada::Variant ConvertScalar(const OpcUa_Variant& source) {
     case OpcUaType_Double:
       return source.Value.Double;
     case OpcUaType_DateTime:
-      // TODO:
-      return FormatTime(Convert(source.Value.DateTime));
+      return Convert(source.Value.DateTime);
     case OpcUaType_String:
       return Convert(source.Value.String);
     case OpcUaType_Guid:
