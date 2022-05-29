@@ -166,7 +166,22 @@ void OpcUaSession::Write(
     const std::shared_ptr<const scada::ServiceContext>& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
+  assert(session_activated_);
+
+  std::vector<OpcUa_WriteValue> write_array(inputs->size());
+  for (size_t i = 0; i < inputs->size(); ++i)
+    Convert(scada::WriteValue{(*inputs)[i]}, write_array[i]);
+
+  session_.Write({write_array.data(), write_array.size()},
+                 [callback](opcua::StatusCode status_code,
+                            opcua::Span<OpcUa_StatusCode> results) {
+                   callback(ConvertStatusCode(status_code.code()),
+                            ConvertStatusCodeVector(results));
+                 });
+
+  std::for_each(
+      write_array.begin(), write_array.end(),
+      [](OpcUa_WriteValue& value) { ::OpcUa_WriteValue_Clear(&value); });
 }
 
 void OpcUaSession::Call(const scada::NodeId& node_id,

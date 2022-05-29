@@ -560,6 +560,13 @@ void Convert(const scada::ReadValueId& source, OpcUa_ReadValueId& target) {
   target.AttributeId = Convert(source.attribute_id);
 }
 
+void Convert(scada::WriteValue&& source, OpcUa_WriteValue& target) {
+  ::OpcUa_WriteValue_Clear(&target);
+  Convert(source.node_id, target.NodeId);
+  target.AttributeId = Convert(source.attribute_id);
+  Convert(scada::DataValue{source.value, {}, {}, {}}, target.Value);
+}
+
 scada::AggregateFilter Convert(OpcUa_AggregateFilter&& source) {
   return {
       Convert(source.StartTime),
@@ -783,14 +790,6 @@ scada::WriteValue Convert(OpcUa_WriteValue&& source) {
       Convert(std::move(source.Value.Value)),
       {},
   };
-}
-
-void Convert(scada::WriteValue&& source, OpcUa_WriteValue& target) {
-  target.AttributeId = static_cast<OpcUa_UInt32>(source.attribute_id);
-  Convert(std::move(source.node_id), target.NodeId);
-  auto now = scada::DateTime::Now();
-  Convert(scada::DataValue{std::move(source.value), {}, now, now},
-          target.Value);
 }
 
 scada::RelativePathElement Convert(OpcUa_RelativePathElement&& source) {

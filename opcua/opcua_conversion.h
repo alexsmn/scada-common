@@ -131,6 +131,14 @@ inline opcua::Vector<T> ConvertFromVector(Range&& range) {
   return result;
 }
 
+inline std::vector<scada::StatusCode> ConvertStatusCodeVector(
+    opcua::Span<const OpcUa_StatusCode> range) {
+  std::vector<scada::StatusCode> result(std::size(range));
+  for (size_t i = 0; i < std::size(range); ++i)
+    result[i] = ConvertStatusCode(range[i]);
+  return result;
+}
+
 inline opcua::Vector<OpcUa_StatusCode> ConvertStatusCodesFromVector(
     const std::vector<scada::StatusCode>& range) {
   opcua::Vector<OpcUa_StatusCode> result(std::size(range));

@@ -208,11 +208,11 @@ void EventFetcher::AckPendingEvents() {
   if (!acknowledge_ids.empty()) {
     logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
                     ToString(acknowledge_ids).c_str());
-    /*method_service_.Call(scada::id::Server,
+    method_service_.Call(scada::id::Server,
                          scada::id::AcknowledgeableConditionType_Acknowledge,
                          {acknowledge_ids, scada::DateTime::Now()}, user_id_,
-                         [](scada::Status&& status) {});*/
-    event_service_.Acknowledge(acknowledge_ids, user_id_);
+                         [](scada::Status&& status) {});
+    // event_service_.Acknowledge(acknowledge_ids, user_id_);
   }
 
   PostAckPendingEvents();
