@@ -7,29 +7,9 @@
 
 namespace scada {
 
-inline std::optional<scada::Variant> ReadAttribute(const NodeState& node_state,
-                                                   AttributeId attribute_id) {
-  switch (attribute_id) {
-    case AttributeId::NodeId:
-      return node_state.node_id;
-    case AttributeId::NodeClass:
-      return static_cast<scada::Int32>(node_state.node_class);
-    case AttributeId::BrowseName:
-      return node_state.attributes.browse_name;
-    case AttributeId::DisplayName:
-      return node_state.attributes.display_name;
-    case AttributeId::DataType:
-      return node_state.attributes.data_type;
-    case AttributeId::Value:
-      return node_state.attributes.value.value_or(scada::Variant{});
-    default:
-      return std::nullopt;
-  }
-}
-
-inline scada::DataValue ReadAttributeResult(const NodeState& node_state,
-                                            AttributeId attribute_id) {
-  auto optional_value = ReadAttribute(node_state, attribute_id);
+inline scada::DataValue ReadAttribute(const NodeState& node_state,
+                                      AttributeId attribute_id) {
+  auto optional_value = node_state.GetAttribute(attribute_id);
   return optional_value.has_value()
              ? scada::MakeReadResult(optional_value.value())
              : scada::MakeReadError(scada::StatusCode::Bad_WrongAttributeId);

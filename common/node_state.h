@@ -74,13 +74,33 @@ struct NodeState {
     return *this;
   }
 
+  NodeState& set_properties(NodeProperties properties) {
+    this->properties = std::move(properties);
+    return *this;
+  }
+
   NodeState& add_reference(scada::ReferenceDescription ref) {
     this->references.emplace_back(std::move(ref));
     return *this;
   }
+
+  WARN_UNUSED_RESULT std::optional<scada::Variant> GetAttribute(
+      AttributeId attribute_id) const;
 };
 
-inline const NodeId* FindReference(
+inline std::optional<scada::Variant> NodeState::GetAttribute(
+    AttributeId attribute_id) const {
+  switch (attribute_id) {
+    case AttributeId::NodeId:
+      return node_id;
+    case AttributeId::NodeClass:
+      return static_cast<scada::Int32>(node_class);
+    default:
+      return attributes.Get(attribute_id);
+  }
+}
+
+inline WARN_UNUSED_RESULT const NodeId* FindReference(
     const std::vector<ReferenceDescription>& references,
     const NodeId& reference_type_id,
     bool forward) {
@@ -90,17 +110,70 @@ inline const NodeId* FindReference(
   return i != references.end() ? &i->node_id : nullptr;
 }
 
-inline const Variant* FindProperty(const NodeProperties& properties,
-                                   const NodeId& prop_decl_id) {
+inline WARN_UNUSED_RESULT Variant* FindProperty(NodeProperties& properties,
+                                                const NodeId& prop_decl_id) {
   auto i = std::find_if(properties.begin(), properties.end(),
                         [&](auto& p) { return p.first == prop_decl_id; });
   return i != properties.end() ? &i->second : nullptr;
 }
 
-inline Variant GetProperty(const NodeProperties& properties,
-                           const NodeId& prop_decl_id) {
+inline WARN_UNUSED_RESULT const Variant* FindProperty(
+    const NodeProperties& properties,
+    const NodeId& prop_decl_id) {
+  return FindProperty(const_cast<NodeProperties&>(properties), prop_decl_id);
+}
+
+inline WARN_UNUSED_RESULT Variant GetProperty(const NodeProperties& properties,
+                                              const NodeId& prop_decl_id) {
   auto* p = FindProperty(properties, prop_decl_id);
   return p ? *p : Variant{};
+}
+
+inline WARN_UNUSED_RESULT bool SetProperty(NodeProperties& properties,
+                                           const NodeId& prop_decl_id,
+                                           scada::Variant&& prop_value) {
+  auto* prop = FindProperty(properties, prop_decl_id);
+  if (!prop)
+    return false;
+  *prop = std::move(prop_value);
+  return true;
+}
+
+inline WARN_UNUSED_RESULT bool SetProperties(
+    NodeProperties& properties,
+    base::span<const NodeProperty> updated_properties) {
+  for (auto& [prop_decl_id, prop_value] : updated_properties) {
+    if (!SetProperty(properties, prop_decl_id, scada::Variant(prop_value)))
+      return false;
+  }
+  return true;
+}
+
+inline WARN_UNUSED_RESULT scada::ReferenceDescription* FindReference(
+    scada::ReferenceDescriptions& references,
+    const scada::NodeId& reference_type_id,
+    bool forward) {
+  auto i = std::find_if(references.begin(), references.end(), [&](auto&& ref) {
+    return ref.reference_type_id == reference_type_id && ref.forward == forward;
+  });
+  return i != references.end() ? &*i : nullptr;
+}
+
+inline void SetReference(scada::ReferenceDescriptions& references,
+                         const scada::ReferenceDescription& updated_reference) {
+  auto* ref = FindReference(references, updated_reference.reference_type_id,
+                            updated_reference.forward);
+  if (ref)
+    ref->node_id = updated_reference.node_id;
+  else
+    references.emplace_back(updated_reference);
+}
+
+inline void SetReferences(
+    scada::ReferenceDescriptions& references,
+    base::span<const ReferenceDescription> updated_references) {
+  for (auto& ref : updated_references)
+    SetReference(references, ref);
 }
 
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {
