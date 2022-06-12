@@ -3,6 +3,8 @@
 #include <ostream>
 
 struct NodeFetchStatus {
+  constexpr static NodeFetchStatus None() { return NodeFetchStatus{}; }
+
   constexpr static NodeFetchStatus Max() {
     return NodeFetchStatus{true, true, true};
   }

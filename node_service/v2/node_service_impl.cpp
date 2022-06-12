@@ -172,7 +172,7 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
     const scada::Status& status,
     const NodeFetchStatus& fetch_status) {
   for (auto& o : observers_)
-    o.OnNodeFetched(node_id);
+    o.OnNodeFetched({node_id});
 }
 
 void NodeServiceImpl::ProcessFetchedNodes(

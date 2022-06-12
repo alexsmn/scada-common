@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/node_id.h"
+#include "node_service/node_fetch_status.h"
 
 #include <cstdint>
 
@@ -12,5 +13,11 @@ class NodeRefObserver {
  public:
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) {}
   virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) {}
-  virtual void OnNodeFetched(const scada::NodeId& node_id) {}
+
+  struct NodeFetchedEvent {
+    scada::NodeId node_id;
+    NodeFetchStatus old_fetch_status;
+  };
+
+  virtual void OnNodeFetched(const NodeFetchedEvent& event) {}
 };

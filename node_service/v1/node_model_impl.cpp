@@ -183,7 +183,7 @@ void NodeModelImpl::SetFetchStatus(const scada::Node* node,
 void NodeModelImpl::NotifyFetchStatus() {
   for (auto& o : observers_) {
     o.OnNodeSemanticChanged(node_id_);
-    o.OnNodeFetched(node_id_);
+    o.OnNodeFetched({node_id_});
   }
 }
 

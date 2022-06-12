@@ -216,7 +216,9 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
   EXPECT_CALL(this->node_service_observer_,
               OnNodeSemanticChanged(unknown_node_id))
       .Times(AtMost(1));
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(unknown_node_id))
+  EXPECT_CALL(
+      this->node_service_observer_,
+      OnNodeFetched(FieldsAre(unknown_node_id, NodeFetchStatus::None())))
       .Times(AtMost(1));
 
   auto node = this->node_service_->GetNode(unknown_node_id);
@@ -263,8 +265,10 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_ChannelClosed) {
 
   EXPECT_CALL(fetch_callback, Call(_));
 
-  EXPECT_CALL(node_observer, OnNodeFetched(node_id));
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id));
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
 
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
@@ -299,7 +303,8 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
 
   this->ExpectAnyUpdates();
 
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
       .WillOnce(InvokeWithoutArgs([] {
         BoostLogger logger;
@@ -328,7 +333,8 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
 
   this->ExpectAnyUpdates();
 
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id))
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
       .Times(Between(1, 2));
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
       .Times(Between(1, 3));
@@ -340,7 +346,8 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  EXPECT_CALL(node_observer, OnNodeFetched(node_id));
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
   EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(1));
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
 
@@ -433,7 +440,8 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   EXPECT_CALL(this->node_service_observer_,
               OnNodeSemanticChanged(new_node_state.node_id));
   EXPECT_CALL(this->node_service_observer_,
-              OnNodeFetched(new_node_state.node_id));
+              OnNodeFetched(
+                  FieldsAre(new_node_state.node_id, NodeFetchStatus::None())));
 
   auto node = this->node_service_->GetNode(new_node_state.node_id);
 
@@ -630,11 +638,16 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
 
   // TODO: Shouldn't happen. v1 triggers this.
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(node_id))
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
       .Times(AtMost(1));
-  EXPECT_CALL(node_observer, OnNodeFetched(node_id)).Times(AtMost(1));
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
+      .Times(AtMost(1));
 
-  EXPECT_CALL(this->node_service_observer_, OnNodeFetched(new_target_node_id));
+  EXPECT_CALL(
+      this->node_service_observer_,
+      OnNodeFetched(FieldsAre(new_target_node_id, NodeFetchStatus::None())));
 
   this->view_events_->OnModelChanged(
       scada::ModelChangeEvent{node_id, type_definition_id,

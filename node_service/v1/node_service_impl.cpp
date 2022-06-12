@@ -184,7 +184,7 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
             scada::ModelChangeEvent::ReferenceDeleted};
 
     for (auto& o : observers_) {
-      o.OnNodeFetched(node_id);
+      o.OnNodeFetched({node_id});
       if (status)
         o.OnModelChanged(reference_added_deleted_event);
       o.OnNodeSemanticChanged(node_id);
