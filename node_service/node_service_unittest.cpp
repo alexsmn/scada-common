@@ -249,7 +249,7 @@ void NodeServiceTest<NodeServiceImpl>::ExpectNoUpdates() {
   Mock::VerifyAndClearExpectations(&node_service_observer_);
 }
 
-TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_ChannelClosed) {
+TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   const auto node_id = this->server_address_space_->kTestNode2Id;
   const auto type_definition_id = this->server_address_space_->kTestTypeId;
 
@@ -332,14 +332,6 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   this->OpenChannel();
 
   this->ExpectAnyUpdates();
-
-  EXPECT_CALL(this->node_service_observer_,
-              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
-      .Times(Between(1, 2));
-  EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
-      .Times(Between(1, 3));
-  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
-      .Times(Between(1, 2));
 
   auto node = this->node_service_->GetNode(node_id);
 
