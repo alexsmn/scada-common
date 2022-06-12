@@ -181,12 +181,7 @@ void NodeModelImpl::SetFetchStatus(const scada::Node* node,
 }
 
 void NodeModelImpl::NotifyFetchStatus() {
-  const scada::ModelChangeEvent event{
-      node_id_, node_ ? scada::GetTypeDefinitionId(*node_) : scada::NodeId{},
-      scada::ModelChangeEvent::ReferenceAdded |
-          scada::ModelChangeEvent::ReferenceDeleted};
   for (auto& o : observers_) {
-    o.OnModelChanged(event);
     o.OnNodeSemanticChanged(node_id_);
     o.OnNodeFetched(node_id_);
   }

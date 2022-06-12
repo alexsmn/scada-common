@@ -269,18 +269,21 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_ChannelClosed) {
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
 
-  EXPECT_CALL(node_observer,
-              OnModelChanged(scada::ModelChangeEvent{
-                  node_id, type_definition_id,
-                  scada::ModelChangeEvent::ReferenceAdded |
-                      scada::ModelChangeEvent::ReferenceDeleted}));
-
   // TOOD: This is not needed. Only v2 triggers this.
-  EXPECT_CALL(node_observer, OnModelChanged(scada::ModelChangeEvent{
-                                 node_id, type_definition_id,
-                                 scada::ModelChangeEvent::NodeAdded |
-                                     scada::ModelChangeEvent::ReferenceAdded}))
-      .Times(AtMost(1));
+  if constexpr (std::is_same_v<TypeParam, v2::NodeServiceImpl>) {
+    EXPECT_CALL(node_observer,
+                OnModelChanged(scada::ModelChangeEvent{
+                    node_id, type_definition_id,
+                    scada::ModelChangeEvent::ReferenceAdded |
+                        scada::ModelChangeEvent::ReferenceDeleted}));
+
+    EXPECT_CALL(node_observer,
+                OnModelChanged(scada::ModelChangeEvent{
+                    node_id, type_definition_id,
+                    scada::ModelChangeEvent::NodeAdded |
+                        scada::ModelChangeEvent::ReferenceAdded}))
+        .Times(AtMost(1));
+  }
 
   this->OpenChannel();
 
