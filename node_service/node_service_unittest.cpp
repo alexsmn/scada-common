@@ -335,12 +335,14 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
 
   auto node = this->node_service_->GetNode(node_id);
 
+  ASSERT_TRUE(node.fetched());
+  ASSERT_FALSE(node.children_fetched());
+
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
-  EXPECT_CALL(node_observer, OnModelChanged(NodeIs(node_id))).Times(AtMost(1));
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
 
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
