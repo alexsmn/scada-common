@@ -27,6 +27,8 @@ class NodeFetchStatusQueue {
 
   void NotifyPendingStatusChanged();
 
+  void CancelPendingStatus(const scada::NodeId& node_id);
+
   class ScopedStatusLock {
    public:
     explicit ScopedStatusLock(NodeFetchStatusQueue& queue);

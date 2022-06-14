@@ -77,4 +77,8 @@ void NodeFetchStatusQueue::NotifyPendingStatusChanged() {
   node_fetch_status_changed_handler_(items);
 }
 
+void NodeFetchStatusQueue::CancelPendingStatus(const scada::NodeId& node_id) {
+  pending_statuses_.erase(node_id);
+}
+
 }  // namespace v1

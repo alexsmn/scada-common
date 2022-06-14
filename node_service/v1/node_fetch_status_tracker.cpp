@@ -123,6 +123,7 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
 
   errors_.erase(node_id);
   experimental_fetch_statuses_.erase(node_id);
+  status_queue_.CancelPendingStatus(node_id);
 
   // Process as parent.
   if (auto i = parents_.find(node_id); i != parents_.end()) {
@@ -147,7 +148,7 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
 std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     const scada::NodeId& node_id) const {
   auto result = GetStatusHelper(node_id);
-#if 0 // ndef NDEBUG
+#if 0  // ndef NDEBUG
   auto experimental_result = GetExperimentalStatus(node_id);
   assert(result.first == experimental_result.first);
   assert(result.second.node_fetched == experimental_result.second.node_fetched);
