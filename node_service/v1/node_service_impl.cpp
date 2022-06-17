@@ -116,26 +116,12 @@ void NodeServiceImpl::OnNodeModified(const scada::Node& node,
 void NodeServiceImpl::OnReferenceAdded(
     const scada::ReferenceType& reference_type,
     const scada::Node& source,
-    const scada::Node& target) {
-  OnModelChanged({source.id(), scada::GetTypeDefinitionId(source),
-                  scada::ModelChangeEvent::ReferenceAdded});
-  if (&source != &target) {
-    OnModelChanged({target.id(), scada::GetTypeDefinitionId(target),
-                    scada::ModelChangeEvent::ReferenceAdded});
-  }
-}
+    const scada::Node& target) {}
 
 void NodeServiceImpl::OnReferenceDeleted(
     const scada::ReferenceType& reference_type,
     const scada::Node& source,
-    const scada::Node& target) {
-  OnModelChanged({source.id(), scada::GetTypeDefinitionId(source),
-                  scada::ModelChangeEvent::ReferenceDeleted});
-  if (&source != &target) {
-    OnModelChanged({target.id(), scada::GetTypeDefinitionId(target),
-                    scada::ModelChangeEvent::ReferenceDeleted});
-  }
-}
+    const scada::Node& target) {}
 
 NodeRef NodeServiceImpl::GetRemoteNode(const scada::Node* node) {
   return node ? GetNode(node->id()) : nullptr;

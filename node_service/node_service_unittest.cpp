@@ -381,18 +381,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 
   this->OpenChannel();
 
-  {
-    //  |AddNode| triggers refrence change notification that |NodeService| is
-    //  listening to. This triggers unexpected set of notification in UTs.
-    // TODO: Delete |NodeService| subscription to reference notifications.
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
-        .Times(AnyNumber());
-
-    this->server_address_space_->CreateNode(new_node_state);
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_)).Times(0);
-  }
+  this->server_address_space_->CreateNode(new_node_state);
 
   const scada::ModelChangeEvent node_added_event{
       new_node_state.node_id, new_node_state.type_definition_id,

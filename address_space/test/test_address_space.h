@@ -30,6 +30,9 @@ class TestAddressSpace : public AddressSpaceImpl,
 
   void CreateNode(const scada::NodeState& node_state);
   virtual void DeleteNode(const scada::NodeId& node_id) override;
+  void AddReference(const scada::NodeId& reference_type_id,
+                    const scada::NodeId& source_id,
+                    const scada::NodeId& target_id);
 
   StandardAddressSpace standard_address_space{*this};
 
@@ -225,4 +228,11 @@ inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
 inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
   assert(GetNode(node_id));
   AddressSpaceImpl::DeleteNode(node_id);
+}
+
+inline void TestAddressSpace::AddReference(
+    const scada::NodeId& reference_type_id,
+    const scada::NodeId& source_id,
+    const scada::NodeId& target_id) {
+  scada::AddReference(*this, reference_type_id, source_id, target_id);
 }
