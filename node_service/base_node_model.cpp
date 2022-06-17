@@ -23,7 +23,10 @@ void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
     fetching_status_ |= requested_status;
     if (callback)
       fetch_callbacks_.emplace_back(requested_status, callback);
-    const_cast<BaseNodeModel*>(this)->OnFetchRequested(fetching_status_);
+    // Must copy, since |fetching_status_| can be updated.
+    auto combined_requested_status = fetching_status_;
+    const_cast<BaseNodeModel*>(this)->OnFetchRequested(
+        combined_requested_status);
   }
 }
 
