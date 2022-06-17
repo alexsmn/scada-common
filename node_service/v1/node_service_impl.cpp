@@ -64,9 +64,6 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
       address_space_fetcher_->GetNodeFetchStatus(node_id);
   model->SetFetchStatus(node, std::move(status), fetch_status);
 
-  if (!fetch_status.node_fetched)
-    address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
-
   return model;
 }
 

@@ -33,6 +33,7 @@ class NodeRef {
   bool fetched() const;
   bool children_fetched() const;
 
+  // On error: OnNodeFetched + OnNodeSemanticsChanged.
   void Fetch(const NodeFetchStatus& requested_status) const;
 
   using FetchCallback = std::function<void(const NodeRef& node)>;

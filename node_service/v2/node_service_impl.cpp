@@ -86,12 +86,7 @@ NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
 NodeServiceImpl::~NodeServiceImpl() {}
 
 NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
-  auto node = GetNodeModel(node_id);
-  if (!node)
-    return nullptr;
-
-  node->Fetch(NodeFetchStatus::NodeOnly(), {});
-  return node;
+  return GetNodeModel(node_id);
 }
 
 std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(

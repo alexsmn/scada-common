@@ -303,18 +303,19 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
 
   this->ExpectAnyUpdates();
 
-  EXPECT_CALL(this->node_service_observer_,
-              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
-  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id))
-      .WillOnce(InvokeWithoutArgs([] {
-        BoostLogger logger;
-        LOG_WARNING(logger) << "Hello";
-      }));
-
   auto node = this->node_service_->GetNode(node_id);
 
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
+
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+  EXPECT_CALL(this->node_service_observer_,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+  // TODO: Triggered only by v2.
+  EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
@@ -335,15 +336,19 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
 
   auto node = this->node_service_->GetNode(node_id);
 
-  ASSERT_TRUE(node.fetched());
+  ASSERT_FALSE(node.fetched());
   ASSERT_FALSE(node.children_fetched());
 
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
   EXPECT_CALL(node_observer,
-              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
-  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(1));
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
+      .Times(Between(1, 2));
+  // TODO: OnNodeSemanticChanged shouldn't be triggered.
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(2));
+  // TODO: Triggered only by v2.
+  EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
@@ -353,6 +358,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
 
   this->ValidateNodeFetched(node);
 
+  EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.children_fetched());
 
   node.Unsubscribe(node_observer);
@@ -454,6 +460,12 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
+  EXPECT_CALL(node_observer, OnNodeFetched(FieldsAre(deleted_node_id,
+                                                     NodeFetchStatus::None())));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(deleted_node_id));
+  // TODO: Triggered only by v2.
+  EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
+
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
@@ -517,6 +529,12 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+  // TODO: Triggered only by v2.
+  EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
+
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
 
@@ -572,6 +590,12 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
+
+  EXPECT_CALL(node_observer,
+              OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+  EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+  // TODO: Triggered only by v2.
+  EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
   StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
   EXPECT_CALL(fetch_callback, Call(_));
