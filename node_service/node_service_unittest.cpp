@@ -475,20 +475,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
 
   // ACT
 
-  {
-    //  |DeleteNode| triggers refrence change notification that |NodeService| is
-    //  listening to. This triggers unexpected set of notification in UTs.
-    // TODO: Delete |NodeService| subscription to reference notifications.
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
-        .Times(AnyNumber());
-    EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AnyNumber());
-
-    this->server_address_space_->DeleteNode(deleted_node_id);
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_)).Times(0);
-    EXPECT_CALL(node_observer, OnModelChanged(_)).Times(0);
-  }
+  this->server_address_space_->DeleteNode(deleted_node_id);
 
   const scada::ModelChangeEvent node_deleted_event{
       deleted_node_id, {}, scada::ModelChangeEvent::NodeDeleted};
@@ -606,24 +593,10 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   // ACT
 
-  {
-    //  |scada::Add/DeleteReferece| triggers refrence change notification that
-    //  |NodeService| is listening to. This triggers unexpected set of
-    //  notification in UTs.
-    // TODO: Delete |NodeService| subscription to reference notifications.
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
-        .Times(AnyNumber());
-    EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AnyNumber());
-
-    scada::DeleteReference(*this->server_address_space_, reference_type_id,
-                           node_id, old_target_node_id);
-    scada::AddReference(*this->server_address_space_, reference_type_id,
-                        node_id, new_target_node_id);
-
-    EXPECT_CALL(this->node_service_observer_, OnModelChanged(_)).Times(0);
-    EXPECT_CALL(node_observer, OnModelChanged(_)).Times(0);
-  }
+  scada::DeleteReference(*this->server_address_space_, reference_type_id,
+                         node_id, old_target_node_id);
+  scada::AddReference(*this->server_address_space_, reference_type_id, node_id,
+                      new_target_node_id);
 
   // TODO: Disallow this.
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
