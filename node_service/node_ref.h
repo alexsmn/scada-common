@@ -1,11 +1,11 @@
 #pragma once
 
-#include "node_service/node_fetch_status.h"
 #include "core/attribute_ids.h"
 #include "core/data_value.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 #include "core/write_flags.h"
+#include "node_service/node_fetch_status.h"
 
 #include <functional>
 #include <memory>
@@ -124,3 +124,14 @@ struct NodeRef::Reference {
   NodeRef target;
   bool forward;
 };
+
+namespace std {
+
+template <>
+struct hash<NodeRef> {
+  std::size_t operator()(const NodeRef& node) const noexcept {
+    return hash<scada::NodeId>{}(node.node_id());
+  }
+};
+
+}  // namespace std
