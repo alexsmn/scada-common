@@ -11,8 +11,6 @@ bool IsSubtypeOf(NodeRef type_definition, const scada::NodeId& supertype_id);
 
 bool IsInstanceOf(const NodeRef& node, const scada::NodeId& type_definition_id);
 
-bool CanCreate(const NodeRef& parent, const NodeRef& component_type_definition);
-
 std::vector<NodeRef> GetDataVariables(const NodeRef& node);
 
 std::u16string GetFullDisplayName(const NodeRef& node);

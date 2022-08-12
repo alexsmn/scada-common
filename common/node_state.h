@@ -7,6 +7,7 @@
 #include "core/variant.h"
 #include "core/view_service.h"
 
+#include <memory>
 #include <ostream>
 #include <vector>
 
@@ -87,6 +88,8 @@ struct NodeState {
   WARN_UNUSED_RESULT std::optional<scada::Variant> GetAttribute(
       AttributeId attribute_id) const;
 };
+
+using NodeStatePtr = std::shared_ptr<const NodeState>;
 
 inline std::optional<scada::Variant> NodeState::GetAttribute(
     AttributeId attribute_id) const {

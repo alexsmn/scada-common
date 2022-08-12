@@ -9,7 +9,6 @@
 #include "address_space/variable.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/node_state.h"
-#include "common/node_state.h"
 #include "core/privileges.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
@@ -995,9 +994,15 @@ void ScadaAddressSpaceBuilder::CreateScadaAddressSpace() {
   CreateReferenceType(scada::id::Creates, "Creates", u"Можно создать",
                       scada::id::NonHierarchicalReferences);
 
-  /*CreateVariableType(scada::id::MetricType, "MetricType",
-                     u"Метрика"), scada::id::Int64,
-                     scada::id::BaseVariableType);*/
+  // MetricType.
+  {
+    CreateVariableType(scada::id::MetricType, "MetricType", u"Метрика",
+                       scada::id::Int64, scada::id::BaseVariableType);
+    AddProperty(scada::id::MetricType, scada::id::MetricType_AggregateFunction,
+                {}, "AggregateFunction", u"Функция", scada::id::NodeId, {});
+    AddProperty(scada::id::MetricType, scada::id::MetricType_AggregateInterval,
+                {}, "AggregateInterval", u"Период, с", scada::id::Int32, {});
+  }
 
   // Property Categories.
   {

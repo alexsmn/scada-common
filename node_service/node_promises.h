@@ -9,7 +9,11 @@ inline promise<void> FetchNode(const NodeRef& node) {
 
   auto promise = make_promise<void>();
   node.Fetch(NodeFetchStatus::NodeOnly(),
-             [promise](const NodeRef& node) mutable { promise.resolve(); });
+             [promise](const NodeRef& node) mutable {
+               assert(node.fetched());
+               assert(node.type_definition().fetched());
+               promise.resolve();
+             });
   return promise;
 }
 
@@ -19,6 +23,11 @@ inline promise<void> FetchChildren(const NodeRef& node) {
 
   promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeAndChildren(),
-             [promise](const NodeRef& node) mutable { promise.resolve(); });
+             [promise](const NodeRef& node) mutable {
+               assert(node.fetched());
+               assert(node.type_definition().fetched());
+               assert(node.children_fetched());
+               promise.resolve();
+             });
   return promise;
 }
