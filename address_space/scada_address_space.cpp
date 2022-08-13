@@ -190,14 +190,14 @@ void ScadaAddressSpaceBuilder::CreateEnumDataType(
     scada::LocalizedText display_name,
     std::vector<scada::LocalizedText> enum_strings) {
   NodeBuilderImpl builder{address_space_};
-  auto* protocol_data_type =
+  auto* data_type =
       CreateDataType(datatype_id, std::move(browse_name),
-                     std::move(display_name), scada::id::Int32);
-  protocol_data_type->enum_strings.emplace(
-      builder, *protocol_data_type, enumstrings_id, "EnumStrings",
-      scada::LocalizedText{}, scada::id::LocalizedText);
-  protocol_data_type->enum_strings->set_value(std::move(enum_strings));
-  address_space_.AddNode(*protocol_data_type->enum_strings);
+                     std::move(display_name), scada::id::Enumeration);
+  data_type->enum_strings.emplace(builder, *data_type, enumstrings_id,
+                                  "EnumStrings", scada::LocalizedText{},
+                                  scada::id::LocalizedText);
+  data_type->enum_strings->set_value(std::move(enum_strings));
+  address_space_.AddNode(*data_type->enum_strings);
 }
 
 scada::ObjectType* ScadaAddressSpaceBuilder::CreateEventType(
