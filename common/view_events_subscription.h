@@ -14,6 +14,25 @@ using ViewEventsProvider =
     std::function<std::unique_ptr<IViewEventsSubscription>(
         scada::ViewEvents& events)>;
 
+inline std::shared_ptr<scada::MonitoredItem>
+CreateModelChangeEventsMonitoredItem(
+    scada::MonitoredItemService& monitored_item_service) {
+  return monitored_item_service.CreateMonitoredItem(
+      scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
+      scada::MonitoringParameters{}.set_filter(scada::EventFilter{}.set_of_type(
+          {scada::id::GeneralModelChangeEventType})));
+}
+
+inline std::shared_ptr<scada::MonitoredItem>
+CreateModelAndSemanticChangeEventsMonitoredItem(
+    scada::MonitoredItemService& monitored_item_service) {
+  return monitored_item_service.CreateMonitoredItem(
+      scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
+      scada::MonitoringParameters{}.set_filter(scada::EventFilter{}.set_of_type(
+          {scada::id::GeneralModelChangeEventType,
+           scada::id::SemanticChangeEventType})));
+}
+
 class ViewEventsSubscription : public IViewEventsSubscription {
  public:
   explicit ViewEventsSubscription(
@@ -31,13 +50,8 @@ inline ViewEventsSubscription::ViewEventsSubscription(
     scada::MonitoredItemService& monitored_item_service,
     scada::ViewEvents& events)
     : events_{events},
-      monitored_item_{monitored_item_service.CreateMonitoredItem(
-          scada::ReadValueId{scada::id::Server,
-                             scada::AttributeId::EventNotifier},
-          scada::MonitoringParameters{}.set_filter(
-              scada::EventFilter{}.set_of_type(
-                  {scada::id::GeneralModelChangeEventType,
-                   scada::id::SemanticChangeEventType})))} {
+      monitored_item_{CreateModelAndSemanticChangeEventsMonitoredItem(
+          monitored_item_service)} {
   assert(monitored_item_);
   // FIXME: Capturing |this|.
   monitored_item_->Subscribe(

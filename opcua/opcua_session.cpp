@@ -64,7 +64,7 @@ void OpcUaSession::Connect(const std::string& connection_string,
       10000,
   };
 
-  channel_.Connect(context, BindExecutor(executor_, weak_from_this(),
+  channel_.Connect(context, BindExecutor(executor_, FROM_HERE, weak_from_this(),
                                          [this](opcua::StatusCode status_code,
                                                 OpcUa_Channel_Event event) {
                                            OnConnectionStateChanged(status_code,
@@ -244,12 +244,12 @@ void OpcUaSession::CreateSession() {
   OpcUa_String_AttachReadOnly(&request.ClientDescription.ProductUri,
                               "TestProductUri");
 
-  session_.Create(
-      request,
-      BindExecutor(
-          executor_, weak_from_this(), [this](opcua::StatusCode status_code) {
-            OnCreateSessionResponse(ConvertStatusCode(status_code.code()));
-          }));
+  session_.Create(request,
+                  BindExecutor(executor_, FROM_HERE, weak_from_this(),
+                               [this](opcua::StatusCode status_code) {
+                                 OnCreateSessionResponse(
+                                     ConvertStatusCode(status_code.code()));
+                               }));
 }
 
 void OpcUaSession::OnCreateSessionResponse(scada::Status&& status) {
@@ -270,10 +270,11 @@ void OpcUaSession::ActivateSession() {
   assert(session_created_);
   assert(!session_activated_);
 
-  session_.Activate(BindExecutor(
-      executor_, weak_from_this(), [this](opcua::StatusCode status_code) {
-        OnActivateSessionResponse(ConvertStatusCode(status_code.code()));
-      }));
+  session_.Activate(BindExecutor(executor_, FROM_HERE, weak_from_this(),
+                                 [this](opcua::StatusCode status_code) {
+                                   OnActivateSessionResponse(
+                                       ConvertStatusCode(status_code.code()));
+                                 }));
 }
 
 void OpcUaSession::OnActivateSessionResponse(scada::Status&& status) {

@@ -155,14 +155,11 @@ void NodeChildrenFetcher::FetchChildren(
   view_service_.Browse(
       descriptions,
       BindExecutor(
-          executor_,
-          [weak_ptr = weak_from_this(), start_ticks, descriptions](
+          executor_, weak_from_this(),
+          [this, start_ticks, descriptions](
               scada::Status status, std::vector<scada::BrowseResult> results) {
-            if (auto ptr = weak_ptr.lock()) {
-              ptr->OnBrowseChildrenResult(start_ticks, std::move(status),
-                                          std::move(descriptions),
-                                          std::move(results));
-            }
+            OnBrowseChildrenResult(start_ticks, std::move(status),
+                                   std::move(descriptions), std::move(results));
           }));
 }
 

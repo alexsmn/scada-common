@@ -248,13 +248,11 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   attribute_service_.Read(
       service_context_, read_ids,
       BindExecutor(
-          executor_,
-          [weak_ptr = weak_from_this(), request_id, start_ticks, read_ids](
+          executor_, weak_from_this(),
+          [this, request_id, start_ticks, read_ids](
               scada::Status status, std::vector<scada::DataValue> results) {
-            if (auto ptr = weak_ptr.lock()) {
-              ptr->OnReadResult(request_id, start_ticks, std::move(status),
-                                *read_ids, std::move(results));
-            }
+            OnReadResult(request_id, start_ticks, std::move(status), *read_ids,
+                         std::move(results));
           }));
 
   // References
@@ -277,13 +275,11 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   view_service_.Browse(
       descriptions,
       BindExecutor(
-          executor_,
-          [weak_ptr = weak_from_this(), request_id, start_ticks, descriptions](
+          executor_, weak_from_this(),
+          [this, request_id, start_ticks, descriptions](
               scada::Status status, std::vector<scada::BrowseResult> results) {
-            if (auto ptr = weak_ptr.lock()) {
-              ptr->OnBrowseResult(request_id, start_ticks, std::move(status),
-                                  std::move(descriptions), std::move(results));
-            }
+            OnBrowseResult(request_id, start_ticks, std::move(status),
+                           std::move(descriptions), std::move(results));
           }));
 }
 
