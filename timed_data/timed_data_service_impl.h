@@ -7,13 +7,11 @@
 
 class TimedDataImpl;
 class AliasTimedData;
-class Logger;
 
 class TimedDataServiceImpl final : private TimedDataContext,
                                    public TimedDataService {
  public:
-  TimedDataServiceImpl(TimedDataContext&& context,
-                       std::shared_ptr<const Logger> logger);
+  explicit TimedDataServiceImpl(TimedDataContext&& context);
   virtual ~TimedDataServiceImpl();
 
   virtual std::shared_ptr<TimedData> GetFormulaTimedData(
@@ -27,8 +25,6 @@ class TimedDataServiceImpl final : private TimedDataContext,
   std::shared_ptr<TimedData> GetAliasTimedData(
       std::string_view alias,
       const scada::AggregateFilter& aggregation);
-
-  const std::shared_ptr<const Logger> logger_;
 
   TimedCache<std::pair<scada::NodeId, scada::AggregateFilter>,
              std::shared_ptr<TimedDataImpl>>

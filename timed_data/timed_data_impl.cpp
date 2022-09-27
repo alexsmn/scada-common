@@ -45,10 +45,8 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 
 TimedDataImpl::TimedDataImpl(NodeRef node,
                              scada::AggregateFilter aggregate_filter,
-                             TimedDataContext context,
-                             std::shared_ptr<const Logger> logger)
+                             TimedDataContext context)
     : TimedDataContext{std::move(context)},
-      BaseTimedData{std::move(logger)},
       aggregate_filter_{std::move(aggregate_filter)} {
   assert(node);
   SetNode(std::move(node));
@@ -128,9 +126,9 @@ void TimedDataImpl::FetchNextGap() {
   querying_ = true;
   querying_range_ = *gap;
 
-  logger_->WriteF(LogSeverity::Normal, "Querying history from %s to %s",
-                  FormatTime(querying_range_.first).c_str(),
-                  FormatTime(querying_range_.second).c_str());
+  LOG_INFO(logger_) << "Querying history"
+                    << LOG_TAG("From", FormatTime(querying_range_.first))
+                    << LOG_TAG("To", FormatTime(querying_range_.second));
 
   auto message_loop = base::ThreadTaskRunnerHandle::Get();
   auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
@@ -158,7 +156,7 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
   assert(!continuation_point.empty());
 
   if (!node_) {
-    logger_->Write(LogSeverity::Normal, "Node was deleted");
+    LOG_INFO(logger_) << "Node was deleted";
     querying_ = false;
     return;
   }
@@ -166,17 +164,16 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
   // Reset query if the requested range is no more interesting.
   auto gap = FindNextGap();
   if (!gap || !IntervalContains(*gap, querying_range_)) {
-    logger_->WriteF(LogSeverity::Normal,
-                    "Query canceled. Gap is %s, querying range is %s",
-                    ToString(*gap).c_str(), ToString(querying_range_).c_str());
+    LOG_INFO(logger_) << "Query canceled" << LOG_TAG("Gap", ToString(*gap))
+                      << LOG_TAG("Range", ToString(querying_range_));
     continuation_point.reset();
     querying_ = false;
     FetchNextGap();
     return;
   }
 
-  logger_->WriteF(LogSeverity::Normal, "Continue querying history %s",
-                  ToString(querying_range_).c_str());
+  LOG_INFO(logger_) << "Continue querying history"
+                    << LOG_TAG("Range", ToString(querying_range_));
 
   auto message_loop = base::ThreadTaskRunnerHandle::Get();
   auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
@@ -279,10 +276,9 @@ void TimedDataImpl::OnHistoryReadRawComplete(
     ready_to = values.back().source_timestamp;
 
   if (!ready_to.is_null()) {
-    logger_->WriteF(LogSeverity::Normal,
-                    "Query result %Iu values. Ready from %s to %s",
-                    values.size(), FormatTime(querying_range_.first).c_str(),
-                    ToString(ready_to).c_str());
+    LOG_INFO(logger_) << "Query result" << LOG_TAG("ValueCount", values.size())
+                      << LOG_TAG("ReadFrom", FormatTime(querying_range_.first))
+                      << LOG_TAG("ReadTo", FormatTime(ready_to));
 
     SetReady({querying_range_.first, ready_to});
 
@@ -294,7 +290,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
   // Query next fragment of data if |from_| changed from moment of last query.
   // Note that |from_| is allowed to be increased.
   if (continuation_point.empty()) {
-    logger_->Write(LogSeverity::Normal, "Query completed");
+    LOG_INFO(logger_) << "Query completed";
     querying_ = false;
     FetchNextGap();
 

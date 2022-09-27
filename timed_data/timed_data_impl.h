@@ -3,10 +3,10 @@
 #include "base/memory/weak_ptr.h"
 #include "common/event_observer.h"
 #include "common/history_util.h"
-#include "node_service/node_observer.h"
 #include "core/aggregate_filter.h"
 #include "core/history_service.h"
 #include "core/monitored_item.h"
+#include "node_service/node_observer.h"
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
 
@@ -18,8 +18,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
  public:
   TimedDataImpl(NodeRef node,
                 scada::AggregateFilter aggregate_filter,
-                TimedDataContext context,
-                std::shared_ptr<const Logger> logger);
+                TimedDataContext context);
   ~TimedDataImpl();
 
   // TimedData overrides

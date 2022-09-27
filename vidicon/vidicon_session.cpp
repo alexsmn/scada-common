@@ -1,6 +1,5 @@
 #include "vidicon_session.h"
 
-#include "base/logger.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"

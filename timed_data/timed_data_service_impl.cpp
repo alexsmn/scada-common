@@ -1,6 +1,5 @@
 #include "timed_data/timed_data_service_impl.h"
 
-#include "base/nested_logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/scada_expression.h"
@@ -18,10 +17,8 @@ bool IsTimedCacheExpired(const T& value) {
 
 // TimedDataServiceImpl
 
-TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context,
-                                           std::shared_ptr<const Logger> logger)
+TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
     : TimedDataContext{std::move(context)},
-      logger_{std::move(logger)},
       node_id_cache_{io_context_},
       alias_cache_{io_context_},
       null_timed_data_{
@@ -57,9 +54,8 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     std::vector<std::shared_ptr<TimedData>> operands(expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i)
       operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
-    auto logger = std::make_shared<NestedLogger>(logger_, std::string{formula});
-    return std::make_shared<ExpressionTimedData>(
-        std::move(expression), std::move(operands), std::move(logger));
+    return std::make_shared<ExpressionTimedData>(std::move(expression),
+                                                 std::move(operands));
   }
 }
 
@@ -78,10 +74,8 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetNodeTimedData(
     return null_timed_data_;
 
   auto& context = static_cast<TimedDataContext&>(*this);
-  auto logger =
-      std::make_shared<NestedLogger>(logger_, NodeIdToScadaString(node_id));
-  auto timed_data = std::make_shared<TimedDataImpl>(
-      node, std::move(aggregation), context, logger);
+  auto timed_data =
+      std::make_shared<TimedDataImpl>(node, std::move(aggregation), context);
 
   node_id_cache_.Add(cache_key, timed_data);
   return timed_data;

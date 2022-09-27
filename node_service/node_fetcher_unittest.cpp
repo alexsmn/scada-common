@@ -2,7 +2,6 @@
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
-#include "base/logger.h"
 #include "base/test/test_executor.h"
 #include "core/attribute_service_mock.h"
 #include "core/node_class.h"

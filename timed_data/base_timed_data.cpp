@@ -66,8 +66,7 @@ const base::Time kTimedDataCurrentOnly = base::Time::Max();
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
-BaseTimedData::BaseTimedData(std::shared_ptr<const Logger> logger)
-    : logger_{std::move(logger)} {}
+BaseTimedData::BaseTimedData() {}
 
 BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
@@ -101,9 +100,9 @@ void BaseTimedData::AddObserver(TimedDataDelegate& observer,
 
   bool inserted = observer_ranges_.insert_or_assign(&observer, range).second;
 
-  logger_->WriteF(LogSeverity::Normal, "%s range from %s to %s",
-                  inserted ? "Add" : "Update", FormatTime(range.first).c_str(),
-                  FormatTime(range.second).c_str());
+  LOG_INFO(logger_) << "Add observer" << LOG_TAG("New", inserted)
+                    << LOG_TAG("From", FormatTime(range.first))
+                    << LOG_TAG("To", FormatTime(range.second));
 
   RebuildRanges();
   UpdateRanges();
@@ -119,9 +118,9 @@ void BaseTimedData::RemoveObserver(TimedDataDelegate& observer) {
     observer_ranges_.erase(i);
   }
 
-  logger_->WriteF(LogSeverity::Normal, "Remove range from %s to %s",
-                  FormatTime(range.first).c_str(),
-                  FormatTime(range.second).c_str());
+  LOG_INFO(logger_) << "Remove observer"
+                    << LOG_TAG("From", FormatTime(range.first))
+                    << LOG_TAG("To", FormatTime(range.second));
 
   RebuildRanges();
   UpdateRanges();

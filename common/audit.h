@@ -2,7 +2,6 @@
 
 #include "base/executor.h"
 #include "base/executor_timer.h"
-#include "base/logger.h"
 #include "base/metric.h"
 #include "common/audit_logger.h"
 #include "core/attribute_service.h"

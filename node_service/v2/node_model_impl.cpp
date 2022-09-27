@@ -1,6 +1,5 @@
 #include "node_service/v2/node_model_impl.h"
 
-#include "base/logger.h"
 #include "base/strings/sys_string_conversions.h"
 #include "core/attribute_service.h"
 #include "core/monitored_item.h"

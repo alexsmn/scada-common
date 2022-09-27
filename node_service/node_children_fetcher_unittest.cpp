@@ -1,6 +1,5 @@
 #include "node_children_fetcher.h"
 
-#include "base/logger.h"
 #include "core/attribute_service_mock.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
@@ -18,8 +17,6 @@ struct TestContext {
   /*  MOCK_METHOD2(OnFetched,
                  void(const scada::NodeId& node_id,
                       const ReferenceMap& references));*/
-
-  const std::shared_ptr<Logger> logger = std::make_shared<NullLogger>();
 
   // TestAddressSpace address_space;
 
@@ -41,9 +38,9 @@ MATCHER_P(NodeIs, node_id, "") {
 }
 
 TEST(NodeChildrenFetcher, Test) {
-  TestContext context;
+  /* TestContext context;
 
-  /*auto& as = context.address_space;
+  auto& as = context.address_space;
 
   InSequence s;
 

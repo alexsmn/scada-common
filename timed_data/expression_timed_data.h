@@ -12,8 +12,7 @@ class ExpressionTimedData final : public BaseTimedData,
                                   private TimedDataDelegate {
  public:
   ExpressionTimedData(std::unique_ptr<ScadaExpression> expression,
-                      std::vector<std::shared_ptr<TimedData>> operands,
-                      std::shared_ptr<const Logger> logger);
+                      std::vector<std::shared_ptr<TimedData>> operands);
   ~ExpressionTimedData();
 
   // TimedData

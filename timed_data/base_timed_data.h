@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "timed_data/timed_data.h"
 
@@ -8,8 +8,11 @@ class PropertySet;
 
 class BaseTimedData : public TimedData {
  public:
-  explicit BaseTimedData(std::shared_ptr<const Logger> logger);
+  BaseTimedData();
   ~BaseTimedData();
+
+  BaseTimedData(const BaseTimedData&) = delete;
+  BaseTimedData& operator=(const BaseTimedData&) = delete;
 
   // TimedData
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
@@ -62,7 +65,7 @@ class BaseTimedData : public TimedData {
   void Delete();
   void Failed();
 
-  const std::shared_ptr<const Logger> logger_;
+  BoostLogger logger_{LOG_NAME("TimedData")};
 
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;
@@ -81,6 +84,4 @@ class BaseTimedData : public TimedData {
   std::vector<scada::DateTimeRange> ready_ranges_;
 
   DataValues values_;
-
-  DISALLOW_COPY_AND_ASSIGN(BaseTimedData);
 };

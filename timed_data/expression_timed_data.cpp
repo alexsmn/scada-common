@@ -7,11 +7,8 @@
 
 ExpressionTimedData::ExpressionTimedData(
     std::unique_ptr<ScadaExpression> expression,
-    std::vector<std::shared_ptr<TimedData>> operands,
-    std::shared_ptr<const Logger> logger)
-    : BaseTimedData{std::move(logger)},
-      expression_{std::move(expression)},
-      operands_{std::move(operands)} {
+    std::vector<std::shared_ptr<TimedData>> operands)
+    : expression_{std::move(expression)}, operands_{std::move(operands)} {
   for (auto& operand : operands_)
     operand->AddObserver(*this, {from_, kTimedDataCurrentOnly});
   CalculateCurrent();
