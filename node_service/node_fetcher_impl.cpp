@@ -426,12 +426,13 @@ void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
 
     case scada::AttributeId::DisplayName:
       node.node_state.attributes.display_name =
-          std::move(value.as_localized_text());
+          std::move(value.get<scada::LocalizedText>());
       break;
 
     case scada::AttributeId::DataType:
       assert(!value.as_node_id().is_null());
-      node.node_state.attributes.data_type = std::move(value.as_node_id());
+      node.node_state.attributes.data_type =
+          std::move(value.get<scada::NodeId>());
       ValidateDependency(node, node.node_state.attributes.data_type);
       break;
 
