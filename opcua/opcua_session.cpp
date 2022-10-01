@@ -192,8 +192,9 @@ void OpcUaSession::Call(const scada::NodeId& node_id,
   opcua::CallMethodRequest request;
   Convert(node_id, request.ObjectId);
   Convert(method_id, request.MethodId);
+  auto copied_arguments = arguments;
   auto opcua_arguments =
-      ConvertFromVector<OpcUa_Variant>(std::vector<scada::Variant>{arguments});
+      ConvertFromVector<OpcUa_Variant>(std::move(copied_arguments));
   request.NoOfInputArguments = opcua_arguments.size();
   request.InputArguments = opcua_arguments.release();
 

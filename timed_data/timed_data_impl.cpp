@@ -85,8 +85,9 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
 
   if (node_) {
     node_.Subscribe(*this);
-    event_fetcher_.AddItemObserver(node_.node_id(), *this);
+    node_.Fetch(NodeFetchStatus::NodeOnly());
 
+    event_fetcher_.AddItemObserver(node_.node_id(), *this);
     alerting_ = event_fetcher_.IsAlerting(node_.node_id());
   }
 }

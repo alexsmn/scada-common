@@ -210,11 +210,12 @@ bool ExpressionTimedData::CalculateCurrent() {
   } catch (const std::exception&) {
   }
 
+  auto now = base::Time::Now();
   if (num_operands == 0)
-    max_update_time = base::Time::Now();
+    max_update_time = now;
 
   scada::DataValue tvq(std::move(total_value), total_qualifier, max_update_time,
-                       base::Time());
+                       now);
   return UpdateCurrent(tvq);
 }
 

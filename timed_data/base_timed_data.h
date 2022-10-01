@@ -50,7 +50,7 @@ class BaseTimedData : public TimedData {
   void UpdateRanges();
   std::optional<scada::DateTimeRange> FindNextGap() const;
   // |ranges_| and |from_| were changed. Data needs to be updated.
-  virtual void OnRangesChanged() = 0;
+  virtual void OnRangesChanged() {}
 
   void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
   void NotifyDataReady();
