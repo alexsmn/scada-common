@@ -16,10 +16,11 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                       private NodeRefObserver,
                       private EventObserver {
  public:
-  TimedDataImpl(NodeRef node,
-                scada::AggregateFilter aggregate_filter,
+  TimedDataImpl(scada::AggregateFilter aggregate_filter,
                 TimedDataContext context);
   ~TimedDataImpl();
+
+  void Init(NodeRef node);
 
   // TimedData overrides
   virtual std::string GetFormula(bool aliases) const override;
@@ -66,6 +67,4 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
 
   bool querying_ = false;
   scada::DateTimeRange querying_range_;
-
-  base::WeakPtrFactory<TimedDataImpl> weak_ptr_factory_{this};
 };

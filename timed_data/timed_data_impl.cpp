@@ -1,10 +1,9 @@
 #include "timed_data/timed_data_impl.h"
 
-#include "base/bind.h"
+#include "base/cancelation.h"
 #include "base/debug_util.h"
+#include "base/executor.h"
 #include "base/format_time.h"
-#include "base/location.h"
-#include "base/threading/thread_task_runner_handle.h"
 #include "common/data_value_util.h"
 #include "common/event_fetcher.h"
 #include "common/formula_util.h"
@@ -43,11 +42,16 @@ std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
 
 // TimedDataImpl
 
-TimedDataImpl::TimedDataImpl(NodeRef node,
-                             scada::AggregateFilter aggregate_filter,
+TimedDataImpl::TimedDataImpl(scada::AggregateFilter aggregate_filter,
                              TimedDataContext context)
     : TimedDataContext{std::move(context)},
-      aggregate_filter_{std::move(aggregate_filter)} {
+      aggregate_filter_{std::move(aggregate_filter)} {}
+
+TimedDataImpl::~TimedDataImpl() {
+  SetNode(nullptr);
+}
+
+void TimedDataImpl::Init(NodeRef node) {
   assert(node);
   SetNode(std::move(node));
 
@@ -62,14 +66,11 @@ TimedDataImpl::TimedDataImpl(NodeRef node,
     return;
   }
 
-  // FIXME: Captures |this|.
-  monitored_value_->Subscribe([this](const scada::DataValue& data_value) {
-    OnChannelData(data_value);
-  });
-}
-
-TimedDataImpl::~TimedDataImpl() {
-  SetNode(nullptr);
+  monitored_value_->Subscribe(
+      static_cast<scada::DataChangeHandler>(BindCancelation(
+          weak_from_this(), [this](const scada::DataValue& data_value) {
+            OnChannelData(data_value);
+          })));
 }
 
 void TimedDataImpl::SetNode(const NodeRef& node) {
@@ -131,24 +132,24 @@ void TimedDataImpl::FetchNextGap() {
                     << LOG_TAG("From", FormatTime(querying_range_.first))
                     << LOG_TAG("To", FormatTime(querying_range_.second));
 
-  auto message_loop = base::ThreadTaskRunnerHandle::Get();
-  auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
-
   // Query history in the backward direction.
   scada::HistoryReadRawDetails details{node_.node_id(), querying_range_.first,
                                        querying_range_.second, kMaxReadCount,
                                        aggregate_filter_};
+  // Canot use |BindCancelation| as |ScopedContinuationPoint| must always be
+  // handled.
   history_service_.HistoryReadRaw(
-      details, [message_loop, weak_ptr, &history_service = history_service_,
-                details](scada::HistoryReadRawResult result) {
+      details,
+      BindExecutor(executor_, [weak_ptr = weak_from_this(),
+                               &history_service = history_service_,
+                               details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
             history_service, details, std::move(result.continuation_point)};
-        message_loop->PostTask(
-            FROM_HERE,
-            base::Bind(&TimedDataImpl::OnHistoryReadRawComplete, weak_ptr,
-                       base::Passed(std::move(result.values)),
-                       base::Passed(std::move(scoped_continuation_point))));
-      });
+        if (auto ptr = weak_ptr.lock()) {
+          ptr->OnHistoryReadRawComplete(std::move(result.values),
+                                        std::move(scoped_continuation_point));
+        }
+      }));
 }
 
 void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
@@ -176,9 +177,6 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
   LOG_INFO(logger_) << "Continue querying history"
                     << LOG_TAG("Range", ToString(querying_range_));
 
-  auto message_loop = base::ThreadTaskRunnerHandle::Get();
-  auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
-
   // Query history in the backward direction.
   scada::HistoryReadRawDetails details{node_.node_id(),
                                        querying_range_.second,
@@ -187,17 +185,20 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
                                        aggregate_filter_,
                                        false,
                                        continuation_point.release()};
+  // Canot use |BindCancelation| as |ScopedContinuationPoint| must always be
+  // handled.
   history_service_.HistoryReadRaw(
-      details, [message_loop, weak_ptr, &history_service = history_service_,
-                details](scada::HistoryReadRawResult result) {
+      details,
+      BindExecutor(executor_, [weak_ptr = weak_from_this(),
+                               &history_service = history_service_,
+                               details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
             history_service, details, std::move(result.continuation_point)};
-        message_loop->PostTask(
-            FROM_HERE,
-            base::Bind(&TimedDataImpl::OnHistoryReadRawComplete, weak_ptr,
-                       base::Passed(std::move(result.values)),
-                       base::Passed(std::move(scoped_continuation_point))));
-      });
+        if (auto ptr = weak_ptr.lock()) {
+          ptr->OnHistoryReadRawComplete(std::move(result.values),
+                                        std::move(scoped_continuation_point));
+        }
+      }));
 }
 
 void TimedDataImpl::OnRangesChanged() {

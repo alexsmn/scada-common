@@ -65,7 +65,7 @@ class BaseTimedData : public TimedData {
   void Delete();
   void Failed();
 
-  BoostLogger logger_{LOG_NAME("TimedData")};
+  inline static BoostLogger logger_{LOG_NAME("TimedData")};
 
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;

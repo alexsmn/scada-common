@@ -3,11 +3,8 @@
 #include "common/aliases.h"
 #include "core/node_id.h"
 
+#include <memory>
 #include <string_view>
-
-namespace boost::asio {
-class io_context;
-}
 
 namespace scada {
 class AttributeService;
@@ -19,10 +16,11 @@ class MonitoredItemService;
 }  // namespace scada
 
 class EventFetcher;
+class Executor;
 class NodeService;
 
 struct TimedDataContext {
-  boost::asio::io_context& io_context_;
+  const std::shared_ptr<Executor> executor_;
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
   scada::AttributeService& attribute_service_;

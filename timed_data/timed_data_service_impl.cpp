@@ -19,8 +19,8 @@ bool IsTimedCacheExpired(const T& value) {
 
 TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
     : TimedDataContext{std::move(context)},
-      node_id_cache_{io_context_},
-      alias_cache_{io_context_},
+      node_id_cache_{executor_},
+      alias_cache_{executor_},
       null_timed_data_{
           std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
 
@@ -75,7 +75,8 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetNodeTimedData(
 
   auto& context = static_cast<TimedDataContext&>(*this);
   auto timed_data =
-      std::make_shared<TimedDataImpl>(node, std::move(aggregation), context);
+      std::make_shared<TimedDataImpl>(std::move(aggregation), context);
+  timed_data->Init(std::move(node));
 
   node_id_cache_.Add(cache_key, timed_data);
   return timed_data;
