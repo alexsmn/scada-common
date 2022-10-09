@@ -63,8 +63,9 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::EventService
-  virtual void Acknowledge(base::span<const int> acknowledge_ids,
-                           const scada::NodeId& user_id) override;
+  virtual void Acknowledge(
+      base::span<const scada::EventAcknowledgeId> acknowledge_ids,
+      const scada::NodeId& user_id) override;
 
   // scada::MonitoredItemService
   virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(

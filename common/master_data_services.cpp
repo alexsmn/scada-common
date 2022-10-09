@@ -228,8 +228,9 @@ void MasterDataServices::TranslateBrowsePaths(
   services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
 }
 
-void MasterDataServices::Acknowledge(base::span<const int> acknowledge_ids,
-                                     const scada::NodeId& user_id) {
+void MasterDataServices::Acknowledge(
+    base::span<const scada::EventAcknowledgeId> acknowledge_ids,
+    const scada::NodeId& user_id) {
   if (!services_.event_service_)
     return;
 
