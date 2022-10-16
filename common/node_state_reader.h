@@ -3,6 +3,8 @@
 #include "common/node_state.h"
 #include "core/variant_utils.h"
 
+#include <chrono>
+
 template <class T>
 class NodeStateReader {
  public:
@@ -65,12 +67,32 @@ class NodeStateReader2 {
   NodeStateReader2& ReadReference(const scada::NodeId& reference_type_id,
                                   bool forward,
                                   scada::NodeId& target_id) {
-    const auto* found_target_id =
-        scada::FindReference(node_state_.references, reference_type_id, true);
-    if (!found_target_id)
+    const auto* found_target_id = scada::FindReference(
+        node_state_.references, reference_type_id, forward);
+    if (found_target_id)
+      target_id = *found_target_id;
+
+    return *this;
+  }
+
+  NodeStateReader2& ReadDurationS(const scada::NodeId& prop_decl_id,
+                                  std::chrono::nanoseconds& duration) {
+    // Use a separate implementation to avoid overriding current |duration|
+    // value if property isn't set.
+
+    const auto* found_value =
+        scada::FindProperty(node_state_.properties, prop_decl_id);
+    if (!found_value)
       return *this;
 
-    target_id = *found_target_id;
+    scada::UInt32 duration_s = 0;
+    if (!ConvertVariant(*found_value, duration_s)) {
+      assert(false);
+      ok_ = false;
+      return *this;
+    }
+
+    duration = std::chrono::seconds{duration_s};
     return *this;
   }
 
