@@ -8,7 +8,7 @@ configure_file(
 # Add project.h to includes.
 target_include_directories(scada_common PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_include_directories(scada_common PUBLIC "." "..")
+target_include_directories(scada_common PUBLIC "..")
 
 target_link_libraries(scada_common PUBLIC
   base

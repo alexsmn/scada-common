@@ -1,6 +1,6 @@
 #pragma once
 
-#include "address_space/variable_handle.h"
+#include "common/variable_handle.h"
 
 namespace scada {
 

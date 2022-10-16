@@ -4,8 +4,8 @@
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
 #include "common/scada_expression.h"
-#include "common/static_types.h"
 #include "model/node_id_util.h"
+#include "model/static_types.h"
 
 #include <optional>
 
