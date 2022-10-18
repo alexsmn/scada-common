@@ -80,6 +80,9 @@ struct NodeState {
     return *this;
   }
 
+  NodeState& set_property(const scada::NodeId& prop_decl_id,
+                          scada::Variant value);
+
   NodeState& add_reference(scada::ReferenceDescription ref) {
     this->references.emplace_back(std::move(ref));
     return *this;
@@ -134,12 +137,22 @@ inline WARN_UNUSED_RESULT Variant GetProperty(const NodeProperties& properties,
 
 inline WARN_UNUSED_RESULT bool SetProperty(NodeProperties& properties,
                                            const NodeId& prop_decl_id,
-                                           scada::Variant&& prop_value) {
+                                           scada::Variant value) {
   auto* prop = FindProperty(properties, prop_decl_id);
   if (!prop)
     return false;
-  *prop = std::move(prop_value);
+  *prop = std::move(value);
   return true;
+}
+
+inline void SetOrAddProperty(NodeProperties& properties,
+                             const NodeId& prop_decl_id,
+                             scada::Variant value) {
+  auto* prop = FindProperty(properties, prop_decl_id);
+  if (prop)
+    *prop = std::move(value);
+  else
+    properties.push_back({prop_decl_id, std::move(value)});
 }
 
 inline WARN_UNUSED_RESULT bool SetProperties(
@@ -177,6 +190,12 @@ inline void SetReferences(
     base::span<const ReferenceDescription> updated_references) {
   for (auto& ref : updated_references)
     SetReference(references, ref);
+}
+
+inline NodeState& NodeState::set_property(const scada::NodeId& prop_decl_id,
+                                          scada::Variant value) {
+  SetOrAddProperty(properties, prop_decl_id, std::move(value));
+  return *this;
 }
 
 inline bool operator==(const ReferenceState& a, const ReferenceState& b) {
