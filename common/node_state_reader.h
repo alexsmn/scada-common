@@ -75,8 +75,8 @@ class NodeStateReader2 {
     return *this;
   }
 
-  NodeStateReader2& ReadDurationS(const scada::NodeId& prop_decl_id,
-                                  std::chrono::nanoseconds& duration) {
+  template <class E>
+  NodeStateReader2& ReadEnum(const scada::NodeId& prop_decl_id, E& value) {
     // Use a separate implementation to avoid overriding current |duration|
     // value if property isn't set.
 
@@ -85,14 +85,36 @@ class NodeStateReader2 {
     if (!found_value)
       return *this;
 
-    scada::UInt32 duration_s = 0;
-    if (!ConvertVariant(*found_value, duration_s)) {
+    scada::UInt32 int_value = 0;
+    if (!ConvertVariant(*found_value, int_value)) {
       assert(false);
       ok_ = false;
       return *this;
     }
 
-    duration = std::chrono::seconds{duration_s};
+    value = static_cast<E>(int_value);
+    return *this;
+  }
+
+  template <class T>
+  NodeStateReader2& ReadDuration(const scada::NodeId& prop_decl_id,
+                                 std::chrono::nanoseconds& duration) {
+    // Use a separate implementation to avoid overriding current |duration|
+    // value if property isn't set.
+
+    const auto* found_value =
+        scada::FindProperty(node_state_.properties, prop_decl_id);
+    if (!found_value)
+      return *this;
+
+    scada::UInt32 duration_value = 0;
+    if (!ConvertVariant(*found_value, duration_value)) {
+      assert(false);
+      ok_ = false;
+      return *this;
+    }
+
+    duration = T{duration_value};
     return *this;
   }
 
