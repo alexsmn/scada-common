@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/common_types.h"
 #include "common/node_state.h"
 #include "core/variant_utils.h"
 
@@ -98,7 +99,7 @@ class NodeStateReader2 {
 
   template <class T>
   NodeStateReader2& ReadDuration(const scada::NodeId& prop_decl_id,
-                                 std::chrono::nanoseconds& duration) {
+                                 Duration& duration) {
     // Use a separate implementation to avoid overriding current |duration|
     // value if property isn't set.
 
