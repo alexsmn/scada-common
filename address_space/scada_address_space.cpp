@@ -607,13 +607,6 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
        scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
            u"Все оборудование")});
 
-  CreateNode({devices::id::TransmissionItems, scada::NodeClass::Object,
-              scada::id::FolderType, scada::id::ObjectsFolder,
-              scada::id::Organizes,
-              scada::NodeAttributes{}
-                  .set_browse_name("TransmissionItems")
-                  .set_display_name(u"Ретрансляция")});
-
   // Device
   {
     CreateObjectType(devices::id::DeviceType, "DeviceType", u"Устройство",
@@ -956,21 +949,18 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                  devices::id::Iec61850DeviceType, devices::id::Iec61850RcbType);
   }
 
-  // IEC Retransmission Item
+  // Transmission Items
   {
     CreateObjectType(devices::id::TransmissionItemType, "TransmissionItemType",
                      u"Ретрансляция", scada::id::BaseObjectType);
-    AddReference(address_space_, scada::id::Creates,
-                 devices::id::TransmissionItems,
+    AddReference(address_space_, scada::id::Creates, devices::id::DeviceType,
                  devices::id::TransmissionItemType);
+    CreateReferenceType(devices::id::HasTransmissionItem, "HasTransmissionItem",
+                        u"Ретрансляция", scada::id::Organizes);
     CreateReferenceType(devices::id::TransmissionItemType,
                         devices::id::HasTransmissionSource, {},
                         "IecTransmitSource", u"Объект источник",
                         scada::id::BaseVariableType);
-    CreateReferenceType(devices::id::TransmissionItemType,
-                        devices::id::HasTransmissionTarget, {},
-                        "IecTransmitTargetDevice", u"Устройство приемник",
-                        devices::id::DeviceType);
     AddProperty(devices::id::TransmissionItemType,
                 devices::id::TransmissionItemType_SourceAddress, {},
                 "InfoAddress", u"Адрес объекта приемника", scada::id::Int32, 1);
