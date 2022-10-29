@@ -653,6 +653,19 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                     scada::id::BaseVariableType, scada::id::Int32, 0);
   }
 
+  // Transmission Item
+  {
+    CreateObjectType(devices::id::TransmissionItemType, "TransmissionItemType",
+                     u"Ретрансляция", scada::id::BaseObjectType);
+    CreateReferenceType(devices::id::TransmissionItemType,
+                        devices::id::HasTransmissionSource, {},
+                        "IecTransmitSource", u"Объект источник",
+                        scada::id::BaseVariableType);
+    AddProperty(devices::id::TransmissionItemType,
+                devices::id::TransmissionItemType_SourceAddress, {},
+                "InfoAddress", u"Адрес объекта приемника", scada::id::Int32, 1);
+  }
+
   // MODBUS Protocol
 
   CreateEnumDataType(devices::id::ModbusLinkProtocol,
@@ -697,6 +710,16 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                 devices::id::ModbusDeviceType_ResponseTimeout, {},
                 "ResponseTimeout", u"Таймаут ответа, мс", scada::id::Int32,
                 1000);
+  }
+
+  // Modbus Transmission Item
+  {
+    CreateObjectType(devices::id::ModbusTransmissionItemType,
+                     "ModbusTransmissionItemType", u"Ретрансляция MODBUS",
+                     devices::id::TransmissionItemType);
+    AddReference(address_space_, scada::id::Creates,
+                 devices::id::ModbusDeviceType,
+                 devices::id::ModbusTransmissionItemType);
   }
 
   // IEC-60870 Protocol
@@ -876,6 +899,16 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                 scada::id::Int32, 0);
   }
 
+  // IEC60870 Transmission Item
+  {
+    CreateObjectType(devices::id::Iec60870TransmissionItemType,
+                     "Iec60870TransmissionItemType", u"Ретрансляция МЭК-60870",
+                     devices::id::TransmissionItemType);
+    AddReference(address_space_, scada::id::Creates,
+                 devices::id::Iec60870DeviceType,
+                 devices::id::Iec60870TransmissionItemType);
+  }
+
   // IEC-61850 Logical Node
   {
     CreateObjectType(devices::id::Iec61850LogicalNodeType,
@@ -949,21 +982,14 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                  devices::id::Iec61850DeviceType, devices::id::Iec61850RcbType);
   }
 
-  // Transmission Items
+  // IEC-61850 Transmission Item
   {
-    CreateObjectType(devices::id::TransmissionItemType, "TransmissionItemType",
-                     u"Ретрансляция", scada::id::BaseObjectType);
-    AddReference(address_space_, scada::id::Creates, devices::id::DeviceType,
-                 devices::id::TransmissionItemType);
-    CreateReferenceType(devices::id::HasTransmissionItem, "HasTransmissionItem",
-                        u"Ретрансляция", scada::id::Organizes);
-    CreateReferenceType(devices::id::TransmissionItemType,
-                        devices::id::HasTransmissionSource, {},
-                        "IecTransmitSource", u"Объект источник",
-                        scada::id::BaseVariableType);
-    AddProperty(devices::id::TransmissionItemType,
-                devices::id::TransmissionItemType_SourceAddress, {},
-                "InfoAddress", u"Адрес объекта приемника", scada::id::Int32, 1);
+    CreateObjectType(devices::id::Iec61850TransmissionItemType,
+                     "Iec61850TransmissionItemType", u"Ретрансляция МЭК-61850",
+                     devices::id::TransmissionItemType);
+    AddReference(address_space_, scada::id::Creates,
+                 devices::id::Iec61850DeviceType,
+                 devices::id::Iec61850TransmissionItemType);
   }
 }
 
