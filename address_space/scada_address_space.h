@@ -17,6 +17,9 @@ class NodeFactory;
 
 class ScadaAddressSpaceBuilder {
  public:
+  ScadaAddressSpaceBuilder(AddressSpaceImpl& address_space,
+                           NodeFactory& node_factory);
+
   void BuildAll();
 
   ScadaAddressSpaceBuilder(const ScadaAddressSpaceBuilder&) = delete;

@@ -18,6 +18,11 @@
 #include "model/scada_node_ids.h"
 #include "model/security_node_ids.h"
 
+ScadaAddressSpaceBuilder::ScadaAddressSpaceBuilder(
+    AddressSpaceImpl& address_space,
+    NodeFactory& node_factory)
+    : address_space_{address_space}, node_factory_{node_factory} {}
+
 scada::Node* ScadaAddressSpaceBuilder::CreateNode(
     const scada::NodeState& node_state) {
   auto [status, node] = node_factory_.CreateNode(node_state);
