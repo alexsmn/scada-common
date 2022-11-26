@@ -325,6 +325,9 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
                  security::id::UserType);
     AddProperty(security::id::UserType, security::id::UserType_AccessRights, {},
                 "AccessRights", u"Права", scada::id::Int32, 0);
+    AddProperty(security::id::UserType, security::id::UserType_MultiSessions,
+                {}, "MultiSessions", u"Множество сессий", scada::id::Boolean,
+                false);
   }
 }
 
