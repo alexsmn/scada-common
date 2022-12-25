@@ -353,21 +353,25 @@ void ScadaAddressSpaceBuilder::CreateHistoryAddressSpace() {
     AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_WriteValueDuration,
                     "WriteValueDuration", u"Задержка записи измерений, мкс",
-                    scada::id::BaseVariableType, scada::id::UInt32);
+                    scada::id::MetricType, scada::id::UInt32);
     AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_PendingTaskCount,
                     "PendingTaskCount", u"Очередь записи измерений",
-                    scada::id::BaseVariableType, scada::id::UInt32);
+                    scada::id::MetricType, scada::id::UInt32);
     AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_EventCleanupDuration,
                     "EventCleanupDuration",
                     u"Продолжительность очистки событий, мкс",
-                    scada::id::BaseVariableType, scada::id::Int32);
+                    scada::id::MetricType, scada::id::Int32);
     AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_ValueCleanupDuration,
                     "ValueCleanupDuration",
                     u"Продолжительность очистки измерений, мкс",
-                    scada::id::BaseVariableType, scada::id::UInt32);
+                    scada::id::MetricType, scada::id::UInt32);
+    AddDataVariable(history::id::HistoricalDatabaseType,
+                    history::id::HistoricalDatabaseType_ItemCount, "ItemCount",
+                    u"Подписано объектов", scada::id::MetricType,
+                    scada::id::UInt32);
   }
 }
 
