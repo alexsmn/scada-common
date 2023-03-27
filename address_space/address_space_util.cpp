@@ -21,6 +21,8 @@
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace scada {
 
 std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
@@ -39,11 +41,11 @@ std::pair<NodeId, DataValueFieldId> ParseDataValueFieldString(
     return {};
 
   auto property_name = path.substr(sep_pos + 1);
-  if (IsEqualNoCase(property_name, "Quality"))
+  if (boost::algorithm::iequals(property_name, "Quality"))
     return {std::move(node_id), DataValueFieldId::Qualifier};
-  else if (IsEqualNoCase(property_name, "ServerTimeStamp"))
+  else if (boost::algorithm::iequals(property_name, "ServerTimeStamp"))
     return {std::move(node_id), DataValueFieldId::ServerTimeStamp};
-  else if (IsEqualNoCase(property_name, "SourceTimeStamp"))
+  else if (boost::algorithm::iequals(property_name, "SourceTimeStamp"))
     return {std::move(node_id), DataValueFieldId::SourceTimeStamp};
 
   return {};

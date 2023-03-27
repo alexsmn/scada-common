@@ -12,6 +12,7 @@
 #include "model/scada_node_ids.h"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 
 const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
 const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
@@ -153,10 +154,10 @@ bool StringToValue(std::u16string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value) {
   if (data_type_id == scada::id::Boolean) {
-    if (IsEqualNoCase(str, scada::Variant::kFalseString)) {
+    if (boost::algorithm::iequals(str, scada::Variant::kFalseString)) {
       value = false;
       return true;
-    } else if (IsEqualNoCase(str, scada::Variant::kTrueString)) {
+    } else if (boost::algorithm::iequals(str, scada::Variant::kTrueString)) {
       value = true;
       return true;
     }
