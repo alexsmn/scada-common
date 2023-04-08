@@ -49,7 +49,7 @@ std::string FormatFloat(double val, const char* fmt) {
   //  char* s = fcvt(val, rlen, &decimal, &sign);
   char* e = nullptr;
   char* s = dmg_fp::dtoa(val, 3, rlen, &decimal, &sign, &e);
-  int l = e - s;
+  int l = static_cast<int>(e - s);
   char buffer[64] = {0};
   size_t buffer_size = 0;
 

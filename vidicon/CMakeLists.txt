@@ -1,5 +1,7 @@
 scada_module(scada_core_vidicon)
 
-target_link_libraries(scada_core_vidicon PUBLIC scada_core)
+find_package(OPC REQUIRED)
 
-target_include_directories(scada_core_vidicon PUBLIC ".." "${deps}/OPCFoundation")
+target_link_libraries(scada_core_vidicon PUBLIC scada_core OPC::opc)
+
+target_include_directories(scada_core_vidicon PUBLIC "..")
