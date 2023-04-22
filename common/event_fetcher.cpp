@@ -26,9 +26,12 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
       executor_, [this](const scada::Status& status, const std::any& event) {
         // TODO: Handle |status|
         assert(status);
-        assert(std::any_cast<scada::Event>(&event));
-        if (auto* system_event = std::any_cast<scada::Event>(&event))
-          OnSystemEvents({system_event, 1});
+
+        if (event.has_value()) {
+          assert(std::any_cast<scada::Event>(&event));
+          if (auto* system_event = std::any_cast<scada::Event>(&event))
+            OnSystemEvents({system_event, 1});
+        }
       })));
 }
 

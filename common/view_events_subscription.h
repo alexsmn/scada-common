@@ -57,7 +57,9 @@ inline ViewEventsSubscription::ViewEventsSubscription(
   monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {
         assert(status);
-        OnEvent(event);
+        if (event.has_value()) {
+          OnEvent(event);
+        }
       });
 }
 

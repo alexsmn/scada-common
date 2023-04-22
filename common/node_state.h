@@ -118,8 +118,8 @@ inline WARN_UNUSED_RESULT const NodeId* FindReference(
 
 inline WARN_UNUSED_RESULT Variant* FindProperty(NodeProperties& properties,
                                                 const NodeId& prop_decl_id) {
-  auto i = std::find_if(properties.begin(), properties.end(),
-                        [&](auto& p) { return p.first == prop_decl_id; });
+  auto i = std::ranges::find(properties, prop_decl_id,
+                             [&](auto& p) { return p.first; });
   return i != properties.end() ? &i->second : nullptr;
 }
 
@@ -135,6 +135,7 @@ inline WARN_UNUSED_RESULT Variant GetProperty(const NodeProperties& properties,
   return p ? *p : Variant{};
 }
 
+// TODO: Rename to `UpdateProperty` or `ReplaceProperty`.
 inline WARN_UNUSED_RESULT bool SetProperty(NodeProperties& properties,
                                            const NodeId& prop_decl_id,
                                            scada::Variant value) {
@@ -145,6 +146,7 @@ inline WARN_UNUSED_RESULT bool SetProperty(NodeProperties& properties,
   return true;
 }
 
+// TODO: Rename to `SetProperty` for consistency with `SetReference`.
 inline void SetOrAddProperty(NodeProperties& properties,
                              const NodeId& prop_decl_id,
                              scada::Variant value) {
@@ -152,27 +154,24 @@ inline void SetOrAddProperty(NodeProperties& properties,
   if (prop)
     *prop = std::move(value);
   else
-    properties.push_back({prop_decl_id, std::move(value)});
+    properties.emplace_back(prop_decl_id, std::move(value));
 }
 
-inline WARN_UNUSED_RESULT bool SetProperties(
-    NodeProperties& properties,
-    base::span<const NodeProperty> updated_properties) {
+inline void SetProperties(NodeProperties& properties,
+                          base::span<const NodeProperty> updated_properties) {
   for (auto& [prop_decl_id, prop_value] : updated_properties) {
-    if (!SetProperty(properties, prop_decl_id, scada::Variant(prop_value)))
-      return false;
+    SetOrAddProperty(properties, prop_decl_id, std::move(prop_value));
   }
-  return true;
 }
 
 inline WARN_UNUSED_RESULT scada::ReferenceDescription* FindReference(
     scada::ReferenceDescriptions& references,
     const scada::NodeId& reference_type_id,
     bool forward) {
-  auto i = std::find_if(references.begin(), references.end(), [&](auto&& ref) {
+  auto i = std::ranges::find_if(references, [&](auto&& ref) {
     return ref.reference_type_id == reference_type_id && ref.forward == forward;
   });
-  return i != references.end() ? &*i : nullptr;
+  return i != references.end() ? std::to_address(i) : nullptr;
 }
 
 inline void SetReference(scada::ReferenceDescriptions& references,

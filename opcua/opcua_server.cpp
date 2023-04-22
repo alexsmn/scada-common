@@ -212,8 +212,11 @@ class MonitoredItemAdapter : public opcua::server::MonitoredItem {
       const opcua::server::EventHandler& event_handler) override {
     monitored_item_->Subscribe(
         [event_handler](const scada::Status& status, const std::any& event) {
-          auto fields = scada::DisassembleEvent(event);
-          event_handler(ConvertFromVector<OpcUa_Variant>(std::move(fields)));
+          // TODO: Handle status.
+          if (event.has_value()) {
+            auto fields = scada::DisassembleEvent(event);
+            event_handler(ConvertFromVector<OpcUa_Variant>(std::move(fields)));
+          }
         });
   }
 
