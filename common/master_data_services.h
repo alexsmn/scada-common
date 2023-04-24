@@ -65,6 +65,7 @@ class MasterDataServices final : public scada::AttributeService,
   // scada::EventService
   virtual void Acknowledge(
       base::span<const scada::EventAcknowledgeId> acknowledge_ids,
+      scada::DateTime acknowledge_time,
       const scada::NodeId& user_id) override;
 
   // scada::MonitoredItemService

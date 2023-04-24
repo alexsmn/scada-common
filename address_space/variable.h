@@ -18,8 +18,6 @@ class VariableType;
 class WriteFlags;
 struct AggregateFilter;
 
-using StatusCallback = std::function<void(Status&&)>;
-
 class Variable : public Node {
  public:
   Variable();

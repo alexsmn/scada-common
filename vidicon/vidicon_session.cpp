@@ -124,6 +124,7 @@ void VidiconSession::Write(
 
 void VidiconSession::Acknowledge(
     base::span<const scada::EventAcknowledgeId> acknowledge_ids,
+    scada::DateTime acknowledge_time,
     const scada::NodeId& user_ids) {}
 
 void VidiconSession::Call(const scada::NodeId& node_id,

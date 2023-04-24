@@ -11,6 +11,8 @@
 #include "core/monitored_item_service.h"
 #include "core/standard_node_ids.h"
 
+#include <ranges>
+
 #include "base/debug_util-inl.h"
 
 static const size_t kMaxParallelAcks = 5;
@@ -35,7 +37,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
       })));
 }
 
-EventFetcher::~EventFetcher() {}
+EventFetcher::~EventFetcher() = default;
 
 void EventFetcher::SetSeverityMin(unsigned severity) {
   if (severity < scada::kSeverityMin || severity > scada::kSeverityMax)
@@ -48,8 +50,7 @@ void EventFetcher::SetSeverityMin(unsigned severity) {
 
   ClearUackedEvents();
 
-  for (ObserverSet::const_iterator i = observers_.begin();
-       i != observers_.end();)
+  for (auto i = observers_.begin(); i != observers_.end();)
     (*i++)->OnAllEventsAcknowledged();
 
   Update();
@@ -83,10 +84,9 @@ const scada::Event* EventFetcher::AddUnackedEvent(const scada::Event& event) {
   if (event.severity < severity_min_)
     return nullptr;
 
-  std::pair<EventContainer::iterator, bool> p = unacked_events_.insert(
-      EventContainer::value_type(event.acknowledge_id, event));
-  scada::Event& contained_event = p.first->second;
-  bool inserted = p.second;
+  auto [iter, inserted] =
+      unacked_events_.try_emplace(event.acknowledge_id, event);
+  scada::Event& contained_event = iter->second;
 
   // Replace old event on update.
   if (!inserted) {
@@ -116,14 +116,10 @@ EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
     return {};
 
   // Acknowledge confirmation.
-  {
-    auto j = running_ack_event_ids_.find(event.acknowledge_id);
-    if (j != running_ack_event_ids_.end()) {
-      running_ack_event_ids_.erase(j);
-      logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
-                      event.acknowledge_id);
-      PostAckPendingEvents();
-    }
+  if (running_ack_event_ids_.erase(event.acknowledge_id)) {
+    logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
+                    event.acknowledge_id);
+    PostAckPendingEvents();
   }
 
   scada::Event& contained_event = i->second;
@@ -198,7 +194,7 @@ void EventFetcher::AckPendingEvents() {
   assert(ack_pending_);
   ack_pending_ = false;
 
-  std::vector<int> acknowledge_ids;
+  std::vector<scada::EventAcknowledgeId> acknowledge_ids;
   while (running_ack_event_ids_.size() < kMaxParallelAcks &&
          !pending_ack_event_ids_.empty()) {
     auto ack_id = pending_ack_event_ids_.front();
@@ -215,7 +211,6 @@ void EventFetcher::AckPendingEvents() {
                          scada::id::AcknowledgeableConditionType_Acknowledge,
                          {acknowledge_ids, scada::DateTime::Now()}, user_id_,
                          [](scada::Status&& status) {});
-    // event_service_.Acknowledge(acknowledge_ids, user_id_);
   }
 
   PostAckPendingEvents();
@@ -226,18 +221,14 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   if (!events)
     return;
 
-  for (EventSet::const_iterator k = events->begin(); k != events->end(); ++k) {
-    const scada::Event& event = **k;
-    AcknowledgeEvent(event.acknowledge_id);
+  for (auto* event : *events) {
+    AcknowledgeEvent(event->acknowledge_id);
   }
 }
 
 void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
-  if (running_ack_event_ids_.find(ack_id) != running_ack_event_ids_.end())
-    return;
-
-  if (std::find(pending_ack_event_ids_.begin(), pending_ack_event_ids_.end(),
-                ack_id) != pending_ack_event_ids_.end())
+  if (base::Contains(running_ack_event_ids_, ack_id) ||
+      base::Contains(pending_ack_event_ids_, ack_id))
     return;
 
   pending_ack_event_ids_.push_back(ack_id);
@@ -245,9 +236,8 @@ void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
 }
 
 void EventFetcher::AcknowledgeAll() {
-  for (EventContainer::const_iterator i = unacked_events_.begin();
-       i != unacked_events_.end(); ++i) {
-    AcknowledgeEvent(i->second.acknowledge_id);
+  for (auto& event : unacked_events_ | std::views::values) {
+    AcknowledgeEvent(event.acknowledge_id);
   }
 }
 
@@ -263,7 +253,7 @@ void EventFetcher::UpdateAlarming() {
 void EventFetcher::ItemEventsChanged(const ObserverSet& observers,
                                      const scada::NodeId& item_id,
                                      const EventSet& events) {
-  for (ObserverSet::const_iterator i = observers.begin(); i != observers.end();)
+  for (auto i = observers.begin(); i != observers.end();)
     (*i++)->OnItemEventsChanged(item_id, events);
 }
 

@@ -9,8 +9,6 @@ namespace scada {
 class NodeBuilder;
 class ObjectType;
 
-using StatusCallback = std::function<void(Status&&)>;
-
 class Object : public Node {
  public:
   // Node
