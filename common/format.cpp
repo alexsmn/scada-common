@@ -14,11 +14,11 @@
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 
-const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
-const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
-
 const char16_t kDefaultCloseLabel[] = u"Вкл";
 const char16_t kDefaultOpenLabel[] = u"Откл";
+
+const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
+const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
 
 void EscapeColoredString(std::u16string& str) {
   static const char16_t amp[] = u"&";
@@ -169,4 +169,29 @@ bool StringToValue(std::u16string_view str,
 
   return StringToValue(base::UTF16ToUTF8(AsStringPiece(str)), data_type_id,
                        value);
+}
+
+
+scada::LocalizedText FormatTs(bool bool_value, const TsFormatParams& params) {
+  const auto& label = bool_value ? params.close_label : params.open_label;
+  if (!label.empty()) {
+    return label;
+  }
+
+  return bool_value ? kDefaultCloseLabel : kDefaultOpenLabel;
+}
+
+scada::LocalizedText FormatTit(double double_value,
+                               const TitFormatParams& params) {
+  std::u16string text;
+
+  text = base::ASCIIToUTF16(
+      FormatFloat(double_value, params.display_format.c_str()));
+
+  if (!params.engineering_units.empty()) {
+    text += u' ';
+    text += params.engineering_units;
+  }
+
+  return text;
 }
