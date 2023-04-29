@@ -68,7 +68,7 @@ class NodeStateReader2 {
   NodeStateReader2& ReadReference(const scada::NodeId& reference_type_id,
                                   bool forward,
                                   scada::NodeId& target_id) {
-    const auto* found_target_id = scada::FindReference(
+    const auto* found_target_id = scada::FindReferenceTarget(
         node_state_.references, reference_type_id, forward);
     if (found_target_id)
       target_id = *found_target_id;
