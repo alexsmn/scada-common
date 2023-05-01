@@ -28,24 +28,25 @@ VidiconSession::VidiconSession()
 
 VidiconSession::~VidiconSession() {}
 
-void VidiconSession::Connect(const std::string& connection_string,
-                             const scada::LocalizedText& user_name,
-                             const scada::LocalizedText& password,
-                             bool allow_remote_logoff,
-                             const scada::StatusCallback& callback) {
+promise<> VidiconSession::Connect(const std::string& connection_string,
+                                  const scada::LocalizedText& user_name,
+                                  const scada::LocalizedText& password,
+                                  bool allow_remote_logoff) {
   teleclient_ = CreateTeleClient();
   if (!teleclient_)
-    return callback(scada::StatusCode::Bad);
+    return MakeRejectedStatusPromise(scada::StatusCode::Bad);
 
-  callback(scada::StatusCode::Good);
+  return make_resolved_promise();
 }
 
-void VidiconSession::Reconnect() {}
+promise<> VidiconSession::Reconnect() {
+  return make_resolved_promise();
+}
 
-void VidiconSession::Disconnect(const scada::StatusCallback& callback) {
+promise<> VidiconSession::Disconnect() {
   teleclient_.Reset();
 
-  callback(scada::StatusCode::Good);
+  return make_resolved_promise();
 }
 
 bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {

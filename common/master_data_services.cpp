@@ -109,28 +109,29 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-void MasterDataServices::Connect(const std::string& host,
-                                 const scada::LocalizedText& user_name,
-                                 const scada::LocalizedText& password,
-                                 bool allow_remote_logoff,
-                                 const scada::StatusCallback& callback) {
+promise<> MasterDataServices::Connect(const std::string& host,
+                                      const scada::LocalizedText& user_name,
+                                      const scada::LocalizedText& password,
+                                      bool allow_remote_logoff) {
   if (!services_.session_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
+    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
-  services_.session_service_->Connect(host, user_name, password,
-                                      allow_remote_logoff, std::move(callback));
+  return services_.session_service_->Connect(host, user_name, password,
+                                             allow_remote_logoff);
 }
 
-void MasterDataServices::Reconnect() {
-  if (services_.session_service_)
-    services_.session_service_->Reconnect();
+promise<> MasterDataServices::Disconnect() {
+  if (!services_.session_service_)
+    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
+
+  return services_.session_service_->Disconnect();
 }
 
-void MasterDataServices::Disconnect(const scada::StatusCallback& callback) {
+promise<> MasterDataServices::Reconnect() {
   if (!services_.session_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
+    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
-  services_.session_service_->Disconnect(callback);
+  return services_.session_service_->Reconnect();
 }
 
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {

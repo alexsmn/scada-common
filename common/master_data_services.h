@@ -27,13 +27,12 @@ class MasterDataServices final : public scada::AttributeService,
   void SetServices(DataServices&& sevices);
 
   // scada::SessionService
-  virtual void Connect(const std::string& connection_string,
-                       const scada::LocalizedText& user_name,
-                       const scada::LocalizedText& password,
-                       bool allow_remote_logoff,
-                       const scada::StatusCallback& callback) override;
-  virtual void Reconnect() override;
-  virtual void Disconnect(const scada::StatusCallback& callback) override;
+  virtual promise<> Connect(const std::string& connection_string,
+                            const scada::LocalizedText& user_name,
+                            const scada::LocalizedText& password,
+                            bool allow_remote_logoff) override;
+  virtual promise<> Disconnect() override;
+  virtual promise<> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
