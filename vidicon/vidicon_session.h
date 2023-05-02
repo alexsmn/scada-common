@@ -5,7 +5,6 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "core/attribute_service.h"
-#include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
@@ -24,7 +23,6 @@ class VidiconSession : public scada::SessionService,
                        public scada::HistoryService,
                        public scada::MonitoredItemService,
                        public scada::AttributeService,
-                       public scada::EventService,
                        public scada::MethodService,
                        public scada::NodeManagementService,
                        public scada::ViewService {
@@ -37,8 +35,8 @@ class VidiconSession : public scada::SessionService,
                             const scada::LocalizedText& user_name,
                             const scada::LocalizedText& password,
                             bool allow_remote_logoff) override;
-  virtual promise<> Reconnect() override;
   virtual promise<> Disconnect() override;
+  virtual promise<> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
@@ -73,12 +71,6 @@ class VidiconSession : public scada::SessionService,
       const std::shared_ptr<const scada::ServiceContext>& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
-
-  // scada::EventService
-  virtual void Acknowledge(
-      base::span<const scada::EventAcknowledgeId> acknowledge_ids,
-      scada::DateTime acknowledge_time,
-      const scada::NodeId& user_id) override;
 
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,

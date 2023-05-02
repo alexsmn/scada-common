@@ -4,7 +4,6 @@
 #include "base/location.h"
 #include "base/logger.h"
 #include "common/event_observer.h"
-#include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item.h"

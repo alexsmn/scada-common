@@ -41,12 +41,11 @@ OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
 
 OpcUaSession::~OpcUaSession() {}
 
-void OpcUaSession::Connect(const std::string& connection_string,
-                           const scada::LocalizedText& user_name,
-                           const scada::LocalizedText& password,
-                           bool allow_remote_logoff,
-                           const scada::StatusCallback& callback) {
-  connect_callback_ = std::move(callback);
+promise<> OpcUaSession::Connect(const std::string& connection_string,
+                                const scada::LocalizedText& user_name,
+                                const scada::LocalizedText& password,
+                                bool allow_remote_logoff) {
+  connect_promise_ = promise<>{};
 
   // TODO: Move to general layer.
   OpcUa_Trace_Initialize();
@@ -70,12 +69,16 @@ void OpcUaSession::Connect(const std::string& connection_string,
                                            OnConnectionStateChanged(status_code,
                                                                     event);
                                          }));
+
+  return connect_promise_;
 }
 
-void OpcUaSession::Reconnect() {}
+promise<> OpcUaSession::Reconnect() {
+  return make_resolved_promise();
+}
 
-void OpcUaSession::Disconnect(const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
+promise<> OpcUaSession::Disconnect() {
+  return scada::MakeRejectedStatusPromise(scada::StatusCode::Bad);
 }
 
 bool OpcUaSession::IsConnected(base::TimeDelta* ping_delay) const {
@@ -157,9 +160,9 @@ void OpcUaSession::Read(
                            ConvertVector<scada::DataValue>(results));
                 });
 
-  std::for_each(
-      read_array.begin(), read_array.end(),
-      [](OpcUa_ReadValueId& value) { ::OpcUa_ReadValueId_Clear(&value); });
+  std::ranges::for_each(read_array, [](OpcUa_ReadValueId& value) {
+    ::OpcUa_ReadValueId_Clear(&value);
+  });
 }
 
 void OpcUaSession::Write(
@@ -179,9 +182,9 @@ void OpcUaSession::Write(
                             ConvertStatusCodeVector(results));
                  });
 
-  std::for_each(
-      write_array.begin(), write_array.end(),
-      [](OpcUa_WriteValue& value) { ::OpcUa_WriteValue_Clear(&value); });
+  std::ranges::for_each(write_array, [](OpcUa_WriteValue& value) {
+    ::OpcUa_WriteValue_Clear(&value);
+  });
 }
 
 void OpcUaSession::Call(const scada::NodeId& node_id,
@@ -218,7 +221,7 @@ void OpcUaSession::Reset() {
   channel_.Reset();
   session_created_ = false;
   session_activated_ = false;
-  connect_callback_ = nullptr;
+  connect_promise_ = promise<>{};
 }
 
 void OpcUaSession::OnConnectionStateChanged(opcua::StatusCode status_code,
@@ -288,15 +291,10 @@ void OpcUaSession::OnActivateSessionResponse(scada::Status&& status) {
 
   session_activated_ = true;
 
-  if (const auto callback = std::move(connect_callback_)) {
-    connect_callback_ = nullptr;
-    callback(scada::StatusCode::Good);
-  }
+  connect_promise_.resolve();
 }
 
 void OpcUaSession::OnError(scada::Status&& status) {
-  const auto callback = std::move(connect_callback_);
   Reset();
-  if (callback)
-    callback(std::move(status));
+  scada::ResolveStatusPromise(connect_promise_, std::move(status));
 }

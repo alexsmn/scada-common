@@ -9,7 +9,6 @@
 #include "common/formula_util.h"
 #include "common/interval_util.h"
 #include "core/attribute_service.h"
-#include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"

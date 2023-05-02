@@ -9,7 +9,6 @@
 namespace scada {
 class AttributeService;
 class AddressSpace;
-class EventService;
 class HistoryService;
 class MethodService;
 class MonitoredItemService;
@@ -26,7 +25,6 @@ struct TimedDataContext {
   scada::AttributeService& attribute_service_;
   scada::MethodService& method_service_;
   scada::MonitoredItemService& monitored_item_service_;
-  scada::EventService& event_service_;
   scada::HistoryService& history_service_;
   EventFetcher& event_fetcher_;
 };

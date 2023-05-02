@@ -4,6 +4,7 @@
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
 #include "core/session_service.h"
+#include "core/status_promise.h"
 #include "core/view_service.h"
 
 #include <opcuapp/client/channel.h>
@@ -26,13 +27,12 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   virtual ~OpcUaSession();
 
   // scada::SessionService
-  virtual void Connect(const std::string& connection_string,
-                       const scada::LocalizedText& user_name,
-                       const scada::LocalizedText& password,
-                       bool allow_remote_logoff,
-                       const scada::StatusCallback& callback) override;
-  virtual void Reconnect() override;
-  virtual void Disconnect(const scada::StatusCallback& callback) override;
+  virtual promise<> Connect(const std::string& connection_string,
+                            const scada::LocalizedText& user_name,
+                            const scada::LocalizedText& password,
+                            bool allow_remote_logoff) override;
+  virtual promise<> Disconnect() override;
+  virtual promise<> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
@@ -102,7 +102,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
 
   bool session_created_ = false;
   bool session_activated_ = false;
-  scada::StatusCallback connect_callback_;
+  promise<> connect_promise_;
 
   // Created on demand.
   std::shared_ptr<OpcUaSubscription> default_subscription_;

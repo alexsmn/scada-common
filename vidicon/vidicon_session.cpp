@@ -123,11 +123,6 @@ void VidiconSession::Write(
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::Acknowledge(
-    base::span<const scada::EventAcknowledgeId> acknowledge_ids,
-    scada::DateTime acknowledge_time,
-    const scada::NodeId& user_ids) {}
-
 void VidiconSession::Call(const scada::NodeId& node_id,
                           const scada::NodeId& method_id,
                           const std::vector<scada::Variant>& arguments,

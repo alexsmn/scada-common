@@ -2,7 +2,6 @@
 
 #include "core/attribute_service.h"
 #include "core/data_services.h"
-#include "core/event_service.h"
 #include "core/history_service.h"
 #include "core/method_service.h"
 #include "core/monitored_item_service.h"
@@ -16,7 +15,6 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
                                  public scada::SessionService,
                                  public scada::MonitoredItemService,
-                                 public scada::EventService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
                                  public scada::NodeManagementService {
@@ -60,12 +58,6 @@ class MasterDataServices final : public scada::AttributeService,
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;
-
-  // scada::EventService
-  virtual void Acknowledge(
-      base::span<const scada::EventAcknowledgeId> acknowledge_ids,
-      scada::DateTime acknowledge_time,
-      const scada::NodeId& user_id) override;
 
   // scada::MonitoredItemService
   virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(

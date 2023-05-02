@@ -10,7 +10,6 @@
 #include <map>
 
 namespace scada {
-class EventService;
 class HistoryService;
 class MethodService;
 class MonitoredItem;
@@ -24,7 +23,6 @@ class Logger;
 struct EventFetcherContext {
   const std::shared_ptr<Executor> executor_;
   scada::MonitoredItemService& monitored_item_service_;
-  scada::EventService& event_service_;
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
   const std::shared_ptr<const Logger> logger_;
