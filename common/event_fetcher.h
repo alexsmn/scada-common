@@ -32,32 +32,19 @@ struct EventFetcherContext {
 // Handles multiple event acknowledgement.
 class EventFetcher : public NodeEventProvider, private EventFetcherContext {
  public:
-  typedef std::map<unsigned, scada::Event> EventContainer;
-
   explicit EventFetcher(EventFetcherContext&& context);
   ~EventFetcher();
 
   void OnChannelOpened(const scada::NodeId& user_id);
   void OnChannelClosed();
 
-  unsigned severity_min() const { return severity_min_; }
-  void SetSeverityMin(unsigned severity);
-
-  const EventContainer& unacked_events() const { return unacked_events_; }
-
   bool alarming() const { return alarming_; }
-  bool is_acking() const {
-    return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
-  }
 
   bool IsAlerting(const scada::NodeId& item_id) const;
 
   void AcknowledgeItemEvents(const scada::NodeId& item_id);
-  void AcknowledgeEvent(unsigned ack_id);
   void AcknowledgeAll();
 
-  void AddObserver(EventObserver& observer) { observers_.insert(&observer); }
-  void RemoveObserver(EventObserver& observer) { observers_.erase(&observer); }
   void AddItemObserver(const scada::NodeId& item_id, EventObserver& observer) {
     item_unacked_events_[item_id].observers.insert(&observer);
   }
@@ -67,8 +54,23 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   }
 
   // NodeEventProvider
+  virtual unsigned severity_min() const override { return severity_min_; }
+  virtual void SetSeverityMin(unsigned severity) override;
+  virtual const EventContainer& unacked_events() const override {
+    return unacked_events_;
+  }
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const override;
+  virtual void AcknowledgeEvent(unsigned ack_id) override;
+  virtual bool is_acking() const override {
+    return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
+  }
+  virtual void AddObserver(EventObserver& observer) override {
+    observers_.insert(&observer);
+  }
+  virtual void RemoveObserver(EventObserver& observer) override {
+    observers_.erase(&observer);
+  }
 
  private:
   typedef std::set<EventObserver*> ObserverSet;
