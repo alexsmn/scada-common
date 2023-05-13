@@ -107,7 +107,8 @@ void TimedDataImpl::Call(const scada::NodeId& method_id,
                          const std::vector<scada::Variant>& arguments,
                          const scada::NodeId& user_id,
                          const StatusCallback& callback) const {
-  node_.Call(method_id, arguments, user_id, callback);
+  scada::BindStatusCallback(node_.call_packed(method_id, arguments, user_id),
+                            callback);
 }
 
 void TimedDataImpl::FetchNextGap() {

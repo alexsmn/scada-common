@@ -26,22 +26,22 @@ void GetFetchAttributes(const FetchingNode& fetching_node,
                         std::vector<scada::ReadValueId>& read_ids) {
   const auto& node_id = fetching_node.node_state.node_id;
 
-  read_ids.push_back({node_id, scada::AttributeId::BrowseName});
+  read_ids.emplace_back(node_id, scada::AttributeId::BrowseName);
 
   // Have to fetch diplay names for instance properties as well, since property
   // declaration might not be created.
-  read_ids.push_back({node_id, scada::AttributeId::DisplayName});
+  read_ids.emplace_back(node_id, scada::AttributeId::DisplayName);
 
   if (!fetching_node.is_property || fetching_node.is_declaration)
-    read_ids.push_back({node_id, scada::AttributeId::NodeClass});
+    read_ids.emplace_back(node_id, scada::AttributeId::NodeClass);
 
-  read_ids.push_back({node_id, scada::AttributeId::DataType});
+  read_ids.emplace_back(node_id, scada::AttributeId::DataType);
 
   // Must read only property values.
   // Must read values of type definition properties to correctly read
   // EnumStrings.
   if (fetching_node.is_property)
-    read_ids.push_back({node_id, scada::AttributeId::Value});
+    read_ids.emplace_back(node_id, scada::AttributeId::Value);
 }
 
 void GetFetchReferences(const FetchingNode& fetching_node,
@@ -50,19 +50,19 @@ void GetFetchReferences(const FetchingNode& fetching_node,
 
   // Don't request references of a property.
   if (!fetching_node.is_property) {
-    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
-                            scada::id::Aggregates, true});
+    descriptions.emplace_back(node_id, scada::BrowseDirection::Forward,
+                              scada::id::Aggregates, true);
   }
 
   // Request property categories.
   if (!fetching_node.is_property || fetching_node.is_declaration) {
-    descriptions.push_back({node_id, scada::BrowseDirection::Forward,
-                            scada::id::NonHierarchicalReferences, true});
+    descriptions.emplace_back(node_id, scada::BrowseDirection::Forward,
+                              scada::id::NonHierarchicalReferences, true);
   }
 
   if (fetching_node.fetch_started.non_hierarchical_inverse_references) {
-    descriptions.push_back({node_id, scada::BrowseDirection::Inverse,
-                            scada::id::NonHierarchicalReferences, true});
+    descriptions.emplace_back(node_id, scada::BrowseDirection::Inverse,
+                              scada::id::NonHierarchicalReferences, true);
   }
 
   // Request parent if unknown. It may happen when node is created.
@@ -71,16 +71,16 @@ void GetFetchReferences(const FetchingNode& fetching_node,
       fetching_node.node_state.parent_id.is_null() &&
       fetching_node.node_state.reference_type_id.is_null();
   if (fetch_parent) {
-    descriptions.push_back({node_id, scada::BrowseDirection::Inverse,
-                            scada::id::HierarchicalReferences, true});
+    descriptions.emplace_back(node_id, scada::BrowseDirection::Inverse,
+                              scada::id::HierarchicalReferences, true);
   }
 }
 
 scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
-  auto i = std::find_if(references.begin(), references.end(),
-                        [](const scada::ReferenceDescription& ref) {
-                          return ref.reference_type_id == scada::id::HasSubtype;
-                        });
+  auto i = std::ranges::find(references, scada::id::HasSubtype,
+                             [](const scada::ReferenceDescription& ref) {
+                               return ref.reference_type_id;
+                             });
   return i != references.end() ? i->node_id : scada::NodeId{};
 }
 
@@ -97,7 +97,7 @@ std::vector<scada::NodeId> CollectNodeIds(
 NodeFetcherImpl::NodeFetcherImpl(NodeFetcherImplContext&& context)
     : NodeFetcherImplContext{std::move(context)} {}
 
-NodeFetcherImpl::~NodeFetcherImpl() {}
+NodeFetcherImpl::~NodeFetcherImpl() = default;
 
 // static
 std::shared_ptr<NodeFetcherImpl> NodeFetcherImpl::Create(

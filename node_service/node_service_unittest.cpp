@@ -640,3 +640,18 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   node.Unsubscribe(node_observer);
 }
+
+TYPED_TEST(NodeServiceTest,
+           NonHierarchicalForwardReferencesAreFetchedAlongWithNode) {
+  this->ExpectAnyUpdates();
+  this->OpenChannel();
+
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+  auto node = this->node_service_->GetNode(node_id);
+  node.Fetch(NodeFetchStatus::NodeOnly());
+
+  auto target = node.target(this->server_address_space_->kTestReferenceTypeId);
+  EXPECT_EQ(target.node_id(), this->server_address_space_->kTestNode3Id);
+  EXPECT_TRUE(target.fetched());
+  EXPECT_TRUE(target.status());
+}

@@ -4,6 +4,7 @@
 #include "core/data_value.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
+#include "core/status_promise.h"
 #include "core/write_flags.h"
 #include "node_service/node_fetch_status.h"
 
@@ -34,7 +35,8 @@ class NodeRef {
   bool children_fetched() const;
 
   // On error: OnNodeFetched + OnNodeSemanticsChanged.
-  void Fetch(const NodeFetchStatus& requested_status) const;
+  void Fetch(const NodeFetchStatus& requested_status =
+                 NodeFetchStatus::NodeOnly()) const;
 
   using FetchCallback = std::function<void(const NodeRef& node)>;
   void Fetch(const NodeFetchStatus& requested_status,
@@ -110,10 +112,14 @@ class NodeRef {
              const scada::NodeId& user_id,
              const scada::StatusCallback& callback) const;
 
-  void Call(const scada::NodeId& method_id,
-            const std::vector<scada::Variant>& arguments,
-            const scada::NodeId& user_id,
-            const scada::StatusCallback& callback) const;
+  promise<> call_packed(const scada::NodeId& method_id,
+                        const std::vector<scada::Variant>& arguments,
+                        const scada::NodeId& user_id = {}) const;
+
+  template <class... Args>
+  promise<> call(const scada::NodeId& method_id, Args&&... args) const {
+    return call_packed(method_id, {std::forward<Args>(args)...}, {});
+  }
 
  private:
   std::shared_ptr<const NodeModel> model_;

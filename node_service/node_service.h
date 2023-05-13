@@ -1,13 +1,13 @@
 #pragma once
 
-#include "node_service/node_ref.h"
 #include "core/node_id.h"
+#include "node_service/node_ref.h"
 
 class NodeRefObserver;
 
 class NodeService {
  public:
-  virtual ~NodeService() {}
+  virtual ~NodeService() = default;
 
   virtual NodeRef GetNode(const scada::NodeId& node_id) = 0;
 

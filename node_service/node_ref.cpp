@@ -188,12 +188,15 @@ void NodeRef::Write(scada::AttributeId attribute_id,
     callback(scada::StatusCode::Bad_WrongNodeId);
 }
 
-void NodeRef::Call(const scada::NodeId& method_id,
-                   const std::vector<scada::Variant>& arguments,
-                   const scada::NodeId& user_id,
-                   const scada::StatusCallback& callback) const {
-  if (model_)
-    model_->Call(method_id, arguments, user_id, callback);
-  else
-    callback(scada::StatusCode::Bad_WrongNodeId);
+promise<> NodeRef::call_packed(const scada::NodeId& method_id,
+                               const std::vector<scada::Variant>& arguments,
+                               const scada::NodeId& user_id) const {
+  if (!model_) {
+    return make_resolved_promise();
+  }
+
+  promise<> promise;
+  model_->Call(method_id, arguments, user_id,
+               scada::MakeStatusPromiseCallback(promise));
+  return promise;
 }
