@@ -40,18 +40,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
 
   bool alarming() const { return alarming_; }
 
-  bool IsAlerting(const scada::NodeId& item_id) const;
-
-  void AcknowledgeItemEvents(const scada::NodeId& item_id);
   void AcknowledgeAll();
-
-  void AddItemObserver(const scada::NodeId& item_id, EventObserver& observer) {
-    item_unacked_events_[item_id].observers.insert(&observer);
-  }
-  void RemoveItemObserver(const scada::NodeId& item_id,
-                          EventObserver& observer) {
-    item_unacked_events_[item_id].observers.erase(&observer);
-  }
 
   // NodeEventProvider
   virtual unsigned severity_min() const override { return severity_min_; }
@@ -62,25 +51,37 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const override;
   virtual void AcknowledgeEvent(unsigned ack_id) override;
-  virtual bool is_acking() const override {
+  virtual bool IsAcking() const override {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
   }
+  virtual bool IsAlerting(const scada::NodeId& item_id) const override;
   virtual void AddObserver(EventObserver& observer) override {
     observers_.insert(&observer);
   }
   virtual void RemoveObserver(EventObserver& observer) override {
     observers_.erase(&observer);
   }
+  virtual void AddItemObserver(const scada::NodeId& item_id,
+                               EventObserver& observer) override {
+    item_unacked_events_[item_id].observers.insert(&observer);
+  }
+  virtual void RemoveItemObserver(const scada::NodeId& item_id,
+                                  EventObserver& observer) override {
+    item_unacked_events_[item_id].observers.erase(&observer);
+  }
+  virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) override;
 
  private:
-  typedef std::set<EventObserver*> ObserverSet;
+  // TODO: Use signals.
+  using ObserverSet = std::set<EventObserver*>;
 
   struct ItemEventData {
     EventSet events;
     ObserverSet observers;
   };
 
-  typedef std::map<scada::NodeId, ItemEventData> ItemEventMap;
+  // TODO: Consider using `unordered_map`.
+  using ItemEventMap = std::map<scada::NodeId, ItemEventData>;
 
   const scada::Event* AddUnackedEvent(const scada::Event& event);
   EventContainer::node_type RemoveUnackedEvent(const scada::Event& event);
@@ -116,10 +117,11 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
 
   bool alarming_ = false;
 
-  typedef std::deque<scada::EventAcknowledgeId> EventIdQueue;
+  using EventIdQueue = std::deque<scada::EventAcknowledgeId>;
   EventIdQueue pending_ack_event_ids_;
 
-  typedef std::set<scada::EventAcknowledgeId> EventIdSet;
+  // Consider using `unordered_set`.
+  using EventIdSet = std::set<scada::EventAcknowledgeId>;
   EventIdSet running_ack_event_ids_;
 
   ObserverSet observers_;

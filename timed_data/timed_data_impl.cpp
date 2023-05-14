@@ -77,7 +77,7 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
     return;
 
   if (node_) {
-    event_fetcher_.RemoveItemObserver(node_.node_id(), *this);
+    node_event_provider_.RemoveItemObserver(node_.node_id(), *this);
     node_.Unsubscribe(*this);
   }
 
@@ -87,8 +87,8 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
     node_.Subscribe(*this);
     node_.Fetch(NodeFetchStatus::NodeOnly());
 
-    event_fetcher_.AddItemObserver(node_.node_id(), *this);
-    alerting_ = event_fetcher_.IsAlerting(node_.node_id());
+    node_event_provider_.AddItemObserver(node_.node_id(), *this);
+    alerting_ = node_event_provider_.IsAlerting(node_.node_id());
   }
 }
 
@@ -318,10 +318,11 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 }
 
 const EventSet* TimedDataImpl::GetEvents() const {
-  return node_ ? event_fetcher_.GetItemUnackedEvents(node_.node_id()) : nullptr;
+  return node_ ? node_event_provider_.GetItemUnackedEvents(node_.node_id())
+               : nullptr;
 }
 
 void TimedDataImpl::Acknowledge() {
   if (node_)
-    event_fetcher_.AcknowledgeItemEvents(node_.node_id());
+    node_event_provider_.AcknowledgeItemEvents(node_.node_id());
 }

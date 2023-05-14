@@ -19,9 +19,16 @@ class NodeEventProvider {
       const scada::NodeId& item_id) const = 0;
 
   virtual void AcknowledgeEvent(unsigned ack_id) = 0;
+  virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) = 0;
 
-  virtual bool is_acking() const = 0;
+  virtual bool IsAcking() const = 0;
+  virtual bool IsAlerting(const scada::NodeId& item_id) const = 0;
 
   virtual void AddObserver(EventObserver& observer) = 0;
   virtual void RemoveObserver(EventObserver& observer) = 0;
+
+  virtual void AddItemObserver(const scada::NodeId& item_id,
+                               EventObserver& observer) = 0;
+  virtual void RemoveItemObserver(const scada::NodeId& item_id,
+                                  EventObserver& observer) = 0;
 };

@@ -15,6 +15,8 @@ target_link_libraries(scada_common PUBLIC
   express
   scada_base
   scada_core
+  # For `NodeIdFromScadaString`.
+  scada_model
 )
 
 # UT

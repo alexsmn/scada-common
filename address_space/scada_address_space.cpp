@@ -355,6 +355,10 @@ void ScadaAddressSpaceBuilder::CreateHistoryAddressSpace() {
                     "WriteValueDuration", u"Задержка записи измерений, мкс",
                     scada::id::MetricType, scada::id::UInt32);
     AddDataVariable(history::id::HistoricalDatabaseType,
+                    history::id::HistoricalDatabaseType_WriteValueCount,
+                    "WriteValueCount", u"Записано измерений",
+                    scada::id::MetricType, scada::id::UInt32);
+    AddDataVariable(history::id::HistoricalDatabaseType,
                     history::id::HistoricalDatabaseType_PendingTaskCount,
                     "PendingTaskCount", u"Очередь записи измерений",
                     scada::id::MetricType, scada::id::UInt32);

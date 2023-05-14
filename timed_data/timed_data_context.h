@@ -4,7 +4,6 @@
 #include "core/node_id.h"
 
 #include <memory>
-#include <string_view>
 
 namespace scada {
 class AttributeService;
@@ -14,8 +13,8 @@ class MethodService;
 class MonitoredItemService;
 }  // namespace scada
 
-class EventFetcher;
 class Executor;
+class NodeEventProvider;
 class NodeService;
 
 struct TimedDataContext {
@@ -26,5 +25,5 @@ struct TimedDataContext {
   scada::MethodService& method_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
-  EventFetcher& event_fetcher_;
+  NodeEventProvider& node_event_provider_;
 };

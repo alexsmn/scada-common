@@ -63,12 +63,12 @@ TsFormatParams GetTsFormatParams(const NodeRef& node) {
     return {};
   }
 
-  return {
-      .close_label =
-          node[data_items::id::TsFormatType_CloseLabel].value().get_or(
-              scada::LocalizedText{}),
-      .open_label = node[data_items::id::TsFormatType_OpenLabel].value().get_or(
-          scada::LocalizedText{})};
+  return {.close_label =
+              format[data_items::id::TsFormatType_CloseLabel].value().get_or(
+                  scada::LocalizedText{}),
+          .open_label =
+              format[data_items::id::TsFormatType_OpenLabel].value().get_or(
+                  scada::LocalizedText{})};
 }
 
 std::u16string FormatTsValue(const NodeRef& node,
@@ -77,8 +77,7 @@ std::u16string FormatTsValue(const NodeRef& node,
                              int flags) {
   std::u16string text;
 
-  bool bool_value;
-  if (value.get(bool_value)) {
+  if (bool bool_value; value.get(bool_value)) {
     auto format_params = GetTsFormatParams(node);
     text = FormatTs(bool_value, format_params);
   }

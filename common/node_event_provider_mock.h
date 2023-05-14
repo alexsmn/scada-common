@@ -17,9 +17,26 @@ class MockNodeEventProvider : public NodeEventProvider {
               (const override));
 
   MOCK_METHOD(void, AcknowledgeEvent, (unsigned ack_id), (override));
+  MOCK_METHOD(void,
+              AcknowledgeItemEvents,
+              (const scada::NodeId& item_id),
+              (override));
 
-  MOCK_METHOD(bool, is_acking, (), (const override));
+  MOCK_METHOD(bool, IsAcking, (), (const override));
+  MOCK_METHOD(bool,
+              IsAlerting,
+              (const scada::NodeId& item_id),
+              (const override));
 
   MOCK_METHOD(void, AddObserver, (EventObserver & observer), (override));
   MOCK_METHOD(void, RemoveObserver, (EventObserver & observer), (override));
+
+  MOCK_METHOD(void,
+              AddItemObserver,
+              (const scada::NodeId& item_id, EventObserver& observer),
+              (override));
+  MOCK_METHOD(void,
+              RemoveItemObserver,
+              (const scada::NodeId& item_id, EventObserver& observer),
+              (override));
 };

@@ -655,3 +655,12 @@ TYPED_TEST(NodeServiceTest,
   EXPECT_TRUE(target.fetched());
   EXPECT_TRUE(target.status());
 }
+
+TYPED_TEST(NodeServiceTest, TsFormat) {
+  this->ExpectAnyUpdates();
+  this->OpenChannel();
+
+  const auto node_id = this->server_address_space_->kTestNode2Id;
+  auto node = this->node_service_->GetNode(node_id);
+  node.Fetch(NodeFetchStatus::NodeOnly());
+}
