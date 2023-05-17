@@ -4,6 +4,7 @@
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/range_util.h"
 #include "core/standard_node_ids.h"
 #include "core/view_service.h"
 
@@ -22,12 +23,12 @@ const Object* AsObject(const Node* node) {
 }
 
 Object& AsObject(Node& node) {
-  assert(node.GetNodeClass() == scada::NodeClass::Object);
+  assert(node.GetNodeClass() == NodeClass::Object);
   return static_cast<Object&>(node);
 }
 
 const Object& AsObject(const Node& node) {
-  assert(node.GetNodeClass() == scada::NodeClass::Object);
+  assert(node.GetNodeClass() == NodeClass::Object);
   return static_cast<const Object&>(node);
 }
 
@@ -44,12 +45,12 @@ Variable* AsVariable(Node* node) {
 }
 
 Variable& AsVariable(Node& node) {
-  assert(node.GetNodeClass() == scada::NodeClass::Variable);
+  assert(node.GetNodeClass() == NodeClass::Variable);
   return static_cast<Variable&>(node);
 }
 
 const Variable& AsVariable(const Node& node) {
-  assert(node.GetNodeClass() == scada::NodeClass::Variable);
+  assert(node.GetNodeClass() == NodeClass::Variable);
   return static_cast<const Variable&>(node);
 }
 
@@ -91,7 +92,7 @@ bool IsInstanceOf(const Node* node, const NodeId& type_id) {
 
 bool IsChildOf(const Node* node, const NodeId& parent_id) {
   while (node && node->id() != parent_id)
-    node = scada::GetParent(*node);
+    node = GetParent(*node);
   return node != nullptr;
 }
 
@@ -108,7 +109,7 @@ const DataType* AsDataType(const Node* node) {
 }
 
 const DataType& AsDataType(const Node& node) {
-  assert(node.GetNodeClass() == scada::NodeClass::DataType);
+  assert(node.GetNodeClass() == NodeClass::DataType);
   return static_cast<const DataType&>(node);
 }
 
@@ -162,13 +163,17 @@ const TypeDefinition* AsTypeDefinition(const Node* node) {
 }
 
 TypeDefinition& AsTypeDefinition(Node& node) {
-  assert(scada::IsTypeDefinition(node.GetNodeClass()));
+  assert(IsTypeDefinition(node.GetNodeClass()));
   return static_cast<TypeDefinition&>(node);
 }
 
 const TypeDefinition& AsTypeDefinition(const Node& node) {
-  assert(scada::IsTypeDefinition(node.GetNodeClass()));
+  assert(IsTypeDefinition(node.GetNodeClass()));
   return static_cast<const TypeDefinition&>(node);
+}
+
+const TypeDefinition& AsTypeDefinition(const ReferenceType& reference_type) {
+  return reference_type;
 }
 
 Reference GetParentReference(const Node& node) {
@@ -250,7 +255,7 @@ bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
 }
 
 NodeId GetModellingRuleId(const Node& node) {
-  assert(!scada::IsTypeDefinition(node.GetNodeClass()));
+  assert(!IsTypeDefinition(node.GetNodeClass()));
   auto* modelling_rule = GetReference(node, id::HasModellingRule).node;
   return modelling_rule ? modelling_rule->id() : NodeId();
 }
@@ -297,10 +302,10 @@ const Node* FindDeclaration(const Node& node, const NodeId& declaration_id) {
 const Variable* GetPropertyDeclaration(const TypeDefinition& type,
                                        const NodeId& prop_decl_id) {
   for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
-    for (auto* prop : GetProperties(*supertype)) {
-      assert(prop->GetNodeClass() == NodeClass::Variable);
-      if (prop->id() == prop_decl_id)
-        return static_cast<const Variable*>(prop);
+    for (const auto& prop : GetProperties(*supertype)) {
+      assert(prop.GetNodeClass() == NodeClass::Variable);
+      if (prop.id() == prop_decl_id)
+        return &prop;
     }
   }
   return nullptr;
@@ -312,7 +317,7 @@ Variant GetPropertyValueHelper(const Node& node, const NodeId& prop_decl_id) {
   if (!declaration)
     return {};
 
-  auto* property =
+  const auto* property =
       AsVariable(FindChild(node, declaration->GetBrowseName().name()));
   assert(property);
   if (!property)
@@ -379,6 +384,62 @@ Node* FindComponentDeclaration(const TypeDefinition& type,
       return declaration;
   }
   return nullptr;
+}
+
+NodeId GetNodeId(const Node* node) {
+  return node ? node->id() : NodeId{};
+}
+
+NodeId GetSupertypeId(const Node& node) {
+  const auto* type = AsTypeDefinition(&node);
+  const auto* supertype = type ? type->supertype() : nullptr;
+  return supertype ? supertype->id() : NodeId{};
+}
+
+const Node* FindComponentDeclaration(const Node& component) {
+  auto* instance = GetParent(component);
+  if (!instance) {
+    return {};
+  }
+
+  auto* type = instance->type_definition();
+  const auto& component_name = component.GetBrowseName();
+  return FindComponentDeclaration(*type, component_name.name());
+}
+
+NodeState MakeNodeState(const Node& node) {
+  auto properties =
+      GetProperties(node) |
+      boost::adaptors::transformed([](const Variable& prop) {
+        return NodeProperty{GetNodeId(FindComponentDeclaration(prop)),
+                            prop.GetValue().value};
+      }) |
+      to_vector;
+
+  auto references =
+      node.forward_references() |
+      boost::adaptors::filtered([](const Reference& ref) {
+        return IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
+      }) |
+      boost::adaptors::transformed([](const Reference& ref) {
+        return ReferenceDescription{.reference_type_id = ref.type->id(),
+                                    .forward = true,
+                                    .node_id = ref.node->id()};
+      }) |
+      to_vector;
+
+  auto parent_ref = GetParentReference(node);
+
+  return {.node_id = node.id(),
+          .node_class = node.GetNodeClass(),
+          .type_definition_id = GetTypeDefinitionId(node),
+          .parent_id = GetNodeId(parent_ref.node),
+          .reference_type_id = GetNodeId(parent_ref.type),
+          .attributes = {.browse_name = node.GetBrowseName(),
+                         .display_name = node.GetDisplayName()},
+          .properties = std::move(properties),
+          .references = std::move(references),
+          .supertype_id = GetSupertypeId(node)};
 }
 
 }  // namespace scada

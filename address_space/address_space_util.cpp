@@ -1,13 +1,14 @@
 ﻿#include "address_space/address_space_util.h"
 
 #include "address_space/address_space.h"
-#include "address_space/address_space_impl.h"
+#include "address_space/address_space_impl2.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/format.h"
+#include "base/range_util.h"
 #include "base/string_util.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
@@ -22,6 +23,8 @@
 #include "model/scada_node_ids.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <queue>
+#include <unordered_set>
 
 namespace scada {
 
@@ -323,6 +326,45 @@ void DeleteAllReferences(MutableAddressSpace& address_space, Node& node) {
     auto ref = node.forward_references().back();
     address_space.DeleteReference(*ref.type, node, *ref.node);
   }
+}
+
+std::vector<const Node*> GetAllNodes(const AddressSpace& address_space) {
+  const auto* root = address_space.GetNode(id::RootFolder);
+  if (!root) {
+    return {};
+  }
+  std::vector<const Node*> result;
+  std::unordered_set<Node*> seen;
+  std::queue<const Node*> queue;
+  queue.emplace(root);
+  while (!queue.empty()) {
+    const Node* node = queue.front();
+    queue.pop();
+    result.emplace_back(node);
+    for (const auto& ref : node->forward_references()) {
+      if (seen.emplace(ref.node).second) {
+        queue.emplace(ref.node);
+      }
+    }
+    for (const auto& ref : node->inverse_references()) {
+      if (seen.emplace(ref.node).second) {
+        queue.emplace(ref.node);
+      }
+    }
+  }
+  return result;
+}
+
+std::vector<NodeState> MakeNodeStates(const AddressSpace& address_space) {
+  return GetAllNodes(address_space) |
+         boost::adaptors::transformed(
+             [](const Node* node) { return MakeNodeState(*node); }) |
+         to_vector;
+}
+
+std::vector<scada::NodeState> MakeStandardNodeStates() {
+  AddressSpaceImpl2 standard_address_space;
+  return MakeNodeStates(standard_address_space);
 }
 
 }  // namespace scada

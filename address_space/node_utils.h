@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "address_space/reference.h"
+#include "common/node_state.h"
 #include "core/node_class.h"
 #include "core/standard_node_ids.h"
 
@@ -42,8 +43,14 @@ TypeDefinition* AsTypeDefinition(Node* node);
 const TypeDefinition* AsTypeDefinition(const Node* node);
 TypeDefinition& AsTypeDefinition(Node& node);
 const TypeDefinition& AsTypeDefinition(const Node& node);
+// Special handler for refrences to use in inlined functions like
+// `GetProperties`. This is to avoid `type_definition.h` include that brings a
+// circular dependency.
+const TypeDefinition& AsTypeDefinition(const ReferenceType& reference_type);
 
+NodeId GetNodeId(const Node* node);
 NodeId GetTypeDefinitionId(const Node& node);
+NodeId GetSupertypeId(const Node& node);
 
 const Node* GetReferenceTarget(const TypeDefinition* source,
                                const NodeId& reference_type_id);
@@ -118,7 +125,15 @@ inline auto GetForwardReferenceNodes(const Node& node,
 }
 
 inline auto GetProperties(const Node& node) {
-  return GetForwardReferenceNodes(node, id::HasProperty);
+  return node.forward_references() |
+         boost::adaptors::filtered([](const auto& ref) {
+           return IsSubtypeOf(AsTypeDefinition(*ref.type), id::HasProperty) &&
+                  scada::AsVariable(ref.node) != nullptr;
+         }) |
+         boost::adaptors::transformed(
+             [](const auto& ref) -> const scada::Variable& {
+               return scada::AsVariable(*ref.node);
+             });
 }
 
 inline auto GetComponents(const Node& node) {
@@ -159,8 +174,13 @@ Node* FindChildDeclaration(const TypeDefinition& type,
 Node* FindChildComponent(const Node& parent, std::string_view browse_name);
 Node* FindComponentDeclaration(const TypeDefinition& type,
                                std::string_view browse_name);
+// Find instance component declaration by the child component. For a property
+// node it finds the property declaration.
+const Node* FindComponentDeclaration(const Node& component);
 
 Node* FindChildByDisplayName(const Node& parent,
                              std::u16string_view display_name);
+
+NodeState MakeNodeState(const Node& node);
 
 }  // namespace scada

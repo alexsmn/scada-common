@@ -10,11 +10,10 @@ void CreateMissingProperties(NodeFactory& node_factory,
                              const scada::NodeId& node_id,
                              const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
-    for (const auto* prop_node : scada::GetProperties(*type)) {
-      assert(scada::AsVariable(prop_node));
-      auto& prop_decl = scada::AsVariable(*prop_node);
+    for (const auto& prop_node : scada::GetProperties(*type)) {
+      auto& prop_decl = scada::AsVariable(prop_node);
       const auto& prop_name = prop_decl.GetBrowseName();
-      if (!scada::FindChild(*prop_node, prop_name.name())) {
+      if (!scada::FindChild(prop_node, prop_name.name())) {
         auto prop_id = MakeNestedNodeId(node_id, prop_name.name());
         auto [status, prop] = node_factory.CreateNode(scada::NodeState{
             std::move(prop_id), scada::NodeClass::Variable,

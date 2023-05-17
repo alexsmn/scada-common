@@ -91,6 +91,9 @@ void DeleteReference(MutableAddressSpace& address_space,
 
 void DeleteAllReferences(MutableAddressSpace& address_space, Node& node);
 
+std::vector<scada::NodeState> MakeNodeStates(const AddressSpace& address_space);
+std::vector<scada::NodeState> MakeStandardNodeStates();
+
 }  // namespace scada
 
 void SortNodesHierarchically(std::vector<scada::NodeState>& nodes);
