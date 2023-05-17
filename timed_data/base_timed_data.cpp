@@ -175,6 +175,7 @@ void BaseTimedData::Call(const scada::NodeId& method_id,
 
 void BaseTimedData::Delete() {
   current_.qualifier.set_failed(true);
+  current_.status_code = scada::StatusCode::Bad_Disconnected;
 
   for (auto& o : observers_)
     o.OnTimedDataDeleted();

@@ -1,6 +1,7 @@
 #include "node_service/static/static_node_model.h"
 
 #include "common/variable_handle.h"
+#include "core/monitored_item_service.h"
 #include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
 
@@ -84,18 +85,27 @@ NodeRef StaticNodeModel::GetChild(
 std::shared_ptr<scada::MonitoredItem> StaticNodeModel::CreateMonitoredItem(
     scada::AttributeId attribute_id,
     const scada::MonitoringParameters& params) const {
-  if (attribute_id != scada::AttributeId::Value) {
-    return nullptr;
+  if (service_.services_.monitored_item_service) {
+    if (auto monitored_item =
+            service_.services_.monitored_item_service->CreateMonitoredItem(
+                {node_state_.node_id, attribute_id}, params)) {
+      return monitored_item;
+    }
   }
 
-  const auto variable = std::make_shared<scada::VariableHandle>();
+  if (attribute_id == scada::AttributeId::Value &&
+      node_state_.node_class == scada::NodeClass::Variable) {
+    const auto variable = std::make_shared<scada::VariableHandle>();
 
-  if (const auto& optional_value = node_state_.attributes.value;
-      optional_value.has_value()) {
-    variable->set_last_value(scada::MakeReadResult(*optional_value));
+    if (const auto& optional_value = node_state_.attributes.value;
+        optional_value.has_value()) {
+      variable->set_last_value(scada::MakeReadResult(optional_value.value()));
+    }
+
+    return scada::CreateMonitoredVariable(variable);
   }
 
-  return scada::CreateMonitoredVariable(variable);
+  return nullptr;
 }
 
 void StaticNodeModel::Read(scada::AttributeId attribute_id,

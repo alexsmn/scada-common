@@ -21,6 +21,11 @@ TimedDataSpec::TimedDataSpec(std::shared_ptr<TimedData> data)
     data_->AddObserver(*this, range_);
 }
 
+TimedDataSpec::TimedDataSpec(TimedDataService& service,
+                             std::string_view formula) {
+  Connect(service, formula);
+}
+
 TimedDataSpec::~TimedDataSpec() {
   Reset();
 }

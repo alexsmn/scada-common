@@ -28,6 +28,7 @@ class TimedDataSpec : private TimedDataDelegate {
   TimedDataSpec();
   TimedDataSpec(const TimedDataSpec& other);
   TimedDataSpec(std::shared_ptr<TimedData> data);
+  TimedDataSpec(TimedDataService& service, std::string_view formula);
   ~TimedDataSpec();
 
   void SetAggregateFilter(scada::AggregateFilter filter);
@@ -73,7 +74,7 @@ class TimedDataSpec : private TimedDataDelegate {
   // Acknowledge all active events related to this data.
   void Acknowledge() const;
 
-  typedef std::function<void(const scada::Status&)> StatusCallback;
+  using StatusCallback = std::function<void(const scada::Status&)>;
   void Write(double value,
              const scada::NodeId& user_id,
              const scada::WriteFlags& flags,

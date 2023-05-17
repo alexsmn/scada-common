@@ -138,10 +138,11 @@ void TimedDataImpl::FetchNextGap() {
                                        aggregate_filter_};
   // Canot use |BindCancelation| as |ScopedContinuationPoint| must always be
   // handled.
-  history_service_.HistoryReadRaw(
+  assert(services_.history_service);
+  services_.history_service->HistoryReadRaw(
       details,
       BindExecutor(executor_, [weak_ptr = weak_from_this(),
-                               &history_service = history_service_,
+                               &history_service = *services_.history_service,
                                details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
             history_service, details, std::move(result.continuation_point)};
@@ -187,10 +188,11 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
                                        continuation_point.release()};
   // Canot use |BindCancelation| as |ScopedContinuationPoint| must always be
   // handled.
-  history_service_.HistoryReadRaw(
+  assert(services_.history_service);
+  services_.history_service->HistoryReadRaw(
       details,
       BindExecutor(executor_, [weak_ptr = weak_from_this(),
-                               &history_service = history_service_,
+                               &history_service = *services_.history_service,
                                details](scada::HistoryReadRawResult result) {
         ScopedContinuationPoint scoped_continuation_point{
             history_service, details, std::move(result.continuation_point)};

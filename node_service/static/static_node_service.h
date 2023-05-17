@@ -4,8 +4,13 @@
 #include "node_service/node_service.h"
 #include "node_service/static/static_node_model.h"
 
+class StaticNodeModel;
+
 class StaticNodeService : public NodeService {
  public:
+  explicit StaticNodeService(scada::services services = {})
+      : services_{std::move(services)} {}
+
   void Add(scada::NodeState node_state) {
     nodes_.try_emplace(node_state.node_id, std::make_shared<StaticNodeModel>(
                                                *this, std::move(node_state)));
@@ -28,6 +33,10 @@ class StaticNodeService : public NodeService {
   virtual size_t GetPendingTaskCount() const override { return 0; }
 
  private:
+  scada::services services_;
+
   std::unordered_map<scada::NodeId, std::shared_ptr<const StaticNodeModel>>
       nodes_;
+
+  friend class StaticNodeModel;
 };
