@@ -9,13 +9,13 @@ ExpressionTimedData::ExpressionTimedData(
     std::unique_ptr<ScadaExpression> expression,
     std::vector<std::shared_ptr<TimedData>> operands)
     : expression_{std::move(expression)}, operands_{std::move(operands)} {
-  for (auto& operand : operands_)
+  for (const auto& operand : operands_)
     operand->AddObserver(*this, {from_, kTimedDataCurrentOnly});
   CalculateCurrent();
 }
 
 ExpressionTimedData::~ExpressionTimedData() {
-  for (auto& operand : operands_)
+  for (const auto& operand : operands_)
     operand->RemoveObserver(*this);
 }
 
@@ -74,7 +74,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
 
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
-    auto& operand = *operands_[i];
+    const auto& operand = *operands_[i];
 
     const DataValues* values = operand.GetValues();
     assert(values);
@@ -102,7 +102,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
     bool calculation_finished = true;
 
     for (size_t i = 0; i < operands_.size(); ++i) {
-      auto& operand = *operands_[i];
+      const auto& operand = *operands_[i];
       const DataValues* values = operand.GetValues();
       assert(values);
 
@@ -168,7 +168,7 @@ bool ExpressionTimedData::CalculateReadyRange() {
   assert(!operands_ready_from.is_null());
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
-  CalculateRange(range, NULL);
+  CalculateRange(range, nullptr);
   SetReady(range);
 
   return true;
@@ -181,7 +181,7 @@ bool ExpressionTimedData::CalculateCurrent() {
 
   base::Time max_update_time;
   for (size_t i = 0; i < num_operands; ++i) {
-    auto& operand = *operands_[i];
+    const auto& operand = *operands_[i];
 
     expression_->items[i].value = scada::DataValue();
 
@@ -238,14 +238,14 @@ void ExpressionTimedData::OnTimedDataCorrections(size_t count,
 }
 
 void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {
-  if (properties.is_current_changed()) {
-    if (CalculateCurrent())
-      NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
+  if (properties.is_current_changed() && CalculateCurrent()) {
+    NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   }
 }
 
 void ExpressionTimedData::OnTimedDataReady() {
   assert(historical());
+
   if (CalculateReadyRange())
     NotifyDataReady();
 }
@@ -255,5 +255,5 @@ void ExpressionTimedData::OnTimedDataNodeModified() {}
 void ExpressionTimedData::OnTimedDataDeleted() {}
 
 const EventSet* ExpressionTimedData::GetEvents() const {
-  return NULL;
+  return nullptr;
 }

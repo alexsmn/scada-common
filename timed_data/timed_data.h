@@ -6,10 +6,10 @@
 
 #include "base/time/time.h"
 #include "common/data_value_util.h"
-#include "node_service/node_ref.h"
 #include "core/data_value.h"
 #include "core/status.h"
 #include "core/write_flags.h"
+#include "node_service/node_ref.h"
 
 class EventSet;
 class TimedDataDelegate;
@@ -19,7 +19,7 @@ extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
 
 class TimedData {
  public:
-  virtual ~TimedData() {}
+  virtual ~TimedData() = default;
 
   virtual bool IsError() const { return false; }
 
@@ -45,7 +45,7 @@ class TimedData {
   virtual void Acknowledge() = 0;
 
   // Write item value.
-  typedef std::function<void(const scada::Status&)> StatusCallback;
+  using StatusCallback = std::function<void(const scada::Status&)>;
   virtual void Write(double value,
                      const scada::NodeId& user_id,
                      const scada::WriteFlags& flags,
