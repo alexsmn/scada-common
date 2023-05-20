@@ -67,7 +67,6 @@ TimedDataTest::TimedDataTest() {
       {.node_id = node_id,
        .node_class = scada::NodeClass::Variable,
        .type_definition_id = data_items::id::DiscreteItemType,
-       .attributes = {.value = true},
        .references = {{.reference_type_id = data_items::id::HasTsFormat,
                        .node_id = ts_format_id}}});
 
@@ -81,6 +80,8 @@ TimedDataTest::TimedDataTest() {
 }
 
 TEST_F(TimedDataTest, TsFormat) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(true));
+
   TimedDataSpec spec{service_, NodeIdToScadaString(node_id)};
 
   EXPECT_EQ(spec.GetCurrentString(), close_label);
