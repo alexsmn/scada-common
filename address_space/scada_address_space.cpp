@@ -726,6 +726,10 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
                 devices::id::ModbusDeviceType_ResponseTimeout, {},
                 "ResponseTimeout", u"Таймаут ответа, мс", scada::id::Int32,
                 1000);
+    AddProperty(devices::id::ModbusDeviceType,
+                devices::id::ModbusDeviceType_SuspendDuration, {},
+                "SuspendDuration", u"Длительность приостановки, мс",
+                scada::id::Int32, 30000);
   }
 
   // Modbus Transmission Item
