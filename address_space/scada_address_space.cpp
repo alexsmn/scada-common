@@ -648,6 +648,14 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
     AddDataVariable(devices::id::DeviceType, devices::id::DeviceType_BytesIn,
                     "BytesIn", u"Принято байт", scada::id::BaseVariableType,
                     scada::id::Int32, 0);
+    AddDataVariable(devices::id::DeviceType,
+                    devices::id::DeviceType_SyncClockCount, "SyncClockCount",
+                    u"Число синхронизаций времени", scada::id::BaseVariableType,
+                    scada::id::Int32, 0);
+    AddDataVariable(devices::id::DeviceType,
+                    devices::id::DeviceType_InterrogateCount,
+                    "InterrogateCount", u"Число полных опросов",
+                    scada::id::BaseVariableType, scada::id::Int32, 0);
     CreateEventType(devices::id::DeviceWatchEventType, "DeviceWatchEventType");
   }
 
