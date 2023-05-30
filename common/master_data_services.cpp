@@ -109,15 +109,13 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-promise<> MasterDataServices::Connect(const std::string& host,
-                                      const scada::LocalizedText& user_name,
-                                      const scada::LocalizedText& password,
-                                      bool allow_remote_logoff) {
-  if (!services_.session_service_)
+promise<> MasterDataServices::Connect(
+    const scada::SessionConnectParams& params) {
+  if (!services_.session_service_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
+  }
 
-  return services_.session_service_->Connect(host, user_name, password,
-                                             allow_remote_logoff);
+  return services_.session_service_->Connect(params);
 }
 
 promise<> MasterDataServices::Disconnect() {

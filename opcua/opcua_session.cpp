@@ -41,10 +41,7 @@ OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
 
 OpcUaSession::~OpcUaSession() {}
 
-promise<> OpcUaSession::Connect(const std::string& connection_string,
-                                const scada::LocalizedText& user_name,
-                                const scada::LocalizedText& password,
-                                bool allow_remote_logoff) {
+promise<> OpcUaSession::Connect(const scada::SessionConnectParams& params) {
   connect_promise_ = promise<>{};
 
   // TODO: Move to general layer.
@@ -52,7 +49,7 @@ promise<> OpcUaSession::Connect(const std::string& connection_string,
   OpcUa_Trace_ChangeTraceLevel(OPCUA_TRACE_OUTPUT_LEVEL_SYSTEM);
 
   opcua::client::ChannelContext context{
-      const_cast<OpcUa_StringA>(connection_string.c_str()),
+      const_cast<OpcUa_StringA>(params.connection_string.c_str()),
       &client_certificate_.get(),
       &client_private_key_.get(),
       &server_certificate_.get(),

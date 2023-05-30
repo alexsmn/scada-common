@@ -28,13 +28,11 @@ VidiconSession::VidiconSession()
 
 VidiconSession::~VidiconSession() {}
 
-promise<> VidiconSession::Connect(const std::string& connection_string,
-                                  const scada::LocalizedText& user_name,
-                                  const scada::LocalizedText& password,
-                                  bool allow_remote_logoff) {
+promise<> VidiconSession::Connect(const scada::SessionConnectParams& params) {
   teleclient_ = CreateTeleClient();
-  if (!teleclient_)
+  if (!teleclient_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad);
+  }
 
   return make_resolved_promise();
 }
