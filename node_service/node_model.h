@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/client.h"
 #include "node_service/node_ref.h"
 
 #include <functional>
@@ -62,4 +63,6 @@ class NodeModel {
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) const = 0;
+
+  virtual scada::node GetScadaNode() const = 0;
 };

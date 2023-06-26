@@ -120,6 +120,11 @@ class TestNodeModel final : public NodeModel {
     assert(false);
   }
 
+  virtual scada::node GetScadaNode() const override {
+    assert(false);
+    return {};
+  }
+
   scada::NodeState node_state;
 
  private:

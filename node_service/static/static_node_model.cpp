@@ -128,3 +128,7 @@ void StaticNodeModel::Call(const scada::NodeId& method_id,
                            const scada::StatusCallback& callback) const {
   callback(scada::StatusCode::Bad);
 }
+
+scada::node StaticNodeModel::GetScadaNode() const {
+  return {};
+}

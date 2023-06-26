@@ -27,6 +27,7 @@ struct NodeServiceImplContext {
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;
+  scada::client scada_client_;
 };
 
 class NodeServiceImpl final : private NodeServiceImplContext,

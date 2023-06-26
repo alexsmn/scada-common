@@ -471,4 +471,8 @@ void NodeModelImpl::NotifySemanticChanged() {
   service_.pending_events_.PostEvent(std::move(event));
 }
 
+scada::node NodeModelImpl::GetScadaNode() const {
+  return {};
+}
+
 }  // namespace v2

@@ -43,6 +43,7 @@ class StaticNodeModel : public BaseNodeModel {
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) const override;
+  virtual scada::node GetScadaNode() const override;
 
  private:
   StaticNodeService& service_;

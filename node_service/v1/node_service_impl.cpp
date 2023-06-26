@@ -51,13 +51,13 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   if (model)
     return model;
 
-  model = std::make_shared<NodeModelImpl>(NodeModelImplContext{
-      *this,
-      node_id,
-      attribute_service_,
-      monitored_item_service_,
-      method_service_,
-  });
+  model = std::make_shared<NodeModelImpl>(
+      NodeModelImplContext{.delegate_ = *this,
+                           .node_id_ = node_id,
+                           .attribute_service_ = attribute_service_,
+                           .monitored_item_service_ = monitored_item_service_,
+                           .method_service_ = method_service_,
+                           .scada_node_ = scada_client_.node(node_id)});
 
   auto* node = address_space_.GetNode(node_id);
   auto [status, fetch_status] =

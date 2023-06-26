@@ -246,4 +246,8 @@ void NodeModelImpl::Call(const scada::NodeId& method_id,
   method_service_.Call(node_id_, method_id, arguments, user_id, callback);
 }
 
+scada::node NodeModelImpl::GetScadaNode() const {
+  return scada_node_;
+}
+
 }  // namespace v1

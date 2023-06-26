@@ -18,11 +18,16 @@ using namespace testing;
 
 class MockAddressSpaceNodeModelDelegate : public NodeModelDelegate {
  public:
-  MOCK_METHOD1(GetRemoteNode, NodeRef(const scada::Node* node));
-  MOCK_METHOD1(OnNodeModelDeleted, void(const scada::NodeId& node_id));
-  MOCK_METHOD2(OnNodeModelFetchRequested,
-               void(const scada::NodeId& node_id,
-                    const NodeFetchStatus& requested_status));
+  MOCK_METHOD(NodeRef, GetRemoteNode, (const scada::Node* node), (override));
+  MOCK_METHOD(void,
+              OnNodeModelDeleted,
+              (const scada::NodeId& node_id),
+              (override));
+  MOCK_METHOD(void,
+              OnNodeModelFetchRequested,
+              (const scada::NodeId& node_id,
+               const NodeFetchStatus& requested_status),
+              (override));
 };
 
 TEST(NodeModelImpl, Fetch) {

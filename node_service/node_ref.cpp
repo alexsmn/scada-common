@@ -200,3 +200,7 @@ promise<> NodeRef::call_packed(const scada::NodeId& method_id,
                scada::MakeStatusPromiseCallback(promise));
   return promise;
 }
+
+scada::node NodeRef::scada_node() const {
+  return model_->GetScadaNode();
+}

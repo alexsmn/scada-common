@@ -389,4 +389,8 @@ void NodeModelImpl::NotifySemanticChanged() {
   service_.NotifySemanticsChanged(node_id_);
 }
 
+scada::node NodeModelImpl::GetScadaNode() const {
+  return {};
+}
+
 }  // namespace v3

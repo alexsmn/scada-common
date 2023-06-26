@@ -33,9 +33,11 @@ class NodeModelDelegate {
 struct NodeModelImplContext {
   NodeModelDelegate& delegate_;
   const scada::NodeId node_id_;
+  // TODO: Remove and replace by `delegate_.GetScadaClient()`.
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::MethodService& method_service_;
+  scada::node scada_node_;
 };
 
 class NodeModelImpl final : private NodeModelImplContext,
@@ -88,6 +90,7 @@ class NodeModelImpl final : private NodeModelImplContext,
                     const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) const override;
   virtual void OnNodeDeleted() override;
+  virtual scada::node GetScadaNode() const override;
 
  protected:
   // BaseNodeModel

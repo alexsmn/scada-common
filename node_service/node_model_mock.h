@@ -83,4 +83,6 @@ class MockNodeModel : public NodeModel {
                const scada::NodeId& user_id,
                const scada::StatusCallback& callback),
               (const));
+
+  MOCK_METHOD(scada::node, GetScadaNode, (), (const));
 };

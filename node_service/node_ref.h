@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/client.h"
 #include "core/attribute_ids.h"
 #include "core/data_value.h"
 #include "core/node_class.h"
@@ -111,6 +112,8 @@ class NodeRef {
              const scada::WriteFlags& flags,
              const scada::NodeId& user_id,
              const scada::StatusCallback& callback) const;
+
+  scada::node scada_node() const;
 
   promise<> call_packed(const scada::NodeId& method_id,
                         const std::vector<scada::Variant>& arguments,
