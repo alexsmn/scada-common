@@ -13,7 +13,10 @@
 TimedDataSpec::TimedDataSpec() {}
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
-    : data_{other.data_}, range_{other.range_} {}
+    : data_{other.data_}, range_{other.range_} {
+  if (data_)
+    data_->AddObserver(*this, range_);
+}
 
 TimedDataSpec::TimedDataSpec(std::shared_ptr<TimedData> data)
     : data_(std::move(data)) {

@@ -3,9 +3,25 @@
 #include "timed_data/timed_data.h"
 
 #include <gmock/gmock.h>
+#include <vector>
 
 class MockTimedData : public TimedData {
  public:
+  MockTimedData() {
+    using namespace testing;
+
+    ON_CALL(*this, AddObserver(_, _))
+        .WillByDefault(Invoke([this](TimedDataDelegate& observer,
+                                     const scada::DateTimeRange& range) {
+          observers_.emplace_back(&observer);
+        }));
+
+    ON_CALL(*this, RemoveObserver(_))
+        .WillByDefault(Invoke([this](TimedDataDelegate& observer) {
+          std::erase(observers_, &observer);
+        }));
+  }
+
   MOCK_METHOD(bool, IsError, (), (const override));
 
   MOCK_METHOD(const std::vector<scada::DateTimeRange>&,
@@ -60,4 +76,10 @@ class MockTimedData : public TimedData {
               (const override));
 
   MOCK_METHOD(std::string, DumpDebugInfo, (), (const override));
+
+  TimedDataDelegate* last_observer() {
+    return observers_.empty() ? nullptr : observers_.back();
+  }
+
+  std::vector<TimedDataDelegate*> observers_;
 };
