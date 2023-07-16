@@ -29,6 +29,11 @@ TimedDataSpec::TimedDataSpec(TimedDataService& service,
   Connect(service, formula);
 }
 
+TimedDataSpec::TimedDataSpec(TimedDataService& service,
+                             const scada::NodeId& node_id) {
+  Connect(service, node_id);
+}
+
 TimedDataSpec::~TimedDataSpec() {
   Reset();
 }

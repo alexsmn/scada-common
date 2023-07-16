@@ -29,6 +29,7 @@ class TimedDataSpec : private TimedDataDelegate {
   TimedDataSpec(const TimedDataSpec& other);
   TimedDataSpec(std::shared_ptr<TimedData> data);
   TimedDataSpec(TimedDataService& service, std::string_view formula);
+  TimedDataSpec(TimedDataService& service, const scada::NodeId& node_id);
   ~TimedDataSpec();
 
   void SetAggregateFilter(scada::AggregateFilter filter);
