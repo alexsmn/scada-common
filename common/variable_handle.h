@@ -5,31 +5,13 @@
 #include "core/data_value.h"
 #include "core/monitored_item.h"
 
+#include <boost/signals2/signal.hpp>
 #include <memory>
-#include <set>
 
 namespace scada {
 
 class VariableHandle;
 class WriteFlags;
-
-class VariableMonitoredItem : public MonitoredItem {
- public:
-  explicit VariableMonitoredItem(std::shared_ptr<VariableHandle> variable);
-  virtual ~VariableMonitoredItem();
-
-  const DataChangeHandler& data_change_handler() const {
-    return data_change_handler_;
-  }
-
-  // MonitoredItem
-  virtual void Subscribe(MonitoredItemHandler handler) override;
-
- private:
-  const std::shared_ptr<VariableHandle> variable_;
-
-  DataChangeHandler data_change_handler_;
-};
 
 class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
  public:
@@ -46,6 +28,11 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   const DataValue& last_value() const { return last_value_; }
   DateTime last_change_time() const { return last_change_time_; }
 
+  // Reflects `scada::DataChangeHandler` signature.
+  using DataChangeSignal =
+      boost::signals2::signal<void(const DataValue& data_value)>;
+  DataChangeSignal& data_change_signal() { return data_change_signal_; }
+
   virtual void Write(const std::shared_ptr<const ServiceContext>& context,
                      const WriteValue& input,
                      const StatusCallback& callback);
@@ -56,12 +43,10 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
                     const StatusCallback& callback);
 
  private:
-  friend class VariableMonitoredItem;
-
   DataValue last_value_;
   base::Time last_change_time_;
 
-  std::set<VariableMonitoredItem*> monitored_items_;
+  DataChangeSignal data_change_signal_;
 };
 
 class VariableHandleImpl : public VariableHandle {
@@ -69,7 +54,7 @@ class VariableHandleImpl : public VariableHandle {
   static std::shared_ptr<VariableHandleImpl> Create();
 };
 
-std::shared_ptr<VariableMonitoredItem> CreateMonitoredVariable(
+std::shared_ptr<MonitoredItem> CreateMonitoredVariable(
     std::shared_ptr<VariableHandle> variable);
 
 }  // namespace scada

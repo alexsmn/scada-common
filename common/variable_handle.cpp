@@ -4,7 +4,26 @@
 
 namespace scada {
 
-std::shared_ptr<VariableMonitoredItem> CreateMonitoredVariable(
+namespace {
+
+class VariableMonitoredItem : public MonitoredItem {
+ public:
+  explicit VariableMonitoredItem(std::shared_ptr<VariableHandle> variable);
+
+  // MonitoredItem
+  virtual void Subscribe(MonitoredItemHandler handler) override;
+
+ private:
+  const std::shared_ptr<VariableHandle> variable_;
+
+  DataChangeHandler data_change_handler_;
+
+  boost::signals2::scoped_connection variable_connection_;
+};
+
+}  // namespace
+
+std::shared_ptr<MonitoredItem> CreateMonitoredVariable(
     std::shared_ptr<VariableHandle> variable) {
   if (!variable)
     return nullptr;
@@ -15,27 +34,23 @@ std::shared_ptr<VariableMonitoredItem> CreateMonitoredVariable(
 
 VariableMonitoredItem::VariableMonitoredItem(
     std::shared_ptr<VariableHandle> variable)
-    : variable_(std::move(variable)) {
-  variable_->monitored_items_.insert(this);
-}
-
-VariableMonitoredItem::~VariableMonitoredItem() {
-  variable_->monitored_items_.erase(this);
-}
+    : variable_(std::move(variable)) {}
 
 void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
   assert(!data_change_handler_);
 
   data_change_handler_ = std::move(std::get<DataChangeHandler>(handler));
+
+  variable_connection_ =
+      variable_->data_change_signal().connect(data_change_handler_);
+
   if (!variable_->last_value().server_timestamp.is_null())
     data_change_handler_(variable_->last_value());
 }
 
 // VariableHandle
 
-VariableHandle::~VariableHandle() {
-  assert(monitored_items_.empty());
-}
+VariableHandle::~VariableHandle() = default;
 
 void VariableHandle::ForwardData(const DataValue& value) {
   if (value == last_value_)
@@ -51,17 +66,7 @@ void VariableHandle::ForwardData(const DataValue& value) {
     last_value_ = value;
   }
 
-  if (monitored_items_.empty())
-    return;
-
-  // Prevent from deletion.
-  auto ref = shared_from_this();
-
-  for (auto i = monitored_items_.begin(); i != monitored_items_.end();) {
-    auto* monitored_item = *i++;
-    if (monitored_item->data_change_handler())
-      monitored_item->data_change_handler()(value);
-  }
+  data_change_signal_(value);
 }
 
 void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
