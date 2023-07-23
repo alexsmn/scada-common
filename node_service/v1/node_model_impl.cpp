@@ -1,8 +1,8 @@
 #include "node_service/v1/node_model_impl.h"
 
-#include "core/attribute_service.h"
-#include "core/method_service.h"
-#include "core/monitored_item_service.h"
+#include "scada/attribute_service.h"
+#include "scada/method_service.h"
+#include "scada/monitored_item_service.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_service.h"

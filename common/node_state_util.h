@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/node_state.h"
-#include "core/attribute_service.h"
+#include "scada/attribute_service.h"
 
 #include <optional>
 

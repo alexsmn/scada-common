@@ -1,7 +1,7 @@
 #include "node_service/node_ref.h"
 
-#include "core/attribute_service.h"
-#include "core/monitored_item.h"
+#include "scada/attribute_service.h"
+#include "scada/monitored_item.h"
 #include "node_service/node_model.h"
 #include "node_service/node_util.h"
 

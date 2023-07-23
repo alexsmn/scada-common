@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/data_value.h"
+#include "scada/data_value.h"
 #include "express/express.h"
 
 #include <string_view>

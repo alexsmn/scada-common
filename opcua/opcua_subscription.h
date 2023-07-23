@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/attribute_service.h"
-#include "core/monitored_item.h"
-#include "core/monitored_item_service.h"
+#include "scada/attribute_service.h"
+#include "scada/monitored_item.h"
+#include "scada/monitored_item_service.h"
 
 #include <map>
 #include <memory>

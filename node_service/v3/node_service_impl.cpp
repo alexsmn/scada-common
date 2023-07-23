@@ -1,7 +1,7 @@
 #include "node_service/v3/node_service_impl.h"
 
-#include "core/attribute_service.h"
-#include "core/standard_node_ids.h"
+#include "scada/attribute_service.h"
+#include "scada/standard_node_ids.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v3/node_model_impl.h"

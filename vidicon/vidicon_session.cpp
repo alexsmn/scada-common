@@ -3,9 +3,9 @@
 #include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
-#include "core/date_time.h"
-#include "core/monitored_item.h"
-#include "core/standard_node_ids.h"
+#include "scada/date_time.h"
+#include "scada/monitored_item.h"
+#include "scada/standard_node_ids.h"
 #include "vidicon/vidicon_monitored_data_point.h"
 #include "vidicon/vidicon_monitored_events.h"
 

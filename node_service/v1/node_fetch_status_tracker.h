@@ -3,7 +3,7 @@
 #include "base/boost_log.h"
 #include "base/threading/thread_checker.h"
 #include "common/node_state.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 #include "node_service/node_fetch_status.h"
 #include "node_service/v1/node_fetch_status_queue.h"
 #include "node_service/v1/node_fetch_status_types.h"

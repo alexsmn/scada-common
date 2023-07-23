@@ -2,7 +2,7 @@
 
 #include "base/common_types.h"
 #include "common/node_state.h"
-#include "core/variant_utils.h"
+#include "scada/variant_utils.h"
 
 #include <chrono>
 

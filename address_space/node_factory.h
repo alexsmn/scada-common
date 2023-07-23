@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/status.h"
+#include "scada/status.h"
 
 namespace scada {
 class Node;

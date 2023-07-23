@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/attribute_service.h"
-#include "core/method_service.h"
-#include "core/monitored_item_service.h"
-#include "core/session_service.h"
-#include "core/status_promise.h"
-#include "core/view_service.h"
+#include "scada/attribute_service.h"
+#include "scada/method_service.h"
+#include "scada/monitored_item_service.h"
+#include "scada/session_service.h"
+#include "scada/status_promise.h"
+#include "scada/view_service.h"
 
 #include <opcuapp/client/channel.h>
 #include <opcuapp/client/session.h>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/format.h"
-#include "core/localized_text.h"
-#include "core/string.h"
+#include "scada/localized_text.h"
+#include "scada/string.h"
 
 namespace scada {
 

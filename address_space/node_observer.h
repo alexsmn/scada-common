@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "core/node_id.h"
+#include "scada/node_id.h"
 
 namespace scada {
 

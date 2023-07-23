@@ -6,9 +6,9 @@
 #include "address_space/reference.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "core/attribute_ids.h"
-#include "core/standard_node_ids.h"
-#include "core/status.h"
+#include "scada/attribute_ids.h"
+#include "scada/standard_node_ids.h"
+#include "scada/status.h"
 
 AddressSpaceImpl::AddressSpaceImpl(scada::AddressSpace* parent_address_space)
     : parent_address_space_{parent_address_space} {}

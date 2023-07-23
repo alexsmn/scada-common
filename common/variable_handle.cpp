@@ -1,6 +1,6 @@
 #include "common/variable_handle.h"
 
-#include "core/data_value.h"
+#include "scada/data_value.h"
 
 namespace scada {
 

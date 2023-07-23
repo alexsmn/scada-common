@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/event.h"
-#include "core/node_id.h"
+#include "scada/event.h"
+#include "scada/node_id.h"
 #include "event_notifier.h"
 
 #include <gmock/gmock.h>

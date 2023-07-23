@@ -2,7 +2,7 @@
 
 #include "address_space/address_space.h"
 #include "common/node_state.h"
-#include "core/node_attributes.h"
+#include "scada/node_attributes.h"
 
 #include <memory>
 

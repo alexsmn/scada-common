@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/localized_text.h"
-#include "core/qualifier.h"
-#include "core/string.h"
+#include "scada/localized_text.h"
+#include "scada/qualifier.h"
+#include "scada/string.h"
 
 #include <string>
 #include <string_view>

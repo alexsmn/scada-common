@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/client.h"
+#include "scada/client.h"
 #include "node_service/node_ref.h"
 
 #include <functional>

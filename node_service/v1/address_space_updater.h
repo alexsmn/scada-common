@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/boost_log.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 
 #include <map>
 #include <set>

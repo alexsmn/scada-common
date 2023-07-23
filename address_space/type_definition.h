@@ -2,7 +2,7 @@
 
 #include "address_space/node.h"
 #include "address_space/property.h"
-#include "core/variant.h"
+#include "scada/variant.h"
 
 #include <optional>
 

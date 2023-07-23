@@ -1,14 +1,14 @@
 #include "opcua_server.h"
 
 #include "base/promise.h"
-#include "core/attribute_service.h"
-#include "core/event_util.h"
-#include "core/expanded_node_id.h"
-#include "core/method_service.h"
-#include "core/monitored_item.h"
-#include "core/monitored_item_service.h"
-#include "core/node_management_service.h"
-#include "core/view_service.h"
+#include "scada/attribute_service.h"
+#include "scada/event_util.h"
+#include "scada/expanded_node_id.h"
+#include "scada/method_service.h"
+#include "scada/monitored_item.h"
+#include "scada/monitored_item_service.h"
+#include "scada/node_management_service.h"
+#include "scada/view_service.h"
 #include "opcua/opcua_conversion.h"
 
 #include <algorithm>

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/attribute_ids.h"
-#include "core/attribute_service.h"
-#include "core/data_value.h"
-#include "core/monitored_item.h"
+#include "scada/attribute_ids.h"
+#include "scada/attribute_service.h"
+#include "scada/data_value.h"
+#include "scada/monitored_item.h"
 
 #include <boost/signals2/signal.hpp>
 #include <memory>

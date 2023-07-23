@@ -1,13 +1,13 @@
 #pragma once
 
-#include "core/attribute_service.h"
-#include "core/data_services.h"
-#include "core/history_service.h"
-#include "core/method_service.h"
-#include "core/monitored_item_service.h"
-#include "core/node_management_service.h"
-#include "core/session_service.h"
-#include "core/view_service.h"
+#include "scada/attribute_service.h"
+#include "scada/data_services.h"
+#include "scada/history_service.h"
+#include "scada/method_service.h"
+#include "scada/monitored_item_service.h"
+#include "scada/node_management_service.h"
+#include "scada/session_service.h"
+#include "scada/view_service.h"
 
 #include <boost/signals2/signal.hpp>
 

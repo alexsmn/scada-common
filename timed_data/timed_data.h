@@ -6,9 +6,9 @@
 
 #include "base/time/time.h"
 #include "common/data_value_util.h"
-#include "core/data_value.h"
-#include "core/status.h"
-#include "core/write_flags.h"
+#include "scada/data_value.h"
+#include "scada/status.h"
+#include "scada/write_flags.h"
 #include "node_service/node_ref.h"
 
 class EventSet;

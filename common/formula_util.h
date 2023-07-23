@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/node_id.h"
+#include "scada/node_id.h"
 
 std::string GetFormulaSingleName(std::string_view formula);
 scada::NodeId GetFormulaSingleNodeId(std::string_view formula);

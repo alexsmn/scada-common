@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/aliases.h"
-#include "core/node_id.h"
-#include "core/service.h"
+#include "scada/node_id.h"
+#include "scada/service.h"
 
 #include <memory>
 

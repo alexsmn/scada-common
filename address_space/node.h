@@ -2,10 +2,10 @@
 
 #include "address_space/node_observer.h"
 #include "address_space/reference.h"
-#include "core/node_attributes.h"
-#include "core/node_class.h"
-#include "core/status.h"
-#include "core/variant.h"
+#include "scada/node_attributes.h"
+#include "scada/node_class.h"
+#include "scada/status.h"
+#include "scada/variant.h"
 
 #include <memory>
 

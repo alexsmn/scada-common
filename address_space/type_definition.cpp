@@ -2,7 +2,7 @@
 
 #include "address_space/node_utils.h"
 #include "address_space/reference.h"
-#include "core/standard_node_ids.h"
+#include "scada/standard_node_ids.h"
 
 namespace scada {
 

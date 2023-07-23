@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/data_value.h"
-#include "core/monitored_item.h"
+#include "scada/data_value.h"
+#include "scada/monitored_item.h"
 #include "vidicon/TeleClient.h"
 
 #include <atlbase.h>

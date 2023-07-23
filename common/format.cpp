@@ -7,7 +7,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
-#include "core/variant.h"
+#include "scada/variant.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 

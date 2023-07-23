@@ -1,6 +1,6 @@
 #include "common/audit.h"
 
-#include "core/validation.h"
+#include "scada/validation.h"
 
 Audit::Audit(std::shared_ptr<Executor> executor,
              std::shared_ptr<AuditLogger> logger,

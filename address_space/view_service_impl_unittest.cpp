@@ -4,8 +4,8 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
-#include "core/attribute_service.h"
-#include "core/standard_node_ids.h"
+#include "scada/attribute_service.h"
+#include "scada/standard_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 

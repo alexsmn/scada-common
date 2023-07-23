@@ -4,8 +4,8 @@
 #include "base/executor_timer.h"
 #include "base/metric.h"
 #include "common/audit_logger.h"
-#include "core/attribute_service.h"
-#include "core/view_service.h"
+#include "scada/attribute_service.h"
+#include "scada/view_service.h"
 
 #include <memory>
 

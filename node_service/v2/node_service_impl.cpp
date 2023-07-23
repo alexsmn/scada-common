@@ -1,8 +1,8 @@
 #include "node_service/v2/node_service_impl.h"
 
 #include "address_space/address_space_util.h"
-#include "core/attribute_service.h"
-#include "core/standard_node_ids.h"
+#include "scada/attribute_service.h"
+#include "scada/standard_node_ids.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"

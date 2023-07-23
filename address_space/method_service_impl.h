@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/method_service.h"
+#include "scada/method_service.h"
 
 namespace scada {
 class AddressSpace;

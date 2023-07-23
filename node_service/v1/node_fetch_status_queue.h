@@ -2,7 +2,7 @@
 
 #include "base/boost_log.h"
 #include "base/threading/thread_checker.h"
-#include "core/node_id.h"
+#include "scada/node_id.h"
 #include "node_service/v1/node_fetch_status_types.h"
 
 #include <set>

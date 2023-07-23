@@ -1,7 +1,7 @@
 #include "node_service/static/static_node_model.h"
 
 #include "common/variable_handle.h"
-#include "core/monitored_item_service.h"
+#include "scada/monitored_item_service.h"
 #include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
 

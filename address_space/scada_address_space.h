@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/variant.h"
+#include "scada/variant.h"
 
 namespace scada {
 class DataType;

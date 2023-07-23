@@ -4,7 +4,7 @@
 #include "base/observer_list.h"
 #include "common/event_set.h"
 #include "common/node_event_provider.h"
-#include "core/history_service.h"
+#include "scada/history_service.h"
 
 #include <deque>
 #include <map>

@@ -1,9 +1,9 @@
 #include "common/aggregation.h"
 
 #include "common/data_value_util.h"
-#include "core/aggregate_filter.h"
-#include "core/data_value.h"
-#include "core/standard_node_ids.h"
+#include "scada/aggregate_filter.h"
+#include "scada/data_value.h"
+#include "scada/standard_node_ids.h"
 
 #include <algorithm>
 #include <map>

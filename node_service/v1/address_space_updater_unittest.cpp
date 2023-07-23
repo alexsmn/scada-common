@@ -8,7 +8,7 @@
 #include "address_space/type_definition.h"
 #include "base/range_util.h"
 #include "common/node_state.h"
-#include "core/standard_node_ids.h"
+#include "scada/standard_node_ids.h"
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <gmock/gmock.h>

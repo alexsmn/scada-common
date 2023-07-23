@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/containers/span.h"
-#include "core/data_value.h"
-#include "core/node_id.h"
+#include "scada/data_value.h"
+#include "scada/node_id.h"
 
 #include <functional>
 

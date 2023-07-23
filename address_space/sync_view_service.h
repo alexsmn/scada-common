@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/containers/span.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 
 class SyncViewService {
  public:

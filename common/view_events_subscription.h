@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/monitored_item.h"
-#include "core/monitored_item_service.h"
-#include "core/view_events.h"
+#include "scada/monitored_item.h"
+#include "scada/monitored_item_service.h"
+#include "scada/view_events.h"
 
 class IViewEventsSubscription {
  public:

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "base/debug_util.h"
-#include "core/node_attributes.h"
-#include "core/node_class.h"
-#include "core/node_id.h"
-#include "core/variant.h"
-#include "core/view_service.h"
+#include "scada/node_attributes.h"
+#include "scada/node_class.h"
+#include "scada/node_id.h"
+#include "scada/variant.h"
+#include "scada/view_service.h"
 
 #include <memory>
 #include <ostream>

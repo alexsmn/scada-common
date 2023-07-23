@@ -4,7 +4,7 @@
 #include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
-#include "core/standard_node_ids.h"
+#include "scada/standard_node_ids.h"
 
 #include <gmock/gmock.h>
 

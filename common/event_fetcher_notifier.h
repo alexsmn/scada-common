@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/event_fetcher.h"
-#include "core/session_service.h"
+#include "scada/session_service.h"
 
 class EventFetcherNotifier {
  public:

@@ -1,8 +1,8 @@
 #include "format.h"
 
-#include "core/standard_node_ids.h"
-#include "core/variant.h"
-#include "core/variant_utils.h"
+#include "scada/standard_node_ids.h"
+#include "scada/variant.h"
+#include "scada/variant_utils.h"
 
 #include <gmock/gmock.h>
 #include <optional>

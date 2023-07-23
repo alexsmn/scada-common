@@ -3,10 +3,10 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
 #include "base/strings/utf_string_conversions.h"
-#include "core/attribute_service_mock.h"
-#include "core/method_service_mock.h"
-#include "core/monitored_item.h"
-#include "core/monitored_item_service_mock.h"
+#include "scada/attribute_service_mock.h"
+#include "scada/method_service_mock.h"
+#include "scada/monitored_item.h"
+#include "scada/monitored_item_service_mock.h"
 
 #include <gmock/gmock.h>
 

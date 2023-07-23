@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/node_id.h"
-#include "core/status.h"
+#include "scada/node_id.h"
+#include "scada/status.h"
 
 #include <functional>
 #include <string_view>

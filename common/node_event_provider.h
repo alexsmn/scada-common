@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/event_set.h"
-#include "core/node_id.h"
+#include "scada/node_id.h"
 
 class EventObserver;
 

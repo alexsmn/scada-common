@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "core/data_value.h"
+#include "scada/data_value.h"
 
 struct TimedDataEntry {
   VQ vq;

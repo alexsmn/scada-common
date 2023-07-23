@@ -2,7 +2,7 @@
 
 #include "address_space/node.h"
 #include "base/time/time.h"
-#include "core/attribute_service.h"
+#include "scada/attribute_service.h"
 
 #include <functional>
 #include <map>

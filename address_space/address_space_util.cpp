@@ -16,7 +16,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_state.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/node_id_util.h"

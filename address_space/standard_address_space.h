@@ -4,7 +4,7 @@
 #include "address_space/method.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "core/standard_node_ids.h"
+#include "scada/standard_node_ids.h"
 
 class AddressSpaceImpl;
 struct StandardAddressSpace;

@@ -4,11 +4,11 @@
 #include "base/location.h"
 #include "base/logger.h"
 #include "common/event_observer.h"
-#include "core/history_service.h"
-#include "core/method_service.h"
-#include "core/monitored_item.h"
-#include "core/monitored_item_service.h"
-#include "core/standard_node_ids.h"
+#include "scada/history_service.h"
+#include "scada/method_service.h"
+#include "scada/monitored_item.h"
+#include "scada/monitored_item_service.h"
+#include "scada/standard_node_ids.h"
 
 #include <ranges>
 

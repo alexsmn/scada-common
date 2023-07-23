@@ -7,7 +7,7 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "common/node_state.h"
-#include "core/standard_node_ids.h"
+#include "scada/standard_node_ids.h"
 
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
     const scada::NodeState& node_state) {

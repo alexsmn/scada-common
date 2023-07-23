@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/monitored_item.h"
+#include "scada/monitored_item.h"
 
 class VidiconMonitoredEvents : public scada::MonitoredItem {
  public:

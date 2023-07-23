@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/attribute_service_mock.h"
-#include "core/method_service_mock.h"
-#include "core/monitored_item_service_mock.h"
+#include "scada/attribute_service_mock.h"
+#include "scada/method_service_mock.h"
+#include "scada/monitored_item_service_mock.h"
 #include "node_service/v1/address_space_fetcher_factory.h"
 #include "node_service/v1/address_space_fetcher_mock.h"
 #include "node_service/v1/node_service_impl.h"

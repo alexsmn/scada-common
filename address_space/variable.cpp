@@ -4,8 +4,8 @@
 #include "address_space/node_utils.h"
 #include "address_space/node_variable_handle.h"
 #include "address_space/type_definition.h"
-#include "core/data_value.h"
-#include "core/standard_node_ids.h"
+#include "scada/data_value.h"
+#include "scada/standard_node_ids.h"
 
 namespace scada {
 

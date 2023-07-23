@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/node_state.h"
-#include "core/data_value.h"
+#include "scada/data_value.h"
 
 #include <cassert>
 #include <string>

@@ -2,8 +2,8 @@
 
 #include "base/boost_log.h"
 #include "common/node_state.h"
-#include "core/node_id.h"
-#include "core/service.h"
+#include "scada/node_id.h"
+#include "scada/service.h"
 
 #include <map>
 #include <opcua_serverapi.h>

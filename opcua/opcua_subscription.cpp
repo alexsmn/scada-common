@@ -1,8 +1,8 @@
 #include "opcua_subscription.h"
 
 #include "base/executor.h"
-#include "core/event_util.h"
-#include "core/monitored_item_service.h"
+#include "scada/event_util.h"
+#include "scada/monitored_item_service.h"
 #include "opcua/opcua_conversion.h"
 
 #include <opcuapp/client/session.h>

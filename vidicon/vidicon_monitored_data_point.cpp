@@ -3,7 +3,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/time/time.h"
 #include "base/win/scoped_variant.h"
-#include "core/qualifier.h"
+#include "scada/qualifier.h"
 
 #include <opcda.h>
 

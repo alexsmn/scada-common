@@ -1,7 +1,7 @@
 #include "address_space_util.h"
 
 #include "common/node_state.h"
-#include "core/node_class.h"
+#include "scada/node_class.h"
 
 #include <gmock/gmock.h>
 

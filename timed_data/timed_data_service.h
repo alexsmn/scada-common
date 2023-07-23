@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/aggregate_filter.h"
+#include "scada/aggregate_filter.h"
 
 #include <memory>
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/containers/span.h"
-#include "core/attribute_service.h"
+#include "scada/attribute_service.h"
 
 class SyncAttributeService {
  public:

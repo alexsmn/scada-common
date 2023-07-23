@@ -3,10 +3,10 @@
 #include "base/auto_reset.h"
 #include "base/executor.h"
 #include "base/range_util.h"
-#include "core/attribute_service.h"
-#include "core/node_class.h"
-#include "core/standard_node_ids.h"
-#include "core/view_service.h"
+#include "scada/attribute_service.h"
+#include "scada/node_class.h"
+#include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 
 #include "base/debug_util-inl.h"
 

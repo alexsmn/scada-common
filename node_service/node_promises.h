@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/status_promise.h"
+#include "scada/status_promise.h"
 #include "node_service/node_service.h"
 
 inline promise<> FetchNode(const NodeRef& node) {

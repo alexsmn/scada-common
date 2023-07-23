@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/type_system.h"
-#include "core/standard_node_ids.h"
-#include "core/view_service.h"
+#include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 
 inline bool WantsBrowseDirection(scada::BrowseDirection direction,
                                  bool forward) {

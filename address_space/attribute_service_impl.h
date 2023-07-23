@@ -2,7 +2,7 @@
 
 #include "address_space/sync_attribute_service.h"
 #include "base/containers/span.h"
-#include "core/attribute_service.h"
+#include "scada/attribute_service.h"
 
 namespace scada {
 class AddressSpace;

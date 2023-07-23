@@ -1,12 +1,12 @@
 #pragma once
 
-#include "core/client.h"
-#include "core/attribute_ids.h"
-#include "core/data_value.h"
-#include "core/node_class.h"
-#include "core/standard_node_ids.h"
-#include "core/status_promise.h"
-#include "core/write_flags.h"
+#include "scada/client.h"
+#include "scada/attribute_ids.h"
+#include "scada/data_value.h"
+#include "scada/node_class.h"
+#include "scada/standard_node_ids.h"
+#include "scada/status_promise.h"
+#include "scada/write_flags.h"
 #include "node_service/node_fetch_status.h"
 
 #include <functional>

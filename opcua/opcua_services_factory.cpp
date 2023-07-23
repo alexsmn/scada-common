@@ -1,4 +1,4 @@
-#include "core/data_services_factory.h"
+#include "scada/data_services_factory.h"
 #include "opcua/opcua_session.h"
 
 bool CreateOpcUaServices(const DataServicesContext& context,

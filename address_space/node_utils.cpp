@@ -5,8 +5,8 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/range_util.h"
-#include "core/standard_node_ids.h"
-#include "core/view_service.h"
+#include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 
 namespace scada {
 

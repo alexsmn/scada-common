@@ -2,7 +2,7 @@
 
 #include "base/observer_list.h"
 #include "common/view_events_subscription.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 #include "node_service/node_children_fetcher.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"

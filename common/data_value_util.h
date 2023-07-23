@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/containers/span.h"
-#include "core/data_value.h"
+#include "scada/data_value.h"
 
 #include <algorithm>
 #include <vector>

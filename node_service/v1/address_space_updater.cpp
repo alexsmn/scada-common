@@ -9,9 +9,9 @@
 #include "address_space/variable.h"
 #include "base/strings/stringprintf.h"
 #include "common/node_state.h"
-#include "core/event.h"
-#include "core/node_class.h"
-#include "core/standard_node_ids.h"
+#include "scada/event.h"
+#include "scada/node_class.h"
+#include "scada/standard_node_ids.h"
 #include "model/node_id_util.h"
 
 #include "base/debug_util-inl.h"

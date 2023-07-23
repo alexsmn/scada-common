@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "core/event.h"
+#include "scada/event.h"
 
 struct EventComparer {
   bool operator()(const scada::Event* left, const scada::Event* right) const {

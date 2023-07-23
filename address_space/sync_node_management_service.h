@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/node_management_service.h"
+#include "scada/node_management_service.h"
 
 class SyncNodeManagementService {
  public:

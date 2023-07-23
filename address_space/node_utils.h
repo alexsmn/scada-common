@@ -3,8 +3,8 @@
 #include "address_space/node.h"
 #include "address_space/reference.h"
 #include "common/node_state.h"
-#include "core/node_class.h"
-#include "core/standard_node_ids.h"
+#include "scada/node_class.h"
+#include "scada/standard_node_ids.h"
 
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/transformed.hpp>

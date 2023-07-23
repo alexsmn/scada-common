@@ -2,7 +2,7 @@
 
 #include "base/boost_log.h"
 #include "base/time/time.h"
-#include "core/view_service.h"
+#include "scada/view_service.h"
 
 #include <deque>
 #include <functional>

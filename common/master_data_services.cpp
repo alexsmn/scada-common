@@ -1,7 +1,7 @@
 #include "master_data_services.h"
 
-#include "core/monitored_item.h"
-#include "core/standard_node_ids.h"
+#include "scada/monitored_item.h"
+#include "scada/standard_node_ids.h"
 
 // MasterDataServices::MasterMonitoredItem
 

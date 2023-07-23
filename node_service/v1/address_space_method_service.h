@@ -2,7 +2,7 @@
 
 #include "address_space/address_space_util.h"
 #include "address_space/node.h"
-#include "core/method_service.h"
+#include "scada/method_service.h"
 
 namespace scada {
 class AddressSpace;
