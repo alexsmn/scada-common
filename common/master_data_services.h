@@ -36,6 +36,7 @@ class MasterDataServices final : public scada::AttributeService,
   virtual std::string GetHostName() const override;
   virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
+  virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::NodeManagementService
   virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,

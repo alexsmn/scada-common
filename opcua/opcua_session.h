@@ -38,6 +38,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
   virtual std::string GetHostName() const override;
   virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
+  virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::ViewService
   virtual void Browse(const std::vector<scada::BrowseDescription>& nodes,

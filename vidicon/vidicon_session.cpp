@@ -162,3 +162,7 @@ void VidiconSession::TranslateBrowsePaths(
     const scada::TranslateBrowsePathsCallback& callback) {
   view_service_.TranslateBrowsePaths(browse_paths, callback);
 }
+
+scada::SessionDebugger* VidiconSession::GetSessionDebugger() {
+  return nullptr;
+}

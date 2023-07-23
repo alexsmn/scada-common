@@ -286,3 +286,9 @@ void MasterDataServices::Read(
 
   services_.attribute_service_->Read(context, inputs, callback);
 }
+
+scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
+  return services_.session_service_
+             ? services_.session_service_->GetSessionDebugger()
+             : nullptr;
+}

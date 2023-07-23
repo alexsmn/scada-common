@@ -42,6 +42,7 @@ class VidiconSession : public scada::SessionService,
   virtual std::string GetHostName() const override;
   virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
+  virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::HistoryService
   virtual void HistoryReadRaw(
