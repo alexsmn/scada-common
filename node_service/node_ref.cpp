@@ -1,9 +1,9 @@
 #include "node_service/node_ref.h"
 
-#include "scada/attribute_service.h"
-#include "scada/monitored_item.h"
 #include "node_service/node_model.h"
 #include "node_service/node_util.h"
+#include "scada/attribute_service.h"
+#include "scada/monitored_item.h"
 
 bool NodeRef::fetched() const {
   return !model_ || model_->GetFetchStatus().node_fetched;
@@ -14,10 +14,12 @@ bool NodeRef::children_fetched() const {
 }
 
 std::optional<scada::NodeClass> NodeRef::node_class() const {
-  if (auto* int_value = attribute(scada::AttributeId::NodeClass).get_if<int>())
+  const auto& value = attribute(scada::AttributeId::NodeClass);
+  if (auto* int_value = value.get_if<int>()) {
     return static_cast<scada::NodeClass>(*int_value);
-  else
+  } else {
     return std::nullopt;
+  }
 }
 
 scada::NodeId NodeRef::node_id() const {
