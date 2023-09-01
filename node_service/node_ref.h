@@ -5,7 +5,7 @@
 #include "scada/data_value.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
-#include "scada/status_promise.h"
+#include "scada/promise.h"
 #include "scada/write_flags.h"
 #include "node_service/node_fetch_status.h"
 

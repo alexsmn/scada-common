@@ -4,7 +4,7 @@
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/session_service.h"
-#include "scada/status_promise.h"
+#include "scada/promise.h"
 #include "scada/view_service.h"
 
 #include <opcuapp/client/channel.h>
