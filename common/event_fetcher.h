@@ -1,12 +1,11 @@
 #pragma once
 
 #include "base/containers/span.h"
-#include "base/observer_list.h"
+#include "base/memory/weak_ptr.h"
 #include "common/event_set.h"
+#include "common/event_storage.h"
 #include "common/node_event_provider.h"
 #include "scada/history_service.h"
-
-#include <map>
 
 namespace scada {
 class HistoryService;
@@ -24,10 +23,9 @@ struct EventFetcherContext {
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
   const std::shared_ptr<const Logger> logger_;
+  EventStorage& event_storage_;
   EventAckQueue& event_ack_queue_;
 };
-
-class EventStorage {};
 
 // Fetches and provides unacked events, arranged by source nodes. Pulls unacked
 // events from history and subscribes to updates via monitored item. Handles
@@ -40,15 +38,13 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void OnChannelOpened(const scada::NodeId& user_id);
   void OnChannelClosed();
 
-  bool alarming() const { return alarming_; }
-
   void AcknowledgeAll();
 
   // NodeEventProvider
   virtual unsigned severity_min() const override { return severity_min_; }
   virtual void SetSeverityMin(unsigned severity) override;
   virtual const EventContainer& unacked_events() const override {
-    return unacked_events_;
+    return event_storage_.unacked_events();
   }
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const override;
@@ -56,43 +52,22 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   virtual bool IsAcking() const override;
   virtual bool IsAlerting(const scada::NodeId& item_id) const override;
   virtual void AddObserver(EventObserver& observer) override {
-    observers_.insert(&observer);
+    event_storage_.AddObserver(observer);
   }
   virtual void RemoveObserver(EventObserver& observer) override {
-    observers_.erase(&observer);
+    event_storage_.RemoveObserver(observer);
   }
   virtual void AddItemObserver(const scada::NodeId& item_id,
                                EventObserver& observer) override {
-    item_unacked_events_[item_id].observers.insert(&observer);
+    event_storage_.AddItemObserver(item_id, observer);
   }
   virtual void RemoveItemObserver(const scada::NodeId& item_id,
                                   EventObserver& observer) override {
-    item_unacked_events_[item_id].observers.erase(&observer);
+    event_storage_.RemoveItemObserver(item_id, observer);
   }
   virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) override;
 
  private:
-  // TODO: Use signals.
-  using ObserverSet = std::set<EventObserver*>;
-
-  struct ItemEventData {
-    EventSet events;
-    ObserverSet observers;
-  };
-
-  // TODO: Consider using `unordered_map`.
-  using ItemEventMap = std::map<scada::NodeId, ItemEventData>;
-
-  const scada::Event* AddUnackedEvent(const scada::Event& event);
-  EventContainer::node_type RemoveUnackedEvent(const scada::Event& event);
-  void ClearUackedEvents();
-
-  void UpdateAlarming();
-
-  void ItemEventsChanged(const ObserverSet& observers,
-                         const scada::NodeId& item_id,
-                         const EventSet& events);
-
   void Update();
 
   void OnSystemEvents(base::span<const scada::Event> events);
@@ -105,22 +80,13 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
 
   unsigned severity_min_ = scada::kSeverityMin;
 
-  EventContainer unacked_events_;
-
-  ItemEventMap item_unacked_events_;
-
-  bool alarming_ = false;
-
-  ObserverSet observers_;
-
   // Used to cancel the historical request.
   base::WeakPtrFactory<EventFetcher> weak_factory_{this};
 };
 
 inline const EventSet* EventFetcher::GetItemUnackedEvents(
     const scada::NodeId& item_id) const {
-  ItemEventMap::const_iterator i = item_unacked_events_.find(item_id);
-  return i != item_unacked_events_.end() ? &i->second.events : nullptr;
+  return event_storage_.GetItemUnackedEvents(item_id);
 }
 
 inline bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
