@@ -12,7 +12,7 @@ class NodeEventProvider {
   virtual unsigned severity_min() const = 0;
   virtual void SetSeverityMin(unsigned severity) = 0;
 
-  using EventContainer = std::map<unsigned, scada::Event>;
+  using EventContainer = std::map<unsigned /*ack_id*/, scada::Event>;
   virtual const EventContainer& unacked_events() const = 0;
 
   virtual const EventSet* GetItemUnackedEvents(

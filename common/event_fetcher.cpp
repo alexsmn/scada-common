@@ -122,7 +122,7 @@ EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
   }
 
   scada::Event& contained_event = i->second;
-  // Update fields of contained event before notificaition to observers.
+  // Update fields of contained event before notification to observers.
   contained_event = event;
 
   if (!contained_event.node_id.is_null()) {

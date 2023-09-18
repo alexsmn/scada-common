@@ -28,8 +28,13 @@ struct EventFetcherContext {
   const std::shared_ptr<const Logger> logger_;
 };
 
-// Holds new events, arranged by objects.
-// Handles multiple event acknowledgement.
+class EventStorage {};
+
+class EventAckQueue {};
+
+// Fetches and provides unacked events, arranged by source nodes. Pulls unacked
+// events from history and subscribes to updates via monitored item. Handles
+// multiple event acknowledgement.
 class EventFetcher : public NodeEventProvider, private EventFetcherContext {
  public:
   explicit EventFetcher(EventFetcherContext&& context);
