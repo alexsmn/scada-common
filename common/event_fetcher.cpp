@@ -112,7 +112,7 @@ EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
   if (i == unacked_events_.end())
     return {};
 
-  event_ack_queue_.Ack(event.acknowledge_id);
+  event_ack_queue_.OnAcked(event.acknowledge_id);
 
   scada::Event& contained_event = i->second;
   // Update fields of contained event before notification to observers.
@@ -167,7 +167,7 @@ void EventFetcher::ClearUackedEvents() {
 
   unacked_events_.clear();
 
-  event_ack_queue_.Clear();
+  event_ack_queue_.Reset();
 
   UpdateAlarming();
 }
@@ -182,8 +182,12 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   }
 }
 
+void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
+  event_ack_queue_.Ack(ack_id);
+}
+
 void EventFetcher::AcknowledgeAll() {
-  for (auto& event : unacked_events_ | std::views::values) {
+  for (const auto& event : unacked_events_ | std::views::values) {
     AcknowledgeEvent(event.acknowledge_id);
   }
 }

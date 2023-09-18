@@ -1,9 +1,12 @@
 #pragma once
 
 #include "base/containers/contains.h"
+#include "base/executor.h"
+#include "scada/event.h"
 #include "scada/method_service.h"
 
 #include <deque>
+#include <set>
 
 struct EventAckQueueContext {
   const std::shared_ptr<const Logger> logger_;
@@ -22,18 +25,19 @@ class EventAckQueue : private EventAckQueueContext {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
   }
 
+  void Ack(scada::EventAcknowledgeId ack_id);
+
   // Acknowledge confirmation.
-  void Ack(scada::EventAcknowledgeId acknowledge_id);
+  void OnAcked(scada::EventAcknowledgeId acknowledge_id);
 
-  void AcknowledgeEvent(unsigned ack_id);
-
-  void AckPendingEvents();
-  void PostAckPendingEvents();
-
-  void Clear() {
+  void Reset() {
     running_ack_event_ids_.clear();
     pending_ack_event_ids_.clear();
   }
+
+ private:
+  void AckPendingEvents();
+  void PostAckPendingEvents();
 
   using EventIdQueue = std::deque<scada::EventAcknowledgeId>;
   EventIdQueue pending_ack_event_ids_;
@@ -50,7 +54,7 @@ class EventAckQueue : private EventAckQueueContext {
   static const size_t kMaxParallelAcks = 5;
 };
 
-inline void EventAckQueue::Ack(scada::EventAcknowledgeId acknowledge_id) {
+inline void EventAckQueue::OnAcked(scada::EventAcknowledgeId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
     logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
                     acknowledge_id);
@@ -98,7 +102,7 @@ inline void EventAckQueue::AckPendingEvents() {
   PostAckPendingEvents();
 }
 
-inline void EventAckQueue::AcknowledgeEvent(unsigned ack_id) {
+inline void EventAckQueue::Ack(scada::EventAcknowledgeId ack_id) {
   if (base::Contains(running_ack_event_ids_, ack_id) ||
       base::Contains(pending_ack_event_ids_, ack_id))
     return;

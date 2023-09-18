@@ -113,6 +113,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
 
   ObserverSet observers_;
 
+  // Used to cancel the historical request.
   base::WeakPtrFactory<EventFetcher> weak_factory_{this};
 };
 
