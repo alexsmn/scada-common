@@ -6,17 +6,16 @@
 #include "common/node_event_provider.h"
 #include "scada/history_service.h"
 
-#include <deque>
 #include <map>
 
 namespace scada {
 class HistoryService;
-class MethodService;
 class MonitoredItem;
 class MonitoredItemService;
 }  // namespace scada
 
 class Executor;
+class EventAckQueue;
 class EventObserver;
 class Logger;
 
@@ -24,13 +23,11 @@ struct EventFetcherContext {
   const std::shared_ptr<Executor> executor_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
-  scada::MethodService& method_service_;
   const std::shared_ptr<const Logger> logger_;
+  EventAckQueue& event_ack_queue_;
 };
 
 class EventStorage {};
-
-class EventAckQueue {};
 
 // Fetches and provides unacked events, arranged by source nodes. Pulls unacked
 // events from history and subscribes to updates via monitored item. Handles
@@ -56,9 +53,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const override;
   virtual void AcknowledgeEvent(unsigned ack_id) override;
-  virtual bool IsAcking() const override {
-    return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
-  }
+  virtual bool IsAcking() const override;
   virtual bool IsAlerting(const scada::NodeId& item_id) const override;
   virtual void AddObserver(EventObserver& observer) override {
     observers_.insert(&observer);
@@ -98,17 +93,11 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
                          const scada::NodeId& item_id,
                          const EventSet& events);
 
-  void AckPendingEvents();
-  void PostAckPendingEvents();
-
   void Update();
 
-  void OnEvent(const scada::Event& event);
   void OnSystemEvents(base::span<const scada::Event> events);
   void OnHistoryReadEventsComplete(scada::Status&& status,
                                    std::vector<scada::Event>&& results);
-
-  scada::NodeId user_id_;
 
   bool connected_ = false;
 
@@ -122,16 +111,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
 
   bool alarming_ = false;
 
-  using EventIdQueue = std::deque<scada::EventAcknowledgeId>;
-  EventIdQueue pending_ack_event_ids_;
-
-  // Consider using `unordered_set`.
-  using EventIdSet = std::set<scada::EventAcknowledgeId>;
-  EventIdSet running_ack_event_ids_;
-
   ObserverSet observers_;
-
-  bool ack_pending_ = false;
 
   base::WeakPtrFactory<EventFetcher> weak_factory_{this};
 };

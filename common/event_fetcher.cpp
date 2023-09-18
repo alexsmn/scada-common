@@ -3,9 +3,9 @@
 #include "base/executor.h"
 #include "base/location.h"
 #include "base/logger.h"
+#include "common/event_ack_queue.h"
 #include "common/event_observer.h"
 #include "scada/history_service.h"
-#include "scada/method_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
 #include "scada/standard_node_ids.h"
@@ -13,8 +13,6 @@
 #include <ranges>
 
 #include "base/debug_util-inl.h"
-
-static const size_t kMaxParallelAcks = 5;
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)} {
@@ -114,12 +112,7 @@ EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
   if (i == unacked_events_.end())
     return {};
 
-  // Acknowledge confirmation.
-  if (running_ack_event_ids_.erase(event.acknowledge_id)) {
-    logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
-                    event.acknowledge_id);
-    PostAckPendingEvents();
-  }
+  event_ack_queue_.Ack(event.acknowledge_id);
 
   scada::Event& contained_event = i->second;
   // Update fields of contained event before notification to observers.
@@ -151,6 +144,10 @@ EventFetcher::EventContainer::node_type EventFetcher::RemoveUnackedEvent(
   return node;
 }
 
+bool EventFetcher::IsAcking() const {
+  return event_ack_queue_.IsAcking();
+}
+
 void EventFetcher::ClearUackedEvents() {
   for (auto i = item_unacked_events_.begin();
        i != item_unacked_events_.end();) {
@@ -170,49 +167,9 @@ void EventFetcher::ClearUackedEvents() {
 
   unacked_events_.clear();
 
-  running_ack_event_ids_.clear();
-  pending_ack_event_ids_.clear();
+  event_ack_queue_.Clear();
 
   UpdateAlarming();
-}
-
-void EventFetcher::PostAckPendingEvents() {
-  if (running_ack_event_ids_.size() >= kMaxParallelAcks ||
-      pending_ack_event_ids_.empty()) {
-    assert(!ack_pending_);
-    return;
-  }
-
-  if (!ack_pending_) {
-    ack_pending_ = true;
-    Dispatch(*executor_, [this] { AckPendingEvents(); });
-  }
-}
-
-void EventFetcher::AckPendingEvents() {
-  assert(ack_pending_);
-  ack_pending_ = false;
-
-  std::vector<scada::EventAcknowledgeId> acknowledge_ids;
-  while (running_ack_event_ids_.size() < kMaxParallelAcks &&
-         !pending_ack_event_ids_.empty()) {
-    auto ack_id = pending_ack_event_ids_.front();
-    pending_ack_event_ids_.pop_front();
-
-    acknowledge_ids.emplace_back(ack_id);
-    running_ack_event_ids_.insert(ack_id);
-  }
-
-  if (!acknowledge_ids.empty()) {
-    logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
-                    ToString(acknowledge_ids).c_str());
-    method_service_.Call(scada::id::Server,
-                         scada::id::AcknowledgeableConditionType_Acknowledge,
-                         {acknowledge_ids, scada::DateTime::Now()}, user_id_,
-                         [](scada::Status&& status) {});
-  }
-
-  PostAckPendingEvents();
 }
 
 void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
@@ -223,15 +180,6 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   for (auto* event : *events) {
     AcknowledgeEvent(event->acknowledge_id);
   }
-}
-
-void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
-  if (base::Contains(running_ack_event_ids_, ack_id) ||
-      base::Contains(pending_ack_event_ids_, ack_id))
-    return;
-
-  pending_ack_event_ids_.push_back(ack_id);
-  PostAckPendingEvents();
 }
 
 void EventFetcher::AcknowledgeAll() {
@@ -272,7 +220,7 @@ void EventFetcher::Update() {
 
 void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {
   connected_ = true;
-  user_id_ = user_id;
+  event_ack_queue_.OnChannelOpened(user_id);
   Update();
 }
 
