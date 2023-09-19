@@ -91,11 +91,20 @@ void EventStorage::ClearUnackedEvents() {
 }
 
 void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
+  // WARNING: Observers rely on stored event pointers. When event is deleted
+  // from the storage it must be preserved while observers process the message.
+  std::vector<EventContainer::node_type> deleted_nodes;
+
   std::vector<const scada::Event*> notify_events;
+
   for (auto& event : events) {
     if (event.acked) {
       if (auto node = RemoveUnackedEvent(event)) {
+        // Observers must be notified with updates events, having `acked` flag
+        // set.
+        node.mapped() = event;
         notify_events.emplace_back(&node.mapped());
+        deleted_nodes.emplace_back(std::move(node));
       }
     } else {
       if (auto* added_event = AddUnackedEvent(event)) {
