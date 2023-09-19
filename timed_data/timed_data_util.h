@@ -7,6 +7,19 @@
 #include <algorithm>
 #include <optional>
 
+inline std::optional<DataValues::iterator>
+FindInsertPosition(DataValues& values, base::Time from, base::Time to) {
+  auto i = LowerBound(values, from);
+  auto j = LowerBound(values, to);
+  if (i != j)
+    return std::nullopt;
+  if (i != values.end() && i->source_timestamp == from)
+    return std::nullopt;
+  if (j != values.end() && j->source_timestamp == to)
+    return std::nullopt;
+  return i;
+}
+
 inline scada::DateTime GetReadyFrom(
     base::span<const scada::DateTimeRange> ready_ranges,
     const scada::DateTimeRange& range) {

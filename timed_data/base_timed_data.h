@@ -3,6 +3,7 @@
 #include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "timed_data/timed_data.h"
+#include "timed_data/timed_data_view.h"
 
 class PropertySet;
 
@@ -17,12 +18,14 @@ class BaseTimedData : public TimedData {
   // TimedData
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override {
-    return ready_ranges_;
+    return timed_data_view_.ready_ranges();
   }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }
   virtual base::Time GetChangeTime() const override { return change_time_; }
-  virtual const DataValues* GetValues() const override { return &values_; }
+  virtual const DataValues* GetValues() const override {
+    return &timed_data_view_.values();
+  }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual void AddObserver(TimedDataDelegate& observer,
                            const scada::DateTimeRange& range) override;
@@ -43,29 +46,20 @@ class BaseTimedData : public TimedData {
  protected:
   bool historical() const { return historical_; }
 
-  // Update |ready_from_| to new |time| if new time is earlier.
-  void SetReady(const scada::DateTimeRange& range);
-
-  void RebuildRanges();
-  void UpdateRanges();
-  std::optional<scada::DateTimeRange> FindNextGap() const;
-  // |ranges_| and |from_| were changed. Data needs to be updated.
-  virtual void OnRangesChanged() {}
-
-  void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
-  void NotifyDataReady();
-  void NotifyPropertyChanged(const PropertySet& properties);
-  void NotifyEventsChanged();
-
   bool UpdateCurrent(const scada::DataValue& value);
-  bool UpdateHistory(const scada::DataValue& value);
-
-  void Clear(const scada::DateTimeRange& range);
 
   void Delete();
   void Failed();
 
-  inline static BoostLogger logger_{LOG_NAME("TimedData")};
+  void UpdateRanges();
+
+  virtual void OnRangesChanged() {}
+
+  TimedDataView timed_data_view_;
+
+  // Populate history with currents. Turns to this mode on a first historical
+  // subscription, and then never changes back.
+  bool historical_ = false;
 
   // TODO: Cannot it be replaced by |GetEvents() && !GetEvents()->empty()|?
   bool alerting_ = false;
@@ -73,15 +67,5 @@ class BaseTimedData : public TimedData {
   scada::DataValue current_;
   base::Time change_time_;
 
-  base::ObserverList<TimedDataDelegate> observers_;
-  std::map<TimedDataDelegate*, scada::DateTimeRange> observer_ranges_;
-  std::vector<scada::DateTimeRange> ranges_;
-
-  // Populate history with currents. Turns to this mode on a first historical
-  // subscription, and then never changes back.
-  bool historical_ = false;
-
-  std::vector<scada::DateTimeRange> ready_ranges_;
-
-  DataValues values_;
+  inline static BoostLogger logger_{LOG_NAME("TimedData")};
 };

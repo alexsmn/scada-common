@@ -20,24 +20,8 @@
 #include "base/debug_util-inl.h"
 
 namespace {
-
 const size_t kMaxReadCount = 10000;
-
-std::optional<DataValues::iterator> FindInsertPosition(DataValues& values,
-                                                       base::Time from,
-                                                       base::Time to) {
-  auto i = LowerBound(values, from);
-  auto j = LowerBound(values, to);
-  if (i != j)
-    return std::nullopt;
-  if (i != values.end() && i->source_timestamp == from)
-    return std::nullopt;
-  if (j != values.end() && j->source_timestamp == to)
-    return std::nullopt;
-  return i;
 }
-
-}  // namespace
 
 // TimedDataImpl
 
@@ -118,7 +102,7 @@ void TimedDataImpl::FetchNextGap() {
   if (!node_)
     return;
 
-  auto gap = FindNextGap();
+  auto gap = timed_data_view_.FindNextGap();
   if (!gap)
     return;
 
@@ -165,7 +149,7 @@ void TimedDataImpl::FetchMore(ScopedContinuationPoint continuation_point) {
   }
 
   // Reset query if the requested range is no more interesting.
-  auto gap = FindNextGap();
+  auto gap = timed_data_view_.FindNextGap();
   if (!gap || !IntervalContains(*gap, querying_range_)) {
     LOG_INFO(logger_) << "Query canceled" << LOG_TAG("Gap", ToString(*gap))
                       << LOG_TAG("Range", ToString(querying_range_));
@@ -218,10 +202,12 @@ scada::LocalizedText TimedDataImpl::GetTitle() const {
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
   assert(node_id == node_.node_id());
 
-  NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
+  timed_data_view_.NotifyPropertyChanged(
+      PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-  for (auto& o : observers_)
+  for (auto& o : timed_data_view_.observers()) {
     o.OnTimedDataNodeModified();
+  }
 }
 
 void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
@@ -230,9 +216,10 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
     Delete();
 
   } else {
-    NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
+    timed_data_view_.NotifyPropertyChanged(
+        PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-    for (auto& o : observers_)
+    for (auto& o : timed_data_view_.observers())
       o.OnTimedDataNodeModified();
   }
 }
@@ -242,7 +229,7 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
   assert(node_id == node_.node_id());
 
   alerting_ = !events.empty();
-  NotifyEventsChanged();
+  timed_data_view_.NotifyEventsChanged();
 }
 
 void TimedDataImpl::OnHistoryReadRawComplete(
@@ -257,21 +244,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
 
   auto ref = shared_from_this();
 
-  // Merge requested data with existing realtime data by collection time.
-  if (!values.empty()) {
-    // Optimization: if all new values relate to the same position in history,
-    // not overlaping other values, then insert them as whole.
-    if (auto i = FindInsertPosition(values_, values.front().source_timestamp,
-                                    values.back().source_timestamp)) {
-      values_.insert(*i, std::make_move_iterator(values.begin()),
-                     std::make_move_iterator(values.end()));
-    } else {
-      ReplaceSubrange(values_, {values.data(), values.size()},
-                      DataValueTimeLess{});
-    }
-  }
-
-  assert(IsTimeSorted(values_));
+  timed_data_view_.MergeValues(values);
 
   scada::DateTime ready_to;
   if (continuation_point.empty())
@@ -284,7 +257,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
                       << LOG_TAG("ReadFrom", FormatTime(querying_range_.first))
                       << LOG_TAG("ReadTo", FormatTime(ready_to));
 
-    SetReady({querying_range_.first, ready_to});
+    timed_data_view_.SetReady({querying_range_.first, ready_to});
 
     assert(ready_to >= querying_range_.first);
     assert(ready_to <= querying_range_.second);
@@ -312,10 +285,10 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 
   if (IsUpdate(current_, data_value)) {
     if (UpdateCurrent(data_value))
-      NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
+      timed_data_view_.NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   } else {
-    if (UpdateHistory(data_value))
-      NotifyTimedDataCorrection(1, &data_value);
+    if (timed_data_view_.UpdateHistory(data_value))
+      timed_data_view_.NotifyTimedDataCorrection(1, &data_value);
   }
 }
 
