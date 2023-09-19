@@ -12,57 +12,53 @@ class EventStorage {
  public:
   using EventContainer = NodeEventProvider::EventContainer;
 
-  bool alerting() const { return alerting_; }
+  const EventContainer& events() const { return events_; }
 
-  const EventContainer& unacked_events() const { return unacked_events_; }
-
-  const EventSet* GetItemUnackedEvents(const scada::NodeId& item_id) const {
-    auto i = item_unacked_events_.find(item_id);
-    return i != item_unacked_events_.end() ? &i->second.events : nullptr;
+  const EventSet* GetNodeEvents(const scada::NodeId& node_id) const {
+    auto i = node_events_.find(node_id);
+    return i != node_events_.end() ? &i->second.events : nullptr;
   }
+
+  void Update(base::span<const scada::Event> events);
+  void Clear();
 
   void AddObserver(EventObserver& observer) { observers_.insert(&observer); }
-
   void RemoveObserver(EventObserver& observer) { observers_.erase(&observer); }
 
-  void AddItemObserver(const scada::NodeId& item_id, EventObserver& observer) {
-    item_unacked_events_[item_id].observers.insert(&observer);
+  void AddNodeObserver(const scada::NodeId& node_id, EventObserver& observer) {
+    node_events_[node_id].observers.insert(&observer);
   }
 
-  void RemoveItemObserver(const scada::NodeId& item_id,
+  void RemoveNodeObserver(const scada::NodeId& node_id,
                           EventObserver& observer) {
-    item_unacked_events_[item_id].observers.erase(&observer);
+    node_events_[node_id].observers.erase(&observer);
   }
 
-  void ClearUnackedEvents();
-
-  void OnSystemEvents(base::span<const scada::Event> events);
+  bool alerting() const { return alerting_; }
 
  private:
   // TODO: Use signals.
   using ObserverSet = std::set<EventObserver*>;
 
-  struct ItemEventData {
+  struct NodeEntry {
     EventSet events;
     ObserverSet observers;
   };
 
-  // TODO: Consider using `unordered_map`.
-  using ItemEventMap = std::map<scada::NodeId, ItemEventData>;
-
-  const scada::Event* AddUnackedEvent(const scada::Event& event);
-  EventContainer::node_type RemoveUnackedEvent(const scada::Event& event);
+  const scada::Event* Add(const scada::Event& event);
+  EventContainer::node_type Remove(const scada::Event& event);
 
   // This should be in an observer class.
   void UpdateAlerting();
 
-  static void ItemEventsChanged(const ObserverSet& observers,
-                                const scada::NodeId& item_id,
+  static void NodeEventsChanged(const ObserverSet& observers,
+                                const scada::NodeId& node_id,
                                 const EventSet& events);
 
-  EventContainer unacked_events_;
+  EventContainer events_;
 
-  ItemEventMap item_unacked_events_;
+  // TODO: Consider using `unordered_map`.
+  std::map<scada::NodeId, NodeEntry> node_events_;
 
   ObserverSet observers_;
 

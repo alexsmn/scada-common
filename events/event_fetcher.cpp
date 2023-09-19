@@ -39,7 +39,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 EventFetcher::~EventFetcher() = default;
 
 const EventFetcher::EventContainer& EventFetcher::unacked_events() const {
-  return event_storage_.unacked_events();
+  return event_storage_.events();
 }
 
 void EventFetcher::AddObserver(EventObserver& observer) {
@@ -52,17 +52,17 @@ void EventFetcher::RemoveObserver(EventObserver& observer) {
 
 void EventFetcher::AddItemObserver(const scada::NodeId& item_id,
                                    EventObserver& observer) {
-  event_storage_.AddItemObserver(item_id, observer);
+  event_storage_.AddNodeObserver(item_id, observer);
 }
 
 void EventFetcher::RemoveItemObserver(const scada::NodeId& item_id,
                                       EventObserver& observer) {
-  event_storage_.RemoveItemObserver(item_id, observer);
+  event_storage_.RemoveNodeObserver(item_id, observer);
 }
 
 const EventSet* EventFetcher::GetItemUnackedEvents(
     const scada::NodeId& item_id) const {
-  return event_storage_.GetItemUnackedEvents(item_id);
+  return event_storage_.GetNodeEvents(item_id);
 }
 
 bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
@@ -81,7 +81,7 @@ void EventFetcher::SetSeverityMin(unsigned severity) {
 
   event_ack_queue_.Reset();
 
-  event_storage_.ClearUnackedEvents();
+  event_storage_.Clear();
 
   Update();
 }
@@ -102,7 +102,7 @@ void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
       to_vector;
 
   if (!filtered_events.empty()) {
-    event_storage_.OnSystemEvents(filtered_events);
+    event_storage_.Update(filtered_events);
   }
 }
 
@@ -125,8 +125,7 @@ void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
 }
 
 void EventFetcher::AcknowledgeAllEvents() {
-  for (const auto& event :
-       event_storage_.unacked_events() | std::views::values) {
+  for (const auto& event : event_storage_.events() | std::views::values) {
     AcknowledgeEvent(event.acknowledge_id);
   }
 }

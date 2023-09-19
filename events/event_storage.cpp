@@ -2,9 +2,8 @@
 
 #include "events/event_observer.h"
 
-const scada::Event* EventStorage::AddUnackedEvent(const scada::Event& event) {
-  auto [iter, inserted] =
-      unacked_events_.try_emplace(event.acknowledge_id, event);
+const scada::Event* EventStorage::Add(const scada::Event& event) {
+  auto [iter, inserted] = events_.try_emplace(event.acknowledge_id, event);
   scada::Event& contained_event = iter->second;
 
   // Replace old event on update.
@@ -16,11 +15,10 @@ const scada::Event* EventStorage::AddUnackedEvent(const scada::Event& event) {
   }
 
   if (inserted && !event.node_id.is_null()) {
-    ItemEventData& item_event_data = item_unacked_events_[event.node_id];
-    item_event_data.events.insert(&contained_event);
-    ItemEventsChanged(observers_, event.node_id, item_event_data.events);
-    ItemEventsChanged(item_event_data.observers, event.node_id,
-                      item_event_data.events);
+    NodeEntry& entry = node_events_[event.node_id];
+    entry.events.insert(&contained_event);
+    NodeEventsChanged(observers_, event.node_id, entry.events);
+    NodeEventsChanged(entry.observers, event.node_id, entry.events);
   }
 
   UpdateAlerting();
@@ -28,10 +26,10 @@ const scada::Event* EventStorage::AddUnackedEvent(const scada::Event& event) {
   return &contained_event;
 }
 
-EventStorage::EventContainer::node_type EventStorage::RemoveUnackedEvent(
+EventStorage::EventContainer::node_type EventStorage::Remove(
     const scada::Event& event) {
-  auto i = unacked_events_.find(event.acknowledge_id);
-  if (i == unacked_events_.end())
+  auto i = events_.find(event.acknowledge_id);
+  if (i == events_.end())
     return {};
 
   scada::Event& contained_event = i->second;
@@ -39,55 +37,52 @@ EventStorage::EventContainer::node_type EventStorage::RemoveUnackedEvent(
   contained_event = event;
 
   if (!contained_event.node_id.is_null()) {
-    auto p = item_unacked_events_.find(contained_event.node_id);
-    if (p != item_unacked_events_.end()) {
-      ItemEventData& item_event_data = p->second;
+    auto p = node_events_.find(contained_event.node_id);
+    if (p != node_events_.end()) {
+      NodeEntry& entry = p->second;
 
-      auto j = item_event_data.events.find(&contained_event);
-      assert(j != item_event_data.events.end());
-      item_event_data.events.erase(j);
+      auto j = entry.events.find(&contained_event);
+      assert(j != entry.events.end());
+      entry.events.erase(j);
 
-      ItemEventsChanged(observers_, contained_event.node_id,
-                        item_event_data.events);
-      ItemEventsChanged(item_event_data.observers, contained_event.node_id,
-                        item_event_data.events);
+      NodeEventsChanged(observers_, contained_event.node_id, entry.events);
+      NodeEventsChanged(entry.observers, contained_event.node_id, entry.events);
 
-      if (item_event_data.events.empty() && item_event_data.observers.empty()) {
-        item_unacked_events_.erase(p);
+      if (entry.events.empty() && entry.observers.empty()) {
+        node_events_.erase(p);
       }
     }
   }
 
-  auto node = unacked_events_.extract(i);
+  auto node = events_.extract(i);
 
   UpdateAlerting();
 
   return node;
 }
 
-void EventStorage::ClearUnackedEvents() {
-  for (auto i = item_unacked_events_.begin();
-       i != item_unacked_events_.end();) {
-    auto& item_id = i->first;
-    ItemEventData& data = i->second;
+void EventStorage::Clear() {
+  for (auto i = node_events_.begin(); i != node_events_.end();) {
+    auto& node_id = i->first;
+    NodeEntry& entry = i->second;
 
-    if (data.observers.empty()) {
-      item_unacked_events_.erase(i++);
+    if (entry.observers.empty()) {
+      node_events_.erase(i++);
 
     } else {
-      data.events.clear();
-      ItemEventsChanged(observers_, item_id, data.events);
-      ItemEventsChanged(data.observers, item_id, data.events);
+      entry.events.clear();
+      NodeEventsChanged(observers_, node_id, entry.events);
+      NodeEventsChanged(entry.observers, node_id, entry.events);
       ++i;
     }
   }
 
-  unacked_events_.clear();
+  events_.clear();
 
   UpdateAlerting();
 }
 
-void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
+void EventStorage::Update(base::span<const scada::Event> events) {
   // WARNING: Observers rely on stored event pointers. When event is deleted
   // from the storage it must be preserved while observers process the message.
   std::vector<EventContainer::node_type> deleted_nodes;
@@ -96,7 +91,7 @@ void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
 
   for (auto& event : events) {
     if (event.acked) {
-      if (auto node = RemoveUnackedEvent(event)) {
+      if (auto node = Remove(event)) {
         // Observers must be notified with updates events, having `acked` flag
         // set.
         node.mapped() = event;
@@ -104,7 +99,7 @@ void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
         deleted_nodes.emplace_back(std::move(node));
       }
     } else {
-      if (auto* added_event = AddUnackedEvent(event)) {
+      if (auto* added_event = Add(event)) {
         notify_events.emplace_back(added_event);
       }
     }
@@ -120,15 +115,15 @@ void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
 }
 
 // static
-void EventStorage::ItemEventsChanged(const ObserverSet& observers,
-                                     const scada::NodeId& item_id,
+void EventStorage::NodeEventsChanged(const ObserverSet& observers,
+                                     const scada::NodeId& node_id,
                                      const EventSet& events) {
   for (auto i = observers.begin(); i != observers.end();)
-    (*i++)->OnItemEventsChanged(item_id, events);
+    (*i++)->OnItemEventsChanged(node_id, events);
 }
 
 void EventStorage::UpdateAlerting() {
-  bool alerting = !unacked_events_.empty();
+  bool alerting = !events_.empty();
 
   if (alerting_ == alerting) {
     return;
