@@ -83,11 +83,8 @@ void EventStorage::ClearUnackedEvents() {
   }
 
   unacked_events_.clear();
-  UpdateAlerting();
 
-  for (auto i = observers_.begin(); i != observers_.end();) {
-    (*i++)->OnAllEventsAcknowledged();
-  }
+  UpdateAlerting();
 }
 
 void EventStorage::OnSystemEvents(base::span<const scada::Event> events) {
@@ -128,4 +125,18 @@ void EventStorage::ItemEventsChanged(const ObserverSet& observers,
                                      const EventSet& events) {
   for (auto i = observers.begin(); i != observers.end();)
     (*i++)->OnItemEventsChanged(item_id, events);
+}
+
+void EventStorage::UpdateAlerting() {
+  bool alerting = !unacked_events_.empty();
+
+  if (alerting_ == alerting) {
+    return;
+  }
+
+  alerting_ = alerting;
+
+  for (auto i = observers_.begin(); i != observers_.end();) {
+    (*i++)->OnAllEventsAcknowledged();
+  }
 }

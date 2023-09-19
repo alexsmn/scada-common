@@ -54,7 +54,7 @@ class EventStorage {
   EventContainer::node_type RemoveUnackedEvent(const scada::Event& event);
 
   // This should be in an observer class.
-  void UpdateAlerting() { alerting_ = !unacked_events_.empty(); }
+  void UpdateAlerting();
 
   static void ItemEventsChanged(const ObserverSet& observers,
                                 const scada::NodeId& item_id,
