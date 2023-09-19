@@ -2,10 +2,7 @@
 
 #include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
-#include "common/event_set.h"
-#include "common/event_storage.h"
-#include "common/node_event_provider.h"
-#include "scada/history_service.h"
+#include "events/node_event_provider.h"
 
 namespace scada {
 class HistoryService;
@@ -16,6 +13,7 @@ class MonitoredItemService;
 class Executor;
 class EventAckQueue;
 class EventObserver;
+class EventStorage;
 class Logger;
 
 struct EventFetcherContext {
@@ -38,34 +36,23 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void OnChannelOpened(const scada::NodeId& user_id);
   void OnChannelClosed();
 
-  void AcknowledgeAll();
-
   // NodeEventProvider
   virtual unsigned severity_min() const override { return severity_min_; }
   virtual void SetSeverityMin(unsigned severity) override;
-  virtual const EventContainer& unacked_events() const override {
-    return event_storage_.unacked_events();
-  }
+  virtual const EventContainer& unacked_events() const;
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const override;
   virtual void AcknowledgeEvent(unsigned ack_id) override;
   virtual bool IsAcking() const override;
   virtual bool IsAlerting(const scada::NodeId& item_id) const override;
-  virtual void AddObserver(EventObserver& observer) override {
-    event_storage_.AddObserver(observer);
-  }
-  virtual void RemoveObserver(EventObserver& observer) override {
-    event_storage_.RemoveObserver(observer);
-  }
+  virtual void AddObserver(EventObserver& observer) override;
+  virtual void RemoveObserver(EventObserver& observer) override;
   virtual void AddItemObserver(const scada::NodeId& item_id,
-                               EventObserver& observer) override {
-    event_storage_.AddItemObserver(item_id, observer);
-  }
+                               EventObserver& observer) override;
   virtual void RemoveItemObserver(const scada::NodeId& item_id,
-                                  EventObserver& observer) override {
-    event_storage_.RemoveItemObserver(item_id, observer);
-  }
+                                  EventObserver& observer) override;
   virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) override;
+  virtual void AcknowledgeAllEvents() override;
 
  private:
   void Update();
@@ -83,13 +70,3 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   // Used to cancel the historical request.
   base::WeakPtrFactory<EventFetcher> weak_factory_{this};
 };
-
-inline const EventSet* EventFetcher::GetItemUnackedEvents(
-    const scada::NodeId& item_id) const {
-  return event_storage_.GetItemUnackedEvents(item_id);
-}
-
-inline bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
-  const EventSet* events = GetItemUnackedEvents(item_id);
-  return events && !events->empty();
-}

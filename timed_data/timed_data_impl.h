@@ -1,12 +1,12 @@
 #pragma once
 
 #include "base/memory/weak_ptr.h"
-#include "common/event_observer.h"
 #include "common/history_util.h"
+#include "events/event_observer.h"
+#include "node_service/node_observer.h"
 #include "scada/aggregate_filter.h"
 #include "scada/history_service.h"
 #include "scada/monitored_item.h"
-#include "node_service/node_observer.h"
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
 

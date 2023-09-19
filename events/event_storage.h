@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/node_event_provider.h"
+#include "events/event_set.h"
+#include "events/node_event_provider.h"
 
 #include <map>
 #include <set>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/node_event_provider.h"
+#include "events/node_event_provider.h"
 
 #include <gmock/gmock.h>
 
@@ -26,6 +26,7 @@ class MockNodeEventProvider : public NodeEventProvider {
               AcknowledgeItemEvents,
               (const scada::NodeId& item_id),
               (override));
+  MOCK_METHOD(void, AcknowledgeAllEvents, (), (override));
 
   MOCK_METHOD(bool, IsAcking, (), (const override));
   MOCK_METHOD(bool,

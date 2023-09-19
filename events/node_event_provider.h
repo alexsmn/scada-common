@@ -1,9 +1,15 @@
 #pragma once
 
-#include "common/event_set.h"
-#include "scada/node_id.h"
+#include "scada/event.h"
+
+#include <map>
+
+namespace scada {
+class NodeId;
+}
 
 class EventObserver;
+class EventSet;
 
 class NodeEventProvider {
  public:
@@ -20,6 +26,7 @@ class NodeEventProvider {
 
   virtual void AcknowledgeEvent(unsigned ack_id) = 0;
   virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) = 0;
+  virtual void AcknowledgeAllEvents() = 0;
 
   virtual bool IsAcking() const = 0;
   virtual bool IsAlerting(const scada::NodeId& item_id) const = 0;

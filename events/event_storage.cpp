@@ -1,6 +1,6 @@
-#include "common/event_storage.h"
+#include "events/event_storage.h"
 
-#include "common/event_observer.h"
+#include "events/event_observer.h"
 
 const scada::Event* EventStorage::AddUnackedEvent(const scada::Event& event) {
   auto [iter, inserted] =

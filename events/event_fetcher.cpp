@@ -1,10 +1,11 @@
-#include "common/event_fetcher.h"
+#include "events/event_fetcher.h"
 
 #include "base/executor.h"
 #include "base/logger.h"
 #include "base/range_util.h"
-#include "common/event_ack_queue.h"
-#include "common/event_observer.h"
+#include "events/event_ack_queue.h"
+#include "events/event_observer.h"
+#include "events/event_storage.h"
 #include "scada/history_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
@@ -36,6 +37,38 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 }
 
 EventFetcher::~EventFetcher() = default;
+
+const EventFetcher::EventContainer& EventFetcher::unacked_events() const {
+  return event_storage_.unacked_events();
+}
+
+void EventFetcher::AddObserver(EventObserver& observer) {
+  event_storage_.AddObserver(observer);
+}
+
+void EventFetcher::RemoveObserver(EventObserver& observer) {
+  event_storage_.RemoveObserver(observer);
+}
+
+void EventFetcher::AddItemObserver(const scada::NodeId& item_id,
+                                   EventObserver& observer) {
+  event_storage_.AddItemObserver(item_id, observer);
+}
+
+void EventFetcher::RemoveItemObserver(const scada::NodeId& item_id,
+                                      EventObserver& observer) {
+  event_storage_.RemoveItemObserver(item_id, observer);
+}
+
+const EventSet* EventFetcher::GetItemUnackedEvents(
+    const scada::NodeId& item_id) const {
+  return event_storage_.GetItemUnackedEvents(item_id);
+}
+
+bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
+  const EventSet* events = GetItemUnackedEvents(item_id);
+  return events && !events->empty();
+}
 
 void EventFetcher::SetSeverityMin(unsigned severity) {
   if (severity < scada::kSeverityMin || severity > scada::kSeverityMax)
@@ -91,7 +124,7 @@ void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
   event_ack_queue_.Ack(ack_id);
 }
 
-void EventFetcher::AcknowledgeAll() {
+void EventFetcher::AcknowledgeAllEvents() {
   for (const auto& event :
        event_storage_.unacked_events() | std::views::values) {
     AcknowledgeEvent(event.acknowledge_id);

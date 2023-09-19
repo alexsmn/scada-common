@@ -1,10 +1,10 @@
-#include "common/event_fetcher_builder.h"
+#include "events/event_fetcher_builder.h"
 
 #include "base/nested_logger.h"
-#include "common/event_ack_queue.h"
-#include "common/event_fetcher.h"
-#include "common/event_fetcher_notifier.h"
-#include "common/event_storage.h"
+#include "events/event_ack_queue.h"
+#include "events/event_fetcher.h"
+#include "events/event_fetcher_notifier.h"
+#include "events/event_storage.h"
 
 namespace internal {
 

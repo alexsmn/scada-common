@@ -1,12 +1,12 @@
 #pragma once
 
 #include "common/data_value_util.h"
-#include "common/event_set.h"
 #include "common/format.h"
+#include "events/event_set.h"
+#include "node_service/node_ref.h"
 #include "scada/aggregate_filter.h"
 #include "scada/data_value.h"
 #include "scada/status.h"
-#include "node_service/node_ref.h"
 #include "timed_data/timed_data.h"
 #include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_data_property.h"

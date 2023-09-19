@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/event_fetcher.h"
+#include "events/event_fetcher.h"
 #include "scada/session_service.h"
 
 class EventFetcherNotifier {

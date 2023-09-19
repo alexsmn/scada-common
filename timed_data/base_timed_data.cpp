@@ -6,8 +6,8 @@
 #include "base/format_time.h"
 #include "base/strings/stringprintf.h"
 #include "common/data_value_util.h"
-#include "common/event_fetcher.h"
 #include "common/interval_util.h"
+#include "events/node_event_provider.h"
 #include "timed_data/timed_data_spec.h"
 #include "timed_data/timed_data_util.h"
 
