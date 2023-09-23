@@ -4,7 +4,7 @@
 
 // Replace with `std::span`.
 #include "base/containers/span.h"
-#include "common/interval_util.h"
+#include "base/interval_util.h"
 #include "timed_data/timed_data.h"
 
 #include <algorithm>
@@ -50,8 +50,8 @@ template <class T>
 inline std::optional<Interval<T>> FindFirstGap(
     const std::vector<Interval<T>>& ranges,
     const std::vector<Interval<T>>& ready_ranges) {
-  assert(IsValidInterval(ranges));
-  assert(IsValidInterval(ready_ranges));
+  assert(AreValidIntervals(ranges));
+  assert(AreValidIntervals(ready_ranges));
   auto j = ready_ranges.begin();
   for (auto i = ranges.begin(); i != ranges.end(); ++i) {
     while (j != ready_ranges.end() && j->second <= i->first)
@@ -77,8 +77,8 @@ template <class T>
 inline std::optional<Interval<T>> FindLastGap(
     const std::vector<Interval<T>>& ranges,
     const std::vector<Interval<T>>& ready_ranges) {
-  assert(IsValidInterval(ranges));
-  assert(IsValidInterval(ready_ranges));
+  assert(AreValidIntervals(ranges));
+  assert(AreValidIntervals(ready_ranges));
   auto j = ready_ranges.rbegin();
   for (auto i = ranges.rbegin(); i != ranges.rend(); ++i) {
     while (j != ready_ranges.rend() && j->first >= i->second)

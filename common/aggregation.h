@@ -2,6 +2,7 @@
 
 #include "base/containers/span.h"
 #include "scada/data_value.h"
+#include "scada/date_time_range.h"
 #include "scada/node_id.h"
 
 #include <functional>

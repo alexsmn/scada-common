@@ -4,6 +4,7 @@
 #include "common/data_value_util.h"
 #include "node_service/node_ref.h"
 #include "scada/data_value.h"
+#include "scada/date_time_range.h"
 #include "scada/status.h"
 #include "scada/write_flags.h"
 

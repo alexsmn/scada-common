@@ -1,7 +1,7 @@
 #include "timed_data/timed_data_spec.h"
 
+#include "base/interval_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "common/interval_util.h"
 #include "model/data_items_node_ids.h"
 #include "node_service/node_format.h"
 #include "node_service/node_util.h"
@@ -117,7 +117,7 @@ bool TimedDataSpec::range_ready(const scada::DateTimeRange& range) const {
     return true;
 
   const auto& ready_ranges = data_->GetReadyRanges();
-  return IntervalContains(ready_ranges, range);
+  return IntervalsContain(ready_ranges, range);
 }
 
 TimedDataSpec& TimedDataSpec::operator=(const TimedDataSpec& other) {
