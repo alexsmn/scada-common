@@ -1,11 +1,13 @@
 #pragma once
 
-#include "base/containers/span.h"
 #include "scada/data_value.h"
 
 #include <algorithm>
+#include <functional>
+#include <span>
 #include <vector>
 
+// TODO: Remove this define and `vector` include.
 using DataValues = std::vector<scada::DataValue>;
 
 struct DataValueTimeLess {
@@ -19,18 +21,18 @@ inline scada::DateTime GetSourceTimestamp(const scada::DataValue& data_value) {
 }
 
 // Checks if the `values` are sorted with no duplicates.
-inline bool IsTimeSorted(base::span<const scada::DataValue> values) {
+inline bool IsTimeSorted(std::span<const scada::DataValue> values) {
   return std::ranges::adjacent_find(values, std::greater_equal{},
                                     &GetSourceTimestamp) == values.end();
 }
 
 // Checks if the `values` are sorted in reverse order with no duplicates.
-inline bool IsReverseTimeSorted(base::span<const scada::DataValue> values) {
+inline bool IsReverseTimeSorted(std::span<const scada::DataValue> values) {
   return std::adjacent_find(values.rbegin(), values.rend(),
                             std::not_fn(DataValueTimeLess{})) == values.rend();
 }
 
-inline std::size_t LowerBound(base::span<const scada::DataValue> values,
+inline std::size_t LowerBound(std::span<const scada::DataValue> values,
                               scada::DateTime source_timestamp) {
   assert(IsTimeSorted(values));
   auto i = std::ranges::lower_bound(values, source_timestamp, std::less{},
@@ -38,7 +40,7 @@ inline std::size_t LowerBound(base::span<const scada::DataValue> values,
   return i - values.begin();
 }
 
-inline std::size_t UpperBound(base::span<const scada::DataValue> values,
+inline std::size_t UpperBound(std::span<const scada::DataValue> values,
                               scada::DateTime source_timestamp) {
   assert(IsTimeSorted(values));
   auto i = std::ranges::upper_bound(values, source_timestamp, std::less{},
@@ -46,7 +48,7 @@ inline std::size_t UpperBound(base::span<const scada::DataValue> values,
   return i - values.begin();
 }
 
-inline std::size_t ReverseUpperBound(base::span<const scada::DataValue> values,
+inline std::size_t ReverseUpperBound(std::span<const scada::DataValue> values,
                                      scada::DateTime source_timestamp) {
   assert(IsReverseTimeSorted(values));
   auto i = std::ranges::upper_bound(values, source_timestamp, std::greater{},

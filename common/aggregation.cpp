@@ -1,5 +1,6 @@
 #include "common/aggregation.h"
 
+#include "base/base_span_compatibility.h"
 #include "common/data_value_util.h"
 #include "scada/aggregate_filter.h"
 #include "scada/data_value.h"
@@ -169,8 +170,9 @@ Aggregator GetAggregator(const NodeId& aggregate_type,
 DateTime GetLocalAggregateStartTime() {
   DateTime result;
   DateTime::Exploded exploded = {2000, 1, 0, 1};
-  if (!DateTime::FromLocalExploded(exploded, &result))
+  if (!DateTime::FromLocalExploded(exploded, &result)) {
     result = DateTime::UnixEpoch();
+  }
   return result;
 }
 
@@ -190,8 +192,9 @@ void AggregateState::Process(base::span<const scada::DataValue> raw_span) {
                                                 aggregation.start_time,
                                                 aggregation.interval);
 
-    auto count = forward ? UpperBound(raw_span, interval.second)
-                         : ReverseUpperBound(raw_span, interval.first);
+    auto count = forward
+                     ? UpperBound(AsStdSpan(raw_span), interval.second)
+                     : ReverseUpperBound(AsStdSpan(raw_span), interval.first);
     assert(count != 0);
 
     if (aggregator_interval != interval) {

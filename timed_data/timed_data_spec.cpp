@@ -209,16 +209,16 @@ std::string TimedDataSpec::formula() const {
 }
 
 void TimedDataSpec::OnTimedDataCorrections(size_t count,
-                                           const scada::DataValue* tvqs) {
+                                           const scada::DataValue* values) {
   if (!correction_handler)
     return;
 
-  auto data_values = base::span<const scada::DataValue>{tvqs, count};
+  auto data_values = std::span<const scada::DataValue>{values, count};
   auto start = LowerBound(data_values, range_.first);
   auto end = UpperBound(data_values, range_.second);
 
   if (start != end)
-    correction_handler(end - start, tvqs + start);
+    correction_handler(end - start, values + start);
 }
 
 void TimedDataSpec::OnTimedDataReady() {
