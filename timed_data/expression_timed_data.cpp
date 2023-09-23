@@ -70,7 +70,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
   assert(!range.first.is_null());
   assert(range.second.is_null() || range.first <= range.second);
 
-  std::vector<DataValues::const_iterator> iters(operands_.size());
+  std::vector<size_t> iters(operands_.size());
 
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
@@ -79,12 +79,12 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
     const DataValues* values = operand.GetValues();
     assert(values);
 
-    DataValues::const_iterator& iterator = iters[i];
+    size_t& iterator = iters[i];
     iterator = LowerBound(*values, range.first);
 
     auto& initial_value = expression_->items[i].value;
-    if (iterator != values->end()) {
-      initial_value = *iterator;
+    if (iterator != values->size()) {
+      initial_value = (*values)[iterator];
     } else {
       assert(values->back().source_timestamp <= range.first);
       initial_value = values->back();
@@ -112,19 +112,21 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
         update_time = item.value.source_timestamp;
 
       // Check iterator reached end.
-      DataValues::const_iterator& iterator = iters[i];
-      if (iterator == values->end())
+      size_t& iterator = iters[i];
+      if (iterator == values->size()) {
         continue;
-      const base::Time& time = iterator->source_timestamp;
+      }
+      const base::Time& time = (*values)[iterator].source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
-      if (!range.second.is_null() && time > range.second)
+      if (!range.second.is_null() && time > range.second) {
         continue;
+      }
 
       calculation_finished = false;
 
       // Setup operand value.
-      item.value = *iterator;
+      item.value = (*values)[iterator];
 
       // Update total qualifier.
       if (item.value.qualifier.bad())

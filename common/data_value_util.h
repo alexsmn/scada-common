@@ -55,31 +55,3 @@ inline std::size_t ReverseUpperBound(base::span<const scada::DataValue> values,
                             });
   return i - values.begin();
 }
-
-inline DataValues::const_iterator LowerBound(const DataValues& values,
-                                             base::Time time) {
-  return values.begin() +
-         LowerBound(
-             base::span<const scada::DataValue>{values.data(), values.size()},
-             time);
-}
-
-inline DataValues::const_iterator UpperBound(const DataValues& values,
-                                             base::Time time) {
-  return values.begin() +
-         UpperBound(
-             base::span<const scada::DataValue>{values.data(), values.size()},
-             time);
-}
-
-inline DataValues::iterator LowerBound(DataValues& values, base::Time time) {
-  return values.begin() +
-         LowerBound(base::span<scada::DataValue>{values.data(), values.size()},
-                    time);
-}
-
-inline DataValues::iterator UpperBound(DataValues& values, base::Time time) {
-  return values.begin() +
-         UpperBound(base::span<scada::DataValue>{values.data(), values.size()},
-                    time);
-}

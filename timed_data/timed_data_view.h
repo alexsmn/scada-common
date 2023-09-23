@@ -68,17 +68,15 @@ inline scada::DataValue TimedDataView::GetValueAt(
     const base::Time& time) const {
   auto i = LowerBound(values_, time);
 
-  if (i != values_.end() && i->source_timestamp == time)
-    return *i;
+  if (i != values_.size() && values_[i].source_timestamp == time) {
+    return values_[i];
+  }
 
-  if (i == values_.begin())
+  if (i == 0) {
     return {};
+  }
 
-  --i;
-  if (i == values_.end())
-    return {};
-
-  return *i;
+  return values_[i - 1];
 }
 
 inline void TimedDataView::AddObserver(TimedDataObserver& observer,
@@ -165,7 +163,7 @@ inline bool TimedDataView::UpdateHistory(const scada::DataValue& value) {
   if (value.source_timestamp.is_null())
     return false;
 
-  // An optimization for the back inserts.
+  // An optimization for tail inserts.
   if (values_.empty() ||
       values_.back().source_timestamp < value.source_timestamp) {
     values_.emplace_back(value);
@@ -173,15 +171,17 @@ inline bool TimedDataView::UpdateHistory(const scada::DataValue& value) {
   }
 
   auto i = LowerBound(values_, value.source_timestamp);
-  if (i != values_.end() && i->source_timestamp == value.source_timestamp) {
-    if (i->server_timestamp > value.server_timestamp)
+  if (i != values_.size() &&
+      values_[i].source_timestamp == value.source_timestamp) {
+    if (values_[i].server_timestamp > value.server_timestamp) {
       return false;
+    }
 
-    *i = value;
+    values_[i] = value;
     return true;
 
   } else {
-    values_.insert(i, value);
+    values_.insert(values_.begin() + i, value);
     return true;
   }
 }
@@ -191,9 +191,9 @@ inline void TimedDataView::Clear(const scada::DateTimeRange& range) {
   assert(range.second.is_null() || range.first <= range.second);
 
   auto i = LowerBound(values_, range.first);
-  auto j = range.second.is_null() ? values_.end()
+  auto j = range.second.is_null() ? values_.size()
                                   : UpperBound(values_, range.second);
-  values_.erase(i, j);
+  values_.erase(values_.begin() + i, values_.begin() + j);
 }
 
 inline void TimedDataView::Dump(std::ostream& stream) const {
@@ -227,7 +227,8 @@ inline void TimedDataView::MergeValues(std::span<scada::DataValue> values) {
   // not overlapping other values, then insert them as whole.
   if (auto i = FindInsertPosition(values_, values.front().source_timestamp,
                                   values.back().source_timestamp)) {
-    values_.insert(*i, std::make_move_iterator(values.begin()),
+    values_.insert(values_.begin() + *i,
+                   std::make_move_iterator(values.begin()),
                    std::make_move_iterator(values.end()));
   } else {
     ReplaceSubrange(values_, {values.data(), values.size()},
