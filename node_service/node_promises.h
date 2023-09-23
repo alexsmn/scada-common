@@ -1,7 +1,7 @@
 #pragma once
 
-#include "scada/promise.h"
 #include "node_service/node_service.h"
+#include "scada/status_promise.h"
 
 inline promise<> FetchNode(const NodeRef& node) {
   if (node.fetched())
