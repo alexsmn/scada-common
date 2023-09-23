@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_value_util.h"
-#include "common/format.h"
+#include "common/value_format.h"
 #include "events/event_set.h"
 #include "node_service/node_ref.h"
 #include "scada/aggregate_filter.h"
@@ -61,12 +61,12 @@ class TimedDataSpec : private TimedDataObserver {
 
   NodeRef GetNode() const;
 
-  std::u16string GetCurrentString(int params = FORMAT_QUALITY |
-                                               FORMAT_UNITS) const;
+  std::u16string GetCurrentString(const ValueFormat& format = ValueFormat{
+                                      FORMAT_QUALITY | FORMAT_UNITS}) const;
   std::u16string GetValueString(const scada::Variant& value,
                                 scada::Qualifier qualifier,
-                                int params = FORMAT_QUALITY |
-                                             FORMAT_UNITS) const;
+                                const ValueFormat& format = ValueFormat{
+                                    FORMAT_QUALITY | FORMAT_UNITS}) const;
   std::u16string GetTitle() const;
   const EventSet* GetEvents() const;
 

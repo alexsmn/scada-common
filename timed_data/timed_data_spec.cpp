@@ -86,17 +86,19 @@ void TimedDataSpec::Connect(TimedDataService& service, const NodeRef& node) {
   SetData(service.GetNodeTimedData(node.node_id(), aggregate_filter_));
 }
 
-std::u16string TimedDataSpec::GetCurrentString(int params) const {
+std::u16string TimedDataSpec::GetCurrentString(
+    const ValueFormat& format) const {
   auto value = current();
-  return GetValueString(value.value, value.qualifier, params);
+  return GetValueString(value.value, value.qualifier, format);
 }
 
-std::u16string TimedDataSpec::GetValueString(const scada::Variant& value,
-                                             scada::Qualifier qualifier,
-                                             int params) const {
+std::u16string TimedDataSpec::GetValueString(
+    const scada::Variant& value,
+    scada::Qualifier qualifier,
+    const ValueFormat& format_options) const {
   if (data_) {
     if (auto node = GetNode())
-      return FormatValue(node, value, qualifier, params);
+      return FormatValue(node, value, qualifier, format_options.flags);
   }
 
   std::u16string string_value;

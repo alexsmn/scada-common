@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/value_format.h"
 #include "scada/localized_text.h"
 #include "scada/qualifier.h"
 #include "scada/string.h"
@@ -18,19 +19,12 @@ extern const char16_t kDefaultOpenLabel[];
 extern const char16_t kEmptyDisplayName[];
 extern const char16_t kUnknownDisplayName[];
 
-enum FormatFlags {
-  FORMAT_QUALITY = 0x0001,
-  FORMAT_STATUS = 0x0002,  // manual & locked modifiers
-  FORMAT_UNITS = 0x0004,
-  FORMAT_COLOR = 0x0008,
-
-  FORMAT_DEFAULT = FORMAT_QUALITY | FORMAT_STATUS | FORMAT_UNITS
-};
-
 std::string FormatFloat(double val, const char* fmt);
 
+// TODO: Move to a separate file.
 void EscapeColoredString(std::u16string& str);
 
+// TODO: Use `scada::BuiltInDataType` instead of `data_type_id`.
 bool StringToValue(std::string_view str,
                    const scada::NodeId& data_type_id,
                    scada::Variant& value);
