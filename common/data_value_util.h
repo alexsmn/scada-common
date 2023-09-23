@@ -14,44 +14,42 @@ struct DataValueTimeLess {
   }
 };
 
-inline bool IsTimeSorted(base::span<const scada::DataValue> values) {
-  // Sorted with no duplicates.
-  return std::adjacent_find(values.begin(), values.end(),
-                            std::not_fn(DataValueTimeLess{})) == values.end();
+inline scada::DateTime GetSourceTimestamp(const scada::DataValue& data_value) {
+  return data_value.source_timestamp;
 }
 
+// Checks if the `values` are sorted with no duplicates.
+inline bool IsTimeSorted(base::span<const scada::DataValue> values) {
+  return std::ranges::adjacent_find(values, std::greater_equal{},
+                                    &GetSourceTimestamp) == values.end();
+}
+
+// Checks if the `values` are sorted in reverse order with no duplicates.
 inline bool IsReverseTimeSorted(base::span<const scada::DataValue> values) {
-  // Sorted with no duplicates.
   return std::adjacent_find(values.rbegin(), values.rend(),
                             std::not_fn(DataValueTimeLess{})) == values.rend();
 }
 
 inline std::size_t LowerBound(base::span<const scada::DataValue> values,
-                              base::Time time) {
+                              scada::DateTime source_timestamp) {
   assert(IsTimeSorted(values));
-  auto i = std::lower_bound(values.begin(), values.end(), time,
-                            [](const scada::DataValue& value, base::Time time) {
-                              return value.source_timestamp < time;
-                            });
+  auto i = std::ranges::lower_bound(values, source_timestamp, std::less{},
+                                    &GetSourceTimestamp);
   return i - values.begin();
 }
 
 inline std::size_t UpperBound(base::span<const scada::DataValue> values,
-                              base::Time time) {
+                              scada::DateTime source_timestamp) {
   assert(IsTimeSorted(values));
-  auto i = std::upper_bound(values.begin(), values.end(), time,
-                            [](base::Time time, const scada::DataValue& value) {
-                              return time < value.source_timestamp;
-                            });
+  auto i = std::ranges::upper_bound(values, source_timestamp, std::less{},
+                                    &GetSourceTimestamp);
   return i - values.begin();
 }
 
 inline std::size_t ReverseUpperBound(base::span<const scada::DataValue> values,
-                                     base::Time time) {
+                                     scada::DateTime source_timestamp) {
   assert(IsReverseTimeSorted(values));
-  auto i = std::upper_bound(values.begin(), values.end(), time,
-                            [](base::Time time, const scada::DataValue& value) {
-                              return time > value.source_timestamp;
-                            });
+  auto i = std::ranges::upper_bound(values, source_timestamp, std::greater{},
+                                    &GetSourceTimestamp);
   return i - values.begin();
 }
