@@ -7,6 +7,7 @@
 #include "base/interval.h"
 #include "common/data_value_util.h"
 #include "common/formula_util.h"
+#include "events/event_set.h"
 #include "events/node_event_provider.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"

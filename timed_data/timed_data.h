@@ -10,7 +10,6 @@
 
 #include <cassert>
 #include <functional>
-#include <set>
 
 class EventSet;
 class TimedDataObserver;

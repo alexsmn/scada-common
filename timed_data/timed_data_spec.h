@@ -1,20 +1,19 @@
 #pragma once
 
-#include "common/data_value_util.h"
 #include "common/value_format.h"
-#include "events/event_set.h"
 #include "node_service/node_ref.h"
 #include "scada/aggregate_filter.h"
 #include "scada/data_value.h"
+#include "scada/date_time_range.h"
 #include "scada/status.h"
-#include "timed_data/timed_data.h"
 #include "timed_data/timed_data_observer.h"
-#include "timed_data/timed_data_property.h"
 
 #include <functional>
 #include <memory>
 #include <string>
 
+class EventSet;
+class PropertySet;
 class TimedDataService;
 
 namespace scada {
@@ -34,7 +33,7 @@ class TimedDataSpec : private TimedDataObserver {
 
   void SetAggregateFilter(scada::AggregateFilter filter);
 
-  // Specify |kTimedDataCurrentOnly| to get only current values.
+  void SetCurrentOnly();
   void SetFrom(base::Time from);
   void SetRange(const scada::DateTimeRange& range);
 
@@ -44,7 +43,7 @@ class TimedDataSpec : private TimedDataObserver {
 
   std::string formula() const;
   bool alerting() const;
-  bool connected() const { return data_ && !data_->IsError(); }
+  bool connected() const;
   base::Time from() const { return range_.first; }
   const scada::DateTimeRange& range() const { return range_; }
   base::Time ready_from() const;
@@ -56,7 +55,7 @@ class TimedDataSpec : private TimedDataObserver {
   base::Time change_time() const;
 
   // Historical data.
-  const DataValues* values() const;
+  const std::vector<scada::DataValue>* values() const;
   scada::DataValue GetValueAt(base::Time time) const;
 
   NodeRef GetNode() const;
@@ -114,5 +113,5 @@ class TimedDataSpec : private TimedDataObserver {
   std::shared_ptr<TimedData> data_;
 
   scada::AggregateFilter aggregate_filter_;
-  scada::DateTimeRange range_{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
+  scada::DateTimeRange range_;
 };

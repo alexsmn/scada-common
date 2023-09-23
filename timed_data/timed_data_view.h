@@ -12,7 +12,11 @@
 
 class TimedDataView final {
  public:
+  TimedDataView() = default;
   ~TimedDataView() { assert(!observers_.might_have_observers()); }
+
+  TimedDataView(const TimedDataView&) = delete;
+  TimedDataView& operator=(const TimedDataView&) = delete;
 
   const DataValues& values() const { return values_; }
 

@@ -5,12 +5,16 @@
 #include "model/data_items_node_ids.h"
 #include "node_service/node_format.h"
 #include "node_service/node_util.h"
+#include "timed_data/timed_data.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_util.h"
 
 #include <algorithm>
 
-TimedDataSpec::TimedDataSpec() {}
+TimedDataSpec::TimedDataSpec()
+    // Keep `range_` in the source file to void `kTimedDataCurrentOnly`
+    // includes.
+    : range_{kTimedDataCurrentOnly, kTimedDataCurrentOnly} {}
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
     : data_{other.data_}, range_{other.range_} {
@@ -36,6 +40,14 @@ TimedDataSpec::TimedDataSpec(TimedDataService& service,
 
 TimedDataSpec::~TimedDataSpec() {
   Reset();
+}
+
+bool TimedDataSpec::connected() const {
+  return data_ && !data_->IsError();
+}
+
+void TimedDataSpec::SetCurrentOnly() {
+  SetFrom(kTimedDataCurrentOnly);
 }
 
 void TimedDataSpec::SetFrom(base::Time from) {
