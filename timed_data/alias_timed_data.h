@@ -20,9 +20,9 @@ class AliasTimedData final : public TimedData {
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
   virtual const DataValues* GetValues() const override;
-  virtual void AddObserver(TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataObserver& observer,
                            const scada::DateTimeRange& range) override;
-  virtual void RemoveObserver(TimedDataDelegate& observer) override;
+  virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
@@ -44,7 +44,7 @@ class AliasTimedData final : public TimedData {
     DeferredData(std::string formula) : formula{std::move(formula)} {}
 
     const std::string formula;
-    std::map<TimedDataDelegate*, scada::DateTimeRange /*range*/> observers;
+    std::map<TimedDataObserver*, scada::DateTimeRange /*range*/> observers;
   };
 
   bool is_forwarded() const { return data_.index() == 1; }
@@ -65,6 +65,5 @@ class AliasTimedData final : public TimedData {
     return const_cast<AliasTimedData*>(this)->forwarded();
   }
 
-  std::variant<std::unique_ptr<DeferredData>, std::shared_ptr<TimedData>>
-      data_;
+  std::variant<std::unique_ptr<DeferredData>, std::shared_ptr<TimedData>> data_;
 };

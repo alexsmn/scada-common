@@ -27,9 +27,9 @@ class BaseTimedData : public TimedData {
     return &timed_data_view_.values();
   }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
-  virtual void AddObserver(TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataObserver& observer,
                            const scada::DateTimeRange& range) override;
-  virtual void RemoveObserver(TimedDataDelegate& observer) override;
+  virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual NodeRef GetNode() const override { return nullptr; }
   virtual const EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}

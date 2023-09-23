@@ -32,7 +32,7 @@ inline void Dump(std::ostream& stream, const scada::DateTimeRange& range) {
 
 inline void Dump(
     std::ostream& stream,
-    const std::map<TimedDataDelegate*, scada::DateTimeRange>& observer_ranges) {
+    const std::map<TimedDataObserver*, scada::DateTimeRange>& observer_ranges) {
   for (auto& p : observer_ranges) {
     Dump(stream, p.second);
     stream << std::endl;

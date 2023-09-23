@@ -8,7 +8,7 @@
 #include "scada/data_value.h"
 #include "scada/status.h"
 #include "timed_data/timed_data.h"
-#include "timed_data/timed_data_delegate.h"
+#include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 
 #include <functional>
@@ -23,7 +23,7 @@ class WriteFlags;
 
 class TimedData;
 
-class TimedDataSpec : private TimedDataDelegate {
+class TimedDataSpec : private TimedDataObserver {
  public:
   TimedDataSpec();
   TimedDataSpec(const TimedDataSpec& other);
@@ -102,7 +102,7 @@ class TimedDataSpec : private TimedDataDelegate {
  private:
   void SetData(std::shared_ptr<TimedData> data);
 
-  // TimedDataDelegate
+  // TimedDataObserver
   virtual void OnTimedDataCorrections(size_t count,
                                       const scada::DataValue* tvqs) final;
   virtual void OnTimedDataReady() final;

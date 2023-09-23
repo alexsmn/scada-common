@@ -5,8 +5,8 @@
 #include "base/format_time.h"
 #include "base/observer_list.h"
 #include "common/interval_util.h"
-#include "timed_data/timed_data_delegate.h"
 #include "timed_data/timed_data_dump_util.h"
+#include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 #include "timed_data/timed_data_util.h"
 
@@ -32,15 +32,15 @@ class TimedDataView final {
   // Update |ready_from_| to new |time| if new time is earlier.
   void SetReady(const scada::DateTimeRange& range);
 
-  const base::ObserverList<TimedDataDelegate>& observers() const {
+  const base::ObserverList<TimedDataObserver>& observers() const {
     return observers_;
   }
 
   const std::vector<scada::DateTimeRange>& ranges() const { return ranges_; }
 
-  void AddObserver(TimedDataDelegate& observer,
+  void AddObserver(TimedDataObserver& observer,
                    const scada::DateTimeRange& range);
-  void RemoveObserver(TimedDataDelegate& observer);
+  void RemoveObserver(TimedDataObserver& observer);
 
   void RebuildRanges();
   std::optional<scada::DateTimeRange> FindNextGap() const;
@@ -53,8 +53,8 @@ class TimedDataView final {
   void Dump(std::ostream& stream) const;
 
  private:
-  base::ObserverList<TimedDataDelegate> observers_;
-  std::map<TimedDataDelegate*, scada::DateTimeRange> observer_ranges_;
+  base::ObserverList<TimedDataObserver> observers_;
+  std::map<TimedDataObserver*, scada::DateTimeRange> observer_ranges_;
 
   std::vector<scada::DateTimeRange> ranges_;
   std::vector<scada::DateTimeRange> ready_ranges_;
@@ -81,7 +81,7 @@ inline scada::DataValue TimedDataView::GetValueAt(
   return *i;
 }
 
-inline void TimedDataView::AddObserver(TimedDataDelegate& observer,
+inline void TimedDataView::AddObserver(TimedDataObserver& observer,
                                        const scada::DateTimeRange& range) {
   assert(IsValidInterval(range));
 
@@ -97,7 +97,7 @@ inline void TimedDataView::AddObserver(TimedDataDelegate& observer,
   RebuildRanges();
 }
 
-inline void TimedDataView::RemoveObserver(TimedDataDelegate& observer) {
+inline void TimedDataView::RemoveObserver(TimedDataObserver& observer) {
   observers_.RemoveObserver(&observer);
 
   scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};

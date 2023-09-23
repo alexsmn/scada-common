@@ -1,7 +1,7 @@
 #pragma once
 
 #include "timed_data/base_timed_data.h"
-#include "timed_data/timed_data_delegate.h"
+#include "timed_data/timed_data_observer.h"
 
 #include <memory>
 #include <vector>
@@ -9,7 +9,7 @@
 class ScadaExpression;
 
 class ExpressionTimedData final : public BaseTimedData,
-                                  private TimedDataDelegate {
+                                  private TimedDataObserver {
  public:
   ExpressionTimedData(std::unique_ptr<ScadaExpression> expression,
                       std::vector<std::shared_ptr<TimedData>> operands);
@@ -37,7 +37,7 @@ class ExpressionTimedData final : public BaseTimedData,
   // TimedData
   virtual void OnRangesChanged() override;
 
-  // TimedDataDelegate
+  // TimedDataObserver
   virtual void OnPropertyChanged(const PropertySet& properties) override;
   virtual void OnTimedDataCorrections(size_t count,
                                       const scada::DataValue* tvqs) override;

@@ -11,13 +11,13 @@ class MockTimedData : public TimedData {
     using namespace testing;
 
     ON_CALL(*this, AddObserver(_, _))
-        .WillByDefault(Invoke([this](TimedDataDelegate& observer,
+        .WillByDefault(Invoke([this](TimedDataObserver& observer,
                                      const scada::DateTimeRange& range) {
           observers_.emplace_back(&observer);
         }));
 
     ON_CALL(*this, RemoveObserver(_))
-        .WillByDefault(Invoke([this](TimedDataDelegate& observer) {
+        .WillByDefault(Invoke([this](TimedDataObserver& observer) {
           std::erase(observers_, &observer);
         }));
   }
@@ -42,10 +42,10 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(void,
               AddObserver,
-              (TimedDataDelegate & observer, const scada::DateTimeRange& range),
+              (TimedDataObserver & observer, const scada::DateTimeRange& range),
               (override));
 
-  MOCK_METHOD(void, RemoveObserver, (TimedDataDelegate & observer), (override));
+  MOCK_METHOD(void, RemoveObserver, (TimedDataObserver & observer), (override));
 
   MOCK_METHOD(std::string, GetFormula, (bool aliases), (const override));
 
@@ -77,9 +77,9 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(std::string, DumpDebugInfo, (), (const override));
 
-  TimedDataDelegate* last_observer() {
+  TimedDataObserver* last_observer() {
     return observers_.empty() ? nullptr : observers_.back();
   }
 
-  std::vector<TimedDataDelegate*> observers_;
+  std::vector<TimedDataObserver*> observers_;
 };

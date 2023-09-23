@@ -46,7 +46,7 @@ const DataValues* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 
-void AliasTimedData::AddObserver(TimedDataDelegate& observer,
+void AliasTimedData::AddObserver(TimedDataObserver& observer,
                                  const scada::DateTimeRange& range) {
   if (is_forwarded())
     forwarded().AddObserver(observer, range);
@@ -54,7 +54,7 @@ void AliasTimedData::AddObserver(TimedDataDelegate& observer,
     deferred().observers.insert_or_assign(&observer, range);
 }
 
-void AliasTimedData::RemoveObserver(TimedDataDelegate& observer) {
+void AliasTimedData::RemoveObserver(TimedDataObserver& observer) {
   if (is_forwarded())
     forwarded().RemoveObserver(observer);
   else

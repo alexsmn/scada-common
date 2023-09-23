@@ -30,13 +30,13 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   return timed_data_view_.GetValueAt(time);
 }
 
-void BaseTimedData::AddObserver(TimedDataDelegate& observer,
+void BaseTimedData::AddObserver(TimedDataObserver& observer,
                                 const scada::DateTimeRange& range) {
   timed_data_view_.AddObserver(observer, range);
   UpdateRanges();
 }
 
-void BaseTimedData::RemoveObserver(TimedDataDelegate& observer) {
+void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
   timed_data_view_.RemoveObserver(observer);
   UpdateRanges();
 }

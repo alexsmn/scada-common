@@ -15,9 +15,9 @@ class ErrorTimedData final : public TimedData {
   }
   virtual base::Time GetChangeTime() const override { return {}; }
   virtual const DataValues* GetValues() const override { return nullptr; }
-  virtual void AddObserver(TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataObserver& observer,
                            const scada::DateTimeRange& range) override {}
-  virtual void RemoveObserver(TimedDataDelegate& observer) override {}
+  virtual void RemoveObserver(TimedDataObserver& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {
     return formula_;
   }

@@ -1,18 +1,18 @@
 #pragma once
 
+#include "base/time/time.h"
+#include "common/data_value_util.h"
+#include "node_service/node_ref.h"
+#include "scada/data_value.h"
+#include "scada/status.h"
+#include "scada/write_flags.h"
+
 #include <cassert>
 #include <functional>
 #include <set>
 
-#include "base/time/time.h"
-#include "common/data_value_util.h"
-#include "scada/data_value.h"
-#include "scada/status.h"
-#include "scada/write_flags.h"
-#include "node_service/node_ref.h"
-
 class EventSet;
-class TimedDataDelegate;
+class TimedDataObserver;
 
 extern const base::Time kTimedDataCurrentOnly;
 extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
@@ -31,9 +31,9 @@ class TimedData {
   virtual const DataValues* GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
-  virtual void AddObserver(TimedDataDelegate& observer,
+  virtual void AddObserver(TimedDataObserver& observer,
                            const scada::DateTimeRange& range) = 0;
-  virtual void RemoveObserver(TimedDataDelegate& observer) = 0;
+  virtual void RemoveObserver(TimedDataObserver& observer) = 0;
 
   virtual std::string GetFormula(bool aliases) const = 0;
   virtual scada::LocalizedText GetTitle() const = 0;
