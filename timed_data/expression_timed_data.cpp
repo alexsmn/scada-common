@@ -82,7 +82,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
   for (size_t i = 0; i < operands_.size(); ++i) {
     const auto& operand = *operands_[i];
 
-    const DataValues* values = operand.GetValues();
+    const std::vector<scada::DataValue>* values = operand.GetValues();
     assert(values);
 
     size_t& iterator = iters[i];
@@ -109,7 +109,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
 
     for (size_t i = 0; i < operands_.size(); ++i) {
       const auto& operand = *operands_[i];
-      const DataValues* values = operand.GetValues();
+      const std::vector<scada::DataValue>* values = operand.GetValues();
       assert(values);
 
       ScadaExpression::Item& item = expression_->items[i];

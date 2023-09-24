@@ -18,7 +18,7 @@ class TimedDataView final {
   TimedDataView(const TimedDataView&) = delete;
   TimedDataView& operator=(const TimedDataView&) = delete;
 
-  const DataValues& values() const { return values_; }
+  const std::vector<scada::DataValue>& values() const { return values_; }
 
   scada::DataValue GetValueAt(const base::Time& time) const;
 
@@ -64,7 +64,7 @@ class TimedDataView final {
   std::vector<scada::DateTimeRange> observed_ranges_;
   std::vector<scada::DateTimeRange> ready_ranges_;
 
-  DataValues values_;
+  std::vector<scada::DataValue> values_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedData")};
 };

@@ -5,10 +5,6 @@
 #include <algorithm>
 #include <functional>
 #include <span>
-#include <vector>
-
-// TODO: Remove this define and `vector` include.
-using DataValues = std::vector<scada::DataValue>;
 
 struct DataValueTimeLess {
   bool operator()(const scada::DataValue& a, const scada::DataValue& b) const {

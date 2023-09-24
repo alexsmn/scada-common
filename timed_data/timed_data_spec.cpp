@@ -174,7 +174,7 @@ bool TimedDataSpec::historical() const {
   return range_.first != kTimedDataCurrentOnly;
 }
 
-const DataValues* TimedDataSpec::values() const {
+const std::vector<scada::DataValue>* TimedDataSpec::values() const {
   return data_ ? data_->GetValues() : nullptr;
 }
 

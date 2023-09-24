@@ -15,7 +15,9 @@ class ErrorTimedData final : public TimedData {
     return {};
   }
   virtual base::Time GetChangeTime() const override { return {}; }
-  virtual const DataValues* GetValues() const override { return nullptr; }
+  virtual const std::vector<scada::DataValue>* GetValues() const override {
+    return nullptr;
+  }
   virtual void AddObserver(TimedDataObserver& observer) override {}
   virtual void RemoveObserver(TimedDataObserver& observer) override {}
   virtual void AddViewObserver(TimedDataViewObserver& observer,
