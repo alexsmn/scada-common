@@ -1,9 +1,5 @@
 #include "node_service/v3/node_model_impl.h"
 
-#include "base/strings/sys_string_conversions.h"
-#include "scada/attribute_service.h"
-#include "scada/monitored_item.h"
-#include "scada/standard_node_ids.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
@@ -329,32 +325,6 @@ void NodeModelImpl::SetError(const scada::Status& status) {
 
 void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {
   service_.OnFetchNode(node_id_, requested_status);
-}
-
-std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
-    scada::AttributeId attribute_id,
-    const scada::MonitoringParameters& params) const {
-  return nullptr;
-}
-
-void NodeModelImpl::Read(scada::AttributeId attribute_id,
-                         const NodeRef::ReadCallback& callback) const {
-  callback(scada::MakeReadError(scada::StatusCode::Bad_Disconnected));
-}
-
-void NodeModelImpl::Write(scada::AttributeId attribute_id,
-                          const scada::Variant& value,
-                          const scada::WriteFlags& flags,
-                          const scada::NodeId& user_id,
-                          const scada::StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad_Disconnected);
-}
-
-void NodeModelImpl::Call(const scada::NodeId& method_id,
-                         const std::vector<scada::Variant>& arguments,
-                         const scada::NodeId& user_id,
-                         const scada::StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad_Disconnected);
 }
 
 void NodeModelImpl::NotifyModelChanged() {

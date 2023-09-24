@@ -60,23 +60,3 @@ NodeRef ProxyNodeModel::GetChild(const scada::QualifiedName& child_name) const {
 void ProxyNodeModel::Subscribe(NodeRefObserver& observer) const {}
 
 void ProxyNodeModel::Unsubscribe(NodeRefObserver& observer) const {}
-
-std::shared_ptr<scada::MonitoredItem> ProxyNodeModel::CreateMonitoredItem(
-    scada::AttributeId attribute_id,
-    const scada::MonitoringParameters& params) const {
-  return {};
-}
-
-void ProxyNodeModel::Read(scada::AttributeId attribute_id,
-                          const NodeRef::ReadCallback& callback) const {}
-
-void ProxyNodeModel::Write(scada::AttributeId attribute_id,
-                           const scada::Variant& value,
-                           const scada::WriteFlags& flags,
-                           const scada::NodeId& user_id,
-                           const scada::StatusCallback& callback) const {}
-
-void ProxyNodeModel::Call(const scada::NodeId& method_id,
-                          const std::vector<scada::Variant>& arguments,
-                          const scada::NodeId& user_id,
-                          const scada::StatusCallback& callback) const {}

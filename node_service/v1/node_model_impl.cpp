@@ -1,13 +1,7 @@
 #include "node_service/v1/node_model_impl.h"
 
-#include "scada/attribute_service.h"
-#include "scada/method_service.h"
-#include "scada/monitored_item_service.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
-#include "node_service/node_service.h"
-
-#include "base/debug_util-inl.h"
 
 namespace v1 {
 
@@ -195,55 +189,6 @@ void NodeModelImpl::OnNodeDeleted() {
   node_ = nullptr;
 
   BaseNodeModel::OnNodeDeleted();
-}
-
-std::shared_ptr<scada::MonitoredItem> NodeModelImpl::CreateMonitoredItem(
-    scada::AttributeId attribute_id,
-    const scada::MonitoringParameters& params) const {
-  return monitored_item_service_.CreateMonitoredItem({node_id_, attribute_id},
-                                                     params);
-}
-
-void NodeModelImpl::Read(scada::AttributeId attribute_id,
-                         const NodeRef::ReadCallback& callback) const {
-  auto inputs = std::make_shared<std::vector<scada::ReadValueId>>();
-  inputs->emplace_back(scada::ReadValueId{node_id_, attribute_id});
-
-  attribute_service_.Read(
-      scada::ServiceContext::default_instance(), inputs,
-      [callback](scada::Status&& status,
-                 std::vector<scada::DataValue>&& values) {
-        if (!status)
-          return callback(scada::MakeReadError(status.code()));
-
-        // Must be guaranteed above.
-        assert(values.size() == 1);
-        auto& value = values.front();
-        callback(std::move(value));
-      });
-}
-
-void NodeModelImpl::Write(scada::AttributeId attribute_id,
-                          const scada::Variant& value,
-                          const scada::WriteFlags& flags,
-                          const scada::NodeId& user_id,
-                          const scada::StatusCallback& callback) const {
-  auto inputs = std::make_shared<std::vector<scada::WriteValue>>();
-  inputs->emplace_back(scada::WriteValue{node_id_, attribute_id, value, flags});
-
-  attribute_service_.Write(
-      scada::ServiceContext::default_instance(), inputs,
-      [callback](scada::Status&& status,
-                 std::vector<scada::StatusCode>&& results) {
-        callback(status ? std::move(results.front()) : std::move(status));
-      });
-}
-
-void NodeModelImpl::Call(const scada::NodeId& method_id,
-                         const std::vector<scada::Variant>& arguments,
-                         const scada::NodeId& user_id,
-                         const scada::StatusCallback& callback) const {
-  method_service_.Call(node_id_, method_id, arguments, user_id, callback);
 }
 
 scada::node NodeModelImpl::GetScadaNode() const {

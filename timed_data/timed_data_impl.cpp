@@ -43,14 +43,8 @@ void TimedDataImpl::Init(NodeRef node) {
   if (!aggregate_filter_.is_null())
     params.filter = aggregate_filter_;
 
-  monitored_value_ =
-      node_.CreateMonitoredItem(scada::AttributeId::Value, params);
-  if (!monitored_value_) {
-    Delete();
-    return;
-  }
-
-  monitored_value_->Subscribe(
+  monitored_item_.subscribe_value(
+      node_.scada_node(), params,
       static_cast<scada::DataChangeHandler>(BindCancelation(
           weak_from_this(), [this](const scada::DataValue& data_value) {
             OnChannelData(data_value);
@@ -262,7 +256,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
 
 void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
   if (data_value.qualifier.failed()) {
-    monitored_value_.reset();
+    monitored_item_.unsubscribe();
     Delete();
     return;
   }

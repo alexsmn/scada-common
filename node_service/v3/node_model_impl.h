@@ -61,20 +61,6 @@ class NodeModelImpl final : public BaseNodeModel,
   virtual std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
       bool forward) const override;
-  virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      scada::AttributeId attribute_id,
-      const scada::MonitoringParameters& params) const override;
-  virtual void Read(scada::AttributeId attribute_id,
-                    const NodeRef::ReadCallback& callback) const override;
-  virtual void Write(scada::AttributeId attribute_id,
-                     const scada::Variant& value,
-                     const scada::WriteFlags& flags,
-                     const scada::NodeId& user_id,
-                     const scada::StatusCallback& callback) const override;
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback) const override;
   virtual scada::node GetScadaNode() const override;
 
  protected:

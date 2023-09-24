@@ -1,7 +1,5 @@
 #include "node_service/static/static_node_model.h"
 
-#include "common/variable_handle.h"
-#include "scada/monitored_item_service.h"
 #include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
 
@@ -82,53 +80,12 @@ NodeRef StaticNodeModel::GetChild(
   return {};
 }
 
-std::shared_ptr<scada::MonitoredItem> StaticNodeModel::CreateMonitoredItem(
-    scada::AttributeId attribute_id,
-    const scada::MonitoringParameters& params) const {
-  if (service_.services_.monitored_item_service) {
-    if (auto monitored_item =
-            service_.services_.monitored_item_service->CreateMonitoredItem(
-                {node_state_.node_id, attribute_id}, params)) {
-      return monitored_item;
-    }
-  }
-
-  if (attribute_id == scada::AttributeId::Value &&
-      node_state_.node_class == scada::NodeClass::Variable) {
-    const auto variable = std::make_shared<scada::VariableHandle>();
-
-    if (const auto& optional_value = node_state_.attributes.value;
-        optional_value.has_value()) {
-      variable->set_last_value(scada::MakeReadResult(optional_value.value()));
-    }
-
-    return scada::CreateMonitoredVariable(variable);
-  }
-
-  return nullptr;
-}
-
-void StaticNodeModel::Read(scada::AttributeId attribute_id,
-                           const NodeRef::ReadCallback& callback) const {
-  callback(scada::MakeReadResult(
-      node_state_.attributes.value.value_or(scada::Variant{})));
-}
-
-void StaticNodeModel::Write(scada::AttributeId attribute_id,
-                            const scada::Variant& value,
-                            const scada::WriteFlags& flags,
-                            const scada::NodeId& user_id,
-                            const scada::StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad);
-}
-
-void StaticNodeModel::Call(const scada::NodeId& method_id,
-                           const std::vector<scada::Variant>& arguments,
-                           const scada::NodeId& user_id,
-                           const scada::StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad);
-}
-
 scada::node StaticNodeModel::GetScadaNode() const {
-  return {};
+  if (const auto& node_id =
+          GetAttribute(scada::AttributeId::NodeId).as_node_id();
+      !node_id.is_null()) {
+    return scada::client{service_.services_}.node(node_id);
+  } else {
+    return {};
+  }
 }

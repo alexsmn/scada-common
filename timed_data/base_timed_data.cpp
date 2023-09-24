@@ -4,6 +4,8 @@
 
 #include <sstream>
 
+#include "base/debug_util-inl.h"
+
 const scada::DateTime kTimedDataCurrentOnly = scada::DateTime::Max();
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};

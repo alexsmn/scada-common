@@ -82,7 +82,7 @@ TimedDataTest::TimedDataTest() {
 TEST_F(TimedDataTest, TsFormat) {
   node_value_variable_->ForwardData(scada::MakeReadResult(true));
 
-  TimedDataSpec spec{service_, NodeIdToScadaString(node_id)};
+  TimedDataSpec spec{service_, node_id};
 
   EXPECT_EQ(spec.GetCurrentString(), close_label);
 }

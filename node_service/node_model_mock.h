@@ -55,34 +55,5 @@ class MockNodeModel : public NodeModel {
   MOCK_METHOD(void, Subscribe, (NodeRefObserver & observer), (const));
   MOCK_METHOD(void, Unsubscribe, (NodeRefObserver & observer), (const));
 
-  MOCK_METHOD(std::shared_ptr<scada::MonitoredItem>,
-              CreateMonitoredItem,
-              (scada::AttributeId attribute_id,
-               const scada::MonitoringParameters& params),
-              (const));
-
-  MOCK_METHOD(void,
-              Read,
-              (scada::AttributeId attribute_id,
-               const NodeRef::ReadCallback& callback),
-              (const));
-
-  MOCK_METHOD(void,
-              Write,
-              (scada::AttributeId attribute_id,
-               const scada::Variant& value,
-               const scada::WriteFlags& flags,
-               const scada::NodeId& user_id,
-               const scada::StatusCallback& callback),
-              (const));
-
-  MOCK_METHOD(void,
-              Call,
-              (const scada::NodeId& method_id,
-               const std::vector<scada::Variant>& arguments,
-               const scada::NodeId& user_id,
-               const scada::StatusCallback& callback),
-              (const));
-
   MOCK_METHOD(scada::node, GetScadaNode, (), (const));
 };

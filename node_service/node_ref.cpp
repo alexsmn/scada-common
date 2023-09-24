@@ -1,9 +1,6 @@
 #include "node_service/node_ref.h"
 
 #include "node_service/node_model.h"
-#include "node_service/node_util.h"
-#include "scada/attribute_service.h"
-#include "scada/monitored_item.h"
 
 bool NodeRef::fetched() const {
   return !model_ || model_->GetFetchStatus().node_fetched;
@@ -163,44 +160,6 @@ void NodeRef::Subscribe(NodeRefObserver& observer) const {
 void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
   if (model_)
     model_->Unsubscribe(observer);
-}
-
-std::shared_ptr<scada::MonitoredItem> NodeRef::CreateMonitoredItem(
-    scada::AttributeId attribute_id,
-    const scada::MonitoringParameters& params) const {
-  return model_ ? model_->CreateMonitoredItem(attribute_id, params) : nullptr;
-}
-
-void NodeRef::Read(scada::AttributeId attribute_id,
-                   const ReadCallback& callback) const {
-  if (model_)
-    model_->Read(attribute_id, callback);
-  else
-    callback(scada::MakeReadError(scada::StatusCode::Bad_WrongNodeId));
-}
-
-void NodeRef::Write(scada::AttributeId attribute_id,
-                    const scada::Variant& value,
-                    const scada::WriteFlags& flags,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback) const {
-  if (model_)
-    model_->Write(attribute_id, value, flags, user_id, callback);
-  else
-    callback(scada::StatusCode::Bad_WrongNodeId);
-}
-
-promise<> NodeRef::call_packed(const scada::NodeId& method_id,
-                               const std::vector<scada::Variant>& arguments,
-                               const scada::NodeId& user_id) const {
-  if (!model_) {
-    return make_resolved_promise();
-  }
-
-  promise<> promise;
-  model_->Call(method_id, arguments, user_id,
-               scada::MakeStatusPromiseCallback(promise));
-  return promise;
 }
 
 scada::node NodeRef::scada_node() const {

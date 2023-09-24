@@ -15,8 +15,8 @@ class ErrorTimedData final : public TimedData {
     return {};
   }
   virtual base::Time GetChangeTime() const override { return {}; }
-  virtual const std::vector<scada::DataValue>* GetValues() const override {
-    return nullptr;
+  virtual std::span<const scada::DataValue> GetValues() const override {
+    return {};
   }
   virtual void AddObserver(TimedDataObserver& observer) override {}
   virtual void RemoveObserver(TimedDataObserver& observer) override {}
@@ -31,14 +31,6 @@ class ErrorTimedData final : public TimedData {
   virtual bool IsAlerting() const override { return false; }
   virtual const EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}
-  virtual void Write(double value,
-                     const scada::NodeId& user_id,
-                     const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const override;
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const StatusCallback& callback) const override;
   virtual std::string DumpDebugInfo() const override;
 
  private:
@@ -48,19 +40,6 @@ class ErrorTimedData final : public TimedData {
 
 inline scada::LocalizedText ErrorTimedData::GetTitle() const {
   return title_;
-}
-
-inline void ErrorTimedData::Write(double value,
-                                  const scada::NodeId& user_id,
-                                  const scada::WriteFlags& flags,
-                                  const StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad_Disconnected);
-}
-inline void ErrorTimedData::Call(const scada::NodeId& method_id,
-                                 const std::vector<scada::Variant>& arguments,
-                                 const scada::NodeId& user_id,
-                                 const StatusCallback& callback) const {
-  callback(scada::StatusCode::Bad_Disconnected);
 }
 
 inline const std::vector<scada::DateTimeRange>& ErrorTimedData::GetReadyRanges()

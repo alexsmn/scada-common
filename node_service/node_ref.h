@@ -6,18 +6,10 @@
 #include "scada/node.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
-#include "scada/status_promise.h"
-#include "scada/write_flags.h"
 
 #include <functional>
 #include <memory>
 #include <optional>
-
-namespace scada {
-class MonitoredItem;
-struct MonitoringParameters;
-using StatusCallback = std::function<void(Status&&)>;
-}  // namespace scada
 
 class NodeModel;
 class NodeRefObserver;
@@ -99,30 +91,7 @@ class NodeRef {
   void Subscribe(NodeRefObserver& observer) const;
   void Unsubscribe(NodeRefObserver& observer) const;
 
-  std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      scada::AttributeId attribute_id,
-      const scada::MonitoringParameters& params) const;
-
-  using ReadCallback = std::function<void(scada::DataValue&& value)>;
-  void Read(scada::AttributeId attribute_id,
-            const ReadCallback& callback) const;
-
-  void Write(scada::AttributeId attribute_id,
-             const scada::Variant& value,
-             const scada::WriteFlags& flags,
-             const scada::NodeId& user_id,
-             const scada::StatusCallback& callback) const;
-
   scada::node scada_node() const;
-
-  promise<> call_packed(const scada::NodeId& method_id,
-                        const std::vector<scada::Variant>& arguments,
-                        const scada::NodeId& user_id = {}) const;
-
-  template <class... Args>
-  promise<> call(const scada::NodeId& method_id, Args&&... args) const {
-    return call_packed(method_id, {std::forward<Args>(args)...}, {});
-  }
 
  private:
   std::shared_ptr<const NodeModel> model_;

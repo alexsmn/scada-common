@@ -4,6 +4,7 @@
 #include "events/event_observer.h"
 #include "node_service/node_observer.h"
 #include "scada/aggregate_filter.h"
+#include "scada/client_monitored_item.h"
 #include "scada/history_service.h"
 #include "scada/monitored_item.h"
 #include "timed_data/base_timed_data.h"
@@ -54,7 +55,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   const scada::AggregateFilter aggregate_filter_;
 
   NodeRef node_;
-  std::shared_ptr<scada::MonitoredItem> monitored_value_;
+  scada::monitored_item monitored_item_;
 
   bool querying_ = false;
   scada::DateTimeRange querying_range_;
