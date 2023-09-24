@@ -117,5 +117,9 @@ class TimedDataSpec final : private TimedDataObserver,
   std::shared_ptr<TimedData> data_;
 
   scada::AggregateFilter aggregate_filter_;
-  scada::DateTimeRange range_;
+  scada::DateTimeRange range_{GetTimedDataCurrentOnly(),
+                              GetTimedDataCurrentOnly()};
+
+  // Keep it defined in the source file to void heavy includes.
+  static base::Time GetTimedDataCurrentOnly();
 };

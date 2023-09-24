@@ -11,10 +11,7 @@
 
 #include <algorithm>
 
-TimedDataSpec::TimedDataSpec()
-    // Keep `range_` in the source file to void `kTimedDataCurrentOnly`
-    // includes.
-    : range_{kTimedDataCurrentOnly, kTimedDataCurrentOnly} {}
+TimedDataSpec::TimedDataSpec() = default;
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
     : data_{other.data_}, range_{other.range_} {
@@ -59,7 +56,9 @@ void TimedDataSpec::SetFrom(base::Time from) {
 }
 
 void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
+  assert(!range.second.is_null());
   assert(IsValidInterval(range));
+  assert(range.second == kTimedDataCurrentOnly || !IsEmptyInterval(range));
 
   if (range_ == range)
     return;
@@ -272,4 +271,9 @@ void TimedDataSpec::OnPropertyChanged(const PropertySet& properties) {
 
 std::string TimedDataSpec::DumpDebugInfo() const {
   return data_ ? data_->DumpDebugInfo() : std::string{};
+}
+
+// static
+base::Time TimedDataSpec::GetTimedDataCurrentOnly() {
+  return kTimedDataCurrentOnly;
 }

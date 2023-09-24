@@ -83,7 +83,9 @@ inline scada::DataValue TimedDataView::GetValueAt(
 
 inline void TimedDataView::AddObserver(TimedDataViewObserver& observer,
                                        const scada::DateTimeRange& range) {
+  assert(!range.second.is_null());
   assert(IsValidInterval(range));
+  assert(range.first == kTimedDataCurrentOnly || !IsEmptyInterval(range));
 
   if (!observers_.HasObserver(&observer))
     observers_.AddObserver(&observer);
@@ -101,8 +103,7 @@ inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
   observers_.RemoveObserver(&observer);
 
   scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
-  auto i = observer_ranges_.find(&observer);
-  if (i != observer_ranges_.end()) {
+  if (auto i = observer_ranges_.find(&observer); i != observer_ranges_.end()) {
     range = i->second;
     observer_ranges_.erase(i);
   }
@@ -119,6 +120,7 @@ inline void TimedDataView::RebuildRanges() {
 
   for (const auto& [observer, range] : observer_ranges_) {
     if (range.first != kTimedDataCurrentOnly) {
+      assert(!IsEmptyInterval(range));
       UnionIntervals(ranges_, range);
     }
   }
