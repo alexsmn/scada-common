@@ -8,16 +8,19 @@ class ErrorTimedData final : public TimedData {
       : formula_{std::move(formula)}, title_{std::move(title)} {}
 
   virtual bool IsError() const override { return true; }
-  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const override;
+  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+      const override;
   virtual scada::DataValue GetDataValue() const override { return {}; }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override {
     return {};
   }
   virtual base::Time GetChangeTime() const override { return {}; }
   virtual const DataValues* GetValues() const override { return nullptr; }
-  virtual void AddObserver(TimedDataObserver& observer,
-                           const scada::DateTimeRange& range) override {}
+  virtual void AddObserver(TimedDataObserver& observer) override {}
   virtual void RemoveObserver(TimedDataObserver& observer) override {}
+  virtual void AddViewObserver(TimedDataViewObserver& observer,
+                               const scada::DateTimeRange& range) override {}
+  virtual void RemoveViewObserver(TimedDataViewObserver& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {
     return formula_;
   }

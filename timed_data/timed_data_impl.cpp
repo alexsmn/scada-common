@@ -203,10 +203,9 @@ scada::LocalizedText TimedDataImpl::GetTitle() const {
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
   assert(node_id == node_.node_id());
 
-  timed_data_view_.NotifyPropertyChanged(
-      PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
+  NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-  for (auto& o : timed_data_view_.observers()) {
+  for (auto& o : observers_) {
     o.OnTimedDataNodeModified();
   }
 }
@@ -217,10 +216,9 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
     Delete();
 
   } else {
-    timed_data_view_.NotifyPropertyChanged(
-        PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
+    NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
-    for (auto& o : timed_data_view_.observers())
+    for (auto& o : observers_)
       o.OnTimedDataNodeModified();
   }
 }
@@ -230,7 +228,7 @@ void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
   assert(node_id == node_.node_id());
 
   alerting_ = !events.empty();
-  timed_data_view_.NotifyEventsChanged();
+  NotifyEventsChanged();
 }
 
 void TimedDataImpl::OnHistoryReadRawComplete(
@@ -286,7 +284,7 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
 
   if (IsUpdate(current_, data_value)) {
     if (UpdateCurrent(data_value))
-      timed_data_view_.NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
+      NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   } else {
     if (timed_data_view_.UpdateHistory(data_value))
       timed_data_view_.NotifyTimedDataCorrection(1, &data_value);

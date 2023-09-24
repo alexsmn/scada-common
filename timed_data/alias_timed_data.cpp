@@ -13,10 +13,10 @@ void AliasTimedData::SetForwarded(std::shared_ptr<TimedData> timed_data) {
 
   data_ = timed_data;
 
-  for (auto [observer, range] : deferred->observers)
-    timed_data->AddObserver(*observer, range);
+  for (auto [observer, range] : deferred->view_observers)
+    timed_data->AddViewObserver(*observer, range);
 
-  for (auto [observer, range] : deferred->observers) {
+  for (auto* observer : deferred->observers) {
     observer->OnPropertyChanged(
         PropertySet{PROPERTY_TITLE | PROPERTY_ITEM | PROPERTY_CURRENT});
     observer->OnTimedDataNodeModified();
@@ -48,12 +48,11 @@ const DataValues* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 
-void AliasTimedData::AddObserver(TimedDataObserver& observer,
-                                 const scada::DateTimeRange& range) {
+void AliasTimedData::AddObserver(TimedDataObserver& observer) {
   if (is_forwarded())
-    forwarded().AddObserver(observer, range);
+    forwarded().AddObserver(observer);
   else
-    deferred().observers.insert_or_assign(&observer, range);
+    deferred().observers.emplace(&observer);
 }
 
 void AliasTimedData::RemoveObserver(TimedDataObserver& observer) {
@@ -61,6 +60,21 @@ void AliasTimedData::RemoveObserver(TimedDataObserver& observer) {
     forwarded().RemoveObserver(observer);
   else
     deferred().observers.erase(&observer);
+}
+
+void AliasTimedData::AddViewObserver(TimedDataViewObserver& observer,
+                                     const scada::DateTimeRange& range) {
+  if (is_forwarded())
+    forwarded().AddViewObserver(observer, range);
+  else
+    deferred().view_observers.insert_or_assign(&observer, range);
+}
+
+void AliasTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
+  if (is_forwarded())
+    forwarded().RemoveViewObserver(observer);
+  else
+    deferred().view_observers.erase(&observer);
 }
 
 std::string AliasTimedData::GetFormula(bool aliases) const {

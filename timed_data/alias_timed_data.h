@@ -5,6 +5,8 @@
 #include "timed_data/timed_data_spec.h"
 
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 class AliasTimedData final : public TimedData {
  public:
@@ -20,9 +22,11 @@ class AliasTimedData final : public TimedData {
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
   virtual const DataValues* GetValues() const override;
-  virtual void AddObserver(TimedDataObserver& observer,
-                           const scada::DateTimeRange& range) override;
+  virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
+  virtual void AddViewObserver(TimedDataViewObserver& observer,
+                               const scada::DateTimeRange& range) override;
+  virtual void RemoveViewObserver(TimedDataViewObserver& observer) override;
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
@@ -44,7 +48,9 @@ class AliasTimedData final : public TimedData {
     DeferredData(std::string formula) : formula{std::move(formula)} {}
 
     const std::string formula;
-    std::map<TimedDataObserver*, scada::DateTimeRange /*range*/> observers;
+    std::unordered_set<TimedDataObserver*> observers;
+    std::unordered_map<TimedDataViewObserver*, scada::DateTimeRange /*range*/>
+        view_observers;
   };
 
   bool is_forwarded() const { return data_.index() == 1; }

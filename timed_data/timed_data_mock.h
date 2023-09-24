@@ -10,15 +10,25 @@ class MockTimedData : public TimedData {
   MockTimedData() {
     using namespace testing;
 
-    ON_CALL(*this, AddObserver(_, _))
-        .WillByDefault(Invoke([this](TimedDataObserver& observer,
-                                     const scada::DateTimeRange& range) {
+    ON_CALL(*this, AddObserver(_))
+        .WillByDefault(Invoke([this](TimedDataObserver& observer) {
           observers_.emplace_back(&observer);
         }));
 
     ON_CALL(*this, RemoveObserver(_))
         .WillByDefault(Invoke([this](TimedDataObserver& observer) {
           std::erase(observers_, &observer);
+        }));
+
+    ON_CALL(*this, AddViewObserver(_, _))
+        .WillByDefault(Invoke([this](TimedDataViewObserver& observer,
+                                     const scada::DateTimeRange& range) {
+          view_observers_.emplace_back(&observer);
+        }));
+
+    ON_CALL(*this, RemoveViewObserver(_))
+        .WillByDefault(Invoke([this](TimedDataViewObserver& observer) {
+          std::erase(view_observers_, &observer);
         }));
   }
 
@@ -40,12 +50,20 @@ class MockTimedData : public TimedData {
               (const base::Time& time),
               (const override));
 
-  MOCK_METHOD(void,
-              AddObserver,
-              (TimedDataObserver & observer, const scada::DateTimeRange& range),
-              (override));
+  MOCK_METHOD(void, AddObserver, (TimedDataObserver & observer), (override));
 
   MOCK_METHOD(void, RemoveObserver, (TimedDataObserver & observer), (override));
+
+  MOCK_METHOD(void,
+              AddViewObserver,
+              (TimedDataViewObserver & observer,
+               const scada::DateTimeRange& range),
+              (override));
+
+  MOCK_METHOD(void,
+              RemoveViewObserver,
+              (TimedDataViewObserver & observer),
+              (override));
 
   MOCK_METHOD(std::string, GetFormula, (bool aliases), (const override));
 
@@ -81,5 +99,10 @@ class MockTimedData : public TimedData {
     return observers_.empty() ? nullptr : observers_.back();
   }
 
+  TimedDataViewObserver* last_view_observer() {
+    return view_observers_.empty() ? nullptr : view_observers_.back();
+  }
+
   std::vector<TimedDataObserver*> observers_;
+  std::vector<TimedDataViewObserver*> view_observers_;
 };

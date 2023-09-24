@@ -18,14 +18,18 @@ TimedDataSpec::TimedDataSpec()
 
 TimedDataSpec::TimedDataSpec(const TimedDataSpec& other)
     : data_{other.data_}, range_{other.range_} {
-  if (data_)
-    data_->AddObserver(*this, range_);
+  if (data_) {
+    data_->AddObserver(*this);
+    data_->AddViewObserver(*this, range_);
+  }
 }
 
 TimedDataSpec::TimedDataSpec(std::shared_ptr<TimedData> data)
     : data_(std::move(data)) {
-  if (data_)
-    data_->AddObserver(*this, range_);
+  if (data_) {
+    data_->AddObserver(*this);
+    data_->AddViewObserver(*this, range_);
+  }
 }
 
 TimedDataSpec::TimedDataSpec(TimedDataService& service,
@@ -62,8 +66,10 @@ void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
 
   range_ = range;
 
-  if (data_)
-    data_->AddObserver(*this, range_);
+  if (data_) {
+    data_->AddObserver(*this);
+    data_->AddViewObserver(*this, range_);
+  }
 }
 
 void TimedDataSpec::SetAggregateFilter(scada::AggregateFilter filter) {
@@ -75,11 +81,15 @@ void TimedDataSpec::SetData(std::shared_ptr<TimedData> data) {
   if (data_ == data)
     return;
 
-  if (data)
-    data->AddObserver(*this, range_);
+  if (data) {
+    data->AddObserver(*this);
+    data->AddViewObserver(*this, range_);
+  }
 
-  if (data_)
+  if (data_) {
     data_->RemoveObserver(*this);
+    data_->RemoveViewObserver(*this);
+  }
 
   data_ = data;
 }

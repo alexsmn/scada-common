@@ -6,9 +6,9 @@
 #include "base/interval_util.h"
 #include "base/observer_list.h"
 #include "timed_data/timed_data_dump_util.h"
-#include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 #include "timed_data/timed_data_util.h"
+#include "timed_data/timed_data_view_observer.h"
 
 class TimedDataView final {
  public:
@@ -36,29 +36,27 @@ class TimedDataView final {
   // Update |ready_from_| to new |time| if new time is earlier.
   void SetReady(const scada::DateTimeRange& range);
 
-  const base::ObserverList<TimedDataObserver>& observers() const {
+  const base::ObserverList<TimedDataViewObserver>& observers() const {
     return observers_;
   }
 
   const std::vector<scada::DateTimeRange>& ranges() const { return ranges_; }
 
-  void AddObserver(TimedDataObserver& observer,
+  void AddObserver(TimedDataViewObserver& observer,
                    const scada::DateTimeRange& range);
-  void RemoveObserver(TimedDataObserver& observer);
+  void RemoveObserver(TimedDataViewObserver& observer);
 
   void RebuildRanges();
   std::optional<scada::DateTimeRange> FindNextGap() const;
 
   void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
-  void NotifyPropertyChanged(const PropertySet& properties);
   void NotifyDataReady();
-  void NotifyEventsChanged();
 
   void Dump(std::ostream& stream) const;
 
  private:
-  base::ObserverList<TimedDataObserver> observers_;
-  std::map<TimedDataObserver*, scada::DateTimeRange> observer_ranges_;
+  base::ObserverList<TimedDataViewObserver> observers_;
+  std::map<TimedDataViewObserver*, scada::DateTimeRange> observer_ranges_;
 
   std::vector<scada::DateTimeRange> ranges_;
   std::vector<scada::DateTimeRange> ready_ranges_;
@@ -83,7 +81,7 @@ inline scada::DataValue TimedDataView::GetValueAt(
   return values_[i - 1];
 }
 
-inline void TimedDataView::AddObserver(TimedDataObserver& observer,
+inline void TimedDataView::AddObserver(TimedDataViewObserver& observer,
                                        const scada::DateTimeRange& range) {
   assert(IsValidInterval(range));
 
@@ -99,7 +97,7 @@ inline void TimedDataView::AddObserver(TimedDataObserver& observer,
   RebuildRanges();
 }
 
-inline void TimedDataView::RemoveObserver(TimedDataObserver& observer) {
+inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
   observers_.RemoveObserver(&observer);
 
   scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
@@ -145,20 +143,9 @@ inline void TimedDataView::NotifyTimedDataCorrection(
     o.OnTimedDataCorrections(count, tvqs);
 }
 
-inline void TimedDataView::NotifyPropertyChanged(
-    const PropertySet& properties) {
-  for (auto& o : observers_)
-    o.OnPropertyChanged(properties);
-}
-
 inline void TimedDataView::NotifyDataReady() {
   for (auto& o : observers_)
     o.OnTimedDataReady();
-}
-
-inline void TimedDataView::NotifyEventsChanged() {
-  for (auto& o : observers_)
-    o.OnEventsChanged();
 }
 
 inline bool TimedDataView::UpdateHistory(const scada::DataValue& value) {

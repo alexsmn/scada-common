@@ -13,6 +13,7 @@
 
 class EventSet;
 class TimedDataObserver;
+class TimedDataViewObserver;
 
 extern const base::Time kTimedDataCurrentOnly;
 extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
@@ -31,9 +32,12 @@ class TimedData {
   virtual const DataValues* GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
-  virtual void AddObserver(TimedDataObserver& observer,
-                           const scada::DateTimeRange& range) = 0;
+  virtual void AddObserver(TimedDataObserver& observer) = 0;
   virtual void RemoveObserver(TimedDataObserver& observer) = 0;
+
+  virtual void AddViewObserver(TimedDataViewObserver& observer,
+                               const scada::DateTimeRange& range) = 0;
+  virtual void RemoveViewObserver(TimedDataViewObserver& observer) = 0;
 
   virtual std::string GetFormula(bool aliases) const = 0;
   virtual scada::LocalizedText GetTitle() const = 0;

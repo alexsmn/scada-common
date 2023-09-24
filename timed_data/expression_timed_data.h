@@ -9,7 +9,8 @@
 class ScadaExpression;
 
 class ExpressionTimedData final : public BaseTimedData,
-                                  private TimedDataObserver {
+                                  private TimedDataObserver,
+                                  private TimedDataViewObserver {
  public:
   ExpressionTimedData(std::unique_ptr<ScadaExpression> expression,
                       std::vector<std::shared_ptr<TimedData>> operands);
@@ -39,11 +40,11 @@ class ExpressionTimedData final : public BaseTimedData,
 
   // TimedDataObserver
   virtual void OnPropertyChanged(const PropertySet& properties) override;
+
+  // TimedDataViewObserver
   virtual void OnTimedDataCorrections(size_t count,
                                       const scada::DataValue* tvqs) override;
   virtual void OnTimedDataReady() override;
-  virtual void OnTimedDataNodeModified() override;
-  virtual void OnTimedDataDeleted() override;
 
   std::unique_ptr<ScadaExpression> expression_;
   std::vector<std::shared_ptr<TimedData>> operands_;

@@ -21,7 +21,9 @@ const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
 BaseTimedData::BaseTimedData() {}
 
-BaseTimedData::~BaseTimedData() {}
+BaseTimedData::~BaseTimedData() {
+  assert(!observers_.might_have_observers());
+}
 
 scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   if (!current_.source_timestamp.is_null() && current_.source_timestamp <= time)
@@ -30,13 +32,22 @@ scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
   return timed_data_view_.GetValueAt(time);
 }
 
-void BaseTimedData::AddObserver(TimedDataObserver& observer,
-                                const scada::DateTimeRange& range) {
+void BaseTimedData::AddObserver(TimedDataObserver& observer) {
+  if (!observers_.HasObserver(&observer))
+    observers_.AddObserver(&observer);
+}
+
+void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
+  observers_.RemoveObserver(&observer);
+}
+
+void BaseTimedData::AddViewObserver(TimedDataViewObserver& observer,
+                                    const scada::DateTimeRange& range) {
   timed_data_view_.AddObserver(observer, range);
   UpdateRanges();
 }
 
-void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
+void BaseTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
   timed_data_view_.RemoveObserver(observer);
   UpdateRanges();
 }
@@ -72,13 +83,13 @@ void BaseTimedData::Delete() {
   current_.qualifier.set_failed(true);
   current_.status_code = scada::StatusCode::Bad_Disconnected;
 
-  for (auto& o : timed_data_view_.observers())
+  for (auto& o : observers_)
     o.OnTimedDataDeleted();
 }
 
 void BaseTimedData::Failed() {
   PropertySet changed_mask(PROPERTY_ITEM | PROPERTY_TITLE | PROPERTY_CURRENT);
-  for (auto& o : timed_data_view_.observers())
+  for (auto& o : observers_)
     o.OnPropertyChanged(changed_mask);
 }
 
@@ -107,4 +118,14 @@ std::string BaseTimedData::DumpDebugInfo() const {
   stream << "BaseTimedData" << std::endl;
   stream << "Historical: " << historical_ << std::endl;
   return stream.str();
+}
+
+void BaseTimedData::NotifyPropertyChanged(const PropertySet& properties) {
+  for (auto& o : observers_)
+    o.OnPropertyChanged(properties);
+}
+
+void BaseTimedData::NotifyEventsChanged() {
+  for (auto& o : observers_)
+    o.OnEventsChanged();
 }

@@ -9,14 +9,18 @@ ExpressionTimedData::ExpressionTimedData(
     std::unique_ptr<ScadaExpression> expression,
     std::vector<std::shared_ptr<TimedData>> operands)
     : expression_{std::move(expression)}, operands_{std::move(operands)} {
-  for (const auto& operand : operands_)
-    operand->AddObserver(*this, {from_, kTimedDataCurrentOnly});
+  for (const auto& operand : operands_) {
+    operand->AddObserver(*this);
+    operand->AddViewObserver(*this, {from_, kTimedDataCurrentOnly});
+  }
   CalculateCurrent();
 }
 
 ExpressionTimedData::~ExpressionTimedData() {
-  for (const auto& operand : operands_)
+  for (const auto& operand : operands_) {
     operand->RemoveObserver(*this);
+    operand->RemoveViewObserver(*this);
+  }
 }
 
 std::string ExpressionTimedData::GetFormula(bool aliases) const {
@@ -31,8 +35,10 @@ void ExpressionTimedData::OnRangesChanged() {
   size_t num_operands = operands_.size();
 
   // connect operands
-  for (size_t i = 0; i < num_operands; ++i)
-    operands_[i]->AddObserver(*this, {from_, kTimedDataCurrentOnly});
+  for (size_t i = 0; i < num_operands; ++i) {
+    operands_[i]->AddObserver(*this);
+    operands_[i]->AddViewObserver(*this, {from_, kTimedDataCurrentOnly});
+  }
 
   if (historical())
     CalculateReadyRange();
@@ -243,7 +249,7 @@ void ExpressionTimedData::OnTimedDataCorrections(size_t count,
 
 void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {
   if (properties.is_current_changed() && CalculateCurrent()) {
-    timed_data_view_.NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
+    NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
   }
 }
 
@@ -254,10 +260,6 @@ void ExpressionTimedData::OnTimedDataReady() {
     timed_data_view_.NotifyDataReady();
   }
 }
-
-void ExpressionTimedData::OnTimedDataNodeModified() {}
-
-void ExpressionTimedData::OnTimedDataDeleted() {}
 
 const EventSet* ExpressionTimedData::GetEvents() const {
   return nullptr;

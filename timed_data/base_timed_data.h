@@ -27,9 +27,11 @@ class BaseTimedData : public TimedData {
     return &timed_data_view_.values();
   }
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
-  virtual void AddObserver(TimedDataObserver& observer,
-                           const scada::DateTimeRange& range) override;
+  virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
+  virtual void AddViewObserver(TimedDataViewObserver& observer,
+                               const scada::DateTimeRange& range) override;
+  virtual void RemoveViewObserver(TimedDataViewObserver& observer) override;
   virtual NodeRef GetNode() const override { return nullptr; }
   virtual const EventSet* GetEvents() const override { return nullptr; }
   virtual void Acknowledge() override {}
@@ -44,6 +46,9 @@ class BaseTimedData : public TimedData {
   virtual std::string DumpDebugInfo() const override;
 
  protected:
+  void NotifyPropertyChanged(const PropertySet& properties);
+  void NotifyEventsChanged();
+
   bool historical() const { return historical_; }
 
   bool UpdateCurrent(const scada::DataValue& value);
@@ -66,6 +71,8 @@ class BaseTimedData : public TimedData {
 
   scada::DataValue current_;
   base::Time change_time_;
+
+  base::ObserverList<TimedDataObserver> observers_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedData")};
 };

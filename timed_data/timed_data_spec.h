@@ -7,6 +7,7 @@
 #include "scada/date_time_range.h"
 #include "scada/status.h"
 #include "timed_data/timed_data_observer.h"
+#include "timed_data/timed_data_view_observer.h"
 
 #include <functional>
 #include <memory>
@@ -22,7 +23,8 @@ class WriteFlags;
 
 class TimedData;
 
-class TimedDataSpec : private TimedDataObserver {
+class TimedDataSpec final : private TimedDataObserver,
+                            private TimedDataViewObserver {
  public:
   TimedDataSpec();
   TimedDataSpec(const TimedDataSpec& other);
@@ -102,13 +104,15 @@ class TimedDataSpec : private TimedDataObserver {
   void SetData(std::shared_ptr<TimedData> data);
 
   // TimedDataObserver
+  virtual void OnTimedDataNodeModified() override;
+  virtual void OnTimedDataDeleted() override;
+  virtual void OnEventsChanged() override;
+  virtual void OnPropertyChanged(const PropertySet& properties) override;
+
+  // TimedDataViewObserver
   virtual void OnTimedDataCorrections(size_t count,
-                                      const scada::DataValue* tvqs) final;
-  virtual void OnTimedDataReady() final;
-  virtual void OnTimedDataNodeModified() final;
-  virtual void OnTimedDataDeleted() final;
-  virtual void OnEventsChanged();
-  virtual void OnPropertyChanged(const PropertySet& properties) final;
+                                      const scada::DataValue* tvqs) override;
+  virtual void OnTimedDataReady() override;
 
   std::shared_ptr<TimedData> data_;
 
