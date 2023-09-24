@@ -1,12 +1,9 @@
 #pragma once
 
 #include "base/time/time.h"
-#include "common/data_value_util.h"
 #include "node_service/node_ref.h"
 #include "scada/data_value.h"
 #include "scada/date_time_range.h"
-#include "scada/status.h"
-#include "scada/write_flags.h"
 
 #include <cassert>
 #include <functional>
@@ -29,7 +26,8 @@ class TimedData {
   virtual scada::DataValue GetDataValue() const = 0;
   virtual base::Time GetChangeTime() const = 0;
 
-  virtual const DataValues* GetValues() const = 0;
+  // TODO: Replace with `std::span`.
+  virtual const std::vector<scada::DataValue>* GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
@@ -47,18 +45,6 @@ class TimedData {
   virtual const EventSet* GetEvents() const = 0;
   // Acknowledge all active events related to this data.
   virtual void Acknowledge() = 0;
-
-  // Write item value.
-  using StatusCallback = std::function<void(const scada::Status&)>;
-  virtual void Write(double value,
-                     const scada::NodeId& user_id,
-                     const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const = 0;
-
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const StatusCallback& callback) const = 0;
 
   virtual std::string DumpDebugInfo() const = 0;
 };

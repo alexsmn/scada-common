@@ -43,7 +43,10 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(base::Time, GetChangeTime, (), (const override));
 
-  MOCK_METHOD(const DataValues*, GetValues, (), (const override));
+  MOCK_METHOD(const std::vector<scada::DataValue>*,
+              GetValues,
+              (),
+              (const override));
 
   MOCK_METHOD(scada::DataValue,
               GetValueAt,
@@ -76,22 +79,6 @@ class MockTimedData : public TimedData {
   MOCK_METHOD(const EventSet*, GetEvents, (), (const override));
 
   MOCK_METHOD(void, Acknowledge, (), (override));
-
-  MOCK_METHOD(void,
-              Write,
-              (double value,
-               const scada::NodeId& user_id,
-               const scada::WriteFlags& flags,
-               const StatusCallback& callback),
-              (const override));
-
-  MOCK_METHOD(void,
-              Call,
-              (const scada::NodeId& method_id,
-               const std::vector<scada::Variant>& arguments,
-               const scada::NodeId& user_id,
-               const StatusCallback& callback),
-              (const override));
 
   MOCK_METHOD(std::string, DumpDebugInfo, (), (const override));
 

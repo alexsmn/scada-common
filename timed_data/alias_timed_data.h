@@ -1,8 +1,6 @@
 #pragma once
 
-#include "base/observer_list.h"
 #include "timed_data/timed_data.h"
-#include "timed_data/timed_data_spec.h"
 
 #include <memory>
 #include <unordered_map>
@@ -21,7 +19,7 @@ class AliasTimedData final : public TimedData {
   virtual scada::DataValue GetDataValue() const override;
   virtual scada::DataValue GetValueAt(const base::Time& time) const override;
   virtual base::Time GetChangeTime() const override;
-  virtual const DataValues* GetValues() const override;
+  virtual const std::vector<scada::DataValue>* GetValues() const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual void AddViewObserver(TimedDataViewObserver& observer,
@@ -33,14 +31,6 @@ class AliasTimedData final : public TimedData {
   virtual bool IsAlerting() const override;
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
-  virtual void Write(double value,
-                     const scada::NodeId& user_id,
-                     const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const override;
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const StatusCallback& callback) const override;
   virtual std::string DumpDebugInfo() const override;
 
  private:

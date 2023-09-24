@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base/memory/weak_ptr.h"
 #include "common/history_util.h"
 #include "events/event_observer.h"
 #include "node_service/node_observer.h"
@@ -26,14 +25,6 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
-  virtual void Write(double value,
-                     const scada::NodeId& user_id,
-                     const scada::WriteFlags& flags,
-                     const StatusCallback& callback) const override;
-  virtual void Call(const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const StatusCallback& callback) const override;
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 

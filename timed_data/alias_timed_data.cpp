@@ -1,5 +1,6 @@
 #include "timed_data/alias_timed_data.h"
 
+#include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 
 AliasTimedData::AliasTimedData(std::string formula)
@@ -44,7 +45,7 @@ base::Time AliasTimedData::GetChangeTime() const {
   return is_forwarded() ? forwarded().GetChangeTime() : base::Time{};
 }
 
-const DataValues* AliasTimedData::GetValues() const {
+const std::vector<scada::DataValue>* AliasTimedData::GetValues() const {
   return is_forwarded() ? forwarded().GetValues() : nullptr;
 }
 
@@ -101,26 +102,6 @@ const EventSet* AliasTimedData::GetEvents() const {
 void AliasTimedData::Acknowledge() {
   if (is_forwarded())
     forwarded().Acknowledge();
-}
-
-void AliasTimedData::Write(double value,
-                           const scada::NodeId& user_id,
-                           const scada::WriteFlags& flags,
-                           const StatusCallback& callback) const {
-  if (is_forwarded())
-    forwarded().Write(value, user_id, flags, callback);
-  else
-    callback(scada::StatusCode::Bad_Disconnected);
-}
-
-void AliasTimedData::Call(const scada::NodeId& method_id,
-                          const std::vector<scada::Variant>& arguments,
-                          const scada::NodeId& user_id,
-                          const StatusCallback& callback) const {
-  if (is_forwarded())
-    forwarded().Call(method_id, arguments, user_id, callback);
-  else
-    callback(scada::StatusCode::Bad_Disconnected);
 }
 
 std::string AliasTimedData::DumpDebugInfo() const {

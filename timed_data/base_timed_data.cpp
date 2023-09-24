@@ -1,19 +1,8 @@
 #include "timed_data/base_timed_data.h"
 
-#include "base/constraints.h"
-#include "base/debug_util.h"
-#include "base/format.h"
-#include "base/format_time.h"
-#include "base/interval.h"
-#include "base/strings/stringprintf.h"
-#include "common/data_value_util.h"
-#include "events/node_event_provider.h"
-#include "timed_data/timed_data_spec.h"
-#include "timed_data/timed_data_util.h"
+#include "timed_data/timed_data_observer.h"
 
 #include <sstream>
-
-#include "base/debug_util-inl.h"
 
 const base::Time kTimedDataCurrentOnly = base::Time::Max();
 
@@ -61,22 +50,6 @@ void BaseTimedData::UpdateRanges() {
     timed_data_view_.InsertOrUpdate(current_);
 
   OnRangesChanged();
-}
-
-void BaseTimedData::Write(double value,
-                          const scada::NodeId& user_id,
-                          const scada::WriteFlags& flags,
-                          const StatusCallback& callback) const {
-  if (callback)
-    callback(scada::StatusCode::Bad_Disconnected);
-}
-
-void BaseTimedData::Call(const scada::NodeId& method_id,
-                         const std::vector<scada::Variant>& arguments,
-                         const scada::NodeId& user_id,
-                         const StatusCallback& callback) const {
-  if (callback)
-    callback(scada::StatusCode::Bad_Disconnected);
 }
 
 void BaseTimedData::Delete() {

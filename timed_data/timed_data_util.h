@@ -2,17 +2,18 @@
 
 #pragma once
 
-// Replace with `std::span`.
-#include "base/containers/span.h"
 #include "base/interval_util.h"
+#include "common/data_value_util.h"
 #include "timed_data/timed_data.h"
 
 #include <algorithm>
 #include <optional>
+#include <span>
 
-inline std::optional<size_t> FindInsertPosition(DataValues& values,
-                                                base::Time from,
-                                                base::Time to) {
+inline std::optional<size_t> FindInsertPosition(
+    std::span<const scada::DataValue> values,
+    base::Time from,
+    base::Time to) {
   auto i = LowerBound(values, from);
   if (i != values.size() && values[i].source_timestamp == from) {
     return std::nullopt;
@@ -31,7 +32,7 @@ inline std::optional<size_t> FindInsertPosition(DataValues& values,
 }
 
 inline scada::DateTime GetReadyFrom(
-    base::span<const scada::DateTimeRange> ready_ranges,
+    std::span<const scada::DateTimeRange> ready_ranges,
     const scada::DateTimeRange& range) {
   auto i =
       std::lower_bound(ready_ranges.begin(), ready_ranges.end(), range.second,
@@ -102,7 +103,7 @@ inline std::optional<Interval<T>> FindLastGap(
 
 template <class T, class Compare>
 inline void ReplaceSubrange(std::vector<T>& values,
-                            base::span<T> updates,
+                            std::span<T> updates,
                             Compare comp) {
   assert(std::is_sorted(values.begin(), values.end(), comp));
   assert(std::is_sorted(updates.begin(), updates.end(), comp));
