@@ -45,8 +45,9 @@ base::Time AliasTimedData::GetChangeTime() const {
   return is_forwarded() ? forwarded().GetChangeTime() : base::Time{};
 }
 
-const std::vector<scada::DataValue>* AliasTimedData::GetValues() const {
-  return is_forwarded() ? forwarded().GetValues() : nullptr;
+std::span<const scada::DataValue> AliasTimedData::GetValues() const {
+  return is_forwarded() ? forwarded().GetValues()
+                        : std::span<const scada::DataValue>{};
 }
 
 void AliasTimedData::AddObserver(TimedDataObserver& observer) {

@@ -81,19 +81,17 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
   // Initialize calculation iterators and initial values.
   for (size_t i = 0; i < operands_.size(); ++i) {
     const auto& operand = *operands_[i];
-
-    const std::vector<scada::DataValue>* values = operand.GetValues();
-    assert(values);
+    const auto& values = operand.GetValues();
 
     size_t& iterator = iters[i];
-    iterator = LowerBound(*values, range.first);
+    iterator = LowerBound(values, range.first);
 
     auto& initial_value = expression_->items[i].value;
-    if (iterator != values->size()) {
-      initial_value = (*values)[iterator];
+    if (iterator != values.size()) {
+      initial_value = values[iterator];
     } else {
-      assert(values->back().source_timestamp <= range.first);
-      initial_value = values->back();
+      assert(values.back().source_timestamp <= range.first);
+      initial_value = values.back();
     }
   }
 
@@ -109,8 +107,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
 
     for (size_t i = 0; i < operands_.size(); ++i) {
       const auto& operand = *operands_[i];
-      const std::vector<scada::DataValue>* values = operand.GetValues();
-      assert(values);
+      const auto& values = operand.GetValues();
 
       ScadaExpression::Item& item = expression_->items[i];
 
@@ -119,10 +116,10 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
 
       // Check iterator reached end.
       size_t& iterator = iters[i];
-      if (iterator == values->size()) {
+      if (iterator == values.size()) {
         continue;
       }
-      const base::Time& time = (*values)[iterator].source_timestamp;
+      const base::Time& time = values[iterator].source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
       if (!range.second.is_null() && time > range.second) {
@@ -132,7 +129,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
       calculation_finished = false;
 
       // Setup operand value.
-      item.value = (*values)[iterator];
+      item.value = values[iterator];
 
       // Update total qualifier.
       if (item.value.qualifier.bad())
@@ -222,9 +219,9 @@ bool ExpressionTimedData::CalculateCurrent() {
   if (num_operands == 0)
     max_update_time = now;
 
-  scada::DataValue tvq(std::move(total_value), total_qualifier, max_update_time,
-                       now);
-  return UpdateCurrent(tvq);
+  scada::DataValue data_value{std::move(total_value), total_qualifier,
+                              max_update_time, now};
+  return UpdateCurrent(data_value);
 }
 
 void ExpressionTimedData::OnTimedDataCorrections(size_t count,

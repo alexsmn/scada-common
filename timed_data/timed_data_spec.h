@@ -52,7 +52,7 @@ class TimedDataSpec final : private TimedDataObserver,
   base::Time change_time() const;
 
   // Historical data.
-  const std::vector<scada::DataValue>* values() const;
+  std::span<const scada::DataValue> values() const noexcept;
   scada::DataValue GetValueAt(base::Time time) const;
 
   scada::NodeId node_id() const;

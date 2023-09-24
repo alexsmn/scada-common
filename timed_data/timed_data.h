@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <functional>
+#include <span>
 
 class EventSet;
 class TimedDataObserver;
@@ -27,7 +28,7 @@ class TimedData {
   virtual base::Time GetChangeTime() const = 0;
 
   // TODO: Replace with `std::span`.
-  virtual const std::vector<scada::DataValue>* GetValues() const = 0;
+  virtual std::span<const scada::DataValue> GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
