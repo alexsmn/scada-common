@@ -1,7 +1,5 @@
 #include "timed_data/timed_data_spec.h"
 
-#include "base/interval_util.h"
-#include "base/strings/utf_string_conversions.h"
 #include "model/data_items_node_ids.h"
 #include "node_service/node_format.h"
 #include "node_service/node_util.h"
@@ -117,9 +115,8 @@ std::u16string TimedDataSpec::GetValueString(
     const scada::Variant& value,
     scada::Qualifier qualifier,
     const ValueFormat& format_options) const {
-  if (data_) {
-    if (auto node = GetNode())
-      return FormatValue(node, value, qualifier, format_options.flags);
+  if (auto node = this->node()) {
+    return FormatValue(node, value, qualifier, format_options.flags);
   }
 
   std::u16string string_value;
@@ -128,7 +125,7 @@ std::u16string TimedDataSpec::GetValueString(
 }
 
 bool TimedDataSpec::logical() const {
-  return IsInstanceOf(GetNode(), data_items::id::DiscreteItemType);
+  return IsInstanceOf(node(), data_items::id::DiscreteItemType);
 }
 
 bool TimedDataSpec::ready() const {
@@ -149,32 +146,6 @@ TimedDataSpec& TimedDataSpec::operator=(const TimedDataSpec& other) {
     SetData(other.data_);
   }
   return *this;
-}
-
-void TimedDataSpec::Write(double value,
-                          const scada::NodeId& user_id,
-                          const scada::WriteFlags& flags,
-                          const StatusCallback& callback) const {
-  if (!data_) {
-    if (callback)
-      callback(scada::StatusCode::Bad_Disconnected);
-    return;
-  }
-
-  return data_->Write(value, user_id, flags, callback);
-}
-
-void TimedDataSpec::Call(const scada::NodeId& method_id,
-                         const std::vector<scada::Variant>& arguments,
-                         const scada::NodeId& user_id,
-                         const StatusCallback& callback) const {
-  if (!data_) {
-    if (callback)
-      callback(scada::StatusCode::Bad_Disconnected);
-    return;
-  }
-
-  return data_->Call(method_id, arguments, user_id, callback);
 }
 
 void TimedDataSpec::Acknowledge() const {
@@ -207,8 +178,16 @@ const DataValues* TimedDataSpec::values() const {
   return data_ ? data_->GetValues() : nullptr;
 }
 
-NodeRef TimedDataSpec::GetNode() const {
+scada::NodeId TimedDataSpec::node_id() const {
+  return data_ ? data_->GetNode().node_id() : scada::NodeId{};
+}
+
+NodeRef TimedDataSpec::node() const {
   return data_ ? data_->GetNode() : NodeRef{};
+}
+
+scada::node TimedDataSpec::scada_node() const {
+  return data_ ? data_->GetNode().scada_node() : scada::node{};
 }
 
 scada::LocalizedText TimedDataSpec::GetTitle() const {

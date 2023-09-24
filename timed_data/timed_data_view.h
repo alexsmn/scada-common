@@ -23,30 +23,33 @@ class TimedDataView final {
   scada::DataValue GetValueAt(const base::Time& time) const;
 
   // Merge requested data with existing real-time data by collection time.
-  void MergeValues(std::span<scada::DataValue> values);
+  void ReplaceRange(std::span<scada::DataValue> values);
 
-  bool UpdateHistory(const scada::DataValue& value);
+  void ClearRange(const scada::DateTimeRange& range);
 
-  void Clear(const scada::DateTimeRange& range);
+  // Returns false if there is another value for the same timestamp with earlier
+  // server timestamp.
+  bool InsertOrUpdate(const scada::DataValue& value);
 
   const std::vector<scada::DateTimeRange>& ready_ranges() const {
     return ready_ranges_;
   }
 
-  // Update |ready_from_| to new |time| if new time is earlier.
-  void SetReady(const scada::DateTimeRange& range);
+  void AddReadyRange(const scada::DateTimeRange& range);
 
   const base::ObserverList<TimedDataViewObserver>& observers() const {
     return observers_;
   }
 
-  const std::vector<scada::DateTimeRange>& ranges() const { return ranges_; }
+  const std::vector<scada::DateTimeRange>& observed_ranges() const {
+    return observed_ranges_;
+  }
 
   void AddObserver(TimedDataViewObserver& observer,
                    const scada::DateTimeRange& range);
   void RemoveObserver(TimedDataViewObserver& observer);
 
-  void RebuildRanges();
+  void UpdateObservedRanges();
   std::optional<scada::DateTimeRange> FindNextGap() const;
 
   void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
@@ -58,7 +61,7 @@ class TimedDataView final {
   base::ObserverList<TimedDataViewObserver> observers_;
   std::map<TimedDataViewObserver*, scada::DateTimeRange> observer_ranges_;
 
-  std::vector<scada::DateTimeRange> ranges_;
+  std::vector<scada::DateTimeRange> observed_ranges_;
   std::vector<scada::DateTimeRange> ready_ranges_;
 
   DataValues values_;
@@ -96,7 +99,7 @@ inline void TimedDataView::AddObserver(TimedDataViewObserver& observer,
                     << LOG_TAG("From", FormatTime(range.first))
                     << LOG_TAG("To", FormatTime(range.second));
 
-  RebuildRanges();
+  UpdateObservedRanges();
 }
 
 inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
@@ -112,25 +115,25 @@ inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
                     << LOG_TAG("From", FormatTime(range.first))
                     << LOG_TAG("To", FormatTime(range.second));
 
-  RebuildRanges();
+  UpdateObservedRanges();
 }
 
-inline void TimedDataView::RebuildRanges() {
-  ranges_.clear();
+inline void TimedDataView::UpdateObservedRanges() {
+  observed_ranges_.clear();
 
   for (const auto& [observer, range] : observer_ranges_) {
     if (range.first != kTimedDataCurrentOnly) {
       assert(!IsEmptyInterval(range));
-      UnionIntervals(ranges_, range);
+      UnionIntervals(observed_ranges_, range);
     }
   }
 }
 
 inline std::optional<scada::DateTimeRange> TimedDataView::FindNextGap() const {
-  return FindFirstGap(ranges_, ready_ranges_);
+  return FindFirstGap(observed_ranges_, ready_ranges_);
 }
 
-inline void TimedDataView::SetReady(const scada::DateTimeRange& range) {
+inline void TimedDataView::AddReadyRange(const scada::DateTimeRange& range) {
   UnionIntervals(ready_ranges_, range);
   NotifyDataReady();
 }
@@ -150,7 +153,7 @@ inline void TimedDataView::NotifyDataReady() {
     o.OnTimedDataReady();
 }
 
-inline bool TimedDataView::UpdateHistory(const scada::DataValue& value) {
+inline bool TimedDataView::InsertOrUpdate(const scada::DataValue& value) {
   ScopedInvariant values_sorted{[&] { return IsTimeSorted(values_); }};
 
   if (value.source_timestamp.is_null())
@@ -179,7 +182,7 @@ inline bool TimedDataView::UpdateHistory(const scada::DataValue& value) {
   }
 }
 
-inline void TimedDataView::Clear(const scada::DateTimeRange& range) {
+inline void TimedDataView::ClearRange(const scada::DateTimeRange& range) {
   assert(!range.first.is_null());
   assert(range.second.is_null() || range.first <= range.second);
 
@@ -193,8 +196,8 @@ inline void TimedDataView::Dump(std::ostream& stream) const {
   stream << "TimedDataView" << std::endl;
   stream << "Observers:" << std::endl;
   internal::Dump(stream, observer_ranges_);
-  stream << "Requested ranges:" << std::endl;
-  internal::Dump(stream, ranges_);
+  stream << "Observed ranges:" << std::endl;
+  internal::Dump(stream, observed_ranges_);
   stream << "Ready ranges:" << std::endl;
   internal::Dump(stream, ready_ranges_);
   stream << "Value count: " << values_.size() << std::endl;
@@ -211,7 +214,7 @@ inline void TimedDataView::Dump(std::ostream& stream) const {
   }
 }
 
-inline void TimedDataView::MergeValues(std::span<scada::DataValue> values) {
+inline void TimedDataView::ReplaceRange(std::span<scada::DataValue> values) {
   if (values.empty()) {
     return;
   }

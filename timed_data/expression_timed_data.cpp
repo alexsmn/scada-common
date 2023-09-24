@@ -153,7 +153,7 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
                            base::Time());
 
-      bool updated = timed_data_view_.UpdateHistory(tvq);
+      bool updated = timed_data_view_.InsertOrUpdate(tvq);
       assert(updated);
 
       if (tvqs) {
@@ -177,7 +177,7 @@ bool ExpressionTimedData::CalculateReadyRange() {
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
   CalculateRange(range, nullptr);
-  timed_data_view_.SetReady(range);
+  timed_data_view_.AddReadyRange(range);
 
   return true;
 }
@@ -236,7 +236,7 @@ void ExpressionTimedData::OnTimedDataCorrections(size_t count,
   scada::DateTimeRange range{tvqs[0].source_timestamp,
                              tvqs[count - 1].source_timestamp};
 
-  timed_data_view_.Clear(range);
+  timed_data_view_.ClearRange(range);
 
   std::vector<scada::DataValue> changed_tvqs;
   CalculateRange(range, &changed_tvqs);

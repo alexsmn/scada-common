@@ -2,8 +2,8 @@
 
 #include "node_service/node_fetch_status.h"
 #include "scada/attribute_ids.h"
-#include "scada/client.h"
 #include "scada/data_value.h"
+#include "scada/node.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 #include "scada/status_promise.h"

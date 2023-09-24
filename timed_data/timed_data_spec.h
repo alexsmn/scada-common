@@ -5,7 +5,7 @@
 #include "scada/aggregate_filter.h"
 #include "scada/data_value.h"
 #include "scada/date_time_range.h"
-#include "scada/status.h"
+#include "scada/node.h"
 #include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_view_observer.h"
 
@@ -15,13 +15,8 @@
 
 class EventSet;
 class PropertySet;
-class TimedDataService;
-
-namespace scada {
-class WriteFlags;
-}
-
 class TimedData;
+class TimedDataService;
 
 class TimedDataSpec final : private TimedDataObserver,
                             private TimedDataViewObserver {
@@ -60,7 +55,9 @@ class TimedDataSpec final : private TimedDataObserver,
   const std::vector<scada::DataValue>* values() const;
   scada::DataValue GetValueAt(base::Time time) const;
 
-  NodeRef GetNode() const;
+  scada::NodeId node_id() const;
+  NodeRef node() const;
+  scada::node scada_node() const;
 
   std::u16string GetCurrentString(const ValueFormat& format = ValueFormat{
                                       FORMAT_QUALITY | FORMAT_UNITS}) const;
@@ -75,16 +72,6 @@ class TimedDataSpec final : private TimedDataObserver,
 
   // Acknowledge all active events related to this data.
   void Acknowledge() const;
-
-  using StatusCallback = std::function<void(const scada::Status&)>;
-  void Write(double value,
-             const scada::NodeId& user_id,
-             const scada::WriteFlags& flags,
-             const StatusCallback& callback) const;
-  void Call(const scada::NodeId& method_id,
-            const std::vector<scada::Variant>& arguments,
-            const scada::NodeId& user_id,
-            const StatusCallback& callback) const;
 
   std::string DumpDebugInfo() const;
 

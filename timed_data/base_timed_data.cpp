@@ -53,12 +53,12 @@ void BaseTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
 }
 
 void BaseTimedData::UpdateRanges() {
-  if (!timed_data_view_.ranges().empty())
+  if (!timed_data_view_.observed_ranges().empty())
     historical_ = true;
 
   // In the 'current only' mode historical values are not maintained.
   if (historical_ && !current_.is_null())
-    timed_data_view_.UpdateHistory(current_);
+    timed_data_view_.InsertOrUpdate(current_);
 
   OnRangesChanged();
 }
@@ -102,7 +102,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
 
   // Add new point with time of last change.
   if (historical() && is_change && !value.source_timestamp.is_null())
-    timed_data_view_.UpdateHistory(value);
+    timed_data_view_.InsertOrUpdate(value);
 
   if (is_change)
     change_time_ = value.source_timestamp;

@@ -243,7 +243,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
 
   auto ref = shared_from_this();
 
-  timed_data_view_.MergeValues(values);
+  timed_data_view_.ReplaceRange(values);
 
   scada::DateTime ready_to;
   if (continuation_point.empty())
@@ -256,7 +256,7 @@ void TimedDataImpl::OnHistoryReadRawComplete(
                       << LOG_TAG("ReadFrom", FormatTime(querying_range_.first))
                       << LOG_TAG("ReadTo", FormatTime(ready_to));
 
-    timed_data_view_.SetReady({querying_range_.first, ready_to});
+    timed_data_view_.AddReadyRange({querying_range_.first, ready_to});
 
     assert(ready_to >= querying_range_.first);
     assert(ready_to <= querying_range_.second);
@@ -283,11 +283,13 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
   }
 
   if (IsUpdate(current_, data_value)) {
-    if (UpdateCurrent(data_value))
+    if (UpdateCurrent(data_value)) {
       NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
+    }
   } else {
-    if (timed_data_view_.UpdateHistory(data_value))
+    if (timed_data_view_.InsertOrUpdate(data_value)) {
       timed_data_view_.NotifyTimedDataCorrection(1, &data_value);
+    }
   }
 }
 
