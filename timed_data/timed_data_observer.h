@@ -1,10 +1,10 @@
 #pragma once
 
-#include "timed_data/timed_data_property.h"
-
 namespace scada {
 class DataValue;
 }
+
+class PropertySet;
 
 class TimedDataObserver {
  public:

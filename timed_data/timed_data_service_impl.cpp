@@ -2,6 +2,7 @@
 
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
+#include "common/format.h"
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"

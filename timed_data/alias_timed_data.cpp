@@ -1,4 +1,6 @@
-#include "alias_timed_data.h"
+#include "timed_data/alias_timed_data.h"
+
+#include "timed_data/timed_data_property.h"
 
 AliasTimedData::AliasTimedData(std::string formula)
     : data_{std::make_unique<DeferredData>(std::move(formula))} {}
