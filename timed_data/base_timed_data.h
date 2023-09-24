@@ -22,11 +22,14 @@ class BaseTimedData : public TimedData {
   }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }
-  virtual base::Time GetChangeTime() const override { return change_time_; }
+  virtual scada::DateTime GetChangeTime() const override {
+    return change_time_;
+  }
   virtual std::span<const scada::DataValue> GetValues() const override {
     return timed_data_view_.values();
   }
-  virtual scada::DataValue GetValueAt(const base::Time& time) const override;
+  virtual scada::DataValue GetValueAt(
+      const scada::DateTime& time) const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual void AddViewObserver(TimedDataViewObserver& observer,
@@ -62,7 +65,7 @@ class BaseTimedData : public TimedData {
   bool alerting_ = false;
 
   scada::DataValue current_;
-  base::Time change_time_;
+  scada::DateTime change_time_;
 
   base::ObserverList<TimedDataObserver> observers_;
 

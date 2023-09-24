@@ -1,8 +1,8 @@
 #pragma once
 
-#include "base/time/time.h"
 #include "node_service/node_ref.h"
 #include "scada/data_value.h"
+#include "scada/date_time.h"
 #include "scada/date_time_range.h"
 
 #include <cassert>
@@ -13,7 +13,7 @@ class EventSet;
 class TimedDataObserver;
 class TimedDataViewObserver;
 
-extern const base::Time kTimedDataCurrentOnly;
+extern const scada::DateTime kTimedDataCurrentOnly;
 extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
 
 class TimedData {
@@ -25,11 +25,11 @@ class TimedData {
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const = 0;
 
   virtual scada::DataValue GetDataValue() const = 0;
-  virtual base::Time GetChangeTime() const = 0;
+  virtual scada::DateTime GetChangeTime() const = 0;
 
   // TODO: Replace with `std::span`.
   virtual std::span<const scada::DataValue> GetValues() const = 0;
-  virtual scada::DataValue GetValueAt(const base::Time& time) const = 0;
+  virtual scada::DataValue GetValueAt(const scada::DateTime& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
   virtual void RemoveObserver(TimedDataObserver& observer) = 0;

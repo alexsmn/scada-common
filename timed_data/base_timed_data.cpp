@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-const base::Time kTimedDataCurrentOnly = base::Time::Max();
+const scada::DateTime kTimedDataCurrentOnly = scada::DateTime::Max();
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
@@ -14,7 +14,7 @@ BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
 }
 
-scada::DataValue BaseTimedData::GetValueAt(const base::Time& time) const {
+scada::DataValue BaseTimedData::GetValueAt(const scada::DateTime& time) const {
   if (!current_.source_timestamp.is_null() && current_.source_timestamp <= time)
     return current_;
 
