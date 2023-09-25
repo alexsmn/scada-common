@@ -1,14 +1,13 @@
 #pragma once
 
-#include "common/history_util.h"
 #include "events/event_observer.h"
 #include "node_service/node_observer.h"
 #include "scada/aggregate_filter.h"
 #include "scada/client_monitored_item.h"
-#include "scada/history_service.h"
-#include "scada/monitored_item.h"
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
+
+class TimedDataFetcher;
 
 class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                       private TimedDataContext,
@@ -36,12 +35,6 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
  private:
   void SetNode(const NodeRef& node);
 
-  void FetchNextGap();
-  void FetchMore(ScopedContinuationPoint continuation_point);
-
-  void OnHistoryReadRawComplete(std::vector<scada::DataValue> values,
-                                ScopedContinuationPoint continuation_point);
-
   void OnChannelData(const scada::DataValue& data_value);
 
   // NodeRefObserver
@@ -57,6 +50,5 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   NodeRef node_;
   scada::monitored_item monitored_item_;
 
-  bool querying_ = false;
-  scada::DateTimeRange querying_range_;
+  const std::shared_ptr<TimedDataFetcher> timed_data_fetcher_;
 };
