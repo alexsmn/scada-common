@@ -1,12 +1,14 @@
 #pragma once
 
+#include <span>
+
 namespace scada {
 class DataValue;
 }
 
 class TimedDataViewObserver {
  public:
-  virtual void OnTimedDataCorrections(size_t count,
-                                      const scada::DataValue* tvqs) {}
+  // TODO: This should just report a `scada::DateTimeRange`.
+  virtual void OnTimedDataUpdates(std::span<const scada::DataValue> values) {}
   virtual void OnTimedDataReady() {}
 };

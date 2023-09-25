@@ -210,17 +210,18 @@ std::string TimedDataSpec::formula() const {
   return data_ ? data_->GetFormula(false) : std::string{};
 }
 
-void TimedDataSpec::OnTimedDataCorrections(size_t count,
-                                           const scada::DataValue* values) {
-  if (!correction_handler)
+void TimedDataSpec::OnTimedDataUpdates(
+    std::span<const scada::DataValue> values) {
+  if (!update_handler) {
     return;
+  }
 
-  auto data_values = std::span<const scada::DataValue>{values, count};
-  auto start = LowerBound(data_values, range_.first);
-  auto end = UpperBound(data_values, range_.second);
+  auto start = LowerBound(values, range_.first);
+  auto end = UpperBound(values, range_.second);
 
-  if (start != end)
-    correction_handler(end - start, values + start);
+  if (start != end) {
+    update_handler(values.subspan(start, end - start));
+  }
 }
 
 void TimedDataSpec::OnTimedDataReady() {

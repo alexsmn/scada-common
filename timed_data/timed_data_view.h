@@ -49,15 +49,16 @@ class TimedDataView final {
                    const scada::DateTimeRange& range);
   void RemoveObserver(TimedDataViewObserver& observer);
 
-  void UpdateObservedRanges();
   std::optional<scada::DateTimeRange> FindNextGap() const;
 
-  void NotifyTimedDataCorrection(size_t count, const scada::DataValue* tvqs);
-  void NotifyDataReady();
+  void NotifyUpdates(std::span<const scada::DataValue> values);
+  void NotifyReady();
 
   void Dump(std::ostream& stream) const;
 
  private:
+  void UpdateObservedRanges();
+
   base::ObserverList<TimedDataViewObserver> observers_;
   std::map<TimedDataViewObserver*, scada::DateTimeRange> observer_ranges_;
 
@@ -135,20 +136,19 @@ inline std::optional<scada::DateTimeRange> TimedDataView::FindNextGap() const {
 
 inline void TimedDataView::AddReadyRange(const scada::DateTimeRange& range) {
   UnionIntervals(ready_ranges_, range);
-  NotifyDataReady();
+  NotifyReady();
 }
 
-inline void TimedDataView::NotifyTimedDataCorrection(
-    size_t count,
-    const scada::DataValue* tvqs) {
-  assert(count > 0);
-  assert(IsTimeSorted({tvqs, count}));
+inline void TimedDataView::NotifyUpdates(
+    std::span<const scada::DataValue> values) {
+  assert(!values.empty());
+  assert(IsTimeSorted(values));
 
   for (auto& o : observers_)
-    o.OnTimedDataCorrections(count, tvqs);
+    o.OnTimedDataUpdates(values);
 }
 
-inline void TimedDataView::NotifyDataReady() {
+inline void TimedDataView::NotifyReady() {
   for (auto& o : observers_)
     o.OnTimedDataReady();
 }

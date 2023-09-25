@@ -79,8 +79,7 @@ class TimedDataSpec final : private TimedDataObserver,
 
   bool operator==(const TimedDataSpec& other) const;
 
-  std::function<void(size_t count, const scada::DataValue* tvqs)>
-      correction_handler;
+  std::function<void(std::span<const scada::DataValue> values)> update_handler;
   std::function<void()> ready_handler;
   std::function<void()> node_modified_handler;
   std::function<void()> deletion_handler;
@@ -97,8 +96,8 @@ class TimedDataSpec final : private TimedDataObserver,
   virtual void OnPropertyChanged(const PropertySet& properties) override;
 
   // TimedDataViewObserver
-  virtual void OnTimedDataCorrections(size_t count,
-                                      const scada::DataValue* tvqs) override;
+  virtual void OnTimedDataUpdates(
+      std::span<const scada::DataValue> values) override;
   virtual void OnTimedDataReady() override;
 
   std::shared_ptr<TimedData> data_;

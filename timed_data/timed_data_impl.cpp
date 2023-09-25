@@ -267,7 +267,7 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
     }
   } else {
     if (timed_data_view_.InsertOrUpdate(data_value)) {
-      timed_data_view_.NotifyTimedDataCorrection(1, &data_value);
+      timed_data_view_.NotifyUpdates({&data_value, 1});
     }
   }
 }

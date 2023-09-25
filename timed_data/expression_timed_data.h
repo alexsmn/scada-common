@@ -42,8 +42,8 @@ class ExpressionTimedData final : public BaseTimedData,
   virtual void OnPropertyChanged(const PropertySet& properties) override;
 
   // TimedDataViewObserver
-  virtual void OnTimedDataCorrections(size_t count,
-                                      const scada::DataValue* tvqs) override;
+  virtual void OnTimedDataUpdates(
+      std::span<const scada::DataValue> values) override;
   virtual void OnTimedDataReady() override;
 
   std::unique_ptr<ScadaExpression> expression_;

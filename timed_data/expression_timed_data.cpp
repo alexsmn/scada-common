@@ -224,23 +224,22 @@ bool ExpressionTimedData::CalculateCurrent() {
   return UpdateCurrent(data_value);
 }
 
-void ExpressionTimedData::OnTimedDataCorrections(size_t count,
-                                                 const scada::DataValue* tvqs) {
+void ExpressionTimedData::OnTimedDataUpdates(
+    std::span<const scada::DataValue> values) {
   assert(historical());
-  assert(count > 0);
-  assert(tvqs[0].source_timestamp >= ready_from_);
+  assert(values.empty());
+  assert(values.front().source_timestamp >= ready_from_);
 
-  scada::DateTimeRange range{tvqs[0].source_timestamp,
-                             tvqs[count - 1].source_timestamp};
+  scada::DateTimeRange range{values.front().source_timestamp,
+                             values.back().source_timestamp};
 
   timed_data_view_.ClearRange(range);
 
-  std::vector<scada::DataValue> changed_tvqs;
-  CalculateRange(range, &changed_tvqs);
+  std::vector<scada::DataValue> changed_values;
+  CalculateRange(range, &changed_values);
 
-  if (!changed_tvqs.empty()) {
-    timed_data_view_.NotifyTimedDataCorrection(changed_tvqs.size(),
-                                               &changed_tvqs[0]);
+  if (!changed_values.empty()) {
+    timed_data_view_.NotifyUpdates(changed_values);
   }
 }
 
@@ -254,7 +253,7 @@ void ExpressionTimedData::OnTimedDataReady() {
   assert(historical());
 
   if (CalculateReadyRange()) {
-    timed_data_view_.NotifyDataReady();
+    timed_data_view_.NotifyReady();
   }
 }
 
