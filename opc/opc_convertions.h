@@ -13,6 +13,7 @@ class OpcQualityConverter {
   OpcQualityConverter() = delete;
 
   static scada::Qualifier Convert(unsigned quality);
+  static unsigned Convert(scada::Qualifier qualifier);
 };
 
 class OpcDataValueConverter {

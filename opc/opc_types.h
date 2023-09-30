@@ -1,12 +1,12 @@
 #pragma once
 
-#include <atlcomcli.h>
+#include "base/win/scoped_variant.h"
 
 namespace opc {
 
 struct OpcDataValue {
   HRESULT status = S_OK;
-  CComVariant value;
+  base::win::ScopedVariant value;
   FILETIME timestamp = {};
   unsigned quality = 0;
 };

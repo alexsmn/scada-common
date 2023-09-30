@@ -14,10 +14,6 @@ inline scada::DateTime ToDateTime(FILETIME timestamp) {
   return scada::DateTime::FromFileTime(timestamp);
 }
 
-inline unsigned ToOpcQuality(scada::Qualifier qualifier) {
-  return qualifier.general_bad() ? OPC_QUALITY_BAD : OPC_QUALITY_GOOD;
-}
-
 inline std::string ToString(std::wstring_view str) {
   return boost::locale::conv::utf_to_utf<char>(str.data(),
                                                str.data() + str.size());
@@ -60,6 +56,11 @@ scada::Qualifier OpcQualityConverter::Convert(unsigned quality) {
   }
 }
 
+// static
+unsigned OpcQualityConverter::Convert(scada::Qualifier qualifier) {
+  return qualifier.general_bad() ? OPC_QUALITY_BAD : OPC_QUALITY_GOOD;
+}
+
 // OpcDataValueConverter
 
 // static
@@ -71,8 +72,7 @@ scada::DataValue OpcDataValueConverter::Convert(
             OpcQualityConverter::Convert(opc_data_value.quality), timestamp,
             timestamp};
   } else {
-    return {scada::Variant{}, scada::Qualifier{scada::Qualifier::BAD},
-            timestamp, timestamp};
+    return {{}, scada::Qualifier{scada::Qualifier::BAD}, timestamp, timestamp};
   }
 }
 
@@ -83,7 +83,7 @@ OpcDataValue OpcDataValueConverter::Convert(
   if (auto value = VariantConverter::Convert(data_value.value)) {
     return {.value = std::move(*value),
             .timestamp = timestamp,
-            .quality = ToOpcQuality(data_value.qualifier)};
+            .quality = OpcQualityConverter::Convert(data_value.qualifier)};
   } else {
     return {.timestamp = timestamp, .quality = OPC_QUALITY_BAD};
   }
