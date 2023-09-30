@@ -72,7 +72,8 @@ scada::DataValue OpcDataValueConverter::Convert(
             OpcQualityConverter::Convert(opc_data_value.quality), timestamp,
             timestamp};
   } else {
-    return {{}, scada::Qualifier{scada::Qualifier::BAD}, timestamp, timestamp};
+    return {scada::Variant{}, scada::Qualifier{scada::Qualifier::BAD},
+            timestamp, timestamp};
   }
 }
 
