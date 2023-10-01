@@ -28,12 +28,29 @@ std::optional<ParsedOpcNodeId> ParseOpcNodeId(const scada::NodeId& root_node_id,
     return std::nullopt;
   }
 
+  // Server node ID consisting from only a prog ID, like `Prog.ID`.
   if (p == nested_name.npos) {
-    return ParsedOpcNodeId{.prog_id = nested_name};
+    return ParsedOpcNodeId{.type = OpcNodeType::Server, .prog_id = nested_name};
   }
 
-  return ParsedOpcNodeId{.prog_id = nested_name.substr(0, p),
-                         .item_id = nested_name.substr(p + 1)};
+  auto prog_id = nested_name.substr(0, p);
+  auto item_id = nested_name.substr(p + 1);
+
+  // Server node ID ending with a delimiter, like `Prog.ID\`.
+  if (item_id.empty()) {
+    return ParsedOpcNodeId{.type = OpcNodeType::Server, .prog_id = prog_id};
+  }
+
+  // Branch node ID ending with a delimiter, like `Prog.ID\A.B.C\`. So far it
+  // includes edge cases like `Prog.ID\\\`.
+  if (item_id.back() == kOpcPathDelimiter) {
+    return ParsedOpcNodeId{.type = OpcNodeType::Branch,
+                           .prog_id = prog_id,
+                           .item_id = item_id.substr(0, item_id.size() - 1)};
+  }
+
+  return ParsedOpcNodeId{
+      .type = OpcNodeType::Item, .prog_id = prog_id, .item_id = item_id};
 }
 
 scada::NodeId MakeOpcServerNodeId(const scada::NodeId& root_node_id,
@@ -51,14 +68,13 @@ scada::NodeId MakeOpcBranchNodeId(const scada::NodeId& root_node_id,
   assert(!root_node_id.is_null());
   assert(!prog_id.empty());
 
-  if (item_id.empty())
-    return MakeNestedNodeId(root_node_id, prog_id);
+  if (item_id.empty()) {
+    return MakeOpcServerNodeId(root_node_id, prog_id);
+  }
 
   // TODO: Optimize.
   std::string nested_name = std::string{prog_id} + kOpcPathDelimiter +
                             std::string{item_id} + kOpcPathDelimiter;
-
-  assert(IsBranchOpcItemId(nested_name));
   return MakeNestedNodeId(root_node_id, nested_name);
 }
 
@@ -86,10 +102,6 @@ std::string_view GetOpcItemName(std::string_view item_id) {
 std::string_view GetOpcCustomParentItemId(std::string_view item_id) {
   auto p = item_id.find_last_of(kOpcCustomItemDelimiter);
   return p == item_id.npos ? std::string_view{} : item_id.substr(0, p);
-}
-
-bool IsBranchOpcItemId(std::string_view item_id) {
-  return item_id.size() >= 2 && item_id.back() == kOpcPathDelimiter;
 }
 
 }  // namespace opc

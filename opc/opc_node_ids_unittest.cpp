@@ -11,24 +11,33 @@ namespace opc {
 
 TEST(ParseOpcNodeId, ServerNode) {
   EXPECT_THAT(
-      ParseOpcNodeId(id::OPC, MakeOpcServerNodeId(id::OPC, "Server.Prog.ID")),
-      Optional(FieldsAre(/*machine_name*/ "", /*prog_id*/ "Server.Prog.ID",
+      ParseOpcNodeId(id::OPC, MakeNestedNodeId(id::OPC, "Server.Prog.ID")),
+      Optional(FieldsAre(/*type*/ OpcNodeType::Server, /*machine_name*/ "",
+                         /*prog_id*/ "Server.Prog.ID",
+                         /*item_id*/ "")));
+
+  EXPECT_THAT(
+      ParseOpcNodeId(id::OPC, MakeNestedNodeId(id::OPC, "Server.Prog.ID\\")),
+      Optional(FieldsAre(/*type*/ OpcNodeType::Server, /*machine_name*/ "",
+                         /*prog_id*/ "Server.Prog.ID",
                          /*item_id*/ "")));
 }
 
 TEST(ParseOpcNodeId, BranchNode) {
   EXPECT_THAT(
       ParseOpcNodeId(id::OPC,
-                     MakeOpcBranchNodeId(id::OPC, "Server.Prog.ID", "A.B.C")),
-      Optional(FieldsAre(/*machine_name*/ "", /*prog_id*/ "Server.Prog.ID",
-                         /*item_id*/ "A.B.C\\")));
+                     MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C\\")),
+      Optional(FieldsAre(/*type*/ OpcNodeType::Branch, /*machine_name*/ "",
+                         /*prog_id*/ "Server.Prog.ID",
+                         /*item_id*/ "A.B.C")));
 }
 
 TEST(ParseOpcNodeId, ItemNode) {
   EXPECT_THAT(
       ParseOpcNodeId(id::OPC,
-                     MakeOpcItemNodeId(id::OPC, "Server.Prog.ID", "A.B.C")),
-      Optional(FieldsAre(/*machine_name*/ "", /*prog_id*/ "Server.Prog.ID",
+                     MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C")),
+      Optional(FieldsAre(/*type*/ OpcNodeType::Item, /*machine_name*/ "",
+                         /*prog_id*/ "Server.Prog.ID",
                          /*item_id*/ "A.B.C")));
 }
 
@@ -42,6 +51,26 @@ TEST(ParseOpcNodeId, MachineName) {
             ParseOpcNodeId(id::OPC,
                            MakeNestedNodeId(
                                id::OPC, "\\\\localhost\\Server.Prog.ID\\ABC")));
+}
+
+TEST(MakeOpcServerNodeId, Test) {
+  EXPECT_EQ(MakeOpcServerNodeId(id::OPC, "Server.Prog.ID"),
+            MakeNestedNodeId(id::OPC, "Server.Prog.ID"));
+}
+
+TEST(MakeOpcBranchNodeId, Test) {
+  EXPECT_EQ(MakeOpcBranchNodeId(id::OPC, "Server.Prog.ID", "A.B.C"),
+            MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C\\"));
+}
+
+TEST(MakeOpcBranchNodeId, EmptyItemId) {
+  EXPECT_EQ(MakeOpcBranchNodeId(id::OPC, "Server.Prog.ID", /*item_id*/ ""),
+            MakeNestedNodeId(id::OPC, "Server.Prog.ID"));
+}
+
+TEST(MakeOpcItemNodeId, Test) {
+  EXPECT_EQ(MakeOpcItemNodeId(id::OPC, "Server.Prog.ID", "A.B.C"),
+            MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C"));
 }
 
 TEST(OpcNodeIds, GetOpcItemName) {
