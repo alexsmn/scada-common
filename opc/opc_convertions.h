@@ -3,7 +3,7 @@
 #include "opc/opc_types.h"
 #include "scada/data_value.h"
 
-#include <opcda.h>
+#include <Windows.h>
 #include <optional>
 
 namespace opc {

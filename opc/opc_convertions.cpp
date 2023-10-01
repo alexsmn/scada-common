@@ -5,6 +5,7 @@
 
 #include <boost/locale/encoding_utf.hpp>
 #include <opc_client/core/conversion.h>
+#include <opcda.h>
 
 namespace opc {
 

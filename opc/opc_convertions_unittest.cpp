@@ -1,6 +1,7 @@
 #include "opc/opc_convertions.h"
 
 #include <gmock/gmock.h>
+#include <opcda.h>
 
 using namespace testing;
 
