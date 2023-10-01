@@ -6,30 +6,91 @@ namespace opc {
 
 namespace {
 
-inline std::optional<scada::Variant> ScalarToVariant(const VARIANT& value) {
-  switch (value.vt) {
-    case VT_EMPTY:
-      return scada::Variant{};
-    case VT_BOOL:
-      return value.boolVal != VARIANT_FALSE;
-    case VT_I4:
-      return value.intVal;
-    case VT_UI4:
-      return value.uintVal;
-    case VT_R4:
-      return value.fltVal;
-    case VT_R8:
-      return value.dblVal;
-    case VT_BSTR:
-      return scada::LocalizedText{base::AsString16(value.bstrVal)};
+// `base::win::ScopedVariant` cannot directly initialize from many types, while
+// its `Set` supports different types.
+template <class T>
+inline base::win::ScopedVariant MakeWinVariant(T value) {
+  base::win::ScopedVariant v;
+  v.Set(value);
+  return v;
+}
+
+std::optional<base::win::ScopedVariant> ConvertScalar(
+    const scada::Variant& value) {
+  switch (value.type()) {
+    case scada::Variant::EMPTY:
+      return base::win::ScopedVariant{};
+    case scada::Variant::BOOL:
+      return MakeWinVariant(value.as_bool());
+    case scada::Variant::INT8:
+      return MakeWinVariant(value.get<scada::Int8>());
+    case scada::Variant::UINT8:
+      return MakeWinVariant(value.get<scada::UInt8>());
+    case scada::Variant::INT16:
+      return MakeWinVariant(value.get<scada::Int16>());
+    case scada::Variant::UINT16:
+      return MakeWinVariant(value.get<scada::UInt16>());
+    case scada::Variant::INT32:
+      return MakeWinVariant(value.get<scada::Int32>());
+    case scada::Variant::UINT32:
+      return MakeWinVariant(value.get<scada::UInt32>());
+    case scada::Variant::INT64:
+      return MakeWinVariant(value.get<scada::Int64>());
+    case scada::Variant::UINT64:
+      return MakeWinVariant(value.get<scada::UInt64>());
+    case scada::Variant::DOUBLE:
+      return MakeWinVariant(value.get<scada::Double>());
     default:
       assert(false);
       return std::nullopt;
   }
 }
 
-inline std::optional<scada::Variant> SafeArrayToVariant(
-    const SAFEARRAY& safe_array) {
+std::optional<scada::Variant> ConvertScalar(const VARIANT& value) {
+  switch (value.vt) {
+    case VT_EMPTY:
+      return scada::Variant{};
+    case VT_BOOL:
+      return scada::Variant{value.boolVal != VARIANT_FALSE};
+    case VT_I1:
+      return scada::Variant{static_cast<scada::Int8>(value.bVal)};
+    case VT_UI1:
+      return scada::Variant{static_cast<scada::UInt8>(value.cVal)};
+    case VT_I2:
+      return scada::Variant{static_cast<scada::Int16>(value.iVal)};
+    case VT_UI2:
+      return scada::Variant{static_cast<scada::UInt16>(value.uiVal)};
+    case VT_I4:
+      return scada::Variant{static_cast<scada::Int32>(value.intVal)};
+    case VT_UI4:
+      return scada::Variant{static_cast<scada::UInt32>(value.uintVal)};
+    case VT_I8:
+      return scada::Variant{static_cast<scada::Int64>(value.llVal)};
+    case VT_UI8:
+      return scada::Variant{static_cast<scada::UInt64>(value.ullVal)};
+    case VT_R4:
+      return scada::Variant{static_cast<scada::Double>(value.fltVal)};
+    case VT_R8:
+      return scada::Variant{static_cast<scada::Double>(value.dblVal)};
+    case VT_BSTR:
+      return scada::Variant{
+          scada::LocalizedText{base::AsString16(value.bstrVal)}};
+    default:
+      assert(false);
+      return std::nullopt;
+  }
+}
+
+std::optional<base::win::ScopedVariant> ConvertArray(
+    const scada::Variant& variant) {
+  // TODO: Implement.
+  assert(false);
+  return std::nullopt;
+}
+
+std::optional<scada::Variant> ConvertArray(const SAFEARRAY& safe_array) {
+  // TODO: Implement.
+  assert(false);
   return std::nullopt;
 }
 
@@ -40,50 +101,20 @@ inline std::optional<scada::Variant> SafeArrayToVariant(
 // static
 std::optional<base::win::ScopedVariant> VariantConverter::Convert(
     const scada::Variant& value) {
-  switch (value.type()) {
-    case scada::Variant::EMPTY:
-      return base::win::ScopedVariant{};
-    case scada::Variant::BOOL:
-      return base::win::ScopedVariant{value.as_bool()};
-    case scada::Variant::INT8:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::Int8>()), VT_I1};
-    case scada::Variant::UINT8:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::UInt8>()), VT_UI1};
-    case scada::Variant::INT16:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::Int16>()), VT_I2};
-    case scada::Variant::UINT16:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::UInt16>()), VT_UI2};
-    case scada::Variant::INT32:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::Int32>()), VT_I4};
-    case scada::Variant::UINT32:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::UInt32>()), VT_UI4};
-    case scada::Variant::INT64:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::Int64>()), VT_I8};
-    case scada::Variant::UINT64:
-      return base::win::ScopedVariant{
-          static_cast<long>(value.get<scada::UInt64>()), VT_UI8};
-    case scada::Variant::DOUBLE:
-      return base::win::ScopedVariant{value.get<scada::Double>(), VT_R8};
-    default:
-      assert(false);
-      return std::nullopt;
+  if (value.is_array()) {
+    return ConvertArray(value);
   }
+
+  return ConvertScalar(value);
 }
 
 // static
 std::optional<scada::Variant> VariantConverter::Convert(const VARIANT& value) {
   if (value.vt & VT_ARRAY) {
-    return SafeArrayToVariant(*value.parray);
+    return ConvertArray(*value.parray);
   }
 
-  return ScalarToVariant(value);
+  return ConvertScalar(value);
 }
 
 }  // namespace opc
