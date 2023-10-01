@@ -30,15 +30,17 @@ scada::NodeId MakeOpcBranchNodeId(const scada::NodeId& root_node_id,
                                   std::string_view prog_id,
                                   std::string_view item_id);
 
-inline scada::NodeId MakeOpcServerNodeId(const scada::NodeId& root_node_id,
-                                         std::string_view prog_id) {
-  return MakeOpcBranchNodeId(root_node_id, prog_id, {});
-}
+scada::NodeId MakeOpcServerNodeId(const scada::NodeId& root_node_id,
+                                  std::string_view prog_id);
 
 scada::NodeId MakeOpcItemNodeId(const scada::NodeId& root_node_id,
                                 std::string_view prog_id,
                                 std::string_view item_id);
 
 std::string_view GetOpcItemName(std::string_view item_id);
+
+std::string_view GetOpcCustomParentItemId(std::string_view item_id);
+
+bool IsBranchOpcItemId(std::string_view item_id);
 
 }  // namespace opc

@@ -1,5 +1,8 @@
 #include "opc/opc_node_ids.h"
 
+#include "model/nested_node_ids.h"
+#include "model/opc_node_ids.h"
+
 #include <gmock/gmock.h>
 
 using namespace testing;

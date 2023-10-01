@@ -15,3 +15,12 @@ class SyncAttributeService {
       const scada::ServiceContext& context,
       base::span<const scada::WriteValue> inputs) = 0;
 };
+
+inline scada::DataValue Read(SyncAttributeService& attribute_service,
+                             const scada::ServiceContext& context,
+                             const scada::ReadValueId& input) {
+  base::span<const scada::ReadValueId> inputs{&input, 1};
+  auto results = attribute_service.Read(context, inputs);
+  assert(results.size() == 1);
+  return std::move(results.front());
+}

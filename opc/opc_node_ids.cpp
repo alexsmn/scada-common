@@ -1,7 +1,6 @@
 #include "opc/opc_node_ids.h"
 
-#include "model/node_id_util.h"
-#include "model/opc_node_ids.h"
+#include "model/nested_node_ids.h"
 
 namespace opc {
 
@@ -37,6 +36,14 @@ std::optional<ParsedOpcNodeId> ParseOpcNodeId(const scada::NodeId& root_node_id,
                          .item_id = nested_name.substr(p + 1)};
 }
 
+scada::NodeId MakeOpcServerNodeId(const scada::NodeId& root_node_id,
+                                  std::string_view prog_id) {
+  assert(!root_node_id.is_null());
+  assert(!prog_id.empty());
+
+  return MakeNestedNodeId(root_node_id, prog_id);
+}
+
 // |item_id| can be empty for server node ID.
 scada::NodeId MakeOpcBranchNodeId(const scada::NodeId& root_node_id,
                                   std::string_view prog_id,
@@ -50,6 +57,8 @@ scada::NodeId MakeOpcBranchNodeId(const scada::NodeId& root_node_id,
   // TODO: Optimize.
   std::string nested_name = std::string{prog_id} + kOpcPathDelimiter +
                             std::string{item_id} + kOpcPathDelimiter;
+
+  assert(IsBranchOpcItemId(nested_name));
   return MakeNestedNodeId(root_node_id, nested_name);
 }
 
@@ -77,6 +86,10 @@ std::string_view GetOpcItemName(std::string_view item_id) {
 std::string_view GetOpcCustomParentItemId(std::string_view item_id) {
   auto p = item_id.find_last_of(kOpcCustomItemDelimiter);
   return p == item_id.npos ? std::string_view{} : item_id.substr(0, p);
+}
+
+bool IsBranchOpcItemId(std::string_view item_id) {
+  return item_id.size() >= 2 && item_id.back() == kOpcPathDelimiter;
 }
 
 }  // namespace opc

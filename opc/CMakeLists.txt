@@ -16,4 +16,6 @@ target_link_libraries(scada_common_opc PRIVATE opc_client)
 
 target_link_libraries(scada_common_opc_unittests PRIVATE
   OPC::opc
+  # Uses `MakeNestedNodeId()` directly.
+  scada_model
 )
