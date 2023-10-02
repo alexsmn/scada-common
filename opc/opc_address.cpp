@@ -5,6 +5,7 @@
 namespace opc {
 
 namespace {
+const char kOpcMachineNamePrefix[] = "\\\\";
 const char kOpcPathDelimiter = '\\';
 const char kOpcCustomItemDelimiter = '.';
 }  // namespace
@@ -36,10 +37,19 @@ OpcAddressView OpcAddressView::MakeItem(std::string_view prog_id,
   return {.type = OpcAddressType::Item, .prog_id = prog_id, .item_id = item_id};
 }
 
-// static
 std::string OpcAddressView::ToString() const {
-  // TODO: Support machine name.
-  assert(machine_name.empty());
+  auto local_string = ToStringWithoutMachineName();
+  if (local_string.empty()) {
+    return {};
+  }
+
+  return machine_name.empty()
+             ? local_string
+             : std::string{kOpcMachineNamePrefix} + std::string{machine_name} +
+                   kOpcPathDelimiter + local_string;
+}
+
+std::string OpcAddressView::ToStringWithoutMachineName() const {
   assert(!prog_id.empty());
 
   switch (type) {
@@ -62,6 +72,17 @@ std::string OpcAddressView::ToString() const {
 std::optional<OpcAddressView> OpcAddressView::Parse(std::string_view address) {
   // TODO: Support machine name.
 
+  std::string_view machine_name;
+  if (address.starts_with(kOpcMachineNamePrefix)) {
+    address = address.substr(std::strlen(kOpcMachineNamePrefix));
+    auto p = address.find(kOpcPathDelimiter);
+    if (p == 0 || p == address.npos) {
+      return std::nullopt;
+    }
+    machine_name = address.substr(0, p);
+    address = address.substr(p + 1);
+  }
+
   if (address.empty()) {
     return std::nullopt;
   }
@@ -74,7 +95,9 @@ std::optional<OpcAddressView> OpcAddressView::Parse(std::string_view address) {
 
   // Server node ID consisting from only a prog ID, like `Prog.ID`.
   if (p == address.npos) {
-    return OpcAddressView{.type = OpcAddressType::Server, .prog_id = address};
+    return OpcAddressView{.type = OpcAddressType::Server,
+                          .machine_name = machine_name,
+                          .prog_id = address};
   }
 
   auto prog_id = address.substr(0, p);
@@ -82,19 +105,24 @@ std::optional<OpcAddressView> OpcAddressView::Parse(std::string_view address) {
 
   // Server node ID ending with a delimiter, like `Prog.ID\`.
   if (item_id.empty()) {
-    return OpcAddressView{.type = OpcAddressType::Server, .prog_id = prog_id};
+    return OpcAddressView{.type = OpcAddressType::Server,
+                          .machine_name = machine_name,
+                          .prog_id = prog_id};
   }
 
   // Branch node ID ending with a delimiter, like `Prog.ID\A.B.C\`. So far it
   // includes edge cases like `Prog.ID\\\`.
   if (item_id.back() == kOpcPathDelimiter) {
     return OpcAddressView{.type = OpcAddressType::Branch,
+                          .machine_name = machine_name,
                           .prog_id = prog_id,
                           .item_id = item_id.substr(0, item_id.size() - 1)};
   }
 
-  return OpcAddressView{
-      .type = OpcAddressType::Item, .prog_id = prog_id, .item_id = item_id};
+  return OpcAddressView{.type = OpcAddressType::Item,
+                        .machine_name = machine_name,
+                        .prog_id = prog_id,
+                        .item_id = item_id};
 }
 
 }  // namespace opc

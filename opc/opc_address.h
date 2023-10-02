@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <ostream>
 #include <string>
 
 namespace opc {
@@ -37,6 +38,13 @@ struct OpcAddressView {
   std::string_view prog_id;
   // Never empty for item nodes.
   std::string_view item_id;
+
+ private:
+  std::string ToStringWithoutMachineName() const;
 };
+
+inline std::ostream& operator<<(std::ostream& os, OpcAddressView address) {
+  return os << address.ToString();
+}
 
 }  // namespace opc

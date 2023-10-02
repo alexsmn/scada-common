@@ -43,9 +43,13 @@ TEST(ParseOpcNodeId, EmptyProgId) {
   EXPECT_EQ(std::nullopt, ParseOpcNodeId(MakeNestedNodeId(id::OPC, "\\A.B.C")));
 }
 
-TEST(ParseOpcNodeId, MachineName) {
-  EXPECT_EQ(std::nullopt, ParseOpcNodeId(MakeNestedNodeId(
-                              id::OPC, "\\\\localhost\\Server.Prog.ID\\ABC")));
+TEST(ParseOpcNodeId, ItemWithMachineName) {
+  EXPECT_THAT(ParseOpcNodeId(MakeNestedNodeId(
+                  id::OPC, "\\\\localhost\\Server.Prog.ID\\A.B.C")),
+              Optional(FieldsAre(/*type*/ OpcAddressType::Item,
+                                 /*machine_name*/ "localhost",
+                                 /*prog_id*/ "Server.Prog.ID",
+                                 /*item_id*/ "A.B.C")));
 }
 
 TEST(MakeOpcServerNodeId, Test) {
