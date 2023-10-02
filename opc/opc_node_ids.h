@@ -1,45 +1,33 @@
 #pragma once
 
+#include "opc/opc_address.h"
 #include "scada/node_id.h"
-
-#include <optional>
 
 namespace opc {
 
-struct OpcItemId {
-  std::string machine_name;
-  std::string prog_id;
-  std::string item_id;
-};
-
-enum class OpcNodeType { Server, Branch, Item };
-
-struct ParsedOpcNodeId {
-  OpcNodeType type = OpcNodeType::Item;
-  std::string_view machine_name;
-  std::string_view prog_id;
-  // Never empty for item nodes.
-  std::string_view item_id;
-};
-
 // WARNING: This method must be very performant, as a service locator may invoke
 // it for each requested node.
-std::optional<ParsedOpcNodeId> ParseOpcNodeId(const scada::NodeId& root_node_id,
-                                              const scada::NodeId& node_id);
+std::optional<OpcAddressView> ParseOpcNodeId(const scada::NodeId& node_id);
+
+scada::NodeId MakeOpcNodeId(std::string_view address);
 
 // |prog_id| cannot be empty.
-scada::NodeId MakeOpcServerNodeId(const scada::NodeId& root_node_id,
-                                  std::string_view prog_id);
+inline scada::NodeId MakeOpcServerNodeId(std::string_view prog_id) {
+  return MakeOpcNodeId(OpcAddressView::MakeServer(prog_id).ToString());
+}
 
 // |prog_id| cannot be empty. If empty |item_id| is provided, then
 // `MakeOpcServerNodeId()` is called.
-scada::NodeId MakeOpcBranchNodeId(const scada::NodeId& root_node_id,
-                                  std::string_view prog_id,
-                                  std::string_view item_id);
+inline scada::NodeId MakeOpcBranchNodeId(std::string_view prog_id,
+                                         std::string_view item_id) {
+  return MakeOpcNodeId(OpcAddressView::MakeBranch(prog_id, item_id).ToString());
+}
 
-scada::NodeId MakeOpcItemNodeId(const scada::NodeId& root_node_id,
-                                std::string_view prog_id,
-                                std::string_view item_id);
+// Both |prog_id| and |item_id| cannot be empty.
+inline scada::NodeId MakeOpcItemNodeId(std::string_view prog_id,
+                                       std::string_view item_id) {
+  return MakeOpcNodeId(OpcAddressView::MakeItem(prog_id, item_id).ToString());
+}
 
 std::string_view GetOpcItemName(std::string_view item_id);
 
