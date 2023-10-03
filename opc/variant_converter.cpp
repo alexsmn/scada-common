@@ -15,7 +15,7 @@ inline base::win::ScopedVariant MakeWinVariant(T value) {
   return v;
 }
 
-std::optional<base::win::ScopedVariant> ConvertScalar(
+std::optional<base::win::ScopedVariant> ConvertScalarToWin(
     const scada::Variant& value) {
   switch (value.type()) {
     case scada::Variant::EMPTY:
@@ -46,7 +46,7 @@ std::optional<base::win::ScopedVariant> ConvertScalar(
   }
 }
 
-std::optional<scada::Variant> ConvertScalar(const VARIANT& value) {
+std::optional<scada::Variant> ConvertScalarToScada(const VARIANT& value) {
   switch (value.vt) {
     case VT_EMPTY:
       return scada::Variant{};
@@ -81,14 +81,14 @@ std::optional<scada::Variant> ConvertScalar(const VARIANT& value) {
   }
 }
 
-std::optional<base::win::ScopedVariant> ConvertArray(
+std::optional<base::win::ScopedVariant> ConvertArrayToWin(
     const scada::Variant& variant) {
   // TODO: Implement.
   assert(false);
   return std::nullopt;
 }
 
-std::optional<scada::Variant> ConvertArray(const SAFEARRAY& safe_array) {
+std::optional<scada::Variant> ConvertArrayToScada(const SAFEARRAY& safe_array) {
   // TODO: Implement.
   assert(false);
   return std::nullopt;
@@ -99,22 +99,22 @@ std::optional<scada::Variant> ConvertArray(const SAFEARRAY& safe_array) {
 // VariantConverter
 
 // static
-std::optional<base::win::ScopedVariant> VariantConverter::Convert(
+std::optional<base::win::ScopedVariant> VariantConverter::ToWin(
     const scada::Variant& value) {
   if (value.is_array()) {
-    return ConvertArray(value);
+    return ConvertArrayToWin(value);
   }
 
-  return ConvertScalar(value);
+  return ConvertScalarToWin(value);
 }
 
 // static
-std::optional<scada::Variant> VariantConverter::Convert(const VARIANT& value) {
+std::optional<scada::Variant> VariantConverter::ToScada(const VARIANT& value) {
   if (value.vt & VT_ARRAY) {
-    return ConvertArray(*value.parray);
+    return ConvertArrayToScada(*value.parray);
   }
 
-  return ConvertScalar(value);
+  return ConvertScalarToScada(value);
 }
 
 }  // namespace opc

@@ -12,16 +12,17 @@ class OpcQualityConverter {
  public:
   OpcQualityConverter() = delete;
 
-  static scada::Qualifier Convert(unsigned quality);
-  static unsigned Convert(scada::Qualifier qualifier);
+  static scada::Qualifier ToScada(unsigned quality);
+  static unsigned ToOpc(scada::Qualifier qualifier);
 };
 
 class OpcDataValueConverter {
  public:
   OpcDataValueConverter() = delete;
 
-  static scada::DataValue Convert(const OpcDataValue& opc_data_value);
-  static OpcDataValue Convert(const scada::DataValue& data_value);
+  static scada::DataValue ToScada(const OpcDataValue& opc_data_value,
+                                  scada::DateTime now);
+  static OpcDataValue ToOpc(const scada::DataValue& data_value);
 };
 
 DATE ToDATE(const FILETIME& file_time);

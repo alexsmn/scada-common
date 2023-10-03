@@ -11,10 +11,10 @@ class VariantConverter {
  public:
   VariantConverter() = delete;
 
-  static std::optional<base::win::ScopedVariant> Convert(
+  static std::optional<base::win::ScopedVariant> ToWin(
       const scada::Variant& variant);
 
-  static std::optional<scada::Variant> Convert(const VARIANT& variant);
+  static std::optional<scada::Variant> ToScada(const VARIANT& variant);
 };
 
 }  // namespace opc

@@ -61,10 +61,10 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(VariantConverterTest, ConvertForwardAndBackward) {
   const auto& [scada_variant, win_variant] = *GetParam();
 
-  auto forward_result = VariantConverter::Convert(scada_variant);
+  auto forward_result = VariantConverter::ToWin(scada_variant);
   ASSERT_NE(forward_result, std::nullopt);
 
-  auto backward_result = VariantConverter::Convert(*forward_result);
+  auto backward_result = VariantConverter::ToScada(*forward_result);
   ASSERT_NE(backward_result, std::nullopt);
 
   ASSERT_EQ(*backward_result, scada_variant);
@@ -73,10 +73,10 @@ TEST_P(VariantConverterTest, ConvertForwardAndBackward) {
 TEST_P(VariantConverterTest, ConvertBackwardAndForward) {
   const auto& [scada_variant, win_variant] = *GetParam();
 
-  auto backward_result = VariantConverter::Convert(win_variant);
+  auto backward_result = VariantConverter::ToScada(win_variant);
   ASSERT_NE(backward_result, std::nullopt);
 
-  auto forward_result = VariantConverter::Convert(*backward_result);
+  auto forward_result = VariantConverter::ToWin(*backward_result);
   ASSERT_NE(forward_result, std::nullopt);
 
   // TODO: Implement comparison for `VARIANT`s.
