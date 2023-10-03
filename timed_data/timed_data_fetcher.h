@@ -14,7 +14,7 @@ class TimedDataFetcher : private TimedDataFetcherContext,
  public:
   explicit TimedDataFetcher(TimedDataFetcherContext&& context);
 
-  void SetNode(NodeRef node) {}
+  void SetNode(NodeRef node) { node_ = node; }
 
   void FetchNextGap();
 
