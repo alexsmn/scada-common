@@ -20,8 +20,10 @@ inline std::string ToString(std::wstring_view str) {
                                                str.data() + str.size());
 }
 
-inline scada::Qualifier ConvertBadQuality(unsigned quality) {
-  switch (quality) {
+inline scada::Qualifier ConvertBadQuality(opc_client::Quality quality) {
+  assert(quality.bad());
+
+  switch (quality.raw()) {
     case OPC_QUALITY_CONFIG_ERROR:
       return scada::Qualifier{scada::Qualifier::MISCONFIGURED};
     case OPC_QUALITY_NOT_CONNECTED:
@@ -43,17 +45,17 @@ inline scada::Qualifier ConvertBadQuality(unsigned quality) {
 
 // static
 scada::Qualifier OpcQualityConverter::ToScada(opc_client::Quality quality) {
-  switch (quality.status()) {
-    case opc_client::Quality::GOOD:
-      return (quality.raw() == OPC_QUALITY_LOCAL_OVERRIDE)
-                 ? scada::Qualifier{scada::Qualifier::MANUAL}
-                 : scada::Qualifier{};
-    case opc_client::Quality::UNCERTAIN:
-      return scada::Qualifier{scada::Qualifier::STALE};
-    case opc_client::Quality::BAD:
-      return ConvertBadQuality(quality.raw());
-    default:
-      return scada::Qualifier{scada::Qualifier::BAD};
+  if (quality.good()) {
+    return quality == opc_client::Quality::GOOD_LOCAL_OVERRIDE
+               ? scada::Qualifier{scada::Qualifier::MANUAL}
+               : scada::Qualifier{};
+  } else if (quality.bad()) {
+    return ConvertBadQuality(quality);
+  } else if (quality.uncertain()) {
+    return scada::Qualifier{scada::Qualifier::STALE};
+  } else {
+    assert(false);
+    return scada::Qualifier{scada::Qualifier::BAD};
   }
 }
 
