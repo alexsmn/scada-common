@@ -67,10 +67,11 @@ TEST(OpcDataValueConverter, ToScada) {
   auto now = scada::DateTime::Now();
   auto timestamp = now - scada::Duration::FromSeconds(123);
 
-  auto opc_data_value = OpcDataValue{.status = S_OK,
-                                     .value = base::win::ScopedVariant{123},
-                                     .timestamp = timestamp.ToFileTime(),
-                                     .quality = OPC_QUALITY_GOOD};
+  auto opc_data_value =
+      opc_client::DataValue{.status = S_OK,
+                            .value = 123,
+                            .timestamp = timestamp.ToFileTime(),
+                            .quality = OPC_QUALITY_GOOD};
 
   auto scada_data_value = OpcDataValueConverter::ToScada(opc_data_value, now);
 

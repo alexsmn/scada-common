@@ -66,7 +66,7 @@ unsigned OpcQualityConverter::ToOpc(scada::Qualifier qualifier) {
 
 // static
 scada::DataValue OpcDataValueConverter::ToScada(
-    const OpcDataValue& opc_data_value,
+    const opc_client::DataValue& opc_data_value,
     scada::DateTime now) {
   // OPC UA. Part 8. A.3.2.4 Timestamp
   // - The `Timestamp` provided for a value in the DA server is assigned to the
@@ -86,7 +86,8 @@ scada::DataValue OpcDataValueConverter::ToScada(
 }
 
 // static
-OpcDataValue OpcDataValueConverter::ToOpc(const scada::DataValue& data_value) {
+opc_client::DataValue OpcDataValueConverter::ToOpc(
+    const scada::DataValue& data_value) {
   // OPC UA. Part 8. A.4.3.4 Timestamp
   // - If available, the `SourceTimestamp` of the `DataValue` in the OPC UA
   // Server is assigned to the `Timestamp` for the value in the COM UA Proxy.
@@ -96,9 +97,12 @@ OpcDataValue OpcDataValueConverter::ToOpc(const scada::DataValue& data_value) {
                        ? data_value.source_timestamp.ToFileTime()
                        : data_value.server_timestamp.ToFileTime();
   if (auto win_variant_value = VariantConverter::ToWin(data_value.value)) {
-    return {.value = std::move(*win_variant_value),
-            .timestamp = timestamp,
-            .quality = OpcQualityConverter::ToOpc(data_value.qualifier)};
+    opc_client::DataValue opc_data_value{
+        .timestamp = timestamp,
+        .quality = OpcQualityConverter::ToOpc(data_value.qualifier)};
+    VARIANT v = win_variant_value->Release();
+    opc_data_value.value.Attach(&v);
+    return opc_data_value;
   } else {
     return {.timestamp = timestamp, .quality = OPC_QUALITY_BAD};
   }

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "opc/opc_types.h"
 #include "scada/data_value.h"
 
 #include <Windows.h>
+#include <opc_client/core/data_value.h>
 #include <optional>
 
 namespace opc {
@@ -20,9 +20,9 @@ class OpcDataValueConverter {
  public:
   OpcDataValueConverter() = delete;
 
-  static scada::DataValue ToScada(const OpcDataValue& opc_data_value,
+  static scada::DataValue ToScada(const opc_client::DataValue& opc_data_value,
                                   scada::DateTime now);
-  static OpcDataValue ToOpc(const scada::DataValue& data_value);
+  static opc_client::DataValue ToOpc(const scada::DataValue& data_value);
 };
 
 DATE ToDATE(const FILETIME& file_time);
