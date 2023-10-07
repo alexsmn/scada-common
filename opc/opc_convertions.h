@@ -12,8 +12,8 @@ class OpcQualityConverter {
  public:
   OpcQualityConverter() = delete;
 
-  static scada::Qualifier ToScada(unsigned quality);
-  static unsigned ToOpc(scada::Qualifier qualifier);
+  static scada::Qualifier ToScada(opc_client::Quality quality);
+  static opc_client::Quality ToOpc(scada::Qualifier qualifier);
 };
 
 class OpcDataValueConverter {

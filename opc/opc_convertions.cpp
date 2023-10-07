@@ -42,24 +42,25 @@ inline scada::Qualifier ConvertBadQuality(unsigned quality) {
 // OpcQualityConverter
 
 // static
-scada::Qualifier OpcQualityConverter::ToScada(unsigned quality) {
-  switch (quality & OPC_QUALITY_MASK) {
-    case OPC_QUALITY_GOOD:
-      return (quality == OPC_QUALITY_LOCAL_OVERRIDE)
+scada::Qualifier OpcQualityConverter::ToScada(opc_client::Quality quality) {
+  switch (quality.status()) {
+    case opc_client::Quality::GOOD:
+      return (quality.raw() == OPC_QUALITY_LOCAL_OVERRIDE)
                  ? scada::Qualifier{scada::Qualifier::MANUAL}
                  : scada::Qualifier{};
-    case OPC_QUALITY_UNCERTAIN:
+    case opc_client::Quality::UNCERTAIN:
       return scada::Qualifier{scada::Qualifier::STALE};
-    case OPC_QUALITY_BAD:
-      return ConvertBadQuality(quality);
+    case opc_client::Quality::BAD:
+      return ConvertBadQuality(quality.raw());
     default:
       return scada::Qualifier{scada::Qualifier::BAD};
   }
 }
 
 // static
-unsigned OpcQualityConverter::ToOpc(scada::Qualifier qualifier) {
-  return qualifier.general_bad() ? OPC_QUALITY_BAD : OPC_QUALITY_GOOD;
+opc_client::Quality OpcQualityConverter::ToOpc(scada::Qualifier qualifier) {
+  return qualifier.general_bad() ? opc_client::Quality::BAD
+                                 : opc_client::Quality::GOOD;
 }
 
 // OpcDataValueConverter
@@ -98,13 +99,13 @@ opc_client::DataValue OpcDataValueConverter::ToOpc(
                        : data_value.server_timestamp.ToFileTime();
   if (auto win_variant_value = VariantConverter::ToWin(data_value.value)) {
     opc_client::DataValue opc_data_value{
-        .timestamp = timestamp,
-        .quality = OpcQualityConverter::ToOpc(data_value.qualifier)};
+        .quality = OpcQualityConverter::ToOpc(data_value.qualifier),
+        .timestamp = timestamp};
     VARIANT v = win_variant_value->Release();
     opc_data_value.value.Attach(&v);
     return opc_data_value;
   } else {
-    return {.timestamp = timestamp, .quality = OPC_QUALITY_BAD};
+    return {.quality = opc_client::Quality::BAD, .timestamp = timestamp};
   }
 }
 
