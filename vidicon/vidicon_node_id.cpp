@@ -37,6 +37,16 @@ bool IsVidiconNodeId(const scada::NodeId& node_id) {
          node_id == kVidiconRootNodeId;
 }
 
+std::optional<VidiconObjectId> GetVidiconObjectId(
+    const scada::NodeId& node_id) {
+  if (node_id.namespace_index() == NamespaceIndexes::VIDICON &&
+      node_id.is_numeric()) {
+    return static_cast<VidiconObjectId>(node_id.numeric_id());
+  } else {
+    return std::nullopt;
+  }
+}
+
 scada::NodeId MakeVidiconNodeId(VidiconObjectId object_id) {
   return object_id == kRootVidiconObjectId
              ? kVidiconRootNodeId
