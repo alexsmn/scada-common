@@ -2,8 +2,8 @@
 
 #include "scada/data_value.h"
 #include "scada/monitored_item.h"
-#include "vidicon/TeleClient.h"
 
+#include <TeleClient.h>
 #include <atlbase.h>
 #include <atlcom.h>
 #include <wrl/client.h>

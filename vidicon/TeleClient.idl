@@ -1,0 +1,109 @@
+// TeleClient.idl : IDL source for TeleClient
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (TeleClient.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+  object,
+  uuid(037AB3A2-BBF7-4D1B-822D-F45CF8FF4850),
+  dual,
+  nonextensible,
+  helpstring("IDataPoint Interface"),
+  pointer_default(unique)
+]
+interface IDataPoint : IDispatch {
+  [propget, id(1), helpstring("property Value")] HRESULT Value([out, retval] VARIANT* pVal);
+  [propput, id(1), helpstring("property Value")] HRESULT Value([in] VARIANT newVal);
+  [propget, id(2), helpstring("property Time")] HRESULT Time([out, retval] DATE* pVal);
+  [propget, id(3), helpstring("property Quality")] HRESULT Quality([out, retval] ULONG* pVal);
+  [propget, id(4), helpstring("property ValueStr")] HRESULT ValueStr([out, retval] BSTR* pVal);
+  [propget, id(5), helpstring("property Attrib")] HRESULT Attrib([in] BSTR Name, [out, retval] VARIANT* pVal);
+  [propget, id(6), helpstring("property Address")] HRESULT Address([out, retval] BSTR* pVal);
+  [propget, id(7), helpstring("property Prop")] HRESULT Prop([in] ULONG ID, [out, retval] VARIANT* pVal);
+  [propput, id(7), helpstring("property Prop")] HRESULT Prop([in] ULONG ID, [in] VARIANT newVal);
+  [propget, id(8), helpstring("property XmlNode")] HRESULT XmlNode([out, retval] IDispatch** pVal);
+  [propget, id(9), helpstring("property Status")] HRESULT Status([out, retval] ULONG* pVal);
+  [propget, id(10), helpstring("property ErrorStr")] HRESULT ErrorStr([in] ULONG Error, [out, retval] BSTR* pVal);
+  [propget, id(11), helpstring("property AccessRights")] HRESULT AccessRights([out, retval] ULONG* pVal);
+  [propget, id(12), helpstring("property OPCServer")] HRESULT OPCServer([out, retval] IUnknown** pVal);
+  [id(100), helpstring("method Write")] HRESULT Write([in] VARIANT Value);
+  [id(101), helpstring("method Read")] HRESULT Read([out] ULONG* status, [out] VARIANT* value, [out] ULONG* quality, [out] DATE* timestamp);
+  [id(105), helpstring("method WriteAsync")] HRESULT WriteAsync([in] VARIANT Value, [out, retval] ULONG* TransID);
+  [id(106), helpstring("method CancelAsync")] HRESULT CancelAsync([in] ULONG TransID);
+  [id(200), helpstring("method Ack")] HRESULT Ack([in] BSTR Acker, [in] BSTR Comment);
+  [id(300), helpstring("method Call")] HRESULT Call([in] BSTR MethodName, [in] ULONG ArgumentCount, [in, size_is(ArgumentCount)] VARIANT* Arguments, [out, retval] VARIANT* Result);
+};
+
+[
+  object,
+  uuid(550FEB52-C674-4EC3-9585-13565D879C38),
+  dual,
+  nonextensible,
+  helpstring("IClient Interface"),
+  pointer_default(unique)
+]
+interface IClient : IDispatch {
+  [id(1), helpstring("method RequestPoint")] HRESULT RequestPoint([in] BSTR Address, [out, retval] IDataPoint** Point);
+  [propget, id(2), helpstring("property GlobAttrib")] HRESULT GlobAttrib([in] BSTR Name, [out, retval] VARIANT* pVal);
+  [propget, id(3), helpstring("property XmlConfig")] HRESULT XmlConfig([in] BSTR Name, [out, retval] IDispatch** pVal);
+  [propget, id(4), helpstring("property XmlNode")] HRESULT XmlNode([in] BSTR Name, [in] ULONG ID, [out, retval] IDispatch** pVal);
+  [propget, id(5), helpstring("property PointProp")] HRESULT PointProp([in] BSTR Name, [in] ULONG ID, [out, retval] VARIANT* pVal);
+  [id(6), helpstring("method Evalute")] HRESULT Evalute([in] BSTR Text, [out, retval] BSTR* pVal);
+};
+[
+  uuid(039F6DEF-60F4-47EF-8C30-893A6830F73E),
+  version(1.0),
+  helpstring("TeleClient 1.0 Type Library")
+]
+library TeleClientLib
+{
+  importlib("stdole2.tlb");
+
+  [
+    uuid(9A9362AC-790E-43FE-9B6A-E0E30DED9C0C),
+    helpstring("_IClientEvents Interface")
+  ]
+  dispinterface _IClientEvents
+  {
+    properties:
+    methods:
+  };
+
+  [
+    uuid(CF94C1E4-54B7-4E76-B2FB-8D47F3CED2F8),
+    helpstring("Client Class")
+  ]
+  coclass Client
+  {
+    [default] interface IClient;
+    [default, source] dispinterface _IClientEvents;
+  };
+
+  [
+    uuid(FF65E506-C221-4507-91E5-2EAD2671DB74),
+    helpstring("_IDataPointEvents Interface")
+  ]
+  dispinterface _IDataPointEvents
+  {
+    properties:
+    methods:
+      [id(3), helpstring("method OnWriteComplete")] HRESULT OnWriteComplete([in] ULONG TransID, [in] ULONG Result);
+      [id(4), helpstring("method OnCancelComplete")] HRESULT OnCancelComplete([in] ULONG TransID);
+      [id(202), helpstring("method OnDataChangeEx")] HRESULT OnDataChangeEx([in] ULONG status, [in] VARIANT value, [in] DATE timestamp, [in] ULONG quality);
+      [id(301), helpstring("method OnEvents")] HRESULT OnEvents([in] VARIANT_BOOL Refresh, [in] VARIANT_BOOL LastRefresh, [in] VARIANT Events);
+  };
+
+  [
+    uuid(BE21D8F7-FAE1-4024-AC00-A42EC4D02F00),
+    helpstring("DataPoint Class")
+  ]
+  coclass DataPoint
+  {
+    [default] interface IDataPoint;
+    [default, source] dispinterface _IDataPointEvents;
+  };
+};

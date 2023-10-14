@@ -1,9 +1,9 @@
 #include "scada/data_services_factory.h"
 
 #include "base/strings/string_util.h"
-#include "vidicon/vidicon_session.h"
+#include "vidicon/services/vidicon_session.h"
 
-#include "TeleClient_i.c"
+#include <TeleClient_i.c>
 
 bool CreateVidiconServices(const DataServicesContext& context,
                            DataServices& services) {

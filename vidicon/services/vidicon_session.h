@@ -11,8 +11,8 @@
 #include "scada/node_management_service.h"
 #include "scada/session_service.h"
 #include "scada/view_service.h"
-#include "vidicon/TeleClient.h"
 
+#include <TeleClient.h>
 #include <wrl/client.h>
 
 namespace scada {
