@@ -163,5 +163,5 @@ void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
 }
 
 scada::node NodeRef::scada_node() const {
-  return model_->GetScadaNode();
+  return model_ ? model_->GetScadaNode() : scada::node{};
 }
