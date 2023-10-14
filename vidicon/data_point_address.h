@@ -6,9 +6,15 @@
 
 namespace vidicon {
 
+using VidiconObjectId = unsigned;
+using VidiconFileId = unsigned;
+
+inline const VidiconObjectId kRootVidiconObjectId = 0;
+inline const VidiconFileId kRootVidiconFileId = 0;
+
 struct DataPointAddress {
   std::wstring opc_address;
-  unsigned object_id = 0;
+  VidiconObjectId object_id = 0;
 
   bool operator==(const DataPointAddress& other) const = default;
 };

@@ -1,5 +1,7 @@
 #include "vidicon/vidicon_node_id.h"
 
+#include "model/data_items_node_ids.h"
+#include "model/filesystem_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 #include "model/opc_node_ids.h"
@@ -8,6 +10,9 @@
 #include <boost/locale/encoding_utf.hpp>
 
 namespace vidicon {
+
+const scada::NodeId kVidiconRootNodeId = data_items::id::DataItems;
+const scada::NodeId kVidiconRootFileNodeId = filesystem::id::FileSystem;
 
 scada::NodeId ToNodeId(const DataPointAddress& address) {
   if (address.object_id != 0) {
@@ -25,6 +30,28 @@ scada::NodeId ToNodeId(std::wstring_view address) {
   } else {
     return scada::NodeId{};
   }
+}
+
+bool IsVidiconNodeId(const scada::NodeId& node_id) {
+  return node_id.namespace_index() == NamespaceIndexes::VIDICON ||
+         node_id == kVidiconRootNodeId;
+}
+
+scada::NodeId MakeVidiconNodeId(VidiconObjectId object_id) {
+  return object_id == kRootVidiconObjectId
+             ? kVidiconRootNodeId
+             : scada::NodeId{object_id, NamespaceIndexes::VIDICON};
+}
+
+bool IsVidiconFileNodeId(const scada::NodeId& node_id) {
+  return node_id.namespace_index() == NamespaceIndexes::VIDICON_FILE ||
+         node_id == kVidiconRootFileNodeId;
+}
+
+scada::NodeId MakeVidiconFileNodeId(VidiconFileId vidicon_file_id) {
+  return vidicon_file_id == kRootVidiconFileId
+             ? kVidiconRootFileNodeId
+             : scada::NodeId{vidicon_file_id, NamespaceIndexes::VIDICON_FILE};
 }
 
 }  // namespace vidicon
