@@ -21,8 +21,11 @@ std::optional<OpcAddressView> ParseOpcNodeId(const scada::NodeId& node_id) {
   return OpcAddressView::Parse(node_id.string_id());
 }
 
-scada::NodeId MakeOpcNodeId(std::string_view address) {
-  return scada::NodeId{std::string{address}, NamespaceIndexes::OPC};
+scada::NodeId MakeOpcNodeId(std::string_view opc_address) {
+  assert(!opc_address.empty());
+  return !opc_address.empty()
+             ? scada::NodeId{std::string{opc_address}, NamespaceIndexes::OPC}
+             : scada::NodeId{};
 }
 
 std::string_view GetOpcItemName(std::string_view item_id) {

@@ -4,7 +4,7 @@
 #include "model/filesystem_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
-#include "model/opc_node_ids.h"
+#include "opc/opc_node_ids.h"
 #include "vidicon/data_point_address.h"
 
 #include <boost/locale/encoding_utf.hpp>
@@ -19,8 +19,8 @@ scada::NodeId ToNodeId(const DataPointAddress& address) {
     return scada::NodeId{static_cast<scada::NumericId>(address.object_id),
                          NamespaceIndexes::VIDICON};
   } else {
-    return MakeNestedNodeId(opc::id::OPC, boost::locale::conv::utf_to_utf<char>(
-                                              address.opc_address));
+    return opc::MakeOpcNodeId(
+        boost::locale::conv::utf_to_utf<char>(address.opc_address));
   }
 }
 

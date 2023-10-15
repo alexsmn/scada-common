@@ -9,7 +9,8 @@ namespace opc {
 // it for each requested node.
 std::optional<OpcAddressView> ParseOpcNodeId(const scada::NodeId& node_id);
 
-scada::NodeId MakeOpcNodeId(std::string_view address);
+// `opc_address` is in format of `Server.ProgId\Branch.ItemId`.
+scada::NodeId MakeOpcNodeId(std::string_view opc_address);
 
 // |prog_id| cannot be empty.
 inline scada::NodeId MakeOpcServerNodeId(std::string_view prog_id) {
