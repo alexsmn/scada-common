@@ -1,0 +1,3 @@
+scada_module(scada_common_address_space_test)
+
+target_link_libraries(scada_common_address_space_test PUBLIC address_space)

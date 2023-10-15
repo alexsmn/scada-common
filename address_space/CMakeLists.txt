@@ -11,5 +11,6 @@ target_link_libraries(address_space PRIVATE
   scada_model
 )
 
-set_property(TARGET address_space PROPERTY FOLDER ${scada_folder})
-set_property(TARGET address_space_unittests PROPERTY FOLDER ${scada_folder})
+# Subdirectories.
+
+add_subdirectory(test)

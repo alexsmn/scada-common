@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/address_space_impl.h"
+#include "address_space/address_space_type_system.h"
 #include "address_space/address_space_util.h"
 #include "address_space/attribute_service_impl.h"
 #include "address_space/generic_node_factory.h"
@@ -9,14 +10,14 @@
 #include "address_space/view_service_impl.h"
 #include "base/observer_list.h"
 #include "common/node_state.h"
+#include "model/namespaces.h"
+#include "model/node_id_util.h"
 #include "scada/attribute_service.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 #include "scada/view_service.h"
 #include "scada/view_service_mock.h"
-#include "model/namespaces.h"
-#include "model/node_id_util.h"
 
 class TestAddressSpace : public AddressSpaceImpl,
                          public scada::MockAttributeService,
@@ -35,6 +36,8 @@ class TestAddressSpace : public AddressSpaceImpl,
                     const scada::NodeId& target_id);
 
   StandardAddressSpace standard_address_space{*this};
+
+  AddressSpaceTypeSystem type_system{*this};
 
   SyncAttributeServiceImpl sync_attribute_service_impl{
       {*static_cast<scada::AddressSpace*>(this)}};
