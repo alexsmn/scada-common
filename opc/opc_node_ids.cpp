@@ -1,5 +1,7 @@
 #include "opc/opc_node_ids.h"
 
+#include "base/containers/contains.h"
+#include "model/namespaces.h"
 #include "model/nested_node_ids.h"
 #include "model/opc_node_ids.h"
 
@@ -11,22 +13,16 @@ const char kOpcCustomItemDelimiter = '.';
 }  // namespace
 
 std::optional<OpcAddressView> ParseOpcNodeId(const scada::NodeId& node_id) {
-  // TODO: Support machine name.
-
-  // SCADA.329!Address
-  scada::NodeId parent_id;
-  std::string_view nested_name;
-  bool ok =
-      IsNestedNodeId(node_id, parent_id, nested_name) && parent_id == id::OPC;
-  if (!ok) {
+  if (node_id.namespace_index() != NamespaceIndexes::OPC ||
+      !node_id.is_string() || IsNestedNodeId(node_id)) {
     return std::nullopt;
   }
 
-  return OpcAddressView::Parse(nested_name);
+  return OpcAddressView::Parse(node_id.string_id());
 }
 
 scada::NodeId MakeOpcNodeId(std::string_view address) {
-  return MakeNestedNodeId(id::OPC, address);
+  return scada::NodeId{std::string{address}, NamespaceIndexes::OPC};
 }
 
 std::string_view GetOpcItemName(std::string_view item_id) {

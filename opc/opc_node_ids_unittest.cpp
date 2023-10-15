@@ -1,5 +1,6 @@
 #include "opc/opc_node_ids.h"
 
+#include "model/namespaces.h"
 #include "model/nested_node_ids.h"
 #include "model/opc_node_ids.h"
 
@@ -11,13 +12,7 @@ namespace opc {
 
 TEST(ParseOpcNodeId, ServerNode) {
   EXPECT_THAT(
-      ParseOpcNodeId(MakeNestedNodeId(id::OPC, "Server.Prog.ID")),
-      Optional(FieldsAre(/*type*/ OpcAddressType::Server, /*machine_name*/ "",
-                         /*prog_id*/ "Server.Prog.ID",
-                         /*item_id*/ "")));
-
-  EXPECT_THAT(
-      ParseOpcNodeId(MakeNestedNodeId(id::OPC, "Server.Prog.ID\\")),
+      ParseOpcNodeId(MakeOpcServerNodeId("Server.Prog.ID")),
       Optional(FieldsAre(/*type*/ OpcAddressType::Server, /*machine_name*/ "",
                          /*prog_id*/ "Server.Prog.ID",
                          /*item_id*/ "")));
@@ -25,7 +20,7 @@ TEST(ParseOpcNodeId, ServerNode) {
 
 TEST(ParseOpcNodeId, BranchNode) {
   EXPECT_THAT(
-      ParseOpcNodeId(MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C\\")),
+      ParseOpcNodeId(MakeOpcBranchNodeId("Server.Prog.ID", "A.B.C")),
       Optional(FieldsAre(/*type*/ OpcAddressType::Branch, /*machine_name*/ "",
                          /*prog_id*/ "Server.Prog.ID",
                          /*item_id*/ "A.B.C")));
@@ -33,43 +28,36 @@ TEST(ParseOpcNodeId, BranchNode) {
 
 TEST(ParseOpcNodeId, ItemNode) {
   EXPECT_THAT(
-      ParseOpcNodeId(MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C")),
+      ParseOpcNodeId(MakeOpcItemNodeId("Server.Prog.ID", "A.B.C")),
       Optional(FieldsAre(/*type*/ OpcAddressType::Item, /*machine_name*/ "",
                          /*prog_id*/ "Server.Prog.ID",
                          /*item_id*/ "A.B.C")));
 }
 
 TEST(ParseOpcNodeId, EmptyProgId) {
-  EXPECT_EQ(std::nullopt, ParseOpcNodeId(MakeNestedNodeId(id::OPC, "\\A.B.C")));
+  EXPECT_EQ(std::nullopt,
+            ParseOpcNodeId(scada::NodeId{"\\A.B.C", NamespaceIndexes::OPC}));
 }
 
 TEST(ParseOpcNodeId, ItemWithMachineName) {
-  EXPECT_THAT(ParseOpcNodeId(MakeNestedNodeId(
-                  id::OPC, "\\\\localhost\\Server.Prog.ID\\A.B.C")),
-              Optional(FieldsAre(/*type*/ OpcAddressType::Item,
-                                 /*machine_name*/ "localhost",
-                                 /*prog_id*/ "Server.Prog.ID",
-                                 /*item_id*/ "A.B.C")));
+  EXPECT_THAT(
+      ParseOpcNodeId(scada::NodeId{"\\\\localhost\\Server.Prog.ID\\A.B.C",
+                                   NamespaceIndexes::OPC}),
+      Optional(FieldsAre(/*type*/ OpcAddressType::Item,
+                         /*machine_name*/ "localhost",
+                         /*prog_id*/ "Server.Prog.ID",
+                         /*item_id*/ "A.B.C")));
 }
 
-TEST(MakeOpcServerNodeId, Test) {
-  EXPECT_EQ(MakeOpcServerNodeId("Server.Prog.ID"),
-            MakeNestedNodeId(id::OPC, "Server.Prog.ID"));
-}
-
-TEST(MakeOpcBranchNodeId, Test) {
-  EXPECT_EQ(MakeOpcBranchNodeId("Server.Prog.ID", "A.B.C"),
-            MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C\\"));
+TEST(ParseOpcNodeId, NestedNodeId) {
+  EXPECT_EQ(ParseOpcNodeId(MakeNestedNodeId(
+                MakeOpcItemNodeId("Server.Prog.ID", "A.B.C"), "Aggregate")),
+            std::nullopt);
 }
 
 TEST(MakeOpcBranchNodeId, EmptyItemId) {
   EXPECT_EQ(MakeOpcBranchNodeId("Server.Prog.ID", /*item_id*/ ""),
-            MakeNestedNodeId(id::OPC, "Server.Prog.ID"));
-}
-
-TEST(MakeOpcItemNodeId, Test) {
-  EXPECT_EQ(MakeOpcItemNodeId("Server.Prog.ID", "A.B.C"),
-            MakeNestedNodeId(id::OPC, "Server.Prog.ID\\A.B.C"));
+            MakeOpcServerNodeId("Server.Prog.ID"));
 }
 
 TEST(OpcNodeIds, GetOpcItemName) {
