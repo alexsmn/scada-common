@@ -3,11 +3,11 @@
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include "scada/event.h"
 #include "node_service/node_observer.h"
 #include "node_service/v1/address_space_fetcher.h"
 #include "node_service/v1/node_fetch_status_types.h"
 #include "node_service/v1/node_model_impl.h"
+#include "scada/event.h"
 
 #include "base/debug_util-inl.h"
 
@@ -135,7 +135,7 @@ void NodeServiceImpl::OnNodeModelFetchRequested(
 }
 
 void NodeServiceImpl::OnNodeFetchStatusChanged(
-    base::span<const NodeFetchStatusChangedItem> items) {
+    std::span<const NodeFetchStatusChangedItem> items) {
   LOG_INFO(logger_) << "Node fetch status changed"
                     << LOG_TAG("items.size", items.size());
   LOG_DEBUG(logger_) << "Node fetch status changed"
@@ -182,7 +182,7 @@ NodeServiceImpl::MakeAddressSpaceFetcherFactoryContext() {
   // arguments, be careful about |span|.
 
   NodeFetchStatusChangedHandler node_fetch_status_changed_handler =
-      [this](base::span<const NodeFetchStatusChangedItem> items) {
+      [this](std::span<const NodeFetchStatusChangedItem> items) {
         OnNodeFetchStatusChanged(items);
       };
 

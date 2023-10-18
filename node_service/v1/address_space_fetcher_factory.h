@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <span>
 
 namespace scada {
 struct ModelChangeEvent;
@@ -13,7 +15,7 @@ class AddressSpaceFetcher;
 struct NodeFetchStatusChangedItem;
 
 using NodeFetchStatusChangedHandler =
-    std::function<void(base::span<const NodeFetchStatusChangedItem> items)>;
+    std::function<void(std::span<const NodeFetchStatusChangedItem> items)>;
 
 struct AddressSpaceFetcherFactoryContext {
   const NodeFetchStatusChangedHandler node_fetch_status_changed_handler_;

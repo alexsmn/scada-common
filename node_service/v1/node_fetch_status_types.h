@@ -1,12 +1,12 @@
 #pragma once
 
-#include "base/containers/span.h"
 #include "base/struct_writer.h"
+#include "node_service/node_fetch_status.h"
 #include "scada/node_id.h"
 #include "scada/status.h"
-#include "node_service/node_fetch_status.h"
 
 #include <functional>
+#include <span>
 
 namespace v1 {
 
@@ -17,7 +17,7 @@ struct NodeFetchStatusChangedItem {
 };
 
 using NodeFetchStatusChangedHandler =
-    std::function<void(base::span<const NodeFetchStatusChangedItem> items)>;
+    std::function<void(std::span<const NodeFetchStatusChangedItem> items)>;
 
 inline bool operator==(const NodeFetchStatusChangedItem& a,
                        const NodeFetchStatusChangedItem& b) {

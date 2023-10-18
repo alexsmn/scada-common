@@ -19,7 +19,7 @@ class EventStorage {
     return i != node_events_.end() ? &i->second.events : nullptr;
   }
 
-  void Update(base::span<const scada::Event> events);
+  void Update(std::span<const scada::Event> events);
   void Clear();
 
   void AddObserver(EventObserver& observer) { observers_.insert(&observer); }

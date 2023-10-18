@@ -82,7 +82,7 @@ void EventStorage::Clear() {
   UpdateAlerting();
 }
 
-void EventStorage::Update(base::span<const scada::Event> events) {
+void EventStorage::Update(std::span<const scada::Event> events) {
   // WARNING: Observers rely on stored event pointers. When event is deleted
   // from the storage it must be preserved while observers process the message.
   std::vector<EventContainer::node_type> deleted_nodes;

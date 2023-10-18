@@ -172,7 +172,7 @@ inline void SetOrAddOrDeleteProperty(NodeProperties& properties,
 }
 
 inline void SetProperties(NodeProperties& properties,
-                          base::span<const NodeProperty> updated_properties) {
+                          std::span<const NodeProperty> updated_properties) {
   for (auto& [prop_decl_id, prop_value] : updated_properties) {
     SetOrAddOrDeleteProperty(properties, prop_decl_id, std::move(prop_value));
   }
@@ -207,7 +207,7 @@ inline void SetReference(scada::ReferenceDescriptions& references,
 
 inline void SetReferences(
     scada::ReferenceDescriptions& references,
-    base::span<const ReferenceDescription> updated_references) {
+    std::span<const ReferenceDescription> updated_references) {
   for (auto& ref : updated_references)
     SetReference(references, ref);
 }

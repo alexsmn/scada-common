@@ -1,5 +1,7 @@
 #include "node_service/fetch_queue.h"
 
+#include <algorithm>
+
 void FetchQueue::push(FetchingNode& node) {
   assert(thread_checker_.CalledOnValidThread());
 
