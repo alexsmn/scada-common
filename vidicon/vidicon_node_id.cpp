@@ -18,9 +18,11 @@ scada::NodeId ToNodeId(const DataPointAddress& address) {
   if (address.object_id != 0) {
     return scada::NodeId{static_cast<scada::NumericId>(address.object_id),
                          NamespaceIndexes::VIDICON};
+  }
+  if (auto parsed = opc_client::AddressView::Parse(address.opc_address)) {
+    return opc::MakeOpcNodeId(*parsed);
   } else {
-    return opc::MakeOpcNodeId(
-        boost::locale::conv::utf_to_utf<char>(address.opc_address));
+    return scada::NodeId{};
   }
 }
 

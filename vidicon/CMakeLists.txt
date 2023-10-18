@@ -2,6 +2,8 @@ scada_module(scada_common_vidicon)
 
 target_link_libraries(scada_common_vidicon PUBLIC scada_core)
 
+target_link_libraries(scada_common_vidicon PRIVATE scada_common_opc)
+
 target_include_directories(scada_common_vidicon PUBLIC "..")
 
 find_package(MIDL REQUIRED)

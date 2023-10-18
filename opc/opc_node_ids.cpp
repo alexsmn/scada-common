@@ -5,30 +5,40 @@
 #include "model/nested_node_ids.h"
 #include "model/opc_node_ids.h"
 
+#include <boost/locale/encoding_utf.hpp>
+#include <opc_client/core/address.h>
+
 namespace opc {
 
 namespace {
-const char kOpcPathDelimiter = '\\';
-const char kOpcCustomItemDelimiter = '.';
+const wchar_t kOpcPathDelimiter = L'\\';
+const wchar_t kOpcCustomItemDelimiter = L'.';
 }  // namespace
 
-std::optional<OpcAddressView> ParseOpcNodeId(const scada::NodeId& node_id) {
+std::optional<opc_client::AddressView> ParseOpcNodeId(
+    const scada::NodeId& node_id) {
   if (node_id.namespace_index() != NamespaceIndexes::OPC ||
       !node_id.is_string() || IsNestedNodeId(node_id)) {
     return std::nullopt;
   }
 
-  return OpcAddressView::Parse(node_id.string_id());
+  return opc_client::AddressView::Parse(
+      boost::locale::conv::utf_to_utf<wchar_t>(node_id.string_id()));
 }
 
-scada::NodeId MakeOpcNodeId(std::string_view opc_address) {
-  assert(!opc_address.empty());
-  return !opc_address.empty()
-             ? scada::NodeId{std::string{opc_address}, NamespaceIndexes::OPC}
-             : scada::NodeId{};
+scada::NodeId MakeOpcNodeId(opc_client::AddressView address) {
+  return scada::NodeId{address.ToString(), NamespaceIndexes::OPC};
 }
 
-std::string_view GetOpcItemName(std::string_view item_id) {
+scada::NodeId MakeOpcNodeId(std::wstring_view address) {
+  if (auto parsed = opc_client::AddressView::Parse(address)) {
+    return MakeOpcNodeId(*parsed);
+  } else {
+    return {};
+  }
+}
+
+std::wstring_view GetOpcItemName(std::wstring_view item_id) {
   assert(!item_id.empty());
 
   // TODO: This relies on the external item ID structure.
@@ -36,9 +46,9 @@ std::string_view GetOpcItemName(std::string_view item_id) {
   return p == item_id.npos ? item_id : item_id.substr(p + 1);
 }
 
-std::string_view GetOpcCustomParentItemId(std::string_view item_id) {
+std::wstring_view GetOpcCustomParentItemId(std::wstring_view item_id) {
   auto p = item_id.find_last_of(kOpcCustomItemDelimiter);
-  return p == item_id.npos ? std::string_view{} : item_id.substr(0, p);
+  return p == item_id.npos ? std::wstring_view{} : item_id.substr(0, p);
 }
 
 }  // namespace opc

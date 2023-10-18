@@ -10,7 +10,7 @@ namespace vidicon {
 
 TEST(VidiconNodeId, ToNodeId) {
   EXPECT_EQ(ToNodeId(L"Server.Prog.Id\\A.B.C"),
-            opc::MakeOpcItemNodeId("Server.Prog.Id", "A.B.C"));
+            opc::MakeOpcItemNodeId(L"Server.Prog.Id", L"A.B.C"));
 }
 
 }  // namespace vidicon
