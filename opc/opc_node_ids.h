@@ -9,8 +9,7 @@ namespace opc {
 
 // WARNING: This method must be very performant, as a service locator may invoke
 // it for each requested node.
-std::optional<opc_client::AddressView> ParseOpcNodeId(
-    const scada::NodeId& node_id);
+std::optional<opc_client::Address> ParseOpcNodeId(const scada::NodeId& node_id);
 
 scada::NodeId MakeOpcNodeId(opc_client::AddressView address);
 

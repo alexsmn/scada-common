@@ -15,14 +15,14 @@ const wchar_t kOpcPathDelimiter = L'\\';
 const wchar_t kOpcCustomItemDelimiter = L'.';
 }  // namespace
 
-std::optional<opc_client::AddressView> ParseOpcNodeId(
+std::optional<opc_client::Address> ParseOpcNodeId(
     const scada::NodeId& node_id) {
   if (node_id.namespace_index() != NamespaceIndexes::OPC ||
       !node_id.is_string() || IsNestedNodeId(node_id)) {
     return std::nullopt;
   }
 
-  return opc_client::AddressView::Parse(
+  return opc_client::Address::Parse(
       boost::locale::conv::utf_to_utf<wchar_t>(node_id.string_id()));
 }
 
