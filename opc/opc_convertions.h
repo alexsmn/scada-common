@@ -8,6 +8,14 @@
 
 namespace opc {
 
+class OpcErrorConverter {
+ public:
+  OpcErrorConverter() = delete;
+
+  static scada::StatusCode ToScada(HRESULT result);
+  static HRESULT ToOpc(scada::StatusCode status_code);
+};
+
 class OpcQualityConverter {
  public:
   OpcQualityConverter() = delete;

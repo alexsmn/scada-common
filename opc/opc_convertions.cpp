@@ -6,6 +6,7 @@
 #include <boost/locale/encoding_utf.hpp>
 #include <opc_client/core/conversion.h>
 #include <opcda.h>
+#include <opcerror.h>
 
 namespace opc {
 
@@ -40,6 +41,30 @@ inline scada::Qualifier ConvertBadQuality(opc_client::Quality quality) {
 }
 
 }  // namespace
+
+// OpcErrorConverter
+
+// static
+scada::StatusCode OpcErrorConverter::ToScada(HRESULT result) {
+  switch (result) {
+    case OPC_E_UNKNOWNITEMID:
+      return scada::StatusCode::Bad_WrongNodeId;
+    case OPC_E_INVALIDITEMID:
+      return scada::StatusCode::Bad_BrowseNameInvalid;
+    case OPC_E_BADRIGHTS:
+      return scada::StatusCode::Bad_WrongLoginCredentials;
+    case OPC_E_UNKNOWNPATH:
+      return scada::StatusCode::Bad_WrongNodeId;
+    default:
+      return SUCCEEDED(result) ? scada::StatusCode::Good
+                               : scada::StatusCode::Bad;
+  }
+}
+
+// static
+HRESULT OpcErrorConverter::ToOpc(scada::StatusCode status_code) {
+  return scada::IsGood(status_code) ? S_OK : E_FAIL;
+}
 
 // OpcQualityConverter
 

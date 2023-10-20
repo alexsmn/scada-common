@@ -4,10 +4,29 @@
 
 #include <gmock/gmock.h>
 #include <opcda.h>
+#include <opcerror.h>
 
 using namespace testing;
 
 namespace opc {
+
+TEST(OpcErrorConverter, ToScada) {
+  EXPECT_EQ(scada::StatusCode::Good, OpcErrorConverter::ToScada(S_OK));
+
+  EXPECT_EQ(scada::StatusCode::Bad_WrongNodeId,
+            OpcErrorConverter::ToScada(OPC_E_UNKNOWNITEMID));
+
+  EXPECT_EQ(scada::StatusCode::Bad_BrowseNameInvalid,
+            OpcErrorConverter::ToScada(OPC_E_INVALIDITEMID));
+
+  EXPECT_EQ(scada::StatusCode::Bad_WrongNodeId,
+            OpcErrorConverter::ToScada(OPC_E_UNKNOWNPATH));
+
+  EXPECT_EQ(scada::StatusCode::Bad_WrongLoginCredentials,
+            OpcErrorConverter::ToScada(OPC_E_BADRIGHTS));
+
+  EXPECT_EQ(scada::StatusCode::Bad, OpcErrorConverter::ToScada(E_FAIL));
+}
 
 TEST(OpcQualityConverter, Good) {
   // Good quality.
