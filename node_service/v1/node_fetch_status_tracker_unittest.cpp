@@ -18,7 +18,7 @@ class NodeFetchStatusTrackerTest : public Test {
 
  protected:
   StrictMock<
-      MockFunction<void(base::span<const NodeFetchStatusChangedItem> items)>>
+      MockFunction<void(std::span<const NodeFetchStatusChangedItem> items)>>
       node_fetch_status_changed_handler_;
 
   StrictMock<MockFunction<bool(const scada::NodeId& node_id)>> node_validator_;
