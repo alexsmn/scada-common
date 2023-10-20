@@ -3,6 +3,7 @@
 #include "base/string_piece_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
+#include "express/express.h"
 #include "express/function.h"
 #include "express/lexer.h"
 #include "express/lexer_delegate.h"
@@ -20,7 +21,7 @@ namespace {
 
 inline bool wp_isalpha(char ch) {
 #pragma warning(push)
-#pragma warning(disable:4566)
+#pragma warning(disable : 4566)
   return ch && strchr(
                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
                    "абвгдеёжзийклмнопрстуфхцчшщьыъэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШ"
@@ -208,6 +209,11 @@ class Traversers {
   }
 };
 
+ScadaExpression::ScadaExpression()
+    : expression_{std::make_unique<expression::Expression>()} {}
+
+ScadaExpression ::~ScadaExpression() = default;
+
 void ScadaExpression::Parse(const char* buf) {
   ScadaLexerDelegate lexer_delegate;
   expression::Lexer lexer{buf, lexer_delegate, 0};
@@ -215,12 +221,12 @@ void ScadaExpression::Parse(const char* buf) {
   ParserDelegate parser_delegate{allocator, *this};
   expression::BasicParser<expression::Lexer, ParserDelegate> parser{
       lexer, parser_delegate};
-  expression_.Parse(parser, allocator);
+  expression_->Parse(parser, allocator);
 }
 
 void ScadaExpression::Clear() {
   items.clear();
-  expression_.Clear();
+  expression_->Clear();
 }
 
 bool ScadaExpression::IsSingleName(std::string& item_name) const {
@@ -231,7 +237,7 @@ bool ScadaExpression::IsSingleName(std::string& item_name) const {
     return false;
 
   bool result = true;
-  auto& expr = const_cast<expression::Expression&>(expression_);
+  auto& expr = const_cast<expression::Expression&>(*expression_);
   expr.Traverse(&Traversers::IsSingleName, &result);
   if (!result)
     return false;
@@ -265,17 +271,17 @@ scada::Variant ScadaExpression::Calculate() const {
     if (items[i].value.value.is_null())
       return scada::Variant();
 
-  return static_cast<double>(expression_.Calculate());
+  return static_cast<double>(expression_->Calculate());
 }
 
 std::string ScadaExpression::Format(bool aliases) const {
   _aliases = aliases;
   expression::FormatterDelegate formatter_delegate;
-  return expression_.Format(formatter_delegate);
+  return expression_->Format(formatter_delegate);
 }
 
 size_t ScadaExpression::GetNodeCount() const {
   size_t count = 0;
-  expression_.Traverse(&Traversers::GetNodeCount, &count);
+  expression_->Traverse(&Traversers::GetNodeCount, &count);
   return count;
 }

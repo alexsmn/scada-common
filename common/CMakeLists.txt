@@ -11,10 +11,11 @@ target_include_directories(scada_common PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(scada_common PUBLIC "..")
 
 target_link_libraries(scada_common PUBLIC
-  base
-  express
-  scada_base
   scada_core
+)
+
+target_link_libraries(scada_common PRIVATE
+  express
   # For `NodeIdFromScadaString`.
   scada_model
 )

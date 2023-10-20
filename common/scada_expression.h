@@ -1,19 +1,23 @@
 #pragma once
 
 #include "scada/data_value.h"
-#include "express/express.h"
 
 #include <string_view>
 #include <vector>
 
+namespace expression {
+class Expression;
+}
+
 class ScadaExpression {
  public:
+  ScadaExpression();
+  ~ScadaExpression();
+
   struct Item {
     std::string name;
     scada::DataValue value;
   };
-
-  typedef std::vector<Item> ItemList;
 
   // Calculate node count of expression tree.
   size_t GetNodeCount() const;
@@ -29,8 +33,10 @@ class ScadaExpression {
 
   void Clear();
 
+  using ItemList = std::vector<Item>;
+
   ItemList items;
 
  protected:
-  expression::Expression expression_;
+  std::unique_ptr<expression::Expression> expression_;
 };
