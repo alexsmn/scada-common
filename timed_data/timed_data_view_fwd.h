@@ -4,13 +4,14 @@ namespace scada {
 class DataValue;
 }
 
-struct DataValueTime;
+template <typename T>
+struct TimedDataTraits;
 
-template <typename T, typename K>
+template <typename T>
 class BasicTimedDataView;
 
 template <typename T>
 class BasicTimedDataViewObserver;
 
-using TimedDataView = BasicTimedDataView<scada::DataValue, DataValueTime>;
+using TimedDataView = BasicTimedDataView<scada::DataValue>;
 using TimedDataViewObserver = BasicTimedDataViewObserver<scada::DataValue>;

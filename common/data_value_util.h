@@ -12,6 +12,7 @@ struct DataValueTimeLess {
   }
 };
 
+// TODO: Merge with `DataValueTime`.
 inline scada::DateTime GetSourceTimestamp(const scada::DataValue& data_value) {
   return data_value.source_timestamp;
 }

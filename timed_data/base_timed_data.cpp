@@ -10,7 +10,10 @@ const scada::DateTime kTimedDataCurrentOnly = scada::DateTime::Max();
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
-BaseTimedData::BaseTimedData() {}
+BaseTimedData::BaseTimedData() {
+  timed_data_view_.set_observed_ranges_updated_handler(
+      std::bind_front(&BaseTimedData::UpdateRanges, this));
+}
 
 BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
@@ -35,12 +38,10 @@ void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
 void BaseTimedData::AddViewObserver(TimedDataViewObserver& observer,
                                     const scada::DateTimeRange& range) {
   timed_data_view_.AddObserver(observer, range);
-  UpdateRanges();
 }
 
 void BaseTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
   timed_data_view_.RemoveObserver(observer);
-  UpdateRanges();
 }
 
 void BaseTimedData::UpdateRanges() {
