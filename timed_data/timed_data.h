@@ -4,6 +4,7 @@
 #include "scada/data_value.h"
 #include "scada/date_time.h"
 #include "scada/date_time_range.h"
+#include "timed_data/timed_data_view_fwd.h"
 
 #include <cassert>
 #include <functional>
@@ -11,7 +12,6 @@
 
 class EventSet;
 class TimedDataObserver;
-class TimedDataViewObserver;
 
 extern const scada::DateTime kTimedDataCurrentOnly;
 extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
@@ -27,7 +27,6 @@ class TimedData {
   virtual scada::DataValue GetDataValue() const = 0;
   virtual scada::DateTime GetChangeTime() const = 0;
 
-  // TODO: Replace with `std::span`.
   virtual std::span<const scada::DataValue> GetValues() const = 0;
   virtual scada::DataValue GetValueAt(const scada::DateTime& time) const = 0;
 
@@ -44,6 +43,7 @@ class TimedData {
 
   virtual bool IsAlerting() const = 0;
   virtual const EventSet* GetEvents() const = 0;
+
   // Acknowledge all active events related to this data.
   virtual void Acknowledge() = 0;
 

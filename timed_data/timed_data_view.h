@@ -9,27 +9,28 @@
 #include "timed_data/timed_data_property.h"
 #include "timed_data/timed_data_util.h"
 #include "timed_data/timed_data_view_observer.h"
+#include "timed_data/timed_data_view_fwd.h"
 
-class TimedDataView final {
+template <typename T, typename K>
+class BasicTimedDataView final {
  public:
-  TimedDataView() = default;
-  ~TimedDataView() { assert(!observers_.might_have_observers()); }
+  BasicTimedDataView() = default;
+  ~BasicTimedDataView() { assert(!observers_.might_have_observers()); }
 
-  TimedDataView(const TimedDataView&) = delete;
-  TimedDataView& operator=(const TimedDataView&) = delete;
+  BasicTimedDataView(const BasicTimedDataView&) = delete;
+  BasicTimedDataView& operator=(const BasicTimedDataView&) = delete;
 
-  const std::vector<scada::DataValue>& values() const { return values_; }
+  const std::vector<T>& values() const { return values_; }
 
-  scada::DataValue GetValueAt(const base::Time& time) const;
+  T GetValueAt(const scada::DateTime& time) const;
 
-  // Merge requested data with existing real-time data by collection time.
-  void ReplaceRange(std::span<scada::DataValue> values);
+  void ReplaceRange(std::span<const T> values);
 
   void ClearRange(const scada::DateTimeRange& range);
 
-  // Returns false if there is another value for the same timestamp with earlier
-  // server timestamp.
-  bool InsertOrUpdate(const scada::DataValue& value);
+  // Returns false if no change was applied. That means there is another value
+  // for the same timestamp with earlier server timestamp.
+  bool InsertOrUpdate(const T& value);
 
   const std::vector<scada::DateTimeRange>& ready_ranges() const {
     return ready_ranges_;
@@ -37,21 +38,23 @@ class TimedDataView final {
 
   void AddReadyRange(const scada::DateTimeRange& range);
 
-  const base::ObserverList<TimedDataViewObserver>& observers() const {
+  // TODO: Remove from public API.
+  const base::ObserverList<BasicTimedDataViewObserver<T>>& observers() const {
     return observers_;
   }
 
+  // TODO: Remove from public API.
   const std::vector<scada::DateTimeRange>& observed_ranges() const {
     return observed_ranges_;
   }
 
-  void AddObserver(TimedDataViewObserver& observer,
+  void AddObserver(BasicTimedDataViewObserver<T>& observer,
                    const scada::DateTimeRange& range);
-  void RemoveObserver(TimedDataViewObserver& observer);
+  void RemoveObserver(BasicTimedDataViewObserver<T>& observer);
 
   std::optional<scada::DateTimeRange> FindNextGap() const;
 
-  void NotifyUpdates(std::span<const scada::DataValue> values);
+  void NotifyUpdates(std::span<const T> values);
   void NotifyReady();
 
   void Dump(std::ostream& stream) const;
@@ -59,19 +62,28 @@ class TimedDataView final {
  private:
   void UpdateObservedRanges();
 
-  base::ObserverList<TimedDataViewObserver> observers_;
-  std::map<TimedDataViewObserver*, scada::DateTimeRange> observer_ranges_;
+  base::ObserverList<BasicTimedDataViewObserver<T>> observers_;
+  std::map<BasicTimedDataViewObserver<T>*, scada::DateTimeRange>
+      observer_ranges_;
 
   std::vector<scada::DateTimeRange> observed_ranges_;
   std::vector<scada::DateTimeRange> ready_ranges_;
 
-  std::vector<scada::DataValue> values_;
+  std::vector<T> values_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedData")};
 };
 
-inline scada::DataValue TimedDataView::GetValueAt(
-    const base::Time& time) const {
+struct DataValueTime {
+  constexpr scada::DateTime operator()(
+      const scada::DataValue& data_value) const {
+    return data_value.source_timestamp;
+  }
+};
+
+template <typename T, typename K>
+inline T BasicTimedDataView<T, K>::GetValueAt(
+    const scada::DateTime& time) const {
   auto i = LowerBound(values_, time);
 
   if (i != values_.size() && values_[i].source_timestamp == time) {
@@ -85,8 +97,10 @@ inline scada::DataValue TimedDataView::GetValueAt(
   return values_[i - 1];
 }
 
-inline void TimedDataView::AddObserver(TimedDataViewObserver& observer,
-                                       const scada::DateTimeRange& range) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::AddObserver(
+    BasicTimedDataViewObserver<T>& observer,
+    const scada::DateTimeRange& range) {
   assert(!range.second.is_null());
   assert(IsValidInterval(range));
   assert(range.first == kTimedDataCurrentOnly || !IsEmptyInterval(range));
@@ -103,7 +117,9 @@ inline void TimedDataView::AddObserver(TimedDataViewObserver& observer,
   UpdateObservedRanges();
 }
 
-inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::RemoveObserver(
+    BasicTimedDataViewObserver<T>& observer) {
   observers_.RemoveObserver(&observer);
 
   scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
@@ -119,7 +135,8 @@ inline void TimedDataView::RemoveObserver(TimedDataViewObserver& observer) {
   UpdateObservedRanges();
 }
 
-inline void TimedDataView::UpdateObservedRanges() {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::UpdateObservedRanges() {
   observed_ranges_.clear();
 
   for (const auto& [observer, range] : observer_ranges_) {
@@ -130,17 +147,21 @@ inline void TimedDataView::UpdateObservedRanges() {
   }
 }
 
-inline std::optional<scada::DateTimeRange> TimedDataView::FindNextGap() const {
+template <typename T, typename K>
+inline std::optional<scada::DateTimeRange>
+BasicTimedDataView<T, K>::FindNextGap() const {
   return FindFirstGap(observed_ranges_, ready_ranges_);
 }
 
-inline void TimedDataView::AddReadyRange(const scada::DateTimeRange& range) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::AddReadyRange(
+    const scada::DateTimeRange& range) {
   UnionIntervals(ready_ranges_, range);
   NotifyReady();
 }
 
-inline void TimedDataView::NotifyUpdates(
-    std::span<const scada::DataValue> values) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::NotifyUpdates(std::span<const T> values) {
   assert(!values.empty());
   assert(IsTimeSorted(values));
 
@@ -148,12 +169,14 @@ inline void TimedDataView::NotifyUpdates(
     o.OnTimedDataUpdates(values);
 }
 
-inline void TimedDataView::NotifyReady() {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::NotifyReady() {
   for (auto& o : observers_)
     o.OnTimedDataReady();
 }
 
-inline bool TimedDataView::InsertOrUpdate(const scada::DataValue& value) {
+template <typename T, typename K>
+inline bool BasicTimedDataView<T, K>::InsertOrUpdate(const T& value) {
   ScopedInvariant values_sorted{[&] { return IsTimeSorted(values_); }};
 
   if (value.source_timestamp.is_null())
@@ -182,7 +205,9 @@ inline bool TimedDataView::InsertOrUpdate(const scada::DataValue& value) {
   }
 }
 
-inline void TimedDataView::ClearRange(const scada::DateTimeRange& range) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::ClearRange(
+    const scada::DateTimeRange& range) {
   assert(!range.first.is_null());
   assert(range.second.is_null() || range.first <= range.second);
 
@@ -192,8 +217,9 @@ inline void TimedDataView::ClearRange(const scada::DateTimeRange& range) {
   values_.erase(values_.begin() + i, values_.begin() + j);
 }
 
-inline void TimedDataView::Dump(std::ostream& stream) const {
-  stream << "TimedDataView" << std::endl;
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::Dump(std::ostream& stream) const {
+  stream << "BasicTimedDataView" << std::endl;
   stream << "Observers:" << std::endl;
   internal::Dump(stream, observer_ranges_);
   stream << "Observed ranges:" << std::endl;
@@ -214,7 +240,8 @@ inline void TimedDataView::Dump(std::ostream& stream) const {
   }
 }
 
-inline void TimedDataView::ReplaceRange(std::span<scada::DataValue> values) {
+template <typename T, typename K>
+inline void BasicTimedDataView<T, K>::ReplaceRange(std::span<const T> values) {
   if (values.empty()) {
     return;
   }
@@ -228,7 +255,9 @@ inline void TimedDataView::ReplaceRange(std::span<scada::DataValue> values) {
                    std::make_move_iterator(values.end()));
   } else {
     ReplaceSubrange(values_, {values.data(), values.size()},
-                    DataValueTimeLess{});
+                    [](const scada::DataValue& a, const scada::DataValue& b) {
+                      return a.source_timestamp < b.source_timestamp;
+                    });
   }
 
   assert(IsTimeSorted(values_));

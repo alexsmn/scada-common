@@ -1,14 +1,12 @@
 #pragma once
 
+#include "timed_data/timed_data_view_fwd.h"
+
 #include <span>
 
-namespace scada {
-class DataValue;
-}
-
-class TimedDataViewObserver {
+template <typename T>
+class BasicTimedDataViewObserver {
  public:
-  // TODO: This should just report a `scada::DateTimeRange`.
-  virtual void OnTimedDataUpdates(std::span<const scada::DataValue> values) {}
+  virtual void OnTimedDataUpdates(std::span<const T> values) {}
   virtual void OnTimedDataReady() {}
 };
