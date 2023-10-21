@@ -22,7 +22,7 @@ class BasicTimedDataView final {
   BasicTimedDataView(const BasicTimedDataView&) = delete;
   BasicTimedDataView& operator=(const BasicTimedDataView&) = delete;
 
-  using ObservedRangesUpdatedHandler = std::function<void()>;
+  using ObservedRangesUpdatedHandler = std::function<void(bool has_observers)>;
 
   void set_observed_ranges_updated_handler(
       ObservedRangesUpdatedHandler handler) {
@@ -31,7 +31,6 @@ class BasicTimedDataView final {
 
   const std::vector<T>& values() const { return values_; }
 
-  // TODO: Should return an optional.
   const T* GetValueAt(const scada::DateTime& time) const;
 
   // Moves `values` into the view. `values` must be sorted by timestamp.
@@ -48,15 +47,6 @@ class BasicTimedDataView final {
   }
 
   void AddReadyRange(const scada::DateTimeRange& range);
-
-  // TODO: Remove from public API.
-  const base::ObserverList<BasicTimedDataViewObserver<T>>& observers() const {
-    return observers_;
-  }
-
-  const std::vector<scada::DateTimeRange>& observed_ranges() const {
-    return observed_ranges_;
-  }
 
   void AddObserver(BasicTimedDataViewObserver<T>& observer,
                    const scada::DateTimeRange& range);
@@ -176,7 +166,7 @@ inline void BasicTimedDataView<T>::UpdateObservedRanges() {
   }
 
   if (observed_ranges_updated_handler_) {
-    observed_ranges_updated_handler_();
+    observed_ranges_updated_handler_(!observed_ranges_.empty());
   }
 }
 

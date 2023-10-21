@@ -31,7 +31,7 @@ scada::LocalizedText ExpressionTimedData::GetTitle() const {
   return scada::ToLocalizedText(expression_->Format(true));
 }
 
-void ExpressionTimedData::OnRangesChanged() {
+void ExpressionTimedData::OnObservedRangesChanged() {
   size_t num_operands = operands_.size();
 
   // connect operands

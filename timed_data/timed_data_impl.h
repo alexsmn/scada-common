@@ -30,7 +30,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
 
  protected:
   // TimedData
-  virtual void OnRangesChanged() override;
+  virtual void OnObservedRangesChanged() override;
 
  private:
   void SetNode(const NodeRef& node);

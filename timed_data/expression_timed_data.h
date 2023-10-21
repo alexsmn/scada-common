@@ -36,7 +36,7 @@ class ExpressionTimedData final : public BaseTimedData,
   bool CalculateCurrent();
 
   // TimedData
-  virtual void OnRangesChanged() override;
+  virtual void OnObservedRangesChanged() override;
 
   // TimedDataObserver
   virtual void OnPropertyChanged(const PropertySet& properties) override;

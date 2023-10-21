@@ -73,7 +73,7 @@ NodeRef TimedDataImpl::GetNode() const {
   return node_;
 }
 
-void TimedDataImpl::OnRangesChanged() {
+void TimedDataImpl::OnObservedRangesChanged() {
   if (timed_data_fetcher_) {
     timed_data_fetcher_->FetchNextGap();
   }

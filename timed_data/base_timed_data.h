@@ -51,9 +51,9 @@ class BaseTimedData : public TimedData {
   void Delete();
   void Failed();
 
-  void UpdateRanges();
+  void UpdateObservedRanges(bool has_observers);
 
-  virtual void OnRangesChanged() {}
+  virtual void OnObservedRangesChanged() {}
 
   TimedDataView timed_data_view_;
 

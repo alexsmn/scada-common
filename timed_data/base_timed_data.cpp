@@ -12,7 +12,7 @@ const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
 BaseTimedData::BaseTimedData() {
   timed_data_view_.set_observed_ranges_updated_handler(
-      std::bind_front(&BaseTimedData::UpdateRanges, this));
+      std::bind_front(&BaseTimedData::UpdateObservedRanges, this));
 }
 
 BaseTimedData::~BaseTimedData() {
@@ -47,15 +47,17 @@ void BaseTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
   timed_data_view_.RemoveObserver(observer);
 }
 
-void BaseTimedData::UpdateRanges() {
-  if (!timed_data_view_.observed_ranges().empty())
+void BaseTimedData::UpdateObservedRanges(bool has_observers) {
+  if (has_observers) {
     historical_ = true;
+  }
 
   // In the 'current only' mode historical values are not maintained.
-  if (historical_ && !current_.is_null())
+  if (historical_ && !current_.is_null()) {
     timed_data_view_.InsertOrUpdate(current_);
+  }
 
-  OnRangesChanged();
+  OnObservedRangesChanged();
 }
 
 void BaseTimedData::Delete() {
