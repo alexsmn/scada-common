@@ -28,7 +28,7 @@ class BaseTimedData : public TimedData {
   virtual std::span<const scada::DataValue> GetValues() const override {
     return timed_data_view_.values();
   }
-  virtual scada::DataValue GetValueAt(
+  virtual const scada::DataValue* GetValueAt(
       const scada::DateTime& time) const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;

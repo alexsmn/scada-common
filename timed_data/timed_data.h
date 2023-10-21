@@ -28,7 +28,11 @@ class TimedData {
   virtual scada::DateTime GetChangeTime() const = 0;
 
   virtual std::span<const scada::DataValue> GetValues() const = 0;
-  virtual scada::DataValue GetValueAt(const scada::DateTime& time) const = 0;
+
+  // TODO: Describe guarantees for this method. Does it return the lower bound?
+  // Returns null when there is no value at the provided time.
+  virtual const scada::DataValue* GetValueAt(
+      const scada::DateTime& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
   virtual void RemoveObserver(TimedDataObserver& observer) = 0;

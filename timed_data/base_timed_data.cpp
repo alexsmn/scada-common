@@ -19,9 +19,12 @@ BaseTimedData::~BaseTimedData() {
   assert(!observers_.might_have_observers());
 }
 
-scada::DataValue BaseTimedData::GetValueAt(const scada::DateTime& time) const {
-  if (!current_.source_timestamp.is_null() && current_.source_timestamp <= time)
-    return current_;
+const scada::DataValue* BaseTimedData::GetValueAt(
+    const scada::DateTime& time) const {
+  if (!current_.source_timestamp.is_null() &&
+      current_.source_timestamp <= time) {
+    return &current_;
+  }
 
   return timed_data_view_.GetValueAt(time);
 }

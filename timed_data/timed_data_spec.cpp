@@ -194,8 +194,8 @@ scada::LocalizedText TimedDataSpec::GetTitle() const {
   return data_ ? data_->GetTitle() : scada::LocalizedText{kUnknownDisplayName};
 }
 
-scada::DataValue TimedDataSpec::GetValueAt(base::Time time) const {
-  return data_ ? data_->GetValueAt(time) : scada::DataValue{};
+const scada::DataValue* TimedDataSpec::GetValueAt(base::Time time) const {
+  return data_ ? data_->GetValueAt(time) : nullptr;
 }
 
 const EventSet* TimedDataSpec::GetEvents() const {

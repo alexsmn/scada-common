@@ -11,8 +11,9 @@ class ErrorTimedData final : public TimedData {
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override;
   virtual scada::DataValue GetDataValue() const override { return {}; }
-  virtual scada::DataValue GetValueAt(const base::Time& time) const override {
-    return {};
+  virtual const scada::DataValue* GetValueAt(
+      const base::Time& time) const override {
+    return nullptr;
   }
   virtual base::Time GetChangeTime() const override { return {}; }
   virtual std::span<const scada::DataValue> GetValues() const override {
@@ -36,6 +37,9 @@ class ErrorTimedData final : public TimedData {
  private:
   const std::string formula_;
   const scada::LocalizedText title_;
+
+  inline static const std::vector<scada::DateTimeRange> kReadyRanges{
+      {scada::DateTime::Min(), scada::DateTime::Max()}};
 };
 
 inline scada::LocalizedText ErrorTimedData::GetTitle() const {
@@ -44,8 +48,6 @@ inline scada::LocalizedText ErrorTimedData::GetTitle() const {
 
 inline const std::vector<scada::DateTimeRange>& ErrorTimedData::GetReadyRanges()
     const {
-  static const std::vector<scada::DateTimeRange> kReadyRanges{
-      {scada::DateTime::Min(), scada::DateTime::Max()}};
   return kReadyRanges;
 }
 

@@ -37,8 +37,10 @@ const std::vector<scada::DateTimeRange>& AliasTimedData::GetReadyRanges()
 scada::DataValue AliasTimedData::GetDataValue() const {
   return is_forwarded() ? forwarded().GetDataValue() : scada::DataValue{};
 }
-scada::DataValue AliasTimedData::GetValueAt(const base::Time& time) const {
-  return is_forwarded() ? forwarded().GetValueAt(time) : scada::DataValue{};
+
+const scada::DataValue* AliasTimedData::GetValueAt(
+    const base::Time& time) const {
+  return is_forwarded() ? forwarded().GetValueAt(time) : nullptr;
 }
 
 base::Time AliasTimedData::GetChangeTime() const {

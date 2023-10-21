@@ -11,6 +11,8 @@
 #include "timed_data/timed_data_view_fwd.h"
 #include "timed_data/timed_data_view_observer.h"
 
+#include <optional>
+
 template <typename T>
 class BasicTimedDataView final {
  public:
@@ -30,9 +32,10 @@ class BasicTimedDataView final {
   const std::vector<T>& values() const { return values_; }
 
   // TODO: Should return an optional.
-  T GetValueAt(const scada::DateTime& time) const;
+  const T* GetValueAt(const scada::DateTime& time) const;
 
-  void ReplaceRange(std::span<const T> values);
+  // Moves `values` into the view. `values` must be sorted by timestamp.
+  void ReplaceRange(std::span<T> values);
 
   void ClearRange(const scada::DateTimeRange& range);
 
@@ -108,18 +111,19 @@ struct TimedDataTraits<scada::DataValue> {
 };
 
 template <typename T>
-inline T BasicTimedDataView<T>::GetValueAt(const scada::DateTime& time) const {
+inline const T* BasicTimedDataView<T>::GetValueAt(
+    const scada::DateTime& time) const {
   auto i = LowerBound(values_, time);
 
   if (i != values_.size() && timestamp(values_[i]) == time) {
-    return values_[i];
+    return &values_[i];
   }
 
   if (i == 0) {
-    return {};
+    return nullptr;
   }
 
-  return values_[i - 1];
+  return &values_[i - 1];
 }
 
 template <typename T>
@@ -263,7 +267,7 @@ inline void BasicTimedDataView<T>::Dump(std::ostream& stream) const {
 }
 
 template <typename T>
-inline void BasicTimedDataView<T>::ReplaceRange(std::span<const T> values) {
+inline void BasicTimedDataView<T>::ReplaceRange(std::span<T> values) {
   if (values.empty()) {
     return;
   }
@@ -276,9 +280,9 @@ inline void BasicTimedDataView<T>::ReplaceRange(std::span<const T> values) {
                    std::make_move_iterator(values.begin()),
                    std::make_move_iterator(values.end()));
   } else {
-    ReplaceSubrange(
-        values_, {values.data(), values.size()},
-        [](const T& a, const T& b) { return timestamp(a) < timestamp(b); });
+    ReplaceSubrange(values_, values, [](const T& a, const T& b) {
+      return timestamp(a) < timestamp(b);
+    });
   }
 
   assert(IsTimeSorted(values_));

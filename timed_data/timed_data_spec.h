@@ -53,7 +53,10 @@ class TimedDataSpec final : private TimedDataObserver,
 
   // Historical data.
   std::span<const scada::DataValue> values() const noexcept;
-  scada::DataValue GetValueAt(base::Time time) const;
+
+  // TODO: Describe guarantees for this method. Does it return the lower bound?
+  // Returns null when there is no value at the provided time.
+  const scada::DataValue* GetValueAt(base::Time time) const;
 
   scada::NodeId node_id() const;
   NodeRef node() const;

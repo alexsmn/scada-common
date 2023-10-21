@@ -41,16 +41,16 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(scada::DataValue, GetDataValue, (), (const override));
 
-  MOCK_METHOD(base::Time, GetChangeTime, (), (const override));
+  MOCK_METHOD(scada::DateTime, GetChangeTime, (), (const override));
 
   MOCK_METHOD(std::span<const scada::DataValue>,
               GetValues,
               (),
               (const override));
 
-  MOCK_METHOD(scada::DataValue,
+  MOCK_METHOD(const scada::DataValue*,
               GetValueAt,
-              (const base::Time& time),
+              (const scada::DateTime& time),
               (const override));
 
   MOCK_METHOD(void, AddObserver, (TimedDataObserver & observer), (override));
