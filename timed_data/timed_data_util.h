@@ -1,26 +1,26 @@
-// TODO: Move everything to `common/data_value_util.h`.
+// TODO: Move everything to `common/timed_data_util.h`.
 
 #pragma once
 
 #include "base/interval_util.h"
-#include "common/data_value_util.h"
+#include "common/timed_data_util.h"
 #include "timed_data/timed_data.h"
 
 #include <algorithm>
 #include <optional>
 #include <span>
 
-inline std::optional<size_t> FindInsertPosition(
-    std::span<const scada::DataValue> values,
-    base::Time from,
-    base::Time to) {
+template <class T>
+inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
+                                                base::Time from,
+                                                base::Time to) {
   auto i = LowerBound(values, from);
-  if (i != values.size() && values[i].source_timestamp == from) {
+  if (i != values.size() && TimedDataTraits<T>::timestamp(values[i]) == from) {
     return std::nullopt;
   }
 
   auto j = LowerBound(values, to);
-  if (j != values.size() && values[j].source_timestamp == to) {
+  if (j != values.size() && TimedDataTraits<T>::timestamp(values[j]) == to) {
     return std::nullopt;
   }
 

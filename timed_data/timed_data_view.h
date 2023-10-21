@@ -5,6 +5,7 @@
 #include "base/format_time.h"
 #include "base/interval_util.h"
 #include "base/observer_list.h"
+#include "common/data_value_traits.h"
 #include "timed_data/timed_data_dump_util.h"
 #include "timed_data/timed_data_property.h"
 #include "timed_data/timed_data_util.h"
@@ -80,24 +81,6 @@ class BasicTimedDataView final {
   std::vector<T> values_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedData")};
-};
-
-template <>
-struct TimedDataTraits<scada::DataValue> {
-  static constexpr scada::DateTime timestamp(
-      const scada::DataValue& data_value) {
-    return data_value.source_timestamp;
-  }
-
-  static bool UpdateValue(scada::DataValue& value,
-                          const scada::DataValue& new_value) {
-    if (value.server_timestamp > new_value.server_timestamp) {
-      return false;
-    }
-
-    value = new_value;
-    return true;
-  }
 };
 
 template <typename T>

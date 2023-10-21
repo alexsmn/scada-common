@@ -1,7 +1,7 @@
 #include "common/aggregation.h"
 
 #include "base/base_span_compatibility.h"
-#include "common/data_value_util.h"
+#include "common/timed_data_util.h"
 #include "scada/aggregate_filter.h"
 #include "scada/data_value.h"
 #include "scada/standard_node_ids.h"

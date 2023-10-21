@@ -5,7 +5,7 @@
 #include "base/executor.h"
 #include "base/format_time.h"
 #include "base/interval.h"
-#include "common/data_value_util.h"
+#include "common/timed_data_util.h"
 #include "model/node_id_util.h"
 #include "scada/history_service.h"
 #include "timed_data/timed_data_fetcher.h"
