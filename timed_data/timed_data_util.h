@@ -3,33 +3,11 @@
 #pragma once
 
 #include "base/interval_util.h"
-#include "common/timed_data_util.h"
 #include "timed_data/timed_data.h"
 
 #include <algorithm>
 #include <optional>
 #include <span>
-
-template <class T>
-inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
-                                                base::Time from,
-                                                base::Time to) {
-  auto i = LowerBound(values, from);
-  if (i != values.size() && TimedDataTraits<T>::timestamp(values[i]) == from) {
-    return std::nullopt;
-  }
-
-  auto j = LowerBound(values, to);
-  if (j != values.size() && TimedDataTraits<T>::timestamp(values[j]) == to) {
-    return std::nullopt;
-  }
-
-  if (i != j) {
-    return std::nullopt;
-  }
-
-  return i;
-}
 
 inline scada::DateTime GetReadyFrom(
     std::span<const scada::DateTimeRange> ready_ranges,
@@ -99,33 +77,4 @@ inline std::optional<Interval<T>> FindLastGap(
     }
   }
   return std::nullopt;
-}
-
-template <class T, class Compare>
-inline void ReplaceSubrange(std::vector<T>& values,
-                            std::span<T> updates,
-                            Compare comp) {
-  assert(std::is_sorted(values.begin(), values.end(), comp));
-  assert(std::is_sorted(updates.begin(), updates.end(), comp));
-
-  if (updates.empty())
-    return;
-
-  auto first = std::lower_bound(values.begin(), values.end(), updates[0], comp);
-  auto last = std::upper_bound(values.begin(), values.end(),
-                               updates[updates.size() - 1], comp);
-  auto count = static_cast<size_t>(std::distance(first, last));
-
-  auto copy_count = std::min<size_t>(count, updates.size());
-  std::copy(std::make_move_iterator(updates.begin()),
-            std::make_move_iterator(updates.begin() + copy_count), first);
-
-  if (count < updates.size()) {
-    values.insert(last, std::make_move_iterator(updates.begin() + copy_count),
-                  std::make_move_iterator(updates.end()));
-  } else {
-    values.erase(first + copy_count, last);
-  }
-
-  assert(std::is_sorted(values.begin(), values.end(), comp));
 }

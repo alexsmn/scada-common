@@ -1,11 +1,14 @@
 #pragma once
 
-#include "common/data_value_traits.h"
 #include "scada/data_value.h"
 
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <span>
+
+template <typename T>
+struct TimedDataTraits;
 
 // Checks if the `values` are sorted with no duplicates.
 template <class T>
@@ -38,10 +41,9 @@ inline bool IsReverseTimeSorted(const std::vector<T>& values) {
 }
 
 template <class T>
-inline std::size_t LowerBound(std::span<const T> values,
-                              scada::DateTime source_timestamp) {
+inline std::size_t LowerBound(std::span<const T> values, scada::DateTime time) {
   assert(IsTimeSorted(values));
-  auto i = std::ranges::lower_bound(values, source_timestamp, std::less{},
+  auto i = std::ranges::lower_bound(values, time, std::less{},
                                     &TimedDataTraits<T>::timestamp);
   return i - values.begin();
 }
@@ -49,15 +51,14 @@ inline std::size_t LowerBound(std::span<const T> values,
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t LowerBound(const std::vector<T>& values,
-                              scada::DateTime source_timestamp) {
-  return LowerBound(std::span{values}, source_timestamp);
+                              scada::DateTime time) {
+  return LowerBound(std::span{values}, time);
 }
 
 template <class T>
-inline std::size_t UpperBound(std::span<const T> values,
-                              scada::DateTime source_timestamp) {
+inline std::size_t UpperBound(std::span<const T> values, scada::DateTime time) {
   assert(IsTimeSorted(values));
-  auto i = std::ranges::upper_bound(values, source_timestamp, std::less{},
+  auto i = std::ranges::upper_bound(values, time, std::less{},
                                     &TimedDataTraits<T>::timestamp);
   return i - values.begin();
 }
@@ -65,15 +66,15 @@ inline std::size_t UpperBound(std::span<const T> values,
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t UpperBound(const std::vector<T>& values,
-                              scada::DateTime source_timestamp) {
-  return UpperBound(std::span{values}, source_timestamp);
+                              scada::DateTime time) {
+  return UpperBound(std::span{values}, time);
 }
 
 template <class T>
 inline std::size_t ReverseUpperBound(std::span<const T> values,
-                                     scada::DateTime source_timestamp) {
+                                     scada::DateTime time) {
   assert(IsReverseTimeSorted(values));
-  auto i = std::ranges::upper_bound(values, source_timestamp, std::greater{},
+  auto i = std::ranges::upper_bound(values, time, std::greater{},
                                     &TimedDataTraits<T>::timestamp);
   return i - values.begin();
 }
@@ -81,6 +82,57 @@ inline std::size_t ReverseUpperBound(std::span<const T> values,
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t ReverseUpperBound(const std::vector<T>& values,
-                                     scada::DateTime source_timestamp) {
-  return ReverseUpperBound(std::span{values}, source_timestamp);
+                                     scada::DateTime time) {
+  return ReverseUpperBound(std::span{values}, time);
+}
+
+template <class T>
+inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
+                                                base::Time from,
+                                                base::Time to) {
+  auto i = LowerBound(values, from);
+  if (i != values.size() && TimedDataTraits<T>::timestamp(values[i]) == from) {
+    return std::nullopt;
+  }
+
+  auto j = LowerBound(values, to);
+  if (j != values.size() && TimedDataTraits<T>::timestamp(values[j]) == to) {
+    return std::nullopt;
+  }
+
+  if (i != j) {
+    return std::nullopt;
+  }
+
+  return i;
+}
+
+template <class T, class Compare>
+inline void ReplaceSubrange(std::vector<T>& values,
+                            std::span<T> updates,
+                            Compare comp) {
+  assert(std::is_sorted(values.begin(), values.end(), comp));
+  assert(std::is_sorted(updates.begin(), updates.end(), comp));
+
+  if (updates.empty())
+    return;
+
+  // TODO: Switch to `LowerBound`.
+  auto first = std::lower_bound(values.begin(), values.end(), updates[0], comp);
+  auto last = std::upper_bound(values.begin(), values.end(),
+                               updates[updates.size() - 1], comp);
+  auto count = static_cast<size_t>(std::distance(first, last));
+
+  auto copy_count = std::min<size_t>(count, updates.size());
+  std::copy(std::make_move_iterator(updates.begin()),
+            std::make_move_iterator(updates.begin() + copy_count), first);
+
+  if (count < updates.size()) {
+    values.insert(last, std::make_move_iterator(updates.begin() + copy_count),
+                  std::make_move_iterator(updates.end()));
+  } else {
+    values.erase(first + copy_count, last);
+  }
+
+  assert(std::is_sorted(values.begin(), values.end(), comp));
 }

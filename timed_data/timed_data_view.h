@@ -6,9 +6,9 @@
 #include "base/interval_util.h"
 #include "base/observer_list.h"
 #include "common/data_value_traits.h"
-#include "timed_data/timed_data_dump_util.h"
-#include "timed_data/timed_data_property.h"
+#include "common/timed_data_util.h"
 #include "timed_data/timed_data_util.h"
+#include "timed_data/timed_data_view_dump.h"
 #include "timed_data/timed_data_view_fwd.h"
 #include "timed_data/timed_data_view_observer.h"
 
@@ -32,16 +32,17 @@ class BasicTimedDataView final {
 
   const std::vector<T>& values() const { return values_; }
 
+  // Returns a pointer instead of an optional for performance reasons.
   const T* GetValueAt(const scada::DateTime& time) const;
+
+  // Returns false if no change was applied. That means there is another value
+  // for the same timestamp with earlier server timestamp.
+  bool InsertOrUpdate(const T& value);
 
   // Moves `values` into the view. `values` must be sorted by timestamp.
   void ReplaceRange(std::span<T> values);
 
   void ClearRange(const scada::DateTimeRange& range);
-
-  // Returns false if no change was applied. That means there is another value
-  // for the same timestamp with earlier server timestamp.
-  bool InsertOrUpdate(const T& value);
 
   const std::vector<scada::DateTimeRange>& ready_ranges() const {
     return ready_ranges_;
