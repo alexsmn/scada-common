@@ -88,8 +88,8 @@ inline std::size_t ReverseUpperBound(const std::vector<T>& values,
 
 template <class T>
 inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
-                                                base::Time from,
-                                                base::Time to) {
+                                                scada::DateTime from,
+                                                scada::DateTime to) {
   auto i = LowerBound(values, from);
   if (i != values.size() && TimedDataTraits<T>::timestamp(values[i]) == from) {
     return std::nullopt;
@@ -105,6 +105,14 @@ inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
   }
 
   return i;
+}
+
+// An overload for `std::vector`.
+template <class T>
+inline std::optional<size_t> FindInsertPosition(const std::vector<T>& values,
+                                                scada::DateTime from,
+                                                scada::DateTime to) {
+  return FindInsertPosition(std::span{values}, from, to);
 }
 
 template <class T, class Compare>

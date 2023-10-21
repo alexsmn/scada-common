@@ -1,5 +1,7 @@
 #include "timed_data/timed_data_spec.h"
 
+#include "common/data_value_traits.h"
+#include "common/timed_data_util.h"
 #include "model/data_items_node_ids.h"
 #include "node_service/node_format.h"
 #include "node_service/node_util.h"
