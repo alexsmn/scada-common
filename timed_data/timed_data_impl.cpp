@@ -9,6 +9,7 @@
 #include "model/node_id_util.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_observer.h"
+#include "timed_data/timed_data_property.h"
 
 #include "base/debug_util-inl.h"
 

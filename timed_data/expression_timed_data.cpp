@@ -42,8 +42,9 @@ void ExpressionTimedData::OnObservedRangesChanged() {
     operands_[i]->AddViewObserver(*this, {from_, kTimedDataCurrentOnly});
   }
 
-  if (historical())
-    CalculateReadyRange();
+  if (historical()) {
+    UpdateReadyRange();
+  }
 
   CalculateCurrent();
 }
@@ -73,8 +74,9 @@ base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
   return ready_from.is_null() ? kTimedDataCurrentOnly : ready_from;
 }
 
-void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
-                                         std::vector<scada::DataValue>* tvqs) {
+void ExpressionTimedData::CalculateValuesInRange(
+    const scada::DateTimeRange& range,
+    std::vector<scada::DataValue>* tvqs) {
   assert(!range.first.is_null());
   assert(range.second.is_null() || range.first <= range.second);
 
@@ -165,20 +167,19 @@ void ExpressionTimedData::CalculateRange(const scada::DateTimeRange& range,
   }
 }
 
-bool ExpressionTimedData::CalculateReadyRange() {
+void ExpressionTimedData::UpdateReadyRange() {
   assert(historical());
 
   base::Time operands_ready_from = GetOperandsReadyFrom();
-  if (operands_ready_from == kTimedDataCurrentOnly)
-    return false;
+  if (operands_ready_from == kTimedDataCurrentOnly) {
+    return;
+  }
 
   assert(!operands_ready_from.is_null());
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
-  CalculateRange(range, nullptr);
+  CalculateValuesInRange(range, nullptr);
   timed_data_view_.AddReadyRange(range);
-
-  return true;
 }
 
 bool ExpressionTimedData::CalculateCurrent() {
@@ -238,7 +239,7 @@ void ExpressionTimedData::OnTimedDataUpdates(
   timed_data_view_.ClearRange(range);
 
   std::vector<scada::DataValue> changed_values;
-  CalculateRange(range, &changed_values);
+  CalculateValuesInRange(range, &changed_values);
 
   if (!changed_values.empty()) {
     timed_data_view_.NotifyUpdates(changed_values);
@@ -254,9 +255,7 @@ void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {
 void ExpressionTimedData::OnTimedDataReady() {
   assert(historical());
 
-  if (CalculateReadyRange()) {
-    timed_data_view_.NotifyReady();
-  }
+  UpdateReadyRange();
 }
 
 const EventSet* ExpressionTimedData::GetEvents() const {

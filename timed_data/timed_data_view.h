@@ -50,16 +50,14 @@ class BasicTimedDataView final {
 
   void AddReadyRange(const scada::DateTimeRange& range);
 
+  std::optional<scada::DateTimeRange> FindNextGap() const;
+
   void AddObserver(BasicTimedDataViewObserver<T>& observer,
                    const scada::DateTimeRange& range);
   void RemoveObserver(BasicTimedDataViewObserver<T>& observer);
 
-  std::optional<scada::DateTimeRange> FindNextGap() const;
-
   // TODO: Remove from public API.
   void NotifyUpdates(std::span<const T> values);
-  // TODO: Remove from public API.
-  void NotifyReady();
 
   void Dump(std::ostream& stream) const;
 
@@ -164,7 +162,10 @@ template <typename T>
 inline void BasicTimedDataView<T>::AddReadyRange(
     const scada::DateTimeRange& range) {
   UnionIntervals(ready_ranges_, range);
-  NotifyReady();
+
+  for (auto& o : observers_) {
+    o.OnTimedDataReady();
+  }
 }
 
 template <typename T>
@@ -174,12 +175,6 @@ inline void BasicTimedDataView<T>::NotifyUpdates(std::span<const T> values) {
 
   for (auto& o : observers_)
     o.OnTimedDataUpdates(values);
-}
-
-template <typename T>
-inline void BasicTimedDataView<T>::NotifyReady() {
-  for (auto& o : observers_)
-    o.OnTimedDataReady();
 }
 
 template <typename T>

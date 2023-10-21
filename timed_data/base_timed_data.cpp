@@ -1,6 +1,7 @@
 #include "timed_data/base_timed_data.h"
 
 #include "timed_data/timed_data_observer.h"
+#include "timed_data/timed_data_property.h"
 
 #include <sstream>
 
