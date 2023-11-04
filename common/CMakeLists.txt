@@ -12,6 +12,7 @@ target_include_directories(scada_common PUBLIC "..")
 
 target_link_libraries(scada_common PUBLIC
   scada_core
+  scada_metrics
 )
 
 target_link_libraries(scada_common PRIVATE

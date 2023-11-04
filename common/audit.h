@@ -1,22 +1,28 @@
 #pragma once
 
-#include "base/executor.h"
-#include "base/executor_timer.h"
-#include "base/metric.h"
-#include "common/audit_logger.h"
+#include "metrics/aggregated_metric.h"
 #include "scada/attribute_service.h"
 #include "scada/view_service.h"
 
+#include <chrono>
 #include <memory>
 
-class Audit final : public scada::AttributeService,
+class Executor;
+class MetricService;
+
+struct AuditContext {
+  std::shared_ptr<Executor> executor_;
+  MetricService& metric_service_;
+  scada::AttributeService& attribute_service_;
+  scada::ViewService& view_service_;
+};
+
+class Audit final : private AuditContext,
+                    public scada::AttributeService,
                     public scada::ViewService,
                     public std::enable_shared_from_this<Audit> {
  public:
-  Audit(std::shared_ptr<Executor> executor,
-        std::shared_ptr<AuditLogger> logger,
-        scada::AttributeService& attribute_service,
-        scada::ViewService& view_service);
+  static std::shared_ptr<Audit> Create(AuditContext&& context);
 
   // scada::AttributeService
   virtual void Read(
@@ -36,18 +42,14 @@ class Audit final : public scada::AttributeService,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
  private:
+  explicit Audit(AuditContext&& context);
+
+  void Init();
+
   using Clock = std::chrono::steady_clock;
   using Duration = Clock::duration;
 
-  void LogAndReset(const char* name, Metric<Duration>& metric);
-
-  const std::shared_ptr<Executor> executor_;
-  const std::shared_ptr<AuditLogger> logger_;
-  scada::AttributeService& attribute_service_;
-  scada::ViewService& view_service_;
-
-  Metric<Duration> read_metric_;
-  Metric<Duration> browse_metric_;
-
-  ExecutorTimer timer_{executor_};
+  // The metrics must be accessed under the `executor_`.
+  AggregatedMetric<Duration> read_latency_metric_;
+  AggregatedMetric<Duration> browse_latency_metric_;
 };

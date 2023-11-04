@@ -1,20 +1,24 @@
 #include "common/audit.h"
 
+#include "metrics/metric_service.h"
+#include "metrics/metrics.h"
 #include "scada/validation.h"
 
-Audit::Audit(std::shared_ptr<Executor> executor,
-             std::shared_ptr<AuditLogger> logger,
-             scada::AttributeService& attribute_service,
-             scada::ViewService& view_service)
-    : executor_{std::move(executor)},
-      logger_{std::move(logger)},
-      attribute_service_{attribute_service},
-      view_service_{view_service} {
-  // | timer_| is bound to |executor_| and limited by the object scope.
-  timer_.StartRepeating(std::chrono::minutes{1}, [this] {
-    LogAndReset("Browse.DurationUs", browse_metric_);
-    LogAndReset("Read.DurationUs", read_metric_);
-  });
+Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
+
+void Audit::Init() {
+  metric_service_.RegisterProvider(
+      CancelationRef::FromWeakPtr(weak_from_this()), [this](Metrics& metrics) {
+        metrics.Collect("read_latency", read_latency_metric_);
+        metrics.Collect("browse_latency", browse_latency_metric_);
+      });
+}
+
+// static
+std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
+  auto audit = std::shared_ptr<Audit>(new Audit{std::move(context)});
+  audit->Init();
+  return audit;
 }
 
 void Audit::Read(
@@ -25,9 +29,7 @@ void Audit::Read(
       context, inputs,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::DataValue>&& results) {
-        Dispatch(*executor_, [this, ref, duration = Clock::now() - start_time] {
-          read_metric_(duration);
-        });
+        read_latency_metric_(Clock::now() - start_time);
         callback(std::move(status), std::move(results));
       });
 }
@@ -47,9 +49,7 @@ void Audit::Browse(const std::vector<scada::BrowseDescription>& descriptions,
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         assert(Validate(results));
 
-        Dispatch(*executor_, [this, ref, duration = Clock::now() - start_time] {
-          browse_metric_(duration);
-        });
+        browse_latency_metric_(Clock::now() - start_time);
 
         callback(std::move(status), std::move(results));
       });
@@ -59,13 +59,4 @@ void Audit::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
   view_service_.TranslateBrowsePaths(browse_paths, callback);
-}
-
-void Audit::LogAndReset(const char* name, Metric<Duration>& metric) {
-  if (metric.empty())
-    return;
-
-  logger_->Log(name, metric);
-
-  metric.reset();
 }
