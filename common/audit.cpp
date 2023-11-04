@@ -1,5 +1,6 @@
 #include "common/audit.h"
 
+#include "base/promise_executor.h"
 #include "metrics/metric_service.h"
 #include "metrics/metrics.h"
 #include "scada/validation.h"
@@ -8,10 +9,12 @@ Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
 
 void Audit::Init() {
   metric_service_.RegisterProvider(
-      CancelationRef::FromWeakPtr(weak_from_this()), [this](Metrics& metrics) {
+      BindPromiseExecutorWithResult(executor_, weak_from_this(), [this] {
+        Metrics metrics;
         metrics.Collect("read_latency", read_latency_metric_);
         metrics.Collect("browse_latency", browse_latency_metric_);
-      });
+        return make_resolved_promise(metrics);
+      }));
 }
 
 // static
