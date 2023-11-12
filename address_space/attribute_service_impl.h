@@ -1,7 +1,7 @@
 #pragma once
 
-#include "address_space/sync_attribute_service.h"
 #include "base/containers/span.h"
+#include "common/sync_attribute_service.h"
 #include "scada/attribute_service.h"
 
 namespace scada {

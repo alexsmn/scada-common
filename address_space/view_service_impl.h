@@ -1,6 +1,6 @@
 #pragma once
 
-#include "address_space/sync_view_service.h"
+#include "common/sync_view_service.h"
 #include "scada/view_service.h"
 
 #include <memory>
