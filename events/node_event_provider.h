@@ -15,16 +15,16 @@ class NodeEventProvider {
  public:
   virtual ~NodeEventProvider() = default;
 
-  virtual unsigned severity_min() const = 0;
-  virtual void SetSeverityMin(unsigned severity) = 0;
+  virtual scada::EventSeverity severity_min() const = 0;
+  virtual void SetSeverityMin(scada::EventSeverity severity) = 0;
 
-  using EventContainer = std::map<unsigned /*ack_id*/, scada::Event>;
+  using EventContainer = std::map<scada::EventAcknowledgeId, scada::Event>;
   virtual const EventContainer& unacked_events() const = 0;
 
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& item_id) const = 0;
 
-  virtual void AcknowledgeEvent(unsigned ack_id) = 0;
+  virtual void AcknowledgeEvent(scada::EventAcknowledgeId) = 0;
   virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) = 0;
   virtual void AcknowledgeAllEvents() = 0;
 

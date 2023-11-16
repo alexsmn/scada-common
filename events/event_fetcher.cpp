@@ -50,27 +50,27 @@ void EventFetcher::RemoveObserver(EventObserver& observer) {
   event_storage_.RemoveObserver(observer);
 }
 
-void EventFetcher::AddItemObserver(const scada::NodeId& item_id,
+void EventFetcher::AddItemObserver(const scada::NodeId& node_id,
                                    EventObserver& observer) {
-  event_storage_.AddNodeObserver(item_id, observer);
+  event_storage_.AddNodeObserver(node_id, observer);
 }
 
-void EventFetcher::RemoveItemObserver(const scada::NodeId& item_id,
+void EventFetcher::RemoveItemObserver(const scada::NodeId& node_id,
                                       EventObserver& observer) {
-  event_storage_.RemoveNodeObserver(item_id, observer);
+  event_storage_.RemoveNodeObserver(node_id, observer);
 }
 
 const EventSet* EventFetcher::GetItemUnackedEvents(
-    const scada::NodeId& item_id) const {
-  return event_storage_.GetNodeEvents(item_id);
+    const scada::NodeId& node_id) const {
+  return event_storage_.GetNodeEvents(node_id);
 }
 
-bool EventFetcher::IsAlerting(const scada::NodeId& item_id) const {
-  const EventSet* events = GetItemUnackedEvents(item_id);
+bool EventFetcher::IsAlerting(const scada::NodeId& node_id) const {
+  const EventSet* events = GetItemUnackedEvents(node_id);
   return events && !events->empty();
 }
 
-void EventFetcher::SetSeverityMin(unsigned severity) {
+void EventFetcher::SetSeverityMin(scada::EventSeverity severity) {
   if (severity < scada::kSeverityMin || severity > scada::kSeverityMax)
     return;
 
@@ -110,8 +110,8 @@ bool EventFetcher::IsAcking() const {
   return event_ack_queue_.IsAcking();
 }
 
-void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
-  const EventSet* events = GetItemUnackedEvents(item_id);
+void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& node_id) {
+  const EventSet* events = GetItemUnackedEvents(node_id);
   if (!events)
     return;
 
@@ -120,7 +120,7 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& item_id) {
   }
 }
 
-void EventFetcher::AcknowledgeEvent(unsigned ack_id) {
+void EventFetcher::AcknowledgeEvent(scada::EventAcknowledgeId ack_id) {
   event_ack_queue_.Ack(ack_id);
 }
 

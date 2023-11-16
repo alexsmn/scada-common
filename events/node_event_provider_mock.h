@@ -11,27 +11,33 @@ class MockNodeEventProvider : public NodeEventProvider {
         .WillByDefault(testing::ReturnRef(unacked_events_));
   }
 
-  MOCK_METHOD(unsigned, severity_min, (), (const override));
-  MOCK_METHOD(void, SetSeverityMin, (unsigned severity), (override));
+  MOCK_METHOD(scada::EventSeverity, severity_min, (), (const override));
+  MOCK_METHOD(void,
+              SetSeverityMin,
+              (scada::EventSeverity severity),
+              (override));
 
   MOCK_METHOD(const EventContainer&, unacked_events, (), (const override));
 
   MOCK_METHOD(const EventSet*,
               GetItemUnackedEvents,
-              (const scada::NodeId& item_id),
+              (const scada::NodeId& node_id),
               (const override));
 
-  MOCK_METHOD(void, AcknowledgeEvent, (unsigned ack_id), (override));
+  MOCK_METHOD(void,
+              AcknowledgeEvent,
+              (scada::EventAcknowledgeId ack_id),
+              (override));
   MOCK_METHOD(void,
               AcknowledgeItemEvents,
-              (const scada::NodeId& item_id),
+              (const scada::NodeId& node_id),
               (override));
   MOCK_METHOD(void, AcknowledgeAllEvents, (), (override));
 
   MOCK_METHOD(bool, IsAcking, (), (const override));
   MOCK_METHOD(bool,
               IsAlerting,
-              (const scada::NodeId& item_id),
+              (const scada::NodeId& node_id),
               (const override));
 
   MOCK_METHOD(void, AddObserver, (EventObserver & observer), (override));
@@ -39,11 +45,11 @@ class MockNodeEventProvider : public NodeEventProvider {
 
   MOCK_METHOD(void,
               AddItemObserver,
-              (const scada::NodeId& item_id, EventObserver& observer),
+              (const scada::NodeId& node_id, EventObserver& observer),
               (override));
   MOCK_METHOD(void,
               RemoveItemObserver,
-              (const scada::NodeId& item_id, EventObserver& observer),
+              (const scada::NodeId& node_id, EventObserver& observer),
               (override));
 
   EventContainer unacked_events_;
