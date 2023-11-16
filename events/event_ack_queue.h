@@ -25,10 +25,10 @@ class EventAckQueue : private EventAckQueueContext {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
   }
 
-  void Ack(scada::EventAcknowledgeId ack_id);
+  void Ack(scada::EventId ack_id);
 
   // Acknowledge confirmation.
-  void OnAcked(scada::EventAcknowledgeId acknowledge_id);
+  void OnAcked(scada::EventId acknowledge_id);
 
   void Reset() {
     running_ack_event_ids_.clear();
@@ -39,11 +39,11 @@ class EventAckQueue : private EventAckQueueContext {
   void AckPendingEvents();
   void PostAckPendingEvents();
 
-  using EventIdQueue = std::deque<scada::EventAcknowledgeId>;
+  using EventIdQueue = std::deque<scada::EventId>;
   EventIdQueue pending_ack_event_ids_;
 
   // Consider using `unordered_set`.
-  using EventIdSet = std::set<scada::EventAcknowledgeId>;
+  using EventIdSet = std::set<scada::EventId>;
   EventIdSet running_ack_event_ids_;
 
   bool ack_pending_ = false;
@@ -54,7 +54,7 @@ class EventAckQueue : private EventAckQueueContext {
   static const size_t kMaxParallelAcks = 5;
 };
 
-inline void EventAckQueue::OnAcked(scada::EventAcknowledgeId acknowledge_id) {
+inline void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
     logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
                     acknowledge_id);
@@ -80,7 +80,7 @@ inline void EventAckQueue::AckPendingEvents() {
   assert(ack_pending_);
   ack_pending_ = false;
 
-  std::vector<scada::EventAcknowledgeId> acknowledge_ids;
+  std::vector<scada::EventId> acknowledge_ids;
   while (running_ack_event_ids_.size() < kMaxParallelAcks &&
          !pending_ack_event_ids_.empty()) {
     auto ack_id = pending_ack_event_ids_.front();
@@ -102,7 +102,7 @@ inline void EventAckQueue::AckPendingEvents() {
   PostAckPendingEvents();
 }
 
-inline void EventAckQueue::Ack(scada::EventAcknowledgeId ack_id) {
+inline void EventAckQueue::Ack(scada::EventId ack_id) {
   if (base::Contains(running_ack_event_ids_, ack_id) ||
       base::Contains(pending_ack_event_ids_, ack_id))
     return;

@@ -120,7 +120,7 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& node_id) {
   }
 }
 
-void EventFetcher::AcknowledgeEvent(scada::EventAcknowledgeId ack_id) {
+void EventFetcher::AcknowledgeEvent(scada::EventId ack_id) {
   event_ack_queue_.Ack(ack_id);
 }
 

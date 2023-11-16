@@ -24,10 +24,7 @@ class MockNodeEventProvider : public NodeEventProvider {
               (const scada::NodeId& node_id),
               (const override));
 
-  MOCK_METHOD(void,
-              AcknowledgeEvent,
-              (scada::EventAcknowledgeId ack_id),
-              (override));
+  MOCK_METHOD(void, AcknowledgeEvent, (scada::EventId ack_id), (override));
   MOCK_METHOD(void,
               AcknowledgeItemEvents,
               (const scada::NodeId& node_id),

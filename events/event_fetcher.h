@@ -44,7 +44,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   virtual const EventContainer& unacked_events() const;
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& node_id) const override;
-  virtual void AcknowledgeEvent(scada::EventAcknowledgeId ack_id) override;
+  virtual void AcknowledgeEvent(scada::EventId ack_id) override;
   virtual bool IsAcking() const override;
   virtual bool IsAlerting(const scada::NodeId& node_id) const override;
   virtual void AddObserver(EventObserver& observer) override;
