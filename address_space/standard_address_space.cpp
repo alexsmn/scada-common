@@ -55,6 +55,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   address_space.AddNode(HasSubtype);
   address_space.AddNode(HasTypeDefinition);
   address_space.AddNode(HasModellingRule);
+  address_space.AddNode(HasEventSource);
+  address_space.AddNode(HasNotifier);
   address_space.AddNode(Organizes);
 
   address_space.AddNode(BaseDataType);
@@ -115,6 +117,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
                              HasTypeDefinition);
   address_space.AddReference(HasSubtype, NonHierarchicalReference,
                              HasModellingRule);
+  address_space.AddReference(HasSubtype, HierarchicalReference, HasEventSource);
+  address_space.AddReference(HasSubtype, HasEventSource, HasNotifier);
 
   // BaseDataType
   address_space.AddReference(Organizes, TypesFolder, BaseDataType);

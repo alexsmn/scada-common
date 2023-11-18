@@ -39,27 +39,27 @@ struct StandardAddressSpace {
   scada::Folder ObjectsFolder;
   scada::Folder TypesFolder;
 
-  scada::ReferenceType References{scada::id::References, "References", {}};
-  scada::ReferenceType HierarchicalReference{scada::id::HierarchicalReferences,
-                                             "HierarchicalReference",
-                                             {}};
+  scada::ReferenceType References{scada::id::References, "References"};
+  scada::ReferenceType HierarchicalReference{
+      scada::id::HierarchicalReferences,
+      "HierarchicalReference",
+  };
   scada::ReferenceType NonHierarchicalReference{
       scada::id::NonHierarchicalReferences,
       "NonHierarchicalReference",
       {}};
-  scada::ReferenceType Aggregates{scada::id::Aggregates, "Aggregates", {}};
-  scada::ReferenceType HasProperty{scada::id::HasProperty, "HasProperty", {}};
-  scada::ReferenceType HasComponent{scada::id::HasComponent,
-                                    "HasComponent",
-                                    {}};
-  scada::ReferenceType HasSubtype{scada::id::HasSubtype, "HasSubtype", {}};
+  scada::ReferenceType Aggregates{scada::id::Aggregates, "Aggregates"};
+  scada::ReferenceType HasProperty{scada::id::HasProperty, "HasProperty"};
+  scada::ReferenceType HasComponent{scada::id::HasComponent, "HasComponent"};
+  scada::ReferenceType HasSubtype{scada::id::HasSubtype, "HasSubtype"};
   scada::ReferenceType HasTypeDefinition{scada::id::HasTypeDefinition,
-                                         "HasTypeDefinition",
-                                         {}};
+                                         "HasTypeDefinition"};
   scada::ReferenceType HasModellingRule{scada::id::HasModellingRule,
-                                        "HasModellingRule",
-                                        {}};
-  scada::ReferenceType Organizes{scada::id::Organizes, "Organizes", {}};
+                                        "HasModellingRule"};
+  scada::ReferenceType HasEventSource{scada::id::HasEventSource,
+                                      "HasEventSource"};
+  scada::ReferenceType HasNotifier{scada::id::HasNotifier, "HasNotifier"};
+  scada::ReferenceType Organizes{scada::id::Organizes, "Organizes"};
 
   scada::DataType BaseDataType{scada::id::BaseDataType, "BaseDataType", {}};
   scada::DataType BoolDataType{scada::id::Boolean, "Bool", {}};

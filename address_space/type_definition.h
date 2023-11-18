@@ -30,9 +30,7 @@ class DataType : public TypeDefinition {
  public:
   DataType() {}
 
-  DataType(NodeId id,
-           QualifiedName browse_name,
-           LocalizedText display_name) {
+  DataType(NodeId id, QualifiedName browse_name, LocalizedText display_name) {
     set_id(std::move(id));
     SetBrowseName(std::move(browse_name));
     SetDisplayName(std::move(display_name));
@@ -80,7 +78,12 @@ class VariableType : public TypeDefinition {
 
 class ReferenceType : public TypeDefinition {
  public:
-  ReferenceType() {}
+  ReferenceType() = default;
+
+  ReferenceType(const NodeId& id, QualifiedName browse_name) {
+    set_id(id);
+    SetBrowseName(std::move(browse_name));
+  }
 
   ReferenceType(const NodeId& id,
                 QualifiedName browse_name,
