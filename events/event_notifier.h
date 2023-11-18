@@ -7,12 +7,13 @@ struct ModelChangeEvent;
 struct SemanticChangeEvent;
 };  // namespace scada
 
-// Events are delivered following the EventNotifier hierarchy starting from the
-// event node.
+// Events are delivered following the `EventNotifier` hierarchy starting from
+// the event node.
 class EventNotifier {
  public:
   virtual ~EventNotifier() {}
 
+  // TODO: Introduce batch interface. See `EventProducer` for reasoning.
   virtual void NotifyEvent(const scada::Event& event) = 0;
 
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;

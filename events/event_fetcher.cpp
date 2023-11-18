@@ -89,7 +89,7 @@ void EventFetcher::SetSeverityMin(scada::EventSeverity severity) {
 void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
   for (const auto& event : events) {
     if (event.acked) {
-      event_ack_queue_.OnAcked(event.acknowledge_id);
+      event_ack_queue_.OnAcked(event.event_id);
     }
   }
 
@@ -116,7 +116,7 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& node_id) {
     return;
 
   for (auto* event : *events) {
-    AcknowledgeEvent(event->acknowledge_id);
+    AcknowledgeEvent(event->event_id);
   }
 }
 
@@ -126,7 +126,7 @@ void EventFetcher::AcknowledgeEvent(scada::EventId ack_id) {
 
 void EventFetcher::AcknowledgeAllEvents() {
   for (const auto& event : event_storage_.events() | std::views::values) {
-    AcknowledgeEvent(event.acknowledge_id);
+    AcknowledgeEvent(event.event_id);
   }
 }
 

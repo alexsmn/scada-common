@@ -3,7 +3,7 @@
 #include "events/event_observer.h"
 
 const scada::Event* EventStorage::Add(const scada::Event& event) {
-  auto [iter, inserted] = events_.try_emplace(event.acknowledge_id, event);
+  auto [iter, inserted] = events_.try_emplace(event.event_id, event);
   scada::Event& contained_event = iter->second;
 
   // Replace old event on update.
@@ -28,7 +28,7 @@ const scada::Event* EventStorage::Add(const scada::Event& event) {
 
 EventStorage::EventContainer::node_type EventStorage::Remove(
     const scada::Event& event) {
-  auto i = events_.find(event.acknowledge_id);
+  auto i = events_.find(event.event_id);
   if (i == events_.end())
     return {};
 
