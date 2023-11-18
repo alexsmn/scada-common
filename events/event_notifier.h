@@ -1,11 +1,7 @@
 #pragma once
 
-namespace scada {
-class Event;
-class NodeId;
-struct ModelChangeEvent;
-struct SemanticChangeEvent;
-};  // namespace scada
+#include "scada/event.h"
+#include "scada/status_promise.h"
 
 // Events are delivered following the `EventNotifier` hierarchy starting from
 // the event node.
@@ -14,7 +10,8 @@ class EventNotifier {
   virtual ~EventNotifier() {}
 
   // TODO: Introduce batch interface. See `EventProducer` for reasoning.
-  virtual void NotifyEvent(const scada::Event& event) = 0;
+  virtual scada::status_promise<scada::EventId> NotifyEvent(
+      const scada::Event& event) = 0;
 
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;
 
