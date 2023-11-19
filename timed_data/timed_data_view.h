@@ -37,20 +37,19 @@ class BasicTimedDataView final {
 
   // Returns false if no change was applied. That means there is another value
   // for the same timestamp with earlier server timestamp.
+  // WARNING: Does NOT notify observers of updates.
+  // TODO: Notify observers of updates.
   bool InsertOrUpdate(const T& value);
 
   // Moves `values` into the view. `values` must be sorted by timestamp.
+  // Drops all values in the overlapped time range that were in the view before.
   void ReplaceRange(std::span<T> values);
 
+  // WARNING: Does NOT notify observers of updates.
+  // TODO: Notify observers of updates.
   void ClearRange(const scada::DateTimeRange& range);
 
-  const std::vector<scada::DateTimeRange>& ready_ranges() const {
-    return ready_ranges_;
-  }
-
-  void AddReadyRange(const scada::DateTimeRange& range);
-
-  std::optional<scada::DateTimeRange> FindNextGap() const;
+  // Observation.
 
   void AddObserver(BasicTimedDataViewObserver<T>& observer,
                    const scada::DateTimeRange& range);
@@ -58,6 +57,19 @@ class BasicTimedDataView final {
 
   // TODO: Remove from public API.
   void NotifyUpdates(std::span<const T> values);
+
+  // Readiness.
+
+  const std::vector<scada::DateTimeRange>& ready_ranges() const {
+    return ready_ranges_;
+  }
+
+  void AddReadyRange(const scada::DateTimeRange& range);
+
+  // Finds a next observed range that's not covered by a ready range.
+  std::optional<scada::DateTimeRange> FindNextGap() const;
+
+  // Rest.
 
   void Dump(std::ostream& stream) const;
 
@@ -192,7 +204,11 @@ inline bool BasicTimedDataView<T>::InsertOrUpdate(const T& value) {
 
   auto i = LowerBound(values_, timestamp(value));
   if (i != values_.size() && timestamp(values_[i]) == timestamp(value)) {
-    return TimedDataTraits<T>::UpdateValue(values_[i], value);
+    if (TimedDataTraits<T>::IsLesser(value, values_[i])) {
+      return false;
+    }
+    values_[i] = value;
+    return true;
 
   } else {
     values_.insert(values_.begin() + i, value);
