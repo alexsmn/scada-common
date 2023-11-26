@@ -14,6 +14,7 @@
 
 #include <optional>
 
+// TODO: Rename to `BasicTimedDataContainer`.
 template <typename T>
 class BasicTimedDataView final {
  public:
@@ -29,6 +30,8 @@ class BasicTimedDataView final {
       ObservedRangesUpdatedHandler handler) {
     observed_ranges_updated_handler_ = std::move(handler);
   }
+
+  const T& at(size_t index) const { return values_[index]; }
 
   const std::vector<T>& values() const { return values_; }
 

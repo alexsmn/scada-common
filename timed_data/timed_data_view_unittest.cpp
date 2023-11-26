@@ -1,5 +1,7 @@
 #include "timed_data/timed_data_view.h"
 
+#include "timed_data/timed_data_projection.h"
+
 #include <gmock/gmock.h>
 
 using namespace testing;
@@ -24,8 +26,15 @@ struct TimedDataTraits<TestStruct> {
 };
 
 TEST(TimedDataViewTest, Test) {
-  BasicTimedDataView<TestStruct> timed_data_view;
+  BasicTimedDataView<TestStruct> view;
 
-  EXPECT_TRUE(timed_data_view.InsertOrUpdate(
-      TestStruct{.timestamp = scada::DateTime::Now()}));
+  auto timestamp = scada::DateTime::Now();
+
+  EXPECT_TRUE(view.InsertOrUpdate(TestStruct{.timestamp = timestamp}));
+
+  BasicTimedDataProjection<TestStruct> projection{view};
+  projection.SetTimeRange({timestamp, timestamp});
+
+  // ASSERT_EQ(projection.size(), 1);
+  // EXPECT_EQ(projection.at(0).timestamp, timestamp);
 }
