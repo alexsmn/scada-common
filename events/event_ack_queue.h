@@ -80,22 +80,22 @@ inline void EventAckQueue::AckPendingEvents() {
   assert(ack_pending_);
   ack_pending_ = false;
 
-  std::vector<scada::EventId> acknowledge_ids;
+  std::vector<scada::EventId> event_ids;
   while (running_ack_event_ids_.size() < kMaxParallelAcks &&
          !pending_ack_event_ids_.empty()) {
     auto ack_id = pending_ack_event_ids_.front();
     pending_ack_event_ids_.pop_front();
 
-    acknowledge_ids.emplace_back(ack_id);
+    event_ids.emplace_back(ack_id);
     running_ack_event_ids_.insert(ack_id);
   }
 
-  if (!acknowledge_ids.empty()) {
+  if (!event_ids.empty()) {
     logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
-                    ToString(acknowledge_ids).c_str());
+                    ToString(event_ids).c_str());
     method_service_.Call(scada::id::Server,
                          scada::id::AcknowledgeableConditionType_Acknowledge,
-                         {acknowledge_ids, scada::DateTime::Now()}, user_id_,
+                         {event_ids, scada::DateTime::Now()}, user_id_,
                          [](scada::Status&& status) {});
   }
 
