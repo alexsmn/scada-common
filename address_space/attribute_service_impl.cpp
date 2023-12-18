@@ -7,6 +7,7 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/range_util.h"
+#include "base/span_util.h"
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -44,8 +45,8 @@ void AttributeServiceImpl::Write(
 
 std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(
     const scada::ServiceContext& context,
-    base::span<const scada::ReadValueId> inputs) {
-  return inputs |
+    std::span<const scada::ReadValueId> inputs) {
+  return AsBaseSpan(inputs) |
          boost::adaptors::transformed(
              [this](const scada::ReadValueId& input) { return Read(input); }) |
          to_vector;
@@ -66,7 +67,7 @@ scada::DataValue SyncAttributeServiceImpl::Read(
 
 std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
     const scada::ServiceContext& context,
-    base::span<const scada::WriteValue> inputs) {
+    std::span<const scada::WriteValue> inputs) {
   return std::vector<scada::StatusCode>(inputs.size(),
                                         scada::StatusCode::Bad_WrongNodeId);
 }

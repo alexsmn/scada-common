@@ -2,6 +2,8 @@
 
 #include "scada/node_management_service.h"
 
+#include <span>
+
 class SyncNodeManagementService {
  public:
   virtual ~SyncNodeManagementService() = default;
@@ -13,7 +15,7 @@ class SyncNodeManagementService {
       std::vector<scada::NodeId>* dependencies) = 0;
 
   virtual std::vector<scada::StatusCode> AddReferences(
-      base::span<const scada::AddReferencesItem> inputs) = 0;
+      std::span<const scada::AddReferencesItem> inputs) = 0;
   virtual std::vector<scada::StatusCode> DeleteReferences(
-      base::span<const scada::DeleteReferencesItem> inputs) = 0;
+      std::span<const scada::DeleteReferencesItem> inputs) = 0;
 };

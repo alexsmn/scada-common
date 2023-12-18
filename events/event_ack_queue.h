@@ -57,7 +57,7 @@ class EventAckQueue : private EventAckQueueContext {
 inline void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
     logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
-                    acknowledge_id);
+                    static_cast<int>(acknowledge_id));
     PostAckPendingEvents();
   }
 }

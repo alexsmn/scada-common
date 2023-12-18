@@ -4,6 +4,7 @@
 #include "scada/view_service.h"
 
 #include <memory>
+#include <span>
 
 namespace scada {
 class AddressSpace;
@@ -21,9 +22,9 @@ class SyncViewServiceImpl : private ViewServiceImplContext,
 
   // SyncViewService
   virtual std::vector<scada::BrowseResult> Browse(
-      base::span<const scada::BrowseDescription> inputs) override;
+      std::span<const scada::BrowseDescription> inputs) override;
   virtual std::vector<scada::BrowsePathResult> TranslateBrowsePaths(
-      base::span<const scada::BrowsePath> inputs) override;
+      std::span<const scada::BrowsePath> inputs) override;
 
  private:
   scada::BrowseResult BrowseOne(const scada::BrowseDescription& inputs);

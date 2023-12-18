@@ -35,7 +35,7 @@ struct CompareDataValues {
   }
 };
 
-Double CalculateTotal(base::span<const DataValue> values) {
+Double CalculateTotal(std::span<const DataValue> values) {
   return std::accumulate(values.begin(), values.end(), 0.0,
                          [](Double prev_sum, const DataValue& data_value) {
                            Double double_value = 0;
@@ -48,7 +48,7 @@ Double CalculateTotal(base::span<const DataValue> values) {
 
 Aggregator MakeFrontAggregator(const DateTimeRange& interval) {
   return [interval, start_data_value = DataValue{}](
-             base::span<const DataValue> values) mutable {
+             std::span<const DataValue> values) mutable {
     if (start_data_value.is_null())
       start_data_value = values[0];
     return DataValue{start_data_value.value, start_data_value.qualifier,
@@ -57,7 +57,7 @@ Aggregator MakeFrontAggregator(const DateTimeRange& interval) {
 }
 
 Aggregator MakeBackAggregator(const DateTimeRange& interval) {
-  return [interval](base::span<const DataValue> values) {
+  return [interval](std::span<const DataValue> values) {
     const auto& end_data_value = values[values.size() - 1];
     return DataValue{end_data_value.value, end_data_value.qualifier,
                      interval.first, interval.second};
@@ -76,7 +76,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       id::AggregateFunction_Total,
       [](const DateTimeRange& interval, bool forward) {
         Double total = 0;
-        return [interval, total](base::span<const DataValue> values) mutable {
+        return [interval, total](std::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
           return DataValue{total, {}, interval.first, interval.second};
         };
@@ -88,7 +88,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
         Double total = 0;
         size_t count = 0;
         return [interval, total,
-                count](base::span<const DataValue> values) mutable {
+                count](std::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
           count += values.size();
           assert(count != 0);
@@ -100,7 +100,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       id::AggregateFunction_Count,
       [](const DateTimeRange& interval, bool forward) {
         size_t count = 0;
-        return [interval, count](base::span<const DataValue> values) mutable {
+        return [interval, count](std::span<const DataValue> values) mutable {
           count += values.size();
           return DataValue{count, {}, interval.first, interval.second};
         };
@@ -111,7 +111,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       [](const DateTimeRange& interval, bool forward) {
         auto min_value = std::numeric_limits<Double>::max();
         return
-            [interval, min_value](base::span<const DataValue> values) mutable {
+            [interval, min_value](std::span<const DataValue> values) mutable {
               auto& data_value = *std::min_element(values.begin(), values.end(),
                                                    CompareDataValues{});
               Double double_value = 0;
@@ -127,7 +127,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       [](const DateTimeRange& interval, bool forward) {
         auto max_value = std::numeric_limits<Double>::min();
         return
-            [interval, max_value](base::span<const DataValue> values) mutable {
+            [interval, max_value](std::span<const DataValue> values) mutable {
               auto& data_value = *std::max_element(values.begin(), values.end(),
                                                    CompareDataValues{});
               Double double_value = 0;
@@ -187,15 +187,15 @@ DateTimeRange GetAggregateInterval(DateTime time,
   return {origin_time + delta, origin_time + delta + interval};
 }
 
-void AggregateState::Process(base::span<const scada::DataValue> raw_span) {
+void AggregateState::Process(std::span<const scada::DataValue> raw_span) {
   while (!raw_span.empty()) {
     auto interval = scada::GetAggregateInterval(raw_span[0].source_timestamp,
                                                 aggregation.start_time,
                                                 aggregation.interval);
 
     auto count = forward
-                     ? UpperBound(AsStdSpan(raw_span), interval.second)
-                     : ReverseUpperBound(AsStdSpan(raw_span), interval.first);
+                     ? UpperBound(raw_span, interval.second)
+                     : ReverseUpperBound(raw_span, interval.first);
     assert(count != 0);
 
     if (aggregator_interval != interval) {

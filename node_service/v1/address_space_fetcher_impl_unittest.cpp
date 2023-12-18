@@ -27,7 +27,7 @@ class AddressSpaceFetcherImplTest : public Test {
   }
 
   StrictMock<
-      MockFunction<void(base::span<const NodeFetchStatusChangedItem> items)>>
+      MockFunction<void(std::span<const NodeFetchStatusChangedItem> items)>>
       node_fetch_status_changed_handler_;
 
   const std::shared_ptr<TestExecutor> executor_ =

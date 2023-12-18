@@ -1,8 +1,9 @@
 #pragma once
 
-#include "base/containers/span.h"
 #include "common/sync_attribute_service.h"
 #include "scada/attribute_service.h"
+
+#include <span>
 
 namespace scada {
 class AddressSpace;
@@ -21,10 +22,10 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
   // SyncAttributeService
   virtual std::vector<scada::DataValue> Read(
       const scada::ServiceContext& context,
-      base::span<const scada::ReadValueId> inputs) override;
+      std::span<const scada::ReadValueId> inputs) override;
   virtual std::vector<scada::StatusCode> Write(
       const scada::ServiceContext& context,
-      base::span<const scada::WriteValue> inputs) override;
+      std::span<const scada::WriteValue> inputs) override;
 
  private:
   scada::DataValue Read(const scada::ReadValueId& input);

@@ -5,6 +5,7 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "base/range_util.h"
+#include "base/span_util.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 
@@ -58,8 +59,8 @@ ViewServiceImpl::ViewServiceImpl(SyncViewService& sync_view_service)
     : sync_view_service_{sync_view_service} {}
 
 std::vector<scada::BrowseResult> SyncViewServiceImpl::Browse(
-    base::span<const scada::BrowseDescription> inputs) {
-  return inputs |
+    std::span<const scada::BrowseDescription> inputs) {
+  return AsBaseSpan(inputs) |
          boost::adaptors::transformed(
              [this](const scada::BrowseDescription& input) {
                return BrowseOne(input);
@@ -81,8 +82,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseOne(
 }
 
 std::vector<scada::BrowsePathResult> SyncViewServiceImpl::TranslateBrowsePaths(
-    base::span<const scada::BrowsePath> inputs) {
-  return inputs |
+    std::span<const scada::BrowsePath> inputs) {
+  return AsBaseSpan(inputs) |
          boost::adaptors::transformed([this](const scada::BrowsePath& input) {
            return TranslateBrowsePath(input);
          }) |
@@ -155,15 +156,16 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
       description.direction == scada::BrowseDirection::Both) {
     if (scada::IsSubtypeOf(address_space_, scada::id::HasTypeDefinition,
                            description.reference_type_id))
-      result.references.push_back(
-          {scada::id::HasTypeDefinition, true, scada::id::PropertyType});
+      result.references.emplace_back(scada::id::HasTypeDefinition,
+                                     /*forward=*/true, scada::id::PropertyType);
   }
 
   if (description.direction == scada::BrowseDirection::Inverse ||
       description.direction == scada::BrowseDirection::Both) {
     if (scada::IsSubtypeOf(address_space_, scada::id::HasProperty,
                            description.reference_type_id))
-      result.references.push_back({scada::id::HasProperty, false, node.id()});
+      result.references.emplace_back(scada::id::HasProperty, /*forward=*/false,
+                                     node.id());
   }
 
   return result;
