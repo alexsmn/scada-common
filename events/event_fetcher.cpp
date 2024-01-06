@@ -134,14 +134,12 @@ void EventFetcher::Update() {
   history_service_.HistoryReadEvents(
       scada::id::Server, {}, {},
       scada::EventFilter{scada::EventFilter::UNACKED},
-      BindExecutor(executor_,
-                   [weak_ptr = weak_factory_.GetWeakPtr()](
-                       scada::Status status, std::vector<scada::Event> events) {
-                     if (auto* self = weak_ptr.get()) {
-                       self->OnHistoryReadEventsComplete(std::move(status),
-                                                         std::move(events));
-                     }
-                   }));
+      BindExecutor(executor_, [weak_ptr = weak_factory_.GetWeakPtr()](
+                                  scada::HistoryReadEventsResult result) {
+        if (auto* self = weak_ptr.get()) {
+          self->OnHistoryReadEventsComplete(std::move(result));
+        }
+      }));
 }
 
 void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {
@@ -155,7 +153,6 @@ void EventFetcher::OnChannelClosed() {
 }
 
 void EventFetcher::OnHistoryReadEventsComplete(
-    scada::Status&& status,
-    std::vector<scada::Event>&& events) {
-  OnSystemEvents(events);
+    scada::HistoryReadEventsResult&& result) {
+  OnSystemEvents(std::move(result.events));
 }

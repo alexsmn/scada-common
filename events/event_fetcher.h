@@ -8,6 +8,7 @@ namespace scada {
 class HistoryService;
 class MonitoredItem;
 class MonitoredItemService;
+struct HistoryReadEventsResult;
 }  // namespace scada
 
 class Executor;
@@ -60,8 +61,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void Update();
 
   void OnSystemEvents(base::span<const scada::Event> events);
-  void OnHistoryReadEventsComplete(scada::Status&& status,
-                                   std::vector<scada::Event>&& results);
+  void OnHistoryReadEventsComplete(scada::HistoryReadEventsResult&& result);
 
   bool connected_ = false;
 

@@ -80,7 +80,7 @@ void VidiconSession::HistoryReadEvents(
     base::Time to,
     const scada::EventFilter& filter,
     const scada::HistoryReadEventsCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
+  callback({scada::StatusCode::Bad});
 }
 
 std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(

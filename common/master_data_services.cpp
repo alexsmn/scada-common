@@ -271,7 +271,7 @@ void MasterDataServices::HistoryReadEvents(
     const scada::EventFilter& filter,
     const scada::HistoryReadEventsCallback& callback) {
   if (!services_.history_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
+    return callback({scada::StatusCode::Bad_Disconnected});
 
   services_.history_service_->HistoryReadEvents(node_id, from, to, filter,
                                                 callback);
