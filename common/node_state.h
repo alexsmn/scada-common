@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <ostream>
+#include <ranges>
 #include <vector>
 
 namespace scada {
@@ -90,6 +91,10 @@ struct NodeState {
 
   WARN_UNUSED_RESULT std::optional<scada::Variant> GetAttribute(
       AttributeId attribute_id) const;
+
+  bool HasReference(const scada::ReferenceDescription& desc) const {
+    return std::ranges::find(references, desc) != references.end();
+  }
 };
 
 using NodeStatePtr = std::shared_ptr<const NodeState>;

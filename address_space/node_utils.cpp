@@ -125,8 +125,9 @@ const Node* GetReferenceTarget(const TypeDefinition* source,
 
 const Node* GetAggregateDeclaration(const TypeDefinition& type,
                                     const NodeId& prop_decl_id) {
-  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
-    for (auto* prop : GetAggregates(*supertype)) {
+  for (const auto* supertype = &type; supertype;
+       supertype = supertype->supertype()) {
+    for (const auto* prop : GetAggregates(*supertype)) {
       if (prop->id() == prop_decl_id)
         return static_cast<const Variable*>(prop);
     }
@@ -137,14 +138,20 @@ const Node* GetAggregateDeclaration(const TypeDefinition& type,
 const Node* GetDeclaration(const Node& node) {
   assert(!IsTypeDefinition(node.GetNodeClass()));
 
-  auto* parent = GetParent(node);
+  const auto* parent = GetParent(node);
   if (!parent)
     return nullptr;
 
-  const auto browse_name = node.GetBrowseName();
-  for (auto* type = parent->type_definition(); type; type = type->supertype()) {
-    if (auto* child = FindChild(*type, browse_name.name()))
+  if (IsTypeDefinition(parent->GetNodeClass())) {
+    return &node;
+  }
+
+  const auto& browse_name = node.GetBrowseName();
+  for (const auto* type = parent->type_definition(); type;
+       type = type->supertype()) {
+    if (const auto* child = FindChild(*type, browse_name.name())) {
       return child;
+    }
   }
 
   return nullptr;
@@ -393,7 +400,7 @@ NodeId GetNodeId(const Node* node) {
 NodeId GetSupertypeId(const Node& node) {
   const auto* type = AsTypeDefinition(&node);
   const auto* supertype = type ? type->supertype() : nullptr;
-  return supertype ? supertype->id() : NodeId{};
+  return GetNodeId(supertype);
 }
 
 const Node* FindComponentDeclaration(const Node& component) {

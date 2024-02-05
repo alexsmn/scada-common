@@ -55,9 +55,21 @@ NodeId GetSupertypeId(const Node& node);
 const Node* GetReferenceTarget(const TypeDefinition* source,
                                const NodeId& reference_type_id);
 
+// TODO: See `FindComponentDeclaration` for the same functionality.
 const Node* GetAggregateDeclaration(const TypeDefinition& type,
                                     const NodeId& prop_decl_id);
+
+inline scada::NodeId GetAggregateDeclarationId(const TypeDefinition& type,
+                                               const NodeId& prop_decl_id) {
+  return GetNodeId(GetAggregateDeclaration(type, prop_decl_id));
+}
+
+// Returns the same `node` if the `node` itself is a declaration.
 const Node* GetDeclaration(const Node& node);
+
+inline scada::NodeId GetDeclarationId(const Node& node) {
+  return GetNodeId(GetDeclaration(node));
+}
 
 bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id);
 bool IsInstanceOf(const Node* node, const NodeId& type_id);
@@ -174,9 +186,14 @@ Node* FindChildDeclaration(const TypeDefinition& type,
 Node* FindChildComponent(const Node& parent, std::string_view browse_name);
 Node* FindComponentDeclaration(const TypeDefinition& type,
                                std::string_view browse_name);
+
 // Find instance component declaration by the child component. For a property
 // node it finds the property declaration.
 const Node* FindComponentDeclaration(const Node& component);
+
+inline scada::NodeId FindComponentDeclarationId(const Node& component) {
+  return GetNodeId(FindComponentDeclaration(component));
+}
 
 Node* FindChildByDisplayName(const Node& parent,
                              std::u16string_view display_name);

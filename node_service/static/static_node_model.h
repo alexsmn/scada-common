@@ -33,5 +33,12 @@ class StaticNodeModel : public BaseNodeModel {
 
  private:
   StaticNodeService& service_;
+
+  // All references are moved to the `references` field. The node state has:
+  // * empty `type_definition_id` field;
+  // * empty `parent_id` and `reference_type_id` fields;
+  // * empty `properties`.
+  //
+  // See `StaticNodeService::Add`.
   const scada::NodeState node_state_;
 };
