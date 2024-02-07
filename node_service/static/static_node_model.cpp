@@ -84,18 +84,7 @@ std::vector<NodeRef> StaticNodeModel::GetTargets(
 
 NodeRef StaticNodeModel::GetAggregate(
     const scada::NodeId& aggregate_declaration_id) const {
-  auto* prop =
-      scada::FindProperty(node_state_.properties, aggregate_declaration_id);
-  return prop ? std::make_shared<StaticNodeModel>(
-                    service_,
-                    scada::NodeState{
-                        .node_id = MakeNestedNodeId(
-                            node_state_.node_id,
-                            NodeIdToScadaString(aggregate_declaration_id)),
-                        .node_class = scada::NodeClass::Variable,
-                        .type_definition_id = scada::id::PropertyType,
-                        .attributes = {.value = *prop}})
-              : NodeRef{};
+  return service_.GetAggregate(node_state_.node_id, aggregate_declaration_id);
 }
 
 NodeRef StaticNodeModel::GetChild(

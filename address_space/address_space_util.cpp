@@ -16,11 +16,11 @@
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "common/node_state.h"
-#include "scada/view_service.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
+#include "scada/view_service.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <queue>
@@ -369,57 +369,99 @@ std::vector<scada::NodeState> MakeStandardNodeStates() {
 
 }  // namespace scada
 
-void SortNodesHierarchically(std::vector<scada::NodeState>& nodes) {
-  struct Visitor {
-    Visitor(std::vector<scada::NodeState>& nodes)
-        : nodes{nodes}, visited(nodes.size(), false) {
-      for (size_t index = 0; index < nodes.size(); ++index)
-        map.emplace(nodes[index].node_id, index);
+namespace {
 
-      sorted_indexes.reserve(nodes.size());
-      for (size_t index = 0; index < nodes.size(); ++index)
-        VisitIndex(index);
+struct NodeStateGraph {
+  explicit NodeStateGraph(std::vector<scada::NodeState>& nodes) : nodes{nodes} {
+    for (size_t index = 0; index < nodes.size(); ++index) {
+      map.try_emplace(nodes[index].node_id, index);
+    }
+  }
 
-      assert(sorted_indexes.size() == nodes.size());
+  scada::NodeState& vertex(size_t index) { return nodes[index]; }
+  size_t vertex_count() const { return nodes.size(); }
 
-      std::vector<scada::NodeState> sorted_nodes(sorted_indexes.size());
-      for (size_t index = 0; index < nodes.size(); ++index)
-        sorted_nodes[index] = std::move(nodes[sorted_indexes[index]]);
-      nodes = std::move(sorted_nodes);
+  template <typename V>
+  void VisitNeighbors(size_t index, V&& visitor) const {
+    const auto& node = nodes[index];
+
+    if (!node.supertype_id.is_null()) {
+      VisitHelper(scada::id::HasSubtype, visitor);
     }
 
-    void Visit(const scada::NodeId& node_id) {
-      if (node_id.is_null())
-        return;
-      auto i = map.find(node_id);
-      if (i != map.end())
-        VisitIndex(i->second);
+    if (!node.type_definition_id.is_null()) {
+      VisitHelper(scada::id::HasTypeDefinition, visitor);
+    }
+
+    VisitHelper(node.supertype_id, visitor);
+    VisitHelper(node.reference_type_id, visitor);
+    VisitHelper(node.parent_id, visitor);
+    VisitHelper(node.type_definition_id, visitor);
+    VisitHelper(node.attributes.data_type, visitor);
+  }
+
+  template <typename V>
+  void VisitHelper(const scada::NodeId& node_id, V&& visitor) const {
+    if (node_id.is_null()) {
+      return;
+    }
+
+    if (auto i = map.find(node_id); i != map.end()) {
+      visitor(i->second);
+    }
+  }
+
+  std::vector<scada::NodeState>& nodes;
+
+  std::unordered_map<scada::NodeId, size_t /*index*/> map;
+};
+
+}  // namespace
+
+void SortNodesHierarchically(std::vector<scada::NodeState>& nodes) {
+  struct SortVisitor {
+    void Traverse() {
+      sorted_indexes.reserve(graph.vertex_count());
+
+      for (size_t index = 0; index < graph.vertex_count(); ++index) {
+        VisitIndex(index);
+      }
+    }
+
+    std::vector<scada::NodeState> Collect() && {
+      assert(sorted_indexes.size() == graph.vertex_count());
+
+      std::vector<scada::NodeState> sorted_nodes(sorted_indexes.size());
+      for (size_t index = 0; index < graph.vertex_count(); ++index) {
+        sorted_nodes[index] = std::move(graph.vertex(sorted_indexes[index]));
+      }
+
+      return sorted_nodes;
     }
 
     void VisitIndex(size_t index) {
-      if (visited[index])
+      if (visited[index]) {
         return;
+      }
 
       visited[index] = true;
 
-      auto& node = nodes[index];
-      if (!node.supertype_id.is_null())
-        Visit(scada::id::HasSubtype);
-      Visit(node.supertype_id);
-      Visit(node.reference_type_id);
-      Visit(node.parent_id);
-      Visit(node.type_definition_id);
-      Visit(node.attributes.data_type);
+      graph.VisitNeighbors(index,
+                           std::bind_front(&SortVisitor::VisitIndex, this));
 
       sorted_indexes.emplace_back(index);
     }
 
-    std::vector<scada::NodeState>& nodes;
-    std::vector<bool> visited;
-    std::map<scada::NodeId, size_t /*index*/> map;
+    NodeStateGraph& graph;
+
+    std::vector<bool> visited = std::vector<bool>(nodes.size(), false);
     std::vector<size_t /*indexes*/> sorted_indexes;
   };
 
-  if (nodes.size() >= 2)
-    Visitor{nodes};
+  if (nodes.size() >= 2) {
+    NodeStateGraph graph{nodes};
+    SortVisitor visitor{graph};
+    visitor.Traverse();
+    nodes = std::move(visitor).Collect();
+  }
 }

@@ -10,5 +10,6 @@ target_link_libraries(timed_data PRIVATE
 # UTs.
 
 target_link_libraries(timed_data_unittests PRIVATE
+  address_space
   express
 )

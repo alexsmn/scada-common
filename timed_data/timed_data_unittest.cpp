@@ -1,3 +1,4 @@
+#include "address_space/test/test_scada_node_states.h"
 #include "base/test/test_executor.h"
 #include "common/aliases_mock.h"
 #include "common/variable_handle.h"
@@ -28,6 +29,7 @@ class TimedDataTest : public Test {
  protected:
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
+
   StrictMock<MockAliasResolver> alias_resolver_;
   StrictMock<scada::MockAttributeService> attribute_service_;
   StrictMock<scada::MockMethodService> method_service_;
@@ -58,6 +60,8 @@ class TimedDataTest : public Test {
 };
 
 TimedDataTest::TimedDataTest() {
+  node_service_.AddAll(GetScadaNodeStates());
+
   node_service_.Add(
       {.node_id = ts_format_id,
        .type_definition_id = data_items::id::TsFormatType,
