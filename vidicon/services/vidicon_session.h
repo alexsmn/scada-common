@@ -19,21 +19,22 @@ namespace scada {
 class ViewService;
 }
 
-class VidiconSession : public scada::SessionService,
-                       public scada::HistoryService,
-                       public scada::MonitoredItemService,
-                       public scada::AttributeService,
-                       public scada::MethodService,
-                       public scada::NodeManagementService,
-                       public scada::ViewService {
+class VidiconSession final : public scada::SessionService,
+                             public scada::HistoryService,
+                             public scada::MonitoredItemService,
+                             public scada::AttributeService,
+                             public scada::MethodService,
+                             public scada::NodeManagementService,
+                             public scada::ViewService {
  public:
   VidiconSession();
   ~VidiconSession();
 
   // scada::SessionService
-  virtual promise<> Connect(const scada::SessionConnectParams& params) override;
-  virtual promise<> Disconnect() override;
-  virtual promise<> Reconnect() override;
+  virtual scada::status_promise<void> Connect(
+      const scada::SessionConnectParams& params) override;
+  virtual scada::status_promise<void> Disconnect() override;
+  virtual scada::status_promise<void> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;

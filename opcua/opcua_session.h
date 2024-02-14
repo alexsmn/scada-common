@@ -16,20 +16,21 @@
 class Executor;
 class OpcUaSubscription;
 
-class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
-                     public scada::SessionService,
-                     public scada::ViewService,
-                     public scada::AttributeService,
-                     public scada::MonitoredItemService,
-                     public scada::MethodService {
+class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
+                           public scada::SessionService,
+                           public scada::ViewService,
+                           public scada::AttributeService,
+                           public scada::MonitoredItemService,
+                           public scada::MethodService {
  public:
   explicit OpcUaSession(std::shared_ptr<Executor> executor);
   virtual ~OpcUaSession();
 
   // scada::SessionService
-  virtual promise<> Connect(const scada::SessionConnectParams& params) override;
-  virtual promise<> Disconnect() override;
-  virtual promise<> Reconnect() override;
+  virtual scada::status_promise<void> Connect(
+      const scada::SessionConnectParams& params) override;
+  virtual scada::status_promise<void> Disconnect() override;
+  virtual scada::status_promise<void> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
@@ -100,7 +101,7 @@ class OpcUaSession : public std::enable_shared_from_this<OpcUaSession>,
 
   bool session_created_ = false;
   bool session_activated_ = false;
-  promise<> connect_promise_;
+  scada::status_promise<void> connect_promise_;
 
   // Created on demand.
   std::shared_ptr<OpcUaSubscription> default_subscription_;

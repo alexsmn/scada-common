@@ -1,4 +1,4 @@
-#include "opcua_session.h"
+#include "opcua/opcua_session.h"
 
 #include "base/executor.h"
 #include "opcua/opcua_conversion.h"
@@ -41,8 +41,9 @@ OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
 
 OpcUaSession::~OpcUaSession() {}
 
-promise<> OpcUaSession::Connect(const scada::SessionConnectParams& params) {
-  connect_promise_ = promise<>{};
+scada::status_promise<void> OpcUaSession::Connect(
+    const scada::SessionConnectParams& params) {
+  connect_promise_ = scada::status_promise<void>{};
 
   // TODO: Move to general layer.
   OpcUa_Trace_Initialize();
@@ -70,11 +71,11 @@ promise<> OpcUaSession::Connect(const scada::SessionConnectParams& params) {
   return connect_promise_;
 }
 
-promise<> OpcUaSession::Reconnect() {
-  return make_resolved_promise();
+scada::status_promise<void> OpcUaSession::Reconnect() {
+  return scada::MakeResolvedStatusPromise();
 }
 
-promise<> OpcUaSession::Disconnect() {
+scada::status_promise<void> OpcUaSession::Disconnect() {
   return scada::MakeRejectedStatusPromise(scada::StatusCode::Bad);
 }
 
@@ -218,7 +219,7 @@ void OpcUaSession::Reset() {
   channel_.Reset();
   session_created_ = false;
   session_activated_ = false;
-  connect_promise_ = promise<>{};
+  connect_promise_ = scada::status_promise<void>{};
 }
 
 void OpcUaSession::OnConnectionStateChanged(opcua::StatusCode status_code,

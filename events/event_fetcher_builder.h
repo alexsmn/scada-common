@@ -18,6 +18,8 @@ struct EventFetcherBuilder {
 
   std::shared_ptr<Executor> executor_;
   std::shared_ptr<const Logger> logger_;
+
+  // TODO: Switch to `scada::client`.
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;

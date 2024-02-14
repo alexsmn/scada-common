@@ -3,11 +3,12 @@
 #include "node_service/node_service.h"
 #include "scada/status_promise.h"
 
-inline promise<> FetchNode(const NodeRef& node) {
-  if (node.fetched())
-    return make_resolved_promise();
+inline scada::status_promise<void> FetchNode(const NodeRef& node) {
+  if (node.fetched()) {
+    return scada::MakeResolvedStatusPromise();
+  }
 
-  promise<> promise;
+  scada::status_promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeOnly(),
              [promise](const NodeRef& node) mutable {
                scada::ResolveStatusPromise(promise, std::move(node.status()));
@@ -15,11 +16,12 @@ inline promise<> FetchNode(const NodeRef& node) {
   return promise;
 }
 
-inline promise<> FetchChildren(const NodeRef& node) {
-  if (node.children_fetched())
-    return make_resolved_promise();
+inline scada::status_promise<void> FetchChildren(const NodeRef& node) {
+  if (node.children_fetched()) {
+    return scada::MakeResolvedStatusPromise();
+  }
 
-  promise<> promise;
+  scada::status_promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeAndChildren(),
              [promise](const NodeRef& node) mutable {
                assert(node.fetched());

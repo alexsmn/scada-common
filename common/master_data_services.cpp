@@ -109,7 +109,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-promise<> MasterDataServices::Connect(
+scada::status_promise<void> MasterDataServices::Connect(
     const scada::SessionConnectParams& params) {
   if (!services_.session_service_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
@@ -118,14 +118,14 @@ promise<> MasterDataServices::Connect(
   return services_.session_service_->Connect(params);
 }
 
-promise<> MasterDataServices::Disconnect() {
+scada::status_promise<void> MasterDataServices::Disconnect() {
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
   return services_.session_service_->Disconnect();
 }
 
-promise<> MasterDataServices::Reconnect() {
+scada::status_promise<void> MasterDataServices::Reconnect() {
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
