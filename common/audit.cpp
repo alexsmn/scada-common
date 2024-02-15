@@ -9,7 +9,7 @@ Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
 
 void Audit::Init() {
   metric_service_.RegisterProvider(
-      BindPromiseExecutorWithResult(executor_, weak_from_this(), [this] {
+      BindPromiseExecutor(executor_, weak_from_this(), [this] {
         Metrics metrics;
         metrics.Collect("read_latency", read_latency_metric_);
         metrics.Collect("browse_latency", browse_latency_metric_);
