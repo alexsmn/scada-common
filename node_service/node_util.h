@@ -21,7 +21,7 @@ scada::LocalizedText GetDisplayName(NodeService& node_service,
 template <class Callback>
 struct TreeFetcher
     : public std::enable_shared_from_this<TreeFetcher<Callback>> {
-  TreeFetcher(Callback&& callback) : callback{std::move(callback)} {}
+  explicit TreeFetcher(Callback&& callback) : callback{std::move(callback)} {}
 
   void Start(const NodeRef& root) {
     queue.emplace(root);
@@ -39,8 +39,9 @@ struct TreeFetcher
 
     node.Fetch(NodeFetchStatus::NodeAndChildren(),
                [this, ref = this->shared_from_this()](const NodeRef& node) {
-                 for (const auto& child : node.targets(scada::id::Organizes))
+                 for (const auto& child : node.targets(scada::id::Organizes)) {
                    queue.emplace(child);
+                 }
                  Run();
                });
   }
@@ -49,6 +50,7 @@ struct TreeFetcher
   std::queue<NodeRef> queue;
 };
 
+// TODO: Combine with `FetchRecursive`.
 template <class Callback>
 void FetchTree(const NodeRef& root, Callback&& callback) {
   std::make_shared<TreeFetcher<Callback>>(std::move(callback))->Start(root);
