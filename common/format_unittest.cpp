@@ -1,6 +1,5 @@
 #include "format.h"
 
-#include "scada/standard_node_ids.h"
 #include "scada/variant.h"
 #include "scada/variant_utils.h"
 
@@ -11,10 +10,10 @@ namespace {
 
 template <class T>
 T StringToValueHelper(std::string_view str) {
-  const scada::NodeId data_type_id = scada::ToBuiltInDataType<T>();
+  auto data_type = scada::ToBuiltInDataType<T>();
 
   scada::Variant value;
-  if (!StringToValue(str, data_type_id, value)) {
+  if (!StringToValue(str, data_type, value)) {
     assert(value.is_null());
     return std::numeric_limits<T>::min();
   }

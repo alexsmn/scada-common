@@ -7,9 +7,9 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
-#include "scada/variant.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
+#include "scada/variant.h"
 
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
@@ -87,7 +87,7 @@ std::string FormatFloat(double val, const char* fmt) {
 }
 
 template <class T, class String>
-bool StringToValueHelper(String str, scada::Variant& value) {
+inline bool StringToValueHelper(String str, scada::Variant& value) {
   T v;
   if (!Parse(str, v))
     return false;
@@ -96,64 +96,71 @@ bool StringToValueHelper(String str, scada::Variant& value) {
 }
 
 bool StringToValue(std::string_view str,
-                   const scada::NodeId& data_type_id,
+                   scada::Variant::Type data_type,
                    scada::Variant& value) {
-  assert(!data_type_id.is_null());
+  if (data_type == scada::Variant::Type::COUNT) {
+    return false;
+  }
 
   if (str.empty()) {
-    value = scada::Variant();
+    value = {};
     return true;
   }
 
-  if (data_type_id == scada::id::Boolean) {
-    return StringToValueHelper<bool>(str, value);
+  // TODO: Extract `scada::Variant::Visit`.
+  switch (data_type) {
+    case scada::Variant::Type::BOOL:
+      return StringToValueHelper<bool>(str, value);
 
-  } else if (data_type_id == scada::id::Double) {
-    return StringToValueHelper<scada::Double>(str, value);
+    case scada::Variant::Type::DOUBLE:
+      return StringToValueHelper<scada::Double>(str, value);
 
-  } else if (data_type_id == scada::id::Int8) {
-    return StringToValueHelper<scada::Int8>(str, value);
+    case scada::Variant::Type::INT8:
+      return StringToValueHelper<scada::Int8>(str, value);
 
-  } else if (data_type_id == scada::id::UInt8) {
-    return StringToValueHelper<scada::UInt8>(str, value);
+    case scada::Variant::Type::UINT8:
+      return StringToValueHelper<scada::UInt8>(str, value);
 
-  } else if (data_type_id == scada::id::Int16) {
-    return StringToValueHelper<scada::Int16>(str, value);
+    case scada::Variant::Type::INT16:
+      return StringToValueHelper<scada::Int16>(str, value);
 
-  } else if (data_type_id == scada::id::UInt16) {
-    return StringToValueHelper<scada::UInt16>(str, value);
+    case scada::Variant::Type::UINT16:
+      return StringToValueHelper<scada::UInt16>(str, value);
 
-  } else if (data_type_id == scada::id::Int32) {
-    return StringToValueHelper<scada::Int32>(str, value);
+    case scada::Variant::Type::INT32:
+      return StringToValueHelper<scada::Int32>(str, value);
 
-  } else if (data_type_id == scada::id::UInt32) {
-    return StringToValueHelper<scada::UInt32>(str, value);
+    case scada::Variant::Type::UINT32:
+      return StringToValueHelper<scada::UInt32>(str, value);
 
-  } else if (data_type_id == scada::id::Int64) {
-    return StringToValueHelper<scada::Int64>(str, value);
+    case scada::Variant::Type::INT64:
+      return StringToValueHelper<scada::Int64>(str, value);
 
-  } else if (data_type_id == scada::id::UInt64) {
-    return StringToValueHelper<scada::UInt64>(str, value);
+    case scada::Variant::Type::UINT64:
+      return StringToValueHelper<scada::UInt64>(str, value);
 
-  } else if (data_type_id == scada::id::String) {
-    value = std::string{str};
-    return true;
+    case scada::Variant::Type::STRING:
+      value = std::string{str};
+      return true;
 
-  } else if (data_type_id == scada::id::NodeId) {
-    auto node_id = NodeIdFromScadaString(str);
-    if (node_id.is_null())
+    case scada::Variant::Type::NODE_ID: {
+      auto node_id = NodeIdFromScadaString(str);
+      if (node_id.is_null()) {
+        return false;
+      }
+      value = std::move(node_id);
+      return true;
+    }
+
+    default:
       return false;
-    value = node_id;
-    return true;
-
-  } else
-    return false;
+  }
 }
 
 bool StringToValue(std::u16string_view str,
-                   const scada::NodeId& data_type_id,
+                   scada::Variant::Type data_type,
                    scada::Variant& value) {
-  if (data_type_id == scada::id::Boolean) {
+  if (data_type == scada::Variant::Type::BOOL) {
     if (boost::algorithm::iequals(str, scada::Variant::kFalseString)) {
       value = false;
       return true;
@@ -162,15 +169,13 @@ bool StringToValue(std::u16string_view str,
       return true;
     }
 
-  } else if (data_type_id == scada::id::LocalizedText) {
+  } else if (data_type == scada::Variant::Type::LOCALIZED_TEXT) {
     value = scada::ToLocalizedText(str);
     return true;
   }
 
-  return StringToValue(base::UTF16ToUTF8(AsStringPiece(str)), data_type_id,
-                       value);
+  return StringToValue(base::UTF16ToUTF8(AsStringPiece(str)), data_type, value);
 }
-
 
 scada::LocalizedText FormatTs(bool bool_value, const TsFormatParams& params) {
   const auto& label = bool_value ? params.close_label : params.open_label;

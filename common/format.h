@@ -4,6 +4,7 @@
 #include "scada/localized_text.h"
 #include "scada/qualifier.h"
 #include "scada/string.h"
+#include "scada/variant.h"
 
 #include <string>
 #include <string_view>
@@ -24,12 +25,11 @@ std::string FormatFloat(double val, const char* fmt);
 // TODO: Move to a separate file.
 void EscapeColoredString(std::u16string& str);
 
-// TODO: Use `scada::BuiltInDataType` instead of `data_type_id`.
 bool StringToValue(std::string_view str,
-                   const scada::NodeId& data_type_id,
+                   scada::Variant::Type data_type,
                    scada::Variant& value);
 bool StringToValue(std::u16string_view str,
-                   const scada::NodeId& data_type_id,
+                   scada::Variant::Type data_type,
                    scada::Variant& value);
 
 struct TsFormatParams {
