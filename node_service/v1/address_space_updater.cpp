@@ -7,24 +7,21 @@
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "base/strings/stringprintf.h"
+#include "base/containers/contains.h"
 #include "common/node_state.h"
+#include "common/node_state_util.h"
+#include "model/node_id_util.h"
 #include "scada/event.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
-#include "model/node_id_util.h"
+
+#include <format>
 
 #include "base/debug_util-inl.h"
 
 namespace {
 
-template <class T>
-bool Contains(const std::vector<T>& range, const T& element) {
-  return std::find(std::begin(range), std::end(range), element) !=
-         std::end(range);
-}
-
-std::string FormatReference(scada::AddressSpace& address_space,
+std::string FormatReference(const scada::AddressSpace& address_space,
                             const scada::NodeId& node_id,
                             const scada::ReferenceDescription& reference) {
   auto& source_id = reference.forward ? node_id : reference.node_id;
@@ -34,19 +31,19 @@ std::string FormatReference(scada::AddressSpace& address_space,
   auto reference_name = reference_type
                             ? reference_type->GetBrowseName().name()
                             : NodeIdToScadaString(reference.reference_type_id);
-  return base::StringPrintf("%s %s %s", NodeIdToScadaString(source_id).c_str(),
-                            reference_name.c_str(),
-                            NodeIdToScadaString(target_id).c_str());
+  return std::format("{} {} {}", NodeIdToScadaString(source_id), reference_name,
+                     NodeIdToScadaString(target_id));
 }
 
 const scada::Node& GetTransitiveParent(const scada::Node& node,
                                        const scada::NodeId& reference_type_id) {
   auto* semantic_parent = &node;
   while (auto parent_reference = scada::GetParentReference(*semantic_parent)) {
-    if (scada::IsSubtypeOf(*parent_reference.type, reference_type_id))
+    if (scada::IsSubtypeOf(*parent_reference.type, reference_type_id)) {
       semantic_parent = parent_reference.node;
-    else
+    } else {
       break;
+    }
   }
   assert(semantic_parent);
   return *semantic_parent;
@@ -63,9 +60,9 @@ struct TypeDefinitionPatch {
     for (auto& node_state : node_states) {
       if (scada::IsTypeDefinition(node_state.node_class)) {
         assert(node_state.reference_type_id != scada::id::HasSubtype);
-        parents.emplace(node_state.node_id, Entry{node_state.parent_id,
-                                                  node_state.reference_type_id,
-                                                  node_state.supertype_id});
+        parents.try_emplace(node_state.node_id, node_state.parent_id,
+                            node_state.reference_type_id,
+                            node_state.supertype_id);
         node_state.parent_id = {};
         node_state.reference_type_id = {};
         node_state.supertype_id = {};
@@ -74,7 +71,7 @@ struct TypeDefinitionPatch {
   }
 
   void Fix() {
-    for (auto& [node_id, entry] : parents) {
+    for (const auto& [node_id, entry] : parents) {
       UpdateReference(entry.reference_type_id, entry.parent_id, node_id);
       UpdateReference(scada::id::HasSubtype, entry.supertype_id, node_id);
     }
@@ -86,13 +83,15 @@ struct TypeDefinitionPatch {
     if (source_id.is_null())
       return;
 
-    auto* node = address_space.GetMutableNode(source_id);
+    auto* node = address_space.GetNode(source_id);
     assert(node);
-    if (!node)
+    if (!node) {
       return;
+    }
 
-    if (scada::FindReference(*node, reference_type_id, true, target_id))
+    if (scada::FindReference(*node, reference_type_id, true, target_id)) {
       return;
+    }
 
     scada::AddReference(address_space, reference_type_id, source_id, target_id);
   }
@@ -105,7 +104,7 @@ struct TypeDefinitionPatch {
     scada::NodeId supertype_id;
   };
 
-  std::map<scada::NodeId /*node_id*/, Entry> parents;
+  std::unordered_map<scada::NodeId /*node_id*/, Entry> parents;
 };
 
 // AddressSpaceUpdater
@@ -126,13 +125,15 @@ void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
 
   // Create/modify nodes.
 
-  for (auto& node_state : nodes)
+  for (const auto& node_state : nodes) {
     UpdateNode(node_state);
+  }
 
   // Add/delete references.
 
-  for (auto& node_state : nodes)
+  for (const auto& node_state : nodes) {
     UpdateNodeReferences(node_state.node_id, node_state.references);
+  }
 
   type_definition_patch.Fix();
 
@@ -190,8 +191,9 @@ void AddressSpaceUpdater::UpdateNodeReferences(
 
   // Deleted references.
   FindDeletedReferences(*node, references, deleted_references);
-  for (const auto& reference : deleted_references)
+  for (const auto& reference : deleted_references) {
     DeleteReference(node_id, reference);
+  }
   deleted_references.clear();
 
   // Added references.
@@ -239,7 +241,7 @@ void AddressSpaceUpdater::AddReference(
   scada::AddReference(address_space_, reference.reference_type_id, *source,
                       *target);
 
-  added_references_.push_back(std::make_pair(node_id, reference));
+  added_references_.emplace_back(node_id, reference);
 
   model_change_verbs_[source_id] |= scada::ModelChangeEvent::ReferenceAdded;
   model_change_verbs_[target_id] |= scada::ModelChangeEvent::ReferenceAdded;
@@ -253,7 +255,7 @@ void AddressSpaceUpdater::DeleteReference(
   scada::DeleteReference(address_space_, reference.reference_type_id, node_id,
                          reference.node_id);
 
-  deleted_references_.push_back(std::make_pair(node_id, reference));
+  deleted_references_.emplace_back(node_id, reference);
 
   model_change_verbs_[source_id] |= scada::ModelChangeEvent::ReferenceDeleted;
   model_change_verbs_[target_id] |= scada::ModelChangeEvent::ReferenceDeleted;
@@ -266,12 +268,14 @@ void AddressSpaceUpdater::FindDeletedReferences(
   for (const auto& ref : FilterReferences(
            node.forward_references(), scada::id::NonHierarchicalReferences)) {
     // TODO: Handle type definition update.
-    if (ref.type->id() == scada::id::HasTypeDefinition)
+    if (ref.type->id() == scada::id::HasTypeDefinition) {
       continue;
+    }
 
     scada::ReferenceDescription reference{ref.type->id(), true, ref.node->id()};
-    if (!Contains(references, reference))
+    if (!base::Contains(references, reference)) {
       deleted_references.emplace_back(std::move(reference));
+    }
   }
 }
 
@@ -293,12 +297,12 @@ std::vector<const scada::Node*> FindDeletedChildren(
     assert(reference.forward);
     new_child_ids.emplace_back(reference.node_id);
   }
-  std::sort(new_child_ids.begin(), new_child_ids.end());
+
+  std::ranges::sort(new_child_ids);
 
   std::vector<const scada::Node*> deleted_children;
   for (auto* child : scada::GetOrganizes(node)) {
-    if (!std::binary_search(new_child_ids.begin(), new_child_ids.end(),
-                            child->id())) {
+    if (!std::ranges::binary_search(new_child_ids, child->id())) {
       deleted_children.emplace_back(child);
     }
   }

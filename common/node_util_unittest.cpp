@@ -1,4 +1,4 @@
-#include "address_space_util.h"
+#include "common/node_state_util.h"
 
 #include "common/node_state.h"
 #include "scada/node_class.h"
@@ -13,7 +13,7 @@ inline auto ToVector(R&& r) {
   return std::vector(std::begin(r), std::end(r));
 }
 
-TEST(AddressSpaceUtil, SortNodesHierarchically_Parents) {
+TEST(NodeStateUtil, SortNodesHierarchically_Parents) {
   std::vector<scada::NodeState> nodes = {
       {.node_id = 1, .parent_id = 2},
       {.node_id = 2, .parent_id = 3},
@@ -28,7 +28,7 @@ TEST(AddressSpaceUtil, SortNodesHierarchically_Parents) {
   EXPECT_THAT(sorted_node_ids, ElementsAre(3, 2, 1));
 }
 
-TEST(AddressSpaceUtil, SortNodesHierarchically_TypeDefinitions) {
+TEST(NodeStateUtil, SortNodesHierarchically_TypeDefinitions) {
   std::vector<scada::NodeState> nodes = {
       {.node_id = 1, .type_definition_id = 2},
       {.node_id = 2, .type_definition_id = 3},

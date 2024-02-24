@@ -95,6 +95,8 @@ struct NodeState {
   bool HasReference(const scada::ReferenceDescription& desc) const {
     return std::ranges::find(references, desc) != references.end();
   }
+
+  bool operator==(const NodeState&) const = default;
 };
 
 using NodeStatePtr = std::shared_ptr<const NodeState>;

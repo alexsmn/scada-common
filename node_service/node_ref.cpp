@@ -149,7 +149,7 @@ void NodeRef::Fetch(const NodeFetchStatus& requested_status,
 }
 
 scada::Status NodeRef::status() const {
-  return model_ ? model_->GetStatus() : scada::StatusCode::Good;
+  return model_ ? model_->GetStatus() : scada::StatusCode::Bad_WrongNodeId;
 }
 
 void NodeRef::Subscribe(NodeRefObserver& observer) const {

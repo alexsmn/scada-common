@@ -6,8 +6,9 @@
 #include <ranges>
 
 scada::status_promise<void> FetchNode(const NodeRef& node) {
+  // Optimization to avoid promise allocation.
   if (node.fetched()) {
-    return scada::MakeResolvedStatusPromise();
+    return scada::MakeCompletedStatusPromise(node.status());
   }
 
   scada::status_promise<void> promise;
