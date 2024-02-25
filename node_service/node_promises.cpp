@@ -14,7 +14,7 @@ scada::status_promise<void> FetchNode(const NodeRef& node) {
   scada::status_promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeOnly(),
              [promise](const NodeRef& node) mutable {
-               scada::ResolveStatusPromise(promise, std::move(node.status()));
+               scada::CompleteStatusPromise(promise, std::move(node.status()));
              });
   return promise;
 }
@@ -30,7 +30,7 @@ scada::status_promise<void> FetchChildren(const NodeRef& node) {
                assert(node.fetched());
                assert(node.type_definition().fetched());
                assert(node.children_fetched());
-               scada::ResolveStatusPromise(promise, std::move(node.status()));
+               scada::CompleteStatusPromise(promise, std::move(node.status()));
              });
   return promise;
 }

@@ -23,6 +23,8 @@ struct ReferenceState {
 using NodeProperty = std::pair<NodeId /*prop_type_id*/, Variant /*value*/>;
 using NodeProperties = std::vector<NodeProperty>;
 
+// WARNING: Don't declare equality operator, since order of containers is
+// important. Use `common/test/node_state_matcher.h` instead.
 struct NodeState {
   NodeId node_id;
   NodeClass node_class = NodeClass::Object;
@@ -95,8 +97,6 @@ struct NodeState {
   bool HasReference(const scada::ReferenceDescription& desc) const {
     return std::ranges::find(references, desc) != references.end();
   }
-
-  bool operator==(const NodeState&) const = default;
 };
 
 using NodeStatePtr = std::shared_ptr<const NodeState>;

@@ -294,7 +294,7 @@ void OpcUaSession::OnActivateSessionResponse(scada::Status&& status) {
 
 void OpcUaSession::OnError(scada::Status&& status) {
   Reset();
-  scada::ResolveStatusPromise(connect_promise_, std::move(status));
+  scada::CompleteStatusPromise(connect_promise_, std::move(status));
 }
 
 scada::SessionDebugger* OpcUaSession::GetSessionDebugger() {
