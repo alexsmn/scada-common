@@ -6,12 +6,11 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 
-class Executor;
 class MetricService;
 
 struct AuditContext {
-  std::shared_ptr<Executor> executor_;
   MetricService& metric_service_;
   scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
@@ -49,7 +48,11 @@ class Audit final : private AuditContext,
   using Clock = std::chrono::steady_clock;
   using Duration = Clock::duration;
 
-  // The metrics must be accessed under the `executor_`.
+  mutable std::mutex mutex_;
+
   AggregatedMetric<Duration> read_latency_metric_;
   AggregatedMetric<Duration> browse_latency_metric_;
+
+  AggregatedCounter<size_t> concurrent_read_count_;
+  AggregatedCounter<size_t> concurrent_browse_count_;
 };

@@ -9,10 +9,13 @@ Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
 
 void Audit::Init() {
   metric_service_.RegisterProvider(
-      BindPromiseExecutor(executor_, weak_from_this(), [this] {
+      BindPromiseCancelation(weak_from_this(), [this] {
+        std::lock_guard lock{mutex_};
         Metrics metrics;
-        metrics.Collect("read_latency", read_latency_metric_);
-        metrics.Collect("browse_latency", browse_latency_metric_);
+        metrics.Set("read_latency", read_latency_metric_);
+        metrics.Set("browse_latency", browse_latency_metric_);
+        metrics.Set("concurrent_read_count", concurrent_read_count_.metric);
+        metrics.Set("concurrent_browse_count", concurrent_browse_count_.metric);
         return make_resolved_promise(metrics);
       }));
 }
@@ -28,11 +31,21 @@ void Audit::Read(
     const std::shared_ptr<const scada::ServiceContext>& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
+  {
+    std::lock_guard lock{mutex_};
+    ++concurrent_read_count_;
+  }
+
   attribute_service_.Read(
       context, inputs,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::DataValue>&& results) {
-        read_latency_metric_(Clock::now() - start_time);
+        {
+          std::lock_guard lock{mutex_};
+          --concurrent_read_count_;
+          read_latency_metric_(Clock::now() - start_time);
+        }
+
         callback(std::move(status), std::move(results));
       });
 }
@@ -46,13 +59,22 @@ void Audit::Write(
 
 void Audit::Browse(const std::vector<scada::BrowseDescription>& descriptions,
                    const scada::BrowseCallback& callback) {
+  {
+    std::lock_guard lock{mutex_};
+    ++concurrent_browse_count_;
+  }
+
   view_service_.Browse(
       descriptions,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         assert(Validate(results));
 
-        browse_latency_metric_(Clock::now() - start_time);
+        {
+          std::lock_guard lock{mutex_};
+          --concurrent_browse_count_;
+          browse_latency_metric_(Clock::now() - start_time);
+        }
 
         callback(std::move(status), std::move(results));
       });
