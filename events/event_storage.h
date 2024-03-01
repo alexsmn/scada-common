@@ -5,6 +5,7 @@
 
 #include <map>
 #include <set>
+#include <span>
 
 // Stores unacked events. Provides are way for observers to subscribe for all
 // updates or per node IDs.

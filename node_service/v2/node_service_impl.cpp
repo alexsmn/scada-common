@@ -6,6 +6,7 @@
 #include "node_service/node_util.h"
 #include "node_service/v2/node_model_impl.h"
 #include "scada/attribute_service.h"
+#include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
 
 #include "base/debug_util-inl.h"

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "scada/attribute_service.h"
 #include "scada/monitored_item.h"
-#include "scada/monitored_item_service.h"
+#include "scada/monitoring_parameters.h"
+#include "scada/read_value_id.h"
+#include "scada/status.h"
 
 #include <map>
 #include <memory>
@@ -25,7 +26,7 @@ struct OpcUaMonitoredItemCreateResult {
 
 struct OpcUaSubscriptionContext {
   opcua::client::Session& session_;
-  const std::shared_ptr<Executor> executor_;
+  std::shared_ptr<Executor> executor_;
   std::function<void(scada::Status&& status)> error_handler_;
 };
 
@@ -67,8 +68,11 @@ class OpcUaSubscription
                  scada::ReadValueId read_value_id,
                  scada::MonitoringParameters params,
                  scada::MonitoredItemHandler handler);
+
   void Unsubscribe(opcua::MonitoredItemClientHandle client_handle);
+
   Item* FindItem(opcua::MonitoredItemClientHandle client_handle);
+
   void ScheduleCommitItems();
   void ScheduleCommitItemsDone();
   void CommitItems();
@@ -77,11 +81,13 @@ class OpcUaSubscription
   void OnCreateSubscriptionResponse(scada::Status&& status);
 
   void CreateMonitoredItems();
+
   void OnCreateMonitoredItemsResponse(
       scada::Status&& status,
       std::vector<OpcUaMonitoredItemCreateResult> results);
 
   void DeleteMonitoredItems();
+
   void OnDeleteMonitoredItemsResponse(scada::Status&& status,
                                       std::vector<scada::StatusCode> results);
 

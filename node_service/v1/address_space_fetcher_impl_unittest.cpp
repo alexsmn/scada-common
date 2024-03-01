@@ -7,6 +7,7 @@
 #include "address_space/variable.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/test_executor.h"
+#include "scada/event.h"
 #include "scada/monitored_item_service_mock.h"
 
 #include <gmock/gmock.h>
@@ -189,7 +190,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeDeleted) {
   ASSERT_TRUE(server_address_space_.GetNode(kNodeId));
 
   view_events->OnModelChanged(scada::ModelChangeEvent{
-      kNodeId, {}, scada::ModelChangeEvent::NodeDeleted});
+      .node_id = kNodeId, .verb = scada::ModelChangeEvent::NodeDeleted});
 
   EXPECT_FALSE(client_address_space_.GetNode(kNodeId));
 }

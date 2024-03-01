@@ -3,7 +3,7 @@
 #include "base/boost_log.h"
 #include "common/node_state.h"
 #include "scada/node_id.h"
-#include "scada/service.h"
+#include "scada/services.h"
 
 #include <map>
 #include <opcua_serverapi.h>
@@ -21,6 +21,7 @@ class MethodService;
 class MonitoredItemService;
 class NodeManagementService;
 class ViewService;
+struct ServiceContext;
 }  // namespace scada
 
 struct OpcUaServerContext {
@@ -88,8 +89,7 @@ class OpcUaServer : private OpcUaServerContext {
 
   opcua::server::Endpoint endpoint_{OpcUa_Endpoint_SerializerType_Binary};
 
-  const std::shared_ptr<const scada::ServiceContext> service_context_ =
-      scada::ServiceContext::default_instance();
+  const std::shared_ptr<const scada::ServiceContext> service_context_;
 };
 
 opcua::UInt32 ParseTraceLevel(std::string_view str);

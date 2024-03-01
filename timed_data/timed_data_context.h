@@ -2,7 +2,7 @@
 
 #include "common/aliases.h"
 #include "scada/node_id.h"
-#include "scada/service.h"
+#include "scada/services.h"
 
 #include <memory>
 

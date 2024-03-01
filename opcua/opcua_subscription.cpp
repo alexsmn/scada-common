@@ -1,9 +1,9 @@
 #include "opcua_subscription.h"
 
 #include "base/executor.h"
+#include "opcua/opcua_conversion.h"
 #include "scada/event_util.h"
 #include "scada/monitored_item_service.h"
-#include "opcua/opcua_conversion.h"
 
 #include <opcuapp/client/session.h>
 
@@ -34,11 +34,8 @@ inline bool Contains(const std::vector<T>& vector, const T& item) {
 
 OpcUaMonitoredItemCreateResult Convert(
     OpcUa_MonitoredItemCreateResult&& source) {
-  return {
-      source.StatusCode,
-      source.MonitoredItemId,
-      source.RevisedSamplingInterval,
-  };
+  return {source.StatusCode, source.MonitoredItemId,
+          source.RevisedSamplingInterval};
 }
 
 template <typename T, class It>

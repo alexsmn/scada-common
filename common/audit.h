@@ -9,11 +9,13 @@
 #include <mutex>
 
 class MetricService;
+class Tracer;
 
 struct AuditContext {
   MetricService& metric_service_;
   scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
+  Tracer& tracer_;
 };
 
 class Audit final : private AuditContext,

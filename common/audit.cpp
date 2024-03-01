@@ -3,6 +3,7 @@
 #include "base/promise_executor.h"
 #include "metrics/metric_service.h"
 #include "metrics/metrics.h"
+#include "metrics/tracing.h"
 #include "scada/validation.h"
 
 Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
@@ -38,8 +39,9 @@ void Audit::Read(
 
   attribute_service_.Read(
       context, inputs,
-      [this, ref = shared_from_this(), start_time = Clock::now(), callback](
-          scada::Status&& status, std::vector<scada::DataValue>&& results) {
+      [this, ref = shared_from_this(), start_time = Clock::now(), callback,
+       trace = tracer_.Start()](scada::Status&& status,
+                                std::vector<scada::DataValue>&& results) {
         {
           std::lock_guard lock{mutex_};
           --concurrent_read_count_;

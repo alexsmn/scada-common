@@ -1,6 +1,7 @@
 #include "opcua_server.h"
 
 #include "base/promise.h"
+#include "opcua/opcua_conversion.h"
 #include "scada/attribute_service.h"
 #include "scada/event_util.h"
 #include "scada/expanded_node_id.h"
@@ -8,8 +9,8 @@
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
 #include "scada/node_management_service.h"
+#include "scada/service_context.h"
 #include "scada/view_service.h"
-#include "opcua/opcua_conversion.h"
 
 #include <algorithm>
 #include <atomic>
@@ -250,7 +251,8 @@ opcua::UInt32 ParseTraceLevel(std::string_view str) {
 
 OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
     : OpcUaServerContext{std::move(context)},
-      proxy_stub_{platform_, MakeProxyStubConfiguration()} {
+      proxy_stub_{platform_, MakeProxyStubConfiguration()},
+      service_context_{scada::ServiceContext::default_instance()} {
   endpoint_.set_session_handlers({
       [this](OpcUa_ReadRequest& request,
              const opcua::server::ReadCallback& callback) {

@@ -4,7 +4,7 @@
 
 namespace scada {
 class NodeId;
-class Event;
+struct Event;
 struct ModelChangeEvent;
 struct SemanticChangeEvent;
 }  // namespace scada

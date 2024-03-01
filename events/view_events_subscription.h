@@ -2,6 +2,10 @@
 
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
+#include "scada/monitoring_parameters.h"
+#include "scada/read_value_id.h"
+#include "scada/standard_node_ids.h"
+#include "scada/status.h"
 #include "scada/view_events.h"
 
 class IViewEventsSubscription {
@@ -19,8 +23,9 @@ CreateModelChangeEventsMonitoredItem(
     scada::MonitoredItemService& monitored_item_service) {
   return monitored_item_service.CreateMonitoredItem(
       scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
-      scada::MonitoringParameters{}.set_filter(scada::EventFilter{}.set_of_type(
-          {scada::id::GeneralModelChangeEventType})));
+      scada::MonitoringParameters{
+          .filter = scada::EventFilter{
+              .of_type = {scada::id::GeneralModelChangeEventType}}});
 }
 
 inline std::shared_ptr<scada::MonitoredItem>
@@ -28,9 +33,10 @@ CreateModelAndSemanticChangeEventsMonitoredItem(
     scada::MonitoredItemService& monitored_item_service) {
   return monitored_item_service.CreateMonitoredItem(
       scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
-      scada::MonitoringParameters{}.set_filter(scada::EventFilter{}.set_of_type(
-          {scada::id::GeneralModelChangeEventType,
-           scada::id::SemanticChangeEventType})));
+      scada::MonitoringParameters{
+          .filter = scada::EventFilter{
+              .of_type = {scada::id::GeneralModelChangeEventType,
+                          scada::id::SemanticChangeEventType}}});
 }
 
 class ViewEventsSubscription : public IViewEventsSubscription {

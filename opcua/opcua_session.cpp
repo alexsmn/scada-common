@@ -124,12 +124,11 @@ void OpcUaSession::TranslateBrowsePaths(
 
 OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {
   if (!default_subscription_) {
-    std::weak_ptr<OpcUaSession> weak_ptr = shared_from_this();
     default_subscription_ = OpcUaSubscription::Create(OpcUaSubscriptionContext{
-        session_,
-        executor_,
-        [this](scada::Status&& status) { OnError(std::move(status)); },
-    });
+        .session_ = session_,
+        .executor_ = executor_,
+        .error_handler_ = BindCancelation(
+            weak_from_this(), std::bind_front(&OpcUaSession::OnError, this))});
   }
   return *default_subscription_;
 }

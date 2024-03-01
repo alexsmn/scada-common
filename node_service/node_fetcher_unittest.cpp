@@ -3,11 +3,12 @@
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
 #include "base/test/test_executor.h"
+#include "model/node_id_util.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/node_class.h"
+#include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
 #include "scada/view_service_mock.h"
-#include "model/node_id_util.h"
 
 #include "base/debug_util-inl.h"
 
@@ -57,13 +58,10 @@ class NodeFetcherTest : public Test {
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          executor_,
-          server_address_space_,
-          server_address_space_,
+          executor_, server_address_space_, server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction(),
-          std::make_shared<const scada::ServiceContext>(),
-      })};
+          scada::ServiceContext::default_instance()})};
 
   const scada::NodeId node_id = server_address_space_.kTestNode2Id;
   const scada::NodeId property_id =

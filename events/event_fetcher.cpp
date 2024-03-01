@@ -9,6 +9,8 @@
 #include "scada/history_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
+#include "scada/monitoring_parameters.h"
+#include "scada/read_value_id.h"
 #include "scada/standard_node_ids.h"
 
 #include <boost/range/adaptor/filtered.hpp>
@@ -20,9 +22,12 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)} {
   monitored_item_ = monitored_item_service_.CreateMonitoredItem(
       scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
-      scada::MonitoringParameters{}.set_filter(
-          scada::EventFilter{}.set_of_type({scada::id::SystemEventType})));
+      scada::MonitoringParameters{
+          .filter =
+              scada::EventFilter{.of_type = {scada::id::SystemEventType}}});
+
   assert(monitored_item_);
+
   monitored_item_->Subscribe(static_cast<scada::EventHandler>(BindExecutor(
       executor_, [this](const scada::Status& status, const std::any& event) {
         // TODO: Handle |status|
@@ -30,8 +35,9 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 
         if (event.has_value()) {
           assert(std::any_cast<scada::Event>(&event));
-          if (auto* system_event = std::any_cast<scada::Event>(&event))
+          if (auto* system_event = std::any_cast<scada::Event>(&event)) {
             OnSystemEvents({system_event, 1});
+          }
         }
       })));
 }

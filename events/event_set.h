@@ -1,8 +1,8 @@
 #pragma once
 
-#include <set>
-
 #include "scada/event.h"
+
+#include <set>
 
 struct EventComparer {
   bool operator()(const scada::Event* left, const scada::Event* right) const {

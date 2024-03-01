@@ -6,6 +6,8 @@
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "node_service/v1/address_space_updater.h"
+#include "scada/event.h"
+#include "scada/service_context.h"
 
 #include "base/debug_util-inl.h"
 
@@ -74,7 +76,7 @@ void AddressSpaceFetcherImpl::Init() {
   node_fetcher_ = NodeFetcherImpl::Create(NodeFetcherImplContext{
       executor_, view_service_, attribute_service_,
       std::move(fetch_completed_handler), std::move(node_validator),
-      std::make_shared<const scada::ServiceContext>()});
+      scada::ServiceContext::default_instance()});
 
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
@@ -267,7 +269,9 @@ void AddressSpaceFetcherImpl::OnChildrenFetched(
                         << LOG_TAG("ParentId", NodeIdToScadaString(node_id))
                         << LOG_TAG("ChildId",
                                    NodeIdToScadaString(deleted_child_id));
+
       DeleteNode(deleted_child_id);
+
       model_changed_handler_(scada::ModelChangeEvent{
           deleted_child_id, deleted_child_type_definition_id,
           scada::ModelChangeEvent::NodeDeleted});
