@@ -1,14 +1,15 @@
 #pragma once
 
+#include <map>
+
 namespace internal {
 
 // Should be even.
 const size_t kDumpMaxValueCount = 10;
 
 template <class T>
-inline void Dump(std::ostream& stream, const std::vector<T>& v) {
-  for (auto& e : v)
-    stream << e << std::endl;
+inline void Dump(std::ostream& stream, const T& value) {
+  stream << value;
 }
 
 inline void Dump(std::ostream& stream, scada::DateTime time) {
@@ -41,8 +42,15 @@ inline void Dump(std::ostream& stream,
 
 template <class It>
 inline void DumpRange(std::ostream& stream, It first, It last) {
-  for (auto i = first; i != last; ++i)
-    stream << *i << std::endl;
+  for (auto i = first; i != last; ++i) {
+    Dump(stream, *i);
+    stream << std::endl;
+  }
+}
+
+template <class T>
+inline void Dump(std::ostream& stream, const std::vector<T>& v) {
+  DumpRange(stream, v.begin(), v.end());
 }
 
 }  // namespace internal
