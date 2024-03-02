@@ -273,7 +273,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   assert(AssertValid());
 
   view_service_.Browse(
-      descriptions,
+      service_context_, descriptions,
       BindExecutor(
           executor_, weak_from_this(),
           [this, request_id, start_ticks, descriptions](

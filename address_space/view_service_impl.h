@@ -43,8 +43,10 @@ class ViewServiceImpl : public scada::ViewService {
   explicit ViewServiceImpl(SyncViewService& sync_service);
 
   // scada::ViewService
-  virtual void Browse(const std::vector<scada::BrowseDescription>& descriptions,
-                      const scada::BrowseCallback& callback) override;
+  virtual void Browse(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::vector<scada::BrowseDescription>& descriptions,
+      const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;

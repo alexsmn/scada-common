@@ -2,12 +2,12 @@
 
 #include "base/executor.h"
 #include "base/strings/strcat.h"
+#include "model/node_id_util.h"
+#include "node_service/node_fetcher.h"
 #include "scada/attribute_service.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 #include "scada/view_service.h"
-#include "model/node_id_util.h"
-#include "node_service/node_fetcher.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -153,7 +153,7 @@ void NodeChildrenFetcher::FetchChildren(
   }
 
   view_service_.Browse(
-      descriptions,
+      service_context_, descriptions,
       BindExecutor(
           executor_, weak_from_this(),
           [this, start_ticks, descriptions](

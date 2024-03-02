@@ -35,6 +35,7 @@ void SetValue(const scada::DataValue& data_value, R& result) {
 
 void FillBrowseResultsTypeDefinitions(
     scada::ViewService& view_service,
+    const scada::ServiceContextPtr& context,
     opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
@@ -66,9 +67,10 @@ void FillBrowseResultsTypeDefinitions(
     return callback();
 
   view_service.Browse(
-      nodes, [inputs, results, callback](
-                 const scada::Status& status,
-                 std::vector<scada::BrowseResult> browse_results) {
+      context, nodes,
+      [inputs, results, callback](
+          const scada::Status& status,
+          std::vector<scada::BrowseResult> browse_results) {
         if (!status)
           return callback();
 
@@ -356,6 +358,7 @@ void OpcUaServer::Write(
         auto opcua_results = ConvertStatusCodesFromVector(results);
         response.NoOfResults = opcua_results.size();
         response.Results = opcua_results.release();
+
         callback(std::move(response));
       });
 }
@@ -366,7 +369,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
       opcua::Attach{}, request.NodesToBrowse, request.NoOfNodesToBrowse);
 
   view_service_.Browse(
-      ConvertVector<scada::BrowseDescription>(*inputs),
+      service_context_, ConvertVector<scada::BrowseDescription>(*inputs),
       [this, inputs, callback](scada::Status&& status,
                                std::vector<scada::BrowseResult>&& results) {
         if (!status) {
@@ -383,7 +386,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
                     opcua::MakeSpan(results.data(), results.size())));
 
         FillBrowseResultsTypeDefinitions(
-            view_service_, *inputs, *opcua_results,
+            view_service_, service_context_, *inputs, *opcua_results,
             [this, inputs, opcua_results, callback] {
               FillBrowseResultsAttributes(
                   attribute_service_, service_context_, *inputs, *opcua_results,
@@ -407,11 +410,13 @@ void OpcUaServer::TranslateBrowsePaths(
       [callback](scada::Status&& status,
                  std::vector<scada::BrowsePathResult>&& results) {
         auto opcua_results = ConvertFromVector<OpcUa_BrowsePathResult>(results);
+
         opcua::TranslateBrowsePathsToNodeIdsResponse response;
         response.ResponseHeader.ServiceResult =
             MakeStatusCode(status.code()).code();
         response.NoOfResults = opcua_results.size();
         response.Results = opcua_results.release();
+
         callback(std::move(response));
       });
 }
@@ -435,10 +440,12 @@ void OpcUaServer::Call(OpcUa_CallRequest& request,
           BuildCallMethodResult(MakeStatusCode(results[i].code()).code())
               .release(method_results[i]);
         }
+
         opcua::CallResponse response;
         response.ResponseHeader.ServiceResult = OpcUa_Good;
         response.NoOfResults = method_results.size();
         response.Results = method_results.release();
+
         callback(std::move(response));
       });
 }
@@ -457,6 +464,7 @@ void OpcUaServer::AddNodes(
         response.NoOfResults = results.size();
         response.Results =
             ConvertFromVector<OpcUa_AddNodesResult>(results).release();
+
         callback(std::move(response));
       });
 }
@@ -475,6 +483,7 @@ void OpcUaServer::DeleteNodes(
         auto opcua_results = ConvertStatusCodesFromVector(results);
         response.NoOfResults = opcua_results.size();
         response.Results = opcua_results.release();
+
         callback(std::move(response));
       });
 }

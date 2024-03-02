@@ -211,12 +211,13 @@ void MasterDataServices::DeleteReferences(
 }
 
 void MasterDataServices::Browse(
+    const std::shared_ptr<const scada::ServiceContext>& context,
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
-  services_.view_service_->Browse(nodes, callback);
+  services_.view_service_->Browse(context, nodes, callback);
 }
 
 void MasterDataServices::TranslateBrowsePaths(

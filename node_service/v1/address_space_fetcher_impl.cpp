@@ -73,21 +73,18 @@ void AddressSpaceFetcherImpl::Init() {
     return address_space_.GetNode(node_id) != 0;
   };
 
-  node_fetcher_ = NodeFetcherImpl::Create(NodeFetcherImplContext{
-      executor_, view_service_, attribute_service_,
-      std::move(fetch_completed_handler), std::move(node_validator),
-      scada::ServiceContext::default_instance()});
+  node_fetcher_ = NodeFetcherImpl::Create(
+      NodeFetcherImplContext{executor_, view_service_, attribute_service_,
+                             std::move(fetch_completed_handler),
+                             std::move(node_validator), service_context_});
 
   ReferenceValidator reference_validator =
       [this](const scada::NodeId& node_id, scada::BrowseResult&& result) {
         OnChildrenFetched(node_id, std::move(result.references));
       };
 
-  node_children_fetcher_ = NodeChildrenFetcher::Create({
-      executor_,
-      view_service_,
-      reference_validator,
-  });
+  node_children_fetcher_ = NodeChildrenFetcher::Create(
+      {executor_, service_context_, view_service_, reference_validator});
 }
 
 void AddressSpaceFetcherImpl::OnChannelOpened() {
@@ -296,11 +293,7 @@ AddressSpaceFetcherImpl::MakeNodeChildrenFetcherContext() {
         OnChildrenFetched(node_id, std::move(result.references));
       };
 
-  return {
-      executor_,
-      view_service_,
-      reference_validator,
-  };
+  return {executor_, service_context_, view_service_, reference_validator};
 }
 
 std::pair<scada::Status, NodeFetchStatus>

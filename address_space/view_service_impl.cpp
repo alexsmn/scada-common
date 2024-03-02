@@ -172,6 +172,7 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
 }
 
 void ViewServiceImpl::Browse(
+    const std::shared_ptr<const scada::ServiceContext>& context,
     const std::vector<scada::BrowseDescription>& descriptions,
     const scada::BrowseCallback& callback) {
   auto results = sync_view_service_.Browse(descriptions);

@@ -4,10 +4,11 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
-#include "scada/attribute_service.h"
-#include "scada/standard_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
+#include "scada/attribute_service.h"
+#include "scada/service_context.h"
+#include "scada/standard_node_ids.h"
 
 #include <gmock/gmock.h>
 
@@ -40,8 +41,10 @@ class VirtualObject : public scada::GenericObject,
     callback(scada::StatusCode::Bad, {});
   }
 
-  virtual void Browse(const std::vector<scada::BrowseDescription>& descriptions,
-                      const scada::BrowseCallback& callback) override {
+  virtual void Browse(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::vector<scada::BrowseDescription>& descriptions,
+      const scada::BrowseCallback& callback) override {
     std::vector<scada::BrowseResult> results(descriptions.size());
     for (size_t i = 0; i < descriptions.size(); ++i)
       results[i] = Browse(descriptions[i]);
@@ -144,8 +147,11 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
   TestContext context;
   bool called = false;
   context.view_service.Browse(
+      scada::ServiceContext::default_instance(),
+      /*inputs=*/
       {{context.kObjectId, scada::BrowseDirection::Forward,
         scada::id::HierarchicalReferences, true}},
+      /*callback=*/
       [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         called = true;
         ASSERT_TRUE(status);
@@ -163,9 +169,12 @@ TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
   TestContext context;
   bool called = false;
   context.view_service.Browse(
+      scada::ServiceContext::default_instance(),
+      /*inputs=*/
       {{MakeNestedNodeId(context.kObjectId, context.kItems[0]),
         scada::BrowseDirection::Inverse, scada::id::HierarchicalReferences,
         true}},
+      /*callback=*/
       [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         called = true;
         ASSERT_TRUE(status);

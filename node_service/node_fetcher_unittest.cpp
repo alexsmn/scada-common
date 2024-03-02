@@ -104,13 +104,21 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+
   EXPECT_CALL(server_address_space_,
               Read(_, Pointee(Contains(NodeIs(node_id))), _));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
+
+  EXPECT_CALL(server_address_space_,
+              Browse(/*context=*/_, /*inputs=*/_, /*callback=*/_))
+      .Times(AnyNumber());
+
+  EXPECT_CALL(server_address_space_,
+              Browse(/*context=*/_, /*inputs=*/Contains(NodeIs(node_id)),
+                     /*callback=*/_));
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
+
   EXPECT_CALL(fetch_completed_handler_,
               Call(FieldsAre(Contains(NodeIs(node_id)), _,
                              Contains(std::make_pair(
@@ -126,7 +134,7 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
 
   // Don't let upstream requests to resolve.
   EXPECT_CALL(server_address_space_, Read(_, _, _)).WillOnce([] {});
-  EXPECT_CALL(server_address_space_, Browse(_, _)).WillOnce([] {});
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).WillOnce([] {});
   EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(0);
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
@@ -134,7 +142,7 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
   // Non-forced refetch doesn't trigger more upstream requests.
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(0);
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(0);
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(0);
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
@@ -143,8 +151,8 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_,
               Read(_, Pointee(Contains(NodeIs(node_id))), _));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id)), _));
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
@@ -167,11 +175,12 @@ TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_,
               Read(_, Pointee(Contains(NodeIs(node_id))), _));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(Contains(NodeIs(node_id)), _));
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id)), _));
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
+
   EXPECT_CALL(fetch_completed_handler_,
               Call(FieldsAre(Contains(NodeIs(node_id)), _,
                              Contains(std::make_pair(node_id, fetch_status)))));
@@ -196,15 +205,15 @@ TEST_F(NodeFetcherTest, Cancel) {
   // 5. Network request B is started and takes a long time.
   // 6. Network request A finishes and is dropped.
   // 7. Network request B finished and is processed as a response for node fetch
-  // B.
 
   scada::ReadCallback read_callback1;
   scada::BrowseCallback browse_callback1;
 
   EXPECT_CALL(server_address_space_, Read(_, _, _))
       .WillOnce(SaveArg<2>(&read_callback1));
-  EXPECT_CALL(server_address_space_, Browse(_, _))
-      .WillOnce(SaveArg<1>(&browse_callback1));
+
+  EXPECT_CALL(server_address_space_, Browse(_, _, _))
+      .WillOnce(SaveArg<2>(&browse_callback1));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
@@ -217,8 +226,9 @@ TEST_F(NodeFetcherTest, Cancel) {
 
   EXPECT_CALL(server_address_space_, Read(_, _, _))
       .WillOnce(SaveArg<2>(&read_callback2));
-  EXPECT_CALL(server_address_space_, Browse(_, _))
-      .WillOnce(SaveArg<1>(&browse_callback2));
+
+  EXPECT_CALL(server_address_space_, Browse(_, _, _))
+      .WillOnce(SaveArg<2>(&browse_callback2));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 

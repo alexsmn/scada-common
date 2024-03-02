@@ -22,7 +22,7 @@ struct NodeServiceHolder {
         MakeViewEventsProvider(node_service_context.monitored_item_service_);
 
     return NodeServiceImplContext{
-        node_service_context.executor,
+        node_service_context.executor_,
         node_service_context.view_service_,
         node_service_context.attribute_service_,
         node_service_context.monitored_item_service_,

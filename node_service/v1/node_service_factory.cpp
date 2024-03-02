@@ -37,7 +37,8 @@ struct NodeServiceHolder {
           MakeViewEventsProvider(node_service_context.monitored_item_service_);
 
       return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
-          node_service_context.executor,
+          node_service_context.executor_,
+          node_service_context.service_context_,
           node_service_context.view_service_,
           node_service_context.attribute_service_,
           address_space,

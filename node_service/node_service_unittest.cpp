@@ -1,7 +1,7 @@
+#include "node_service/static/static_node_service.h"
 #include "node_service/v1/node_service_impl.h"
 #include "node_service/v2/node_service_impl.h"
 #include "node_service/v3/node_service_impl.h"
-#include "node_service/static/static_node_service.h"
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
@@ -211,7 +211,9 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
               Read(_, Pointee(Each(NodeIs(unknown_node_id))), _))
       .Times(AtMost(1));
 
-  EXPECT_CALL(server_address_space, Browse(Each(NodeIs(unknown_node_id)), _))
+  EXPECT_CALL(server_address_space,
+              Browse(/*context=*/_, /*inputs=*/Each(NodeIs(unknown_node_id)),
+                     /*callback=*/_))
       .Times(AtMost(2));
 
   EXPECT_CALL(this->node_service_observer_,
@@ -240,7 +242,7 @@ void NodeServiceTest<NodeServiceImpl>::ExpectAnyUpdates() {
   auto& server_address_space = *this->base_env_.server_address_space;
 
   EXPECT_CALL(server_address_space, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space, Browse(_, _, _)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnModelChanged(_)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnNodeSemanticChanged(_))
       .Times(AnyNumber());
@@ -274,6 +276,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
 
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+
   EXPECT_CALL(this->node_service_observer_,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
 
@@ -318,10 +321,14 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
 
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+
   EXPECT_CALL(this->node_service_observer_,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
@@ -354,8 +361,10 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
       .Times(Between(1, 2));
+
   // TODO: OnNodeSemanticChanged shouldn't be triggered.
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id)).Times(AtMost(2));
+
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
@@ -418,27 +427,36 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   EXPECT_CALL(
       server_address_space,
       Read(_, Pointee(Each(NodeIsOrIsNestedOf(new_node_state.node_id))), _));
-  EXPECT_CALL(server_address_space,
-              Browse(Each(NodeIsOrIsNestedOf(new_node_state.node_id)), _));
+
+  EXPECT_CALL(
+      server_address_space,
+      Browse(/*context=*/_,
+             /*inputs=*/Each(NodeIsOrIsNestedOf(new_node_state.node_id)),
+             /*callback=*/_));
+
   EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   scada::id::RootFolder, scada::id::FolderType,
                   scada::ModelChangeEvent::ReferenceAdded}))
       .Times(0);
+
   EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   new_node_state.node_id, new_node_state.type_definition_id,
                   scada::ModelChangeEvent::NodeAdded |
                       scada::ModelChangeEvent::ReferenceAdded}))
       .Times(AtMost(1));
+
   EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
                   new_node_state.node_id, new_node_state.type_definition_id,
                   scada::ModelChangeEvent::ReferenceAdded |
                       scada::ModelChangeEvent::ReferenceDeleted}))
       .Times(AtMost(1));
+
   EXPECT_CALL(this->node_service_observer_,
               OnNodeSemanticChanged(new_node_state.node_id));
+
   EXPECT_CALL(this->node_service_observer_,
               OnNodeFetched(
                   FieldsAre(new_node_state.node_id, NodeFetchStatus::None())));
@@ -532,7 +550,9 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
 
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
+
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
+
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
@@ -555,8 +575,11 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   EXPECT_CALL(server_address_space,
               Read(_, Pointee(Each(NodeIsOrIsNestedOf(node_id))), _))
       .Times(2);
-  EXPECT_CALL(server_address_space,
-              Browse(Each(NodeIsOrIsNestedOf(node_id)), _))
+
+  EXPECT_CALL(
+      server_address_space,
+      Browse(/*context=*/_,
+             /*inputs=*/Each(NodeIsOrIsNestedOf(node_id)), /*callback=*/_))
       .Times(1);
 
   this->view_events_->OnNodeSemanticsChanged(
@@ -623,7 +646,9 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
 
   EXPECT_CALL(server_address_space, Read(_, Pointee(Each(NodeIs(node_id))), _));
 
-  EXPECT_CALL(server_address_space, Browse(Each(NodeIs(node_id)), _))
+  EXPECT_CALL(
+      server_address_space,
+      Browse(/*context=*/_, /*inputs=*/Each(NodeIs(node_id)), /*callback=*/_))
       .Times(AtMost(2));
 
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
@@ -640,6 +665,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   EXPECT_CALL(this->node_service_observer_,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
       .Times(AtMost(1));
+
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())))
       .Times(AtMost(1));

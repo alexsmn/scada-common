@@ -9,6 +9,7 @@
 #include "base/test/test_executor.h"
 #include "scada/event.h"
 #include "scada/monitored_item_service_mock.h"
+#include "scada/service_context.h"
 
 #include <gmock/gmock.h>
 
@@ -46,22 +47,29 @@ class AddressSpaceFetcherImplTest : public Test {
 
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
       AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
-          executor_, server_address_space_, server_address_space_,
-          client_address_space_, node_factory,
-          [&](scada::ViewEvents& events) {
-            view_events = &events;
-            return std::make_unique<IViewEventsSubscription>();
-          },
-          node_fetch_status_changed_handler_.AsStdFunction(),
-          [](const scada::ModelChangeEvent& event) {},
-          [](const scada::SemanticChangeEvent& event) {}}});
+          .executor_ = executor_,
+          .service_context_ = scada::ServiceContext::default_instance(),
+          .view_service_ = server_address_space_,
+          .attribute_service_ = server_address_space_,
+          .address_space_ = client_address_space_,
+          .node_factory_ = node_factory,
+          .view_events_provider_ =
+              [&](scada::ViewEvents& events) {
+                view_events = &events;
+                return std::make_unique<IViewEventsSubscription>();
+              },
+          .node_fetch_status_changed_handler_ =
+              node_fetch_status_changed_handler_.AsStdFunction(),
+          .model_changed_handler_ = [](const scada::ModelChangeEvent& event) {},
+          .semantic_changed_handler_ =
+              [](const scada::SemanticChangeEvent& event) {}}});
 };
 
 TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
   const auto node_id = server_address_space_.kTestNode1Id;
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
 
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
@@ -80,7 +88,7 @@ TEST_F(AddressSpaceFetcherImplTest,
   const auto node_id = server_address_space_.kTestNode1Id;
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
 
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_)).Times(AnyNumber());
   EXPECT_CALL(
@@ -204,7 +212,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   ASSERT_TRUE(node);
 
   EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_));
 
   address_space_fetcher_->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());

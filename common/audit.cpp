@@ -40,8 +40,8 @@ void Audit::Read(
   attribute_service_.Read(
       context, inputs,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback,
-       trace = tracer_.Start()](scada::Status&& status,
-                                std::vector<scada::DataValue>&& results) {
+       trace_span = std::make_shared<TraceSpan>(root_trace_span_.StartSpan())](
+          scada::Status&& status, std::vector<scada::DataValue>&& results) {
         {
           std::lock_guard lock{mutex_};
           --concurrent_read_count_;
@@ -59,7 +59,8 @@ void Audit::Write(
   attribute_service_.Write(context, inputs, callback);
 }
 
-void Audit::Browse(const std::vector<scada::BrowseDescription>& descriptions,
+void Audit::Browse(const std::shared_ptr<const scada::ServiceContext>& context,
+                   const std::vector<scada::BrowseDescription>& descriptions,
                    const scada::BrowseCallback& callback) {
   {
     std::lock_guard lock{mutex_};
@@ -67,7 +68,7 @@ void Audit::Browse(const std::vector<scada::BrowseDescription>& descriptions,
   }
 
   view_service_.Browse(
-      descriptions,
+      context, descriptions,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
         assert(Validate(results));

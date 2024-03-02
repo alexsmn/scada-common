@@ -102,11 +102,14 @@ boost::signals2::scoped_connection OpcUaSession::SubscribeSessionStateChanged(
   return boost::signals2::scoped_connection{};
 }
 
-void OpcUaSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
-                          const scada::BrowseCallback& callback) {
+void OpcUaSession::Browse(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::vector<scada::BrowseDescription>& nodes,
+    const scada::BrowseCallback& callback) {
   auto ua_nodes =
       ConvertVector<OpcUa_BrowseDescription>(nodes.begin(), nodes.end());
   auto size = ua_nodes.size();
+
   session_.Browse({ua_nodes.data(), ua_nodes.size()},
                   [size, callback](opcua::StatusCode status_code,
                                    opcua::Span<OpcUa_BrowseResult> results) {

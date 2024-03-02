@@ -77,12 +77,14 @@ inline TestAddressSpace::TestAddressSpace() {
   ON_CALL(*this, Read(_, _, _))
       .WillByDefault(
           Invoke(&attribute_service_impl, &scada::AttributeService::Read));
+
   ON_CALL(*this, Write(_, _, _))
       .WillByDefault(
           Invoke(&attribute_service_impl, &scada::AttributeService::Write));
 
-  ON_CALL(*this, Browse(_, _))
+  ON_CALL(*this, Browse(/*context=*/_, /*inputs=*/_, /*callback=*/_))
       .WillByDefault(Invoke(&view_service_impl, &scada::ViewService::Browse));
+
   ON_CALL(*this, TranslateBrowsePaths(_, _))
       .WillByDefault(Invoke(&view_service_impl,
                             &scada::ViewService::TranslateBrowsePaths));

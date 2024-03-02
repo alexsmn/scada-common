@@ -153,9 +153,11 @@ void VidiconSession::DeleteReferences(
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::Browse(const std::vector<scada::BrowseDescription>& nodes,
-                            const scada::BrowseCallback& callback) {
-  view_service_.Browse(nodes, callback);
+void VidiconSession::Browse(
+    const std::shared_ptr<const scada::ServiceContext>& context,
+    const std::vector<scada::BrowseDescription>& inputs,
+    const scada::BrowseCallback& callback) {
+  view_service_.Browse(context, inputs, callback);
 }
 
 void VidiconSession::TranslateBrowsePaths(

@@ -6,7 +6,6 @@
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/v1/address_space_fetcher.h"
 #include "node_service/v1/node_fetch_status_tracker.h"
-#include "scada/view_service.h"
 
 #include <map>
 #include <memory>
@@ -15,6 +14,7 @@ class Executor;
 
 namespace scada {
 class AttributeService;
+struct ServiceContext;
 }  // namespace scada
 
 class AddressSpaceImpl;
@@ -24,6 +24,7 @@ namespace v1 {
 
 struct AddressSpaceFetcherImplContext {
   const std::shared_ptr<Executor> executor_;
+  const std::shared_ptr<const scada::ServiceContext> service_context_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;

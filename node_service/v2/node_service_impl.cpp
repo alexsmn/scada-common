@@ -211,13 +211,12 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
     return i != nodes_.end() && i->second->GetFetchStatus().node_fetched;
   };
 
-  return NodeFetcherImplContext{
-      executor_,
-      view_service_,
-      attribute_service_,
-      std::move(fetch_completed_handler),
-      std::move(node_validator),
-      std::make_shared<const scada::ServiceContext>()};
+  return NodeFetcherImplContext{executor_,
+                                view_service_,
+                                attribute_service_,
+                                std::move(fetch_completed_handler),
+                                std::move(node_validator),
+                                scada::ServiceContext::default_instance()};
 }
 
 NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
@@ -227,7 +226,8 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
           node->OnChildrenFetched(std::move(result.references));
       };
 
-  return {executor_, view_service_, reference_validator};
+  return {executor_, scada::ServiceContext::default_instance(), view_service_,
+          reference_validator};
 }
 
 void NodeServiceImpl::OnChannelOpened() {

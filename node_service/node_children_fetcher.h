@@ -6,7 +6,6 @@
 
 #include <deque>
 #include <functional>
-#include <map>
 #include <memory>
 #include <queue>
 #include <set>
@@ -18,6 +17,7 @@ class Status;
 class ViewService;
 struct BrowseDescription;
 struct BrowseResult;
+struct ServiceContext;
 }  // namespace scada
 
 class Executor;
@@ -27,8 +27,9 @@ using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
 
 struct NodeChildrenFetcherContext {
   const std::shared_ptr<Executor> executor_;
+  std::shared_ptr<const scada::ServiceContext> service_context_;
   scada::ViewService& view_service_;
-  const ReferenceValidator reference_validator_;
+  ReferenceValidator reference_validator_;
 };
 
 class NodeChildrenFetcher

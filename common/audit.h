@@ -9,13 +9,13 @@
 #include <mutex>
 
 class MetricService;
-class Tracer;
+class TraceSpan;
 
 struct AuditContext {
   MetricService& metric_service_;
   scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
-  Tracer& tracer_;
+  const TraceSpan& root_trace_span_;
 };
 
 class Audit final : private AuditContext,
@@ -36,8 +36,10 @@ class Audit final : private AuditContext,
       const scada::WriteCallback& callback) override;
 
   // scada::ViewService
-  virtual void Browse(const std::vector<scada::BrowseDescription>& descriptions,
-                      const scada::BrowseCallback& callback) override;
+  virtual void Browse(
+      const std::shared_ptr<const scada::ServiceContext>& context,
+      const std::vector<scada::BrowseDescription>& descriptions,
+      const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;
