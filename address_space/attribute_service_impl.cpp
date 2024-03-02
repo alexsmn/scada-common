@@ -20,26 +20,24 @@ AttributeServiceImpl::AttributeServiceImpl(
     : sync_attribute_service_{sync_attribute_service} {}
 
 void AttributeServiceImpl::Read(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  assert(context);
   assert(inputs);
 
-  auto results = sync_attribute_service_.Read(*context, *inputs);
+  auto results = sync_attribute_service_.Read(context, *inputs);
   assert(results.size() == inputs->size());
 
   callback(scada::StatusCode::Good, std::move(results));
 }
 
 void AttributeServiceImpl::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  assert(context);
   assert(inputs);
 
-  auto results = sync_attribute_service_.Write(*context, *inputs);
+  auto results = sync_attribute_service_.Write(context, *inputs);
   callback(scada::StatusCode::Good, std::move(results));
 }
 

@@ -8,9 +8,9 @@ namespace scada {
 class AttributeService;
 class MethodService;
 class MonitoredItemService;
+class ServiceContext;
 class SessionService;
 class ViewService;
-struct ServiceContext;
 }  // namespace scada
 
 class Executor;
@@ -18,7 +18,7 @@ class NodeService;
 
 struct NodeServiceContext {
   const std::shared_ptr<Executor> executor_;
-  const std::shared_ptr<const scada::ServiceContext> service_context_;
+  const scada::ServiceContext service_context_;
   // TODO: Remove services and keep `scada::client` only.
   scada::SessionService& session_service_;
   scada::AttributeService& attribute_service_;

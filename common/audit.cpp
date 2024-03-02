@@ -29,7 +29,7 @@ std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
 }
 
 void Audit::Read(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
   {
@@ -53,13 +53,13 @@ void Audit::Read(
 }
 
 void Audit::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   attribute_service_.Write(context, inputs, callback);
 }
 
-void Audit::Browse(const std::shared_ptr<const scada::ServiceContext>& context,
+void Audit::Browse(const scada::ServiceContext& context,
                    const std::vector<scada::BrowseDescription>& descriptions,
                    const scada::BrowseCallback& callback) {
   {

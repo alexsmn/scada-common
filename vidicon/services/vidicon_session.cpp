@@ -109,14 +109,14 @@ std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
 }
 
 void VidiconSession::Read(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
   attribute_service_.Read(context, inputs, callback);
 }
 
 void VidiconSession::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   callback(scada::StatusCode::Bad, {});
@@ -154,7 +154,7 @@ void VidiconSession::DeleteReferences(
 }
 
 void VidiconSession::Browse(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& inputs,
     const scada::BrowseCallback& callback) {
   view_service_.Browse(context, inputs, callback);

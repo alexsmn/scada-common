@@ -14,7 +14,7 @@ class NodeVariableHandle : public VariableHandle {
   virtual Node& GetNode();
 
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const scada::WriteValue& input,
       const scada::StatusCallback& callback) override;
   virtual void Call(const NodeId& method_id,

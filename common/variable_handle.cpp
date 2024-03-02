@@ -95,7 +95,7 @@ void VariableHandle::Deleted() {
   UpdateQualifier(0, Qualifier::FAILED);
 }
 
-void VariableHandle::Write(const std::shared_ptr<const ServiceContext>& context,
+void VariableHandle::Write(const ServiceContext& context,
                            const WriteValue& input,
                            const StatusCallback& callback) {
   callback(StatusCode::Bad_WrongMethodId);

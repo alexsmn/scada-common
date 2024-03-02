@@ -34,7 +34,7 @@ class Variable : public Node {
   virtual std::shared_ptr<VariableHandle> GetVariableHandle() const;
 
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const scada::WriteValue& input,
       const scada::StatusCallback& callback);
 

@@ -43,7 +43,7 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
 
   // scada::ViewService
   virtual void Browse(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::vector<scada::BrowseDescription>& nodes,
       const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
@@ -57,11 +57,11 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
 
   // scada::AttributeService
   virtual void Read(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
       const scada::ReadCallback& callback) override;
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 

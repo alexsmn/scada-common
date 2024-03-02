@@ -24,7 +24,7 @@ class VirtualObject : public scada::GenericObject,
   virtual ViewService* GetViewService() final { return this; }
 
   virtual void Read(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
       const scada::ReadCallback& callback) override {
     std::vector<scada::DataValue> results(inputs->size());
@@ -34,17 +34,16 @@ class VirtualObject : public scada::GenericObject,
   }
 
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override {
     assert(false);
     callback(scada::StatusCode::Bad, {});
   }
 
-  virtual void Browse(
-      const std::shared_ptr<const scada::ServiceContext>& context,
-      const std::vector<scada::BrowseDescription>& descriptions,
-      const scada::BrowseCallback& callback) override {
+  virtual void Browse(const scada::ServiceContext& context,
+                      const std::vector<scada::BrowseDescription>& descriptions,
+                      const scada::BrowseCallback& callback) override {
     std::vector<scada::BrowseResult> results(descriptions.size());
     for (size_t i = 0; i < descriptions.size(); ++i)
       results[i] = Browse(descriptions[i]);
@@ -147,7 +146,7 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
   TestContext context;
   bool called = false;
   context.view_service.Browse(
-      scada::ServiceContext::default_instance(),
+      scada::ServiceContext{},
       /*inputs=*/
       {{context.kObjectId, scada::BrowseDirection::Forward,
         scada::id::HierarchicalReferences, true}},
@@ -169,7 +168,7 @@ TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
   TestContext context;
   bool called = false;
   context.view_service.Browse(
-      scada::ServiceContext::default_instance(),
+      scada::ServiceContext{},
       /*inputs=*/
       {{MakeNestedNodeId(context.kObjectId, context.kItems[0]),
         scada::BrowseDirection::Inverse, scada::id::HierarchicalReferences,

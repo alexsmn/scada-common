@@ -11,7 +11,7 @@ scada::Node& NodeVariableHandle::GetNode() {
 }
 
 void NodeVariableHandle::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const scada::WriteValue& write_value,
     const scada::StatusCallback& callback) {
   node_.Write(context, write_value, callback);

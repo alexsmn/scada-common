@@ -39,11 +39,11 @@ class AttributeServiceImpl : public scada::AttributeService {
 
   // scada::AttributeService
   virtual void Read(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
       const scada::ReadCallback& callback) override;
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 

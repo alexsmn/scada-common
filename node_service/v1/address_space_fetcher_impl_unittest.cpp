@@ -48,7 +48,6 @@ class AddressSpaceFetcherImplTest : public Test {
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
       AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
           .executor_ = executor_,
-          .service_context_ = scada::ServiceContext::default_instance(),
           .view_service_ = server_address_space_,
           .attribute_service_ = server_address_space_,
           .address_space_ = client_address_space_,
@@ -100,7 +99,7 @@ TEST_F(AddressSpaceFetcherImplTest,
   EXPECT_CALL(server_address_space_,
               Read(_, Pointee(Contains(NodeIs(node_id))), _))
       .WillOnce(Invoke(
-          [&](const std::shared_ptr<const scada::ServiceContext>& context,
+          [&](const scada::ServiceContext& context,
               const std::shared_ptr<const std::vector<scada::ReadValueId>>&
                   inputs,
               const scada::ReadCallback& callback) {

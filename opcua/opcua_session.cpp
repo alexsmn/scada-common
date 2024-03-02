@@ -103,7 +103,7 @@ boost::signals2::scoped_connection OpcUaSession::SubscribeSessionStateChanged(
 }
 
 void OpcUaSession::Browse(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
   auto ua_nodes =
@@ -144,7 +144,7 @@ std::shared_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
 }
 
 void OpcUaSession::Read(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
   assert(session_activated_);
@@ -166,7 +166,7 @@ void OpcUaSession::Read(
 }
 
 void OpcUaSession::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   assert(session_activated_);

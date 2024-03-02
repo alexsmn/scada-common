@@ -35,7 +35,7 @@ void SetValue(const scada::DataValue& data_value, R& result) {
 
 void FillBrowseResultsTypeDefinitions(
     scada::ViewService& view_service,
-    const scada::ServiceContextPtr& context,
+    const scada::ServiceContext& context,
     opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
@@ -109,7 +109,7 @@ void FillBrowseResultsTypeDefinitions(
 
 void FillBrowseResultsAttributes(
     scada::AttributeService& attribute_service,
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     opcua::Span<const OpcUa_BrowseDescription> inputs,
     opcua::Span<OpcUa_BrowseResult> results,
     const std::function<void()>& callback) {
@@ -253,8 +253,7 @@ opcua::UInt32 ParseTraceLevel(std::string_view str) {
 
 OpcUaServer::OpcUaServer(OpcUaServerContext&& context)
     : OpcUaServerContext{std::move(context)},
-      proxy_stub_{platform_, MakeProxyStubConfiguration()},
-      service_context_{scada::ServiceContext::default_instance()} {
+      proxy_stub_{platform_, MakeProxyStubConfiguration()} {
   endpoint_.set_session_handlers({
       [this](OpcUa_ReadRequest& request,
              const opcua::server::ReadCallback& callback) {
@@ -430,7 +429,7 @@ void OpcUaServer::Call(OpcUa_CallRequest& request,
                       Convert(method.MethodId),
                       ConvertVector<scada::Variant>(opcua::MakeSpan(
                           method.InputArguments, method.NoOfInputArguments)),
-                      service_context_->user_id);
+                      service_context_.user_id());
       });
 
   make_all_promise(promises).then(

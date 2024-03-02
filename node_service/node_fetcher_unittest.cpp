@@ -60,8 +60,7 @@ class NodeFetcherTest : public Test {
       NodeFetcherImpl::Create(NodeFetcherImplContext{
           executor_, server_address_space_, server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
-          node_validator_.AsStdFunction(),
-          scada::ServiceContext::default_instance()})};
+          node_validator_.AsStdFunction()})};
 
   const scada::NodeId node_id = server_address_space_.kTestNode2Id;
   const scada::NodeId property_id =

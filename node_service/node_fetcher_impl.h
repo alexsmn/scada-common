@@ -4,6 +4,7 @@
 #include "node_service/fetch_queue.h"
 #include "node_service/fetching_node_graph.h"
 #include "node_service/node_fetcher.h"
+#include "scada/service_context.h"
 
 #include <memory>
 #include <vector>
@@ -15,7 +16,6 @@ class NodeId;
 class Status;
 class ViewService;
 struct ReadValueId;
-struct ServiceContext;
 }  // namespace scada
 
 class Executor;
@@ -26,7 +26,7 @@ struct NodeFetcherImplContext {
   scada::AttributeService& attribute_service_;
   const FetchCompletedHandler fetch_completed_handler_;
   const NodeValidator node_validator_;
-  const std::shared_ptr<const scada::ServiceContext> service_context_;
+  const scada::ServiceContext service_context_;
 };
 
 class NodeFetcherImpl : private NodeFetcherImplContext,

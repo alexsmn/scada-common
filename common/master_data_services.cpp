@@ -211,7 +211,7 @@ void MasterDataServices::DeleteReferences(
 }
 
 void MasterDataServices::Browse(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
   if (!services_.view_service_)
@@ -236,7 +236,7 @@ std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
 }
 
 void MasterDataServices::Write(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
   if (!services_.attribute_service_)
@@ -280,7 +280,7 @@ void MasterDataServices::HistoryReadEvents(
 }
 
 void MasterDataServices::Read(
-    const std::shared_ptr<const scada::ServiceContext>& context,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
   if (!services_.attribute_service_)

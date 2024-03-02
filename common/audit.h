@@ -27,19 +27,18 @@ class Audit final : private AuditContext,
 
   // scada::AttributeService
   virtual void Read(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
       const scada::ReadCallback& callback) override;
   virtual void Write(
-      const std::shared_ptr<const scada::ServiceContext>& context,
+      const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
   // scada::ViewService
-  virtual void Browse(
-      const std::shared_ptr<const scada::ServiceContext>& context,
-      const std::vector<scada::BrowseDescription>& descriptions,
-      const scada::BrowseCallback& callback) override;
+  virtual void Browse(const scada::ServiceContext& context,
+                      const std::vector<scada::BrowseDescription>& descriptions,
+                      const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;

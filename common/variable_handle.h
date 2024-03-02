@@ -33,7 +33,7 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
       boost::signals2::signal<void(const DataValue& data_value)>;
   DataChangeSignal& data_change_signal() { return data_change_signal_; }
 
-  virtual void Write(const std::shared_ptr<const ServiceContext>& context,
+  virtual void Write(const ServiceContext& context,
                      const WriteValue& input,
                      const StatusCallback& callback);
 
