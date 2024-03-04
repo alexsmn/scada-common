@@ -39,8 +39,7 @@ void Audit::Read(
 
   attribute_service_.Read(
       context, inputs,
-      [this, ref = shared_from_this(), start_time = Clock::now(), callback,
-       trace_span = std::make_shared<TraceSpan>(root_trace_span_.StartSpan())](
+      [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::DataValue>&& results) {
         {
           std::lock_guard lock{mutex_};
