@@ -4,6 +4,8 @@
 #include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
 
+#include <ranges>
+
 namespace {
 
 auto ToVector(auto&& range) {

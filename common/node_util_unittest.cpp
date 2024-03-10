@@ -5,6 +5,7 @@
 #include "scada/standard_node_ids.h"
 
 #include <gmock/gmock.h>
+#include <ranges>
 
 using namespace testing;
 
