@@ -5,6 +5,7 @@
 #include <memory>
 
 class TimedData;
+struct TimedDataContext;
 
 class TimedDataService {
  public:
