@@ -1,6 +1,5 @@
 #include "vidicon/services/vidicon_session.h"
 
-#include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
 #include "scada/date_time.h"
@@ -9,6 +8,7 @@
 #include "vidicon/services/vidicon_monitored_data_point.h"
 #include "vidicon/services/vidicon_monitored_events.h"
 
+#include <string_view>
 #include <wrl/client.h>
 
 namespace {
