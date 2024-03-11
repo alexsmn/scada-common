@@ -1,6 +1,5 @@
 ﻿#include "common/scada_expression.h"
 
-#include "base/string_piece_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "express/express.h"

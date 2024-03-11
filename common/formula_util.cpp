@@ -1,6 +1,5 @@
 #include "common/formula_util.h"
 
-#include "base/string_piece_util.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
 #include "common/scada_expression.h"
@@ -49,8 +48,7 @@ std::string MakeNodeIdFormula(const scada::NodeId& id) {
 }
 
 std::string_view GetParentGroupChannelPath(std::string_view path) {
-  bool matches =
-      base::StartsWith(AsStringPiece(path), cfg::kDataGroupDevicePlaceholder);
+  bool matches = base::StartsWith(path, cfg::kDataGroupDevicePlaceholder);
   if (!matches)
     return {};
 

@@ -1,7 +1,6 @@
 ﻿#include "common/format.h"
 
 #include "base/format.h"
-#include "base/string_piece_util.h"
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
@@ -174,7 +173,7 @@ bool StringToValue(std::u16string_view str,
     return true;
   }
 
-  return StringToValue(base::UTF16ToUTF8(AsStringPiece(str)), data_type, value);
+  return StringToValue(base::UTF16ToUTF8(str), data_type, value);
 }
 
 scada::LocalizedText FormatTs(bool bool_value, const TsFormatParams& params) {
