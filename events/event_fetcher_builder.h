@@ -1,13 +1,8 @@
 #pragma once
 
-#include <memory>
+#include "scada/services.h"
 
-namespace scada {
-class MonitoredItemService;
-class HistoryService;
-class MethodService;
-class SessionService;
-}  // namespace scada
+#include <memory>
 
 class EventFetcher;
 class Executor;
@@ -20,8 +15,5 @@ struct EventFetcherBuilder {
   std::shared_ptr<const Logger> logger_;
 
   // TODO: Switch to `scada::client`.
-  scada::MonitoredItemService& monitored_item_service_;
-  scada::HistoryService& history_service_;
-  scada::MethodService& method_service_;
-  scada::SessionService& session_service_;
+  scada::services services_;
 };

@@ -20,18 +20,18 @@ struct EventFetcherHolder : EventFetcherBuilder {
   EventAckQueue event_ack_queue_{
       EventAckQueueContext{.logger_ = nested_logger_,
                            .executor_ = executor_,
-                           .method_service_ = method_service_}};
+                           .method_service_ = *services_.method_service}};
 
-  EventFetcher event_fetcher_{
-      EventFetcherContext{.executor_ = executor_,
-                          .monitored_item_service_ = monitored_item_service_,
-                          .history_service_ = history_service_,
-                          .logger_ = nested_logger_,
-                          .event_storage_ = event_storage_,
-                          .event_ack_queue_ = event_ack_queue_}};
+  EventFetcher event_fetcher_{EventFetcherContext{
+      .executor_ = executor_,
+      .monitored_item_service_ = *services_.monitored_item_service,
+      .history_service_ = *services_.history_service,
+      .logger_ = nested_logger_,
+      .event_storage_ = event_storage_,
+      .event_ack_queue_ = event_ack_queue_}};
 
   EventFetcherNotifier event_fetcher_notifier_{event_fetcher_,
-                                               session_service_};
+                                               *services_.session_service};
 };
 
 }  // namespace internal
