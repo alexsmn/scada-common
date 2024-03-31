@@ -317,10 +317,12 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
           /*auto supertype_id = FindSupertypeId(node.references);
           assert(!supertype_id.is_null());*/
           assert(type_definition_map.count(type_definition_id));
-          auto* type_definiton = type_definition_map[type_definition_id];
-          assert(type_definiton);
-          assert(scada::IsTypeDefinition(type_definiton->node_class));
-          type_definition_id = type_definiton->supertype_id;
+          if (auto i = type_definition_map.find(type_definition_id);
+              i != type_definition_map.end()) {
+            auto* type_definiton = i->second;
+            assert(scada::IsTypeDefinition(type_definiton->node_class));
+            type_definition_id = type_definiton->supertype_id;
+          }
         }
       }
     }
