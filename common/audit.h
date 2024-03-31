@@ -2,19 +2,23 @@
 
 #include "metrics/aggregated_metric.h"
 #include "scada/attribute_service.h"
+#include "scada/services.h"
 #include "scada/view_service.h"
 
 #include <chrono>
 #include <memory>
 #include <mutex>
 
+namespace scada {
+struct services;
+}
+
 class MetricService;
 class Tracer;
 
 struct AuditContext {
   MetricService& metric_service_;
-  scada::AttributeService& attribute_service_;
-  scada::ViewService& view_service_;
+  scada::services services_;
   Tracer& tracer_;
 };
 
@@ -59,3 +63,8 @@ class Audit final : private AuditContext,
   AggregatedCounter<size_t> concurrent_read_count_;
   AggregatedCounter<size_t> concurrent_browse_count_;
 };
+
+std::shared_ptr<scada::services> AuditScadaServices(
+    const std::shared_ptr<const scada::services>& services,
+    MetricService& metric_service,
+    Tracer& tracer);

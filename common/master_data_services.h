@@ -22,7 +22,7 @@ class MasterDataServices final : public scada::AttributeService,
   MasterDataServices();
   ~MasterDataServices();
 
-  DataServices& data_services() { return services_; }
+  scada::services as_services();
 
   void SetServices(DataServices&& sevices);
 
@@ -54,10 +54,9 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::DeleteReferencesCallback& callback) override;
 
   // scada::ViewService
-  virtual void Browse(
-      const scada::ServiceContext& context,
-      const std::vector<scada::BrowseDescription>& nodes,
-      const scada::BrowseCallback& callback) override;
+  virtual void Browse(const scada::ServiceContext& context,
+                      const std::vector<scada::BrowseDescription>& nodes,
+                      const scada::BrowseCallback& callback) override;
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;

@@ -11,21 +11,26 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   MasterMonitoredItem(MasterDataServices& owner,
                       scada::ReadValueId read_value_id,
                       scada::MonitoringParameters params)
-      : owner_{owner},
+      : owner_{&owner},
         read_value_id_{std::move(read_value_id)},
         params_{std::move(params)} {
-    owner_.monitored_items_.emplace_back(this);
+    owner_->monitored_items_.emplace_back(this);
   }
 
   ~MasterMonitoredItem() {
-    auto i = std::find(owner_.monitored_items_.begin(),
-                       owner_.monitored_items_.end(), this);
-    assert(i != owner_.monitored_items_.end());
-    owner_.monitored_items_.erase(i);
+    if (owner_) {
+      auto i = std::ranges::find(owner_->monitored_items_, this);
+      assert(i != owner_->monitored_items_.end());
+      owner_->monitored_items_.erase(i);
+    }
   }
 
   virtual void Subscribe(scada::MonitoredItemHandler handler) override {
     assert(!handler_);
+
+    if (!owner_) {
+      return;
+    }
 
     handler_ = std::move(handler);
 
@@ -33,12 +38,15 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   }
 
   void Reconnect() {
+    assert(owner_);
     assert(handler_.has_value());
-    if (!handler_.has_value())
-      return;
 
-    if (!owner_.connected_) {
-      if (auto* data_change_handler =
+    if (!handler_.has_value()) {
+      return;
+    }
+
+    if (!owner_->connected_) {
+      if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)(
             {scada::StatusCode::Uncertain_Disconnected, base::Time::Now()});
@@ -46,16 +54,17 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       return;
     }
 
-    assert(owner_.services_.monitored_item_service_);
+    assert(owner_->services_.monitored_item_service_);
 
     underlying_item_ =
-        owner_.services_.monitored_item_service_->CreateMonitoredItem(
+        owner_->services_.monitored_item_service_->CreateMonitoredItem(
             read_value_id_, params_);
+
     if (!underlying_item_) {
-      if (auto* data_change_handler =
+      if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)({scada::StatusCode::Bad, base::Time::Now()});
-      } else if (auto* event_handler =
+      } else if (const auto* event_handler =
                      std::get_if<scada::EventHandler>(&*handler_)) {
         (*event_handler)(scada::StatusCode::Bad, {});
       }
@@ -65,8 +74,15 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     underlying_item_->Subscribe(*handler_);
   }
 
+  void Disconnect() {
+    underlying_item_.reset();
+    // TODO: Notify data change?
+  }
+
+  void DestroyOwner() { owner_ = nullptr; }
+
  private:
-  MasterDataServices& owner_;
+  MasterDataServices* owner_ = nullptr;
   const scada::ReadValueId read_value_id_;
   const scada::MonitoringParameters params_;
   std::shared_ptr<scada::MonitoredItem> underlying_item_;
@@ -78,11 +94,27 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 MasterDataServices::MasterDataServices() {}
 
 MasterDataServices::~MasterDataServices() {
-  SetServices({});
+  for (auto* monitored_item : monitored_items_) {
+    monitored_item->DestroyOwner();
+  }
+}
+
+scada::services MasterDataServices::as_services() {
+  return {.attribute_service = this,
+          .monitored_item_service = this,
+          .method_service = this,
+          .history_service = this,
+          .view_service = this,
+          .node_management_service = this,
+          .session_service = this};
 }
 
 void MasterDataServices::SetServices(DataServices&& services) {
   if (connected_) {
+    for (auto* monitored_item : monitored_items_) {
+      monitored_item->Disconnect();
+    }
+
     connected_ = false;
     services_ = {};
 
@@ -105,8 +137,9 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
     session_state_changed_signal_(true, scada::StatusCode::Good);
 
-    for (auto* monitored_item : monitored_items_)
+    for (auto* monitored_item : monitored_items_) {
       monitored_item->Reconnect();
+    }
   }
 }
 
