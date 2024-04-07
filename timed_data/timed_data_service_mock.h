@@ -10,10 +10,10 @@ class MockTimedDataService : public TimedDataService {
   MockTimedDataService() {
     using namespace testing;
 
-    ON_CALL(*this, GetNodeTimedData(_, _))
+    ON_CALL(*this, GetNodeTimedData(/*node_id=*/_, /*aggregation=*/_))
         .WillByDefault(Return(default_timed_data_));
 
-    ON_CALL(*this, GetFormulaTimedData(_, _))
+    ON_CALL(*this, GetFormulaTimedData(/*formula=*/_, /*aggregation=*/_))
         .WillByDefault(Return(default_timed_data_));
   }
 

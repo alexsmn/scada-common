@@ -1,6 +1,8 @@
 #pragma once
 
 #include "timed_data/timed_data.h"
+#include "timed_data/timed_data_observer.h"
+#include "timed_data/timed_data_property.h"
 
 #include <gmock/gmock.h>
 #include <vector>
@@ -9,6 +11,10 @@ class MockTimedData : public TimedData {
  public:
   MockTimedData() {
     using namespace testing;
+
+    ON_CALL(*this, GetDataValue()).WillByDefault(Invoke([&] {
+      return data_value_;
+    }));
 
     ON_CALL(*this, AddObserver(_))
         .WillByDefault(Invoke([this](TimedDataObserver& observer) {
@@ -89,6 +95,17 @@ class MockTimedData : public TimedData {
   TimedDataViewObserver* last_view_observer() {
     return view_observers_.empty() ? nullptr : view_observers_.back();
   }
+
+  void UpdateData(scada::DataValue&& data_value) {
+    data_value_ = std::move(data_value);
+
+    for (TimedDataObserver* obs : observers_) {
+      obs->OnPropertyChanged(
+          PropertySet{TimedDataPropertyID::PROPERTY_CURRENT});
+    }
+  }
+
+  scada::DataValue data_value_;
 
   std::vector<TimedDataObserver*> observers_;
   std::vector<TimedDataViewObserver*> view_observers_;
