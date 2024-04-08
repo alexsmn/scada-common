@@ -3,6 +3,7 @@
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
+#include "scada/status_promise.h"
 
 // MasterDataServices::MasterMonitoredItem
 
@@ -143,7 +144,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-scada::status_promise<void> MasterDataServices::Connect(
+promise<void> MasterDataServices::Connect(
     const scada::SessionConnectParams& params) {
   if (!services_.session_service_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
@@ -152,14 +153,14 @@ scada::status_promise<void> MasterDataServices::Connect(
   return services_.session_service_->Connect(params);
 }
 
-scada::status_promise<void> MasterDataServices::Disconnect() {
+promise<void> MasterDataServices::Disconnect() {
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
   return services_.session_service_->Disconnect();
 }
 
-scada::status_promise<void> MasterDataServices::Reconnect() {
+promise<void> MasterDataServices::Reconnect() {
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 

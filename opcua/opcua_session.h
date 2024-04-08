@@ -4,7 +4,7 @@
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/session_service.h"
-#include "scada/status_promise.h"
+#include "base/promise.h"
 #include "scada/view_service.h"
 
 #include <opcuapp/client/channel.h>
@@ -27,10 +27,10 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
   virtual ~OpcUaSession();
 
   // scada::SessionService
-  virtual scada::status_promise<void> Connect(
+  virtual promise<void> Connect(
       const scada::SessionConnectParams& params) override;
-  virtual scada::status_promise<void> Disconnect() override;
-  virtual scada::status_promise<void> Reconnect() override;
+  virtual promise<void> Disconnect() override;
+  virtual promise<void> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
@@ -103,7 +103,7 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
 
   bool session_created_ = false;
   bool session_activated_ = false;
-  scada::status_promise<void> connect_promise_;
+  promise<void> connect_promise_;
 
   // Created on demand.
   std::shared_ptr<OpcUaSubscription> default_subscription_;

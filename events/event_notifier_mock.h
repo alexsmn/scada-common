@@ -6,7 +6,7 @@
 
 class MockEventNotifier : public EventNotifier {
  public:
-  MOCK_METHOD(scada::status_promise<scada::EventId>,
+  MOCK_METHOD(promise<scada::EventId>,
               NotifyEvent,
               (const scada::Event& event),
               (override));

@@ -1,17 +1,18 @@
 #include "node_service/node_promises.h"
 
 #include "node_service/node_service.h"
+#include "scada/status_promise.h"
 
 #include <queue>
 #include <ranges>
 
-scada::status_promise<void> FetchNode(const NodeRef& node) {
+promise<void> FetchNode(const NodeRef& node) {
   // Optimization to avoid promise allocation.
   if (node.fetched()) {
     return scada::MakeCompletedStatusPromise(node.status());
   }
 
-  scada::status_promise<void> promise;
+  promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeOnly(),
              [promise](const NodeRef& node) mutable {
                scada::CompleteStatusPromise(promise, std::move(node.status()));
@@ -19,12 +20,12 @@ scada::status_promise<void> FetchNode(const NodeRef& node) {
   return promise;
 }
 
-scada::status_promise<void> FetchChildren(const NodeRef& node) {
+promise<void> FetchChildren(const NodeRef& node) {
   if (node.children_fetched()) {
-    return scada::MakeResolvedStatusPromise();
+    return make_resolved_promise();
   }
 
-  scada::status_promise<void> promise;
+  promise<void> promise;
   node.Fetch(NodeFetchStatus::NodeAndChildren(),
              [promise](const NodeRef& node) mutable {
                assert(node.fetched());
@@ -35,8 +36,8 @@ scada::status_promise<void> FetchChildren(const NodeRef& node) {
   return promise;
 }
 
-scada::status_promise<void> FetchRecursive(const NodeRef& node,
-                                           const scada::NodeId& ref_type_id) {
+promise<void> FetchRecursive(const NodeRef& node,
+                             const scada::NodeId& ref_type_id) {
   return FetchChildren(node).then([node, ref_type_id] {
     const auto& targets = node.targets(ref_type_id);
     const auto& target_promises =
@@ -47,7 +48,7 @@ scada::status_promise<void> FetchRecursive(const NodeRef& node,
   });
 }
 
-scada::status_promise<void> FetchTypeSystem(NodeService& node_service) {
+promise<void> FetchTypeSystem(NodeService& node_service) {
   return FetchRecursive(node_service.GetNode(scada::id::TypesFolder),
                         scada::id::HierarchicalReferences);
 }

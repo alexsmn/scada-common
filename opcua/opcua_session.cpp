@@ -3,6 +3,7 @@
 #include "base/executor.h"
 #include "opcua/opcua_conversion.h"
 #include "opcua_subscription.h"
+#include "scada/status_promise.h"
 
 namespace {
 
@@ -41,9 +42,8 @@ OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
 
 OpcUaSession::~OpcUaSession() {}
 
-scada::status_promise<void> OpcUaSession::Connect(
-    const scada::SessionConnectParams& params) {
-  connect_promise_ = scada::status_promise<void>{};
+promise<void> OpcUaSession::Connect(const scada::SessionConnectParams& params) {
+  connect_promise_ = promise<void>{};
 
   // TODO: Move to general layer.
   OpcUa_Trace_Initialize();
@@ -71,11 +71,11 @@ scada::status_promise<void> OpcUaSession::Connect(
   return connect_promise_;
 }
 
-scada::status_promise<void> OpcUaSession::Reconnect() {
-  return scada::MakeResolvedStatusPromise();
+promise<void> OpcUaSession::Reconnect() {
+  return make_resolved_promise();
 }
 
-scada::status_promise<void> OpcUaSession::Disconnect() {
+promise<void> OpcUaSession::Disconnect() {
   return scada::MakeRejectedStatusPromise(scada::StatusCode::Bad);
 }
 
@@ -102,10 +102,9 @@ boost::signals2::scoped_connection OpcUaSession::SubscribeSessionStateChanged(
   return boost::signals2::scoped_connection{};
 }
 
-void OpcUaSession::Browse(
-    const scada::ServiceContext& context,
-    const std::vector<scada::BrowseDescription>& nodes,
-    const scada::BrowseCallback& callback) {
+void OpcUaSession::Browse(const scada::ServiceContext& context,
+                          const std::vector<scada::BrowseDescription>& nodes,
+                          const scada::BrowseCallback& callback) {
   auto ua_nodes =
       ConvertVector<OpcUa_BrowseDescription>(nodes.begin(), nodes.end());
   auto size = ua_nodes.size();
@@ -221,7 +220,7 @@ void OpcUaSession::Reset() {
   channel_.Reset();
   session_created_ = false;
   session_activated_ = false;
-  connect_promise_ = scada::status_promise<void>{};
+  connect_promise_ = promise<void>{};
 }
 
 void OpcUaSession::OnConnectionStateChanged(opcua::StatusCode status_code,

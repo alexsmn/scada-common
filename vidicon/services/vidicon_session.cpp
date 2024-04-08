@@ -5,6 +5,7 @@
 #include "scada/date_time.h"
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
+#include "scada/status_promise.h"
 #include "vidicon/services/vidicon_monitored_data_point.h"
 #include "vidicon/services/vidicon_monitored_events.h"
 
@@ -28,24 +29,24 @@ VidiconSession::VidiconSession()
 
 VidiconSession::~VidiconSession() {}
 
-scada::status_promise<void> VidiconSession::Connect(
+promise<void> VidiconSession::Connect(
     const scada::SessionConnectParams& params) {
   teleclient_ = CreateTeleClient();
   if (!teleclient_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad);
   }
 
-  return scada::MakeResolvedStatusPromise();
+  return make_resolved_promise();
 }
 
-scada::status_promise<void> VidiconSession::Reconnect() {
-  return scada::MakeResolvedStatusPromise();
+promise<void> VidiconSession::Reconnect() {
+  return make_resolved_promise();
 }
 
-scada::status_promise<void> VidiconSession::Disconnect() {
+promise<void> VidiconSession::Disconnect() {
   teleclient_.Reset();
 
-  return scada::MakeResolvedStatusPromise();
+  return make_resolved_promise();
 }
 
 bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {
@@ -153,10 +154,9 @@ void VidiconSession::DeleteReferences(
   callback(scada::StatusCode::Bad, {});
 }
 
-void VidiconSession::Browse(
-    const scada::ServiceContext& context,
-    const std::vector<scada::BrowseDescription>& inputs,
-    const scada::BrowseCallback& callback) {
+void VidiconSession::Browse(const scada::ServiceContext& context,
+                            const std::vector<scada::BrowseDescription>& inputs,
+                            const scada::BrowseCallback& callback) {
   view_service_.Browse(context, inputs, callback);
 }
 

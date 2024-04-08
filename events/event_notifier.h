@@ -1,7 +1,7 @@
 #pragma once
 
 #include "scada/event.h"
-#include "scada/status_promise.h"
+#include "base/promise.h"
 
 // Events are delivered following the `EventNotifier` hierarchy starting from
 // the event node.
@@ -10,7 +10,7 @@ class EventNotifier {
   virtual ~EventNotifier() {}
 
   // TODO: Introduce batch interface. See `EventProducer` for reasoning.
-  virtual scada::status_promise<scada::EventId> NotifyEvent(
+  virtual promise<scada::EventId> NotifyEvent(
       const scada::Event& event) = 0;
 
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;
