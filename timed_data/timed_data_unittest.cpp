@@ -53,51 +53,97 @@ class TimedDataTest : public Test {
   const std::shared_ptr<scada::VariableHandle> node_value_variable_ =
       std::make_shared<scada::VariableHandle>();
 
-  inline static const scada::NodeId node_id{1, NamespaceIndexes::TS};
-  inline static const scada::NodeId ts_format_id{1,
-                                                 NamespaceIndexes::TS_FORMAT};
-  inline static const scada::LocalizedText close_label = u"Active";
+  StrictMock<MockFunction<void(const PropertySet& properties)>>
+      property_change_handler_;
+
+  inline static const scada::NodeId kDataItemId{1, NamespaceIndexes::TS};
+  inline static const std::string_view kDataItemAlias = "Alias";
+
+  inline static const scada::NodeId kTsFormatId{1, NamespaceIndexes::TS_FORMAT};
+  inline static const scada::LocalizedText kFormatCloseLabel = u"Active";
 };
 
 TimedDataTest::TimedDataTest() {
   node_service_.AddAll(GetScadaNodeStates());
 
-  node_service_.Add(
-      {.node_id = ts_format_id,
-       .type_definition_id = data_items::id::TsFormatType,
-       .properties = {{data_items::id::TsFormatType_CloseLabel, close_label}}});
+  node_service_.Add({.node_id = kTsFormatId,
+                     .type_definition_id = data_items::id::TsFormatType,
+                     .properties = {{data_items::id::TsFormatType_CloseLabel,
+                                     kFormatCloseLabel}}});
 
   node_service_.Add(
-      {.node_id = node_id,
+      {.node_id = kDataItemId,
        .node_class = scada::NodeClass::Variable,
        .type_definition_id = data_items::id::DiscreteItemType,
+       .properties = {{data_items::id::DataItemType_Alias,
+                       scada::String{kDataItemAlias}}},
        .references = {{.reference_type_id = data_items::id::HasTsFormat,
-                       .node_id = ts_format_id}}});
-
-  ON_CALL(monitored_item_service_, CreateMonitoredItem(_, _))
-      .WillByDefault(Return(nullptr));
+                       .node_id = kTsFormatId}}});
 
   ON_CALL(monitored_item_service_,
-          CreateMonitoredItem(FieldsAre(node_id, scada::AttributeId::Value), _))
+          CreateMonitoredItem(/*read_value_id=*/_, /*params=*/_))
+      .WillByDefault(Return(nullptr));
+
+  ON_CALL(
+      monitored_item_service_,
+      CreateMonitoredItem(FieldsAre(kDataItemId, scada::AttributeId::Value), _))
       .WillByDefault(
           Return(scada::CreateMonitoredVariable(node_value_variable_)));
 }
 
-TEST_F(TimedDataTest, TsFormat) {
+TEST_F(TimedDataTest, NodeTsFormat) {
   node_value_variable_->ForwardData(scada::MakeReadResult(true));
 
-  TimedDataSpec spec{service_, node_id};
+  TimedDataSpec spec{service_, kDataItemId};
 
-  EXPECT_EQ(spec.GetCurrentString(), close_label);
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
+}
+
+TEST_F(TimedDataTest, AliasTsFormat) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(true));
+
+  EXPECT_CALL(alias_resolver_, Call(kDataItemAlias, /*callback=*/_))
+      .WillOnce(InvokeArgument<1>(scada::StatusCode::Good, kDataItemId));
+
+  TimedDataSpec spec{service_, kDataItemAlias};
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
+}
+
+TEST_F(TimedDataTest, AliasValueUpdatesAfterAliasResolution) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(111));
+
+  AliasResolveCallback alias_resolve_callback;
+
+  EXPECT_CALL(alias_resolver_, Call(kDataItemAlias, /*callback=*/_))
+      .WillOnce(SaveArg<1>(&alias_resolve_callback));
+
+  TimedDataSpec spec{service_, kDataItemAlias};
+  spec.property_change_handler = property_change_handler_.AsStdFunction();
+
+  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).WillOnce(Invoke([&] {
+    EXPECT_EQ(spec.current().value, 111);
+  }));
+
+  alias_resolve_callback(scada::StatusCode::Good, kDataItemId);
+
+  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).WillOnce(Invoke([&] {
+    EXPECT_EQ(spec.current().value, 222);
+  }));
+
+  node_value_variable_->ForwardData(scada::MakeReadResult(222));
 }
 
 TEST_F(TimedDataTest, ExpressionVariableDeletes) {
   node_value_variable_->ForwardData(scada::MakeReadResult(123));
 
-  const auto formula = std::format("{} + 55", NodeIdToScadaString(node_id));
+  const auto formula = std::format("{} + 55", NodeIdToScadaString(kDataItemId));
 
   TimedDataSpec spec{service_, formula};
 
+  EXPECT_TRUE(spec.connected());
   EXPECT_EQ(spec.current().value, 123 + 55);
   EXPECT_TRUE(spec.current().qualifier.good());
 

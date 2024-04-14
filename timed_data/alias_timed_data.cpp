@@ -14,10 +14,11 @@ void AliasTimedData::SetForwarded(std::shared_ptr<TimedData> timed_data) {
 
   data_ = timed_data;
 
-  for (auto [observer, range] : deferred->view_observers)
-    timed_data->AddViewObserver(*observer, range);
+  for (auto [view_observer, range] : deferred->view_observers)
+    timed_data->AddViewObserver(*view_observer, range);
 
   for (auto* observer : deferred->observers) {
+    timed_data->AddObserver(*observer);
     observer->OnPropertyChanged(
         PropertySet{PROPERTY_TITLE | PROPERTY_ITEM | PROPERTY_CURRENT});
     observer->OnTimedDataNodeModified();
