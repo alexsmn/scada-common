@@ -36,7 +36,7 @@ class BasicTimedDataView final {
   const std::vector<T>& values() const { return values_; }
 
   // Returns a pointer instead of an optional for performance reasons.
-  const T* GetValueAt(const scada::DateTime& time) const;
+  const T* GetValueAt(scada::DateTime time) const;
 
   // Returns false if no change was applied. That means there is another value
   // for the same timestamp with earlier server timestamp.
@@ -79,7 +79,8 @@ class BasicTimedDataView final {
  private:
   void UpdateObservedRanges();
 
-  inline static constexpr scada::DateTime timestamp(const T& value) {
+  // For convenience.
+  static constexpr scada::DateTime timestamp(const T& value) {
     return TimedDataTraits<T>::timestamp(value);
   }
 
@@ -98,19 +99,8 @@ class BasicTimedDataView final {
 };
 
 template <typename T>
-inline const T* BasicTimedDataView<T>::GetValueAt(
-    const scada::DateTime& time) const {
-  auto i = LowerBound(values_, time);
-
-  if (i != values_.size() && timestamp(values_[i]) == time) {
-    return &values_[i];
-  }
-
-  if (i == 0) {
-    return nullptr;
-  }
-
-  return &values_[i - 1];
+inline const T* BasicTimedDataView<T>::GetValueAt(scada::DateTime time) const {
+  return ::GetValueAt(std::span{values_}, time);
 }
 
 template <typename T>

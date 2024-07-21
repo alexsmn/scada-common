@@ -12,10 +12,10 @@ struct TimedDataTraits;
 
 // Checks if the `values` are sorted with no duplicates.
 template <class T>
-inline bool IsTimeSorted(std::span<const T> values) {
-  return std::ranges::adjacent_find(values, std::greater_equal{},
-                                    &TimedDataTraits<T>::timestamp) ==
-         values.end();
+inline bool IsTimeSorted(std::span<T> values) {
+  return std::ranges::adjacent_find(
+             values, std::greater_equal{},
+             &TimedDataTraits<std::decay_t<T>>::timestamp) == values.end();
 }
 
 // An overload for `std::vector`.
@@ -26,12 +26,12 @@ inline bool IsTimeSorted(const std::vector<T>& values) {
 
 // Checks if the `values` are sorted in reverse order with no duplicates.
 template <class T>
-inline bool IsReverseTimeSorted(std::span<const T> values) {
-  return std::adjacent_find(values.rbegin(), values.rend(),
-                            [](const T& a, const T& b) {
-                              return TimedDataTraits<T>::timestamp(a) >=
-                                     TimedDataTraits<T>::timestamp(b);
-                            }) == values.rend();
+inline bool IsReverseTimeSorted(std::span<T> values) {
+  return std::adjacent_find(
+             values.rbegin(), values.rend(), [](const T& a, const T& b) {
+               return TimedDataTraits<std::decay_t<T>>::timestamp(a) >=
+                      TimedDataTraits<std::decay_t<T>>::timestamp(b);
+             }) == values.rend();
 }
 
 // An overload for `std::vector`.
@@ -41,10 +41,10 @@ inline bool IsReverseTimeSorted(const std::vector<T>& values) {
 }
 
 template <class T>
-inline std::size_t LowerBound(std::span<const T> values, scada::DateTime time) {
+inline std::size_t LowerBound(std::span<T> values, scada::DateTime time) {
   assert(IsTimeSorted(values));
-  auto i = std::ranges::lower_bound(values, time, std::less{},
-                                    &TimedDataTraits<T>::timestamp);
+  auto i = std::ranges::lower_bound(
+      values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
 }
 
@@ -56,10 +56,10 @@ inline std::size_t LowerBound(const std::vector<T>& values,
 }
 
 template <class T>
-inline std::size_t UpperBound(std::span<const T> values, scada::DateTime time) {
+inline std::size_t UpperBound(std::span<T> values, scada::DateTime time) {
   assert(IsTimeSorted(values));
-  auto i = std::ranges::upper_bound(values, time, std::less{},
-                                    &TimedDataTraits<T>::timestamp);
+  auto i = std::ranges::upper_bound(
+      values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
 }
 
@@ -68,6 +68,22 @@ template <class T>
 inline std::size_t UpperBound(const std::vector<T>& values,
                               scada::DateTime time) {
   return UpperBound(std::span{values}, time);
+}
+
+template <class T>
+inline T* GetValueAt(std::span<T> values, scada::DateTime time) {
+  auto i = LowerBound(values, time);
+
+  if (i != values.size() &&
+      TimedDataTraits<std::decay_t<T>>::timestamp(values[i]) == time) {
+    return &values[i];
+  }
+
+  if (i == 0) {
+    return nullptr;
+  }
+
+  return &values[i - 1];
 }
 
 template <class T>
