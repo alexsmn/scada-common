@@ -1,3 +1,5 @@
+find_package(ScadaCore REQUIRED)
+
 # OPC-UA
 # TODO: Create opcua CMake package.
 set(OPENSSL_ROOT_DIR "${deps}/openssl")
