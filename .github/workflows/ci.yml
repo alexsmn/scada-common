@@ -33,11 +33,12 @@ jobs:
         with:
           repository: alexsmn/scada-core
           path: core
+          ref: release/2.5
 
       - name: Checkout third-party dependencies
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/alexsmn/transport.git third_party/net
+          git clone --depth 1 --branch release/2.5 https://github.com/alexsmn/transport.git third_party/net
           git clone --depth 1 https://github.com/alexsmn/chromebase.git third_party/chromebase
           git clone --depth 1 https://github.com/alexsmn/promise.hpp.git third_party/promise.hpp
           git clone --depth 1 https://github.com/alexsmn/express.git third_party/express
@@ -67,7 +68,7 @@ jobs:
         working-directory: common
         run: |
           cmake -B build -G "Ninja Multi-Config" \
-            -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_TOOLCHAIN_FILE="${RUNVCPKG_VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
             -DBUILD_OPC=OFF \
             -DBUILD_VIDICON=OFF \
