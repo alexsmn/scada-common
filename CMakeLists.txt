@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.27)
 project(scada-common VERSION 2.5.7 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,8 +19,11 @@ endif()
 
 enable_testing()
 
+# Skip linting for third-party dependencies.
+set(CMAKE_SKIP_LINTING ON)
 find_package(ScadaCore REQUIRED)
 find_package(Express REQUIRED)
+set(CMAKE_SKIP_LINTING OFF)
 
 add_subdirectory(common)
 add_subdirectory(events)
