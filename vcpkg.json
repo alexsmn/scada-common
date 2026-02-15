@@ -17,6 +17,7 @@
     "grpc",
     "gtest",
     "icu",
+    "openssl",
     "protobuf",
     "pugixml"
   ]

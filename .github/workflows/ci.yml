@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "release/*"]
+  pull_request:
+    branches: [main, master, "release/*"]
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+          - os: windows-latest
+            triplet: x64-windows
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout dependencies
+        uses: actions/checkout@v4
+        with:
+          repository: alexsmn/scada-core
+          path: ../core
+          ref: ${{ github.ref_name }}
+
+      - name: Checkout third-party dependencies
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/alexsmn/transport.git ../third_party/net
+          git clone --depth 1 https://github.com/alexsmn/chromebase.git ../third_party/chromebase
+          git clone --depth 1 https://github.com/alexsmn/promise.hpp.git ../third_party/promise.hpp
+          git clone --depth 1 https://github.com/alexsmn/express.git ../third_party/express
+          git clone --depth 1 https://github.com/alexsmn/opcuapp.git ../third_party/opcuapp
+          git clone --depth 1 https://github.com/alexsmn/UA-AnsiC.git ../third_party/UA-AnsiC
+
+      - name: Export GitHub Actions cache variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: "01f602195983451bc83e72f4214af2cbc495aa94"
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          cmake -B build -G "Ninja Multi-Config" \
+            -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+            -DBUILD_OPC=OFF \
+            -DBUILD_VIDICON=OFF \
+            -DCMAKE_MODULE_PATH="$(cd .. && pwd)/core;$(cd .. && pwd)/third_party/net;$(cd .. && pwd)/third_party/chromebase;$(cd .. && pwd)/third_party/express;$(cd .. && pwd)/third_party/opcuapp;$(cd .. && pwd)/third_party/promise.hpp"
+
+      - name: Build
+        run: cmake --build build --config Debug
+
+      - name: Test
+        run: ctest --test-dir build --build-config Debug --output-on-failure

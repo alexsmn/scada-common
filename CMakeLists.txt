@@ -29,7 +29,13 @@ add_subdirectory(opcua)
 add_subdirectory(timed_data)
 add_subdirectory(node_service)
 
-if(WIN32)
+option(BUILD_OPC "Build Classic OPC modules (Windows only)" ON)
+option(BUILD_VIDICON "Build Vidicon modules (Windows only)" ON)
+
+if(WIN32 AND BUILD_OPC)
   add_subdirectory(opc)
+endif()
+
+if(WIN32 AND BUILD_VIDICON)
   add_subdirectory(vidicon)
 endif()
