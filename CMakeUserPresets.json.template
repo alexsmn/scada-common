@@ -18,6 +18,9 @@
         "LIBPATH": "<VS>/VC/Tools/MSVC/<vc-ver>/ATLMFC/lib/x86;<VS>/VC/Tools/MSVC/<vc-ver>/lib/x86"
       },
       "cacheVariables": {
+        "CMAKE_C_COMPILER_LAUNCHER": "<CCACHE>",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "<CCACHE>",
+        "CMAKE_CXX_CPPCHECK": "<CPPCHECK>;--enable=warning,performance,portability;--inline-suppr;--suppressions-list=${sourceDir}/.cppcheck-suppressions;--library=googletest;--std=c++20;--error-exitcode=1;--file-filter=${sourceDir}/*",
         "VCPKG_TARGET_TRIPLET": "x86-windows",
         "VCPKG_MANIFEST_MODE": "OFF",
         "CMAKE_PREFIX_PATH": "<VCPKG_ROOT>/installed/x86-windows",

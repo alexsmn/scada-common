@@ -3,6 +3,7 @@
   "name": "scada-common",
   "version-string": "2.5.7",
   "description": "Telecontrol SCADA - Shared libraries for client and server",
+  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
   "dependencies": [
     "abseil",
     "boost-asio",
@@ -17,6 +18,7 @@
     "grpc",
     "gtest",
     "icu",
+    "openssl",
     "protobuf",
     "pugixml"
   ]
