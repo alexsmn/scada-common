@@ -19,6 +19,8 @@ jobs:
             triplet: x64-linux
           - os: windows-latest
             triplet: x64-windows
+          - os: windows-latest
+            triplet: x86-windows
 
     runs-on: ${{ matrix.os }}
 
@@ -52,7 +54,13 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: "01f602195983451bc83e72f4214af2cbc495aa94"
+          vcpkgGitCommitId: "84bab45d415d22042bd0b9081aea57f362da3f35"
+
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.triplet == 'x86-windows' && 'x86' || 'x64' }}
 
       - name: Configure CMake
         shell: bash
