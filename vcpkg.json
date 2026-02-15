@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "scada-common",
+  "version-string": "2.5.7",
+  "description": "Telecontrol SCADA - Shared libraries for client and server",
+  "dependencies": [
+    "abseil",
+    "boost-asio",
+    "boost-circular-buffer",
+    "boost-endian",
+    "boost-json",
+    "boost-locale",
+    "boost-log",
+    "boost-signals2",
+    "boost-system",
+    "boost-uuid",
+    "grpc",
+    "gtest",
+    "icu",
+    "protobuf",
+    "pugixml"
+  ]
+}

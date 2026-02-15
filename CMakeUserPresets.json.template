@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "ninja-dev",
+      "displayName": "Ninja Multi-Config (Dev)",
+      "inherits": "ninja",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      },
+      "environment": {
+        "VCPKG_ROOT": "<VCPKG_ROOT>",
+        "THIRD_PARTY": "<THIRD_PARTY>",
+        "PATH": "<VS>/VC/Tools/MSVC/<vc-ver>/bin/Hostx64/x86;<WIN_SDK_BIN>/x86;$penv{PATH}",
+        "INCLUDE": "<VS>/VC/Tools/MSVC/<vc-ver>/include;<VS>/VC/Tools/MSVC/<vc-ver>/ATLMFC/include;<VS>/VC/Auxiliary/VS/include;<WIN_SDK_INCLUDE>/ucrt;<WIN_SDK_INCLUDE>/um;<WIN_SDK_INCLUDE>/shared;<WIN_SDK_INCLUDE>/winrt;<WIN_SDK_INCLUDE>/cppwinrt",
+        "LIB": "<VS>/VC/Tools/MSVC/<vc-ver>/ATLMFC/lib/x86;<VS>/VC/Tools/MSVC/<vc-ver>/lib/x86;<WIN_SDK_LIB>/ucrt/x86;<WIN_SDK_LIB>/um/x86",
+        "LIBPATH": "<VS>/VC/Tools/MSVC/<vc-ver>/ATLMFC/lib/x86;<VS>/VC/Tools/MSVC/<vc-ver>/lib/x86"
+      },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x86-windows",
+        "VCPKG_MANIFEST_MODE": "OFF",
+        "CMAKE_PREFIX_PATH": "<VCPKG_ROOT>/installed/x86-windows",
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded",
+        "OPENSSL_ROOT_DIR": "$env{THIRD_PARTY}/openssl",
+        "OPCUA_ROOT_DIR": "$env{THIRD_PARTY}/UA-AnsiC",
+        "OPCUAPP_DIR": "$env{THIRD_PARTY}/opcuapp",
+        "OPCUA_DIR": "$env{THIRD_PARTY}/opcuapp",
+        "CMAKE_MODULE_PATH": "${sourceDir};${sourceDir}/../core;${sourceDir}/../third_party/net;$env{THIRD_PARTY}/chromebase;$env{THIRD_PARTY}/express;$env{THIRD_PARTY}/opc_client;$env{THIRD_PARTY}/OPCFoundation;$env{THIRD_PARTY}/midl;$env{THIRD_PARTY}/promise.hpp"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-dev",
+      "displayName": "Debug (Dev)",
+      "configurePreset": "ninja-dev",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release-dev",
+      "displayName": "RelWithDebInfo (Dev)",
+      "configurePreset": "ninja-dev",
+      "configuration": "RelWithDebInfo"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-release-dev",
+      "displayName": "Test RelWithDebInfo (Dev)",
+      "configurePreset": "ninja-dev",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "test-debug-dev",
+      "displayName": "Test Debug (Dev)",
+      "configurePreset": "ninja-dev",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
