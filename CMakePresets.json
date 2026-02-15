@@ -1,0 +1,22 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "ninja",
+      "displayName": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja Multi-Config",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "BUILD_NUMBER": "0",
+        "OUTPUT_DIR": "build/${presetName}/bin",
+        "CMAKE_MODULE_PATH": "${sourceDir};$env{THIRD_PARTY}/express;$env{THIRD_PARTY}/opc_client;$env{THIRD_PARTY}/OPCFoundation;$env{THIRD_PARTY}/midl;$env{THIRD_PARTY}/opcuapp;$env{THIRD_PARTY}/net;$env{THIRD_PARTY}/chromebase;$env{THIRD_PARTY}/promise.hpp"
+      }
+    }
+  ]
+}
