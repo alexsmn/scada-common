@@ -56,8 +56,8 @@ class EventAckQueue : private EventAckQueueContext {
 
 inline void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
-    logger_->WriteF(LogSeverity::Normal, "Event %d acknowledged",
-                    static_cast<int>(acknowledge_id));
+    logger_->WriteF(LogSeverity::Normal, "Event {} acknowledged",
+                    acknowledge_id);
     PostAckPendingEvents();
   }
 }
@@ -91,8 +91,8 @@ inline void EventAckQueue::AckPendingEvents() {
   }
 
   if (!event_ids.empty()) {
-    logger_->WriteF(LogSeverity::Normal, "Acknowledge events %s",
-                    ToString(event_ids).c_str());
+    logger_->WriteF(LogSeverity::Normal, "Acknowledge events {}",
+                    ToString(event_ids));
     method_service_.Call(scada::id::Server,
                          scada::id::AcknowledgeableConditionType_Acknowledge,
                          {event_ids, scada::DateTime::Now()}, user_id_,
