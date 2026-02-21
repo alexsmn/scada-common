@@ -5,7 +5,6 @@
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
 #include "address_space/variable.h"
-#include "base/strings/utf_string_conversions.h"
 #include "base/test/test_executor.h"
 #include "scada/event.h"
 #include "scada/monitored_item_service_mock.h"

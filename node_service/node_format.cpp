@@ -7,7 +7,7 @@
 #include "base/strings/sys_string_conversions.h"
 
 #include <format>
-#include "base/strings/utf_string_conversions.h"
+#include "base/utf_convert.h"
 #include "common/format.h"
 #include "scada/tvq.h"
 #include "model/data_items_node_ids.h"
@@ -110,12 +110,12 @@ std::u16string FormatTitValue(const NodeRef& node,
   double double_value;
   if (value.get(double_value)) {
     auto format_params = GetTitFormatParams(node);
-    text = base::WideToUTF16(base::SysNativeMBToWide(
+    text = UtfConvert<char16_t>(base::SysNativeMBToWide(
         FormatFloat(double_value, format_params.display_format.c_str())));
     if ((flags & FORMAT_UNITS) && !format_params.engineering_units.empty()) {
       text += u' ';
       if (flags & FORMAT_COLOR)
-        text += base::WideToUTF16(base::SysNativeMBToWide(
+        text += UtfConvert<char16_t>(base::SysNativeMBToWide(
             std::format("&color:{};", 0x7f7f7f)));
       text += format_params.engineering_units;
     }

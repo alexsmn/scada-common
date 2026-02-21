@@ -5,7 +5,7 @@
 #include "model/nested_node_ids.h"
 #include "model/opc_node_ids.h"
 
-#include <boost/locale/encoding_utf.hpp>
+#include "base/utf_convert.h"
 #include <opc_client/core/address.h>
 
 namespace opc {
@@ -23,7 +23,7 @@ std::optional<opc_client::Address> ParseOpcNodeId(
   }
 
   return opc_client::Address::Parse(
-      boost::locale::conv::utf_to_utf<wchar_t>(node_id.string_id()));
+      UtfConvert<wchar_t>(node_id.string_id()));
 }
 
 scada::NodeId MakeOpcNodeId(opc_client::AddressView address) {

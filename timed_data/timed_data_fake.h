@@ -5,14 +5,14 @@
 #include "scada/data_value.h"
 #include "timed_data/timed_data.h"
 
-#include <boost/locale/encoding_utf.hpp>
+#include "base/utf_convert.h"
 
 class FakeTimedData : public TimedData {
  public:
   FakeTimedData() = default;
   explicit FakeTimedData(const std::string& formula)
       : formula{formula},
-        title{boost::locale::conv::utf_to_utf<char16_t>(formula)} {}
+        title{UtfConvert<char16_t>(formula)} {}
 
   const std::vector<scada::DateTimeRange>& GetReadyRanges() const override {
     return ready_ranges;

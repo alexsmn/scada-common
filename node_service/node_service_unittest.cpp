@@ -5,7 +5,6 @@
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
-#include "base/strings/utf_string_conversions.h"
 #include "base/test/test_executor.h"
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"

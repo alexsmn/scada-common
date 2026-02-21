@@ -3,7 +3,7 @@
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/strings/sys_string_conversions.h"
-#include "base/strings/utf_string_conversions.h"
+#include "base/utf_convert.h"
 #include "base/third_party/dmg_fp/dmg_fp.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
@@ -172,7 +172,7 @@ bool StringToValue(std::u16string_view str,
     return true;
   }
 
-  return StringToValue(base::UTF16ToUTF8(str), data_type, value);
+  return StringToValue(UtfConvert<char>(str), data_type, value);
 }
 
 scada::LocalizedText FormatTs(bool bool_value, const TsFormatParams& params) {
@@ -188,7 +188,7 @@ scada::LocalizedText FormatTit(double double_value,
                                const TitFormatParams& params) {
   std::u16string text;
 
-  text = base::ASCIIToUTF16(
+  text = UtfConvert<char16_t>(
       FormatFloat(double_value, params.display_format.c_str()));
 
   if (!params.engineering_units.empty()) {

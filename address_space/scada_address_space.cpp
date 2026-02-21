@@ -7,7 +7,6 @@
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "base/strings/utf_string_conversions.h"
 #include "common/node_state.h"
 #include "scada/privileges.h"
 #include "model/data_items_node_ids.h"

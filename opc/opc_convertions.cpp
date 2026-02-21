@@ -2,7 +2,7 @@
 
 #include "opc/variant_converter.h"
 
-#include <boost/locale/encoding_utf.hpp>
+#include "base/utf_convert.h"
 #include <opc_client/core/conversion.h>
 #include <opcda.h>
 #include <opcerror.h>
@@ -16,8 +16,7 @@ inline scada::DateTime ToDateTime(FILETIME timestamp) {
 }
 
 inline std::string ToString(std::wstring_view str) {
-  return boost::locale::conv::utf_to_utf<char>(str.data(),
-                                               str.data() + str.size());
+  return UtfConvert<char>(str);
 }
 
 inline scada::Qualifier ConvertBadQuality(opc_client::Quality quality) {

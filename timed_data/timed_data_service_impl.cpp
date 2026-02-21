@@ -1,7 +1,7 @@
 #include "timed_data/timed_data_service_impl.h"
 
 #include "base/strings/sys_string_conversions.h"
-#include "base/strings/utf_string_conversions.h"
+#include "base/utf_convert.h"
 #include "common/format.h"
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
@@ -38,7 +38,7 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
   } catch (const std::exception& e) {
     return std::make_shared<ErrorTimedData>(
         std::string{formula},
-        base::WideToUTF16(base::SysNativeMBToWide(e.what())));
+        UtfConvert<char16_t>(base::SysNativeMBToWide(e.what())));
   }
 
   std::shared_ptr<TimedData> data;
