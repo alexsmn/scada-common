@@ -1,7 +1,8 @@
 #include "vidicon/services/vidicon_session.h"
 
-#include "base/strings/stringprintf.h"
 #include "base/win/scoped_bstr.h"
+
+#include <format>
 #include "scada/date_time.h"
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
@@ -92,7 +93,7 @@ std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
     if (read_value_id.node_id.type() != scada::NodeIdType::Numeric)
       return nullptr;
     auto address =
-        base::StringPrintf(L"CF:%d", read_value_id.node_id.numeric_id());
+        std::format(L"CF:{}", read_value_id.node_id.numeric_id());
     Microsoft::WRL::ComPtr<IDataPoint> point;
     teleclient_->RequestPoint(base::win::ScopedBstr(address),
                               point.GetAddressOf());

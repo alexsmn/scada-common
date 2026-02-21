@@ -1,8 +1,9 @@
 #pragma once
 
-#include "base/strings/stringprintf.h"
 #include "base/format_time.h"
 #include "scada/data_value.h"
+
+#include <format>
 
 inline std::string Format(scada::Qualifier qualifier) {
   std::string str;
@@ -30,8 +31,8 @@ inline std::string Format(scada::Qualifier qualifier) {
 }
 
 inline std::string Format(const scada::DataValue& value) {
-  return base::StringPrintf("value={%s}, qualifier={%s}, time={%s}, collection_time={%s}",
-      ToString(value.value).c_str(), Format(value.qualifier).c_str(),
-      FormatTime(value.source_timestamp).c_str(),
-      FormatTime(value.server_timestamp).c_str());
+  return std::format("value={{{}}}, qualifier={{{}}}, time={{{}}}, collection_time={{{}}}",
+      ToString(value.value), Format(value.qualifier),
+      FormatTime(value.source_timestamp),
+      FormatTime(value.server_timestamp));
 }

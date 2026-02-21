@@ -5,8 +5,9 @@
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/strings/string_util.h"
-#include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+
+#include <format>
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"
 #include "scada/tvq.h"
@@ -116,7 +117,7 @@ std::u16string FormatTitValue(const NodeRef& node,
       text += u' ';
       if (flags & FORMAT_COLOR)
         text += base::WideToUTF16(base::SysNativeMBToWide(
-            base::StringPrintf("&color:%d;", 0x7f7f7f)));
+            std::format("&color:{};", 0x7f7f7f)));
       text += format_params.engineering_units;
     }
   }

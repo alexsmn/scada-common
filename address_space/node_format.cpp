@@ -2,8 +2,9 @@
 
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+
+#include <format>
 #include "base/strings/utf_string_conversions.h"
 #include "model/data_items_node_ids.h"
 #include "model/scada_node_ids.h"
@@ -85,7 +86,7 @@ std::u16string FormatAnalogValue(const String& display_format,
       text += L' ';
       if (flags & FORMAT_COLOR)
         text += base::WideToUTF16(base::SysNativeMBToWide(
-            base::StringPrintf("&color:%d;", 0x7f7f7f)));
+            std::format("&color:{};", 0x7f7f7f)));
       text += eu_units;
     }
   }
