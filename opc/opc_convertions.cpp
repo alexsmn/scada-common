@@ -1,6 +1,5 @@
 #include "opc/opc_convertions.h"
 
-#include "base/strings/string_util.h"
 #include "opc/variant_converter.h"
 
 #include <boost/locale/encoding_utf.hpp>

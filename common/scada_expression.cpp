@@ -1,6 +1,5 @@
 ﻿#include "common/scada_expression.h"
 
-#include "base/strings/string_util.h"
 #include "express/express.h"
 #include "express/function.h"
 #include "express/lexer.h"

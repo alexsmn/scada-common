@@ -1,6 +1,5 @@
 #include "scada/data_services_factory.h"
 
-#include "base/strings/string_util.h"
 #include "vidicon/services/vidicon_session.h"
 
 #include <TeleClient_i.c>

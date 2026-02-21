@@ -11,7 +11,6 @@
 #include "base/range_util.h"
 #include "base/string_util.h"
 #include "base/strings/strcat.h"
-#include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "common/format.h"

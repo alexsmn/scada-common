@@ -1,6 +1,6 @@
 #include "opc/variant_converter.h"
 
-#include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 
 namespace opc {
 
@@ -74,7 +74,7 @@ std::optional<scada::Variant> ConvertScalarToScada(const VARIANT& value) {
       return scada::Variant{static_cast<scada::Double>(value.dblVal)};
     case VT_BSTR:
       return scada::Variant{
-          scada::LocalizedText{base::AsString16(value.bstrVal)}};
+          scada::LocalizedText{base::WideToUTF16(value.bstrVal)}};
     default:
       assert(false);
       return std::nullopt;
