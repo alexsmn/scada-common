@@ -1,6 +1,7 @@
 #include "opcua_server.h"
 
 #include "base/promise.h"
+#include "base/span_util.h"
 #include "opcua/opcua_conversion.h"
 #include "scada/attribute_service.h"
 #include "scada/event_util.h"
@@ -15,6 +16,7 @@
 #include <algorithm>
 #include <atomic>
 #include <boost/range/adaptor/transformed.hpp>
+#include <span>
 #include <chrono>
 #include <opcuapp/data_value.h>
 #include <opcuapp/requests.h>
@@ -423,7 +425,8 @@ void OpcUaServer::TranslateBrowsePaths(
 void OpcUaServer::Call(OpcUa_CallRequest& request,
                        const opcua::server::CallCallback& callback) {
   auto promises =
-      base::make_span(request.MethodsToCall, request.NoOfMethodsToCall) |
+      AsRange(std::span{request.MethodsToCall,
+                        static_cast<size_t>(request.NoOfMethodsToCall)}) |
       boost::adaptors::transformed([&](const OpcUa_CallMethodRequest& method) {
         return ::Call(method_service_, Convert(method.ObjectId),
                       Convert(method.MethodId),

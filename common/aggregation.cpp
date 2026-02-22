@@ -1,6 +1,5 @@
 #include "common/aggregation.h"
 
-#include "base/base_span_compatibility.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "scada/aggregate_filter.h"

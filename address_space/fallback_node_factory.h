@@ -1,18 +1,19 @@
 #pragma once
 
+#include <span>
+
 #include "address_space/node_factory.h"
-#include "base/containers/span.h"
 
 class FallbackNodeFactory : public NodeFactory {
  public:
-  explicit FallbackNodeFactory(base::span<NodeFactory*> node_factories)
+  explicit FallbackNodeFactory(std::span<NodeFactory*> node_factories)
       : node_factories_{node_factories} {}
 
   // NodeFactory
   virtual std::pair<scada::Status, scada::Node*> CreateNode(
       const scada::NodeState& node_state) override;
 
-  const base::span<NodeFactory*> node_factories_;
+  const std::span<NodeFactory*> node_factories_;
 };
 
 inline std::pair<scada::Status, scada::Node*> FallbackNodeFactory::CreateNode(

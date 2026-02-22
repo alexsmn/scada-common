@@ -44,7 +44,7 @@ void AttributeServiceImpl::Write(
 std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(
     const scada::ServiceContext& context,
     std::span<const scada::ReadValueId> inputs) {
-  return AsBaseSpan(inputs) |
+  return AsRange(inputs) |
          boost::adaptors::transformed(
              [this](const scada::ReadValueId& input) { return Read(input); }) |
          to_vector;

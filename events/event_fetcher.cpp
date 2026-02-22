@@ -3,6 +3,7 @@
 #include "base/executor.h"
 #include "base/logger.h"
 #include "base/range_util.h"
+#include "base/span_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
@@ -92,7 +93,7 @@ void EventFetcher::SetSeverityMin(scada::EventSeverity severity) {
   Update();
 }
 
-void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
+void EventFetcher::OnSystemEvents(std::span<const scada::Event> events) {
   for (const auto& event : events) {
     if (event.acked) {
       event_ack_queue_.OnAcked(event.event_id);
@@ -100,7 +101,7 @@ void EventFetcher::OnSystemEvents(base::span<const scada::Event> events) {
   }
 
   auto filtered_events =
-      events |
+      AsRange(events) |
       boost::adaptors::filtered(
           [severity_min = severity_min_](const scada::Event& event) {
             return event.severity >= severity_min;

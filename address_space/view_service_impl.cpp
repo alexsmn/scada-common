@@ -60,7 +60,7 @@ ViewServiceImpl::ViewServiceImpl(SyncViewService& sync_view_service)
 
 std::vector<scada::BrowseResult> SyncViewServiceImpl::Browse(
     std::span<const scada::BrowseDescription> inputs) {
-  return AsBaseSpan(inputs) |
+  return AsRange(inputs) |
          boost::adaptors::transformed(
              [this](const scada::BrowseDescription& input) {
                return BrowseOne(input);
@@ -83,7 +83,7 @@ scada::BrowseResult SyncViewServiceImpl::BrowseOne(
 
 std::vector<scada::BrowsePathResult> SyncViewServiceImpl::TranslateBrowsePaths(
     std::span<const scada::BrowsePath> inputs) {
-  return AsBaseSpan(inputs) |
+  return AsRange(inputs) |
          boost::adaptors::transformed([this](const scada::BrowsePath& input) {
            return TranslateBrowsePath(input);
          }) |

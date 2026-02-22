@@ -1,6 +1,7 @@
 #pragma once
 
-#include "base/containers/span.h"
+#include <span>
+
 #include "base/memory/weak_ptr.h"
 #include "events/node_event_provider.h"
 
@@ -60,7 +61,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
  private:
   void Update();
 
-  void OnSystemEvents(base::span<const scada::Event> events);
+  void OnSystemEvents(std::span<const scada::Event> events);
   void OnHistoryReadEventsComplete(scada::HistoryReadEventsResult&& result);
 
   bool connected_ = false;
