@@ -10,7 +10,7 @@
 #include "base/format.h"
 #include "base/range_util.h"
 #include "base/string_util.h"
-#include "base/strings/strcat.h"
+#include "base/u16format.h"
 #include "base/strings/sys_string_conversions.h"
 #include "common/format.h"
 #include "common/node_state.h"
@@ -113,8 +113,8 @@ std::u16string GetFullDisplayName(const Node& node) {
   auto* parent = GetParent(node);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
-    return base::StrCat({GetFullDisplayName(*parent), u" : ",
-                         ToString16(node.GetDisplayName())});
+    return u16format(L"{} : {}", GetFullDisplayName(*parent),
+                      ToString16(node.GetDisplayName()));
   else
     return ToString16(node.GetDisplayName());
 }

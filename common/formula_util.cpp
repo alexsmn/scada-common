@@ -1,6 +1,6 @@
 #include "common/formula_util.h"
 
-#include "base/strings/strcat.h"
+#include <format>
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "model/static_types.h"
@@ -39,7 +39,7 @@ std::string MakeNodeIdFormula(const scada::NodeId& id) {
     case scada::NodeIdType::Numeric:
       return NodeIdToScadaString(id);
     case scada::NodeIdType::String:
-      return base::StrCat({"{", NodeIdToScadaString(id), "}"});
+      return std::format("{{{}}}", NodeIdToScadaString(id));
     default:
       assert(false);
       return std::string();

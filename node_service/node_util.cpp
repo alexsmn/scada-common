@@ -1,6 +1,6 @@
 #include "node_service/node_util.h"
 
-#include "base/strings/strcat.h"
+#include "base/u16format.h"
 #include "common/format.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
@@ -35,8 +35,8 @@ std::u16string GetFullDisplayName(const NodeRef& node) {
   auto parent = node.inverse_target(scada::id::Organizes);
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
-    return base::StrCat(
-        {GetFullDisplayName(parent), u" : ", ToString16(node.display_name())});
+    return u16format(L"{} : {}", GetFullDisplayName(parent),
+                      ToString16(node.display_name()));
   else
     return ToString16(node.display_name());
 }

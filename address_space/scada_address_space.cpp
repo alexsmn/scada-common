@@ -701,7 +701,7 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
   CreateEnumDataType(devices::id::ModbusModeDataType,
                      devices::id::ModbusModeDataType_EnumStrings,
                      "ModbusModeDataType", u"Режим MODBUS",
-                     {u"Опрос", u"Ретрансляция"});
+                     {u"Polling", u"Retransmission"});
 
   // Modbus Port Device
   {
@@ -761,7 +761,7 @@ void ScadaAddressSpaceBuilder::CreateDeviceAddressSpace() {
   CreateEnumDataType(devices::id::Iec60870ModeDataType,
                      devices::id::Iec60870ModeDataType_EnumStrings,
                      "Iec60870ModeType", u"Режим МЭК-60870",
-                     {u"Опрос", u"Ретрансляция", u"Прослушка"});
+                     {u"Polling", u"Retransmission", u"Listening"});
 
   // IEC-60870 Link Device
   {

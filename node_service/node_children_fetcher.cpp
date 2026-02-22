@@ -1,7 +1,7 @@
 #include "node_service/node_children_fetcher.h"
 
 #include "base/executor.h"
-#include "base/strings/strcat.h"
+#include <format>
 #include "model/node_id_util.h"
 #include "node_service/node_fetcher.h"
 #include "scada/attribute_service.h"
@@ -26,7 +26,7 @@ std::string NodeIdsToString(
                          return ToString(reference.node_id);
                        }),
       ", ");
-  return base::StrCat({"[", node_ids, "]"});
+  return std::format("[{}]", node_ids);
 }
 
 void MergeResult(std::map<scada::NodeId, scada::BrowseResult>& results,
