@@ -2,8 +2,6 @@
 
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include "base/strings/sys_string_conversions.h"
-
 #include <format>
 #include "base/utf_convert.h"
 #include "model/data_items_node_ids.h"
@@ -80,13 +78,13 @@ std::u16string FormatAnalogValue(const String& display_format,
 
   double double_value;
   if (value.get(double_value)) {
-    text = UtfConvert<char16_t>(base::SysNativeMBToWide(
-        FormatFloat(double_value, display_format.c_str())));
+    text = UtfConvert<char16_t>(
+        FormatFloat(double_value, display_format.c_str()));
     if ((flags & FORMAT_UNITS) && !eu_units.empty()) {
       text += L' ';
       if (flags & FORMAT_COLOR)
-        text += UtfConvert<char16_t>(base::SysNativeMBToWide(
-            std::format("&color:{};", 0x7f7f7f)));
+        text += UtfConvert<char16_t>(
+            std::format("&color:{};", 0x7f7f7f));
       text += eu_units;
     }
   }

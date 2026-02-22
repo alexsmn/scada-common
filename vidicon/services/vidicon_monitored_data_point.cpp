@@ -1,6 +1,6 @@
 #include "vidicon_monitored_data_point.h"
 
-#include "base/strings/sys_string_conversions.h"
+#include "base/utf_convert.h"
 #include "base/time/time.h"
 #include "base/win/scoped_variant.h"
 #include "scada/qualifier.h"
@@ -45,7 +45,7 @@ Variant ToVariant(const VARIANT& value) {
     case VT_BOOL:
       return !!value.boolVal;
     case VT_BSTR:
-      return base::SysWideToNativeMB(value.bstrVal);
+      return UtfConvert<char>(value.bstrVal);
     case VT_I2:
       return value.iVal;
     case VT_I4:
