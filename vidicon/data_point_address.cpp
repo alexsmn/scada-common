@@ -1,6 +1,7 @@
 #include "vidicon/data_point_address.h"
 
-#include "base/strings/string_number_conversions.h"
+#include "base/format.h"
+#include "base/utf_convert.h"
 
 namespace vidicon {
 
@@ -12,7 +13,8 @@ std::optional<DataPointAddress> ParseDataPointAddress(std::wstring_view str) {
   if (str.starts_with(L"CF:")) {
     str = str.substr(3);
     unsigned object_id = 0;
-    if (!base::StringToUint(str, &object_id)) {
+    auto narrow = UtfConvert<char>(str);
+    if (!Parse(narrow, object_id)) {
       return std::nullopt;
     }
     return DataPointAddress{.object_id = object_id};
