@@ -1,5 +1,7 @@
 #include "node_service/fetching_node_graph.h"
 
+#include <sstream>
+
 namespace {
 
 template <class T>

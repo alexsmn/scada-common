@@ -25,7 +25,8 @@ class NodeVariableHandle : public VariableHandle {
  private:
   Variable& node_;
 
-  DISALLOW_COPY_AND_ASSIGN(NodeVariableHandle);
+  NodeVariableHandle(const NodeVariableHandle&) = delete;
+  NodeVariableHandle& operator=(const NodeVariableHandle&) = delete;
 };
 
 }  // namespace scada

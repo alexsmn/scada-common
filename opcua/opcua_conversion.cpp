@@ -1,5 +1,7 @@
 #include "opcua_conversion.h"
 
+#include <cassert>
+
 #include "base/bit_cast.h"
 #include "base/format_time.h"
 #include "base/utf_convert.h"
@@ -150,8 +152,7 @@ scada::Variant Convert(OpcUa_Variant&& source) {
 }
 
 void MicrosecondsToDateTime(int64_t us, OpcUa_DateTime* ft) {
-  DCHECK_GE(us, 0LL) << "Time is less than 0, negative values are not "
-                        "representable in FILETIME";
+  assert(us >= 0LL);  // Negative values are not representable in FILETIME.
 
   // Multiply by 10 to convert microseconds to 100-nanoseconds. Bit_cast will
   // handle alignment problems. This only works on little-endian machines.
