@@ -7,7 +7,6 @@
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
-#include "base/containers/contains.h"
 #include "common/node_state.h"
 #include "common/node_state_util.h"
 #include "model/node_id_util.h"
@@ -15,6 +14,7 @@
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 
+#include <algorithm>
 #include <format>
 
 #include "base/debug_util-inl.h"
@@ -273,7 +273,7 @@ void AddressSpaceUpdater::FindDeletedReferences(
     }
 
     scada::ReferenceDescription reference{ref.type->id(), true, ref.node->id()};
-    if (!base::Contains(references, reference)) {
+    if (std::ranges::find(references, reference) == references.end()) {
       deleted_references.emplace_back(std::move(reference));
     }
   }

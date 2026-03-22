@@ -1,10 +1,10 @@
 #pragma once
 
-#include "base/containers/contains.h"
 #include "base/executor.h"
 #include "scada/event.h"
 #include "scada/method_service.h"
 
+#include <algorithm>
 #include <deque>
 #include <set>
 
@@ -103,8 +103,9 @@ inline void EventAckQueue::AckPendingEvents() {
 }
 
 inline void EventAckQueue::Ack(scada::EventId ack_id) {
-  if (base::Contains(running_ack_event_ids_, ack_id) ||
-      base::Contains(pending_ack_event_ids_, ack_id))
+  if (running_ack_event_ids_.contains(ack_id) ||
+      std::ranges::find(pending_ack_event_ids_, ack_id) !=
+          pending_ack_event_ids_.end())
     return;
 
   pending_ack_event_ids_.push_back(ack_id);
