@@ -96,23 +96,23 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
 
   auto timed_data = std::make_shared<AliasTimedData>(alias_string);
 
-  auto weak_ptr = weak_ptr_factory_.GetWeakPtr();
   std::weak_ptr<AliasTimedData> weak_timed_data = timed_data;
-  alias_resolver_(alias_string, [weak_ptr, weak_timed_data, alias_string,
-                                 aggregation](const scada::Status& status,
-                                              const scada::NodeId& node_id) {
-    auto ptr = weak_ptr.get();
-    auto timed_data = weak_timed_data.lock();
-    if (!ptr || !timed_data)
-      return;
+  alias_resolver_(
+      alias_string,
+      cancelation_.Bind([this, weak_timed_data, alias_string, aggregation](
+                            const scada::Status& status,
+                            const scada::NodeId& node_id) {
+        auto timed_data = weak_timed_data.lock();
+        if (!timed_data)
+          return;
 
-    if (status) {
-      timed_data->SetForwarded(ptr->GetNodeTimedData(node_id, aggregation));
-    } else {
-      timed_data->SetForwarded(
-          std::make_shared<ErrorTimedData>(alias_string, ToString16(status)));
-    }
-  });
+        if (status) {
+          timed_data->SetForwarded(GetNodeTimedData(node_id, aggregation));
+        } else {
+          timed_data->SetForwarded(std::make_shared<ErrorTimedData>(
+              alias_string, ToString16(status)));
+        }
+      }));
 
   alias_cache_.Add(cache_key, timed_data);
   return timed_data;

@@ -2,7 +2,7 @@
 
 #include <span>
 
-#include "base/memory/weak_ptr.h"
+#include "base/cancelation.h"
 #include "events/node_event_provider.h"
 
 namespace scada {
@@ -71,5 +71,5 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   scada::EventSeverity severity_min_ = scada::kSeverityMin;
 
   // Used to cancel the historical request.
-  base::WeakPtrFactory<EventFetcher> weak_factory_{this};
+  Cancelation cancelation_;
 };

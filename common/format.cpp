@@ -3,7 +3,9 @@
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/utf_convert.h"
-#include "base/third_party/dmg_fp/dmg_fp.h"
+#include <charconv>
+#include <cmath>
+#include <cstdio>
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 #include "scada/variant.h"
@@ -41,46 +43,12 @@ std::string FormatFloat(double val, const char* fmt) {
     rlen = 0;
   }
 
-  int decimal = 0;
-  int sign = 0;
-  //  char* s = fcvt(val, rlen, &decimal, &sign);
-  char* e = nullptr;
-  char* s = dmg_fp::dtoa(val, 3, rlen, &decimal, &sign, &e);
-  int l = static_cast<int>(e - s);
-  char buffer[64] = {0};
-  size_t buffer_size = 0;
-
-  if (sign)
-    buffer[buffer_size++] = '-';
-
-  if (decimal <= 0) {
-    buffer[buffer_size++] = '0';
-
-  } else {
-    int n = (std::min)(decimal, l);
-    memcpy(buffer + buffer_size, s, n);
-    buffer_size += n;
-
-    if (l < decimal) {
-      memset(buffer + buffer_size, '0', decimal - l);
-      buffer_size += decimal - l;
-    }
-  }
-
-  if (l > decimal) {
-    buffer[buffer_size++] = '.';
-    if (decimal < 0) {
-      memset(buffer + buffer_size, '0', -decimal);
-      buffer_size += -decimal;
-      decimal = 0;
-    }
-    memcpy(buffer + buffer_size, s + decimal, l - decimal);
-    buffer_size += l - decimal;
-  }
-
-  dmg_fp::freedtoa(s);
-
-  return std::string(buffer, buffer_size);
+  char buffer[64];
+  int n = std::snprintf(buffer, sizeof(buffer), "%.*f",
+                        static_cast<int>(rlen), val);
+  if (n < 0 || n >= static_cast<int>(sizeof(buffer)))
+    return {};
+  return std::string(buffer, n);
 }
 
 template <class T, class String>

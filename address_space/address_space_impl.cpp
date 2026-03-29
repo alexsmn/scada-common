@@ -289,7 +289,7 @@ void AddressSpaceImpl::NotifyReference(
     NotifyNodeMoved(target, nullptr);
 }
 
-const AddressSpaceImpl::NodeEvents* AddressSpaceImpl::GetNodeEvents(
+AddressSpaceImpl::NodeEvents* AddressSpaceImpl::GetNodeEvents(
     const scada::NodeId& node_id) const {
   auto i = node_events_.find(node_id);
   return i == node_events_.end() ? nullptr : &i->second;

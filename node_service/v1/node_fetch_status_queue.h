@@ -49,7 +49,7 @@ class NodeFetchStatusQueue {
 
   BoostLogger logger_{LOG_NAME("NodeFetchStatusQueue")};
 
-  base::ThreadChecker thread_checker_;
+  THREAD_CHECKER(thread_checker_);
 
   std::set<scada::NodeId> pending_statuses_;
   bool notifying_ = false;

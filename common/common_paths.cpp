@@ -1,22 +1,22 @@
 #include "common/common_paths.h"
 
-#include "base/files/file_path.h"
-#include "base/files/file_util.h"
 #include "base/path_service.h"
+
+#include <filesystem>
 
 namespace scada {
 
-bool PathProvider(int key, base::FilePath* result) {
+bool PathProvider(int key, std::filesystem::path* result) {
 /*  // Assume that we will not need to create the directory if it does not exist.
   // This flag can be set to true for the cases where we want to create it.
   bool create_dir = false;
 
-  base::FilePath cur;
+  std::filesystem::path cur;
   switch (key) {
     case DIR_LOG:
       if (!PathService::Get(base::DIR_LOCAL_APP_DATA, &cur))
         return false;
-      cur = cur.Append(FILE_PATH_LITERAL("logs"));
+      cur = cur / "logs";
       create_dir = true;
       break;
 
@@ -24,7 +24,7 @@ bool PathProvider(int key, base::FilePath* result) {
       return false;
   }
 
-  if (create_dir && !base::PathExists(cur) && !base::CreateDirectory(cur))
+  if (create_dir && !std::filesystem::exists(cur) && !std::filesystem::create_directories(cur))
     return false;
 
   *result = cur;

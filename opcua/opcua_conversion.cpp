@@ -2,8 +2,9 @@
 
 #include <cassert>
 
-#include "base/bit_cast.h"
 #include "base/format_time.h"
+
+#include <bit>
 #include "base/utf_convert.h"
 
 #include <opcuapp/structs.h>
@@ -156,12 +157,12 @@ void MicrosecondsToDateTime(int64_t us, OpcUa_DateTime* ft) {
 
   // Multiply by 10 to convert microseconds to 100-nanoseconds. Bit_cast will
   // handle alignment problems. This only works on little-endian machines.
-  *ft = bit_cast<OpcUa_DateTime, int64_t>(us * 10);
+  *ft = std::bit_cast<OpcUa_DateTime>(us * 10);
 }
 
 OpcUa_DateTime Convert(scada::DateTime time) {
   if (time.is_null())
-    return bit_cast<OpcUa_DateTime, int64_t>(0);
+    return std::bit_cast<OpcUa_DateTime>(int64_t{0});
   if (time.is_max()) {
     OpcUa_DateTime result;
     result.dwHighDateTime = std::numeric_limits<OpcUa_UInt32>::max();

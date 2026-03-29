@@ -29,4 +29,5 @@ struct NodeServiceContext {
 };
 
 std::shared_ptr<NodeService> CreateNodeService(
-    const NodeServiceContext& context);
+    const NodeServiceContext& context,
+    bool use_v2 = false);

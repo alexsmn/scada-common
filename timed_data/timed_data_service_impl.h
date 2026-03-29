@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/memory/weak_ptr.h"
+#include "base/cancelation.h"
 #include "base/timed_cache.h"
 #include "timed_data/timed_data_context.h"
 #include "timed_data/timed_data_service.h"
@@ -35,5 +35,5 @@ class TimedDataServiceImpl final : private TimedDataContext,
 
   const std::shared_ptr<TimedData> null_timed_data_;
 
-  base::WeakPtrFactory<TimedDataServiceImpl> weak_ptr_factory_{this};
+  Cancelation cancelation_;
 };

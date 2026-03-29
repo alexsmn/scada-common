@@ -76,7 +76,7 @@ class AddressSpaceImpl : public MutableAddressSpace {
   void NotifyNodeTitleChanged(const scada::Node& node) const;
 
   typedef base::ObserverList<scada::NodeObserver> NodeEvents;
-  const NodeEvents* GetNodeEvents(const scada::NodeId& node_id) const;
+  NodeEvents* GetNodeEvents(const scada::NodeId& node_id) const;
 
   scada::AddressSpace* parent_address_space_ = nullptr;
 
@@ -93,6 +93,7 @@ inline T& AddressSpaceImpl::AddStaticNode(std::unique_ptr<T> node) {
   assert(node);
   auto& ref = *node;
   AddNode(std::move(node));
+  // cppcheck-suppress returnReference
   return ref;
 }
 

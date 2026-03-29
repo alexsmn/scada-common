@@ -225,7 +225,7 @@ inline scada::NodeId TestAddressSpace::MakeNestedNodeId(
 inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
   GenericNodeFactory node_factory{*this};
   auto p = node_factory.CreateNode(node_state);
-  ALLOW_UNUSED_LOCAL(p);
+  (void)p;
   assert(p.first);
   assert(p.second);
 }
