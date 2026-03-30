@@ -24,6 +24,38 @@ T StringToValueHelper(std::string_view str) {
 
 }  // namespace
 
+// FormatFloat
+
+TEST(FormatFloat, EmptyFormat) {
+  EXPECT_EQ("10", FormatFloat(10.0, ""));
+}
+
+TEST(FormatFloat, FixedDecimals) {
+  EXPECT_EQ("10.00", FormatFloat(10.0, "0.00"));
+  EXPECT_EQ("3.14", FormatFloat(3.14159, "0.00"));
+}
+
+TEST(FormatFloat, OptionalDecimalsTrailingZerosStripped) {
+  EXPECT_EQ("10", FormatFloat(10.0, "0.####"));
+  EXPECT_EQ("10.5", FormatFloat(10.5, "0.####"));
+  EXPECT_EQ("10.12", FormatFloat(10.12, "0.####"));
+  EXPECT_EQ("10.1235", FormatFloat(10.12345, "0.####"));
+}
+
+TEST(FormatFloat, MixedFixedAndOptionalDecimals) {
+  // "0.00##" means 2 fixed + 2 optional decimals.
+  EXPECT_EQ("10.00", FormatFloat(10.0, "0.00##"));
+  EXPECT_EQ("10.50", FormatFloat(10.5, "0.00##"));
+  EXPECT_EQ("10.123", FormatFloat(10.123, "0.00##"));
+  EXPECT_EQ("10.1235", FormatFloat(10.12345, "0.00##"));
+}
+
+TEST(FormatFloat, NoDecimalPart) {
+  EXPECT_EQ("10", FormatFloat(10.4, "0"));
+}
+
+// StringToValue
+
 TEST(StringToValue, Test) {
   EXPECT_EQ(StringToValueHelper<scada::Int8>("-111"), -111);
   EXPECT_EQ(StringToValueHelper<scada::Int8>("111"), 111);

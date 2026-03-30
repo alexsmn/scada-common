@@ -48,6 +48,35 @@ std::string FormatFloat(double val, const char* fmt) {
                         static_cast<int>(rlen), val);
   if (n < 0 || n >= static_cast<int>(sizeof(buffer)))
     return {};
+
+  // Strip trailing zeros for '#' format characters.
+  // E.g., format "0.####" with value 10.0 → "10" instead of "10.0000".
+  if (dot && rlen > 0) {
+    size_t optional_digits = 0;
+    for (const char* p = fmt + flen - 1; p > dot && *p == '#'; --p)
+      ++optional_digits;
+
+    if (optional_digits > 0) {
+      size_t end = n;
+      size_t min_decimals = rlen - optional_digits;
+      size_t dot_pos = end;
+      for (size_t i = 0; i < end; ++i) {
+        if (buffer[i] == '.') {
+          dot_pos = i;
+          break;
+        }
+      }
+      size_t decimals = end - dot_pos - 1;
+      while (decimals > min_decimals && buffer[end - 1] == '0') {
+        --end;
+        --decimals;
+      }
+      if (decimals == 0 && end > 0 && buffer[end - 1] == '.')
+        --end;
+      n = static_cast<int>(end);
+    }
+  }
+
   return std::string(buffer, n);
 }
 
