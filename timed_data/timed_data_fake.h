@@ -4,6 +4,7 @@
 #include "common/data_value_traits.h"
 #include "scada/data_value.h"
 #include "timed_data/timed_data.h"
+#include "timed_data/timed_data_view_observer.h"
 
 #include "base/utf_convert.h"
 
@@ -36,7 +37,11 @@ class FakeTimedData : public TimedData {
   void RemoveObserver(TimedDataObserver& observer) override {}
 
   void AddViewObserver(TimedDataViewObserver& observer,
-                       const scada::DateTimeRange& range) override {}
+                       const scada::DateTimeRange& range) override {
+    // Immediately notify the observer that data is ready so consumers
+    // (e.g. graph data sources) can render without waiting for async fetches.
+    observer.OnTimedDataReady();
+  }
 
   void RemoveViewObserver(TimedDataViewObserver& observer) override {}
 
