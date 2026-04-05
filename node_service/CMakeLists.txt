@@ -1,6 +1,8 @@
 scada_module(node_service)
 scada_module_sources(node_service PRIVATE "static")
 
+target_precompile_headers(node_service REUSE_FROM scada_base)
+
 target_include_directories(node_service PUBLIC "..")
 
 target_link_libraries(node_service PUBLIC

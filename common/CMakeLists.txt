@@ -1,5 +1,7 @@
 scada_module(scada_common)
 
+target_precompile_headers(scada_common REUSE_FROM scada_base)
+
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/project.h.src"
   "project.h"

@@ -5,7 +5,7 @@
 
 #include <sstream>
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 const scada::DateTime kTimedDataCurrentOnly = scada::DateTime::Max();
 

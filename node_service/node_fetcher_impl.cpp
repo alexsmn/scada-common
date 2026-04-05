@@ -8,7 +8,7 @@
 #include "scada/standard_node_ids.h"
 #include "scada/view_service.h"
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/combine.hpp>

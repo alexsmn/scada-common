@@ -1,5 +1,7 @@
 scada_module(timed_data)
 
+target_precompile_headers(timed_data REUSE_FROM scada_base)
+
 target_include_directories(timed_data PUBLIC "..")
 
 target_link_libraries(timed_data PRIVATE

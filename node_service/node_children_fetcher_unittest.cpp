@@ -7,7 +7,7 @@
 #include "scada/view_service_mock.h"
 #include "model/node_id_util.h"
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 using namespace testing;
 

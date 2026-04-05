@@ -1,7 +1,7 @@
 #include "node_service/v1/node_fetch_status_queue.h"
 
 #include "base/auto_reset.h"
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 namespace v1 {
 

@@ -9,7 +9,7 @@
 #include "node_service/v1/node_model_impl.h"
 #include "scada/event.h"
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 namespace v1 {
 

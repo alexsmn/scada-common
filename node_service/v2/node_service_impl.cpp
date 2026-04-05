@@ -9,7 +9,7 @@
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 namespace v2 {
 

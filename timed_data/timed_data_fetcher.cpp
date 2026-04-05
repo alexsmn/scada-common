@@ -12,7 +12,6 @@
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_util.h"
 
-#include "base/debug_util-inl.h"
 
 namespace {
 const size_t kMaxReadCount = 10000;

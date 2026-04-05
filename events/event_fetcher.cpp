@@ -17,7 +17,7 @@
 #include <boost/range/adaptor/filtered.hpp>
 #include <ranges>
 
-#include "base/debug_util-inl.h"
+#include "base/debug_util.h"
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)} {
