@@ -10,6 +10,29 @@
 
 namespace scada {
 
+namespace {
+
+// Parses "ns.id" (e.g. "0.84") or a bare "id" (implies ns=1) into a NodeId.
+NodeId ParseJsonNodeId(std::string_view s) {
+  NumericId id = 0;
+  NamespaceIndex ns = 1;
+  if (auto dot = s.find('.'); dot != std::string_view::npos) {
+    ns = static_cast<NamespaceIndex>(std::stoi(std::string(s.substr(0, dot))));
+    id = static_cast<NumericId>(std::stoi(std::string(s.substr(dot + 1))));
+  } else {
+    id = static_cast<NumericId>(std::stoi(std::string(s)));
+  }
+  return NodeId{id, ns};
+}
+
+NodeId ParseJsonChildNodeId(const boost::json::value& child) {
+  if (child.is_string())
+    return ParseJsonNodeId(std::string_view(child.as_string()));
+  return NodeId{static_cast<NumericId>(child.as_int64()), 1};
+}
+
+}  // namespace
+
 LocalViewService::LocalViewService() = default;
 LocalViewService::~LocalViewService() = default;
 
@@ -20,23 +43,12 @@ void LocalViewService::AddChildren(const NodeId& parent,
 
 void LocalViewService::LoadFromJson(const boost::json::value& root) {
   for (const auto& [key, val] : root.at("tree").as_object()) {
-    // Keys are "ns.id" (e.g. "0.84") or just "id" (implies ns=1).
-    auto key_str = std::string(key);
-    NumericId id = 0;
-    NamespaceIndex ns = 1;
-    if (auto dot = key_str.find('.'); dot != std::string::npos) {
-      ns = static_cast<NamespaceIndex>(std::stoi(key_str.substr(0, dot)));
-      id = static_cast<NumericId>(std::stoi(key_str.substr(dot + 1)));
-    } else {
-      id = static_cast<NumericId>(std::stoi(key_str));
-    }
+    auto parent = ParseJsonNodeId(std::string_view(key));
 
     std::vector<NodeId> children;
-    for (const auto& child : val.as_array()) {
-      children.push_back(
-          NodeId{static_cast<NumericId>(child.as_int64()), 1});
-    }
-    AddChildren(NodeId{id, ns}, std::move(children));
+    for (const auto& child : val.as_array())
+      children.push_back(ParseJsonChildNodeId(child));
+    AddChildren(parent, std::move(children));
   }
 }
 
