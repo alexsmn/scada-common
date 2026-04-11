@@ -1,5 +1,6 @@
 scada_module(node_service)
 scada_module_sources(node_service PRIVATE "static")
+scada_module_sources(node_service PRIVATE "local")
 
 target_precompile_headers(node_service REUSE_FROM scada_base)
 
