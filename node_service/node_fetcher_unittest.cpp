@@ -239,3 +239,84 @@ TEST_F(NodeFetcherTest, Cancel) {
 
   read_callback2(scada::StatusCode::Bad, {});
 }
+
+// Regression test for the fetcher-queue drain recursion observed in the
+// screenshot generator. When the backing View/Attribute services are
+// synchronous (AddressSpaceImpl3 in the generator, TestAddressSpace
+// here), `NodeFetcherImpl::FetchPendingNodes` issues Read/Browse that
+// complete inline, and `OnReadResult`/`OnBrowseResult` call
+// `NotifyFetchedNodes` → `fetch_completed_handler_` with the
+// `processing_response_` guard already reset (see node_fetcher_impl.cpp
+// lines around the AutoReset scope before NotifyFetchedNodes). Anything
+// the handler does synchronously — such as scheduling another
+// `node_fetcher_->Fetch(next_id)` — therefore runs the entire
+// Fetch → Read/Browse → OnResult → NotifyFetchedNodes → handler chain
+// on top of the current stack frame. In production gRPC fetches return
+// asynchronously, so the chain stays shallow.
+//
+// This test chains the six TestAddressSpace nodes head-to-tail: each
+// time the completion handler fires for node N, it forwards to
+// `node_fetcher_->Fetch(N+1)` and observes how deep the re-entry
+// nests before returning. A deferred (non-sync) drain would produce
+// depth == 1 for every call; synchronous re-entry pushes it to the
+// chain length.
+TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryRecursesSynchronously) {
+  const std::vector<scada::NodeId> chain{
+      server_address_space_.kTestNode1Id, server_address_space_.kTestNode2Id,
+      server_address_space_.kTestNode3Id, server_address_space_.kTestNode4Id,
+      server_address_space_.kTestNode5Id, server_address_space_.kTestNode6Id,
+  };
+
+  EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(AnyNumber());
+
+  int depth = 0;
+  int max_depth = 0;
+
+  ON_CALL(fetch_completed_handler_, Call(_))
+      .WillByDefault([&](FetchCompletedResult&& result) {
+        ++depth;
+        if (depth > max_depth)
+          max_depth = depth;
+
+        node_validator_impl_.OnFetchCompleted(std::move(result));
+
+        // Walk to the next link in the chain only if the node we just
+        // finished is in the chain; otherwise ignore (auxiliary fetches
+        // triggered by the fetcher for references/properties).
+        for (size_t i = 0; i + 1 < chain.size(); ++i) {
+          if (node_validator_impl_.IsNodeValid(chain[i]) &&
+              !node_validator_impl_.IsNodeValid(chain[i + 1])) {
+            node_fetcher_->Fetch(chain[i + 1], NodeFetchStatus::NodeOnly());
+            break;
+          }
+        }
+
+        --depth;
+      });
+
+  node_fetcher_->Fetch(chain.front(), NodeFetchStatus::NodeOnly());
+
+  // Every chain node must have been fetched: if the completion handler
+  // re-entry had been deferred through an executor, the first handler
+  // call would have returned before the second Fetch got a chance to
+  // run and the test would have ended after a single node.
+  for (const auto& id : chain)
+    EXPECT_TRUE(node_validator_impl_.IsNodeValid(id))
+        << "Chain node " << NodeIdToScadaString(id) << " was not fetched";
+
+  // If the drain is synchronous the peak depth should roughly track the
+  // chain length: each handler call schedules Fetch on the next link,
+  // which completes inline and re-enters the handler. With a deferred
+  // drain `max_depth` would cap at 1 (the initial top-level call) and
+  // the stack wouldn't grow. `chain.size() / 2` is a loose lower bound
+  // that leaves room for the fetcher's auxiliary batches (properties,
+  // type references) without being so strict that it flakes.
+  EXPECT_GE(max_depth, static_cast<int>(chain.size()) / 2)
+      << "fetch_completed_handler_ did not re-enter deeply enough — "
+         "the fetcher-queue drain is no longer synchronous and this "
+         "test is no longer exercising the recursion pattern it was "
+         "written to expose. max_depth=" << max_depth;
+}
