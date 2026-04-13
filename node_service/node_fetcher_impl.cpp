@@ -186,25 +186,31 @@ void NodeFetcherImpl::FetchPendingNodes() {
   if (processing_response_)
     return;
 
-  if (pending_queue_.empty() ||
-      running_request_count_ + kPrimitiveRequestCount >
-          kMaxParallelRequestCount) {
+  // Skip if a drain is already running higher on the stack. Handlers
+  // that call Fetch() synchronously (in-process services) drop their
+  // newly-queued nodes into |pending_queue_|; the outer loop below
+  // picks them up without growing the stack.
+  if (draining_pending_queue_)
     return;
+  base::AutoReset<bool> drain_guard{&draining_pending_queue_, true};
+
+  while (!pending_queue_.empty() &&
+         running_request_count_ + kPrimitiveRequestCount <=
+             kMaxParallelRequestCount) {
+    std::vector<FetchingNode*> nodes;
+    nodes.reserve(std::min(kMaxRequestNodeCount, pending_queue_.size()));
+
+    while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
+      auto& node = pending_queue_.top();
+      pending_queue_.pop();
+      assert(node.fetch_started.empty());
+      assert(!node.pending_status.empty());
+      node.fetch_started = node.pending_status;
+      nodes.emplace_back(&node);
+    }
+
+    FetchPendingNodes(std::move(nodes));
   }
-
-  std::vector<FetchingNode*> nodes;
-  nodes.reserve(std::min(kMaxRequestNodeCount, pending_queue_.size()));
-
-  while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
-    auto& node = pending_queue_.top();
-    pending_queue_.pop();
-    assert(node.fetch_started.empty());
-    assert(!node.pending_status.empty());
-    node.fetch_started = node.pending_status;
-    nodes.emplace_back(&node);
-  }
-
-  FetchPendingNodes(std::move(nodes));
 
   assert(AssertValid());
 }

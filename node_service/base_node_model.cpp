@@ -1,5 +1,6 @@
 #include "node_service/base_node_model.h"
 
+#include "base/auto_reset.h"
 #include "node_service/node_observer.h"
 
 BaseNodeModel::ScopedCallbackLock::ScopedCallbackLock(BaseNodeModel& model)
@@ -16,8 +17,14 @@ BaseNodeModel::ScopedCallbackLock::~ScopedCallbackLock() {
 void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
                           const FetchCallback& callback) const {
   if (requested_status.all_less_or_equal(fetch_status_)) {
-    if (callback)
-      callback();
+    if (!callback)
+      return;
+    // Route through the callback queue instead of firing inline so a
+    // callback that calls Fetch() on this or another model stays off
+    // the current stack frame. NotifyCallbacks() is re-entrance-safe
+    // (see |notifying_callbacks_|) and drains iteratively.
+    fetch_callbacks_.emplace_back(requested_status, callback);
+    const_cast<BaseNodeModel*>(this)->NotifyCallbacks();
 
   } else {
     fetching_status_ |= requested_status;
@@ -73,21 +80,35 @@ void BaseNodeModel::NotifyCallbacks() {
   if (callback_lock_count_ != 0)
     return;
 
-  std::vector<FetchCallback> callbacks;
-  size_t p = 0;
-  for (size_t i = 0; i < fetch_callbacks_.size(); ++i) {
-    auto& c = fetch_callbacks_[i];
-    assert(c.second);
-    if (c.first.all_less_or_equal(fetch_status_))
-      callbacks.emplace_back(std::move(c.second));
-    else
-      fetch_callbacks_[p++] = std::move(c);
+  // If a callback being invoked below calls Fetch() which calls back
+  // into NotifyCallbacks, let the outermost frame own the drain —
+  // nested calls return immediately and the outer while-loop picks
+  // up whatever the callback enqueued.
+  if (notifying_callbacks_)
+    return;
+  base::AutoReset<bool> drain_guard{&notifying_callbacks_, true};
+
+  while (true) {
+    std::vector<FetchCallback> callbacks;
+    size_t p = 0;
+    for (size_t i = 0; i < fetch_callbacks_.size(); ++i) {
+      auto& c = fetch_callbacks_[i];
+      assert(c.second);
+      if (c.first.all_less_or_equal(fetch_status_))
+        callbacks.emplace_back(std::move(c.second));
+      else
+        fetch_callbacks_[p++] = std::move(c);
+    }
+    fetch_callbacks_.erase(fetch_callbacks_.begin() + p,
+                           fetch_callbacks_.end());
+
+    if (fetch_callbacks_.empty())
+      fetch_callbacks_.shrink_to_fit();
+
+    if (callbacks.empty())
+      break;
+
+    for (auto& callback : callbacks)
+      callback();
   }
-  fetch_callbacks_.erase(fetch_callbacks_.begin() + p, fetch_callbacks_.end());
-
-  if (fetch_callbacks_.empty())
-    fetch_callbacks_.shrink_to_fit();
-
-  for (auto& callback : callbacks)
-    callback();
 }

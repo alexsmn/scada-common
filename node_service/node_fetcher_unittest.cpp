@@ -240,27 +240,23 @@ TEST_F(NodeFetcherTest, Cancel) {
   read_callback2(scada::StatusCode::Bad, {});
 }
 
-// Regression test for the fetcher-queue drain recursion observed in the
-// screenshot generator. When the backing View/Attribute services are
-// synchronous (AddressSpaceImpl3 in the generator, TestAddressSpace
-// here), `NodeFetcherImpl::FetchPendingNodes` issues Read/Browse that
-// complete inline, and `OnReadResult`/`OnBrowseResult` call
-// `NotifyFetchedNodes` → `fetch_completed_handler_` with the
-// `processing_response_` guard already reset (see node_fetcher_impl.cpp
-// lines around the AutoReset scope before NotifyFetchedNodes). Anything
-// the handler does synchronously — such as scheduling another
-// `node_fetcher_->Fetch(next_id)` — therefore runs the entire
-// Fetch → Read/Browse → OnResult → NotifyFetchedNodes → handler chain
-// on top of the current stack frame. In production gRPC fetches return
-// asynchronously, so the chain stays shallow.
+// Regression test for the fetcher-queue drain recursion observed in
+// the screenshot generator. Historically `OnReadResult` /
+// `OnBrowseResult` called `NotifyFetchedNodes` → completion handler
+// after the `processing_response_` guard had been reset; with
+// in-process synchronous services, any `Fetch()` the handler
+// scheduled ran the full Read/Browse → OnResult → Notify → handler
+// chain on top of the current stack, overflowing it in deep trees.
 //
-// This test chains the six TestAddressSpace nodes head-to-tail: each
-// time the completion handler fires for node N, it forwards to
-// `node_fetcher_->Fetch(N+1)` and observes how deep the re-entry
-// nests before returning. A deferred (non-sync) drain would produce
-// depth == 1 for every call; synchronous re-entry pushes it to the
-// chain length.
-TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryRecursesSynchronously) {
+// The fix wraps the top-level `FetchPendingNodes()` in a
+// `draining_pending_queue_` guard and a drain loop. Nested `Fetch()`
+// calls (from handlers) enqueue and return; the outer loop picks the
+// new work up iteratively.
+//
+// This test walks the six TestAddressSpace nodes head-to-tail and
+// verifies every node was fetched while the handler never re-entered
+// on the stack.
+TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryIsIterative) {
   const std::vector<scada::NodeId> chain{
       server_address_space_.kTestNode1Id, server_address_space_.kTestNode2Id,
       server_address_space_.kTestNode3Id, server_address_space_.kTestNode4Id,
@@ -307,16 +303,13 @@ TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryRecursesSynchronously) {
     EXPECT_TRUE(node_validator_impl_.IsNodeValid(id))
         << "Chain node " << NodeIdToScadaString(id) << " was not fetched";
 
-  // If the drain is synchronous the peak depth should roughly track the
-  // chain length: each handler call schedules Fetch on the next link,
-  // which completes inline and re-enters the handler. With a deferred
-  // drain `max_depth` would cap at 1 (the initial top-level call) and
-  // the stack wouldn't grow. `chain.size() / 2` is a loose lower bound
-  // that leaves room for the fetcher's auxiliary batches (properties,
-  // type references) without being so strict that it flakes.
-  EXPECT_GE(max_depth, static_cast<int>(chain.size()) / 2)
-      << "fetch_completed_handler_ did not re-enter deeply enough — "
-         "the fetcher-queue drain is no longer synchronous and this "
-         "test is no longer exercising the recursion pattern it was "
-         "written to expose. max_depth=" << max_depth;
+  // With the iterative drain the handler fires once per batch and
+  // always at depth 1 — never nested. If this assertion fails the
+  // drain is recursing again and the screenshot generator will
+  // overflow its stack.
+  EXPECT_EQ(max_depth, 1)
+      << "fetch_completed_handler_ re-entered on the same stack frame "
+         "— the drain is no longer iterative and the screenshot "
+         "generator will regress to a stack overflow. max_depth="
+      << max_depth;
 }

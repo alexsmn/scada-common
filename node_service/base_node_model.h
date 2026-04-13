@@ -43,5 +43,12 @@ class BaseNodeModel : public NodeModel {
   mutable std::vector<std::pair<NodeFetchStatus, FetchCallback>>
       fetch_callbacks_;
 
+  // Guards |NotifyCallbacks()| against synchronous re-entry. A
+  // callback that calls Fetch() on this model (directly or via a
+  // child) would otherwise run NotifyCallbacks nested in its own
+  // stack frame; the outer loop below picks up anything the nested
+  // callback enqueued without growing the stack.
+  mutable bool notifying_callbacks_ = false;
+
   mutable base::ObserverList<NodeRefObserver> observers_;
 };

@@ -107,4 +107,13 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
   // Blocks |FetchPendingNodes()| so |OnReadResult()| and |OnBrowseResult()| may
   // not be called recursively.
   bool processing_response_ = false;
+
+  // Guards |FetchPendingNodes()| against synchronous re-entry from the
+  // fetch-completed handler chain: when View/Attribute services
+  // complete inline, each handler-initiated Fetch would otherwise run
+  // the full Read/Browse → OnResult → Notify → handler chain on top of
+  // the current stack. While |draining_pending_queue_| is true a
+  // nested call just enqueues and returns; the outermost frame runs a
+  // loop that picks up anything the nested handlers produced.
+  bool draining_pending_queue_ = false;
 };
