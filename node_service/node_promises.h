@@ -11,6 +11,7 @@ class NodeService;
 
 promise<void> FetchNode(const NodeRef& node);
 promise<void> FetchChildren(const NodeRef& node);
+promise<void> WaitForPendingNodes(NodeService& node_service);
 
 // TODO: Combine with `FetchTree`.
 promise<void> FetchRecursive(const NodeRef& node,
