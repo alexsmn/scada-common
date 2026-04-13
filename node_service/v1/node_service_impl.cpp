@@ -160,16 +160,8 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
     if (auto i = nodes_.find(node_id); i != nodes_.end())
       i->second->NotifyFetchStatus();
 
-    auto* node = address_space_.GetNode(node_id);
-    const scada::ModelChangeEvent reference_added_deleted_event{
-        node_id, node ? scada::GetTypeDefinitionId(*node) : scada::NodeId{},
-        scada::ModelChangeEvent::ReferenceAdded |
-            scada::ModelChangeEvent::ReferenceDeleted};
-
     for (auto& o : observers_) {
       o.OnNodeFetched({node_id});
-      if (status)
-        o.OnModelChanged(reference_added_deleted_event);
       o.OnNodeSemanticChanged(node_id);
     }
   }

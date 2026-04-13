@@ -53,6 +53,15 @@ const scada::Node& GetSemanticChangeNode(const scada::Node& node) {
   return GetTransitiveParent(node, scada::id::HasProperty);
 }
 
+std::vector<scada::NodeId> CollectNodeIds(
+    const std::vector<scada::NodeState>& nodes) {
+  std::vector<scada::NodeId> result;
+  result.reserve(nodes.size());
+  for (const auto& node : nodes)
+    result.emplace_back(node.node_id);
+  return result;
+}
+
 }  // namespace
 
 struct TypeDefinitionPatch {
@@ -116,7 +125,7 @@ AddressSpaceUpdater::AddressSpaceUpdater(MutableAddressSpace& address_space,
 void AddressSpaceUpdater::UpdateNodes(std::vector<scada::NodeState>&& nodes) {
   LOG_INFO(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size());
   LOG_DEBUG(logger_) << "Update nodes" << LOG_TAG("Count", nodes.size())
-                     << LOG_TAG("Nodes", ToString(nodes));
+                     << LOG_TAG("NodeIds", ToString(CollectNodeIds(nodes)));
 
   TypeDefinitionPatch type_definition_patch{address_space_};
   type_definition_patch.Patch(nodes);

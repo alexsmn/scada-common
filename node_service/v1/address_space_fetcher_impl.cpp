@@ -37,6 +37,15 @@ std::vector<scada::NodeId> GetAllNodeIds(scada::AddressSpace& address_space) {
   return result;
 }
 
+std::vector<scada::NodeId> CollectNodeIds(
+    const std::vector<scada::NodeState>& nodes) {
+  std::vector<scada::NodeId> result;
+  result.reserve(nodes.size());
+  for (const auto& node : nodes)
+    result.emplace_back(node.node_id);
+  return result;
+}
+
 }  // namespace
 
 // AddressSpaceFetcherImpl
@@ -196,7 +205,7 @@ void AddressSpaceFetcherImpl::OnFetchCompleted(
                     << LOG_TAG("Count", fetched_nodes.size());
   LOG_DEBUG(logger_) << "Nodes fetched"
                      << LOG_TAG("Count", fetched_nodes.size())
-                     << LOG_TAG("Nodes", ToString(fetched_nodes));
+                     << LOG_TAG("NodeIds", ToString(CollectNodeIds(fetched_nodes)));
 
   if (!errors.empty()) {
     LOG_WARNING(logger_) << "Nodes fetch errors"

@@ -92,6 +92,14 @@ std::vector<scada::NodeId> CollectNodeIds(
          to_vector;
 }
 
+std::vector<scada::NodeId> CollectFetchedNodeIds(
+    const std::vector<scada::NodeState>& nodes) {
+  return nodes | boost::adaptors::transformed([](const scada::NodeState& node) {
+           return node.node_id;
+         }) |
+         to_vector;
+}
+
 }  // namespace
 
 NodeFetcherImpl::NodeFetcherImpl(NodeFetcherImplContext&& context)
@@ -302,7 +310,8 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
                      << LOG_TAG("NodeCount", result.nodes.size())
                      << LOG_TAG("ErrorCount", result.errors.size())
                      << LOG_TAG("FetchingCount", fetching_nodes_.size())
-                     << LOG_TAG("Nodes", ToString(result.nodes))
+                     << LOG_TAG("NodeIds",
+                                ToString(CollectFetchedNodeIds(result.nodes)))
                      << LOG_TAG("Errors", ToString(result.errors));
 
 #if !defined(NDEBUG)
