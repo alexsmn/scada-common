@@ -2,6 +2,7 @@
 
 #include "base/time/time.h"
 #include "base/utf_convert.h"
+#include "model/node_id_util.h"
 #include "scada/data_value.h"
 #include "scada/status.h"
 
@@ -40,35 +41,13 @@ UInt32 LocalHistoryService::ParseSeverity(std::string_view s) {
   return kSeverityNormal;
 }
 
-namespace {
-
-// Parses "ns.id" (e.g. "0.84") or a bare "id" (implies ns=1) into a NodeId.
-NodeId ParseJsonNodeId(const boost::json::value& v) {
-  if (v.is_string()) {
-    auto s = std::string_view(v.as_string());
-    NumericId id = 0;
-    NamespaceIndex ns = 1;
-    if (auto dot = s.find('.'); dot != std::string_view::npos) {
-      ns = static_cast<NamespaceIndex>(
-          std::stoi(std::string(s.substr(0, dot))));
-      id = static_cast<NumericId>(std::stoi(std::string(s.substr(dot + 1))));
-    } else {
-      id = static_cast<NumericId>(std::stoi(std::string(s)));
-    }
-    return NodeId{id, ns};
-  }
-  return NodeId{static_cast<NumericId>(v.as_int64()), 1};
-}
-
-}  // namespace
-
 void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   // Raw-history base values from the `nodes` array.
   for (const auto& jn : root.at("nodes").as_array()) {
     if (auto* bv = jn.as_object().if_contains("base_value")) {
-      auto id = static_cast<NumericId>(jn.at("id").as_int64());
-      auto ns = static_cast<NamespaceIndex>(jn.at("ns").as_int64());
-      SetRawProfile(NodeId{id, ns}, bv->to_number<double>());
+      SetRawProfile(
+          NodeIdFromScadaString(std::string_view(jn.at("id").as_string())),
+          bv->to_number<double>());
     }
   }
 
@@ -83,7 +62,8 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
     e.severity = ParseSeverity(je.at("severity").as_string());
     e.message = LocalizedText{
         UtfConvert<char16_t>(std::string(je.at("message").as_string()))};
-    e.node_id = ParseJsonNodeId(je.at("node_id"));
+    e.node_id =
+        NodeIdFromScadaString(std::string_view(je.at("node_id").as_string()));
     e.change_mask = static_cast<UInt32>(je.at("change_mask").as_int64());
     e.acked = true;
     e.acknowledged_time = e.time;
