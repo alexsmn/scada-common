@@ -420,9 +420,16 @@ void NodeModelImpl::OnFetchStatusChanged() {
                              << LOG_TAG("Status", ToString(status_))
                              << LOG_TAG("FetchStatus", ToString(fetch_status_));
 
-  for (auto& o : observers_)
+  for (auto& o : observers_) {
+    LOG_INFO(service_.logger_)
+        << "Notify node observers"
+        << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
     o.OnNodeFetched({node_id_});
+  }
 
+  LOG_INFO(service_.logger_)
+      << "Notify node service from node fetch status change"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
   service_.OnNodeFetchStatusChanged(node_id_, status_, fetch_status_);
 }
 

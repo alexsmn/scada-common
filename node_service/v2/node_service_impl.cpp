@@ -167,6 +167,11 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
     const scada::NodeId& node_id,
     const scada::Status& status,
     const NodeFetchStatus& fetch_status) {
+  LOG_INFO(logger_) << "Notify node service observers"
+                    << LOG_TAG("NodeId", NodeIdToScadaString(node_id))
+                    << LOG_TAG("Status", ToString(status))
+                    << LOG_TAG("FetchStatus", ToString(fetch_status));
+
   for (auto& o : observers_)
     o.OnNodeFetched({node_id});
 }
@@ -176,19 +181,31 @@ void NodeServiceImpl::ProcessFetchedNodes(
   // Must update all nodes at first, then notify all together.
   // TODO: Simplify
 
+  LOG_INFO(logger_) << "Process fetched nodes"
+                    << LOG_TAG("NodeCount", node_states.size());
+
   SortNodesHierarchically(node_states);
 
   ScopedLock pending_events_lock{pending_events_};
 
   for (auto& node_state : node_states) {
+    LOG_INFO(logger_) << "Apply fetched node state"
+                      << LOG_TAG("NodeId",
+                                 NodeIdToScadaString(node_state.node_id));
     if (auto node = GetNodeModel(node_state.node_id))
       node->OnFetched(node_state);
   }
 
   for (auto& node_state : node_states) {
+    LOG_INFO(logger_) << "Complete fetched node state"
+                      << LOG_TAG("NodeId",
+                                 NodeIdToScadaString(node_state.node_id));
     if (auto node = GetNodeModel(node_state.node_id))
       node->OnFetchCompleted();
   }
+
+  LOG_INFO(logger_) << "Process fetched nodes completed"
+                    << LOG_TAG("NodeCount", node_states.size());
 }
 
 void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
