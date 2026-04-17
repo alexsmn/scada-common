@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 project(scada-common VERSION 2.5.7 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
