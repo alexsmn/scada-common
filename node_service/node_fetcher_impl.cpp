@@ -3,6 +3,8 @@
 #include "base/auto_reset.h"
 #include "base/executor.h"
 #include "base/range_util.h"
+#include "model/node_id_util.h"
+#include "scada/attribute_ids.h"
 #include "scada/attribute_service.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
@@ -21,6 +23,18 @@ const size_t kMaxParallelRequestCount = 5;
 const size_t kPrimitiveRequestCount = 2;
 const size_t kFetchAttributesReserveFactor = 5;
 const size_t kFetchReferencesReserveFactor = 3;
+
+void LogUnexpectedAttributeValue(BoostLogger& logger,
+                                 const FetchingNode& node,
+                                 scada::AttributeId attribute_id,
+                                 const scada::Variant& value) {
+  LOG_ERROR(logger) << "Unexpected fetched attribute type"
+                    << LOG_TAG("NodeId",
+                               NodeIdToScadaString(node.node_state.node_id))
+                    << LOG_TAG("AttributeId", ToString(attribute_id))
+                    << LOG_TAG("VariantType", ToString(value.type()))
+                    << LOG_TAG("Value", ToString(value));
+}
 
 void GetFetchAttributes(const FetchingNode& fetching_node,
                         std::vector<scada::ReadValueId>& read_ids) {
@@ -356,12 +370,21 @@ void NodeFetcherImpl::OnReadResult(
   assert(!status || results.size() == read_ids.size());
   assert(AssertValid());
 
+  if (status && results.size() != read_ids.size()) {
+    LOG_ERROR(logger_) << "Read request returned unexpected result count"
+                       << LOG_TAG("RequestId", request_id)
+                       << LOG_TAG("ExpectedCount", read_ids.size())
+                       << LOG_TAG("ActualCount", results.size());
+    status = scada::StatusCode::Bad;
+    results.clear();
+  }
+
   auto duration = base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Read request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
                     << LOG_TAG("Status", ToString(status));
-  for (size_t i = 0; i < read_ids.size(); ++i) {
+  for (size_t i = 0; i < read_ids.size() && i < results.size(); ++i) {
     const auto& input = read_ids[i];
     LOG_DEBUG(logger_) << "Read request completed"
                        << LOG_TAG("RequestId", request_id)
@@ -377,6 +400,10 @@ void NodeFetcherImpl::OnReadResult(
     assert(!processing_response_);
     base::AutoReset processing_response{&processing_response_, true};
 
+    LOG_INFO(logger_) << "Read request processing begin"
+                      << LOG_TAG("RequestId", request_id)
+                      << LOG_TAG("ReadCount", read_ids.size());
+
     auto result =
         status ? scada::DataValue{} : scada::MakeReadError(status.code());
 
@@ -386,6 +413,10 @@ void NodeFetcherImpl::OnReadResult(
       else
         ApplyReadResult(request_id, read_ids[i], scada::DataValue{result});
     }
+
+    LOG_INFO(logger_) << "Read request processing completed"
+                      << LOG_TAG("RequestId", request_id)
+                      << LOG_TAG("ReadCount", read_ids.size());
   }
 
   assert(running_request_count_ > 0);
@@ -393,9 +424,17 @@ void NodeFetcherImpl::OnReadResult(
   LOG_INFO(logger_) << "Remaining requests"
                     << LOG_TAG("RequestCount", running_request_count_);
 
+  LOG_INFO(logger_) << "Read request notify fetched nodes begin"
+                    << LOG_TAG("RequestId", request_id);
   NotifyFetchedNodes();
+  LOG_INFO(logger_) << "Read request notify fetched nodes completed"
+                    << LOG_TAG("RequestId", request_id);
 
+  LOG_INFO(logger_) << "Read request fetch pending nodes begin"
+                    << LOG_TAG("RequestId", request_id);
   FetchPendingNodes();
+  LOG_INFO(logger_) << "Read request fetch pending nodes completed"
+                    << LOG_TAG("RequestId", request_id);
 
   assert(AssertValid());
 }
@@ -430,28 +469,50 @@ void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
                                           scada::AttributeId attribute_id,
                                           scada::Variant&& value) {
   switch (attribute_id) {
-    case scada::AttributeId::NodeClass:
-      node.node_state.node_class =
-          static_cast<scada::NodeClass>(value.as_int32());
+    case scada::AttributeId::NodeClass: {
+      scada::Int32 node_class = 0;
+      if (!value.get(node_class)) {
+        LogUnexpectedAttributeValue(logger_, node, attribute_id, value);
+        node.status = scada::StatusCode::Bad_WrongTypeId;
+        return;
+      }
+      node.node_state.node_class = static_cast<scada::NodeClass>(node_class);
       break;
+    }
 
-    case scada::AttributeId::BrowseName:
-      assert(!value.get<scada::QualifiedName>().empty());
-      node.node_state.attributes.browse_name =
-          std::move(value.get<scada::QualifiedName>());
+    case scada::AttributeId::BrowseName: {
+      scada::QualifiedName browse_name;
+      if (!value.get(browse_name) || browse_name.empty()) {
+        LogUnexpectedAttributeValue(logger_, node, attribute_id, value);
+        node.status = scada::StatusCode::Bad_WrongTypeId;
+        return;
+      }
+      node.node_state.attributes.browse_name = std::move(browse_name);
       break;
+    }
 
-    case scada::AttributeId::DisplayName:
-      node.node_state.attributes.display_name =
-          std::move(value.get<scada::LocalizedText>());
+    case scada::AttributeId::DisplayName: {
+      scada::LocalizedText display_name;
+      if (!value.get(display_name)) {
+        LogUnexpectedAttributeValue(logger_, node, attribute_id, value);
+        node.status = scada::StatusCode::Bad_WrongTypeId;
+        return;
+      }
+      node.node_state.attributes.display_name = std::move(display_name);
       break;
+    }
 
-    case scada::AttributeId::DataType:
-      assert(!value.as_node_id().is_null());
-      node.node_state.attributes.data_type =
-          std::move(value.get<scada::NodeId>());
+    case scada::AttributeId::DataType: {
+      scada::NodeId data_type;
+      if (!value.get(data_type) || data_type.is_null()) {
+        LogUnexpectedAttributeValue(logger_, node, attribute_id, value);
+        node.status = scada::StatusCode::Bad_WrongTypeId;
+        return;
+      }
+      node.node_state.attributes.data_type = data_type;
       ValidateDependency(node, node.node_state.attributes.data_type);
       break;
+    }
 
     case scada::AttributeId::Value:
       node.node_state.attributes.value = std::move(value);
@@ -468,13 +529,22 @@ void NodeFetcherImpl::OnBrowseResult(
   assert(!status || results.size() == descriptions.size());
   assert(AssertValid());
 
+  if (status && results.size() != descriptions.size()) {
+    LOG_ERROR(logger_) << "Browse request returned unexpected result count"
+                       << LOG_TAG("RequestId", request_id)
+                       << LOG_TAG("ExpectedCount", descriptions.size())
+                       << LOG_TAG("ActualCount", results.size());
+    status = scada::StatusCode::Bad;
+    results.clear();
+  }
+
   const auto duration = base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("Count", descriptions.size())
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
                     << LOG_TAG("Status", ToString(status));
-  for (size_t i = 0; i < descriptions.size(); ++i) {
+  for (size_t i = 0; i < descriptions.size() && i < results.size(); ++i) {
     const auto& input = descriptions[i];
     LOG_DEBUG(logger_) << "Browse request completed"
                        << LOG_TAG("RequestId", request_id)
