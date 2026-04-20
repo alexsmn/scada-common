@@ -22,17 +22,26 @@ sequenceDiagram
     participant MI as MonitoredItemService
     participant AS as Address space
 
-    B->>S: CreateSubscriptionRequest<br/>(publishingInterval, keepAlive)
+    Note over B,S: Implemented in common today: Phase 1 lifecycle message codec<br/>for Create/Modify/Delete subscription + monitored-item requests/responses
+
+    B->>S: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
     S->>SUB: create subscription (id=N)
     S-->>B: CreateSubscriptionResponse (id=N)
 
-    B->>S: CreateMonitoredItemsRequest<br/>(subId=N, NodeId[], samplingInterval)
+    B->>S: CreateMonitoredItemsRequest<br/>(requestHandle, subId=N, NodeId[], samplingInterval)
     S->>MI: CreateMonitoredItems
     MI->>AS: attach adapter per item
     AS-->>MI: initial DataValue[]
     MI-->>SUB: queue initial values
     MI-->>S: monitoredItemId[]
     S-->>B: CreateMonitoredItemsResponse
+
+    B->>S: ModifySubscription / SetPublishingMode / SetMonitoringMode
+    S-->>B: matching response envelopes
+    B->>S: ModifyMonitoredItems / DeleteMonitoredItems / DeleteSubscriptions
+    S-->>B: matching response envelopes
+
+    Note over B,SUB: Pending runtime work: websocket session loop, Publish/Republish,<br/>TransferSubscriptions, keep-alive timers, and queued notification replay
 
     loop Publish pump
         B->>S: PublishRequest (acks for prior seq)

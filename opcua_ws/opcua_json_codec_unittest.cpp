@@ -3,6 +3,7 @@
 #include "base/time_utils.h"
 #include "scada/event.h"
 
+#include <boost/json.hpp>
 #include <boost/json/serialize.hpp>
 #include <gtest/gtest.h>
 
@@ -442,6 +443,256 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
   ASSERT_EQ(response_body->results.size(), 1u);
   ASSERT_EQ(response_body->results[0].references.size(), 1u);
   EXPECT_EQ(response_body->results[0].references[0].node_id, NumericNode(43));
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
+  OpcUaWsRequestMessage create_subscription{
+      .request_handle = 41,
+      .body = OpcUaWsCreateSubscriptionRequest{
+          .parameters =
+              {.publishing_interval_ms = 1000,
+               .lifetime_count = 60,
+               .max_keep_alive_count = 10,
+               .max_notifications_per_publish = 0,
+               .publishing_enabled = true,
+               .priority = 1}}};
+  OpcUaWsRequestMessage modify_subscription{
+      .request_handle = 42,
+      .body = OpcUaWsModifySubscriptionRequest{
+          .subscription_id = 17,
+          .parameters =
+              {.publishing_interval_ms = 250,
+               .lifetime_count = 30,
+               .max_keep_alive_count = 5,
+               .max_notifications_per_publish = 100,
+               .publishing_enabled = true,
+               .priority = 2}}};
+  OpcUaWsRequestMessage set_publishing_mode{
+      .request_handle = 43,
+      .body = OpcUaWsSetPublishingModeRequest{
+          .publishing_enabled = false,
+          .subscription_ids = {17, 18}}};
+  OpcUaWsRequestMessage delete_subscriptions{
+      .request_handle = 44,
+      .body = OpcUaWsDeleteSubscriptionsRequest{.subscription_ids = {19}}};
+
+  const auto create_decoded =
+      DecodeRequestMessage(EncodeJson(create_subscription));
+  EXPECT_EQ(create_decoded.request_handle, 41u);
+  EXPECT_EQ(std::get<OpcUaWsCreateSubscriptionRequest>(create_decoded.body)
+                .parameters.max_keep_alive_count,
+            10u);
+
+  const auto modify_decoded =
+      DecodeRequestMessage(EncodeJson(modify_subscription));
+  EXPECT_EQ(std::get<OpcUaWsModifySubscriptionRequest>(modify_decoded.body)
+                .subscription_id,
+            17u);
+
+  const auto set_mode_decoded =
+      DecodeRequestMessage(EncodeJson(set_publishing_mode));
+  const auto& set_mode_body =
+      std::get<OpcUaWsSetPublishingModeRequest>(set_mode_decoded.body);
+  EXPECT_FALSE(set_mode_body.publishing_enabled);
+  EXPECT_EQ(set_mode_body.subscription_ids,
+            (std::vector<OpcUaWsSubscriptionId>{17u, 18u}));
+
+  const auto delete_decoded =
+      DecodeRequestMessage(EncodeJson(delete_subscriptions));
+  EXPECT_EQ(std::get<OpcUaWsDeleteSubscriptionsRequest>(delete_decoded.body)
+                .subscription_ids,
+            (std::vector<OpcUaWsSubscriptionId>{19u}));
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
+  const boost::json::value raw_event_filter =
+      boost::json::parse(R"({"select":["Message"],"where":{"severity":60}})");
+  OpcUaWsRequestMessage create_items{
+      .request_handle = 51,
+      .body = OpcUaWsCreateMonitoredItemsRequest{
+          .subscription_id = 17,
+          .timestamps_to_return = OpcUaWsTimestampsToReturn::Both,
+          .items_to_create =
+              {{.item_to_monitor =
+                    {.node_id = NumericNode(70),
+                     .attribute_id = scada::AttributeId::Value},
+                .monitoring_mode = OpcUaWsMonitoringMode::Reporting,
+                .requested_parameters =
+                    {.client_handle = 1,
+                     .sampling_interval_ms = 250,
+                     .filter = OpcUaWsMonitoringFilter{
+                         OpcUaWsDataChangeFilter{
+                             .trigger =
+                                 OpcUaWsDataChangeTrigger::StatusValue,
+                             .deadband_type =
+                                 OpcUaWsDeadbandType::Absolute,
+                             .deadband_value = 0.5}},
+                     .queue_size = 4,
+                     .discard_oldest = true}},
+               {.item_to_monitor =
+                    {.node_id = NumericNode(71),
+                     .attribute_id = scada::AttributeId::EventNotifier},
+                .index_range = "0:10",
+                .monitoring_mode = OpcUaWsMonitoringMode::Sampling,
+                .requested_parameters =
+                    {.client_handle = 2,
+                     .sampling_interval_ms = 1000,
+                     .filter = OpcUaWsMonitoringFilter{raw_event_filter},
+                     .queue_size = 1,
+                     .discard_oldest = false}}}}};
+  OpcUaWsRequestMessage modify_items{
+      .request_handle = 52,
+      .body = OpcUaWsModifyMonitoredItemsRequest{
+          .subscription_id = 17,
+          .timestamps_to_return = OpcUaWsTimestampsToReturn::Source,
+          .items_to_modify =
+              {{.monitored_item_id = 42,
+                .requested_parameters =
+                    {.client_handle = 1,
+                     .sampling_interval_ms = 1000,
+                     .queue_size = 8,
+                     .discard_oldest = false}}}}};
+  OpcUaWsRequestMessage delete_items{
+      .request_handle = 53,
+      .body = OpcUaWsDeleteMonitoredItemsRequest{
+          .subscription_id = 17,
+          .monitored_item_ids = {42, 43}}};
+  OpcUaWsRequestMessage set_monitoring_mode{
+      .request_handle = 54,
+      .body = OpcUaWsSetMonitoringModeRequest{
+          .subscription_id = 17,
+          .monitoring_mode = OpcUaWsMonitoringMode::Disabled,
+          .monitored_item_ids = {42}}};
+
+  const auto create_decoded = DecodeRequestMessage(EncodeJson(create_items));
+  const auto& create_body =
+      std::get<OpcUaWsCreateMonitoredItemsRequest>(create_decoded.body);
+  EXPECT_EQ(create_body.subscription_id, 17u);
+  ASSERT_EQ(create_body.items_to_create.size(), 2u);
+  EXPECT_EQ(create_body.items_to_create[0].requested_parameters.queue_size, 4u);
+  ASSERT_TRUE(create_body.items_to_create[0].requested_parameters.filter.has_value());
+  const auto* first_filter = std::get_if<OpcUaWsDataChangeFilter>(
+      &*create_body.items_to_create[0].requested_parameters.filter);
+  ASSERT_NE(first_filter, nullptr);
+  EXPECT_EQ(first_filter->deadband_value, 0.5);
+  ASSERT_TRUE(create_body.items_to_create[1].requested_parameters.filter.has_value());
+  const auto* second_filter = std::get_if<boost::json::value>(
+      &*create_body.items_to_create[1].requested_parameters.filter);
+  ASSERT_NE(second_filter, nullptr);
+  EXPECT_EQ(*second_filter, raw_event_filter);
+
+  const auto modify_decoded = DecodeRequestMessage(EncodeJson(modify_items));
+  EXPECT_EQ(std::get<OpcUaWsModifyMonitoredItemsRequest>(modify_decoded.body)
+                .items_to_modify[0]
+                .requested_parameters.sampling_interval_ms,
+            1000);
+
+  const auto delete_decoded = DecodeRequestMessage(EncodeJson(delete_items));
+  EXPECT_EQ(std::get<OpcUaWsDeleteMonitoredItemsRequest>(delete_decoded.body)
+                .monitored_item_ids,
+            (std::vector<OpcUaWsMonitoredItemId>{42u, 43u}));
+
+  const auto set_mode_decoded =
+      DecodeRequestMessage(EncodeJson(set_monitoring_mode));
+  EXPECT_EQ(std::get<OpcUaWsSetMonitoringModeRequest>(set_mode_decoded.body)
+                .monitoring_mode,
+            OpcUaWsMonitoringMode::Disabled);
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
+  const boost::json::value filter_result =
+      boost::json::parse(R"({"kind":"event","selectClauseResults":[0]})");
+  OpcUaWsResponseMessage create_subscription{
+      .request_handle = 61,
+      .body = OpcUaWsCreateSubscriptionResponse{
+          .status = scada::StatusCode::Good,
+          .subscription_id = 17,
+          .revised_publishing_interval_ms = 1000,
+          .revised_lifetime_count = 60,
+          .revised_max_keep_alive_count = 10}};
+  OpcUaWsResponseMessage modify_subscription{
+      .request_handle = 62,
+      .body = OpcUaWsModifySubscriptionResponse{
+          .status = scada::StatusCode::Good,
+          .revised_publishing_interval_ms = 250,
+          .revised_lifetime_count = 30,
+          .revised_max_keep_alive_count = 5}};
+  OpcUaWsResponseMessage set_publishing_mode{
+      .request_handle = 63,
+      .body = OpcUaWsSetPublishingModeResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::StatusCode::Good,
+                      scada::StatusCode::Bad_WrongSubscriptionId}}};
+  OpcUaWsResponseMessage create_items{
+      .request_handle = 64,
+      .body = OpcUaWsCreateMonitoredItemsResponse{
+          .status = scada::StatusCode::Good,
+          .results =
+              {{.status = scada::StatusCode::Good,
+                .monitored_item_id = 42,
+                .revised_sampling_interval_ms = 250,
+                .revised_queue_size = 1},
+               {.status = scada::StatusCode::Bad_WrongNodeId,
+                .monitored_item_id = 0,
+                .revised_sampling_interval_ms = 1000,
+                .revised_queue_size = 4,
+                .filter_result = filter_result}}}};
+  OpcUaWsResponseMessage modify_items{
+      .request_handle = 65,
+      .body = OpcUaWsModifyMonitoredItemsResponse{
+          .status = scada::StatusCode::Good,
+          .results = {{.status = scada::StatusCode::Good,
+                       .revised_sampling_interval_ms = 500,
+                       .revised_queue_size = 8}}}};
+  OpcUaWsResponseMessage delete_items{
+      .request_handle = 66,
+      .body = OpcUaWsDeleteMonitoredItemsResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::StatusCode::Good}}};
+  OpcUaWsResponseMessage set_monitoring_mode{
+      .request_handle = 67,
+      .body = OpcUaWsSetMonitoringModeResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::StatusCode::Good,
+                      scada::StatusCode::Bad_WrongSubscriptionId}}};
+
+  EXPECT_EQ(std::get<OpcUaWsCreateSubscriptionResponse>(
+                DecodeResponseMessage(EncodeJson(create_subscription)).body)
+                .subscription_id,
+            17u);
+  EXPECT_EQ(std::get<OpcUaWsModifySubscriptionResponse>(
+                DecodeResponseMessage(EncodeJson(modify_subscription)).body)
+                .revised_max_keep_alive_count,
+            5u);
+  EXPECT_EQ(std::get<OpcUaWsSetPublishingModeResponse>(
+                DecodeResponseMessage(EncodeJson(set_publishing_mode)).body)
+                .results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Good,
+                                            scada::StatusCode::Bad_WrongSubscriptionId}));
+
+  const auto decoded_create_items =
+      DecodeResponseMessage(EncodeJson(create_items));
+  const auto& create_items_body =
+      std::get<OpcUaWsCreateMonitoredItemsResponse>(
+          decoded_create_items.body);
+  ASSERT_EQ(create_items_body.results.size(), 2u);
+  ASSERT_TRUE(create_items_body.results[1].filter_result.has_value());
+  EXPECT_EQ(*create_items_body.results[1].filter_result, filter_result);
+
+  EXPECT_EQ(std::get<OpcUaWsModifyMonitoredItemsResponse>(
+                DecodeResponseMessage(EncodeJson(modify_items)).body)
+                .results[0]
+                .revised_queue_size,
+            8u);
+  EXPECT_EQ(std::get<OpcUaWsDeleteMonitoredItemsResponse>(
+                DecodeResponseMessage(EncodeJson(delete_items)).body)
+                .results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
+  EXPECT_EQ(std::get<OpcUaWsSetMonitoringModeResponse>(
+                DecodeResponseMessage(EncodeJson(set_monitoring_mode)).body)
+                .results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Good,
+                                            scada::StatusCode::Bad_WrongSubscriptionId}));
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {

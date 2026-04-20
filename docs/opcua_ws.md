@@ -10,8 +10,13 @@
 > `ActivateSession`, `DetachSession`, and `CloseSession` is also present. The
 > matching UA-JSON codec now covers the protocol envelope
 > (`requestHandle` + `service` + `body`), session request/response messages,
-> `ServiceFault`, and the implemented service-dispatch set, all with unit
-> tests. The actual socket/session transport layer still lands later.
+> `ServiceFault`, the implemented service-dispatch set, and the Phase 1
+> subscription / monitored-item lifecycle messages
+> (`CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
+> `DeleteSubscriptions`, `CreateMonitoredItems`, `ModifyMonitoredItems`,
+> `DeleteMonitoredItems`, `SetMonitoringMode`), all with unit tests. The
+> actual socket/session transport layer, publish pump, and reconnect logic
+> still land later.
 
 ## Related documents
 
@@ -93,7 +98,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
-| `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` | Transport-neutral WS protocol envelope types and codec: `requestHandle`, session request/response bodies, and `ServiceFault` |
+| `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` | Transport-neutral WS protocol envelope types and codec: `requestHandle`, session request/response bodies, `ServiceFault`, and the Phase 1 subscription / monitored-item lifecycle message set |
 | `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` | Coroutine-based dispatch from decoded WS service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
 | `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage |
 | `server/opcua_ws/opcua_ws_module.{h,cpp}` | Config loader + lifecycle; templated on `server/opcua/opcua_module.cpp` |
@@ -212,13 +217,20 @@ Current implementation note:
   `CloseSessionRequest/Response`, `ServiceFault`, and `requestHandle`
   correlation on top of the already-implemented service request/response
   codec.
+- The transport-independent Phase 1 subscription / monitored-item lifecycle
+  wire-format is now in place under
+  `common/opcua_ws/opcua_ws_subscription_message_codec.cpp`, covering
+  `CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
+  `DeleteSubscriptions`, `CreateMonitoredItems`, `ModifyMonitoredItems`,
+  `DeleteMonitoredItems`, and `SetMonitoringMode` request/response envelopes
+  with unit tests.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
   Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
   Phase 2/3 `HistoryRead` / `Call` / node-management payloads.
-- `BrowseNext` and the Phase 1 subscription/publish message set are still
+- `BrowseNext`, `Publish`, `Republish`, and `TransferSubscriptions` are still
   pending because they require additional WS session/subscription runtime
   state, and `BrowseNext` also needs a matching coroutine-facing view-service
   API in core.
@@ -236,11 +248,15 @@ Golden-fixture tests for `Variant`, `NodeId`, `ExpandedNodeId`,
 implemented in the current phase. Current coverage now includes the
 transport-independent Phase 0 payloads (`CreateSession`, `ActivateSession`,
 `CloseSession`, `Read`, `Write`, `Browse`, `TranslateBrowsePathsToNodeIds`)
-plus the existing Phase 2/3 payloads actually wired into
-`OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
-with `requestHandle`. `ServiceFault` is also covered. `ExtensionObject`,
-`BrowseNext`, and the Phase 1 subscription/publish messages are still pending
-along with the transport/session layer.
+plus the implemented Phase 1 subscription / monitored-item lifecycle payloads
+(`CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
+`DeleteSubscriptions`, `CreateMonitoredItems`, `ModifyMonitoredItems`,
+`DeleteMonitoredItems`, `SetMonitoringMode`) and the existing Phase 2/3
+payloads actually wired into `OpcUaWsServiceHandler`, all wrapped in the
+common request/response envelope with `requestHandle`. `ServiceFault` is also
+covered. `ExtensionObject`, `BrowseNext`, and the `Publish` / `Republish` /
+`TransferSubscriptions` runtime messages are still pending along with the
+transport/session layer.
 
 ### Session lifecycle
 
