@@ -1,0 +1,73 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'primaryColor': '#f3f4f6',
+    'primaryBorderColor': '#374151',
+    'primaryTextColor': '#111827',
+    'secondaryColor': '#dbeafe',
+    'secondaryBorderColor': '#1d4ed8',
+    'secondaryTextColor': '#111827',
+    'tertiaryColor': '#fef3c7',
+    'tertiaryBorderColor': '#b45309',
+    'tertiaryTextColor': '#111827',
+    'lineColor': '#374151',
+    'defaultLinkColor': '#374151',
+    'clusterBkg': '#f9fafb',
+    'clusterBorder': '#6b7280',
+    'titleColor': '#111827'
+  },
+  'flowchart': {'htmlLabels': true}
+}}%%
+flowchart LR
+    subgraph Clients["Clients"]
+        direction TB
+        QT["<b>Qt desktop client</b><br/><i>scada/client</i>"]
+        WEB["<b>Web client</b><br/><i>scada/web</i>"]
+        NATIVE["<b>3rd-party UA clients</b>"]
+    end
+
+    subgraph Endpoints["Server OPC UA endpoints"]
+        direction TB
+        TCP["<b>OpcUaServer</b><br/><i>common/opcua/</i><br/>opc.tcp://:4840<br/>UA Binary"]
+        WS["<b>OpcUaWsServer</b><br/><i>common/opcua_ws/</i><br/>opc.wss://:4843<br/>UA-JSON (opcua+uajson)"]
+    end
+
+    subgraph WsInternals["opcua_ws internals"]
+        direction TB
+        SESS["<b>OpcUaWsSession</b><br/>UA session + identity"]
+        SUB["<b>OpcUaWsSubscription</b><br/>publish queue + keepalive"]
+        CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode"]
+    end
+
+    subgraph Core["Shared core"]
+        direction TB
+        CTX["<b>OpcUaServerContext</b><br/>attribute / view /<br/>monitored-item / method /<br/>node-management services"]
+        SVC["<b>scada services</b><br/>node manager, history,<br/>events, security"]
+    end
+
+    MOD["<b>server/opcua_ws/<br/>OpcUaWsModule</b><br/>config + lifecycle"]
+
+    QT -->|opc.tcp| TCP
+    NATIVE -->|opc.tcp| TCP
+    WEB -->|opc.wss| WS
+
+    WS --> SESS
+    WS --> CODEC
+    SESS --> SUB
+    SESS --> CODEC
+
+    TCP --> CTX
+    WS --> CTX
+    CTX --> SVC
+
+    MOD -.configures.-> WS
+
+    classDef clientStyle fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef newModule fill:#dcfce7,stroke:#15803d,color:#111827,stroke-width:2px
+    classDef existing fill:#f3f4f6,stroke:#374151,color:#111827
+    classDef core fill:#fef3c7,stroke:#b45309,color:#111827
+    class QT,WEB,NATIVE clientStyle
+    class WS,SESS,SUB,CODEC,MOD newModule
+    class TCP existing
+    class CTX,SVC core

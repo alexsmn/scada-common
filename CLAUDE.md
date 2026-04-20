@@ -95,6 +95,27 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
 - When adding, removing, or renaming presets in `CMakeUserPresets.json`, apply the same change to `CMakeUserPresets.json.template` (replacing local paths with placeholders) so the template stays in sync.
 - When adding a new `find_package()` dependency, add its Find module directory to `CMAKE_MODULE_PATH` in both `CMakeUserPresets.json` and `CMakeUserPresets.json.template`.
 
+## Documentation
+
+- Mermaid sources in `docs/*.mmd` should be rendered to committed `docs/*.svg`
+  artifacts after diagram changes.
+- From WSL, prefer running Mermaid regeneration on the Windows side via
+  `cmd.exe`, not via Linux `mmdc`. In this repo, the WSL-launched browser path
+  can fail with Puppeteer/Chrome startup errors, while the Windows-side render
+  works reliably with Edge.
+- Use the checked-in Windows Puppeteer config at
+  `docs/mermaid-puppeteer-config-win.json`:
+
+```bash
+cmd.exe /c mmdc -p C:/tc/scada/common/docs/mermaid-puppeteer-config-win.json \
+  -i C:/tc/scada/common/docs/<diagram>.mmd \
+  -o C:/tc/scada/common/docs/<diagram>.svg \
+  -b white
+```
+
+- Keep the SVG background explicit (`-b white` or equivalent) so diagrams stay
+  readable on dark backgrounds.
+
 ## Include Conventions
 
 All modules expose their parent directory as a public include path, enabling includes like:

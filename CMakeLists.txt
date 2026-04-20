@@ -32,6 +32,7 @@ add_subdirectory(common)
 add_subdirectory(events)
 add_subdirectory(address_space)
 add_subdirectory(opcua)
+add_subdirectory(opcua_ws)
 add_subdirectory(timed_data)
 add_subdirectory(node_service)
 

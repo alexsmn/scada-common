@@ -1,0 +1,58 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'primaryColor': '#f3f4f6',
+    'primaryBorderColor': '#374151',
+    'primaryTextColor': '#111827',
+    'lineColor': '#374151',
+    'actorBkg': '#dbeafe',
+    'actorBorder': '#1d4ed8',
+    'actorTextColor': '#111827',
+    'noteBkgColor': '#fef3c7',
+    'noteBorderColor': '#b45309',
+    'noteTextColor': '#111827'
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    participant B as Browser (UaClient)
+    participant S as OpcUaWsSession
+    participant SUB as OpcUaWsSubscription
+    participant MI as MonitoredItemService
+    participant AS as Address space
+
+    B->>S: CreateSubscriptionRequest<br/>(publishingInterval, keepAlive)
+    S->>SUB: create subscription (id=N)
+    S-->>B: CreateSubscriptionResponse (id=N)
+
+    B->>S: CreateMonitoredItemsRequest<br/>(subId=N, NodeId[], samplingInterval)
+    S->>MI: CreateMonitoredItems
+    MI->>AS: attach adapter per item
+    AS-->>MI: initial DataValue[]
+    MI-->>SUB: queue initial values
+    MI-->>S: monitoredItemId[]
+    S-->>B: CreateMonitoredItemsResponse
+
+    loop Publish pump
+        B->>S: PublishRequest (acks for prior seq)
+        alt data-change available
+            SUB-->>S: NotificationMessage (changes)
+            S-->>B: PublishResponse (seq, notifications)
+        else no data, keep-alive tick
+            S-->>B: PublishResponse (keep-alive, no notifications)
+        end
+    end
+
+    Note over B,S: Connection drops, browser reconnects
+
+    B->>S: TransferSubscriptionsRequest(subId=N)
+    alt session still alive
+        S-->>B: Good, subscription transferred
+    else session expired
+        S-->>B: BadSessionIdInvalid
+        B->>S: CreateSubscription + CreateMonitoredItems (resume)
+    end
+
+    B->>S: RepublishRequest(subId=N, seq=last_acked+1)
+    S-->>B: PublishResponse (replayed)

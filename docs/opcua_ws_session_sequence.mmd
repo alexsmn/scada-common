@@ -1,0 +1,56 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'primaryColor': '#f3f4f6',
+    'primaryBorderColor': '#374151',
+    'primaryTextColor': '#111827',
+    'lineColor': '#374151',
+    'actorBkg': '#dbeafe',
+    'actorBorder': '#1d4ed8',
+    'actorTextColor': '#111827',
+    'noteBkgColor': '#fef3c7',
+    'noteBorderColor': '#b45309',
+    'noteTextColor': '#111827'
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    participant B as Browser (UaClient)
+    participant WS as OpcUaWsServer
+    participant S as OpcUaWsSession
+    participant CTX as OpcUaServerContext
+    participant SEC as SecurityService
+
+    Note over B,WS: TLS handshake, then WebSocket upgrade
+    B->>WS: GET /ua<br/>Upgrade: websocket<br/>Sec-WebSocket-Protocol: opcua+uajson<br/>Origin: https://scada.local
+    WS->>WS: validate subprotocol + allowed origin
+    WS-->>B: 101 Switching Protocols
+
+    WS->>S: create session state
+    B->>S: CreateSessionRequest (JSON)
+    S->>CTX: allocate SessionId + ServerNonce
+    S-->>B: CreateSessionResponse (SessionId, nonce)
+
+    B->>S: ActivateSessionRequest<br/>(UserNameIdentityToken: PBKDF2(password, nonce))
+    S->>SEC: authenticate(user, token)
+    SEC-->>S: identity accepted
+    S->>CTX: build scada::ServiceContext
+    S-->>B: ActivateSessionResponse (AuthenticationToken)
+
+    Note over B,CTX: Data plane opens
+
+    B->>S: ReadRequest([NodeId, attrs])
+    S->>CTX: AttributeService.Read
+    CTX-->>S: DataValue[]
+    S-->>B: ReadResponse (JSON)
+
+    B->>S: BrowseRequest(root)
+    S->>CTX: ViewService.Browse
+    CTX-->>S: References
+    S-->>B: BrowseResponse
+
+    B->>S: CloseSessionRequest
+    S->>CTX: release context
+    S-->>B: CloseSessionResponse
+    WS-->>B: Close frame (1000)
