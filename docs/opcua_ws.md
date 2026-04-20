@@ -8,9 +8,10 @@
 > `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. A
 > transport-independent session lifecycle manager for `CreateSession`,
 > `ActivateSession`, `DetachSession`, and `CloseSession` is also present. The
-> matching UA-JSON codec for the implemented service-dispatch set is covered by
-> unit tests; the wire-format mapping for session messages still lands with the
-> future socket/session transport layer.
+> matching UA-JSON codec now covers the protocol envelope
+> (`requestHandle` + `service` + `body`), session request/response messages,
+> `ServiceFault`, and the implemented service-dispatch set, all with unit
+> tests. The actual socket/session transport layer still lands later.
 
 ## Related documents
 
@@ -92,6 +93,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
+| `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` | Transport-neutral WS protocol envelope types and codec: `requestHandle`, session request/response bodies, and `ServiceFault` |
 | `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` | Coroutine-based dispatch from decoded WS service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
 | `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage |
 | `server/opcua_ws/opcua_ws_module.{h,cpp}` | Config loader + lifecycle; templated on `server/opcua/opcua_module.cpp` |
@@ -114,9 +116,11 @@ coroutine handler → encode-JSON.
 - TLS handles channel security, so we do **not** run UA `OpenSecureChannel`.
   The WebSocket upgrade is the secure-channel establishment.
 - One WebSocket **text** frame carries one UA request or response JSON object
-  (Part 6 §7.4 simple framing). `RequestHeader.requestHandle` correlates
-  responses; `PublishResponse` messages are pushed by the server in response
-  to outstanding `PublishRequest` messages, same pattern as on TCP.
+  (Part 6 §7.4 simple framing). In the current common-side codec, that frame
+  is represented as a transport-neutral envelope with `requestHandle`,
+  `service`, and `body`. `requestHandle` correlates responses; future
+  `PublishResponse` messages are pushed by the server in response to
+  outstanding `PublishRequest` messages, same pattern as on TCP.
 - Handshake validates `Sec-WebSocket-Protocol: opcua+uajson` and `Origin`
   against a configured allowlist. This is the cross-site WebSocket hijacking
   (CSWSH) guard — `Origin` is the only signal the browser is honest about for
@@ -201,17 +205,23 @@ Current implementation note:
   points for `CreateSession` and `ActivateSession`, synchronous
   `DetachSession` / `CloseSession`, revised timeout enforcement, detachable
   resume semantics, and single-session auth policy checks.
+- The UA-JSON protocol envelope and session wire-format mapping are in place
+  under `common/opcua_ws/opcua_ws_message.h` and
+  `common/opcua_ws/opcua_ws_message_codec.cpp`, covering
+  `CreateSessionRequest/Response`, `ActivateSessionRequest/Response`,
+  `CloseSessionRequest/Response`, `ServiceFault`, and `requestHandle`
+  correlation on top of the already-implemented service request/response
+  codec.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
   Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
   Phase 2/3 `HistoryRead` / `Call` / node-management payloads.
-- `BrowseNext`, UA-JSON message shapes for `CreateSession` /
-  `ActivateSession` / `CloseSession`, and the Phase 1
-  subscription/publish message set are still pending because they require the
-  actual WS session/subscription transport layer rather than pure
-  transport-independent state management or service dispatch.
+- `BrowseNext` and the Phase 1 subscription/publish message set are still
+  pending because they require additional WS session/subscription runtime
+  state, and `BrowseNext` also needs a matching coroutine-facing view-service
+  API in core.
 - Socket/session management and the actual `server/opcua_ws/` module remain
   pending.
 
@@ -224,11 +234,13 @@ Current implementation note:
 Golden-fixture tests for `Variant`, `NodeId`, `ExpandedNodeId`,
 `QualifiedName`, `LocalizedText`, `DataValue`, and each request/response pair
 implemented in the current phase. Current coverage now includes the
-transport-independent Phase 0 payloads (`Read`, `Write`, `Browse`,
-`TranslateBrowsePathsToNodeIds`) plus the existing Phase 2/3 payloads actually
-wired into `OpcUaWsServiceHandler`; `ExtensionObject`, `BrowseNext`, and the
-Phase 0/1 session/subscription messages are still pending along with the
-transport/session layer.
+transport-independent Phase 0 payloads (`CreateSession`, `ActivateSession`,
+`CloseSession`, `Read`, `Write`, `Browse`, `TranslateBrowsePathsToNodeIds`)
+plus the existing Phase 2/3 payloads actually wired into
+`OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
+with `requestHandle`. `ServiceFault` is also covered. `ExtensionObject`,
+`BrowseNext`, and the Phase 1 subscription/publish messages are still pending
+along with the transport/session layer.
 
 ### Session lifecycle
 

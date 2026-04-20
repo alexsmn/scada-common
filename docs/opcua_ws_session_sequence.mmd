@@ -28,30 +28,30 @@ sequenceDiagram
     WS-->>B: 101 Switching Protocols
 
     WS->>S: create session state
-    B->>S: CreateSessionRequest (JSON)
+    B->>S: requestHandle=1<br/>CreateSessionRequest (JSON)
     S->>M: CreateSession(requestedTimeout)
     M-->>S: SessionId + AuthenticationToken + ServerNonce + RevisedTimeout
-    S-->>B: CreateSessionResponse
+    S-->>B: requestHandle=1<br/>CreateSessionResponse
 
-    B->>S: ActivateSessionRequest<br/>(UserNameIdentityToken: PBKDF2(password, nonce))
+    B->>S: requestHandle=2<br/>ActivateSessionRequest<br/>(UserNameIdentityToken: PBKDF2(password, nonce))
     S->>M: ActivateSession(sessionId, token, credentials)
     M->>SEC: authenticate(user, token)
     SEC-->>M: identity accepted
     M-->>S: attached session + scada::ServiceContext
-    S-->>B: ActivateSessionResponse
+    S-->>B: requestHandle=2<br/>ActivateSessionResponse
 
     Note over B,M: Data plane opens after the session is attached
     Note over B,S: Existing coroutine service-handler layer handles Read / Write / Browse / Translate / HistoryRead / Call / node management
 
     Note over B,S: Connection drops, browser reconnects before timeout
     S->>M: DetachSession(authenticationToken)
-    B->>S: ActivateSessionRequest(sessionId, token)
+    B->>S: requestHandle=3<br/>ActivateSessionRequest(sessionId, token)
     S->>M: ActivateSession(resume)
     M-->>S: resumed attached session
-    S-->>B: ActivateSessionResponse(resumed=true)
+    S-->>B: requestHandle=3<br/>ActivateSessionResponse(resumed=true)
 
-    B->>S: CloseSessionRequest
+    B->>S: requestHandle=4<br/>CloseSessionRequest
     S->>M: CloseSession(sessionId, token)
     M-->>S: session removed
-    S-->>B: CloseSessionResponse
+    S-->>B: requestHandle=4<br/>CloseSessionResponse
     WS-->>B: Close frame (1000)

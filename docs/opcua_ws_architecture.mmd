@@ -39,7 +39,7 @@ flowchart LR
         SMGR["<b>OpcUaWsSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
         HANDLER["<b>OpcUaWsServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
         SUB["<b>OpcUaWsSubscription</b><br/>publish queue + keepalive"]
-        CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode"]
+        CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode<br/>requestHandle + session envelopes"]
     end
 
     subgraph Core["Shared core"]
