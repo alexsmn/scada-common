@@ -19,7 +19,7 @@ sequenceDiagram
     participant B as Browser (UaClient)
     participant WS as OpcUaWsServer
     participant S as OpcUaWsSession
-    participant CTX as OpcUaServerContext
+    participant M as OpcUaWsSessionManager
     participant SEC as SecurityService
 
     Note over B,WS: TLS handshake, then WebSocket upgrade
@@ -29,28 +29,29 @@ sequenceDiagram
 
     WS->>S: create session state
     B->>S: CreateSessionRequest (JSON)
-    S->>CTX: allocate SessionId + ServerNonce
-    S-->>B: CreateSessionResponse (SessionId, nonce)
+    S->>M: CreateSession(requestedTimeout)
+    M-->>S: SessionId + AuthenticationToken + ServerNonce + RevisedTimeout
+    S-->>B: CreateSessionResponse
 
     B->>S: ActivateSessionRequest<br/>(UserNameIdentityToken: PBKDF2(password, nonce))
-    S->>SEC: authenticate(user, token)
-    SEC-->>S: identity accepted
-    S->>CTX: build scada::ServiceContext
-    S-->>B: ActivateSessionResponse (AuthenticationToken)
+    S->>M: ActivateSession(sessionId, token, credentials)
+    M->>SEC: authenticate(user, token)
+    SEC-->>M: identity accepted
+    M-->>S: attached session + scada::ServiceContext
+    S-->>B: ActivateSessionResponse
 
-    Note over B,CTX: Data plane opens
+    Note over B,M: Data plane opens after the session is attached
+    Note over B,S: Existing coroutine service-handler layer handles Read / Write / Browse / Translate / HistoryRead / Call / node management
 
-    B->>S: ReadRequest([NodeId, attrs])
-    S->>CTX: AttributeService.Read
-    CTX-->>S: DataValue[]
-    S-->>B: ReadResponse (JSON)
-
-    B->>S: BrowseRequest(root)
-    S->>CTX: ViewService.Browse
-    CTX-->>S: References
-    S-->>B: BrowseResponse
+    Note over B,S: Connection drops, browser reconnects before timeout
+    S->>M: DetachSession(authenticationToken)
+    B->>S: ActivateSessionRequest(sessionId, token)
+    S->>M: ActivateSession(resume)
+    M-->>S: resumed attached session
+    S-->>B: ActivateSessionResponse(resumed=true)
 
     B->>S: CloseSessionRequest
-    S->>CTX: release context
+    S->>M: CloseSession(sessionId, token)
+    M-->>S: session removed
     S-->>B: CloseSessionResponse
     WS-->>B: Close frame (1000)

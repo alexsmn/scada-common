@@ -5,9 +5,12 @@
 > service-dispatch layer is now present and uses coroutine-based handlers for
 > the currently implementable Phase 0/2/3 service set: `Read`, `Write`,
 > `Browse`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
-> `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. The
-> matching UA-JSON codec for those services is also present and covered by unit
-> tests.
+> `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. A
+> transport-independent session lifecycle manager for `CreateSession`,
+> `ActivateSession`, `DetachSession`, and `CloseSession` is also present. The
+> matching UA-JSON codec for the implemented service-dispatch set is covered by
+> unit tests; the wire-format mapping for session messages still lands with the
+> future socket/session transport layer.
 
 ## Related documents
 
@@ -86,9 +89,10 @@ New modules, none of which touch the existing `common/opcua/` code:
 |---|---|
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Beast WSS acceptor; per-connection `OpcUaWsSession` spawn |
 | `common/opcua_ws/opcua_ws_session.{h,cpp}` | Per-connection UA session state: SessionId, AuthenticationToken, continuation points, subscription ids |
+| `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
-| `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` | Coroutine-based dispatch from decoded WS service requests into existing `HistoryService`, `MethodService`, and `NodeManagementService` |
+| `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` | Coroutine-based dispatch from decoded WS service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
 | `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage |
 | `server/opcua_ws/opcua_ws_module.{h,cpp}` | Config loader + lifecycle; templated on `server/opcua/opcua_module.cpp` |
 
@@ -192,16 +196,22 @@ Current implementation note:
   `ViewService` APIs is in place under
   `common/opcua_ws/opcua_ws_service_handler.{h,cpp}`:
   `Read`, `Write`, `Browse`, and `TranslateBrowsePathsToNodeIds`.
+- The transport-independent session lifecycle layer is in place under
+  `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` with coroutine entry
+  points for `CreateSession` and `ActivateSession`, synchronous
+  `DetachSession` / `CloseSession`, revised timeout enforcement, detachable
+  resume semantics, and single-session auth policy checks.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
   Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
   Phase 2/3 `HistoryRead` / `Call` / node-management payloads.
-- `BrowseNext`, session lifecycle (`CreateSession`, `ActivateSession`,
-  `CloseSession`), and the Phase 1 subscription/publish message set are still
-  pending because they require WS session/subscription state rather than pure
-  transport-independent service dispatch.
+- `BrowseNext`, UA-JSON message shapes for `CreateSession` /
+  `ActivateSession` / `CloseSession`, and the Phase 1
+  subscription/publish message set are still pending because they require the
+  actual WS session/subscription transport layer rather than pure
+  transport-independent state management or service dispatch.
 - Socket/session management and the actual `server/opcua_ws/` module remain
   pending.
 
@@ -222,13 +232,16 @@ transport/session layer.
 
 ### Session lifecycle
 
-`common/opcua_ws/opcua_ws_session_unittest.cpp`
+`common/opcua_ws/opcua_ws_session_manager_unittest.cpp`
 
 - Create → Activate → Close happy path
-- Activate without prior Create → `BadSessionIdInvalid`
+- Anonymous activate uses revised timeout without invoking authentication
+- Activate without prior Create → `Bad_SessionIsLoggedOff`
 - Session timeout expiry without Activate → session cleaned up
-- `ActivateSession` after transient disconnect with valid token → resumes
-- `ActivateSession` with expired session → `BadSessionIdInvalid`
+- `DetachSession` + `ActivateSession` with valid token → resumes
+- `ActivateSession` with expired session → `Bad_SessionIsLoggedOff`
+- Single-session identities require `deleteExisting=true` to replace an
+  existing active session
 
 ### In-process integration
 
