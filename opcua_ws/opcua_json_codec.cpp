@@ -190,15 +190,6 @@ scada::StatusCode DecodeStatusCode(const value& json) {
       static_cast<unsigned>(RequireUInt64(json)));
 }
 
-scada::Variant::Type ParseVariantType(std::string_view type_name) {
-  for (unsigned i = 0; i < static_cast<unsigned>(scada::Variant::COUNT); ++i) {
-    const auto type = static_cast<scada::Variant::Type>(i);
-    if (ToString(type) == type_name)
-      return type;
-  }
-  return scada::Variant::COUNT;
-}
-
 value EncodeVariant(const scada::Variant& variant);
 scada::Variant DecodeVariant(const value& json);
 
@@ -533,7 +524,7 @@ value EncodeVariant(const scada::Variant& variant) {
 
 scada::Variant DecodeVariant(const value& json) {
   const auto& obj = RequireObject(json);
-  auto type = ParseVariantType(RequireString(RequireField(obj, "type")));
+  auto type = scada::ParseBuiltInType(RequireString(RequireField(obj, "type")));
   bool is_array = RequireBool(RequireField(obj, "isArray"));
   const auto& payload = RequireField(obj, "value");
 
