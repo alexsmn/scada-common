@@ -30,12 +30,12 @@ flowchart LR
     subgraph Endpoints["Server OPC UA endpoints"]
         direction TB
         TCP["<b>OpcUaServer</b><br/><i>common/opcua/</i><br/>opc.tcp://:4840<br/>UA Binary"]
-        WSSOCK["<b>OpcUaWsBeastServer</b><br/><i>common/opcua_ws/</i><br/>Beast WS acceptor<br/>TLS/WSS wrapper pending"]
+        WSSOCK["<b>OpcUaWsBeastServer</b><br/><i>common/opcua_ws/</i><br/>Beast WS/WSS acceptor<br/>TLS enabled"]
     end
 
     subgraph WsInternals["opcua_ws internals"]
         direction TB
-        WSTR["<b>OpcUaWsBeastTransport</b><br/>websocket text-frame adapter"]
+        WSTR["<b>WebSocketTransport</b><br/><i>third_party/net/transport</i><br/>websocket text-frame adapter"]
         WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
         SESS["<b>OpcUaWsSession</b><br/>live session state +<br/>subscription orchestration"]
         RT["<b>OpcUaWsRuntime</b><br/>decoded request routing +<br/>session/service wiring"]

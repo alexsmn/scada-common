@@ -1,10 +1,13 @@
 #pragma once
 
-#include "opcua_ws/opcua_ws_beast_transport.h"
 #include "opcua_ws/opcua_ws_server.h"
+#include "opcua_ws/opcua_ws_tls_context.h"
 
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/beast/websocket/stream.hpp>
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,6 +23,7 @@ struct OpcUaWsBeastServerContext {
   std::vector<std::string> allowed_origins;
   bool enable_permessage_deflate = true;
   std::string server_header = "scada-opcua-ws";
+  std::optional<OpcUaWsTlsContextConfig> tls;
 };
 
 class OpcUaWsBeastServer : private OpcUaWsBeastServerContext {
@@ -30,12 +34,16 @@ class OpcUaWsBeastServer : private OpcUaWsBeastServerContext {
   [[nodiscard]] transport::awaitable<transport::error_code> close();
   [[nodiscard]] boost::asio::ip::tcp::endpoint local_endpoint() const;
 
- private:
+  private:
   [[nodiscard]] transport::awaitable<void> AcceptLoop();
   [[nodiscard]] transport::awaitable<void> HandleSocket(
       boost::asio::ip::tcp::socket socket);
+  template <typename NextLayer>
+  [[nodiscard]] transport::awaitable<void> HandleUpgradedStream(
+      boost::beast::websocket::stream<NextLayer> websocket);
 
   boost::asio::ip::tcp::acceptor acceptor_;
+  std::optional<boost::asio::ssl::context> ssl_context_;
   OpcUaWsServer server_;
   bool opened_ = false;
 };

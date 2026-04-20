@@ -13,9 +13,12 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/use_future.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http/field.hpp>
+#include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
@@ -29,6 +32,57 @@ using namespace testing;
 
 namespace opcua_ws {
 namespace {
+
+constexpr auto kTestCertificatePem = R"(-----BEGIN CERTIFICATE-----
+MIIDCTCCAfGgAwIBAgIUQWAR+40WE34MoTuKigrGeiGT5ycwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI2MDQyMDE4NTczMloXDTM2MDQx
+NzE4NTczMlowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAsUhr1SNMP7HMVoUgPK1j2ecIvRSz0PiGagh5kOL6HETy
+Eo3MTux9LheWcvhhMvpm3HNOIx6Q8iModo77le+nyYxExrQ4xNFTvwsFhkpso2sQ
+C9fWO7uabAFhMSJZZq5vs8y4o3aMQNTeSBWzkoX0ebdzkBn0YbLa6Gvas87oF50g
+NWiOKJNNmZL6rC2iSMI+2c/fq7UrPkmDd6VObFXO7ItTFXbqeXPiynuMnLXf5sGU
+V3VKP8PyVGR7QJq7LRa30BCsfSTAK6BlVIcPkDMA+1uVM6lkPI103axRF3UhwwU6
+B8WOpyafhul18ZiFtSYz78x5K3kYrSvYjOOb1YeHEwIDAQABo1MwUTAdBgNVHQ4E
+FgQUaGBbcBpQLHhmkVgc1Eg2OOXTLM0wHwYDVR0jBBgwFoAUaGBbcBpQLHhmkVgc
+1Eg2OOXTLM0wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAeEkK
+63ra3vPoBp49UWiRgPfroFKbX/AI01/r0WRsSDzwOPoKRmSpuwdcXfT3B3ilzmDX
+sfiAJJQtvcgm3V3vNzWmks+4dLS0G+bRwBxih5b16xAWbUcUgty9TX3HOlAzqdOh
+BnoQQczubSQv2/0AzfxZ06EGpwrlFrTzXJRpmQRoqo8xGEwgiQ10A3aXYYyxydzj
+ChS5hFDZ4P6MA01VI2y5dgIUiA+3uEWOt2SJgexDaFk7ZmpVqzh4KHV0deSyG3Gt
+QoPGNJO4DZVyCXKd4iOg40H4JRc2fIlMykOklAD7ukuUpGNeEPKzSQjakxKYKiX8
+NGfJbg7n4a46yf+S6A==
+-----END CERTIFICATE-----
+)";
+
+constexpr auto kTestPrivateKeyPem = R"(-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCxSGvVI0w/scxW
+hSA8rWPZ5wi9FLPQ+IZqCHmQ4vocRPISjcxO7H0uF5Zy+GEy+mbcc04jHpDyIyh2
+jvuV76fJjETGtDjE0VO/CwWGSmyjaxAL19Y7u5psAWExIllmrm+zzLijdoxA1N5I
+FbOShfR5t3OQGfRhstroa9qzzugXnSA1aI4ok02ZkvqsLaJIwj7Zz9+rtSs+SYN3
+pU5sVc7si1MVdup5c+LKe4yctd/mwZRXdUo/w/JUZHtAmrstFrfQEKx9JMAroGVU
+hw+QMwD7W5UzqWQ8jXTdrFEXdSHDBToHxY6nJp+G6XXxmIW1JjPvzHkreRitK9iM
+45vVh4cTAgMBAAECggEAD+7UUimD9s2B8dyxEwL6UGElNekgaA2N9wWf91eO5u+D
+WguIaydx8KyKBvcvtScwC2wJf7qFiF2Ei3M6RTVuvPxwSfN0jqvJfQf+jR0vOliq
+7oWNaXzo2gAdvg66PjI7M8uYZIiI/mKjP5NDuk1ztWS5bCAJCKbMacsXssVLsqN0
+ENH+/vLsawjvD+/UQQGr4FUvw0QCYz1FA5C4XCyHEidMORRSOhh7yWB38lbO0StU
+StnWGdeYxNz1+VGJwfckuvvKVl8A6vY8So5LPsHS2aqDXcAwmSkJgd78k/eaW1V7
+bQ7kn8NtXECrphIYcHu4/yuvwp+Y9Avc3pCtC4etQQKBgQDEjupDiFsOM3RDNfoj
+9fQc/jC9I61TBoi9kWIj0UMR1nCi+SNlxm5uV4gRQcTs4MSxFGqgcdCm8Bb5MNld
+dxsMJYOOqDSciMpyEdwCEtk17ctR48+Vsan22xxzqezsI7Skvzu0FzBs7g5cnE79
+hxeV3+qgrirnO7xwe6dJLrOCIwKBgQDm5UB+kS9SWc31Dhxc0fuOhDa7PhDQKo4V
+ZsCEtc7hpytcjrLSC9Ru5Er1tp3L/oF5jQLMalhdMR1QagG7cJOAdT4K3+tjnags
+E4c/Vw5xzRdjuWZEAleZATyRwonvFXSf868Sg8op6xZjMFq4qPb+8mJexzinVOM9
+ipsA2CveUQKBgQDCosJXHS8NYOY/p7OK6IJSM2MP58Q58r50+QG1dgJ0J2Rh/VKP
+9W5k1UhnzjiyV+BteUoclpeGtzgIida0Nr0RyhP7r5RpbQsK6aRyaTetr0smS+/C
+y6sCRvZlkl6JdtHqUXNNYakSNKkEC8QsSRmRz6kGc3EIiJ6Qw+FjFlurAQKBgQDZ
+PWch7j3E0IPMBfu/hT2WiGTqZOnywacvEZ8e/ePpQZy1l/k9US4NK7QvXSM4VHvD
+Pl4csA31mIlJKIP6tF/DZAv8tVNGRYZ9+d2tRZ5sihdwl3ZVlJKQfa5cQdn/XYN+
+HwtgcyjZqbtFlbA1v5usoabWH8D5BxBKzccq0zjrEQKBgQCaSvtY2PveeWHZBOlN
+aFTbyLdyBHdhwpYZm3vKQ3MoOtnQGRq1BlQk7ojruxGhKMTnJhNP2cSnDdaUJB/S
+urjYLs2lpMW81+/p1qt5QCP+hVU+/Y7rdCXmTQjsy+9rAf3VOupMisj2gmgX8ASm
+mCzxKIlbzMnhGhGlzdKwqs5Uhw==
+-----END PRIVATE KEY-----
+)";
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
   return {id, ns};
@@ -85,6 +139,105 @@ class BeastClient {
       io_context_};
 };
 
+class TlsBeastClient {
+ public:
+  TlsBeastClient() : websocket_{io_context_, ssl_context_} {
+    ssl_context_.set_verify_mode(boost::asio::ssl::verify_none);
+  }
+
+  void Connect(const std::string& host,
+               unsigned short port,
+               const std::string& origin,
+               const std::string& subprotocol) {
+    const auto results = resolver_.resolve(host, std::to_string(port));
+    boost::asio::connect(websocket_.next_layer().next_layer(), results);
+    websocket_.next_layer().handshake(boost::asio::ssl::stream_base::client);
+    websocket_.set_option(boost::beast::websocket::stream_base::decorator(
+        [origin, subprotocol](boost::beast::websocket::request_type& request) {
+          if (!origin.empty())
+            request.set(boost::beast::http::field::origin, origin);
+          if (!subprotocol.empty()) {
+            request.set(boost::beast::http::field::sec_websocket_protocol,
+                        subprotocol);
+          }
+        }));
+    websocket_.handshake(host + ":" + std::to_string(port), "/ua");
+  }
+
+  std::string Request(const OpcUaWsRequestMessage& request) {
+    const auto payload = boost::json::serialize(EncodeJson(request));
+    websocket_.text(true);
+    websocket_.write(boost::asio::buffer(payload));
+
+    boost::beast::flat_buffer buffer;
+    websocket_.read(buffer);
+    return boost::beast::buffers_to_string(buffer.data());
+  }
+
+  void Close() {
+    if (websocket_.is_open())
+      websocket_.close(boost::beast::websocket::close_code::normal);
+  }
+
+ private:
+  boost::asio::io_context io_context_;
+  boost::asio::ssl::context ssl_context_{boost::asio::ssl::context::tls_client};
+  boost::asio::ip::tcp::resolver resolver_{io_context_};
+  boost::beast::websocket::stream<
+      boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>
+      websocket_;
+};
+
+template <typename TClient>
+void ExpectBrowsePagingRoundTrip(TClient& client) {
+  const auto create_response = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}})));
+  const auto* created =
+      std::get_if<OpcUaWsCreateSessionResponse>(&create_response.body);
+  ASSERT_NE(created, nullptr);
+  EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
+
+  const auto activate_response = DecodeResponseMessage(boost::json::parse(client.Request(
+      {.request_handle = 2,
+       .body =
+           OpcUaWsActivateSessionRequest{
+               .session_id = created->session_id,
+               .authentication_token = created->authentication_token,
+               .user_name = scada::LocalizedText{u"operator"},
+               .password = scada::LocalizedText{u"secret"}}})));
+  const auto* activated =
+      std::get_if<OpcUaWsActivateSessionResponse>(&activate_response.body);
+  ASSERT_NE(activated, nullptr);
+  EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
+
+  const auto browse_response = DecodeResponseMessage(boost::json::parse(client.Request(
+      {.request_handle = 3,
+       .body =
+           BrowseRequest{
+               .requested_max_references_per_node = 2,
+               .inputs = {{.node_id = NumericNode(80),
+                           .direction = scada::BrowseDirection::Both,
+                           .reference_type_id = NumericNode(88),
+                           .include_subtypes = true}}}})));
+  const auto* browse = std::get_if<BrowseResponse>(&browse_response.body);
+  ASSERT_NE(browse, nullptr);
+  ASSERT_EQ(browse->results.size(), 1u);
+  ASSERT_EQ(browse->results[0].references.size(), 2u);
+  ASSERT_FALSE(browse->results[0].continuation_point.empty());
+
+  const auto browse_next_response = DecodeResponseMessage(boost::json::parse(client.Request(
+      {.request_handle = 4,
+       .body =
+           BrowseNextRequest{
+               .continuation_points = {browse->results[0].continuation_point}}})));
+  const auto* browse_next =
+      std::get_if<BrowseNextResponse>(&browse_next_response.body);
+  ASSERT_NE(browse_next, nullptr);
+  ASSERT_EQ(browse_next->results.size(), 1u);
+  ASSERT_EQ(browse_next->results[0].references.size(), 1u);
+  EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(86));
+}
+
 class OpcUaWsBeastServerTest : public Test {
  protected:
   void SetUp() override {
@@ -107,7 +260,7 @@ class OpcUaWsBeastServerTest : public Test {
       thread_->join();
   }
 
-  void StartServer() {
+  void StartServer(std::optional<OpcUaWsTlsContextConfig> tls = std::nullopt) {
     callback_executor_ =
         std::make_shared<AsioExecutor>(io_context_.get_executor());
     runtime_.emplace(OpcUaWsRuntimeContext{
@@ -125,6 +278,7 @@ class OpcUaWsBeastServerTest : public Test {
         .endpoint = {boost::asio::ip::make_address("127.0.0.1"), 0},
         .runtime = *runtime_,
         .allowed_origins = {"https://scada.local"},
+        .tls = std::move(tls),
     });
     auto open_future =
         boost::asio::co_spawn(io_context_, server_->open(), boost::asio::use_future);
@@ -184,54 +338,40 @@ TEST_F(OpcUaWsBeastServerTest,
 
   BeastClient client;
   client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
+  ExpectBrowsePagingRoundTrip(client);
+  client.Close();
+}
 
-  const auto create_response = DecodeResponseMessage(boost::json::parse(
-      client.Request({.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}})));
-  const auto* created =
-      std::get_if<OpcUaWsCreateSessionResponse>(&create_response.body);
-  ASSERT_NE(created, nullptr);
-  EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
+TEST_F(OpcUaWsBeastServerTest,
+       AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
+  StartServer(OpcUaWsTlsContextConfig{
+      .certificate_chain_pem = kTestCertificatePem,
+      .private_key_pem = kTestPrivateKeyPem,
+  });
 
-  const auto activate_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 2,
-       .body =
-           OpcUaWsActivateSessionRequest{
-               .session_id = created->session_id,
-               .authentication_token = created->authentication_token,
-               .user_name = scada::LocalizedText{u"operator"},
-               .password = scada::LocalizedText{u"secret"}}})));
-  const auto* activated =
-      std::get_if<OpcUaWsActivateSessionResponse>(&activate_response.body);
-  ASSERT_NE(activated, nullptr);
-  EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
+  EXPECT_CALL(view_service_, Browse(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::vector<scada::BrowseDescription>& inputs,
+                           const scada::BrowseCallback& callback) {
+        EXPECT_EQ(context.user_id(), NumericNode(700, 5));
+        ASSERT_EQ(inputs.size(), 1u);
+        callback(scada::StatusCode::Good,
+                 {scada::BrowseResult{
+                     .status_code = scada::StatusCode::Good,
+                     .references = {{.reference_type_id = NumericNode(81),
+                                     .forward = true,
+                                     .node_id = NumericNode(82)},
+                                    {.reference_type_id = NumericNode(83),
+                                     .forward = true,
+                                     .node_id = NumericNode(84)},
+                                    {.reference_type_id = NumericNode(85),
+                                     .forward = false,
+                                     .node_id = NumericNode(86)}}}});
+      }));
 
-  const auto browse_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 3,
-       .body =
-           BrowseRequest{
-               .requested_max_references_per_node = 2,
-               .inputs = {{.node_id = NumericNode(80),
-                           .direction = scada::BrowseDirection::Both,
-                           .reference_type_id = NumericNode(88),
-                           .include_subtypes = true}}}})));
-  const auto* browse = std::get_if<BrowseResponse>(&browse_response.body);
-  ASSERT_NE(browse, nullptr);
-  ASSERT_EQ(browse->results.size(), 1u);
-  ASSERT_EQ(browse->results[0].references.size(), 2u);
-  ASSERT_FALSE(browse->results[0].continuation_point.empty());
-
-  const auto browse_next_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 4,
-       .body =
-           BrowseNextRequest{
-               .continuation_points = {browse->results[0].continuation_point}}})));
-  const auto* browse_next =
-      std::get_if<BrowseNextResponse>(&browse_next_response.body);
-  ASSERT_NE(browse_next, nullptr);
-  ASSERT_EQ(browse_next->results.size(), 1u);
-  ASSERT_EQ(browse_next->results[0].references.size(), 1u);
-  EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(86));
-
+  TlsBeastClient client;
+  client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
+  ExpectBrowsePagingRoundTrip(client);
   client.Close();
 }
 
@@ -250,6 +390,18 @@ TEST_F(OpcUaWsBeastServerTest, RejectsMissingRequiredSubprotocol) {
   BeastClient client;
   EXPECT_THROW(client.Connect("127.0.0.1", port(), "https://scada.local", ""),
                boost::system::system_error);
+}
+
+TEST_F(OpcUaWsBeastServerTest, RejectsOriginOutsideAllowListOverTls) {
+  StartServer(OpcUaWsTlsContextConfig{
+      .certificate_chain_pem = kTestCertificatePem,
+      .private_key_pem = kTestPrivateKeyPem,
+  });
+
+  TlsBeastClient client;
+  EXPECT_THROW(
+      client.Connect("127.0.0.1", port(), "https://evil.local", "opcua+uajson"),
+      boost::system::system_error);
 }
 
 }  // namespace

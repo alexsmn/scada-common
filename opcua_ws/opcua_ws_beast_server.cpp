@@ -1,8 +1,12 @@
 #include "opcua_ws/opcua_ws_beast_server.h"
 
+#include "opcua_ws/opcua_ws_tls_context.h"
+#include "transport/websocket_transport.h"
+
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/http.hpp>
 
@@ -53,6 +57,28 @@ transport::awaitable<void> RejectRequest(boost::asio::ip::tcp::socket& socket,
   co_return;
 }
 
+template <typename Stream>
+transport::awaitable<void> RejectRequest(Stream& stream,
+                                         http::status status,
+                                         std::string body) {
+  http::response<http::string_body> response{status, 11};
+  response.set(http::field::content_type, "text/plain");
+  response.body() = std::move(body);
+  response.prepare_payload();
+  auto [ec, _] = co_await http::async_write(
+      stream, response, boost::asio::as_tuple(boost::asio::use_awaitable));
+  if (!ec) {
+    boost::system::error_code ignored;
+    if constexpr (std::is_same_v<Stream, boost::asio::ip::tcp::socket>) {
+      stream.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+    } else {
+      stream.next_layer().shutdown(
+          boost::asio::ip::tcp::socket::shutdown_both, ignored);
+    }
+  }
+  co_return;
+}
+
 }  // namespace
 
 OpcUaWsBeastServer::OpcUaWsBeastServer(OpcUaWsBeastServerContext&& context)
@@ -65,6 +91,14 @@ OpcUaWsBeastServer::OpcUaWsBeastServer(OpcUaWsBeastServerContext&& context)
 transport::awaitable<transport::error_code> OpcUaWsBeastServer::open() {
   if (opened_)
     co_return transport::OK;
+
+  if (this->tls.has_value()) {
+    ssl_context_.emplace(boost::asio::ssl::context::tls_server);
+    const auto tls_error =
+        ConfigureServerTlsContext(*ssl_context_, *this->tls);
+    if (tls_error != transport::OK)
+      co_return tls_error;
+  }
 
   boost::system::error_code ec;
   acceptor_.open(this->endpoint.protocol(), ec);
@@ -117,20 +151,47 @@ transport::awaitable<void> OpcUaWsBeastServer::AcceptLoop() {
 
 transport::awaitable<void> OpcUaWsBeastServer::HandleSocket(
     boost::asio::ip::tcp::socket socket) {
+  if (ssl_context_.has_value()) {
+    boost::asio::ssl::stream<boost::asio::ip::tcp::socket> tls_stream{
+        std::move(socket), *ssl_context_};
+    auto [tls_ec] = co_await tls_stream.async_handshake(
+        boost::asio::ssl::stream_base::server,
+        boost::asio::as_tuple(boost::asio::use_awaitable));
+    if (tls_ec)
+      co_return;
+
+    co_await HandleUpgradedStream(
+        boost::beast::websocket::stream<
+            boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>{
+            std::move(tls_stream)});
+    co_return;
+  }
+
+  co_await HandleUpgradedStream(
+      boost::beast::websocket::stream<boost::asio::ip::tcp::socket>{
+          std::move(socket)});
+}
+
+template <typename NextLayer>
+transport::awaitable<void> OpcUaWsBeastServer::HandleUpgradedStream(
+    boost::beast::websocket::stream<NextLayer> websocket) {
+  auto& next_layer = websocket.next_layer();
+
   boost::beast::flat_buffer buffer;
   http::request<http::string_body> request;
-  auto [read_ec, _] = co_await http::async_read(
-      socket, buffer, request, boost::asio::as_tuple(boost::asio::use_awaitable));
+  auto [read_ec, _] = co_await http::async_read(next_layer, buffer, request,
+                                                boost::asio::as_tuple(
+                                                    boost::asio::use_awaitable));
   if (read_ec)
     co_return;
 
   if (request.target() != this->path) {
-    co_await RejectRequest(socket, http::status::not_found, "Invalid target");
+    co_await RejectRequest(next_layer, http::status::not_found, "Invalid target");
     co_return;
   }
 
   if (!websocket::is_upgrade(request)) {
-    co_await RejectRequest(socket, http::status::bad_request,
+    co_await RejectRequest(next_layer, http::status::bad_request,
                            "WebSocket upgrade required");
     co_return;
   }
@@ -138,7 +199,7 @@ transport::awaitable<void> OpcUaWsBeastServer::HandleSocket(
   const auto subprotocol_it = request.find(http::field::sec_websocket_protocol);
   if (subprotocol_it == request.end() ||
       !HeaderContainsToken(subprotocol_it->value(), this->subprotocol)) {
-    co_await RejectRequest(socket, http::status::bad_request,
+    co_await RejectRequest(next_layer, http::status::bad_request,
                            "Missing required subprotocol");
     co_return;
   }
@@ -146,7 +207,8 @@ transport::awaitable<void> OpcUaWsBeastServer::HandleSocket(
   if (!this->allowed_origins.empty()) {
     const auto origin_it = request.find(http::field::origin);
     if (origin_it == request.end()) {
-      co_await RejectRequest(socket, http::status::forbidden, "Origin required");
+      co_await RejectRequest(next_layer, http::status::forbidden,
+                             "Origin required");
       co_return;
     }
 
@@ -155,12 +217,11 @@ transport::awaitable<void> OpcUaWsBeastServer::HandleSocket(
                                    this->allowed_origins.end(),
                                    origin) != this->allowed_origins.end();
     if (!allowed) {
-      co_await RejectRequest(socket, http::status::forbidden, "Origin denied");
+      co_await RejectRequest(next_layer, http::status::forbidden, "Origin denied");
       co_return;
     }
   }
 
-  OpcUaWsBeastTransport::WebSocketStream websocket{std::move(socket)};
   websocket.set_option(
       websocket::stream_base::timeout::suggested(boost::beast::role_type::server));
   if (this->enable_permessage_deflate) {
@@ -181,7 +242,7 @@ transport::awaitable<void> OpcUaWsBeastServer::HandleSocket(
     co_return;
 
   co_await server_.ServeConnection(
-      transport::any_transport{std::make_unique<OpcUaWsBeastTransport>(
+      transport::any_transport{std::make_unique<transport::WebSocketTransport>(
           std::move(websocket))});
 }
 
