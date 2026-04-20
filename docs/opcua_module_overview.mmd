@@ -1,0 +1,37 @@
+flowchart TD
+    subgraph ServerSide["Server-side OPC UA runtime"]
+        Module["server/opcua/OpcUaModule<br/>config + certificate loading"]
+        Server["common/opcua/OpcUaServer<br/>opc.tcp endpoint adapter"]
+        Endpoint["opcuapp::server::Endpoint<br/>UA Binary listener"]
+        Services["SCADA services<br/>attribute / view / monitored-item /<br/>node-management / method"]
+    end
+
+    subgraph ClientSide["Client-side OPC UA runtime"]
+        Factory["CreateOpcUaServices(...)<br/>DataServices factory"]
+        Session["common/opcua/OpcUaSession<br/>SessionService + service adapters"]
+        Subscription["common/opcua/OpcUaSubscription<br/>monitored-item batching"]
+        Channel["opcuapp client channel + session<br/>remote opc.tcp endpoint"]
+    end
+
+    Conversion["opcua_conversion.*<br/>OPC UA ↔ SCADA type mapping"]
+    Client["Shared callers / features"]
+    UaPeer["External OPC UA peer"]
+
+    Module --> Server
+    Server --> Endpoint
+    Server --> Services
+    Server --> Conversion
+    Endpoint <-->|UA Binary| UaPeer
+
+    Client --> Factory
+    Factory --> Session
+    Session --> Channel
+    Session --> Subscription
+    Session --> Conversion
+    Subscription --> Channel
+    Channel <-->|UA Binary| UaPeer
+
+    classDef runtime fill:#0f172a,stroke:#93c5fd,color:#e2e8f0
+    classDef external fill:#f8fafc,stroke:#64748b,color:#0f172a
+    class Module,Server,Endpoint,Services,Factory,Session,Subscription,Channel,Conversion runtime
+    class Client,UaPeer external

@@ -2,6 +2,11 @@
 
 Shared C++ libraries for the Telecontrol SCADA client and server, providing the OPC UA address space, node services, event handling, and protocol type conversions.
 
+Design docs:
+
+- [common/docs/design.md](./docs/design.md)
+- [common/docs/opcua_module.md](./docs/opcua_module.md)
+
 ## Modules
 
 | Module | Description |

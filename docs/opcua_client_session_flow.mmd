@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant Caller as Shared caller
+    participant Factory as CreateOpcUaServices
+    participant Session as OpcUaSession
+    participant Channel as UA channel/session
+    participant Sub as OpcUaSubscription
+    participant Peer as Remote OPC UA server
+
+    Caller->>Factory: create data services
+    Factory->>Session: construct OpcUaSession
+    Factory-->>Caller: DataServices bundle
+
+    Caller->>Session: Connect(params)
+    Session->>Channel: Connect
+    Channel->>Peer: open channel
+    Peer-->>Channel: connected
+    Session->>Channel: CreateSession + ActivateSession
+    Channel->>Peer: session handshake
+    Peer-->>Channel: activated
+    Session-->>Caller: connect resolved
+
+    Caller->>Session: Read / Write / Browse / Call
+    Session->>Channel: service request
+    Channel->>Peer: UA service call
+    Peer-->>Channel: service result
+    Channel-->>Session: OPC UA result
+    Session-->>Caller: SCADA-native result
+
+    Caller->>Session: CreateMonitoredItem
+    Session->>Sub: lazy-create default subscription
+    Sub->>Channel: CreateSubscription / CreateMonitoredItems
+    Channel->>Peer: subscription requests
+    Peer-->>Channel: notifications
+    Channel-->>Sub: data changes / events
+    Sub-->>Caller: monitored-item handlers

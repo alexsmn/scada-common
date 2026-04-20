@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Client as OPC UA client
+    participant Endpoint as opcuapp Endpoint
+    participant Server as OpcUaServer
+    participant Conv as opcua_conversion
+    participant Svc as SCADA service
+
+    Client->>Endpoint: UA Binary request
+    Endpoint->>Server: dispatch handler
+    Server->>Conv: convert request payload
+    Conv-->>Server: SCADA-native inputs
+    Server->>Svc: Read / Write / Browse / Call / AddNodes / DeleteNodes
+    Svc-->>Server: status + results
+    Server->>Conv: convert results
+    Conv-->>Server: OPC UA response payload
+    Server-->>Endpoint: response
+    Endpoint-->>Client: UA Binary response
+
+    Note over Server,Svc: Monitored-item creation follows the same boundary:\nOpcUaServer adapts CreateMonitoredItem into\nscada::MonitoredItemService and wraps it back as\nan opcuapp monitored-item adapter.
