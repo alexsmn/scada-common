@@ -27,9 +27,13 @@
 > ownership tracking across live sessions. A message-oriented
 > `OpcUaWsServer` loop is now also present for accepted transports: it reads
 > request frames, decodes UA-JSON envelopes, dispatches them through
-> `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. The
-> remaining common-side gap is the final Beast WSS/TLS/origin wrapper around
-> that server loop.
+> `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. A
+> Beast-based websocket acceptor is now also present in
+> `common/opcua_ws/`: it validates path / subprotocol / allowed origins,
+> enables `permessage-deflate`, accepts text-frame UA-JSON traffic, and hands
+> accepted websocket sessions into `OpcUaWsServer`, with loopback integration
+> tests. The remaining common-side gaps are TLS/WSS wrapping on top of that
+> Beast server and the final `server/opcua_ws/` module.
 
 ## Related documents
 
@@ -106,6 +110,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 
 | Path | Role |
 |---|---|
+| `common/opcua_ws/opcua_ws_beast_server.{h,cpp}` + `common/opcua_ws/opcua_ws_beast_transport.{h,cpp}` | Beast-based websocket boundary for loopback / server integration: validates path, `Sec-WebSocket-Protocol`, and allowed `Origin`s, enables `permessage-deflate`, accepts websocket sessions, and adapts them into message-oriented transports |
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, dispatches through `OpcUaWsRuntime`, writes responses, detaches sessions on disconnect |
 | `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, browse continuation-point paging, and transfer handoff between live sessions |
 | `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Transport-independent request router: decoded envelope dispatch, session attach/resume, global subscription ownership, and service-handler/session-manager wiring |
@@ -274,6 +279,14 @@ Current implementation note:
   `OpcUaWsRequestMessage`, dispatches through `OpcUaWsRuntime`, encodes
   `OpcUaWsResponseMessage`, writes the reply, emits `ServiceFault` on malformed
   JSON, and detaches session state on disconnect.
+- A concrete Beast websocket boundary is now in place under
+  `common/opcua_ws/opcua_ws_beast_server.{h,cpp}` and
+  `common/opcua_ws/opcua_ws_beast_transport.{h,cpp}` with loopback integration
+  tests. It accepts HTTP upgrade requests on `/ua`, validates
+  `Sec-WebSocket-Protocol: opcua+uajson`, enforces an allow-list of browser
+  `Origin`s, enables `permessage-deflate`, upgrades accepted sockets to
+  websocket text-frame transport, and then hands those sessions to the
+  already-implemented `OpcUaWsServer` message loop.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
@@ -284,13 +297,10 @@ Current implementation note:
   `Variant` codec there now also supports opaque scalar and array
   `ExtensionObject` payloads via `{typeId, body}` JSON objects so the WS layer
   can round-trip structured values without a typed registry yet.
-- The remaining work is now the actual websocket handshake/security boundary:
-  Beast WSS acceptor/session classes, TLS and `Origin` enforcement,
-  `Sec-WebSocket-Protocol` validation, ping/pong lifecycle, and adapting that
-  accepted socket layer onto the now-implemented message-oriented
-  `OpcUaWsServer`.
-- Socket/session management at the transport layer and the actual
-  `server/opcua_ws/` module remain pending.
+- The remaining transport work is now narrowed to TLS/WSS wrapping and
+  certificate wiring around the new Beast websocket acceptor, plus any
+  follow-up ping/pong hardening once the real browser endpoint is exercised.
+- The actual `server/opcua_ws/` module and config plumbing remain pending.
 
 ## Test strategy
 
@@ -388,13 +398,14 @@ Covers the message-oriented server loop for:
 - disconnect-driven session detach and later resume
 - acceptor open/close lifecycle
 
-`common/opcua_ws/opcua_ws_e2e_test.cpp`
+`common/opcua_ws/opcua_ws_beast_server_unittest.cpp`
 
-Spins the WS endpoint bound to a loopback port with an in-memory address
-space fixture, opens a Beast WebSocket client, and drives the Phase 0
-service set end-to-end. No real UA client, no browser, no `server.exe`
-launch. This is the test that catches regressions in the message dispatch
-and in the Beast integration.
+Spins the Beast websocket endpoint bound to a loopback port with an in-memory
+runtime fixture, opens a Beast WebSocket client, validates the browser-facing
+handshake policy (`Origin`, `Sec-WebSocket-Protocol`), and drives the Phase 0
+session + browse paging flow end-to-end. No browser and no `server.exe`
+launch. This is the test that catches regressions in the message dispatch and
+the real websocket integration.
 
 ### Playwright e2e
 

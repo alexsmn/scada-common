@@ -17,18 +17,18 @@
 sequenceDiagram
     autonumber
     participant B as Browser (UaClient)
+    participant BWS as OpcUaWsBeastServer
     participant WS as OpcUaWsServer
     participant RT as OpcUaWsRuntime
     participant S as OpcUaWsSession
     participant M as OpcUaWsSessionManager
     participant SEC as SecurityService
 
-    Note over B,WS: Final Beast WSS and TLS wrapper still pending in common<br/>Accepted-transport request loop below is implemented
-    B->>WS: GET /ua<br/>Upgrade: websocket<br/>Sec-WebSocket-Protocol: opcua+uajson<br/>Origin: https://scada.local
-    WS->>WS: validate subprotocol + allowed origin
-    WS-->>B: 101 Switching Protocols
-
-    WS->>S: accepted transport session
+    Note over B,BWS: Beast websocket acceptor is implemented in common today<br/>TLS/WSS wrapper still pending
+    B->>BWS: GET /ua<br/>Upgrade: websocket<br/>Sec-WebSocket-Protocol: opcua+uajson<br/>Origin: https://scada.local
+    BWS->>BWS: validate path + subprotocol + allowed origin
+    BWS-->>B: 101 Switching Protocols
+    BWS->>WS: accepted websocket transport
     B->>S: requestHandle=1<br/>CreateSessionRequest (JSON)
     S->>RT: decoded request envelope
     RT->>M: CreateSession(requestedTimeout)
@@ -62,4 +62,4 @@ sequenceDiagram
     RT->>M: CloseSession(sessionId, token)
     M-->>S: session removed
     S-->>B: requestHandle=4<br/>CloseSessionResponse
-    WS-->>B: Close frame (1000)
+    BWS-->>B: Close frame (1000)

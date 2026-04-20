@@ -30,11 +30,13 @@ flowchart LR
     subgraph Endpoints["Server OPC UA endpoints"]
         direction TB
         TCP["<b>OpcUaServer</b><br/><i>common/opcua/</i><br/>opc.tcp://:4840<br/>UA Binary"]
-        WS["<b>OpcUaWsServer</b><br/><i>common/opcua_ws/</i><br/>message-oriented UA-JSON loop<br/>final WSS wrapper pending"]
+        WSSOCK["<b>OpcUaWsBeastServer</b><br/><i>common/opcua_ws/</i><br/>Beast WS acceptor<br/>TLS/WSS wrapper pending"]
     end
 
     subgraph WsInternals["opcua_ws internals"]
         direction TB
+        WSTR["<b>OpcUaWsBeastTransport</b><br/>websocket text-frame adapter"]
+        WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
         SESS["<b>OpcUaWsSession</b><br/>live session state +<br/>subscription orchestration"]
         RT["<b>OpcUaWsRuntime</b><br/>decoded request routing +<br/>session/service wiring"]
         SMGR["<b>OpcUaWsSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
@@ -53,8 +55,10 @@ flowchart LR
 
     QT -->|opc.tcp| TCP
     NATIVE -->|opc.tcp| TCP
-    WEB -->|opc.wss| WS
+    WEB -->|opc.ws / opc.wss| WSSOCK
 
+    WSSOCK --> WSTR
+    WSTR --> WS
     WS --> SESS
     WS --> RT
     RT --> SESS
@@ -72,13 +76,13 @@ flowchart LR
     WS --> CTX
     CTX --> SVC
 
-    MOD -.configures.-> WS
+    MOD -.configures.-> WSSOCK
 
     classDef clientStyle fill:#dbeafe,stroke:#1d4ed8,color:#111827
     classDef newModule fill:#dcfce7,stroke:#15803d,color:#111827,stroke-width:2px
     classDef existing fill:#f3f4f6,stroke:#374151,color:#111827
     classDef core fill:#fef3c7,stroke:#b45309,color:#111827
     class QT,WEB,NATIVE clientStyle
-    class WS,SESS,SMGR,HANDLER,SUB,CODEC,MOD newModule
+    class WSSOCK,WSTR,WS,SESS,SMGR,HANDLER,SUB,CODEC,MOD newModule
     class TCP existing
     class CTX,SVC core
