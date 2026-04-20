@@ -6,4 +6,5 @@ target_include_directories(scada_common_opcua_ws PUBLIC "..")
 
 target_link_libraries(scada_common_opcua_ws PUBLIC
   scada_core
+  transport
 )

@@ -4,7 +4,8 @@
 > does not yet exist, but the transport-independent `common/opcua_ws/`
 > service-dispatch layer is now present and uses coroutine-based handlers for
 > `HistoryRead`, `Call`, `AddNodes`, `DeleteNodes`, `AddReferences`, and
-> `DeleteReferences`.
+> `DeleteReferences`. The matching Phase 2/3 UA-JSON codec is also present and
+> covered by unit tests.
 
 ## Related documents
 
@@ -186,20 +187,24 @@ Current implementation note:
 
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
-  JSON codec coverage, socket/session management, and the actual
-  `server/opcua_ws/` module remain pending.
+- The Phase 2 and Phase 3 UA-JSON codec is in place under
+  `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
+  the implemented request/response payloads.
+- Socket/session management and the actual `server/opcua_ws/` module remain
+  pending.
 
 ## Test strategy
 
 ### Codec
 
-`common/opcua_ws/test/opcua_json_codec_unittest.cpp`
+`common/opcua_ws/opcua_json_codec_unittest.cpp`
 
 Golden-fixture tests for `Variant`, `NodeId`, `ExpandedNodeId`,
-`QualifiedName`, `LocalizedText`, `DataValue`, `ExtensionObject`, and each
-request/response pair implemented in the current phase. Fixtures come from
-UA Part 6 Annex F examples and from a small set of hand-crafted pathological
-inputs (deeply nested arrays, NaN, empty strings, UTF-8 with surrogate pairs).
+`QualifiedName`, `LocalizedText`, `DataValue`, and each request/response pair
+implemented in the current phase. Current coverage is focused on the Phase 2/3
+service payloads actually wired into `OpcUaWsServiceHandler`; `ExtensionObject`
+and the Phase 0/1 session/subscription messages are still pending along with
+the transport/session layer.
 
 ### Session lifecycle
 

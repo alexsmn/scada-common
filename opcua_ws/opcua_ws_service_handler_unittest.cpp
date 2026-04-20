@@ -22,9 +22,9 @@ class OpcUaWsServiceHandlerTest : public Test {
     return {id, ns};
   }
 
-  scada::StrictMock<scada::MockHistoryService> history_service_;
-  scada::StrictMock<scada::MockMethodService> method_service_;
-  scada::StrictMock<scada::MockNodeManagementService> node_management_service_;
+  StrictMock<scada::MockHistoryService> history_service_;
+  StrictMock<scada::MockMethodService> method_service_;
+  StrictMock<scada::MockNodeManagementService> node_management_service_;
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   const scada::NodeId user_id_ = NumericNode(700, 3);
@@ -83,7 +83,7 @@ TEST_F(OpcUaWsServiceHandlerTest,
 
 TEST_F(OpcUaWsServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
   const auto node_id = NumericNode(30);
-  const auto from = base::Time::Now() - base::Hours(1);
+  const auto from = base::Time::Now() - base::TimeDelta::FromHours(1);
   const auto to = base::Time::Now();
   HistoryReadRawRequest request{
       .details = {.node_id = node_id, .from = from, .to = to, .max_count = 25}};
@@ -116,7 +116,7 @@ TEST_F(OpcUaWsServiceHandlerTest,
        HandleHistoryReadEvents_ForwardsFilterAndEvents) {
   scada::HistoryReadEventsDetails details{
       .node_id = NumericNode(40),
-      .from = base::Time::Now() - base::Hours(4),
+      .from = base::Time::Now() - base::TimeDelta::FromHours(4),
       .to = base::Time::Now(),
       .filter = {},
   };
@@ -178,8 +178,7 @@ TEST_F(OpcUaWsServiceHandlerTest, HandleAddNodes_ForwardsBatchResults) {
   ASSERT_NE(add_nodes_response, nullptr);
   EXPECT_EQ(add_nodes_response->status.code(), scada::StatusCode::Good);
   ASSERT_EQ(add_nodes_response->results.size(), 1u);
-  EXPECT_EQ(add_nodes_response->results[0].added_node_id,
-            scada::NodeId{500, 4});
+  EXPECT_EQ(add_nodes_response->results[0].added_node_id, (scada::NodeId{500, 4}));
 }
 
 TEST_F(OpcUaWsServiceHandlerTest,
