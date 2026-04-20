@@ -36,6 +36,7 @@ flowchart LR
     subgraph WsInternals["opcua_ws internals"]
         direction TB
         SESS["<b>OpcUaWsSession</b><br/>live session state +<br/>subscription orchestration"]
+        RT["<b>OpcUaWsRuntime</b><br/>decoded request routing +<br/>session/service wiring"]
         SMGR["<b>OpcUaWsSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
         HANDLER["<b>OpcUaWsServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
         SUB["<b>OpcUaWsSubscription</b><br/>per-subscription queue,<br/>replay, keepalive"]
@@ -55,6 +56,10 @@ flowchart LR
     WEB -->|opc.wss| WS
 
     WS --> SESS
+    WS --> RT
+    RT --> SESS
+    RT --> SMGR
+    RT --> HANDLER
     SESS --> SMGR
     SESS --> HANDLER
     WS --> CODEC

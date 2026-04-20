@@ -18,6 +18,7 @@ sequenceDiagram
     autonumber
     participant B as Browser (UaClient)
     participant WS as OpcUaWsServer
+    participant RT as OpcUaWsRuntime
     participant S as OpcUaWsSession
     participant M as OpcUaWsSessionManager
     participant SEC as SecurityService
@@ -29,29 +30,36 @@ sequenceDiagram
 
     WS->>S: create session state
     B->>S: requestHandle=1<br/>CreateSessionRequest (JSON)
-    S->>M: CreateSession(requestedTimeout)
+    S->>RT: decoded request envelope
+    RT->>M: CreateSession(requestedTimeout)
     M-->>S: SessionId + AuthenticationToken + ServerNonce + RevisedTimeout
     S-->>B: requestHandle=1<br/>CreateSessionResponse
 
     B->>S: requestHandle=2<br/>ActivateSessionRequest<br/>(UserNameIdentityToken: PBKDF2(password, nonce))
-    S->>M: ActivateSession(sessionId, token, credentials)
+    S->>RT: decoded request envelope
+    RT->>M: ActivateSession(sessionId, token, credentials)
     M->>SEC: authenticate(user, token)
     SEC-->>M: identity accepted
-    M-->>S: attached session + scada::ServiceContext
+    M-->>RT: attached session + scada::ServiceContext
+    RT->>S: attach/create OpcUaWsSession
     S-->>B: requestHandle=2<br/>ActivateSessionResponse
 
     Note over B,M: Data plane opens after the session is attached
-    Note over B,S: Implemented in common today: OpcUaWsSession owns live subscription state,<br/>fair Publish arbitration, and monitored-item routing,<br/>while the coroutine service-handler layer handles Read / Write / Browse / Translate / HistoryRead / Call / node management
+    Note over B,RT: Implemented in common today: OpcUaWsRuntime routes decoded envelopes<br/>through OpcUaWsSessionManager, OpcUaWsSession, and the coroutine service handler
 
     Note over B,S: Connection drops, browser reconnects before timeout
-    S->>M: DetachSession(authenticationToken)
+    S->>RT: disconnect / detach
+    RT->>M: DetachSession(authenticationToken)
     B->>S: requestHandle=3<br/>ActivateSessionRequest(sessionId, token)
-    S->>M: ActivateSession(resume)
-    M-->>S: resumed attached session
+    S->>RT: decoded request envelope
+    RT->>M: ActivateSession(resume)
+    M-->>RT: resumed attached session
+    RT->>S: reattach existing OpcUaWsSession
     S-->>B: requestHandle=3<br/>ActivateSessionResponse(resumed=true)
 
     B->>S: requestHandle=4<br/>CloseSessionRequest
-    S->>M: CloseSession(sessionId, token)
+    S->>RT: decoded request envelope
+    RT->>M: CloseSession(sessionId, token)
     M-->>S: session removed
     S-->>B: requestHandle=4<br/>CloseSessionResponse
     WS-->>B: Close frame (1000)

@@ -38,6 +38,9 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
 
   OpcUaWsCreateSubscriptionResponse CreateSubscription(
       const OpcUaWsCreateSubscriptionRequest& request);
+  OpcUaWsCreateSubscriptionResponse CreateSubscriptionWithId(
+      OpcUaWsSubscriptionId subscription_id,
+      const OpcUaWsCreateSubscriptionRequest& request);
   OpcUaWsModifySubscriptionResponse ModifySubscription(
       const OpcUaWsModifySubscriptionRequest& request);
   OpcUaWsSetPublishingModeResponse SetPublishingMode(
@@ -59,6 +62,8 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
 
   OpcUaWsPublishResponse Publish(const OpcUaWsPublishRequest& request);
   OpcUaWsRepublishResponse Republish(const OpcUaWsRepublishRequest& request) const;
+  std::vector<OpcUaWsSubscriptionId> GetSubscriptionIds() const;
+  bool HasSubscription(OpcUaWsSubscriptionId subscription_id) const;
 
  private:
   using SubscriptionMap =

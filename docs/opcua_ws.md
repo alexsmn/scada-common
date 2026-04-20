@@ -21,9 +21,12 @@
 > event-field projection. A transport-independent `OpcUaWsSession` layer now
 > also owns subscription ids, monitored-item routing, fair publish arbitration
 > across subscriptions, and in-memory transfer handoff between session
-> instances. The remaining common-side gaps are the actual socket/session
-> transport glue, reconnect attach/transfer integration with
-> `OpcUaWsSessionManager`, and `BrowseNext`.
+> instances. A transport-independent `OpcUaWsRuntime` layer now routes decoded
+> request envelopes through `OpcUaWsSessionManager`, `OpcUaWsSession`, and the
+> coroutine service handler, including detach/resume and subscription transfer
+> ownership tracking across live sessions. The remaining common-side gaps are
+> the actual websocket transport glue, TLS/origin enforcement, and
+> `BrowseNext`.
 
 ## Related documents
 
@@ -102,6 +105,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 |---|---|
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Beast WSS acceptor; per-connection `OpcUaWsSession` spawn |
 | `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, and transfer handoff between live sessions |
+| `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Transport-independent request router: decoded envelope dispatch, session attach/resume, global subscription ownership, and service-handler/session-manager wiring |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
@@ -251,6 +255,15 @@ Current implementation note:
   subscriptions fairly in round-robin order, primes and forwards keep-alives,
   and can transfer live subscription ownership between session instances
   in-memory.
+- The transport-independent decoded-request router is now in place under
+  `common/opcua_ws/opcua_ws_runtime.{h,cpp}` with unit tests. It ties
+  `OpcUaWsSessionManager`, `OpcUaWsSession`, and `OpcUaWsServiceHandler`
+  together for decoded WS envelopes: `CreateSession` / `ActivateSession` /
+  `CloseSession`, subscription and monitored-item messages, `Publish` /
+  `Republish`, detach/resume on reconnect, and the already-implemented Phase
+  0/2/3 service-dispatch set. It also tracks subscription ownership globally
+  so `TransferSubscriptions` can move subscriptions between live sessions
+  without direct session references at the call site.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
@@ -262,13 +275,12 @@ Current implementation note:
   can round-trip structured values without a typed registry yet.
 - `BrowseNext` is still pending because it needs a matching coroutine-facing
   view-service API in core.
-- The remaining publish / replay / transfer work is now at the connection /
-  reconnect layer: binding `OpcUaWsSession` to websocket request slots,
-  attaching detached sessions back through `OpcUaWsSessionManager`, and making
-  reconnect-time `TransferSubscriptions` reuse that attached session state
-  instead of only the current in-memory session-to-session handoff.
-- Socket/session management and the actual `server/opcua_ws/` module remain
-  pending.
+- The remaining work is now the actual websocket transport boundary:
+  Beast WSS acceptor/session classes, TLS and `Origin` enforcement, frame I/O,
+  ping/pong lifecycle, and plumbing decoded text frames into
+  `OpcUaWsRuntime`.
+- Socket/session management at the transport layer and the actual
+  `server/opcua_ws/` module remain pending.
 
 ## Test strategy
 
@@ -344,6 +356,15 @@ Covers the transport-independent live-session runtime for:
 - acknowledgement aggregation and `Republish`
 - keep-alive priming at the session layer
 - in-memory `TransferSubscriptions` ownership handoff
+
+`common/opcua_ws/opcua_ws_runtime_unittest.cpp`
+
+Covers the transport-independent decoded-request runtime for:
+
+- envelope routing through activated sessions
+- detach/resume preserving live subscription state
+- `TransferSubscriptions` via global subscription ownership
+- `CloseSession` removing live runtime state
 
 `common/opcua_ws/opcua_ws_e2e_test.cpp`
 

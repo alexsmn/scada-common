@@ -15,7 +15,13 @@ OpcUaWsSession::OpcUaWsSession(OpcUaWsSessionContext&& context)
 
 OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscription(
     const OpcUaWsCreateSubscriptionRequest& request) {
-  const auto subscription_id = next_subscription_id_++;
+  return CreateSubscriptionWithId(next_subscription_id_++, request);
+}
+
+OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscriptionWithId(
+    OpcUaWsSubscriptionId subscription_id,
+    const OpcUaWsCreateSubscriptionRequest& request) {
+  next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
   auto subscription = std::make_unique<OpcUaWsSubscription>(
       subscription_id, request.parameters, this->monitored_item_service);
 
@@ -204,6 +210,20 @@ OpcUaWsRepublishResponse OpcUaWsSession::Republish(
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->Republish(request.retransmit_sequence_number);
+}
+
+std::vector<OpcUaWsSubscriptionId> OpcUaWsSession::GetSubscriptionIds() const {
+  std::vector<OpcUaWsSubscriptionId> result;
+  result.reserve(publish_order_.size());
+  for (const auto subscription_id : publish_order_) {
+    if (FindSubscription(subscription_id))
+      result.push_back(subscription_id);
+  }
+  return result;
+}
+
+bool OpcUaWsSession::HasSubscription(OpcUaWsSubscriptionId subscription_id) const {
+  return FindSubscription(subscription_id) != nullptr;
 }
 
 OpcUaWsSubscription* OpcUaWsSession::FindSubscription(
