@@ -171,6 +171,20 @@ scada::ByteString DecodeByteString(const value& json) {
   return bytes;
 }
 
+value EncodeExtensionObject(const scada::ExtensionObject& extension_object) {
+  const auto* payload = std::any_cast<boost::json::value>(&extension_object.value());
+  if (!payload)
+    ThrowJsonError("Unsupported ExtensionObject payload");
+  return object{{"typeId", EncodeExpandedNodeId(extension_object.data_type_id())},
+                {"body", *payload}};
+}
+
+scada::ExtensionObject DecodeExtensionObject(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {DecodeExpandedNodeId(RequireField(obj, "typeId")),
+          RequireField(obj, "body")};
+}
+
 value EncodeStatus(const scada::Status& status) {
   return object{{"fullCode", status.full_code()}};
 }
@@ -600,7 +614,9 @@ value EncodeVariant(const scada::Variant& variant) {
             EncodeExpandedNodeId(variant.get<scada::ExpandedNodeId>());
         break;
       case scada::Variant::EXTENSION_OBJECT:
-        ThrowJsonError("ExtensionObject codec not implemented");
+        json["value"] =
+            EncodeExtensionObject(variant.get<scada::ExtensionObject>());
+        break;
       case scada::Variant::DATE_TIME:
         json["value"] = EncodeDateTime(variant.get<scada::DateTime>());
         break;
@@ -672,7 +688,10 @@ value EncodeVariant(const scada::Variant& variant) {
       case scada::Variant::DATE_TIME:
         ThrowJsonError("DateTime array codec not implemented");
       case scada::Variant::EXTENSION_OBJECT:
-        ThrowJsonError("ExtensionObject array codec not implemented");
+        json["value"] = EncodeList(
+            variant.get<std::vector<scada::ExtensionObject>>(),
+            EncodeExtensionObject);
+        break;
       case scada::Variant::COUNT:
         ThrowJsonError("Unexpected array variant type");
     }
@@ -726,6 +745,7 @@ scada::Variant DecodeVariant(const value& json) {
       case scada::Variant::DATE_TIME:
         return scada::Variant{DecodeDateTime(payload)};
       case scada::Variant::EXTENSION_OBJECT:
+        return scada::Variant{DecodeExtensionObject(payload)};
       case scada::Variant::COUNT:
         ThrowJsonError("Unsupported scalar variant type");
     }
@@ -775,7 +795,10 @@ scada::Variant DecodeVariant(const value& json) {
       return scada::Variant{
           DecodeList<scada::ExpandedNodeId>(payload, DecodeExpandedNodeId)};
     case scada::Variant::DATE_TIME:
+      ThrowJsonError("Unsupported array variant type");
     case scada::Variant::EXTENSION_OBJECT:
+      return scada::Variant{
+          DecodeList<scada::ExtensionObject>(payload, DecodeExtensionObject)};
     case scada::Variant::COUNT:
       ThrowJsonError("Unsupported array variant type");
   }

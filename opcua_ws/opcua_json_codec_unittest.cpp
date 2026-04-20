@@ -184,6 +184,58 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallRequestWithScalarAndArrayVariants) {
   EXPECT_EQ(typed->methods[0].arguments, request.methods[0].arguments);
 }
 
+TEST(OpcUaJsonCodecTest, RoundTripsOpaqueExtensionObjectVariants) {
+  const boost::json::value scalar_payload = boost::json::parse(
+      R"({"Kind":"AlarmFilter","Severity":500,"Fields":["Message","SourceName"]})");
+  const boost::json::value array_payload_1 =
+      boost::json::parse(R"({"Kind":"Operand","NodeId":"ns=2;i=5001"})");
+  const boost::json::value array_payload_2 =
+      boost::json::parse(R"({"Kind":"Operand","BrowsePath":["Objects","Motor1"]})");
+
+  CallRequest request{
+      .methods = {{.object_id = NumericNode(120),
+                   .method_id = NumericNode(121),
+                   .arguments =
+                       {scada::Variant{scada::ExtensionObject{
+                            scada::ExpandedNodeId{NumericNode(122), "urn:test", 3},
+                            scalar_payload}},
+                        scada::Variant{std::vector<scada::ExtensionObject>{
+                            {scada::ExpandedNodeId{NumericNode(123)}, array_payload_1},
+                            {scada::ExpandedNodeId{NumericNode(124), "urn:test", 4},
+                             array_payload_2}}}}}}};
+
+  const auto decoded = DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{request}));
+  const auto* typed = std::get_if<CallRequest>(&decoded);
+  ASSERT_NE(typed, nullptr);
+  ASSERT_EQ(typed->methods.size(), 1u);
+  ASSERT_EQ(typed->methods[0].arguments.size(), 2u);
+
+  const auto& scalar_extension =
+      typed->methods[0].arguments[0].get<scada::ExtensionObject>();
+  EXPECT_EQ(scalar_extension.data_type_id(),
+            (scada::ExpandedNodeId{NumericNode(122), "urn:test", 3}));
+  const auto* scalar_decoded =
+      std::any_cast<boost::json::value>(&scalar_extension.value());
+  ASSERT_NE(scalar_decoded, nullptr);
+  EXPECT_EQ(*scalar_decoded, scalar_payload);
+
+  const auto& array_extensions =
+      typed->methods[0].arguments[1].get<std::vector<scada::ExtensionObject>>();
+  ASSERT_EQ(array_extensions.size(), 2u);
+  EXPECT_EQ(array_extensions[0].data_type_id(),
+            scada::ExpandedNodeId{NumericNode(123)});
+  EXPECT_EQ(array_extensions[1].data_type_id(),
+            (scada::ExpandedNodeId{NumericNode(124), "urn:test", 4}));
+  const auto* array_decoded_1 =
+      std::any_cast<boost::json::value>(&array_extensions[0].value());
+  const auto* array_decoded_2 =
+      std::any_cast<boost::json::value>(&array_extensions[1].value());
+  ASSERT_NE(array_decoded_1, nullptr);
+  ASSERT_NE(array_decoded_2, nullptr);
+  EXPECT_EQ(*array_decoded_1, array_payload_1);
+  EXPECT_EQ(*array_decoded_2, array_payload_2);
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsNodeManagementRequests) {
   AddNodesRequest add_nodes{
       .items = {{.requested_id = NumericNode(100),

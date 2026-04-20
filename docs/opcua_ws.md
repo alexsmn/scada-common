@@ -16,8 +16,8 @@
 > `Publish`, `Republish`, `DeleteSubscriptions`, `TransferSubscriptions`,
 > `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
 > `SetMonitoringMode`), all with unit tests. The actual socket/session
-> transport layer, publish queue, and reconnect/session-resume runtime still
-> land later.
+> transport layer, publish queue, reconnect/session-resume runtime, and
+> `BrowseNext` still land later.
 
 ## Related documents
 
@@ -235,7 +235,10 @@ Current implementation note:
 - The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
   Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
-  Phase 2/3 `HistoryRead` / `Call` / node-management payloads.
+  Phase 2/3 `HistoryRead` / `Call` / node-management payloads. The generic
+  `Variant` codec there now also supports opaque scalar and array
+  `ExtensionObject` payloads via `{typeId, body}` JSON objects so the WS layer
+  can round-trip structured values without a typed registry yet.
 - `BrowseNext` is still pending because it needs a matching coroutine-facing
   view-service API in core.
 - The publish / replay / transfer **runtime** is still pending because it
@@ -262,8 +265,9 @@ plus the implemented Phase 1 subscription / monitored-item lifecycle payloads
 `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
 `SetMonitoringMode`) and the existing Phase 2/3 payloads actually wired into
 `OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
-with `requestHandle`. `ServiceFault` is also covered. `ExtensionObject`,
-`BrowseNext`, and the actual publish/reconnect runtime are still pending along
+with `requestHandle`. `ServiceFault` is also covered, and `Variant`
+`ExtensionObject` values now round-trip opaquely via `{typeId, body}`. The
+remaining gaps are `BrowseNext` and the actual publish/reconnect runtime along
 with the transport/session layer.
 
 ### Session lifecycle
