@@ -22,6 +22,9 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
           co_return co_await HandleWrite(std::move(typed_request));
         } else if constexpr (std::is_same_v<T, BrowseRequest>) {
           co_return co_await HandleBrowse(std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
+          co_return OpcUaWsServiceResponse{BrowseNextResponse{
+              .status = scada::StatusCode::Bad}};
         } else if constexpr (std::is_same_v<T, TranslateBrowsePathsRequest>) {
           co_return co_await HandleTranslateBrowsePaths(std::move(typed_request));
         } else if constexpr (std::is_same_v<T, CallRequest>) {

@@ -313,5 +313,70 @@ TEST_F(OpcUaWsRuntimeTest, CloseSessionRemovesAttachedRuntimeState) {
   EXPECT_EQ(fault->status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
 }
 
+TEST_F(OpcUaWsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+  OpcUaWsConnectionState connection;
+  CreateAndActivate(connection);
+
+  EXPECT_CALL(view_service_, Browse(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::vector<scada::BrowseDescription>& inputs,
+                           const scada::BrowseCallback& callback) {
+        EXPECT_EQ(context.user_id(), expected_user_id_);
+        ASSERT_EQ(inputs.size(), 1u);
+        callback(scada::StatusCode::Good,
+                 {scada::BrowseResult{
+                     .status_code = scada::StatusCode::Good,
+                     .references = {{.reference_type_id = NumericNode(901),
+                                     .forward = true,
+                                     .node_id = NumericNode(902)},
+                                    {.reference_type_id = NumericNode(903),
+                                     .forward = false,
+                                     .node_id = NumericNode(904)},
+                                    {.reference_type_id = NumericNode(905),
+                                     .forward = true,
+                                     .node_id = NumericNode(906)}}}});
+      }));
+
+  const auto browse_message = Handle(
+      connection,
+      BrowseRequest{
+          .requested_max_references_per_node = 2,
+          .inputs = {{.node_id = NumericNode(900),
+                      .direction = scada::BrowseDirection::Both,
+                      .reference_type_id = NumericNode(910),
+                      .include_subtypes = true}}},
+      3);
+  const auto* browse = std::get_if<BrowseResponse>(&browse_message.body);
+  ASSERT_NE(browse, nullptr);
+  ASSERT_EQ(browse->results.size(), 1u);
+  ASSERT_EQ(browse->results[0].references.size(), 2u);
+  ASSERT_FALSE(browse->results[0].continuation_point.empty());
+  EXPECT_EQ(browse->results[0].references[0].node_id, NumericNode(902));
+  EXPECT_EQ(browse->results[0].references[1].node_id, NumericNode(904));
+
+  const auto browse_next_message = Handle(
+      connection,
+      BrowseNextRequest{
+          .continuation_points = {browse->results[0].continuation_point}},
+      4);
+  const auto* browse_next =
+      std::get_if<BrowseNextResponse>(&browse_next_message.body);
+  ASSERT_NE(browse_next, nullptr);
+  ASSERT_EQ(browse_next->results.size(), 1u);
+  EXPECT_EQ(browse_next->results[0].status_code, scada::StatusCode::Good);
+  ASSERT_EQ(browse_next->results[0].references.size(), 1u);
+  EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(906));
+
+  const auto invalid_message = Handle(
+      connection,
+      BrowseNextRequest{
+          .continuation_points = {browse->results[0].continuation_point}},
+      5);
+  const auto* invalid = std::get_if<BrowseNextResponse>(&invalid_message.body);
+  ASSERT_NE(invalid, nullptr);
+  ASSERT_EQ(invalid->results.size(), 1u);
+  EXPECT_EQ(invalid->results[0].status_code, scada::StatusCode::Bad_WrongIndex);
+}
+
 }  // namespace
 }  // namespace opcua_ws

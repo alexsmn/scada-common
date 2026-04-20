@@ -236,6 +236,43 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
                 SessionMissingResponse<OpcUaWsSetMonitoringModeResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           co_return OpcUaWsResponseBody{session->SetMonitoringMode(typed_request)};
+        } else if constexpr (std::is_same_v<T, BrowseRequest>) {
+          auto* session = FindAttachedSession(connection);
+          if (!session)
+            co_return SessionMissingResponse<OpcUaWsResponseBody>();
+          // cppcheck-suppress nullPointerRedundantCheck
+          auto& attached_session = *session;
+
+          const auto user_id = attached_session.GetServiceContext().user_id();
+          auto response = co_await OpcUaWsServiceHandler{
+              {.executor = this->executor,
+               .attribute_service = this->attribute_service,
+               .view_service = this->view_service,
+               .history_service = this->history_service,
+               .method_service = this->method_service,
+               .node_management_service = this->node_management_service,
+               .user_id = user_id}}
+                              .Handle(BrowseRequest{
+                                  .requested_max_references_per_node = 0,
+                                  .inputs = std::move(typed_request.inputs),
+                              });
+          auto* browse_response = std::get_if<BrowseResponse>(&response);
+          if (!browse_response)
+            co_return SessionMissingResponse<OpcUaWsResponseBody>();
+          // cppcheck-suppress nullPointerRedundantCheck
+          auto typed_browse_response = std::move(*browse_response);
+          // cppcheck-suppress nullPointerRedundantCheck
+          auto paged_response = attached_session.StoreBrowseResults(
+              std::move(typed_browse_response),
+              typed_request.requested_max_references_per_node);
+          co_return OpcUaWsResponseBody{std::move(paged_response)};
+        } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
+          auto* session = FindAttachedSession(connection);
+          if (!session)
+            co_return SessionMissingResponse<OpcUaWsResponseBody>();
+          // cppcheck-suppress nullPointerRedundantCheck
+          auto& attached_session = *session;
+          co_return OpcUaWsResponseBody{attached_session.BrowseNext(typed_request)};
         } else {
           auto* session = FindAttachedSession(connection);
           if (!session)

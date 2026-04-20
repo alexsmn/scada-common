@@ -1,6 +1,7 @@
 #include "opcua_ws/opcua_ws_session.h"
 
 #include <algorithm>
+#include <cstring>
 
 namespace opcua_ws {
 
@@ -12,6 +13,12 @@ constexpr size_t kNotFound = static_cast<size_t>(-1);
 
 OpcUaWsSession::OpcUaWsSession(OpcUaWsSessionContext&& context)
     : OpcUaWsSessionContext{std::move(context)} {}
+
+size_t OpcUaWsSession::ByteStringHash::operator()(
+    const scada::ByteString& value) const {
+  return std::hash<std::string_view>{}(
+      std::string_view{value.data(), value.size()});
+}
 
 OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscription(
     const OpcUaWsCreateSubscriptionRequest& request) {
@@ -212,6 +219,42 @@ OpcUaWsRepublishResponse OpcUaWsSession::Republish(
   return subscription->Republish(request.retransmit_sequence_number);
 }
 
+BrowseResponse OpcUaWsSession::StoreBrowseResults(
+    BrowseResponse response,
+    size_t requested_max_references_per_node) {
+  if (requested_max_references_per_node == 0)
+    return response;
+
+  for (auto& result : response.results) {
+    result = PageBrowseResult(std::move(result), requested_max_references_per_node);
+  }
+  return response;
+}
+
+BrowseNextResponse OpcUaWsSession::BrowseNext(const BrowseNextRequest& request) {
+  BrowseNextResponse response{.status = scada::StatusCode::Good};
+  response.results.reserve(request.continuation_points.size());
+
+  for (const auto& continuation_point : request.continuation_points) {
+    const auto it = browse_continuations_.find(continuation_point);
+    if (it == browse_continuations_.end()) {
+      response.results.push_back(
+          {.status_code = scada::StatusCode::Bad_WrongIndex});
+      continue;
+    }
+
+    if (request.release_continuation_points) {
+      browse_continuations_.erase(it);
+      response.results.push_back({.status_code = scada::StatusCode::Good});
+      continue;
+    }
+
+    response.results.push_back(ResumeBrowseResult(continuation_point));
+  }
+
+  return response;
+}
+
 std::vector<OpcUaWsSubscriptionId> OpcUaWsSession::GetSubscriptionIds() const {
   std::vector<OpcUaWsSubscriptionId> result;
   result.reserve(publish_order_.size());
@@ -288,6 +331,49 @@ size_t OpcUaWsSession::FindNextReadySubscription(base::Time now,
 void OpcUaWsSession::RefreshNextSubscriptionId() {
   for (const auto& [subscription_id, subscription] : subscriptions_)
     next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
+}
+
+scada::ByteString OpcUaWsSession::MakeBrowseContinuationPoint() {
+  scada::ByteString value(sizeof(next_browse_continuation_id_), '\0');
+  const auto raw = next_browse_continuation_id_++;
+  std::memcpy(value.data(), &raw, sizeof(raw));
+  return value;
+}
+
+scada::BrowseResult OpcUaWsSession::PageBrowseResult(
+    scada::BrowseResult result,
+    size_t requested_max_references_per_node) {
+  result.continuation_point.clear();
+  if (requested_max_references_per_node == 0 ||
+      result.references.size() <= requested_max_references_per_node) {
+    return result;
+  }
+
+  auto continuation_point = MakeBrowseContinuationPoint();
+  BrowseContinuationState state;
+  state.remaining_references.assign(
+      std::make_move_iterator(
+          result.references.begin() +
+          static_cast<std::ptrdiff_t>(requested_max_references_per_node)),
+      std::make_move_iterator(result.references.end()));
+  browse_continuations_.emplace(continuation_point, std::move(state));
+  result.references.resize(requested_max_references_per_node);
+  result.continuation_point = std::move(continuation_point);
+  return result;
+}
+
+scada::BrowseResult OpcUaWsSession::ResumeBrowseResult(
+    const scada::ByteString& continuation_point) {
+  auto it = browse_continuations_.find(continuation_point);
+  if (it == browse_continuations_.end()) {
+    return {.status_code = scada::StatusCode::Bad_WrongIndex};
+  }
+
+  scada::BrowseResult result;
+  result.status_code = scada::StatusCode::Good;
+  result.references = std::move(it->second.remaining_references);
+  browse_continuations_.erase(it);
+  return result;
 }
 
 }  // namespace opcua_ws

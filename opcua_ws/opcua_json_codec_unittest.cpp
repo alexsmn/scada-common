@@ -32,10 +32,14 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
                   .value = scada::Variant{std::vector<scada::UInt32>{4, 5}},
                   .flags = scada::WriteFlags{}.set_select().set_param()}}};
   BrowseRequest browse{
+      .requested_max_references_per_node = 7,
       .inputs = {{.node_id = NumericNode(3),
                   .direction = scada::BrowseDirection::Inverse,
                   .reference_type_id = NumericNode(31),
                   .include_subtypes = false}}};
+  BrowseNextRequest browse_next{
+      .release_continuation_points = true,
+      .continuation_points = {{'a', 'b'}, {'x', 'y', 'z'}}};
   TranslateBrowsePathsRequest translate{
       .inputs = {{.node_id = NumericNode(4),
                   .relative_path = {{.reference_type_id = NumericNode(41),
@@ -55,8 +59,16 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
 
   const auto decoded_browse = std::get<BrowseRequest>(
       DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{browse})));
+  EXPECT_EQ(decoded_browse.requested_max_references_per_node,
+            browse.requested_max_references_per_node);
   ASSERT_EQ(decoded_browse.inputs.size(), 1u);
   EXPECT_EQ(decoded_browse.inputs[0], browse.inputs[0]);
+
+  const auto decoded_browse_next = std::get<BrowseNextRequest>(
+      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{browse_next})));
+  EXPECT_TRUE(decoded_browse_next.release_continuation_points);
+  EXPECT_EQ(decoded_browse_next.continuation_points,
+            browse_next.continuation_points);
 
   const auto decoded_translate = std::get<TranslateBrowsePathsRequest>(
       DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{translate})));
@@ -362,9 +374,17 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
   BrowseResponse browse{
       .status = scada::StatusCode::Good,
       .results = {{.status_code = scada::StatusCode::Good,
+                   .continuation_point = {'c', 'p'},
                    .references = {{.reference_type_id = NumericNode(301),
                                    .forward = false,
                                    .node_id = NumericNode(302)}}}}};
+  BrowseNextResponse browse_next{
+      .status = scada::StatusCode::Good,
+      .results = {{.status_code = scada::StatusCode::Bad_WrongIndex},
+                  {.status_code = scada::StatusCode::Good,
+                   .references = {{.reference_type_id = NumericNode(304),
+                                   .forward = true,
+                                   .node_id = NumericNode(305)}}}}};
   TranslateBrowsePathsResponse translate{
       .status = scada::StatusCode::Good,
       .results = {{.status_code = scada::StatusCode::Good,
@@ -388,7 +408,14 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
   EXPECT_EQ(decoded_browse.status, browse.status);
   ASSERT_EQ(decoded_browse.results.size(), 1u);
   EXPECT_EQ(decoded_browse.results[0].status_code, browse.results[0].status_code);
+  EXPECT_EQ(decoded_browse.results[0].continuation_point,
+            browse.results[0].continuation_point);
   EXPECT_EQ(decoded_browse.results[0].references, browse.results[0].references);
+
+  const auto decoded_browse_next = std::get<BrowseNextResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{browse_next})));
+  EXPECT_EQ(decoded_browse_next.status, browse_next.status);
+  EXPECT_EQ(decoded_browse_next.results, browse_next.results);
 
   const auto decoded_translate = std::get<TranslateBrowsePathsResponse>(
       DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{translate})));
@@ -466,6 +493,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
   OpcUaWsRequestMessage request{
       .request_handle = 31,
       .body = BrowseRequest{
+          .requested_max_references_per_node = 5,
           .inputs = {{.node_id = NumericNode(40),
                       .direction = scada::BrowseDirection::Forward,
                       .reference_type_id = NumericNode(41),
@@ -475,6 +503,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
       .body = BrowseResponse{
           .status = scada::StatusCode::Good,
           .results = {{.status_code = scada::StatusCode::Good,
+                       .continuation_point = {'q'},
                        .references = {{.reference_type_id = NumericNode(42),
                                        .forward = true,
                                        .node_id = NumericNode(43)}}}}}};
@@ -483,6 +512,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
   EXPECT_EQ(decoded_request.request_handle, request.request_handle);
   const auto* request_body = std::get_if<BrowseRequest>(&decoded_request.body);
   ASSERT_NE(request_body, nullptr);
+  EXPECT_EQ(request_body->requested_max_references_per_node, 5u);
   ASSERT_EQ(request_body->inputs.size(), 1u);
   EXPECT_EQ(request_body->inputs[0].node_id, NumericNode(40));
   EXPECT_EQ(request_body->inputs[0].reference_type_id, NumericNode(41));
@@ -493,8 +523,40 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
   ASSERT_NE(response_body, nullptr);
   EXPECT_EQ(response_body->status.code(), scada::StatusCode::Good);
   ASSERT_EQ(response_body->results.size(), 1u);
+  EXPECT_EQ(response_body->results[0].continuation_point, (scada::ByteString{'q'}));
   ASSERT_EQ(response_body->results[0].references.size(), 1u);
   EXPECT_EQ(response_body->results[0].references[0].node_id, NumericNode(43));
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsBrowseNextMessagesWithEnvelope) {
+  OpcUaWsRequestMessage request{
+      .request_handle = 32,
+      .body = BrowseNextRequest{
+          .release_continuation_points = false,
+          .continuation_points = {{'a', 'b', 'c'}}}};
+  OpcUaWsResponseMessage response{
+      .request_handle = 32,
+      .body = BrowseNextResponse{
+          .status = scada::StatusCode::Good,
+          .results = {{.status_code = scada::StatusCode::Good,
+                       .references = {{.reference_type_id = NumericNode(52),
+                                       .forward = false,
+                                       .node_id = NumericNode(53)}}}}}};
+
+  const auto decoded_request = DecodeRequestMessage(EncodeJson(request));
+  const auto* request_body = std::get_if<BrowseNextRequest>(&decoded_request.body);
+  ASSERT_NE(request_body, nullptr);
+  EXPECT_FALSE(request_body->release_continuation_points);
+  EXPECT_EQ(request_body->continuation_points,
+            (std::vector<scada::ByteString>{{'a', 'b', 'c'}}));
+
+  const auto decoded_response = DecodeResponseMessage(EncodeJson(response));
+  const auto* response_body =
+      std::get_if<BrowseNextResponse>(&decoded_response.body);
+  ASSERT_NE(response_body, nullptr);
+  EXPECT_EQ(response_body->status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response_body->results.size(), 1u);
+  EXPECT_EQ(response_body->results[0].references[0].node_id, NumericNode(53));
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {

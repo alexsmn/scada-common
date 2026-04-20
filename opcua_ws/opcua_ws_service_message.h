@@ -31,10 +31,21 @@ struct WriteResponse {
 };
 
 struct BrowseRequest {
+  size_t requested_max_references_per_node = 0;
   std::vector<scada::BrowseDescription> inputs;
 };
 
 struct BrowseResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::BrowseResult> results;
+};
+
+struct BrowseNextRequest {
+  bool release_continuation_points = false;
+  std::vector<scada::ByteString> continuation_points;
+};
+
+struct BrowseNextResponse {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::BrowseResult> results;
 };
@@ -122,6 +133,7 @@ using OpcUaWsServiceRequest =
     std::variant<ReadRequest,
                  WriteRequest,
                  BrowseRequest,
+                 BrowseNextRequest,
                  TranslateBrowsePathsRequest,
                  CallRequest,
                  HistoryReadRawRequest,
@@ -135,6 +147,7 @@ using OpcUaWsServiceResponse =
     std::variant<ReadResponse,
                  WriteResponse,
                  BrowseResponse,
+                 BrowseNextResponse,
                  TranslateBrowsePathsResponse,
                  CallResponse,
                  HistoryReadRawResponse,

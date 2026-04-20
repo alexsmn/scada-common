@@ -399,6 +399,8 @@ scada::BrowseDescription DecodeBrowseDescription(const value& json) {
 
 value EncodeBrowseResult(const scada::BrowseResult& result) {
   return object{{"statusCode", EncodeStatusCode(result.status_code)},
+                {"continuationPoint",
+                 EncodeByteString(result.continuation_point)},
                 {"references",
                  EncodeList(result.references, EncodeReferenceDescription)}};
 }
@@ -406,6 +408,8 @@ value EncodeBrowseResult(const scada::BrowseResult& result) {
 scada::BrowseResult DecodeBrowseResult(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status_code = DecodeStatusCode(RequireField(obj, "statusCode")),
+          .continuation_point =
+              DecodeByteString(RequireField(obj, "continuationPoint")),
           .references = DecodeList<scada::ReferenceDescription>(
               RequireField(obj, "references"), DecodeReferenceDescription)};
 }
@@ -828,13 +832,31 @@ WriteRequest DecodeWriteRequest(const value& json) {
 
 value EncodeBrowseRequest(const BrowseRequest& request) {
   return object{
+      {"requestedMaxReferencesPerNode", request.requested_max_references_per_node},
       {"inputs", EncodeList(request.inputs, EncodeBrowseDescription)}};
 }
 
 BrowseRequest DecodeBrowseRequest(const value& json) {
-  return {.inputs = DecodeList<scada::BrowseDescription>(
-              RequireField(RequireObject(json), "inputs"),
-              DecodeBrowseDescription)};
+  const auto& obj = RequireObject(json);
+  return {.requested_max_references_per_node = static_cast<size_t>(
+              RequireUInt64(RequireField(obj, "requestedMaxReferencesPerNode"))),
+          .inputs = DecodeList<scada::BrowseDescription>(
+              RequireField(obj, "inputs"), DecodeBrowseDescription)};
+}
+
+value EncodeBrowseNextRequest(const BrowseNextRequest& request) {
+  return object{
+      {"releaseContinuationPoints", request.release_continuation_points},
+      {"continuationPoints",
+       EncodeList(request.continuation_points, EncodeByteString)}};
+}
+
+BrowseNextRequest DecodeBrowseNextRequest(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.release_continuation_points =
+              RequireBool(RequireField(obj, "releaseContinuationPoints")),
+          .continuation_points = DecodeList<scada::ByteString>(
+              RequireField(obj, "continuationPoints"), DecodeByteString)};
 }
 
 value EncodeTranslateBrowsePathsRequest(
@@ -1061,6 +1083,18 @@ BrowseResponse DecodeBrowseResponse(const value& json) {
               RequireField(obj, "results"), DecodeBrowseResult)};
 }
 
+value EncodeBrowseNextResponse(const BrowseNextResponse& response) {
+  return object{{"status", EncodeStatus(response.status)},
+                {"results", EncodeList(response.results, EncodeBrowseResult)}};
+}
+
+BrowseNextResponse DecodeBrowseNextResponse(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status = DecodeStatus(RequireField(obj, "status")),
+          .results = DecodeList<scada::BrowseResult>(
+              RequireField(obj, "results"), DecodeBrowseResult)};
+}
+
 value EncodeTranslateBrowsePathsResponse(
     const TranslateBrowsePathsResponse& response) {
   return object{{"status", EncodeStatus(response.status)},
@@ -1177,6 +1211,10 @@ constexpr std::string_view RequestServiceName<BrowseRequest>() {
   return "Browse";
 }
 template <>
+constexpr std::string_view RequestServiceName<BrowseNextRequest>() {
+  return "BrowseNext";
+}
+template <>
 constexpr std::string_view RequestServiceName<TranslateBrowsePathsRequest>() {
   return "TranslateBrowsePathsToNodeIds";
 }
@@ -1226,6 +1264,9 @@ boost::json::value EncodeJson(const OpcUaWsServiceRequest& request) {
                                             BrowseRequest>) {
           json["body"] = EncodeBrowseRequest(typed_request);
         } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
+                                            BrowseNextRequest>) {
+          json["body"] = EncodeBrowseNextRequest(typed_request);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
                                             TranslateBrowsePathsRequest>) {
           json["body"] = EncodeTranslateBrowsePathsRequest(typed_request);
         } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
@@ -1268,6 +1309,9 @@ boost::json::value EncodeJson(const OpcUaWsServiceResponse& response) {
         } else if constexpr (std::is_same_v<T, BrowseResponse>) {
           json["service"] = "Browse";
           json["body"] = EncodeBrowseResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, BrowseNextResponse>) {
+          json["service"] = "BrowseNext";
+          json["body"] = EncodeBrowseNextResponse(typed_response);
         } else if constexpr (std::is_same_v<T, TranslateBrowsePathsResponse>) {
           json["service"] = "TranslateBrowsePathsToNodeIds";
           json["body"] = EncodeTranslateBrowsePathsResponse(typed_response);
@@ -1308,6 +1352,8 @@ OpcUaWsServiceRequest DecodeServiceRequest(const boost::json::value& json) {
     return DecodeWriteRequest(body);
   if (service == "Browse")
     return DecodeBrowseRequest(body);
+  if (service == "BrowseNext")
+    return DecodeBrowseNextRequest(body);
   if (service == "TranslateBrowsePathsToNodeIds")
     return DecodeTranslateBrowsePathsRequest(body);
   if (service == "Call")
@@ -1337,6 +1383,8 @@ OpcUaWsServiceResponse DecodeServiceResponse(const boost::json::value& json) {
     return DecodeMultiStatusResponse<WriteResponse>(body);
   if (service == "Browse")
     return DecodeBrowseResponse(body);
+  if (service == "BrowseNext")
+    return DecodeBrowseNextResponse(body);
   if (service == "TranslateBrowsePathsToNodeIds")
     return DecodeTranslateBrowsePathsResponse(body);
   if (service == "Call")

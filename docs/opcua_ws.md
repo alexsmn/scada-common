@@ -4,7 +4,7 @@
 > does not yet exist, but the transport-independent `common/opcua_ws/`
 > service-dispatch layer is now present and uses coroutine-based handlers for
 > the currently implementable Phase 0/2/3 service set: `Read`, `Write`,
-> `Browse`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
+> `Browse`, `BrowseNext`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
 > `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. A
 > transport-independent session lifecycle manager for `CreateSession`,
 > `ActivateSession`, `DetachSession`, and `CloseSession` is also present. The
@@ -28,8 +28,8 @@
 > `OpcUaWsServer` loop is now also present for accepted transports: it reads
 > request frames, decodes UA-JSON envelopes, dispatches them through
 > `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. The
-> remaining common-side gaps are the final Beast WSS/TLS/origin wrapper around
-> that server loop and `BrowseNext`.
+> remaining common-side gap is the final Beast WSS/TLS/origin wrapper around
+> that server loop.
 
 ## Related documents
 
@@ -107,7 +107,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 | Path | Role |
 |---|---|
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, dispatches through `OpcUaWsRuntime`, writes responses, detaches sessions on disconnect |
-| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, and transfer handoff between live sessions |
+| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, browse continuation-point paging, and transfer handoff between live sessions |
 | `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Transport-independent request router: decoded envelope dispatch, session attach/resume, global subscription ownership, and service-handler/session-manager wiring |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
@@ -256,8 +256,9 @@ Current implementation note:
   subscription creation / deletion, routes monitored-item operations to the
   correct subscription, aggregates `PublishRequest` acknowledgements, drains
   subscriptions fairly in round-robin order, primes and forwards keep-alives,
-  and can transfer live subscription ownership between session instances
-  in-memory.
+  can transfer live subscription ownership between session instances
+  in-memory, and now also pages `Browse` results into session-scoped
+  continuation points consumed or released through `BrowseNext`.
 - The transport-independent decoded-request router is now in place under
   `common/opcua_ws/opcua_ws_runtime.{h,cpp}` with unit tests. It ties
   `OpcUaWsSessionManager`, `OpcUaWsSession`, and `OpcUaWsServiceHandler`
@@ -277,13 +278,12 @@ Current implementation note:
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
-  Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
+  Phase 0 `Read` / `Write` / `Browse` / `BrowseNext` /
+  `TranslateBrowsePathsToNodeIds` and
   Phase 2/3 `HistoryRead` / `Call` / node-management payloads. The generic
   `Variant` codec there now also supports opaque scalar and array
   `ExtensionObject` payloads via `{typeId, body}` JSON objects so the WS layer
   can round-trip structured values without a typed registry yet.
-- `BrowseNext` is still pending because it needs a matching coroutine-facing
-  view-service API in core.
 - The remaining work is now the actual websocket handshake/security boundary:
   Beast WSS acceptor/session classes, TLS and `Origin` enforcement,
   `Sec-WebSocket-Protocol` validation, ping/pong lifecycle, and adapting that
@@ -302,8 +302,9 @@ Golden-fixture tests for `Variant`, `NodeId`, `ExpandedNodeId`,
 `QualifiedName`, `LocalizedText`, `DataValue`, and each request/response pair
 implemented in the current phase. Current coverage now includes the
 transport-independent Phase 0 payloads (`CreateSession`, `ActivateSession`,
-`CloseSession`, `Read`, `Write`, `Browse`, `TranslateBrowsePathsToNodeIds`)
-plus the implemented Phase 1 subscription / monitored-item lifecycle payloads
+`CloseSession`, `Read`, `Write`, `Browse`, `BrowseNext`,
+`TranslateBrowsePathsToNodeIds`) plus the implemented Phase 1 subscription /
+monitored-item lifecycle payloads
 (`CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
 `Publish`, `Republish`, `DeleteSubscriptions`, `TransferSubscriptions`,
 `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
@@ -311,8 +312,8 @@ plus the implemented Phase 1 subscription / monitored-item lifecycle payloads
 `OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
 with `requestHandle`. `ServiceFault` is also covered, and `Variant`
 `ExtensionObject` values now round-trip opaquely via `{typeId, body}`. The
-remaining gaps are `BrowseNext` and the actual publish/reconnect runtime along
-with the transport/session layer.
+remaining gaps are the actual websocket transport/session layer and the
+browser-facing Beast integration.
 
 ### Session lifecycle
 
@@ -362,6 +363,7 @@ Covers the transport-independent live-session runtime for:
 
 - subscription creation and deletion
 - monitored-item request routing
+- browse continuation-point paging and `BrowseNext` release/resume
 - round-robin publish arbitration across subscriptions
 - acknowledgement aggregation and `Republish`
 - keep-alive priming at the session layer
@@ -372,6 +374,7 @@ Covers the transport-independent live-session runtime for:
 Covers the transport-independent decoded-request runtime for:
 
 - envelope routing through activated sessions
+- `Browse` paging and `BrowseNext` continuation-point routing
 - detach/resume preserving live subscription state
 - `TransferSubscriptions` via global subscription ownership
 - `CloseSession` removing live runtime state
