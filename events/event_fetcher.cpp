@@ -20,12 +20,13 @@
 #include "base/debug_util.h"
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
-    : EventFetcherContext{std::move(context)} {
-  monitored_item_ = monitored_item_service_.CreateMonitoredItem(
-      scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
-      scada::MonitoringParameters{
-          .filter =
-              scada::EventFilter{.of_type = {scada::id::SystemEventType}}});
+    : EventFetcherContext{std::move(context)},
+      monitored_item_{monitored_item_service_.CreateMonitoredItem(
+          scada::ReadValueId{scada::id::Server,
+                             scada::AttributeId::EventNotifier},
+          scada::MonitoringParameters{
+              .filter = scada::EventFilter{
+                  .of_type = {scada::id::SystemEventType}}})} {
 
   assert(monitored_item_);
 

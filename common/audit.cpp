@@ -40,7 +40,10 @@ std::shared_ptr<scada::services> AuditScadaServices(
 
 // Audit
 
-Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {}
+Audit::Audit(AuditContext&& context)
+    : AuditContext{std::move(context)},
+      concurrent_read_count_{0},
+      concurrent_browse_count_{0} {}
 
 void Audit::Init() {
   metric_service_.RegisterProvider(

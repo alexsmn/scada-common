@@ -177,13 +177,6 @@ struct ParserDelegate
         throw std::runtime_error{"Unexpected lexem"};
     }
   }
-
-  const expression::BasicFunction<expression::PolymorphicToken>*
-  FindBasicFunction(std::string_view name) {
-    return expression::functions::FindDefaultFunction<
-        expression::PolymorphicToken>(name);
-  }
-
   ScadaExpression& expression;
 };
 
