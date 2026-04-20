@@ -22,7 +22,7 @@ sequenceDiagram
     participant MI as MonitoredItemService
     participant AS as Address space
 
-    Note over B,S: Implemented in common today: full Phase 1 message codec<br/>for lifecycle, Publish, Republish, and TransferSubscriptions envelopes
+    Note over B,SUB: Implemented in common today: full Phase 1 message codec<br/>plus per-subscription runtime for monitored-item binding,<br/>notification queueing, keep-alives, acknowledgements, and replay
 
     B->>S: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
     S->>SUB: create subscription (id=N)
@@ -41,7 +41,7 @@ sequenceDiagram
     B->>S: ModifyMonitoredItems / DeleteMonitoredItems / DeleteSubscriptions
     S-->>B: matching response envelopes
 
-    Note over B,SUB: Pending runtime work: websocket session loop, PublishRequest slot tracking,<br/>keep-alive timers, queued notification replay, and reconnect transfer state
+    Note over B,S: Pending above this layer: websocket session loop, PublishRequest slot tracking<br/>across subscriptions, and reconnect TransferSubscriptions ownership handoff
 
     loop Publish pump
         B->>S: PublishRequest (requestHandle, acks for prior seq)

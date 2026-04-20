@@ -15,9 +15,12 @@
 > (`CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
 > `Publish`, `Republish`, `DeleteSubscriptions`, `TransferSubscriptions`,
 > `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
-> `SetMonitoringMode`), all with unit tests. The actual socket/session
-> transport layer, publish queue, reconnect/session-resume runtime, and
-> `BrowseNext` still land later.
+> `SetMonitoringMode`), all with unit tests. A transport-independent
+> per-subscription runtime is also now present for monitored-item binding,
+> notification queueing, keep-alive generation, ack/replay handling, and
+> event-field projection. The remaining common-side gaps are the actual
+> socket/session transport layer, session-level `PublishRequest` orchestration
+> and reconnect transfer state, and `BrowseNext`.
 
 ## Related documents
 
@@ -230,6 +233,14 @@ Current implementation note:
   covering `Publish`, `Republish`, and `TransferSubscriptions` request/response
   envelopes plus notification payloads (`DataChangeNotification`,
   `EventNotificationList`, `StatusChangeNotification`) with unit tests.
+- The transport-independent per-subscription Phase 1 runtime is now in place
+  under `common/opcua_ws/opcua_ws_subscription.{h,cpp}` with unit tests. It
+  binds monitored items through `MonitoredItemService`, maintains per-item
+  notification queues, emits keep-alive `PublishResponse`s while publishing is
+  enabled, tracks retransmit state for `Republish`, applies acknowledgements,
+  ignores stale callbacks after monitored-item rebind/delete, and projects the
+  default browser event-field set (`EventId`, `EventType`, `SourceNode`,
+  `SourceName`, `Time`, `Message`, `Severity`) from `scada::Event` payloads.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
@@ -241,10 +252,10 @@ Current implementation note:
   can round-trip structured values without a typed registry yet.
 - `BrowseNext` is still pending because it needs a matching coroutine-facing
   view-service API in core.
-- The publish / replay / transfer **runtime** is still pending because it
-  needs additional WS session/subscription state (`PublishRequest` slot
-  tracking, notification queues, replay buffers, and reconnect transfer
-  semantics) even though the message codec is now in place.
+- The session-level publish / replay / transfer orchestration is still pending
+  because it needs WS session state above a single subscription:
+  `PublishRequest` slot tracking across connections, fair draining across
+  subscriptions, and reconnect / `TransferSubscriptions` ownership handoff.
 - Socket/session management and the actual `server/opcua_ws/` module remain
   pending.
 
@@ -300,6 +311,17 @@ Covers the coroutine dispatch layer for:
 - `DeleteNodes`
 - `AddReferences`
 - `DeleteReferences`
+
+`common/opcua_ws/opcua_ws_subscription_unittest.cpp`
+
+Covers the transport-independent per-subscription runtime for:
+
+- data-change publish delivery
+- acknowledgement and `Republish` replay behavior
+- keep-alive generation
+- publishing-disabled queue retention
+- event-field projection from event filters
+- monitored-item rebind/delete safety against stale callbacks
 
 `common/opcua_ws/opcua_ws_e2e_test.cpp`
 
