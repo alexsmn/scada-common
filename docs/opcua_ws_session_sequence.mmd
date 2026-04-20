@@ -41,7 +41,7 @@ sequenceDiagram
     S-->>B: requestHandle=2<br/>ActivateSessionResponse
 
     Note over B,M: Data plane opens after the session is attached
-    Note over B,S: Existing coroutine service-handler layer handles Read / Write / Browse / Translate / HistoryRead / Call / node management
+    Note over B,S: Implemented in common today: OpcUaWsSession owns live subscription state,<br/>fair Publish arbitration, and monitored-item routing,<br/>while the coroutine service-handler layer handles Read / Write / Browse / Translate / HistoryRead / Call / node management
 
     Note over B,S: Connection drops, browser reconnects before timeout
     S->>M: DetachSession(authenticationToken)

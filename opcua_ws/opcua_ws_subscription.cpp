@@ -67,6 +67,12 @@ void OpcUaWsSubscription::SetPublishingEnabled(bool publishing_enabled) {
   parameters_.publishing_enabled = publishing_enabled;
 }
 
+bool OpcUaWsSubscription::IsPublishReady(base::Time now) const {
+  if (!parameters_.publishing_enabled)
+    return false;
+  return !pending_notifications_.empty() || IsKeepAliveDue(now);
+}
+
 OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
     const OpcUaWsCreateMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
@@ -192,23 +198,25 @@ OpcUaWsSetMonitoringModeResponse OpcUaWsSubscription::SetMonitoringMode(
   return response;
 }
 
-std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
-    base::Time now,
-    const std::vector<OpcUaWsSubscriptionAcknowledgement>& acknowledgements) {
-  std::vector<scada::StatusCode> ack_results;
-  ack_results.reserve(acknowledgements.size());
-  for (const auto& acknowledgement : acknowledgements) {
-    if (acknowledgement.subscription_id != subscription_id_) {
-      ack_results.push_back(scada::StatusCode::Bad_WrongSubscriptionId);
-      continue;
-    }
-    ack_results.push_back(Acknowledge(acknowledgement.sequence_number));
-  }
+std::vector<scada::StatusCode> OpcUaWsSubscription::Acknowledge(
+    const std::vector<scada::UInt32>& sequence_numbers) {
+  std::vector<scada::StatusCode> results;
+  results.reserve(sequence_numbers.size());
+  for (const auto sequence_number : sequence_numbers)
+    results.push_back(Acknowledge(sequence_number));
+  return results;
+}
 
+std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
+    base::Time now) {
   if (!parameters_.publishing_enabled)
     return std::nullopt;
 
   if (pending_notifications_.empty()) {
+    if (!last_publish_time_.has_value()) {
+      last_publish_time_ = now;
+      return std::nullopt;
+    }
     if (!IsKeepAliveDue(now))
       return std::nullopt;
 
@@ -219,7 +227,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
         .available_sequence_numbers = AvailableSequenceNumbers(),
         .more_notifications = false,
         .notification_message = {.sequence_number = 0, .publish_time = now},
-        .results = std::move(ack_results)};
+        .results = {}};
   }
 
   auto queued = std::move(pending_notifications_.front());
@@ -238,7 +246,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
       .available_sequence_numbers = AvailableSequenceNumbers(),
       .more_notifications = !pending_notifications_.empty(),
       .notification_message = std::move(notification_message),
-      .results = std::move(ack_results)};
+      .results = {}};
 }
 
 OpcUaWsRepublishResponse OpcUaWsSubscription::Republish(
@@ -306,9 +314,8 @@ base::TimeDelta OpcUaWsSubscription::KeepAliveInterval() const {
   return base::TimeDelta::FromMilliseconds(std::max<int64_t>(1, interval_ms));
 }
 
-bool OpcUaWsSubscription::IsKeepAliveDue(base::Time now) {
+bool OpcUaWsSubscription::IsKeepAliveDue(base::Time now) const {
   if (!last_publish_time_.has_value()) {
-    last_publish_time_ = now;
     return false;
   }
   return now - *last_publish_time_ >= KeepAliveInterval();

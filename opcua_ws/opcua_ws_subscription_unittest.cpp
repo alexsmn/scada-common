@@ -67,7 +67,7 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
       scada::Variant{12.5}, {}, ParseTime("2026-04-20 10:00:00"),
       ParseTime("2026-04-20 10:00:01")});
   const auto first_publish =
-      subscription.TryPublish(ParseTime("2026-04-20 10:00:02"), {});
+      subscription.TryPublish(ParseTime("2026-04-20 10:00:02"));
   ASSERT_TRUE(first_publish.has_value());
   EXPECT_EQ(first_publish->subscription_id, 17u);
   EXPECT_EQ(first_publish->available_sequence_numbers,
@@ -84,12 +84,12 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
       scada::Variant{13.5}, {}, ParseTime("2026-04-20 10:00:03"),
       ParseTime("2026-04-20 10:00:04")});
-  const auto second_publish = subscription.TryPublish(
-      ParseTime("2026-04-20 10:00:05"),
-      {{.subscription_id = 17, .sequence_number = 1}});
-  ASSERT_TRUE(second_publish.has_value());
-  EXPECT_EQ(second_publish->results,
+  EXPECT_EQ(subscription.Acknowledge(std::vector<scada::UInt32>{1}),
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
+  const auto second_publish =
+      subscription.TryPublish(ParseTime("2026-04-20 10:00:05"));
+  ASSERT_TRUE(second_publish.has_value());
+  EXPECT_TRUE(second_publish->results.empty());
   EXPECT_EQ(second_publish->available_sequence_numbers,
             (std::vector<scada::UInt32>{2u}));
 
@@ -112,10 +112,10 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
        .priority = 0},
       monitored_item_service};
 
-  ASSERT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:00"), {}).has_value());
+  ASSERT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:00")).has_value());
   const auto keep_alive = subscription.TryPublish(
-      ParseTime("2026-04-20 11:00:00") + base::TimeDelta::FromMilliseconds(400),
-      {});
+      ParseTime("2026-04-20 11:00:00") +
+      base::TimeDelta::FromMilliseconds(400));
   ASSERT_TRUE(keep_alive.has_value());
   EXPECT_EQ(keep_alive->notification_message.sequence_number, 0u);
   EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
@@ -134,12 +134,12 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
       scada::Variant{77.0}, {}, ParseTime("2026-04-20 11:00:01"),
       ParseTime("2026-04-20 11:00:01")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:01.050"), {})
+  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:01.050"))
                    .has_value());
 
   subscription.SetPublishingEnabled(true);
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 11:00:01.060"), {});
+      subscription.TryPublish(ParseTime("2026-04-20 11:00:01.060"));
   ASSERT_TRUE(publish.has_value());
   const auto* data =
       std::get_if<OpcUaWsDataChangeNotification>(
@@ -201,7 +201,7 @@ TEST(OpcUaWsSubscriptionTest,
   monitored_item_service.items[0]->NotifyEvent(second_event);
 
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 12:00:02"), {});
+      subscription.TryPublish(ParseTime("2026-04-20 12:00:02"));
   ASSERT_TRUE(publish.has_value());
   const auto* events =
       std::get_if<OpcUaWsEventNotificationList>(
@@ -258,14 +258,14 @@ TEST(OpcUaWsSubscriptionTest,
   old_item->NotifyDataChange(scada::DataValue{
       scada::Variant{1.0}, {}, ParseTime("2026-04-20 13:00:00"),
       ParseTime("2026-04-20 13:00:00")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:01"), {})
+  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:01"))
                    .has_value());
 
   new_item->NotifyDataChange(scada::DataValue{
       scada::Variant{2.0}, {}, ParseTime("2026-04-20 13:00:02"),
       ParseTime("2026-04-20 13:00:02")});
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 13:00:03"), {});
+      subscription.TryPublish(ParseTime("2026-04-20 13:00:03"));
   ASSERT_TRUE(publish.has_value());
   const auto* data =
       std::get_if<OpcUaWsDataChangeNotification>(
@@ -281,7 +281,7 @@ TEST(OpcUaWsSubscriptionTest,
   new_item->NotifyDataChange(scada::DataValue{
       scada::Variant{3.0}, {}, ParseTime("2026-04-20 13:00:04"),
       ParseTime("2026-04-20 13:00:04")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:03.200"), {})
+  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:03.200"))
                    .has_value());
 }
 

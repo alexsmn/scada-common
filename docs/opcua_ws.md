@@ -18,9 +18,12 @@
 > `SetMonitoringMode`), all with unit tests. A transport-independent
 > per-subscription runtime is also now present for monitored-item binding,
 > notification queueing, keep-alive generation, ack/replay handling, and
-> event-field projection. The remaining common-side gaps are the actual
-> socket/session transport layer, session-level `PublishRequest` orchestration
-> and reconnect transfer state, and `BrowseNext`.
+> event-field projection. A transport-independent `OpcUaWsSession` layer now
+> also owns subscription ids, monitored-item routing, fair publish arbitration
+> across subscriptions, and in-memory transfer handoff between session
+> instances. The remaining common-side gaps are the actual socket/session
+> transport glue, reconnect attach/transfer integration with
+> `OpcUaWsSessionManager`, and `BrowseNext`.
 
 ## Related documents
 
@@ -98,7 +101,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 | Path | Role |
 |---|---|
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Beast WSS acceptor; per-connection `OpcUaWsSession` spawn |
-| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Per-connection UA session state: SessionId, AuthenticationToken, continuation points, subscription ids |
+| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, and transfer handoff between live sessions |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
@@ -241,6 +244,13 @@ Current implementation note:
   ignores stale callbacks after monitored-item rebind/delete, and projects the
   default browser event-field set (`EventId`, `EventType`, `SourceNode`,
   `SourceName`, `Time`, `Message`, `Severity`) from `scada::Event` payloads.
+- The transport-independent live-session Phase 1 runtime is now in place under
+  `common/opcua_ws/opcua_ws_session.{h,cpp}` with unit tests. It owns
+  subscription creation / deletion, routes monitored-item operations to the
+  correct subscription, aggregates `PublishRequest` acknowledgements, drains
+  subscriptions fairly in round-robin order, primes and forwards keep-alives,
+  and can transfer live subscription ownership between session instances
+  in-memory.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
@@ -252,10 +262,11 @@ Current implementation note:
   can round-trip structured values without a typed registry yet.
 - `BrowseNext` is still pending because it needs a matching coroutine-facing
   view-service API in core.
-- The session-level publish / replay / transfer orchestration is still pending
-  because it needs WS session state above a single subscription:
-  `PublishRequest` slot tracking across connections, fair draining across
-  subscriptions, and reconnect / `TransferSubscriptions` ownership handoff.
+- The remaining publish / replay / transfer work is now at the connection /
+  reconnect layer: binding `OpcUaWsSession` to websocket request slots,
+  attaching detached sessions back through `OpcUaWsSessionManager`, and making
+  reconnect-time `TransferSubscriptions` reuse that attached session state
+  instead of only the current in-memory session-to-session handoff.
 - Socket/session management and the actual `server/opcua_ws/` module remain
   pending.
 
@@ -322,6 +333,17 @@ Covers the transport-independent per-subscription runtime for:
 - publishing-disabled queue retention
 - event-field projection from event filters
 - monitored-item rebind/delete safety against stale callbacks
+
+`common/opcua_ws/opcua_ws_session_unittest.cpp`
+
+Covers the transport-independent live-session runtime for:
+
+- subscription creation and deletion
+- monitored-item request routing
+- round-robin publish arbitration across subscriptions
+- acknowledgement aggregation and `Republish`
+- keep-alive priming at the session layer
+- in-memory `TransferSubscriptions` ownership handoff
 
 `common/opcua_ws/opcua_ws_e2e_test.cpp`
 

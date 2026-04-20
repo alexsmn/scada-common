@@ -22,6 +22,10 @@ class OpcUaWsSubscription {
 
   OpcUaWsSubscriptionId subscription_id() const { return subscription_id_; }
   const OpcUaWsSubscriptionParameters& parameters() const { return parameters_; }
+  bool HasPendingNotifications() const {
+    return !pending_notifications_.empty();
+  }
+  bool IsPublishReady(base::Time now) const;
 
   OpcUaWsModifySubscriptionResponse Modify(
       const OpcUaWsModifySubscriptionRequest& request);
@@ -36,9 +40,9 @@ class OpcUaWsSubscription {
   OpcUaWsSetMonitoringModeResponse SetMonitoringMode(
       const OpcUaWsSetMonitoringModeRequest& request);
 
-  std::optional<OpcUaWsPublishResponse> TryPublish(
-      base::Time now,
-      const std::vector<OpcUaWsSubscriptionAcknowledgement>& acknowledgements);
+  std::vector<scada::StatusCode> Acknowledge(
+      const std::vector<scada::UInt32>& sequence_numbers);
+  std::optional<OpcUaWsPublishResponse> TryPublish(base::Time now);
   OpcUaWsRepublishResponse Republish(scada::UInt32 sequence_number) const;
 
  private:
@@ -65,7 +69,7 @@ class OpcUaWsSubscription {
   scada::StatusCode Acknowledge(scada::UInt32 sequence_number);
   std::vector<scada::UInt32> AvailableSequenceNumbers() const;
   base::TimeDelta KeepAliveInterval() const;
-  bool IsKeepAliveDue(base::Time now);
+  bool IsKeepAliveDue(base::Time now) const;
 
   void RebindItem(Item& item);
   void QueueDataChange(Item& item, const scada::DataValue& data_value);

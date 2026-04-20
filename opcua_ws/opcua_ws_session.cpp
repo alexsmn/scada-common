@@ -1,0 +1,273 @@
+#include "opcua_ws/opcua_ws_session.h"
+
+#include <algorithm>
+
+namespace opcua_ws {
+
+namespace {
+
+constexpr size_t kNotFound = static_cast<size_t>(-1);
+
+}  // namespace
+
+OpcUaWsSession::OpcUaWsSession(OpcUaWsSessionContext&& context)
+    : OpcUaWsSessionContext{std::move(context)} {}
+
+OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscription(
+    const OpcUaWsCreateSubscriptionRequest& request) {
+  const auto subscription_id = next_subscription_id_++;
+  auto subscription = std::make_unique<OpcUaWsSubscription>(
+      subscription_id, request.parameters, this->monitored_item_service);
+
+  subscriptions_.emplace(subscription_id, std::move(subscription));
+  publish_order_.push_back(subscription_id);
+
+  return {.status = scada::StatusCode::Good,
+          .subscription_id = subscription_id,
+          .revised_publishing_interval_ms = request.parameters.publishing_interval_ms,
+          .revised_lifetime_count = request.parameters.lifetime_count,
+          .revised_max_keep_alive_count = request.parameters.max_keep_alive_count};
+}
+
+OpcUaWsModifySubscriptionResponse OpcUaWsSession::ModifySubscription(
+    const OpcUaWsModifySubscriptionRequest& request) {
+  auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->Modify(request);
+}
+
+OpcUaWsSetPublishingModeResponse OpcUaWsSession::SetPublishingMode(
+    const OpcUaWsSetPublishingModeRequest& request) {
+  OpcUaWsSetPublishingModeResponse response{.status = scada::StatusCode::Good};
+  response.results.reserve(request.subscription_ids.size());
+
+  for (const auto subscription_id : request.subscription_ids) {
+    auto* subscription = FindSubscription(subscription_id);
+    if (!subscription) {
+      response.results.push_back(scada::StatusCode::Bad_WrongSubscriptionId);
+      continue;
+    }
+    subscription->SetPublishingEnabled(request.publishing_enabled);
+    response.results.push_back(scada::StatusCode::Good);
+  }
+
+  return response;
+}
+
+OpcUaWsDeleteSubscriptionsResponse OpcUaWsSession::DeleteSubscriptions(
+    const OpcUaWsDeleteSubscriptionsRequest& request) {
+  OpcUaWsDeleteSubscriptionsResponse response{.status = scada::StatusCode::Good};
+  response.results.reserve(request.subscription_ids.size());
+
+  for (const auto subscription_id : request.subscription_ids) {
+    if (!FindSubscription(subscription_id)) {
+      response.results.push_back(scada::StatusCode::Bad_WrongSubscriptionId);
+      continue;
+    }
+    EraseSubscription(subscription_id);
+    response.results.push_back(scada::StatusCode::Good);
+  }
+
+  return response;
+}
+
+OpcUaWsTransferSubscriptionsResponse OpcUaWsSession::TransferSubscriptionsFrom(
+    OpcUaWsSession& source,
+    const OpcUaWsTransferSubscriptionsRequest& request) {
+  OpcUaWsTransferSubscriptionsResponse response{
+      .status = scada::StatusCode::Good};
+  response.results.reserve(request.subscription_ids.size());
+
+  for (const auto subscription_id : request.subscription_ids) {
+    if (FindSubscription(subscription_id)) {
+      response.results.push_back(scada::StatusCode::Bad);
+      continue;
+    }
+
+    auto source_it = source.subscriptions_.find(subscription_id);
+    if (source_it == source.subscriptions_.end()) {
+      response.results.push_back(scada::StatusCode::Bad_WrongSubscriptionId);
+      continue;
+    }
+
+    subscriptions_.emplace(subscription_id, std::move(source_it->second));
+    publish_order_.push_back(subscription_id);
+    source.EraseSubscription(subscription_id);
+    response.results.push_back(scada::StatusCode::Good);
+  }
+
+  RefreshNextSubscriptionId();
+  return response;
+}
+
+OpcUaWsCreateMonitoredItemsResponse OpcUaWsSession::CreateMonitoredItems(
+    const OpcUaWsCreateMonitoredItemsRequest& request) {
+  auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->CreateMonitoredItems(request);
+}
+
+OpcUaWsModifyMonitoredItemsResponse OpcUaWsSession::ModifyMonitoredItems(
+    const OpcUaWsModifyMonitoredItemsRequest& request) {
+  auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->ModifyMonitoredItems(request);
+}
+
+OpcUaWsDeleteMonitoredItemsResponse OpcUaWsSession::DeleteMonitoredItems(
+    const OpcUaWsDeleteMonitoredItemsRequest& request) {
+  auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->DeleteMonitoredItems(request);
+}
+
+OpcUaWsSetMonitoringModeResponse OpcUaWsSession::SetMonitoringMode(
+    const OpcUaWsSetMonitoringModeRequest& request) {
+  auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->SetMonitoringMode(request);
+}
+
+OpcUaWsPublishResponse OpcUaWsSession::Publish(
+    const OpcUaWsPublishRequest& request) {
+  std::vector<scada::StatusCode> ack_results(
+      request.subscription_acknowledgements.size(), scada::StatusCode::Good);
+  std::unordered_map<OpcUaWsSubscriptionId, std::vector<std::pair<size_t, scada::UInt32>>>
+      grouped_acknowledgements;
+
+  for (size_t i = 0; i < request.subscription_acknowledgements.size(); ++i) {
+    const auto& acknowledgement = request.subscription_acknowledgements[i];
+    if (!FindSubscription(acknowledgement.subscription_id)) {
+      ack_results[i] = scada::StatusCode::Bad_WrongSubscriptionId;
+      continue;
+    }
+    grouped_acknowledgements[acknowledgement.subscription_id].push_back(
+        {i, acknowledgement.sequence_number});
+  }
+
+  for (const auto& [subscription_id, group] : grouped_acknowledgements) {
+    auto* subscription = FindSubscription(subscription_id);
+    if (!subscription)
+      continue;
+
+    std::vector<scada::UInt32> sequence_numbers;
+    sequence_numbers.reserve(group.size());
+    for (const auto& [index, sequence_number] : group)
+      sequence_numbers.push_back(sequence_number);
+
+    const auto results = subscription->Acknowledge(sequence_numbers);
+    for (size_t i = 0; i < group.size(); ++i)
+      ack_results[group[i].first] = results[i];
+  }
+
+  const auto now_time = Now();
+  const auto pending_index = FindNextReadySubscription(now_time, true);
+  const auto publish_index =
+      pending_index != kNotFound ? pending_index
+                                 : FindNextReadySubscription(now_time, false);
+  if (publish_index == kNotFound) {
+    if (!publish_order_.empty()) {
+      const auto subscription_id =
+          publish_order_[next_publish_index_ % publish_order_.size()];
+      if (auto* subscription = FindSubscription(subscription_id))
+        [[maybe_unused]] auto primed = subscription->TryPublish(now_time);
+    }
+    return {.status = subscriptions_.empty() ? scada::StatusCode::Bad_NothingToDo
+                                             : scada::StatusCode::Good,
+            .results = std::move(ack_results)};
+  }
+
+  const auto subscription_id = publish_order_[publish_index];
+  auto* subscription = FindSubscription(subscription_id);
+  if (!subscription) {
+    return {.status = scada::StatusCode::Bad, .results = std::move(ack_results)};
+  }
+
+  auto published = subscription->TryPublish(now_time);
+  if (!published.has_value()) {
+    return {.status = scada::StatusCode::Good, .results = std::move(ack_results)};
+  }
+
+  published->results = std::move(ack_results);
+  AdvancePublishCursorAfter(publish_index);
+  return *published;
+}
+
+OpcUaWsRepublishResponse OpcUaWsSession::Republish(
+    const OpcUaWsRepublishRequest& request) const {
+  const auto* subscription = FindSubscription(request.subscription_id);
+  if (!subscription)
+    return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
+  return subscription->Republish(request.retransmit_sequence_number);
+}
+
+OpcUaWsSubscription* OpcUaWsSession::FindSubscription(
+    OpcUaWsSubscriptionId subscription_id) {
+  const auto it = subscriptions_.find(subscription_id);
+  return it != subscriptions_.end() ? it->second.get() : nullptr;
+}
+
+const OpcUaWsSubscription* OpcUaWsSession::FindSubscription(
+    OpcUaWsSubscriptionId subscription_id) const {
+  const auto it = subscriptions_.find(subscription_id);
+  return it != subscriptions_.end() ? it->second.get() : nullptr;
+}
+
+void OpcUaWsSession::EraseSubscription(OpcUaWsSubscriptionId subscription_id) {
+  subscriptions_.erase(subscription_id);
+  const auto it = std::find(publish_order_.begin(), publish_order_.end(),
+                            subscription_id);
+  if (it == publish_order_.end())
+    return;
+
+  const auto index = static_cast<size_t>(std::distance(publish_order_.begin(), it));
+  publish_order_.erase(it);
+  if (publish_order_.empty()) {
+    next_publish_index_ = 0;
+    return;
+  }
+  if (index < next_publish_index_)
+    --next_publish_index_;
+  if (next_publish_index_ >= publish_order_.size())
+    next_publish_index_ = 0;
+}
+
+void OpcUaWsSession::AdvancePublishCursorAfter(size_t index) {
+  if (publish_order_.empty()) {
+    next_publish_index_ = 0;
+    return;
+  }
+  next_publish_index_ = (index + 1) % publish_order_.size();
+}
+
+size_t OpcUaWsSession::FindNextReadySubscription(base::Time now,
+                                                 bool require_pending) const {
+  if (publish_order_.empty())
+    return kNotFound;
+
+  for (size_t offset = 0; offset < publish_order_.size(); ++offset) {
+    const auto index = (next_publish_index_ + offset) % publish_order_.size();
+    const auto subscription_id = publish_order_[index];
+    const auto* subscription = FindSubscription(subscription_id);
+    if (!subscription)
+      continue;
+    if (require_pending && !subscription->HasPendingNotifications())
+      continue;
+    if (!subscription->IsPublishReady(now))
+      continue;
+    return index;
+  }
+  return kNotFound;
+}
+
+void OpcUaWsSession::RefreshNextSubscriptionId() {
+  for (const auto& [subscription_id, subscription] : subscriptions_)
+    next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
+}
+
+}  // namespace opcua_ws
