@@ -4,9 +4,11 @@
 #include "base/executor.h"
 #include "opcua_ws/opcua_ws_service_message.h"
 
+#include "scada/attribute_service.h"
 #include "scada/history_service.h"
 #include "scada/method_service.h"
 #include "scada/node_management_service.h"
+#include "scada/view_service.h"
 
 #include <memory>
 
@@ -14,6 +16,8 @@ namespace opcua_ws {
 
 struct OpcUaWsServiceHandlerContext {
   std::shared_ptr<Executor> executor;
+  scada::AttributeService& attribute_service;
+  scada::ViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
@@ -24,10 +28,18 @@ class OpcUaWsServiceHandler : private OpcUaWsServiceHandlerContext {
  public:
   explicit OpcUaWsServiceHandler(OpcUaWsServiceHandlerContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaWsServiceResponse> Handle(
+ [[nodiscard]] Awaitable<OpcUaWsServiceResponse> Handle(
       OpcUaWsServiceRequest request) const;
 
  private:
+  [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleRead(
+      ReadRequest request) const;
+  [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleWrite(
+      WriteRequest request) const;
+  [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleBrowse(
+      BrowseRequest request) const;
+  [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleTranslateBrowsePaths(
+      TranslateBrowsePathsRequest request) const;
   [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleCall(
       CallRequest request) const;
   [[nodiscard]] Awaitable<OpcUaWsServiceResponse> HandleHistoryReadRaw(

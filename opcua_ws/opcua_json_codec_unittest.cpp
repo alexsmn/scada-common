@@ -21,6 +21,48 @@ base::Time ParseTime(std::string_view value) {
   return result;
 }
 
+TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
+  ReadRequest read{
+      .inputs = {{.node_id = NumericNode(1),
+                  .attribute_id = scada::AttributeId::DisplayName}}};
+  WriteRequest write{
+      .inputs = {{.node_id = NumericNode(2),
+                  .attribute_id = scada::AttributeId::Value,
+                  .value = scada::Variant{std::vector<scada::UInt32>{4, 5}},
+                  .flags = scada::WriteFlags{}.set_select().set_param()}}};
+  BrowseRequest browse{
+      .inputs = {{.node_id = NumericNode(3),
+                  .direction = scada::BrowseDirection::Inverse,
+                  .reference_type_id = NumericNode(31),
+                  .include_subtypes = false}}};
+  TranslateBrowsePathsRequest translate{
+      .inputs = {{.node_id = NumericNode(4),
+                  .relative_path = {{.reference_type_id = NumericNode(41),
+                                     .inverse = true,
+                                     .include_subtypes = false,
+                                     .target_name = {"Child", 6}}}}}};
+
+  const auto decoded_read = std::get<ReadRequest>(
+      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{read})));
+  ASSERT_EQ(decoded_read.inputs.size(), 1u);
+  EXPECT_EQ(decoded_read.inputs[0], read.inputs[0]);
+
+  const auto decoded_write = std::get<WriteRequest>(
+      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{write})));
+  ASSERT_EQ(decoded_write.inputs.size(), 1u);
+  EXPECT_EQ(decoded_write.inputs[0], write.inputs[0]);
+
+  const auto decoded_browse = std::get<BrowseRequest>(
+      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{browse})));
+  ASSERT_EQ(decoded_browse.inputs.size(), 1u);
+  EXPECT_EQ(decoded_browse.inputs[0], browse.inputs[0]);
+
+  const auto decoded_translate = std::get<TranslateBrowsePathsRequest>(
+      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{translate})));
+  ASSERT_EQ(decoded_translate.inputs.size(), 1u);
+  EXPECT_EQ(decoded_translate.inputs[0], translate.inputs[0]);
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadRawRequest) {
   HistoryReadRawRequest request{
       .details =
@@ -200,6 +242,60 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadResponses) {
                 EncodeJson(OpcUaWsServiceResponse{events})))
                 .result.events,
             events.result.events);
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
+  ReadResponse read{
+      .status = scada::StatusCode::Good,
+      .results = {scada::DataValue{scada::Variant{scada::LocalizedText{u"Pump"}},
+                                   scada::Qualifier{scada::Qualifier::MANUAL},
+                                   ParseTime("2026-04-19 10:10:00"),
+                                   ParseTime("2026-04-19 10:10:01")}}};
+  WriteResponse write{
+      .status = scada::StatusCode::Bad_Disconnected,
+      .results = {scada::StatusCode::Bad_Disconnected}};
+  BrowseResponse browse{
+      .status = scada::StatusCode::Good,
+      .results = {{.status_code = scada::StatusCode::Good,
+                   .references = {{.reference_type_id = NumericNode(301),
+                                   .forward = false,
+                                   .node_id = NumericNode(302)}}}}};
+  TranslateBrowsePathsResponse translate{
+      .status = scada::StatusCode::Good,
+      .results = {{.status_code = scada::StatusCode::Good,
+                   .targets = {{.target_id =
+                                    scada::ExpandedNodeId{NumericNode(303),
+                                                          "urn:test", 2},
+                                .remaining_path_index = 1}}}}};
+
+  const auto decoded_read = std::get<ReadResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{read})));
+  EXPECT_EQ(decoded_read.status, read.status);
+  EXPECT_EQ(decoded_read.results, read.results);
+
+  const auto decoded_write = std::get<WriteResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{write})));
+  EXPECT_EQ(decoded_write.status, write.status);
+  EXPECT_EQ(decoded_write.results, write.results);
+
+  const auto decoded_browse = std::get<BrowseResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{browse})));
+  EXPECT_EQ(decoded_browse.status, browse.status);
+  ASSERT_EQ(decoded_browse.results.size(), 1u);
+  EXPECT_EQ(decoded_browse.results[0].status_code, browse.results[0].status_code);
+  EXPECT_EQ(decoded_browse.results[0].references, browse.results[0].references);
+
+  const auto decoded_translate = std::get<TranslateBrowsePathsResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{translate})));
+  EXPECT_EQ(decoded_translate.status, translate.status);
+  ASSERT_EQ(decoded_translate.results.size(), 1u);
+  EXPECT_EQ(decoded_translate.results[0].status_code,
+            translate.results[0].status_code);
+  ASSERT_EQ(decoded_translate.results[0].targets.size(), 1u);
+  EXPECT_EQ(decoded_translate.results[0].targets[0].target_id,
+            translate.results[0].targets[0].target_id);
+  EXPECT_EQ(decoded_translate.results[0].targets[0].remaining_path_index,
+            translate.results[0].targets[0].remaining_path_index);
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {

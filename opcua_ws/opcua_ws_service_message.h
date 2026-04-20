@@ -1,14 +1,52 @@
 #pragma once
 
+#include "scada/attribute_service.h"
 #include "scada/history_types.h"
 #include "scada/method_service.h"
 #include "scada/node_management_service.h"
 #include "scada/status.h"
+#include "scada/view_service.h"
 
 #include <variant>
 #include <vector>
 
 namespace opcua_ws {
+
+struct ReadRequest {
+  std::vector<scada::ReadValueId> inputs;
+};
+
+struct ReadResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::DataValue> results;
+};
+
+struct WriteRequest {
+  std::vector<scada::WriteValue> inputs;
+};
+
+struct WriteResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::StatusCode> results;
+};
+
+struct BrowseRequest {
+  std::vector<scada::BrowseDescription> inputs;
+};
+
+struct BrowseResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::BrowseResult> results;
+};
+
+struct TranslateBrowsePathsRequest {
+  std::vector<scada::BrowsePath> inputs;
+};
+
+struct TranslateBrowsePathsResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::BrowsePathResult> results;
+};
 
 struct CallMethodRequest {
   scada::NodeId object_id;
@@ -81,7 +119,11 @@ struct DeleteReferencesResponse {
 };
 
 using OpcUaWsServiceRequest =
-    std::variant<CallRequest,
+    std::variant<ReadRequest,
+                 WriteRequest,
+                 BrowseRequest,
+                 TranslateBrowsePathsRequest,
+                 CallRequest,
                  HistoryReadRawRequest,
                  HistoryReadEventsRequest,
                  AddNodesRequest,
@@ -90,7 +132,11 @@ using OpcUaWsServiceRequest =
                  DeleteReferencesRequest>;
 
 using OpcUaWsServiceResponse =
-    std::variant<CallResponse,
+    std::variant<ReadResponse,
+                 WriteResponse,
+                 BrowseResponse,
+                 TranslateBrowsePathsResponse,
+                 CallResponse,
                  HistoryReadRawResponse,
                  HistoryReadEventsResponse,
                  AddNodesResponse,

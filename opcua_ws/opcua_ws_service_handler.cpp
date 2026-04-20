@@ -16,7 +16,15 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
   auto typed_response = co_await std::visit(
       [this](auto&& typed_request) -> Awaitable<OpcUaWsServiceResponse> {
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, CallRequest>) {
+        if constexpr (std::is_same_v<T, ReadRequest>) {
+          co_return co_await HandleRead(std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, WriteRequest>) {
+          co_return co_await HandleWrite(std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, BrowseRequest>) {
+          co_return co_await HandleBrowse(std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, TranslateBrowsePathsRequest>) {
+          co_return co_await HandleTranslateBrowsePaths(std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, CallRequest>) {
           co_return co_await HandleCall(std::move(typed_request));
         } else if constexpr (std::is_same_v<T, HistoryReadRawRequest>) {
           co_return co_await HandleHistoryReadRaw(std::move(typed_request));
@@ -34,6 +42,47 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
       },
       std::move(request));
   co_return typed_response;
+}
+
+Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleRead(
+    ReadRequest request) const {
+  auto service_context = scada::ServiceContext{}.with_user_id(user_id);
+  auto [status, results] = co_await scada::ReadAsync(
+      executor, attribute_service, std::move(service_context),
+      std::make_shared<const std::vector<scada::ReadValueId>>(
+          std::move(request.inputs)));
+  co_return OpcUaWsServiceResponse{
+      ReadResponse{std::move(status), std::move(results)}};
+}
+
+Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleWrite(
+    WriteRequest request) const {
+  auto service_context = scada::ServiceContext{}.with_user_id(user_id);
+  auto [status, results] = co_await scada::WriteAsync(
+      executor, attribute_service, service_context,
+      std::make_shared<const std::vector<scada::WriteValue>>(
+          std::move(request.inputs)));
+  co_return OpcUaWsServiceResponse{
+      WriteResponse{std::move(status), std::move(results)}};
+}
+
+Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleBrowse(
+    BrowseRequest request) const {
+  auto service_context = scada::ServiceContext{}.with_user_id(user_id);
+  auto [status, results] = co_await scada::BrowseAsync(
+      executor, view_service, std::move(service_context),
+      std::move(request.inputs));
+  co_return OpcUaWsServiceResponse{
+      BrowseResponse{std::move(status), std::move(results)}};
+}
+
+Awaitable<OpcUaWsServiceResponse>
+OpcUaWsServiceHandler::HandleTranslateBrowsePaths(
+    TranslateBrowsePathsRequest request) const {
+  auto [status, results] = co_await scada::TranslateBrowsePathsAsync(
+      executor, view_service, std::move(request.inputs));
+  co_return OpcUaWsServiceResponse{
+      TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleCall(

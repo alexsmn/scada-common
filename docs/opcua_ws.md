@@ -3,9 +3,11 @@
 > Status: partly implemented. The transport/session endpoint described here
 > does not yet exist, but the transport-independent `common/opcua_ws/`
 > service-dispatch layer is now present and uses coroutine-based handlers for
-> `HistoryRead`, `Call`, `AddNodes`, `DeleteNodes`, `AddReferences`, and
-> `DeleteReferences`. The matching Phase 2/3 UA-JSON codec is also present and
-> covered by unit tests.
+> the currently implementable Phase 0/2/3 service set: `Read`, `Write`,
+> `Browse`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
+> `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. The
+> matching UA-JSON codec for those services is also present and covered by unit
+> tests.
 
 ## Related documents
 
@@ -185,11 +187,21 @@ session/subscription state machines.
 
 Current implementation note:
 
+- The coroutine service-dispatch layer for the transport-independent Phase 0
+  request set that maps directly to existing `AttributeService` /
+  `ViewService` APIs is in place under
+  `common/opcua_ws/opcua_ws_service_handler.{h,cpp}`:
+  `Read`, `Write`, `Browse`, and `TranslateBrowsePathsToNodeIds`.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
-- The Phase 2 and Phase 3 UA-JSON codec is in place under
+- The UA-JSON codec for that same implemented set is in place under
   `common/opcua_ws/opcua_json_codec.{h,cpp}` with round-trip unit coverage for
-  the implemented request/response payloads.
+  Phase 0 `Read` / `Write` / `Browse` / `TranslateBrowsePathsToNodeIds` and
+  Phase 2/3 `HistoryRead` / `Call` / node-management payloads.
+- `BrowseNext`, session lifecycle (`CreateSession`, `ActivateSession`,
+  `CloseSession`), and the Phase 1 subscription/publish message set are still
+  pending because they require WS session/subscription state rather than pure
+  transport-independent service dispatch.
 - Socket/session management and the actual `server/opcua_ws/` module remain
   pending.
 
@@ -201,10 +213,12 @@ Current implementation note:
 
 Golden-fixture tests for `Variant`, `NodeId`, `ExpandedNodeId`,
 `QualifiedName`, `LocalizedText`, `DataValue`, and each request/response pair
-implemented in the current phase. Current coverage is focused on the Phase 2/3
-service payloads actually wired into `OpcUaWsServiceHandler`; `ExtensionObject`
-and the Phase 0/1 session/subscription messages are still pending along with
-the transport/session layer.
+implemented in the current phase. Current coverage now includes the
+transport-independent Phase 0 payloads (`Read`, `Write`, `Browse`,
+`TranslateBrowsePathsToNodeIds`) plus the existing Phase 2/3 payloads actually
+wired into `OpcUaWsServiceHandler`; `ExtensionObject`, `BrowseNext`, and the
+Phase 0/1 session/subscription messages are still pending along with the
+transport/session layer.
 
 ### Session lifecycle
 
@@ -222,6 +236,10 @@ the transport/session layer.
 
 Covers the coroutine dispatch layer for:
 
+- `Read`
+- `Write`
+- `Browse`
+- `TranslateBrowsePathsToNodeIds`
 - `HistoryReadRaw`
 - `HistoryReadEvents`
 - `Call`

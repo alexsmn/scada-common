@@ -2,9 +2,12 @@
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
+#include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
+#include "scada/service_context.h"
+#include "scada/view_service_mock.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -22,6 +25,8 @@ class OpcUaWsServiceHandlerTest : public Test {
     return {id, ns};
   }
 
+  StrictMock<scada::MockAttributeService> attribute_service_;
+  StrictMock<scada::MockViewService> view_service_;
   StrictMock<scada::MockHistoryService> history_service_;
   StrictMock<scada::MockMethodService> method_service_;
   StrictMock<scada::MockNodeManagementService> node_management_service_;
@@ -29,9 +34,117 @@ class OpcUaWsServiceHandlerTest : public Test {
       std::make_shared<TestExecutor>();
   const scada::NodeId user_id_ = NumericNode(700, 3);
   OpcUaWsServiceHandler handler_{
-      {executor_, history_service_, method_service_, node_management_service_,
+      {executor_,
+       attribute_service_,
+       view_service_,
+       history_service_,
+       method_service_,
+       node_management_service_,
        user_id_}};
 };
+
+TEST_F(OpcUaWsServiceHandlerTest,
+       HandleReadWriteBrowseAndTranslate_UsesPhase0Services) {
+  ReadRequest read_request{
+      .inputs = {{.node_id = NumericNode(1),
+                  .attribute_id = scada::AttributeId::DisplayName}}};
+  WriteRequest write_request{
+      .inputs = {{.node_id = NumericNode(2),
+                  .attribute_id = scada::AttributeId::Value,
+                  .value = scada::Variant{scada::Int32{7}},
+                  .flags = scada::WriteFlags{}.set_select()}}};
+  BrowseRequest browse_request{
+      .inputs = {{.node_id = NumericNode(3),
+                  .direction = scada::BrowseDirection::Forward,
+                  .reference_type_id = NumericNode(33),
+                  .include_subtypes = false}}};
+  TranslateBrowsePathsRequest translate_request{
+      .inputs = {{.node_id = NumericNode(4),
+                  .relative_path = {{.reference_type_id = NumericNode(44),
+                                     .inverse = true,
+                                     .include_subtypes = false,
+                                     .target_name = {"Leaf", 5}}}}}};
+
+  EXPECT_CALL(attribute_service_, Read(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+                           const scada::ReadCallback& callback) {
+        EXPECT_EQ(context.user_id(), user_id_);
+        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ((*inputs)[0], read_request.inputs[0]);
+        callback(scada::StatusCode::Good,
+                 {scada::DataValue{scada::LocalizedText{u"Pump"}, {},
+                                   base::Time::Now(), base::Time::Now()}});
+      }));
+  EXPECT_CALL(attribute_service_, Write(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
+                           const scada::WriteCallback& callback) {
+        EXPECT_EQ(context.user_id(), user_id_);
+        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ((*inputs)[0], write_request.inputs[0]);
+        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+      }));
+  EXPECT_CALL(view_service_, Browse(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::vector<scada::BrowseDescription>& inputs,
+                           const scada::BrowseCallback& callback) {
+        EXPECT_EQ(context.user_id(), user_id_);
+        EXPECT_THAT(inputs, ElementsAre(browse_request.inputs[0]));
+        callback(scada::StatusCode::Good,
+                 {scada::BrowseResult{
+                     .status_code = scada::StatusCode::Good,
+                     .references = {{.reference_type_id = NumericNode(34),
+                                     .forward = true,
+                                     .node_id = NumericNode(35)}}}});
+      }));
+  EXPECT_CALL(view_service_, TranslateBrowsePaths(_, _))
+      .WillOnce(Invoke([&](const std::vector<scada::BrowsePath>& inputs,
+                           const scada::TranslateBrowsePathsCallback& callback) {
+        EXPECT_THAT(inputs, ElementsAre(translate_request.inputs[0]));
+        callback(scada::StatusCode::Good,
+                 {scada::BrowsePathResult{
+                     .status_code = scada::StatusCode::Good,
+                     .targets = {{.target_id = scada::ExpandedNodeId{NumericNode(45)},
+                                  .remaining_path_index = 0}}}});
+      }));
+
+  auto response = WaitAwaitable(executor_, handler_.Handle(read_request));
+  const auto* read_response = std::get_if<ReadResponse>(&response);
+  ASSERT_NE(read_response, nullptr);
+  EXPECT_EQ(read_response->status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(read_response->results.size(), 1u);
+  EXPECT_EQ(read_response->results[0].value,
+            scada::Variant{scada::LocalizedText{u"Pump"}});
+
+  response = WaitAwaitable(executor_, handler_.Handle(write_request));
+  const auto* write_response = std::get_if<WriteResponse>(&response);
+  ASSERT_NE(write_response, nullptr);
+  EXPECT_EQ(write_response->status.code(), scada::StatusCode::Good);
+  EXPECT_THAT(write_response->results, ElementsAre(scada::StatusCode::Good));
+
+  response = WaitAwaitable(executor_, handler_.Handle(browse_request));
+  const auto* browse_response = std::get_if<BrowseResponse>(&response);
+  ASSERT_NE(browse_response, nullptr);
+  EXPECT_EQ(browse_response->status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(browse_response->results.size(), 1u);
+  EXPECT_THAT(browse_response->results[0].references,
+              ElementsAre(scada::ReferenceDescription{
+                  .reference_type_id = NumericNode(34),
+                  .forward = true,
+                  .node_id = NumericNode(35)}));
+
+  response = WaitAwaitable(executor_, handler_.Handle(translate_request));
+  const auto* translate_response =
+      std::get_if<TranslateBrowsePathsResponse>(&response);
+  ASSERT_NE(translate_response, nullptr);
+  EXPECT_EQ(translate_response->status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(translate_response->results.size(), 1u);
+  ASSERT_EQ(translate_response->results[0].targets.size(), 1u);
+  EXPECT_EQ(translate_response->results[0].targets[0].target_id,
+            scada::ExpandedNodeId{NumericNode(45)});
+  EXPECT_EQ(translate_response->results[0].targets[0].remaining_path_index, 0u);
+}
 
 TEST_F(OpcUaWsServiceHandlerTest,
        HandleCall_ForwardsEachMethodWithSessionUserId) {

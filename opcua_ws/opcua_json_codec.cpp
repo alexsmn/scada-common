@@ -193,6 +193,12 @@ scada::StatusCode DecodeStatusCode(const value& json) {
 value EncodeVariant(const scada::Variant& variant);
 scada::Variant DecodeVariant(const value& json);
 
+template <class T, class Encoder>
+array EncodeList(const std::vector<T>& values, Encoder&& encoder);
+
+template <class T, class Decoder>
+std::vector<T> DecodeList(const value& json, Decoder&& decoder);
+
 value EncodeDataValue(const scada::DataValue& data_value) {
   object json{
       {"value", EncodeVariant(data_value.value)},
@@ -266,6 +272,32 @@ scada::NodeClass DecodeNodeClass(const value& json) {
       static_cast<unsigned>(RequireUInt64(json)));
 }
 
+value EncodeAttributeId(scada::AttributeId attribute_id) {
+  return static_cast<std::uint64_t>(static_cast<unsigned>(attribute_id));
+}
+
+scada::AttributeId DecodeAttributeId(const value& json) {
+  return static_cast<scada::AttributeId>(
+      static_cast<unsigned>(RequireUInt64(json)));
+}
+
+value EncodeWriteFlags(scada::WriteFlags flags) {
+  return static_cast<std::uint64_t>(flags.raw());
+}
+
+scada::WriteFlags DecodeWriteFlags(const value& json) {
+  return scada::WriteFlags{static_cast<unsigned>(RequireUInt64(json))};
+}
+
+value EncodeBrowseDirection(scada::BrowseDirection direction) {
+  return static_cast<std::uint64_t>(static_cast<unsigned>(direction));
+}
+
+scada::BrowseDirection DecodeBrowseDirection(const value& json) {
+  return static_cast<scada::BrowseDirection>(
+      static_cast<unsigned>(RequireUInt64(json)));
+}
+
 value EncodeNodeAttributes(const scada::NodeAttributes& attributes) {
   object json;
   if (!attributes.browse_name.empty())
@@ -291,6 +323,133 @@ scada::NodeAttributes DecodeNodeAttributes(const value& json) {
   if (const auto* field = FindField(obj, "value"))
     attributes.value = DecodeVariant(*field);
   return attributes;
+}
+
+value EncodeReadValueId(const scada::ReadValueId& value_id) {
+  return object{{"nodeId", EncodeNodeId(value_id.node_id)},
+                {"attributeId", EncodeAttributeId(value_id.attribute_id)}};
+}
+
+scada::ReadValueId DecodeReadValueId(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.node_id = DecodeNodeId(RequireField(obj, "nodeId")),
+          .attribute_id = DecodeAttributeId(RequireField(obj, "attributeId"))};
+}
+
+value EncodeWriteValue(const scada::WriteValue& write_value) {
+  return object{{"nodeId", EncodeNodeId(write_value.node_id)},
+                {"attributeId", EncodeAttributeId(write_value.attribute_id)},
+                {"value", EncodeVariant(write_value.value)},
+                {"flags", EncodeWriteFlags(write_value.flags)}};
+}
+
+scada::WriteValue DecodeWriteValue(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.node_id = DecodeNodeId(RequireField(obj, "nodeId")),
+          .attribute_id = DecodeAttributeId(RequireField(obj, "attributeId")),
+          .value = DecodeVariant(RequireField(obj, "value")),
+          .flags = DecodeWriteFlags(RequireField(obj, "flags"))};
+}
+
+value EncodeReferenceDescription(const scada::ReferenceDescription& reference) {
+  return object{{"referenceTypeId", EncodeNodeId(reference.reference_type_id)},
+                {"forward", reference.forward},
+                {"nodeId", EncodeNodeId(reference.node_id)}};
+}
+
+scada::ReferenceDescription DecodeReferenceDescription(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.reference_type_id =
+              DecodeNodeId(RequireField(obj, "referenceTypeId")),
+          .forward = RequireBool(RequireField(obj, "forward")),
+          .node_id = DecodeNodeId(RequireField(obj, "nodeId"))};
+}
+
+value EncodeBrowseDescription(const scada::BrowseDescription& description) {
+  return object{{"nodeId", EncodeNodeId(description.node_id)},
+                {"direction", EncodeBrowseDirection(description.direction)},
+                {"referenceTypeId",
+                 EncodeNodeId(description.reference_type_id)},
+                {"includeSubtypes", description.include_subtypes}};
+}
+
+scada::BrowseDescription DecodeBrowseDescription(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.node_id = DecodeNodeId(RequireField(obj, "nodeId")),
+          .direction = DecodeBrowseDirection(RequireField(obj, "direction")),
+          .reference_type_id =
+              DecodeNodeId(RequireField(obj, "referenceTypeId")),
+          .include_subtypes =
+              RequireBool(RequireField(obj, "includeSubtypes"))};
+}
+
+value EncodeBrowseResult(const scada::BrowseResult& result) {
+  return object{{"statusCode", EncodeStatusCode(result.status_code)},
+                {"references",
+                 EncodeList(result.references, EncodeReferenceDescription)}};
+}
+
+scada::BrowseResult DecodeBrowseResult(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status_code = DecodeStatusCode(RequireField(obj, "statusCode")),
+          .references = DecodeList<scada::ReferenceDescription>(
+              RequireField(obj, "references"), DecodeReferenceDescription)};
+}
+
+value EncodeRelativePathElement(
+    const scada::RelativePathElement& path_element) {
+  return object{{"referenceTypeId",
+                 EncodeNodeId(path_element.reference_type_id)},
+                {"inverse", path_element.inverse},
+                {"includeSubtypes", path_element.include_subtypes},
+                {"targetName", EncodeQualifiedName(path_element.target_name)}};
+}
+
+scada::RelativePathElement DecodeRelativePathElement(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.reference_type_id =
+              DecodeNodeId(RequireField(obj, "referenceTypeId")),
+          .inverse = RequireBool(RequireField(obj, "inverse")),
+          .include_subtypes =
+              RequireBool(RequireField(obj, "includeSubtypes")),
+          .target_name = DecodeQualifiedName(RequireField(obj, "targetName"))};
+}
+
+value EncodeBrowsePath(const scada::BrowsePath& path) {
+  return object{{"nodeId", EncodeNodeId(path.node_id)},
+                {"relativePath",
+                 EncodeList(path.relative_path, EncodeRelativePathElement)}};
+}
+
+scada::BrowsePath DecodeBrowsePath(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.node_id = DecodeNodeId(RequireField(obj, "nodeId")),
+          .relative_path = DecodeList<scada::RelativePathElement>(
+              RequireField(obj, "relativePath"), DecodeRelativePathElement)};
+}
+
+value EncodeBrowsePathTarget(const scada::BrowsePathTarget& target) {
+  return object{{"targetId", EncodeExpandedNodeId(target.target_id)},
+                {"remainingPathIndex", target.remaining_path_index}};
+}
+
+scada::BrowsePathTarget DecodeBrowsePathTarget(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.target_id = DecodeExpandedNodeId(RequireField(obj, "targetId")),
+          .remaining_path_index = static_cast<size_t>(
+              RequireUInt64(RequireField(obj, "remainingPathIndex")))};
+}
+
+value EncodeBrowsePathResult(const scada::BrowsePathResult& result) {
+  return object{{"statusCode", EncodeStatusCode(result.status_code)},
+                {"targets", EncodeList(result.targets, EncodeBrowsePathTarget)}};
+}
+
+scada::BrowsePathResult DecodeBrowsePathResult(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status_code = DecodeStatusCode(RequireField(obj, "statusCode")),
+          .targets = DecodeList<scada::BrowsePathTarget>(
+              RequireField(obj, "targets"), DecodeBrowsePathTarget)};
 }
 
 value EncodeEvent(const scada::Event& event) {
@@ -624,6 +783,47 @@ scada::Variant DecodeVariant(const value& json) {
   ThrowJsonError("Unsupported variant type");
 }
 
+value EncodeReadRequest(const ReadRequest& request) {
+  return object{
+      {"inputs", EncodeList(request.inputs, EncodeReadValueId)}};
+}
+
+ReadRequest DecodeReadRequest(const value& json) {
+  return {.inputs = DecodeList<scada::ReadValueId>(
+              RequireField(RequireObject(json), "inputs"), DecodeReadValueId)};
+}
+
+value EncodeWriteRequest(const WriteRequest& request) {
+  return object{
+      {"inputs", EncodeList(request.inputs, EncodeWriteValue)}};
+}
+
+WriteRequest DecodeWriteRequest(const value& json) {
+  return {.inputs = DecodeList<scada::WriteValue>(
+              RequireField(RequireObject(json), "inputs"), DecodeWriteValue)};
+}
+
+value EncodeBrowseRequest(const BrowseRequest& request) {
+  return object{
+      {"inputs", EncodeList(request.inputs, EncodeBrowseDescription)}};
+}
+
+BrowseRequest DecodeBrowseRequest(const value& json) {
+  return {.inputs = DecodeList<scada::BrowseDescription>(
+              RequireField(RequireObject(json), "inputs"),
+              DecodeBrowseDescription)};
+}
+
+value EncodeTranslateBrowsePathsRequest(
+    const TranslateBrowsePathsRequest& request) {
+  return object{{"inputs", EncodeList(request.inputs, EncodeBrowsePath)}};
+}
+
+TranslateBrowsePathsRequest DecodeTranslateBrowsePathsRequest(const value& json) {
+  return {.inputs = DecodeList<scada::BrowsePath>(
+              RequireField(RequireObject(json), "inputs"), DecodeBrowsePath)};
+}
+
 value EncodeHistoryReadRawRequest(const HistoryReadRawRequest& request) {
   return object{{"details",
                  object{{"nodeId", EncodeNodeId(request.details.node_id)},
@@ -812,6 +1012,47 @@ DeleteReferencesRequest DecodeDeleteReferencesRequest(const value& json) {
               })};
 }
 
+template <class Response>
+value EncodeDataValueResponse(const Response& response) {
+  return object{{"status", EncodeStatus(response.status)},
+                {"results", EncodeList(response.results, EncodeDataValue)}};
+}
+
+template <class Response>
+Response DecodeDataValueResponse(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status = DecodeStatus(RequireField(obj, "status")),
+          .results = DecodeList<scada::DataValue>(
+              RequireField(obj, "results"), DecodeDataValue)};
+}
+
+value EncodeBrowseResponse(const BrowseResponse& response) {
+  return object{{"status", EncodeStatus(response.status)},
+                {"results", EncodeList(response.results, EncodeBrowseResult)}};
+}
+
+BrowseResponse DecodeBrowseResponse(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status = DecodeStatus(RequireField(obj, "status")),
+          .results = DecodeList<scada::BrowseResult>(
+              RequireField(obj, "results"), DecodeBrowseResult)};
+}
+
+value EncodeTranslateBrowsePathsResponse(
+    const TranslateBrowsePathsResponse& response) {
+  return object{{"status", EncodeStatus(response.status)},
+                {"results",
+                 EncodeList(response.results, EncodeBrowsePathResult)}};
+}
+
+TranslateBrowsePathsResponse DecodeTranslateBrowsePathsResponse(
+    const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.status = DecodeStatus(RequireField(obj, "status")),
+          .results = DecodeList<scada::BrowsePathResult>(
+              RequireField(obj, "results"), DecodeBrowsePathResult)};
+}
+
 value EncodeHistoryReadRawResponse(const HistoryReadRawResponse& response) {
   return object{{"result",
                  object{{"status", EncodeStatus(response.result.status)},
@@ -901,6 +1142,22 @@ template <class T>
 constexpr std::string_view RequestServiceName();
 
 template <>
+constexpr std::string_view RequestServiceName<ReadRequest>() {
+  return "Read";
+}
+template <>
+constexpr std::string_view RequestServiceName<WriteRequest>() {
+  return "Write";
+}
+template <>
+constexpr std::string_view RequestServiceName<BrowseRequest>() {
+  return "Browse";
+}
+template <>
+constexpr std::string_view RequestServiceName<TranslateBrowsePathsRequest>() {
+  return "TranslateBrowsePathsToNodeIds";
+}
+template <>
 constexpr std::string_view RequestServiceName<CallRequest>() {
   return "Call";
 }
@@ -937,6 +1194,18 @@ boost::json::value EncodeJson(const OpcUaWsServiceRequest& request) {
         object json;
         json["service"] = RequestServiceName<std::decay_t<decltype(typed_request)>>();
         if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
+                                     ReadRequest>) {
+          json["body"] = EncodeReadRequest(typed_request);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
+                                            WriteRequest>) {
+          json["body"] = EncodeWriteRequest(typed_request);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
+                                            BrowseRequest>) {
+          json["body"] = EncodeBrowseRequest(typed_request);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
+                                            TranslateBrowsePathsRequest>) {
+          json["body"] = EncodeTranslateBrowsePathsRequest(typed_request);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
                                      CallRequest>) {
           json["body"] = EncodeCallRequest(typed_request);
         } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
@@ -967,7 +1236,19 @@ boost::json::value EncodeJson(const OpcUaWsServiceResponse& response) {
       [](const auto& typed_response) -> value {
         object json;
         using T = std::decay_t<decltype(typed_response)>;
-        if constexpr (std::is_same_v<T, CallResponse>) {
+        if constexpr (std::is_same_v<T, ReadResponse>) {
+          json["service"] = "Read";
+          json["body"] = EncodeDataValueResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, WriteResponse>) {
+          json["service"] = "Write";
+          json["body"] = EncodeMultiStatusResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, BrowseResponse>) {
+          json["service"] = "Browse";
+          json["body"] = EncodeBrowseResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, TranslateBrowsePathsResponse>) {
+          json["service"] = "TranslateBrowsePathsToNodeIds";
+          json["body"] = EncodeTranslateBrowsePathsResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, CallResponse>) {
           json["service"] = "Call";
           json["body"] = EncodeCallResponse(typed_response);
         } else if constexpr (std::is_same_v<T, HistoryReadRawResponse>) {
@@ -998,6 +1279,14 @@ OpcUaWsServiceRequest DecodeServiceRequest(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));
+  if (service == "Read")
+    return DecodeReadRequest(body);
+  if (service == "Write")
+    return DecodeWriteRequest(body);
+  if (service == "Browse")
+    return DecodeBrowseRequest(body);
+  if (service == "TranslateBrowsePathsToNodeIds")
+    return DecodeTranslateBrowsePathsRequest(body);
   if (service == "Call")
     return DecodeCallRequest(body);
   if (service == "HistoryReadRaw")
@@ -1019,6 +1308,14 @@ OpcUaWsServiceResponse DecodeServiceResponse(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));
+  if (service == "Read")
+    return DecodeDataValueResponse<ReadResponse>(body);
+  if (service == "Write")
+    return DecodeMultiStatusResponse<WriteResponse>(body);
+  if (service == "Browse")
+    return DecodeBrowseResponse(body);
+  if (service == "TranslateBrowsePathsToNodeIds")
+    return DecodeTranslateBrowsePathsResponse(body);
   if (service == "Call")
     return DecodeCallResponse(body);
   if (service == "HistoryReadRaw")
