@@ -44,6 +44,26 @@ boost::json::value EncodeDeleteSubscriptionsResponse(
     const OpcUaWsDeleteSubscriptionsResponse& response);
 OpcUaWsDeleteSubscriptionsResponse DecodeDeleteSubscriptionsResponse(
     const boost::json::value& json);
+boost::json::value EncodePublishRequest(const OpcUaWsPublishRequest& request);
+OpcUaWsPublishRequest DecodePublishRequest(const boost::json::value& json);
+boost::json::value EncodePublishResponse(const OpcUaWsPublishResponse& response);
+OpcUaWsPublishResponse DecodePublishResponse(const boost::json::value& json);
+boost::json::value EncodeRepublishRequest(
+    const OpcUaWsRepublishRequest& request);
+OpcUaWsRepublishRequest DecodeRepublishRequest(
+    const boost::json::value& json);
+boost::json::value EncodeRepublishResponse(
+    const OpcUaWsRepublishResponse& response);
+OpcUaWsRepublishResponse DecodeRepublishResponse(
+    const boost::json::value& json);
+boost::json::value EncodeTransferSubscriptionsRequest(
+    const OpcUaWsTransferSubscriptionsRequest& request);
+OpcUaWsTransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
+    const boost::json::value& json);
+boost::json::value EncodeTransferSubscriptionsResponse(
+    const OpcUaWsTransferSubscriptionsResponse& response);
+OpcUaWsTransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
+    const boost::json::value& json);
 boost::json::value EncodeCreateMonitoredItemsRequest(
     const OpcUaWsCreateMonitoredItemsRequest& request);
 OpcUaWsCreateMonitoredItemsRequest DecodeCreateMonitoredItemsRequest(
@@ -368,6 +388,15 @@ boost::json::value EncodeJson(const OpcUaWsRequestMessage& request) {
         } else if constexpr (std::is_same_v<T, OpcUaWsDeleteSubscriptionsRequest>) {
           json["service"] = "DeleteSubscriptions";
           json["body"] = detail::EncodeDeleteSubscriptionsRequest(typed_request);
+        } else if constexpr (std::is_same_v<T, OpcUaWsPublishRequest>) {
+          json["service"] = "Publish";
+          json["body"] = detail::EncodePublishRequest(typed_request);
+        } else if constexpr (std::is_same_v<T, OpcUaWsRepublishRequest>) {
+          json["service"] = "Republish";
+          json["body"] = detail::EncodeRepublishRequest(typed_request);
+        } else if constexpr (std::is_same_v<T, OpcUaWsTransferSubscriptionsRequest>) {
+          json["service"] = "TransferSubscriptions";
+          json["body"] = detail::EncodeTransferSubscriptionsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, OpcUaWsCreateMonitoredItemsRequest>) {
           json["service"] = "CreateMonitoredItems";
           json["body"] = detail::EncodeCreateMonitoredItemsRequest(typed_request);
@@ -418,6 +447,15 @@ boost::json::value EncodeJson(const OpcUaWsResponseMessage& response) {
         } else if constexpr (std::is_same_v<T, OpcUaWsDeleteSubscriptionsResponse>) {
           json["service"] = "DeleteSubscriptions";
           json["body"] = detail::EncodeDeleteSubscriptionsResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, OpcUaWsPublishResponse>) {
+          json["service"] = "Publish";
+          json["body"] = detail::EncodePublishResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, OpcUaWsRepublishResponse>) {
+          json["service"] = "Republish";
+          json["body"] = detail::EncodeRepublishResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, OpcUaWsTransferSubscriptionsResponse>) {
+          json["service"] = "TransferSubscriptions";
+          json["body"] = detail::EncodeTransferSubscriptionsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, OpcUaWsCreateMonitoredItemsResponse>) {
           json["service"] = "CreateMonitoredItems";
           json["body"] = detail::EncodeCreateMonitoredItemsResponse(typed_response);
@@ -467,6 +505,12 @@ OpcUaWsRequestMessage DecodeRequestMessage(const boost::json::value& json) {
     message.body = detail::DecodeSetPublishingModeRequest(body);
   } else if (service == "DeleteSubscriptions") {
     message.body = detail::DecodeDeleteSubscriptionsRequest(body);
+  } else if (service == "Publish") {
+    message.body = detail::DecodePublishRequest(body);
+  } else if (service == "Republish") {
+    message.body = detail::DecodeRepublishRequest(body);
+  } else if (service == "TransferSubscriptions") {
+    message.body = detail::DecodeTransferSubscriptionsRequest(body);
   } else if (service == "CreateMonitoredItems") {
     message.body = detail::DecodeCreateMonitoredItemsRequest(body);
   } else if (service == "ModifyMonitoredItems") {
@@ -508,6 +552,12 @@ OpcUaWsResponseMessage DecodeResponseMessage(const boost::json::value& json) {
     message.body = detail::DecodeSetPublishingModeResponse(body);
   } else if (service == "DeleteSubscriptions") {
     message.body = detail::DecodeDeleteSubscriptionsResponse(body);
+  } else if (service == "Publish") {
+    message.body = detail::DecodePublishResponse(body);
+  } else if (service == "Republish") {
+    message.body = detail::DecodeRepublishResponse(body);
+  } else if (service == "TransferSubscriptions") {
+    message.body = detail::DecodeTransferSubscriptionsResponse(body);
   } else if (service == "CreateMonitoredItems") {
     message.body = detail::DecodeCreateMonitoredItemsResponse(body);
   } else if (service == "ModifyMonitoredItems") {

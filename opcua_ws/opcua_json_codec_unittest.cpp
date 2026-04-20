@@ -695,6 +695,137 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
                                             scada::StatusCode::Bad_WrongSubscriptionId}));
 }
 
+TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryRequestMessages) {
+  OpcUaWsRequestMessage publish{
+      .request_handle = 71,
+      .body = OpcUaWsPublishRequest{
+          .subscription_acknowledgements =
+              {{.subscription_id = 17, .sequence_number = 3},
+               {.subscription_id = 18, .sequence_number = 7}}}};
+  OpcUaWsRequestMessage republish{
+      .request_handle = 72,
+      .body = OpcUaWsRepublishRequest{
+          .subscription_id = 17, .retransmit_sequence_number = 5}};
+  OpcUaWsRequestMessage transfer{
+      .request_handle = 73,
+      .body = OpcUaWsTransferSubscriptionsRequest{
+          .subscription_ids = {17, 18}, .send_initial_values = true}};
+  const std::vector<OpcUaWsSubscriptionAcknowledgement> expected_acks{
+      {.subscription_id = 17, .sequence_number = 3},
+      {.subscription_id = 18, .sequence_number = 7}};
+  const std::vector<OpcUaWsSubscriptionId> expected_transfer_ids{17u, 18u};
+
+  const auto publish_decoded = DecodeRequestMessage(EncodeJson(publish));
+  EXPECT_EQ(publish_decoded.request_handle, 71u);
+  EXPECT_EQ(std::get<OpcUaWsPublishRequest>(publish_decoded.body)
+                .subscription_acknowledgements,
+            expected_acks);
+
+  const auto republish_decoded = DecodeRequestMessage(EncodeJson(republish));
+  EXPECT_EQ(std::get<OpcUaWsRepublishRequest>(republish_decoded.body)
+                .retransmit_sequence_number,
+            5u);
+
+  const auto transfer_decoded = DecodeRequestMessage(EncodeJson(transfer));
+  const auto& transfer_body =
+      std::get<OpcUaWsTransferSubscriptionsRequest>(transfer_decoded.body);
+  EXPECT_EQ(transfer_body.subscription_ids, expected_transfer_ids);
+  EXPECT_TRUE(transfer_body.send_initial_values);
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
+  const auto publish_time = ParseTime("2026-04-19 00:00:05");
+  scada::DataValue republish_value;
+  republish_value.value = scada::Variant{true};
+  OpcUaWsNotificationMessage publish_message{
+      .sequence_number = 3,
+      .publish_time = publish_time,
+      .notification_data =
+          {OpcUaWsDataChangeNotification{
+               .monitored_items =
+                   {{.client_handle = 1,
+                     .value = scada::DataValue{
+                         scada::Variant{42.5},
+                         scada::Qualifier{scada::Qualifier::MANUAL},
+                         ParseTime("2026-04-19 00:00:05"),
+                         ParseTime("2026-04-19 00:00:06")}}}},
+           OpcUaWsEventNotificationList{
+               .events = {{.client_handle = 2,
+                           .event_fields =
+                               {scada::Variant{std::string{"AlarmRaised"}},
+                                scada::Variant{scada::UInt32{500}}}}}},
+           OpcUaWsStatusChangeNotification{
+               .status = scada::StatusCode::Bad_Timeout}}};
+  OpcUaWsResponseMessage publish{
+      .request_handle = 81,
+      .body = OpcUaWsPublishResponse{
+          .status = scada::StatusCode::Good,
+          .subscription_id = 17,
+          .available_sequence_numbers = {3, 4},
+          .more_notifications = true,
+          .notification_message = publish_message,
+          .results = {scada::StatusCode::Good}}};
+  OpcUaWsResponseMessage republish{
+      .request_handle = 82,
+      .body = OpcUaWsRepublishResponse{
+          .status = scada::StatusCode::Good,
+          .notification_message =
+              {.sequence_number = 5,
+               .publish_time = ParseTime("2026-04-19 00:00:07"),
+               .notification_data = {OpcUaWsDataChangeNotification{
+                   .monitored_items = {{.client_handle = 9,
+                                        .value = republish_value}}}}}}};
+  OpcUaWsResponseMessage transfer{
+      .request_handle = 83,
+      .body = OpcUaWsTransferSubscriptionsResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::StatusCode::Good,
+                      scada::StatusCode::Bad_WrongSubscriptionId}}};
+
+  const auto decoded_publish = DecodeResponseMessage(EncodeJson(publish));
+  EXPECT_EQ(decoded_publish.request_handle, 81u);
+  const auto& publish_body =
+      std::get<OpcUaWsPublishResponse>(decoded_publish.body);
+  EXPECT_EQ(publish_body.subscription_id, 17u);
+  EXPECT_EQ(publish_body.available_sequence_numbers,
+            (std::vector<scada::UInt32>{3u, 4u}));
+  EXPECT_TRUE(publish_body.more_notifications);
+  EXPECT_EQ(publish_body.notification_message.sequence_number, 3u);
+  EXPECT_EQ(publish_body.notification_message.publish_time, publish_time);
+  ASSERT_EQ(publish_body.notification_message.notification_data.size(), 3u);
+  const auto* data_change = std::get_if<OpcUaWsDataChangeNotification>(
+      &publish_body.notification_message.notification_data[0]);
+  ASSERT_NE(data_change, nullptr);
+  ASSERT_EQ(data_change->monitored_items.size(), 1u);
+  EXPECT_EQ(data_change->monitored_items[0].client_handle, 1u);
+  EXPECT_EQ(data_change->monitored_items[0].value.value.get<double>(), 42.5);
+  const auto* events = std::get_if<OpcUaWsEventNotificationList>(
+      &publish_body.notification_message.notification_data[1]);
+  ASSERT_NE(events, nullptr);
+  ASSERT_EQ(events->events.size(), 1u);
+  EXPECT_EQ(events->events[0].client_handle, 2u);
+  EXPECT_EQ(events->events[0].event_fields.size(), 2u);
+  const auto* status_change = std::get_if<OpcUaWsStatusChangeNotification>(
+      &publish_body.notification_message.notification_data[2]);
+  ASSERT_NE(status_change, nullptr);
+  EXPECT_EQ(status_change->status, scada::StatusCode::Bad_Timeout);
+  EXPECT_EQ(publish_body.results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
+
+  const auto decoded_republish = DecodeResponseMessage(EncodeJson(republish));
+  EXPECT_EQ(std::get<OpcUaWsRepublishResponse>(decoded_republish.body)
+                .notification_message.sequence_number,
+            5u);
+
+  const auto decoded_transfer = DecodeResponseMessage(EncodeJson(transfer));
+  EXPECT_EQ(std::get<OpcUaWsTransferSubscriptionsResponse>(
+                decoded_transfer.body)
+                .results,
+            (std::vector<scada::StatusCode>{
+                scada::StatusCode::Good,
+                scada::StatusCode::Bad_WrongSubscriptionId}));
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {
   CallResponse call{.results = {{.status = scada::StatusCode::Good},
                                 {.status = scada::StatusCode::Bad_WrongCallArguments}}};

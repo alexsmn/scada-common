@@ -199,6 +199,92 @@ struct OpcUaWsSetMonitoringModeResponse {
   std::vector<scada::StatusCode> results;
 };
 
+struct OpcUaWsSubscriptionAcknowledgement {
+  bool operator==(const OpcUaWsSubscriptionAcknowledgement&) const = default;
+
+  OpcUaWsSubscriptionId subscription_id = 0;
+  scada::UInt32 sequence_number = 0;
+};
+
+struct OpcUaWsMonitoredItemNotification {
+  bool operator==(const OpcUaWsMonitoredItemNotification&) const = default;
+
+  scada::UInt32 client_handle = 0;
+  scada::DataValue value;
+};
+
+struct OpcUaWsEventFieldList {
+  bool operator==(const OpcUaWsEventFieldList&) const = default;
+
+  scada::UInt32 client_handle = 0;
+  std::vector<scada::Variant> event_fields;
+};
+
+struct OpcUaWsDataChangeNotification {
+  bool operator==(const OpcUaWsDataChangeNotification&) const = default;
+
+  std::vector<OpcUaWsMonitoredItemNotification> monitored_items;
+};
+
+struct OpcUaWsEventNotificationList {
+  bool operator==(const OpcUaWsEventNotificationList&) const = default;
+
+  std::vector<OpcUaWsEventFieldList> events;
+};
+
+struct OpcUaWsStatusChangeNotification {
+  bool operator==(const OpcUaWsStatusChangeNotification&) const = default;
+
+  scada::StatusCode status = scada::StatusCode::Good;
+};
+
+using OpcUaWsNotificationData =
+    std::variant<OpcUaWsDataChangeNotification,
+                 OpcUaWsEventNotificationList,
+                 OpcUaWsStatusChangeNotification>;
+
+struct OpcUaWsNotificationMessage {
+  bool operator==(const OpcUaWsNotificationMessage&) const = default;
+
+  scada::UInt32 sequence_number = 0;
+  base::Time publish_time;
+  std::vector<OpcUaWsNotificationData> notification_data;
+};
+
+struct OpcUaWsPublishRequest {
+  std::vector<OpcUaWsSubscriptionAcknowledgement>
+      subscription_acknowledgements;
+};
+
+struct OpcUaWsPublishResponse {
+  scada::Status status{scada::StatusCode::Good};
+  OpcUaWsSubscriptionId subscription_id = 0;
+  std::vector<scada::UInt32> available_sequence_numbers;
+  bool more_notifications = false;
+  OpcUaWsNotificationMessage notification_message;
+  std::vector<scada::StatusCode> results;
+};
+
+struct OpcUaWsRepublishRequest {
+  OpcUaWsSubscriptionId subscription_id = 0;
+  scada::UInt32 retransmit_sequence_number = 0;
+};
+
+struct OpcUaWsRepublishResponse {
+  scada::Status status{scada::StatusCode::Good};
+  OpcUaWsNotificationMessage notification_message;
+};
+
+struct OpcUaWsTransferSubscriptionsRequest {
+  std::vector<OpcUaWsSubscriptionId> subscription_ids;
+  bool send_initial_values = false;
+};
+
+struct OpcUaWsTransferSubscriptionsResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::StatusCode> results;
+};
+
 using OpcUaWsRequestBody =
     std::variant<OpcUaWsCreateSessionRequest,
                  OpcUaWsActivateSessionRequest,
@@ -207,6 +293,9 @@ using OpcUaWsRequestBody =
                  OpcUaWsModifySubscriptionRequest,
                  OpcUaWsSetPublishingModeRequest,
                  OpcUaWsDeleteSubscriptionsRequest,
+                 OpcUaWsPublishRequest,
+                 OpcUaWsRepublishRequest,
+                 OpcUaWsTransferSubscriptionsRequest,
                  OpcUaWsCreateMonitoredItemsRequest,
                  OpcUaWsModifyMonitoredItemsRequest,
                  OpcUaWsDeleteMonitoredItemsRequest,
@@ -231,6 +320,9 @@ using OpcUaWsResponseBody =
                  OpcUaWsModifySubscriptionResponse,
                  OpcUaWsSetPublishingModeResponse,
                  OpcUaWsDeleteSubscriptionsResponse,
+                 OpcUaWsPublishResponse,
+                 OpcUaWsRepublishResponse,
+                 OpcUaWsTransferSubscriptionsResponse,
                  OpcUaWsCreateMonitoredItemsResponse,
                  OpcUaWsModifyMonitoredItemsResponse,
                  OpcUaWsDeleteMonitoredItemsResponse,

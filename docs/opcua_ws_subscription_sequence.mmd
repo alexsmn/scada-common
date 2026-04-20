@@ -22,7 +22,7 @@ sequenceDiagram
     participant MI as MonitoredItemService
     participant AS as Address space
 
-    Note over B,S: Implemented in common today: Phase 1 lifecycle message codec<br/>for Create/Modify/Delete subscription + monitored-item requests/responses
+    Note over B,S: Implemented in common today: full Phase 1 message codec<br/>for lifecycle, Publish, Republish, and TransferSubscriptions envelopes
 
     B->>S: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
     S->>SUB: create subscription (id=N)
@@ -41,10 +41,10 @@ sequenceDiagram
     B->>S: ModifyMonitoredItems / DeleteMonitoredItems / DeleteSubscriptions
     S-->>B: matching response envelopes
 
-    Note over B,SUB: Pending runtime work: websocket session loop, Publish/Republish,<br/>TransferSubscriptions, keep-alive timers, and queued notification replay
+    Note over B,SUB: Pending runtime work: websocket session loop, PublishRequest slot tracking,<br/>keep-alive timers, queued notification replay, and reconnect transfer state
 
     loop Publish pump
-        B->>S: PublishRequest (acks for prior seq)
+        B->>S: PublishRequest (requestHandle, acks for prior seq)
         alt data-change available
             SUB-->>S: NotificationMessage (changes)
             S-->>B: PublishResponse (seq, notifications)
@@ -55,7 +55,7 @@ sequenceDiagram
 
     Note over B,S: Connection drops, browser reconnects
 
-    B->>S: TransferSubscriptionsRequest(subId=N)
+    B->>S: TransferSubscriptionsRequest(requestHandle, subId=N)
     alt session still alive
         S-->>B: Good, subscription transferred
     else session expired
@@ -63,5 +63,5 @@ sequenceDiagram
         B->>S: CreateSubscription + CreateMonitoredItems (resume)
     end
 
-    B->>S: RepublishRequest(subId=N, seq=last_acked+1)
+    B->>S: RepublishRequest(requestHandle, subId=N, seq=last_acked+1)
     S-->>B: PublishResponse (replayed)
