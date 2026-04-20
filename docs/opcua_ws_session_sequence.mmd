@@ -23,12 +23,12 @@ sequenceDiagram
     participant M as OpcUaWsSessionManager
     participant SEC as SecurityService
 
-    Note over B,WS: TLS handshake, then WebSocket upgrade
+    Note over B,WS: Final Beast WSS and TLS wrapper still pending in common<br/>Accepted-transport request loop below is implemented
     B->>WS: GET /ua<br/>Upgrade: websocket<br/>Sec-WebSocket-Protocol: opcua+uajson<br/>Origin: https://scada.local
     WS->>WS: validate subprotocol + allowed origin
     WS-->>B: 101 Switching Protocols
 
-    WS->>S: create session state
+    WS->>S: accepted transport session
     B->>S: requestHandle=1<br/>CreateSessionRequest (JSON)
     S->>RT: decoded request envelope
     RT->>M: CreateSession(requestedTimeout)

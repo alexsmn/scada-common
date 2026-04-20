@@ -30,7 +30,7 @@ flowchart LR
     subgraph Endpoints["Server OPC UA endpoints"]
         direction TB
         TCP["<b>OpcUaServer</b><br/><i>common/opcua/</i><br/>opc.tcp://:4840<br/>UA Binary"]
-        WS["<b>OpcUaWsServer</b><br/><i>common/opcua_ws/</i><br/>opc.wss://:4843<br/>UA-JSON (opcua+uajson)"]
+        WS["<b>OpcUaWsServer</b><br/><i>common/opcua_ws/</i><br/>message-oriented UA-JSON loop<br/>final WSS wrapper pending"]
     end
 
     subgraph WsInternals["opcua_ws internals"]

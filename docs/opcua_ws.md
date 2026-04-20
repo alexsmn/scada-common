@@ -24,9 +24,12 @@
 > instances. A transport-independent `OpcUaWsRuntime` layer now routes decoded
 > request envelopes through `OpcUaWsSessionManager`, `OpcUaWsSession`, and the
 > coroutine service handler, including detach/resume and subscription transfer
-> ownership tracking across live sessions. The remaining common-side gaps are
-> the actual websocket transport glue, TLS/origin enforcement, and
-> `BrowseNext`.
+> ownership tracking across live sessions. A message-oriented
+> `OpcUaWsServer` loop is now also present for accepted transports: it reads
+> request frames, decodes UA-JSON envelopes, dispatches them through
+> `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. The
+> remaining common-side gaps are the final Beast WSS/TLS/origin wrapper around
+> that server loop and `BrowseNext`.
 
 ## Related documents
 
@@ -103,7 +106,7 @@ New modules, none of which touch the existing `common/opcua/` code:
 
 | Path | Role |
 |---|---|
-| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Beast WSS acceptor; per-connection `OpcUaWsSession` spawn |
+| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, dispatches through `OpcUaWsRuntime`, writes responses, detaches sessions on disconnect |
 | `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, and transfer handoff between live sessions |
 | `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Transport-independent request router: decoded envelope dispatch, session attach/resume, global subscription ownership, and service-handler/session-manager wiring |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
@@ -264,6 +267,12 @@ Current implementation note:
   0/2/3 service-dispatch set. It also tracks subscription ownership globally
   so `TransferSubscriptions` can move subscriptions between live sessions
   without direct session references at the call site.
+- The message-oriented accepted-transport server loop is now in place under
+  `common/opcua_ws/opcua_ws_server.{h,cpp}` with unit tests. It opens an
+  accepted transport, reads framed JSON messages, decodes
+  `OpcUaWsRequestMessage`, dispatches through `OpcUaWsRuntime`, encodes
+  `OpcUaWsResponseMessage`, writes the reply, emits `ServiceFault` on malformed
+  JSON, and detaches session state on disconnect.
 - The coroutine service-dispatch layer for Phase 2 and Phase 3 is in place
   under `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` with unit tests.
 - The UA-JSON codec for that same implemented set is in place under
@@ -275,10 +284,11 @@ Current implementation note:
   can round-trip structured values without a typed registry yet.
 - `BrowseNext` is still pending because it needs a matching coroutine-facing
   view-service API in core.
-- The remaining work is now the actual websocket transport boundary:
-  Beast WSS acceptor/session classes, TLS and `Origin` enforcement, frame I/O,
-  ping/pong lifecycle, and plumbing decoded text frames into
-  `OpcUaWsRuntime`.
+- The remaining work is now the actual websocket handshake/security boundary:
+  Beast WSS acceptor/session classes, TLS and `Origin` enforcement,
+  `Sec-WebSocket-Protocol` validation, ping/pong lifecycle, and adapting that
+  accepted socket layer onto the now-implemented message-oriented
+  `OpcUaWsServer`.
 - Socket/session management at the transport layer and the actual
   `server/opcua_ws/` module remain pending.
 
@@ -365,6 +375,15 @@ Covers the transport-independent decoded-request runtime for:
 - detach/resume preserving live subscription state
 - `TransferSubscriptions` via global subscription ownership
 - `CloseSession` removing live runtime state
+
+`common/opcua_ws/opcua_ws_server_unittest.cpp`
+
+Covers the message-oriented server loop for:
+
+- request decode / runtime dispatch / response encode
+- malformed JSON mapping to `ServiceFault`
+- disconnect-driven session detach and later resume
+- acceptor open/close lifecycle
 
 `common/opcua_ws/opcua_ws_e2e_test.cpp`
 
