@@ -17,51 +17,71 @@
 sequenceDiagram
     autonumber
     participant B as Browser (UaClient)
+    participant RT as OpcUaWsRuntime
     participant S as OpcUaWsSession
     participant SUB as OpcUaWsSubscription
     participant MI as MonitoredItemService
     participant AS as Address space
 
-    Note over B,SUB: Implemented in common today: full Phase 1 message codec,<br/>decoded-request routing in OpcUaWsRuntime,<br/>live-session orchestration in OpcUaWsSession,<br/>and per-subscription runtime for queueing, keep-alives, acknowledgements, and replay
+    Note over B,SUB: Implemented in common today: full Phase 1 message codec,<br/>decoded-request routing in OpcUaWsRuntime,<br/>live-session orchestration in OpcUaWsSession,<br/>and per-subscription runtime for queueing, publish-interval gating,<br/>keep-alives, acknowledgements, and replay
 
-    B->>S: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
+    B->>RT: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
+    RT->>S: decoded request envelope
     S->>SUB: create subscription (id=N)
-    S-->>B: CreateSubscriptionResponse (id=N)
+    RT-->>B: CreateSubscriptionResponse (id=N)
 
-    B->>S: CreateMonitoredItemsRequest<br/>(requestHandle, subId=N, NodeId[], samplingInterval)
+    B->>RT: CreateMonitoredItemsRequest<br/>(requestHandle, subId=N, NodeId[], samplingInterval)
+    RT->>S: decoded request envelope
     S->>MI: CreateMonitoredItems
     MI->>AS: attach adapter per item
     AS-->>MI: initial DataValue[]
     MI-->>SUB: queue initial values
     MI-->>S: monitoredItemId[]
-    S-->>B: CreateMonitoredItemsResponse
+    RT-->>B: CreateMonitoredItemsResponse
 
-    B->>S: ModifySubscription / SetPublishingMode / SetMonitoringMode
-    S-->>B: matching response envelopes
-    B->>S: ModifyMonitoredItems / DeleteMonitoredItems / DeleteSubscriptions
-    S-->>B: matching response envelopes
+    B->>RT: ModifySubscription / SetPublishingMode / SetMonitoringMode
+    RT->>S: decoded request envelope
+    RT-->>B: matching response envelopes
+    B->>RT: ModifyMonitoredItems / DeleteMonitoredItems / DeleteSubscriptions
+    RT->>S: decoded request envelope
+    RT-->>B: matching response envelopes
 
-    Note over B,S: Pending above this layer: websocket session loop, TLS/origin checks,<br/>and text-frame I/O around the already-implemented common runtime
+    Note over B,RT: Beast transport / TLS / origin checks wrap this common runtime.<br/>The runtime now parks PublishRequest handlers until a deadline fires.
 
     loop Publish pump
-        B->>S: PublishRequest (requestHandle, acks for prior seq)
-        alt data-change available
+        B->>RT: PublishRequest (requestHandle, acks for prior seq)
+        RT->>S: apply acknowledgements + poll publish state
+        alt notification already due
+            S->>SUB: drain next ready notification
             SUB-->>S: NotificationMessage (changes)
-            S-->>B: PublishResponse (seq, notifications)
-        else no data, keep-alive tick
-            S-->>B: PublishResponse (keep-alive, no notifications)
+            RT-->>B: PublishResponse (seq, notifications)
+        else nothing due yet
+            S-->>RT: next publish deadline
+            RT->>RT: park request on executor until deadline
+            alt publishing interval elapsed with queued data
+                RT->>S: poll publish state again
+                S->>SUB: drain queued notification
+                SUB-->>S: NotificationMessage (changes)
+                RT-->>B: PublishResponse (seq, notifications)
+            else keep-alive due after MaxKeepAliveCount cycles
+                RT->>S: poll publish state again
+                S->>SUB: emit empty keep-alive
+                RT-->>B: PublishResponse (keep-alive, no notifications)
+            end
         end
     end
 
-    Note over B,S: Connection drops, browser reconnects
+    Note over B,RT: Connection drops, browser reconnects
 
-    B->>S: TransferSubscriptionsRequest(requestHandle, subId=N)
+    B->>RT: TransferSubscriptionsRequest(requestHandle, subId=N)
+    RT->>S: decoded request envelope
     alt session still alive
-        S-->>B: Good, subscription transferred
+        RT-->>B: Good, subscription transferred
     else session expired
-        S-->>B: BadSessionIdInvalid
-        B->>S: CreateSubscription + CreateMonitoredItems (resume)
+        RT-->>B: BadSessionIdInvalid
+        B->>RT: CreateSubscription + CreateMonitoredItems (resume)
     end
 
-    B->>S: RepublishRequest(requestHandle, subId=N, seq=last_acked+1)
-    S-->>B: PublishResponse (replayed)
+    B->>RT: RepublishRequest(requestHandle, subId=N, seq=last_acked+1)
+    RT->>S: decoded request envelope
+    RT-->>B: PublishResponse (replayed)

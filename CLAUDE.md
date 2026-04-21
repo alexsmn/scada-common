@@ -94,6 +94,9 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
 
 - When adding, removing, or renaming presets in `CMakeUserPresets.json`, apply the same change to `CMakeUserPresets.json.template` (replacing local paths with placeholders) so the template stays in sync.
 - When adding a new `find_package()` dependency, add its Find module directory to `CMAKE_MODULE_PATH` in both `CMakeUserPresets.json` and `CMakeUserPresets.json.template`.
+- Use OPC UA standard wire encoding for OPC UA primitives. Refer to the online
+  OPC UA specification/documentation if needed before introducing or changing
+  wire-format behavior.
 
 ## Documentation
 
