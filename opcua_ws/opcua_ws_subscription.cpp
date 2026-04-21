@@ -42,10 +42,12 @@ std::optional<std::string> ExtractFieldName(
 OpcUaWsSubscription::OpcUaWsSubscription(
     OpcUaWsSubscriptionId subscription_id,
     OpcUaWsSubscriptionParameters parameters,
-    scada::MonitoredItemService& monitored_item_service)
+    scada::MonitoredItemService& monitored_item_service,
+    base::Time publish_cycle_start_time)
     : subscription_id_{subscription_id},
       parameters_{std::move(parameters)},
-      monitored_item_service_{monitored_item_service} {}
+      monitored_item_service_{monitored_item_service},
+      last_publish_time_{publish_cycle_start_time} {}
 
 OpcUaWsModifySubscriptionResponse OpcUaWsSubscription::Modify(
     const OpcUaWsModifySubscriptionRequest& request) {
@@ -66,12 +68,27 @@ void OpcUaWsSubscription::SetPublishingEnabled(bool publishing_enabled) {
 }
 
 bool OpcUaWsSubscription::IsPublishReady(base::Time now) const {
-  if (!parameters_.publishing_enabled || !last_publish_time_.has_value())
+  if (!last_publish_time_.has_value())
     return false;
+
+  const auto elapsed = now - *last_publish_time_;
+  if (initial_message_sent_ && parameters_.publishing_enabled &&
+      !pending_notifications_.empty()) {
+    return elapsed >= PublishingInterval();
+  }
+
+  if (!initial_message_sent_) {
+    return elapsed >= PublishingInterval();
+  }
+
+  if (!parameters_.publishing_enabled || pending_notifications_.empty()) {
+    return elapsed >= KeepAliveInterval();
+  }
+
   if (!pending_notifications_.empty()) {
     return now - *last_publish_time_ >= PublishingInterval();
   }
-  return IsKeepAliveDue(now);
+  return elapsed >= KeepAliveInterval();
 }
 
 void OpcUaWsSubscription::PrimePublishCycle(base::Time now) {
@@ -81,11 +98,17 @@ void OpcUaWsSubscription::PrimePublishCycle(base::Time now) {
 }
 
 std::optional<base::Time> OpcUaWsSubscription::NextPublishDeadline() const {
-  if (!parameters_.publishing_enabled || !last_publish_time_.has_value())
+  if (!last_publish_time_.has_value())
     return std::nullopt;
+
+  if (!initial_message_sent_) {
+    return *last_publish_time_ + PublishingInterval();
+  }
+
   return *last_publish_time_ +
-         (pending_notifications_.empty() ? KeepAliveInterval()
-                                         : PublishingInterval());
+         ((parameters_.publishing_enabled && !pending_notifications_.empty())
+              ? PublishingInterval()
+              : KeepAliveInterval());
 }
 
 OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
@@ -222,21 +245,25 @@ std::vector<scada::StatusCode> OpcUaWsSubscription::Acknowledge(
 
 std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
     base::Time now) {
-  if (!parameters_.publishing_enabled)
-    return std::nullopt;
-
   PrimePublishCycle(now);
-  if (pending_notifications_.empty()) {
-    if (!IsKeepAliveDue(now))
+  const bool has_publishable_notifications =
+      parameters_.publishing_enabled && !pending_notifications_.empty();
+  if (!has_publishable_notifications) {
+    if (!IsPublishReady(now))
       return std::nullopt;
 
     last_publish_time_ = now;
+    initial_message_sent_ = true;
     return OpcUaWsPublishResponse{
         .status = scada::StatusCode::Good,
         .subscription_id = subscription_id_,
         .available_sequence_numbers = AvailableSequenceNumbers(),
         .more_notifications = false,
-        .notification_message = {.sequence_number = 0, .publish_time = now},
+        // OPC UA Part 4 sends the first keep-alive at the end of the first
+        // publishing cycle and requires all keep-alives to carry the next
+        // NotificationMessage sequence number.
+        .notification_message = {.sequence_number = next_sequence_number_,
+                                 .publish_time = now},
         .results = {}};
   }
 
@@ -252,6 +279,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
       .notification_data = {std::move(queued.notification)}};
   retransmit_queue_.push_back(notification_message);
   last_publish_time_ = now;
+  initial_message_sent_ = true;
 
   return OpcUaWsPublishResponse{
       .status = scada::StatusCode::Good,

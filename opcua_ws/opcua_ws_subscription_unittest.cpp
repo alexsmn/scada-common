@@ -43,6 +43,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 
 TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 10:00:00");
   OpcUaWsSubscription subscription{
       17,
       {.publishing_interval_ms = 100,
@@ -51,7 +52,8 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
   const auto create = subscription.CreateMonitoredItems(
       {.subscription_id = 17,
@@ -68,10 +70,13 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
 
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
-      scada::Variant{12.5}, {}, ParseTime("2026-04-20 10:00:00"),
+      scada::Variant{12.5}, {}, start,
       ParseTime("2026-04-20 10:00:01")});
+  EXPECT_FALSE(subscription.TryPublish(
+                   start + base::TimeDelta::FromMilliseconds(99))
+                   .has_value());
   const auto first_publish =
-      subscription.TryPublish(ParseTime("2026-04-20 10:00:02"));
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
   ASSERT_TRUE(first_publish.has_value());
   EXPECT_EQ(first_publish->subscription_id, 17u);
   EXPECT_EQ(first_publish->available_sequence_numbers,
@@ -86,12 +91,13 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   EXPECT_EQ(first_data->monitored_items[0].value.value.get<double>(), 12.5);
 
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
-      scada::Variant{13.5}, {}, ParseTime("2026-04-20 10:00:03"),
+      scada::Variant{13.5}, {},
+      start + base::TimeDelta::FromMilliseconds(300),
       ParseTime("2026-04-20 10:00:04")});
   EXPECT_EQ(subscription.Acknowledge(std::vector<scada::UInt32>{1}),
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
   const auto second_publish =
-      subscription.TryPublish(ParseTime("2026-04-20 10:00:05"));
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(300));
   ASSERT_TRUE(second_publish.has_value());
   EXPECT_TRUE(second_publish->results.empty());
   EXPECT_EQ(second_publish->available_sequence_numbers,
@@ -106,6 +112,7 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
 
 TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
   TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 11:00:00");
   OpcUaWsSubscription subscription{
       19,
       {.publishing_interval_ms = 100,
@@ -114,14 +121,14 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
-  ASSERT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:00")).has_value());
+  ASSERT_FALSE(subscription.TryPublish(start).has_value());
   const auto keep_alive = subscription.TryPublish(
-      ParseTime("2026-04-20 11:00:00") +
-      base::TimeDelta::FromMilliseconds(400));
+      start + base::TimeDelta::FromMilliseconds(100));
   ASSERT_TRUE(keep_alive.has_value());
-  EXPECT_EQ(keep_alive->notification_message.sequence_number, 0u);
+  EXPECT_EQ(keep_alive->notification_message.sequence_number, 1u);
   EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
 
   const auto create = subscription.CreateMonitoredItems(
@@ -136,14 +143,19 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
   ASSERT_EQ(create.results.size(), 1u);
   subscription.SetPublishingEnabled(false);
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
-      scada::Variant{77.0}, {}, ParseTime("2026-04-20 11:00:01"),
-      ParseTime("2026-04-20 11:00:01")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 11:00:01.050"))
-                   .has_value());
+      scada::Variant{77.0}, {}, start + base::TimeDelta::FromSeconds(1),
+      start + base::TimeDelta::FromSeconds(1)});
+  const auto disabled_keep_alive =
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(1050));
+  ASSERT_TRUE(disabled_keep_alive.has_value());
+  EXPECT_EQ(disabled_keep_alive->notification_message.sequence_number, 1u);
+  EXPECT_TRUE(disabled_keep_alive->notification_message.notification_data.empty());
 
   subscription.SetPublishingEnabled(true);
+  EXPECT_FALSE(subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(1060))
+                   .has_value());
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 11:00:01.060"));
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(1150));
   ASSERT_TRUE(publish.has_value());
   const auto* data =
       std::get_if<OpcUaWsDataChangeNotification>(
@@ -155,6 +167,7 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
 TEST(OpcUaWsSubscriptionTest,
      WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
   TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 11:30:00");
   OpcUaWsSubscription subscription{
       37,
       {.publishing_interval_ms = 100,
@@ -163,7 +176,8 @@ TEST(OpcUaWsSubscriptionTest,
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
   const auto create = subscription.CreateMonitoredItems(
       {.subscription_id = 37,
@@ -178,7 +192,6 @@ TEST(OpcUaWsSubscriptionTest,
   ASSERT_EQ(create.results.size(), 1u);
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
 
-  const auto start = ParseTime("2026-04-20 11:30:00");
   EXPECT_FALSE(subscription.TryPublish(start).has_value());
 
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
@@ -200,13 +213,14 @@ TEST(OpcUaWsSubscriptionTest,
   const auto keep_alive =
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(400));
   ASSERT_TRUE(keep_alive.has_value());
-  EXPECT_EQ(keep_alive->notification_message.sequence_number, 0u);
+  EXPECT_EQ(keep_alive->notification_message.sequence_number, 2u);
   EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
 }
 
 TEST(OpcUaWsSubscriptionTest,
      ProjectsDefaultEventFieldsAndDropsOldQueuedEventsByQueueSize) {
   TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 12:00:00");
   OpcUaWsSubscription subscription{
       23,
       {.publishing_interval_ms = 100,
@@ -215,7 +229,8 @@ TEST(OpcUaWsSubscriptionTest,
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
   const boost::json::value event_filter = boost::json::parse(R"({
     "Type":"EventFilter",
@@ -243,7 +258,7 @@ TEST(OpcUaWsSubscriptionTest,
   first_event.event_id = 11;
   first_event.event_type_id = NumericNode(2041, 0);
   first_event.node_id = NumericNode(3001);
-  first_event.time = ParseTime("2026-04-20 12:00:00");
+  first_event.time = start;
   first_event.receive_time = ParseTime("2026-04-20 12:00:01");
   first_event.message = u"first";
   first_event.severity = 400;
@@ -257,7 +272,7 @@ TEST(OpcUaWsSubscriptionTest,
   monitored_item_service.items[0]->NotifyEvent(second_event);
 
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 12:00:02"));
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
   ASSERT_TRUE(publish.has_value());
   const auto* events =
       std::get_if<OpcUaWsEventNotificationList>(
@@ -275,6 +290,7 @@ TEST(OpcUaWsSubscriptionTest,
 TEST(OpcUaWsSubscriptionTest,
      RebindsModifiedItemsAndIgnoresLateCallbacksFromPreviousBinding) {
   TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 13:00:00");
   OpcUaWsSubscription subscription{
       29,
       {.publishing_interval_ms = 100,
@@ -283,7 +299,8 @@ TEST(OpcUaWsSubscriptionTest,
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
   const auto create = subscription.CreateMonitoredItems(
       {.subscription_id = 29,
@@ -312,16 +329,15 @@ TEST(OpcUaWsSubscriptionTest,
   const auto new_item = monitored_item_service.items[1];
 
   old_item->NotifyDataChange(scada::DataValue{
-      scada::Variant{1.0}, {}, ParseTime("2026-04-20 13:00:00"),
-      ParseTime("2026-04-20 13:00:00")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:01"))
+      scada::Variant{1.0}, {}, start, start});
+  EXPECT_FALSE(subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(50))
                    .has_value());
 
   new_item->NotifyDataChange(scada::DataValue{
-      scada::Variant{2.0}, {}, ParseTime("2026-04-20 13:00:02"),
-      ParseTime("2026-04-20 13:00:02")});
+      scada::Variant{2.0}, {}, start + base::TimeDelta::FromMilliseconds(200),
+      start + base::TimeDelta::FromMilliseconds(200)});
   const auto publish =
-      subscription.TryPublish(ParseTime("2026-04-20 13:00:03"));
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
   ASSERT_TRUE(publish.has_value());
   const auto* data =
       std::get_if<OpcUaWsDataChangeNotification>(
@@ -335,9 +351,9 @@ TEST(OpcUaWsSubscriptionTest,
   EXPECT_EQ(deleted.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
   new_item->NotifyDataChange(scada::DataValue{
-      scada::Variant{3.0}, {}, ParseTime("2026-04-20 13:00:04"),
-      ParseTime("2026-04-20 13:00:04")});
-  EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:03.200"))
+      scada::Variant{3.0}, {}, start + base::TimeDelta::FromMilliseconds(400),
+      start + base::TimeDelta::FromMilliseconds(400)});
+  EXPECT_FALSE(subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(200))
                    .has_value());
 }
 
@@ -345,6 +361,7 @@ TEST(OpcUaWsSubscriptionTest,
      CreateMonitoredItemsReportsPreciseStatusForUnknownNodeAndBadAttribute) {
   TestMonitoredItemService monitored_item_service;
   monitored_item_service.return_null_for_all_requests = true;
+  const auto start = ParseTime("2026-04-20 14:00:00");
 
   OpcUaWsSubscription subscription{
       31,
@@ -354,7 +371,8 @@ TEST(OpcUaWsSubscriptionTest,
        .max_notifications_per_publish = 0,
        .publishing_enabled = true,
        .priority = 0},
-      monitored_item_service};
+      monitored_item_service,
+      start};
 
   const auto unknown_node = subscription.CreateMonitoredItems(
       {.subscription_id = 31,

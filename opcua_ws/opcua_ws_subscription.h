@@ -15,7 +15,8 @@ class OpcUaWsSubscription {
  public:
   OpcUaWsSubscription(OpcUaWsSubscriptionId subscription_id,
                       OpcUaWsSubscriptionParameters parameters,
-                      scada::MonitoredItemService& monitored_item_service);
+                      scada::MonitoredItemService& monitored_item_service,
+                      base::Time publish_cycle_start_time);
 
   OpcUaWsSubscription(const OpcUaWsSubscription&) = delete;
   OpcUaWsSubscription& operator=(const OpcUaWsSubscription&) = delete;
@@ -25,6 +26,7 @@ class OpcUaWsSubscription {
   bool HasPendingNotifications() const {
     return !pending_notifications_.empty();
   }
+  base::TimeDelta PublishingInterval() const;
   bool IsPublishReady(base::Time now) const;
   void PrimePublishCycle(base::Time now);
   std::optional<base::Time> NextPublishDeadline() const;
@@ -71,7 +73,6 @@ class OpcUaWsSubscription {
 
   scada::StatusCode Acknowledge(scada::UInt32 sequence_number);
   std::vector<scada::UInt32> AvailableSequenceNumbers() const;
-  base::TimeDelta PublishingInterval() const;
   base::TimeDelta KeepAliveInterval() const;
   bool IsKeepAliveDue(base::Time now) const;
 
@@ -94,6 +95,7 @@ class OpcUaWsSubscription {
   scada::UInt32 next_monitored_item_id_ = 1;
   scada::UInt32 next_sequence_number_ = 1;
 
+  bool initial_message_sent_ = false;
   std::optional<base::Time> last_publish_time_;
 
   std::unordered_map<OpcUaWsMonitoredItemId, std::shared_ptr<Item>> items_;

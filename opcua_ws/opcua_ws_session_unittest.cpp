@@ -92,6 +92,7 @@ TEST(OpcUaWsSessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) 
   monitored_item_service.items[1]->NotifyDataChange(scada::DataValue{
       scada::Variant{20.0}, {}, now, now});
 
+  now = now + base::TimeDelta::FromMilliseconds(100);
   const auto first_publish = session.Publish({});
   EXPECT_EQ(first_publish.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(first_publish.subscription_id, first_subscription.subscription_id);
@@ -100,6 +101,7 @@ TEST(OpcUaWsSessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) 
   ASSERT_NE(first_data, nullptr);
   EXPECT_EQ(first_data->monitored_items[0].client_handle, 11u);
 
+  now = now + base::TimeDelta::FromMilliseconds(100);
   const auto second_publish = session.Publish(
       {.subscription_acknowledgements =
            {{.subscription_id = first_subscription.subscription_id,
@@ -133,12 +135,13 @@ TEST(OpcUaWsSessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
   const auto first_publish = session.Publish({});
   EXPECT_EQ(first_publish.status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(first_publish.notification_message.notification_data.empty());
+  EXPECT_EQ(first_publish.subscription_id, 0u);
 
-  now = now + base::TimeDelta::FromMilliseconds(250);
+  now = now + base::TimeDelta::FromMilliseconds(100);
   const auto keep_alive = session.Publish({});
   EXPECT_EQ(keep_alive.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(keep_alive.subscription_id, created.subscription_id);
-  EXPECT_EQ(keep_alive.notification_message.sequence_number, 0u);
+  EXPECT_EQ(keep_alive.notification_message.sequence_number, 1u);
 
   const auto mode = session.SetPublishingMode(
       {.publishing_enabled = false, .subscription_ids = {created.subscription_id}});
@@ -148,6 +151,26 @@ TEST(OpcUaWsSessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
   const auto disabled_publish = session.Publish({});
   EXPECT_EQ(disabled_publish.status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(disabled_publish.notification_message.notification_data.empty());
+  EXPECT_EQ(disabled_publish.subscription_id, created.subscription_id);
+  EXPECT_EQ(disabled_publish.notification_message.sequence_number, 1u);
+}
+
+TEST(OpcUaWsSessionTest,
+     PollPublishRechecksWithinPublishingIntervalBeforeKeepAliveDeadline) {
+  TestMonitoredItemService monitored_item_service;
+  auto now = ParseTime("2026-04-20 15:30:00");
+  auto session = MakeSession(monitored_item_service, [&] { return now; });
+
+  session.CreateSubscription(
+      {.parameters = {.publishing_interval_ms = 100,
+                      .lifetime_count = 60,
+                      .max_keep_alive_count = 10,
+                      .publishing_enabled = true}});
+
+  const auto poll = session.PollPublish();
+  ASSERT_FALSE(poll.response.has_value());
+  ASSERT_TRUE(poll.wait_for.has_value());
+  EXPECT_EQ(*poll.wait_for, base::TimeDelta::FromMilliseconds(100));
 }
 
 TEST(OpcUaWsSessionTest, RoutesMonitoredItemOperationsToSubscription) {

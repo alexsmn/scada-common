@@ -159,6 +159,13 @@ coroutine handler → encode-JSON.
   current value or status without applying the filter. If no value/status is
   cached yet, the first notification is queued once that initial sample
   becomes available from the source.
+- Subscription publish timing follows OPC UA Part 4 §5.14.1.1:
+  the publishing cycle starts when the subscription is created, the first
+  message is sent at the end of the first publishing cycle, late `Publish`
+  requests are processed immediately once a cycle has already expired, and
+  keep-alive messages carry the next notification sequence number rather than
+  `0`. Disabling publishing suppresses notification messages but does not stop
+  keep-alive processing.
 - Handshake validates `Sec-WebSocket-Protocol: opcua+uajson` and `Origin`
   against a configured allowlist. This is the cross-site WebSocket hijacking
   (CSWSH) guard — `Origin` is the only signal the browser is honest about for

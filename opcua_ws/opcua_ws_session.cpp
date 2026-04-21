@@ -30,7 +30,8 @@ OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscriptionWithId(
     const OpcUaWsCreateSubscriptionRequest& request) {
   next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
   auto subscription = std::make_unique<OpcUaWsSubscription>(
-      subscription_id, request.parameters, this->monitored_item_service);
+      subscription_id, request.parameters, this->monitored_item_service,
+      Now());
 
   subscriptions_.emplace(subscription_id, std::move(subscription));
   publish_order_.push_back(subscription_id);
@@ -193,7 +194,13 @@ OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
                   .status = scada::StatusCode::Bad_NothingToDo}};
     }
 
+    // OPC UA Part 4 starts the publishing cycle when the Subscription is
+    // created. If no Publish request was queued when a cycle expired, the
+    // Subscription becomes late and the next Publish request is processed
+    // immediately; otherwise we return the remaining time until the next
+    // publishing or keep-alive deadline.
     std::optional<base::Time> earliest_deadline;
+    std::optional<base::TimeDelta> max_wait_before_recheck;
     for (const auto subscription_id : publish_order_) {
       auto* subscription = FindSubscription(subscription_id);
       if (!subscription)
@@ -206,6 +213,11 @@ OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
           !earliest_deadline.has_value() || *deadline < *earliest_deadline
               ? deadline
               : earliest_deadline;
+      max_wait_before_recheck =
+          !max_wait_before_recheck.has_value() ||
+                  subscription->PublishingInterval() < *max_wait_before_recheck
+              ? subscription->PublishingInterval()
+              : max_wait_before_recheck;
     }
 
     if (!earliest_deadline.has_value()) {
@@ -213,7 +225,11 @@ OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
                   .status = scada::StatusCode::Good}};
     }
 
-    return {.wait_for = std::max(base::TimeDelta{}, *earliest_deadline - now_time)};
+    auto wait_for = std::max(base::TimeDelta{}, *earliest_deadline - now_time);
+    if (max_wait_before_recheck.has_value()) {
+      wait_for = std::min(wait_for, *max_wait_before_recheck);
+    }
+    return {.wait_for = wait_for};
   }
 
   const auto subscription_id = publish_order_[publish_index];
