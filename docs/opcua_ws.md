@@ -1,8 +1,8 @@
 # OPC UA over WebSocket Endpoint
 
-> Status: partly implemented. The transport/session endpoint described here
-> does not yet exist, but the transport-independent `common/opcua_ws/`
-> service-dispatch layer is now present and uses coroutine-based handlers for
+> Status: implemented. The transport-independent `common/opcua_ws/`
+> service-dispatch layer now backs the live `server/opcua_ws/` endpoint and
+> uses coroutine-based handlers for
 > the currently implementable Phase 0/2/3 service set: `Read`, `Write`,
 > `Browse`, `BrowseNext`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
 > `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. A
@@ -28,14 +28,14 @@
 > `OpcUaWsServer` loop is now also present for accepted transports: it reads
 > request frames, decodes UA-JSON envelopes, dispatches them through
 > `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. A
-> Beast-based websocket acceptor is now also present in
+> A transport-backed websocket acceptor is now also present in
 > `common/opcua_ws/`: it validates path / subprotocol / allowed origins,
 > enables `permessage-deflate`, accepts text-frame UA-JSON traffic, and hands
 > accepted websocket sessions into `OpcUaWsServer`, with loopback integration
-> tests. TLS/WSS wrapping is now also implemented on top of that Beast server
-> via in-memory certificate/key configuration and TLS loopback integration
-> tests. The remaining common-side gap is the final `server/opcua_ws/`
-> module and its config plumbing.
+> tests. TLS/WSS wrapping is now also implemented on top of that websocket
+> transport via in-memory certificate/key configuration and TLS loopback
+> integration tests. The server-side module and config plumbing are now live
+> under `server/opcua_ws/`.
 >
 > **JSON field casing.** The UA session / subscription / publish message
 > codecs use spec-aligned PascalCase body-field names, while the outer framing
@@ -45,6 +45,8 @@
 ## Related documents
 
 - [../../server/docs/design.md](../../server/docs/design.md) — overall server architecture
+- [../../server/docs/opcua_ws_module.md](../../server/docs/opcua_ws_module.md) —
+  server-side module wiring, config loading, and lifecycle
 - `common/opcua/opcua_server.{h,cpp}` — the existing `opc.tcp://` endpoint that
   this module sits next to
 - [./opcua_module.md](./opcua_module.md) —
@@ -107,7 +109,7 @@ Chosen over UA Binary over WS (`opcua+uacp`) because:
   with arbitrary UA clients on the WS endpoint; the TCP endpoint stays there
   for anything that needs binary.
 
-Tradeoff accepted: JSON payloads are larger. We mitigate with Beast's
+Tradeoff accepted: JSON payloads are larger. We mitigate with websocket
 `permessage-deflate`, which typically recovers most of the gap on repetitive
 `DataValue` traffic.
 
@@ -394,7 +396,8 @@ Current implementation note:
   hand the upgraded websocket session to the same `OpcUaWsServer` runtime
   path. This is covered by focused TLS-context unit tests and TLS loopback
   integration tests.
-- The actual `server/opcua_ws/` module and config plumbing remain pending.
+- The server-side `server/opcua_ws/` module and config plumbing are now in
+  place on top of the shared runtime and websocket transport layers.
 
 ## Test strategy
 
@@ -416,8 +419,8 @@ monitored-item lifecycle payloads
 `OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
 with `requestHandle`. `ServiceFault` is also covered, and `Variant`
 `ExtensionObject` values now round-trip opaquely via `{typeId, body}`. The
-remaining gaps are the actual websocket transport/session layer and the
-browser-facing Beast integration.
+remaining gaps are incremental protocol coverage beyond the currently
+implemented request/session set and broader browser-facing e2e expansion.
 
 ### Session lifecycle
 
