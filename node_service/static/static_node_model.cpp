@@ -97,9 +97,9 @@ NodeRef StaticNodeModel::GetChild(
 }
 
 scada::node StaticNodeModel::GetScadaNode() const {
-  if (const auto& node_id =
-          GetAttribute(scada::AttributeId::NodeId).as_node_id();
-      !node_id.is_null()) {
+  const auto node_id_attr = GetAttribute(scada::AttributeId::NodeId);
+  const auto& node_id = node_id_attr.as_node_id();
+  if (!node_id.is_null()) {
     return scada::client{service_.services_}.node(node_id);
   } else {
     return {};

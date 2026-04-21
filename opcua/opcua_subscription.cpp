@@ -88,7 +88,11 @@ OpcUaMonitoredItem::OpcUaMonitoredItem(
 }
 
 OpcUaMonitoredItem::~OpcUaMonitoredItem() {
-  subscription_->Unsubscribe(client_handle_);
+  try {
+    subscription_->Unsubscribe(client_handle_);
+  } catch (const std::exception&) {
+  } catch (...) {
+  }
 }
 
 void OpcUaMonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {

@@ -682,14 +682,16 @@ void Convert(const scada::ReferenceDescription& source,
 
 scada::BrowseResult Convert(const OpcUa_BrowseResult& source) {
   return {
-      ConvertStatusCode(source.StatusCode),
-      ConvertVector<scada::ReferenceDescription>(
+      .status_code = ConvertStatusCode(source.StatusCode),
+      .continuation_point = Convert(source.ContinuationPoint),
+      .references = ConvertVector<scada::ReferenceDescription>(
           source.References, source.References + source.NoOfReferences),
   };
 }
 
 void Convert(const scada::BrowseResult& source, OpcUa_BrowseResult& result) {
   result.StatusCode = MakeStatusCode(source.status_code).code();
+  Convert(source.continuation_point, result.ContinuationPoint);
   auto references = MakeVector<OpcUa_ReferenceDescription>(
       opcua::MakeSpan(source.references.data(), source.references.size()));
   result.NoOfReferences = references.size();
