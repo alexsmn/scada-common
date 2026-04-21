@@ -447,15 +447,12 @@ void OpcUaSubscription::OnEvents(
              scada::AttributeId::EventNotifier);
       if (item->read_value_id.attribute_id ==
           scada::AttributeId::EventNotifier) {
-        const auto& fields = ConvertVector<scada::Variant>(
+        const auto fields = ConvertVector<scada::Variant>(
             std::make_move_iterator(notification.EventFields),
             std::make_move_iterator(notification.EventFields +
                                     notification.NoOfEventFields));
-        auto event = AssembleEvent(fields);
-        if (event.has_value())
-          scada::opcua_endpoint::DispatchEventNotification(
-              item->read_value_id, item->handler, scada::StatusCode::Good,
-              event);
+        scada::opcua_endpoint::DispatchEventFieldNotification(
+            item->read_value_id, item->handler, fields);
       }
     }
   }

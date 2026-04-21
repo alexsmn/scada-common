@@ -428,5 +428,61 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(*delivered_event_id, 91);
 }
 
+TEST_F(OpcUaEndpointCoreTest,
+       ProjectEventFields_PreservesRequestedSelectClauseOrder) {
+  scada::Event event;
+  event.event_id = 11;
+  event.event_type_id = NumericNode(501, 0);
+  event.node_id = NumericNode(777, 4);
+  event.time = scada::DateTime::Now();
+  event.message = scada::LocalizedText{u"alarm"};
+  event.severity = 900;
+
+  const auto fields = ProjectEventFields(
+      {{"Severity"}, {"Message"}, {"EventId"}, {"UnknownField"}}, event);
+
+  ASSERT_EQ(fields.size(), 4u);
+  EXPECT_EQ(fields[0].get<scada::UInt32>(), 900u);
+  EXPECT_EQ(fields[1].get<scada::LocalizedText>(),
+            scada::LocalizedText{u"alarm"});
+  EXPECT_EQ(fields[2].get<scada::UInt64>(), 11u);
+  EXPECT_TRUE(fields[3].is_null());
+}
+
+TEST_F(OpcUaEndpointCoreTest,
+       DispatchEventFieldNotification_AssemblesAndForwardsModelChangeEvents) {
+  const auto event_item = scada::ReadValueId{
+      .node_id = NumericNode(74, 9),
+      .attribute_id = scada::AttributeId::EventNotifier};
+  std::optional<scada::Status> delivered_status;
+  std::optional<scada::ModelChangeEvent> delivered_event;
+
+  const std::optional<scada::MonitoredItemHandler> event_handler =
+      scada::EventHandler{[&](const scada::Status& status, const std::any& event) {
+        delivered_status = status;
+        delivered_event = std::any_cast<scada::ModelChangeEvent>(event);
+      }};
+
+  const auto fields = std::vector<scada::Variant>{
+      scada::NodeId{scada::id::GeneralModelChangeEventType},
+      NumericNode(500, 2),
+      NumericNode(600, 3),
+      static_cast<scada::UInt32>(
+          scada::ModelChangeEvent::NodeAdded |
+          scada::ModelChangeEvent::ReferenceAdded),
+  };
+
+  EXPECT_TRUE(DispatchEventFieldNotification(event_item, event_handler, fields));
+
+  ASSERT_TRUE(delivered_status.has_value());
+  ASSERT_TRUE(delivered_event.has_value());
+  EXPECT_EQ(delivered_status->code(), scada::StatusCode::Good);
+  EXPECT_EQ(delivered_event->node_id, NumericNode(500, 2));
+  EXPECT_EQ(delivered_event->type_definition_id, NumericNode(600, 3));
+  EXPECT_EQ(delivered_event->verb,
+            static_cast<uint8_t>(scada::ModelChangeEvent::NodeAdded |
+                                 scada::ModelChangeEvent::ReferenceAdded));
+}
+
 }  // namespace
 }  // namespace scada::opcua_endpoint

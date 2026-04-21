@@ -1,6 +1,9 @@
 #pragma once
 
+#include "base/no_destructor.h"
 #include "scada/attribute_service.h"
+#include "scada/event.h"
+#include "scada/event_util.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/monitored_item.h"
@@ -10,6 +13,8 @@
 
 #include <memory>
 #include <optional>
+#include <span>
+#include <string_view>
 #include <utility>
 
 namespace scada::opcua_endpoint {
@@ -185,6 +190,69 @@ inline bool DispatchEventNotification(
 
   (*event_handler)(status, event);
   return true;
+}
+
+inline const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
+  static const base::NoDestructor<std::vector<std::vector<std::string>>> kFields(
+      std::vector<std::vector<std::string>>{{"EventId"},
+                                            {"EventType"},
+                                            {"SourceNode"},
+                                            {"SourceName"},
+                                            {"Time"},
+                                            {"Message"},
+                                            {"Severity"}});
+  return *kFields;
+}
+
+inline std::vector<scada::Variant> ProjectEventFields(
+    const std::vector<std::vector<std::string>>& field_paths,
+    const std::any& event) {
+  // OPC UA Part 4 requires EventNotificationList.eventFields to follow the
+  // exact selectClauses order for the MonitoredItem's EventFilter.
+  const auto* source_event = std::any_cast<scada::Event>(&event);
+  std::vector<scada::Variant> result;
+  result.reserve(field_paths.size());
+
+  for (const auto& field_path : field_paths) {
+    if (!source_event || field_path.empty()) {
+      result.emplace_back(scada::Variant{});
+      continue;
+    }
+
+    const auto& field_name = field_path.back();
+    if (field_name == "EventId") {
+      result.emplace_back(source_event->event_id);
+    } else if (field_name == "EventType") {
+      result.emplace_back(source_event->event_type_id);
+    } else if (field_name == "SourceNode") {
+      result.emplace_back(source_event->node_id);
+    } else if (field_name == "SourceName") {
+      result.emplace_back(source_event->node_id.is_null()
+                              ? std::string{}
+                              : source_event->node_id.ToString());
+    } else if (field_name == "Time") {
+      result.emplace_back(source_event->time);
+    } else if (field_name == "Message") {
+      result.emplace_back(source_event->message);
+    } else if (field_name == "Severity") {
+      result.emplace_back(source_event->severity);
+    } else {
+      result.emplace_back(scada::Variant{});
+    }
+  }
+
+  return result;
+}
+
+inline bool DispatchEventFieldNotification(
+    const scada::ReadValueId& item_to_monitor,
+    const std::optional<scada::MonitoredItemHandler>& handler,
+    std::span<const scada::Variant> event_fields) {
+  if (event_fields.empty())
+    return false;
+  return DispatchEventNotification(item_to_monitor, handler,
+                                   scada::StatusCode::Good,
+                                   scada::AssembleEvent(event_fields));
 }
 
 }  // namespace scada::opcua_endpoint

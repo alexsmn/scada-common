@@ -18,25 +18,6 @@ constexpr std::string_view kSelectClauses = "SelectClauses";
 constexpr std::string_view kBrowsePath = "BrowsePath";
 constexpr std::string_view kName = "Name";
 
-const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
-  static const auto* const kFields =
-      new std::vector<std::vector<std::string>>{{"EventId"},
-                                                {"EventType"},
-                                                {"SourceNode"},
-                                                {"SourceName"},
-                                                {"Time"},
-                                                {"Message"},
-                                                {"Severity"}};
-  return *kFields;
-}
-
-std::optional<std::string> ExtractFieldName(
-    const std::vector<std::string>& field_path) {
-  if (field_path.empty())
-    return std::nullopt;
-  return field_path.back();
-}
-
 }  // namespace
 
 OpcUaWsSubscription::OpcUaWsSubscription(
@@ -465,7 +446,7 @@ OpcUaWsSubscription::ParseEventFieldPaths(
   const auto* raw_filter = filter ? std::get_if<boost::json::value>(&*filter)
                                   : nullptr;
   if (!raw_filter || !raw_filter->is_object())
-    return DefaultEventFieldPaths();
+    return scada::opcua_endpoint::DefaultEventFieldPaths();
 
   const auto* current = &raw_filter->as_object();
   if (const auto* body_field = current->if_contains(kEventFilterBody);
@@ -475,7 +456,7 @@ OpcUaWsSubscription::ParseEventFieldPaths(
 
   const auto* clauses_value = current->if_contains(kSelectClauses);
   if (!clauses_value || !clauses_value->is_array())
-    return DefaultEventFieldPaths();
+    return scada::opcua_endpoint::DefaultEventFieldPaths();
 
   std::vector<std::vector<std::string>> result;
   for (const auto& clause_value : clauses_value->as_array()) {
@@ -500,45 +481,14 @@ OpcUaWsSubscription::ParseEventFieldPaths(
       result.push_back(std::move(path));
   }
 
-  return result.empty() ? DefaultEventFieldPaths() : result;
+  return result.empty() ? scada::opcua_endpoint::DefaultEventFieldPaths()
+                        : result;
 }
 
 std::vector<scada::Variant> OpcUaWsSubscription::BuildEventFields(
     const std::vector<std::vector<std::string>>& field_paths,
     const std::any& event) {
-  const auto* source_event = std::any_cast<scada::Event>(&event);
-  std::vector<scada::Variant> result;
-  result.reserve(field_paths.size());
-
-  for (const auto& field_path : field_paths) {
-    const auto field_name = ExtractFieldName(field_path);
-    if (!source_event || !field_name.has_value()) {
-      result.emplace_back(scada::Variant{});
-      continue;
-    }
-
-    if (*field_name == "EventId") {
-      result.emplace_back(source_event->event_id);
-    } else if (*field_name == "EventType") {
-      result.emplace_back(source_event->event_type_id);
-    } else if (*field_name == "SourceNode") {
-      result.emplace_back(source_event->node_id);
-    } else if (*field_name == "SourceName") {
-      result.emplace_back(source_event->node_id.is_null()
-                              ? std::string{}
-                              : source_event->node_id.ToString());
-    } else if (*field_name == "Time") {
-      result.emplace_back(source_event->time);
-    } else if (*field_name == "Message") {
-      result.emplace_back(source_event->message);
-    } else if (*field_name == "Severity") {
-      result.emplace_back(source_event->severity);
-    } else {
-      result.emplace_back(scada::Variant{});
-    }
-  }
-
-  return result;
+  return scada::opcua_endpoint::ProjectEventFields(field_paths, event);
 }
 
 }  // namespace opcua_ws
