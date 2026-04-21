@@ -27,11 +27,15 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
       const scada::MonitoringParameters& params) override {
     created_value_ids.push_back(value_id);
     created_params.push_back(params);
+    if (return_null_for_all_requests) {
+      return nullptr;
+    }
     auto item = std::make_shared<scada::TestMonitoredItem>();
     items.push_back(item);
     return item;
   }
 
+  bool return_null_for_all_requests = false;
   std::vector<scada::ReadValueId> created_value_ids;
   std::vector<scada::MonitoringParameters> created_params;
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
@@ -162,8 +166,8 @@ TEST(OpcUaWsSubscriptionTest,
       monitored_item_service};
 
   const boost::json::value event_filter = boost::json::parse(R"({
-    "type":"EventFilter",
-    "body":{"SelectClauses":[
+    "Type":"EventFilter",
+    "Body":{"SelectClauses":[
       {"BrowsePath":[{"Name":"EventId"}]},
       {"BrowsePath":[{"Name":"Message"}]},
       {"BrowsePath":[{"Name":"Severity"}]}
@@ -283,6 +287,50 @@ TEST(OpcUaWsSubscriptionTest,
       ParseTime("2026-04-20 13:00:04")});
   EXPECT_FALSE(subscription.TryPublish(ParseTime("2026-04-20 13:00:03.200"))
                    .has_value());
+}
+
+TEST(OpcUaWsSubscriptionTest,
+     CreateMonitoredItemsReportsPreciseStatusForUnknownNodeAndBadAttribute) {
+  TestMonitoredItemService monitored_item_service;
+  monitored_item_service.return_null_for_all_requests = true;
+
+  OpcUaWsSubscription subscription{
+      31,
+      {.publishing_interval_ms = 100,
+       .lifetime_count = 60,
+       .max_keep_alive_count = 3,
+       .max_notifications_per_publish = 0,
+       .publishing_enabled = true,
+       .priority = 0},
+      monitored_item_service};
+
+  const auto unknown_node = subscription.CreateMonitoredItems(
+      {.subscription_id = 31,
+       .items_to_create = {{.item_to_monitor =
+                                {.node_id = NumericNode(999),
+                                 .attribute_id = scada::AttributeId::Value},
+                            .requested_parameters =
+                                {.client_handle = 1,
+                                 .sampling_interval_ms = 250,
+                                 .queue_size = 1,
+                                 .discard_oldest = true}}}});
+  ASSERT_EQ(unknown_node.results.size(), 1u);
+  EXPECT_EQ(unknown_node.results[0].status.code(),
+            scada::StatusCode::Bad_WrongNodeId);
+
+  const auto bad_attribute = subscription.CreateMonitoredItems(
+      {.subscription_id = 31,
+       .items_to_create = {{.item_to_monitor =
+                                {.node_id = NumericNode(999),
+                                 .attribute_id = scada::AttributeId::Description},
+                            .requested_parameters =
+                                {.client_handle = 2,
+                                 .sampling_interval_ms = 250,
+                                 .queue_size = 1,
+                                 .discard_oldest = true}}}});
+  ASSERT_EQ(bad_attribute.results.size(), 1u);
+  EXPECT_EQ(bad_attribute.results[0].status.code(),
+            scada::StatusCode::Bad_WrongAttributeId);
 }
 
 }  // namespace

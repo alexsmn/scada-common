@@ -11,7 +11,7 @@ namespace opcua_ws {
 
 namespace {
 
-constexpr std::string_view kEventFilterBody = "body";
+constexpr std::string_view kEventFilterBody = "Body";
 constexpr std::string_view kSelectClauses = "SelectClauses";
 constexpr std::string_view kBrowsePath = "BrowsePath";
 constexpr std::string_view kName = "Name";
@@ -30,6 +30,19 @@ const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
 
 bool IsAttributeEventNotifier(scada::AttributeId attribute_id) {
   return attribute_id == static_cast<scada::AttributeId>(12);
+}
+
+bool IsSupportedMonitoredAttribute(scada::AttributeId attribute_id) {
+  return attribute_id == scada::AttributeId::Value ||
+         IsAttributeEventNotifier(attribute_id);
+}
+
+scada::StatusCode TranslateCreateMonitoredItemFailure(
+    const scada::ReadValueId& item_to_monitor) {
+  if (!IsSupportedMonitoredAttribute(item_to_monitor.attribute_id)) {
+    return scada::StatusCode::Bad_WrongAttributeId;
+  }
+  return scada::StatusCode::Bad_WrongNodeId;
 }
 
 std::optional<std::string> ExtractFieldName(
@@ -96,9 +109,13 @@ OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
     items_.emplace(item->monitored_item_id, item);
     RebindItem(*item);
 
+    const auto item_status = item->monitored_item
+                                 ? scada::StatusCode::Good
+                                 : TranslateCreateMonitoredItemFailure(
+                                       item->item_to_monitor);
+
     response.results.push_back(
-        {.status = item->monitored_item ? scada::StatusCode::Good
-                                        : scada::StatusCode::Bad,
+        {.status = item_status,
          .monitored_item_id = item->monitored_item ? item->monitored_item_id : 0,
          .revised_sampling_interval_ms = item->parameters.sampling_interval_ms,
          .revised_queue_size = std::max<scada::UInt32>(1, item->parameters.queue_size)});
@@ -133,9 +150,13 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaWsSubscription::ModifyMonitoredItems(
         ParseEventFieldPaths(source_item.requested_parameters.filter);
     RebindItem(item);
 
+    const auto item_status = item.monitored_item
+                                 ? scada::StatusCode::Good
+                                 : TranslateCreateMonitoredItemFailure(
+                                       item.item_to_monitor);
+
     response.results.push_back(
-        {.status = item.monitored_item ? scada::StatusCode::Good
-                                       : scada::StatusCode::Bad,
+        {.status = item_status,
          .revised_sampling_interval_ms = item.parameters.sampling_interval_ms,
          .revised_queue_size = std::max<scada::UInt32>(1, item.parameters.queue_size)});
   }
