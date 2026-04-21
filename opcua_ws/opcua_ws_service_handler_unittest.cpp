@@ -147,6 +147,32 @@ TEST_F(OpcUaWsServiceHandlerTest,
 }
 
 TEST_F(OpcUaWsServiceHandlerTest,
+       HandleRead_MapsWrongNodeIdToOpcUaBadNodeIdUnknown) {
+  ReadRequest read_request{
+      .inputs = {{.node_id = NumericNode(9999),
+                  .attribute_id = scada::AttributeId::Value}}};
+
+  EXPECT_CALL(attribute_service_, Read(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+                           const scada::ReadCallback& callback) {
+        EXPECT_EQ(context.user_id(), user_id_);
+        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ((*inputs)[0], read_request.inputs[0]);
+        callback(scada::StatusCode::Good,
+                 {scada::MakeReadError(scada::StatusCode::Bad_WrongNodeId)});
+      }));
+
+  const auto response = WaitAwaitable(executor_, handler_.Handle(read_request));
+  const auto* read_response = std::get_if<ReadResponse>(&response);
+  ASSERT_NE(read_response, nullptr);
+  ASSERT_EQ(read_response->results.size(), 1u);
+  EXPECT_EQ(read_response->status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(scada::Status(read_response->results[0].status_code).full_code(),
+            0x80340000u);
+}
+
+TEST_F(OpcUaWsServiceHandlerTest,
        HandleCall_ForwardsEachMethodWithSessionUserId) {
   CallRequest request{.methods = {
                           {.object_id = NumericNode(10),

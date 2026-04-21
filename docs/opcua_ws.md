@@ -230,6 +230,9 @@ service request/response body field names are governed by the spec casing.
 - `Read`, `Write`, `Browse`, and `TranslateBrowsePathsToNodeIds` use the
   spec request fields `NodesToRead`, `NodesToWrite`, `NodesToBrowse`, and
   `BrowsePaths`.
+- `Read` now rewrites internal `Bad_WrongNodeId` item failures to the OPC UA
+  wire status `Bad_NodeIdUnknown` (`0x80340000`) so browser clients see a
+  standard NodeId error code.
 - `Call` uses `MethodsToCall` / `InputArguments`, and `CallResponse`
   result entries use `StatusCode`, `InputArgumentResults`, and
   `OutputArguments`.

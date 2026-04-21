@@ -7,6 +7,20 @@
 
 namespace opcua_ws {
 
+namespace {
+
+constexpr unsigned kBadNodeIdUnknownFullCode = 0x80340000u;
+
+scada::DataValue NormalizeReadResult(scada::DataValue result) {
+  if (result.status_code == scada::StatusCode::Bad_WrongNodeId) {
+    result.status_code =
+        scada::Status::FromFullCode(kBadNodeIdUnknownFullCode).code();
+  }
+  return result;
+}
+
+}  // namespace
+
 OpcUaWsServiceHandler::OpcUaWsServiceHandler(
     OpcUaWsServiceHandlerContext&& context)
     : OpcUaWsServiceHandlerContext{std::move(context)} {}
@@ -54,6 +68,8 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleRead(
       executor, attribute_service, std::move(service_context),
       std::make_shared<const std::vector<scada::ReadValueId>>(
           std::move(request.inputs)));
+  for (auto& result : results)
+    result = NormalizeReadResult(std::move(result));
   co_return OpcUaWsServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
 }
