@@ -259,104 +259,104 @@ std::vector<T> DecodeList(const value& json, Decoder&& decoder) {
 
 value EncodeCreateSessionRequest(const OpcUaWsCreateSessionRequest& request) {
   return object{
-      {"requestedTimeoutMs", request.requested_timeout.InMilliseconds()}};
+      {"RequestedSessionTimeout", request.requested_timeout.InMilliseconds()}};
 }
 
 OpcUaWsCreateSessionRequest DecodeCreateSessionRequest(const value& json) {
   return {.requested_timeout = base::TimeDelta::FromMilliseconds(
               RequireInt64(
-                  RequireField(RequireObject(json), "requestedTimeoutMs")))};
+                  RequireField(RequireObject(json), "RequestedSessionTimeout")))};
 }
 
 value EncodeCreateSessionResponse(const OpcUaWsCreateSessionResponse& response) {
-  return object{{"status", EncodeStatus(response.status)},
-                {"sessionId", EncodeNodeId(response.session_id)},
-                {"authenticationToken",
+  return object{{"Status", EncodeStatus(response.status)},
+                {"SessionId", EncodeNodeId(response.session_id)},
+                {"AuthenticationToken",
                  EncodeNodeId(response.authentication_token)},
-                {"serverNonce", EncodeByteString(response.server_nonce)},
-                {"revisedTimeoutMs",
+                {"ServerNonce", EncodeByteString(response.server_nonce)},
+                {"RevisedSessionTimeout",
                  response.revised_timeout.InMilliseconds()}};
 }
 
 OpcUaWsCreateSessionResponse DecodeCreateSessionResponse(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
-          .session_id = DecodeNodeId(RequireField(obj, "sessionId")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
+          .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
           .authentication_token =
-              DecodeNodeId(RequireField(obj, "authenticationToken")),
-          .server_nonce = DecodeByteString(RequireField(obj, "serverNonce")),
+              DecodeNodeId(RequireField(obj, "AuthenticationToken")),
+          .server_nonce = DecodeByteString(RequireField(obj, "ServerNonce")),
           .revised_timeout = base::TimeDelta::FromMilliseconds(
-              RequireInt64(RequireField(obj, "revisedTimeoutMs")))};
+              RequireInt64(RequireField(obj, "RevisedSessionTimeout")))};
 }
 
 value EncodeActivateSessionRequest(const OpcUaWsActivateSessionRequest& request) {
-  object json{{"sessionId", EncodeNodeId(request.session_id)},
-              {"authenticationToken",
+  object json{{"SessionId", EncodeNodeId(request.session_id)},
+              {"AuthenticationToken",
                EncodeNodeId(request.authentication_token)},
-              {"deleteExisting", request.delete_existing},
-              {"allowAnonymous", request.allow_anonymous}};
+              {"DeleteExisting", request.delete_existing},
+              {"AllowAnonymous", request.allow_anonymous}};
   if (request.user_name.has_value())
-    json["userName"] = EncodeLocalizedText(*request.user_name);
+    json["UserName"] = EncodeLocalizedText(*request.user_name);
   if (request.password.has_value())
-    json["password"] = EncodeLocalizedText(*request.password);
+    json["Password"] = EncodeLocalizedText(*request.password);
   return json;
 }
 
 OpcUaWsActivateSessionRequest DecodeActivateSessionRequest(const value& json) {
   const auto& obj = RequireObject(json);
   OpcUaWsActivateSessionRequest request{
-      .session_id = DecodeNodeId(RequireField(obj, "sessionId")),
+      .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
       .authentication_token =
-          DecodeNodeId(RequireField(obj, "authenticationToken")),
-      .delete_existing = RequireBool(RequireField(obj, "deleteExisting")),
-      .allow_anonymous = RequireBool(RequireField(obj, "allowAnonymous")),
+          DecodeNodeId(RequireField(obj, "AuthenticationToken")),
+      .delete_existing = RequireBool(RequireField(obj, "DeleteExisting")),
+      .allow_anonymous = RequireBool(RequireField(obj, "AllowAnonymous")),
   };
-  if (const auto* field = FindField(obj, "userName"))
+  if (const auto* field = FindField(obj, "UserName"))
     request.user_name = DecodeLocalizedText(*field);
-  if (const auto* field = FindField(obj, "password"))
+  if (const auto* field = FindField(obj, "Password"))
     request.password = DecodeLocalizedText(*field);
   return request;
 }
 
 value EncodeActivateSessionResponse(
     const OpcUaWsActivateSessionResponse& response) {
-  return object{{"status", EncodeStatus(response.status)},
-                {"resumed", response.resumed}};
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Resumed", response.resumed}};
 }
 
 OpcUaWsActivateSessionResponse DecodeActivateSessionResponse(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
-          .resumed = RequireBool(RequireField(obj, "resumed"))};
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
+          .resumed = RequireBool(RequireField(obj, "Resumed"))};
 }
 
 value EncodeCloseSessionRequest(const OpcUaWsCloseSessionRequest& request) {
-  return object{{"sessionId", EncodeNodeId(request.session_id)},
-                {"authenticationToken",
+  return object{{"SessionId", EncodeNodeId(request.session_id)},
+                {"AuthenticationToken",
                  EncodeNodeId(request.authentication_token)}};
 }
 
 OpcUaWsCloseSessionRequest DecodeCloseSessionRequest(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.session_id = DecodeNodeId(RequireField(obj, "sessionId")),
+  return {.session_id = DecodeNodeId(RequireField(obj, "SessionId")),
           .authentication_token =
-              DecodeNodeId(RequireField(obj, "authenticationToken"))};
+              DecodeNodeId(RequireField(obj, "AuthenticationToken"))};
 }
 
 value EncodeCloseSessionResponse(const OpcUaWsCloseSessionResponse& response) {
-  return object{{"status", EncodeStatus(response.status)}};
+  return object{{"Status", EncodeStatus(response.status)}};
 }
 
 OpcUaWsCloseSessionResponse DecodeCloseSessionResponse(const value& json) {
-  return {.status = DecodeStatus(RequireField(RequireObject(json), "status"))};
+  return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
 value EncodeServiceFault(const OpcUaWsServiceFault& fault) {
-  return object{{"status", EncodeStatus(fault.status)}};
+  return object{{"Status", EncodeStatus(fault.status)}};
 }
 
 OpcUaWsServiceFault DecodeServiceFault(const value& json) {
-  return {.status = DecodeStatus(RequireField(RequireObject(json), "status"))};
+  return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
 }  // namespace

@@ -128,6 +128,41 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
   EXPECT_EQ(close_body->authentication_token, NumericNode(23, 3));
 }
 
+TEST(OpcUaJsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
+  const auto create_json = EncodeJson(OpcUaWsRequestMessage{
+      .request_handle = 11,
+      .body = OpcUaWsCreateSessionRequest{
+          .requested_timeout = base::TimeDelta::FromSeconds(45)}});
+  const auto create_text = boost::json::serialize(create_json);
+  EXPECT_NE(create_text.find("\"RequestedSessionTimeout\""), std::string::npos);
+  EXPECT_EQ(create_text.find("\"requestedTimeoutMs\""), std::string::npos);
+
+  const auto decoded_create = DecodeRequestMessage(boost::json::parse(
+      R"({"requestHandle":11,"service":"CreateSession","body":{"RequestedSessionTimeout":45000}})"));
+  const auto* create_body =
+      std::get_if<OpcUaWsCreateSessionRequest>(&decoded_create.body);
+  ASSERT_NE(create_body, nullptr);
+  EXPECT_EQ(create_body->requested_timeout, base::TimeDelta::FromSeconds(45));
+
+  const auto activate_json = EncodeJson(OpcUaWsRequestMessage{
+      .request_handle = 12,
+      .body = OpcUaWsActivateSessionRequest{
+          .session_id = NumericNode(20),
+          .authentication_token = NumericNode(21, 3),
+          .user_name = scada::LocalizedText{u"operator"},
+          .password = scada::LocalizedText{u"secret"},
+          .delete_existing = true,
+          .allow_anonymous = false,
+      }});
+  const auto activate_text = boost::json::serialize(activate_json);
+  EXPECT_NE(activate_text.find("\"SessionId\""), std::string::npos);
+  EXPECT_NE(activate_text.find("\"AuthenticationToken\""), std::string::npos);
+  EXPECT_NE(activate_text.find("\"UserName\""), std::string::npos);
+  EXPECT_NE(activate_text.find("\"Password\""), std::string::npos);
+  EXPECT_EQ(activate_text.find("\"sessionId\""), std::string::npos);
+  EXPECT_EQ(activate_text.find("\"authenticationToken\""), std::string::npos);
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadRawRequest) {
   HistoryReadRawRequest request{
       .details =

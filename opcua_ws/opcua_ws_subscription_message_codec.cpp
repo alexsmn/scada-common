@@ -142,30 +142,30 @@ Enum DecodeEnum(const value& json) {
 }
 
 value EncodeReadValueId(const scada::ReadValueId& value_id) {
-  return object{{"nodeId", EncodeNodeId(value_id.node_id)},
-                {"attributeId", EncodeAttributeId(value_id.attribute_id)}};
+  return object{{"NodeId", EncodeNodeId(value_id.node_id)},
+                {"AttributeId", EncodeAttributeId(value_id.attribute_id)}};
 }
 
 scada::ReadValueId DecodeReadValueId(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.node_id = DecodeNodeId(RequireField(obj, "nodeId")),
-          .attribute_id = DecodeAttributeId(RequireField(obj, "attributeId"))};
+  return {.node_id = DecodeNodeId(RequireField(obj, "NodeId")),
+          .attribute_id = DecodeAttributeId(RequireField(obj, "AttributeId"))};
 }
 
 value EncodeDataChangeFilter(const OpcUaWsDataChangeFilter& filter) {
-  return object{{"filterType", "DataChange"},
-                {"trigger", EncodeEnum(filter.trigger)},
-                {"deadbandType", EncodeEnum(filter.deadband_type)},
-                {"deadbandValue", filter.deadband_value}};
+  return object{{"FilterType", "DataChange"},
+                {"Trigger", EncodeEnum(filter.trigger)},
+                {"DeadbandType", EncodeEnum(filter.deadband_type)},
+                {"DeadbandValue", filter.deadband_value}};
 }
 
 OpcUaWsDataChangeFilter DecodeDataChangeFilter(const value& json) {
   const auto& obj = RequireObject(json);
   return {.trigger = DecodeEnum<OpcUaWsDataChangeTrigger>(
-              RequireField(obj, "trigger")),
+              RequireField(obj, "Trigger")),
           .deadband_type = DecodeEnum<OpcUaWsDeadbandType>(
-              RequireField(obj, "deadbandType")),
-          .deadband_value = RequireDouble(RequireField(obj, "deadbandValue"))};
+              RequireField(obj, "DeadbandType")),
+          .deadband_value = RequireDouble(RequireField(obj, "DeadbandValue"))};
 }
 
 value EncodeMonitoringFilter(const OpcUaWsMonitoringFilter& filter) {
@@ -177,7 +177,7 @@ value EncodeMonitoringFilter(const OpcUaWsMonitoringFilter& filter) {
 OpcUaWsMonitoringFilter DecodeMonitoringFilter(const value& json) {
   if (json.is_object()) {
     const auto& obj = json.as_object();
-    if (const auto* field = FindField(obj, "filterType");
+    if (const auto* field = FindField(obj, "FilterType");
         field != nullptr && RequireString(*field) == "DataChange") {
       return OpcUaWsMonitoringFilter{DecodeDataChangeFilter(json)};
     }
@@ -187,12 +187,12 @@ OpcUaWsMonitoringFilter DecodeMonitoringFilter(const value& json) {
 
 value EncodeMonitoringParameters(
     const OpcUaWsMonitoringParameters& parameters) {
-  object json{{"clientHandle", parameters.client_handle},
-              {"samplingIntervalMs", parameters.sampling_interval_ms},
-              {"queueSize", parameters.queue_size},
-              {"discardOldest", parameters.discard_oldest}};
+  object json{{"ClientHandle", parameters.client_handle},
+              {"SamplingInterval", parameters.sampling_interval_ms},
+              {"QueueSize", parameters.queue_size},
+              {"DiscardOldest", parameters.discard_oldest}};
   if (parameters.filter.has_value())
-    json["filter"] = EncodeMonitoringFilter(*parameters.filter);
+    json["Filter"] = EncodeMonitoringFilter(*parameters.filter);
   return json;
 }
 
@@ -200,26 +200,26 @@ OpcUaWsMonitoringParameters DecodeMonitoringParameters(const value& json) {
   const auto& obj = RequireObject(json);
   OpcUaWsMonitoringParameters parameters{
       .client_handle =
-          static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "clientHandle"))),
+          static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "ClientHandle"))),
       .sampling_interval_ms =
-          RequireDouble(RequireField(obj, "samplingIntervalMs")),
+          RequireDouble(RequireField(obj, "SamplingInterval")),
       .queue_size =
-          static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "queueSize"))),
-      .discard_oldest = RequireBool(RequireField(obj, "discardOldest")),
+          static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "QueueSize"))),
+      .discard_oldest = RequireBool(RequireField(obj, "DiscardOldest")),
   };
-  if (const auto* field = FindField(obj, "filter"))
+  if (const auto* field = FindField(obj, "Filter"))
     parameters.filter = DecodeMonitoringFilter(*field);
   return parameters;
 }
 
 value EncodeMonitoredItemCreateRequest(
     const OpcUaWsMonitoredItemCreateRequest& request) {
-  object json{{"itemToMonitor", EncodeReadValueId(request.item_to_monitor)},
-              {"monitoringMode", EncodeEnum(request.monitoring_mode)},
-              {"requestedParameters",
+  object json{{"ItemToMonitor", EncodeReadValueId(request.item_to_monitor)},
+              {"MonitoringMode", EncodeEnum(request.monitoring_mode)},
+              {"RequestedParameters",
                EncodeMonitoringParameters(request.requested_parameters)}};
   if (request.index_range.has_value())
-    json["indexRange"] = *request.index_range;
+    json["IndexRange"] = *request.index_range;
   return json;
 }
 
@@ -227,25 +227,25 @@ OpcUaWsMonitoredItemCreateRequest DecodeMonitoredItemCreateRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   OpcUaWsMonitoredItemCreateRequest request{
-      .item_to_monitor = DecodeReadValueId(RequireField(obj, "itemToMonitor")),
+      .item_to_monitor = DecodeReadValueId(RequireField(obj, "ItemToMonitor")),
       .monitoring_mode =
-          DecodeEnum<OpcUaWsMonitoringMode>(RequireField(obj, "monitoringMode")),
+          DecodeEnum<OpcUaWsMonitoringMode>(RequireField(obj, "MonitoringMode")),
       .requested_parameters =
-          DecodeMonitoringParameters(RequireField(obj, "requestedParameters")),
+          DecodeMonitoringParameters(RequireField(obj, "RequestedParameters")),
   };
-  if (const auto* field = FindField(obj, "indexRange"))
+  if (const auto* field = FindField(obj, "IndexRange"))
     request.index_range = std::string(RequireString(*field));
   return request;
 }
 
 value EncodeMonitoredItemCreateResult(
     const OpcUaWsMonitoredItemCreateResult& result) {
-  object json{{"status", EncodeStatus(result.status)},
-              {"monitoredItemId", result.monitored_item_id},
-              {"revisedSamplingIntervalMs", result.revised_sampling_interval_ms},
-              {"revisedQueueSize", result.revised_queue_size}};
+  object json{{"Status", EncodeStatus(result.status)},
+              {"MonitoredItemId", result.monitored_item_id},
+              {"RevisedSamplingInterval", result.revised_sampling_interval_ms},
+              {"RevisedQueueSize", result.revised_queue_size}};
   if (result.filter_result.has_value())
-    json["filterResult"] = *result.filter_result;
+    json["FilterResult"] = *result.filter_result;
   return json;
 }
 
@@ -253,15 +253,15 @@ OpcUaWsMonitoredItemCreateResult DecodeMonitoredItemCreateResult(
     const value& json) {
   const auto& obj = RequireObject(json);
   OpcUaWsMonitoredItemCreateResult result{
-      .status = DecodeStatus(RequireField(obj, "status")),
+      .status = DecodeStatus(RequireField(obj, "Status")),
       .monitored_item_id = static_cast<OpcUaWsMonitoredItemId>(
-          RequireUInt64(RequireField(obj, "monitoredItemId"))),
+          RequireUInt64(RequireField(obj, "MonitoredItemId"))),
       .revised_sampling_interval_ms =
-          RequireDouble(RequireField(obj, "revisedSamplingIntervalMs")),
+          RequireDouble(RequireField(obj, "RevisedSamplingInterval")),
       .revised_queue_size = static_cast<scada::UInt32>(
-          RequireUInt64(RequireField(obj, "revisedQueueSize"))),
+          RequireUInt64(RequireField(obj, "RevisedQueueSize"))),
   };
-  if (const auto* field = FindField(obj, "filterResult"))
+  if (const auto* field = FindField(obj, "FilterResult"))
     result.filter_result = *field;
   return result;
 }
@@ -269,8 +269,8 @@ OpcUaWsMonitoredItemCreateResult DecodeMonitoredItemCreateResult(
 value EncodeMonitoredItemModifyRequest(
     const OpcUaWsMonitoredItemModifyRequest& request) {
   return object{
-      {"monitoredItemId", request.monitored_item_id},
-      {"requestedParameters",
+      {"MonitoredItemId", request.monitored_item_id},
+      {"RequestedParameters",
        EncodeMonitoringParameters(request.requested_parameters)}};
 }
 
@@ -278,18 +278,18 @@ OpcUaWsMonitoredItemModifyRequest DecodeMonitoredItemModifyRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.monitored_item_id = static_cast<OpcUaWsMonitoredItemId>(
-              RequireUInt64(RequireField(obj, "monitoredItemId"))),
+              RequireUInt64(RequireField(obj, "MonitoredItemId"))),
           .requested_parameters =
-              DecodeMonitoringParameters(RequireField(obj, "requestedParameters"))};
+              DecodeMonitoringParameters(RequireField(obj, "RequestedParameters"))};
 }
 
 value EncodeMonitoredItemModifyResult(
     const OpcUaWsMonitoredItemModifyResult& result) {
-  object json{{"status", EncodeStatus(result.status)},
-              {"revisedSamplingIntervalMs", result.revised_sampling_interval_ms},
-              {"revisedQueueSize", result.revised_queue_size}};
+  object json{{"Status", EncodeStatus(result.status)},
+              {"RevisedSamplingInterval", result.revised_sampling_interval_ms},
+              {"RevisedQueueSize", result.revised_queue_size}};
   if (result.filter_result.has_value())
-    json["filterResult"] = *result.filter_result;
+    json["FilterResult"] = *result.filter_result;
   return json;
 }
 
@@ -297,136 +297,138 @@ OpcUaWsMonitoredItemModifyResult DecodeMonitoredItemModifyResult(
     const value& json) {
   const auto& obj = RequireObject(json);
   OpcUaWsMonitoredItemModifyResult result{
-      .status = DecodeStatus(RequireField(obj, "status")),
+      .status = DecodeStatus(RequireField(obj, "Status")),
       .revised_sampling_interval_ms =
-          RequireDouble(RequireField(obj, "revisedSamplingIntervalMs")),
+          RequireDouble(RequireField(obj, "RevisedSamplingInterval")),
       .revised_queue_size = static_cast<scada::UInt32>(
-          RequireUInt64(RequireField(obj, "revisedQueueSize"))),
+          RequireUInt64(RequireField(obj, "RevisedQueueSize"))),
   };
-  if (const auto* field = FindField(obj, "filterResult"))
+  if (const auto* field = FindField(obj, "FilterResult"))
     result.filter_result = *field;
   return result;
 }
 
 value EncodeSubscriptionParameters(
     const OpcUaWsSubscriptionParameters& parameters) {
-  return object{{"publishingIntervalMs", parameters.publishing_interval_ms},
-                {"lifetimeCount", parameters.lifetime_count},
-                {"maxKeepAliveCount", parameters.max_keep_alive_count},
-                {"maxNotificationsPerPublish",
+  return object{{"PublishingInterval", parameters.publishing_interval_ms},
+                {"LifetimeCount", parameters.lifetime_count},
+                {"MaxKeepAliveCount", parameters.max_keep_alive_count},
+                {"MaxNotificationsPerPublish",
                  parameters.max_notifications_per_publish},
-                {"publishingEnabled", parameters.publishing_enabled},
-                {"priority", parameters.priority}};
+                {"PublishingEnabled", parameters.publishing_enabled},
+                {"Priority", parameters.priority}};
 }
 
 OpcUaWsSubscriptionParameters DecodeSubscriptionParameters(const value& json) {
   const auto& obj = RequireObject(json);
   return {.publishing_interval_ms =
-              RequireDouble(RequireField(obj, "publishingIntervalMs")),
+              RequireDouble(RequireField(obj, "PublishingInterval")),
           .lifetime_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "lifetimeCount"))),
+              RequireUInt64(RequireField(obj, "LifetimeCount"))),
           .max_keep_alive_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "maxKeepAliveCount"))),
+              RequireUInt64(RequireField(obj, "MaxKeepAliveCount"))),
           .max_notifications_per_publish = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "maxNotificationsPerPublish"))),
+              RequireUInt64(RequireField(obj, "MaxNotificationsPerPublish"))),
           .publishing_enabled =
-              RequireBool(RequireField(obj, "publishingEnabled")),
+              RequireBool(RequireField(obj, "PublishingEnabled")),
           .priority =
-              static_cast<scada::UInt8>(RequireUInt64(RequireField(obj, "priority")))};
+              static_cast<scada::UInt8>(RequireUInt64(RequireField(obj, "Priority")))};
 }
 
 template <class Response>
 value EncodeMultiStatusResponse(const Response& response) {
-  return object{{"status", EncodeStatus(response.status)},
-                {"results", EncodeList(response.results, EncodeStatusCode)}};
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Results", EncodeList(response.results, EncodeStatusCode)}};
 }
 
 template <class Response>
 Response DecodeMultiStatusResponse(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
           .results = DecodeList<scada::StatusCode>(
-              RequireField(obj, "results"), DecodeStatusCode)};
+              RequireField(obj, "Results"), DecodeStatusCode)};
 }
 
 }  // namespace
 
 value EncodeCreateSubscriptionRequest(
     const OpcUaWsCreateSubscriptionRequest& request) {
-  return object{{"parameters", EncodeSubscriptionParameters(request.parameters)}};
+  return object{{"RequestedParameters",
+                 EncodeSubscriptionParameters(request.parameters)}};
 }
 
 OpcUaWsCreateSubscriptionRequest DecodeCreateSubscriptionRequest(
     const value& json) {
   return {.parameters =
               DecodeSubscriptionParameters(
-                  RequireField(RequireObject(json), "parameters"))};
+                  RequireField(RequireObject(json), "RequestedParameters"))};
 }
 
 value EncodeCreateSubscriptionResponse(
     const OpcUaWsCreateSubscriptionResponse& response) {
   return object{
-      {"status", EncodeStatus(response.status)},
-      {"subscriptionId", response.subscription_id},
-      {"revisedPublishingIntervalMs", response.revised_publishing_interval_ms},
-      {"revisedLifetimeCount", response.revised_lifetime_count},
-      {"revisedMaxKeepAliveCount", response.revised_max_keep_alive_count}};
+      {"Status", EncodeStatus(response.status)},
+      {"SubscriptionId", response.subscription_id},
+      {"RevisedPublishingInterval", response.revised_publishing_interval_ms},
+      {"RevisedLifetimeCount", response.revised_lifetime_count},
+      {"RevisedMaxKeepAliveCount", response.revised_max_keep_alive_count}};
 }
 
 OpcUaWsCreateSubscriptionResponse DecodeCreateSubscriptionResponse(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
           .subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .revised_publishing_interval_ms =
-              RequireDouble(RequireField(obj, "revisedPublishingIntervalMs")),
+              RequireDouble(RequireField(obj, "RevisedPublishingInterval")),
           .revised_lifetime_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "revisedLifetimeCount"))),
+              RequireUInt64(RequireField(obj, "RevisedLifetimeCount"))),
           .revised_max_keep_alive_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "revisedMaxKeepAliveCount")))};
+              RequireUInt64(RequireField(obj, "RevisedMaxKeepAliveCount")))};
 }
 
 value EncodeModifySubscriptionRequest(
     const OpcUaWsModifySubscriptionRequest& request) {
-  return object{{"subscriptionId", request.subscription_id},
-                {"parameters", EncodeSubscriptionParameters(request.parameters)}};
+  return object{{"SubscriptionId", request.subscription_id},
+                {"RequestedParameters",
+                 EncodeSubscriptionParameters(request.parameters)}};
 }
 
 OpcUaWsModifySubscriptionRequest DecodeModifySubscriptionRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .parameters =
-              DecodeSubscriptionParameters(RequireField(obj, "parameters"))};
+              DecodeSubscriptionParameters(RequireField(obj, "RequestedParameters"))};
 }
 
 value EncodeModifySubscriptionResponse(
     const OpcUaWsModifySubscriptionResponse& response) {
   return object{
-      {"status", EncodeStatus(response.status)},
-      {"revisedPublishingIntervalMs", response.revised_publishing_interval_ms},
-      {"revisedLifetimeCount", response.revised_lifetime_count},
-      {"revisedMaxKeepAliveCount", response.revised_max_keep_alive_count}};
+      {"Status", EncodeStatus(response.status)},
+      {"RevisedPublishingInterval", response.revised_publishing_interval_ms},
+      {"RevisedLifetimeCount", response.revised_lifetime_count},
+      {"RevisedMaxKeepAliveCount", response.revised_max_keep_alive_count}};
 }
 
 OpcUaWsModifySubscriptionResponse DecodeModifySubscriptionResponse(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
           .revised_publishing_interval_ms =
-              RequireDouble(RequireField(obj, "revisedPublishingIntervalMs")),
+              RequireDouble(RequireField(obj, "RevisedPublishingInterval")),
           .revised_lifetime_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "revisedLifetimeCount"))),
+              RequireUInt64(RequireField(obj, "RevisedLifetimeCount"))),
           .revised_max_keep_alive_count = static_cast<scada::UInt32>(
-              RequireUInt64(RequireField(obj, "revisedMaxKeepAliveCount")))};
+              RequireUInt64(RequireField(obj, "RevisedMaxKeepAliveCount")))};
 }
 
 value EncodeSetPublishingModeRequest(
     const OpcUaWsSetPublishingModeRequest& request) {
-  return object{{"publishingEnabled", request.publishing_enabled},
-                {"subscriptionIds",
+  return object{{"PublishingEnabled", request.publishing_enabled},
+                {"SubscriptionIds",
                  EncodeList(request.subscription_ids, [](auto id) {
                    return value(static_cast<std::uint64_t>(id));
                  })}};
@@ -436,9 +438,9 @@ OpcUaWsSetPublishingModeRequest DecodeSetPublishingModeRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.publishing_enabled =
-              RequireBool(RequireField(obj, "publishingEnabled")),
+              RequireBool(RequireField(obj, "PublishingEnabled")),
           .subscription_ids = DecodeList<OpcUaWsSubscriptionId>(
-              RequireField(obj, "subscriptionIds"), [](const value& entry) {
+              RequireField(obj, "SubscriptionIds"), [](const value& entry) {
                 return static_cast<OpcUaWsSubscriptionId>(RequireUInt64(entry));
               })};
 }
@@ -455,7 +457,7 @@ OpcUaWsSetPublishingModeResponse DecodeSetPublishingModeResponse(
 
 value EncodeDeleteSubscriptionsRequest(
     const OpcUaWsDeleteSubscriptionsRequest& request) {
-  return object{{"subscriptionIds",
+  return object{{"SubscriptionIds",
                  EncodeList(request.subscription_ids, [](auto id) {
                    return value(static_cast<std::uint64_t>(id));
                  })}};
@@ -464,7 +466,7 @@ value EncodeDeleteSubscriptionsRequest(
 OpcUaWsDeleteSubscriptionsRequest DecodeDeleteSubscriptionsRequest(
     const value& json) {
   return {.subscription_ids = DecodeList<OpcUaWsSubscriptionId>(
-              RequireField(RequireObject(json), "subscriptionIds"),
+              RequireField(RequireObject(json), "SubscriptionIds"),
               [](const value& entry) {
                 return static_cast<OpcUaWsSubscriptionId>(RequireUInt64(entry));
               })};
@@ -483,9 +485,9 @@ OpcUaWsDeleteSubscriptionsResponse DecodeDeleteSubscriptionsResponse(
 value EncodeCreateMonitoredItemsRequest(
     const OpcUaWsCreateMonitoredItemsRequest& request) {
   return object{
-      {"subscriptionId", request.subscription_id},
-      {"timestampsToReturn", EncodeEnum(request.timestamps_to_return)},
-      {"itemsToCreate",
+      {"SubscriptionId", request.subscription_id},
+      {"TimestampsToReturn", EncodeEnum(request.timestamps_to_return)},
+      {"ItemsToCreate",
        EncodeList(request.items_to_create, EncodeMonitoredItemCreateRequest)}};
 }
 
@@ -493,35 +495,35 @@ OpcUaWsCreateMonitoredItemsRequest DecodeCreateMonitoredItemsRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .timestamps_to_return = DecodeEnum<OpcUaWsTimestampsToReturn>(
-              RequireField(obj, "timestampsToReturn")),
+              RequireField(obj, "TimestampsToReturn")),
           .items_to_create = DecodeList<OpcUaWsMonitoredItemCreateRequest>(
-              RequireField(obj, "itemsToCreate"),
+              RequireField(obj, "ItemsToCreate"),
               DecodeMonitoredItemCreateRequest)};
 }
 
 value EncodeCreateMonitoredItemsResponse(
     const OpcUaWsCreateMonitoredItemsResponse& response) {
-  return object{{"status", EncodeStatus(response.status)},
-                {"results",
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Results",
                  EncodeList(response.results, EncodeMonitoredItemCreateResult)}};
 }
 
 OpcUaWsCreateMonitoredItemsResponse DecodeCreateMonitoredItemsResponse(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
           .results = DecodeList<OpcUaWsMonitoredItemCreateResult>(
-              RequireField(obj, "results"), DecodeMonitoredItemCreateResult)};
+              RequireField(obj, "Results"), DecodeMonitoredItemCreateResult)};
 }
 
 value EncodeModifyMonitoredItemsRequest(
     const OpcUaWsModifyMonitoredItemsRequest& request) {
   return object{
-      {"subscriptionId", request.subscription_id},
-      {"timestampsToReturn", EncodeEnum(request.timestamps_to_return)},
-      {"itemsToModify",
+      {"SubscriptionId", request.subscription_id},
+      {"TimestampsToReturn", EncodeEnum(request.timestamps_to_return)},
+      {"ItemsToModify",
        EncodeList(request.items_to_modify, EncodeMonitoredItemModifyRequest)}};
 }
 
@@ -529,33 +531,33 @@ OpcUaWsModifyMonitoredItemsRequest DecodeModifyMonitoredItemsRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .timestamps_to_return = DecodeEnum<OpcUaWsTimestampsToReturn>(
-              RequireField(obj, "timestampsToReturn")),
+              RequireField(obj, "TimestampsToReturn")),
           .items_to_modify = DecodeList<OpcUaWsMonitoredItemModifyRequest>(
-              RequireField(obj, "itemsToModify"),
+              RequireField(obj, "ItemsToModify"),
               DecodeMonitoredItemModifyRequest)};
 }
 
 value EncodeModifyMonitoredItemsResponse(
     const OpcUaWsModifyMonitoredItemsResponse& response) {
-  return object{{"status", EncodeStatus(response.status)},
-                {"results",
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Results",
                  EncodeList(response.results, EncodeMonitoredItemModifyResult)}};
 }
 
 OpcUaWsModifyMonitoredItemsResponse DecodeModifyMonitoredItemsResponse(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.status = DecodeStatus(RequireField(obj, "status")),
+  return {.status = DecodeStatus(RequireField(obj, "Status")),
           .results = DecodeList<OpcUaWsMonitoredItemModifyResult>(
-              RequireField(obj, "results"), DecodeMonitoredItemModifyResult)};
+              RequireField(obj, "Results"), DecodeMonitoredItemModifyResult)};
 }
 
 value EncodeDeleteMonitoredItemsRequest(
     const OpcUaWsDeleteMonitoredItemsRequest& request) {
-  return object{{"subscriptionId", request.subscription_id},
-                {"monitoredItemIds",
+  return object{{"SubscriptionId", request.subscription_id},
+                {"MonitoredItemIds",
                  EncodeList(request.monitored_item_ids, [](auto id) {
                    return value(static_cast<std::uint64_t>(id));
                  })}};
@@ -565,9 +567,9 @@ OpcUaWsDeleteMonitoredItemsRequest DecodeDeleteMonitoredItemsRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .monitored_item_ids = DecodeList<OpcUaWsMonitoredItemId>(
-              RequireField(obj, "monitoredItemIds"), [](const value& entry) {
+              RequireField(obj, "MonitoredItemIds"), [](const value& entry) {
                 return static_cast<OpcUaWsMonitoredItemId>(RequireUInt64(entry));
               })};
 }
@@ -584,9 +586,9 @@ OpcUaWsDeleteMonitoredItemsResponse DecodeDeleteMonitoredItemsResponse(
 
 value EncodeSetMonitoringModeRequest(
     const OpcUaWsSetMonitoringModeRequest& request) {
-  return object{{"subscriptionId", request.subscription_id},
-                {"monitoringMode", EncodeEnum(request.monitoring_mode)},
-                {"monitoredItemIds",
+  return object{{"SubscriptionId", request.subscription_id},
+                {"MonitoringMode", EncodeEnum(request.monitoring_mode)},
+                {"MonitoredItemIds",
                  EncodeList(request.monitored_item_ids, [](auto id) {
                    return value(static_cast<std::uint64_t>(id));
                  })}};
@@ -596,11 +598,11 @@ OpcUaWsSetMonitoringModeRequest DecodeSetMonitoringModeRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
-              RequireUInt64(RequireField(obj, "subscriptionId"))),
+              RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .monitoring_mode = DecodeEnum<OpcUaWsMonitoringMode>(
-              RequireField(obj, "monitoringMode")),
+              RequireField(obj, "MonitoringMode")),
           .monitored_item_ids = DecodeList<OpcUaWsMonitoredItemId>(
-              RequireField(obj, "monitoredItemIds"), [](const value& entry) {
+              RequireField(obj, "MonitoredItemIds"), [](const value& entry) {
                 return static_cast<OpcUaWsMonitoredItemId>(RequireUInt64(entry));
               })};
 }

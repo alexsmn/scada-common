@@ -36,6 +36,11 @@
 > via in-memory certificate/key configuration and TLS loopback integration
 > tests. The remaining common-side gap is the final `server/opcua_ws/`
 > module and its config plumbing.
+>
+> **JSON field casing.** The UA session / subscription / publish message
+> codecs use spec-aligned PascalCase body-field names, while the outer framing
+> keys remain camelCase (`requestHandle`, `service`, `body`). This is covered
+> by codec unit tests and by a live websocket module test.
 
 ## Related documents
 
@@ -155,6 +160,67 @@ coroutine handler → encode-JSON.
   keep-alive. Ping failure triggers `ws::close` with status 1011 and tears
   down the UA session after its normal timeout (so `TransferSubscriptions` on
   reconnect still works if the client races back fast enough).
+
+## JSON field naming
+
+### Rule
+
+In OPC UA JSON encoding, **every JSON object key is the StructureField name
+verbatim**, and StructureField / BrowseName text is **PascalCase** by OPC UA
+modelling convention. So `CreateSessionRequest`'s body fields are
+`SessionName`, `ClientNonce`, `RequestedSessionTimeout`,
+`MaxResponseMessageSize`; `ActivateSessionRequest` uses `AuthenticationToken`,
+etc.
+
+The same rule applies to envelope wrappers in this module's UA-JSON framing
+(`service`, `requestHandle`, `body`) — those are envelope keys we define,
+they are not StructureField names and we keep them camelCase. Only the UA
+service request/response body field names are governed by the spec casing.
+
+### Spec references
+
+- **OPC UA Part 6 §5.4** — JSON data encoding:
+  > The name of field in the JSON object is the name of the field in the
+  > `DataTypeDefinition`.
+  —
+  <https://reference.opcfoundation.org/Core/Part6/v105/docs/5.4>
+- **OPC UA Part 6 §5.1.13** — Name encoding rules (characters / escaping;
+  does not further lower-case names):
+  <https://reference.opcfoundation.org/Core/Part6/v105/docs/5.1.13>
+- **OPC UA Part 14 §7.2.3** — PubSub JSON message mapping; concrete field
+  examples (`MessageId`, `MessageType`, `PublisherId`, `DataSetWriterId`,
+  `SequenceNumber`, `Payload`, `Timestamp`) all PascalCase:
+  <https://reference.opcfoundation.org/Core/Part14/v104/docs/7.2.3>
+- **OPC UA Part 4 §5.6.2** — `CreateSessionRequest` struct definition:
+  `ClientDescription`, `ServerUri`, `EndpointUrl`, `SessionName`,
+  `ClientNonce`, `ClientCertificate`, `RequestedSessionTimeout`,
+  `MaxResponseMessageSize`:
+  <https://reference.opcfoundation.org/Core/Part4/v105/docs/5.6.2>
+- **UA Modelling Best Practices §2 — Naming Conventions**, which defines
+  the PascalCase rule for BrowseNames and StructureField names:
+  <https://reference.opcfoundation.org/Model-Best/v102/docs/2>
+- Reference implementations cross-check:
+  - node-opcua JSON examples use PascalCase:
+    <https://node-opcua.github.io/api_doc/0.1.0/classes/CreateSessionRequest.html>
+
+### Current behavior
+
+- **Message codecs
+  (`common/opcua_ws/opcua_ws_message_codec.cpp`,
+  `opcua_ws_subscription_message_codec.cpp`,
+  `opcua_ws_publish_message_codec.cpp`)** encode and decode PascalCase UA
+  body fields such as `"AuthenticationToken"`,
+  `"RequestedSessionTimeout"`, `"SessionId"`, `"ServerNonce"`,
+  `"SubscriptionId"`, `"Results"`, and the related monitored-item /
+  notification field names.
+- **Codec unit tests**
+  (`common/opcua_ws/opcua_json_codec_unittest.cpp`) check PascalCase session
+  field names explicitly.
+- **Server integration tests**
+  (`server/opcua_ws/opcua_ws_module_unittest.cpp`) send raw PascalCase
+  `CreateSession` / `ActivateSession` JSON over a live websocket connection.
+- **Envelope keys (`service`, `requestHandle`, `body`)** remain camelCase;
+  they are module-defined framing keys, not UA StructureField names.
 
 ## Authentication
 
