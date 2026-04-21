@@ -16,6 +16,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <deque>
 
 using namespace testing;

@@ -244,7 +244,7 @@ OpcUaWsMonitoredItemCreateRequest DecodeMonitoredItemCreateRequest(
 
 value EncodeMonitoredItemCreateResult(
     const OpcUaWsMonitoredItemCreateResult& result) {
-  object json{{"Status", EncodeStatus(result.status)},
+  object json{{"StatusCode", EncodeStatusCode(result.status.code())},
               {"MonitoredItemId", result.monitored_item_id},
               {"RevisedSamplingInterval", result.revised_sampling_interval_ms},
               {"RevisedQueueSize", result.revised_queue_size}};
@@ -256,8 +256,13 @@ value EncodeMonitoredItemCreateResult(
 OpcUaWsMonitoredItemCreateResult DecodeMonitoredItemCreateResult(
     const value& json) {
   const auto& obj = RequireObject(json);
+  const auto* status_field = FindField(obj, "StatusCode");
+  if (!status_field)
+    status_field = FindField(obj, "Status");
+  if (!status_field)
+    ThrowJsonError("Missing required field");
   OpcUaWsMonitoredItemCreateResult result{
-      .status = DecodeStatus(RequireField(obj, "Status")),
+      .status = DecodeStatus(*status_field),
       .monitored_item_id = static_cast<OpcUaWsMonitoredItemId>(
           RequireUInt64(RequireField(obj, "MonitoredItemId"))),
       .revised_sampling_interval_ms =
@@ -289,7 +294,7 @@ OpcUaWsMonitoredItemModifyRequest DecodeMonitoredItemModifyRequest(
 
 value EncodeMonitoredItemModifyResult(
     const OpcUaWsMonitoredItemModifyResult& result) {
-  object json{{"Status", EncodeStatus(result.status)},
+  object json{{"StatusCode", EncodeStatusCode(result.status.code())},
               {"RevisedSamplingInterval", result.revised_sampling_interval_ms},
               {"RevisedQueueSize", result.revised_queue_size}};
   if (result.filter_result.has_value())
@@ -300,8 +305,13 @@ value EncodeMonitoredItemModifyResult(
 OpcUaWsMonitoredItemModifyResult DecodeMonitoredItemModifyResult(
     const value& json) {
   const auto& obj = RequireObject(json);
+  const auto* status_field = FindField(obj, "StatusCode");
+  if (!status_field)
+    status_field = FindField(obj, "Status");
+  if (!status_field)
+    ThrowJsonError("Missing required field");
   OpcUaWsMonitoredItemModifyResult result{
-      .status = DecodeStatus(RequireField(obj, "Status")),
+      .status = DecodeStatus(*status_field),
       .revised_sampling_interval_ms =
           RequireDouble(RequireField(obj, "RevisedSamplingInterval")),
       .revised_queue_size = static_cast<scada::UInt32>(

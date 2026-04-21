@@ -129,7 +129,7 @@ class BeastClient {
                const std::string& origin,
                const std::string& subprotocol) {
     const auto results = resolver_.resolve(host, std::to_string(port));
-    boost::asio::connect(websocket_.next_layer(), results);
+    boost::beast::get_lowest_layer(websocket_).connect(results);
     websocket_.set_option(boost::beast::websocket::stream_base::decorator(
         [origin, subprotocol](boost::beast::websocket::request_type& request) {
           if (!origin.empty())
@@ -142,14 +142,23 @@ class BeastClient {
     websocket_.handshake(host + ":" + std::to_string(port), "/ua");
   }
 
-  std::string Request(const OpcUaWsRequestMessage& request) {
+  void Send(const OpcUaWsRequestMessage& request) {
     const auto payload = boost::json::serialize(EncodeJson(request));
     websocket_.text(true);
     websocket_.write(boost::asio::buffer(payload));
+  }
 
+  std::string Read(std::chrono::milliseconds timeout = std::chrono::seconds{30}) {
+    boost::beast::get_lowest_layer(websocket_).expires_after(timeout);
     boost::beast::flat_buffer buffer;
     websocket_.read(buffer);
+    boost::beast::get_lowest_layer(websocket_).expires_never();
     return boost::beast::buffers_to_string(buffer.data());
+  }
+
+  std::string Request(const OpcUaWsRequestMessage& request) {
+    Send(request);
+    return Read();
   }
 
   void Close() {
@@ -160,7 +169,7 @@ class BeastClient {
  private:
   boost::asio::io_context io_context_;
   boost::asio::ip::tcp::resolver resolver_{io_context_};
-  boost::beast::websocket::stream<boost::asio::ip::tcp::socket> websocket_{
+  boost::beast::websocket::stream<boost::beast::tcp_stream> websocket_{
       io_context_};
 };
 
@@ -483,6 +492,64 @@ TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
   EXPECT_THROW(
       client.Connect("127.0.0.1", port(), "https://evil.local", "opcua+uajson"),
       boost::system::system_error);
+}
+
+TEST_F(OpcUaWsWebSocketServerTest,
+       PublishDoesNotBlockCreateMonitoredItemsOnSameSocket) {
+  StartServer();
+
+  BeastClient client;
+  client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
+
+  const auto create_session = DecodeResponseMessage(
+      boost::json::parse(client.Request(
+          {.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}})));
+  const auto created =
+      std::get<OpcUaWsCreateSessionResponse>(create_session.body);
+
+  const auto activate_session = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 2,
+                      .body = OpcUaWsActivateSessionRequest{
+                          .session_id = created.session_id,
+                          .authentication_token = created.authentication_token,
+                          .user_name = scada::LocalizedText{u"operator"},
+                          .password = scada::LocalizedText{u"secret"}}})));
+  EXPECT_EQ(std::get<OpcUaWsActivateSessionResponse>(activate_session.body)
+                .status.code(),
+            scada::StatusCode::Good);
+
+  const auto create_subscription = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 3,
+                      .body = OpcUaWsCreateSubscriptionRequest{
+                          .parameters = {.publishing_interval_ms = 500,
+                                         .lifetime_count = 60,
+                                         .max_keep_alive_count = 10,
+                                         .publishing_enabled = true}}})));
+  const auto subscription =
+      std::get<OpcUaWsCreateSubscriptionResponse>(create_subscription.body);
+
+  client.Send({.request_handle = 4, .body = OpcUaWsPublishRequest{}});
+  client.Send({.request_handle = 5,
+               .body = OpcUaWsCreateMonitoredItemsRequest{
+                   .subscription_id = subscription.subscription_id,
+                   .items_to_create = {{.item_to_monitor =
+                                            {.node_id = NumericNode(11),
+                                             .attribute_id =
+                                                 scada::AttributeId::Value},
+                                        .requested_parameters =
+                                            {.client_handle = 44,
+                                             .sampling_interval_ms = 0,
+                                             .queue_size = 1,
+                                             .discard_oldest = true}}}}});
+
+  const auto create_items = DecodeResponseMessage(
+      boost::json::parse(client.Read(std::chrono::milliseconds{200})));
+  EXPECT_EQ(create_items.request_handle, 5u);
+  EXPECT_EQ(std::get<OpcUaWsCreateMonitoredItemsResponse>(create_items.body)
+                .status.code(),
+            scada::StatusCode::Good);
+
+  client.Close();
 }
 
 }  // namespace

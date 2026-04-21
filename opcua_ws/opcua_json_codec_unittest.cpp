@@ -1103,6 +1103,16 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
             (std::vector<scada::StatusCode>{scada::StatusCode::Good,
                                             scada::StatusCode::Bad_WrongSubscriptionId}));
 
+  const auto encoded_create_items = EncodeJson(create_items);
+  const auto& encoded_create_items_body =
+      encoded_create_items.at("body").as_object();
+  const auto& encoded_create_items_results =
+      encoded_create_items_body.at("Results").as_array();
+  ASSERT_EQ(encoded_create_items_results.size(), 2u);
+  const auto& first_create_result = encoded_create_items_results[0].as_object();
+  EXPECT_TRUE(first_create_result.if_contains("StatusCode"));
+  EXPECT_FALSE(first_create_result.if_contains("Status"));
+
   const auto decoded_create_items =
       DecodeResponseMessage(EncodeJson(create_items));
   const auto& create_items_body =

@@ -160,11 +160,21 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
             co_return OpcUaWsResponseBody{
                 SessionMissingResponse<OpcUaWsPublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          auto& attached_session = *session;
-          auto ack_results =
-              attached_session.AcknowledgePublishRequest(typed_request);
+          auto ack_results = session->AcknowledgePublishRequest(typed_request);
           for (;;) {
-            auto poll = attached_session.PollPublish();
+            if (connection.closed) {
+              co_return OpcUaWsResponseBody{
+                  SessionMissingResponse<OpcUaWsPublishResponse>()};
+            }
+
+            session = FindAttachedSession(connection);
+            if (!session) {
+              co_return OpcUaWsResponseBody{
+                  SessionMissingResponse<OpcUaWsPublishResponse>()};
+            }
+
+            // cppcheck-suppress nullPointerRedundantCheck
+            auto poll = session->PollPublish();
             if (poll.response.has_value()) {
               poll.response->results = std::move(ack_results);
               co_return OpcUaWsResponseBody{std::move(*poll.response)};

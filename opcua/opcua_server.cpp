@@ -3,6 +3,7 @@
 #include "base/promise.h"
 #include "base/span_util.h"
 #include "opcua/opcua_conversion.h"
+#include "opcua/opcua_endpoint_core.h"
 #include "scada/attribute_service.h"
 #include "scada/event_util.h"
 #include "scada/expanded_node_id.h"
@@ -312,7 +313,8 @@ OpcUaServer::~OpcUaServer() {
 void OpcUaServer::Read(OpcUa_ReadRequest& request,
                        const opcua::server::ReadCallback& callback) {
   const auto timestamps_to_return = request.TimestampsToReturn;
-  attribute_service_.Read(
+  scada::opcua_endpoint::Read(
+      attribute_service_,
       service_context_,
       std::make_shared<std::vector<scada::ReadValueId>>(
           ConvertVector<scada::ReadValueId>(
@@ -346,7 +348,8 @@ void OpcUaServer::Read(OpcUa_ReadRequest& request,
 void OpcUaServer::Write(
     OpcUa_WriteRequest& request,
     const opcua::server::SimpleCallback<OpcUa_WriteResponse>& callback) {
-  attribute_service_.Write(
+  scada::opcua_endpoint::Write(
+      attribute_service_,
       service_context_,
       std::make_shared<std::vector<scada::WriteValue>>(
           ConvertVector<scada::WriteValue>(
@@ -369,7 +372,8 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
   const auto inputs = std::make_shared<opcua::Vector<OpcUa_BrowseDescription>>(
       opcua::Attach{}, request.NodesToBrowse, request.NoOfNodesToBrowse);
 
-  view_service_.Browse(
+  scada::opcua_endpoint::Browse(
+      view_service_, service_context_,
       service_context_, ConvertVector<scada::BrowseDescription>(*inputs),
       [this, inputs, callback](scada::Status&& status,
                                std::vector<scada::BrowseResult>&& results) {
@@ -405,7 +409,8 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
 void OpcUaServer::TranslateBrowsePaths(
     OpcUa_TranslateBrowsePathsToNodeIdsRequest& request,
     const opcua::server::TranslateBrowsePathsToNodeIdsCallback& callback) {
-  view_service_.TranslateBrowsePaths(
+  scada::opcua_endpoint::TranslateBrowsePaths(
+      view_service_,
       ConvertVector<scada::BrowsePath>(
           opcua::MakeSpan(request.BrowsePaths, request.NoOfBrowsePaths)),
       [callback](scada::Status&& status,

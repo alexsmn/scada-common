@@ -3,9 +3,12 @@
 #include "base/awaitable.h"
 #include "opcua_ws/opcua_json_codec.h"
 
+#include <transport/write_queue.h>
+
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -17,6 +20,16 @@ template <typename T>
 std::span<const char> AsCharSpan(const T& container) {
   return {reinterpret_cast<const char*>(container.data()), container.size()};
 }
+
+struct ConnectionTaskState {
+  explicit ConnectionTaskState(transport::any_transport transport)
+      : transport{std::move(transport)},
+        write_queue{this->transport} {}
+
+  transport::any_transport transport;
+  transport::WriteQueue write_queue;
+  OpcUaWsConnectionState connection;
+};
 
 }  // namespace
 
@@ -65,39 +78,57 @@ Awaitable<void> OpcUaWsServer::AcceptLoop() {
 }
 
 Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport) {
-  [[maybe_unused]] auto open_result = co_await transport.open();
-
-  OpcUaWsConnectionState connection;
+  auto state =
+      std::make_shared<ConnectionTaskState>(std::move(transport));
+  [[maybe_unused]] auto open_result = co_await state->transport.open();
   std::vector<char> buffer(max_message_size);
 
   for (;;) {
-    auto read_result = co_await transport.read(buffer);
+    auto read_result = co_await state->transport.read(buffer);
     if (!read_result.ok() || *read_result == 0)
       break;
 
-    OpcUaWsResponseMessage response;
+    std::optional<OpcUaWsRequestMessage> request;
+    bool parse_failed = false;
     try {
       const std::string_view payload{buffer.data(), *read_result};
-      response = co_await runtime.Handle(
-          connection, DecodeRequestMessage(boost::json::parse(payload)));
+      request = DecodeRequestMessage(boost::json::parse(payload));
     } catch (...) {
-      response = {.request_handle = 0,
-                  .body = OpcUaWsServiceFault{
-                  .status = scada::StatusCode::Bad_CantParseString}};
+      parse_failed = true;
     }
 
-    auto encoded = boost::json::serialize(EncodeJson(response));
-    if (encoded.size() > max_message_size)
-      break;
+    if (parse_failed) {
+      auto encoded = boost::json::serialize(EncodeJson(OpcUaWsResponseMessage{
+          .request_handle = 0,
+          .body = OpcUaWsServiceFault{
+              .status = scada::StatusCode::Bad_CantParseString}}));
+      if (encoded.size() > max_message_size)
+        break;
 
-    auto write_result =
-        co_await transport.write(AsCharSpan(encoded));
-    if (!write_result.ok())
-      break;
+      auto write_result = co_await state->write_queue.Write(AsCharSpan(encoded));
+      if (!write_result.ok())
+        break;
+      continue;
+    }
+
+    CoSpawn(
+        state->transport.get_executor(),
+        [this, state, request = std::move(*request)]() mutable
+            -> Awaitable<void> {
+          auto response =
+              co_await runtime.Handle(state->connection, std::move(request));
+          auto encoded = boost::json::serialize(EncodeJson(response));
+          if (encoded.size() > max_message_size)
+            co_return;
+
+          [[maybe_unused]] auto write_result =
+              co_await state->write_queue.Write(AsCharSpan(encoded));
+        });
   }
 
-  runtime.Detach(connection);
-  [[maybe_unused]] auto close_result = co_await transport.close();
+  state->connection.closed = true;
+  runtime.Detach(state->connection);
+  [[maybe_unused]] auto close_result = co_await state->transport.close();
 }
 
 }  // namespace opcua_ws

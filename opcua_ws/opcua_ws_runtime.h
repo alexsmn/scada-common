@@ -15,6 +15,7 @@ namespace opcua_ws {
 
 struct OpcUaWsConnectionState {
   std::optional<scada::NodeId> authentication_token;
+  bool closed = false;
 };
 
 struct OpcUaWsRuntimeContext {

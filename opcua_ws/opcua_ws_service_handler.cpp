@@ -1,25 +1,13 @@
 #include "opcua_ws/opcua_ws_service_handler.h"
 
+#include "opcua/opcua_endpoint_core.h"
+
 #include "scada/service_awaitable.h"
 
 #include <type_traits>
 #include <utility>
 
 namespace opcua_ws {
-
-namespace {
-
-constexpr unsigned kBadNodeIdUnknownFullCode = 0x80340000u;
-
-scada::DataValue NormalizeReadResult(scada::DataValue result) {
-  if (result.status_code == scada::StatusCode::Bad_WrongNodeId) {
-    result.status_code =
-        scada::Status::FromFullCode(kBadNodeIdUnknownFullCode).code();
-  }
-  return result;
-}
-
-}  // namespace
 
 OpcUaWsServiceHandler::OpcUaWsServiceHandler(
     OpcUaWsServiceHandlerContext&& context)
@@ -63,22 +51,21 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
 
 Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleRead(
     ReadRequest request) const {
-  auto service_context = scada::ServiceContext{}.with_user_id(user_id);
   auto [status, results] = co_await scada::ReadAsync(
-      executor, attribute_service, std::move(service_context),
+      executor, attribute_service,
+      scada::opcua_endpoint::MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::ReadValueId>>(
           std::move(request.inputs)));
-  for (auto& result : results)
-    result = NormalizeReadResult(std::move(result));
+  results = scada::opcua_endpoint::NormalizeReadResults(std::move(results));
   co_return OpcUaWsServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleWrite(
     WriteRequest request) const {
-  auto service_context = scada::ServiceContext{}.with_user_id(user_id);
   auto [status, results] = co_await scada::WriteAsync(
-      executor, attribute_service, service_context,
+      executor, attribute_service,
+      scada::opcua_endpoint::MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::WriteValue>>(
           std::move(request.inputs)));
   co_return OpcUaWsServiceResponse{
