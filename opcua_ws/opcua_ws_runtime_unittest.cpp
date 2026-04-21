@@ -11,6 +11,7 @@
 #include "scada/test/test_monitored_item.h"
 #include "scada/view_service_mock.h"
 
+#include <future>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -118,6 +119,7 @@ class OpcUaWsRuntimeTest : public Test {
           .history_service = history_service_,
           .method_service = method_service_,
           .node_management_service = node_management_service_,
+          .now = [this] { return now_; },
       });
 };
 
@@ -376,6 +378,61 @@ TEST_F(OpcUaWsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints
   ASSERT_NE(invalid, nullptr);
   ASSERT_EQ(invalid->results.size(), 1u);
   EXPECT_EQ(invalid->results[0].status_code, scada::StatusCode::Bad_WrongIndex);
+}
+
+TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
+  OpcUaWsConnectionState connection;
+  CreateAndActivate(connection);
+
+  const auto created_subscription = Handle(
+      connection,
+      OpcUaWsCreateSubscriptionRequest{
+          .parameters = {.publishing_interval_ms = 100,
+                         .lifetime_count = 60,
+                         .max_keep_alive_count = 3,
+                         .publishing_enabled = true}},
+      3);
+  ASSERT_NE(
+      std::get_if<OpcUaWsCreateSubscriptionResponse>(&created_subscription.body),
+      nullptr);
+
+  promise<OpcUaWsResponseMessage> publish_promise;
+  CoSpawn(MakeTestAnyExecutor(executor_),
+          [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
+            try {
+              publish_promise.resolve(
+                  co_await runtime_->Handle(connection,
+                                            {.request_handle = 4,
+                                             .body = OpcUaWsPublishRequest{}}));
+            } catch (...) {
+              publish_promise.reject(std::current_exception());
+            }
+          });
+
+  const auto drain_ready = [&] {
+    for (size_t i = 0; i < 8; ++i)
+      executor_->Poll();
+  };
+
+  drain_ready();
+  EXPECT_EQ(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(299);
+  executor_->Advance(299ms);
+  drain_ready();
+  EXPECT_EQ(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(1);
+  executor_->Advance(1ms);
+  drain_ready();
+  ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+
+  const auto publish_message = publish_promise.get();
+  const auto* publish = std::get_if<OpcUaWsPublishResponse>(&publish_message.body);
+  ASSERT_NE(publish, nullptr);
+  EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(publish->notification_message.sequence_number, 0u);
+  EXPECT_TRUE(publish->notification_message.notification_data.empty());
 }
 
 }  // namespace

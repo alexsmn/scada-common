@@ -335,28 +335,31 @@ Current implementation note:
 - The transport-independent per-subscription Phase 1 runtime is now in place
   under `common/opcua_ws/opcua_ws_subscription.{h,cpp}` with unit tests. It
   binds monitored items through `MonitoredItemService`, maintains per-item
-  notification queues, emits keep-alive `PublishResponse`s while publishing is
-  enabled, tracks retransmit state for `Republish`, applies acknowledgements,
-  ignores stale callbacks after monitored-item rebind/delete, and projects the
-  default browser event-field set (`EventId`, `EventType`, `SourceNode`,
-  `SourceName`, `Time`, `Message`, `Severity`) from `scada::Event` payloads.
+  notification queues, gates data and keep-alive delivery on the revised
+  publishing interval / keep-alive count, tracks retransmit state for
+  `Republish`, applies acknowledgements, ignores stale callbacks after
+  monitored-item rebind/delete, and projects the default browser event-field
+  set (`EventId`, `EventType`, `SourceNode`, `SourceName`, `Time`, `Message`,
+  `Severity`) from `scada::Event` payloads.
 - The transport-independent live-session Phase 1 runtime is now in place under
   `common/opcua_ws/opcua_ws_session.{h,cpp}` with unit tests. It owns
   subscription creation / deletion, routes monitored-item operations to the
   correct subscription, aggregates `PublishRequest` acknowledgements, drains
-  subscriptions fairly in round-robin order, primes and forwards keep-alives,
-  can transfer live subscription ownership between session instances
-  in-memory, and now also pages `Browse` results into session-scoped
-  continuation points consumed or released through `BrowseNext`.
+  subscriptions fairly in round-robin order, computes the next publish deadline
+  across live subscriptions, can transfer live subscription ownership between
+  session instances in-memory, and now also pages `Browse` results into
+  session-scoped continuation points consumed or released through `BrowseNext`.
 - The transport-independent decoded-request router is now in place under
   `common/opcua_ws/opcua_ws_runtime.{h,cpp}` with unit tests. It ties
   `OpcUaWsSessionManager`, `OpcUaWsSession`, and `OpcUaWsServiceHandler`
   together for decoded WS envelopes: `CreateSession` / `ActivateSession` /
-  `CloseSession`, subscription and monitored-item messages, `Publish` /
+  `CloseSession`, subscription and monitored-item messages, parked `Publish` /
   `Republish`, detach/resume on reconnect, and the already-implemented Phase
-  0/2/3 service-dispatch set. It also tracks subscription ownership globally
-  so `TransferSubscriptions` can move subscriptions between live sessions
-  without direct session references at the call site.
+  0/2/3 service-dispatch set. Parked `PublishRequest`s are held on the
+  executor until the next session publish deadline instead of being answered
+  immediately with an empty payload. It also tracks subscription ownership
+  globally so `TransferSubscriptions` can move subscriptions between live
+  sessions without direct session references at the call site.
 - The message-oriented accepted-transport server loop is now in place under
   `common/opcua_ws/opcua_ws_server.{h,cpp}` with unit tests. It opens an
   accepted transport, reads framed JSON messages, decodes
@@ -449,6 +452,7 @@ Covers the coroutine dispatch layer for:
 Covers the transport-independent per-subscription runtime for:
 
 - data-change publish delivery
+- publishing-interval gating before data/keep-alive delivery
 - acknowledgement and `Republish` replay behavior
 - keep-alive generation
 - publishing-disabled queue retention
@@ -473,6 +477,7 @@ Covers the transport-independent decoded-request runtime for:
 
 - envelope routing through activated sessions
 - `Browse` paging and `BrowseNext` continuation-point routing
+- parked `PublishRequest` wake-up on keep-alive deadline
 - detach/resume preserving live subscription state
 - `TransferSubscriptions` via global subscription ownership
 - `CloseSession` removing live runtime state

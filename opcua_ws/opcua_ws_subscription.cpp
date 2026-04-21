@@ -81,9 +81,26 @@ void OpcUaWsSubscription::SetPublishingEnabled(bool publishing_enabled) {
 }
 
 bool OpcUaWsSubscription::IsPublishReady(base::Time now) const {
-  if (!parameters_.publishing_enabled)
+  if (!parameters_.publishing_enabled || !last_publish_time_.has_value())
     return false;
-  return !pending_notifications_.empty() || IsKeepAliveDue(now);
+  if (!pending_notifications_.empty()) {
+    return now - *last_publish_time_ >= PublishingInterval();
+  }
+  return IsKeepAliveDue(now);
+}
+
+void OpcUaWsSubscription::PrimePublishCycle(base::Time now) {
+  if (!parameters_.publishing_enabled || last_publish_time_.has_value())
+    return;
+  last_publish_time_ = now;
+}
+
+std::optional<base::Time> OpcUaWsSubscription::NextPublishDeadline() const {
+  if (!parameters_.publishing_enabled || !last_publish_time_.has_value())
+    return std::nullopt;
+  return *last_publish_time_ +
+         (pending_notifications_.empty() ? KeepAliveInterval()
+                                         : PublishingInterval());
 }
 
 OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
@@ -233,11 +250,8 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
   if (!parameters_.publishing_enabled)
     return std::nullopt;
 
+  PrimePublishCycle(now);
   if (pending_notifications_.empty()) {
-    if (!last_publish_time_.has_value()) {
-      last_publish_time_ = now;
-      return std::nullopt;
-    }
     if (!IsKeepAliveDue(now))
       return std::nullopt;
 
@@ -250,6 +264,9 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
         .notification_message = {.sequence_number = 0, .publish_time = now},
         .results = {}};
   }
+
+  if (!IsPublishReady(now))
+    return std::nullopt;
 
   auto queued = std::move(pending_notifications_.front());
   pending_notifications_.pop_front();
@@ -327,12 +344,18 @@ std::vector<scada::UInt32> OpcUaWsSubscription::AvailableSequenceNumbers()
   return result;
 }
 
-base::TimeDelta OpcUaWsSubscription::KeepAliveInterval() const {
+base::TimeDelta OpcUaWsSubscription::PublishingInterval() const {
   const auto interval_ms =
-      static_cast<int64_t>(parameters_.publishing_interval_ms *
+      static_cast<int64_t>(parameters_.publishing_interval_ms);
+  return base::TimeDelta::FromMilliseconds(std::max<int64_t>(1, interval_ms));
+}
+
+base::TimeDelta OpcUaWsSubscription::KeepAliveInterval() const {
+  const auto interval_ms = static_cast<int64_t>(PublishingInterval().InMilliseconds()) *
+      static_cast<int64_t>(
                            std::max<scada::UInt32>(1,
                                                    parameters_.max_keep_alive_count));
-  return base::TimeDelta::FromMilliseconds(std::max<int64_t>(1, interval_ms));
+  return base::TimeDelta::FromMilliseconds(interval_ms);
 }
 
 bool OpcUaWsSubscription::IsKeepAliveDue(base::Time now) const {

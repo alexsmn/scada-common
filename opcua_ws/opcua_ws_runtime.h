@@ -2,6 +2,7 @@
 
 #include "base/awaitable.h"
 #include "base/executor.h"
+#include "base/time/time.h"
 #include "opcua_ws/opcua_ws_message.h"
 #include "opcua_ws/opcua_ws_service_handler.h"
 #include "opcua_ws/opcua_ws_session.h"
@@ -25,6 +26,7 @@ struct OpcUaWsRuntimeContext {
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
+  std::function<base::Time()> now = &base::Time::Now;
 };
 
 class OpcUaWsRuntime : private OpcUaWsRuntimeContext {
@@ -55,6 +57,7 @@ class OpcUaWsRuntime : private OpcUaWsRuntimeContext {
   [[nodiscard]] Awaitable<OpcUaWsResponseBody> HandleActivateSession(
       OpcUaWsConnectionState& connection,
       OpcUaWsActivateSessionRequest request);
+  [[nodiscard]] Awaitable<void> Delay(base::TimeDelta delay) const;
 
   SessionMap sessions_;
   std::unordered_map<OpcUaWsSubscriptionId, scada::NodeId> subscription_owners_;

@@ -26,6 +26,8 @@ class OpcUaWsSubscription {
     return !pending_notifications_.empty();
   }
   bool IsPublishReady(base::Time now) const;
+  void PrimePublishCycle(base::Time now);
+  std::optional<base::Time> NextPublishDeadline() const;
 
   OpcUaWsModifySubscriptionResponse Modify(
       const OpcUaWsModifySubscriptionRequest& request);
@@ -68,6 +70,7 @@ class OpcUaWsSubscription {
 
   scada::StatusCode Acknowledge(scada::UInt32 sequence_number);
   std::vector<scada::UInt32> AvailableSequenceNumbers() const;
+  base::TimeDelta PublishingInterval() const;
   base::TimeDelta KeepAliveInterval() const;
   bool IsKeepAliveDue(base::Time now) const;
 

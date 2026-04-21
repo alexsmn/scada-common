@@ -146,7 +146,7 @@ OpcUaWsSetMonitoringModeResponse OpcUaWsSession::SetMonitoringMode(
   return subscription->SetMonitoringMode(request);
 }
 
-OpcUaWsPublishResponse OpcUaWsSession::Publish(
+std::vector<scada::StatusCode> OpcUaWsSession::AcknowledgePublishRequest(
     const OpcUaWsPublishRequest& request) {
   std::vector<scada::StatusCode> ack_results(
       request.subscription_acknowledgements.size(), scada::StatusCode::Good);
@@ -178,37 +178,70 @@ OpcUaWsPublishResponse OpcUaWsSession::Publish(
       ack_results[group[i].first] = results[i];
   }
 
+  return ack_results;
+}
+
+OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
   const auto now_time = Now();
   const auto pending_index = FindNextReadySubscription(now_time, true);
   const auto publish_index =
       pending_index != kNotFound ? pending_index
                                  : FindNextReadySubscription(now_time, false);
   if (publish_index == kNotFound) {
-    if (!publish_order_.empty()) {
-      const auto subscription_id =
-          publish_order_[next_publish_index_ % publish_order_.size()];
-      if (auto* subscription = FindSubscription(subscription_id))
-        [[maybe_unused]] auto primed = subscription->TryPublish(now_time);
+    if (subscriptions_.empty()) {
+      return {.response = OpcUaWsPublishResponse{
+                  .status = scada::StatusCode::Bad_NothingToDo}};
     }
-    return {.status = subscriptions_.empty() ? scada::StatusCode::Bad_NothingToDo
-                                             : scada::StatusCode::Good,
-            .results = std::move(ack_results)};
+
+    std::optional<base::Time> earliest_deadline;
+    for (const auto subscription_id : publish_order_) {
+      auto* subscription = FindSubscription(subscription_id);
+      if (!subscription)
+        continue;
+      subscription->PrimePublishCycle(now_time);
+      const auto deadline = subscription->NextPublishDeadline();
+      if (!deadline.has_value())
+        continue;
+      earliest_deadline =
+          !earliest_deadline.has_value() || *deadline < *earliest_deadline
+              ? deadline
+              : earliest_deadline;
+    }
+
+    if (!earliest_deadline.has_value()) {
+      return {.response = OpcUaWsPublishResponse{
+                  .status = scada::StatusCode::Good}};
+    }
+
+    return {.wait_for = std::max(base::TimeDelta{}, *earliest_deadline - now_time)};
   }
 
   const auto subscription_id = publish_order_[publish_index];
   auto* subscription = FindSubscription(subscription_id);
   if (!subscription) {
-    return {.status = scada::StatusCode::Bad, .results = std::move(ack_results)};
+    return {.response = OpcUaWsPublishResponse{.status = scada::StatusCode::Bad}};
   }
 
   auto published = subscription->TryPublish(now_time);
   if (!published.has_value()) {
-    return {.status = scada::StatusCode::Good, .results = std::move(ack_results)};
+    return {.response = OpcUaWsPublishResponse{.status = scada::StatusCode::Good}};
   }
 
-  published->results = std::move(ack_results);
   AdvancePublishCursorAfter(publish_index);
-  return *published;
+  return {.response = std::move(published)};
+}
+
+OpcUaWsPublishResponse OpcUaWsSession::Publish(
+    const OpcUaWsPublishRequest& request) {
+  auto ack_results = AcknowledgePublishRequest(request);
+  auto poll = PollPublish();
+  if (!poll.response.has_value()) {
+    return {.status = subscriptions_.empty() ? scada::StatusCode::Bad_NothingToDo
+                                             : scada::StatusCode::Good,
+            .results = std::move(ack_results)};
+  }
+  poll.response->results = std::move(ack_results);
+  return *poll.response;
 }
 
 OpcUaWsRepublishResponse OpcUaWsSession::Republish(

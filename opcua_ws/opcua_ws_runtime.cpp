@@ -1,5 +1,7 @@
 #include "opcua_ws/opcua_ws_runtime.h"
 
+#include "base/callback_awaitable.h"
+
 #include <algorithm>
 #include <type_traits>
 #include <utility>
@@ -80,6 +82,21 @@ void OpcUaWsRuntime::RemoveSessionSubscriptions(
                 });
 }
 
+Awaitable<void> OpcUaWsRuntime::Delay(base::TimeDelta delay) const {
+  if (delay <= base::TimeDelta{})
+    co_return;
+
+  co_await CallbackToAwaitable<>(this->executor,
+                                 [executor = this->executor, delay](auto done) mutable {
+                                   executor->PostDelayedTask(
+                                       std::chrono::milliseconds{
+                                           delay.InMilliseconds()},
+                                       [done = std::move(done)]() mutable {
+                                         done();
+                                       });
+                                 });
+}
+
 Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
     OpcUaWsConnectionState& connection,
     OpcUaWsRequestBody request) {
@@ -143,7 +160,22 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
             co_return OpcUaWsResponseBody{
                 SessionMissingResponse<OpcUaWsPublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaWsResponseBody{session->Publish(typed_request)};
+          auto& attached_session = *session;
+          auto ack_results =
+              attached_session.AcknowledgePublishRequest(typed_request);
+          for (;;) {
+            auto poll = attached_session.PollPublish();
+            if (poll.response.has_value()) {
+              poll.response->results = std::move(ack_results);
+              co_return OpcUaWsResponseBody{std::move(*poll.response)};
+            }
+            if (!poll.wait_for.has_value()) {
+              co_return OpcUaWsResponseBody{
+                  OpcUaWsPublishResponse{.status = scada::StatusCode::Good,
+                                         .results = std::move(ack_results)}};
+            }
+            co_await Delay(*poll.wait_for);
+          }
         } else if constexpr (std::is_same_v<T, OpcUaWsRepublishRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
@@ -321,6 +353,7 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleActivateSession(
         .authentication_token = request.authentication_token,
         .service_context = response.service_context,
         .monitored_item_service = this->monitored_item_service,
+        .now = this->now,
     });
     sessions_[request.authentication_token] = session;
   }

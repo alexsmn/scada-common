@@ -153,6 +153,58 @@ TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled
 }
 
 TEST(OpcUaWsSubscriptionTest,
+     WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
+  TestMonitoredItemService monitored_item_service;
+  OpcUaWsSubscription subscription{
+      37,
+      {.publishing_interval_ms = 100,
+       .lifetime_count = 60,
+       .max_keep_alive_count = 3,
+       .max_notifications_per_publish = 0,
+       .publishing_enabled = true,
+       .priority = 0},
+      monitored_item_service};
+
+  const auto create = subscription.CreateMonitoredItems(
+      {.subscription_id = 37,
+       .items_to_create = {{.item_to_monitor =
+                                {.node_id = NumericNode(3701),
+                                 .attribute_id = scada::AttributeId::Value},
+                            .requested_parameters =
+                                {.client_handle = 37,
+                                 .sampling_interval_ms = 0,
+                                 .queue_size = 1,
+                                 .discard_oldest = true}}}});
+  ASSERT_EQ(create.results.size(), 1u);
+  ASSERT_EQ(monitored_item_service.items.size(), 1u);
+
+  const auto start = ParseTime("2026-04-20 11:30:00");
+  EXPECT_FALSE(subscription.TryPublish(start).has_value());
+
+  monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
+      scada::Variant{37.0}, {}, start, start});
+  EXPECT_FALSE(subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(99))
+                   .has_value());
+
+  const auto data_publish =
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
+  ASSERT_TRUE(data_publish.has_value());
+  const auto* data =
+      std::get_if<OpcUaWsDataChangeNotification>(
+          &data_publish->notification_message.notification_data[0]);
+  ASSERT_NE(data, nullptr);
+  EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 37.0);
+
+  EXPECT_FALSE(subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(399))
+                   .has_value());
+  const auto keep_alive =
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(400));
+  ASSERT_TRUE(keep_alive.has_value());
+  EXPECT_EQ(keep_alive->notification_message.sequence_number, 0u);
+  EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
+}
+
+TEST(OpcUaWsSubscriptionTest,
      ProjectsDefaultEventFieldsAndDropsOldQueuedEventsByQueueSize) {
   TestMonitoredItemService monitored_item_service;
   OpcUaWsSubscription subscription{

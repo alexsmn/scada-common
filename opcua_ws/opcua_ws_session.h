@@ -25,6 +25,11 @@ struct OpcUaWsSessionContext {
 
 class OpcUaWsSession : private OpcUaWsSessionContext {
  public:
+  struct PublishPollResult {
+    std::optional<OpcUaWsPublishResponse> response;
+    std::optional<base::TimeDelta> wait_for;
+  };
+
   explicit OpcUaWsSession(OpcUaWsSessionContext&& context);
 
   const scada::NodeId& GetSessionId() const {
@@ -61,6 +66,9 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
   OpcUaWsSetMonitoringModeResponse SetMonitoringMode(
       const OpcUaWsSetMonitoringModeRequest& request);
 
+  std::vector<scada::StatusCode> AcknowledgePublishRequest(
+      const OpcUaWsPublishRequest& request);
+  PublishPollResult PollPublish();
   OpcUaWsPublishResponse Publish(const OpcUaWsPublishRequest& request);
   OpcUaWsRepublishResponse Republish(const OpcUaWsRepublishRequest& request) const;
   BrowseResponse StoreBrowseResults(BrowseResponse response,
