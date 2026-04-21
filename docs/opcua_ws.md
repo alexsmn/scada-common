@@ -222,6 +222,22 @@ service request/response body field names are governed by the spec casing.
 - **Envelope keys (`service`, `requestHandle`, `body`)** remain camelCase;
   they are module-defined framing keys, not UA StructureField names.
 
+### Current UA-JSON service shape
+
+- Service response `Status` values are encoded as raw JSON numbers, matching
+  the OPC UA `StatusCode` wire form. The decoders still accept the older
+  `{ "fullCode": N }` shape for compatibility.
+- `Read`, `Write`, `Browse`, and `TranslateBrowsePathsToNodeIds` use the
+  spec request fields `NodesToRead`, `NodesToWrite`, `NodesToBrowse`, and
+  `BrowsePaths`.
+- `Call` uses `MethodsToCall` / `InputArguments`, and `CallResponse`
+  result entries use `StatusCode`, `InputArgumentResults`, and
+  `OutputArguments`.
+- Node-management requests use `NodesToAdd`, `NodesToDelete`,
+  `ReferencesToAdd`, `ReferencesToDelete`, and `IsForward`.
+- `BrowseResult.ContinuationPoint` is omitted when empty instead of being
+  emitted as an empty JSON value.
+
 ## Authentication
 
 On `ActivateSessionRequest`, `OpcUaWsSession` constructs the same

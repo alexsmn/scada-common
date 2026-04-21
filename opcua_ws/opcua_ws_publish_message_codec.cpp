@@ -60,13 +60,17 @@ std::uint64_t RequireUInt64(const value& json) {
 }
 
 value EncodeStatus(const scada::Status& status) {
-  return object{{"fullCode", status.full_code()}};
+  return static_cast<std::uint64_t>(status.full_code());
 }
 
 scada::Status DecodeStatus(const value& json) {
+  if (json.is_uint64() || (json.is_int64() && json.as_int64() >= 0)) {
+    return scada::Status::FromFullCode(
+        static_cast<unsigned>(RequireUInt64(json)));
+  }
   const auto& obj = RequireObject(json);
-  return scada::Status::FromFullCode(
-      static_cast<unsigned>(RequireUInt64(RequireField(obj, "fullCode"))));
+  return scada::Status::FromFullCode(static_cast<unsigned>(
+      RequireUInt64(RequireField(obj, "fullCode"))));
 }
 
 value EncodeStatusCode(scada::StatusCode status_code) {
@@ -113,19 +117,22 @@ value EncodeVariant(const scada::Variant& variant) {
                    .arguments = {variant}}}};
   const auto service_json = RequireObject(EncodeJson(OpcUaWsServiceRequest{request}));
   const auto& body = RequireObject(RequireField(service_json, "body"));
-  const auto& methods = RequireArray(RequireField(body, "methods"));
-  return RequireArray(RequireField(RequireObject(methods.front()), "arguments"))
+  const auto& methods = RequireArray(RequireField(body, "MethodsToCall"));
+  return RequireArray(
+             RequireField(RequireObject(methods.front()), "InputArguments"))
       .front();
 }
 
 scada::Variant DecodeVariant(const value& json) {
+  object method;
+  method["ObjectId"] = "i=0";
+  method["MethodId"] = "i=0";
+  method["InputArguments"] = array{json};
+  object body;
+  body["MethodsToCall"] = array{std::move(method)};
   const object wrapper{
       {"service", "Call"},
-      {"body",
-       object{{"methods",
-               array{object{{"objectId", "i=0"},
-                            {"methodId", "i=0"},
-                            {"arguments", array{json}}}}}}}};
+      {"body", std::move(body)}};
   const auto request = std::get<CallRequest>(DecodeServiceRequest(wrapper));
   return request.methods.front().arguments.front();
 }
@@ -136,15 +143,15 @@ value EncodeDataValue(const scada::DataValue& data_value) {
   const auto service_json =
       RequireObject(EncodeJson(OpcUaWsServiceResponse{response}));
   const auto& body = RequireObject(RequireField(service_json, "body"));
-  return RequireArray(RequireField(body, "results")).front();
+  return RequireArray(RequireField(body, "Results")).front();
 }
 
 scada::DataValue DecodeDataValue(const value& json) {
   const object wrapper{
       {"service", "Read"},
       {"body",
-       object{{"status", object{{"fullCode", 0u}}},
-              {"results", array{json}}}}};
+       object{{"Status", 0u},
+              {"Results", array{json}}}}};
   const auto response = std::get<ReadResponse>(DecodeServiceResponse(wrapper));
   return response.results.front();
 }

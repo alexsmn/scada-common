@@ -7,6 +7,8 @@
 #include <boost/json/serialize.hpp>
 #include <gtest/gtest.h>
 
+#include <optional>
+
 using namespace testing;
 
 namespace opcua_ws {
@@ -20,6 +22,135 @@ base::Time ParseTime(std::string_view value) {
   base::Time result;
   EXPECT_TRUE(Deserialize(value, result));
   return result;
+}
+
+// Pin the spec wire shape (Part 6 §5.4.2.10–17) for the primitive codecs by
+// asserting on the literal JSON the codec emits when wrapping each primitive
+// inside a Read response (the smallest envelope that carries DataValue and
+// Variant). Future regressions surface here without needing the full e2e.
+TEST(OpcUaJsonCodecTest, ReadResponseWireShapeMatchesSpec) {
+  ReadResponse read{
+      .status = scada::StatusCode::Good,
+      .results = {
+          scada::DataValue{scada::Variant{scada::Int32{42}},
+                           scada::Qualifier{scada::Qualifier::MANUAL},
+                           ParseTime("2026-04-19 10:00:00"),
+                           ParseTime("2026-04-19 10:00:01")}}};
+  // Force a non-default status_code so it lands on the wire.
+  read.results[0].status_code = scada::StatusCode::Bad_Disconnected;
+
+  const auto encoded = EncodeJson(OpcUaWsServiceResponse{read});
+  ASSERT_TRUE(encoded.is_object());
+  const auto& body = encoded.as_object().at("body").as_object();
+  ASSERT_TRUE(body.contains("Status"));
+  ASSERT_TRUE(body.contains("Results"));
+  EXPECT_TRUE(body.at("Status").is_uint64());
+  EXPECT_EQ(body.at("Status").as_uint64(), 0u);
+  const auto& dv = body.at("Results").as_array().at(0).as_object();
+
+  // §5.4.2.17: Status (not StatusCode), Source/ServerTimestamp present;
+  // the scada-specific Qualifier never appears on the wire.
+  EXPECT_TRUE(dv.contains("Status"));
+  EXPECT_FALSE(dv.contains("StatusCode"));
+  EXPECT_FALSE(dv.contains("Qualifier"));
+  EXPECT_TRUE(dv.contains("SourceTimestamp"));
+  EXPECT_TRUE(dv.contains("ServerTimestamp"));
+
+  // §5.4.2.16: Variant carries numeric Type id (Int32 == 6) and Body — no
+  // IsArray flag.
+  const auto& variant = dv.at("Value").as_object();
+  EXPECT_EQ(variant.at("Type").to_number<int>(), 6);
+  EXPECT_EQ(variant.at("Body").to_number<int>(), 42);
+  EXPECT_FALSE(variant.contains("IsArray"));
+
+  // Round-trip preserves Variant value, Status and timestamps. Qualifier
+  // is intentionally dropped (no spec field), so the decoded qualifier
+  // returns to default — assert per-field rather than via vector equality.
+  const auto decoded = std::get<ReadResponse>(DecodeServiceResponse(encoded));
+  ASSERT_EQ(decoded.results.size(), 1u);
+  EXPECT_TRUE(decoded.results[0].value == read.results[0].value);
+  EXPECT_EQ(decoded.results[0].status_code, read.results[0].status_code);
+  EXPECT_EQ(decoded.results[0].source_timestamp,
+            read.results[0].source_timestamp);
+  EXPECT_EQ(decoded.results[0].server_timestamp,
+            read.results[0].server_timestamp);
+  EXPECT_EQ(decoded.results[0].qualifier.raw(), 0u);
+}
+
+TEST(OpcUaJsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
+  BrowseResponse browse{
+      .status = scada::StatusCode::Good,
+      .results = {{.status_code = scada::StatusCode::Good,
+                   .references = {{.reference_type_id = NumericNode(301),
+                                   .forward = false,
+                                   .node_id = NumericNode(302)}}}}};
+
+  const auto encoded = EncodeJson(OpcUaWsServiceResponse{browse});
+  const auto& result = encoded.as_object()
+                           .at("body").as_object()
+                           .at("Results").as_array().at(0).as_object();
+  const auto& reference =
+      result.at("References").as_array().at(0).as_object();
+  EXPECT_FALSE(result.contains("ContinuationPoint"));
+
+  // §5.4.2.10: NodeId / ReferenceTypeId on a Reference are JSON strings.
+  EXPECT_TRUE(reference.at("NodeId").is_string());
+  EXPECT_EQ(reference.at("NodeId").as_string(), "ns=2;i=302");
+  EXPECT_TRUE(reference.at("ReferenceTypeId").is_string());
+  EXPECT_EQ(reference.at("ReferenceTypeId").as_string(), "ns=2;i=301");
+
+  // Roundtrip preserves the Reference's NodeId and forward flag.
+  const auto decoded = std::get<BrowseResponse>(DecodeServiceResponse(encoded));
+  ASSERT_EQ(decoded.results.size(), 1u);
+  ASSERT_EQ(decoded.results[0].references.size(), 1u);
+  EXPECT_EQ(decoded.results[0].references[0].node_id, NumericNode(302));
+  EXPECT_FALSE(decoded.results[0].references[0].forward);
+}
+
+TEST(OpcUaJsonCodecTest, TranslateBrowsePathsWireShapeMatchesSpec) {
+  TranslateBrowsePathsResponse translate{
+      .status = scada::StatusCode::Good,
+      .results = {{.status_code = scada::StatusCode::Good,
+                   .targets = {{.target_id =
+                                    scada::ExpandedNodeId{NumericNode(303),
+                                                          "urn:test", 2},
+                                .remaining_path_index = 1}}}}};
+
+  const auto encoded = EncodeJson(OpcUaWsServiceResponse{translate});
+  const auto& target = encoded.as_object()
+                           .at("body").as_object()
+                           .at("Results").as_array().at(0).as_object()
+                           .at("Targets").as_array().at(0).as_object();
+
+  // §5.4.2.11: ExpandedNodeId is a JSON string with optional `svr=` and
+  // `nsu=` prefixes followed by the NodeId text.
+  EXPECT_TRUE(target.at("TargetId").is_string());
+  EXPECT_EQ(target.at("TargetId").as_string(),
+            "svr=2;nsu=urn:test;ns=2;i=303");
+
+  const auto decoded = std::get<TranslateBrowsePathsResponse>(
+      DecodeServiceResponse(encoded));
+  ASSERT_EQ(decoded.results.size(), 1u);
+  ASSERT_EQ(decoded.results[0].targets.size(), 1u);
+  EXPECT_EQ(decoded.results[0].targets[0].target_id.node_id(),
+            NumericNode(303));
+  EXPECT_EQ(decoded.results[0].targets[0].target_id.namespace_uri(), "urn:test");
+  EXPECT_EQ(decoded.results[0].targets[0].target_id.server_index(), 2u);
+}
+
+TEST(OpcUaJsonCodecTest, EmptyVariantSerialisesAsJsonNull) {
+  // §5.4.2.16: a null Variant is encoded as the JSON literal `null`,
+  // not as `{ Type: 0, ... }`. Verify via a Read response carrying an
+  // empty DataValue (which still emits an empty body object since all
+  // fields are at their defaults).
+  ReadResponse read{.status = scada::StatusCode::Good,
+                    .results = {scada::DataValue{}}};
+  const auto encoded = EncodeJson(OpcUaWsServiceResponse{read});
+  const auto& dv = encoded.as_object()
+                       .at("body").as_object()
+                       .at("Results").as_array().at(0).as_object();
+  // No Value, no Status (Good is default), no timestamps — all elided.
+  EXPECT_TRUE(dv.empty());
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
@@ -74,6 +205,49 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
       DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{translate})));
   ASSERT_EQ(decoded_translate.inputs.size(), 1u);
   EXPECT_EQ(decoded_translate.inputs[0], translate.inputs[0]);
+}
+
+TEST(OpcUaJsonCodecTest, RequestWireShapeUsesSpecFieldNames) {
+  const auto read_json =
+      EncodeJson(OpcUaWsServiceRequest{ReadRequest{
+          .inputs = {{.node_id = NumericNode(1),
+                      .attribute_id = scada::AttributeId::Value}}}});
+  const auto write_json =
+      EncodeJson(OpcUaWsServiceRequest{WriteRequest{
+          .inputs = {{.node_id = NumericNode(2),
+                      .attribute_id = scada::AttributeId::Value,
+                      .value = scada::Variant{scada::Int32{7}},
+                      .flags = {}}}}});
+  const auto browse_json = EncodeJson(OpcUaWsServiceRequest{BrowseRequest{
+      .requested_max_references_per_node = 5,
+      .inputs = {{.node_id = NumericNode(3),
+                  .direction = scada::BrowseDirection::Forward,
+                  .reference_type_id = NumericNode(31),
+                  .include_subtypes = true}}}});
+  const auto translate_json = EncodeJson(
+      OpcUaWsServiceRequest{TranslateBrowsePathsRequest{
+          .inputs = {{.node_id = NumericNode(4),
+                      .relative_path = {{.reference_type_id = NumericNode(41),
+                                         .inverse = false,
+                                         .include_subtypes = true,
+                                         .target_name = {"Child", 1}}}}}}});
+
+  const auto& read_body = read_json.as_object().at("body").as_object();
+  EXPECT_TRUE(read_body.contains("NodesToRead"));
+  EXPECT_FALSE(read_body.contains("Inputs"));
+
+  const auto& write_body = write_json.as_object().at("body").as_object();
+  EXPECT_TRUE(write_body.contains("NodesToWrite"));
+  EXPECT_FALSE(write_body.contains("Inputs"));
+
+  const auto& browse_body = browse_json.as_object().at("body").as_object();
+  EXPECT_TRUE(browse_body.contains("NodesToBrowse"));
+  EXPECT_FALSE(browse_body.contains("Inputs"));
+
+  const auto& translate_body =
+      translate_json.as_object().at("body").as_object();
+  EXPECT_TRUE(translate_body.contains("BrowsePaths"));
+  EXPECT_FALSE(translate_body.contains("Inputs"));
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
@@ -231,6 +405,21 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallRequestWithScalarAndArrayVariants) {
   EXPECT_EQ(typed->methods[0].arguments, request.methods[0].arguments);
 }
 
+TEST(OpcUaJsonCodecTest, CallWireShapeUsesSpecFieldNames) {
+  const auto json = EncodeJson(OpcUaWsServiceRequest{CallRequest{
+      .methods = {{.object_id = NumericNode(10),
+                   .method_id = NumericNode(11),
+                   .arguments = {scada::Variant{scada::Int32{5}}}}}}});
+
+  const auto& body = json.as_object().at("body").as_object();
+  EXPECT_TRUE(body.contains("MethodsToCall"));
+  EXPECT_FALSE(body.contains("Methods"));
+
+  const auto& method = body.at("MethodsToCall").as_array().at(0).as_object();
+  EXPECT_TRUE(method.contains("InputArguments"));
+  EXPECT_FALSE(method.contains("Arguments"));
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsOpaqueExtensionObjectVariants) {
   const boost::json::value scalar_payload = boost::json::parse(
       R"({"Kind":"AlarmFilter","Severity":500,"Fields":["Message","SourceName"]})");
@@ -353,6 +542,57 @@ TEST(OpcUaJsonCodecTest, RoundTripsNodeManagementRequests) {
             delete_refs.items[0].delete_bidirectional);
 }
 
+TEST(OpcUaJsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
+  const auto add_nodes = EncodeJson(OpcUaWsServiceRequest{AddNodesRequest{
+      .items = {{.requested_id = NumericNode(100),
+                 .parent_id = NumericNode(101),
+                 .node_class = scada::NodeClass::Variable,
+                 .type_definition_id = NumericNode(102)}}}});
+  const auto delete_nodes = EncodeJson(
+      OpcUaWsServiceRequest{DeleteNodesRequest{
+          .items = {{.node_id = NumericNode(104), .delete_target_references = true}}}});
+  const auto add_refs = EncodeJson(OpcUaWsServiceRequest{AddReferencesRequest{
+      .items = {{.source_node_id = NumericNode(105),
+                 .reference_type_id = NumericNode(106),
+                 .forward = false,
+                 .target_server_uri = "opc.tcp://server",
+                 .target_node_id =
+                     scada::ExpandedNodeId{NumericNode(107), "urn:test", 2},
+                 .target_node_class = scada::NodeClass::Object}}}});
+  const auto delete_refs = EncodeJson(
+      OpcUaWsServiceRequest{DeleteReferencesRequest{
+          .items = {{.source_node_id = NumericNode(108),
+                     .reference_type_id = NumericNode(109),
+                     .forward = true,
+                     .target_node_id = scada::ExpandedNodeId{NumericNode(110)},
+                     .delete_bidirectional = false}}}});
+
+  const auto& add_nodes_body = add_nodes.as_object().at("body").as_object();
+  EXPECT_TRUE(add_nodes_body.contains("NodesToAdd"));
+  EXPECT_FALSE(add_nodes_body.contains("Items"));
+
+  const auto& delete_nodes_body =
+      delete_nodes.as_object().at("body").as_object();
+  EXPECT_TRUE(delete_nodes_body.contains("NodesToDelete"));
+  EXPECT_FALSE(delete_nodes_body.contains("Items"));
+
+  const auto& add_refs_body = add_refs.as_object().at("body").as_object();
+  EXPECT_TRUE(add_refs_body.contains("ReferencesToAdd"));
+  EXPECT_FALSE(add_refs_body.contains("Items"));
+  EXPECT_TRUE(add_refs_body.at("ReferencesToAdd").as_array().at(0).as_object().contains(
+      "IsForward"));
+
+  const auto& delete_refs_body =
+      delete_refs.as_object().at("body").as_object();
+  EXPECT_TRUE(delete_refs_body.contains("ReferencesToDelete"));
+  EXPECT_FALSE(delete_refs_body.contains("Items"));
+  EXPECT_TRUE(delete_refs_body.at("ReferencesToDelete")
+                  .as_array()
+                  .at(0)
+                  .as_object()
+                  .contains("IsForward"));
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadResponses) {
   HistoryReadRawResponse raw{
       .result =
@@ -382,14 +622,20 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadResponses) {
   HistoryReadEventsResponse events{
       .result = {.status = scada::StatusCode::Good, .events = {event}}};
 
-  EXPECT_EQ(std::get<HistoryReadRawResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{raw})))
-                .result.status.full_code(),
-            raw.result.status.full_code());
-  EXPECT_EQ(std::get<HistoryReadRawResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{raw})))
-                .result.values,
-            raw.result.values);
+  // DataValue.qualifier is not part of the spec wire form (§5.4.2.17), so
+  // round-trip per-field rather than via vector equality (which would
+  // print-loop on Qualifier diffs through GTest's Variant printer).
+  const auto decoded_raw = std::get<HistoryReadRawResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{raw})));
+  EXPECT_EQ(decoded_raw.result.status.full_code(), raw.result.status.full_code());
+  ASSERT_EQ(decoded_raw.result.values.size(), raw.result.values.size());
+  EXPECT_TRUE(decoded_raw.result.values[0].value == raw.result.values[0].value);
+  EXPECT_EQ(decoded_raw.result.values[0].status_code,
+            raw.result.values[0].status_code);
+  EXPECT_EQ(decoded_raw.result.values[0].source_timestamp,
+            raw.result.values[0].source_timestamp);
+  EXPECT_EQ(decoded_raw.result.values[0].server_timestamp,
+            raw.result.values[0].server_timestamp);
   EXPECT_EQ(std::get<HistoryReadEventsResponse>(DecodeServiceResponse(
                 EncodeJson(OpcUaWsServiceResponse{events})))
                 .result.events,
@@ -428,10 +674,18 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
                                                           "urn:test", 2},
                                 .remaining_path_index = 1}}}}};
 
+  // Per OPC UA Part 6 §5.4.2.17, DataValue carries Value, Status,
+  // Source/ServerTimestamp, and Source/ServerPicoseconds — no Qualifier.
+  // The scada::Qualifier is deliberately dropped on the wire, so the
+  // decoded DataValue's qualifier is the default (assert per-field).
   const auto decoded_read = std::get<ReadResponse>(
       DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{read})));
   EXPECT_EQ(decoded_read.status, read.status);
-  EXPECT_EQ(decoded_read.results, read.results);
+  ASSERT_EQ(decoded_read.results.size(), 1u);
+  EXPECT_TRUE(decoded_read.results[0].value == read.results[0].value);
+  EXPECT_EQ(decoded_read.results[0].source_timestamp, read.results[0].source_timestamp);
+  EXPECT_EQ(decoded_read.results[0].server_timestamp, read.results[0].server_timestamp);
+  EXPECT_EQ(decoded_read.results[0].status_code, read.results[0].status_code);
 
   const auto decoded_write = std::get<WriteResponse>(
       DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{write})));
@@ -463,6 +717,36 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
             translate.results[0].targets[0].target_id);
   EXPECT_EQ(decoded_translate.results[0].targets[0].remaining_path_index,
             translate.results[0].targets[0].remaining_path_index);
+}
+
+TEST(OpcUaJsonCodecTest, CallResponseWireShapeUsesSpecFields) {
+  CallResponse response{.results = {{.status = scada::StatusCode::Good,
+                                     .input_argument_results =
+                                         {scada::StatusCode::Bad_WrongTypeId},
+                                     .output_arguments =
+                                         {scada::Variant{scada::Int32{9}}}}}};
+
+  const auto encoded = EncodeJson(OpcUaWsServiceResponse{response});
+  const auto& result = encoded.as_object()
+                           .at("body")
+                           .as_object()
+                           .at("Results")
+                           .as_array()
+                           .at(0)
+                           .as_object();
+  EXPECT_TRUE(result.contains("StatusCode"));
+  EXPECT_FALSE(result.contains("Status"));
+  EXPECT_TRUE(result.contains("InputArgumentResults"));
+  EXPECT_TRUE(result.contains("OutputArguments"));
+
+  const auto decoded =
+      std::get<CallResponse>(DecodeServiceResponse(encoded));
+  ASSERT_EQ(decoded.results.size(), 1u);
+  EXPECT_EQ(decoded.results[0].status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(decoded.results[0].input_argument_results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Bad_WrongTypeId}));
+  EXPECT_EQ(decoded.results[0].output_arguments,
+            (std::vector<scada::Variant>{scada::Variant{scada::Int32{9}}}));
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
@@ -655,7 +939,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
 
 TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
   const boost::json::value raw_event_filter =
-      boost::json::parse(R"({"select":["Message"],"where":{"severity":60}})");
+      boost::json::parse(R"({"Select":["Message"],"Where":{"Severity":60}})");
   OpcUaWsRequestMessage create_items{
       .request_handle = 51,
       .body = OpcUaWsCreateMonitoredItemsRequest{
@@ -750,7 +1034,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
 
 TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   const boost::json::value filter_result =
-      boost::json::parse(R"({"kind":"event","selectClauseResults":[0]})");
+      boost::json::parse(R"({"Kind":"event","SelectClauseResults":[0]})");
   OpcUaWsResponseMessage create_subscription{
       .request_handle = 61,
       .body = OpcUaWsCreateSubscriptionResponse{
@@ -931,10 +1215,13 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
           .results = {scada::StatusCode::Good,
                       scada::StatusCode::Bad_WrongSubscriptionId}}};
 
-  const auto decoded_publish = DecodeResponseMessage(EncodeJson(publish));
-  EXPECT_EQ(decoded_publish.request_handle, 81u);
+  std::optional<boost::json::value> publish_json;
+  ASSERT_NO_THROW(publish_json.emplace(EncodeJson(publish)));
+  std::optional<OpcUaWsResponseMessage> decoded_publish;
+  ASSERT_NO_THROW(decoded_publish.emplace(DecodeResponseMessage(*publish_json)));
+  EXPECT_EQ(decoded_publish->request_handle, 81u);
   const auto& publish_body =
-      std::get<OpcUaWsPublishResponse>(decoded_publish.body);
+      std::get<OpcUaWsPublishResponse>(decoded_publish->body);
   EXPECT_EQ(publish_body.subscription_id, 17u);
   EXPECT_EQ(publish_body.available_sequence_numbers,
             (std::vector<scada::UInt32>{3u, 4u}));
@@ -961,14 +1248,20 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   EXPECT_EQ(publish_body.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
 
-  const auto decoded_republish = DecodeResponseMessage(EncodeJson(republish));
-  EXPECT_EQ(std::get<OpcUaWsRepublishResponse>(decoded_republish.body)
+  std::optional<boost::json::value> republish_json;
+  ASSERT_NO_THROW(republish_json.emplace(EncodeJson(republish)));
+  std::optional<OpcUaWsResponseMessage> decoded_republish;
+  ASSERT_NO_THROW(decoded_republish.emplace(DecodeResponseMessage(*republish_json)));
+  EXPECT_EQ(std::get<OpcUaWsRepublishResponse>(decoded_republish->body)
                 .notification_message.sequence_number,
             5u);
 
-  const auto decoded_transfer = DecodeResponseMessage(EncodeJson(transfer));
+  std::optional<boost::json::value> transfer_json;
+  ASSERT_NO_THROW(transfer_json.emplace(EncodeJson(transfer)));
+  std::optional<OpcUaWsResponseMessage> decoded_transfer;
+  ASSERT_NO_THROW(decoded_transfer.emplace(DecodeResponseMessage(*transfer_json)));
   EXPECT_EQ(std::get<OpcUaWsTransferSubscriptionsResponse>(
-                decoded_transfer.body)
+                decoded_transfer->body)
                 .results,
             (std::vector<scada::StatusCode>{
                 scada::StatusCode::Good,
@@ -992,10 +1285,11 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {
       .status = scada::StatusCode::Good,
       .results = {scada::StatusCode::Good}};
 
-  EXPECT_EQ(std::get<CallResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{call})))
-                .results.size(),
-            call.results.size());
+  const auto decoded_call = std::get<CallResponse>(
+      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{call})));
+  ASSERT_EQ(decoded_call.results.size(), call.results.size());
+  EXPECT_EQ(decoded_call.results[0].status.code(), call.results[0].status.code());
+  EXPECT_EQ(decoded_call.results[1].status.code(), call.results[1].status.code());
   const auto decoded_add_nodes = std::get<AddNodesResponse>(
       DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{add_nodes})));
   EXPECT_EQ(decoded_add_nodes.status, add_nodes.status);

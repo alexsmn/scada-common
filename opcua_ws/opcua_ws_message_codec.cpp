@@ -183,12 +183,22 @@ scada::NodeId DecodeNodeId(const value& json) {
   return node_id;
 }
 
+// OPC UA Part 6 §5.4.2.14: LocalizedText is an object `{ Locale?, Text? }`,
+// each field omitted when null/empty. The scada LocalizedText carries text
+// only, so we only ever emit `Text`.
 value EncodeLocalizedText(const scada::LocalizedText& text) {
-  return string(UtfConvert<char>(text));
+  object json;
+  std::string utf8 = UtfConvert<char>(text);
+  if (!utf8.empty())
+    json["Text"] = std::move(utf8);
+  return json;
 }
 
 scada::LocalizedText DecodeLocalizedText(const value& json) {
-  return UtfConvert<char16_t>(std::string{RequireString(json)});
+  const auto& obj = RequireObject(json);
+  if (const auto* text = FindField(obj, "Text"))
+    return UtfConvert<char16_t>(std::string{RequireString(*text)});
+  return {};
 }
 
 value EncodeByteString(const scada::ByteString& bytes) {
@@ -213,13 +223,17 @@ scada::ByteString DecodeByteString(const value& json) {
 }
 
 value EncodeStatus(const scada::Status& status) {
-  return object{{"fullCode", status.full_code()}};
+  return static_cast<std::uint64_t>(status.full_code());
 }
 
 scada::Status DecodeStatus(const value& json) {
+  if (json.is_uint64() || (json.is_int64() && json.as_int64() >= 0)) {
+    return scada::Status::FromFullCode(
+        static_cast<unsigned>(RequireUInt64(json)));
+  }
   const auto& obj = RequireObject(json);
-  return scada::Status::FromFullCode(
-      static_cast<unsigned>(RequireUInt64(RequireField(obj, "fullCode"))));
+  return scada::Status::FromFullCode(static_cast<unsigned>(
+      RequireUInt64(RequireField(obj, "fullCode"))));
 }
 
 value EncodeStatusCode(scada::StatusCode status_code) {
@@ -295,10 +309,14 @@ value EncodeActivateSessionRequest(const OpcUaWsActivateSessionRequest& request)
                EncodeNodeId(request.authentication_token)},
               {"DeleteExisting", request.delete_existing},
               {"AllowAnonymous", request.allow_anonymous}};
+  // UserName / Password are plain strings on the wire — they map onto the
+  // UserNameIdentityToken (Part 4 §7.36.4) which types both as String /
+  // ByteString, not LocalizedText. The internal storage stays as
+  // LocalizedText for now to avoid touching the session manager surface.
   if (request.user_name.has_value())
-    json["UserName"] = EncodeLocalizedText(*request.user_name);
+    json["UserName"] = string(UtfConvert<char>(*request.user_name));
   if (request.password.has_value())
-    json["Password"] = EncodeLocalizedText(*request.password);
+    json["Password"] = string(UtfConvert<char>(*request.password));
   return json;
 }
 
@@ -312,9 +330,11 @@ OpcUaWsActivateSessionRequest DecodeActivateSessionRequest(const value& json) {
       .allow_anonymous = RequireBool(RequireField(obj, "AllowAnonymous")),
   };
   if (const auto* field = FindField(obj, "UserName"))
-    request.user_name = DecodeLocalizedText(*field);
+    request.user_name =
+        UtfConvert<char16_t>(std::string{RequireString(*field)});
   if (const auto* field = FindField(obj, "Password"))
-    request.password = DecodeLocalizedText(*field);
+    request.password =
+        UtfConvert<char16_t>(std::string{RequireString(*field)});
   return request;
 }
 

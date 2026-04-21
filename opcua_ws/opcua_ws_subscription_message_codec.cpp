@@ -85,13 +85,17 @@ scada::NodeId DecodeNodeId(const value& json) {
 }
 
 value EncodeStatus(const scada::Status& status) {
-  return object{{"fullCode", status.full_code()}};
+  return static_cast<std::uint64_t>(status.full_code());
 }
 
 scada::Status DecodeStatus(const value& json) {
+  if (json.is_uint64() || (json.is_int64() && json.as_int64() >= 0)) {
+    return scada::Status::FromFullCode(
+        static_cast<unsigned>(RequireUInt64(json)));
+  }
   const auto& obj = RequireObject(json);
-  return scada::Status::FromFullCode(
-      static_cast<unsigned>(RequireUInt64(RequireField(obj, "fullCode"))));
+  return scada::Status::FromFullCode(static_cast<unsigned>(
+      RequireUInt64(RequireField(obj, "fullCode"))));
 }
 
 value EncodeStatusCode(scada::StatusCode status_code) {

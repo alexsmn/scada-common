@@ -67,6 +67,8 @@ struct CallMethodRequest {
 
 struct CallMethodResult {
   scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::StatusCode> input_argument_results;
+  std::vector<scada::Variant> output_arguments;
 };
 
 struct CallRequest {
