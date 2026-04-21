@@ -5,6 +5,7 @@
 #include "scada/monitored_item_service_mock.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/node_management_service_mock.h"
+#include "scada/test/test_monitored_item.h"
 #include "scada/view_service_mock.h"
 
 #include <gmock/gmock.h>
@@ -339,6 +340,92 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(unknown_node_result.status, scada::StatusCode::Bad_WrongNodeId);
   EXPECT_FALSE(bad_attribute_result.monitored_item);
   EXPECT_FALSE(unknown_node_result.monitored_item);
+}
+
+TEST_F(OpcUaEndpointCoreTest,
+       SubscribeMonitoredItemNotifications_UsesDataChangeHandlerForValueItems) {
+  auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
+  const auto read_value_id = scada::ReadValueId{
+      .node_id = NumericNode(70, 9),
+      .attribute_id = scada::AttributeId::Value};
+  std::optional<scada::DataValue> delivered;
+
+  SubscribeMonitoredItemNotifications(
+      read_value_id, monitored_item,
+      [&](const scada::DataValue& value) { delivered = value; },
+      [&](const scada::Status&, const std::any&) { FAIL(); });
+
+  const scada::DataValue value{scada::Variant{scada::Int32{17}}, {},
+                               scada::DateTime::Now(), scada::DateTime::Now()};
+  monitored_item->NotifyDataChange(value);
+
+  ASSERT_TRUE(delivered.has_value());
+  EXPECT_EQ(*delivered, value);
+}
+
+TEST_F(OpcUaEndpointCoreTest,
+       SubscribeMonitoredItemNotifications_UsesEventHandlerForEventItems) {
+  auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
+  const auto read_value_id = scada::ReadValueId{
+      .node_id = NumericNode(71, 9),
+      .attribute_id = scada::AttributeId::EventNotifier};
+  std::optional<scada::Status> delivered_status;
+  std::optional<int> delivered_event_id;
+
+  SubscribeMonitoredItemNotifications(
+      read_value_id, monitored_item,
+      [&](const scada::DataValue&) { FAIL(); },
+      [&](const scada::Status& status, const std::any& event) {
+        delivered_status = status;
+        delivered_event_id = std::any_cast<int>(event);
+      });
+
+  monitored_item->NotifyEvent(42);
+
+  ASSERT_TRUE(delivered_status.has_value());
+  ASSERT_TRUE(delivered_event_id.has_value());
+  EXPECT_EQ(delivered_status->code(), scada::StatusCode::Good);
+  EXPECT_EQ(*delivered_event_id, 42);
+}
+
+TEST_F(OpcUaEndpointCoreTest,
+       DispatchMonitoredItemNotifications_ForwardsMatchingHandlerKinds) {
+  const auto value_item = scada::ReadValueId{
+      .node_id = NumericNode(72, 9),
+      .attribute_id = scada::AttributeId::Value};
+  const auto event_item = scada::ReadValueId{
+      .node_id = NumericNode(73, 9),
+      .attribute_id = scada::AttributeId::EventNotifier};
+  const scada::DataValue value{scada::Variant{scada::Int32{23}}, {},
+                               scada::DateTime::Now(), scada::DateTime::Now()};
+  std::optional<scada::DataValue> delivered_value;
+  std::optional<scada::Status> delivered_status;
+  std::optional<int> delivered_event_id;
+
+  const std::optional<scada::MonitoredItemHandler> data_handler =
+      scada::DataChangeHandler{
+          [&](const scada::DataValue& data_value) { delivered_value = data_value; }};
+  const std::optional<scada::MonitoredItemHandler> event_handler =
+      scada::EventHandler{[&](const scada::Status& status, const std::any& event) {
+        delivered_status = status;
+        delivered_event_id = std::any_cast<int>(event);
+      }};
+
+  EXPECT_TRUE(
+      DispatchDataChangeNotification(value_item, data_handler, value));
+  EXPECT_TRUE(DispatchEventNotification(event_item, event_handler,
+                                        scada::StatusCode::Good, 91));
+  EXPECT_FALSE(
+      DispatchDataChangeNotification(event_item, event_handler, value));
+  EXPECT_FALSE(DispatchEventNotification(value_item, data_handler,
+                                         scada::StatusCode::Good, 91));
+
+  ASSERT_TRUE(delivered_value.has_value());
+  EXPECT_EQ(*delivered_value, value);
+  ASSERT_TRUE(delivered_status.has_value());
+  EXPECT_EQ(delivered_status->code(), scada::StatusCode::Good);
+  ASSERT_TRUE(delivered_event_id.has_value());
+  EXPECT_EQ(*delivered_event_id, 91);
 }
 
 }  // namespace

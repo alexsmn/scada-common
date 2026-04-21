@@ -3,11 +3,14 @@
 #include "scada/attribute_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
+#include "scada/monitored_item.h"
 #include "scada/node_management_service.h"
 #include "scada/service_context.h"
 #include "scada/view_service.h"
 
 #include <memory>
+#include <optional>
+#include <utility>
 
 namespace scada::opcua_endpoint {
 
@@ -122,6 +125,66 @@ inline CreateMonitoredItemResult CreateMonitoredItem(
                      : TranslateCreateMonitoredItemFailure(item_to_monitor);
   return {.monitored_item = std::move(monitored_item),
           .status = status};
+}
+
+template <class DataChangeCallback, class EventCallback>
+inline scada::MonitoredItemHandler MakeMonitoredItemHandler(
+    const scada::ReadValueId& item_to_monitor,
+    DataChangeCallback&& data_change_callback,
+    EventCallback&& event_callback) {
+  if (IsAttributeEventNotifier(item_to_monitor.attribute_id)) {
+    return scada::MonitoredItemHandler{
+        scada::EventHandler(std::forward<EventCallback>(event_callback))};
+  }
+  return scada::MonitoredItemHandler{
+      scada::DataChangeHandler(std::forward<DataChangeCallback>(
+          data_change_callback))};
+}
+
+template <class DataChangeCallback, class EventCallback>
+inline void SubscribeMonitoredItemNotifications(
+    const scada::ReadValueId& item_to_monitor,
+    const std::shared_ptr<scada::MonitoredItem>& monitored_item,
+    DataChangeCallback&& data_change_callback,
+    EventCallback&& event_callback) {
+  if (!monitored_item)
+    return;
+
+  monitored_item->Subscribe(MakeMonitoredItemHandler(
+      item_to_monitor, std::forward<DataChangeCallback>(data_change_callback),
+      std::forward<EventCallback>(event_callback)));
+}
+
+inline bool DispatchDataChangeNotification(
+    const scada::ReadValueId& item_to_monitor,
+    const std::optional<scada::MonitoredItemHandler>& handler,
+    const scada::DataValue& data_value) {
+  if (IsAttributeEventNotifier(item_to_monitor.attribute_id) || !handler)
+    return false;
+
+  const auto* data_change_handler =
+      std::get_if<scada::DataChangeHandler>(&*handler);
+  if (!data_change_handler)
+    return false;
+
+  (*data_change_handler)(data_value);
+  return true;
+}
+
+inline bool DispatchEventNotification(
+    const scada::ReadValueId& item_to_monitor,
+    const std::optional<scada::MonitoredItemHandler>& handler,
+    const scada::Status& status,
+    const std::any& event) {
+  if (!IsAttributeEventNotifier(item_to_monitor.attribute_id) || !handler)
+    return false;
+
+  const auto* event_handler = std::get_if<scada::EventHandler>(&*handler);
+  if (!event_handler)
+    return false;
+
+  (*event_handler)(status, event);
+  return true;
 }
 
 }  // namespace scada::opcua_endpoint

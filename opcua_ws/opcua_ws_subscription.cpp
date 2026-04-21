@@ -355,27 +355,21 @@ void OpcUaWsSubscription::RebindItem(Item& item) {
   const std::weak_ptr<Item> weak_item =
       item_it != items_.end() ? item_it->second : std::weak_ptr<Item>{};
   const auto binding_generation = item.binding_generation;
-
-  if (scada::opcua_endpoint::IsAttributeEventNotifier(
-          item.item_to_monitor.attribute_id)) {
-    item.monitored_item->Subscribe(scada::EventHandler{
-        [this, weak_item, binding_generation](const scada::Status& status,
-                                              const std::any& event) {
-          const auto item = weak_item.lock();
-          if (!item || item->binding_generation != binding_generation)
-            return;
-          QueueEvent(*item, status, event);
-        }});
-  } else {
-    item.monitored_item->Subscribe(scada::DataChangeHandler{
-        [this, weak_item, binding_generation](
-            const scada::DataValue& data_value) {
-          const auto item = weak_item.lock();
-          if (!item || item->binding_generation != binding_generation)
-            return;
-          QueueDataChange(*item, data_value);
-        }});
-  }
+  item.monitored_item->Subscribe(scada::opcua_endpoint::MakeMonitoredItemHandler(
+      item.item_to_monitor,
+      [this, weak_item, binding_generation](const scada::DataValue& data_value) {
+        const auto item = weak_item.lock();
+        if (!item || item->binding_generation != binding_generation)
+          return;
+        QueueDataChange(*item, data_value);
+      },
+      [this, weak_item, binding_generation](const scada::Status& status,
+                                            const std::any& event) {
+        const auto item = weak_item.lock();
+        if (!item || item->binding_generation != binding_generation)
+          return;
+        QueueEvent(*item, status, event);
+      }));
 }
 
 void OpcUaWsSubscription::QueueDataChange(

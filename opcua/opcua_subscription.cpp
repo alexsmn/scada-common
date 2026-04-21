@@ -2,6 +2,7 @@
 
 #include "base/executor.h"
 #include "opcua/opcua_conversion.h"
+#include "opcua/opcua_endpoint_core.h"
 #include "scada/event_util.h"
 #include "scada/monitored_item_service.h"
 
@@ -429,13 +430,8 @@ void OpcUaSubscription::OnDataChange(
       assert(item->handler.has_value());
       assert(item->read_value_id.attribute_id !=
              scada::AttributeId::EventNotifier);
-      if (item->read_value_id.attribute_id !=
-          scada::AttributeId::EventNotifier) {
-        auto& data_change_handler =
-            std::get<scada::DataChangeHandler>(*item->handler);
-        auto data_value = Convert(std::move(notification.Value));
-        data_change_handler(std::move(data_value));
-      }
+      scada::opcua_endpoint::DispatchDataChangeNotification(
+          item->read_value_id, item->handler, Convert(std::move(notification.Value)));
     }
   }
 }
@@ -451,14 +447,15 @@ void OpcUaSubscription::OnEvents(
              scada::AttributeId::EventNotifier);
       if (item->read_value_id.attribute_id ==
           scada::AttributeId::EventNotifier) {
-        auto& event_handler = std::get<scada::EventHandler>(*item->handler);
         const auto& fields = ConvertVector<scada::Variant>(
             std::make_move_iterator(notification.EventFields),
             std::make_move_iterator(notification.EventFields +
                                     notification.NoOfEventFields));
         auto event = AssembleEvent(fields);
         if (event.has_value())
-          event_handler(scada::StatusCode::Good, std::move(event));
+          scada::opcua_endpoint::DispatchEventNotification(
+              item->read_value_id, item->handler, scada::StatusCode::Good,
+              event);
       }
     }
   }
