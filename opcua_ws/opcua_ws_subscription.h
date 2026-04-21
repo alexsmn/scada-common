@@ -55,6 +55,7 @@ class OpcUaWsSubscription {
     OpcUaWsMonitoringMode monitoring_mode = OpcUaWsMonitoringMode::Reporting;
     OpcUaWsMonitoringParameters parameters;
     std::vector<std::vector<std::string>> event_field_paths;
+    scada::StatusCode monitored_item_status = scada::StatusCode::Bad;
     std::shared_ptr<scada::MonitoredItem> monitored_item;
     scada::UInt32 binding_generation = 0;
   };

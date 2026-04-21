@@ -181,10 +181,11 @@ promise<scada::Status> Call(scada::MethodService& method_service,
                             const std::vector<scada::Variant>& arguments,
                             const scada::NodeId& user_id) {
   promise<scada::Status> promise;
-  method_service.Call(node_id, method_id, arguments, user_id,
-                      [promise](scada::Status status) mutable {
-                        promise.resolve(std::move(status));
-                      });
+  scada::opcua_endpoint::CallMethod(
+      method_service, node_id, method_id, arguments, user_id,
+      [promise](scada::Status status) mutable {
+        promise.resolve(std::move(status));
+      });
   return promise;
 }
 
@@ -374,7 +375,7 @@ void OpcUaServer::Browse(OpcUa_BrowseRequest& request,
 
   scada::opcua_endpoint::Browse(
       view_service_, service_context_,
-      service_context_, ConvertVector<scada::BrowseDescription>(*inputs),
+      ConvertVector<scada::BrowseDescription>(*inputs),
       [this, inputs, callback](scada::Status&& status,
                                std::vector<scada::BrowseResult>&& results) {
         if (!status) {
@@ -460,7 +461,8 @@ void OpcUaServer::Call(OpcUa_CallRequest& request,
 void OpcUaServer::AddNodes(
     OpcUa_AddNodesRequest& request,
     const opcua::server::SimpleCallback<OpcUa_AddNodesResponse>& callback) {
-  node_management_service_.AddNodes(
+  scada::opcua_endpoint::AddNodes(
+      node_management_service_,
       ConvertVector<scada::AddNodesItem>(
           opcua::MakeSpan(request.NodesToAdd, request.NoOfNodesToAdd)),
       [callback](scada::Status&& status,
@@ -479,7 +481,8 @@ void OpcUaServer::AddNodes(
 void OpcUaServer::DeleteNodes(
     OpcUa_DeleteNodesRequest& request,
     const opcua::server::SimpleCallback<OpcUa_DeleteNodesResponse>& callback) {
-  node_management_service_.DeleteNodes(
+  scada::opcua_endpoint::DeleteNodes(
+      node_management_service_,
       ConvertVector<scada::DeleteNodesItem>(
           opcua::MakeSpan(request.NodesToDelete, request.NoOfNodesToDelete)),
       [callback](scada::Status&& status,
@@ -500,12 +503,13 @@ opcua::server::CreateMonitoredItemResult OpcUaServer::CreateMonitoredItem(
     opcua::MonitoringParameters&& params) {
   auto scada_id = Convert(std::move(read_value_id));
   auto scada_params = Convert(std::move(params));
-  auto monitored_item = monitored_item_service_.CreateMonitoredItem(
-      std::move(scada_id), std::move(scada_params));
-  if (!monitored_item)
+  auto created = scada::opcua_endpoint::CreateMonitoredItem(
+      monitored_item_service_, scada_id, scada_params);
+  if (!created.monitored_item)
     return {OpcUa_Bad};
   return {OpcUa_Good,
-          std::make_shared<MonitoredItemAdapter>(std::move(monitored_item))};
+          std::make_shared<MonitoredItemAdapter>(
+              std::move(created.monitored_item))};
 }
 
 opcua::ProxyStubConfiguration OpcUaServer::MakeProxyStubConfiguration() {

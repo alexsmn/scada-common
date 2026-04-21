@@ -250,6 +250,38 @@ TEST(OpcUaJsonCodecTest, RequestWireShapeUsesSpecFieldNames) {
   EXPECT_FALSE(translate_body.contains("Inputs"));
 }
 
+TEST(OpcUaJsonCodecTest, DecodeWriteRequestAcceptsLegacyDataValueWrapper) {
+  const auto request = DecodeServiceRequest(boost::json::parse(R"json(
+{
+  "service": "Write",
+  "body": {
+    "NodesToWrite": [
+      {
+        "NodeId": "ns=2;s=UserProfile",
+        "AttributeId": 13,
+        "Value": {
+          "Value": {
+            "Type": 12,
+            "Body": "{\"version\":1,\"favorites\":[\"ns=2;i=1001\"]}"
+          }
+        },
+        "Flags": 0
+      }
+    ]
+  }
+}
+)json"));
+
+  const auto* write = std::get_if<WriteRequest>(&request);
+  ASSERT_NE(write, nullptr);
+  ASSERT_EQ(write->inputs.size(), 1u);
+  EXPECT_EQ(write->inputs[0].node_id, scada::NodeId::FromString("ns=2;s=UserProfile"));
+  EXPECT_EQ(write->inputs[0].attribute_id, scada::AttributeId::Value);
+  EXPECT_EQ(write->inputs[0].value,
+            scada::Variant{scada::String{
+                "{\"version\":1,\"favorites\":[\"ns=2;i=1001\"]}"}});
+}
+
 TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
   OpcUaWsRequestMessage create{
       .request_handle = 11,

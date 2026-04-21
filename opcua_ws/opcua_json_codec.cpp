@@ -423,9 +423,15 @@ value EncodeWriteValue(const scada::WriteValue& write_value) {
 
 scada::WriteValue DecodeWriteValue(const value& json) {
   const auto& obj = RequireObject(json);
+  const auto& encoded_value = RequireField(obj, "Value");
+  const auto* value_field =
+      encoded_value.is_object() ? FindField(encoded_value.as_object(), "Value")
+                                : nullptr;
   return {.node_id = DecodeNodeId(RequireField(obj, "NodeId")),
           .attribute_id = DecodeAttributeId(RequireField(obj, "AttributeId")),
-          .value = DecodeVariant(RequireField(obj, "Value")),
+          // Accept both the spec/current bare Variant shape and the legacy
+          // DataValue wrapper some web clients still send for Write.Value.
+          .value = DecodeVariant(value_field ? *value_field : encoded_value),
           .flags = DecodeWriteFlags(RequireField(obj, "Flags"))};
 }
 

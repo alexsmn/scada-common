@@ -1,5 +1,7 @@
 #include "opcua_ws/opcua_ws_subscription.h"
 
+#include "opcua/opcua_endpoint_core.h"
+
 #include "scada/event.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
@@ -26,23 +28,6 @@ const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
                                                 {"Message"},
                                                 {"Severity"}};
   return *kFields;
-}
-
-bool IsAttributeEventNotifier(scada::AttributeId attribute_id) {
-  return attribute_id == static_cast<scada::AttributeId>(12);
-}
-
-bool IsSupportedMonitoredAttribute(scada::AttributeId attribute_id) {
-  return attribute_id == scada::AttributeId::Value ||
-         IsAttributeEventNotifier(attribute_id);
-}
-
-scada::StatusCode TranslateCreateMonitoredItemFailure(
-    const scada::ReadValueId& item_to_monitor) {
-  if (!IsSupportedMonitoredAttribute(item_to_monitor.attribute_id)) {
-    return scada::StatusCode::Bad_WrongAttributeId;
-  }
-  return scada::StatusCode::Bad_WrongNodeId;
 }
 
 std::optional<std::string> ExtractFieldName(
@@ -126,13 +111,8 @@ OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
     items_.emplace(item->monitored_item_id, item);
     RebindItem(*item);
 
-    const auto item_status = item->monitored_item
-                                 ? scada::StatusCode::Good
-                                 : TranslateCreateMonitoredItemFailure(
-                                       item->item_to_monitor);
-
     response.results.push_back(
-        {.status = item_status,
+        {.status = item->monitored_item_status,
          .monitored_item_id = item->monitored_item ? item->monitored_item_id : 0,
          .revised_sampling_interval_ms = item->parameters.sampling_interval_ms,
          .revised_queue_size = std::max<scada::UInt32>(1, item->parameters.queue_size)});
@@ -167,13 +147,8 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaWsSubscription::ModifyMonitoredItems(
         ParseEventFieldPaths(source_item.requested_parameters.filter);
     RebindItem(item);
 
-    const auto item_status = item.monitored_item
-                                 ? scada::StatusCode::Good
-                                 : TranslateCreateMonitoredItemFailure(
-                                       item.item_to_monitor);
-
     response.results.push_back(
-        {.status = item_status,
+        {.status = item.monitored_item_status,
          .revised_sampling_interval_ms = item.parameters.sampling_interval_ms,
          .revised_queue_size = std::max<scada::UInt32>(1, item.parameters.queue_size)});
   }
@@ -315,7 +290,8 @@ scada::MonitoringParameters OpcUaWsSubscription::ToMonitoringParameters(
                                : nullptr) {
     result.filter = scada::DataChangeFilter{
         .deadband_value = filter->deadband_value};
-  } else if (IsAttributeEventNotifier(item.item_to_monitor.attribute_id)) {
+  } else if (scada::opcua_endpoint::IsAttributeEventNotifier(
+                 item.item_to_monitor.attribute_id)) {
     result.filter = scada::EventFilter{};
   }
 
@@ -367,8 +343,11 @@ bool OpcUaWsSubscription::IsKeepAliveDue(base::Time now) const {
 
 void OpcUaWsSubscription::RebindItem(Item& item) {
   ++item.binding_generation;
-  item.monitored_item = monitored_item_service_.CreateMonitoredItem(
-      item.item_to_monitor, ToMonitoringParameters(item, item.parameters));
+  auto created = scada::opcua_endpoint::CreateMonitoredItem(
+      monitored_item_service_, item.item_to_monitor,
+      ToMonitoringParameters(item, item.parameters));
+  item.monitored_item = std::move(created.monitored_item);
+  item.monitored_item_status = created.status;
   if (!item.monitored_item)
     return;
 
@@ -377,7 +356,8 @@ void OpcUaWsSubscription::RebindItem(Item& item) {
       item_it != items_.end() ? item_it->second : std::weak_ptr<Item>{};
   const auto binding_generation = item.binding_generation;
 
-  if (IsAttributeEventNotifier(item.item_to_monitor.attribute_id)) {
+  if (scada::opcua_endpoint::IsAttributeEventNotifier(
+          item.item_to_monitor.attribute_id)) {
     item.monitored_item->Subscribe(scada::EventHandler{
         [this, weak_item, binding_generation](const scada::Status& status,
                                               const std::any& event) {
