@@ -1151,6 +1151,9 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
       std::get<OpcUaWsCreateMonitoredItemsResponse>(
           decoded_create_items.body);
   ASSERT_EQ(create_items_body.results.size(), 2u);
+  EXPECT_EQ(create_items_body.results[0].status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(create_items_body.results[1].status.code(),
+            scada::StatusCode::Bad_WrongNodeId);
   ASSERT_TRUE(create_items_body.results[1].filter_result.has_value());
   EXPECT_EQ(*create_items_body.results[1].filter_result, filter_result);
 

@@ -325,11 +325,6 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_CALL(monitored_item_service_, CreateMonitoredItem(_, _))
       .WillOnce(Invoke([&](const scada::ReadValueId& actual_read_value_id,
                            const scada::MonitoringParameters&) {
-        EXPECT_EQ(actual_read_value_id, bad_attribute);
-        return std::shared_ptr<scada::MonitoredItem>{};
-      }))
-      .WillOnce(Invoke([&](const scada::ReadValueId& actual_read_value_id,
-                           const scada::MonitoringParameters&) {
         EXPECT_EQ(actual_read_value_id, unknown_node);
         return std::shared_ptr<scada::MonitoredItem>{};
       }));

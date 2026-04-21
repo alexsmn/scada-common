@@ -257,12 +257,12 @@ OpcUaWsMonitoredItemCreateResult DecodeMonitoredItemCreateResult(
     const value& json) {
   const auto& obj = RequireObject(json);
   const auto* status_field = FindField(obj, "StatusCode");
-  if (!status_field)
-    status_field = FindField(obj, "Status");
-  if (!status_field)
+  const auto* legacy_status_field = FindField(obj, "Status");
+  if (!status_field && !legacy_status_field)
     ThrowJsonError("Missing required field");
   OpcUaWsMonitoredItemCreateResult result{
-      .status = DecodeStatus(*status_field),
+      .status = status_field ? scada::Status{DecodeStatusCode(*status_field)}
+                             : DecodeStatus(*legacy_status_field),
       .monitored_item_id = static_cast<OpcUaWsMonitoredItemId>(
           RequireUInt64(RequireField(obj, "MonitoredItemId"))),
       .revised_sampling_interval_ms =
@@ -306,12 +306,12 @@ OpcUaWsMonitoredItemModifyResult DecodeMonitoredItemModifyResult(
     const value& json) {
   const auto& obj = RequireObject(json);
   const auto* status_field = FindField(obj, "StatusCode");
-  if (!status_field)
-    status_field = FindField(obj, "Status");
-  if (!status_field)
+  const auto* legacy_status_field = FindField(obj, "Status");
+  if (!status_field && !legacy_status_field)
     ThrowJsonError("Missing required field");
   OpcUaWsMonitoredItemModifyResult result{
-      .status = DecodeStatus(*status_field),
+      .status = status_field ? scada::Status{DecodeStatusCode(*status_field)}
+                             : DecodeStatus(*legacy_status_field),
       .revised_sampling_interval_ms =
           RequireDouble(RequireField(obj, "RevisedSamplingInterval")),
       .revised_queue_size = static_cast<scada::UInt32>(

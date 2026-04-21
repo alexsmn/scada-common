@@ -154,6 +154,11 @@ coroutine handler → encode-JSON.
   `service`, and `body`. `requestHandle` correlates responses; future
   `PublishResponse` messages are pushed by the server in response to
   outstanding `PublishRequest` messages, same pattern as on TCP.
+- Monitored-item startup follows OPC UA Part 4 §5.13.1 and §7.25.2:
+  when a monitored item is created in an enabled mode, the server queues the
+  current value or status without applying the filter. If no value/status is
+  cached yet, the first notification is queued once that initial sample
+  becomes available from the source.
 - Handshake validates `Sec-WebSocket-Protocol: opcua+uajson` and `Origin`
   against a configured allowlist. This is the cross-site WebSocket hijacking
   (CSWSH) guard — `Origin` is the only signal the browser is honest about for

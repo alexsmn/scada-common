@@ -112,6 +112,9 @@ inline CreateMonitoredItemResult CreateMonitoredItem(
     scada::MonitoredItemService& monitored_item_service,
     const scada::ReadValueId& item_to_monitor,
     const scada::MonitoringParameters& parameters) {
+  if (!IsSupportedMonitoredAttribute(item_to_monitor.attribute_id)) {
+    return {.status = scada::StatusCode::Bad_WrongAttributeId};
+  }
   auto monitored_item =
       monitored_item_service.CreateMonitoredItem(item_to_monitor, parameters);
   const auto status =
