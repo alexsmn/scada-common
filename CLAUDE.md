@@ -100,6 +100,8 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
 
 ## Documentation
 
+- When updating diagram sources in `docs/`, regenerate the corresponding
+  committed `docs/*.svg` artifacts in the same change.
 - Mermaid sources in `docs/*.mmd` should be rendered to committed `docs/*.svg`
   artifacts after diagram changes.
 - From WSL, prefer running Mermaid regeneration on the Windows side via

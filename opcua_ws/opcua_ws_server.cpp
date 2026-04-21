@@ -56,7 +56,8 @@ Awaitable<void> OpcUaWsServer::AcceptLoop() {
       co_return;
 
     auto transport = std::move(accepted.value());
-    CoSpawn(transport.get_executor(),
+    auto executor = transport.get_executor();
+    CoSpawn(executor,
             [this, transport = std::move(transport)]() mutable -> Awaitable<void> {
               co_await ServeConnection(std::move(transport));
             });
@@ -82,7 +83,7 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
     } catch (...) {
       response = {.request_handle = 0,
                   .body = OpcUaWsServiceFault{
-                      .status = scada::StatusCode::Bad_CantParseString}};
+                  .status = scada::StatusCode::Bad_CantParseString}};
     }
 
     auto encoded = boost::json::serialize(EncodeJson(response));

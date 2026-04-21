@@ -1,6 +1,5 @@
-#include "opcua_ws/opcua_ws_beast_server.h"
-
 #include "opcua_ws/opcua_json_codec.h"
+#include "opcua_ws/opcua_ws_server.h"
 
 #include "base/asio_executor.h"
 #include "scada/attribute_service_mock.h"
@@ -9,6 +8,7 @@
 #include "scada/node_management_service_mock.h"
 #include "scada/test/test_monitored_item.h"
 #include "scada/view_service_mock.h"
+#include "transport/websocket_transport.h"
 
 #include <boost/asio/connect.hpp>
 #include <boost/asio/io_context.hpp>
@@ -18,6 +18,7 @@
 #include <boost/asio/use_future.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http/field.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/json/parse.hpp>
@@ -32,6 +33,8 @@ using namespace testing;
 
 namespace opcua_ws {
 namespace {
+
+namespace http = boost::beast::http;
 
 constexpr auto kTestCertificatePem = R"(-----BEGIN CERTIFICATE-----
 MIIDCTCCAfGgAwIBAgIUQWAR+40WE34MoTuKigrGeiGT5ycwDQYJKoZIhvcNAQEL
@@ -86,6 +89,28 @@ mCzxKIlbzMnhGhGlzdKwqs5Uhw==
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
   return {id, ns};
+}
+
+std::string Trim(std::string_view value) {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
+    value.remove_prefix(1);
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
+    value.remove_suffix(1);
+  return std::string{value};
+}
+
+bool HeaderContainsToken(std::string_view header, std::string_view token) {
+  while (!header.empty()) {
+    const auto comma = header.find(',');
+    const auto part = comma == std::string_view::npos ? header
+                                                      : header.substr(0, comma);
+    if (Trim(part) == token)
+      return true;
+    if (comma == std::string_view::npos)
+      break;
+    header.remove_prefix(comma + 1);
+  }
+  return false;
 }
 
 class TestMonitoredItemService : public scada::MonitoredItemService {
@@ -238,7 +263,7 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(86));
 }
 
-class OpcUaWsBeastServerTest : public Test {
+class OpcUaWsWebSocketServerTest : public Test {
  protected:
   void SetUp() override {
     work_.emplace(boost::asio::make_work_guard(io_context_));
@@ -248,9 +273,10 @@ class OpcUaWsBeastServerTest : public Test {
   void TearDown() override {
     if (server_) {
       auto close_future = boost::asio::co_spawn(
-          io_context_, server_->close(), boost::asio::use_future);
+          io_context_, server_->Close(), boost::asio::use_future);
       EXPECT_EQ(close_future.get().value(), 0);
       server_.reset();
+      acceptor_ = nullptr;
     }
     runtime_.reset();
     callback_executor_.reset();
@@ -260,7 +286,8 @@ class OpcUaWsBeastServerTest : public Test {
       thread_->join();
   }
 
-  void StartServer(std::optional<OpcUaWsTlsContextConfig> tls = std::nullopt) {
+  void StartServer(
+      std::optional<transport::WebSocketServerTlsConfig> tls = std::nullopt) {
     callback_executor_ =
         std::make_shared<AsioExecutor>(io_context_.get_executor());
     runtime_.emplace(OpcUaWsRuntimeContext{
@@ -273,19 +300,72 @@ class OpcUaWsBeastServerTest : public Test {
         .method_service = method_service_,
         .node_management_service = node_management_service_,
     });
-    server_.emplace(OpcUaWsBeastServerContext{
-        .executor = io_context_.get_executor(),
-        .endpoint = {boost::asio::ip::make_address("127.0.0.1"), 0},
+    auto acceptor = std::make_unique<transport::WebSocketTransport>(
+        io_context_.get_executor(),
+        transport::log_source{},
+        "127.0.0.1",
+        "0",
+        /*active=*/false,
+        transport::WebSocketServerOptions{
+            .tls = std::move(tls),
+            .handshake_callback =
+                [](const transport::WebSocketServerRequest& request)
+                    -> std::optional<transport::WebSocketServerReject> {
+              if (request.target() != "/ua") {
+                return transport::WebSocketServerReject{
+                    .status = http::status::not_found,
+                    .body = "Invalid target",
+                };
+              }
+
+              const auto subprotocol_it =
+                  request.find(http::field::sec_websocket_protocol);
+              if (subprotocol_it == request.end() ||
+                  !HeaderContainsToken(subprotocol_it->value(),
+                                       "opcua+uajson")) {
+                return transport::WebSocketServerReject{
+                    .status = http::status::bad_request,
+                    .body = "Missing required subprotocol",
+                };
+              }
+
+              const auto origin_it = request.find(http::field::origin);
+              if (origin_it == request.end()) {
+                return transport::WebSocketServerReject{
+                    .status = http::status::forbidden,
+                    .body = "Origin required",
+                };
+              }
+
+              if (origin_it->value() != "https://scada.local") {
+                return transport::WebSocketServerReject{
+                    .status = http::status::forbidden,
+                    .body = "Origin denied",
+                };
+              }
+
+              return std::nullopt;
+            },
+            .enable_permessage_deflate = true,
+            .response_callback =
+                [](boost::beast::websocket::response_type& response) {
+              response.set(http::field::server, "scada-opcua-ws");
+              response.set(http::field::sec_websocket_protocol,
+                           "opcua+uajson");
+            },
+        });
+    acceptor_ = acceptor.get();
+    server_.emplace(OpcUaWsServerContext{
+        .acceptor = transport::any_transport{std::move(acceptor)},
         .runtime = *runtime_,
-        .allowed_origins = {"https://scada.local"},
-        .tls = std::move(tls),
+        .max_message_size = 4 * 1024 * 1024,
     });
     auto open_future =
-        boost::asio::co_spawn(io_context_, server_->open(), boost::asio::use_future);
+        boost::asio::co_spawn(io_context_, server_->Open(), boost::asio::use_future);
     EXPECT_EQ(open_future.get(), transport::OK);
   }
 
-  unsigned short port() const { return server_->local_endpoint().port(); }
+  unsigned short port() const { return acceptor_->local_endpoint().port(); }
 
   boost::asio::io_context io_context_;
   std::optional<boost::asio::executor_work_guard<
@@ -309,10 +389,11 @@ class OpcUaWsBeastServerTest : public Test {
             .user_id = NumericNode(700, 5), .multi_sessions = true};
       }}};
   std::optional<OpcUaWsRuntime> runtime_;
-  std::optional<OpcUaWsBeastServer> server_;
+  transport::WebSocketTransport* acceptor_ = nullptr;
+  std::optional<OpcUaWsServer> server_;
 };
 
-TEST_F(OpcUaWsBeastServerTest,
+TEST_F(OpcUaWsWebSocketServerTest,
        AcceptsValidHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer();
 
@@ -342,9 +423,9 @@ TEST_F(OpcUaWsBeastServerTest,
   client.Close();
 }
 
-TEST_F(OpcUaWsBeastServerTest,
+TEST_F(OpcUaWsWebSocketServerTest,
        AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
-  StartServer(OpcUaWsTlsContextConfig{
+  StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
       .private_key_pem = kTestPrivateKeyPem,
   });
@@ -375,7 +456,7 @@ TEST_F(OpcUaWsBeastServerTest,
   client.Close();
 }
 
-TEST_F(OpcUaWsBeastServerTest, RejectsOriginOutsideAllowList) {
+TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowList) {
   StartServer();
 
   BeastClient client;
@@ -384,7 +465,7 @@ TEST_F(OpcUaWsBeastServerTest, RejectsOriginOutsideAllowList) {
       boost::system::system_error);
 }
 
-TEST_F(OpcUaWsBeastServerTest, RejectsMissingRequiredSubprotocol) {
+TEST_F(OpcUaWsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
   StartServer();
 
   BeastClient client;
@@ -392,8 +473,8 @@ TEST_F(OpcUaWsBeastServerTest, RejectsMissingRequiredSubprotocol) {
                boost::system::system_error);
 }
 
-TEST_F(OpcUaWsBeastServerTest, RejectsOriginOutsideAllowListOverTls) {
-  StartServer(OpcUaWsTlsContextConfig{
+TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
+  StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
       .private_key_pem = kTestPrivateKeyPem,
   });
