@@ -104,10 +104,61 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
             (std::vector<scada::UInt32>{2u}));
 
   const auto republish_first = subscription.Republish(1);
-  EXPECT_EQ(republish_first.status.code(), scada::StatusCode::Bad);
+  EXPECT_EQ(republish_first.status.code(),
+            scada::StatusCode::Bad_MessageNotAvailable);
   const auto republish_second = subscription.Republish(2);
   EXPECT_EQ(republish_second.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(republish_second.notification_message.sequence_number, 2u);
+}
+
+TEST(OpcUaWsSubscriptionTest,
+     ReportsSpecStatusesForUnknownMonitoredItemsAndUnknownSequenceNumbers) {
+  TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 15:00:00");
+  OpcUaWsSubscription subscription{
+      33,
+      {.publishing_interval_ms = 100,
+       .lifetime_count = 60,
+       .max_keep_alive_count = 3,
+       .max_notifications_per_publish = 0,
+       .publishing_enabled = true,
+       .priority = 0},
+      monitored_item_service,
+      start};
+
+  const auto modify = subscription.ModifyMonitoredItems(
+      {.subscription_id = 33,
+       .items_to_modify = {{.monitored_item_id = 999u,
+                            .requested_parameters =
+                                {.client_handle = 1,
+                                 .sampling_interval_ms = 50,
+                                 .queue_size = 1,
+                                 .discard_oldest = true}}}});
+  ASSERT_EQ(modify.results.size(), 1u);
+  EXPECT_EQ(modify.results[0].status.code(),
+            scada::StatusCode::Bad_MonitoredItemIdInvalid);
+
+  const auto set_mode = subscription.SetMonitoringMode(
+      {.subscription_id = 33,
+       .monitoring_mode = OpcUaWsMonitoringMode::Reporting,
+       .monitored_item_ids = {999u}});
+  EXPECT_EQ(
+      set_mode.results,
+      (std::vector<scada::StatusCode>{
+          scada::StatusCode::Bad_MonitoredItemIdInvalid}));
+
+  const auto deleted = subscription.DeleteMonitoredItems(
+      {.subscription_id = 33, .monitored_item_ids = {999u}});
+  EXPECT_EQ(
+      deleted.results,
+      (std::vector<scada::StatusCode>{
+          scada::StatusCode::Bad_MonitoredItemIdInvalid}));
+
+  EXPECT_EQ(subscription.Acknowledge(std::vector<scada::UInt32>{77u}),
+            (std::vector<scada::StatusCode>{
+                scada::StatusCode::Bad_MessageNotAvailable}));
+  EXPECT_EQ(subscription.Republish(77u).status.code(),
+            scada::StatusCode::Bad_MessageNotAvailable);
 }
 
 TEST(OpcUaWsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {

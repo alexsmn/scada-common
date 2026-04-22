@@ -133,8 +133,12 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
   for (const auto& source_item : request.items_to_modify) {
     const auto item_it = items_.find(source_item.monitored_item_id);
     if (item_it == items_.end()) {
+      // OPC UA Part 4 v1.04, 5.12.3.4 Table 74 defines
+      // Bad_MonitoredItemIdInvalid as the operation-level result when the
+      // monitoredItemId is unknown.
+      // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.3
       response.results.push_back(
-          {.status = scada::StatusCode::Bad});
+          {.status = scada::StatusCode::Bad_MonitoredItemIdInvalid});
       continue;
     }
 
@@ -165,8 +169,13 @@ OpcUaWsDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
 
   for (auto monitored_item_id : request.monitored_item_ids) {
     const auto erased = items_.erase(monitored_item_id);
-    response.results.push_back(erased ? scada::StatusCode::Good
-                                      : scada::StatusCode::Bad);
+    // OPC UA Part 4 v1.04, 5.12.6.4 Table 83 defines
+    // Bad_MonitoredItemIdInvalid as the operation-level result when the
+    // monitoredItemId is unknown.
+    // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.6
+    response.results.push_back(
+        erased ? scada::StatusCode::Good
+               : scada::StatusCode::Bad_MonitoredItemIdInvalid);
   }
 
   pending_notifications_.erase(
@@ -197,7 +206,11 @@ OpcUaWsSetMonitoringModeResponse OpcUaSubscription::SetMonitoringMode(
   for (auto monitored_item_id : request.monitored_item_ids) {
     const auto item_it = items_.find(monitored_item_id);
     if (item_it == items_.end()) {
-      response.results.push_back(scada::StatusCode::Bad);
+      // OPC UA Part 4 v1.04, 5.12.4.4 Table 77 defines
+      // Bad_MonitoredItemIdInvalid as the operation-level result when the
+      // monitoredItemId is unknown.
+      // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.4
+      response.results.push_back(scada::StatusCode::Bad_MonitoredItemIdInvalid);
       continue;
     }
 
@@ -272,7 +285,11 @@ OpcUaWsRepublishResponse OpcUaSubscription::Republish(
         return notification_message.sequence_number == sequence_number;
       });
   if (it == retransmit_queue_.end()) {
-    return {.status = scada::StatusCode::Bad};
+    // OPC UA Part 4 v1.05, 5.14.6.3 Table 93 defines
+    // Bad_MessageNotAvailable when the requested NotificationMessage is no
+    // longer in the retransmission queue.
+    // URL: https://reference.opcfoundation.org/Core/Part4/v105/docs/5.14
+    return {.status = scada::StatusCode::Bad_MessageNotAvailable};
   }
   return {.status = scada::StatusCode::Good, .notification_message = *it};
 }
@@ -308,7 +325,7 @@ scada::StatusCode OpcUaSubscription::Acknowledge(
         return notification_message.sequence_number == sequence_number;
       });
   if (it == retransmit_queue_.end())
-    return scada::StatusCode::Bad;
+    return scada::StatusCode::Bad_MessageNotAvailable;
   retransmit_queue_.erase(it);
   return scada::StatusCode::Good;
 }
