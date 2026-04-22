@@ -450,6 +450,28 @@ TEST_F(OpcUaEndpointCoreTest,
 }
 
 TEST_F(OpcUaEndpointCoreTest,
+       NormalizeEventFieldPaths_UsesDefaultsOnlyWhenEmpty) {
+  const auto defaults = NormalizeEventFieldPaths({});
+  EXPECT_EQ(defaults, DefaultEventFieldPaths());
+
+  const std::vector<std::vector<std::string>> custom{
+      {"Severity"},
+      {"Message"},
+  };
+  EXPECT_EQ(NormalizeEventFieldPaths(custom), custom);
+}
+
+TEST_F(OpcUaEndpointCoreTest, ParseAndBuildEventFilter_RoundTripsFieldPaths) {
+  const auto filter = BuildEventFilter(std::vector<std::vector<std::string>>{
+      {"Severity"},
+      {"Message"},
+  });
+  EXPECT_EQ(ParseEventFilterFieldPaths(filter),
+            (std::vector<std::vector<std::string>>{{"Severity"},
+                                                   {"Message"}}));
+}
+
+TEST_F(OpcUaEndpointCoreTest,
        DispatchEventFieldNotification_AssemblesAndForwardsModelChangeEvents) {
   const auto event_item = scada::ReadValueId{
       .node_id = NumericNode(74, 9),

@@ -5,6 +5,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "base/time_utils.h"
+#include "opcua/opcua_endpoint_core.h"
 #include "opcua/opcua_binary_protocol.h"
 #include "opcua/opcua_binary_secure_channel.h"
 #include "opcua/opcua_binary_tcp_connection.h"
@@ -1391,6 +1392,9 @@ struct DecodedPublishResponse {
   scada::UInt32 sequence_number = 0;
   bool has_data_change = false;
   double data_change_value = 0;
+  bool has_event = false;
+  scada::UInt32 event_client_handle = 0;
+  std::vector<scada::Variant> event_fields;
   std::vector<std::uint32_t> acknowledgement_results;
 };
 
@@ -1435,42 +1439,70 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
     return std::nullopt;
   }
   if (notification_count == 1) {
-    std::int32_t item_count = 0;
-    scada::UInt32 client_handle = 0;
-    std::uint8_t value_mask = 0;
-    scada::Variant value;
-    std::uint32_t ignored_status_code = 0;
-    std::int64_t ignored_source_timestamp = 0;
-    std::int64_t ignored_server_timestamp = 0;
-    if (!decoder.Decode(notification_data) ||
-        notification_data.type_id != 811 || notification_data.encoding != 0x01) {
+    if (!decoder.Decode(notification_data) || notification_data.encoding != 0x01) {
       return std::nullopt;
     }
     binary::BinaryDecoder notification_decoder{notification_data.body};
-    if (!notification_decoder.Decode(item_count) || item_count != 1 ||
-        !notification_decoder.Decode(client_handle) ||
-        !notification_decoder.Decode(value_mask) || (value_mask & 0x01) == 0 ||
-        !notification_decoder.Decode(value) ||
-        value.type() != scada::Variant::DOUBLE) {
+    if (notification_data.type_id == 811) {
+      std::int32_t item_count = 0;
+      scada::UInt32 client_handle = 0;
+      std::uint8_t value_mask = 0;
+      scada::Variant value;
+      std::uint32_t ignored_status_code = 0;
+      std::int64_t ignored_source_timestamp = 0;
+      std::int64_t ignored_server_timestamp = 0;
+      if (!notification_decoder.Decode(item_count) || item_count != 1 ||
+          !notification_decoder.Decode(client_handle) ||
+          !notification_decoder.Decode(value_mask) || (value_mask & 0x01) == 0 ||
+          !notification_decoder.Decode(value) ||
+          value.type() != scada::Variant::DOUBLE) {
+        return std::nullopt;
+      }
+      if ((value_mask & 0x02) != 0 &&
+          !notification_decoder.Decode(ignored_status_code)) {
+        return std::nullopt;
+      }
+      if ((value_mask & 0x04) != 0 &&
+          !notification_decoder.Decode(ignored_source_timestamp)) {
+        return std::nullopt;
+      }
+      if ((value_mask & 0x08) != 0 &&
+          !notification_decoder.Decode(ignored_server_timestamp)) {
+        return std::nullopt;
+      }
+      if (!notification_decoder.consumed()) {
+        return std::nullopt;
+      }
+      response.has_data_change = true;
+      response.data_change_value = value.get<scada::Double>();
+    } else if (notification_data.type_id == 916) {
+      std::int32_t event_count = 0;
+      binary::DecodedExtensionObject event_field_list;
+      if (!notification_decoder.Decode(event_count) || event_count != 1 ||
+          !notification_decoder.Decode(event_field_list) ||
+          event_field_list.type_id != 919 ||
+          event_field_list.encoding != 0x01) {
+        return std::nullopt;
+      }
+      binary::BinaryDecoder event_decoder{event_field_list.body};
+      std::int32_t field_count = 0;
+      if (!event_decoder.Decode(response.event_client_handle) ||
+          !event_decoder.Decode(field_count) || field_count < 0) {
+        return std::nullopt;
+      }
+      response.event_fields.resize(static_cast<std::size_t>(field_count));
+      for (auto& field : response.event_fields) {
+        if (!event_decoder.Decode(field)) {
+          return std::nullopt;
+        }
+      }
+      if (!event_decoder.consumed() || !notification_decoder.consumed()) {
+        return std::nullopt;
+      }
+      response.has_event = true;
+    } else {
       return std::nullopt;
     }
-    if ((value_mask & 0x02) != 0 &&
-        !notification_decoder.Decode(ignored_status_code)) {
-      return std::nullopt;
-    }
-    if ((value_mask & 0x04) != 0 &&
-        !notification_decoder.Decode(ignored_source_timestamp)) {
-      return std::nullopt;
-    }
-    if ((value_mask & 0x08) != 0 &&
-        !notification_decoder.Decode(ignored_server_timestamp)) {
-      return std::nullopt;
-    }
-    if (!notification_decoder.consumed()) {
-      return std::nullopt;
-    }
-    response.has_data_change = true;
-    response.data_change_value = value.get<scada::Double>();
   } else if (notification_count != 0) {
     return std::nullopt;
   }
@@ -2099,6 +2131,29 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
+       RejectsHistoryReadRawWithoutActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto history_read = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeHistoryReadRawRequestBody(
+          1, NumericNode(999, 3),
+          {.node_id = NumericNode(120),
+           .from = now_ - base::TimeDelta::FromMinutes(15),
+           .to = now_,
+           .max_count = 25})));
+  ASSERT_TRUE(history_read.has_value());
+  const auto decoded = DecodeHistoryReadRawResponse(*history_read);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
+  EXPECT_TRUE(decoded->values.empty());
+  EXPECT_TRUE(decoded->continuation_point.empty());
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesHistoryReadEventsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
@@ -2172,6 +2227,27 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(decoded->events[0][5].get<scada::LocalizedText>(),
             scada::LocalizedText{u"alarm"});
   EXPECT_EQ(decoded->events[0][6].get<scada::UInt32>(), 700u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       RejectsHistoryReadEventsWithoutActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto history_read = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeHistoryReadEventsRequestBody(
+          1, NumericNode(999, 3),
+          {.node_id = NumericNode(300),
+           .from = now_ - base::TimeDelta::FromMinutes(30),
+           .to = now_})));
+  ASSERT_TRUE(history_read.has_value());
+  const auto decoded = DecodeHistoryReadEventsResponse(*history_read);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
+  EXPECT_TRUE(decoded->events.empty());
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
@@ -2399,6 +2475,68 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
+       DecodesDataChangeFilterForCreateMonitoredItems) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded_subscription = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded_subscription.has_value());
+
+  const auto created_items = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateMonitoredItemsRequestBody(
+          4, session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.item_to_monitor =
+                {.node_id = NumericNode(11),
+                 .attribute_id = scada::AttributeId::Value},
+            .requested_parameters =
+                {.client_handle = 44,
+                 .sampling_interval_ms = 0,
+                 .filter = OpcUaBinaryMonitoringFilter{
+                     OpcUaBinaryDataChangeFilter{
+                         .trigger =
+                             OpcUaBinaryDataChangeTrigger::StatusValueTimestamp,
+                         .deadband_type = OpcUaBinaryDeadbandType::Absolute,
+                         .deadband_value = 1.5}},
+                 .queue_size = 1,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(created_items.has_value());
+  const auto decoded_items = DecodeCreateMonitoredItemsResponse(*created_items);
+  ASSERT_TRUE(decoded_items.has_value());
+  EXPECT_EQ(decoded_items->result.status.code(), scada::StatusCode::Good);
+
+  ASSERT_EQ(monitored_item_service_.created_parameters.size(), 1u);
+  const auto* filter = std::get_if<scada::DataChangeFilter>(
+      &monitored_item_service_.created_parameters[0].filter);
+  ASSERT_NE(filter, nullptr);
+  EXPECT_DOUBLE_EQ(filter->deadband_value, 1.5);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesModifyMonitoredItemsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
@@ -2535,6 +2673,89 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
   EXPECT_FALSE(decoded->more_notifications);
   EXPECT_TRUE(decoded->has_data_change);
   EXPECT_DOUBLE_EQ(decoded->data_change_value, 12.5);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesEventPublishWithBinaryEventFilterAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded_subscription = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded_subscription.has_value());
+
+  const auto created_items = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateMonitoredItemsRequestBody(
+          4, session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.item_to_monitor =
+                {.node_id = NumericNode(2253),
+                 .attribute_id = scada::AttributeId::EventNotifier},
+            .requested_parameters =
+                {.client_handle = 55,
+                 .sampling_interval_ms = 0,
+                 .filter = OpcUaBinaryMonitoringFilter{
+                     scada::opcua_endpoint::BuildEventFilter(
+                         std::vector<std::vector<std::string>>{
+                             {"Message"},
+                             {"Severity"},
+                             {"EventId"}})},
+                 .queue_size = 1,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(created_items.has_value());
+  const auto decoded_items = DecodeCreateMonitoredItemsResponse(*created_items);
+  ASSERT_TRUE(decoded_items.has_value());
+  EXPECT_EQ(decoded_items->result.status.code(), scada::StatusCode::Good);
+
+  scada::Event event;
+  event.event_id = 77;
+  event.event_type_id = NumericNode(2041);
+  event.node_id = NumericNode(3001);
+  event.time = now_;
+  event.receive_time = now_;
+  event.message = scada::LocalizedText{u"custom alarm"};
+  event.severity = 600;
+  ASSERT_EQ(monitored_item_service_.items.size(), 1u);
+  monitored_item_service_.items[0]->NotifyEvent(event);
+  now_ = now_ + base::TimeDelta::FromMilliseconds(100);
+
+  const auto published = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(
+          EncodePublishRequestBody(5, session->authentication_token)));
+  ASSERT_TRUE(published.has_value());
+  const auto decoded = DecodePublishResponse(*published);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_TRUE(decoded->has_event);
+  EXPECT_EQ(decoded->event_client_handle, 55u);
+  ASSERT_EQ(decoded->event_fields.size(), 3u);
+  EXPECT_EQ(decoded->event_fields[0].get<scada::LocalizedText>(),
+            scada::LocalizedText{u"custom alarm"});
+  EXPECT_EQ(decoded->event_fields[1].get<scada::UInt32>(), 600u);
+  EXPECT_EQ(decoded->event_fields[2].get<scada::UInt64>(), 77u);
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,

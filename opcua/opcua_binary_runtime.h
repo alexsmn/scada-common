@@ -10,6 +10,10 @@ template <typename Response>
 Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
   if constexpr (requires(Response response) { response.status; }) {
     return Response{.status = std::move(status)};
+  } else if constexpr (requires(Response response) { response.result.status; }) {
+    auto response = Response{};
+    response.result.status = std::move(status);
+    return response;
   } else if constexpr (requires(Response response) { response.results; }) {
     using Result = typename decltype(Response{}.results)::value_type;
     if constexpr (requires(Result result) { result.status; }) {

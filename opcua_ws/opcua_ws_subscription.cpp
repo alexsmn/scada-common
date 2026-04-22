@@ -11,15 +11,6 @@
 
 namespace opcua_ws {
 
-namespace {
-
-constexpr std::string_view kEventFilterBody = "Body";
-constexpr std::string_view kSelectClauses = "SelectClauses";
-constexpr std::string_view kBrowsePath = "BrowsePath";
-constexpr std::string_view kName = "Name";
-
-}  // namespace
-
 OpcUaWsSubscription::OpcUaWsSubscription(
     OpcUaWsSubscriptionId subscription_id,
     OpcUaWsSubscriptionParameters parameters,
@@ -445,44 +436,9 @@ OpcUaWsSubscription::ParseEventFieldPaths(
     const std::optional<OpcUaWsMonitoringFilter>& filter) {
   const auto* raw_filter = filter ? std::get_if<boost::json::value>(&*filter)
                                   : nullptr;
-  if (!raw_filter || !raw_filter->is_object())
+  if (!raw_filter)
     return scada::opcua_endpoint::DefaultEventFieldPaths();
-
-  const auto* current = &raw_filter->as_object();
-  if (const auto* body_field = current->if_contains(kEventFilterBody);
-      body_field != nullptr && body_field->is_object()) {
-    current = &body_field->as_object();
-  }
-
-  const auto* clauses_value = current->if_contains(kSelectClauses);
-  if (!clauses_value || !clauses_value->is_array())
-    return scada::opcua_endpoint::DefaultEventFieldPaths();
-
-  std::vector<std::vector<std::string>> result;
-  for (const auto& clause_value : clauses_value->as_array()) {
-    if (!clause_value.is_object())
-      continue;
-    const auto& clause = clause_value.as_object();
-    const auto* browse_path_value = clause.if_contains(kBrowsePath);
-    if (!browse_path_value || !browse_path_value->is_array())
-      continue;
-
-    std::vector<std::string> path;
-    for (const auto& segment_value : browse_path_value->as_array()) {
-      if (!segment_value.is_object())
-        continue;
-      const auto& segment = segment_value.as_object();
-      const auto* name_value = segment.if_contains(kName);
-      if (!name_value || !name_value->is_string())
-        continue;
-      path.emplace_back(name_value->as_string().c_str());
-    }
-    if (!path.empty())
-      result.push_back(std::move(path));
-  }
-
-  return result.empty() ? scada::opcua_endpoint::DefaultEventFieldPaths()
-                        : result;
+  return scada::opcua_endpoint::ParseEventFilterFieldPaths(*raw_filter);
 }
 
 std::vector<scada::Variant> OpcUaWsSubscription::BuildEventFields(

@@ -11,6 +11,8 @@
 #include "scada/service_context.h"
 #include "scada/view_service.h"
 
+#include <boost/json/value.hpp>
+
 #include <memory>
 #include <optional>
 #include <span>
@@ -202,6 +204,88 @@ inline const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
                                             {"Message"},
                                             {"Severity"}});
   return *kFields;
+}
+
+inline std::vector<std::vector<std::string>> NormalizeEventFieldPaths(
+    std::vector<std::vector<std::string>> field_paths) {
+  if (!field_paths.empty())
+    return field_paths;
+  const auto& defaults = DefaultEventFieldPaths();
+  return std::vector<std::vector<std::string>>(defaults.begin(), defaults.end());
+}
+
+inline std::vector<std::vector<std::string>> ParseEventFilterFieldPaths(
+    const boost::json::value& raw_filter) {
+  constexpr std::string_view kEventFilterBody = "Body";
+  constexpr std::string_view kSelectClauses = "SelectClauses";
+  constexpr std::string_view kBrowsePath = "BrowsePath";
+  constexpr std::string_view kName = "Name";
+
+  if (!raw_filter.is_object()) {
+    const auto& defaults = DefaultEventFieldPaths();
+    return std::vector<std::vector<std::string>>(defaults.begin(),
+                                                 defaults.end());
+  }
+
+  const auto* current = &raw_filter.as_object();
+  if (const auto* body_field = current->if_contains(kEventFilterBody);
+      body_field != nullptr && body_field->is_object()) {
+    current = &body_field->as_object();
+  }
+
+  const auto* clauses_value = current->if_contains(kSelectClauses);
+  if (!clauses_value || !clauses_value->is_array()) {
+    const auto& defaults = DefaultEventFieldPaths();
+    return std::vector<std::vector<std::string>>(defaults.begin(),
+                                                 defaults.end());
+  }
+
+  std::vector<std::vector<std::string>> result;
+  for (const auto& clause_value : clauses_value->as_array()) {
+    if (!clause_value.is_object())
+      continue;
+    const auto& clause = clause_value.as_object();
+    const auto* browse_path_value = clause.if_contains(kBrowsePath);
+    if (!browse_path_value || !browse_path_value->is_array())
+      continue;
+
+    std::vector<std::string> path;
+    for (const auto& segment_value : browse_path_value->as_array()) {
+      if (!segment_value.is_object())
+        continue;
+      const auto& segment = segment_value.as_object();
+      const auto* name_value = segment.if_contains(kName);
+      if (!name_value || !name_value->is_string())
+        continue;
+      path.emplace_back(name_value->as_string().c_str());
+    }
+    if (!path.empty())
+      result.push_back(std::move(path));
+  }
+
+  return NormalizeEventFieldPaths(std::move(result));
+}
+
+inline boost::json::value BuildEventFilter(
+    std::span<const std::vector<std::string>> field_paths) {
+  boost::json::array select_clauses;
+  const auto normalized_field_paths = NormalizeEventFieldPaths(
+      std::vector<std::vector<std::string>>(field_paths.begin(),
+                                            field_paths.end()));
+  for (const auto& field_path : normalized_field_paths) {
+    boost::json::array browse_path;
+    for (const auto& segment : field_path) {
+      browse_path.emplace_back(boost::json::object{{"Name", segment}});
+    }
+    select_clauses.emplace_back(
+        boost::json::object{{"BrowsePath", std::move(browse_path)}});
+  }
+
+  return boost::json::object{
+      {"Type", "EventFilter"},
+      {"Body",
+       boost::json::object{{"SelectClauses", std::move(select_clauses)}}},
+  };
 }
 
 inline std::vector<scada::Variant> ProjectEventFields(

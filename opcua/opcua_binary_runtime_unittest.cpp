@@ -280,5 +280,39 @@ TEST_F(OpcUaBinaryRuntimeTest, CloseSessionClearsAttachedState) {
   EXPECT_EQ(response.status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
 }
 
+TEST_F(OpcUaBinaryRuntimeTest,
+       RejectsHistoryReadRawWithoutActivatedSession) {
+  OpcUaBinaryConnectionState connection;
+
+  const auto response = Handle<OpcUaBinaryHistoryReadRawResponse>(
+      connection,
+      OpcUaBinaryHistoryReadRawRequest{
+          .details =
+              {.node_id = NumericNode(41),
+               .from = now_ - base::TimeDelta::FromMinutes(10),
+               .to = now_,
+               .max_count = 5}});
+  EXPECT_EQ(response.result.status.code(),
+            scada::StatusCode::Bad_SessionIsLoggedOff);
+  EXPECT_TRUE(response.result.values.empty());
+  EXPECT_TRUE(response.result.continuation_point.empty());
+}
+
+TEST_F(OpcUaBinaryRuntimeTest,
+       RejectsHistoryReadEventsWithoutActivatedSession) {
+  OpcUaBinaryConnectionState connection;
+
+  const auto response = Handle<OpcUaBinaryHistoryReadEventsResponse>(
+      connection,
+      OpcUaBinaryHistoryReadEventsRequest{
+          .details =
+              {.node_id = NumericNode(42),
+               .from = now_ - base::TimeDelta::FromMinutes(30),
+               .to = now_}});
+  EXPECT_EQ(response.result.status.code(),
+            scada::StatusCode::Bad_SessionIsLoggedOff);
+  EXPECT_TRUE(response.result.events.empty());
+}
+
 }  // namespace
 }  // namespace opcua

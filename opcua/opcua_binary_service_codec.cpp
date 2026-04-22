@@ -66,6 +66,7 @@ constexpr std::uint32_t kHistoryDataBinaryEncodingId = 658;
 constexpr std::uint32_t kHistoryEventBinaryEncodingId = 661;
 constexpr std::uint32_t kHistoryReadRequestBinaryEncodingId = 664;
 constexpr std::uint32_t kHistoryReadResponseBinaryEncodingId = 667;
+constexpr std::uint32_t kDataChangeFilterBinaryEncodingId = 724;
 constexpr std::uint32_t kEventFilterBinaryEncodingId = 727;
 constexpr std::uint32_t kLiteralOperandBinaryEncodingId = 597;
 constexpr std::uint32_t kSimpleAttributeOperandBinaryEncodingId = 603;
@@ -269,11 +270,9 @@ void AppendEventFilter(binary::BinaryEncoder& encoder,
 void AppendHistoryEvent(binary::BinaryEncoder& encoder,
                         const OpcUaBinaryHistoryReadEventsResponse& response,
                         std::span<const std::vector<std::string>> field_paths) {
-  const auto paths =
-      field_paths.empty()
-          ? scada::opcua_endpoint::DefaultEventFieldPaths()
-          : std::vector<std::vector<std::string>>(field_paths.begin(),
-                                                  field_paths.end());
+  const auto paths = scada::opcua_endpoint::NormalizeEventFieldPaths(
+      std::vector<std::vector<std::string>>(field_paths.begin(),
+                                            field_paths.end()));
   std::vector<char> body;
   binary::BinaryEncoder body_encoder{body};
   body_encoder.Encode(static_cast<std::int32_t>(response.result.events.size()));
@@ -291,9 +290,45 @@ void AppendHistoryEvent(binary::BinaryEncoder& encoder,
   });
 }
 
+void AppendDataChangeFilter(binary::BinaryEncoder& encoder,
+                            const OpcUaBinaryDataChangeFilter& filter) {
+  std::vector<char> body;
+  binary::BinaryEncoder body_encoder{body};
+  body_encoder.Encode(static_cast<std::uint32_t>(filter.trigger));
+  body_encoder.Encode(static_cast<std::uint32_t>(filter.deadband_type));
+  body_encoder.Encode(filter.deadband_value);
+  encoder.Encode(binary::EncodedExtensionObject{
+      .type_id = kDataChangeFilterBinaryEncodingId,
+      .body = std::move(body),
+  });
+}
+
 void AppendNullExtensionObject(binary::BinaryEncoder& encoder) {
   encoder.Encode(scada::NodeId{});
   encoder.Encode(std::uint8_t{0x00});
+}
+
+void AppendMonitoringFilter(
+    binary::BinaryEncoder& encoder,
+    const std::optional<OpcUaBinaryMonitoringFilter>& filter) {
+  if (!filter.has_value()) {
+    AppendNullExtensionObject(encoder);
+    return;
+  }
+
+  std::visit(
+      [&encoder](const auto& typed_filter) {
+        using T = std::decay_t<decltype(typed_filter)>;
+        if constexpr (std::is_same_v<T, OpcUaBinaryDataChangeFilter>) {
+          AppendDataChangeFilter(encoder, typed_filter);
+        } else {
+          AppendEventFilter(
+              encoder,
+              scada::opcua_endpoint::ParseEventFilterFieldPaths(typed_filter),
+              scada::EventFilter{});
+        }
+      },
+      *filter);
 }
 
 void AppendMonitoredItemCreateRequest(
@@ -306,11 +341,7 @@ void AppendMonitoredItemCreateRequest(
   encoder.Encode(static_cast<std::uint32_t>(request.monitoring_mode));
   encoder.Encode(request.requested_parameters.client_handle);
   encoder.Encode(request.requested_parameters.sampling_interval_ms);
-  if (request.requested_parameters.filter.has_value()) {
-    AppendNullExtensionObject(encoder);
-  } else {
-    AppendNullExtensionObject(encoder);
-  }
+  AppendMonitoringFilter(encoder, request.requested_parameters.filter);
   encoder.Encode(request.requested_parameters.queue_size);
   encoder.Encode(request.requested_parameters.discard_oldest);
 }
@@ -1059,19 +1090,9 @@ bool DecodeLiteralOperandNodeId(const binary::DecodedExtensionObject& operand,
   return true;
 }
 
-bool DecodeEventFilter(binary::BinaryDecoder& decoder,
-                       scada::EventFilter& filter,
-                       std::vector<std::vector<std::string>>& field_paths) {
-  binary::DecodedExtensionObject encoded_filter;
-  if (!decoder.Decode(encoded_filter)) {
-    return false;
-  }
-  if (encoded_filter.type_id != kEventFilterBinaryEncodingId ||
-      encoded_filter.encoding != 0x01) {
-    return false;
-  }
-
-  binary::BinaryDecoder filter_decoder{encoded_filter.body};
+bool DecodeEventFilterBody(binary::BinaryDecoder& filter_decoder,
+                           scada::EventFilter& filter,
+                           std::vector<std::vector<std::string>>& field_paths) {
   std::int32_t select_clause_count = 0;
   if (!filter_decoder.Decode(select_clause_count) || select_clause_count < 0) {
     return false;
@@ -1148,6 +1169,78 @@ bool DecodeEventFilter(binary::BinaryDecoder& decoder,
   }
 
   return filter_decoder.consumed();
+}
+
+bool DecodeEventFilter(binary::BinaryDecoder& decoder,
+                       scada::EventFilter& filter,
+                       std::vector<std::vector<std::string>>& field_paths) {
+  binary::DecodedExtensionObject encoded_filter;
+  if (!decoder.Decode(encoded_filter)) {
+    return false;
+  }
+  if (encoded_filter.type_id != kEventFilterBinaryEncodingId ||
+      encoded_filter.encoding != 0x01) {
+    return false;
+  }
+
+  binary::BinaryDecoder filter_decoder{encoded_filter.body};
+  return DecodeEventFilterBody(filter_decoder, filter, field_paths);
+}
+
+bool DecodeMonitoringFilter(
+    const binary::DecodedExtensionObject& encoded_filter,
+    std::optional<OpcUaBinaryMonitoringFilter>& filter) {
+  if (encoded_filter.type_id == 0 && encoded_filter.encoding == 0x00 &&
+      encoded_filter.body.empty()) {
+    filter.reset();
+    return true;
+  }
+  if (encoded_filter.encoding != 0x01) {
+    return false;
+  }
+
+  binary::BinaryDecoder decoder{encoded_filter.body};
+  if (encoded_filter.type_id == kDataChangeFilterBinaryEncodingId) {
+    OpcUaBinaryDataChangeFilter data_change_filter;
+    std::uint32_t trigger = 0;
+    std::uint32_t deadband_type = 0;
+    if (!decoder.Decode(trigger) || !decoder.Decode(deadband_type) ||
+        !decoder.Decode(data_change_filter.deadband_value) ||
+        !decoder.consumed()) {
+      return false;
+    }
+    data_change_filter.trigger =
+        static_cast<OpcUaBinaryDataChangeTrigger>(trigger);
+    data_change_filter.deadband_type =
+        static_cast<OpcUaBinaryDeadbandType>(deadband_type);
+    if (data_change_filter.trigger != OpcUaBinaryDataChangeTrigger::Status &&
+        data_change_filter.trigger !=
+            OpcUaBinaryDataChangeTrigger::StatusValue &&
+        data_change_filter.trigger !=
+            OpcUaBinaryDataChangeTrigger::StatusValueTimestamp) {
+      return false;
+    }
+    if (data_change_filter.deadband_type != OpcUaBinaryDeadbandType::None &&
+        data_change_filter.deadband_type != OpcUaBinaryDeadbandType::Absolute &&
+        data_change_filter.deadband_type != OpcUaBinaryDeadbandType::Percent) {
+      return false;
+    }
+    filter = std::move(data_change_filter);
+    return true;
+  }
+
+  if (encoded_filter.type_id == kEventFilterBinaryEncodingId) {
+    scada::EventFilter ignored_filter;
+    std::vector<std::vector<std::string>> field_paths;
+    if (!DecodeEventFilterBody(decoder, ignored_filter, field_paths)) {
+      return false;
+    }
+    filter = OpcUaBinaryMonitoringFilter{
+        scada::opcua_endpoint::BuildEventFilter(field_paths)};
+    return true;
+  }
+
+  return false;
 }
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeHistoryReadRawRequest(
@@ -1271,9 +1364,8 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeHistoryReadEventsRequest(
     return std::nullopt;
   }
 
-  if (field_paths.empty()) {
-    field_paths = scada::opcua_endpoint::DefaultEventFieldPaths();
-  }
+  field_paths =
+      scada::opcua_endpoint::NormalizeEventFieldPaths(std::move(field_paths));
 
   return OpcUaBinaryDecodedRequest{
       .header = header,
@@ -1484,8 +1576,7 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeCreateMonitoredItemsRequest(
         item.monitoring_mode != OpcUaBinaryMonitoringMode::Reporting) {
       return std::nullopt;
     }
-    if (!(filter.type_id == 0 && filter.encoding == 0x00 &&
-          filter.body.empty())) {
+    if (!DecodeMonitoringFilter(filter, item.requested_parameters.filter)) {
       return std::nullopt;
     }
   }
@@ -1532,8 +1623,7 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeModifyMonitoredItemsRequest(
         !decoder.Decode(item.requested_parameters.discard_oldest)) {
       return std::nullopt;
     }
-    if (!(filter.type_id == 0 && filter.encoding == 0x00 &&
-          filter.body.empty())) {
+    if (!DecodeMonitoringFilter(filter, item.requested_parameters.filter)) {
       return std::nullopt;
     }
   }
@@ -1931,7 +2021,8 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
             payload_encoder.Encode(item.requested_parameters.client_handle);
             payload_encoder.Encode(
                 item.requested_parameters.sampling_interval_ms);
-            AppendNullExtensionObject(payload_encoder);
+            AppendMonitoringFilter(payload_encoder,
+                                   item.requested_parameters.filter);
             payload_encoder.Encode(item.requested_parameters.queue_size);
             payload_encoder.Encode(item.requested_parameters.discard_oldest);
           }
