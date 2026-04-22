@@ -9,9 +9,11 @@
 #include <algorithm>
 #include <variant>
 
-namespace opcua_ws {
+namespace opcua {
 
-OpcUaWsSubscription::OpcUaWsSubscription(
+using namespace opcua_ws;
+
+OpcUaSubscription::OpcUaSubscription(
     OpcUaWsSubscriptionId subscription_id,
     OpcUaWsSubscriptionParameters parameters,
     scada::MonitoredItemService& monitored_item_service,
@@ -21,7 +23,7 @@ OpcUaWsSubscription::OpcUaWsSubscription(
       monitored_item_service_{monitored_item_service},
       last_publish_time_{publish_cycle_start_time} {}
 
-OpcUaWsModifySubscriptionResponse OpcUaWsSubscription::Modify(
+OpcUaWsModifySubscriptionResponse OpcUaSubscription::Modify(
     const OpcUaWsModifySubscriptionRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
@@ -35,11 +37,11 @@ OpcUaWsModifySubscriptionResponse OpcUaWsSubscription::Modify(
           .revised_max_keep_alive_count = parameters_.max_keep_alive_count};
 }
 
-void OpcUaWsSubscription::SetPublishingEnabled(bool publishing_enabled) {
+void OpcUaSubscription::SetPublishingEnabled(bool publishing_enabled) {
   parameters_.publishing_enabled = publishing_enabled;
 }
 
-bool OpcUaWsSubscription::IsPublishReady(base::Time now) const {
+bool OpcUaSubscription::IsPublishReady(base::Time now) const {
   if (!last_publish_time_.has_value())
     return false;
 
@@ -63,13 +65,13 @@ bool OpcUaWsSubscription::IsPublishReady(base::Time now) const {
   return elapsed >= KeepAliveInterval();
 }
 
-void OpcUaWsSubscription::PrimePublishCycle(base::Time now) {
+void OpcUaSubscription::PrimePublishCycle(base::Time now) {
   if (!parameters_.publishing_enabled || last_publish_time_.has_value())
     return;
   last_publish_time_ = now;
 }
 
-std::optional<base::Time> OpcUaWsSubscription::NextPublishDeadline() const {
+std::optional<base::Time> OpcUaSubscription::NextPublishDeadline() const {
   if (!last_publish_time_.has_value())
     return std::nullopt;
 
@@ -83,7 +85,7 @@ std::optional<base::Time> OpcUaWsSubscription::NextPublishDeadline() const {
               : KeepAliveInterval());
 }
 
-OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
+OpcUaWsCreateMonitoredItemsResponse OpcUaSubscription::CreateMonitoredItems(
     const OpcUaWsCreateMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
@@ -118,7 +120,7 @@ OpcUaWsCreateMonitoredItemsResponse OpcUaWsSubscription::CreateMonitoredItems(
   return response;
 }
 
-OpcUaWsModifyMonitoredItemsResponse OpcUaWsSubscription::ModifyMonitoredItems(
+OpcUaWsModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
     const OpcUaWsModifyMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
@@ -151,7 +153,7 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaWsSubscription::ModifyMonitoredItems(
   return response;
 }
 
-OpcUaWsDeleteMonitoredItemsResponse OpcUaWsSubscription::DeleteMonitoredItems(
+OpcUaWsDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
     const OpcUaWsDeleteMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
@@ -182,7 +184,7 @@ OpcUaWsDeleteMonitoredItemsResponse OpcUaWsSubscription::DeleteMonitoredItems(
   return response;
 }
 
-OpcUaWsSetMonitoringModeResponse OpcUaWsSubscription::SetMonitoringMode(
+OpcUaWsSetMonitoringModeResponse OpcUaSubscription::SetMonitoringMode(
     const OpcUaWsSetMonitoringModeRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
@@ -206,7 +208,7 @@ OpcUaWsSetMonitoringModeResponse OpcUaWsSubscription::SetMonitoringMode(
   return response;
 }
 
-std::vector<scada::StatusCode> OpcUaWsSubscription::Acknowledge(
+std::vector<scada::StatusCode> OpcUaSubscription::Acknowledge(
     const std::vector<scada::UInt32>& sequence_numbers) {
   std::vector<scada::StatusCode> results;
   results.reserve(sequence_numbers.size());
@@ -215,7 +217,7 @@ std::vector<scada::StatusCode> OpcUaWsSubscription::Acknowledge(
   return results;
 }
 
-std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
+std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
     base::Time now) {
   PrimePublishCycle(now);
   const bool has_publishable_notifications =
@@ -262,7 +264,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaWsSubscription::TryPublish(
       .results = {}};
 }
 
-OpcUaWsRepublishResponse OpcUaWsSubscription::Republish(
+OpcUaWsRepublishResponse OpcUaSubscription::Republish(
     scada::UInt32 sequence_number) const {
   const auto it = std::find_if(
       retransmit_queue_.begin(), retransmit_queue_.end(),
@@ -275,7 +277,7 @@ OpcUaWsRepublishResponse OpcUaWsSubscription::Republish(
   return {.status = scada::StatusCode::Good, .notification_message = *it};
 }
 
-scada::MonitoringParameters OpcUaWsSubscription::ToMonitoringParameters(
+scada::MonitoringParameters OpcUaSubscription::ToMonitoringParameters(
     const Item& item,
     const OpcUaWsMonitoringParameters& parameters) {
   scada::MonitoringParameters result;
@@ -298,7 +300,7 @@ scada::MonitoringParameters OpcUaWsSubscription::ToMonitoringParameters(
   return result;
 }
 
-scada::StatusCode OpcUaWsSubscription::Acknowledge(
+scada::StatusCode OpcUaSubscription::Acknowledge(
     scada::UInt32 sequence_number) {
   const auto it = std::find_if(
       retransmit_queue_.begin(), retransmit_queue_.end(),
@@ -311,7 +313,7 @@ scada::StatusCode OpcUaWsSubscription::Acknowledge(
   return scada::StatusCode::Good;
 }
 
-std::vector<scada::UInt32> OpcUaWsSubscription::AvailableSequenceNumbers()
+std::vector<scada::UInt32> OpcUaSubscription::AvailableSequenceNumbers()
     const {
   std::vector<scada::UInt32> result;
   result.reserve(retransmit_queue_.size());
@@ -320,13 +322,13 @@ std::vector<scada::UInt32> OpcUaWsSubscription::AvailableSequenceNumbers()
   return result;
 }
 
-base::TimeDelta OpcUaWsSubscription::PublishingInterval() const {
+base::TimeDelta OpcUaSubscription::PublishingInterval() const {
   const auto interval_ms =
       static_cast<int64_t>(parameters_.publishing_interval_ms);
   return base::TimeDelta::FromMilliseconds(std::max<int64_t>(1, interval_ms));
 }
 
-base::TimeDelta OpcUaWsSubscription::KeepAliveInterval() const {
+base::TimeDelta OpcUaSubscription::KeepAliveInterval() const {
   const auto interval_ms = static_cast<int64_t>(PublishingInterval().InMilliseconds()) *
       static_cast<int64_t>(
                            std::max<scada::UInt32>(1,
@@ -334,14 +336,14 @@ base::TimeDelta OpcUaWsSubscription::KeepAliveInterval() const {
   return base::TimeDelta::FromMilliseconds(interval_ms);
 }
 
-bool OpcUaWsSubscription::IsKeepAliveDue(base::Time now) const {
+bool OpcUaSubscription::IsKeepAliveDue(base::Time now) const {
   if (!last_publish_time_.has_value()) {
     return false;
   }
   return now - *last_publish_time_ >= KeepAliveInterval();
 }
 
-void OpcUaWsSubscription::RebindItem(Item& item) {
+void OpcUaSubscription::RebindItem(Item& item) {
   ++item.binding_generation;
   auto created = scada::opcua_endpoint::CreateMonitoredItem(
       monitored_item_service_, item.item_to_monitor,
@@ -372,7 +374,7 @@ void OpcUaWsSubscription::RebindItem(Item& item) {
       }));
 }
 
-void OpcUaWsSubscription::QueueDataChange(
+void OpcUaSubscription::QueueDataChange(
     Item& item,
     const scada::DataValue& data_value) {
   if (item.monitoring_mode != OpcUaWsMonitoringMode::Reporting)
@@ -384,7 +386,7 @@ void OpcUaWsSubscription::QueueDataChange(
                                                          .value = data_value}}});
 }
 
-void OpcUaWsSubscription::QueueEvent(Item& item,
+void OpcUaSubscription::QueueEvent(Item& item,
                                      const scada::Status& status,
                                      const std::any& event) {
   if (!status) {
@@ -402,7 +404,7 @@ void OpcUaWsSubscription::QueueEvent(Item& item,
                           BuildEventFields(item.event_field_paths, event)}}});
 }
 
-void OpcUaWsSubscription::QueueNotification(
+void OpcUaSubscription::QueueNotification(
     Item& item,
     OpcUaWsNotificationData notification) {
   pending_notifications_.push_back(
@@ -411,7 +413,7 @@ void OpcUaWsSubscription::QueueNotification(
   EnforceQueueLimit(item);
 }
 
-void OpcUaWsSubscription::EnforceQueueLimit(const Item& item) {
+void OpcUaSubscription::EnforceQueueLimit(const Item& item) {
   const auto queue_size = std::max<scada::UInt32>(1, item.parameters.queue_size);
   std::vector<size_t> indices;
   for (size_t i = 0; i < pending_notifications_.size(); ++i) {
@@ -432,7 +434,7 @@ void OpcUaWsSubscription::EnforceQueueLimit(const Item& item) {
 }
 
 std::vector<std::vector<std::string>>
-OpcUaWsSubscription::ParseEventFieldPaths(
+OpcUaSubscription::ParseEventFieldPaths(
     const std::optional<OpcUaWsMonitoringFilter>& filter) {
   const auto* raw_filter = filter ? std::get_if<boost::json::value>(&*filter)
                                   : nullptr;
@@ -441,10 +443,10 @@ OpcUaWsSubscription::ParseEventFieldPaths(
   return scada::opcua_endpoint::ParseEventFilterFieldPaths(*raw_filter);
 }
 
-std::vector<scada::Variant> OpcUaWsSubscription::BuildEventFields(
+std::vector<scada::Variant> OpcUaSubscription::BuildEventFields(
     const std::vector<std::vector<std::string>>& field_paths,
     const std::any& event) {
   return scada::opcua_endpoint::ProjectEventFields(field_paths, event);
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

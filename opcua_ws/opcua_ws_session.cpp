@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cstring>
 
-namespace opcua_ws {
+namespace opcua {
+
+using namespace opcua_ws;
 
 namespace {
 
@@ -11,25 +13,25 @@ constexpr size_t kNotFound = static_cast<size_t>(-1);
 
 }  // namespace
 
-OpcUaWsSession::OpcUaWsSession(OpcUaWsSessionContext&& context)
-    : OpcUaWsSessionContext{std::move(context)} {}
+OpcUaSession::OpcUaSession(OpcUaSessionContext&& context)
+    : OpcUaSessionContext{std::move(context)} {}
 
-size_t OpcUaWsSession::ByteStringHash::operator()(
+size_t OpcUaSession::ByteStringHash::operator()(
     const scada::ByteString& value) const {
   return std::hash<std::string_view>{}(
       std::string_view{value.data(), value.size()});
 }
 
-OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscription(
+OpcUaWsCreateSubscriptionResponse OpcUaSession::CreateSubscription(
     const OpcUaWsCreateSubscriptionRequest& request) {
   return CreateSubscriptionWithId(next_subscription_id_++, request);
 }
 
-OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscriptionWithId(
+OpcUaWsCreateSubscriptionResponse OpcUaSession::CreateSubscriptionWithId(
     OpcUaWsSubscriptionId subscription_id,
     const OpcUaWsCreateSubscriptionRequest& request) {
   next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
-  auto subscription = std::make_unique<OpcUaWsSubscription>(
+  auto subscription = std::make_unique<OpcUaSubscription>(
       subscription_id, request.parameters, this->monitored_item_service,
       Now());
 
@@ -43,7 +45,7 @@ OpcUaWsCreateSubscriptionResponse OpcUaWsSession::CreateSubscriptionWithId(
           .revised_max_keep_alive_count = request.parameters.max_keep_alive_count};
 }
 
-OpcUaWsModifySubscriptionResponse OpcUaWsSession::ModifySubscription(
+OpcUaWsModifySubscriptionResponse OpcUaSession::ModifySubscription(
     const OpcUaWsModifySubscriptionRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -51,7 +53,7 @@ OpcUaWsModifySubscriptionResponse OpcUaWsSession::ModifySubscription(
   return subscription->Modify(request);
 }
 
-OpcUaWsSetPublishingModeResponse OpcUaWsSession::SetPublishingMode(
+OpcUaWsSetPublishingModeResponse OpcUaSession::SetPublishingMode(
     const OpcUaWsSetPublishingModeRequest& request) {
   OpcUaWsSetPublishingModeResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
@@ -69,7 +71,7 @@ OpcUaWsSetPublishingModeResponse OpcUaWsSession::SetPublishingMode(
   return response;
 }
 
-OpcUaWsDeleteSubscriptionsResponse OpcUaWsSession::DeleteSubscriptions(
+OpcUaWsDeleteSubscriptionsResponse OpcUaSession::DeleteSubscriptions(
     const OpcUaWsDeleteSubscriptionsRequest& request) {
   OpcUaWsDeleteSubscriptionsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
@@ -86,8 +88,8 @@ OpcUaWsDeleteSubscriptionsResponse OpcUaWsSession::DeleteSubscriptions(
   return response;
 }
 
-OpcUaWsTransferSubscriptionsResponse OpcUaWsSession::TransferSubscriptionsFrom(
-    OpcUaWsSession& source,
+OpcUaWsTransferSubscriptionsResponse OpcUaSession::TransferSubscriptionsFrom(
+    OpcUaSession& source,
     const OpcUaWsTransferSubscriptionsRequest& request) {
   OpcUaWsTransferSubscriptionsResponse response{
       .status = scada::StatusCode::Good};
@@ -115,7 +117,7 @@ OpcUaWsTransferSubscriptionsResponse OpcUaWsSession::TransferSubscriptionsFrom(
   return response;
 }
 
-OpcUaWsCreateMonitoredItemsResponse OpcUaWsSession::CreateMonitoredItems(
+OpcUaWsCreateMonitoredItemsResponse OpcUaSession::CreateMonitoredItems(
     const OpcUaWsCreateMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -123,7 +125,7 @@ OpcUaWsCreateMonitoredItemsResponse OpcUaWsSession::CreateMonitoredItems(
   return subscription->CreateMonitoredItems(request);
 }
 
-OpcUaWsModifyMonitoredItemsResponse OpcUaWsSession::ModifyMonitoredItems(
+OpcUaWsModifyMonitoredItemsResponse OpcUaSession::ModifyMonitoredItems(
     const OpcUaWsModifyMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -131,7 +133,7 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaWsSession::ModifyMonitoredItems(
   return subscription->ModifyMonitoredItems(request);
 }
 
-OpcUaWsDeleteMonitoredItemsResponse OpcUaWsSession::DeleteMonitoredItems(
+OpcUaWsDeleteMonitoredItemsResponse OpcUaSession::DeleteMonitoredItems(
     const OpcUaWsDeleteMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -139,7 +141,7 @@ OpcUaWsDeleteMonitoredItemsResponse OpcUaWsSession::DeleteMonitoredItems(
   return subscription->DeleteMonitoredItems(request);
 }
 
-OpcUaWsSetMonitoringModeResponse OpcUaWsSession::SetMonitoringMode(
+OpcUaWsSetMonitoringModeResponse OpcUaSession::SetMonitoringMode(
     const OpcUaWsSetMonitoringModeRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -147,7 +149,7 @@ OpcUaWsSetMonitoringModeResponse OpcUaWsSession::SetMonitoringMode(
   return subscription->SetMonitoringMode(request);
 }
 
-std::vector<scada::StatusCode> OpcUaWsSession::AcknowledgePublishRequest(
+std::vector<scada::StatusCode> OpcUaSession::AcknowledgePublishRequest(
     const OpcUaWsPublishRequest& request) {
   std::vector<scada::StatusCode> ack_results(
       request.subscription_acknowledgements.size(), scada::StatusCode::Good);
@@ -182,7 +184,7 @@ std::vector<scada::StatusCode> OpcUaWsSession::AcknowledgePublishRequest(
   return ack_results;
 }
 
-OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
+OpcUaSession::PublishPollResult OpcUaSession::PollPublish() {
   const auto now_time = Now();
   const auto pending_index = FindNextReadySubscription(now_time, true);
   const auto publish_index =
@@ -247,7 +249,7 @@ OpcUaWsSession::PublishPollResult OpcUaWsSession::PollPublish() {
   return {.response = std::move(published)};
 }
 
-OpcUaWsPublishResponse OpcUaWsSession::Publish(
+OpcUaWsPublishResponse OpcUaSession::Publish(
     const OpcUaWsPublishRequest& request) {
   auto ack_results = AcknowledgePublishRequest(request);
   auto poll = PollPublish();
@@ -260,7 +262,7 @@ OpcUaWsPublishResponse OpcUaWsSession::Publish(
   return *poll.response;
 }
 
-OpcUaWsRepublishResponse OpcUaWsSession::Republish(
+OpcUaWsRepublishResponse OpcUaSession::Republish(
     const OpcUaWsRepublishRequest& request) const {
   const auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
@@ -268,7 +270,7 @@ OpcUaWsRepublishResponse OpcUaWsSession::Republish(
   return subscription->Republish(request.retransmit_sequence_number);
 }
 
-BrowseResponse OpcUaWsSession::StoreBrowseResults(
+BrowseResponse OpcUaSession::StoreBrowseResults(
     BrowseResponse response,
     size_t requested_max_references_per_node) {
   if (requested_max_references_per_node == 0)
@@ -280,7 +282,7 @@ BrowseResponse OpcUaWsSession::StoreBrowseResults(
   return response;
 }
 
-BrowseNextResponse OpcUaWsSession::BrowseNext(const BrowseNextRequest& request) {
+BrowseNextResponse OpcUaSession::BrowseNext(const BrowseNextRequest& request) {
   BrowseNextResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.continuation_points.size());
 
@@ -304,7 +306,7 @@ BrowseNextResponse OpcUaWsSession::BrowseNext(const BrowseNextRequest& request) 
   return response;
 }
 
-std::vector<OpcUaWsSubscriptionId> OpcUaWsSession::GetSubscriptionIds() const {
+std::vector<OpcUaWsSubscriptionId> OpcUaSession::GetSubscriptionIds() const {
   std::vector<OpcUaWsSubscriptionId> result;
   result.reserve(publish_order_.size());
   for (const auto subscription_id : publish_order_) {
@@ -314,23 +316,23 @@ std::vector<OpcUaWsSubscriptionId> OpcUaWsSession::GetSubscriptionIds() const {
   return result;
 }
 
-bool OpcUaWsSession::HasSubscription(OpcUaWsSubscriptionId subscription_id) const {
+bool OpcUaSession::HasSubscription(OpcUaWsSubscriptionId subscription_id) const {
   return FindSubscription(subscription_id) != nullptr;
 }
 
-OpcUaWsSubscription* OpcUaWsSession::FindSubscription(
+OpcUaSubscription* OpcUaSession::FindSubscription(
     OpcUaWsSubscriptionId subscription_id) {
   const auto it = subscriptions_.find(subscription_id);
   return it != subscriptions_.end() ? it->second.get() : nullptr;
 }
 
-const OpcUaWsSubscription* OpcUaWsSession::FindSubscription(
+const OpcUaSubscription* OpcUaSession::FindSubscription(
     OpcUaWsSubscriptionId subscription_id) const {
   const auto it = subscriptions_.find(subscription_id);
   return it != subscriptions_.end() ? it->second.get() : nullptr;
 }
 
-void OpcUaWsSession::EraseSubscription(OpcUaWsSubscriptionId subscription_id) {
+void OpcUaSession::EraseSubscription(OpcUaWsSubscriptionId subscription_id) {
   subscriptions_.erase(subscription_id);
   const auto it = std::find(publish_order_.begin(), publish_order_.end(),
                             subscription_id);
@@ -349,7 +351,7 @@ void OpcUaWsSession::EraseSubscription(OpcUaWsSubscriptionId subscription_id) {
     next_publish_index_ = 0;
 }
 
-void OpcUaWsSession::AdvancePublishCursorAfter(size_t index) {
+void OpcUaSession::AdvancePublishCursorAfter(size_t index) {
   if (publish_order_.empty()) {
     next_publish_index_ = 0;
     return;
@@ -357,7 +359,7 @@ void OpcUaWsSession::AdvancePublishCursorAfter(size_t index) {
   next_publish_index_ = (index + 1) % publish_order_.size();
 }
 
-size_t OpcUaWsSession::FindNextReadySubscription(base::Time now,
+size_t OpcUaSession::FindNextReadySubscription(base::Time now,
                                                  bool require_pending) const {
   if (publish_order_.empty())
     return kNotFound;
@@ -377,19 +379,19 @@ size_t OpcUaWsSession::FindNextReadySubscription(base::Time now,
   return kNotFound;
 }
 
-void OpcUaWsSession::RefreshNextSubscriptionId() {
+void OpcUaSession::RefreshNextSubscriptionId() {
   for (const auto& [subscription_id, subscription] : subscriptions_)
     next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
 }
 
-scada::ByteString OpcUaWsSession::MakeBrowseContinuationPoint() {
+scada::ByteString OpcUaSession::MakeBrowseContinuationPoint() {
   scada::ByteString value(sizeof(next_browse_continuation_id_), '\0');
   const auto raw = next_browse_continuation_id_++;
   std::memcpy(value.data(), &raw, sizeof(raw));
   return value;
 }
 
-scada::BrowseResult OpcUaWsSession::PageBrowseResult(
+scada::BrowseResult OpcUaSession::PageBrowseResult(
     scada::BrowseResult result,
     size_t requested_max_references_per_node) {
   result.continuation_point.clear();
@@ -411,7 +413,7 @@ scada::BrowseResult OpcUaWsSession::PageBrowseResult(
   return result;
 }
 
-scada::BrowseResult OpcUaWsSession::ResumeBrowseResult(
+scada::BrowseResult OpcUaSession::ResumeBrowseResult(
     const scada::ByteString& continuation_point) {
   auto it = browse_continuations_.find(continuation_point);
   if (it == browse_continuations_.end()) {
@@ -425,4 +427,4 @@ scada::BrowseResult OpcUaWsSession::ResumeBrowseResult(
   return result;
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

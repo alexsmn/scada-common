@@ -7,7 +7,9 @@
 #include <type_traits>
 #include <utility>
 
-namespace opcua_ws {
+namespace opcua {
+
+using namespace opcua_ws;
 
 namespace {
 
@@ -25,18 +27,18 @@ OpcUaWsResponseBody SessionMissingResponse<OpcUaWsResponseBody>() {
 
 }  // namespace
 
-OpcUaWsRuntime::OpcUaWsRuntime(OpcUaWsRuntimeContext&& context)
-    : OpcUaWsRuntimeContext{std::move(context)} {}
+OpcUaRuntime::OpcUaRuntime(OpcUaRuntimeContext&& context)
+    : OpcUaRuntimeContext{std::move(context)} {}
 
-Awaitable<OpcUaWsResponseMessage> OpcUaWsRuntime::Handle(
-    OpcUaWsConnectionState& connection,
+Awaitable<OpcUaWsResponseMessage> OpcUaRuntime::Handle(
+    OpcUaConnectionState& connection,
     OpcUaWsRequestMessage request) {
   auto body = co_await HandleRequestBody(connection, std::move(request.body));
   co_return OpcUaWsResponseMessage{
       .request_handle = request.request_handle, .body = std::move(body)};
 }
 
-void OpcUaWsRuntime::Detach(OpcUaWsConnectionState& connection) {
+void OpcUaRuntime::Detach(OpcUaConnectionState& connection) {
   if (!connection.authentication_token.has_value())
     return;
 
@@ -47,20 +49,20 @@ void OpcUaWsRuntime::Detach(OpcUaWsConnectionState& connection) {
   connection.authentication_token.reset();
 }
 
-OpcUaWsSession* OpcUaWsRuntime::FindSession(
+OpcUaSession* OpcUaRuntime::FindSession(
     const scada::NodeId& authentication_token) const {
   const auto it = sessions_.find(authentication_token);
   return it != sessions_.end() ? it->second.get() : nullptr;
 }
 
-OpcUaWsSession* OpcUaWsRuntime::FindAttachedSession(
-    const OpcUaWsConnectionState& connection) const {
+OpcUaSession* OpcUaRuntime::FindAttachedSession(
+    const OpcUaConnectionState& connection) const {
   if (!connection.authentication_token.has_value())
     return nullptr;
   return FindSession(*connection.authentication_token);
 }
 
-void OpcUaWsRuntime::ForgetSession(const scada::NodeId& authentication_token) {
+void OpcUaRuntime::ForgetSession(const scada::NodeId& authentication_token) {
   LOG_INFO(logger_) << "OPC UA WS runtime forgetting session state"
                     << LOG_TAG("AuthenticationToken",
                                authentication_token.ToString());
@@ -68,9 +70,9 @@ void OpcUaWsRuntime::ForgetSession(const scada::NodeId& authentication_token) {
   sessions_.erase(authentication_token);
 }
 
-void OpcUaWsRuntime::IndexSessionSubscriptions(
+void OpcUaRuntime::IndexSessionSubscriptions(
     const scada::NodeId& authentication_token,
-    const OpcUaWsSession& session) {
+    const OpcUaSession& session) {
   const auto subscription_ids = session.GetSubscriptionIds();
   for (const auto subscription_id : subscription_ids)
     subscription_owners_[subscription_id] = authentication_token;
@@ -83,7 +85,7 @@ void OpcUaWsRuntime::IndexSessionSubscriptions(
   }
 }
 
-void OpcUaWsRuntime::RemoveSessionSubscriptions(
+void OpcUaRuntime::RemoveSessionSubscriptions(
     const scada::NodeId& authentication_token) {
   std::erase_if(subscription_owners_,
                 [&](const auto& entry) {
@@ -91,7 +93,7 @@ void OpcUaWsRuntime::RemoveSessionSubscriptions(
                 });
 }
 
-Awaitable<void> OpcUaWsRuntime::Delay(base::TimeDelta delay) const {
+Awaitable<void> OpcUaRuntime::Delay(base::TimeDelta delay) const {
   if (delay <= base::TimeDelta{})
     co_return;
 
@@ -106,8 +108,8 @@ Awaitable<void> OpcUaWsRuntime::Delay(base::TimeDelta delay) const {
                                  });
 }
 
-Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
-    OpcUaWsConnectionState& connection,
+Awaitable<OpcUaWsResponseBody> OpcUaRuntime::HandleRequestBody(
+    OpcUaConnectionState& connection,
     OpcUaWsRequestBody request) {
   auto body = co_await std::visit(
       [this, &connection](auto&& typed_request) -> Awaitable<OpcUaWsResponseBody> {
@@ -351,23 +353,23 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleRequestBody(
   co_return body;
 }
 
-Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleActivateSession(
-    OpcUaWsConnectionState& connection,
+Awaitable<OpcUaWsResponseBody> OpcUaRuntime::HandleActivateSession(
+    OpcUaConnectionState& connection,
     OpcUaWsActivateSessionRequest request) {
   const auto response = co_await this->session_manager.ActivateSession(request);
   if (!response.status)
     co_return OpcUaWsResponseBody{response};
 
-  std::shared_ptr<OpcUaWsSession> session;
+  std::shared_ptr<OpcUaSession> session;
   if (response.resumed) {
     auto* attached_session = FindSession(request.authentication_token);
     session = attached_session ? sessions_.at(request.authentication_token) : nullptr;
     if (!session) {
-      co_return OpcUaWsResponseBody{OpcUaWsActivateSessionResponse{
+      co_return OpcUaWsResponseBody{OpcUaActivateSessionResponse{
           .status = scada::StatusCode::Bad_SessionIsLoggedOff}};
     }
   } else {
-    session = std::make_shared<OpcUaWsSession>(OpcUaWsSessionContext{
+    session = std::make_shared<OpcUaSession>(OpcUaSessionContext{
         .session_id = request.session_id,
         .authentication_token = request.authentication_token,
         .service_context = response.service_context,
@@ -381,4 +383,4 @@ Awaitable<OpcUaWsResponseBody> OpcUaWsRuntime::HandleActivateSession(
   co_return OpcUaWsResponseBody{response};
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

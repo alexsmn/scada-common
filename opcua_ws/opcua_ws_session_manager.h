@@ -10,13 +10,13 @@
 #include <optional>
 #include <unordered_map>
 
-namespace opcua_ws {
+namespace opcua {
 
-struct OpcUaWsCreateSessionRequest {
+struct OpcUaCreateSessionRequest {
   base::TimeDelta requested_timeout = base::TimeDelta::FromMinutes(10);
 };
 
-struct OpcUaWsCreateSessionResponse {
+struct OpcUaCreateSessionResponse {
   scada::Status status{scada::StatusCode::Good};
   scada::NodeId session_id;
   scada::NodeId authentication_token;
@@ -24,7 +24,7 @@ struct OpcUaWsCreateSessionResponse {
   base::TimeDelta revised_timeout;
 };
 
-struct OpcUaWsActivateSessionRequest {
+struct OpcUaActivateSessionRequest {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   std::optional<scada::LocalizedText> user_name;
@@ -33,23 +33,23 @@ struct OpcUaWsActivateSessionRequest {
   bool allow_anonymous = false;
 };
 
-struct OpcUaWsActivateSessionResponse {
+struct OpcUaActivateSessionResponse {
   scada::Status status{scada::StatusCode::Good};
   scada::ServiceContext service_context;
   std::optional<scada::AuthenticationResult> authentication_result;
   bool resumed = false;
 };
 
-struct OpcUaWsCloseSessionRequest {
+struct OpcUaCloseSessionRequest {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
 };
 
-struct OpcUaWsCloseSessionResponse {
+struct OpcUaCloseSessionResponse {
   scada::Status status{scada::StatusCode::Good};
 };
 
-struct OpcUaWsSessionLookupResult {
+struct OpcUaSessionLookupResult {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ServiceContext service_context;
@@ -58,7 +58,7 @@ struct OpcUaWsSessionLookupResult {
   bool activated = false;
 };
 
-struct OpcUaWsSessionManagerContext {
+struct OpcUaSessionManagerContext {
   scada::AsyncAuthenticator authenticator;
   std::function<base::Time()> now = &base::Time::Now;
   base::TimeDelta default_timeout = base::TimeDelta::FromMinutes(10);
@@ -68,21 +68,21 @@ struct OpcUaWsSessionManagerContext {
   scada::NamespaceIndex token_namespace_index = 3;
 };
 
-class OpcUaWsSessionManager : private OpcUaWsSessionManagerContext {
+class OpcUaSessionManager : private OpcUaSessionManagerContext {
  public:
-  explicit OpcUaWsSessionManager(OpcUaWsSessionManagerContext&& context);
+  explicit OpcUaSessionManager(OpcUaSessionManagerContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaWsCreateSessionResponse> CreateSession(
-      OpcUaWsCreateSessionRequest request = {});
-  [[nodiscard]] Awaitable<OpcUaWsActivateSessionResponse> ActivateSession(
-      OpcUaWsActivateSessionRequest request);
-  [[nodiscard]] OpcUaWsCloseSessionResponse CloseSession(
-      OpcUaWsCloseSessionRequest request);
+  [[nodiscard]] Awaitable<OpcUaCreateSessionResponse> CreateSession(
+      OpcUaCreateSessionRequest request = {});
+  [[nodiscard]] Awaitable<OpcUaActivateSessionResponse> ActivateSession(
+      OpcUaActivateSessionRequest request);
+  [[nodiscard]] OpcUaCloseSessionResponse CloseSession(
+      OpcUaCloseSessionRequest request);
 
   void DetachSession(const scada::NodeId& authentication_token);
   void PruneExpiredSessions();
 
-  [[nodiscard]] std::optional<OpcUaWsSessionLookupResult> FindSession(
+  [[nodiscard]] std::optional<OpcUaSessionLookupResult> FindSession(
       const scada::NodeId& authentication_token) const;
 
  private:
@@ -116,12 +116,18 @@ class OpcUaWsSessionManager : private OpcUaWsSessionManagerContext {
   scada::UInt32 next_token_id_ = 1;
 };
 
-}  // namespace opcua_ws
-
-namespace opcua {
-
-using OpcUaSessionManagerContext = opcua_ws::OpcUaWsSessionManagerContext;
-using OpcUaSessionManager = opcua_ws::OpcUaWsSessionManager;
-using OpcUaSessionLookupResult = opcua_ws::OpcUaWsSessionLookupResult;
-
 }  // namespace opcua
+
+namespace opcua_ws {
+
+using OpcUaWsCreateSessionRequest = opcua::OpcUaCreateSessionRequest;
+using OpcUaWsCreateSessionResponse = opcua::OpcUaCreateSessionResponse;
+using OpcUaWsActivateSessionRequest = opcua::OpcUaActivateSessionRequest;
+using OpcUaWsActivateSessionResponse = opcua::OpcUaActivateSessionResponse;
+using OpcUaWsCloseSessionRequest = opcua::OpcUaCloseSessionRequest;
+using OpcUaWsCloseSessionResponse = opcua::OpcUaCloseSessionResponse;
+using OpcUaWsSessionLookupResult = opcua::OpcUaSessionLookupResult;
+using OpcUaWsSessionManagerContext = opcua::OpcUaSessionManagerContext;
+using OpcUaWsSessionManager = opcua::OpcUaSessionManager;
+
+}  // namespace opcua_ws

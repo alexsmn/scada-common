@@ -9,17 +9,38 @@
 #include <optional>
 #include <unordered_map>
 
-namespace opcua_ws {
+namespace opcua {
 
-class OpcUaWsSubscription {
+using opcua_ws::OpcUaWsCreateMonitoredItemsRequest;
+using opcua_ws::OpcUaWsCreateMonitoredItemsResponse;
+using opcua_ws::OpcUaWsDeleteMonitoredItemsRequest;
+using opcua_ws::OpcUaWsDeleteMonitoredItemsResponse;
+using opcua_ws::OpcUaWsModifyMonitoredItemsRequest;
+using opcua_ws::OpcUaWsModifyMonitoredItemsResponse;
+using opcua_ws::OpcUaWsModifySubscriptionRequest;
+using opcua_ws::OpcUaWsModifySubscriptionResponse;
+using opcua_ws::OpcUaWsMonitoredItemId;
+using opcua_ws::OpcUaWsMonitoringFilter;
+using opcua_ws::OpcUaWsMonitoringMode;
+using opcua_ws::OpcUaWsMonitoringParameters;
+using opcua_ws::OpcUaWsNotificationData;
+using opcua_ws::OpcUaWsNotificationMessage;
+using opcua_ws::OpcUaWsPublishResponse;
+using opcua_ws::OpcUaWsRepublishResponse;
+using opcua_ws::OpcUaWsSetMonitoringModeRequest;
+using opcua_ws::OpcUaWsSetMonitoringModeResponse;
+using opcua_ws::OpcUaWsSubscriptionId;
+using opcua_ws::OpcUaWsSubscriptionParameters;
+
+class OpcUaSubscription {
  public:
-  OpcUaWsSubscription(OpcUaWsSubscriptionId subscription_id,
-                      OpcUaWsSubscriptionParameters parameters,
-                      scada::MonitoredItemService& monitored_item_service,
-                      base::Time publish_cycle_start_time);
+  OpcUaSubscription(OpcUaWsSubscriptionId subscription_id,
+                    OpcUaWsSubscriptionParameters parameters,
+                    scada::MonitoredItemService& monitored_item_service,
+                    base::Time publish_cycle_start_time);
 
-  OpcUaWsSubscription(const OpcUaWsSubscription&) = delete;
-  OpcUaWsSubscription& operator=(const OpcUaWsSubscription&) = delete;
+  OpcUaSubscription(const OpcUaSubscription&) = delete;
+  OpcUaSubscription& operator=(const OpcUaSubscription&) = delete;
 
   OpcUaWsSubscriptionId subscription_id() const { return subscription_id_; }
   const OpcUaWsSubscriptionParameters& parameters() const { return parameters_; }
@@ -102,5 +123,11 @@ class OpcUaWsSubscription {
   std::deque<QueuedNotification> pending_notifications_;
   std::deque<OpcUaWsNotificationMessage> retransmit_queue_;
 };
+
+}  // namespace opcua
+
+namespace opcua_ws {
+
+using OpcUaWsSubscription = opcua::OpcUaSubscription;
 
 }  // namespace opcua_ws

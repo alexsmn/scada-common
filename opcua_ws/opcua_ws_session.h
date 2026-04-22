@@ -13,9 +13,36 @@
 #include <unordered_map>
 #include <vector>
 
-namespace opcua_ws {
+namespace opcua {
 
-struct OpcUaWsSessionContext {
+using opcua_ws::BrowseNextRequest;
+using opcua_ws::BrowseNextResponse;
+using opcua_ws::BrowseResponse;
+using opcua_ws::OpcUaWsCreateMonitoredItemsRequest;
+using opcua_ws::OpcUaWsCreateMonitoredItemsResponse;
+using opcua_ws::OpcUaWsCreateSubscriptionRequest;
+using opcua_ws::OpcUaWsCreateSubscriptionResponse;
+using opcua_ws::OpcUaWsDeleteMonitoredItemsRequest;
+using opcua_ws::OpcUaWsDeleteMonitoredItemsResponse;
+using opcua_ws::OpcUaWsDeleteSubscriptionsRequest;
+using opcua_ws::OpcUaWsDeleteSubscriptionsResponse;
+using opcua_ws::OpcUaWsModifyMonitoredItemsRequest;
+using opcua_ws::OpcUaWsModifyMonitoredItemsResponse;
+using opcua_ws::OpcUaWsModifySubscriptionRequest;
+using opcua_ws::OpcUaWsModifySubscriptionResponse;
+using opcua_ws::OpcUaWsPublishRequest;
+using opcua_ws::OpcUaWsPublishResponse;
+using opcua_ws::OpcUaWsRepublishRequest;
+using opcua_ws::OpcUaWsRepublishResponse;
+using opcua_ws::OpcUaWsSetMonitoringModeRequest;
+using opcua_ws::OpcUaWsSetMonitoringModeResponse;
+using opcua_ws::OpcUaWsSetPublishingModeRequest;
+using opcua_ws::OpcUaWsSetPublishingModeResponse;
+using opcua_ws::OpcUaWsSubscriptionId;
+using opcua_ws::OpcUaWsTransferSubscriptionsRequest;
+using opcua_ws::OpcUaWsTransferSubscriptionsResponse;
+
+struct OpcUaSessionContext {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ServiceContext service_context;
@@ -23,14 +50,14 @@ struct OpcUaWsSessionContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
-class OpcUaWsSession : private OpcUaWsSessionContext {
+class OpcUaSession : private OpcUaSessionContext {
  public:
   struct PublishPollResult {
     std::optional<OpcUaWsPublishResponse> response;
     std::optional<base::TimeDelta> wait_for;
   };
 
-  explicit OpcUaWsSession(OpcUaWsSessionContext&& context);
+  explicit OpcUaSession(OpcUaSessionContext&& context);
 
   const scada::NodeId& GetSessionId() const {
     return this->session_id;
@@ -54,7 +81,7 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
   OpcUaWsDeleteSubscriptionsResponse DeleteSubscriptions(
       const OpcUaWsDeleteSubscriptionsRequest& request);
   OpcUaWsTransferSubscriptionsResponse TransferSubscriptionsFrom(
-      OpcUaWsSession& source,
+      OpcUaSession& source,
       const OpcUaWsTransferSubscriptionsRequest& request);
 
   OpcUaWsCreateMonitoredItemsResponse CreateMonitoredItems(
@@ -87,13 +114,13 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
   };
 
   using SubscriptionMap =
-      std::unordered_map<OpcUaWsSubscriptionId, std::unique_ptr<OpcUaWsSubscription>>;
+      std::unordered_map<OpcUaWsSubscriptionId, std::unique_ptr<OpcUaSubscription>>;
   using BrowseContinuationMap =
       std::unordered_map<scada::ByteString, BrowseContinuationState, ByteStringHash>;
 
   base::Time Now() const { return this->now(); }
-  OpcUaWsSubscription* FindSubscription(OpcUaWsSubscriptionId subscription_id);
-  const OpcUaWsSubscription* FindSubscription(
+  OpcUaSubscription* FindSubscription(OpcUaWsSubscriptionId subscription_id);
+  const OpcUaSubscription* FindSubscription(
       OpcUaWsSubscriptionId subscription_id) const;
   void EraseSubscription(OpcUaWsSubscriptionId subscription_id);
   void AdvancePublishCursorAfter(size_t index);
@@ -112,5 +139,12 @@ class OpcUaWsSession : private OpcUaWsSessionContext {
   size_t next_publish_index_ = 0;
   scada::UInt32 next_browse_continuation_id_ = 1;
 };
+
+}  // namespace opcua
+
+namespace opcua_ws {
+
+using OpcUaWsSessionContext = opcua::OpcUaSessionContext;
+using OpcUaWsSession = opcua::OpcUaSession;
 
 }  // namespace opcua_ws

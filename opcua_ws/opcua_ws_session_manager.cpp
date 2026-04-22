@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace opcua_ws {
+namespace opcua {
 
 namespace {
 
@@ -18,12 +18,11 @@ scada::Status SessionMissingStatus() {
 
 }  // namespace
 
-OpcUaWsSessionManager::OpcUaWsSessionManager(
-    OpcUaWsSessionManagerContext&& context)
-    : OpcUaWsSessionManagerContext{std::move(context)} {}
+OpcUaSessionManager::OpcUaSessionManager(OpcUaSessionManagerContext&& context)
+    : OpcUaSessionManagerContext{std::move(context)} {}
 
-Awaitable<OpcUaWsCreateSessionResponse> OpcUaWsSessionManager::CreateSession(
-    OpcUaWsCreateSessionRequest request) {
+Awaitable<OpcUaCreateSessionResponse> OpcUaSessionManager::CreateSession(
+    OpcUaCreateSessionRequest request) {
   PruneExpiredSessions();
 
   const auto revised_timeout = ReviseTimeout(request.requested_timeout);
@@ -51,7 +50,7 @@ Awaitable<OpcUaWsCreateSessionResponse> OpcUaWsSessionManager::CreateSession(
                     << LOG_TAG("RevisedTimeoutMs",
                                revised_timeout.InMilliseconds());
 
-  co_return OpcUaWsCreateSessionResponse{
+  co_return OpcUaCreateSessionResponse{
       .status = scada::StatusCode::Good,
       .session_id = session_id,
       .authentication_token = authentication_token,
@@ -60,13 +59,13 @@ Awaitable<OpcUaWsCreateSessionResponse> OpcUaWsSessionManager::CreateSession(
   };
 }
 
-Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession(
-    OpcUaWsActivateSessionRequest request) {
+Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
+    OpcUaActivateSessionRequest request) {
   PruneExpiredSessions();
 
   auto session_it = sessions_.find(request.authentication_token);
   if (session_it == sessions_.end())
-    co_return OpcUaWsActivateSessionResponse{SessionMissingStatus()};
+    co_return OpcUaActivateSessionResponse{SessionMissingStatus()};
   // cppcheck-suppress derefInvalidIteratorRedundantCheck
   auto& session = session_it->second;
   if (session.session_id != request.session_id) {
@@ -75,7 +74,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                          << LOG_TAG("SessionId", request.session_id.ToString())
                          << LOG_TAG("AuthenticationToken",
                                     request.authentication_token.ToString());
-    co_return OpcUaWsActivateSessionResponse{SessionMissingStatus()};
+    co_return OpcUaActivateSessionResponse{SessionMissingStatus()};
   }
 
   if (session.activated) {
@@ -86,7 +85,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                       << LOG_TAG("AuthenticationToken",
                                  session.authentication_token.ToString())
                       << LOG_TAG("Attached", session.attached);
-    co_return OpcUaWsActivateSessionResponse{
+    co_return OpcUaActivateSessionResponse{
         .status = scada::StatusCode::Good,
         .service_context = session.service_context,
         .authentication_result = session.authentication_result,
@@ -102,7 +101,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                            << LOG_TAG("SessionId", request.session_id.ToString())
                            << LOG_TAG("AuthenticationToken",
                                       request.authentication_token.ToString());
-      co_return OpcUaWsActivateSessionResponse{
+      co_return OpcUaActivateSessionResponse{
           scada::StatusCode::Bad_WrongLoginCredentials};
     }
 
@@ -114,7 +113,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                            << LOG_TAG("SessionId", request.session_id.ToString())
                            << LOG_TAG("AuthenticationToken",
                                       request.authentication_token.ToString());
-      co_return OpcUaWsActivateSessionResponse{auth.status()};
+      co_return OpcUaActivateSessionResponse{auth.status()};
     }
 
     auth_result = *auth;
@@ -128,7 +127,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                                           request.authentication_token.ToString())
                                << LOG_TAG("UserId",
                                           auth_result->user_id.ToString());
-          co_return OpcUaWsActivateSessionResponse{
+          co_return OpcUaActivateSessionResponse{
               scada::StatusCode::Bad_UserIsAlreadyLoggedOn};
         }
         [[maybe_unused]] const auto removed =
@@ -139,7 +138,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
 
   session_it = sessions_.find(request.authentication_token);
   if (session_it == sessions_.end())
-    co_return OpcUaWsActivateSessionResponse{SessionMissingStatus()};
+    co_return OpcUaActivateSessionResponse{SessionMissingStatus()};
   // cppcheck-suppress derefInvalidIteratorRedundantCheck
   auto& refreshed_session = session_it->second;
   if (refreshed_session.session_id != request.session_id) {
@@ -148,7 +147,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                          << LOG_TAG("SessionId", request.session_id.ToString())
                          << LOG_TAG("AuthenticationToken",
                                     request.authentication_token.ToString());
-    co_return OpcUaWsActivateSessionResponse{SessionMissingStatus()};
+    co_return OpcUaActivateSessionResponse{SessionMissingStatus()};
   }
 
   if (auth_result.has_value()) {
@@ -180,7 +179,7 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
                                  refreshed_session.authentication_token.ToString());
   }
 
-  co_return OpcUaWsActivateSessionResponse{
+  co_return OpcUaActivateSessionResponse{
       .status = scada::StatusCode::Good,
       .service_context = refreshed_session.service_context,
       .authentication_result = refreshed_session.authentication_result,
@@ -188,8 +187,8 @@ Awaitable<OpcUaWsActivateSessionResponse> OpcUaWsSessionManager::ActivateSession
   };
 }
 
-OpcUaWsCloseSessionResponse OpcUaWsSessionManager::CloseSession(
-    OpcUaWsCloseSessionRequest request) {
+OpcUaCloseSessionResponse OpcUaSessionManager::CloseSession(
+    OpcUaCloseSessionRequest request) {
   auto* session = FindSessionState(request.authentication_token);
   if (!session || session->session_id != request.session_id) {
     LOG_WARNING(logger_) << "OPC UA WS session close failed"
@@ -210,7 +209,7 @@ OpcUaWsCloseSessionResponse OpcUaWsSessionManager::CloseSession(
   return {.status = scada::StatusCode::Good};
 }
 
-void OpcUaWsSessionManager::DetachSession(
+void OpcUaSessionManager::DetachSession(
     const scada::NodeId& authentication_token) {
   if (auto* session = FindSessionState(authentication_token)) {
     session->attached = false;
@@ -221,7 +220,7 @@ void OpcUaWsSessionManager::DetachSession(
   }
 }
 
-void OpcUaWsSessionManager::PruneExpiredSessions() {
+void OpcUaSessionManager::PruneExpiredSessions() {
   const auto now_time = Now();
   std::erase_if(sessions_, [now_time](const auto& entry) {
     const auto expired = entry.second.expires_at <= now_time;
@@ -237,13 +236,13 @@ void OpcUaWsSessionManager::PruneExpiredSessions() {
   });
 }
 
-std::optional<OpcUaWsSessionLookupResult> OpcUaWsSessionManager::FindSession(
+std::optional<OpcUaSessionLookupResult> OpcUaSessionManager::FindSession(
     const scada::NodeId& authentication_token) const {
   const auto* session = FindSessionState(authentication_token);
   if (!session)
     return std::nullopt;
 
-  return OpcUaWsSessionLookupResult{
+  return OpcUaSessionLookupResult{
       .session_id = session->session_id,
       .authentication_token = session->authentication_token,
       .service_context = session->service_context,
@@ -253,22 +252,22 @@ std::optional<OpcUaWsSessionLookupResult> OpcUaWsSessionManager::FindSession(
   };
 }
 
-base::TimeDelta OpcUaWsSessionManager::ReviseTimeout(
+base::TimeDelta OpcUaSessionManager::ReviseTimeout(
     base::TimeDelta requested) const {
   if (requested.is_zero())
     return default_timeout;
   return std::clamp(requested, min_timeout, max_timeout);
 }
 
-scada::NodeId OpcUaWsSessionManager::MakeSessionId() {
+scada::NodeId OpcUaSessionManager::MakeSessionId() {
   return {next_session_id_++, session_namespace_index};
 }
 
-scada::NodeId OpcUaWsSessionManager::MakeAuthenticationToken() {
+scada::NodeId OpcUaSessionManager::MakeAuthenticationToken() {
   return {next_token_id_++, token_namespace_index};
 }
 
-scada::ByteString OpcUaWsSessionManager::MakeServerNonce(
+scada::ByteString OpcUaSessionManager::MakeServerNonce(
     scada::UInt32 seed) const {
   return scada::ByteString{
       static_cast<char>(seed & 0xff),
@@ -282,20 +281,20 @@ scada::ByteString OpcUaWsSessionManager::MakeServerNonce(
   };
 }
 
-OpcUaWsSessionManager::SessionState* OpcUaWsSessionManager::FindSessionState(
+OpcUaSessionManager::SessionState* OpcUaSessionManager::FindSessionState(
     const scada::NodeId& authentication_token) {
   auto it = sessions_.find(authentication_token);
   return it != sessions_.end() ? &it->second : nullptr;
 }
 
-const OpcUaWsSessionManager::SessionState*
-OpcUaWsSessionManager::FindSessionState(
+const OpcUaSessionManager::SessionState*
+OpcUaSessionManager::FindSessionState(
     const scada::NodeId& authentication_token) const {
   auto it = sessions_.find(authentication_token);
   return it != sessions_.end() ? &it->second : nullptr;
 }
 
-bool OpcUaWsSessionManager::RemoveSessionByUser(const scada::NodeId& user_id) {
+bool OpcUaSessionManager::RemoveSessionByUser(const scada::NodeId& user_id) {
   auto it = std::find_if(sessions_.begin(), sessions_.end(),
                          [&user_id](const auto& entry) {
                            return entry.second.authentication_result.has_value() &&
@@ -314,7 +313,7 @@ bool OpcUaWsSessionManager::RemoveSessionByUser(const scada::NodeId& user_id) {
   return true;
 }
 
-bool OpcUaWsSessionManager::HasSessionForUser(
+bool OpcUaSessionManager::HasSessionForUser(
     const scada::NodeId& user_id) const {
   return std::any_of(sessions_.begin(), sessions_.end(),
                      [&user_id](const auto& entry) {
@@ -324,7 +323,7 @@ bool OpcUaWsSessionManager::HasSessionForUser(
                      });
 }
 
-void OpcUaWsSessionManager::RemoveSessionByToken(
+void OpcUaSessionManager::RemoveSessionByToken(
     const scada::NodeId& authentication_token) {
   if (auto* session = FindSessionState(authentication_token)) {
     LOG_INFO(logger_) << "OPC UA WS session forgotten"
@@ -335,4 +334,4 @@ void OpcUaWsSessionManager::RemoveSessionByToken(
   sessions_.erase(authentication_token);
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

@@ -11,14 +11,22 @@
 #include <optional>
 #include <unordered_map>
 
-namespace opcua_ws {
+namespace opcua {
 
-struct OpcUaWsConnectionState {
+using opcua_ws::OpcUaWsActivateSessionRequest;
+using opcua_ws::OpcUaWsRequestBody;
+using opcua_ws::OpcUaWsRequestMessage;
+using opcua_ws::OpcUaWsResponseBody;
+using opcua_ws::OpcUaWsResponseMessage;
+using opcua_ws::OpcUaWsSessionManager;
+using opcua_ws::OpcUaWsSubscriptionId;
+
+struct OpcUaConnectionState {
   std::optional<scada::NodeId> authentication_token;
   bool closed = false;
 };
 
-struct OpcUaWsRuntimeContext {
+struct OpcUaRuntimeContext {
   std::shared_ptr<Executor> executor;
   OpcUaWsSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
@@ -30,33 +38,33 @@ struct OpcUaWsRuntimeContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
-class OpcUaWsRuntime : private OpcUaWsRuntimeContext {
+class OpcUaRuntime : private OpcUaRuntimeContext {
  public:
-  explicit OpcUaWsRuntime(OpcUaWsRuntimeContext&& context);
+  explicit OpcUaRuntime(OpcUaRuntimeContext&& context);
 
   [[nodiscard]] Awaitable<OpcUaWsResponseMessage> Handle(
-      OpcUaWsConnectionState& connection,
+      OpcUaConnectionState& connection,
       OpcUaWsRequestMessage request);
-  void Detach(OpcUaWsConnectionState& connection);
+  void Detach(OpcUaConnectionState& connection);
 
  private:
-  using SessionMap = std::unordered_map<scada::NodeId, std::shared_ptr<OpcUaWsSession>>;
+  using SessionMap = std::unordered_map<scada::NodeId, std::shared_ptr<OpcUaSession>>;
 
-  [[nodiscard]] OpcUaWsSession* FindSession(
+  [[nodiscard]] OpcUaSession* FindSession(
       const scada::NodeId& authentication_token) const;
-  [[nodiscard]] OpcUaWsSession* FindAttachedSession(
-      const OpcUaWsConnectionState& connection) const;
+  [[nodiscard]] OpcUaSession* FindAttachedSession(
+      const OpcUaConnectionState& connection) const;
   void ForgetSession(const scada::NodeId& authentication_token);
   void IndexSessionSubscriptions(
       const scada::NodeId& authentication_token,
-      const OpcUaWsSession& session);
+      const OpcUaSession& session);
   void RemoveSessionSubscriptions(const scada::NodeId& authentication_token);
 
   [[nodiscard]] Awaitable<OpcUaWsResponseBody> HandleRequestBody(
-      OpcUaWsConnectionState& connection,
+      OpcUaConnectionState& connection,
       OpcUaWsRequestBody request);
   [[nodiscard]] Awaitable<OpcUaWsResponseBody> HandleActivateSession(
-      OpcUaWsConnectionState& connection,
+      OpcUaConnectionState& connection,
       OpcUaWsActivateSessionRequest request);
   [[nodiscard]] Awaitable<void> Delay(base::TimeDelta delay) const;
 
@@ -65,12 +73,12 @@ class OpcUaWsRuntime : private OpcUaWsRuntimeContext {
   OpcUaWsSubscriptionId next_subscription_id_ = 1;
 };
 
-}  // namespace opcua_ws
-
-namespace opcua {
-
-using OpcUaConnectionState = opcua_ws::OpcUaWsConnectionState;
-using OpcUaRuntimeContext = opcua_ws::OpcUaWsRuntimeContext;
-using OpcUaRuntime = opcua_ws::OpcUaWsRuntime;
-
 }  // namespace opcua
+
+namespace opcua_ws {
+
+using OpcUaWsConnectionState = opcua::OpcUaConnectionState;
+using OpcUaWsRuntimeContext = opcua::OpcUaRuntimeContext;
+using OpcUaWsRuntime = opcua::OpcUaRuntime;
+
+}  // namespace opcua_ws
