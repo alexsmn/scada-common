@@ -22,18 +22,71 @@ class OpcUaBinaryServiceDispatcher {
       std::vector<char> payload);
 
  private:
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleReadRequest(
-      const OpcUaBinaryDecodedRequest& request);
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleBrowseRequest(
-      const OpcUaBinaryDecodedRequest& request);
+  template <typename Response, typename Request>
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
-  HandleTranslateBrowsePathsRequest(const OpcUaBinaryDecodedRequest& request);
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleCallRequest(
-      const OpcUaBinaryDecodedRequest& request);
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleWriteRequest(
-      const OpcUaBinaryDecodedRequest& request);
+  HandleAuthenticatedRequest(const OpcUaBinaryServiceRequestHeader& header,
+                             const Request& typed_request) {
+    if (!connection_.authentication_token.has_value() ||
+        *connection_.authentication_token != header.authentication_token) {
+      co_return EncodeOpcUaBinaryServiceResponse(
+          header.request_handle,
+          OpcUaBinaryResponseBody{BuildBinaryRuntimeErrorResponse<Response>(
+              scada::StatusCode::Bad_SessionIsLoggedOff)});
+    }
+
+    const auto response =
+        co_await runtime_.Handle<Response>(connection_, typed_request);
+    co_return EncodeOpcUaBinaryServiceResponse(header.request_handle,
+                                               OpcUaBinaryResponseBody{response});
+  }
+
+ [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryReadRequest& typed_request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
-  HandleDeleteNodesRequest(const OpcUaBinaryDecodedRequest& request);
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryBrowseRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryBrowseNextRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryTranslateBrowsePathsRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryCallRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryWriteRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryDeleteNodesRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryAddNodesRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryDeleteReferencesRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryAddReferencesRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryCreateSessionRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryActivateSessionRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryCloseSessionRequest& typed_request);
+  template <typename Request>
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const Request& typed_request) {
+    (void)request;
+    (void)typed_request;
+    co_return std::nullopt;
+  }
 
   OpcUaBinaryRuntime& runtime_;
   opcua_ws::OpcUaWsSessionManager& session_manager_;
