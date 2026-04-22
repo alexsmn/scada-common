@@ -38,10 +38,16 @@ The codebase has already completed the first unification step:
   and aliases it back into `opcua_ws`
 - `common/opcua/opcua_binary_runtime.h` already reuses that shared runtime and
   explicitly describes it as the canonical server-side core
+- `common/opcua/opcua_message.h` and `common/opcua/opcua_service_message.h`
+  now own the canonical transport-neutral request/response model, with WS
+  alias headers layered back on top
+- `common/opcua/opcua_service_handler.h` now defines the canonical coroutine
+  service dispatcher, while the WS module retains only the adapter-facing alias
+  surface and implementation location
 
 So the direction is correct. The remaining work is mostly about removing the
-last WS-shaped surfaces from the shared core and making Binary and WS meet that
-core at the same abstraction level.
+last WS-shaped session/subscription naming from the shared core, finishing the
+physical module ownership move, and making the Binary adapter thinner still.
 
 ## Unification gaps
 
@@ -336,4 +342,3 @@ After this plan is complete:
 - Binary owns UA Binary / UACP / SecureChannel adaptation only
 - behavior changes for server-side OPC UA services land once in the shared core
 - transport modules become smaller, easier to review, and less likely to drift
-

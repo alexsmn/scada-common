@@ -52,10 +52,7 @@ Awaitable<OpcUaBinaryCloseSessionResponse> OpcUaBinaryRuntime::CloseSession(
 Awaitable<OpcUaBinaryResponseBody> OpcUaBinaryRuntime::HandleBody(
     OpcUaBinaryConnectionState& connection,
     OpcUaBinaryRequestBody request) {
-  auto response =
-      co_await runtime_.Handle(connection,
-                               {.request_handle = 0, .body = std::move(request)});
-  co_return std::move(response.body);
+  co_return co_await runtime_.Handle(connection, std::move(request));
 }
 
 void OpcUaBinaryRuntime::Detach(OpcUaBinaryConnectionState& connection) {

@@ -50,13 +50,15 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 class OpcUaWsRuntimeTest : public Test {
  protected:
   template <typename T>
-  OpcUaWsResponseMessage Handle(OpcUaWsConnectionState& connection,
-                                T body,
-                                scada::UInt32 request_handle = 1) {
-    return WaitAwaitable(executor_,
-                         runtime_->Handle(connection,
-                                          {.request_handle = request_handle,
-                                           .body = std::move(body)}));
+  OpcUaWsResponseMessage Handle(
+      OpcUaWsConnectionState& connection,
+      T body,
+      scada::UInt32 request_handle = 1) {
+    return {.request_handle = request_handle,
+            .body = WaitAwaitable(executor_,
+                                  runtime_->Handle(connection,
+                                                   OpcUaWsRequestBody{
+                                                       std::move(body)}))};
   }
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(

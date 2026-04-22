@@ -125,8 +125,10 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
         state->transport.get_executor(),
         [this, state, request = std::move(*request)]() mutable
             -> Awaitable<void> {
-          auto response =
-              co_await runtime.Handle(state->connection, std::move(request));
+          auto body =
+              co_await runtime.Handle(state->connection, std::move(request.body));
+          auto response = OpcUaWsResponseMessage{
+              .request_handle = request.request_handle, .body = std::move(body)};
           auto encoded = boost::json::serialize(EncodeJson(response));
           if (encoded.size() > max_message_size)
             co_return;

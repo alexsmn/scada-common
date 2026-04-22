@@ -33,19 +33,19 @@ flowchart LR
         WSSOCK["<b>WebSocketTransport</b><br/><i>third_party/net/transport</i><br/>WS/WSS acceptor<br/>TLS enabled"]
     end
 
-    subgraph WsInternals["opcua_ws internals"]
+    subgraph WsInternals["opcua_ws adapters"]
         direction TB
         WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
         SESS["<b>OpcUaWsSession</b><br/>live session state +<br/>subscription orchestration"]
-        RT["<b>OpcUaWsRuntime</b><br/>decoded request routing +<br/>session/service wiring"]
         SMGR["<b>OpcUaWsSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
-        HANDLER["<b>OpcUaWsServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
         SUB["<b>OpcUaWsSubscription</b><br/>per-subscription queue,<br/>replay, keepalive"]
         CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode<br/>requestHandle + session envelopes"]
     end
 
     subgraph Core["Shared core"]
         direction TB
+        RT["<b>opcua::OpcUaRuntime</b><br/>transport-neutral request-body routing"]
+        HANDLER["<b>opcua::OpcUaServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
         CTX["<b>OpcUaServerContext</b><br/>attribute / view /<br/>monitored-item / method /<br/>node-management services"]
         SVC["<b>scada services</b><br/>node manager, history,<br/>events, security"]
     end
@@ -57,21 +57,17 @@ flowchart LR
     WEB -->|opc.ws / opc.wss| WSSOCK
 
     WSSOCK --> WS
-    WS --> SESS
+    WS --> CODEC
     WS --> RT
     RT --> SESS
     RT --> SMGR
     RT --> HANDLER
     SESS --> SMGR
-    SESS --> HANDLER
-    WS --> CODEC
     SESS --> SUB
-    SESS --> CODEC
     HANDLER --> CTX
     SMGR --> CTX
 
     TCP --> CTX
-    WS --> CTX
     CTX --> SVC
 
     MOD -.configures.-> WSSOCK
@@ -81,6 +77,6 @@ flowchart LR
     classDef existing fill:#f3f4f6,stroke:#374151,color:#111827
     classDef core fill:#fef3c7,stroke:#b45309,color:#111827
     class QT,WEB,NATIVE clientStyle
-    class WSSOCK,WS,SESS,SMGR,HANDLER,SUB,CODEC,MOD newModule
+    class WSSOCK,WS,SESS,SMGR,SUB,CODEC,MOD newModule
     class TCP existing
-    class CTX,SVC core
+    class RT,HANDLER,CTX,SVC core

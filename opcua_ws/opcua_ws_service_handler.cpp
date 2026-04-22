@@ -1,4 +1,4 @@
-#include "opcua_ws/opcua_ws_service_handler.h"
+#include "opcua/opcua_service_handler.h"
 
 #include "opcua/opcua_endpoint_core.h"
 
@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
@@ -130,14 +130,13 @@ EndpointDeleteNodesAsync(const std::shared_ptr<Executor>& executor,
 
 }  // namespace
 
-OpcUaWsServiceHandler::OpcUaWsServiceHandler(
-    OpcUaWsServiceHandlerContext&& context)
-    : OpcUaWsServiceHandlerContext{std::move(context)} {}
+OpcUaServiceHandler::OpcUaServiceHandler(OpcUaServiceHandlerContext&& context)
+    : OpcUaServiceHandlerContext{std::move(context)} {}
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
-    OpcUaWsServiceRequest request) const {
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::Handle(
+    OpcUaServiceRequest request) const {
   auto typed_response = co_await std::visit(
-      [this](auto&& typed_request) -> Awaitable<OpcUaWsServiceResponse> {
+      [this](auto&& typed_request) -> Awaitable<OpcUaServiceResponse> {
         using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, ReadRequest>) {
           co_return co_await HandleRead(std::move(typed_request));
@@ -146,8 +145,8 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
         } else if constexpr (std::is_same_v<T, BrowseRequest>) {
           co_return co_await HandleBrowse(std::move(typed_request));
         } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
-          co_return OpcUaWsServiceResponse{BrowseNextResponse{
-              .status = scada::StatusCode::Bad}};
+          co_return OpcUaServiceResponse{
+              BrowseNextResponse{.status = scada::StatusCode::Bad}};
         } else if constexpr (std::is_same_v<T, TranslateBrowsePathsRequest>) {
           co_return co_await HandleTranslateBrowsePaths(std::move(typed_request));
         } else if constexpr (std::is_same_v<T, CallRequest>) {
@@ -170,43 +169,43 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::Handle(
   co_return typed_response;
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleRead(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleRead(
     ReadRequest request) const {
   auto [status, results] =
       co_await EndpointReadAsync(executor, attribute_service, user_id,
                                  std::move(request.inputs));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleWrite(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleWrite(
     WriteRequest request) const {
   auto [status, results] =
       co_await EndpointWriteAsync(executor, attribute_service, user_id,
                                   std::move(request.inputs));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       WriteResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleBrowse(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleBrowse(
     BrowseRequest request) const {
   auto [status, results] =
       co_await EndpointBrowseAsync(executor, view_service, user_id,
                                    std::move(request.inputs));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse>
-OpcUaWsServiceHandler::HandleTranslateBrowsePaths(
+Awaitable<OpcUaServiceResponse>
+OpcUaServiceHandler::HandleTranslateBrowsePaths(
     TranslateBrowsePathsRequest request) const {
   auto [status, results] = co_await EndpointTranslateBrowsePathsAwaitable(
       executor, view_service, std::move(request.inputs));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleCall(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleCall(
     CallRequest request) const {
   CallResponse response;
   response.results.reserve(request.methods.size());
@@ -217,56 +216,55 @@ Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleCall(
     response.results.push_back(CallMethodResult{std::move(status)});
   }
 
-  co_return OpcUaWsServiceResponse{std::move(response)};
+  co_return OpcUaServiceResponse{std::move(response)};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleHistoryReadRaw(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleHistoryReadRaw(
     HistoryReadRawRequest request) const {
   auto result = co_await scada::HistoryReadRawAsync(executor, history_service,
                                                     std::move(request.details));
-  co_return OpcUaWsServiceResponse{HistoryReadRawResponse{std::move(result)}};
+  co_return OpcUaServiceResponse{HistoryReadRawResponse{std::move(result)}};
 }
 
-Awaitable<OpcUaWsServiceResponse>
-OpcUaWsServiceHandler::HandleHistoryReadEvents(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleHistoryReadEvents(
     HistoryReadEventsRequest request) const {
   auto result = co_await scada::HistoryReadEventsAsync(
       executor, history_service, std::move(request.details.node_id),
       request.details.from, request.details.to, std::move(request.details.filter));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       HistoryReadEventsResponse{std::move(result)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleAddNodes(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleAddNodes(
     AddNodesRequest request) const {
   auto [status, results] = co_await EndpointAddNodesAsync(
       executor, node_management_service, std::move(request.items));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       AddNodesResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleDeleteNodes(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleDeleteNodes(
     DeleteNodesRequest request) const {
   auto [status, results] = co_await EndpointDeleteNodesAsync(
       executor, node_management_service, std::move(request.items));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       DeleteNodesResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleAddReferences(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleAddReferences(
     AddReferencesRequest request) const {
   auto [status, results] = co_await scada::AddReferencesAsync(
       executor, node_management_service, std::move(request.items));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       AddReferencesResponse{std::move(status), std::move(results)}};
 }
 
-Awaitable<OpcUaWsServiceResponse> OpcUaWsServiceHandler::HandleDeleteReferences(
+Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleDeleteReferences(
     DeleteReferencesRequest request) const {
   auto [status, results] = co_await scada::DeleteReferencesAsync(
       executor, node_management_service, std::move(request.items));
-  co_return OpcUaWsServiceResponse{
+  co_return OpcUaServiceResponse{
       DeleteReferencesResponse{std::move(status), std::move(results)}};
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

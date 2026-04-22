@@ -21,13 +21,17 @@
 > event-field projection. A transport-independent `OpcUaWsSession` layer now
 > also owns subscription ids, monitored-item routing, fair publish arbitration
 > across subscriptions, and in-memory transfer handoff between session
-> instances. A transport-independent `OpcUaWsRuntime` layer now routes decoded
-> request envelopes through `OpcUaWsSessionManager`, `OpcUaWsSession`, and the
-> coroutine service handler, including detach/resume and subscription transfer
-> ownership tracking across live sessions. A message-oriented
+> instances. The canonical shared runtime contract now lives in
+> `opcua::OpcUaRuntime` and `opcua::OpcUaServiceHandler` under
+> `common/opcua/`, while `common/opcua_ws/` retains alias headers and the
+> UA-JSON/WebSocket adapter boundary. That shared runtime now routes decoded
+> request bodies through `OpcUaWsSessionManager`, `OpcUaWsSession`, and the
+> common coroutine service handler, including detach/resume and subscription
+> transfer ownership tracking across live sessions. A message-oriented
 > `OpcUaWsServer` loop is now also present for accepted transports: it reads
-> request frames, decodes UA-JSON envelopes, dispatches them through
-> `OpcUaWsRuntime`, writes responses, and detaches sessions on disconnect. A
+> request frames, decodes UA-JSON envelopes, dispatches the canonical request
+> body through `opcua::OpcUaRuntime`, writes responses, and detaches sessions
+> on disconnect. A
 > A transport-backed websocket acceptor is now also present in
 > `common/opcua_ws/`: it validates path / subprotocol / allowed origins,
 > enables `permessage-deflate`, accepts text-frame UA-JSON traffic, and hands
@@ -120,14 +124,15 @@ New modules, none of which touch the existing `common/opcua/` code:
 | Path | Role |
 |---|---|
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
-| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, dispatches through `OpcUaWsRuntime`, writes responses, detaches sessions on disconnect |
+| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaRuntime`, writes responses, detaches sessions on disconnect |
 | `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, browse continuation-point paging, and transfer handoff between live sessions |
-| `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Transport-independent request router: decoded envelope dispatch, session attach/resume, global subscription ownership, and service-handler/session-manager wiring |
+| `common/opcua_ws/opcua_ws_runtime.{h,cpp}` | Compatibility/adapter surface for the canonical `opcua::OpcUaRuntime`: shared connection state, session ownership maps, and WS aliases over the common request/response model |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
-| `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` + `common/opcua_ws/opcua_ws_publish_message_codec.cpp` | Transport-neutral WS protocol envelope types and codec: `requestHandle`, session request/response bodies, `ServiceFault`, and the full Phase 1 subscription / publish / monitored-item message set |
-| `common/opcua_ws/opcua_ws_service_handler.{h,cpp}` | Coroutine-based dispatch from decoded WS service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
+| `common/opcua/opcua_message.h` + `common/opcua/opcua_service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters |
+| `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` + `common/opcua_ws/opcua_ws_publish_message_codec.cpp` | WS alias layer plus UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the Phase 1 subscription / publish / monitored-item payloads |
+| `common/opcua/opcua_service_handler.h` + `common/opcua_ws/opcua_ws_service_handler.cpp` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
 | `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage |
 | `server/opcua_ws/opcua_ws_module.{h,cpp}` | Config loader + lifecycle; templated on `server/opcua/opcua_module.cpp` |
 
@@ -140,8 +145,9 @@ the TCP endpoint already closes over:
 - `MethodService` — Call
 - `NodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
 
-No business logic is reimplemented. The WS endpoint is decode-JSON →
-coroutine handler → encode-JSON.
+No business logic is reimplemented. The WS endpoint is decode-JSON envelope →
+canonical `opcua::OpcUaRequestBody` → shared runtime/service handler →
+encode-JSON envelope.
 
 ## Framing
 
@@ -367,9 +373,11 @@ Current implementation note:
   session instances in-memory, and now also pages `Browse` results into
   session-scoped continuation points consumed or released through `BrowseNext`.
 - The transport-independent decoded-request router is now in place under
-  `common/opcua_ws/opcua_ws_runtime.{h,cpp}` with unit tests. It ties
-  `OpcUaWsSessionManager`, `OpcUaWsSession`, and `OpcUaWsServiceHandler`
-  together for decoded WS envelopes: `CreateSession` / `ActivateSession` /
+  `common/opcua_ws/opcua_ws_runtime.{h,cpp}` with unit tests. It now exposes
+  the canonical `opcua::OpcUaRuntime` contract from `common/opcua/` and ties
+  `OpcUaWsSessionManager`, `OpcUaWsSession`, and `opcua::OpcUaServiceHandler`
+  together for decoded WS envelopes/body dispatch: `CreateSession` /
+  `ActivateSession` /
   `CloseSession`, subscription and monitored-item messages, parked `Publish` /
   `Republish`, detach/resume on reconnect, and the already-implemented Phase
   0/2/3 service-dispatch set. Parked `PublishRequest`s are held on the
@@ -380,9 +388,10 @@ Current implementation note:
 - The message-oriented accepted-transport server loop is now in place under
   `common/opcua_ws/opcua_ws_server.{h,cpp}` with unit tests. It opens an
   accepted transport, reads framed JSON messages, decodes
-  `OpcUaWsRequestMessage`, dispatches through `OpcUaWsRuntime`, encodes
-  `OpcUaWsResponseMessage`, writes the reply, emits `ServiceFault` on malformed
-  JSON, and detaches session state on disconnect.
+  `OpcUaWsRequestMessage`, dispatches the canonical request body through
+  `opcua::OpcUaRuntime`, encodes `OpcUaWsResponseMessage`, writes the reply,
+  emits `ServiceFault` on malformed JSON, and detaches session state on
+  disconnect.
 - A concrete websocket boundary is now in place under
   `third_party/net/transport/websocket_transport.{h,cpp}` with loopback
   integration tests and direct `OpcUaWsServer` integration coverage. It
@@ -428,8 +437,9 @@ monitored-item lifecycle payloads
 `Publish`, `Republish`, `DeleteSubscriptions`, `TransferSubscriptions`,
 `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
 `SetMonitoringMode`) and the existing Phase 2/3 payloads actually wired into
-`OpcUaWsServiceHandler`, all wrapped in the common request/response envelope
-with `requestHandle`. `ServiceFault` is also covered, and `Variant`
+the canonical `opcua::OpcUaServiceHandler`, all wrapped in the WS
+request/response envelope with `requestHandle`. `ServiceFault` is also covered,
+and `Variant`
 `ExtensionObject` values now round-trip opaquely via `{typeId, body}`. The
 remaining gaps are incremental protocol coverage beyond the currently
 implemented request/session set and broader browser-facing e2e expansion.

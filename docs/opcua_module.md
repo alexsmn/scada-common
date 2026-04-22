@@ -38,6 +38,8 @@ integration:
 - monitored-item and event subscription bridging
 - a `DataServicesFactory` adapter that exposes an outbound UA session as the
   standard SCADA service interfaces
+- the canonical transport-neutral OPC UA request/response and coroutine
+  service-dispatch model now reused by both the Binary and WS server adapters
 
 At runtime it sits between:
 
@@ -136,6 +138,29 @@ Responsibilities:
 
 This conversion layer is shared by both `OpcUaServer` and `OpcUaSession`, so
 service logic and tests can stay on the SCADA-native type model.
+
+### Shared server runtime model
+
+Files:
+
+- `common/opcua/opcua_message.h`
+- `common/opcua/opcua_service_message.h`
+- `common/opcua/opcua_service_handler.h`
+- `common/opcua_ws/opcua_ws_runtime.{h,cpp}`
+
+Canonical server-side request/response and service-dispatch contract used by
+both the UA Binary adapter and the UA-JSON/WebSocket adapter.
+
+Responsibilities:
+
+- define the transport-neutral `opcua::OpcUaRequestBody` /
+  `opcua::OpcUaResponseBody` model for session, subscription, publish, browse,
+  and service operations
+- expose `opcua::OpcUaServiceHandler` as the shared coroutine dispatcher into
+  `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and
+  `NodeManagementService`
+- keep WS-specific envelope handling outside the runtime so Binary and WS meet
+  the same semantic core at the same abstraction layer
 
 ### `CreateOpcUaServices(...)`
 

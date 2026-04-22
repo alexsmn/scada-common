@@ -3,8 +3,8 @@
 #include "base/awaitable.h"
 #include "base/executor.h"
 #include "base/time/time.h"
-#include "opcua_ws/opcua_ws_message.h"
-#include "opcua_ws/opcua_ws_service_handler.h"
+#include "opcua/opcua_message.h"
+#include "opcua/opcua_service_handler.h"
 #include "opcua_ws/opcua_ws_session.h"
 #include "opcua_ws/opcua_ws_session_manager.h"
 
@@ -13,11 +13,6 @@
 
 namespace opcua {
 
-using opcua_ws::OpcUaWsActivateSessionRequest;
-using opcua_ws::OpcUaWsRequestBody;
-using opcua_ws::OpcUaWsRequestMessage;
-using opcua_ws::OpcUaWsResponseBody;
-using opcua_ws::OpcUaWsResponseMessage;
 using opcua_ws::OpcUaWsSessionManager;
 using opcua_ws::OpcUaWsSubscriptionId;
 
@@ -42,13 +37,14 @@ class OpcUaRuntime : private OpcUaRuntimeContext {
  public:
   explicit OpcUaRuntime(OpcUaRuntimeContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaWsResponseMessage> Handle(
+  [[nodiscard]] Awaitable<OpcUaResponseBody> Handle(
       OpcUaConnectionState& connection,
-      OpcUaWsRequestMessage request);
+      OpcUaRequestBody request);
   void Detach(OpcUaConnectionState& connection);
 
  private:
-  using SessionMap = std::unordered_map<scada::NodeId, std::shared_ptr<OpcUaSession>>;
+  using SessionMap =
+      std::unordered_map<scada::NodeId, std::shared_ptr<OpcUaSession>>;
 
   [[nodiscard]] OpcUaSession* FindSession(
       const scada::NodeId& authentication_token) const;
@@ -59,13 +55,9 @@ class OpcUaRuntime : private OpcUaRuntimeContext {
       const scada::NodeId& authentication_token,
       const OpcUaSession& session);
   void RemoveSessionSubscriptions(const scada::NodeId& authentication_token);
-
-  [[nodiscard]] Awaitable<OpcUaWsResponseBody> HandleRequestBody(
+  [[nodiscard]] Awaitable<OpcUaResponseBody> HandleActivateSession(
       OpcUaConnectionState& connection,
-      OpcUaWsRequestBody request);
-  [[nodiscard]] Awaitable<OpcUaWsResponseBody> HandleActivateSession(
-      OpcUaConnectionState& connection,
-      OpcUaWsActivateSessionRequest request);
+      OpcUaActivateSessionRequest request);
   [[nodiscard]] Awaitable<void> Delay(base::TimeDelta delay) const;
 
   SessionMap sessions_;
