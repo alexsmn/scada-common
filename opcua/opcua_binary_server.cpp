@@ -71,7 +71,6 @@ Awaitable<void> OpcUaBinaryServer::RunConnection(transport::any_transport transp
   auto state = std::make_shared<ConnectionTaskState>(std::move(transport));
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime,
-       .session_manager = session_manager,
        .connection = state->connection}};
   co_await OpcUaBinaryTcpConnection{
       {.transport = std::move(state->transport),

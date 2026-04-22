@@ -2,6 +2,7 @@
 
 #include "base/awaitable.h"
 #include "opcua/opcua_binary_message.h"
+#include "opcua/opcua_binary_service_codec.h"
 #include "opcua/opcua_runtime.h"
 
 namespace opcua {
@@ -62,11 +63,43 @@ class OpcUaBinaryRuntime {
 
   void Detach(OpcUaBinaryConnectionState& connection);
 
+  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  HandleDecodedRequest(OpcUaBinaryConnectionState& connection,
+                       const OpcUaBinaryDecodedRequest& request);
+
  private:
   [[nodiscard]] Awaitable<OpcUaBinaryResponseBody> HandleBody(
       OpcUaBinaryConnectionState& connection,
       OpcUaBinaryRequestBody request);
 
+  template <typename Response, typename Request>
+  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  HandleAuthenticatedRequest(OpcUaBinaryConnectionState& connection,
+                             const OpcUaBinaryDecodedRequest& request,
+                             Request typed_request) {
+    if (!connection.authentication_token.has_value() ||
+        *connection.authentication_token != request.header.authentication_token) {
+      co_return OpcUaBinaryResponseBody{BuildBinaryRuntimeErrorResponse<Response>(
+          scada::StatusCode::Bad_SessionIsLoggedOff)};
+    }
+
+    co_return OpcUaBinaryResponseBody{
+        co_await Handle<Response>(connection, std::move(typed_request))};
+  }
+
+  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
+                       OpcUaBinaryCreateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
+                       const OpcUaBinaryServiceRequestHeader& header,
+                       OpcUaBinaryActivateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
+                       const OpcUaBinaryServiceRequestHeader& header,
+                       OpcUaBinaryCloseSessionRequest request);
+
+  OpcUaSessionManager& session_manager_;
   OpcUaRuntime runtime_;
 };
 

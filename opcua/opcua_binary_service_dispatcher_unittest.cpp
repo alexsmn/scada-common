@@ -1761,7 +1761,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        ActivateSessionWithUnknownAuthenticationTokenReturnsNoPayload) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto activated = WaitAwaitable(
@@ -1776,7 +1775,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        CloseSessionWithUnknownAuthenticationTokenReturnsLoggedOff) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto closed = WaitAwaitable(
@@ -1796,7 +1794,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesActivateAndCloseSessionOverBinaryPayload) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -1833,7 +1830,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesReadAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -1877,7 +1873,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        BootstrapsAndReadsEndToEndOverTcpConnection) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   auto peer = std::make_shared<StreamPeerState>();
@@ -1966,7 +1961,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2010,7 +2004,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2062,7 +2055,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesBrowseNextAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2135,7 +2127,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesTranslateBrowsePathsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2187,7 +2178,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesHistoryReadRawAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2249,7 +2239,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        RejectsHistoryReadRawWithoutActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto history_read = WaitAwaitable(
@@ -2272,7 +2261,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesHistoryReadEventsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2348,7 +2336,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        RejectsHistoryReadEventsWithoutActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto history_read = WaitAwaitable(
@@ -2369,7 +2356,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesCreateSubscriptionAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2405,7 +2391,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesModifySubscriptionAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2453,7 +2438,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesSetPublishingModeAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2495,7 +2479,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesDeleteSubscriptionsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2536,7 +2519,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesCreateMonitoredItemsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2593,7 +2575,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        DecodesDataChangeFilterForCreateMonitoredItems) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2655,7 +2636,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesModifyMonitoredItemsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2728,7 +2708,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2794,7 +2773,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesEventPublishWithBinaryEventFilterAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2877,7 +2855,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesPublishAcknowledgementsAndKeepAliveAfterDisablingPublishing) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -2964,7 +2941,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesRepublishAfterPublish) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3037,7 +3013,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesTransferSubscriptionsAcrossActivatedSessions) {
   OpcUaBinaryServiceDispatcher source_dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3086,7 +3061,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   OpcUaBinaryConnectionState target_connection;
   OpcUaBinaryServiceDispatcher target_dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = target_connection}};
 
   const auto target_created = WaitAwaitable(
@@ -3130,7 +3104,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesSetMonitoringModeAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3192,7 +3165,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesDeleteMonitoredItemsAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3252,7 +3224,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3296,7 +3267,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3337,7 +3307,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3387,7 +3356,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesDeleteReferencesAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(
@@ -3434,7 +3402,6 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesAddReferencesAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
-       .session_manager = session_manager_,
        .connection = connection_}};
 
   const auto created = WaitAwaitable(

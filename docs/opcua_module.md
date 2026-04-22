@@ -166,11 +166,10 @@ Responsibilities:
 - keep WS-specific envelope handling outside the runtime so Binary and WS meet
   the same semantic core at the same abstraction layer
 - keep the remaining Binary-specific adapter layer in
-  `opcua_binary_service_dispatcher` focused on request-header translation,
-  session-token lookup for session activation / close, one trait-driven
-  canonical request-to-response mapping table, and the few response encoders
-  that still need Binary-only wire metadata such as
-  `HistoryReadEvents`
+  `opcua_binary_service_dispatcher` focused on request decode / response
+  encode and the few response encoders that still need Binary-only wire
+  metadata such as `HistoryReadEvents`, with `OpcUaBinaryRuntime` owning
+  Binary session-token lookup and authenticated canonical request dispatch
 - define the transport-neutral runtime contract-test scenarios in
   `opcua_runtime_contract_test.h`, then execute them against the canonical
   runtime plus the Binary and WS adapter runtimes so semantic parity stays

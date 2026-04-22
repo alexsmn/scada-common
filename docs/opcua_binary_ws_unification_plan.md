@@ -302,16 +302,14 @@ Exit criteria:
 
 Progress:
 
-- session create / activate / close are now handled as explicit typed Binary
-  adapter methods instead of a second variant-dispatch shell
 - the Binary request / response body aliases now point directly at the
   canonical `opcua::OpcUaRequestBody` / `opcua::OpcUaResponseBody` variants,
   leaving Binary-only type names as compatibility spellings over the shared
   schema
-- the Binary dispatcher now centralizes authenticated runtime dispatch through
-  one request-to-response trait map plus shared response encoders, so adding a
-  new canonical runtime request no longer requires another long Binary-only
-  `if constexpr` chain
+- `OpcUaBinaryRuntime` now owns Binary session-token lookup for session
+  activate / close plus the trait-driven authenticated request-to-response
+  mapping, leaving the dispatcher to decode requests, invoke the runtime, and
+  encode responses
 - the remaining Binary-only branch is the `HistoryReadEvents` response encoder,
   because it needs the request's decoded event-field path metadata
 - the shared runtime now has one reusable contract-test suite that exercises

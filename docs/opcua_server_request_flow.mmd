@@ -1,19 +1,26 @@
 sequenceDiagram
     participant Client as OPC UA client
     participant Endpoint as opcuapp Endpoint
-    participant Server as OpcUaServer
+    participant Dispatcher as OpcUaBinaryServiceDispatcher
+    participant BinRt as OpcUaBinaryRuntime
+    participant Runtime as opcua::OpcUaRuntime
     participant Conv as opcua_conversion
     participant Svc as SCADA service
 
     Client->>Endpoint: UA Binary request
-    Endpoint->>Server: dispatch handler
-    Server->>Conv: convert request payload
-    Conv-->>Server: SCADA-native inputs
-    Server->>Svc: Read / Write / Browse / Call / AddNodes / DeleteNodes
-    Svc-->>Server: status + results
-    Server->>Conv: convert results
-    Conv-->>Server: OPC UA response payload
-    Server-->>Endpoint: response
+    Endpoint->>Dispatcher: decoded service payload
+    Dispatcher->>BinRt: invoke decoded request
+    BinRt->>Runtime: canonical request dispatch
+    Runtime->>Conv: convert request payload
+    Conv-->>Runtime: SCADA-native inputs
+    Runtime->>Svc: Read / Write / Browse / Call / AddNodes / DeleteNodes
+    Svc-->>Runtime: status + results
+    Runtime->>Conv: convert results
+    Conv-->>Runtime: OPC UA response payload
+    Runtime-->>BinRt: canonical response
+    BinRt-->>Dispatcher: Binary response body
+    Dispatcher-->>Endpoint: encoded Binary response
     Endpoint-->>Client: UA Binary response
 
-    Note over Server,Svc: Monitored-item creation follows the same boundary:\nOpcUaServer adapts CreateMonitoredItem into\nscada::MonitoredItemService and wraps it back as\nan opcuapp monitored-item adapter.
+    Note over BinRt,Runtime: Binary-only policy here is limited to session-token\nlookup, authenticated dispatch gating, and wire-only\nresponse encoding exceptions such as HistoryReadEvents.
+    Note over Runtime,Svc: Monitored-item creation follows the same boundary:\nOpcUaRuntime adapts CreateMonitoredItem into\nscada::MonitoredItemService and wraps it back as\nan OPC UA monitored-item response.

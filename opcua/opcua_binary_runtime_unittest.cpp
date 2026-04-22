@@ -106,5 +106,53 @@ TEST_F(OpcUaBinaryRuntimeTest,
   opcua::test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
+TEST_F(OpcUaBinaryRuntimeTest,
+       HandleDecodedRequestRejectsActivateSessionForUnknownAuthenticationToken) {
+  ConnectionState connection;
+
+  const auto response = WaitAwaitable(
+      executor_,
+      runtime_.HandleDecodedRequest(
+          connection, OpcUaBinaryDecodedRequest{
+                          .header = {.authentication_token = {999u, 3},
+                                     .request_handle = 7},
+                          .body = OpcUaBinaryActivateSessionRequest{
+                              .authentication_token = {999u, 3},
+                              .user_name = scada::LocalizedText{u"operator"},
+                              .password = scada::LocalizedText{u"secret"},
+                              .allow_anonymous = false,
+                          },
+                      }));
+
+  EXPECT_FALSE(response.has_value());
+}
+
+TEST_F(OpcUaBinaryRuntimeTest,
+       HandleDecodedRequestRejectsAuthenticatedRequestWhenTokenIsNotAttached) {
+  ConnectionState connection;
+  const auto activated = CreateAndActivate(connection);
+  const auto& authentication_token = activated.second;
+  ASSERT_TRUE(connection.authentication_token.has_value());
+  EXPECT_EQ(*connection.authentication_token, authentication_token);
+
+  const auto response = WaitAwaitable(
+      executor_,
+      runtime_.HandleDecodedRequest(
+          connection, OpcUaBinaryDecodedRequest{
+                          .header = {.authentication_token = {998u, 3},
+                                     .request_handle = 8},
+                          .body = ReadRequest{
+                              .inputs = {{.node_id = test::NumericNode(9),
+                                          .attribute_id =
+                                              scada::AttributeId::Value}}},
+                      }));
+
+  ASSERT_TRUE(response.has_value());
+  const auto* read = std::get_if<OpcUaBinaryReadResponse>(&*response);
+  ASSERT_NE(read, nullptr);
+  EXPECT_EQ(read->status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
+  EXPECT_EQ(*connection.authentication_token, authentication_token);
+}
+
 }  // namespace
 }  // namespace opcua
