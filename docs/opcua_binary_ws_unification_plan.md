@@ -314,6 +314,10 @@ Progress:
   `if constexpr` chain
 - the remaining Binary-only branch is the `HistoryReadEvents` response encoder,
   because it needs the request's decoded event-field path metadata
+- the shared runtime now has one reusable contract-test suite that exercises
+  the same semantic scenarios through the canonical runtime surface plus the
+  Binary and WS adapter runtimes for read routing, detach/resume, transfer,
+  close-session, and unauthenticated history-read behavior
 
 ### Phase 6. Add parity tests before larger behavior changes
 

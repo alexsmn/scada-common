@@ -171,6 +171,10 @@ Responsibilities:
   canonical request-to-response mapping table, and the few response encoders
   that still need Binary-only wire metadata such as
   `HistoryReadEvents`
+- define the transport-neutral runtime contract-test scenarios in
+  `opcua_runtime_contract_test.h`, then execute them against the canonical
+  runtime plus the Binary and WS adapter runtimes so semantic parity stays
+  covered during further unification
 
 ### `CreateOpcUaServices(...)`
 
