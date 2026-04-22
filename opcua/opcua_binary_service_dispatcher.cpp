@@ -82,6 +82,25 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
 Awaitable<std::optional<std::vector<char>>>
 OpcUaBinaryServiceDispatcher::HandleRequest(
     const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryHistoryReadEventsRequest& typed_request) {
+  if (!connection_.authentication_token.has_value() ||
+      *connection_.authentication_token != request.header.authentication_token) {
+    co_return EncodeOpcUaBinaryServiceResponse(
+        request.header.request_handle,
+        OpcUaBinaryResponseBody{
+            BuildBinaryRuntimeErrorResponse<OpcUaBinaryHistoryReadEventsResponse>(
+                scada::StatusCode::Bad_SessionIsLoggedOff)});
+  }
+
+  const auto response = co_await runtime_.Handle<OpcUaBinaryHistoryReadEventsResponse>(
+      connection_, typed_request);
+  co_return EncodeOpcUaBinaryHistoryReadEventsResponse(
+      request.header.request_handle, response, request.history_event_field_paths);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
     const OpcUaBinaryWriteRequest& typed_request) {
   co_return co_await HandleAuthenticatedRequest<OpcUaBinaryWriteResponse>(
       request.header, typed_request);
