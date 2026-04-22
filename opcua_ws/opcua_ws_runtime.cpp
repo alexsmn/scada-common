@@ -1,5 +1,6 @@
 #include "opcua_ws/opcua_ws_runtime.h"
 
+#include "base/boost_log.h"
 #include "base/callback_awaitable.h"
 
 #include <algorithm>
@@ -9,6 +10,8 @@
 namespace opcua_ws {
 
 namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaWsRuntime")};
 
 template <typename Response>
 Response SessionMissingResponse() {
@@ -37,6 +40,9 @@ void OpcUaWsRuntime::Detach(OpcUaWsConnectionState& connection) {
   if (!connection.authentication_token.has_value())
     return;
 
+  LOG_INFO(logger_) << "OPC UA WS runtime detaching connection session"
+                    << LOG_TAG("AuthenticationToken",
+                               connection.authentication_token->ToString());
   this->session_manager.DetachSession(*connection.authentication_token);
   connection.authentication_token.reset();
 }
@@ -55,6 +61,9 @@ OpcUaWsSession* OpcUaWsRuntime::FindAttachedSession(
 }
 
 void OpcUaWsRuntime::ForgetSession(const scada::NodeId& authentication_token) {
+  LOG_INFO(logger_) << "OPC UA WS runtime forgetting session state"
+                    << LOG_TAG("AuthenticationToken",
+                               authentication_token.ToString());
   RemoveSessionSubscriptions(authentication_token);
   sessions_.erase(authentication_token);
 }

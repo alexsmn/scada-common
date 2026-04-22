@@ -1,6 +1,7 @@
 #include "opcua_ws/opcua_ws_server.h"
 
 #include "base/awaitable.h"
+#include "base/boost_log.h"
 #include "opcua_ws/opcua_json_codec.h"
 
 #include <transport/write_queue.h>
@@ -8,6 +9,7 @@
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,6 +17,9 @@
 namespace opcua_ws {
 
 namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaWsServer")};
+std::atomic_uint64_t next_connection_id_{1};
 
 template <typename T>
 std::span<const char> AsCharSpan(const T& container) {
@@ -24,11 +29,13 @@ std::span<const char> AsCharSpan(const T& container) {
 struct ConnectionTaskState {
   explicit ConnectionTaskState(transport::any_transport transport)
       : transport{std::move(transport)},
-        write_queue{this->transport} {}
+        write_queue{this->transport},
+        connection_id{next_connection_id_.fetch_add(1, std::memory_order_relaxed)} {}
 
   transport::any_transport transport;
   transport::WriteQueue write_queue;
   OpcUaWsConnectionState connection;
+  uint64_t connection_id;
 };
 
 }  // namespace
@@ -81,6 +88,9 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
   auto state =
       std::make_shared<ConnectionTaskState>(std::move(transport));
   [[maybe_unused]] auto open_result = co_await state->transport.open();
+  LOG_INFO(logger_) << "OPC UA WS connection opened"
+                    << LOG_TAG("ConnectionId", state->connection_id)
+                    << LOG_TAG("Transport", state->transport.name());
   std::vector<char> buffer(max_message_size);
 
   for (;;) {
@@ -127,6 +137,17 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
   }
 
   state->connection.closed = true;
+  if (state->connection.authentication_token.has_value()) {
+    LOG_INFO(logger_) << "OPC UA WS connection closed"
+                      << LOG_TAG("ConnectionId", state->connection_id)
+                      << LOG_TAG("Transport", state->transport.name())
+                      << LOG_TAG("AuthenticationToken",
+                                 state->connection.authentication_token->ToString());
+  } else {
+    LOG_INFO(logger_) << "OPC UA WS connection closed"
+                      << LOG_TAG("ConnectionId", state->connection_id)
+                      << LOG_TAG("Transport", state->transport.name());
+  }
   runtime.Detach(state->connection);
   [[maybe_unused]] auto close_result = co_await state->transport.close();
 }
