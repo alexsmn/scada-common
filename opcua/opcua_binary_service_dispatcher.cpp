@@ -144,6 +144,24 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
 Awaitable<std::optional<std::vector<char>>>
 OpcUaBinaryServiceDispatcher::HandleRequest(
     const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryModifySubscriptionRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinaryModifySubscriptionResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinarySetPublishingModeRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinarySetPublishingModeResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
     const OpcUaBinaryDeleteSubscriptionsRequest& typed_request) {
   co_return
       co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteSubscriptionsResponse>(

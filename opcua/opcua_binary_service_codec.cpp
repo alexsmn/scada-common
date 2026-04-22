@@ -29,6 +29,10 @@ constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
 constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
 constexpr std::uint32_t kCreateSubscriptionRequestBinaryEncodingId = 787;
 constexpr std::uint32_t kCreateSubscriptionResponseBinaryEncodingId = 790;
+constexpr std::uint32_t kModifySubscriptionRequestBinaryEncodingId = 793;
+constexpr std::uint32_t kModifySubscriptionResponseBinaryEncodingId = 796;
+constexpr std::uint32_t kSetPublishingModeRequestBinaryEncodingId = 799;
+constexpr std::uint32_t kSetPublishingModeResponseBinaryEncodingId = 802;
 constexpr std::uint32_t kCreateMonitoredItemsRequestBinaryEncodingId = 751;
 constexpr std::uint32_t kCreateMonitoredItemsResponseBinaryEncodingId = 754;
 constexpr std::uint32_t kModifyMonitoredItemsRequestBinaryEncodingId = 763;
@@ -1031,6 +1035,53 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeDeleteSubscriptionsRequest(
   };
 }
 
+std::optional<OpcUaBinaryDecodedRequest> DecodeModifySubscriptionRequest(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  OpcUaBinaryModifySubscriptionRequest request;
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.Decode(request.subscription_id) ||
+      !decoder.Decode(request.parameters.publishing_interval_ms) ||
+      !decoder.Decode(request.parameters.lifetime_count) ||
+      !decoder.Decode(request.parameters.max_keep_alive_count) ||
+      !decoder.Decode(request.parameters.max_notifications_per_publish) ||
+      !decoder.Decode(request.parameters.priority) || !decoder.consumed()) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
+std::optional<OpcUaBinaryDecodedRequest> DecodeSetPublishingModeRequest(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  OpcUaBinarySetPublishingModeRequest request;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.Decode(request.publishing_enabled) || !decoder.Decode(count) ||
+      count < 0) {
+    return std::nullopt;
+  }
+
+  request.subscription_ids.resize(static_cast<std::size_t>(count));
+  for (auto& subscription_id : request.subscription_ids) {
+    if (!decoder.Decode(subscription_id)) {
+      return std::nullopt;
+    }
+  }
+  if (!decoder.consumed()) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeCreateMonitoredItemsRequest(
     std::span<const char> body) {
   binary::BinaryDecoder decoder{body};
@@ -1472,6 +1523,29 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
           binary::AppendMessage(
               body_encoder, kCreateSubscriptionRequestBinaryEncodingId, payload);
         } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryModifySubscriptionRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(typed_request.subscription_id);
+          payload_encoder.Encode(typed_request.parameters.publishing_interval_ms);
+          payload_encoder.Encode(typed_request.parameters.lifetime_count);
+          payload_encoder.Encode(typed_request.parameters.max_keep_alive_count);
+          payload_encoder.Encode(
+              typed_request.parameters.max_notifications_per_publish);
+          payload_encoder.Encode(typed_request.parameters.priority);
+          binary::AppendMessage(
+              body_encoder, kModifySubscriptionRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinarySetPublishingModeRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(typed_request.publishing_enabled);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_request.subscription_ids.size()));
+          for (const auto subscription_id : typed_request.subscription_ids) {
+            payload_encoder.Encode(subscription_id);
+          }
+          binary::AppendMessage(
+              body_encoder, kSetPublishingModeRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T,
                                             OpcUaBinaryDeleteSubscriptionsRequest>) {
           AppendRequestHeader(payload_encoder, header);
           payload_encoder.Encode(
@@ -1743,6 +1817,10 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodeCloseSessionRequest(message->second);
     case kCreateSubscriptionRequestBinaryEncodingId:
       return DecodeCreateSubscriptionRequest(message->second);
+    case kModifySubscriptionRequestBinaryEncodingId:
+      return DecodeModifySubscriptionRequest(message->second);
+    case kSetPublishingModeRequestBinaryEncodingId:
+      return DecodeSetPublishingModeRequest(message->second);
     case kDeleteSubscriptionsRequestBinaryEncodingId:
       return DecodeDeleteSubscriptionsRequest(message->second);
     case kCreateMonitoredItemsRequestBinaryEncodingId:
@@ -1836,6 +1914,27 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
           payload_encoder.Encode(typed_response.revised_max_keep_alive_count);
           binary::AppendMessage(
               body_encoder, kCreateSubscriptionResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryModifySubscriptionResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(typed_response.revised_publishing_interval_ms);
+          payload_encoder.Encode(typed_response.revised_lifetime_count);
+          payload_encoder.Encode(typed_response.revised_max_keep_alive_count);
+          binary::AppendMessage(
+              body_encoder, kModifySubscriptionResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinarySetPublishingModeResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto result : typed_response.results) {
+            payload_encoder.Encode(EncodeStatusCode(result));
+          }
+          payload_encoder.Encode(std::int32_t{-1});
+          binary::AppendMessage(
+              body_encoder, kSetPublishingModeResponseBinaryEncodingId, payload);
         } else if constexpr (std::is_same_v<T,
                                             OpcUaBinaryDeleteSubscriptionsResponse>) {
           AppendResponseHeader(payload_encoder, request_handle,
