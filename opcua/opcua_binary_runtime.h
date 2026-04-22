@@ -6,6 +6,19 @@
 
 namespace opcua {
 
+template <typename Response>
+Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
+  if constexpr (requires(Response response) { response.status; }) {
+    return Response{.status = std::move(status)};
+  } else if constexpr (requires(Response response) { response.results; }) {
+    using Result = typename decltype(Response{}.results)::value_type;
+    if constexpr (requires(Result result) { result.status; }) {
+      return Response{.results = {Result{.status = std::move(status)}}};
+    }
+  }
+  return Response{};
+}
+
 using OpcUaBinaryConnectionState = opcua_ws::OpcUaWsConnectionState;
 
 struct OpcUaBinaryRuntimeContext {
@@ -45,9 +58,9 @@ class OpcUaBinaryRuntime {
       co_return std::move(*typed);
     }
     if (auto* fault = std::get_if<OpcUaBinaryServiceFault>(&body)) {
-      co_return Response{.status = fault->status};
+      co_return BuildBinaryRuntimeErrorResponse<Response>(fault->status);
     }
-    co_return Response{.status = scada::StatusCode::Bad};
+    co_return BuildBinaryRuntimeErrorResponse<Response>(scada::StatusCode::Bad);
   }
 
   void Detach(OpcUaBinaryConnectionState& connection);

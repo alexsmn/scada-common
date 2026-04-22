@@ -8,37 +8,110 @@ namespace opcua {
 namespace {
 
 constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
+constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
+constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
 constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
+constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
 constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
+constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
+constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
+constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
+constexpr std::uint32_t kReadResponseBinaryEncodingId = 632;
 constexpr std::uint32_t kWriteRequestBinaryEncodingId = 671;
+constexpr std::uint32_t kWriteResponseBinaryEncodingId = 674;
 constexpr std::uint32_t kAnonymousIdentityTokenBinaryEncodingId = 321;
 constexpr std::uint32_t kUserNameIdentityTokenBinaryEncodingId = 324;
 
-enum class OpcUaBinaryTimestampsToReturn : std::uint32_t {
+enum class WireTimestampsToReturn : std::uint32_t {
   Source = 0,
   Server = 1,
   Both = 2,
   Neither = 3,
 };
 
-using binary::ReadBoolean;
-using binary::ReadByteString;
-using binary::ReadDouble;
-using binary::ReadExtensionObject;
-using binary::ReadInt32;
-using binary::ReadInt64;
-using binary::ReadMessage;
-using binary::ReadNumericNodeId;
-using binary::ReadQualifiedName;
-using binary::ReadUaString;
-using binary::ReadUInt8;
-using binary::ReadUInt32;
+void AppendRequestHeader(binary::BinaryEncoder& encoder,
+                         const OpcUaBinaryServiceRequestHeader& header) {
+  encoder.AppendNumericNodeId(header.authentication_token);
+  encoder.AppendInt64(0);
+  encoder.AppendUInt32(header.request_handle);
+  encoder.AppendUInt32(0);
+  encoder.AppendUaString("");
+  encoder.AppendUInt32(0);
+  encoder.AppendNumericNodeId(scada::NodeId{});
+  encoder.AppendUInt8(0x00);
+}
 
-bool SkipStringArray(const std::vector<char>& bytes, std::size_t& offset) {
+void AppendResponseHeader(binary::BinaryEncoder& encoder,
+                          std::uint32_t request_handle,
+                          scada::Status status) {
+  encoder.AppendInt64(0);
+  encoder.AppendUInt32(request_handle);
+  encoder.AppendUInt32(status.full_code());
+  encoder.AppendUInt8(0);
+  encoder.AppendInt32(0);
+  encoder.AppendNumericNodeId(scada::NodeId{});
+  encoder.AppendUInt8(0x00);
+}
+
+std::uint32_t EncodeStatusCode(scada::StatusCode status_code) {
+  return static_cast<std::uint32_t>(status_code) << 16;
+}
+
+void AppendDateTime(binary::BinaryEncoder& encoder, scada::DateTime value) {
+  if (value.is_null()) {
+    encoder.AppendInt64(0);
+    return;
+  }
+  encoder.AppendInt64(value.ToDeltaSinceWindowsEpoch().InMicroseconds() * 10);
+}
+
+void AppendDataValue(binary::BinaryEncoder& encoder,
+                     const scada::DataValue& value) {
+  std::uint8_t mask = 0;
+  if (!value.value.is_null()) {
+    mask |= 0x01;
+  }
+  if (!scada::IsGood(value.status_code)) {
+    mask |= 0x02;
+  }
+  if (!value.source_timestamp.is_null()) {
+    mask |= 0x04;
+  }
+  if (!value.server_timestamp.is_null()) {
+    mask |= 0x08;
+  }
+
+  encoder.AppendUInt8(mask);
+  if ((mask & 0x01) != 0) {
+    encoder.AppendVariant(value.value);
+  }
+  if ((mask & 0x02) != 0) {
+    encoder.AppendUInt32(EncodeStatusCode(value.status_code));
+  }
+  if ((mask & 0x04) != 0) {
+    AppendDateTime(encoder, value.source_timestamp);
+  }
+  if ((mask & 0x08) != 0) {
+    AppendDateTime(encoder, value.server_timestamp);
+  }
+}
+
+void AppendReferenceDescription(binary::BinaryEncoder& encoder,
+                                const scada::ReferenceDescription& reference) {
+  encoder.AppendNumericNodeId(reference.reference_type_id);
+  encoder.AppendBoolean(reference.forward);
+  encoder.AppendExpandedNodeId(scada::ExpandedNodeId{reference.node_id});
+  encoder.AppendQualifiedName(scada::QualifiedName{});
+  encoder.AppendLocalizedText(scada::LocalizedText{});
+  encoder.AppendUInt32(0);
+  encoder.AppendExpandedNodeId(scada::ExpandedNodeId{});
+}
+
+bool SkipStringArray(binary::BinaryDecoder& decoder) {
   std::int32_t count = 0;
-  if (!ReadInt32(bytes, offset, count)) {
+  if (!decoder.ReadInt32(count)) {
     return false;
   }
   if (count < 0) {
@@ -46,57 +119,51 @@ bool SkipStringArray(const std::vector<char>& bytes, std::size_t& offset) {
   }
   for (std::int32_t i = 0; i < count; ++i) {
     std::string ignored;
-    if (!ReadUaString(bytes, offset, ignored)) {
+    if (!decoder.ReadUaString(ignored)) {
       return false;
     }
   }
   return true;
 }
 
-bool SkipLocalizedText(const std::vector<char>& bytes, std::size_t& offset) {
+bool SkipLocalizedText(binary::BinaryDecoder& decoder) {
   std::uint8_t mask = 0;
-  if (!ReadUInt8(bytes, offset, mask)) {
+  if (!decoder.ReadUInt8(mask)) {
     return false;
   }
   if ((mask & 0x01) != 0) {
     std::string locale;
-    if (!ReadUaString(bytes, offset, locale)) {
+    if (!decoder.ReadUaString(locale)) {
       return false;
     }
   }
   if ((mask & 0x02) != 0) {
     std::string text;
-    if (!ReadUaString(bytes, offset, text)) {
+    if (!decoder.ReadUaString(text)) {
       return false;
     }
   }
   return true;
 }
 
-bool SkipApplicationDescriptionFields(const std::vector<char>& bytes,
-                                      std::size_t& offset) {
+bool SkipApplicationDescriptionFields(binary::BinaryDecoder& decoder) {
   std::string ignored;
   std::int32_t application_type = 0;
-  return ReadUaString(bytes, offset, ignored) &&
-         ReadUaString(bytes, offset, ignored) &&
-         SkipLocalizedText(bytes, offset) &&
-         ReadInt32(bytes, offset, application_type) &&
-         ReadUaString(bytes, offset, ignored) &&
-         ReadUaString(bytes, offset, ignored) &&
-         SkipStringArray(bytes, offset);
+  return decoder.ReadUaString(ignored) && decoder.ReadUaString(ignored) &&
+         SkipLocalizedText(decoder) && decoder.ReadInt32(application_type) &&
+         decoder.ReadUaString(ignored) && decoder.ReadUaString(ignored) &&
+         SkipStringArray(decoder);
 }
 
-bool SkipSignatureData(const std::vector<char>& bytes, std::size_t& offset) {
+bool SkipSignatureData(binary::BinaryDecoder& decoder) {
   std::string algorithm;
   scada::ByteString signature;
-  return ReadUaString(bytes, offset, algorithm) &&
-         ReadByteString(bytes, offset, signature);
+  return decoder.ReadUaString(algorithm) && decoder.ReadByteString(signature);
 }
 
-bool SkipSignedSoftwareCertificates(const std::vector<char>& bytes,
-                                    std::size_t& offset) {
+bool SkipSignedSoftwareCertificates(binary::BinaryDecoder& decoder) {
   std::int32_t count = 0;
-  if (!ReadInt32(bytes, offset, count)) {
+  if (!decoder.ReadInt32(count)) {
     return false;
   }
   if (count < 0) {
@@ -105,114 +172,65 @@ bool SkipSignedSoftwareCertificates(const std::vector<char>& bytes,
   for (std::int32_t i = 0; i < count; ++i) {
     scada::ByteString certificate_data;
     scada::ByteString signature;
-    if (!ReadByteString(bytes, offset, certificate_data) ||
-        !ReadByteString(bytes, offset, signature)) {
+    if (!decoder.ReadByteString(certificate_data) ||
+        !decoder.ReadByteString(signature)) {
       return false;
     }
   }
   return true;
 }
 
-bool ReadRequestHeader(const std::vector<char>& bytes,
-                       std::size_t& offset,
+bool ReadRequestHeader(binary::BinaryDecoder& decoder,
                        OpcUaBinaryServiceRequestHeader& header) {
   std::int64_t ignored_timestamp = 0;
-  if (!ReadNumericNodeId(bytes, offset, header.authentication_token) ||
-      !ReadInt64(bytes, offset, ignored_timestamp) ||
-      !ReadUInt32(bytes, offset, header.request_handle)) {
+  if (!decoder.ReadNumericNodeId(header.authentication_token) ||
+      !decoder.ReadInt64(ignored_timestamp) ||
+      !decoder.ReadUInt32(header.request_handle)) {
     return false;
   }
 
   std::uint32_t ignored_u32 = 0;
   std::string ignored_string;
-  if (!ReadUInt32(bytes, offset, ignored_u32) ||
-      !ReadUaString(bytes, offset, ignored_string) ||
-      !ReadUInt32(bytes, offset, ignored_u32)) {
+  if (!decoder.ReadUInt32(ignored_u32) || !decoder.ReadUaString(ignored_string) ||
+      !decoder.ReadUInt32(ignored_u32)) {
     return false;
   }
 
   std::uint32_t additional_type_id = 0;
   std::uint8_t additional_encoding = 0;
   std::vector<char> additional_body;
-  return ReadExtensionObject(bytes, offset, additional_type_id,
-                             additional_encoding, additional_body);
+  return decoder.ReadExtensionObject(additional_type_id, additional_encoding,
+                                     additional_body);
 }
 
-std::optional<scada::Variant> DecodeVariant(const std::vector<char>& bytes,
-                                            std::size_t& offset) {
-  std::uint8_t encoding_mask = 0;
-  if (!ReadUInt8(bytes, offset, encoding_mask) ||
-      (encoding_mask & 0x80) != 0) {
-    return std::nullopt;
-  }
-
-  switch (encoding_mask) {
-    case 0:
-      return scada::Variant{};
-    case 6: {
-      std::int32_t value = 0;
-      if (!ReadInt32(bytes, offset, value)) {
-        return std::nullopt;
-      }
-      return scada::Variant{value};
-    }
-    case 7: {
-      std::uint32_t value = 0;
-      if (!ReadUInt32(bytes, offset, value)) {
-        return std::nullopt;
-      }
-      return scada::Variant{value};
-    }
-    case 11: {
-      double value = 0;
-      if (!ReadDouble(bytes, offset, value)) {
-        return std::nullopt;
-      }
-      return scada::Variant{value};
-    }
-    case 12: {
-      std::string value;
-      if (!ReadUaString(bytes, offset, value)) {
-        return std::nullopt;
-      }
-      return scada::Variant{std::move(value)};
-    }
-    default:
-      return std::nullopt;
-  }
-}
-
-std::optional<scada::Variant> DecodeDataValue(const std::vector<char>& bytes,
-                                              std::size_t& offset) {
+std::optional<scada::Variant> DecodeDataValue(binary::BinaryDecoder& decoder) {
   std::uint8_t mask = 0;
-  if (!ReadUInt8(bytes, offset, mask) || (mask & 0xf0) != 0) {
+  if (!decoder.ReadUInt8(mask) || (mask & 0xf0) != 0) {
     return std::nullopt;
   }
 
   scada::Variant value;
   if ((mask & 0x01) != 0) {
-    auto decoded = DecodeVariant(bytes, offset);
-    if (!decoded.has_value()) {
+    if (!decoder.ReadVariant(value)) {
       return std::nullopt;
     }
-    value = std::move(*decoded);
   }
 
   if ((mask & 0x02) != 0) {
     std::uint32_t ignored_status = 0;
-    if (!ReadUInt32(bytes, offset, ignored_status)) {
+    if (!decoder.ReadUInt32(ignored_status)) {
       return std::nullopt;
     }
   }
   if ((mask & 0x04) != 0) {
     std::int64_t ignored_source_timestamp = 0;
-    if (!ReadInt64(bytes, offset, ignored_source_timestamp)) {
+    if (!decoder.ReadInt64(ignored_source_timestamp)) {
       return std::nullopt;
     }
   }
   if ((mask & 0x08) != 0) {
     std::int64_t ignored_server_timestamp = 0;
-    if (!ReadInt64(bytes, offset, ignored_server_timestamp)) {
+    if (!decoder.ReadInt64(ignored_server_timestamp)) {
       return std::nullopt;
     }
   }
@@ -220,18 +238,17 @@ std::optional<scada::Variant> DecodeDataValue(const std::vector<char>& bytes,
   return value;
 }
 
-bool DecodeWriteValue(const std::vector<char>& bytes,
-                      std::size_t& offset,
+bool DecodeWriteValue(binary::BinaryDecoder& decoder,
                       scada::WriteValue& value) {
   std::uint32_t attribute_id = 0;
   std::string index_range;
-  if (!ReadNumericNodeId(bytes, offset, value.node_id) ||
-      !ReadUInt32(bytes, offset, attribute_id) ||
-      !ReadUaString(bytes, offset, index_range)) {
+  if (!decoder.ReadNumericNodeId(value.node_id) ||
+      !decoder.ReadUInt32(attribute_id) ||
+      !decoder.ReadUaString(index_range)) {
     return false;
   }
 
-  auto decoded = DecodeDataValue(bytes, offset);
+  auto decoded = DecodeDataValue(decoder);
   if (!decoded.has_value()) {
     return false;
   }
@@ -241,35 +258,33 @@ bool DecodeWriteValue(const std::vector<char>& bytes,
   return index_range.empty();
 }
 
-bool DecodeReadValueId(const std::vector<char>& bytes,
-                       std::size_t& offset,
+bool DecodeReadValueId(binary::BinaryDecoder& decoder,
                        scada::ReadValueId& value_id) {
   std::uint32_t attribute_id = 0;
   std::string index_range;
   scada::QualifiedName ignored_data_encoding;
-  if (!ReadNumericNodeId(bytes, offset, value_id.node_id) ||
-      !ReadUInt32(bytes, offset, attribute_id) ||
-      !ReadUaString(bytes, offset, index_range) ||
-      !ReadQualifiedName(bytes, offset, ignored_data_encoding)) {
+  if (!decoder.ReadNumericNodeId(value_id.node_id) ||
+      !decoder.ReadUInt32(attribute_id) ||
+      !decoder.ReadUaString(index_range) ||
+      !decoder.ReadQualifiedName(ignored_data_encoding)) {
     return false;
   }
   value_id.attribute_id = static_cast<scada::AttributeId>(attribute_id);
   return index_range.empty();
 }
 
-bool DecodeBrowseDescription(const std::vector<char>& bytes,
-                             std::size_t& offset,
+bool DecodeBrowseDescription(binary::BinaryDecoder& decoder,
                              scada::BrowseDescription& description) {
   std::uint32_t browse_direction = 0;
   std::uint32_t ignored_node_class_mask = 0;
   std::uint32_t ignored_result_mask = 0;
   bool include_subtypes = false;
-  if (!ReadNumericNodeId(bytes, offset, description.node_id) ||
-      !ReadUInt32(bytes, offset, browse_direction) ||
-      !ReadNumericNodeId(bytes, offset, description.reference_type_id) ||
-      !ReadBoolean(bytes, offset, include_subtypes) ||
-      !ReadUInt32(bytes, offset, ignored_node_class_mask) ||
-      !ReadUInt32(bytes, offset, ignored_result_mask)) {
+  if (!decoder.ReadNumericNodeId(description.node_id) ||
+      !decoder.ReadUInt32(browse_direction) ||
+      !decoder.ReadNumericNodeId(description.reference_type_id) ||
+      !decoder.ReadBoolean(include_subtypes) ||
+      !decoder.ReadUInt32(ignored_node_class_mask) ||
+      !decoder.ReadUInt32(ignored_result_mask)) {
     return false;
   }
   description.direction =
@@ -282,10 +297,10 @@ bool DecodeBrowseDescription(const std::vector<char>& bytes,
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeCreateSessionRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
-  if (!ReadRequestHeader(body, offset, header) ||
-      !SkipApplicationDescriptionFields(body, offset)) {
+  if (!ReadRequestHeader(decoder, header) ||
+      !SkipApplicationDescriptionFields(decoder)) {
     return std::nullopt;
   }
 
@@ -293,14 +308,11 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeCreateSessionRequest(
   scada::ByteString ignored_bytes;
   double requested_timeout_ms = 0;
   std::uint32_t ignored_max_response_size = 0;
-  if (!ReadUaString(body, offset, ignored) ||
-      !ReadUaString(body, offset, ignored) ||
-      !ReadUaString(body, offset, ignored) ||
-      !ReadByteString(body, offset, ignored_bytes) ||
-      !ReadByteString(body, offset, ignored_bytes) ||
-      !ReadDouble(body, offset, requested_timeout_ms) ||
-      !ReadUInt32(body, offset, ignored_max_response_size) ||
-      offset != body.size()) {
+  if (!decoder.ReadUaString(ignored) || !decoder.ReadUaString(ignored) ||
+      !decoder.ReadUaString(ignored) || !decoder.ReadByteString(ignored_bytes) ||
+      !decoder.ReadByteString(ignored_bytes) ||
+      !decoder.ReadDouble(requested_timeout_ms) ||
+      !decoder.ReadUInt32(ignored_max_response_size) || !decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -314,23 +326,23 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeCreateSessionRequest(
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeActivateSessionRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
-  if (!ReadRequestHeader(body, offset, header) ||
+  if (!ReadRequestHeader(decoder, header) ||
       !header.authentication_token.is_numeric() ||
-      !SkipSignatureData(body, offset) ||
-      !SkipSignedSoftwareCertificates(body, offset) ||
-      !SkipStringArray(body, offset)) {
+      !SkipSignatureData(decoder) ||
+      !SkipSignedSoftwareCertificates(decoder) ||
+      !SkipStringArray(decoder)) {
     return std::nullopt;
   }
 
   std::uint32_t user_identity_type_id = 0;
   std::uint8_t user_identity_encoding = 0;
   std::vector<char> user_identity_body;
-  if (!ReadExtensionObject(body, offset, user_identity_type_id,
-                           user_identity_encoding, user_identity_body) ||
+  if (!decoder.ReadExtensionObject(user_identity_type_id, user_identity_encoding,
+                                   user_identity_body) ||
       user_identity_encoding != 0x01 ||
-      !SkipSignatureData(body, offset) || offset != body.size()) {
+      !SkipSignatureData(decoder) || !decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -338,9 +350,9 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeActivateSessionRequest(
       .authentication_token = header.authentication_token,
   };
 
-  std::size_t body_offset = 0;
+  binary::BinaryDecoder body_decoder{user_identity_body};
   std::string ignored_policy_id;
-  if (!ReadUaString(user_identity_body, body_offset, ignored_policy_id)) {
+  if (!body_decoder.ReadUaString(ignored_policy_id)) {
     return std::nullopt;
   }
   if (user_identity_type_id == kAnonymousIdentityTokenBinaryEncodingId) {
@@ -349,10 +361,10 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeActivateSessionRequest(
     std::string user_name;
     scada::ByteString password;
     std::string encryption_algorithm;
-    if (!ReadUaString(user_identity_body, body_offset, user_name) ||
-        !ReadByteString(user_identity_body, body_offset, password) ||
-        !ReadUaString(user_identity_body, body_offset, encryption_algorithm) ||
-        body_offset != user_identity_body.size() ||
+    if (!body_decoder.ReadUaString(user_name) ||
+        !body_decoder.ReadByteString(password) ||
+        !body_decoder.ReadUaString(encryption_algorithm) ||
+        !body_decoder.consumed() ||
         !encryption_algorithm.empty()) {
       return std::nullopt;
     }
@@ -371,12 +383,11 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeActivateSessionRequest(
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeCloseSessionRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
   std::uint8_t delete_subscriptions = 0;
-  if (!ReadRequestHeader(body, offset, header) ||
-      !ReadUInt8(body, offset, delete_subscriptions) ||
-      offset != body.size()) {
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.ReadUInt8(delete_subscriptions) || !decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -390,15 +401,14 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeCloseSessionRequest(
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeReadRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
   double max_age = 0;
   std::uint32_t timestamps_to_return = 0;
   std::int32_t count = 0;
-  if (!ReadRequestHeader(body, offset, header) ||
-      !ReadDouble(body, offset, max_age) ||
-      !ReadUInt32(body, offset, timestamps_to_return) ||
-      !ReadInt32(body, offset, count) || count < 0) {
+  if (!ReadRequestHeader(decoder, header) || !decoder.ReadDouble(max_age) ||
+      !decoder.ReadUInt32(timestamps_to_return) || !decoder.ReadInt32(count) ||
+      count < 0) {
     return std::nullopt;
   }
   if (max_age < 0) {
@@ -417,11 +427,11 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeReadRequest(
   OpcUaBinaryReadRequest request;
   request.inputs.resize(static_cast<std::size_t>(count));
   for (auto& input : request.inputs) {
-    if (!DecodeReadValueId(body, offset, input)) {
+    if (!DecodeReadValueId(decoder, input)) {
       return std::nullopt;
     }
   }
-  if (offset != body.size()) {
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -433,22 +443,22 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeReadRequest(
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeWriteRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
   std::int32_t count = 0;
-  if (!ReadRequestHeader(body, offset, header) ||
-      !ReadInt32(body, offset, count) || count < 0) {
+  if (!ReadRequestHeader(decoder, header) || !decoder.ReadInt32(count) ||
+      count < 0) {
     return std::nullopt;
   }
 
   OpcUaBinaryWriteRequest request;
   request.inputs.resize(static_cast<std::size_t>(count));
   for (auto& input : request.inputs) {
-    if (!DecodeWriteValue(body, offset, input)) {
+    if (!DecodeWriteValue(decoder, input)) {
       return std::nullopt;
     }
   }
-  if (offset != body.size()) {
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -460,19 +470,19 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeWriteRequest(
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeBrowseRequest(
     const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder decoder{body};
   OpcUaBinaryServiceRequestHeader header;
   scada::NodeId ignored_view_id;
   std::int64_t ignored_view_timestamp = 0;
   std::uint32_t ignored_view_version = 0;
   std::uint32_t requested_max_references_per_node = 0;
   std::int32_t count = 0;
-  if (!ReadRequestHeader(body, offset, header) ||
-      !ReadNumericNodeId(body, offset, ignored_view_id) ||
-      !ReadInt64(body, offset, ignored_view_timestamp) ||
-      !ReadUInt32(body, offset, ignored_view_version) ||
-      !ReadUInt32(body, offset, requested_max_references_per_node) ||
-      !ReadInt32(body, offset, count) || count < 0) {
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.ReadNumericNodeId(ignored_view_id) ||
+      !decoder.ReadInt64(ignored_view_timestamp) ||
+      !decoder.ReadUInt32(ignored_view_version) ||
+      !decoder.ReadUInt32(requested_max_references_per_node) ||
+      !decoder.ReadInt32(count) || count < 0) {
     return std::nullopt;
   }
 
@@ -480,11 +490,50 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeBrowseRequest(
   request.requested_max_references_per_node = requested_max_references_per_node;
   request.inputs.resize(static_cast<std::size_t>(count));
   for (auto& input : request.inputs) {
-    if (!DecodeBrowseDescription(body, offset, input)) {
+    if (!DecodeBrowseDescription(decoder, input)) {
       return std::nullopt;
     }
   }
-  if (offset != body.size()) {
+  if (!decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
+std::optional<OpcUaBinaryDecodedRequest> DecodeCallRequest(
+    const std::vector<char>& body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(decoder, header) || !decoder.ReadInt32(count) ||
+      count < 0) {
+    return std::nullopt;
+  }
+
+  OpcUaBinaryCallRequest request;
+  request.methods.resize(static_cast<std::size_t>(count));
+  for (auto& method : request.methods) {
+    std::int32_t argument_count = 0;
+    if (!decoder.ReadNumericNodeId(method.object_id) ||
+        !decoder.ReadNumericNodeId(method.method_id) ||
+        !decoder.ReadInt32(argument_count) || argument_count < 0) {
+      return std::nullopt;
+    }
+
+    method.arguments.reserve(static_cast<std::size_t>(argument_count));
+    for (std::int32_t i = 0; i < argument_count; ++i) {
+      scada::Variant argument;
+      if (!decoder.ReadVariant(argument)) {
+        return std::nullopt;
+      }
+      method.arguments.push_back(std::move(argument));
+    }
+  }
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -496,9 +545,148 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeBrowseRequest(
 
 }  // namespace
 
+std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
+    const OpcUaBinaryServiceRequestHeader& header,
+    const OpcUaBinaryRequestBody& request) {
+  return std::visit(
+      [&](const auto& typed_request) -> std::optional<std::vector<char>> {
+        std::vector<char> payload;
+        std::vector<char> body;
+        binary::BinaryEncoder payload_encoder{payload};
+        binary::BinaryEncoder body_encoder{body};
+
+        using T = std::decay_t<decltype(typed_request)>;
+        if constexpr (std::is_same_v<T, OpcUaBinaryCreateSessionRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendUInt8(0);
+          payload_encoder.AppendInt32(0);
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendInt32(-1);
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendUaString("opc.tcp://localhost:4840");
+          payload_encoder.AppendUaString("binary-session");
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendDouble(
+              typed_request.requested_timeout.InMillisecondsF());
+          payload_encoder.AppendUInt32(0);
+          body_encoder.AppendMessage(kCreateSessionRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryActivateSessionRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendInt32(-1);
+          payload_encoder.AppendInt32(-1);
+          if (typed_request.allow_anonymous) {
+            std::vector<char> identity;
+            binary::BinaryEncoder identity_encoder{identity};
+            identity_encoder.AppendUaString("");
+            payload_encoder.AppendExtensionObject(
+                kAnonymousIdentityTokenBinaryEncodingId, identity);
+          } else {
+            std::vector<char> identity;
+            binary::BinaryEncoder identity_encoder{identity};
+            identity_encoder.AppendUaString("");
+            identity_encoder.AppendUaString(
+                typed_request.user_name.has_value()
+                    ? ToString(*typed_request.user_name)
+                    : std::string{});
+            const auto password =
+                typed_request.password.has_value()
+                    ? ToString(*typed_request.password)
+                    : std::string{};
+            identity_encoder.AppendByteString(
+                scada::ByteString{password.begin(), password.end()});
+            identity_encoder.AppendUaString("");
+            payload_encoder.AppendExtensionObject(
+                kUserNameIdentityTokenBinaryEncodingId, identity);
+          }
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendByteString({});
+          body_encoder.AppendMessage(kActivateSessionRequestBinaryEncodingId,
+                                     payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryCloseSessionRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendUInt8(1);
+          body_encoder.AppendMessage(kCloseSessionRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryReadRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendDouble(0);
+          payload_encoder.AppendUInt32(
+              static_cast<std::uint32_t>(WireTimestampsToReturn::Both));
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_request.inputs.size()));
+          for (const auto& input : typed_request.inputs) {
+            payload_encoder.AppendNumericNodeId(input.node_id);
+            payload_encoder.AppendUInt32(
+                static_cast<std::uint32_t>(input.attribute_id));
+            payload_encoder.AppendUaString("");
+            payload_encoder.AppendUInt16(0);
+            payload_encoder.AppendUaString("");
+          }
+          body_encoder.AppendMessage(kReadRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryWriteRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_request.inputs.size()));
+          for (const auto& input : typed_request.inputs) {
+            payload_encoder.AppendNumericNodeId(input.node_id);
+            payload_encoder.AppendUInt32(
+                static_cast<std::uint32_t>(input.attribute_id));
+            payload_encoder.AppendUaString("");
+            payload_encoder.AppendUInt8(0x01);
+            payload_encoder.AppendVariant(input.value);
+          }
+          body_encoder.AppendMessage(kWriteRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryBrowseRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendNumericNodeId(scada::NodeId{});
+          payload_encoder.AppendInt64(0);
+          payload_encoder.AppendUInt32(0);
+          payload_encoder.AppendUInt32(
+              typed_request.requested_max_references_per_node);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_request.inputs.size()));
+          for (const auto& input : typed_request.inputs) {
+            payload_encoder.AppendNumericNodeId(input.node_id);
+            payload_encoder.AppendUInt32(
+                static_cast<std::uint32_t>(input.direction));
+            payload_encoder.AppendNumericNodeId(input.reference_type_id);
+            payload_encoder.AppendBoolean(input.include_subtypes);
+            payload_encoder.AppendUInt32(0);
+            payload_encoder.AppendUInt32(0);
+          }
+          body_encoder.AppendMessage(kBrowseRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryCallRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_request.methods.size()));
+          for (const auto& method : typed_request.methods) {
+            payload_encoder.AppendNumericNodeId(method.object_id);
+            payload_encoder.AppendNumericNodeId(method.method_id);
+            payload_encoder.AppendInt32(
+                static_cast<std::int32_t>(method.arguments.size()));
+            for (const auto& argument : method.arguments) {
+              payload_encoder.AppendVariant(argument);
+            }
+          }
+          body_encoder.AppendMessage(kCallRequestBinaryEncodingId, payload);
+        } else {
+          return std::nullopt;
+        }
+
+        return body;
+      },
+      request);
+}
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
     const std::vector<char>& payload) {
-  const auto message = ReadMessage(payload);
+  binary::BinaryDecoder decoder{payload};
+  const auto message = binary::ReadMessage(payload);
   if (!message.has_value()) {
     return std::nullopt;
   }
@@ -512,6 +700,8 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodeCloseSessionRequest(message->second);
     case kBrowseRequestBinaryEncodingId:
       return DecodeBrowseRequest(message->second);
+    case kCallRequestBinaryEncodingId:
+      return DecodeCallRequest(message->second);
     case kReadRequestBinaryEncodingId:
       return DecodeReadRequest(message->second);
     case kWriteRequestBinaryEncodingId:
@@ -519,6 +709,115 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
     default:
       return std::nullopt;
   }
+}
+
+std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
+    std::uint32_t request_handle,
+    const OpcUaBinaryResponseBody& response) {
+  return std::visit(
+      [&](const auto& typed_response) -> std::optional<std::vector<char>> {
+        std::vector<char> payload;
+        std::vector<char> body;
+        binary::BinaryEncoder payload_encoder{payload};
+        binary::BinaryEncoder body_encoder{body};
+
+        using T = std::decay_t<decltype(typed_response)>;
+        if constexpr (std::is_same_v<T, OpcUaBinaryCreateSessionResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.AppendNumericNodeId(typed_response.session_id);
+          payload_encoder.AppendNumericNodeId(
+              typed_response.authentication_token);
+          payload_encoder.AppendDouble(
+              typed_response.revised_timeout.InMillisecondsF());
+          payload_encoder.AppendByteString(typed_response.server_nonce);
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendInt32(-1);
+          payload_encoder.AppendInt32(-1);
+          payload_encoder.AppendUaString("");
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendUInt32(0);
+          body_encoder.AppendMessage(kCreateSessionResponseBinaryEncodingId,
+                                     payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryActivateSessionResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.AppendByteString({});
+          payload_encoder.AppendInt32(-1);
+          payload_encoder.AppendInt32(-1);
+          body_encoder.AppendMessage(kActivateSessionResponseBinaryEncodingId,
+                                     payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryCloseSessionResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          body_encoder.AppendMessage(kCloseSessionResponseBinaryEncodingId,
+                                     payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryReadResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            AppendDataValue(payload_encoder, result);
+          }
+          payload_encoder.AppendInt32(-1);
+          body_encoder.AppendMessage(kReadResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryWriteResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            payload_encoder.AppendUInt32(EncodeStatusCode(result));
+          }
+          payload_encoder.AppendInt32(-1);
+          body_encoder.AppendMessage(kWriteResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryBrowseResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            payload_encoder.AppendUInt32(EncodeStatusCode(result.status_code));
+            payload_encoder.AppendByteString(result.continuation_point);
+            payload_encoder.AppendInt32(
+                static_cast<std::int32_t>(result.references.size()));
+            for (const auto& reference : result.references) {
+              AppendReferenceDescription(payload_encoder, reference);
+            }
+          }
+          payload_encoder.AppendInt32(-1);
+          body_encoder.AppendMessage(kBrowseResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryCallResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               scada::StatusCode::Good);
+          payload_encoder.AppendInt32(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            payload_encoder.AppendUInt32(result.status.full_code());
+            payload_encoder.AppendInt32(static_cast<std::int32_t>(
+                result.input_argument_results.size()));
+            for (const auto& input_result : result.input_argument_results) {
+              payload_encoder.AppendUInt32(EncodeStatusCode(input_result));
+            }
+            payload_encoder.AppendInt32(-1);
+            payload_encoder.AppendInt32(
+                static_cast<std::int32_t>(result.output_arguments.size()));
+            for (const auto& output_argument : result.output_arguments) {
+              payload_encoder.AppendVariant(output_argument);
+            }
+          }
+          payload_encoder.AppendInt32(-1);
+          body_encoder.AppendMessage(kCallResponseBinaryEncodingId, payload);
+        } else {
+          return std::nullopt;
+        }
+
+        return body;
+      },
+      response);
 }
 
 }  // namespace opcua

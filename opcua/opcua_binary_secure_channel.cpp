@@ -6,30 +6,13 @@
 namespace opcua {
 namespace {
 
-using binary::AppendByteString;
-using binary::AppendInt32;
-using binary::AppendInt64;
-using binary::AppendUaString;
-using binary::AppendUInt8;
-using binary::AppendUInt16;
-using binary::AppendUInt32;
-using binary::ReadByteString;
-using binary::ReadInt32;
-using binary::ReadInt64;
-using binary::ReadUaString;
-using binary::ReadUInt8;
-using binary::ReadUInt16;
-using binary::ReadUInt32;
-
-void AppendNumericNodeId(std::vector<char>& bytes, std::uint32_t id) {
-  binary::AppendNumericNodeId(bytes, scada::NodeId{id});
+void AppendNumericNodeId(binary::BinaryEncoder& encoder, std::uint32_t id) {
+  encoder.AppendNumericNodeId(scada::NodeId{id});
 }
 
-bool ReadNumericNodeId(const std::vector<char>& bytes,
-                       std::size_t& offset,
-                       std::uint32_t& id) {
+bool ReadNumericNodeId(binary::BinaryDecoder& decoder, std::uint32_t& id) {
   scada::NodeId node_id;
-  if (!binary::ReadNumericNodeId(bytes, offset, node_id) || !node_id.is_numeric() ||
+  if (!decoder.ReadNumericNodeId(node_id) || !node_id.is_numeric() ||
       node_id.namespace_index() != 0) {
     return false;
   }
@@ -37,62 +20,60 @@ bool ReadNumericNodeId(const std::vector<char>& bytes,
   return true;
 }
 
-void AppendExtensionObject(std::vector<char>& bytes,
+void AppendExtensionObject(binary::BinaryEncoder& encoder,
                            std::uint32_t type_id,
                            const std::vector<char>& body) {
-  binary::AppendExtensionObject(bytes, type_id, body);
+  encoder.AppendExtensionObject(type_id, body);
 }
 
-bool ReadExtensionObject(const std::vector<char>& bytes,
-                         std::size_t& offset,
+bool ReadExtensionObject(binary::BinaryDecoder& decoder,
                          std::uint32_t& type_id,
                          std::uint8_t& encoding,
                          std::vector<char>& body) {
-  return binary::ReadExtensionObject(bytes, offset, type_id, encoding, body);
+  return decoder.ReadExtensionObject(type_id, encoding, body);
 }
 
-bool ReadRequestHeader(const std::vector<char>& bytes,
-                       std::size_t& offset,
+bool ReadRequestHeader(binary::BinaryDecoder& decoder,
                        OpcUaBinaryRequestHeader& header) {
   std::uint32_t ignored_node_id = 0;
   std::int64_t ignored_timestamp = 0;
-  if (!ReadNumericNodeId(bytes, offset, ignored_node_id) ||
-      !ReadInt64(bytes, offset, ignored_timestamp) ||
-      !ReadUInt32(bytes, offset, header.request_handle) ||
-      !ReadUInt32(bytes, offset, header.return_diagnostics) ||
-      !ReadUaString(bytes, offset, header.audit_entry_id) ||
-      !ReadUInt32(bytes, offset, header.timeout_hint)) {
+  if (!ReadNumericNodeId(decoder, ignored_node_id) ||
+      !decoder.ReadInt64(ignored_timestamp) ||
+      !decoder.ReadUInt32(header.request_handle) ||
+      !decoder.ReadUInt32(header.return_diagnostics) ||
+      !decoder.ReadUaString(header.audit_entry_id) ||
+      !decoder.ReadUInt32(header.timeout_hint)) {
     return false;
   }
 
   std::uint32_t additional_type_id = 0;
   std::uint8_t additional_encoding = 0;
   std::vector<char> additional_body;
-  return ReadExtensionObject(bytes, offset, additional_type_id,
-                             additional_encoding, additional_body);
+  return ReadExtensionObject(decoder, additional_type_id, additional_encoding,
+                             additional_body);
 }
 
-void AppendResponseHeader(std::vector<char>& bytes,
+void AppendResponseHeader(binary::BinaryEncoder& encoder,
                           const OpcUaBinaryResponseHeader& header) {
-  AppendInt64(bytes, 0);
-  AppendUInt32(bytes, header.request_handle);
-  AppendUInt32(bytes, header.service_result.good() ? 0u : 0x80000000u);
-  AppendUInt8(bytes, 0);
-  AppendInt32(bytes, 0);
-  AppendNumericNodeId(bytes, 0);
-  AppendUInt8(bytes, 0x00);
+  encoder.AppendInt64(0);
+  encoder.AppendUInt32(header.request_handle);
+  encoder.AppendUInt32(header.service_result.good() ? 0u : 0x80000000u);
+  encoder.AppendUInt8(0);
+  encoder.AppendInt32(0);
+  AppendNumericNodeId(encoder, 0);
+  encoder.AppendUInt8(0x00);
 }
 
-void AppendRequestHeader(std::vector<char>& bytes,
+void AppendRequestHeader(binary::BinaryEncoder& encoder,
                          const OpcUaBinaryRequestHeader& header) {
-  AppendNumericNodeId(bytes, 0);
-  AppendInt64(bytes, 0);
-  AppendUInt32(bytes, header.request_handle);
-  AppendUInt32(bytes, header.return_diagnostics);
-  AppendUaString(bytes, header.audit_entry_id);
-  AppendUInt32(bytes, header.timeout_hint);
-  AppendNumericNodeId(bytes, 0);
-  AppendUInt8(bytes, 0x00);
+  AppendNumericNodeId(encoder, 0);
+  encoder.AppendInt64(0);
+  encoder.AppendUInt32(header.request_handle);
+  encoder.AppendUInt32(header.return_diagnostics);
+  encoder.AppendUaString(header.audit_entry_id);
+  encoder.AppendUInt32(header.timeout_hint);
+  AppendNumericNodeId(encoder, 0);
+  encoder.AppendUInt8(0x00);
 }
 
 }  // namespace
@@ -106,34 +87,34 @@ DecodeSecureConversationMessage(const std::vector<char>& frame) {
 
   OpcUaBinarySecureConversationMessage message;
   message.frame_header = *frame_header;
-  std::size_t offset = 8;
-  if (!ReadUInt32(frame, offset, message.secure_channel_id)) {
+  binary::BinaryDecoder decoder{std::span<const char>{frame}.subspan(8)};
+  if (!decoder.ReadUInt32(message.secure_channel_id)) {
     return std::nullopt;
   }
 
   if (frame_header->message_type == OpcUaBinaryMessageType::SecureOpen) {
     OpcUaBinaryAsymmetricSecurityHeader header;
-    if (!ReadUaString(frame, offset, header.security_policy_uri) ||
-        !ReadByteString(frame, offset, header.sender_certificate) ||
-        !ReadByteString(frame, offset,
+    if (!decoder.ReadUaString(header.security_policy_uri) ||
+        !decoder.ReadByteString(header.sender_certificate) ||
+        !decoder.ReadByteString(
                         header.receiver_certificate_thumbprint)) {
       return std::nullopt;
     }
     message.asymmetric_security_header = std::move(header);
   } else {
     OpcUaBinarySymmetricSecurityHeader header;
-    if (!ReadUInt32(frame, offset, header.token_id)) {
+    if (!decoder.ReadUInt32(header.token_id)) {
       return std::nullopt;
     }
     message.symmetric_security_header = header;
   }
 
-  if (!ReadUInt32(frame, offset, message.sequence_header.sequence_number) ||
-      !ReadUInt32(frame, offset, message.sequence_header.request_id)) {
+  if (!decoder.ReadUInt32(message.sequence_header.sequence_number) ||
+      !decoder.ReadUInt32(message.sequence_header.request_id)) {
     return std::nullopt;
   }
 
-  message.body.assign(frame.begin() + static_cast<std::ptrdiff_t>(offset),
+  message.body.assign(frame.begin() + static_cast<std::ptrdiff_t>(8 + decoder.offset()),
                       frame.end());
   return message;
 }
@@ -144,19 +125,20 @@ std::vector<char> EncodeSecureConversationMessage(
       {.message_type = message.frame_header.message_type,
        .chunk_type = message.frame_header.chunk_type,
        .message_size = 0});
-  AppendUInt32(frame, message.secure_channel_id);
+  binary::BinaryEncoder encoder{frame};
+  encoder.AppendUInt32(message.secure_channel_id);
 
   if (message.frame_header.message_type == OpcUaBinaryMessageType::SecureOpen) {
     const auto& header = *message.asymmetric_security_header;
-    AppendUaString(frame, header.security_policy_uri);
-    AppendByteString(frame, header.sender_certificate);
-    AppendByteString(frame, header.receiver_certificate_thumbprint);
+    encoder.AppendUaString(header.security_policy_uri);
+    encoder.AppendByteString(header.sender_certificate);
+    encoder.AppendByteString(header.receiver_certificate_thumbprint);
   } else {
-    AppendUInt32(frame, message.symmetric_security_header->token_id);
+    encoder.AppendUInt32(message.symmetric_security_header->token_id);
   }
 
-  AppendUInt32(frame, message.sequence_header.sequence_number);
-  AppendUInt32(frame, message.sequence_header.request_id);
+  encoder.AppendUInt32(message.sequence_header.sequence_number);
+  encoder.AppendUInt32(message.sequence_header.request_id);
   frame.insert(frame.end(), message.body.begin(), message.body.end());
 
   const auto message_size = static_cast<std::uint32_t>(frame.size());
@@ -166,27 +148,27 @@ std::vector<char> EncodeSecureConversationMessage(
 
 std::optional<OpcUaBinaryOpenSecureChannelRequest>
 DecodeOpenSecureChannelRequestBody(const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder body_decoder{body};
   std::uint32_t type_id = 0;
   std::uint8_t encoding = 0;
   std::vector<char> payload;
-  if (!ReadExtensionObject(body, offset, type_id, encoding, payload) ||
+  if (!ReadExtensionObject(body_decoder, type_id, encoding, payload) ||
       type_id != kOpenSecureChannelRequestBinaryEncodingId || encoding != 0x01 ||
-      offset != body.size()) {
+      !body_decoder.consumed()) {
     return std::nullopt;
   }
 
   OpcUaBinaryOpenSecureChannelRequest request;
-  std::size_t payload_offset = 0;
+  binary::BinaryDecoder payload_decoder{payload};
   std::uint32_t request_type = 0;
   std::uint32_t security_mode = 0;
-  if (!ReadRequestHeader(payload, payload_offset, request.request_header) ||
-      !ReadUInt32(payload, payload_offset, request.client_protocol_version) ||
-      !ReadUInt32(payload, payload_offset, request_type) ||
-      !ReadUInt32(payload, payload_offset, security_mode) ||
-      !ReadByteString(payload, payload_offset, request.client_nonce) ||
-      !ReadUInt32(payload, payload_offset, request.requested_lifetime) ||
-      payload_offset != payload.size()) {
+  if (!ReadRequestHeader(payload_decoder, request.request_header) ||
+      !payload_decoder.ReadUInt32(request.client_protocol_version) ||
+      !payload_decoder.ReadUInt32(request_type) ||
+      !payload_decoder.ReadUInt32(security_mode) ||
+      !payload_decoder.ReadByteString(request.client_nonce) ||
+      !payload_decoder.ReadUInt32(request.requested_lifetime) ||
+      !payload_decoder.consumed()) {
     return std::nullopt;
   }
 
@@ -200,36 +182,38 @@ DecodeOpenSecureChannelRequestBody(const std::vector<char>& body) {
 std::vector<char> EncodeOpenSecureChannelResponseBody(
     const OpcUaBinaryOpenSecureChannelResponse& response) {
   std::vector<char> payload;
-  AppendResponseHeader(payload, response.response_header);
-  AppendUInt32(payload, response.server_protocol_version);
-  AppendUInt32(payload, response.security_token.channel_id);
-  AppendUInt32(payload, response.security_token.token_id);
-  AppendInt64(payload, response.security_token.created_at);
-  AppendUInt32(payload, response.security_token.revised_lifetime);
-  AppendByteString(payload, response.server_nonce);
+  binary::BinaryEncoder payload_encoder{payload};
+  AppendResponseHeader(payload_encoder, response.response_header);
+  payload_encoder.AppendUInt32(response.server_protocol_version);
+  payload_encoder.AppendUInt32(response.security_token.channel_id);
+  payload_encoder.AppendUInt32(response.security_token.token_id);
+  payload_encoder.AppendInt64(response.security_token.created_at);
+  payload_encoder.AppendUInt32(response.security_token.revised_lifetime);
+  payload_encoder.AppendByteString(response.server_nonce);
 
   std::vector<char> body;
-  AppendExtensionObject(body, kOpenSecureChannelResponseBinaryEncodingId,
-                        payload);
+  binary::BinaryEncoder body_encoder{body};
+  AppendExtensionObject(body_encoder,
+                        kOpenSecureChannelResponseBinaryEncodingId, payload);
   return body;
 }
 
 std::optional<OpcUaBinaryCloseSecureChannelRequest>
 DecodeCloseSecureChannelRequestBody(const std::vector<char>& body) {
-  std::size_t offset = 0;
+  binary::BinaryDecoder body_decoder{body};
   std::uint32_t type_id = 0;
   std::uint8_t encoding = 0;
   std::vector<char> payload;
-  if (!ReadExtensionObject(body, offset, type_id, encoding, payload) ||
+  if (!ReadExtensionObject(body_decoder, type_id, encoding, payload) ||
       type_id != kCloseSecureChannelRequestBinaryEncodingId || encoding != 0x01 ||
-      offset != body.size()) {
+      !body_decoder.consumed()) {
     return std::nullopt;
   }
 
   OpcUaBinaryCloseSecureChannelRequest request;
-  std::size_t payload_offset = 0;
-  if (!ReadRequestHeader(payload, payload_offset, request.request_header) ||
-      payload_offset != payload.size()) {
+  binary::BinaryDecoder payload_decoder{payload};
+  if (!ReadRequestHeader(payload_decoder, request.request_header) ||
+      !payload_decoder.consumed()) {
     return std::nullopt;
   }
   return request;

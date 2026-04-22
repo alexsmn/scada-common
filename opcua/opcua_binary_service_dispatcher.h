@@ -26,6 +26,8 @@ class OpcUaBinaryServiceDispatcher {
       const OpcUaBinaryDecodedRequest& request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleBrowseRequest(
       const OpcUaBinaryDecodedRequest& request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleCallRequest(
+      const OpcUaBinaryDecodedRequest& request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleWriteRequest(
       const OpcUaBinaryDecodedRequest& request);
 

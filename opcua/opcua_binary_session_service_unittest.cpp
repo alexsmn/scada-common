@@ -25,80 +25,28 @@ constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
 constexpr std::uint32_t kAnonymousIdentityTokenBinaryEncodingId = 321;
 constexpr std::uint32_t kUserNameIdentityTokenBinaryEncodingId = 324;
 
-using binary::AppendByteString;
-using binary::AppendDouble;
-using binary::AppendExtensionObject;
-using binary::AppendInt32;
-using binary::AppendInt64;
-using binary::AppendMessage;
-using binary::AppendNumericNodeId;
-using binary::AppendUaString;
-using binary::AppendUInt8;
-using binary::AppendUInt16;
-using binary::AppendUInt32;
-using binary::ReadInt32;
-using binary::ReadInt64;
-using binary::ReadMessage;
-using binary::ReadNumericNodeId;
-using binary::ReadUInt8;
-using binary::ReadUInt32;
-
-void AppendRequestHeader(std::vector<char>& bytes,
-                         const scada::NodeId& authentication_token,
-                         std::uint32_t request_handle) {
-  AppendNumericNodeId(bytes, authentication_token);
-  AppendInt64(bytes, 0);
-  AppendUInt32(bytes, request_handle);
-  AppendUInt32(bytes, 0);
-  AppendUaString(bytes, "");
-  AppendUInt32(bytes, 0);
-  AppendNumericNodeId(bytes, scada::NodeId{});
-  AppendUInt8(bytes, 0x00);
-}
-
 std::vector<char> EncodeCreateSessionRequestBody(std::uint32_t request_handle,
                                                  double requested_timeout_ms) {
-  std::vector<char> payload;
-  AppendRequestHeader(payload, scada::NodeId{}, request_handle);
-  AppendUaString(payload, "");
-  AppendUaString(payload, "");
-  AppendUInt8(payload, 0);
-  AppendInt32(payload, 0);
-  AppendUaString(payload, "");
-  AppendUaString(payload, "");
-  AppendInt32(payload, -1);
-  AppendUaString(payload, "");
-  AppendUaString(payload, "opc.tcp://localhost:4840");
-  AppendUaString(payload, "binary-session");
-  AppendByteString(payload, {});
-  AppendByteString(payload, {});
-  AppendDouble(payload, requested_timeout_ms);
-  AppendUInt32(payload, 0);
-
-  std::vector<char> body;
-  AppendMessage(body, kCreateSessionRequestBinaryEncodingId, payload);
-  return body;
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = scada::NodeId{}, .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryCreateSessionRequest{
+          .requested_timeout =
+              base::TimeDelta::FromMillisecondsD(requested_timeout_ms)}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
 }
 
 std::vector<char> EncodeAnonymousActivateRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token) {
-  std::vector<char> payload;
-  AppendRequestHeader(payload, authentication_token, request_handle);
-  AppendUaString(payload, "");
-  AppendByteString(payload, {});
-  AppendInt32(payload, -1);
-  AppendInt32(payload, -1);
-  std::vector<char> identity;
-  AppendUaString(identity, "");
-  AppendExtensionObject(payload, kAnonymousIdentityTokenBinaryEncodingId,
-                        identity);
-  AppendUaString(payload, "");
-  AppendByteString(payload, {});
-
-  std::vector<char> body;
-  AppendMessage(body, kActivateSessionRequestBinaryEncodingId, payload);
-  return body;
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryActivateSessionRequest{
+          .authentication_token = authentication_token,
+          .allow_anonymous = true}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
 }
 
 std::vector<char> EncodeUserNameActivateRequestBody(
@@ -106,37 +54,28 @@ std::vector<char> EncodeUserNameActivateRequestBody(
     const scada::NodeId& authentication_token,
     std::string_view user_name,
     std::string_view password) {
-  std::vector<char> payload;
-  AppendRequestHeader(payload, authentication_token, request_handle);
-  AppendUaString(payload, "");
-  AppendByteString(payload, {});
-  AppendInt32(payload, -1);
-  AppendInt32(payload, -1);
-  std::vector<char> identity;
-  AppendUaString(identity, "");
-  AppendUaString(identity, user_name);
-  AppendByteString(identity, scada::ByteString{password.begin(), password.end()});
-  AppendUaString(identity, "");
-  AppendExtensionObject(payload, kUserNameIdentityTokenBinaryEncodingId,
-                        identity);
-  AppendUaString(payload, "");
-  AppendByteString(payload, {});
-
-  std::vector<char> body;
-  AppendMessage(body, kActivateSessionRequestBinaryEncodingId, payload);
-  return body;
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryActivateSessionRequest{
+          .authentication_token = authentication_token,
+          .user_name = scada::ToLocalizedText(std::string{user_name}),
+          .password = scada::ToLocalizedText(std::string{password}),
+          .allow_anonymous = false}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
 }
 
 std::vector<char> EncodeCloseSessionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token) {
-  std::vector<char> payload;
-  AppendRequestHeader(payload, authentication_token, request_handle);
-  AppendUInt8(payload, 1);
-
-  std::vector<char> body;
-  AppendMessage(body, kCloseSessionRequestBinaryEncodingId, payload);
-  return body;
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryCloseSessionRequest{
+          .authentication_token = authentication_token}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
 }
 
 struct DecodedCreateSessionResponse {
@@ -147,14 +86,13 @@ struct DecodedCreateSessionResponse {
 
 std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
     const std::vector<char>& bytes) {
-  std::size_t offset = 0;
-  const auto message = ReadMessage(bytes);
+  const auto message = binary::ReadMessage(bytes);
   if (!message.has_value() ||
       message->first != kCreateSessionResponseBinaryEncodingId) {
     return std::nullopt;
   }
   const auto& body = message->second;
-  std::size_t body_offset = 0;
+  binary::BinaryDecoder decoder{body};
   std::uint32_t request_handle = 0;
   std::uint32_t status_code = 0;
   scada::NodeId session_id;
@@ -163,15 +101,12 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
   std::int64_t ignored_timestamp = 0;
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
-  if (!ReadInt64(body, body_offset, ignored_timestamp) ||
-      !ReadUInt32(body, body_offset, request_handle) ||
-      !ReadUInt32(body, body_offset, status_code) ||
-      !ReadUInt8(body, body_offset, ignored_byte) ||
-      !ReadInt32(body, body_offset, ignored_array) ||
-      !ReadNumericNodeId(body, body_offset, ignored_additional_header) ||
-      !ReadUInt8(body, body_offset, ignored_byte) ||
-      !ReadNumericNodeId(body, body_offset, session_id) ||
-      !ReadNumericNodeId(body, body_offset, authentication_token)) {
+  if (!decoder.ReadInt64(ignored_timestamp) ||
+      !decoder.ReadUInt32(request_handle) || !decoder.ReadUInt32(status_code) ||
+      !decoder.ReadUInt8(ignored_byte) || !decoder.ReadInt32(ignored_array) ||
+      !decoder.ReadNumericNodeId(ignored_additional_header) ||
+      !decoder.ReadUInt8(ignored_byte) || !decoder.ReadNumericNodeId(session_id) ||
+      !decoder.ReadNumericNodeId(authentication_token)) {
     return std::nullopt;
   }
   return DecodedCreateSessionResponse{
@@ -183,19 +118,18 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
 
 std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes,
                                                   std::uint32_t expected_type_id) {
-  std::size_t offset = 0;
-  const auto message = ReadMessage(bytes);
+  const auto message = binary::ReadMessage(bytes);
   if (!message.has_value() || message->first != expected_type_id) {
     return std::nullopt;
   }
   const auto& body = message->second;
-  std::size_t body_offset = 0;
+  binary::BinaryDecoder decoder{body};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t status_code = 0;
-  if (!ReadInt64(body, body_offset, ignored_timestamp) ||
-      !ReadUInt32(body, body_offset, ignored_request_handle) ||
-      !ReadUInt32(body, body_offset, status_code)) {
+  if (!decoder.ReadInt64(ignored_timestamp) ||
+      !decoder.ReadUInt32(ignored_request_handle) ||
+      !decoder.ReadUInt32(status_code)) {
     return std::nullopt;
   }
   return status_code;

@@ -116,12 +116,13 @@ std::vector<char> EncodeBinaryHelloMessage(
     const OpcUaBinaryHelloMessage& message) {
   return EncodeWithHeader(OpcUaBinaryMessageType::Hello,
                           [&](std::vector<char>& bytes) {
-                            binary::AppendUInt32(bytes, message.protocol_version);
-                            binary::AppendUInt32(bytes, message.receive_buffer_size);
-                            binary::AppendUInt32(bytes, message.send_buffer_size);
-                            binary::AppendUInt32(bytes, message.max_message_size);
-                            binary::AppendUInt32(bytes, message.max_chunk_count);
-                            binary::AppendUaString(bytes, message.endpoint_url);
+                            binary::BinaryEncoder encoder{bytes};
+                            encoder.AppendUInt32(message.protocol_version);
+                            encoder.AppendUInt32(message.receive_buffer_size);
+                            encoder.AppendUInt32(message.send_buffer_size);
+                            encoder.AppendUInt32(message.max_message_size);
+                            encoder.AppendUInt32(message.max_chunk_count);
+                            encoder.AppendUaString(message.endpoint_url);
                           });
 }
 
@@ -134,16 +135,16 @@ std::optional<OpcUaBinaryHelloMessage> DecodeBinaryHelloMessage(
   }
 
   OpcUaBinaryHelloMessage message;
-  std::size_t offset = kHeaderSize;
-  if (!binary::ReadUInt32(bytes, offset, message.protocol_version) ||
-      !binary::ReadUInt32(bytes, offset, message.receive_buffer_size) ||
-      !binary::ReadUInt32(bytes, offset, message.send_buffer_size) ||
-      !binary::ReadUInt32(bytes, offset, message.max_message_size) ||
-      !binary::ReadUInt32(bytes, offset, message.max_chunk_count) ||
-      !binary::ReadUaString(bytes, offset, message.endpoint_url)) {
+  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  if (!decoder.ReadUInt32(message.protocol_version) ||
+      !decoder.ReadUInt32(message.receive_buffer_size) ||
+      !decoder.ReadUInt32(message.send_buffer_size) ||
+      !decoder.ReadUInt32(message.max_message_size) ||
+      !decoder.ReadUInt32(message.max_chunk_count) ||
+      !decoder.ReadUaString(message.endpoint_url)) {
     return std::nullopt;
   }
-  if (offset != bytes.size()) {
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
   return message;
@@ -153,11 +154,12 @@ std::vector<char> EncodeBinaryAcknowledgeMessage(
     const OpcUaBinaryAcknowledgeMessage& message) {
   return EncodeWithHeader(OpcUaBinaryMessageType::Acknowledge,
                           [&](std::vector<char>& bytes) {
-                            binary::AppendUInt32(bytes, message.protocol_version);
-                            binary::AppendUInt32(bytes, message.receive_buffer_size);
-                            binary::AppendUInt32(bytes, message.send_buffer_size);
-                            binary::AppendUInt32(bytes, message.max_message_size);
-                            binary::AppendUInt32(bytes, message.max_chunk_count);
+                            binary::BinaryEncoder encoder{bytes};
+                            encoder.AppendUInt32(message.protocol_version);
+                            encoder.AppendUInt32(message.receive_buffer_size);
+                            encoder.AppendUInt32(message.send_buffer_size);
+                            encoder.AppendUInt32(message.max_message_size);
+                            encoder.AppendUInt32(message.max_chunk_count);
                           });
 }
 
@@ -170,15 +172,15 @@ std::optional<OpcUaBinaryAcknowledgeMessage> DecodeBinaryAcknowledgeMessage(
   }
 
   OpcUaBinaryAcknowledgeMessage message;
-  std::size_t offset = kHeaderSize;
-  if (!binary::ReadUInt32(bytes, offset, message.protocol_version) ||
-      !binary::ReadUInt32(bytes, offset, message.receive_buffer_size) ||
-      !binary::ReadUInt32(bytes, offset, message.send_buffer_size) ||
-      !binary::ReadUInt32(bytes, offset, message.max_message_size) ||
-      !binary::ReadUInt32(bytes, offset, message.max_chunk_count)) {
+  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  if (!decoder.ReadUInt32(message.protocol_version) ||
+      !decoder.ReadUInt32(message.receive_buffer_size) ||
+      !decoder.ReadUInt32(message.send_buffer_size) ||
+      !decoder.ReadUInt32(message.max_message_size) ||
+      !decoder.ReadUInt32(message.max_chunk_count)) {
     return std::nullopt;
   }
-  if (offset != bytes.size()) {
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
   return message;
@@ -188,8 +190,9 @@ std::vector<char> EncodeBinaryErrorMessage(
     const OpcUaBinaryErrorMessage& message) {
   return EncodeWithHeader(OpcUaBinaryMessageType::Error,
                           [&](std::vector<char>& bytes) {
-                            binary::AppendUInt32(bytes, message.error.full_code());
-                            binary::AppendUaString(bytes, message.reason);
+                            binary::BinaryEncoder encoder{bytes};
+                            encoder.AppendUInt32(message.error.full_code());
+                            encoder.AppendUaString(message.reason);
                           });
 }
 
@@ -202,13 +205,13 @@ std::optional<OpcUaBinaryErrorMessage> DecodeBinaryErrorMessage(
   }
 
   OpcUaBinaryErrorMessage message;
-  std::size_t offset = kHeaderSize;
   std::uint32_t full_code = 0;
-  if (!binary::ReadUInt32(bytes, offset, full_code) ||
-      !binary::ReadUaString(bytes, offset, message.reason)) {
+  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  if (!decoder.ReadUInt32(full_code) ||
+      !decoder.ReadUaString(message.reason)) {
     return std::nullopt;
   }
-  if (offset != bytes.size()) {
+  if (!decoder.consumed()) {
     return std::nullopt;
   }
   message.error = scada::Status::FromFullCode(full_code);

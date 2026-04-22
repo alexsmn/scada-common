@@ -17,7 +17,15 @@ struct OpcUaBinaryDecodedRequest {
   OpcUaBinaryRequestBody body;
 };
 
+std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
+    const OpcUaBinaryServiceRequestHeader& header,
+    const OpcUaBinaryRequestBody& request);
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
     const std::vector<char>& payload);
+
+std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
+    std::uint32_t request_handle,
+    const OpcUaBinaryResponseBody& response);
 
 }  // namespace opcua
