@@ -30,8 +30,12 @@ constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
+constexpr std::uint32_t kDeleteNodesRequestBinaryEncodingId = 500;
+constexpr std::uint32_t kDeleteNodesResponseBinaryEncodingId = 503;
 constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
 constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
+constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
+constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
 constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
@@ -233,6 +237,32 @@ std::vector<char> EncodeCallRequestBody(
           OpcUaBinaryCallRequest{.methods = {{.object_id = object_id,
                                               .method_id = method_id,
                                               .arguments = arguments}}}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeTranslateBrowsePathsRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    const scada::BrowsePath& browse_path) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{
+          OpcUaBinaryTranslateBrowsePathsRequest{.inputs = {browse_path}}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeDeleteNodesRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    const scada::DeleteNodesItem& item) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{
+          OpcUaBinaryDeleteNodesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -449,6 +479,82 @@ std::optional<std::uint32_t> DecodeSingleCallResponseStatus(
     return std::nullopt;
   }
   return method_status;
+}
+
+std::optional<scada::BrowsePathTarget> DecodeSingleTranslateBrowsePathTarget(
+    const std::vector<char>& payload) {
+  const auto message = binary::ReadMessage(payload);
+  if (!message.has_value() ||
+      message->first != kTranslateBrowsePathsResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  const auto& body = message->second;
+  binary::BinaryDecoder decoder{body};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
+    return std::nullopt;
+  }
+
+  std::int32_t result_count = 0;
+  std::uint32_t result_status = 0;
+  std::int32_t target_count = 0;
+  scada::BrowsePathTarget target;
+  if (!decoder.Decode(result_count) || result_count != 1 ||
+      !decoder.Decode(result_status) ||
+      !decoder.Decode(target_count) || target_count != 1 ||
+      !decoder.Decode(target.target_id)) {
+    return std::nullopt;
+  }
+
+  std::uint32_t remaining_path_index = 0;
+  if (!decoder.Decode(remaining_path_index)) {
+    return std::nullopt;
+  }
+  target.remaining_path_index = remaining_path_index;
+  return target;
+}
+
+std::optional<std::uint32_t> DecodeSingleDeleteNodesResponseStatus(
+    const std::vector<char>& payload) {
+  const auto message = binary::ReadMessage(payload);
+  if (!message.has_value() ||
+      message->first != kDeleteNodesResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  const auto& body = message->second;
+  binary::BinaryDecoder decoder{body};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
+    return std::nullopt;
+  }
+
+  std::int32_t result_count = 0;
+  std::uint32_t result_status = 0;
+  if (!decoder.Decode(result_count) || result_count != 1 ||
+      !decoder.Decode(result_status)) {
+    return std::nullopt;
+  }
+  return result_status;
 }
 
 class TestMonitoredItemService : public scada::MonitoredItemService {
@@ -751,6 +857,58 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
   EXPECT_EQ(reference->node_id, NumericNode(99));
 }
 
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesTranslateBrowsePathsAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const scada::BrowsePath browse_path{
+      .node_id = NumericNode(12),
+      .relative_path = {{
+          .reference_type_id = NumericNode(33),
+          .inverse = false,
+          .include_subtypes = true,
+          .target_name = {"Temperature", 2},
+      }},
+  };
+  EXPECT_CALL(view_service_, TranslateBrowsePaths(_, _))
+      .WillOnce(Invoke([&](const std::vector<scada::BrowsePath>& inputs,
+                           const scada::TranslateBrowsePathsCallback& callback) {
+        ASSERT_EQ(inputs.size(), 1u);
+        EXPECT_EQ(inputs[0], browse_path);
+        callback(scada::StatusCode::Good,
+                 {scada::BrowsePathResult{
+                     .status_code = scada::StatusCode::Good,
+                     .targets = {{.target_id = scada::ExpandedNodeId{
+                                      NumericNode(77)},
+                                  .remaining_path_index = 0}}}});
+      }));
+
+  const auto translated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeTranslateBrowsePathsRequestBody(
+          3, session->authentication_token, browse_path)));
+  ASSERT_TRUE(translated.has_value());
+  const auto target = DecodeSingleTranslateBrowsePathTarget(*translated);
+  ASSERT_TRUE(target.has_value());
+  EXPECT_EQ(target->target_id.node_id(), NumericNode(77));
+  EXPECT_EQ(target->remaining_path_index, 0u);
+}
+
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,
@@ -791,6 +949,47 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
           {scada::Double{42.0}, scada::String{"go"}})));
   ASSERT_TRUE(called.has_value());
   const auto status = DecodeSingleCallResponseStatus(*called);
+  ASSERT_TRUE(status.has_value());
+  EXPECT_EQ(*status, 0u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const scada::DeleteNodesItem item{
+      .node_id = NumericNode(12),
+      .delete_target_references = true,
+  };
+  EXPECT_CALL(node_management_service_, DeleteNodes(_, _))
+      .WillOnce(Invoke([&](const std::vector<scada::DeleteNodesItem>& items,
+                           const scada::DeleteNodesCallback& callback) {
+        ASSERT_EQ(items.size(), 1u);
+        EXPECT_EQ(items[0].node_id, item.node_id);
+        EXPECT_EQ(items[0].delete_target_references,
+                  item.delete_target_references);
+        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+      }));
+
+  const auto deleted = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeDeleteNodesRequestBody(
+                     3, session->authentication_token, item)));
+  ASSERT_TRUE(deleted.has_value());
+  const auto status = DecodeSingleDeleteNodesResponseStatus(*deleted);
   ASSERT_TRUE(status.has_value());
   EXPECT_EQ(*status, 0u);
 }

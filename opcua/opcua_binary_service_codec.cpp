@@ -13,8 +13,12 @@ constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
 constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
 constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
+constexpr std::uint32_t kDeleteNodesRequestBinaryEncodingId = 500;
+constexpr std::uint32_t kDeleteNodesResponseBinaryEncodingId = 503;
 constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
 constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
+constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
+constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
 constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
@@ -107,6 +111,38 @@ void AppendReferenceDescription(binary::BinaryEncoder& encoder,
   encoder.Encode(scada::LocalizedText{});
   encoder.Encode(std::uint32_t{0});
   encoder.Encode(scada::ExpandedNodeId{});
+}
+
+void AppendRelativePathElement(binary::BinaryEncoder& encoder,
+                               const scada::RelativePathElement& element) {
+  encoder.Encode(element.reference_type_id);
+  encoder.Encode(element.inverse);
+  encoder.Encode(element.include_subtypes);
+  encoder.Encode(element.target_name);
+}
+
+void AppendBrowsePath(binary::BinaryEncoder& encoder,
+                      const scada::BrowsePath& path) {
+  encoder.Encode(path.node_id);
+  encoder.Encode(static_cast<std::int32_t>(path.relative_path.size()));
+  for (const auto& element : path.relative_path) {
+    AppendRelativePathElement(encoder, element);
+  }
+}
+
+void AppendBrowsePathTarget(binary::BinaryEncoder& encoder,
+                            const scada::BrowsePathTarget& target) {
+  encoder.Encode(target.target_id);
+  encoder.Encode(static_cast<std::uint32_t>(target.remaining_path_index));
+}
+
+void AppendBrowsePathResult(binary::BinaryEncoder& encoder,
+                            const scada::BrowsePathResult& result) {
+  encoder.Encode(EncodeStatusCode(result.status_code));
+  encoder.Encode(static_cast<std::int32_t>(result.targets.size()));
+  for (const auto& target : result.targets) {
+    AppendBrowsePathTarget(encoder, target);
+  }
 }
 
 bool SkipStringArray(binary::BinaryDecoder& decoder) {
@@ -290,6 +326,35 @@ bool DecodeBrowseDescription(binary::BinaryDecoder& decoder,
   return description.direction == scada::BrowseDirection::Forward ||
          description.direction == scada::BrowseDirection::Inverse ||
          description.direction == scada::BrowseDirection::Both;
+}
+
+bool DecodeRelativePathElement(binary::BinaryDecoder& decoder,
+                               scada::RelativePathElement& element) {
+  return decoder.Decode(element.reference_type_id) &&
+         decoder.Decode(element.inverse) &&
+         decoder.Decode(element.include_subtypes) &&
+         decoder.Decode(element.target_name);
+}
+
+bool DecodeBrowsePath(binary::BinaryDecoder& decoder, scada::BrowsePath& path) {
+  std::int32_t count = 0;
+  if (!decoder.Decode(path.node_id) || !decoder.Decode(count) || count < 0) {
+    return false;
+  }
+
+  path.relative_path.resize(static_cast<std::size_t>(count));
+  for (auto& element : path.relative_path) {
+    if (!DecodeRelativePathElement(decoder, element)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool DecodeDeleteNodesItem(binary::BinaryDecoder& decoder,
+                           scada::DeleteNodesItem& item) {
+  return decoder.Decode(item.node_id) &&
+         decoder.Decode(item.delete_target_references);
 }
 
 std::optional<OpcUaBinaryDecodedRequest> DecodeCreateSessionRequest(
@@ -536,6 +601,60 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeCallRequest(
   };
 }
 
+std::optional<OpcUaBinaryDecodedRequest> DecodeTranslateBrowsePathsRequest(
+    const std::vector<char>& body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(decoder, header) || !decoder.Decode(count) ||
+      count < 0) {
+    return std::nullopt;
+  }
+
+  OpcUaBinaryTranslateBrowsePathsRequest request;
+  request.inputs.resize(static_cast<std::size_t>(count));
+  for (auto& input : request.inputs) {
+    if (!DecodeBrowsePath(decoder, input)) {
+      return std::nullopt;
+    }
+  }
+  if (!decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
+std::optional<OpcUaBinaryDecodedRequest> DecodeDeleteNodesRequest(
+    const std::vector<char>& body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(decoder, header) || !decoder.Decode(count) ||
+      count < 0) {
+    return std::nullopt;
+  }
+
+  OpcUaBinaryDeleteNodesRequest request;
+  request.items.resize(static_cast<std::size_t>(count));
+  for (auto& item : request.items) {
+    if (!DecodeDeleteNodesItem(decoder, item)) {
+      return std::nullopt;
+    }
+  }
+  if (!decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
 }  // namespace
 
 std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
@@ -656,6 +775,16 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
             payload_encoder.Encode(std::uint32_t{0});
           }
           binary::AppendMessage(body, kBrowseRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryTranslateBrowsePathsRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_request.inputs.size()));
+          for (const auto& input : typed_request.inputs) {
+            AppendBrowsePath(payload_encoder, input);
+          }
+          binary::AppendMessage(
+              body, kTranslateBrowsePathsRequestBinaryEncodingId, payload);
         } else if constexpr (std::is_same_v<T, OpcUaBinaryCallRequest>) {
           AppendRequestHeader(payload_encoder, header);
           payload_encoder.Encode(
@@ -670,6 +799,16 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
             }
           }
           binary::AppendMessage(body, kCallRequestBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryDeleteNodesRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_request.items.size()));
+          for (const auto& item : typed_request.items) {
+            payload_encoder.Encode(item.node_id);
+            payload_encoder.Encode(item.delete_target_references);
+          }
+          binary::AppendMessage(body, kDeleteNodesRequestBinaryEncodingId,
+                                payload);
         } else {
           return std::nullopt;
         }
@@ -696,12 +835,16 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodeCloseSessionRequest(message->second);
     case kBrowseRequestBinaryEncodingId:
       return DecodeBrowseRequest(message->second);
+    case kTranslateBrowsePathsRequestBinaryEncodingId:
+      return DecodeTranslateBrowsePathsRequest(message->second);
     case kCallRequestBinaryEncodingId:
       return DecodeCallRequest(message->second);
     case kReadRequestBinaryEncodingId:
       return DecodeReadRequest(message->second);
     case kWriteRequestBinaryEncodingId:
       return DecodeWriteRequest(message->second);
+    case kDeleteNodesRequestBinaryEncodingId:
+      return DecodeDeleteNodesRequest(message->second);
     default:
       return std::nullopt;
   }
@@ -784,6 +927,18 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
           }
           payload_encoder.Encode(std::int32_t{-1});
           binary::AppendMessage(body, kBrowseResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryTranslateBrowsePathsResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            AppendBrowsePathResult(payload_encoder, result);
+          }
+          payload_encoder.Encode(std::int32_t{-1});
+          binary::AppendMessage(
+              body, kTranslateBrowsePathsResponseBinaryEncodingId, payload);
         } else if constexpr (std::is_same_v<T, OpcUaBinaryCallResponse>) {
           AppendResponseHeader(payload_encoder, request_handle,
                                scada::StatusCode::Good);
@@ -805,6 +960,17 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
           }
           payload_encoder.Encode(std::int32_t{-1});
           binary::AppendMessage(body, kCallResponseBinaryEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryDeleteNodesResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto& result : typed_response.results) {
+            payload_encoder.Encode(EncodeStatusCode(result));
+          }
+          payload_encoder.Encode(std::int32_t{-1});
+          binary::AppendMessage(body, kDeleteNodesResponseBinaryEncodingId,
+                                payload);
         } else {
           return std::nullopt;
         }

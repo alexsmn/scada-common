@@ -29,6 +29,10 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
   if (std::holds_alternative<OpcUaBinaryBrowseRequest>(request->body)) {
     co_return co_await HandleBrowseRequest(*request);
   }
+  if (std::holds_alternative<OpcUaBinaryTranslateBrowsePathsRequest>(
+          request->body)) {
+    co_return co_await HandleTranslateBrowsePathsRequest(*request);
+  }
   if (std::holds_alternative<OpcUaBinaryCallRequest>(request->body)) {
     co_return co_await HandleCallRequest(*request);
   }
@@ -37,6 +41,9 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
   }
   if (std::holds_alternative<OpcUaBinaryWriteRequest>(request->body)) {
     co_return co_await HandleWriteRequest(*request);
+  }
+  if (std::holds_alternative<OpcUaBinaryDeleteNodesRequest>(request->body)) {
+    co_return co_await HandleDeleteNodesRequest(*request);
   }
   co_return std::nullopt;
 }
@@ -84,6 +91,29 @@ OpcUaBinaryServiceDispatcher::HandleReadRequest(
 }
 
 Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleTranslateBrowsePathsRequest(
+    const OpcUaBinaryDecodedRequest& request) {
+  const auto* translate =
+      std::get_if<OpcUaBinaryTranslateBrowsePathsRequest>(&request.body);
+  if (translate == nullptr) {
+    co_return std::nullopt;
+  }
+  if (!connection_.authentication_token.has_value() ||
+      *connection_.authentication_token != request.header.authentication_token) {
+    co_return EncodeOpcUaBinaryServiceResponse(
+        request.header.request_handle,
+        OpcUaBinaryResponseBody{OpcUaBinaryTranslateBrowsePathsResponse{
+            .status = scada::StatusCode::Bad_SessionIsLoggedOff}});
+  }
+
+  const auto response =
+      co_await runtime_.Handle<OpcUaBinaryTranslateBrowsePathsResponse>(
+          connection_, *translate);
+  co_return EncodeOpcUaBinaryServiceResponse(request.header.request_handle,
+                                             OpcUaBinaryResponseBody{response});
+}
+
+Awaitable<std::optional<std::vector<char>>>
 OpcUaBinaryServiceDispatcher::HandleCallRequest(
     const OpcUaBinaryDecodedRequest& request) {
   const auto* call = std::get_if<OpcUaBinaryCallRequest>(&request.body);
@@ -122,6 +152,29 @@ OpcUaBinaryServiceDispatcher::HandleWriteRequest(
 
   const auto response =
       co_await runtime_.Handle<OpcUaBinaryWriteResponse>(connection_, *write);
+  co_return EncodeOpcUaBinaryServiceResponse(request.header.request_handle,
+                                             OpcUaBinaryResponseBody{response});
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleDeleteNodesRequest(
+    const OpcUaBinaryDecodedRequest& request) {
+  const auto* delete_nodes =
+      std::get_if<OpcUaBinaryDeleteNodesRequest>(&request.body);
+  if (delete_nodes == nullptr) {
+    co_return std::nullopt;
+  }
+  if (!connection_.authentication_token.has_value() ||
+      *connection_.authentication_token != request.header.authentication_token) {
+    co_return EncodeOpcUaBinaryServiceResponse(
+        request.header.request_handle,
+        OpcUaBinaryResponseBody{OpcUaBinaryDeleteNodesResponse{
+            .status = scada::StatusCode::Bad_SessionIsLoggedOff}});
+  }
+
+  const auto response =
+      co_await runtime_.Handle<OpcUaBinaryDeleteNodesResponse>(connection_,
+                                                               *delete_nodes);
   co_return EncodeOpcUaBinaryServiceResponse(request.header.request_handle,
                                              OpcUaBinaryResponseBody{response});
 }

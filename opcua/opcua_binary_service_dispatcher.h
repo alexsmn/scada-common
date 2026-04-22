@@ -26,10 +26,14 @@ class OpcUaBinaryServiceDispatcher {
       const OpcUaBinaryDecodedRequest& request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleBrowseRequest(
       const OpcUaBinaryDecodedRequest& request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleTranslateBrowsePathsRequest(const OpcUaBinaryDecodedRequest& request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleCallRequest(
       const OpcUaBinaryDecodedRequest& request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleWriteRequest(
       const OpcUaBinaryDecodedRequest& request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleDeleteNodesRequest(const OpcUaBinaryDecodedRequest& request);
 
   OpcUaBinaryRuntime& runtime_;
   opcua_ws::OpcUaWsSessionManager& session_manager_;

@@ -97,6 +97,12 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
 - Use OPC UA standard wire encoding for OPC UA primitives. Refer to the online
   OPC UA specification/documentation if needed before introducing or changing
   wire-format behavior.
+- OPC UA Binary / OPC UA WS merge goal:
+  prefer building UA Binary as an adapter over the shared server runtime that
+  already backs `common/opcua_ws`, instead of creating a separate parallel
+  runtime in `common/opcua`. Keep new Binary work focused on wire codec,
+  dispatcher, and listener adapter layers unless the change clearly improves
+  the shared runtime for both stacks.
 
 ## Documentation
 
