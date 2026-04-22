@@ -150,4 +150,39 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
           request.header, typed_request);
 }
 
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryCreateMonitoredItemsRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinaryCreateMonitoredItemsResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryPublishRequest& typed_request) {
+  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryPublishResponse>(
+      request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryDeleteMonitoredItemsRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteMonitoredItemsResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinarySetMonitoringModeRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinarySetMonitoringModeResponse>(
+          request.header, typed_request);
+}
+
 }  // namespace opcua

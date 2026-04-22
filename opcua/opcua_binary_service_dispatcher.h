@@ -85,6 +85,18 @@ class OpcUaBinaryServiceDispatcher {
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,
                 const OpcUaBinaryDeleteSubscriptionsRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryCreateMonitoredItemsRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryPublishRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryDeleteMonitoredItemsRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinarySetMonitoringModeRequest& typed_request);
   template <typename Request>
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,
