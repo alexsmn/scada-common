@@ -57,6 +57,9 @@ class OpcUaBinaryServiceDispatcher {
                 const OpcUaBinaryCallRequest& typed_request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryHistoryReadRawRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
                 const OpcUaBinaryWriteRequest& typed_request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,

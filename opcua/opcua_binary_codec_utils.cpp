@@ -56,28 +56,6 @@ scada::Variant::Type FromBuiltInTypeId(unsigned id) {
   }
 }
 
-void AppendDateTime(BinaryEncoder& encoder, scada::DateTime value) {
-  if (value.is_null()) {
-    encoder.Encode(std::int64_t{0});
-    return;
-  }
-  encoder.Encode(value.ToDeltaSinceWindowsEpoch().InMicroseconds() * 10);
-}
-
-bool ReadDateTime(BinaryDecoder& decoder, scada::DateTime& value) {
-  std::int64_t raw = 0;
-  if (!decoder.Decode(raw)) {
-    return false;
-  }
-  if (raw == 0) {
-    value = {};
-    return true;
-  }
-  value = base::Time::FromDeltaSinceWindowsEpoch(
-      base::TimeDelta::FromMicroseconds(raw / 10));
-  return true;
-}
-
 void AppendExtensionObjectValue(BinaryEncoder& encoder,
                                 const scada::ExtensionObject& value) {
   std::vector<char> body;
@@ -204,6 +182,14 @@ void BinaryEncoder::Encode(const scada::LocalizedText& value) {
   if ((mask & 0x02) != 0) {
     Encode(utf8);
   }
+}
+
+void BinaryEncoder::Encode(scada::DateTime value) {
+  if (value.is_null()) {
+    Encode(std::int64_t{0});
+    return;
+  }
+  Encode(value.ToDeltaSinceWindowsEpoch().InMicroseconds() * 10);
 }
 
 void BinaryEncoder::Encode(const scada::ByteString& value) {
@@ -423,7 +409,7 @@ void BinaryEncoder::Encode(const scada::Variant& value) {
       AppendExtensionObjectValue(*this, value.get<scada::ExtensionObject>());
       return;
     case scada::Variant::DATE_TIME:
-      AppendDateTime(*this, value.get<scada::DateTime>());
+      Encode(value.get<scada::DateTime>());
       return;
     case scada::Variant::COUNT:
       Encode(std::uint8_t{0});
@@ -556,6 +542,20 @@ bool BinaryDecoder::Decode(scada::LocalizedText& value) {
     return false;
   }
   value = scada::ToLocalizedText(text);
+  return true;
+}
+
+bool BinaryDecoder::Decode(scada::DateTime& value) {
+  std::int64_t raw = 0;
+  if (!Decode(raw)) {
+    return false;
+  }
+  if (raw == 0) {
+    value = {};
+    return true;
+  }
+  value = base::Time::FromDeltaSinceWindowsEpoch(
+      base::TimeDelta::FromMicroseconds(raw / 10));
   return true;
 }
 
@@ -983,7 +983,7 @@ bool BinaryDecoder::Decode(scada::Variant& value) {
     }
     case scada::Variant::DATE_TIME: {
       scada::DateTime typed_value;
-      if (!ReadDateTime(*this, typed_value)) return false;
+      if (!Decode(typed_value)) return false;
       value = scada::Variant{typed_value};
       return true;
     }

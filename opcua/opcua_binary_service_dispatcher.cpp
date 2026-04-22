@@ -73,6 +73,15 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
 Awaitable<std::optional<std::vector<char>>>
 OpcUaBinaryServiceDispatcher::HandleRequest(
     const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryHistoryReadRawRequest& typed_request) {
+  co_return co_await
+      HandleAuthenticatedRequest<OpcUaBinaryHistoryReadRawResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
     const OpcUaBinaryWriteRequest& typed_request) {
   co_return co_await HandleAuthenticatedRequest<OpcUaBinaryWriteResponse>(
       request.header, typed_request);

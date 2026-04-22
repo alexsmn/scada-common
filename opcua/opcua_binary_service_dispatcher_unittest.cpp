@@ -68,6 +68,10 @@ constexpr std::uint32_t kTransferSubscriptionsRequestBinaryEncodingId = 841;
 constexpr std::uint32_t kTransferSubscriptionsResponseBinaryEncodingId = 844;
 constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
 constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
+constexpr std::uint32_t kReadRawModifiedDetailsBinaryEncodingId = 649;
+constexpr std::uint32_t kHistoryDataBinaryEncodingId = 658;
+constexpr std::uint32_t kHistoryReadRequestBinaryEncodingId = 664;
+constexpr std::uint32_t kHistoryReadResponseBinaryEncodingId = 667;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
 constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
@@ -270,6 +274,19 @@ std::vector<char> EncodeBrowseNextRequestBody(
       OpcUaBinaryRequestBody{OpcUaBinaryBrowseNextRequest{
           .release_continuation_points = release_continuation_points,
           .continuation_points = std::move(continuation_points)}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeHistoryReadRawRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    scada::HistoryReadRawDetails details) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{
+          OpcUaBinaryHistoryReadRawRequest{.details = std::move(details)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -1124,6 +1141,83 @@ std::optional<std::uint32_t> DecodeSingleResultStatus(
   return result_status;
 }
 
+struct DecodedHistoryReadRawResponse {
+  scada::Status status{scada::StatusCode::Bad};
+  std::vector<scada::DataValue> values;
+  scada::ByteString continuation_point;
+};
+
+std::optional<DecodedHistoryReadRawResponse> DecodeHistoryReadRawResponse(
+    const std::vector<char>& payload) {
+  binary::BinaryDecoder message_decoder{payload};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() ||
+      message->first != kHistoryReadResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+
+  binary::BinaryDecoder decoder{message->second};
+  DecodedHistoryReadRawResponse response;
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  std::int32_t result_count = 0;
+  std::uint32_t raw_status = 0;
+  binary::DecodedExtensionObject history_data;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(raw_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(result_count) ||
+      result_count != 1 || !decoder.Decode(raw_status) ||
+      !decoder.Decode(response.continuation_point) ||
+      !decoder.Decode(history_data) ||
+      history_data.type_id != kHistoryDataBinaryEncodingId ||
+      history_data.encoding != 0x01 || !decoder.Decode(ignored_array) ||
+      !decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  response.status = scada::Status::FromFullCode(raw_status);
+  binary::BinaryDecoder history_decoder{history_data.body};
+  std::int32_t value_count = 0;
+  if (!history_decoder.Decode(value_count) || value_count < 0) {
+    return std::nullopt;
+  }
+  response.values.resize(static_cast<std::size_t>(value_count));
+  for (auto& value : response.values) {
+    std::uint8_t mask = 0;
+    std::uint32_t ignored_status_code = 0;
+    std::int64_t ignored_source_timestamp = 0;
+    std::int64_t ignored_server_timestamp = 0;
+    if (!history_decoder.Decode(mask)) {
+      return std::nullopt;
+    }
+    if ((mask & 0x01) != 0 && !history_decoder.Decode(value.value)) {
+      return std::nullopt;
+    }
+    if ((mask & 0x02) != 0 &&
+        !history_decoder.Decode(ignored_status_code)) {
+      return std::nullopt;
+    }
+    if ((mask & 0x04) != 0 &&
+        !history_decoder.Decode(ignored_source_timestamp)) {
+      return std::nullopt;
+    }
+    if ((mask & 0x08) != 0 &&
+        !history_decoder.Decode(ignored_server_timestamp)) {
+      return std::nullopt;
+    }
+  }
+  if (!history_decoder.consumed()) {
+    return std::nullopt;
+  }
+  return response;
+}
+
 struct DecodedCreateMonitoredItemsResponse {
   std::uint32_t status = 0;
   OpcUaBinaryMonitoredItemCreateResult result;
@@ -1862,6 +1956,66 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   ASSERT_TRUE(target.has_value());
   EXPECT_EQ(target->target_id.node_id(), NumericNode(77));
   EXPECT_EQ(target->remaining_path_index, 0u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesHistoryReadRawAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto from = now_ - base::TimeDelta::FromMinutes(15);
+  const auto to = now_;
+  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
+                           const scada::HistoryReadRawCallback& callback) {
+        EXPECT_EQ(details.node_id, NumericNode(120));
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        EXPECT_EQ(details.max_count, 25u);
+        EXPECT_EQ(details.continuation_point, (scada::ByteString{4, 5, 6}));
+        callback(scada::HistoryReadRawResult{
+            .status = scada::StatusCode::Good,
+            .values = {scada::DataValue{
+                scada::Variant{42.5},
+                {},
+                now_,
+                now_,
+            }},
+            .continuation_point = {7, 8, 9},
+        });
+      }));
+
+  const auto history_read = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeHistoryReadRawRequestBody(
+          3, session->authentication_token,
+          {.node_id = NumericNode(120),
+           .from = from,
+           .to = to,
+           .max_count = 25,
+           .continuation_point = {4, 5, 6}})));
+  ASSERT_TRUE(history_read.has_value());
+  const auto decoded = DecodeHistoryReadRawResponse(*history_read);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(decoded->continuation_point, (scada::ByteString{7, 8, 9}));
+  ASSERT_EQ(decoded->values.size(), 1u);
+  ASSERT_EQ(decoded->values[0].value.type(), scada::Variant::DOUBLE);
+  EXPECT_DOUBLE_EQ(decoded->values[0].value.get<scada::Double>(), 42.5);
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
