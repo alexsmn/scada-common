@@ -31,6 +31,8 @@ constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
 constexpr std::uint32_t kReadResponseBinaryEncodingId = 632;
+constexpr std::uint32_t kWriteRequestBinaryEncodingId = 671;
+constexpr std::uint32_t kWriteResponseBinaryEncodingId = 674;
 constexpr std::uint32_t kUserNameIdentityTokenBinaryEncodingId = 324;
 
 struct StreamPeerState {
@@ -237,6 +239,26 @@ std::vector<char> EncodeReadRequestBody(std::uint32_t request_handle,
   return body;
 }
 
+std::vector<char> EncodeWriteRequestBody(std::uint32_t request_handle,
+                                         const scada::NodeId& authentication_token,
+                                         const scada::WriteValue& write_value) {
+  std::vector<char> payload;
+  AppendRequestHeader(payload, authentication_token, request_handle);
+  AppendInt32(payload, 1);
+  AppendNumericNodeId(payload, write_value.node_id);
+  AppendUInt32(payload, static_cast<std::uint32_t>(write_value.attribute_id));
+  AppendUaString(payload, "");
+  AppendUInt8(payload, 0x01);
+  const auto* value = write_value.value.get_if<scada::Double>();
+  EXPECT_NE(value, nullptr);
+  AppendUInt8(payload, 11);
+  AppendDouble(payload, value == nullptr ? 0.0 : *value);
+
+  std::vector<char> body;
+  AppendMessage(body, kWriteRequestBinaryEncodingId, payload);
+  return body;
+}
+
 std::string AsString(const std::vector<char>& bytes) {
   return {bytes.begin(), bytes.end()};
 }
@@ -322,6 +344,40 @@ std::optional<double> DecodeSingleDoubleReadResponse(
     return std::nullopt;
   }
   return value;
+}
+
+std::optional<std::uint32_t> DecodeSingleWriteResponseStatus(
+    const std::vector<char>& payload) {
+  const auto message = ReadMessage(payload);
+  if (!message.has_value() || message->first != kWriteResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  const auto& body = message->second;
+
+  std::size_t offset = 0;
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  if (!ReadInt64(body, offset, ignored_timestamp) ||
+      !ReadUInt32(body, offset, ignored_request_handle) ||
+      !ReadUInt32(body, offset, ignored_status) ||
+      !ReadUInt8(body, offset, ignored_byte) ||
+      !ReadInt32(body, offset, ignored_array) ||
+      !ReadNumericNodeId(body, offset, ignored_header_extension) ||
+      !ReadUInt8(body, offset, ignored_byte)) {
+    return std::nullopt;
+  }
+
+  std::int32_t result_count = 0;
+  std::uint32_t result_status = 0;
+  if (!ReadInt32(body, offset, result_count) || result_count != 1 ||
+      !ReadUInt32(body, offset, result_status)) {
+    return std::nullopt;
+  }
+  return result_status;
 }
 
 class TestMonitoredItemService : public scada::MonitoredItemService {
@@ -527,6 +583,50 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   const auto value = DecodeSingleDoubleReadResponse(read_response_frame->body);
   ASSERT_TRUE(value.has_value());
   EXPECT_DOUBLE_EQ(*value, 12.5);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  EXPECT_CALL(attribute_service_, Write(_, _, _))
+      .WillOnce(Invoke([this](const scada::ServiceContext& context,
+                              const std::shared_ptr<const std::vector<scada::WriteValue>>&
+                                  inputs,
+                              const scada::WriteCallback& callback) {
+        EXPECT_EQ(context.user_id(), expected_user_id_);
+        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ((*inputs)[0].node_id, NumericNode(12));
+        EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
+        EXPECT_DOUBLE_EQ((*inputs)[0].value.get<scada::Double>(), 42.0);
+        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+      }));
+
+  const auto written = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeWriteRequestBody(
+          3, session->authentication_token,
+          {.node_id = NumericNode(12),
+           .attribute_id = scada::AttributeId::Value,
+           .value = scada::Double{42.0}})));
+  ASSERT_TRUE(written.has_value());
+  const auto status = DecodeSingleWriteResponseStatus(*written);
+  ASSERT_TRUE(status.has_value());
+  EXPECT_EQ(*status, 0u);
 }
 
 }  // namespace

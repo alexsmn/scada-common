@@ -14,6 +14,8 @@ constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
 constexpr std::uint32_t kReadResponseBinaryEncodingId = 632;
+constexpr std::uint32_t kWriteRequestBinaryEncodingId = 671;
+constexpr std::uint32_t kWriteResponseBinaryEncodingId = 674;
 
 enum class OpcUaBinaryTimestampsToReturn : std::uint32_t {
   Source = 0,
@@ -190,6 +192,137 @@ std::vector<char> EncodeReadResponseBody(std::uint32_t request_handle,
   return body;
 }
 
+std::optional<scada::Variant> DecodeVariant(const std::vector<char>& bytes,
+                                            std::size_t& offset) {
+  std::uint8_t encoding_mask = 0;
+  if (!ReadUInt8(bytes, offset, encoding_mask)) {
+    return std::nullopt;
+  }
+
+  if ((encoding_mask & 0x80) != 0) {
+    return std::nullopt;
+  }
+
+  switch (encoding_mask) {
+    case 0:
+      return scada::Variant{};
+
+    case 6: {
+      std::int32_t value = 0;
+      if (!ReadInt32(bytes, offset, value)) {
+        return std::nullopt;
+      }
+      return scada::Variant{value};
+    }
+
+    case 7: {
+      std::uint32_t value = 0;
+      if (!ReadUInt32(bytes, offset, value)) {
+        return std::nullopt;
+      }
+      return scada::Variant{value};
+    }
+
+    case 11: {
+      double value = 0;
+      if (!ReadDouble(bytes, offset, value)) {
+        return std::nullopt;
+      }
+      return scada::Variant{value};
+    }
+
+    case 12: {
+      std::string value;
+      if (!ReadUaString(bytes, offset, value)) {
+        return std::nullopt;
+      }
+      return scada::Variant{std::move(value)};
+    }
+
+    default:
+      return std::nullopt;
+  }
+}
+
+std::optional<scada::Variant> DecodeDataValue(const std::vector<char>& bytes,
+                                              std::size_t& offset) {
+  std::uint8_t mask = 0;
+  if (!ReadUInt8(bytes, offset, mask)) {
+    return std::nullopt;
+  }
+
+  if ((mask & 0xf0) != 0) {
+    return std::nullopt;
+  }
+
+  scada::Variant value;
+  if ((mask & 0x01) != 0) {
+    auto decoded = DecodeVariant(bytes, offset);
+    if (!decoded.has_value()) {
+      return std::nullopt;
+    }
+    value = std::move(*decoded);
+  }
+
+  if ((mask & 0x02) != 0) {
+    std::uint32_t ignored_status = 0;
+    if (!ReadUInt32(bytes, offset, ignored_status)) {
+      return std::nullopt;
+    }
+  }
+  if ((mask & 0x04) != 0) {
+    std::int64_t ignored_source_timestamp = 0;
+    if (!ReadInt64(bytes, offset, ignored_source_timestamp)) {
+      return std::nullopt;
+    }
+  }
+  if ((mask & 0x08) != 0) {
+    std::int64_t ignored_server_timestamp = 0;
+    if (!ReadInt64(bytes, offset, ignored_server_timestamp)) {
+      return std::nullopt;
+    }
+  }
+
+  return value;
+}
+
+bool DecodeWriteValue(const std::vector<char>& bytes,
+                      std::size_t& offset,
+                      scada::WriteValue& value) {
+  std::uint32_t attribute_id = 0;
+  std::string index_range;
+  if (!ReadNumericNodeId(bytes, offset, value.node_id) ||
+      !ReadUInt32(bytes, offset, attribute_id) ||
+      !ReadUaString(bytes, offset, index_range)) {
+    return false;
+  }
+
+  auto decoded = DecodeDataValue(bytes, offset);
+  if (!decoded.has_value()) {
+    return false;
+  }
+
+  value.attribute_id = static_cast<scada::AttributeId>(attribute_id);
+  value.value = std::move(*decoded);
+  return index_range.empty();
+}
+
+std::vector<char> EncodeWriteResponseBody(
+    std::uint32_t request_handle,
+    const OpcUaBinaryWriteResponse& response) {
+  std::vector<char> payload;
+  AppendResponseHeader(payload, request_handle, response.status);
+  AppendInt32(payload, static_cast<std::int32_t>(response.results.size()));
+  for (const auto& result : response.results) {
+    AppendUInt32(payload, EncodeStatusCode(result));
+  }
+  AppendInt32(payload, -1);
+
+  std::vector<char> body;
+  AppendMessage(body, kWriteResponseBinaryEncodingId, payload);
+  return body;
+}
+
 bool DecodeReadValueId(const std::vector<char>& bytes,
                        std::size_t& offset,
                        scada::ReadValueId& value_id) {
@@ -257,6 +390,38 @@ DecodeReadRequest(const std::vector<char>& payload) {
   return std::tuple{type_id, header, std::move(request)};
 }
 
+std::optional<std::tuple<std::uint32_t, WireRequestHeader, OpcUaBinaryWriteRequest>>
+DecodeWriteRequest(const std::vector<char>& payload) {
+  std::size_t offset = 0;
+  scada::NodeId type_node_id;
+  if (!ReadNumericNodeId(payload, offset, type_node_id) ||
+      !type_node_id.is_numeric() ||
+      type_node_id.numeric_id() != kWriteRequestBinaryEncodingId) {
+    return std::nullopt;
+  }
+
+  WireRequestHeader header;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(payload, offset, header) ||
+      !ReadInt32(payload, offset, count) || count < 0) {
+    return std::nullopt;
+  }
+
+  OpcUaBinaryWriteRequest request;
+  request.inputs.resize(static_cast<std::size_t>(count));
+  for (auto& input : request.inputs) {
+    if (!DecodeWriteValue(payload, offset, input)) {
+      return std::nullopt;
+    }
+  }
+
+  if (offset != payload.size()) {
+    return std::nullopt;
+  }
+
+  return std::tuple{kWriteRequestBinaryEncodingId, header, std::move(request)};
+}
+
 }  // namespace
 
 OpcUaBinaryServiceDispatcher::OpcUaBinaryServiceDispatcher(Context context)
@@ -283,6 +448,8 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
       co_return co_await session_service_.HandlePayload(std::move(payload));
     case kReadRequestBinaryEncodingId:
       co_return co_await HandleReadPayload(std::move(payload));
+    case kWriteRequestBinaryEncodingId:
+      co_return co_await HandleWritePayload(std::move(payload));
     default:
       co_return std::nullopt;
   }
@@ -308,6 +475,28 @@ OpcUaBinaryServiceDispatcher::HandleReadPayload(std::vector<char> payload) {
   const auto response =
       co_await runtime_.Handle<OpcUaBinaryReadResponse>(connection_, request);
   co_return EncodeReadResponseBody(header.request_handle, response);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleWritePayload(std::vector<char> payload) {
+  const auto decoded = DecodeWriteRequest(payload);
+  if (!decoded.has_value()) {
+    co_return std::nullopt;
+  }
+
+  const auto& [type_id, header, request] = *decoded;
+  (void)type_id;
+
+  if (!connection_.authentication_token.has_value() ||
+      *connection_.authentication_token != header.authentication_token) {
+    co_return EncodeWriteResponseBody(
+        header.request_handle,
+        {.status = scada::StatusCode::Bad_SessionIsLoggedOff});
+  }
+
+  const auto response =
+      co_await runtime_.Handle<OpcUaBinaryWriteResponse>(connection_, request);
+  co_return EncodeWriteResponseBody(header.request_handle, response);
 }
 
 }  // namespace opcua

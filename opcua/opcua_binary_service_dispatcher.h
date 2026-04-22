@@ -17,11 +17,13 @@ class OpcUaBinaryServiceDispatcher {
 
   explicit OpcUaBinaryServiceDispatcher(Context context);
 
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandlePayload(
+ [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandlePayload(
       std::vector<char> payload);
 
  private:
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleReadPayload(
+      std::vector<char> payload);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleWritePayload(
       std::vector<char> payload);
 
   OpcUaBinaryRuntime& runtime_;
