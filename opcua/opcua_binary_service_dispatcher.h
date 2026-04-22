@@ -90,6 +90,9 @@ class OpcUaBinaryServiceDispatcher {
                 const OpcUaBinaryCreateMonitoredItemsRequest& typed_request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,
+                const OpcUaBinaryModifyMonitoredItemsRequest& typed_request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
+  HandleRequest(const OpcUaBinaryDecodedRequest& request,
                 const OpcUaBinaryPublishRequest& typed_request);
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleRequest(const OpcUaBinaryDecodedRequest& request,

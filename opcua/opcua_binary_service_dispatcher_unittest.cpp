@@ -48,6 +48,8 @@ constexpr std::uint32_t kCreateSubscriptionRequestBinaryEncodingId = 787;
 constexpr std::uint32_t kCreateSubscriptionResponseBinaryEncodingId = 790;
 constexpr std::uint32_t kCreateMonitoredItemsRequestBinaryEncodingId = 751;
 constexpr std::uint32_t kCreateMonitoredItemsResponseBinaryEncodingId = 754;
+constexpr std::uint32_t kModifyMonitoredItemsRequestBinaryEncodingId = 763;
+constexpr std::uint32_t kModifyMonitoredItemsResponseBinaryEncodingId = 766;
 constexpr std::uint32_t kSetMonitoringModeRequestBinaryEncodingId = 769;
 constexpr std::uint32_t kSetMonitoringModeResponseBinaryEncodingId = 772;
 constexpr std::uint32_t kDeleteMonitoredItemsRequestBinaryEncodingId = 781;
@@ -303,6 +305,21 @@ std::vector<char> EncodeCreateMonitoredItemsRequestBody(
       OpcUaBinaryRequestBody{OpcUaBinaryCreateMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .items_to_create = std::move(items_to_create)}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeModifyMonitoredItemsRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    scada::UInt32 subscription_id,
+    std::vector<OpcUaBinaryMonitoredItemModifyRequest> items_to_modify) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryModifyMonitoredItemsRequest{
+          .subscription_id = subscription_id,
+          .items_to_modify = std::move(items_to_modify)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -1022,6 +1039,48 @@ DecodeCreateMonitoredItemsResponse(const std::vector<char>& payload) {
       !decoder.Decode(ignored_byte) || !decoder.Decode(result_count) ||
       result_count != 1 || !decoder.Decode(item_status) ||
       !decoder.Decode(response.result.monitored_item_id) ||
+      !decoder.Decode(response.result.revised_sampling_interval_ms) ||
+      !decoder.Decode(response.result.revised_queue_size)) {
+    return std::nullopt;
+  }
+  binary::DecodedExtensionObject ignored_filter_result;
+  if (!decoder.Decode(ignored_filter_result) ||
+      !decoder.Decode(ignored_array)) {
+    return std::nullopt;
+  }
+  response.result.status = scada::Status::FromFullCode(item_status);
+  return response;
+}
+
+struct DecodedModifyMonitoredItemsResponse {
+  std::uint32_t status = 0;
+  OpcUaBinaryMonitoredItemModifyResult result;
+};
+
+std::optional<DecodedModifyMonitoredItemsResponse>
+DecodeModifyMonitoredItemsResponse(const std::vector<char>& payload) {
+  binary::BinaryDecoder message_decoder{payload};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() ||
+      message->first != kModifyMonitoredItemsResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  binary::BinaryDecoder decoder{message->second};
+  DecodedModifyMonitoredItemsResponse response;
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  std::int32_t result_count = 0;
+  std::uint32_t item_status = 0;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(response.status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(result_count) ||
+      result_count != 1 || !decoder.Decode(item_status) ||
       !decoder.Decode(response.result.revised_sampling_interval_ms) ||
       !decoder.Decode(response.result.revised_queue_size)) {
     return std::nullopt;
@@ -1770,6 +1829,80 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
             (scada::ReadValueId{
                 .node_id = NumericNode(11),
                 .attribute_id = scada::AttributeId::Value}));
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesModifyMonitoredItemsAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded_subscription = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded_subscription.has_value());
+
+  const auto created_items = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateMonitoredItemsRequestBody(
+          4, session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.item_to_monitor =
+                {.node_id = NumericNode(11),
+                 .attribute_id = scada::AttributeId::Value},
+            .requested_parameters =
+                {.client_handle = 44,
+                 .sampling_interval_ms = 0,
+                 .queue_size = 1,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(created_items.has_value());
+  const auto decoded_created = DecodeCreateMonitoredItemsResponse(*created_items);
+  ASSERT_TRUE(decoded_created.has_value());
+
+  const auto modified = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeModifyMonitoredItemsRequestBody(
+          5, session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.monitored_item_id = decoded_created->result.monitored_item_id,
+            .requested_parameters =
+                {.client_handle = 44,
+                 .sampling_interval_ms = 250,
+                 .queue_size = 3,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(modified.has_value());
+  const auto decoded_modified = DecodeModifyMonitoredItemsResponse(*modified);
+  ASSERT_TRUE(decoded_modified.has_value());
+  EXPECT_EQ(decoded_modified->status, 0u);
+  EXPECT_EQ(decoded_modified->result.status.code(), scada::StatusCode::Good);
+  EXPECT_DOUBLE_EQ(decoded_modified->result.revised_sampling_interval_ms, 250.0);
+  EXPECT_EQ(decoded_modified->result.revised_queue_size, 3u);
+  ASSERT_EQ(monitored_item_service_.created_parameters.size(), 2u);
+  ASSERT_TRUE(monitored_item_service_.created_parameters[1].sampling_interval.has_value());
+  EXPECT_EQ(*monitored_item_service_.created_parameters[1].sampling_interval,
+            base::TimeDelta::FromMilliseconds(250));
+  ASSERT_TRUE(monitored_item_service_.created_parameters[1].queue_size.has_value());
+  EXPECT_EQ(*monitored_item_service_.created_parameters[1].queue_size, 3u);
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
