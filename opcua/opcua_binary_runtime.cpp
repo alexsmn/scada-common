@@ -4,7 +4,7 @@ namespace opcua {
 
 OpcUaBinaryRuntime::OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context)
     : session_manager_{context.session_manager},
-      runtime_{opcua_ws::OpcUaWsRuntimeContext{
+      runtime_{OpcUaRuntimeContext{
           .executor = context.executor,
           .session_manager = context.session_manager,
           .monitored_item_service = context.monitored_item_service,

@@ -85,7 +85,7 @@ class OpcUaBinaryRuntimeTest : public Test {
   StrictMock<scada::MockMethodService> method_service_;
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
-  opcua_ws::OpcUaWsSessionManager session_manager_{{
+  OpcUaSessionManager session_manager_{{
       .authenticator =
           [this](scada::LocalizedText user_name,
                  scada::LocalizedText password)

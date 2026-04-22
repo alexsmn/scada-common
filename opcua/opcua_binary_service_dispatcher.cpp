@@ -85,11 +85,11 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
     const OpcUaBinaryHistoryReadEventsRequest& typed_request) {
   if (!connection_.authentication_token.has_value() ||
       *connection_.authentication_token != request.header.authentication_token) {
-    co_return EncodeOpcUaBinaryServiceResponse(
+    co_return EncodeOpcUaBinaryHistoryReadEventsResponse(
         request.header.request_handle,
-        OpcUaBinaryResponseBody{
-            BuildBinaryRuntimeErrorResponse<OpcUaBinaryHistoryReadEventsResponse>(
-                scada::StatusCode::Bad_SessionIsLoggedOff)});
+        BuildBinaryRuntimeErrorResponse<OpcUaBinaryHistoryReadEventsResponse>(
+            scada::StatusCode::Bad_SessionIsLoggedOff),
+        request.history_event_field_paths);
   }
 
   const auto response = co_await runtime_.Handle<OpcUaBinaryHistoryReadEventsResponse>(

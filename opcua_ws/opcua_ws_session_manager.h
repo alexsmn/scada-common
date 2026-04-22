@@ -117,3 +117,11 @@ class OpcUaWsSessionManager : private OpcUaWsSessionManagerContext {
 };
 
 }  // namespace opcua_ws
+
+namespace opcua {
+
+using OpcUaSessionManagerContext = opcua_ws::OpcUaWsSessionManagerContext;
+using OpcUaSessionManager = opcua_ws::OpcUaWsSessionManager;
+using OpcUaSessionLookupResult = opcua_ws::OpcUaWsSessionLookupResult;
+
+}  // namespace opcua

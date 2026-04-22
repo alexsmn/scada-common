@@ -11,7 +11,7 @@ class OpcUaBinarySessionService {
  public:
   struct Context {
     OpcUaBinaryRuntime& runtime;
-    opcua_ws::OpcUaWsSessionManager& session_manager;
+    OpcUaSessionManager& session_manager;
     OpcUaBinaryConnectionState& connection;
   };
 
@@ -22,7 +22,7 @@ class OpcUaBinarySessionService {
 
  private:
   OpcUaBinaryRuntime& runtime_;
-  opcua_ws::OpcUaWsSessionManager& session_manager_;
+  OpcUaSessionManager& session_manager_;
   OpcUaBinaryConnectionState& connection_;
 };
 

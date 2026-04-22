@@ -26,11 +26,11 @@ Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
   }
 }
 
-using OpcUaBinaryConnectionState = opcua_ws::OpcUaWsConnectionState;
+using OpcUaBinaryConnectionState = OpcUaConnectionState;
 
 struct OpcUaBinaryRuntimeContext {
   std::shared_ptr<Executor> executor;
-  opcua_ws::OpcUaWsSessionManager& session_manager;
+  OpcUaSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
@@ -41,8 +41,8 @@ struct OpcUaBinaryRuntimeContext {
 };
 
 // First in-repo UA Binary adapter step: reuse the OPC UA WS runtime as the
-// canonical server-side session/subscription/service core while the actual UA
-// Binary wire protocol layer is implemented separately.
+// canonical shared server-side session/subscription/service core while the
+// actual UA Binary wire protocol layer is implemented separately.
 class OpcUaBinaryRuntime {
  public:
   explicit OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context);
@@ -77,8 +77,8 @@ class OpcUaBinaryRuntime {
       OpcUaBinaryConnectionState& connection,
       OpcUaBinaryRequestBody request);
 
-  opcua_ws::OpcUaWsSessionManager& session_manager_;
-  opcua_ws::OpcUaWsRuntime runtime_;
+  OpcUaSessionManager& session_manager_;
+  OpcUaRuntime runtime_;
 };
 
 }  // namespace opcua

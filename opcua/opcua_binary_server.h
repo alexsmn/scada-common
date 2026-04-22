@@ -11,7 +11,7 @@ namespace opcua {
 struct OpcUaBinaryServerContext {
   transport::any_transport acceptor;
   OpcUaBinaryRuntime& runtime;
-  opcua_ws::OpcUaWsSessionManager& session_manager;
+  OpcUaSessionManager& session_manager;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
 };

@@ -66,3 +66,11 @@ class OpcUaWsRuntime : private OpcUaWsRuntimeContext {
 };
 
 }  // namespace opcua_ws
+
+namespace opcua {
+
+using OpcUaConnectionState = opcua_ws::OpcUaWsConnectionState;
+using OpcUaRuntimeContext = opcua_ws::OpcUaWsRuntimeContext;
+using OpcUaRuntime = opcua_ws::OpcUaWsRuntime;
+
+}  // namespace opcua
