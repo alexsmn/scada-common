@@ -320,6 +320,10 @@ Progress:
   continuation handling plus publish keep-alive / republish / acknowledgement
   semantics across the canonical runtime, Binary runtime adapter, and WS
   runtime adapter
+- that shared contract suite now also covers successful write routing, method
+  call routing, successful history-read payload propagation, and node-
+  management batch result propagation across the canonical runtime, Binary
+  runtime adapter, and WS runtime adapter
 
 ### Phase 6. Add parity tests before larger behavior changes
 

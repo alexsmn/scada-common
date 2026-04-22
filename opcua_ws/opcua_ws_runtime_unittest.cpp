@@ -98,6 +98,14 @@ TEST_F(OpcUaWsRuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
   opcua::test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
 }
 
+TEST_F(OpcUaWsRuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
+  opcua::test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
+}
+
+TEST_F(OpcUaWsRuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
+  opcua::test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
+}
+
 TEST_F(OpcUaWsRuntimeTest, PreservesLiveSubscriptionStateAcrossDetachAndResume) {
   opcua::test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
 }
@@ -114,12 +122,27 @@ TEST_F(OpcUaWsRuntimeTest, RejectsHistoryReadRawWithoutActivatedSession) {
   opcua::test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
 }
 
+TEST_F(OpcUaWsRuntimeTest,
+       HistoryReadRawPreservesPayloadThroughActivatedSession) {
+  opcua::test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
+}
+
 TEST_F(OpcUaWsRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
   opcua::test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
+TEST_F(OpcUaWsRuntimeTest,
+       HistoryReadEventsPreservesPayloadThroughActivatedSession) {
+  opcua::test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
+      *this);
+}
+
 TEST_F(OpcUaWsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
   opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+}
+
+TEST_F(OpcUaWsRuntimeTest, NodeManagementMutationsPreserveBatchResults) {
+  opcua::test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
 }
 
 TEST_F(OpcUaWsRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
