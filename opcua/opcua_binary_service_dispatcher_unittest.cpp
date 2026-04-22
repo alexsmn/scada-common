@@ -33,6 +33,8 @@ constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
+constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
+constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
 constexpr std::uint32_t kAddNodesRequestBinaryEncodingId = 488;
 constexpr std::uint32_t kAddNodesResponseBinaryEncodingId = 491;
 constexpr std::uint32_t kAddReferencesRequestBinaryEncodingId = 494;
@@ -220,6 +222,18 @@ std::vector<char> EncodeUserNameActivateRequestBody(
           .user_name = scada::ToLocalizedText(std::string{user_name}),
           .password = scada::ToLocalizedText(std::string{password}),
           .allow_anonymous = false}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeCloseSessionRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryCloseSessionRequest{
+          .authentication_token = authentication_token}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -586,6 +600,26 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponse(
       .session_id = session_id,
       .authentication_token = authentication_token,
   };
+}
+
+std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes,
+                                                  std::uint32_t expected_type_id) {
+  binary::BinaryDecoder message_decoder{bytes};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != expected_type_id) {
+    return std::nullopt;
+  }
+
+  binary::BinaryDecoder decoder{message->second};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t status_code = 0;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(status_code)) {
+    return std::nullopt;
+  }
+  return status_code;
 }
 
 std::optional<double> DecodeSingleDoubleReadResponse(
@@ -1715,6 +1749,41 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
       .now = [this] { return now_; },
   }};
 };
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       ActivateSessionWithUnknownAuthenticationTokenReturnsNoPayload) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(
+          EncodeUserNameActivateRequestBody(1, NumericNode(999, 3), "operator",
+                                            "secret")));
+  EXPECT_FALSE(activated.has_value());
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       CloseSessionWithUnknownAuthenticationTokenReturnsLoggedOff) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto closed = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(
+          EncodeCloseSessionRequestBody(1, NumericNode(999, 3))));
+  ASSERT_TRUE(closed.has_value());
+  const auto close_status =
+      DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
+  ASSERT_TRUE(close_status.has_value());
+  EXPECT_EQ(*close_status,
+            scada::Status(scada::StatusCode::Bad_SessionIsLoggedOff)
+                .full_code());
+}
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesReadAfterActivatedSession) {

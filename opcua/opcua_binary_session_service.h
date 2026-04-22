@@ -18,7 +18,14 @@ class OpcUaBinarySessionService {
   explicit OpcUaBinarySessionService(Context context);
 
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleRequest(
-      OpcUaBinaryDecodedRequest request);
+      scada::UInt32 request_handle,
+      OpcUaBinaryCreateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleRequest(
+      const OpcUaBinaryServiceRequestHeader& header,
+      OpcUaBinaryActivateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleCloseRequest(
+      scada::UInt32 request_handle,
+      const scada::NodeId& authentication_token);
 
  private:
   OpcUaBinaryRuntime& runtime_;

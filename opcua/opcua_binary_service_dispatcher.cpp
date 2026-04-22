@@ -3,12 +3,16 @@
 
 namespace opcua {
 namespace {
+template <typename T>
+constexpr bool kIsSessionRequest =
+    std::is_same_v<T, OpcUaBinaryCreateSessionRequest> ||
+    std::is_same_v<T, OpcUaBinaryActivateSessionRequest> ||
+    std::is_same_v<T, OpcUaBinaryCloseSessionRequest>;
 
 }  // namespace
 
 OpcUaBinaryServiceDispatcher::OpcUaBinaryServiceDispatcher(Context context)
     : runtime_{context.runtime},
-      session_manager_{context.session_manager},
       connection_{context.connection},
       session_service_{{.runtime = context.runtime,
                         .session_manager = context.session_manager,
@@ -22,239 +26,138 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
   }
 
   co_return co_await std::visit(
-      [this, &request](const auto& typed_request)
+      [this, &request](auto typed_request)
           -> Awaitable<std::optional<std::vector<char>>> {
-        co_return co_await HandleRequest(*request, typed_request);
+        using T = std::decay_t<decltype(typed_request)>;
+        if constexpr (std::is_same_v<T, OpcUaBinaryCreateSessionRequest>) {
+          co_return co_await session_service_.HandleRequest(
+              request->header.request_handle, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryActivateSessionRequest>) {
+          co_return co_await session_service_.HandleRequest(
+              request->header, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryCloseSessionRequest>) {
+          co_return co_await session_service_.HandleCloseRequest(
+              request->header.request_handle,
+              request->header.authentication_token);
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryBrowseNextRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryBrowseNextResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryReadRequest>) {
+          co_return co_await HandleAuthenticatedRequest<OpcUaBinaryReadResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryBrowseRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryBrowseResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryTranslateBrowsePathsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryTranslateBrowsePathsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryCallRequest>) {
+          co_return co_await HandleAuthenticatedRequest<OpcUaBinaryCallResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryHistoryReadRawRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryHistoryReadRawResponse>(*request,
+                                                 std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryHistoryReadEventsRequest>) {
+          auto encode = [field_paths = request->history_event_field_paths](
+                            scada::UInt32 request_handle,
+                            OpcUaBinaryHistoryReadEventsResponse response) {
+            return EncodeOpcUaBinaryHistoryReadEventsResponse(
+                request_handle, response, field_paths);
+          };
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryHistoryReadEventsResponse>(
+              *request, std::move(typed_request), std::move(encode));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryWriteRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryWriteResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryDeleteNodesRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryDeleteNodesResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryAddNodesRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryAddNodesResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryDeleteReferencesRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryDeleteReferencesResponse>(*request,
+                                                   std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryAddReferencesRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryAddReferencesResponse>(*request,
+                                                std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryCreateSubscriptionRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryCreateSubscriptionResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinaryModifySubscriptionRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryModifySubscriptionResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinarySetPublishingModeRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinarySetPublishingModeResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryDeleteSubscriptionsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryDeleteSubscriptionsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryCreateMonitoredItemsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryCreateMonitoredItemsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryModifyMonitoredItemsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryModifyMonitoredItemsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryPublishRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryPublishResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryRepublishRequest>) {
+          co_return co_await
+              HandleAuthenticatedRequest<OpcUaBinaryRepublishResponse>(
+                  *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryTransferSubscriptionsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryTransferSubscriptionsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryDeleteMonitoredItemsRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinaryDeleteMonitoredItemsResponse>(
+              *request, std::move(typed_request));
+        } else if constexpr (std::is_same_v<T,
+                                            OpcUaBinarySetMonitoringModeRequest>) {
+          co_return co_await HandleAuthenticatedRequest<
+              OpcUaBinarySetMonitoringModeResponse>(
+              *request, std::move(typed_request));
+        } else {
+          static_assert(!kIsSessionRequest<T>,
+                        "Session requests must be handled above");
+          co_return std::nullopt;
+        }
       },
       request->body);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryBrowseNextRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryBrowseNextResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryReadRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryReadResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryBrowseRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryBrowseResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryTranslateBrowsePathsRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryTranslateBrowsePathsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryCallRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryCallResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryHistoryReadRawRequest& typed_request) {
-  co_return co_await
-      HandleAuthenticatedRequest<OpcUaBinaryHistoryReadRawResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryHistoryReadEventsRequest& typed_request) {
-  if (!connection_.authentication_token.has_value() ||
-      *connection_.authentication_token != request.header.authentication_token) {
-    co_return EncodeOpcUaBinaryHistoryReadEventsResponse(
-        request.header.request_handle,
-        BuildBinaryRuntimeErrorResponse<OpcUaBinaryHistoryReadEventsResponse>(
-            scada::StatusCode::Bad_SessionIsLoggedOff),
-        request.history_event_field_paths);
-  }
-
-  const auto response = co_await runtime_.Handle<OpcUaBinaryHistoryReadEventsResponse>(
-      connection_, typed_request);
-  co_return EncodeOpcUaBinaryHistoryReadEventsResponse(
-      request.header.request_handle, response, request.history_event_field_paths);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryWriteRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryWriteResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryDeleteNodesRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteNodesResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryAddNodesRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryAddNodesResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryDeleteReferencesRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteReferencesResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryAddReferencesRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryAddReferencesResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryCreateSessionRequest&) {
-  co_return co_await session_service_.HandleRequest(request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryActivateSessionRequest&) {
-  co_return co_await session_service_.HandleRequest(request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryCloseSessionRequest&) {
-  co_return co_await session_service_.HandleRequest(request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryCreateSubscriptionRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryCreateSubscriptionResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryModifySubscriptionRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryModifySubscriptionResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinarySetPublishingModeRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinarySetPublishingModeResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryDeleteSubscriptionsRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteSubscriptionsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryCreateMonitoredItemsRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryCreateMonitoredItemsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryModifyMonitoredItemsRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryModifyMonitoredItemsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryPublishRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryPublishResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryRepublishRequest& typed_request) {
-  co_return co_await HandleAuthenticatedRequest<OpcUaBinaryRepublishResponse>(
-      request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryTransferSubscriptionsRequest& typed_request) {
-  co_return co_await
-      HandleAuthenticatedRequest<OpcUaBinaryTransferSubscriptionsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinaryDeleteMonitoredItemsRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteMonitoredItemsResponse>(
-          request.header, typed_request);
-}
-
-Awaitable<std::optional<std::vector<char>>>
-OpcUaBinaryServiceDispatcher::HandleRequest(
-    const OpcUaBinaryDecodedRequest& request,
-    const OpcUaBinarySetMonitoringModeRequest& typed_request) {
-  co_return
-      co_await HandleAuthenticatedRequest<OpcUaBinarySetMonitoringModeResponse>(
-          request.header, typed_request);
 }
 
 }  // namespace opcua

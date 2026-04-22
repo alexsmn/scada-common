@@ -3,8 +3,13 @@
 > Status: planning document for the remaining common-layer refactor.
 > Phase 2 runtime ownership, Phase 3 service-handler ownership, and the
 > canonical shared session / subscription / session-manager ownership move are
-> now implemented. The remaining work is primarily Binary adapter thinning and
-> cross-transport parity tests.
+> now implemented. Binary adapter thinning has also advanced: the Binary
+> dispatcher now routes typed session requests through a small Binary-only
+> header/session-token adapter and keeps the remaining authenticated service
+> dispatch in one shared visitor, with `HistoryReadEvents` retained as a
+> Binary-only response-encoding special case. The remaining work is primarily
+> finishing Binary wire-only cleanup and broadening cross-transport parity
+> tests.
 
 This document records the remaining unification gaps between the in-repo OPC UA
 Binary stack in `common/opcua/` and the OPC UA over WebSocket stack in
@@ -109,6 +114,16 @@ dispatch shell for:
 
 That split is reasonable at the wire boundary, but too much policy is still
 owned there instead of by the shared runtime contract.
+
+Current state:
+
+- the Binary dispatcher now uses one typed visitor for authenticated runtime
+  calls instead of a long per-request overload shell
+- Binary session create / activate / close now live behind explicit typed
+  adapter methods that only fill in request-header/session-token data before
+  calling the shared runtime
+- `HistoryReadEvents` remains the main Binary-only response path because the
+  Binary codec needs event-field-path context during encoding
 
 Impact:
 
@@ -283,6 +298,15 @@ Exit criteria:
 - Binary adapter code becomes thin enough that semantic changes land in the
   shared core first
 - Binary-specific code is explainable as transport or encoding adaptation only
+
+Progress:
+
+- session create / activate / close are now handled as explicit typed Binary
+  adapter methods instead of a second variant-dispatch shell
+- the Binary dispatcher now centralizes authenticated runtime dispatch in a
+  single visitor with shared response encoding helpers
+- the remaining Binary-only branch is the `HistoryReadEvents` response encoder,
+  because it needs the request's decoded event-field path metadata
 
 ### Phase 6. Add parity tests before larger behavior changes
 

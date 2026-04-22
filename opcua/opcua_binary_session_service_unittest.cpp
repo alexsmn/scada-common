@@ -22,61 +22,6 @@ constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
 constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
 constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
-constexpr std::uint32_t kAnonymousIdentityTokenBinaryEncodingId = 321;
-constexpr std::uint32_t kUserNameIdentityTokenBinaryEncodingId = 324;
-
-std::vector<char> EncodeCreateSessionRequestBody(std::uint32_t request_handle,
-                                                 double requested_timeout_ms) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
-      {.authentication_token = scada::NodeId{}, .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryCreateSessionRequest{
-          .requested_timeout =
-              base::TimeDelta::FromMillisecondsD(requested_timeout_ms)}});
-  EXPECT_TRUE(encoded.has_value());
-  return encoded.value_or(std::vector<char>{});
-}
-
-std::vector<char> EncodeAnonymousActivateRequestBody(
-    std::uint32_t request_handle,
-    const scada::NodeId& authentication_token) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
-      {.authentication_token = authentication_token,
-       .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryActivateSessionRequest{
-          .authentication_token = authentication_token,
-          .allow_anonymous = true}});
-  EXPECT_TRUE(encoded.has_value());
-  return encoded.value_or(std::vector<char>{});
-}
-
-std::vector<char> EncodeUserNameActivateRequestBody(
-    std::uint32_t request_handle,
-    const scada::NodeId& authentication_token,
-    std::string_view user_name,
-    std::string_view password) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
-      {.authentication_token = authentication_token,
-       .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryActivateSessionRequest{
-          .authentication_token = authentication_token,
-          .user_name = scada::ToLocalizedText(std::string{user_name}),
-          .password = scada::ToLocalizedText(std::string{password}),
-          .allow_anonymous = false}});
-  EXPECT_TRUE(encoded.has_value());
-  return encoded.value_or(std::vector<char>{});
-}
-
-std::vector<char> EncodeCloseSessionRequestBody(
-    std::uint32_t request_handle,
-    const scada::NodeId& authentication_token) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
-      {.authentication_token = authentication_token,
-       .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryCloseSessionRequest{
-          .authentication_token = authentication_token}});
-  EXPECT_TRUE(encoded.has_value());
-  return encoded.value_or(std::vector<char>{});
-}
 
 struct DecodedCreateSessionResponse {
   std::uint32_t status_code = 0;
@@ -193,11 +138,13 @@ class OpcUaBinarySessionServiceTest : public ::testing::Test {
 };
 
 TEST_F(OpcUaBinarySessionServiceTest, HandlesCreateSessionOverBinaryPayload) {
-  const auto request =
-      DecodeOpcUaBinaryServiceRequest(EncodeCreateSessionRequestBody(7, 45000));
-  ASSERT_TRUE(request.has_value());
   const auto response = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*request)));
+      executor_,
+      service_.HandleRequest(
+          7,
+          OpcUaBinaryCreateSessionRequest{
+              .requested_timeout =
+                  base::TimeDelta::FromMillisecondsD(45000)}));
   ASSERT_TRUE(response.has_value());
 
   const auto decoded = DecodeCreateSessionResponseBody(*response);
@@ -210,32 +157,35 @@ TEST_F(OpcUaBinarySessionServiceTest, HandlesCreateSessionOverBinaryPayload) {
 
 TEST_F(OpcUaBinarySessionServiceTest,
        ActivatesAndClosesSessionOverBinaryPayload) {
-  auto create_request =
-      DecodeOpcUaBinaryServiceRequest(EncodeCreateSessionRequestBody(1, 45000));
-  ASSERT_TRUE(create_request.has_value());
   const auto created = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*create_request)));
+      executor_,
+      service_.HandleRequest(
+          1,
+          OpcUaBinaryCreateSessionRequest{
+              .requested_timeout =
+                  base::TimeDelta::FromMillisecondsD(45000)}));
   ASSERT_TRUE(created.has_value());
   const auto decoded_create = DecodeCreateSessionResponseBody(*created);
   ASSERT_TRUE(decoded_create.has_value());
 
-  auto activate_request = DecodeOpcUaBinaryServiceRequest(
-      EncodeUserNameActivateRequestBody(
-          2, decoded_create->authentication_token, "operator", "secret"));
-  ASSERT_TRUE(activate_request.has_value());
   const auto activated = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*activate_request)));
+      executor_,
+      service_.HandleRequest(
+          {.authentication_token = decoded_create->authentication_token,
+           .request_handle = 2},
+          OpcUaBinaryActivateSessionRequest{
+              .user_name = scada::ToLocalizedText("operator"),
+              .password = scada::ToLocalizedText("secret"),
+              .allow_anonymous = false}));
   ASSERT_TRUE(activated.has_value());
   const auto activate_status =
       DecodeResponseStatus(*activated, kActivateSessionResponseBinaryEncodingId);
   ASSERT_TRUE(activate_status.has_value());
   EXPECT_EQ(*activate_status, 0u);
 
-  auto close_request = DecodeOpcUaBinaryServiceRequest(
-      EncodeCloseSessionRequestBody(3, decoded_create->authentication_token));
-  ASSERT_TRUE(close_request.has_value());
   const auto closed = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*close_request)));
+      executor_,
+      service_.HandleCloseRequest(3, decoded_create->authentication_token));
   ASSERT_TRUE(closed.has_value());
   const auto close_status =
       DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
@@ -245,24 +195,21 @@ TEST_F(OpcUaBinarySessionServiceTest,
 
 TEST_F(OpcUaBinarySessionServiceTest,
        ActivateSessionWithUnknownAuthenticationTokenReturnsNoPayload) {
-  auto activate_request = DecodeOpcUaBinaryServiceRequest(
-      EncodeUserNameActivateRequestBody(2, scada::NodeId{999, 3}, "operator",
-                                        "secret"));
-  ASSERT_TRUE(activate_request.has_value());
-
   const auto activated = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*activate_request)));
+      executor_,
+      service_.HandleRequest(
+          {.authentication_token = scada::NodeId{999, 3}, .request_handle = 2},
+          OpcUaBinaryActivateSessionRequest{
+              .user_name = scada::ToLocalizedText("operator"),
+              .password = scada::ToLocalizedText("secret"),
+              .allow_anonymous = false}));
   EXPECT_FALSE(activated.has_value());
 }
 
 TEST_F(OpcUaBinarySessionServiceTest,
        CloseSessionWithUnknownAuthenticationTokenReturnsLoggedOff) {
-  auto close_request = DecodeOpcUaBinaryServiceRequest(
-      EncodeCloseSessionRequestBody(3, scada::NodeId{999, 3}));
-  ASSERT_TRUE(close_request.has_value());
-
   const auto closed = WaitAwaitable(
-      executor_, service_.HandleRequest(std::move(*close_request)));
+      executor_, service_.HandleCloseRequest(3, scada::NodeId{999, 3}));
   ASSERT_TRUE(closed.has_value());
   const auto close_status =
       DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
