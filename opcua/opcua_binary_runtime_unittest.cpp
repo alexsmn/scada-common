@@ -107,6 +107,21 @@ TEST_F(OpcUaBinaryRuntimeTest,
 }
 
 TEST_F(OpcUaBinaryRuntimeTest,
+       BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+  opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+}
+
+TEST_F(OpcUaBinaryRuntimeTest,
+       PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
+  opcua::test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
+}
+
+TEST_F(OpcUaBinaryRuntimeTest,
+       RepublishReplaysNotificationUntilAcknowledged) {
+  opcua::test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
+}
+
+TEST_F(OpcUaBinaryRuntimeTest,
        HandleDecodedRequestRejectsActivateSessionForUnknownAuthenticationToken) {
   ConnectionState connection;
 

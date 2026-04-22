@@ -117,5 +117,17 @@ TEST_F(OpcUaRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
   opcua::test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
+TEST_F(OpcUaRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+  opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+}
+
+TEST_F(OpcUaRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
+  opcua::test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
+}
+
+TEST_F(OpcUaRuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
+  opcua::test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
+}
+
 }  // namespace
 }  // namespace opcua

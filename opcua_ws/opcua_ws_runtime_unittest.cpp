@@ -59,15 +59,26 @@ class OpcUaWsRuntimeTest : public testing::Test,
 
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
-    return HandleResponse<HistoryReadRawResponse>(connection, std::move(request))
-        .result.status.code();
+    const auto body =
+        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+                                                                 std::move(request)}));
+    if (const auto* response = std::get_if<HistoryReadRawResponse>(&body))
+      return response->result.status.code();
+    if (const auto* fault = std::get_if<OpcUaWsServiceFault>(&body))
+      return fault->status.code();
+    return scada::StatusCode::Bad;
   }
 
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
-    return HandleResponse<HistoryReadEventsResponse>(
-               connection, std::move(request))
-        .result.status.code();
+    const auto body =
+        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+                                                                 std::move(request)}));
+    if (const auto* response = std::get_if<HistoryReadEventsResponse>(&body))
+      return response->result.status.code();
+    if (const auto* fault = std::get_if<OpcUaWsServiceFault>(&body))
+      return fault->status.code();
+    return scada::StatusCode::Bad;
   }
 
   OpcUaWsRuntime runtime_{OpcUaWsRuntimeContext{
@@ -108,64 +119,15 @@ TEST_F(OpcUaWsRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
 }
 
 TEST_F(OpcUaWsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
-  OpcUaWsConnectionState connection;
-  CreateAndActivate(connection);
+  opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+}
 
-  EXPECT_CALL(view_service_, Browse(testing::_, testing::_, testing::_))
-      .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::vector<scada::BrowseDescription>& inputs,
-              const scada::BrowseCallback& callback) {
-            EXPECT_EQ(context.user_id(), expected_user_id_);
-            ASSERT_EQ(inputs.size(), 1u);
-            callback(scada::StatusCode::Good,
-                     {scada::BrowseResult{
-                         .status_code = scada::StatusCode::Good,
-                         .references = {
-                             {.reference_type_id = opcua::test::NumericNode(901),
-                              .forward = true,
-                              .node_id = opcua::test::NumericNode(902)},
-                             {.reference_type_id = opcua::test::NumericNode(903),
-                              .forward = false,
-                              .node_id = opcua::test::NumericNode(904)},
-                             {.reference_type_id = opcua::test::NumericNode(905),
-                              .forward = true,
-                              .node_id = opcua::test::NumericNode(906)}}}});
-          }));
+TEST_F(OpcUaWsRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
+  opcua::test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
+}
 
-  const auto browse = HandleResponse<BrowseResponse>(
-      connection,
-      BrowseRequest{
-          .requested_max_references_per_node = 2,
-          .inputs = {{.node_id = opcua::test::NumericNode(900),
-                      .direction = scada::BrowseDirection::Both,
-                      .reference_type_id = opcua::test::NumericNode(910),
-                      .include_subtypes = true}}});
-  ASSERT_EQ(browse.results.size(), 1u);
-  ASSERT_EQ(browse.results[0].references.size(), 2u);
-  ASSERT_FALSE(browse.results[0].continuation_point.empty());
-  EXPECT_EQ(browse.results[0].references[0].node_id,
-            opcua::test::NumericNode(902));
-  EXPECT_EQ(browse.results[0].references[1].node_id,
-            opcua::test::NumericNode(904));
-
-  const auto browse_next = HandleResponse<BrowseNextResponse>(
-      connection,
-      BrowseNextRequest{
-          .continuation_points = {browse.results[0].continuation_point}});
-  ASSERT_EQ(browse_next.results.size(), 1u);
-  EXPECT_EQ(browse_next.results[0].status_code, scada::StatusCode::Good);
-  ASSERT_EQ(browse_next.results[0].references.size(), 1u);
-  EXPECT_EQ(browse_next.results[0].references[0].node_id,
-            opcua::test::NumericNode(906));
-
-  const auto invalid = HandleResponse<BrowseNextResponse>(
-      connection,
-      BrowseNextRequest{
-          .continuation_points = {browse.results[0].continuation_point}});
-  ASSERT_EQ(invalid.results.size(), 1u);
-  EXPECT_EQ(invalid.results[0].status_code,
-            scada::StatusCode::Bad_WrongIndex);
+TEST_F(OpcUaWsRuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
+  opcua::test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
 }
 
 TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {

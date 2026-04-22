@@ -316,6 +316,10 @@ Progress:
   the same semantic scenarios through the canonical runtime surface plus the
   Binary and WS adapter runtimes for read routing, detach/resume, transfer,
   close-session, and unauthenticated history-read behavior
+- that shared contract suite now also covers session-scoped browse
+  continuation handling plus publish keep-alive / republish / acknowledgement
+  semantics across the canonical runtime, Binary runtime adapter, and WS
+  runtime adapter
 
 ### Phase 6. Add parity tests before larger behavior changes
 

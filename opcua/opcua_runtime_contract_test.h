@@ -274,4 +274,181 @@ void ExpectRejectsHistoryReadEventsWithoutActivatedSession(Fixture& fixture) {
   EXPECT_EQ(status, scada::StatusCode::Bad_SessionIsLoggedOff);
 }
 
+template <typename Fixture>
+void ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(
+    Fixture& fixture) {
+  typename Fixture::ConnectionState connection;
+  fixture.CreateAndActivate(connection);
+
+  EXPECT_CALL(fixture.view_service_, Browse(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::vector<scada::BrowseDescription>& inputs,
+              const scada::BrowseCallback& callback) {
+            EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
+            ASSERT_EQ(inputs.size(), 1u);
+            callback(scada::StatusCode::Good,
+                     {scada::BrowseResult{
+                         .status_code = scada::StatusCode::Good,
+                         .references = {
+                             {.reference_type_id = NumericNode(901),
+                              .forward = true,
+                              .node_id = NumericNode(902)},
+                             {.reference_type_id = NumericNode(903),
+                              .forward = false,
+                              .node_id = NumericNode(904)},
+                             {.reference_type_id = NumericNode(905),
+                              .forward = true,
+                              .node_id = NumericNode(906)}}}});
+          }));
+
+  const auto browse = fixture.template HandleResponse<BrowseResponse>(
+      connection,
+      BrowseRequest{
+          .requested_max_references_per_node = 2,
+          .inputs = {{.node_id = NumericNode(900),
+                      .direction = scada::BrowseDirection::Both,
+                      .reference_type_id = NumericNode(910),
+                      .include_subtypes = true}}});
+  ASSERT_EQ(browse.results.size(), 1u);
+  ASSERT_EQ(browse.results[0].references.size(), 2u);
+  ASSERT_FALSE(browse.results[0].continuation_point.empty());
+  EXPECT_EQ(browse.results[0].references[0].node_id, NumericNode(902));
+  EXPECT_EQ(browse.results[0].references[1].node_id, NumericNode(904));
+
+  typename Fixture::ConnectionState other_connection;
+  fixture.CreateAndActivate(other_connection);
+  const auto wrong_session = fixture.template HandleResponse<BrowseNextResponse>(
+      other_connection,
+      BrowseNextRequest{
+          .continuation_points = {browse.results[0].continuation_point}});
+  ASSERT_EQ(wrong_session.results.size(), 1u);
+  EXPECT_EQ(wrong_session.results[0].status_code,
+            scada::StatusCode::Bad_WrongIndex);
+
+  const auto browse_next = fixture.template HandleResponse<BrowseNextResponse>(
+      connection,
+      BrowseNextRequest{
+          .continuation_points = {browse.results[0].continuation_point}});
+  ASSERT_EQ(browse_next.results.size(), 1u);
+  EXPECT_EQ(browse_next.results[0].status_code, scada::StatusCode::Good);
+  ASSERT_EQ(browse_next.results[0].references.size(), 1u);
+  EXPECT_EQ(browse_next.results[0].references[0].node_id, NumericNode(906));
+  EXPECT_TRUE(browse_next.results[0].continuation_point.empty());
+
+  const auto invalid = fixture.template HandleResponse<BrowseNextResponse>(
+      connection,
+      BrowseNextRequest{
+          .continuation_points = {browse.results[0].continuation_point}});
+  ASSERT_EQ(invalid.results.size(), 1u);
+  EXPECT_EQ(invalid.results[0].status_code, scada::StatusCode::Bad_WrongIndex);
+}
+
+template <typename Fixture>
+void ExpectPublishReturnsKeepAliveWhenNoNotifications(Fixture& fixture) {
+  typename Fixture::ConnectionState connection;
+  fixture.CreateAndActivate(connection);
+
+  const auto created_subscription =
+      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+          connection,
+          OpcUaCreateSubscriptionRequest{
+              .parameters = {.publishing_interval_ms = 100,
+                             .lifetime_count = 60,
+                             .max_keep_alive_count = 3,
+                             .publishing_enabled = true}});
+  ASSERT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
+
+  fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(300);
+  const auto publish = fixture.template HandleResponse<OpcUaPublishResponse>(
+      connection, OpcUaPublishRequest{});
+  EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(publish.subscription_id, created_subscription.subscription_id);
+  EXPECT_TRUE(publish.notification_message.notification_data.empty());
+  EXPECT_EQ(publish.notification_message.sequence_number, 1u);
+  EXPECT_TRUE(publish.available_sequence_numbers.empty());
+}
+
+template <typename Fixture>
+void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
+  typename Fixture::ConnectionState connection;
+  fixture.CreateAndActivate(connection);
+
+  const auto created_subscription =
+      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+          connection,
+          OpcUaCreateSubscriptionRequest{
+              .parameters = {.publishing_interval_ms = 100,
+                             .lifetime_count = 60,
+                             .max_keep_alive_count = 3,
+                             .publishing_enabled = true}});
+  ASSERT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
+
+  const auto create_items =
+      fixture.template HandleResponse<OpcUaCreateMonitoredItemsResponse>(
+          connection,
+          OpcUaCreateMonitoredItemsRequest{
+              .subscription_id = created_subscription.subscription_id,
+              .items_to_create = {{.item_to_monitor =
+                                       {.node_id = NumericNode(51),
+                                        .attribute_id =
+                                            scada::AttributeId::Value},
+                                   .requested_parameters =
+                                       {.client_handle = 88,
+                                        .sampling_interval_ms = 0,
+                                        .queue_size = 1,
+                                        .discard_oldest = true}}}});
+  ASSERT_EQ(create_items.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(fixture.monitored_item_service_.items.size(), 1u);
+
+  fixture.monitored_item_service_.items[0]->NotifyDataChange(
+      scada::DataValue{scada::Variant{42.5}, {}, fixture.now_, fixture.now_});
+  fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(100);
+
+  const auto publish = fixture.template HandleResponse<OpcUaPublishResponse>(
+      connection, OpcUaPublishRequest{});
+  EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(publish.subscription_id, created_subscription.subscription_id);
+  EXPECT_EQ(publish.available_sequence_numbers,
+            (std::vector<scada::UInt32>{1u}));
+  ASSERT_EQ(publish.notification_message.notification_data.size(), 1u);
+  const auto* published_data = std::get_if<OpcUaDataChangeNotification>(
+      &publish.notification_message.notification_data[0]);
+  ASSERT_NE(published_data, nullptr);
+  ASSERT_EQ(published_data->monitored_items.size(), 1u);
+  EXPECT_EQ(published_data->monitored_items[0].client_handle, 88u);
+  EXPECT_EQ(published_data->monitored_items[0].value.value.get<double>(), 42.5);
+
+  const auto republish = fixture.template HandleResponse<OpcUaRepublishResponse>(
+      connection,
+      OpcUaRepublishRequest{
+          .subscription_id = created_subscription.subscription_id,
+          .retransmit_sequence_number =
+              publish.notification_message.sequence_number});
+  EXPECT_EQ(republish.status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(republish.notification_message, publish.notification_message);
+
+  fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(300);
+  const auto ack_publish = fixture.template HandleResponse<OpcUaPublishResponse>(
+      connection,
+      OpcUaPublishRequest{
+          .subscription_acknowledgements = {{
+              .subscription_id = created_subscription.subscription_id,
+              .sequence_number = publish.notification_message.sequence_number,
+          }}});
+  EXPECT_EQ(ack_publish.status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(ack_publish.results,
+            (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
+  EXPECT_TRUE(ack_publish.available_sequence_numbers.empty());
+
+  const auto after_ack =
+      fixture.template HandleResponse<OpcUaRepublishResponse>(
+          connection,
+          OpcUaRepublishRequest{
+              .subscription_id = created_subscription.subscription_id,
+              .retransmit_sequence_number =
+                  publish.notification_message.sequence_number});
+  EXPECT_EQ(after_ack.status.code(), scada::StatusCode::Bad_MessageNotAvailable);
+}
+
 }  // namespace opcua::test
