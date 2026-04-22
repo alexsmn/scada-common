@@ -1,4 +1,4 @@
-#include "opcua_ws/opcua_ws_session.h"
+#include "opcua/opcua_server_session.h"
 
 #include <algorithm>
 #include <cstring>
@@ -195,11 +195,6 @@ OpcUaSession::PublishPollResult OpcUaSession::PollPublish() {
                   .status = scada::StatusCode::Bad_NothingToDo}};
     }
 
-    // OPC UA Part 4 starts the publishing cycle when the Subscription is
-    // created. If no Publish request was queued when a cycle expired, the
-    // Subscription becomes late and the next Publish request is processed
-    // immediately; otherwise we return the remaining time until the next
-    // publishing or keep-alive deadline.
     std::optional<base::Time> earliest_deadline;
     std::optional<base::TimeDelta> max_wait_before_recheck;
     for (const auto subscription_id : publish_order_) {
@@ -359,7 +354,7 @@ void OpcUaSession::AdvancePublishCursorAfter(size_t index) {
 }
 
 size_t OpcUaSession::FindNextReadySubscription(base::Time now,
-                                                 bool require_pending) const {
+                                               bool require_pending) const {
   if (publish_order_.empty())
     return kNotFound;
 
@@ -427,3 +422,4 @@ scada::BrowseResult OpcUaSession::ResumeBrowseResult(
 }
 
 }  // namespace opcua
+

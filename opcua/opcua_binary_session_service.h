@@ -3,7 +3,7 @@
 #include "base/awaitable.h"
 #include "opcua/opcua_binary_service_codec.h"
 #include "opcua/opcua_binary_runtime.h"
-#include "opcua_ws/opcua_ws_session_manager.h"
+#include "opcua/opcua_server_session_manager.h"
 
 namespace opcua {
 

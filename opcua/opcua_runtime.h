@@ -4,9 +4,9 @@
 #include "base/executor.h"
 #include "base/time/time.h"
 #include "opcua/opcua_message.h"
+#include "opcua/opcua_server_session.h"
+#include "opcua/opcua_server_session_manager.h"
 #include "opcua/opcua_service_handler.h"
-#include "opcua_ws/opcua_ws_session.h"
-#include "opcua_ws/opcua_ws_session_manager.h"
 
 #include <optional>
 #include <unordered_map>

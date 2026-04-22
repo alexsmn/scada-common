@@ -1,4 +1,4 @@
-#include "opcua_ws/opcua_ws_subscription.h"
+#include "opcua/opcua_server_subscription.h"
 
 #include "opcua/opcua_endpoint_core.h"
 
@@ -70,8 +70,9 @@ void OpcUaSubscription::PrimePublishCycle(base::Time now) {
 }
 
 std::optional<base::Time> OpcUaSubscription::NextPublishDeadline() const {
-  if (!last_publish_time_.has_value())
+  if (!last_publish_time_.has_value()) {
     return std::nullopt;
+  }
 
   if (!initial_message_sent_) {
     return *last_publish_time_ + PublishingInterval();
@@ -131,10 +132,6 @@ OpcUaModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
   for (const auto& source_item : request.items_to_modify) {
     const auto item_it = items_.find(source_item.monitored_item_id);
     if (item_it == items_.end()) {
-      // OPC UA Part 4 v1.04, 5.12.3.4 Table 74 defines
-      // Bad_MonitoredItemIdInvalid as the operation-level result when the
-      // monitoredItemId is unknown.
-      // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.3
       response.results.push_back(
           {.status = scada::StatusCode::Bad_MonitoredItemIdInvalid});
       continue;
@@ -167,10 +164,6 @@ OpcUaDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
 
   for (auto monitored_item_id : request.monitored_item_ids) {
     const auto erased = items_.erase(monitored_item_id);
-    // OPC UA Part 4 v1.04, 5.12.6.4 Table 83 defines
-    // Bad_MonitoredItemIdInvalid as the operation-level result when the
-    // monitoredItemId is unknown.
-    // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.6
     response.results.push_back(
         erased ? scada::StatusCode::Good
                : scada::StatusCode::Bad_MonitoredItemIdInvalid);
@@ -204,10 +197,6 @@ OpcUaSetMonitoringModeResponse OpcUaSubscription::SetMonitoringMode(
   for (auto monitored_item_id : request.monitored_item_ids) {
     const auto item_it = items_.find(monitored_item_id);
     if (item_it == items_.end()) {
-      // OPC UA Part 4 v1.04, 5.12.4.4 Table 77 defines
-      // Bad_MonitoredItemIdInvalid as the operation-level result when the
-      // monitoredItemId is unknown.
-      // URL: https://reference.opcfoundation.org/Core/Part4/v104/docs/5.12.4
       response.results.push_back(scada::StatusCode::Bad_MonitoredItemIdInvalid);
       continue;
     }
@@ -244,9 +233,6 @@ std::optional<OpcUaPublishResponse> OpcUaSubscription::TryPublish(
         .subscription_id = subscription_id_,
         .results = {},
         .more_notifications = false,
-        // OPC UA Part 4 sends the first keep-alive at the end of the first
-        // publishing cycle and requires all keep-alives to carry the next
-        // NotificationMessage sequence number.
         .notification_message = {.sequence_number = next_sequence_number_,
                                  .publish_time = now},
         .available_sequence_numbers = AvailableSequenceNumbers()};
@@ -283,10 +269,6 @@ OpcUaRepublishResponse OpcUaSubscription::Republish(
         return notification_message.sequence_number == sequence_number;
       });
   if (it == retransmit_queue_.end()) {
-    // OPC UA Part 4 v1.05, 5.14.6.3 Table 93 defines
-    // Bad_MessageNotAvailable when the requested NotificationMessage is no
-    // longer in the retransmission queue.
-    // URL: https://reference.opcfoundation.org/Core/Part4/v105/docs/5.14
     return {.status = scada::StatusCode::Bad_MessageNotAvailable};
   }
   return {.status = scada::StatusCode::Good, .notification_message = *it};
@@ -328,8 +310,7 @@ scada::StatusCode OpcUaSubscription::Acknowledge(
   return scada::StatusCode::Good;
 }
 
-std::vector<scada::UInt32> OpcUaSubscription::AvailableSequenceNumbers()
-    const {
+std::vector<scada::UInt32> OpcUaSubscription::AvailableSequenceNumbers() const {
   std::vector<scada::UInt32> result;
   result.reserve(retransmit_queue_.size());
   for (const auto& notification_message : retransmit_queue_)
@@ -344,10 +325,10 @@ base::TimeDelta OpcUaSubscription::PublishingInterval() const {
 }
 
 base::TimeDelta OpcUaSubscription::KeepAliveInterval() const {
-  const auto interval_ms = static_cast<int64_t>(PublishingInterval().InMilliseconds()) *
-      static_cast<int64_t>(
-                           std::max<scada::UInt32>(1,
-                                                   parameters_.max_keep_alive_count));
+  const auto interval_ms =
+      static_cast<int64_t>(PublishingInterval().InMilliseconds()) *
+      static_cast<int64_t>(std::max<scada::UInt32>(
+          1, parameters_.max_keep_alive_count));
   return base::TimeDelta::FromMilliseconds(interval_ms);
 }
 
@@ -402,8 +383,8 @@ void OpcUaSubscription::QueueDataChange(
 }
 
 void OpcUaSubscription::QueueEvent(Item& item,
-                                     const scada::Status& status,
-                                     const std::any& event) {
+                                   const scada::Status& status,
+                                   const std::any& event) {
   if (!status) {
     QueueNotification(
         item, OpcUaStatusChangeNotification{.status = status.code()});
@@ -465,3 +446,4 @@ std::vector<scada::Variant> OpcUaSubscription::BuildEventFields(
 }
 
 }  // namespace opcua
+

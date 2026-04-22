@@ -1,4 +1,4 @@
-#include "opcua_ws/opcua_ws_session_manager.h"
+#include "opcua/opcua_server_session_manager.h"
 
 #include "base/boost_log.h"
 #include "scada/status_or.h"
@@ -10,7 +10,7 @@ namespace opcua {
 
 namespace {
 
-BoostLogger logger_{LOG_NAME("OpcUaWsSession")};
+BoostLogger logger_{LOG_NAME("OpcUaSessionManager")};
 
 scada::Status SessionMissingStatus() {
   return scada::StatusCode::Bad_SessionIsLoggedOff;
@@ -41,7 +41,7 @@ Awaitable<OpcUaCreateSessionResponse> OpcUaSessionManager::CreateSession(
   auto server_nonce = session.server_nonce;
   sessions_.insert_or_assign(authentication_token, std::move(session));
 
-  LOG_INFO(logger_) << "OPC UA WS session created"
+  LOG_INFO(logger_) << "OPC UA session created"
                     << LOG_TAG("SessionId", session_id.ToString())
                     << LOG_TAG("AuthenticationToken",
                                authentication_token.ToString())
@@ -69,7 +69,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
   // cppcheck-suppress derefInvalidIteratorRedundantCheck
   auto& session = session_it->second;
   if (session.session_id != request.session_id) {
-    LOG_WARNING(logger_) << "OPC UA WS session activation failed"
+    LOG_WARNING(logger_) << "OPC UA session activation failed"
                          << LOG_TAG("Reason", "SessionMismatch")
                          << LOG_TAG("SessionId", request.session_id.ToString())
                          << LOG_TAG("AuthenticationToken",
@@ -80,7 +80,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
   if (session.activated) {
     session.attached = true;
     session.expires_at = Now() + session.revised_timeout;
-    LOG_INFO(logger_) << "OPC UA WS session resumed"
+    LOG_INFO(logger_) << "OPC UA session resumed"
                       << LOG_TAG("SessionId", session.session_id.ToString())
                       << LOG_TAG("AuthenticationToken",
                                  session.authentication_token.ToString())
@@ -96,7 +96,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
   std::optional<scada::AuthenticationResult> auth_result;
   if (!request.allow_anonymous) {
     if (!request.user_name.has_value() || !request.password.has_value()) {
-      LOG_WARNING(logger_) << "OPC UA WS session activation failed"
+      LOG_WARNING(logger_) << "OPC UA session activation failed"
                            << LOG_TAG("Reason", "MissingCredentials")
                            << LOG_TAG("SessionId", request.session_id.ToString())
                            << LOG_TAG("AuthenticationToken",
@@ -108,7 +108,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
     auto auth = co_await authenticator(std::move(*request.user_name),
                                        std::move(*request.password));
     if (!auth.ok()) {
-      LOG_WARNING(logger_) << "OPC UA WS session activation failed"
+      LOG_WARNING(logger_) << "OPC UA session activation failed"
                            << LOG_TAG("Reason", "AuthenticationFailed")
                            << LOG_TAG("SessionId", request.session_id.ToString())
                            << LOG_TAG("AuthenticationToken",
@@ -120,7 +120,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
     if (!auth_result->multi_sessions) {
       if (HasSessionForUser(auth_result->user_id)) {
         if (!request.delete_existing) {
-          LOG_WARNING(logger_) << "OPC UA WS session activation failed"
+          LOG_WARNING(logger_) << "OPC UA session activation failed"
                                << LOG_TAG("Reason", "UserAlreadyLoggedOn")
                                << LOG_TAG("SessionId", request.session_id.ToString())
                                << LOG_TAG("AuthenticationToken",
@@ -142,7 +142,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
   // cppcheck-suppress derefInvalidIteratorRedundantCheck
   auto& refreshed_session = session_it->second;
   if (refreshed_session.session_id != request.session_id) {
-    LOG_WARNING(logger_) << "OPC UA WS session activation failed"
+    LOG_WARNING(logger_) << "OPC UA session activation failed"
                          << LOG_TAG("Reason", "SessionMismatchAfterAuth")
                          << LOG_TAG("SessionId", request.session_id.ToString())
                          << LOG_TAG("AuthenticationToken",
@@ -162,7 +162,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
   refreshed_session.expires_at = Now() + refreshed_session.revised_timeout;
 
   if (auth_result.has_value()) {
-    LOG_INFO(logger_) << "OPC UA WS session activated"
+    LOG_INFO(logger_) << "OPC UA session activated"
                       << LOG_TAG("SessionId",
                                  refreshed_session.session_id.ToString())
                       << LOG_TAG("AuthenticationToken",
@@ -172,7 +172,7 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
                       << LOG_TAG("MultiSessions",
                                  auth_result->multi_sessions);
   } else {
-    LOG_INFO(logger_) << "OPC UA WS anonymous session activated"
+    LOG_INFO(logger_) << "OPC UA anonymous session activated"
                       << LOG_TAG("SessionId",
                                  refreshed_session.session_id.ToString())
                       << LOG_TAG("AuthenticationToken",
@@ -191,7 +191,7 @@ OpcUaCloseSessionResponse OpcUaSessionManager::CloseSession(
     OpcUaCloseSessionRequest request) {
   auto* session = FindSessionState(request.authentication_token);
   if (!session || session->session_id != request.session_id) {
-    LOG_WARNING(logger_) << "OPC UA WS session close failed"
+    LOG_WARNING(logger_) << "OPC UA session close failed"
                          << LOG_TAG("Reason", "SessionMissing")
                          << LOG_TAG("SessionId", request.session_id.ToString())
                          << LOG_TAG("AuthenticationToken",
@@ -199,7 +199,7 @@ OpcUaCloseSessionResponse OpcUaSessionManager::CloseSession(
     return {.status = SessionMissingStatus()};
   }
 
-  LOG_INFO(logger_) << "OPC UA WS session closed"
+  LOG_INFO(logger_) << "OPC UA session closed"
                     << LOG_TAG("SessionId", session->session_id.ToString())
                     << LOG_TAG("AuthenticationToken",
                                session->authentication_token.ToString())
@@ -213,7 +213,7 @@ void OpcUaSessionManager::DetachSession(
     const scada::NodeId& authentication_token) {
   if (auto* session = FindSessionState(authentication_token)) {
     session->attached = false;
-    LOG_INFO(logger_) << "OPC UA WS session detached"
+    LOG_INFO(logger_) << "OPC UA session detached"
                       << LOG_TAG("SessionId", session->session_id.ToString())
                       << LOG_TAG("AuthenticationToken",
                                  session->authentication_token.ToString());
@@ -225,7 +225,7 @@ void OpcUaSessionManager::PruneExpiredSessions() {
   std::erase_if(sessions_, [now_time](const auto& entry) {
     const auto expired = entry.second.expires_at <= now_time;
     if (expired) {
-      LOG_INFO(logger_) << "OPC UA WS session expired"
+      LOG_INFO(logger_) << "OPC UA session expired"
                         << LOG_TAG("SessionId", entry.second.session_id.ToString())
                         << LOG_TAG("AuthenticationToken",
                                    entry.second.authentication_token.ToString())
@@ -304,7 +304,7 @@ bool OpcUaSessionManager::RemoveSessionByUser(const scada::NodeId& user_id) {
   if (it == sessions_.end())
     return false;
 
-  LOG_INFO(logger_) << "OPC UA WS session removed for single-session user"
+  LOG_INFO(logger_) << "OPC UA session removed for single-session user"
                     << LOG_TAG("SessionId", it->second.session_id.ToString())
                     << LOG_TAG("AuthenticationToken",
                                it->second.authentication_token.ToString())
@@ -326,7 +326,7 @@ bool OpcUaSessionManager::HasSessionForUser(
 void OpcUaSessionManager::RemoveSessionByToken(
     const scada::NodeId& authentication_token) {
   if (auto* session = FindSessionState(authentication_token)) {
-    LOG_INFO(logger_) << "OPC UA WS session forgotten"
+    LOG_INFO(logger_) << "OPC UA session forgotten"
                       << LOG_TAG("SessionId", session->session_id.ToString())
                       << LOG_TAG("AuthenticationToken",
                                  session->authentication_token.ToString());

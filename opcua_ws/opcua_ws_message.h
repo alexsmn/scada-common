@@ -4,10 +4,16 @@
 
 namespace opcua_ws {
 
+using opcua::OpcUaActivateSessionRequest;
+using opcua::OpcUaActivateSessionResponse;
 using opcua::OpcUaCreateMonitoredItemsRequest;
 using opcua::OpcUaCreateMonitoredItemsResponse;
+using opcua::OpcUaCreateSessionRequest;
+using opcua::OpcUaCreateSessionResponse;
 using opcua::OpcUaCreateSubscriptionRequest;
 using opcua::OpcUaCreateSubscriptionResponse;
+using opcua::OpcUaCloseSessionRequest;
+using opcua::OpcUaCloseSessionResponse;
 using opcua::OpcUaDataChangeFilter;
 using opcua::OpcUaDataChangeNotification;
 using opcua::OpcUaDataChangeTrigger;
@@ -64,6 +70,8 @@ using OpcUaWsDataChangeTrigger = opcua::OpcUaDataChangeTrigger;
 using OpcUaWsDataChangeFilter = opcua::OpcUaDataChangeFilter;
 using OpcUaWsMonitoringFilter = opcua::OpcUaMonitoringFilter;
 using OpcUaWsMonitoringParameters = opcua::OpcUaMonitoringParameters;
+using OpcUaWsActivateSessionRequest = opcua::OpcUaActivateSessionRequest;
+using OpcUaWsActivateSessionResponse = opcua::OpcUaActivateSessionResponse;
 using OpcUaWsMonitoredItemCreateRequest =
     opcua::OpcUaMonitoredItemCreateRequest;
 using OpcUaWsMonitoredItemCreateResult = opcua::OpcUaMonitoredItemCreateResult;
@@ -71,6 +79,8 @@ using OpcUaWsMonitoredItemModifyRequest =
     opcua::OpcUaMonitoredItemModifyRequest;
 using OpcUaWsMonitoredItemModifyResult = opcua::OpcUaMonitoredItemModifyResult;
 using OpcUaWsSubscriptionParameters = opcua::OpcUaSubscriptionParameters;
+using OpcUaWsCreateSessionRequest = opcua::OpcUaCreateSessionRequest;
+using OpcUaWsCreateSessionResponse = opcua::OpcUaCreateSessionResponse;
 using OpcUaWsCreateSubscriptionRequest = opcua::OpcUaCreateSubscriptionRequest;
 using OpcUaWsCreateSubscriptionResponse =
     opcua::OpcUaCreateSubscriptionResponse;
@@ -95,6 +105,8 @@ using OpcUaWsDeleteMonitoredItemsRequest =
     opcua::OpcUaDeleteMonitoredItemsRequest;
 using OpcUaWsDeleteMonitoredItemsResponse =
     opcua::OpcUaDeleteMonitoredItemsResponse;
+using OpcUaWsCloseSessionRequest = opcua::OpcUaCloseSessionRequest;
+using OpcUaWsCloseSessionResponse = opcua::OpcUaCloseSessionResponse;
 using OpcUaWsSetMonitoringModeRequest = opcua::OpcUaSetMonitoringModeRequest;
 using OpcUaWsSetMonitoringModeResponse = opcua::OpcUaSetMonitoringModeResponse;
 using OpcUaWsSubscriptionAcknowledgement =

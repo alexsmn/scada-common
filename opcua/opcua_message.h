@@ -1,7 +1,7 @@
 #pragma once
 
+#include "opcua/opcua_server_session_manager.h"
 #include "opcua/opcua_service_message.h"
-#include "opcua_ws/opcua_ws_session_manager.h"
 
 #include <boost/json/value.hpp>
 

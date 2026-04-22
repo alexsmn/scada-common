@@ -1,9 +1,10 @@
 # OPC UA Binary and WS Unification Plan
 
 > Status: planning document for the remaining common-layer refactor.
-> Phase 2 runtime ownership and Phase 3 service-handler ownership are now
-> implemented; the remaining work is primarily WS-prefixed shared-session
-> naming cleanup, Binary adapter thinning, and cross-transport parity tests.
+> Phase 2 runtime ownership, Phase 3 service-handler ownership, and the
+> canonical shared session / subscription / session-manager ownership move are
+> now implemented. The remaining work is primarily Binary adapter thinning and
+> cross-transport parity tests.
 
 This document records the remaining unification gaps between the in-repo OPC UA
 Binary stack in `common/opcua/` and the OPC UA over WebSocket stack in
@@ -40,6 +41,11 @@ The codebase has already completed the first unification step:
   the compatibility alias back into `opcua_ws`
 - `common/opcua_ws/opcua_ws_session.h` defines a shared `opcua::OpcUaSession`
   and aliases it back into `opcua_ws`
+- `common/opcua/opcua_server_session_manager.{h,cpp}`,
+  `common/opcua/opcua_server_session.{h,cpp}`, and
+  `common/opcua/opcua_server_subscription.{h,cpp}` now physically own the
+  canonical shared server-side session / subscription implementation, with the
+  `common/opcua_ws/*` headers reduced to compatibility wrappers
 - `common/opcua/opcua_binary_runtime.h` already reuses that shared runtime and
   explicitly describes it as the canonical server-side core
 - `common/opcua/opcua_message.h` and `common/opcua/opcua_service_message.h`
@@ -117,23 +123,18 @@ adapter-facing aliases plus transport/codec concerns.
 
 ### 5. Session behavior uses WS terminology for generic semantics
 
-`common/opcua_ws/opcua_ws_session.h` owns behavior that is not actually WS-
- specific:
+This gap is now mostly closed:
 
-- subscription id ownership
-- publish fairness and acknowledgement handling
-- republish cache handling
-- browse continuation-point storage
-- transfer-subscription handoff
+- the canonical implementation lives in
+  `common/opcua/opcua_server_session_manager.{h,cpp}`,
+  `common/opcua/opcua_server_session.{h,cpp}`, and
+  `common/opcua/opcua_server_subscription.{h,cpp}`
+- `common/opcua_ws/opcua_ws_session_manager.h`,
+  `common/opcua_ws/opcua_ws_session.h`, and
+  `common/opcua_ws/opcua_ws_subscription.h` now serve as adapter-facing alias
+  wrappers only
 
-These are OPC UA session semantics, not WebSocket semantics.
-
-Impact:
-
-- the shared session core is harder to reason about as the canonical OPC UA
-  session state machine
-- Binary inherits generic behavior through WS naming rather than through a
-  shared OPC UA session model
+Remaining work in this area is compatibility cleanup, not core ownership.
 
 ### 6. Cross-transport parity tests are missing
 

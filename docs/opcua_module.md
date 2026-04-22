@@ -146,6 +146,9 @@ Files:
 - `common/opcua/opcua_message.h`
 - `common/opcua/opcua_service_message.h`
 - `common/opcua/opcua_service_handler.{h,cpp}`
+- `common/opcua/opcua_server_session_manager.{h,cpp}`
+- `common/opcua/opcua_server_session.{h,cpp}`
+- `common/opcua/opcua_server_subscription.{h,cpp}`
 - `common/opcua/opcua_runtime.{h,cpp}`
 - `common/opcua_ws/opcua_ws_runtime.h`
 
@@ -157,6 +160,9 @@ Responsibilities:
 - define the transport-neutral `opcua::OpcUaRequestBody` /
   `opcua::OpcUaResponseBody` model for session, subscription, publish, browse,
   and service operations
+- own the canonical shared server-session lifecycle, subscription runtime,
+  publish arbitration, republish cache, and browse continuation handling in
+  `common/opcua/`, with the WS module retaining compatibility aliases only
 - expose `opcua::OpcUaServiceHandler` as the shared coroutine dispatcher into
   `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and
   `NodeManagementService`

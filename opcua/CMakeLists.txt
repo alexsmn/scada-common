@@ -34,7 +34,7 @@ target_compile_options(scada_core_opcua PUBLIC
 
 target_link_libraries(scada_core_opcua PUBLIC
   scada_core
-  scada_common_opcua_ws
+  transport
 )
 
 add_library(scada_core_opcua_client
