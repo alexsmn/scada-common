@@ -381,7 +381,7 @@ OpcUaWsServiceFault DecodeServiceFault(const value& json) {
 
 }  // namespace
 
-boost::json::value EncodeJson(const OpcUaWsRequestMessage& request) {
+boost::json::value EncodeJson(const opcua::OpcUaRequestMessage& request) {
   return std::visit(
       [&](const auto& typed_request) -> value {
         object json;
@@ -431,7 +431,7 @@ boost::json::value EncodeJson(const OpcUaWsRequestMessage& request) {
           json["body"] = detail::EncodeSetMonitoringModeRequest(typed_request);
         } else {
           const auto service_json =
-              RequireObject(EncodeJson(OpcUaWsServiceRequest{typed_request}));
+              RequireObject(EncodeJson(opcua::OpcUaServiceRequest{typed_request}));
           json["service"] = service_json.at("service");
           json["body"] = service_json.at("body");
         }
@@ -440,7 +440,7 @@ boost::json::value EncodeJson(const OpcUaWsRequestMessage& request) {
       request.body);
 }
 
-boost::json::value EncodeJson(const OpcUaWsResponseMessage& response) {
+boost::json::value EncodeJson(const opcua::OpcUaResponseMessage& response) {
   return std::visit(
       [&](const auto& typed_response) -> value {
         object json;
@@ -493,7 +493,7 @@ boost::json::value EncodeJson(const OpcUaWsResponseMessage& response) {
           json["body"] = EncodeServiceFault(typed_response);
         } else {
           const auto service_json =
-              RequireObject(EncodeJson(OpcUaWsServiceResponse{typed_response}));
+              RequireObject(EncodeJson(opcua::OpcUaServiceResponse{typed_response}));
           json["service"] = service_json.at("service");
           json["body"] = service_json.at("body");
         }
@@ -502,11 +502,11 @@ boost::json::value EncodeJson(const OpcUaWsResponseMessage& response) {
       response.body);
 }
 
-OpcUaWsRequestMessage DecodeRequestMessage(const boost::json::value& json) {
+opcua::OpcUaRequestMessage DecodeRequestMessage(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   const auto service = RequireString(RequireField(obj, "service"));
-  OpcUaWsRequestMessage message{
+  opcua::OpcUaRequestMessage message{
       .request_handle = static_cast<scada::UInt32>(
           RequireUInt64(RequireField(obj, "requestHandle"))),
       .body = OpcUaWsCloseSessionRequest{},
@@ -541,7 +541,7 @@ OpcUaWsRequestMessage DecodeRequestMessage(const boost::json::value& json) {
     message.body = detail::DecodeSetMonitoringModeRequest(body);
   } else {
     message.body = std::visit(
-        [](auto&& typed_request) -> OpcUaWsRequestBody {
+        [](auto&& typed_request) -> opcua::OpcUaRequestBody {
           return std::forward<decltype(typed_request)>(typed_request);
         },
         DecodeServiceRequest(json));
@@ -549,11 +549,11 @@ OpcUaWsRequestMessage DecodeRequestMessage(const boost::json::value& json) {
   return message;
 }
 
-OpcUaWsResponseMessage DecodeResponseMessage(const boost::json::value& json) {
+opcua::OpcUaResponseMessage DecodeResponseMessage(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   const auto service = RequireString(RequireField(obj, "service"));
-  OpcUaWsResponseMessage message{
+  opcua::OpcUaResponseMessage message{
       .request_handle = static_cast<scada::UInt32>(
           RequireUInt64(RequireField(obj, "requestHandle"))),
       .body = OpcUaWsCloseSessionResponse{},
@@ -590,7 +590,7 @@ OpcUaWsResponseMessage DecodeResponseMessage(const boost::json::value& json) {
     message.body = DecodeServiceFault(body);
   } else {
     message.body = std::visit(
-        [](auto&& typed_response) -> OpcUaWsResponseBody {
+        [](auto&& typed_response) -> opcua::OpcUaResponseBody {
           return std::forward<decltype(typed_response)>(typed_response);
         },
         DecodeServiceResponse(json));

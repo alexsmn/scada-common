@@ -1484,7 +1484,7 @@ constexpr std::string_view RequestServiceName<DeleteReferencesRequest>() {
 
 }  // namespace
 
-boost::json::value EncodeJson(const OpcUaWsServiceRequest& request) {
+boost::json::value EncodeJson(const opcua::OpcUaServiceRequest& request) {
   return std::visit(
       [](const auto& typed_request) -> value {
         object json;
@@ -1530,7 +1530,7 @@ boost::json::value EncodeJson(const OpcUaWsServiceRequest& request) {
       request);
 }
 
-boost::json::value EncodeJson(const OpcUaWsServiceResponse& response) {
+boost::json::value EncodeJson(const opcua::OpcUaServiceResponse& response) {
   return std::visit(
       [](const auto& typed_response) -> value {
         object json;
@@ -1577,7 +1577,7 @@ boost::json::value EncodeJson(const OpcUaWsServiceResponse& response) {
       response);
 }
 
-OpcUaWsServiceRequest DecodeServiceRequest(const boost::json::value& json) {
+opcua::OpcUaServiceRequest DecodeServiceRequest(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));
@@ -1608,7 +1608,7 @@ OpcUaWsServiceRequest DecodeServiceRequest(const boost::json::value& json) {
   ThrowJsonError("Unknown service request");
 }
 
-OpcUaWsServiceResponse DecodeServiceResponse(const boost::json::value& json) {
+opcua::OpcUaServiceResponse DecodeServiceResponse(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));

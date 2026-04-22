@@ -8,7 +8,10 @@
 > directly through the shared runtime, with only Binary header/session-token
 > adaptation and the `HistoryReadEvents` response-encoding special case
 > remaining outside the core. The remaining work is primarily finishing Binary
-> wire-only cleanup and broadening cross-transport parity tests.
+> wire-only cleanup and broadening cross-transport parity tests. The WS
+> UA-JSON codec/runtime boundary now also consumes and produces the canonical
+> `opcua::` request/response/envelope types directly, with `OpcUaWs*` names
+> retained only as compatibility aliases.
 
 This document records the remaining unification gaps between the in-repo OPC UA
 Binary stack in `common/opcua/` and the OPC UA over WebSocket stack in
@@ -58,6 +61,11 @@ The codebase has already completed the first unification step:
 - `common/opcua/opcua_service_handler.{h,cpp}` now own the canonical coroutine
   service dispatcher, while the WS module retains only adapter-facing alias
   surfaces and transport/codec code
+- `common/opcua_ws/opcua_json_codec.{h,cpp}` and
+  `common/opcua_ws/opcua_ws_message_codec.cpp` now consume and produce the
+  canonical `opcua::OpcUaServiceRequest`, `opcua::OpcUaServiceResponse`,
+  `opcua::OpcUaRequestMessage`, and `opcua::OpcUaResponseMessage` types
+  directly, with `OpcUaWs*` spellings left as compatibility aliases
 
 So the direction is correct. The remaining work is mostly about removing the
 last WS-shaped session/subscription naming from the shared core, finishing the
@@ -71,15 +79,12 @@ The common runtime and session core live in `namespace opcua`, but many of the
 canonical request/response types still originate from
 `common/opcua_ws/opcua_ws_message.h` and are imported upward.
 
-Examples:
+Examples still to clean up:
 
 - `common/opcua/opcua_binary_message.h` aliases almost all Binary service types
   directly to `opcua_ws::*`
-- `common/opcua_ws/opcua_ws_session.h` exposes shared session behavior in
-  `namespace opcua`, but the public API still speaks `OpcUaWs*` request and
-  response types
-- `common/opcua_ws/opcua_ws_runtime.h` exposes `OpcUaRuntime`, yet its handle
-  surface is still `OpcUaWsRequestMessage` and `OpcUaWsResponseMessage`
+- some WS compatibility headers still re-export the canonical model under
+  `OpcUaWs*` names for downstream compatibility
 
 Impact:
 
@@ -90,14 +95,13 @@ Impact:
 
 ### 2. The runtime contract is still WS envelope shaped
 
-`common/opcua_ws/opcua_ws_runtime.cpp` handles a WS request envelope and returns
-a WS response envelope body. Binary then adapts itself to that runtime through
+The shared runtime itself is now canonical, and the WS UA-JSON codec/server
+boundary now uses canonical request/response/envelope types directly. Binary
+still adapts itself through
 `common/opcua/opcua_binary_runtime.cpp`.
 
 Impact:
 
-- the core still thinks in terms of WS message variants instead of canonical
-  service operations
 - Binary is a second-class adapter around a WS-first core instead of a peer
 
 ### 3. Binary request dispatch still duplicates adapter logic

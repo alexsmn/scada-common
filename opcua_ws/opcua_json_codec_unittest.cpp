@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <optional>
+#include <type_traits>
 
 using namespace testing;
 
@@ -205,6 +206,59 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
       DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{translate})));
   ASSERT_EQ(decoded_translate.inputs.size(), 1u);
   EXPECT_EQ(decoded_translate.inputs[0], translate.inputs[0]);
+}
+
+TEST(OpcUaJsonCodecTest, ExposesCanonicalCodecSurfaceAlongsideWsAliases) {
+  static_assert(std::is_same_v<decltype(EncodeJson(
+                                  std::declval<const opcua::OpcUaServiceRequest&>())),
+                               boost::json::value>);
+  static_assert(std::is_same_v<decltype(EncodeJson(
+                                  std::declval<const opcua::OpcUaServiceResponse&>())),
+                               boost::json::value>);
+  static_assert(std::is_same_v<decltype(EncodeJson(
+                                  std::declval<const opcua::OpcUaRequestMessage&>())),
+                               boost::json::value>);
+  static_assert(std::is_same_v<decltype(EncodeJson(
+                                  std::declval<const opcua::OpcUaResponseMessage&>())),
+                               boost::json::value>);
+  static_assert(
+      std::is_same_v<decltype(DecodeServiceRequest(std::declval<const boost::json::value&>())),
+                     opcua::OpcUaServiceRequest>);
+  static_assert(
+      std::is_same_v<decltype(DecodeServiceResponse(std::declval<const boost::json::value&>())),
+                     opcua::OpcUaServiceResponse>);
+  static_assert(
+      std::is_same_v<decltype(DecodeRequestMessage(std::declval<const boost::json::value&>())),
+                     opcua::OpcUaRequestMessage>);
+  static_assert(
+      std::is_same_v<decltype(DecodeResponseMessage(std::declval<const boost::json::value&>())),
+                     opcua::OpcUaResponseMessage>);
+}
+
+TEST(OpcUaJsonCodecTest, RoundTripsCanonicalEnvelopeTypes) {
+  const opcua::OpcUaRequestMessage request{
+      .request_handle = 91,
+      .body = opcua::ReadRequest{
+          .inputs = {{.node_id = NumericNode(9),
+                      .attribute_id = scada::AttributeId::BrowseName}}}};
+  const auto decoded_request = DecodeRequestMessage(EncodeJson(request));
+  EXPECT_EQ(decoded_request.request_handle, request.request_handle);
+  const auto* decoded_read = std::get_if<opcua::ReadRequest>(&decoded_request.body);
+  ASSERT_NE(decoded_read, nullptr);
+  ASSERT_EQ(decoded_read->inputs.size(), 1u);
+  EXPECT_EQ(decoded_read->inputs[0], std::get<opcua::ReadRequest>(request.body).inputs[0]);
+
+  const opcua::OpcUaResponseMessage response{
+      .request_handle = 92,
+      .body = opcua::OpcUaServiceFault{
+          .status = scada::StatusCode::Bad_CantParseString}};
+  const auto decoded_response = DecodeResponseMessage(EncodeJson(response));
+  EXPECT_EQ(decoded_response.request_handle, response.request_handle);
+  const auto* decoded_fault =
+      std::get_if<opcua::OpcUaServiceFault>(&decoded_response.body);
+  ASSERT_NE(decoded_fault, nullptr);
+  EXPECT_EQ(decoded_fault->status.code(),
+            scada::StatusCode::Bad_CantParseString);
 }
 
 TEST(OpcUaJsonCodecTest, RequestWireShapeUsesSpecFieldNames) {

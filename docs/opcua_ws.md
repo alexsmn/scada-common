@@ -28,7 +28,11 @@
 > between session instances. The canonical shared runtime contract now lives in
 > `opcua::OpcUaRuntime` and `opcua::OpcUaServiceHandler` under
 > `common/opcua/`, while `common/opcua_ws/` retains alias headers and the
-> UA-JSON/WebSocket adapter boundary. That shared runtime now routes decoded
+> UA-JSON/WebSocket adapter boundary. The WS JSON codec and server loop now
+> consume and produce the canonical `opcua::OpcUaServiceRequest`,
+> `opcua::OpcUaServiceResponse`, `opcua::OpcUaRequestMessage`, and
+> `opcua::OpcUaResponseMessage` surfaces directly, with `OpcUaWs*` spellings
+> retained only as compatibility aliases. That shared runtime now routes decoded
 > request bodies through `opcua::OpcUaSessionManager`, `opcua::OpcUaSession`,
 > and the common coroutine service handler, including detach/resume and
 > subscription transfer ownership tracking across live sessions. A
@@ -134,7 +138,7 @@ core:
 | `common/opcua/opcua_runtime.{h,cpp}` + `common/opcua_ws/opcua_ws_runtime.h` | Canonical shared runtime plus WS compatibility alias: transport-neutral request-body routing, shared connection state, and session/subscription ownership tracking |
 | `common/opcua/opcua_server_session_manager.{h,cpp}` + `common/opcua_ws/opcua_ws_session_manager.h` | Canonical transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement, with the WS header retained as an alias wrapper |
 | `common/opcua/opcua_server_subscription.{h,cpp}` + `common/opcua_ws/opcua_ws_subscription.h` | Canonical `opcua::OpcUaSubscription` publish queue, keep-alive timer, and data-change delivery, with the WS header retained as an alias wrapper |
-| `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
+| `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; consumes and produces the canonical `opcua::` request/response/envelope types while preserving `OpcUaWs*` alias compatibility, and reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
 | `common/opcua/opcua_message.h` + `common/opcua/opcua_service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters |
 | `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` + `common/opcua_ws/opcua_ws_publish_message_codec.cpp` | WS alias layer plus UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the Phase 1 subscription / publish / monitored-item payloads |
 | `common/opcua/opcua_service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
@@ -151,8 +155,8 @@ the TCP endpoint already closes over:
 - `NodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
 
 No business logic is reimplemented. The WS endpoint is decode-JSON envelope →
-canonical `opcua::OpcUaRequestBody` → shared runtime/service handler →
-encode-JSON envelope.
+canonical `opcua::OpcUaRequestMessage` / `opcua::OpcUaRequestBody` → shared
+runtime/service handler → canonical response envelope → encode-JSON envelope.
 
 ## Framing
 
