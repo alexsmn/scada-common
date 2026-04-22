@@ -4,12 +4,11 @@
 > Phase 2 runtime ownership, Phase 3 service-handler ownership, and the
 > canonical shared session / subscription / session-manager ownership move are
 > now implemented. Binary adapter thinning has also advanced: the Binary
-> dispatcher now routes typed session requests through a small Binary-only
-> header/session-token adapter and keeps the remaining authenticated service
-> dispatch in one shared visitor, with `HistoryReadEvents` retained as a
-> Binary-only response-encoding special case. The remaining work is primarily
-> finishing Binary wire-only cleanup and broadening cross-transport parity
-> tests.
+> dispatcher now handles all session and authenticated service requests
+> directly through the shared runtime, with only Binary header/session-token
+> adaptation and the `HistoryReadEvents` response-encoding special case
+> remaining outside the core. The remaining work is primarily finishing Binary
+> wire-only cleanup and broadening cross-transport parity tests.
 
 This document records the remaining unification gaps between the in-repo OPC UA
 Binary stack in `common/opcua/` and the OPC UA over WebSocket stack in
@@ -103,9 +102,8 @@ Impact:
 
 ### 3. Binary request dispatch still duplicates adapter logic
 
-`common/opcua/opcua_binary_service_dispatcher.cpp` and
-`common/opcua/opcua_binary_session_service.cpp` contain a Binary-specific
-dispatch shell for:
+`common/opcua/opcua_binary_service_dispatcher.cpp` still contains a
+Binary-specific adapter shell for:
 
 - authenticated request gating
 - session request special-casing
@@ -119,9 +117,9 @@ Current state:
 
 - the Binary dispatcher now uses one typed visitor for authenticated runtime
   calls instead of a long per-request overload shell
-- Binary session create / activate / close now live behind explicit typed
-  adapter methods that only fill in request-header/session-token data before
-  calling the shared runtime
+- Binary session create / activate / close now live in that same dispatcher as
+  explicit typed adapter methods that only fill in request-header/session-token
+  data before calling the shared runtime
 - `HistoryReadEvents` remains the main Binary-only response path because the
   Binary codec needs event-field-path context during encoding
 
@@ -284,8 +282,7 @@ Make Binary own Binary protocol details, not duplicated semantic policy.
 
 Implementation:
 
-- reduce `opcua_binary_service_dispatcher` and
-  `opcua_binary_session_service` to:
+- reduce `opcua_binary_service_dispatcher` to:
   decode Binary request, map to canonical request, invoke runtime, encode
   Binary response
 - keep only true Binary-specific exceptions there, such as request-header

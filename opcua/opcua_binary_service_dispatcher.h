@@ -3,7 +3,6 @@
 #include "base/awaitable.h"
 #include "opcua/opcua_binary_service_codec.h"
 #include "opcua/opcua_binary_runtime.h"
-#include "opcua/opcua_binary_session_service.h"
 #include "opcua/opcua_server_session_manager.h"
 
 namespace opcua {
@@ -16,12 +15,30 @@ class OpcUaBinaryServiceDispatcher {
     OpcUaBinaryConnectionState& connection;
   };
 
- explicit OpcUaBinaryServiceDispatcher(Context context);
+  explicit OpcUaBinaryServiceDispatcher(Context context);
 
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandlePayload(
       std::vector<char> payload);
 
  private:
+  template <typename Response>
+  [[nodiscard]] static std::optional<std::vector<char>> EncodeResponse(
+      scada::UInt32 request_handle,
+      Response response) {
+    return EncodeOpcUaBinaryServiceResponse(
+        request_handle, OpcUaBinaryResponseBody{std::move(response)});
+  }
+
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleSessionRequest(
+      scada::UInt32 request_handle,
+      OpcUaBinaryCreateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleSessionRequest(
+      const OpcUaBinaryServiceRequestHeader& header,
+      OpcUaBinaryActivateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleSessionRequest(
+      const OpcUaBinaryServiceRequestHeader& header,
+      OpcUaBinaryCloseSessionRequest request);
+
   template <typename Response, typename Request, typename Encoder>
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>>
   HandleAuthenticatedRequest(const OpcUaBinaryDecodedRequest& request,
@@ -45,16 +62,15 @@ class OpcUaBinaryServiceDispatcher {
   HandleAuthenticatedRequest(const OpcUaBinaryDecodedRequest& request,
                              Request typed_request) {
     auto encode = [](scada::UInt32 request_handle, Response response) {
-      return EncodeOpcUaBinaryServiceResponse(
-          request_handle, OpcUaBinaryResponseBody{std::move(response)});
+      return EncodeResponse(request_handle, std::move(response));
     };
     co_return co_await HandleAuthenticatedRequest<Response>(
         request, std::move(typed_request), std::move(encode));
   }
 
   OpcUaBinaryRuntime& runtime_;
+  OpcUaSessionManager& session_manager_;
   OpcUaBinaryConnectionState& connection_;
-  OpcUaBinarySessionService session_service_;
 };
 
 }  // namespace opcua

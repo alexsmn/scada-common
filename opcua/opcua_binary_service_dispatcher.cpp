@@ -13,10 +13,52 @@ constexpr bool kIsSessionRequest =
 
 OpcUaBinaryServiceDispatcher::OpcUaBinaryServiceDispatcher(Context context)
     : runtime_{context.runtime},
-      connection_{context.connection},
-      session_service_{{.runtime = context.runtime,
-                        .session_manager = context.session_manager,
-                        .connection = context.connection}} {}
+      session_manager_{context.session_manager},
+      connection_{context.connection} {}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleSessionRequest(
+    scada::UInt32 request_handle,
+    OpcUaBinaryCreateSessionRequest request) {
+  auto response = co_await runtime_.Handle<OpcUaBinaryCreateSessionResponse>(
+      connection_, std::move(request));
+  co_return EncodeResponse(request_handle, std::move(response));
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleSessionRequest(
+    const OpcUaBinaryServiceRequestHeader& header,
+    OpcUaBinaryActivateSessionRequest request) {
+  const auto session = session_manager_.FindSession(header.authentication_token);
+  if (!session.has_value()) {
+    co_return std::nullopt;
+  }
+
+  request.session_id = session->session_id;
+  request.authentication_token = header.authentication_token;
+  auto response = co_await runtime_.Handle<OpcUaBinaryActivateSessionResponse>(
+      connection_, std::move(request));
+  co_return EncodeResponse(header.request_handle, std::move(response));
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleSessionRequest(
+    const OpcUaBinaryServiceRequestHeader& header,
+    OpcUaBinaryCloseSessionRequest request) {
+  const auto session = session_manager_.FindSession(header.authentication_token);
+  if (!session.has_value()) {
+    co_return EncodeResponse(
+        header.request_handle,
+        OpcUaBinaryCloseSessionResponse{
+            .status = scada::StatusCode::Bad_SessionIsLoggedOff});
+  }
+
+  request.session_id = session->session_id;
+  request.authentication_token = header.authentication_token;
+  auto response = co_await runtime_.Handle<OpcUaBinaryCloseSessionResponse>(
+      connection_, std::move(request));
+  co_return EncodeResponse(header.request_handle, std::move(response));
+}
 
 Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::HandlePayload(
     std::vector<char> payload) {
@@ -30,16 +72,15 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
           -> Awaitable<std::optional<std::vector<char>>> {
         using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, OpcUaBinaryCreateSessionRequest>) {
-          co_return co_await session_service_.HandleRequest(
+          co_return co_await HandleSessionRequest(
               request->header.request_handle, std::move(typed_request));
         } else if constexpr (std::is_same_v<T,
                                             OpcUaBinaryActivateSessionRequest>) {
-          co_return co_await session_service_.HandleRequest(
+          co_return co_await HandleSessionRequest(
               request->header, std::move(typed_request));
         } else if constexpr (std::is_same_v<T, OpcUaBinaryCloseSessionRequest>) {
-          co_return co_await session_service_.HandleCloseRequest(
-              request->header.request_handle,
-              request->header.authentication_token);
+          co_return co_await HandleSessionRequest(request->header,
+                                                  std::move(typed_request));
         } else if constexpr (std::is_same_v<T,
                                             OpcUaBinaryBrowseNextRequest>) {
           co_return co_await

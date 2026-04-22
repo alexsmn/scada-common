@@ -57,19 +57,18 @@ class OpcUaBinaryRuntimeTest : public Test {
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       OpcUaBinaryConnectionState& connection) {
-    const auto created = WaitAwaitable(
-        executor_, runtime_->CreateSession(OpcUaBinaryCreateSessionRequest{}));
+    const auto created = Handle<OpcUaBinaryCreateSessionResponse>(
+        connection, OpcUaBinaryCreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
-    const auto activated = WaitAwaitable(
-        executor_,
-        runtime_->ActivateSession(
-            connection, OpcUaBinaryActivateSessionRequest{
-                            .session_id = created.session_id,
-                            .authentication_token = created.authentication_token,
-                            .user_name = scada::LocalizedText{u"operator"},
-                            .password = scada::LocalizedText{u"secret"},
-                        }));
+    const auto activated = Handle<OpcUaBinaryActivateSessionResponse>(
+        connection,
+        OpcUaBinaryActivateSessionRequest{
+            .session_id = created.session_id,
+            .authentication_token = created.authentication_token,
+            .user_name = scada::LocalizedText{u"operator"},
+            .password = scada::LocalizedText{u"secret"},
+        });
     EXPECT_EQ(activated.status.code(), scada::StatusCode::Good);
     EXPECT_FALSE(activated.resumed);
     return {created.session_id, created.authentication_token};
@@ -174,14 +173,12 @@ TEST_F(OpcUaBinaryRuntimeTest,
   EXPECT_FALSE(first_connection.authentication_token.has_value());
 
   OpcUaBinaryConnectionState second_connection;
-  const auto resumed = WaitAwaitable(
-      executor_,
-      runtime_->ActivateSession(second_connection,
-                                OpcUaBinaryActivateSessionRequest{
-                                    .session_id = session_id,
-                                    .authentication_token =
-                                        authentication_token,
-                                }));
+  const auto resumed = Handle<OpcUaBinaryActivateSessionResponse>(
+      second_connection,
+      OpcUaBinaryActivateSessionRequest{
+          .session_id = session_id,
+          .authentication_token = authentication_token,
+      });
   EXPECT_EQ(resumed.status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(resumed.resumed);
 
@@ -262,13 +259,12 @@ TEST_F(OpcUaBinaryRuntimeTest, CloseSessionClearsAttachedState) {
   OpcUaBinaryConnectionState connection;
   const auto [session_id, authentication_token] = CreateAndActivate(connection);
 
-  const auto closed = WaitAwaitable(
-      executor_, runtime_->CloseSession(connection,
-                                        OpcUaBinaryCloseSessionRequest{
-                                            .session_id = session_id,
-                                            .authentication_token =
-                                                authentication_token,
-                                        }));
+  const auto closed = Handle<OpcUaBinaryCloseSessionResponse>(
+      connection,
+      OpcUaBinaryCloseSessionRequest{
+          .session_id = session_id,
+          .authentication_token = authentication_token,
+      });
   EXPECT_EQ(closed.status.code(), scada::StatusCode::Good);
   EXPECT_FALSE(connection.authentication_token.has_value());
 

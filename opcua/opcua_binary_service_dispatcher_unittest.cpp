@@ -1786,6 +1786,43 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesActivateAndCloseSessionOverBinaryPayload) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+  const auto activate_status =
+      DecodeResponseStatus(*activated, kActivateSessionResponseBinaryEncodingId);
+  ASSERT_TRUE(activate_status.has_value());
+  EXPECT_EQ(*activate_status, 0u);
+  ASSERT_TRUE(connection_.authentication_token.has_value());
+  EXPECT_EQ(*connection_.authentication_token, session->authentication_token);
+
+  const auto closed = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(
+          EncodeCloseSessionRequestBody(3, session->authentication_token)));
+  ASSERT_TRUE(closed.has_value());
+  const auto close_status =
+      DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
+  ASSERT_TRUE(close_status.has_value());
+  EXPECT_EQ(*close_status, 0u);
+  EXPECT_FALSE(connection_.authentication_token.has_value());
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
        HandlesReadAfterActivatedSession) {
   OpcUaBinaryServiceDispatcher dispatcher{
       {.runtime = runtime_,

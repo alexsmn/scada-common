@@ -46,15 +46,6 @@ class OpcUaBinaryRuntime {
  public:
   explicit OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaBinaryCreateSessionResponse> CreateSession(
-      OpcUaBinaryCreateSessionRequest request = {});
-  [[nodiscard]] Awaitable<OpcUaBinaryActivateSessionResponse> ActivateSession(
-      OpcUaBinaryConnectionState& connection,
-      OpcUaBinaryActivateSessionRequest request);
-  [[nodiscard]] Awaitable<OpcUaBinaryCloseSessionResponse> CloseSession(
-      OpcUaBinaryConnectionState& connection,
-      OpcUaBinaryCloseSessionRequest request);
-
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<Response> Handle(OpcUaBinaryConnectionState& connection,
                                            Request request) {
@@ -76,7 +67,6 @@ class OpcUaBinaryRuntime {
       OpcUaBinaryConnectionState& connection,
       OpcUaBinaryRequestBody request);
 
-  OpcUaSessionManager& session_manager_;
   OpcUaRuntime runtime_;
 };
 

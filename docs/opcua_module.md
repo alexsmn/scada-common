@@ -166,8 +166,8 @@ Responsibilities:
 - keep WS-specific envelope handling outside the runtime so Binary and WS meet
   the same semantic core at the same abstraction layer
 - keep the remaining Binary-specific adapter layer in
-  `opcua_binary_service_dispatcher` / `opcua_binary_session_service` focused on
-  request-header translation, session-token lookup, and the few response
+  `opcua_binary_service_dispatcher` focused on request-header translation,
+  session-token lookup for session activation / close, and the few response
   encoders that still need Binary-only wire metadata such as
   `HistoryReadEvents`
 
