@@ -29,6 +29,8 @@ constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
 constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
+constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
+constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
 constexpr std::uint32_t kReadResponseBinaryEncodingId = 632;
 constexpr std::uint32_t kWriteRequestBinaryEncodingId = 671;
@@ -110,19 +112,28 @@ base::Time ParseTime(std::string_view value) {
 
 using binary::AppendByteString;
 using binary::AppendDouble;
+using binary::AppendBoolean;
+using binary::AppendExpandedNodeId;
 using binary::AppendInt32;
 using binary::AppendInt64;
+using binary::AppendLocalizedText;
 using binary::AppendMessage;
 using binary::AppendNumericNodeId;
+using binary::AppendQualifiedName;
 using binary::AppendUaString;
 using binary::AppendUInt8;
 using binary::AppendUInt16;
 using binary::AppendUInt32;
 using binary::ReadDouble;
+using binary::ReadBoolean;
+using binary::ReadByteString;
+using binary::ReadExpandedNodeId;
 using binary::ReadInt32;
 using binary::ReadInt64;
+using binary::ReadLocalizedText;
 using binary::ReadMessage;
 using binary::ReadNumericNodeId;
+using binary::ReadQualifiedName;
 using binary::ReadUInt8;
 using binary::ReadUInt16;
 using binary::ReadUInt32;
@@ -259,6 +270,30 @@ std::vector<char> EncodeWriteRequestBody(std::uint32_t request_handle,
   return body;
 }
 
+std::vector<char> EncodeBrowseRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    const scada::BrowseDescription& browse_description) {
+  std::vector<char> payload;
+  AppendRequestHeader(payload, authentication_token, request_handle);
+  AppendNumericNodeId(payload, scada::NodeId{});
+  AppendInt64(payload, 0);
+  AppendUInt32(payload, 0);
+  AppendUInt32(payload, 0);
+  AppendInt32(payload, 1);
+  AppendNumericNodeId(payload, browse_description.node_id);
+  AppendUInt32(payload,
+               static_cast<std::uint32_t>(browse_description.direction));
+  AppendNumericNodeId(payload, browse_description.reference_type_id);
+  AppendBoolean(payload, browse_description.include_subtypes);
+  AppendUInt32(payload, 0);
+  AppendUInt32(payload, 0);
+
+  std::vector<char> body;
+  AppendMessage(body, kBrowseRequestBinaryEncodingId, payload);
+  return body;
+}
+
 std::string AsString(const std::vector<char>& bytes) {
   return {bytes.begin(), bytes.end()};
 }
@@ -378,6 +413,63 @@ std::optional<std::uint32_t> DecodeSingleWriteResponseStatus(
     return std::nullopt;
   }
   return result_status;
+}
+
+std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
+    const std::vector<char>& payload) {
+  const auto message = ReadMessage(payload);
+  if (!message.has_value() || message->first != kBrowseResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  const auto& body = message->second;
+
+  std::size_t offset = 0;
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  if (!ReadInt64(body, offset, ignored_timestamp) ||
+      !ReadUInt32(body, offset, ignored_request_handle) ||
+      !ReadUInt32(body, offset, ignored_status) ||
+      !ReadUInt8(body, offset, ignored_byte) ||
+      !ReadInt32(body, offset, ignored_array) ||
+      !ReadNumericNodeId(body, offset, ignored_header_extension) ||
+      !ReadUInt8(body, offset, ignored_byte)) {
+    return std::nullopt;
+  }
+
+  std::int32_t result_count = 0;
+  std::uint32_t result_status = 0;
+  scada::ByteString ignored_continuation_point;
+  std::int32_t reference_count = 0;
+  scada::NodeId reference_type_id;
+  bool forward = false;
+  scada::ExpandedNodeId target_id;
+  scada::QualifiedName ignored_browse_name;
+  scada::LocalizedText ignored_display_name;
+  std::uint32_t ignored_node_class = 0;
+  scada::ExpandedNodeId ignored_type_definition;
+  if (!ReadInt32(body, offset, result_count) || result_count != 1 ||
+      !ReadUInt32(body, offset, result_status) ||
+      !ReadByteString(body, offset, ignored_continuation_point) ||
+      !ReadInt32(body, offset, reference_count) || reference_count != 1 ||
+      !ReadNumericNodeId(body, offset, reference_type_id) ||
+      !ReadBoolean(body, offset, forward) ||
+      !ReadExpandedNodeId(body, offset, target_id) ||
+      !ReadQualifiedName(body, offset, ignored_browse_name) ||
+      !ReadLocalizedText(body, offset, ignored_display_name) ||
+      !ReadUInt32(body, offset, ignored_node_class) ||
+      !ReadExpandedNodeId(body, offset, ignored_type_definition)) {
+    return std::nullopt;
+  }
+
+  return scada::ReferenceDescription{
+      .reference_type_id = reference_type_id,
+      .forward = forward,
+      .node_id = target_id.node_id(),
+  };
 }
 
 class TestMonitoredItemService : public scada::MonitoredItemService {
@@ -627,6 +719,57 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
   const auto status = DecodeSingleWriteResponseStatus(*written);
   ASSERT_TRUE(status.has_value());
   EXPECT_EQ(*status, 0u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const scada::BrowseDescription browse_description{
+      .node_id = NumericNode(12),
+      .direction = scada::BrowseDirection::Forward,
+      .reference_type_id = NumericNode(45),
+      .include_subtypes = false,
+  };
+  EXPECT_CALL(view_service_, Browse(_, _, _))
+      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+                           const std::vector<scada::BrowseDescription>& inputs,
+                           const scada::BrowseCallback& callback) {
+        EXPECT_EQ(context.user_id(), expected_user_id_);
+        ASSERT_EQ(inputs.size(), 1u);
+        EXPECT_EQ(inputs[0], browse_description);
+        callback(scada::StatusCode::Good,
+                 {scada::BrowseResult{
+                     .status_code = scada::StatusCode::Good,
+                     .references = {{.reference_type_id = NumericNode(46),
+                                     .forward = true,
+                                     .node_id = NumericNode(99)}}}});
+      }));
+
+  const auto browsed = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeBrowseRequestBody(
+          3, session->authentication_token, browse_description)));
+  ASSERT_TRUE(browsed.has_value());
+  const auto reference = DecodeSingleBrowseReference(*browsed);
+  ASSERT_TRUE(reference.has_value());
+  EXPECT_EQ(reference->reference_type_id, NumericNode(46));
+  EXPECT_TRUE(reference->forward);
+  EXPECT_EQ(reference->node_id, NumericNode(99));
 }
 
 }  // namespace

@@ -1,5 +1,6 @@
 #include "opcua/opcua_binary_session_service.h"
 #include "opcua/opcua_binary_codec_utils.h"
+#include "opcua/opcua_binary_service_codec.h"
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
@@ -258,8 +259,11 @@ class OpcUaBinarySessionServiceTest : public ::testing::Test {
 };
 
 TEST_F(OpcUaBinarySessionServiceTest, HandlesCreateSessionOverBinaryPayload) {
+  const auto request =
+      DecodeOpcUaBinaryServiceRequest(EncodeCreateSessionRequestBody(7, 45000));
+  ASSERT_TRUE(request.has_value());
   const auto response = WaitAwaitable(
-      executor_, service_.HandlePayload(EncodeCreateSessionRequestBody(7, 45000)));
+      executor_, service_.HandleRequest(std::move(*request)));
   ASSERT_TRUE(response.has_value());
 
   const auto decoded = DecodeCreateSessionResponseBody(*response);
@@ -272,26 +276,32 @@ TEST_F(OpcUaBinarySessionServiceTest, HandlesCreateSessionOverBinaryPayload) {
 
 TEST_F(OpcUaBinarySessionServiceTest,
        ActivatesAndClosesSessionOverBinaryPayload) {
+  auto create_request =
+      DecodeOpcUaBinaryServiceRequest(EncodeCreateSessionRequestBody(1, 45000));
+  ASSERT_TRUE(create_request.has_value());
   const auto created = WaitAwaitable(
-      executor_, service_.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+      executor_, service_.HandleRequest(std::move(*create_request)));
   ASSERT_TRUE(created.has_value());
   const auto decoded_create = DecodeCreateSessionResponseBody(*created);
   ASSERT_TRUE(decoded_create.has_value());
 
+  auto activate_request = DecodeOpcUaBinaryServiceRequest(
+      EncodeUserNameActivateRequestBody(
+          2, decoded_create->authentication_token, "operator", "secret"));
+  ASSERT_TRUE(activate_request.has_value());
   const auto activated = WaitAwaitable(
-      executor_,
-      service_.HandlePayload(EncodeUserNameActivateRequestBody(
-          2, decoded_create->authentication_token, "operator", "secret")));
+      executor_, service_.HandleRequest(std::move(*activate_request)));
   ASSERT_TRUE(activated.has_value());
   const auto activate_status =
       DecodeResponseStatus(*activated, kActivateSessionResponseBinaryEncodingId);
   ASSERT_TRUE(activate_status.has_value());
   EXPECT_EQ(*activate_status, 0u);
 
+  auto close_request = DecodeOpcUaBinaryServiceRequest(
+      EncodeCloseSessionRequestBody(3, decoded_create->authentication_token));
+  ASSERT_TRUE(close_request.has_value());
   const auto closed = WaitAwaitable(
-      executor_,
-      service_.HandlePayload(
-          EncodeCloseSessionRequestBody(3, decoded_create->authentication_token)));
+      executor_, service_.HandleRequest(std::move(*close_request)));
   ASSERT_TRUE(closed.has_value());
   const auto close_status =
       DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);

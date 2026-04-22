@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "opcua/opcua_binary_service_codec.h"
 #include "opcua/opcua_binary_runtime.h"
 #include "opcua_ws/opcua_ws_session_manager.h"
 
@@ -16,8 +17,8 @@ class OpcUaBinarySessionService {
 
   explicit OpcUaBinarySessionService(Context context);
 
-  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandlePayload(
-      std::vector<char> payload);
+  [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleRequest(
+      OpcUaBinaryDecodedRequest request);
 
  private:
   OpcUaBinaryRuntime& runtime_;

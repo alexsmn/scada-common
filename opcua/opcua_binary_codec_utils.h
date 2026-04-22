@@ -1,7 +1,10 @@
 #pragma once
 
 #include "scada/basic_types.h"
+#include "scada/expanded_node_id.h"
+#include "scada/localized_text.h"
 #include "scada/node_id.h"
+#include "scada/qualified_name.h"
 
 #include <cstdint>
 #include <optional>
@@ -14,6 +17,7 @@ namespace opcua::binary {
 void AppendUInt8(std::vector<char>& bytes, std::uint8_t value);
 void AppendUInt16(std::vector<char>& bytes, std::uint16_t value);
 void AppendUInt32(std::vector<char>& bytes, std::uint32_t value);
+void AppendBoolean(std::vector<char>& bytes, bool value);
 void AppendInt32(std::vector<char>& bytes, std::int32_t value);
 void AppendInt64(std::vector<char>& bytes, std::int64_t value);
 void AppendDouble(std::vector<char>& bytes, double value);
@@ -27,6 +31,9 @@ bool ReadUInt16(const std::vector<char>& bytes,
 bool ReadUInt32(const std::vector<char>& bytes,
                 std::size_t& offset,
                 std::uint32_t& value);
+bool ReadBoolean(const std::vector<char>& bytes,
+                 std::size_t& offset,
+                 bool& value);
 bool ReadInt32(const std::vector<char>& bytes,
                std::size_t& offset,
                std::int32_t& value);
@@ -41,6 +48,16 @@ void AppendUaString(std::vector<char>& bytes, std::string_view value);
 bool ReadUaString(const std::vector<char>& bytes,
                   std::size_t& offset,
                   std::string& value);
+void AppendQualifiedName(std::vector<char>& bytes,
+                         const scada::QualifiedName& value);
+bool ReadQualifiedName(const std::vector<char>& bytes,
+                       std::size_t& offset,
+                       scada::QualifiedName& value);
+void AppendLocalizedText(std::vector<char>& bytes,
+                         const scada::LocalizedText& value);
+bool ReadLocalizedText(const std::vector<char>& bytes,
+                       std::size_t& offset,
+                       scada::LocalizedText& value);
 
 void AppendByteString(std::vector<char>& bytes, const scada::ByteString& value);
 bool ReadByteString(const std::vector<char>& bytes,
@@ -51,6 +68,11 @@ void AppendNumericNodeId(std::vector<char>& bytes, const scada::NodeId& node_id)
 bool ReadNumericNodeId(const std::vector<char>& bytes,
                        std::size_t& offset,
                        scada::NodeId& id);
+void AppendExpandedNodeId(std::vector<char>& bytes,
+                          const scada::ExpandedNodeId& node_id);
+bool ReadExpandedNodeId(const std::vector<char>& bytes,
+                        std::size_t& offset,
+                        scada::ExpandedNodeId& id);
 
 void AppendExtensionObject(std::vector<char>& bytes,
                            std::uint32_t type_id,
