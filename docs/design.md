@@ -26,7 +26,7 @@ Related documents:
 
 The `common/opcua/` module is the shared OPC UA boundary. It provides:
 
-- `OpcUaServer` for the server-side `opc.tcp://` endpoint
+- `OpcUaModule` plus `OpcUaBinaryServer` for the server-side `opc.tcp://` endpoint
 - `OpcUaSession` for client-side outbound UA sessions
 - `OpcUaSubscription` and monitored-item plumbing for live updates
 - `opcua_conversion.*` for converting between OPC UA C-stack types and

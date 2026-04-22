@@ -55,8 +55,8 @@
 - [../../server/docs/design.md](../../server/docs/design.md) — overall server architecture
 - [../../server/docs/opcua_ws_module.md](../../server/docs/opcua_ws_module.md) —
   server-side module wiring, config loading, and lifecycle
-- `common/opcua/opcua_server.{h,cpp}` — the existing `opc.tcp://` endpoint that
-  this module sits next to
+- `server/opcua/opcua_module.cpp` + `common/opcua/opcua_binary_server.{h,cpp}`
+  — the existing `opc.tcp://` endpoint that this module sits next to
 - [./opcua_module.md](./opcua_module.md) —
   design of the existing shared OPC UA TCP client/server layer
 - [../../web/docs/design.md](../../web/docs/design.md) — the web client that
@@ -86,11 +86,11 @@ Source: [opcua_ws_subscription_sequence.mmd](./opcua_ws_subscription_sequence.mm
 
 ## Motivation
 
-The existing OPC UA endpoint at `common/opcua/opcua_server.cpp` is built on
-the OPC Foundation ANSI C stack via `opcuapp`. It opens endpoints through
-`OpcUa_Endpoint_Open("opc.tcp://...")`, which wires up a TCP listener and the
-UA binary secure-channel protocol. That stack has no WebSocket listener, so
-browsers cannot reach it directly.
+The existing OPC UA endpoint is now built on the shared transport-backed binary
+runtime in `server/opcua/opcua_module.cpp` and `common/opcua/opcua_binary_server.cpp`.
+It opens a plain `opc.tcp://` listener and runs the shared session/service
+runtime directly. Browsers still cannot reach that endpoint directly, so the
+WebSocket transport remains necessary.
 
 Rather than inserting a translation gateway between the browser and the C++
 server, we add a **sibling** OPC UA endpoint that speaks the UA WebSocket
@@ -308,8 +308,8 @@ Notes:
 - `allowed_origins` defaults to an empty list — that is, deny by default in
   prod. Explicit `"*"` is accepted for lab setups but logs a warning at
   startup.
-- TLS certs intentionally reuse the same paths as the legacy OPC UA endpoint
-  so ops manage one cert rotation, not two.
+- TLS cert paths intentionally match the transport OPC UA endpoint config even
+  though SecureChannel policy handling is still pending.
 - `max_message_size` bounds both directions; over-large messages close the
   socket with status 1009.
 

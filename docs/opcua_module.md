@@ -32,7 +32,7 @@ Source: [opcua_client_session_flow.mmd](./opcua_client_session_flow.mmd)
 The shared OPC UA module supplies both sides of the project's classic UA TCP
 integration:
 
-- server-side endpoint hosting through `OpcUaServer`
+- server-side endpoint hosting through `OpcUaModule` and `OpcUaBinaryServer`
 - client-side outbound UA sessions through `OpcUaSession`
 - conversion between OPC UA C-stack types and SCADA-native service types
 - monitored-item and event subscription bridging
@@ -52,29 +52,26 @@ At runtime it sits between:
 
 ## Main Components
 
-### `OpcUaServer`
+### `OpcUaModule` / `OpcUaBinaryServer`
 
 Files:
 
-- `common/opcua/opcua_server.h`
-- `common/opcua/opcua_server.cpp`
+- `server/opcua/opcua_module.cpp`
+- `common/opcua/opcua_binary_server.h`
+- `common/opcua/opcua_binary_server.cpp`
 
-Server-side bridge from OPC UA binary requests into the shared SCADA service
-interfaces.
+Server-side TCP listener and connection host for the transport-backed OPC UA
+binary runtime.
 
 Responsibilities:
 
-- open the `opc.tcp://` endpoint through `opcuapp::server::Endpoint`
-- bind per-service request handlers for read, write, browse, translate, call,
-  add-nodes, and delete-nodes
-- adapt monitored-item creation into `scada::MonitoredItemService`
-- keep the OPC UA stack configuration, certificate, and trace settings
-  together in one runtime object
+- parse and validate the `opc.tcp://` endpoint configuration
+- open and close the passive TCP listener
+- host the UA binary frame server on accepted transports
+- wire the listener to the shared `opcua::OpcUaBinaryRuntime`
 
-`OpcUaServer` intentionally does not implement business logic itself. It
-converts OPC UA request payloads into SCADA-native request types, forwards
-them into the supplied services, then converts the results back into OPC UA
-responses.
+Business logic, session state, and service dispatch live below this layer in
+the shared runtime model rather than in a transport-specific server bridge.
 
 ### `OpcUaSession`
 
@@ -136,7 +133,7 @@ Responsibilities:
   payloads
 - normalize status-code translation between the two type systems
 
-This conversion layer is shared by both `OpcUaServer` and `OpcUaSession`, so
+This conversion layer is shared by both the server runtime and `OpcUaSession`, so
 service logic and tests can stay on the SCADA-native type model.
 
 ### Shared server runtime model
@@ -190,10 +187,11 @@ Responsibilities:
 The shared OPC UA pieces are wired in two main ways:
 
 1. The server creates `server/opcua/OpcUaModule`.
-2. `OpcUaModule` loads certificates and trace settings from `server.json`.
-3. `OpcUaModule` constructs `OpcUaServer` with the shared root SCADA services.
-4. `OpcUaServer` opens the `opc.tcp://` endpoint and translates inbound UA
-   traffic into those services.
+2. `OpcUaModule` loads endpoint settings from `server.json`.
+3. `OpcUaModule` constructs the shared `OpcUaBinaryRuntime` and
+   `OpcUaSessionManager`.
+4. `OpcUaBinaryServer` opens the `opc.tcp://` endpoint and routes inbound UA
+   traffic into that shared runtime.
 
 Separately:
 
@@ -209,12 +207,13 @@ Separately:
 ### Server-side Request Handling
 
 1. A UA client sends a binary request to the `opc.tcp://` endpoint.
-2. `opcuapp::server::Endpoint` dispatches the request into `OpcUaServer`.
-3. `OpcUaServer` converts the request payload into SCADA-native types.
+2. `OpcUaBinaryServer` decodes frames and hands the service payload to the
+   shared binary runtime.
+3. The shared runtime converts the request payload into SCADA-native types.
 4. The corresponding shared service performs the real read, write, browse,
    method, or node-management work.
-5. `OpcUaServer` converts the result back into OPC UA response types.
-6. The endpoint writes the response back to the UA client.
+5. The shared runtime converts the result back into OPC UA response types.
+6. `OpcUaBinaryServer` writes the response back to the UA client.
 
 ### Client-side Session Handling
 
@@ -230,9 +229,9 @@ Separately:
 ## Cross-Module Boundaries
 
 - The server-side `server/opcua/OpcUaModule` owns configuration loading and
-  endpoint lifecycle, while `common/opcua/OpcUaServer` owns protocol
+  endpoint lifecycle, while the shared `common/opcua/` runtime owns protocol
   adaptation.
 - Any future sibling transport should reuse the same SCADA service model
-  rather than replacing `OpcUaServer`.
+  rather than adding another transport-specific server bridge.
 - The shared conversion layer is also the natural place to keep any future
   UA transport siblings consistent on SCADA-native type semantics.

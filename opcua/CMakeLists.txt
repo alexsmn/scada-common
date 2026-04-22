@@ -9,8 +9,6 @@ target_include_directories(scada_core_opcua PUBLIC "..")
 set(OPCUA_LEGACY_CLIENT_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_server.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_server.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/opcua_services_factory.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.h"

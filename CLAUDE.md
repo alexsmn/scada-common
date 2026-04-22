@@ -73,6 +73,10 @@ target_include_directories(my_module PUBLIC "..") # Standard: expose parent dir 
 
 Unit test targets are auto-generated per module (e.g., `scada_common_unittests`, `address_space_unittests`, `node_service_unittests`). Tests use GoogleTest with `gtest_discover_tests(DISCOVERY_MODE PRE_TEST)`.
 
+For the OPC UA tests in this subproject, prefer running the two generated test
+executables directly. In this repo layout, standalone `ctest` from `common/`
+may report zero discovered tests even when the binaries exist.
+
 Test fixtures and utilities live in `test/` subdirectories:
 - `address_space/test/` — `test_address_space.h`, `test_matchers.h`
 - `node_service/test/` — `test_node_model.h`
