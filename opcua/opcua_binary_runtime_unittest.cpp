@@ -19,6 +19,13 @@ using namespace testing;
 namespace opcua {
 namespace {
 
+static_assert(std::is_same_v<OpcUaBinaryRequestBody, OpcUaRequestBody>);
+static_assert(std::is_same_v<OpcUaBinaryResponseBody, OpcUaResponseBody>);
+static_assert(
+    std::is_same_v<OpcUaBinaryHistoryReadEventsRequest, HistoryReadEventsRequest>);
+static_assert(std::is_same_v<OpcUaBinaryHistoryReadEventsResponse,
+                             HistoryReadEventsResponse>);
+
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
   return {id, ns};
 }

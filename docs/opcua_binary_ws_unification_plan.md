@@ -304,8 +304,14 @@ Progress:
 
 - session create / activate / close are now handled as explicit typed Binary
   adapter methods instead of a second variant-dispatch shell
-- the Binary dispatcher now centralizes authenticated runtime dispatch in a
-  single visitor with shared response encoding helpers
+- the Binary request / response body aliases now point directly at the
+  canonical `opcua::OpcUaRequestBody` / `opcua::OpcUaResponseBody` variants,
+  leaving Binary-only type names as compatibility spellings over the shared
+  schema
+- the Binary dispatcher now centralizes authenticated runtime dispatch through
+  one request-to-response trait map plus shared response encoders, so adding a
+  new canonical runtime request no longer requires another long Binary-only
+  `if constexpr` chain
 - the remaining Binary-only branch is the `HistoryReadEvents` response encoder,
   because it needs the request's decoded event-field path metadata
 

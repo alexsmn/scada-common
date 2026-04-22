@@ -9,6 +9,88 @@ constexpr bool kIsSessionRequest =
     std::is_same_v<T, OpcUaBinaryActivateSessionRequest> ||
     std::is_same_v<T, OpcUaBinaryCloseSessionRequest>;
 
+template <typename Response>
+std::optional<std::vector<char>> EncodeBinaryResponse(
+    scada::UInt32 request_handle,
+    Response response) {
+  return EncodeOpcUaBinaryServiceResponse(
+      request_handle, OpcUaBinaryResponseBody{std::move(response)});
+}
+
+template <typename Request>
+struct BinaryAuthenticatedRequestTraits;
+
+#define OPCUA_BINARY_AUTHENTICATED_REQUESTS(X)                                  \
+  X(OpcUaBinaryBrowseNextRequest, OpcUaBinaryBrowseNextResponse)                \
+  X(OpcUaBinaryReadRequest, OpcUaBinaryReadResponse)                            \
+  X(OpcUaBinaryBrowseRequest, OpcUaBinaryBrowseResponse)                        \
+  X(OpcUaBinaryTranslateBrowsePathsRequest,                                     \
+    OpcUaBinaryTranslateBrowsePathsResponse)                                    \
+  X(OpcUaBinaryCallRequest, OpcUaBinaryCallResponse)                            \
+  X(OpcUaBinaryHistoryReadRawRequest, OpcUaBinaryHistoryReadRawResponse)        \
+  X(OpcUaBinaryHistoryReadEventsRequest, OpcUaBinaryHistoryReadEventsResponse)  \
+  X(OpcUaBinaryWriteRequest, OpcUaBinaryWriteResponse)                          \
+  X(OpcUaBinaryDeleteNodesRequest, OpcUaBinaryDeleteNodesResponse)              \
+  X(OpcUaBinaryAddNodesRequest, OpcUaBinaryAddNodesResponse)                    \
+  X(OpcUaBinaryDeleteReferencesRequest,                                         \
+    OpcUaBinaryDeleteReferencesResponse)                                        \
+  X(OpcUaBinaryAddReferencesRequest, OpcUaBinaryAddReferencesResponse)          \
+  X(OpcUaBinaryCreateSubscriptionRequest,                                       \
+    OpcUaBinaryCreateSubscriptionResponse)                                      \
+  X(OpcUaBinaryModifySubscriptionRequest,                                       \
+    OpcUaBinaryModifySubscriptionResponse)                                      \
+  X(OpcUaBinarySetPublishingModeRequest,                                        \
+    OpcUaBinarySetPublishingModeResponse)                                       \
+  X(OpcUaBinaryDeleteSubscriptionsRequest,                                      \
+    OpcUaBinaryDeleteSubscriptionsResponse)                                     \
+  X(OpcUaBinaryCreateMonitoredItemsRequest,                                     \
+    OpcUaBinaryCreateMonitoredItemsResponse)                                    \
+  X(OpcUaBinaryModifyMonitoredItemsRequest,                                     \
+    OpcUaBinaryModifyMonitoredItemsResponse)                                    \
+  X(OpcUaBinaryPublishRequest, OpcUaBinaryPublishResponse)                      \
+  X(OpcUaBinaryRepublishRequest, OpcUaBinaryRepublishResponse)                  \
+  X(OpcUaBinaryTransferSubscriptionsRequest,                                    \
+    OpcUaBinaryTransferSubscriptionsResponse)                                   \
+  X(OpcUaBinaryDeleteMonitoredItemsRequest,                                     \
+    OpcUaBinaryDeleteMonitoredItemsResponse)                                    \
+  X(OpcUaBinarySetMonitoringModeRequest,                                        \
+    OpcUaBinarySetMonitoringModeResponse)
+
+#define OPCUA_BINARY_DECLARE_AUTH_TRAITS(Request, Response) \
+  template <>                                               \
+  struct BinaryAuthenticatedRequestTraits<Request> {        \
+    using ResponseType = Response;                          \
+  };
+OPCUA_BINARY_AUTHENTICATED_REQUESTS(OPCUA_BINARY_DECLARE_AUTH_TRAITS)
+#undef OPCUA_BINARY_DECLARE_AUTH_TRAITS
+
+template <typename Request>
+using BinaryAuthenticatedResponse =
+    typename BinaryAuthenticatedRequestTraits<Request>::ResponseType;
+
+template <typename Request>
+concept BinaryAuthenticatedRequest =
+    requires { typename BinaryAuthenticatedResponse<Request>; };
+
+template <typename Response>
+auto MakeBinaryResponseEncoder(const OpcUaBinaryDecodedRequest&) {
+  return [](scada::UInt32 request_handle, Response response) {
+    return EncodeBinaryResponse(request_handle, std::move(response));
+  };
+}
+
+template <>
+auto MakeBinaryResponseEncoder<OpcUaBinaryHistoryReadEventsResponse>(
+    const OpcUaBinaryDecodedRequest& request) {
+  return [field_paths = request.history_event_field_paths](
+             scada::UInt32 request_handle,
+             OpcUaBinaryHistoryReadEventsResponse response) {
+    return EncodeOpcUaBinaryHistoryReadEventsResponse(
+        request_handle, response, field_paths);
+  };
+}
+
+#undef OPCUA_BINARY_AUTHENTICATED_REQUESTS
 }  // namespace
 
 OpcUaBinaryServiceDispatcher::OpcUaBinaryServiceDispatcher(Context context)
@@ -22,7 +104,7 @@ OpcUaBinaryServiceDispatcher::HandleSessionRequest(
     OpcUaBinaryCreateSessionRequest request) {
   auto response = co_await runtime_.Handle<OpcUaBinaryCreateSessionResponse>(
       connection_, std::move(request));
-  co_return EncodeResponse(request_handle, std::move(response));
+  co_return EncodeBinaryResponse(request_handle, std::move(response));
 }
 
 Awaitable<std::optional<std::vector<char>>>
@@ -38,7 +120,7 @@ OpcUaBinaryServiceDispatcher::HandleSessionRequest(
   request.authentication_token = header.authentication_token;
   auto response = co_await runtime_.Handle<OpcUaBinaryActivateSessionResponse>(
       connection_, std::move(request));
-  co_return EncodeResponse(header.request_handle, std::move(response));
+  co_return EncodeBinaryResponse(header.request_handle, std::move(response));
 }
 
 Awaitable<std::optional<std::vector<char>>>
@@ -47,7 +129,7 @@ OpcUaBinaryServiceDispatcher::HandleSessionRequest(
     OpcUaBinaryCloseSessionRequest request) {
   const auto session = session_manager_.FindSession(header.authentication_token);
   if (!session.has_value()) {
-    co_return EncodeResponse(
+    co_return EncodeBinaryResponse(
         header.request_handle,
         OpcUaBinaryCloseSessionResponse{
             .status = scada::StatusCode::Bad_SessionIsLoggedOff});
@@ -57,7 +139,7 @@ OpcUaBinaryServiceDispatcher::HandleSessionRequest(
   request.authentication_token = header.authentication_token;
   auto response = co_await runtime_.Handle<OpcUaBinaryCloseSessionResponse>(
       connection_, std::move(request));
-  co_return EncodeResponse(header.request_handle, std::move(response));
+  co_return EncodeBinaryResponse(header.request_handle, std::move(response));
 }
 
 Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::HandlePayload(
@@ -81,117 +163,12 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
         } else if constexpr (std::is_same_v<T, OpcUaBinaryCloseSessionRequest>) {
           co_return co_await HandleSessionRequest(request->header,
                                                   std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryBrowseNextRequest>) {
+        } else if constexpr (BinaryAuthenticatedRequest<T>) {
           co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryBrowseNextResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryReadRequest>) {
-          co_return co_await HandleAuthenticatedRequest<OpcUaBinaryReadResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryBrowseRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryBrowseResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryTranslateBrowsePathsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryTranslateBrowsePathsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryCallRequest>) {
-          co_return co_await HandleAuthenticatedRequest<OpcUaBinaryCallResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryHistoryReadRawRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryHistoryReadRawResponse>(*request,
-                                                 std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryHistoryReadEventsRequest>) {
-          auto encode = [field_paths = request->history_event_field_paths](
-                            scada::UInt32 request_handle,
-                            OpcUaBinaryHistoryReadEventsResponse response) {
-            return EncodeOpcUaBinaryHistoryReadEventsResponse(
-                request_handle, response, field_paths);
-          };
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryHistoryReadEventsResponse>(
-              *request, std::move(typed_request), std::move(encode));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryWriteRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryWriteResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryDeleteNodesRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryDeleteNodesResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryAddNodesRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryAddNodesResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryDeleteReferencesRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryDeleteReferencesResponse>(*request,
-                                                   std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryAddReferencesRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryAddReferencesResponse>(*request,
-                                                std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryCreateSubscriptionRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryCreateSubscriptionResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinaryModifySubscriptionRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryModifySubscriptionResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinarySetPublishingModeRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinarySetPublishingModeResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryDeleteSubscriptionsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryDeleteSubscriptionsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryCreateMonitoredItemsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryCreateMonitoredItemsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryModifyMonitoredItemsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryModifyMonitoredItemsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryPublishRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryPublishResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaBinaryRepublishRequest>) {
-          co_return co_await
-              HandleAuthenticatedRequest<OpcUaBinaryRepublishResponse>(
-                  *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryTransferSubscriptionsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryTransferSubscriptionsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<
-                                 T, OpcUaBinaryDeleteMonitoredItemsRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinaryDeleteMonitoredItemsResponse>(
-              *request, std::move(typed_request));
-        } else if constexpr (std::is_same_v<T,
-                                            OpcUaBinarySetMonitoringModeRequest>) {
-          co_return co_await HandleAuthenticatedRequest<
-              OpcUaBinarySetMonitoringModeResponse>(
-              *request, std::move(typed_request));
+              HandleAuthenticatedRequest<BinaryAuthenticatedResponse<T>>(
+                  *request, std::move(typed_request),
+                  MakeBinaryResponseEncoder<BinaryAuthenticatedResponse<T>>(
+                      *request));
         } else {
           static_assert(!kIsSessionRequest<T>,
                         "Session requests must be handled above");

@@ -84,61 +84,7 @@ using OpcUaBinaryAddReferencesResponse = AddReferencesResponse;
 using OpcUaBinaryDeleteReferencesRequest = DeleteReferencesRequest;
 using OpcUaBinaryDeleteReferencesResponse = DeleteReferencesResponse;
 
-using OpcUaBinaryRequestBody =
-    std::variant<OpcUaBinaryCreateSessionRequest,
-                 OpcUaBinaryActivateSessionRequest,
-                 OpcUaBinaryCloseSessionRequest,
-                 OpcUaBinaryCreateSubscriptionRequest,
-                 OpcUaBinaryModifySubscriptionRequest,
-                 OpcUaBinarySetPublishingModeRequest,
-                 OpcUaBinaryDeleteSubscriptionsRequest,
-                 OpcUaBinaryPublishRequest,
-                 OpcUaBinaryRepublishRequest,
-                 OpcUaBinaryTransferSubscriptionsRequest,
-                 OpcUaBinaryCreateMonitoredItemsRequest,
-                 OpcUaBinaryModifyMonitoredItemsRequest,
-                 OpcUaBinaryDeleteMonitoredItemsRequest,
-                 OpcUaBinarySetMonitoringModeRequest,
-                 OpcUaBinaryReadRequest,
-                 OpcUaBinaryWriteRequest,
-                 OpcUaBinaryBrowseRequest,
-                 OpcUaBinaryBrowseNextRequest,
-                 OpcUaBinaryTranslateBrowsePathsRequest,
-                 OpcUaBinaryCallRequest,
-                 OpcUaBinaryHistoryReadRawRequest,
-                 OpcUaBinaryHistoryReadEventsRequest,
-                 OpcUaBinaryAddNodesRequest,
-                 OpcUaBinaryDeleteNodesRequest,
-                 OpcUaBinaryAddReferencesRequest,
-                 OpcUaBinaryDeleteReferencesRequest>;
-
-using OpcUaBinaryResponseBody =
-    std::variant<OpcUaBinaryCreateSessionResponse,
-                 OpcUaBinaryActivateSessionResponse,
-                 OpcUaBinaryCloseSessionResponse,
-                 OpcUaBinaryCreateSubscriptionResponse,
-                 OpcUaBinaryModifySubscriptionResponse,
-                 OpcUaBinarySetPublishingModeResponse,
-                 OpcUaBinaryDeleteSubscriptionsResponse,
-                 OpcUaBinaryPublishResponse,
-                 OpcUaBinaryRepublishResponse,
-                 OpcUaBinaryTransferSubscriptionsResponse,
-                 OpcUaBinaryCreateMonitoredItemsResponse,
-                 OpcUaBinaryModifyMonitoredItemsResponse,
-                 OpcUaBinaryDeleteMonitoredItemsResponse,
-                 OpcUaBinarySetMonitoringModeResponse,
-                 OpcUaBinaryServiceFault,
-                 OpcUaBinaryReadResponse,
-                 OpcUaBinaryWriteResponse,
-                 OpcUaBinaryBrowseResponse,
-                 OpcUaBinaryBrowseNextResponse,
-                 OpcUaBinaryTranslateBrowsePathsResponse,
-                 OpcUaBinaryCallResponse,
-                 OpcUaBinaryHistoryReadRawResponse,
-                 OpcUaBinaryHistoryReadEventsResponse,
-                 OpcUaBinaryAddNodesResponse,
-                 OpcUaBinaryDeleteNodesResponse,
-                 OpcUaBinaryAddReferencesResponse,
-                 OpcUaBinaryDeleteReferencesResponse>;
+using OpcUaBinaryRequestBody = OpcUaRequestBody;
+using OpcUaBinaryResponseBody = OpcUaResponseBody;
 
 }  // namespace opcua

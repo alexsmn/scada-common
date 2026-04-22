@@ -29,6 +29,13 @@ using namespace testing;
 namespace opcua {
 namespace {
 
+static_assert(std::is_same_v<OpcUaBinaryRequestBody, OpcUaRequestBody>);
+static_assert(std::is_same_v<OpcUaBinaryResponseBody, OpcUaResponseBody>);
+static_assert(std::is_same_v<OpcUaBinaryCreateSubscriptionRequest,
+                             OpcUaCreateSubscriptionRequest>);
+static_assert(std::is_same_v<OpcUaBinaryCreateSubscriptionResponse,
+                             OpcUaCreateSubscriptionResponse>);
+
 constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;

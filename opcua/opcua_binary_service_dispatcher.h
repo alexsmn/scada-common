@@ -21,14 +21,6 @@ class OpcUaBinaryServiceDispatcher {
       std::vector<char> payload);
 
  private:
-  template <typename Response>
-  [[nodiscard]] static std::optional<std::vector<char>> EncodeResponse(
-      scada::UInt32 request_handle,
-      Response response) {
-    return EncodeOpcUaBinaryServiceResponse(
-        request_handle, OpcUaBinaryResponseBody{std::move(response)});
-  }
-
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandleSessionRequest(
       scada::UInt32 request_handle,
       OpcUaBinaryCreateSessionRequest request);

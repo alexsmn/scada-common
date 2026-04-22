@@ -167,8 +167,9 @@ Responsibilities:
   the same semantic core at the same abstraction layer
 - keep the remaining Binary-specific adapter layer in
   `opcua_binary_service_dispatcher` focused on request-header translation,
-  session-token lookup for session activation / close, and the few response
-  encoders that still need Binary-only wire metadata such as
+  session-token lookup for session activation / close, one trait-driven
+  canonical request-to-response mapping table, and the few response encoders
+  that still need Binary-only wire metadata such as
   `HistoryReadEvents`
 
 ### `CreateOpcUaServices(...)`
