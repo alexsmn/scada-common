@@ -2098,6 +2098,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
         EXPECT_EQ(details.max_count, 25u);
+        EXPECT_TRUE(details.release_continuation_point);
         EXPECT_EQ(details.continuation_point, (scada::ByteString{4, 5, 6}));
         callback(scada::HistoryReadRawResult{
             .status = scada::StatusCode::Good,
@@ -2119,6 +2120,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
            .from = from,
            .to = to,
            .max_count = 25,
+           .release_continuation_point = true,
            .continuation_point = {4, 5, 6}})));
   ASSERT_TRUE(history_read.has_value());
   const auto decoded = DecodeHistoryReadRawResponse(*history_read);

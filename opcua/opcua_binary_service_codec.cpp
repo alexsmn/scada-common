@@ -1268,7 +1268,7 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeHistoryReadRawRequest(
   }
 
   if (details.type_id != kReadRawModifiedDetailsBinaryEncodingId ||
-      details.encoding != 0x01 || release_continuation_points) {
+      details.encoding != 0x01) {
     return std::nullopt;
   }
 
@@ -1303,6 +1303,7 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeHistoryReadRawRequest(
   request.details.from = from;
   request.details.to = to;
   request.details.max_count = max_count;
+  request.details.release_continuation_point = release_continuation_points;
 
   return OpcUaBinaryDecodedRequest{
       .header = header,
@@ -2188,7 +2189,8 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
           });
           payload_encoder.Encode(
               static_cast<std::uint32_t>(WireTimestampsToReturn::Both));
-          payload_encoder.Encode(false);
+          payload_encoder.Encode(
+              typed_request.details.release_continuation_point);
           payload_encoder.Encode(std::int32_t{1});
           payload_encoder.Encode(typed_request.details.node_id);
           payload_encoder.Encode(std::string_view{""});
