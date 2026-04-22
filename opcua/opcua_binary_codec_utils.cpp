@@ -1018,24 +1018,39 @@ bool BinaryDecoder::Decode(DecodedExtensionObject& value) {
   return true;
 }
 
-void AppendMessage(std::vector<char>& bytes,
+bool BinaryDecoder::Skip(std::size_t count) {
+  if (remaining().size() < count) {
+    return false;
+  }
+  offset_ += count;
+  return true;
+}
+
+void AppendMessage(BinaryEncoder& encoder,
                    std::uint32_t type_id,
                    std::span<const char> payload) {
-  BinaryEncoder encoder{bytes};
   encoder.Encode(scada::NodeId{type_id});
   encoder.Encode(std::uint8_t{0x01});
   encoder.Encode(static_cast<std::int32_t>(payload.size()));
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
+  encoder.bytes().insert(encoder.bytes().end(), payload.begin(), payload.end());
 }
 
-std::optional<std::pair<std::uint32_t, std::vector<char>>> ReadMessage(const std::vector<char>& bytes) {
-  BinaryDecoder decoder{bytes};
-  DecodedExtensionObject value;
-  if (!decoder.Decode(value) || value.encoding != 0x01 ||
-      !decoder.consumed()) {
+std::optional<std::pair<std::uint32_t, std::span<const char>>> ReadMessage(
+    BinaryDecoder& decoder) {
+  scada::NodeId type_id;
+  std::uint8_t encoding = 0;
+  std::int32_t payload_size = 0;
+  if (!decoder.Decode(type_id) || !type_id.is_numeric() ||
+      !decoder.Decode(encoding) || encoding != 0x01 ||
+      !decoder.Decode(payload_size) || payload_size < 0 ||
+      decoder.remaining().size() < static_cast<std::size_t>(payload_size)) {
     return std::nullopt;
   }
-  return std::pair{value.type_id, std::move(value.body)};
+  const auto payload = decoder.remaining().first(static_cast<std::size_t>(payload_size));
+  if (!decoder.Skip(static_cast<std::size_t>(payload_size))) {
+    return std::nullopt;
+  }
+  return std::pair{type_id.numeric_id(), payload};
 }
 
 }  // namespace opcua::binary

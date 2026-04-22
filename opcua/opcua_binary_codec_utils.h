@@ -80,16 +80,19 @@ class BinaryDecoder {
   std::size_t offset() const { return offset_; }
   bool consumed() const { return offset_ == bytes_.size(); }
   std::span<const char> remaining() const { return bytes_.subspan(offset_); }
+  bool Skip(std::size_t count);
 
  private:
   std::span<const char> bytes_;
   std::size_t offset_ = 0;
 };
 
-void AppendMessage(std::vector<char>& bytes,
+void AppendMessage(BinaryEncoder& encoder,
                    std::uint32_t type_id,
                    std::span<const char> payload);
-std::optional<std::pair<std::uint32_t, std::vector<char>>> ReadMessage(
-    const std::vector<char>& bytes);
+// The returned payload span aliases the decoder input storage, so its lifetime
+// is bound to the lifetime of the bytes owned by the input decoder.
+std::optional<std::pair<std::uint32_t, std::span<const char>>> ReadMessage(
+    BinaryDecoder& decoder);
 
 }  // namespace opcua::binary

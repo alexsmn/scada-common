@@ -86,13 +86,13 @@ struct DecodedCreateSessionResponse {
 
 std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
     const std::vector<char>& bytes) {
-  const auto message = binary::ReadMessage(bytes);
+  binary::BinaryDecoder message_decoder{bytes};
+  const auto message = binary::ReadMessage(message_decoder);
   if (!message.has_value() ||
       message->first != kCreateSessionResponseBinaryEncodingId) {
     return std::nullopt;
   }
-  const auto& body = message->second;
-  binary::BinaryDecoder decoder{body};
+  binary::BinaryDecoder decoder{message->second};
   std::uint32_t request_handle = 0;
   std::uint32_t status_code = 0;
   scada::NodeId session_id;
@@ -118,12 +118,12 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
 
 std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes,
                                                   std::uint32_t expected_type_id) {
-  const auto message = binary::ReadMessage(bytes);
+  binary::BinaryDecoder message_decoder{bytes};
+  const auto message = binary::ReadMessage(message_decoder);
   if (!message.has_value() || message->first != expected_type_id) {
     return std::nullopt;
   }
-  const auto& body = message->second;
-  binary::BinaryDecoder decoder{body};
+  binary::BinaryDecoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t status_code = 0;

@@ -1,5 +1,7 @@
 #include "opcua/opcua_binary_codec_utils.h"
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 namespace opcua::binary {
@@ -119,11 +121,15 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
   EXPECT_TRUE(extension_decoder.consumed());
 
   std::vector<char> message_bytes;
-  AppendMessage(message_bytes, 629, body);
-  const auto message = ReadMessage(message_bytes);
+  BinaryEncoder message_encoder{message_bytes};
+  AppendMessage(message_encoder, 629, body);
+  BinaryDecoder message_decoder{message_bytes};
+  const auto message = ReadMessage(message_decoder);
   ASSERT_TRUE(message.has_value());
   EXPECT_EQ(message->first, 629u);
-  EXPECT_EQ(message->second, body);
+  EXPECT_TRUE(std::equal(message->second.begin(),
+                         message->second.end(), body.begin(),
+                         body.end()));
 }
 
 TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
@@ -268,7 +274,7 @@ TEST(OpcUaBinaryCodecUtilsTest, RejectsTruncatedPayloads) {
 
   std::vector<char> invalid_message{0x03};
   BinaryDecoder invalid_decoder{invalid_message};
-  EXPECT_FALSE(ReadMessage(invalid_message).has_value());
+  EXPECT_FALSE(ReadMessage(invalid_decoder).has_value());
 }
 
 }  // namespace
