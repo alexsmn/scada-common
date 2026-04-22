@@ -44,6 +44,8 @@ constexpr std::uint32_t kEventFieldListBinaryEncodingId = 919;
 constexpr std::uint32_t kStatusChangeNotificationBinaryEncodingId = 820;
 constexpr std::uint32_t kPublishRequestBinaryEncodingId = 826;
 constexpr std::uint32_t kPublishResponseBinaryEncodingId = 829;
+constexpr std::uint32_t kRepublishRequestBinaryEncodingId = 832;
+constexpr std::uint32_t kRepublishResponseBinaryEncodingId = 835;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
 constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
@@ -1171,6 +1173,23 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeSetMonitoringModeRequest(
   };
 }
 
+std::optional<OpcUaBinaryDecodedRequest> DecodeRepublishRequest(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  OpcUaBinaryRepublishRequest request;
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.Decode(request.subscription_id) ||
+      !decoder.Decode(request.retransmit_sequence_number) ||
+      !decoder.consumed()) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeDeleteNodesRequest(
     std::span<const char> body) {
   binary::BinaryDecoder decoder{body};
@@ -1399,6 +1418,12 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
           }
           binary::AppendMessage(body_encoder, kPublishRequestBinaryEncodingId,
                                 payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryRepublishRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(typed_request.subscription_id);
+          payload_encoder.Encode(typed_request.retransmit_sequence_number);
+          binary::AppendMessage(body_encoder, kRepublishRequestBinaryEncodingId,
+                                payload);
         } else if constexpr (std::is_same_v<
                                  T, OpcUaBinaryDeleteMonitoredItemsRequest>) {
           AppendRequestHeader(payload_encoder, header);
@@ -1604,6 +1629,8 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodeCreateMonitoredItemsRequest(message->second);
     case kPublishRequestBinaryEncodingId:
       return DecodePublishRequest(message->second);
+    case kRepublishRequestBinaryEncodingId:
+      return DecodeRepublishRequest(message->second);
     case kDeleteMonitoredItemsRequestBinaryEncodingId:
       return DecodeDeleteMonitoredItemsRequest(message->second);
     case kSetMonitoringModeRequestBinaryEncodingId:
@@ -1730,6 +1757,13 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
           }
           payload_encoder.Encode(std::int32_t{-1});
           binary::AppendMessage(body_encoder, kPublishResponseBinaryEncodingId,
+                                payload);
+        } else if constexpr (std::is_same_v<T, OpcUaBinaryRepublishResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          AppendNotificationMessage(payload_encoder,
+                                    typed_response.notification_message);
+          binary::AppendMessage(body_encoder, kRepublishResponseBinaryEncodingId,
                                 payload);
         } else if constexpr (std::is_same_v<
                                  T, OpcUaBinaryDeleteMonitoredItemsResponse>) {
