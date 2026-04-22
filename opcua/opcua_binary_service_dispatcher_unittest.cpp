@@ -1215,6 +1215,7 @@ struct DecodedPublishResponse {
   std::vector<scada::UInt32> available_sequence_numbers;
   bool more_notifications = false;
   scada::UInt32 sequence_number = 0;
+  bool has_data_change = false;
   double data_change_value = 0;
   std::vector<std::uint32_t> acknowledgement_results;
 };
@@ -1237,8 +1238,6 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
   std::int64_t ignored_publish_time = 0;
   std::int32_t notification_count = 0;
   binary::DecodedExtensionObject notification_data;
-  std::int32_t item_count = 0;
-  scada::UInt32 client_handle = 0;
   if (!decoder.Decode(ignored_timestamp) ||
       !decoder.Decode(ignored_request_handle) ||
       !decoder.Decode(response.status) || !decoder.Decode(ignored_byte) ||
@@ -1257,41 +1256,50 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
   }
   if (!decoder.Decode(response.more_notifications) ||
       !decoder.Decode(response.sequence_number) ||
-      !decoder.Decode(ignored_publish_time) ||
-      !decoder.Decode(notification_count) || notification_count != 1 ||
-      !decoder.Decode(notification_data) ||
-      notification_data.type_id != 811 || notification_data.encoding != 0x01) {
+      !decoder.Decode(ignored_publish_time) || !decoder.Decode(notification_count) ||
+      notification_count < 0) {
     return std::nullopt;
   }
-  binary::BinaryDecoder notification_decoder{notification_data.body};
-  std::uint8_t value_mask = 0;
-  scada::Variant value;
-  std::uint32_t ignored_status_code = 0;
-  std::int64_t ignored_source_timestamp = 0;
-  std::int64_t ignored_server_timestamp = 0;
-  if (!notification_decoder.Decode(item_count) || item_count != 1 ||
-      !notification_decoder.Decode(client_handle) ||
-      !notification_decoder.Decode(value_mask) || (value_mask & 0x01) == 0 ||
-      !notification_decoder.Decode(value) ||
-      value.type() != scada::Variant::DOUBLE) {
+  if (notification_count == 1) {
+    std::int32_t item_count = 0;
+    scada::UInt32 client_handle = 0;
+    std::uint8_t value_mask = 0;
+    scada::Variant value;
+    std::uint32_t ignored_status_code = 0;
+    std::int64_t ignored_source_timestamp = 0;
+    std::int64_t ignored_server_timestamp = 0;
+    if (!decoder.Decode(notification_data) ||
+        notification_data.type_id != 811 || notification_data.encoding != 0x01) {
+      return std::nullopt;
+    }
+    binary::BinaryDecoder notification_decoder{notification_data.body};
+    if (!notification_decoder.Decode(item_count) || item_count != 1 ||
+        !notification_decoder.Decode(client_handle) ||
+        !notification_decoder.Decode(value_mask) || (value_mask & 0x01) == 0 ||
+        !notification_decoder.Decode(value) ||
+        value.type() != scada::Variant::DOUBLE) {
+      return std::nullopt;
+    }
+    if ((value_mask & 0x02) != 0 &&
+        !notification_decoder.Decode(ignored_status_code)) {
+      return std::nullopt;
+    }
+    if ((value_mask & 0x04) != 0 &&
+        !notification_decoder.Decode(ignored_source_timestamp)) {
+      return std::nullopt;
+    }
+    if ((value_mask & 0x08) != 0 &&
+        !notification_decoder.Decode(ignored_server_timestamp)) {
+      return std::nullopt;
+    }
+    if (!notification_decoder.consumed()) {
+      return std::nullopt;
+    }
+    response.has_data_change = true;
+    response.data_change_value = value.get<scada::Double>();
+  } else if (notification_count != 0) {
     return std::nullopt;
   }
-  if ((value_mask & 0x02) != 0 &&
-      !notification_decoder.Decode(ignored_status_code)) {
-    return std::nullopt;
-  }
-  if ((value_mask & 0x04) != 0 &&
-      !notification_decoder.Decode(ignored_source_timestamp)) {
-    return std::nullopt;
-  }
-  if ((value_mask & 0x08) != 0 &&
-      !notification_decoder.Decode(ignored_server_timestamp)) {
-    return std::nullopt;
-  }
-  if (!notification_decoder.consumed()) {
-    return std::nullopt;
-  }
-  response.data_change_value = value.get<scada::Double>();
   std::int32_t ack_count = 0;
   if (!decoder.Decode(ack_count) || ack_count < 0) {
     return std::nullopt;
@@ -2215,7 +2223,96 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
   EXPECT_THAT(decoded->available_sequence_numbers,
               ElementsAre(decoded->sequence_number));
   EXPECT_FALSE(decoded->more_notifications);
+  EXPECT_TRUE(decoded->has_data_change);
   EXPECT_DOUBLE_EQ(decoded->data_change_value, 12.5);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesPublishAcknowledgementsAndKeepAliveAfterDisablingPublishing) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 2,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded_subscription = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded_subscription.has_value());
+
+  const auto created_items = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateMonitoredItemsRequestBody(
+          4, session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.item_to_monitor =
+                {.node_id = NumericNode(11),
+                 .attribute_id = scada::AttributeId::Value},
+            .requested_parameters =
+                {.client_handle = 44,
+                 .sampling_interval_ms = 0,
+                 .queue_size = 1,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(created_items.has_value());
+  ASSERT_EQ(monitored_item_service_.items.size(), 1u);
+  monitored_item_service_.items[0]->NotifyDataChange(
+      scada::DataValue{scada::Variant{12.5}, {}, now_, now_});
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(100);
+  const auto published = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(
+          EncodePublishRequestBody(5, session->authentication_token)));
+  ASSERT_TRUE(published.has_value());
+  const auto decoded_publish = DecodePublishResponse(*published);
+  ASSERT_TRUE(decoded_publish.has_value());
+  EXPECT_TRUE(decoded_publish->has_data_change);
+  EXPECT_EQ(decoded_publish->acknowledgement_results.size(), 0u);
+
+  const auto set_mode = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeSetPublishingModeRequestBody(
+          6, session->authentication_token, false,
+          {decoded_subscription->subscription_id})));
+  ASSERT_TRUE(set_mode.has_value());
+  const auto set_mode_status =
+      DecodeSingleSetPublishingModeResponseStatus(*set_mode);
+  ASSERT_TRUE(set_mode_status.has_value());
+  EXPECT_EQ(*set_mode_status, 0u);
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(300);
+  const auto keep_alive = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodePublishRequestBody(
+          7, session->authentication_token,
+          {{.subscription_id = decoded_subscription->subscription_id,
+            .sequence_number = decoded_publish->sequence_number}})));
+  ASSERT_TRUE(keep_alive.has_value());
+  const auto decoded_keep_alive = DecodePublishResponse(*keep_alive);
+  ASSERT_TRUE(decoded_keep_alive.has_value());
+  EXPECT_FALSE(decoded_keep_alive->has_data_change);
+  EXPECT_EQ(decoded_keep_alive->subscription_id,
+            decoded_subscription->subscription_id);
+  EXPECT_EQ(decoded_keep_alive->sequence_number, 2u);
+  EXPECT_THAT(decoded_keep_alive->acknowledgement_results, ElementsAre(0u));
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesRepublishAfterPublish) {
