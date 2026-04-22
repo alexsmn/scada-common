@@ -101,12 +101,12 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponseBody(
   std::int64_t ignored_timestamp = 0;
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(request_handle) || !decoder.ReadUInt32(status_code) ||
-      !decoder.ReadUInt8(ignored_byte) || !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_additional_header) ||
-      !decoder.ReadUInt8(ignored_byte) || !decoder.ReadNumericNodeId(session_id) ||
-      !decoder.ReadNumericNodeId(authentication_token)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(request_handle) || !decoder.Decode(status_code) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_additional_header) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(session_id) ||
+      !decoder.Decode(authentication_token)) {
     return std::nullopt;
   }
   return DecodedCreateSessionResponse{
@@ -127,9 +127,9 @@ std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t status_code = 0;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(status_code)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(status_code)) {
     return std::nullopt;
   }
   return status_code;

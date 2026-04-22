@@ -117,42 +117,40 @@ void AppendRequestHeader(std::vector<char>& bytes,
                          const scada::NodeId& authentication_token,
                          std::uint32_t request_handle) {
   binary::BinaryEncoder encoder{bytes};
-  encoder.AppendNumericNodeId(authentication_token);
-  encoder.AppendInt64(0);
-  encoder.AppendUInt32(request_handle);
-  encoder.AppendUInt32(0);
-  encoder.AppendUaString("");
-  encoder.AppendUInt32(0);
-  encoder.AppendNumericNodeId(scada::NodeId{});
-  encoder.AppendUInt8(0x00);
+  encoder.Encode(authentication_token);
+  encoder.Encode(std::int64_t{0});
+  encoder.Encode(request_handle);
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(std::string_view{""});
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(scada::NodeId{});
+  encoder.Encode(std::uint8_t{0x00});
 }
 
 std::vector<char> EncodeOpenRequestBody(std::uint32_t request_handle) {
   std::vector<char> payload;
   binary::BinaryEncoder payload_encoder{payload};
-  payload_encoder.AppendNumericNodeId(scada::NodeId{});
-  payload_encoder.AppendInt64(0);
-  payload_encoder.AppendUInt32(request_handle);
-  payload_encoder.AppendUInt32(0);
-  payload_encoder.AppendUaString("");
-  payload_encoder.AppendUInt32(0);
-  payload_encoder.AppendNumericNodeId(scada::NodeId{});
-  payload_encoder.AppendUInt8(0x00);
-  payload_encoder.AppendUInt32(0);
-  payload_encoder.AppendUInt32(
+  payload_encoder.Encode(scada::NodeId{});
+  payload_encoder.Encode(std::int64_t{0});
+  payload_encoder.Encode(request_handle);
+  payload_encoder.Encode(std::uint32_t{0});
+  payload_encoder.Encode(std::string_view{""});
+  payload_encoder.Encode(std::uint32_t{0});
+  payload_encoder.Encode(scada::NodeId{});
+  payload_encoder.Encode(std::uint8_t{0x00});
+  payload_encoder.Encode(std::uint32_t{0});
+  payload_encoder.Encode(
       static_cast<std::uint32_t>(OpcUaBinarySecurityTokenRequestType::Issue));
-  payload_encoder.AppendUInt32(
+  payload_encoder.Encode(
       static_cast<std::uint32_t>(OpcUaBinaryMessageSecurityMode::None));
-  payload_encoder.AppendByteString({});
-  payload_encoder.AppendUInt32(60000);
+  payload_encoder.Encode(scada::ByteString{});
+  payload_encoder.Encode(std::uint32_t{60000});
 
   std::vector<char> body;
   binary::BinaryEncoder body_encoder{body};
-  body_encoder.AppendNumericNodeId(
-      scada::NodeId{kOpenSecureChannelRequestBinaryEncodingId});
-  body_encoder.AppendUInt8(0x01);
-  body_encoder.AppendInt32(static_cast<std::int32_t>(payload.size()));
-  body.insert(body.end(), payload.begin(), payload.end());
+  body_encoder.Encode(binary::EncodedExtensionObject{
+      .type_id = kOpenSecureChannelRequestBinaryEncodingId,
+      .body = payload});
   return body;
 }
 
@@ -265,13 +263,13 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponse(
   scada::NodeId ignored_header_extension;
   scada::NodeId session_id;
   scada::NodeId authentication_token;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(ignored_status) || !decoder.ReadUInt8(ignored_byte) ||
-      !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_header_extension) ||
-      !decoder.ReadUInt8(ignored_byte) || !decoder.ReadNumericNodeId(session_id) ||
-      !decoder.ReadNumericNodeId(authentication_token)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(session_id) ||
+      !decoder.Decode(authentication_token)) {
     return std::nullopt;
   }
   return DecodedCreateSessionResponse{
@@ -295,29 +293,29 @@ std::optional<double> DecodeSingleDoubleReadResponse(
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
   scada::NodeId ignored_header_extension;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(ignored_status) || !decoder.ReadUInt8(ignored_byte) ||
-      !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_header_extension) ||
-      !decoder.ReadUInt8(ignored_byte)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
     return std::nullopt;
   }
 
   std::int32_t result_count = 0;
-  if (!decoder.ReadInt32(result_count) || result_count != 1) {
+  if (!decoder.Decode(result_count) || result_count != 1) {
     return std::nullopt;
   }
 
   std::uint8_t data_value_mask = 0;
-  if (!decoder.ReadUInt8(data_value_mask) || (data_value_mask & 0x01) == 0) {
+  if (!decoder.Decode(data_value_mask) || (data_value_mask & 0x01) == 0) {
     return std::nullopt;
   }
 
   std::uint8_t variant_mask = 0;
   double value = 0;
-  if (!decoder.ReadUInt8(variant_mask) || variant_mask != 11 ||
-      !decoder.ReadDouble(value)) {
+  if (!decoder.Decode(variant_mask) || variant_mask != 11 ||
+      !decoder.Decode(value)) {
     return std::nullopt;
   }
   return value;
@@ -338,19 +336,19 @@ std::optional<std::uint32_t> DecodeSingleWriteResponseStatus(
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
   scada::NodeId ignored_header_extension;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(ignored_status) || !decoder.ReadUInt8(ignored_byte) ||
-      !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_header_extension) ||
-      !decoder.ReadUInt8(ignored_byte)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
     return std::nullopt;
   }
 
   std::int32_t result_count = 0;
   std::uint32_t result_status = 0;
-  if (!decoder.ReadInt32(result_count) || result_count != 1 ||
-      !decoder.ReadUInt32(result_status)) {
+  if (!decoder.Decode(result_count) || result_count != 1 ||
+      !decoder.Decode(result_status)) {
     return std::nullopt;
   }
   return result_status;
@@ -371,12 +369,12 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
   scada::NodeId ignored_header_extension;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(ignored_status) || !decoder.ReadUInt8(ignored_byte) ||
-      !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_header_extension) ||
-      !decoder.ReadUInt8(ignored_byte)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
     return std::nullopt;
   }
 
@@ -391,16 +389,16 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
   scada::LocalizedText ignored_display_name;
   std::uint32_t ignored_node_class = 0;
   scada::ExpandedNodeId ignored_type_definition;
-  if (!decoder.ReadInt32(result_count) || result_count != 1 ||
-      !decoder.ReadUInt32(result_status) ||
-      !decoder.ReadByteString(ignored_continuation_point) ||
-      !decoder.ReadInt32(reference_count) || reference_count != 1 ||
-      !decoder.ReadNumericNodeId(reference_type_id) ||
-      !decoder.ReadBoolean(forward) || !decoder.ReadExpandedNodeId(target_id) ||
-      !decoder.ReadQualifiedName(ignored_browse_name) ||
-      !decoder.ReadLocalizedText(ignored_display_name) ||
-      !decoder.ReadUInt32(ignored_node_class) ||
-      !decoder.ReadExpandedNodeId(ignored_type_definition)) {
+  if (!decoder.Decode(result_count) || result_count != 1 ||
+      !decoder.Decode(result_status) ||
+      !decoder.Decode(ignored_continuation_point) ||
+      !decoder.Decode(reference_count) || reference_count != 1 ||
+      !decoder.Decode(reference_type_id) ||
+      !decoder.Decode(forward) || !decoder.Decode(target_id) ||
+      !decoder.Decode(ignored_browse_name) ||
+      !decoder.Decode(ignored_display_name) ||
+      !decoder.Decode(ignored_node_class) ||
+      !decoder.Decode(ignored_type_definition)) {
     return std::nullopt;
   }
 
@@ -425,12 +423,12 @@ std::optional<std::uint32_t> DecodeSingleCallResponseStatus(
   std::uint8_t ignored_byte = 0;
   std::int32_t ignored_array = 0;
   scada::NodeId ignored_header_extension;
-  if (!decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(ignored_request_handle) ||
-      !decoder.ReadUInt32(ignored_status) || !decoder.ReadUInt8(ignored_byte) ||
-      !decoder.ReadInt32(ignored_array) ||
-      !decoder.ReadNumericNodeId(ignored_header_extension) ||
-      !decoder.ReadUInt8(ignored_byte)) {
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte)) {
     return std::nullopt;
   }
 
@@ -439,11 +437,11 @@ std::optional<std::uint32_t> DecodeSingleCallResponseStatus(
   std::int32_t input_result_count = 0;
   std::int32_t input_diag_count = 0;
   std::int32_t output_argument_count = 0;
-  if (!decoder.ReadInt32(result_count) || result_count != 1 ||
-      !decoder.ReadUInt32(method_status) ||
-      !decoder.ReadInt32(input_result_count) ||
-      !decoder.ReadInt32(input_diag_count) ||
-      !decoder.ReadInt32(output_argument_count)) {
+  if (!decoder.Decode(result_count) || result_count != 1 ||
+      !decoder.Decode(method_status) ||
+      !decoder.Decode(input_result_count) ||
+      !decoder.Decode(input_diag_count) ||
+      !decoder.Decode(output_argument_count)) {
     return std::nullopt;
   }
   if (input_result_count != 0 || input_diag_count != -1 ||

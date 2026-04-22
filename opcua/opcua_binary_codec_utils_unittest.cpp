@@ -8,13 +8,13 @@ namespace {
 TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
   std::vector<char> bytes;
   BinaryEncoder encoder{bytes};
-  encoder.AppendUInt8(0xab);
-  encoder.AppendUInt16(0x1234);
-  encoder.AppendUInt32(0x89abcdef);
-  encoder.AppendBoolean(true);
-  encoder.AppendInt32(-1234567);
-  encoder.AppendInt64(-9876543210LL);
-  encoder.AppendDouble(12.5);
+  encoder.Encode(std::uint8_t{0xab});
+  encoder.Encode(std::uint16_t{0x1234});
+  encoder.Encode(std::uint32_t{0x89abcdef});
+  encoder.Encode(true);
+  encoder.Encode(std::int32_t{-1234567});
+  encoder.Encode(std::int64_t{-9876543210LL});
+  encoder.Encode(12.5);
 
   BinaryDecoder decoder{bytes};
   std::uint8_t u8 = 0;
@@ -24,13 +24,13 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
   std::int32_t i32 = 0;
   std::int64_t i64 = 0;
   double dbl = 0;
-  EXPECT_TRUE(decoder.ReadUInt8(u8));
-  EXPECT_TRUE(decoder.ReadUInt16(u16));
-  EXPECT_TRUE(decoder.ReadUInt32(u32));
-  EXPECT_TRUE(decoder.ReadBoolean(boolean));
-  EXPECT_TRUE(decoder.ReadInt32(i32));
-  EXPECT_TRUE(decoder.ReadInt64(i64));
-  EXPECT_TRUE(decoder.ReadDouble(dbl));
+  EXPECT_TRUE(decoder.Decode(u8));
+  EXPECT_TRUE(decoder.Decode(u16));
+  EXPECT_TRUE(decoder.Decode(u32));
+  EXPECT_TRUE(decoder.Decode(boolean));
+  EXPECT_TRUE(decoder.Decode(i32));
+  EXPECT_TRUE(decoder.Decode(i64));
+  EXPECT_TRUE(decoder.Decode(dbl));
 
   EXPECT_EQ(u8, 0xab);
   EXPECT_EQ(u16, 0x1234);
@@ -45,12 +45,12 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
 TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
   std::vector<char> bytes;
   BinaryEncoder encoder{bytes};
-  encoder.AppendUaString("opc.tcp://localhost:4840");
-  encoder.AppendQualifiedName(scada::QualifiedName{"BrowseName", 2});
-  encoder.AppendLocalizedText(scada::ToLocalizedText(u"DisplayName"));
-  encoder.AppendByteString(scada::ByteString{'a', 'b', 'c'});
-  encoder.AppendInt32(-1);
-  encoder.AppendInt32(-1);
+  encoder.Encode(std::string_view{"opc.tcp://localhost:4840"});
+  encoder.Encode(scada::QualifiedName{"BrowseName", 2});
+  encoder.Encode(scada::ToLocalizedText(u"DisplayName"));
+  encoder.Encode(scada::ByteString{'a', 'b', 'c'});
+  encoder.Encode(std::int32_t{-1});
+  encoder.Encode(std::int32_t{-1});
 
   BinaryDecoder decoder{bytes};
   std::string string_value;
@@ -59,12 +59,12 @@ TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
   scada::ByteString byte_string;
   std::string null_string = "sentinel";
   scada::ByteString null_bytes = {'x'};
-  EXPECT_TRUE(decoder.ReadUaString(string_value));
-  EXPECT_TRUE(decoder.ReadQualifiedName(qualified_name));
-  EXPECT_TRUE(decoder.ReadLocalizedText(localized_text));
-  EXPECT_TRUE(decoder.ReadByteString(byte_string));
-  EXPECT_TRUE(decoder.ReadUaString(null_string));
-  EXPECT_TRUE(decoder.ReadByteString(null_bytes));
+  EXPECT_TRUE(decoder.Decode(string_value));
+  EXPECT_TRUE(decoder.Decode(qualified_name));
+  EXPECT_TRUE(decoder.Decode(localized_text));
+  EXPECT_TRUE(decoder.Decode(byte_string));
+  EXPECT_TRUE(decoder.Decode(null_string));
+  EXPECT_TRUE(decoder.Decode(null_bytes));
 
   EXPECT_EQ(string_value, "opc.tcp://localhost:4840");
   EXPECT_EQ(qualified_name, (scada::QualifiedName{"BrowseName", 2}));
@@ -78,10 +78,10 @@ TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
 TEST(OpcUaBinaryCodecUtilsTest, RoundTripsNumericNodeIds) {
   std::vector<char> bytes;
   BinaryEncoder encoder{bytes};
-  encoder.AppendNumericNodeId(scada::NodeId{});
-  encoder.AppendNumericNodeId(scada::NodeId{255, 2});
-  encoder.AppendNumericNodeId(scada::NodeId{70000, 513});
-  encoder.AppendExpandedNodeId(
+  encoder.Encode(scada::NodeId{});
+  encoder.Encode(scada::NodeId{255, 2});
+  encoder.Encode(scada::NodeId{70000, 513});
+  encoder.Encode(
       scada::ExpandedNodeId{scada::NodeId{42, 2}, "urn:test", 7});
 
   BinaryDecoder decoder{bytes};
@@ -89,10 +89,10 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsNumericNodeIds) {
   scada::NodeId small_id;
   scada::NodeId large_id;
   scada::ExpandedNodeId expanded_id;
-  EXPECT_TRUE(decoder.ReadNumericNodeId(null_id));
-  EXPECT_TRUE(decoder.ReadNumericNodeId(small_id));
-  EXPECT_TRUE(decoder.ReadNumericNodeId(large_id));
-  EXPECT_TRUE(decoder.ReadExpandedNodeId(expanded_id));
+  EXPECT_TRUE(decoder.Decode(null_id));
+  EXPECT_TRUE(decoder.Decode(small_id));
+  EXPECT_TRUE(decoder.Decode(large_id));
+  EXPECT_TRUE(decoder.Decode(expanded_id));
 
   EXPECT_TRUE(null_id.is_null());
   EXPECT_EQ(small_id, (scada::NodeId{255, 2}));
@@ -107,22 +107,19 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
 
   std::vector<char> extension_bytes;
   BinaryEncoder extension_encoder{extension_bytes};
-  extension_encoder.AppendExtensionObject(324, body);
+  extension_encoder.Encode(
+      EncodedExtensionObject{.type_id = 324, .body = body});
 
   BinaryDecoder extension_decoder{extension_bytes};
-  std::uint32_t type_id = 0;
-  std::uint8_t encoding = 0;
-  std::vector<char> decoded_body;
-  ASSERT_TRUE(
-      extension_decoder.ReadExtensionObject(type_id, encoding, decoded_body));
-  EXPECT_EQ(type_id, 324u);
-  EXPECT_EQ(encoding, 0x01);
-  EXPECT_EQ(decoded_body, body);
+  DecodedExtensionObject extension;
+  ASSERT_TRUE(extension_decoder.Decode(extension));
+  EXPECT_EQ(extension.type_id, 324u);
+  EXPECT_EQ(extension.encoding, 0x01);
+  EXPECT_EQ(extension.body, body);
   EXPECT_TRUE(extension_decoder.consumed());
 
   std::vector<char> message_bytes;
-  BinaryEncoder message_encoder{message_bytes};
-  message_encoder.AppendMessage(629, body);
+  AppendMessage(message_bytes, 629, body);
   const auto message = ReadMessage(message_bytes);
   ASSERT_TRUE(message.has_value());
   EXPECT_EQ(message->first, 629u);
@@ -138,57 +135,57 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
   const scada::ExtensionObject extension_object{
       scada::ExpandedNodeId{scada::NodeId{122, 2}, "urn:test", 3},
       scada::ByteString{'x', 'y'}};
-  encoder.AppendVariant(scada::Variant{});
-  encoder.AppendVariant(scada::Variant{true});
-  encoder.AppendVariant(scada::Variant{scada::Int8{-7}});
-  encoder.AppendVariant(scada::Variant{scada::UInt8{8}});
-  encoder.AppendVariant(scada::Variant{scada::Int16{-16}});
-  encoder.AppendVariant(scada::Variant{scada::UInt16{16}});
-  encoder.AppendVariant(scada::Variant{scada::Int32{-32}});
-  encoder.AppendVariant(scada::Variant{scada::UInt32{32}});
-  encoder.AppendVariant(scada::Variant{scada::Int64{-64}});
-  encoder.AppendVariant(scada::Variant{scada::UInt64{64}});
-  encoder.AppendVariant(scada::Variant{scada::Double{3.5}});
-  encoder.AppendVariant(scada::Variant{scada::ByteString{'a', 'b'}});
-  encoder.AppendVariant(scada::Variant{scada::String{"abc"}});
-  encoder.AppendVariant(scada::Variant{scada::QualifiedName{"BrowseName", 2}});
-  encoder.AppendVariant(scada::Variant{scada::ToLocalizedText(u"DisplayName")});
-  encoder.AppendVariant(scada::Variant{scada::NodeId{42, 2}});
-  encoder.AppendVariant(
+  encoder.Encode(scada::Variant{});
+  encoder.Encode(scada::Variant{true});
+  encoder.Encode(scada::Variant{scada::Int8{-7}});
+  encoder.Encode(scada::Variant{scada::UInt8{8}});
+  encoder.Encode(scada::Variant{scada::Int16{-16}});
+  encoder.Encode(scada::Variant{scada::UInt16{16}});
+  encoder.Encode(scada::Variant{scada::Int32{-32}});
+  encoder.Encode(scada::Variant{scada::UInt32{32}});
+  encoder.Encode(scada::Variant{scada::Int64{-64}});
+  encoder.Encode(scada::Variant{scada::UInt64{64}});
+  encoder.Encode(scada::Variant{scada::Double{3.5}});
+  encoder.Encode(scada::Variant{scada::ByteString{'a', 'b'}});
+  encoder.Encode(scada::Variant{scada::String{"abc"}});
+  encoder.Encode(scada::Variant{scada::QualifiedName{"BrowseName", 2}});
+  encoder.Encode(scada::Variant{scada::ToLocalizedText(u"DisplayName")});
+  encoder.Encode(scada::Variant{scada::NodeId{42, 2}});
+  encoder.Encode(
       scada::Variant{scada::ExpandedNodeId{scada::NodeId{43, 2}, "urn:test", 4}});
-  encoder.AppendVariant(scada::Variant{extension_object});
-  encoder.AppendVariant(scada::Variant{date_time});
-  encoder.AppendVariant(scada::Variant{std::vector<std::monostate>(2)});
-  encoder.AppendVariant(scada::Variant{std::vector<bool>{true, false}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::Int8>{-1, 2}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::UInt8>{3, 4}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::Int16>{-5, 6}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::UInt16>{7, 8}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::Int32>{-9, 10}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::UInt32>{11, 12}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::Int64>{-13, 14}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::UInt64>{15, 16}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::Double>{1.5, 2.5}});
-  encoder.AppendVariant(
+  encoder.Encode(scada::Variant{extension_object});
+  encoder.Encode(scada::Variant{date_time});
+  encoder.Encode(scada::Variant{std::vector<std::monostate>(2)});
+  encoder.Encode(scada::Variant{std::vector<bool>{true, false}});
+  encoder.Encode(scada::Variant{std::vector<scada::Int8>{-1, 2}});
+  encoder.Encode(scada::Variant{std::vector<scada::UInt8>{3, 4}});
+  encoder.Encode(scada::Variant{std::vector<scada::Int16>{-5, 6}});
+  encoder.Encode(scada::Variant{std::vector<scada::UInt16>{7, 8}});
+  encoder.Encode(scada::Variant{std::vector<scada::Int32>{-9, 10}});
+  encoder.Encode(scada::Variant{std::vector<scada::UInt32>{11, 12}});
+  encoder.Encode(scada::Variant{std::vector<scada::Int64>{-13, 14}});
+  encoder.Encode(scada::Variant{std::vector<scada::UInt64>{15, 16}});
+  encoder.Encode(scada::Variant{std::vector<scada::Double>{1.5, 2.5}});
+  encoder.Encode(
       scada::Variant{std::vector<scada::ByteString>{{'c'}, {'d', 'e'}}});
-  encoder.AppendVariant(
+  encoder.Encode(
       scada::Variant{std::vector<scada::String>{"fg", "hi"}});
-  encoder.AppendVariant(scada::Variant{
+  encoder.Encode(scada::Variant{
       std::vector<scada::QualifiedName>{{"Name1", 1}, {"Name2", 2}}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::LocalizedText>{
+  encoder.Encode(scada::Variant{std::vector<scada::LocalizedText>{
       scada::ToLocalizedText(u"One"), scada::ToLocalizedText(u"Two")}});
-  encoder.AppendVariant(scada::Variant{
+  encoder.Encode(scada::Variant{
       std::vector<scada::NodeId>{{21, 2}, {22, 3}}});
-  encoder.AppendVariant(scada::Variant{std::vector<scada::ExpandedNodeId>{
+  encoder.Encode(scada::Variant{std::vector<scada::ExpandedNodeId>{
       {scada::NodeId{23, 2}, "urn:a", 1},
       {scada::NodeId{24, 3}, "urn:b", 2}}});
-  encoder.AppendVariant(scada::Variant{
+  encoder.Encode(scada::Variant{
       std::vector<scada::ExtensionObject>{extension_object}});
 
   BinaryDecoder decoder{bytes};
   std::vector<scada::Variant> decoded(37);
   for (auto& variant : decoded) {
-    EXPECT_TRUE(decoder.ReadVariant(variant));
+    EXPECT_TRUE(decoder.Decode(variant));
   }
 
   EXPECT_TRUE(decoded[0].is_null());
@@ -262,12 +259,12 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
 TEST(OpcUaBinaryCodecUtilsTest, RejectsTruncatedPayloads) {
   std::vector<char> truncated_string;
   BinaryEncoder truncated_encoder{truncated_string};
-  truncated_encoder.AppendInt32(4);
+  truncated_encoder.Encode(std::int32_t{4});
   truncated_string.push_back('o');
 
   BinaryDecoder truncated_decoder{truncated_string};
   std::string value;
-  EXPECT_FALSE(truncated_decoder.ReadUaString(value));
+  EXPECT_FALSE(truncated_decoder.Decode(value));
 
   std::vector<char> invalid_message{0x03};
   BinaryDecoder invalid_decoder{invalid_message};

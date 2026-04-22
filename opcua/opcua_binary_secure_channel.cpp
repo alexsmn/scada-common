@@ -7,12 +7,12 @@ namespace opcua {
 namespace {
 
 void AppendNumericNodeId(binary::BinaryEncoder& encoder, std::uint32_t id) {
-  encoder.AppendNumericNodeId(scada::NodeId{id});
+  encoder.Encode(scada::NodeId{id});
 }
 
 bool ReadNumericNodeId(binary::BinaryDecoder& decoder, std::uint32_t& id) {
   scada::NodeId node_id;
-  if (!decoder.ReadNumericNodeId(node_id) || !node_id.is_numeric() ||
+  if (!decoder.Decode(node_id) || !node_id.is_numeric() ||
       node_id.namespace_index() != 0) {
     return false;
   }
@@ -23,14 +23,21 @@ bool ReadNumericNodeId(binary::BinaryDecoder& decoder, std::uint32_t& id) {
 void AppendExtensionObject(binary::BinaryEncoder& encoder,
                            std::uint32_t type_id,
                            const std::vector<char>& body) {
-  encoder.AppendExtensionObject(type_id, body);
+  encoder.Encode(binary::EncodedExtensionObject{.type_id = type_id, .body = body});
 }
 
 bool ReadExtensionObject(binary::BinaryDecoder& decoder,
                          std::uint32_t& type_id,
                          std::uint8_t& encoding,
                          std::vector<char>& body) {
-  return decoder.ReadExtensionObject(type_id, encoding, body);
+  binary::DecodedExtensionObject value;
+  if (!decoder.Decode(value)) {
+    return false;
+  }
+  type_id = value.type_id;
+  encoding = value.encoding;
+  body = std::move(value.body);
+  return true;
 }
 
 bool ReadRequestHeader(binary::BinaryDecoder& decoder,
@@ -38,11 +45,11 @@ bool ReadRequestHeader(binary::BinaryDecoder& decoder,
   std::uint32_t ignored_node_id = 0;
   std::int64_t ignored_timestamp = 0;
   if (!ReadNumericNodeId(decoder, ignored_node_id) ||
-      !decoder.ReadInt64(ignored_timestamp) ||
-      !decoder.ReadUInt32(header.request_handle) ||
-      !decoder.ReadUInt32(header.return_diagnostics) ||
-      !decoder.ReadUaString(header.audit_entry_id) ||
-      !decoder.ReadUInt32(header.timeout_hint)) {
+      !decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(header.request_handle) ||
+      !decoder.Decode(header.return_diagnostics) ||
+      !decoder.Decode(header.audit_entry_id) ||
+      !decoder.Decode(header.timeout_hint)) {
     return false;
   }
 
@@ -55,25 +62,25 @@ bool ReadRequestHeader(binary::BinaryDecoder& decoder,
 
 void AppendResponseHeader(binary::BinaryEncoder& encoder,
                           const OpcUaBinaryResponseHeader& header) {
-  encoder.AppendInt64(0);
-  encoder.AppendUInt32(header.request_handle);
-  encoder.AppendUInt32(header.service_result.good() ? 0u : 0x80000000u);
-  encoder.AppendUInt8(0);
-  encoder.AppendInt32(0);
+  encoder.Encode(std::int64_t{0});
+  encoder.Encode(header.request_handle);
+  encoder.Encode(header.service_result.good() ? 0u : 0x80000000u);
+  encoder.Encode(std::uint8_t{0});
+  encoder.Encode(std::int32_t{0});
   AppendNumericNodeId(encoder, 0);
-  encoder.AppendUInt8(0x00);
+  encoder.Encode(std::uint8_t{0x00});
 }
 
 void AppendRequestHeader(binary::BinaryEncoder& encoder,
                          const OpcUaBinaryRequestHeader& header) {
   AppendNumericNodeId(encoder, 0);
-  encoder.AppendInt64(0);
-  encoder.AppendUInt32(header.request_handle);
-  encoder.AppendUInt32(header.return_diagnostics);
-  encoder.AppendUaString(header.audit_entry_id);
-  encoder.AppendUInt32(header.timeout_hint);
+  encoder.Encode(std::int64_t{0});
+  encoder.Encode(header.request_handle);
+  encoder.Encode(header.return_diagnostics);
+  encoder.Encode(header.audit_entry_id);
+  encoder.Encode(header.timeout_hint);
   AppendNumericNodeId(encoder, 0);
-  encoder.AppendUInt8(0x00);
+  encoder.Encode(std::uint8_t{0x00});
 }
 
 }  // namespace
@@ -88,29 +95,29 @@ DecodeSecureConversationMessage(const std::vector<char>& frame) {
   OpcUaBinarySecureConversationMessage message;
   message.frame_header = *frame_header;
   binary::BinaryDecoder decoder{std::span<const char>{frame}.subspan(8)};
-  if (!decoder.ReadUInt32(message.secure_channel_id)) {
+  if (!decoder.Decode(message.secure_channel_id)) {
     return std::nullopt;
   }
 
   if (frame_header->message_type == OpcUaBinaryMessageType::SecureOpen) {
     OpcUaBinaryAsymmetricSecurityHeader header;
-    if (!decoder.ReadUaString(header.security_policy_uri) ||
-        !decoder.ReadByteString(header.sender_certificate) ||
-        !decoder.ReadByteString(
+    if (!decoder.Decode(header.security_policy_uri) ||
+        !decoder.Decode(header.sender_certificate) ||
+        !decoder.Decode(
                         header.receiver_certificate_thumbprint)) {
       return std::nullopt;
     }
     message.asymmetric_security_header = std::move(header);
   } else {
     OpcUaBinarySymmetricSecurityHeader header;
-    if (!decoder.ReadUInt32(header.token_id)) {
+    if (!decoder.Decode(header.token_id)) {
       return std::nullopt;
     }
     message.symmetric_security_header = header;
   }
 
-  if (!decoder.ReadUInt32(message.sequence_header.sequence_number) ||
-      !decoder.ReadUInt32(message.sequence_header.request_id)) {
+  if (!decoder.Decode(message.sequence_header.sequence_number) ||
+      !decoder.Decode(message.sequence_header.request_id)) {
     return std::nullopt;
   }
 
@@ -126,19 +133,19 @@ std::vector<char> EncodeSecureConversationMessage(
        .chunk_type = message.frame_header.chunk_type,
        .message_size = 0});
   binary::BinaryEncoder encoder{frame};
-  encoder.AppendUInt32(message.secure_channel_id);
+  encoder.Encode(message.secure_channel_id);
 
   if (message.frame_header.message_type == OpcUaBinaryMessageType::SecureOpen) {
     const auto& header = *message.asymmetric_security_header;
-    encoder.AppendUaString(header.security_policy_uri);
-    encoder.AppendByteString(header.sender_certificate);
-    encoder.AppendByteString(header.receiver_certificate_thumbprint);
+    encoder.Encode(header.security_policy_uri);
+    encoder.Encode(header.sender_certificate);
+    encoder.Encode(header.receiver_certificate_thumbprint);
   } else {
-    encoder.AppendUInt32(message.symmetric_security_header->token_id);
+    encoder.Encode(message.symmetric_security_header->token_id);
   }
 
-  encoder.AppendUInt32(message.sequence_header.sequence_number);
-  encoder.AppendUInt32(message.sequence_header.request_id);
+  encoder.Encode(message.sequence_header.sequence_number);
+  encoder.Encode(message.sequence_header.request_id);
   frame.insert(frame.end(), message.body.begin(), message.body.end());
 
   const auto message_size = static_cast<std::uint32_t>(frame.size());
@@ -163,11 +170,11 @@ DecodeOpenSecureChannelRequestBody(const std::vector<char>& body) {
   std::uint32_t request_type = 0;
   std::uint32_t security_mode = 0;
   if (!ReadRequestHeader(payload_decoder, request.request_header) ||
-      !payload_decoder.ReadUInt32(request.client_protocol_version) ||
-      !payload_decoder.ReadUInt32(request_type) ||
-      !payload_decoder.ReadUInt32(security_mode) ||
-      !payload_decoder.ReadByteString(request.client_nonce) ||
-      !payload_decoder.ReadUInt32(request.requested_lifetime) ||
+      !payload_decoder.Decode(request.client_protocol_version) ||
+      !payload_decoder.Decode(request_type) ||
+      !payload_decoder.Decode(security_mode) ||
+      !payload_decoder.Decode(request.client_nonce) ||
+      !payload_decoder.Decode(request.requested_lifetime) ||
       !payload_decoder.consumed()) {
     return std::nullopt;
   }
@@ -184,12 +191,12 @@ std::vector<char> EncodeOpenSecureChannelResponseBody(
   std::vector<char> payload;
   binary::BinaryEncoder payload_encoder{payload};
   AppendResponseHeader(payload_encoder, response.response_header);
-  payload_encoder.AppendUInt32(response.server_protocol_version);
-  payload_encoder.AppendUInt32(response.security_token.channel_id);
-  payload_encoder.AppendUInt32(response.security_token.token_id);
-  payload_encoder.AppendInt64(response.security_token.created_at);
-  payload_encoder.AppendUInt32(response.security_token.revised_lifetime);
-  payload_encoder.AppendByteString(response.server_nonce);
+  payload_encoder.Encode(response.server_protocol_version);
+  payload_encoder.Encode(response.security_token.channel_id);
+  payload_encoder.Encode(response.security_token.token_id);
+  payload_encoder.Encode(response.security_token.created_at);
+  payload_encoder.Encode(response.security_token.revised_lifetime);
+  payload_encoder.Encode(response.server_nonce);
 
   std::vector<char> body;
   binary::BinaryEncoder body_encoder{body};

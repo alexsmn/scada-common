@@ -16,28 +16,38 @@
 
 namespace opcua::binary {
 
+struct EncodedExtensionObject {
+  std::uint32_t type_id = 0;
+  std::vector<char> body;
+};
+
+struct DecodedExtensionObject {
+  std::uint32_t type_id = 0;
+  std::uint8_t encoding = 0;
+  std::vector<char> body;
+};
+
 class BinaryEncoder {
  public:
   explicit BinaryEncoder(std::vector<char>& bytes) : bytes_{bytes} {}
 
-  void AppendUInt8(std::uint8_t value);
-  void AppendUInt16(std::uint16_t value);
-  void AppendUInt32(std::uint32_t value);
-  void AppendBoolean(bool value);
-  void AppendInt32(std::int32_t value);
-  void AppendInt64(std::int64_t value);
-  void AppendDouble(double value);
+  void Encode(std::uint8_t value);
+  void Encode(std::uint16_t value);
+  void Encode(std::uint32_t value);
+  void Encode(bool value);
+  void Encode(std::int32_t value);
+  void Encode(std::int64_t value);
+  void Encode(double value);
 
-  void AppendUaString(std::string_view value);
-  void AppendQualifiedName(const scada::QualifiedName& value);
-  void AppendLocalizedText(const scada::LocalizedText& value);
-  void AppendByteString(const scada::ByteString& value);
-  void AppendNumericNodeId(const scada::NodeId& node_id);
-  void AppendExpandedNodeId(const scada::ExpandedNodeId& node_id);
-  void AppendVariant(const scada::Variant& value);
-  void AppendExtensionObject(std::uint32_t type_id,
-                             const std::vector<char>& body);
-  void AppendMessage(std::uint32_t type_id, const std::vector<char>& body);
+  void Encode(std::string_view value);
+  void Encode(const scada::String& value);
+  void Encode(const scada::QualifiedName& value);
+  void Encode(const scada::LocalizedText& value);
+  void Encode(const scada::ByteString& value);
+  void Encode(const scada::NodeId& node_id);
+  void Encode(const scada::ExpandedNodeId& node_id);
+  void Encode(const scada::Variant& value);
+  void Encode(const EncodedExtensionObject& value);
 
   std::vector<char>& bytes() { return bytes_; }
 
@@ -50,24 +60,22 @@ class BinaryDecoder {
   explicit BinaryDecoder(std::span<const char> bytes) : bytes_{bytes} {}
   explicit BinaryDecoder(const std::vector<char>& bytes) : bytes_{bytes} {}
 
-  bool ReadUInt8(std::uint8_t& value);
-  bool ReadUInt16(std::uint16_t& value);
-  bool ReadUInt32(std::uint32_t& value);
-  bool ReadBoolean(bool& value);
-  bool ReadInt32(std::int32_t& value);
-  bool ReadInt64(std::int64_t& value);
-  bool ReadDouble(double& value);
+  bool Decode(std::uint8_t& value);
+  bool Decode(std::uint16_t& value);
+  bool Decode(std::uint32_t& value);
+  bool Decode(bool& value);
+  bool Decode(std::int32_t& value);
+  bool Decode(std::int64_t& value);
+  bool Decode(double& value);
 
-  bool ReadUaString(std::string& value);
-  bool ReadQualifiedName(scada::QualifiedName& value);
-  bool ReadLocalizedText(scada::LocalizedText& value);
-  bool ReadByteString(scada::ByteString& value);
-  bool ReadNumericNodeId(scada::NodeId& id);
-  bool ReadExpandedNodeId(scada::ExpandedNodeId& id);
-  bool ReadVariant(scada::Variant& value);
-  bool ReadExtensionObject(std::uint32_t& type_id,
-                           std::uint8_t& encoding,
-                           std::vector<char>& body);
+  bool Decode(scada::String& value);
+  bool Decode(scada::QualifiedName& value);
+  bool Decode(scada::LocalizedText& value);
+  bool Decode(scada::ByteString& value);
+  bool Decode(scada::NodeId& id);
+  bool Decode(scada::ExpandedNodeId& id);
+  bool Decode(scada::Variant& value);
+  bool Decode(DecodedExtensionObject& value);
 
   std::size_t offset() const { return offset_; }
   bool consumed() const { return offset_ == bytes_.size(); }
@@ -78,6 +86,9 @@ class BinaryDecoder {
   std::size_t offset_ = 0;
 };
 
+void AppendMessage(std::vector<char>& bytes,
+                   std::uint32_t type_id,
+                   std::span<const char> payload);
 std::optional<std::pair<std::uint32_t, std::vector<char>>> ReadMessage(
     const std::vector<char>& bytes);
 

@@ -117,12 +117,12 @@ std::vector<char> EncodeBinaryHelloMessage(
   return EncodeWithHeader(OpcUaBinaryMessageType::Hello,
                           [&](std::vector<char>& bytes) {
                             binary::BinaryEncoder encoder{bytes};
-                            encoder.AppendUInt32(message.protocol_version);
-                            encoder.AppendUInt32(message.receive_buffer_size);
-                            encoder.AppendUInt32(message.send_buffer_size);
-                            encoder.AppendUInt32(message.max_message_size);
-                            encoder.AppendUInt32(message.max_chunk_count);
-                            encoder.AppendUaString(message.endpoint_url);
+                            encoder.Encode(message.protocol_version);
+                            encoder.Encode(message.receive_buffer_size);
+                            encoder.Encode(message.send_buffer_size);
+                            encoder.Encode(message.max_message_size);
+                            encoder.Encode(message.max_chunk_count);
+                            encoder.Encode(message.endpoint_url);
                           });
 }
 
@@ -136,12 +136,12 @@ std::optional<OpcUaBinaryHelloMessage> DecodeBinaryHelloMessage(
 
   OpcUaBinaryHelloMessage message;
   binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
-  if (!decoder.ReadUInt32(message.protocol_version) ||
-      !decoder.ReadUInt32(message.receive_buffer_size) ||
-      !decoder.ReadUInt32(message.send_buffer_size) ||
-      !decoder.ReadUInt32(message.max_message_size) ||
-      !decoder.ReadUInt32(message.max_chunk_count) ||
-      !decoder.ReadUaString(message.endpoint_url)) {
+  if (!decoder.Decode(message.protocol_version) ||
+      !decoder.Decode(message.receive_buffer_size) ||
+      !decoder.Decode(message.send_buffer_size) ||
+      !decoder.Decode(message.max_message_size) ||
+      !decoder.Decode(message.max_chunk_count) ||
+      !decoder.Decode(message.endpoint_url)) {
     return std::nullopt;
   }
   if (!decoder.consumed()) {
@@ -155,11 +155,11 @@ std::vector<char> EncodeBinaryAcknowledgeMessage(
   return EncodeWithHeader(OpcUaBinaryMessageType::Acknowledge,
                           [&](std::vector<char>& bytes) {
                             binary::BinaryEncoder encoder{bytes};
-                            encoder.AppendUInt32(message.protocol_version);
-                            encoder.AppendUInt32(message.receive_buffer_size);
-                            encoder.AppendUInt32(message.send_buffer_size);
-                            encoder.AppendUInt32(message.max_message_size);
-                            encoder.AppendUInt32(message.max_chunk_count);
+                            encoder.Encode(message.protocol_version);
+                            encoder.Encode(message.receive_buffer_size);
+                            encoder.Encode(message.send_buffer_size);
+                            encoder.Encode(message.max_message_size);
+                            encoder.Encode(message.max_chunk_count);
                           });
 }
 
@@ -173,11 +173,11 @@ std::optional<OpcUaBinaryAcknowledgeMessage> DecodeBinaryAcknowledgeMessage(
 
   OpcUaBinaryAcknowledgeMessage message;
   binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
-  if (!decoder.ReadUInt32(message.protocol_version) ||
-      !decoder.ReadUInt32(message.receive_buffer_size) ||
-      !decoder.ReadUInt32(message.send_buffer_size) ||
-      !decoder.ReadUInt32(message.max_message_size) ||
-      !decoder.ReadUInt32(message.max_chunk_count)) {
+  if (!decoder.Decode(message.protocol_version) ||
+      !decoder.Decode(message.receive_buffer_size) ||
+      !decoder.Decode(message.send_buffer_size) ||
+      !decoder.Decode(message.max_message_size) ||
+      !decoder.Decode(message.max_chunk_count)) {
     return std::nullopt;
   }
   if (!decoder.consumed()) {
@@ -191,8 +191,8 @@ std::vector<char> EncodeBinaryErrorMessage(
   return EncodeWithHeader(OpcUaBinaryMessageType::Error,
                           [&](std::vector<char>& bytes) {
                             binary::BinaryEncoder encoder{bytes};
-                            encoder.AppendUInt32(message.error.full_code());
-                            encoder.AppendUaString(message.reason);
+                            encoder.Encode(message.error.full_code());
+                            encoder.Encode(message.reason);
                           });
 }
 
@@ -207,8 +207,8 @@ std::optional<OpcUaBinaryErrorMessage> DecodeBinaryErrorMessage(
   OpcUaBinaryErrorMessage message;
   std::uint32_t full_code = 0;
   binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
-  if (!decoder.ReadUInt32(full_code) ||
-      !decoder.ReadUaString(message.reason)) {
+  if (!decoder.Decode(full_code) ||
+      !decoder.Decode(message.reason)) {
     return std::nullopt;
   }
   if (!decoder.consumed()) {
