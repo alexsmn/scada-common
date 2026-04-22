@@ -5,6 +5,7 @@
 #include "scada/test/test_monitored_item.h"
 
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace opcua_ws {
 namespace {
@@ -119,6 +120,37 @@ TEST(OpcUaWsSessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) 
       {.subscription_id = second_subscription.subscription_id,
        .retransmit_sequence_number = 1});
   EXPECT_EQ(republish.status.code(), scada::StatusCode::Good);
+}
+
+TEST(OpcUaWsSessionTest, CanonicalSessionApiRemainsAvailableThroughWsAliasLayer) {
+  static_assert(std::is_same_v<opcua::OpcUaSession, OpcUaWsSession>);
+  static_assert(std::is_same_v<opcua::OpcUaSessionContext, OpcUaWsSessionContext>);
+
+  TestMonitoredItemService monitored_item_service;
+  auto now = ParseTime("2026-04-20 14:30:00");
+  opcua::OpcUaSession session{{
+      .session_id = NumericNode(1101),
+      .authentication_token = NumericNode(2101, 3),
+      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(88, 4)),
+      .monitored_item_service = monitored_item_service,
+      .now = [&] { return now; },
+  }};
+
+  const auto created = session.CreateSubscription(
+      opcua::OpcUaCreateSubscriptionRequest{
+          .parameters = {.publishing_interval_ms = 100,
+                         .lifetime_count = 60,
+                         .max_keep_alive_count = 2,
+                         .publishing_enabled = true}});
+
+  EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
+  EXPECT_TRUE(session.HasSubscription(created.subscription_id));
+
+  now = now + base::TimeDelta::FromMilliseconds(100);
+  const auto publish = session.Publish(opcua::OpcUaPublishRequest{});
+  EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(publish.subscription_id, created.subscription_id);
+  EXPECT_TRUE(publish.notification_message.notification_data.empty());
 }
 
 TEST(OpcUaWsSessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
@@ -263,6 +295,7 @@ TEST(OpcUaWsSessionTest, TransfersSubscriptionsBetweenSessions) {
   const auto source_publish = source.Publish({});
   EXPECT_EQ(source_publish.status.code(), scada::StatusCode::Bad_NothingToDo);
 
+  now = now + base::TimeDelta::FromMilliseconds(100);
   const auto target_publish = target.Publish({});
   EXPECT_EQ(target_publish.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(target_publish.subscription_id, created.subscription_id);

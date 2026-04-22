@@ -11,39 +11,18 @@
 
 namespace opcua {
 
-using opcua_ws::OpcUaWsCreateMonitoredItemsRequest;
-using opcua_ws::OpcUaWsCreateMonitoredItemsResponse;
-using opcua_ws::OpcUaWsDeleteMonitoredItemsRequest;
-using opcua_ws::OpcUaWsDeleteMonitoredItemsResponse;
-using opcua_ws::OpcUaWsModifyMonitoredItemsRequest;
-using opcua_ws::OpcUaWsModifyMonitoredItemsResponse;
-using opcua_ws::OpcUaWsModifySubscriptionRequest;
-using opcua_ws::OpcUaWsModifySubscriptionResponse;
-using opcua_ws::OpcUaWsMonitoredItemId;
-using opcua_ws::OpcUaWsMonitoringFilter;
-using opcua_ws::OpcUaWsMonitoringMode;
-using opcua_ws::OpcUaWsMonitoringParameters;
-using opcua_ws::OpcUaWsNotificationData;
-using opcua_ws::OpcUaWsNotificationMessage;
-using opcua_ws::OpcUaWsPublishResponse;
-using opcua_ws::OpcUaWsRepublishResponse;
-using opcua_ws::OpcUaWsSetMonitoringModeRequest;
-using opcua_ws::OpcUaWsSetMonitoringModeResponse;
-using opcua_ws::OpcUaWsSubscriptionId;
-using opcua_ws::OpcUaWsSubscriptionParameters;
-
 class OpcUaSubscription {
  public:
-  OpcUaSubscription(OpcUaWsSubscriptionId subscription_id,
-                    OpcUaWsSubscriptionParameters parameters,
+  OpcUaSubscription(OpcUaSubscriptionId subscription_id,
+                    OpcUaSubscriptionParameters parameters,
                     scada::MonitoredItemService& monitored_item_service,
                     base::Time publish_cycle_start_time);
 
   OpcUaSubscription(const OpcUaSubscription&) = delete;
   OpcUaSubscription& operator=(const OpcUaSubscription&) = delete;
 
-  OpcUaWsSubscriptionId subscription_id() const { return subscription_id_; }
-  const OpcUaWsSubscriptionParameters& parameters() const { return parameters_; }
+  OpcUaSubscriptionId subscription_id() const { return subscription_id_; }
+  const OpcUaSubscriptionParameters& parameters() const { return parameters_; }
   bool HasPendingNotifications() const {
     return !pending_notifications_.empty();
   }
@@ -52,31 +31,31 @@ class OpcUaSubscription {
   void PrimePublishCycle(base::Time now);
   std::optional<base::Time> NextPublishDeadline() const;
 
-  OpcUaWsModifySubscriptionResponse Modify(
-      const OpcUaWsModifySubscriptionRequest& request);
+  OpcUaModifySubscriptionResponse Modify(
+      const OpcUaModifySubscriptionRequest& request);
   void SetPublishingEnabled(bool publishing_enabled);
 
-  OpcUaWsCreateMonitoredItemsResponse CreateMonitoredItems(
-      const OpcUaWsCreateMonitoredItemsRequest& request);
-  OpcUaWsModifyMonitoredItemsResponse ModifyMonitoredItems(
-      const OpcUaWsModifyMonitoredItemsRequest& request);
-  OpcUaWsDeleteMonitoredItemsResponse DeleteMonitoredItems(
-      const OpcUaWsDeleteMonitoredItemsRequest& request);
-  OpcUaWsSetMonitoringModeResponse SetMonitoringMode(
-      const OpcUaWsSetMonitoringModeRequest& request);
+  OpcUaCreateMonitoredItemsResponse CreateMonitoredItems(
+      const OpcUaCreateMonitoredItemsRequest& request);
+  OpcUaModifyMonitoredItemsResponse ModifyMonitoredItems(
+      const OpcUaModifyMonitoredItemsRequest& request);
+  OpcUaDeleteMonitoredItemsResponse DeleteMonitoredItems(
+      const OpcUaDeleteMonitoredItemsRequest& request);
+  OpcUaSetMonitoringModeResponse SetMonitoringMode(
+      const OpcUaSetMonitoringModeRequest& request);
 
   std::vector<scada::StatusCode> Acknowledge(
       const std::vector<scada::UInt32>& sequence_numbers);
-  std::optional<OpcUaWsPublishResponse> TryPublish(base::Time now);
-  OpcUaWsRepublishResponse Republish(scada::UInt32 sequence_number) const;
+  std::optional<OpcUaPublishResponse> TryPublish(base::Time now);
+  OpcUaRepublishResponse Republish(scada::UInt32 sequence_number) const;
 
  private:
   struct Item {
-    OpcUaWsMonitoredItemId monitored_item_id = 0;
+    OpcUaMonitoredItemId monitored_item_id = 0;
     scada::ReadValueId item_to_monitor;
     std::optional<std::string> index_range;
-    OpcUaWsMonitoringMode monitoring_mode = OpcUaWsMonitoringMode::Reporting;
-    OpcUaWsMonitoringParameters parameters;
+    OpcUaMonitoringMode monitoring_mode = OpcUaMonitoringMode::Reporting;
+    OpcUaMonitoringParameters parameters;
     std::vector<std::vector<std::string>> event_field_paths;
     scada::StatusCode monitored_item_status = scada::StatusCode::Bad;
     std::shared_ptr<scada::MonitoredItem> monitored_item;
@@ -84,13 +63,13 @@ class OpcUaSubscription {
   };
 
   struct QueuedNotification {
-    OpcUaWsMonitoredItemId source_item_id = 0;
-    OpcUaWsNotificationData notification;
+    OpcUaMonitoredItemId source_item_id = 0;
+    OpcUaNotificationData notification;
   };
 
   static scada::MonitoringParameters ToMonitoringParameters(
       const Item& item,
-      const OpcUaWsMonitoringParameters& parameters);
+      const OpcUaMonitoringParameters& parameters);
 
   scada::StatusCode Acknowledge(scada::UInt32 sequence_number);
   std::vector<scada::UInt32> AvailableSequenceNumbers() const;
@@ -100,17 +79,17 @@ class OpcUaSubscription {
   void RebindItem(Item& item);
   void QueueDataChange(Item& item, const scada::DataValue& data_value);
   void QueueEvent(Item& item, const scada::Status& status, const std::any& event);
-  void QueueNotification(Item& item, OpcUaWsNotificationData notification);
+  void QueueNotification(Item& item, OpcUaNotificationData notification);
   void EnforceQueueLimit(const Item& item);
 
   static std::vector<std::vector<std::string>> ParseEventFieldPaths(
-      const std::optional<OpcUaWsMonitoringFilter>& filter);
+      const std::optional<OpcUaMonitoringFilter>& filter);
   static std::vector<scada::Variant> BuildEventFields(
       const std::vector<std::vector<std::string>>& field_paths,
       const std::any& event);
 
-  OpcUaWsSubscriptionId subscription_id_;
-  OpcUaWsSubscriptionParameters parameters_;
+  OpcUaSubscriptionId subscription_id_;
+  OpcUaSubscriptionParameters parameters_;
   scada::MonitoredItemService& monitored_item_service_;
 
   scada::UInt32 next_monitored_item_id_ = 1;
@@ -119,9 +98,9 @@ class OpcUaSubscription {
   bool initial_message_sent_ = false;
   std::optional<base::Time> last_publish_time_;
 
-  std::unordered_map<OpcUaWsMonitoredItemId, std::shared_ptr<Item>> items_;
+  std::unordered_map<OpcUaMonitoredItemId, std::shared_ptr<Item>> items_;
   std::deque<QueuedNotification> pending_notifications_;
-  std::deque<OpcUaWsNotificationMessage> retransmit_queue_;
+  std::deque<OpcUaNotificationMessage> retransmit_queue_;
 };
 
 }  // namespace opcua

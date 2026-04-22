@@ -11,11 +11,9 @@
 
 namespace opcua {
 
-using namespace opcua_ws;
-
 OpcUaSubscription::OpcUaSubscription(
-    OpcUaWsSubscriptionId subscription_id,
-    OpcUaWsSubscriptionParameters parameters,
+    OpcUaSubscriptionId subscription_id,
+    OpcUaSubscriptionParameters parameters,
     scada::MonitoredItemService& monitored_item_service,
     base::Time publish_cycle_start_time)
     : subscription_id_{subscription_id},
@@ -23,8 +21,8 @@ OpcUaSubscription::OpcUaSubscription(
       monitored_item_service_{monitored_item_service},
       last_publish_time_{publish_cycle_start_time} {}
 
-OpcUaWsModifySubscriptionResponse OpcUaSubscription::Modify(
-    const OpcUaWsModifySubscriptionRequest& request) {
+OpcUaModifySubscriptionResponse OpcUaSubscription::Modify(
+    const OpcUaModifySubscriptionRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
@@ -85,13 +83,13 @@ std::optional<base::Time> OpcUaSubscription::NextPublishDeadline() const {
               : KeepAliveInterval());
 }
 
-OpcUaWsCreateMonitoredItemsResponse OpcUaSubscription::CreateMonitoredItems(
-    const OpcUaWsCreateMonitoredItemsRequest& request) {
+OpcUaCreateMonitoredItemsResponse OpcUaSubscription::CreateMonitoredItems(
+    const OpcUaCreateMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  OpcUaWsCreateMonitoredItemsResponse response{
+  OpcUaCreateMonitoredItemsResponse response{
       .status = scada::StatusCode::Good};
   response.results.reserve(request.items_to_create.size());
 
@@ -120,13 +118,13 @@ OpcUaWsCreateMonitoredItemsResponse OpcUaSubscription::CreateMonitoredItems(
   return response;
 }
 
-OpcUaWsModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
-    const OpcUaWsModifyMonitoredItemsRequest& request) {
+OpcUaModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
+    const OpcUaModifyMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  OpcUaWsModifyMonitoredItemsResponse response{
+  OpcUaModifyMonitoredItemsResponse response{
       .status = scada::StatusCode::Good};
   response.results.reserve(request.items_to_modify.size());
 
@@ -157,13 +155,13 @@ OpcUaWsModifyMonitoredItemsResponse OpcUaSubscription::ModifyMonitoredItems(
   return response;
 }
 
-OpcUaWsDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
-    const OpcUaWsDeleteMonitoredItemsRequest& request) {
+OpcUaDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
+    const OpcUaDeleteMonitoredItemsRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  OpcUaWsDeleteMonitoredItemsResponse response{
+  OpcUaDeleteMonitoredItemsResponse response{
       .status = scada::StatusCode::Good};
   response.results.reserve(request.monitored_item_ids.size());
 
@@ -193,13 +191,13 @@ OpcUaWsDeleteMonitoredItemsResponse OpcUaSubscription::DeleteMonitoredItems(
   return response;
 }
 
-OpcUaWsSetMonitoringModeResponse OpcUaSubscription::SetMonitoringMode(
-    const OpcUaWsSetMonitoringModeRequest& request) {
+OpcUaSetMonitoringModeResponse OpcUaSubscription::SetMonitoringMode(
+    const OpcUaSetMonitoringModeRequest& request) {
   if (request.subscription_id != subscription_id_) {
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  OpcUaWsSetMonitoringModeResponse response{
+  OpcUaSetMonitoringModeResponse response{
       .status = scada::StatusCode::Good};
   response.results.reserve(request.monitored_item_ids.size());
 
@@ -230,7 +228,7 @@ std::vector<scada::StatusCode> OpcUaSubscription::Acknowledge(
   return results;
 }
 
-std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
+std::optional<OpcUaPublishResponse> OpcUaSubscription::TryPublish(
     base::Time now) {
   PrimePublishCycle(now);
   const bool has_publishable_notifications =
@@ -241,7 +239,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
 
     last_publish_time_ = now;
     initial_message_sent_ = true;
-    return OpcUaWsPublishResponse{
+    return OpcUaPublishResponse{
         .status = scada::StatusCode::Good,
         .subscription_id = subscription_id_,
         .results = {},
@@ -260,7 +258,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
   auto queued = std::move(pending_notifications_.front());
   pending_notifications_.pop_front();
 
-  OpcUaWsNotificationMessage notification_message{
+  OpcUaNotificationMessage notification_message{
       .sequence_number = next_sequence_number_++,
       .publish_time = now,
       .notification_data = {std::move(queued.notification)}};
@@ -268,7 +266,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
   last_publish_time_ = now;
   initial_message_sent_ = true;
 
-  return OpcUaWsPublishResponse{
+  return OpcUaPublishResponse{
       .status = scada::StatusCode::Good,
       .subscription_id = subscription_id_,
       .results = {},
@@ -277,7 +275,7 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
       .available_sequence_numbers = AvailableSequenceNumbers()};
 }
 
-OpcUaWsRepublishResponse OpcUaSubscription::Republish(
+OpcUaRepublishResponse OpcUaSubscription::Republish(
     scada::UInt32 sequence_number) const {
   const auto it = std::find_if(
       retransmit_queue_.begin(), retransmit_queue_.end(),
@@ -296,7 +294,7 @@ OpcUaWsRepublishResponse OpcUaSubscription::Republish(
 
 scada::MonitoringParameters OpcUaSubscription::ToMonitoringParameters(
     const Item& item,
-    const OpcUaWsMonitoringParameters& parameters) {
+    const OpcUaMonitoringParameters& parameters) {
   scada::MonitoringParameters result;
   result.sampling_interval =
       base::TimeDelta::FromMilliseconds(
@@ -304,7 +302,7 @@ scada::MonitoringParameters OpcUaSubscription::ToMonitoringParameters(
   result.queue_size = std::max<size_t>(1, parameters.queue_size);
 
   if (const auto* filter = parameters.filter
-                               ? std::get_if<OpcUaWsDataChangeFilter>(
+                               ? std::get_if<OpcUaDataChangeFilter>(
                                      &*parameters.filter)
                                : nullptr) {
     result.filter = scada::DataChangeFilter{
@@ -394,13 +392,13 @@ void OpcUaSubscription::RebindItem(Item& item) {
 void OpcUaSubscription::QueueDataChange(
     Item& item,
     const scada::DataValue& data_value) {
-  if (item.monitoring_mode != OpcUaWsMonitoringMode::Reporting)
+  if (item.monitoring_mode != OpcUaMonitoringMode::Reporting)
     return;
   QueueNotification(
       item,
-      OpcUaWsDataChangeNotification{.monitored_items = {{.client_handle =
-                                                             item.parameters.client_handle,
-                                                         .value = data_value}}});
+      OpcUaDataChangeNotification{.monitored_items = {{.client_handle =
+                                                           item.parameters.client_handle,
+                                                       .value = data_value}}});
 }
 
 void OpcUaSubscription::QueueEvent(Item& item,
@@ -408,14 +406,14 @@ void OpcUaSubscription::QueueEvent(Item& item,
                                      const std::any& event) {
   if (!status) {
     QueueNotification(
-        item, OpcUaWsStatusChangeNotification{.status = status.code()});
+        item, OpcUaStatusChangeNotification{.status = status.code()});
     return;
   }
-  if (item.monitoring_mode != OpcUaWsMonitoringMode::Reporting)
+  if (item.monitoring_mode != OpcUaMonitoringMode::Reporting)
     return;
   QueueNotification(
       item,
-      OpcUaWsEventNotificationList{
+      OpcUaEventNotificationList{
           .events = {{.client_handle = item.parameters.client_handle,
                       .event_fields =
                           BuildEventFields(item.event_field_paths, event)}}});
@@ -423,7 +421,7 @@ void OpcUaSubscription::QueueEvent(Item& item,
 
 void OpcUaSubscription::QueueNotification(
     Item& item,
-    OpcUaWsNotificationData notification) {
+    OpcUaNotificationData notification) {
   pending_notifications_.push_back(
       {.source_item_id = item.monitored_item_id,
        .notification = std::move(notification)});
@@ -452,7 +450,7 @@ void OpcUaSubscription::EnforceQueueLimit(const Item& item) {
 
 std::vector<std::vector<std::string>>
 OpcUaSubscription::ParseEventFieldPaths(
-    const std::optional<OpcUaWsMonitoringFilter>& filter) {
+    const std::optional<OpcUaMonitoringFilter>& filter) {
   const auto* raw_filter = filter ? std::get_if<boost::json::value>(&*filter)
                                   : nullptr;
   if (!raw_filter)

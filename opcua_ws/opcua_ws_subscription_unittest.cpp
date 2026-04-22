@@ -6,6 +6,7 @@
 
 #include <boost/json/parse.hpp>
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace opcua_ws {
 namespace {
@@ -109,6 +110,34 @@ TEST(OpcUaWsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   const auto republish_second = subscription.Republish(2);
   EXPECT_EQ(republish_second.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(republish_second.notification_message.sequence_number, 2u);
+}
+
+TEST(OpcUaWsSubscriptionTest,
+     CanonicalSubscriptionApiRemainsAvailableThroughWsAliasLayer) {
+  static_assert(std::is_same_v<opcua::OpcUaSubscription, OpcUaWsSubscription>);
+
+  TestMonitoredItemService monitored_item_service;
+  const auto start = ParseTime("2026-04-20 10:30:00");
+  opcua::OpcUaSubscription subscription{
+      17,
+      {.publishing_interval_ms = 100,
+       .lifetime_count = 60,
+       .max_keep_alive_count = 3,
+       .max_notifications_per_publish = 0,
+       .publishing_enabled = true,
+       .priority = 0},
+      monitored_item_service,
+      start};
+
+  const auto keep_alive =
+      subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
+  ASSERT_TRUE(keep_alive.has_value());
+  EXPECT_EQ(keep_alive->status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(keep_alive->subscription_id, 17u);
+  EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
+
+  const auto republish = subscription.Republish(1u);
+  EXPECT_EQ(republish.status.code(), scada::StatusCode::Bad_MessageNotAvailable);
 }
 
 TEST(OpcUaWsSubscriptionTest,

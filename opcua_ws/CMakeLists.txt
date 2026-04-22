@@ -14,3 +14,9 @@ target_link_libraries(scada_common_opcua_ws PUBLIC
 target_link_libraries(scada_common_opcua_ws PRIVATE
   OpenSSL::SSL
 )
+
+if(TARGET scada_common_opcua_ws_unittests)
+  target_link_libraries(scada_common_opcua_ws_unittests PRIVATE
+    scada_core_opcua
+  )
+endif()

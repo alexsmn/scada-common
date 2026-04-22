@@ -20,16 +20,19 @@
 > `SetMonitoringMode`), all with unit tests. A transport-independent
 > per-subscription runtime is also now present for monitored-item binding,
 > notification queueing, keep-alive generation, ack/replay handling, and
-> event-field projection. A transport-independent `OpcUaWsSession` layer now
-> also owns subscription ids, monitored-item routing, fair publish arbitration
-> across subscriptions, and in-memory transfer handoff between session
-> instances. The canonical shared runtime contract now lives in
+> event-field projection. The shared session/subscription model now speaks the
+> canonical `opcua::OpcUaSession` / `opcua::OpcUaSubscription` API, with
+> `opcua_ws::*` aliases retained only as adapter compatibility shims. That
+> live-session layer owns subscription ids, monitored-item routing, fair
+> publish arbitration across subscriptions, and in-memory transfer handoff
+> between session instances. The canonical shared runtime contract now lives in
 > `opcua::OpcUaRuntime` and `opcua::OpcUaServiceHandler` under
 > `common/opcua/`, while `common/opcua_ws/` retains alias headers and the
 > UA-JSON/WebSocket adapter boundary. That shared runtime now routes decoded
-> request bodies through `OpcUaWsSessionManager`, `OpcUaWsSession`, and the
-> common coroutine service handler, including detach/resume and subscription
-> transfer ownership tracking across live sessions. A message-oriented
+> request bodies through `opcua::OpcUaSessionManager`, `opcua::OpcUaSession`,
+> and the common coroutine service handler, including detach/resume and
+> subscription transfer ownership tracking across live sessions. A
+> message-oriented
 > `OpcUaWsServer` loop is now also present for accepted transports: it reads
 > request frames, decodes UA-JSON envelopes, dispatches the canonical request
 > body through `opcua::OpcUaRuntime`, writes responses, and detaches sessions
@@ -127,10 +130,10 @@ core:
 |---|---|
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
 | `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaRuntime`, writes responses, detaches sessions on disconnect |
-| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state: subscription ids, monitored-item routing, fair publish arbitration, browse continuation-point paging, and transfer handoff between live sessions |
+| `common/opcua_ws/opcua_ws_session.{h,cpp}` | Transport-independent live session state owned by `opcua::OpcUaSession`: subscription ids, monitored-item routing, fair publish arbitration, browse continuation-point paging, and transfer handoff between live sessions |
 | `common/opcua/opcua_runtime.{h,cpp}` + `common/opcua_ws/opcua_ws_runtime.h` | Canonical shared runtime plus WS compatibility alias: transport-neutral request-body routing, shared connection state, and session/subscription ownership tracking |
 | `common/opcua_ws/opcua_ws_session_manager.{h,cpp}` | Transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
-| `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | Publish queue, keep-alive timer, data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
+| `common/opcua_ws/opcua_ws_subscription.{h,cpp}` | `opcua::OpcUaSubscription` publish queue, keep-alive timer, and data-change delivery; mirrors `MonitoredItemAdapter` at `common/opcua/opcua_server.cpp:196-230` |
 | `common/opcua_ws/opcua_json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; reuses `common/opcua/opcua_conversion.{h,cpp}` for UA ↔ scada conversion |
 | `common/opcua/opcua_message.h` + `common/opcua/opcua_service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters |
 | `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` + `common/opcua_ws/opcua_ws_publish_message_codec.cpp` | WS alias layer plus UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the Phase 1 subscription / publish / monitored-item payloads |
@@ -265,7 +268,7 @@ service request/response body field names are governed by the spec casing.
 
 ## Authentication
 
-On `ActivateSessionRequest`, `OpcUaWsSession` constructs the same
+On `ActivateSessionRequest`, `opcua::OpcUaSession` constructs the same
 `scada::ServiceContext` the TCP endpoint constructs. Identity tokens
 supported in Phase 0:
 
@@ -358,28 +361,31 @@ Current implementation note:
   envelopes plus notification payloads (`DataChangeNotification`,
   `EventNotificationList`, `StatusChangeNotification`) with unit tests.
 - The transport-independent per-subscription Phase 1 runtime is now in place
-  under `common/opcua_ws/opcua_ws_subscription.{h,cpp}` with unit tests. It
-  binds monitored items through `MonitoredItemService`, maintains per-item
-  notification queues, gates data and keep-alive delivery on the revised
-  publishing interval / keep-alive count, tracks retransmit state for
+  under `common/opcua_ws/opcua_ws_subscription.{h,cpp}` as the canonical
+  `opcua::OpcUaSubscription`, with `opcua_ws::OpcUaWsSubscription` left as an
+  alias. It binds monitored items through `MonitoredItemService`, maintains
+  per-item notification queues, gates data and keep-alive delivery on the
+  revised publishing interval / keep-alive count, tracks retransmit state for
   `Republish`, applies acknowledgements, ignores stale callbacks after
   monitored-item rebind/delete, and projects the default browser event-field
   set (`EventId`, `EventType`, `SourceNode`, `SourceName`, `Time`, `Message`,
   `Severity`) from `scada::Event` payloads.
 - The transport-independent live-session Phase 1 runtime is now in place under
-  `common/opcua_ws/opcua_ws_session.{h,cpp}` with unit tests. It owns
-  subscription creation / deletion, routes monitored-item operations to the
-  correct subscription, aggregates `PublishRequest` acknowledgements, drains
-  subscriptions fairly in round-robin order, computes the next publish deadline
-  across live subscriptions, can transfer live subscription ownership between
-  session instances in-memory, and now also pages `Browse` results into
+  `common/opcua_ws/opcua_ws_session.{h,cpp}` as the canonical
+  `opcua::OpcUaSession`, with `opcua_ws::OpcUaWsSession` left as an alias. It
+  owns subscription creation / deletion, routes monitored-item operations to
+  the correct subscription, aggregates `PublishRequest` acknowledgements,
+  drains subscriptions fairly in round-robin order, computes the next publish
+  deadline across live subscriptions, can transfer live subscription ownership
+  between session instances in-memory, and now also pages `Browse` results into
   session-scoped continuation points consumed or released through `BrowseNext`.
 - The transport-independent decoded-request router is now owned by
   `common/opcua/opcua_runtime.{h,cpp}` with unit tests, while
   `common/opcua_ws/opcua_ws_runtime.h` remains the WS alias surface. It
   exposes the canonical `opcua::OpcUaRuntime` contract from `common/opcua/`
   and ties
-  `OpcUaWsSessionManager`, `OpcUaWsSession`, and `opcua::OpcUaServiceHandler`
+  `opcua::OpcUaSessionManager`, `opcua::OpcUaSession`, and
+  `opcua::OpcUaServiceHandler`
   together for decoded WS envelopes/body dispatch: `CreateSession` /
   `ActivateSession` /
   `CloseSession`, subscription and monitored-item messages, parked `Publish` /
