@@ -2,7 +2,7 @@
 
 #include "base/awaitable.h"
 #include "opcua/opcua_binary_message.h"
-#include "opcua_ws/opcua_ws_runtime.h"
+#include "opcua/opcua_runtime.h"
 
 namespace opcua {
 
@@ -40,9 +40,8 @@ struct OpcUaBinaryRuntimeContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
-// First in-repo UA Binary adapter step: reuse the OPC UA WS runtime as the
-// canonical shared server-side session/subscription/service core while the
-// actual UA Binary wire protocol layer is implemented separately.
+// UA Binary reuses the canonical shared server-side session/subscription/
+// service runtime while keeping Binary-specific framing and codec logic local.
 class OpcUaBinaryRuntime {
  public:
   explicit OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context);

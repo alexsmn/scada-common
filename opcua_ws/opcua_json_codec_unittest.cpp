@@ -1239,10 +1239,10 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
       .body = OpcUaWsPublishResponse{
           .status = scada::StatusCode::Good,
           .subscription_id = 17,
-          .available_sequence_numbers = {3, 4},
+          .results = {scada::StatusCode::Good},
           .more_notifications = true,
           .notification_message = publish_message,
-          .results = {scada::StatusCode::Good}}};
+          .available_sequence_numbers = {3, 4}}};
   OpcUaWsResponseMessage republish{
       .request_handle = 82,
       .body = OpcUaWsRepublishResponse{

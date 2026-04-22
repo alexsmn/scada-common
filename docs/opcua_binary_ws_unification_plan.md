@@ -1,6 +1,9 @@
 # OPC UA Binary and WS Unification Plan
 
-> Status: planning document for the next common-layer refactor.
+> Status: planning document for the remaining common-layer refactor.
+> Phase 2 runtime ownership and Phase 3 service-handler ownership are now
+> implemented; the remaining work is primarily WS-prefixed shared-session
+> naming cleanup, Binary adapter thinning, and cross-transport parity tests.
 
 This document records the remaining unification gaps between the in-repo OPC UA
 Binary stack in `common/opcua/` and the OPC UA over WebSocket stack in
@@ -32,8 +35,9 @@ The codebase has already completed the first unification step:
 - `common/opcua_ws/opcua_ws_session_manager.h` now defines the canonical
   session lifecycle types in `namespace opcua`, with `opcua_ws` aliases layered
   on top
-- `common/opcua_ws/opcua_ws_runtime.h` defines a shared `opcua::OpcUaRuntime`
-  and aliases it back into `opcua_ws`
+- `common/opcua/opcua_runtime.{h,cpp}` now own the shared
+  `opcua::OpcUaRuntime`, with `common/opcua_ws/opcua_ws_runtime.h` layering
+  the compatibility alias back into `opcua_ws`
 - `common/opcua_ws/opcua_ws_session.h` defines a shared `opcua::OpcUaSession`
   and aliases it back into `opcua_ws`
 - `common/opcua/opcua_binary_runtime.h` already reuses that shared runtime and
@@ -41,9 +45,9 @@ The codebase has already completed the first unification step:
 - `common/opcua/opcua_message.h` and `common/opcua/opcua_service_message.h`
   now own the canonical transport-neutral request/response model, with WS
   alias headers layered back on top
-- `common/opcua/opcua_service_handler.h` now defines the canonical coroutine
-  service dispatcher, while the WS module retains only the adapter-facing alias
-  surface and implementation location
+- `common/opcua/opcua_service_handler.{h,cpp}` now own the canonical coroutine
+  service dispatcher, while the WS module retains only adapter-facing alias
+  surfaces and transport/codec code
 
 So the direction is correct. The remaining work is mostly about removing the
 last WS-shaped session/subscription naming from the shared core, finishing the
@@ -105,17 +109,11 @@ Impact:
 - parity fixes must be made in both the shared runtime and the Binary adapter
 - it is harder to prove that Binary and WS implement the same service behavior
 
-### 4. Service dispatch is common in behavior but not in ownership
+### 4. Service dispatch ownership was WS-biased
 
-`common/opcua_ws/opcua_ws_service_handler.{h,cpp}` is already effectively a
-transport-neutral coroutine service dispatcher, but it still lives in the WS
-module and still returns WS service variants.
-
-Impact:
-
-- shared endpoint behavior is implemented in the right style but in the wrong
-  module namespace
-- the common service layer is still conceptually downstream from WS
+This gap is now closed: the canonical coroutine service dispatcher lives in
+`common/opcua/opcua_service_handler.{h,cpp}` and the WS layer retains only
+adapter-facing aliases plus transport/codec concerns.
 
 ### 5. Session behavior uses WS terminology for generic semantics
 

@@ -6,6 +6,7 @@
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
+#include "scada/service_context.h"
 #include "scada/view_service_mock.h"
 
 #include <gmock/gmock.h>
@@ -47,7 +48,10 @@ TEST(OpcUaServiceHandlerCanonicalTest,
         EXPECT_EQ(context.user_id(), user_id);
         EXPECT_THAT(*inputs, ElementsAre(request.inputs[0]));
         callback(scada::StatusCode::Good,
-                 {scada::DataValue{scada::LocalizedText{u"Pump"}}});
+                 {scada::DataValue{scada::LocalizedText{u"Pump"},
+                                   {},
+                                   base::Time{},
+                                   base::Time{}}});
       }));
 
   const auto response = WaitAwaitable(executor, handler.Handle(request));

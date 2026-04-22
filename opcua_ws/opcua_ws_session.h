@@ -2,6 +2,7 @@
 
 #include "base/time/time.h"
 #include "opcua_ws/opcua_ws_message.h"
+#include "opcua_ws/opcua_ws_service_message.h"
 #include "opcua_ws/opcua_ws_subscription.h"
 
 #include "scada/monitored_item_service.h"

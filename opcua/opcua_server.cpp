@@ -189,8 +189,9 @@ promise<scada::Status> Call(scada::MethodService& method_service,
   return promise;
 }
 
-opcua::CallMethodResult BuildCallMethodResult(OpcUa_StatusCode status_code) {
-  opcua::CallMethodResult result;
+opcua::OpcUaMethodCallResult BuildCallMethodResult(
+    OpcUa_StatusCode status_code) {
+  opcua::OpcUaMethodCallResult result;
   result.StatusCode = status_code;
   return result;
 }

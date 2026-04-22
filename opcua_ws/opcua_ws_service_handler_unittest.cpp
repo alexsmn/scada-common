@@ -1,4 +1,5 @@
 #include "opcua_ws/opcua_ws_service_handler.h"
+#include "opcua_ws/opcua_ws_service_message.h"
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"

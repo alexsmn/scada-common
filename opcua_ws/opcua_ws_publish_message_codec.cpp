@@ -306,17 +306,17 @@ OpcUaWsPublishResponse DecodePublishResponse(const value& json) {
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .subscription_id = static_cast<OpcUaWsSubscriptionId>(
               RequireUInt64(RequireField(obj, "SubscriptionId"))),
-          .available_sequence_numbers = DecodeList<scada::UInt32>(
-              RequireField(obj, "AvailableSequenceNumbers"),
-              [](const value& entry) {
-                return static_cast<scada::UInt32>(RequireUInt64(entry));
-              }),
+          .results = DecodeList<scada::StatusCode>(
+              RequireField(obj, "Results"), DecodeStatusCode),
           .more_notifications =
               RequireBool(RequireField(obj, "MoreNotifications")),
           .notification_message =
               DecodeNotificationMessage(RequireField(obj, "NotificationMessage")),
-          .results = DecodeList<scada::StatusCode>(
-              RequireField(obj, "Results"), DecodeStatusCode)};
+          .available_sequence_numbers = DecodeList<scada::UInt32>(
+              RequireField(obj, "AvailableSequenceNumbers"),
+              [](const value& entry) {
+                return static_cast<scada::UInt32>(RequireUInt64(entry));
+              })};
 }
 
 value EncodeRepublishRequest(const OpcUaWsRepublishRequest& request) {

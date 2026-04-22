@@ -243,5 +243,34 @@ TEST_F(OpcUaBinarySessionServiceTest,
   EXPECT_EQ(*close_status, 0u);
 }
 
+TEST_F(OpcUaBinarySessionServiceTest,
+       ActivateSessionWithUnknownAuthenticationTokenReturnsNoPayload) {
+  auto activate_request = DecodeOpcUaBinaryServiceRequest(
+      EncodeUserNameActivateRequestBody(2, scada::NodeId{999, 3}, "operator",
+                                        "secret"));
+  ASSERT_TRUE(activate_request.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_, service_.HandleRequest(std::move(*activate_request)));
+  EXPECT_FALSE(activated.has_value());
+}
+
+TEST_F(OpcUaBinarySessionServiceTest,
+       CloseSessionWithUnknownAuthenticationTokenReturnsLoggedOff) {
+  auto close_request = DecodeOpcUaBinaryServiceRequest(
+      EncodeCloseSessionRequestBody(3, scada::NodeId{999, 3}));
+  ASSERT_TRUE(close_request.has_value());
+
+  const auto closed = WaitAwaitable(
+      executor_, service_.HandleRequest(std::move(*close_request)));
+  ASSERT_TRUE(closed.has_value());
+  const auto close_status =
+      DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
+  ASSERT_TRUE(close_status.has_value());
+  EXPECT_EQ(*close_status,
+            scada::Status(scada::StatusCode::Bad_SessionIsLoggedOff)
+                .full_code());
+}
+
 }  // namespace
 }  // namespace opcua

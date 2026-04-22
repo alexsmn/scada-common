@@ -1,6 +1,7 @@
 #pragma once
 
 #include "opcua_ws/opcua_ws_message.h"
+#include "opcua_ws/opcua_ws_service_message.h"
 
 #include <boost/json/value.hpp>
 

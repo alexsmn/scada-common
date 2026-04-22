@@ -213,7 +213,7 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleCall(
     auto status = co_await EndpointCallAsync(
         executor, method_service, std::move(method.object_id),
         std::move(method.method_id), std::move(method.arguments), user_id);
-    response.results.push_back(CallMethodResult{std::move(status)});
+    response.results.push_back(OpcUaMethodCallResult{std::move(status)});
   }
 
   co_return OpcUaServiceResponse{std::move(response)};

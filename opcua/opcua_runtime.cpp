@@ -1,9 +1,10 @@
-#include "opcua_ws/opcua_ws_runtime.h"
+#include "opcua/opcua_runtime.h"
 
 #include "base/boost_log.h"
 #include "base/callback_awaitable.h"
 
 #include <algorithm>
+#include <cassert>
 #include <type_traits>
 #include <utility>
 
@@ -11,7 +12,7 @@ namespace opcua {
 
 namespace {
 
-BoostLogger logger_{LOG_NAME("OpcUaWsRuntime")};
+BoostLogger logger_{LOG_NAME("OpcUaRuntime")};
 
 template <typename Response>
 Response SessionMissingResponse() {
@@ -24,9 +25,10 @@ OpcUaResponseBody SessionMissingResponse<OpcUaResponseBody>() {
 }
 
 template <typename Request>
-Awaitable<OpcUaServiceResponse> HandleServiceRequest(const OpcUaRuntimeContext& context,
-                                                     const OpcUaSession& session,
-                                                     Request request) {
+Awaitable<OpcUaServiceResponse> HandleServiceRequest(
+    const OpcUaRuntimeContext& context,
+    const OpcUaSession& session,
+    Request request) {
   const auto user_id = session.GetServiceContext().user_id();
   co_return co_await OpcUaServiceHandler{
       {.executor = context.executor,
@@ -48,7 +50,7 @@ void OpcUaRuntime::Detach(OpcUaConnectionState& connection) {
   if (!connection.authentication_token.has_value())
     return;
 
-  LOG_INFO(logger_) << "OPC UA WS runtime detaching connection session"
+  LOG_INFO(logger_) << "OPC UA runtime detaching connection session"
                     << LOG_TAG("AuthenticationToken",
                                connection.authentication_token->ToString());
   this->session_manager.DetachSession(*connection.authentication_token);
@@ -69,7 +71,7 @@ OpcUaSession* OpcUaRuntime::FindAttachedSession(
 }
 
 void OpcUaRuntime::ForgetSession(const scada::NodeId& authentication_token) {
-  LOG_INFO(logger_) << "OPC UA WS runtime forgetting session state"
+  LOG_INFO(logger_) << "OPC UA runtime forgetting session state"
                     << LOG_TAG("AuthenticationToken",
                                authentication_token.ToString());
   RemoveSessionSubscriptions(authentication_token);
@@ -300,13 +302,11 @@ Awaitable<OpcUaResponseBody> OpcUaRuntime::Handle(
                                                             .inputs = std::move(
                                                                 typed_request.inputs),
                                                         });
-          auto* browse_response = std::get_if<BrowseResponse>(&response);
-          if (!browse_response)
+          if (!std::holds_alternative<BrowseResponse>(response))
             co_return SessionMissingResponse<OpcUaResponseBody>();
-          // cppcheck-suppress nullPointerRedundantCheck
+          auto browse = std::get<BrowseResponse>(std::move(response));
           auto paged_response = session->StoreBrowseResults(
-              std::move(*browse_response),
-              typed_request.requested_max_references_per_node);
+              std::move(browse), typed_request.requested_max_references_per_node);
           co_return OpcUaResponseBody{std::move(paged_response)};
         } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
           auto* session = FindAttachedSession(connection);
@@ -318,15 +318,15 @@ Awaitable<OpcUaResponseBody> OpcUaRuntime::Handle(
           auto* session = FindAttachedSession(connection);
           if (!session)
             co_return SessionMissingResponse<OpcUaResponseBody>();
-
-          // cppcheck-suppress nullPointerRedundantCheck
-          auto response =
-              co_await HandleServiceRequest(*this, *session, std::move(typed_request));
+          assert(session != nullptr);
+          auto service_response =
+              co_await HandleServiceRequest(*this, *session,
+                                            std::move(typed_request));
           co_return std::visit(
               [](auto&& typed_response) -> OpcUaResponseBody {
                 return OpcUaResponseBody{std::move(typed_response)};
               },
-              std::move(response));
+              std::move(service_response));
         }
       },
       std::move(request));

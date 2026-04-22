@@ -398,14 +398,14 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
       std::get_if<OpcUaWsCreateSubscriptionResponse>(&created_subscription.body),
       nullptr);
 
-  promise<OpcUaWsResponseMessage> publish_promise;
+  promise<OpcUaWsResponseBody> publish_promise;
   CoSpawn(MakeTestAnyExecutor(executor_),
           [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
             try {
               publish_promise.resolve(
                   co_await runtime_->Handle(connection,
-                                            {.request_handle = 4,
-                                             .body = OpcUaWsPublishRequest{}}));
+                                            OpcUaWsRequestBody{
+                                                OpcUaWsPublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
             }
@@ -425,7 +425,7 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
   ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
 
   const auto publish_message = publish_promise.get();
-  const auto* publish = std::get_if<OpcUaWsPublishResponse>(&publish_message.body);
+  const auto* publish = std::get_if<OpcUaWsPublishResponse>(&publish_message);
   ASSERT_NE(publish, nullptr);
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(publish->notification_message.notification_data.empty());

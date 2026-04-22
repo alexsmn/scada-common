@@ -145,8 +145,9 @@ Files:
 
 - `common/opcua/opcua_message.h`
 - `common/opcua/opcua_service_message.h`
-- `common/opcua/opcua_service_handler.h`
-- `common/opcua_ws/opcua_ws_runtime.{h,cpp}`
+- `common/opcua/opcua_service_handler.{h,cpp}`
+- `common/opcua/opcua_runtime.{h,cpp}`
+- `common/opcua_ws/opcua_ws_runtime.h`
 
 Canonical server-side request/response and service-dispatch contract used by
 both the UA Binary adapter and the UA-JSON/WebSocket adapter.

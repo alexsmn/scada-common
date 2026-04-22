@@ -59,24 +59,24 @@ struct TranslateBrowsePathsResponse {
   std::vector<scada::BrowsePathResult> results;
 };
 
-struct CallMethodRequest {
+struct OpcUaMethodCallRequest {
   scada::NodeId object_id;
   scada::NodeId method_id;
   std::vector<scada::Variant> arguments;
 };
 
-struct CallMethodResult {
+struct OpcUaMethodCallResult {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> input_argument_results;
   std::vector<scada::Variant> output_arguments;
 };
 
 struct CallRequest {
-  std::vector<CallMethodRequest> methods;
+  std::vector<OpcUaMethodCallRequest> methods;
 };
 
 struct CallResponse {
-  std::vector<CallMethodResult> results;
+  std::vector<OpcUaMethodCallResult> results;
 };
 
 struct HistoryReadRawRequest {

@@ -191,7 +191,7 @@ void OpcUaSession::Call(const scada::NodeId& node_id,
                         const std::vector<scada::Variant>& arguments,
                         const scada::NodeId& user_id,
                         const scada::StatusCallback& callback) {
-  opcua::CallMethodRequest request;
+  opcua::OpcUaMethodCallRequest request;
   Convert(node_id, request.ObjectId);
   Convert(method_id, request.MethodId);
   auto copied_arguments = arguments;

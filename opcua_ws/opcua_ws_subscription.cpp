@@ -244,14 +244,14 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
     return OpcUaWsPublishResponse{
         .status = scada::StatusCode::Good,
         .subscription_id = subscription_id_,
-        .available_sequence_numbers = AvailableSequenceNumbers(),
+        .results = {},
         .more_notifications = false,
         // OPC UA Part 4 sends the first keep-alive at the end of the first
         // publishing cycle and requires all keep-alives to carry the next
         // NotificationMessage sequence number.
         .notification_message = {.sequence_number = next_sequence_number_,
                                  .publish_time = now},
-        .results = {}};
+        .available_sequence_numbers = AvailableSequenceNumbers()};
   }
 
   if (!IsPublishReady(now))
@@ -271,10 +271,10 @@ std::optional<OpcUaWsPublishResponse> OpcUaSubscription::TryPublish(
   return OpcUaWsPublishResponse{
       .status = scada::StatusCode::Good,
       .subscription_id = subscription_id_,
-      .available_sequence_numbers = AvailableSequenceNumbers(),
+      .results = {},
       .more_notifications = !pending_notifications_.empty(),
       .notification_message = std::move(notification_message),
-      .results = {}};
+      .available_sequence_numbers = AvailableSequenceNumbers()};
 }
 
 OpcUaWsRepublishResponse OpcUaSubscription::Republish(

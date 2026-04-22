@@ -17,13 +17,13 @@
 sequenceDiagram
     autonumber
     participant B as Browser (UaClient)
-    participant RT as OpcUaWsRuntime
+    participant RT as OpcUaRuntime
     participant S as OpcUaWsSession
     participant SUB as OpcUaWsSubscription
     participant MI as MonitoredItemService
     participant AS as Address space
 
-    Note over B,SUB: Implemented in common today: full Phase 1 message codec,<br/>decoded-request routing in OpcUaWsRuntime,<br/>live-session orchestration in OpcUaWsSession,<br/>and per-subscription runtime for queueing, publish-interval gating,<br/>keep-alives, acknowledgements, and replay
+    Note over B,SUB: Implemented in common today: full Phase 1 message codec,<br/>decoded-request routing in OpcUaRuntime,<br/>live-session orchestration in OpcUaWsSession,<br/>and per-subscription runtime for queueing, publish-interval gating,<br/>keep-alives, acknowledgements, and replay
 
     B->>RT: CreateSubscriptionRequest<br/>(requestHandle, publishingInterval, keepAlive)
     RT->>S: decoded request envelope

@@ -1085,7 +1085,7 @@ HistoryReadEventsRequest DecodeHistoryReadEventsRequest(const value& json) {
 
 value EncodeCallRequest(const CallRequest& request) {
   return object{{"MethodsToCall",
-                 EncodeList(request.methods, [](const CallMethodRequest& method) {
+                 EncodeList(request.methods, [](const OpcUaMethodCallRequest& method) {
                    return object{{"ObjectId", EncodeNodeId(method.object_id)},
                                  {"MethodId", EncodeNodeId(method.method_id)},
                                  {"InputArguments",
@@ -1100,7 +1100,7 @@ CallRequest DecodeCallRequest(const value& json) {
     methods = FindField(obj, "Methods");
   if (!methods)
     ThrowJsonError("Missing MethodsToCall");
-  return {.methods = DecodeList<CallMethodRequest>(
+  return {.methods = DecodeList<OpcUaMethodCallRequest>(
               *methods,
               [](const value& entry) {
                 const auto& obj = RequireObject(entry);
@@ -1109,7 +1109,7 @@ CallRequest DecodeCallRequest(const value& json) {
                   arguments = FindField(obj, "Arguments");
                 if (!arguments)
                   ThrowJsonError("Missing InputArguments");
-                return CallMethodRequest{
+                return OpcUaMethodCallRequest{
                     .object_id = DecodeNodeId(RequireField(obj, "ObjectId")),
                     .method_id = DecodeNodeId(RequireField(obj, "MethodId")),
                     .arguments = DecodeList<scada::Variant>(
@@ -1357,7 +1357,7 @@ HistoryReadEventsResponse DecodeHistoryReadEventsResponse(const value& json) {
 
 value EncodeCallResponse(const CallResponse& response) {
   return object{{"Results",
-                 EncodeList(response.results, [](const CallMethodResult& result) {
+                 EncodeList(response.results, [](const OpcUaMethodCallResult& result) {
                    return object{
                        {"StatusCode", EncodeStatus(result.status)},
                        {"InputArgumentResults",
@@ -1368,7 +1368,7 @@ value EncodeCallResponse(const CallResponse& response) {
 }
 
 CallResponse DecodeCallResponse(const value& json) {
-  return {.results = DecodeList<CallMethodResult>(
+  return {.results = DecodeList<OpcUaMethodCallResult>(
               RequireField(RequireObject(json), "Results"), [](const value& entry) {
                 const auto& obj = RequireObject(entry);
                 const auto* status = FindField(obj, "StatusCode");
@@ -1376,7 +1376,7 @@ CallResponse DecodeCallResponse(const value& json) {
                   status = FindField(obj, "Status");
                 if (!status)
                   ThrowJsonError("Missing StatusCode");
-                return CallMethodResult{
+                return OpcUaMethodCallResult{
                     .status = DecodeStatus(*status),
                     .input_argument_results =
                         DecodeList<scada::StatusCode>(
