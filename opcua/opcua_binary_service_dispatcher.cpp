@@ -10,20 +10,22 @@ std::optional<std::vector<char>> EncodeBinaryResponse(
 }
 
 std::optional<std::vector<char>> EncodeBinaryResponse(
-    const OpcUaBinaryDecodedRequest& request) {
+    scada::UInt32 request_handle,
+    const std::vector<std::vector<std::string>>& history_event_field_paths,
+    const OpcUaBinaryResponseBody& response) {
   return std::visit(
-      [&request](const auto& typed_response) -> std::optional<std::vector<char>> {
+      [request_handle, &history_event_field_paths](
+          const auto& typed_response) -> std::optional<std::vector<char>> {
         using T = std::decay_t<decltype(typed_response)>;
         if constexpr (std::is_same_v<T, OpcUaBinaryHistoryReadEventsResponse>) {
           return EncodeOpcUaBinaryHistoryReadEventsResponse(
-              request.header.request_handle, typed_response,
-              request.history_event_field_paths);
+              request_handle, typed_response, history_event_field_paths);
         } else {
-          return EncodeBinaryResponse(request.header.request_handle,
+          return EncodeBinaryResponse(request_handle,
                                       OpcUaBinaryResponseBody{typed_response});
         }
       },
-      request.body);
+      response);
 }
 }  // namespace
 
@@ -43,12 +45,9 @@ Awaitable<std::optional<std::vector<char>>> OpcUaBinaryServiceDispatcher::Handle
     co_return std::nullopt;
   }
 
-  co_return EncodeBinaryResponse(
-      OpcUaBinaryDecodedRequest{
-          .header = request->header,
-          .body = std::move(*response),
-          .history_event_field_paths = request->history_event_field_paths,
-      });
+  co_return EncodeBinaryResponse(request->header.request_handle,
+                                 request->history_event_field_paths,
+                                 *response);
 }
 
 }  // namespace opcua

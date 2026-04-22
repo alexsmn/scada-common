@@ -58,16 +58,26 @@ class OpcUaRuntimeTest : public testing::Test,
 
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
-    const auto response = HandleResponse<HistoryReadRawResponse>(
-        connection, std::move(request));
-    return response.result.status.code();
+    const auto body =
+        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaRequestBody{
+                                                                 std::move(request)}));
+    if (const auto* response = std::get_if<HistoryReadRawResponse>(&body))
+      return response->result.status.code();
+    if (const auto* fault = std::get_if<OpcUaServiceFault>(&body))
+      return fault->status.code();
+    return scada::StatusCode::Bad;
   }
 
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
-    const auto response = HandleResponse<HistoryReadEventsResponse>(
-        connection, std::move(request));
-    return response.result.status.code();
+    const auto body =
+        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaRequestBody{
+                                                                 std::move(request)}));
+    if (const auto* response = std::get_if<HistoryReadEventsResponse>(&body))
+      return response->result.status.code();
+    if (const auto* fault = std::get_if<OpcUaServiceFault>(&body))
+      return fault->status.code();
+    return scada::StatusCode::Bad;
   }
 
   OpcUaRuntime runtime_{OpcUaRuntimeContext{
