@@ -48,6 +48,8 @@ constexpr std::uint32_t kPublishRequestBinaryEncodingId = 826;
 constexpr std::uint32_t kPublishResponseBinaryEncodingId = 829;
 constexpr std::uint32_t kRepublishRequestBinaryEncodingId = 832;
 constexpr std::uint32_t kRepublishResponseBinaryEncodingId = 835;
+constexpr std::uint32_t kTransferSubscriptionsRequestBinaryEncodingId = 841;
+constexpr std::uint32_t kTransferSubscriptionsResponseBinaryEncodingId = 844;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
 constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
 constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
@@ -1171,6 +1173,33 @@ std::optional<OpcUaBinaryDecodedRequest> DecodePublishRequest(
   };
 }
 
+std::optional<OpcUaBinaryDecodedRequest> DecodeTransferSubscriptionsRequest(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryServiceRequestHeader header;
+  OpcUaBinaryTransferSubscriptionsRequest request;
+  std::int32_t count = 0;
+  if (!ReadRequestHeader(decoder, header) || !decoder.Decode(count) ||
+      count < 0) {
+    return std::nullopt;
+  }
+
+  request.subscription_ids.resize(static_cast<std::size_t>(count));
+  for (auto& subscription_id : request.subscription_ids) {
+    if (!decoder.Decode(subscription_id)) {
+      return std::nullopt;
+    }
+  }
+  if (!decoder.Decode(request.send_initial_values) || !decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return OpcUaBinaryDecodedRequest{
+      .header = header,
+      .body = std::move(request),
+  };
+}
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeDeleteMonitoredItemsRequest(
     std::span<const char> body) {
   binary::BinaryDecoder decoder{body};
@@ -1504,6 +1533,18 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
           binary::AppendMessage(body_encoder, kRepublishRequestBinaryEncodingId,
                                 payload);
         } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryTransferSubscriptionsRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_request.subscription_ids.size()));
+          for (const auto subscription_id : typed_request.subscription_ids) {
+            payload_encoder.Encode(subscription_id);
+          }
+          payload_encoder.Encode(typed_request.send_initial_values);
+          binary::AppendMessage(
+              body_encoder, kTransferSubscriptionsRequestBinaryEncodingId,
+              payload);
+        } else if constexpr (std::is_same_v<
                                  T, OpcUaBinaryDeleteMonitoredItemsRequest>) {
           AppendRequestHeader(payload_encoder, header);
           payload_encoder.Encode(typed_request.subscription_id);
@@ -1712,6 +1753,8 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodePublishRequest(message->second);
     case kRepublishRequestBinaryEncodingId:
       return DecodeRepublishRequest(message->second);
+    case kTransferSubscriptionsRequestBinaryEncodingId:
+      return DecodeTransferSubscriptionsRequest(message->second);
     case kDeleteMonitoredItemsRequestBinaryEncodingId:
       return DecodeDeleteMonitoredItemsRequest(message->second);
     case kSetMonitoringModeRequestBinaryEncodingId:
@@ -1859,6 +1902,19 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
                                     typed_response.notification_message);
           binary::AppendMessage(body_encoder, kRepublishResponseBinaryEncodingId,
                                 payload);
+        } else if constexpr (std::is_same_v<
+                                 T, OpcUaBinaryTransferSubscriptionsResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.results.size()));
+          for (const auto result : typed_response.results) {
+            payload_encoder.Encode(EncodeStatusCode(result));
+          }
+          payload_encoder.Encode(std::int32_t{-1});
+          binary::AppendMessage(
+              body_encoder, kTransferSubscriptionsResponseBinaryEncodingId,
+              payload);
         } else if constexpr (std::is_same_v<
                                  T, OpcUaBinaryDeleteMonitoredItemsResponse>) {
           AppendResponseHeader(payload_encoder, request_handle,

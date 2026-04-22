@@ -60,6 +60,8 @@ constexpr std::uint32_t kPublishRequestBinaryEncodingId = 826;
 constexpr std::uint32_t kPublishResponseBinaryEncodingId = 829;
 constexpr std::uint32_t kRepublishRequestBinaryEncodingId = 832;
 constexpr std::uint32_t kRepublishResponseBinaryEncodingId = 835;
+constexpr std::uint32_t kTransferSubscriptionsRequestBinaryEncodingId = 841;
+constexpr std::uint32_t kTransferSubscriptionsResponseBinaryEncodingId = 844;
 constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
 constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
@@ -380,6 +382,21 @@ std::vector<char> EncodeRepublishRequestBody(
       OpcUaBinaryRequestBody{OpcUaBinaryRepublishRequest{
           .subscription_id = subscription_id,
           .retransmit_sequence_number = retransmit_sequence_number}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeTransferSubscriptionsRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    std::vector<scada::UInt32> subscription_ids,
+    bool send_initial_values) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryTransferSubscriptionsRequest{
+          .subscription_ids = std::move(subscription_ids),
+          .send_initial_values = send_initial_values}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -1264,6 +1281,50 @@ std::optional<DecodedRepublishResponse> DecodeRepublishResponse(
   return response;
 }
 
+std::optional<std::vector<std::uint32_t>> DecodeTransferSubscriptionsResponseResults(
+    const std::vector<char>& payload) {
+  binary::BinaryDecoder message_decoder{payload};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() ||
+      message->first != kTransferSubscriptionsResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+
+  binary::BinaryDecoder decoder{message->second};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  std::int32_t result_count = 0;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) || !decoder.Decode(status) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(result_count) ||
+      result_count < 0) {
+    return std::nullopt;
+  }
+  if (scada::Status::FromFullCode(status).code() != scada::StatusCode::Good) {
+    return std::nullopt;
+  }
+
+  std::vector<std::uint32_t> results(static_cast<size_t>(result_count));
+  for (auto& result : results) {
+    if (!decoder.Decode(result)) {
+      return std::nullopt;
+    }
+  }
+
+  std::int32_t diagnostics = 0;
+  if (!decoder.Decode(diagnostics) || diagnostics != -1 ||
+      !decoder.consumed()) {
+    return std::nullopt;
+  }
+  return results;
+}
+
 class TestMonitoredItemService : public scada::MonitoredItemService {
  public:
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
@@ -2039,6 +2100,99 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesRepublishAfterPublish) {
   EXPECT_EQ(decoded_republish->sequence_number,
             decoded_publish->sequence_number);
   EXPECT_DOUBLE_EQ(decoded_republish->data_change_value, 12.5);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesTransferSubscriptionsAcrossActivatedSessions) {
+  OpcUaBinaryServiceDispatcher source_dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_,
+      source_dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto source_session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(source_session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      source_dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, source_session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      source_dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, source_session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded_subscription = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded_subscription.has_value());
+
+  const auto created_items = WaitAwaitable(
+      executor_,
+      source_dispatcher.HandlePayload(EncodeCreateMonitoredItemsRequestBody(
+          4, source_session->authentication_token,
+          decoded_subscription->subscription_id,
+          {{.item_to_monitor =
+                {.node_id = NumericNode(11),
+                 .attribute_id = scada::AttributeId::Value},
+            .requested_parameters =
+                {.client_handle = 44,
+                 .sampling_interval_ms = 0,
+                 .queue_size = 1,
+                 .discard_oldest = true}}})));
+  ASSERT_TRUE(created_items.has_value());
+  ASSERT_EQ(monitored_item_service_.items.size(), 1u);
+  monitored_item_service_.items[0]->NotifyDataChange(
+      scada::DataValue{scada::Variant{77.0}, {}, now_, now_});
+
+  OpcUaBinaryConnectionState target_connection;
+  OpcUaBinaryServiceDispatcher target_dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = target_connection}};
+
+  const auto target_created = WaitAwaitable(
+      executor_,
+      target_dispatcher.HandlePayload(EncodeCreateSessionRequestBody(5, 45000)));
+  ASSERT_TRUE(target_created.has_value());
+  const auto target_session = DecodeCreateSessionResponse(*target_created);
+  ASSERT_TRUE(target_session.has_value());
+
+  const auto target_activated = WaitAwaitable(
+      executor_,
+      target_dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          6, target_session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(target_activated.has_value());
+
+  const auto transferred = WaitAwaitable(
+      executor_,
+      target_dispatcher.HandlePayload(EncodeTransferSubscriptionsRequestBody(
+          7, target_session->authentication_token,
+          {decoded_subscription->subscription_id}, true)));
+  ASSERT_TRUE(transferred.has_value());
+  const auto transfer_results =
+      DecodeTransferSubscriptionsResponseResults(*transferred);
+  ASSERT_TRUE(transfer_results.has_value());
+  EXPECT_THAT(*transfer_results, ElementsAre(0u));
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(100);
+  const auto target_publish = WaitAwaitable(
+      executor_,
+      target_dispatcher.HandlePayload(
+          EncodePublishRequestBody(8, target_session->authentication_token)));
+  ASSERT_TRUE(target_publish.has_value());
+  const auto target_decoded = DecodePublishResponse(*target_publish);
+  ASSERT_TRUE(target_decoded.has_value());
+  EXPECT_EQ(target_decoded->subscription_id,
+            decoded_subscription->subscription_id);
+  EXPECT_DOUBLE_EQ(target_decoded->data_change_value, 77.0);
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest,
