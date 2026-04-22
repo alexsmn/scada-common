@@ -132,4 +132,22 @@ OpcUaBinaryServiceDispatcher::HandleRequest(
   co_return co_await session_service_.HandleRequest(request);
 }
 
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryCreateSubscriptionRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinaryCreateSubscriptionResponse>(
+          request.header, typed_request);
+}
+
+Awaitable<std::optional<std::vector<char>>>
+OpcUaBinaryServiceDispatcher::HandleRequest(
+    const OpcUaBinaryDecodedRequest& request,
+    const OpcUaBinaryDeleteSubscriptionsRequest& typed_request) {
+  co_return
+      co_await HandleAuthenticatedRequest<OpcUaBinaryDeleteSubscriptionsResponse>(
+          request.header, typed_request);
+}
+
 }  // namespace opcua

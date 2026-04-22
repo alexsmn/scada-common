@@ -42,6 +42,10 @@ constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
 constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
 constexpr std::uint32_t kBrowseNextRequestBinaryEncodingId = 533;
 constexpr std::uint32_t kBrowseNextResponseBinaryEncodingId = 536;
+constexpr std::uint32_t kCreateSubscriptionRequestBinaryEncodingId = 787;
+constexpr std::uint32_t kCreateSubscriptionResponseBinaryEncodingId = 790;
+constexpr std::uint32_t kDeleteSubscriptionsRequestBinaryEncodingId = 847;
+constexpr std::uint32_t kDeleteSubscriptionsResponseBinaryEncodingId = 850;
 constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
 constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
 constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
@@ -246,6 +250,32 @@ std::vector<char> EncodeBrowseNextRequestBody(
       OpcUaBinaryRequestBody{OpcUaBinaryBrowseNextRequest{
           .release_continuation_points = release_continuation_points,
           .continuation_points = std::move(continuation_points)}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeCreateSubscriptionRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    const OpcUaBinarySubscriptionParameters& parameters) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{
+          OpcUaBinaryCreateSubscriptionRequest{.parameters = parameters}});
+  EXPECT_TRUE(encoded.has_value());
+  return encoded.value_or(std::vector<char>{});
+}
+
+std::vector<char> EncodeDeleteSubscriptionsRequestBody(
+    std::uint32_t request_handle,
+    const scada::NodeId& authentication_token,
+    std::vector<scada::UInt32> subscription_ids) {
+  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+      {.authentication_token = authentication_token,
+       .request_handle = request_handle},
+      OpcUaBinaryRequestBody{OpcUaBinaryDeleteSubscriptionsRequest{
+          .subscription_ids = std::move(subscription_ids)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -555,6 +585,73 @@ std::optional<scada::BrowseResult> DecodeSingleBrowseResult(
     reference.node_id = target_id.node_id();
   }
   return result;
+}
+
+struct DecodedCreateSubscriptionResponse {
+  scada::UInt32 subscription_id = 0;
+  double revised_publishing_interval_ms = 0;
+  scada::UInt32 revised_lifetime_count = 0;
+  scada::UInt32 revised_max_keep_alive_count = 0;
+};
+
+std::optional<DecodedCreateSubscriptionResponse> DecodeCreateSubscriptionResponse(
+    const std::vector<char>& payload) {
+  binary::BinaryDecoder message_decoder{payload};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() ||
+      message->first != kCreateSubscriptionResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  binary::BinaryDecoder decoder{message->second};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  DecodedCreateSubscriptionResponse result;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(result.subscription_id) ||
+      !decoder.Decode(result.revised_publishing_interval_ms) ||
+      !decoder.Decode(result.revised_lifetime_count) ||
+      !decoder.Decode(result.revised_max_keep_alive_count)) {
+    return std::nullopt;
+  }
+  return result;
+}
+
+std::optional<std::uint32_t> DecodeSingleDeleteSubscriptionsResponseStatus(
+    const std::vector<char>& payload) {
+  binary::BinaryDecoder message_decoder{payload};
+  const auto message = binary::ReadMessage(message_decoder);
+  if (!message.has_value() ||
+      message->first != kDeleteSubscriptionsResponseBinaryEncodingId) {
+    return std::nullopt;
+  }
+  binary::BinaryDecoder decoder{message->second};
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t ignored_request_handle = 0;
+  std::uint32_t ignored_status = 0;
+  std::uint8_t ignored_byte = 0;
+  std::int32_t ignored_array = 0;
+  scada::NodeId ignored_header_extension;
+  std::int32_t result_count = 0;
+  std::uint32_t result_status = 0;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(ignored_request_handle) ||
+      !decoder.Decode(ignored_status) || !decoder.Decode(ignored_byte) ||
+      !decoder.Decode(ignored_array) ||
+      !decoder.Decode(ignored_header_extension) ||
+      !decoder.Decode(ignored_byte) || !decoder.Decode(result_count) ||
+      result_count != 1 || !decoder.Decode(result_status)) {
+    return std::nullopt;
+  }
+  return result_status;
 }
 
 std::optional<scada::BrowseResult> DecodeSingleBrowseNextResult(
@@ -1202,6 +1299,83 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   ASSERT_TRUE(target.has_value());
   EXPECT_EQ(target->target_id.node_id(), NumericNode(77));
   EXPECT_EQ(target->remaining_path_index, 0u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesCreateSubscriptionAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_NE(decoded->subscription_id, 0u);
+  EXPECT_DOUBLE_EQ(decoded->revised_publishing_interval_ms, 100.0);
+  EXPECT_EQ(decoded->revised_lifetime_count, 60u);
+  EXPECT_EQ(decoded->revised_max_keep_alive_count, 3u);
+}
+
+TEST_F(OpcUaBinaryServiceDispatcherTest,
+       HandlesDeleteSubscriptionsAfterActivatedSession) {
+  OpcUaBinaryServiceDispatcher dispatcher{
+      {.runtime = runtime_,
+       .session_manager = session_manager_,
+       .connection = connection_}};
+
+  const auto created = WaitAwaitable(
+      executor_, dispatcher.HandlePayload(EncodeCreateSessionRequestBody(1, 45000)));
+  ASSERT_TRUE(created.has_value());
+  const auto session = DecodeCreateSessionResponse(*created);
+  ASSERT_TRUE(session.has_value());
+
+  const auto activated = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeUserNameActivateRequestBody(
+          2, session->authentication_token, "operator", "secret")));
+  ASSERT_TRUE(activated.has_value());
+
+  const auto subscription = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeCreateSubscriptionRequestBody(
+          3, session->authentication_token,
+          {.publishing_interval_ms = 100,
+           .lifetime_count = 60,
+           .max_keep_alive_count = 3,
+           .publishing_enabled = true})));
+  ASSERT_TRUE(subscription.has_value());
+  const auto decoded = DecodeCreateSubscriptionResponse(*subscription);
+  ASSERT_TRUE(decoded.has_value());
+
+  const auto deleted = WaitAwaitable(
+      executor_,
+      dispatcher.HandlePayload(EncodeDeleteSubscriptionsRequestBody(
+          4, session->authentication_token, {decoded->subscription_id})));
+  ASSERT_TRUE(deleted.has_value());
+  const auto status = DecodeSingleDeleteSubscriptionsResponseStatus(*deleted);
+  ASSERT_TRUE(status.has_value());
+  EXPECT_EQ(*status, 0u);
 }
 
 TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {

@@ -14,9 +14,12 @@ Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
     using Result = typename decltype(Response{}.results)::value_type;
     if constexpr (requires(Result result) { result.status; }) {
       return Response{.results = {Result{.status = std::move(status)}}};
+    } else {
+      return Response{};
     }
+  } else {
+    return Response{};
   }
-  return Response{};
 }
 
 using OpcUaBinaryConnectionState = opcua_ws::OpcUaWsConnectionState;
