@@ -1,52 +1,24 @@
-# OPC UA over WebSocket Endpoint
+# OPC UA Binary and WebSocket Endpoints
 
-> Status: implemented. The canonical transport-independent runtime and
-> service-dispatch layer now live in `common/opcua/`, with
-> `common/opcua/websocket/` retaining the UA-JSON/WebSocket adapter boundary for the
-> live `server/opcua/` endpoint. The endpoint uses coroutine-based handlers
-> for
-> the currently implementable Phase 0/2/3 service set: `Read`, `Write`,
-> `Browse`, `BrowseNext`, `TranslateBrowsePathsToNodeIds`, `HistoryRead`, `Call`,
-> `AddNodes`, `DeleteNodes`, `AddReferences`, and `DeleteReferences`. A
-> transport-independent session lifecycle manager for `CreateSession`,
-> `ActivateSession`, `DetachSession`, and `CloseSession` is also present. The
-> matching UA-JSON codec now covers the protocol envelope
-> (`requestHandle` + `service` + `body`), session request/response messages,
-> `ServiceFault`, the implemented service-dispatch set, and the full Phase 1
-> subscription message set
-> (`CreateSubscription`, `ModifySubscription`, `SetPublishingMode`,
-> `Publish`, `Republish`, `DeleteSubscriptions`, `TransferSubscriptions`,
-> `CreateMonitoredItems`, `ModifyMonitoredItems`, `DeleteMonitoredItems`,
-> `SetMonitoringMode`), all with unit tests. A transport-independent
-> per-subscription runtime is also now present for monitored-item binding,
-> notification queueing, keep-alive generation, ack/replay handling, and
-> event-field projection. The shared session/subscription model now speaks the
-> canonical `opcua::OpcUaSession` / `opcua::OpcUaSubscription` API. That
-> live-session layer owns subscription ids, monitored-item routing, fair
-> publish arbitration across subscriptions, and in-memory transfer handoff
-> between session instances. The canonical shared runtime contract now lives in
-> `opcua::OpcUaRuntime` and `opcua::OpcUaServiceHandler` under
-> `common/opcua/`, while `common/opcua/websocket/` retains the
-> UA-JSON/WebSocket adapter boundary. The WS JSON codec and server loop now
-> consume and produce the canonical `opcua::OpcUaServiceRequest`,
+> Status: implemented. The server now exposes two sibling OPC UA transport
+> adapters over the same semantic core in `common/opcua/`: a classic
+> `opc.tcp://` UA Binary endpoint and a browser-facing `opc.ws://` /
+> `opc.wss://` UA-JSON WebSocket endpoint. Binary-specific framing, secure
+> channel, and request adaptation live under `common/opcua/binary/`.
+> WebSocket handshake, UA-JSON envelopes, origin policy, and text-frame
+> transport adaptation live under `common/opcua/websocket/`. Session
+> lifecycle, subscription ownership, publish arbitration, request routing, and
+> coroutine-based service dispatch live in the shared `opcua::` runtime under
+> `common/opcua/`. The implemented shared service set includes `Read`,
+> `Write`, `Browse`, `BrowseNext`, `TranslateBrowsePathsToNodeIds`,
+> `HistoryRead`, `Call`, `AddNodes`, `DeleteNodes`, `AddReferences`, and
+> `DeleteReferences`, plus transport-neutral handling for `CreateSession`,
+> `ActivateSession`, `DetachSession`, `CloseSession`, and the full Phase 1
+> subscription message family used by the WS endpoint. The WS codec now
+> consumes and produces canonical `opcua::OpcUaServiceRequest`,
 > `opcua::OpcUaServiceResponse`, `opcua::OpcUaRequestMessage`, and
-> `opcua::OpcUaResponseMessage` surfaces directly, with `OpcUaWs*` spellings
-> retained only as compatibility aliases. That shared runtime now routes decoded
-> request bodies through `opcua::OpcUaSessionManager`, `opcua::OpcUaSession`,
-> and the common coroutine service handler, including detach/resume and
-> subscription transfer ownership tracking across live sessions. A
-> message-oriented
-> `OpcUaWsServer` loop is now also present for accepted transports: it reads
-> request frames, decodes UA-JSON envelopes, dispatches the canonical request
-> body through `opcua::OpcUaRuntime`, writes responses, and detaches sessions
-> on disconnect. A transport-backed websocket acceptor is now also present in
-> `common/opcua/websocket/`: it validates path / subprotocol / allowed origins,
-> enables `permessage-deflate`, accepts text-frame UA-JSON traffic, and hands
-> accepted websocket sessions into `OpcUaWsServer`, with loopback integration
-> tests. TLS/WSS wrapping is now also implemented on top of that websocket
-> transport via in-memory certificate/key configuration and TLS loopback
-> integration tests. The server-side module and config plumbing are now live
-> under `server/opcua/`.
+> `opcua::OpcUaResponseMessage` surfaces directly, while Binary and WS
+> compatibility aliases remain at the adapter edge where needed.
 >
 > **JSON field casing.** The UA session / subscription / publish message
 > codecs use spec-aligned PascalCase body-field names, while the outer framing
@@ -69,9 +41,15 @@
 
 ## Diagrams
 
+### Component diagram
+
+![Common OPC UA Binary and WebSocket components](./opcua_component_diagram.svg)
+
+Source: [opcua_component_diagram.mmd](./opcua_component_diagram.mmd)
+
 ### Module architecture
 
-![OPC UA WebSocket architecture](./opcua_architecture.svg)
+![OPC UA Binary and WebSocket transport architecture](./opcua_architecture.svg)
 
 Source: [opcua_architecture.mmd](./opcua_architecture.mmd)
 
@@ -89,17 +67,27 @@ Source: [opcua_subscription_sequence.mmd](./opcua_subscription_sequence.mmd)
 
 ## Motivation
 
-The existing OPC UA endpoint is now built on the shared transport-backed binary
-runtime in `server/opcua/opcua_module.cpp` and `common/opcua/binary/opcua_binary_server.cpp`.
-It opens a plain `opc.tcp://` listener and runs the shared session/service
-runtime directly. Browsers still cannot reach that endpoint directly, so the
-WebSocket transport remains necessary.
+The project now has two server-facing OPC UA transport surfaces:
 
-Rather than inserting a translation gateway between the browser and the C++
-server, we add a **sibling** OPC UA endpoint that speaks the UA WebSocket
-transport the spec already defines. The address space, monitored items,
-history, events, and security decisions all stay in scada-server — the new
-endpoint is pure transport and encoding.
+- `opc.tcp://` for native OPC UA clients and the existing desktop integration
+- `opc.ws://` / `opc.wss://` for browser clients using UA-JSON over WebSocket
+
+Those endpoints must stay semantically aligned. Address-space reads, writes,
+browse behavior, session lifecycle, subscriptions, history, events, and
+security decisions should not diverge just because the wire format changes.
+
+The design therefore keeps Binary and WS as **sibling transport adapters**
+around one shared runtime. Binary owns UACP, UA Binary framing, secure-channel
+integration, and binary request/response adaptation. WS owns HTTP upgrade,
+origin policy, websocket transport, UA-JSON envelopes, and WSS/TLS wrapping.
+Everything semantic stays in the shared `common/opcua/` core.
+
+## Transport summary
+
+| Transport | Main consumer | Adapter boundary | Wire format |
+|---|---|---|---|
+| `opc.tcp://` | Qt/native/3rd-party OPC UA clients | `common/opcua/binary/` | UA Binary over UACP/TCP |
+| `opc.ws://` / `opc.wss://` | Browser/web client | `common/opcua/websocket/` | UA-JSON over WebSocket |
 
 ## Transport choice: UA-JSON over WebSocket
 
@@ -126,11 +114,14 @@ Tradeoff accepted: JSON payloads are larger. We mitigate with websocket
 
 ## Placement
 
-New modules, layered around the existing and now-expanded `common/opcua/`
-core:
+The shared OPC UA implementation is split into transport adapters plus a
+transport-neutral semantic core:
 
 | Path | Role |
 |---|---|
+| `common/opcua/binary/opcua_binary_server.{h,cpp}` | Accepted-transport UA Binary server loop for the `opc.tcp://` endpoint |
+| `common/opcua/binary/opcua_binary_runtime.{h,cpp}` | Binary adapter runtime: request decode / response encode, secure-channel/session-token lookup, and authenticated dispatch into the canonical `opcua::` request/response model |
+| `common/opcua/binary/opcua_binary_service_dispatcher.{h,cpp}` | Binary adapter boundary for request-header adaptation and Binary-only response encoding details |
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
 | `common/opcua/websocket/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes canonical `opcua::OpcUaRequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaRuntime`, writes canonical `opcua::OpcUaResponseMessage` envelopes, and detaches sessions on disconnect |
 | `common/opcua/opcua_server_session.{h,cpp}` | Canonical transport-independent live session state owned by `opcua::OpcUaSession` |
@@ -142,10 +133,11 @@ core:
 | `common/opcua/websocket/opcua_ws_message_codec.cpp` + `common/opcua/websocket/opcua_ws_subscription_message_codec.cpp` + `common/opcua/websocket/opcua_ws_publish_message_codec.cpp` | UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the Phase 1 subscription / publish / monitored-item payloads, implemented directly against the canonical `opcua::` message model |
 | `common/opcua/opcua_service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
 | `common/opcua/websocket/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/opcua_runtime_contract_test.h`; the envelope/runtime/server tests exercise the canonical `opcua::` message and session types directly |
+| `common/opcua/binary/*_unittest.cpp` | Binary adapter coverage for request decoding, response encoding, secure-channel/session integration, and the Binary execution of the shared runtime contract where applicable |
 | `server/opcua/opcua_module.{h,cpp}` | Config loader + lifecycle for both TCP and WS listeners, with the WS endpoint now declared and defined alongside the TCP endpoint |
 
-The new endpoint reuses the same `OpcUaServerContext` service collaborators
-the TCP endpoint already closes over:
+Both transport adapters reuse the same `OpcUaServerContext` service
+collaborators:
 
 - `AttributeService` — Read, Write, HistoryRead
 - `ViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds
@@ -153,25 +145,29 @@ the TCP endpoint already closes over:
 - `MethodService` — Call
 - `NodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
 
-No business logic is reimplemented. The WS endpoint is decode-JSON envelope →
-canonical `opcua::OpcUaRequestMessage` / `opcua::OpcUaRequestBody` → shared
-runtime/service handler → canonical response envelope → encode-JSON envelope.
+No business logic is reimplemented in the adapter layers.
 
-## Boundary With Binary
+- Binary is decode UA Binary / request header adaptation / secure-channel
+  state lookup -> canonical `opcua::` request -> shared runtime/service
+  handler -> Binary response adaptation / encoding
+- WS is decode UA-JSON envelope -> canonical `opcua::` request -> shared
+  runtime/service handler -> UA-JSON response envelope encode
 
-The WS endpoint is a sibling transport adapter next to the `opc.tcp://`
-Binary endpoint, not a competing semantic runtime.
+## Adapter boundaries
+
+Binary and WS are sibling transport adapters around the same semantic runtime.
 
 - `common/opcua/` owns the canonical server runtime and service semantics
-- `common/opcua/websocket/` owns only UA-JSON/WebSocket/WSS adaptation
 - `common/opcua/binary/` owns only UA Binary / UACP / SecureChannel
   adaptation
+- `common/opcua/websocket/` owns only UA-JSON/WebSocket/WSS adaptation
 - transport-specific differences should stay at the adapter edge; semantic
   fixes should land in the shared core first when they are not wire-specific
 
-This design explicitly does not require merging the Binary and WS codecs,
-replacing WebSocket framing with Binary framing, or sharing handshake/TLS/origin
-policy between the two transports.
+This design does not require merging Binary and WS codecs, replacing one
+transport with the other, or forcing Binary secure-channel policy and WS
+origin/TLS policy into one abstraction. The adapters meet at the canonical
+`opcua::` request/response boundary instead.
 
 ## Framing
 

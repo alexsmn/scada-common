@@ -29,12 +29,13 @@ flowchart LR
 
     subgraph Endpoints["Server OPC UA endpoints"]
         direction TB
-        TCP["<b>OpcUaServer</b><br/><i>common/opcua/</i><br/>opc.tcp://:4840<br/>UA Binary"]
+        TCP["<b>OpcUaBinaryServer</b><br/><i>common/opcua/binary</i><br/>opc.tcp://:4840<br/>UA Binary"]
         WSSOCK["<b>WebSocketTransport</b><br/><i>third_party/net/transport</i><br/>WS/WSS acceptor<br/>TLS enabled"]
     end
 
-    subgraph WsInternals["opcua adapters"]
+    subgraph Adapters["Transport adapters"]
         direction TB
+        BINARY["<b>OpcUaBinaryRuntime</b><br/>binary request adaptation<br/>+ authenticated dispatch"]
         WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
         SESS["<b>opcua::OpcUaSession</b><br/>live session state +<br/>subscription orchestration"]
         SMGR["<b>opcua::OpcUaSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
@@ -59,6 +60,8 @@ flowchart LR
     WSSOCK --> WS
     WS --> CODEC
     WS --> RT
+    TCP --> BINARY
+    BINARY --> RT
     RT --> SESS
     RT --> SMGR
     RT --> HANDLER
@@ -67,9 +70,9 @@ flowchart LR
     HANDLER --> CTX
     SMGR --> CTX
 
-    TCP --> CTX
     CTX --> SVC
 
+    MOD -.configures.-> TCP
     MOD -.configures.-> WSSOCK
 
     classDef clientStyle fill:#dbeafe,stroke:#1d4ed8,color:#111827
@@ -77,6 +80,7 @@ flowchart LR
     classDef existing fill:#f3f4f6,stroke:#374151,color:#111827
     classDef core fill:#fef3c7,stroke:#b45309,color:#111827
     class QT,WEB,NATIVE clientStyle
-    class WSSOCK,WS,SESS,SMGR,SUB,CODEC,MOD newModule
+    class WSSOCK,WS,BINARY,MOD newModule
     class TCP existing
+    class SESS,SMGR,SUB,CODEC core
     class RT,HANDLER,CTX,SVC core

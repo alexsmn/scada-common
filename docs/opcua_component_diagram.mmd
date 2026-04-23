@@ -1,0 +1,88 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'primaryColor': '#f3f4f6',
+    'primaryBorderColor': '#374151',
+    'primaryTextColor': '#111827',
+    'secondaryColor': '#dbeafe',
+    'secondaryBorderColor': '#1d4ed8',
+    'secondaryTextColor': '#111827',
+    'tertiaryColor': '#dcfce7',
+    'tertiaryBorderColor': '#15803d',
+    'tertiaryTextColor': '#111827',
+    'lineColor': '#374151',
+    'defaultLinkColor': '#374151',
+    'clusterBkg': '#f9fafb',
+    'clusterBorder': '#6b7280',
+    'titleColor': '#111827'
+  },
+  'flowchart': {'htmlLabels': true}
+}}%%
+flowchart LR
+    subgraph Clients["Clients"]
+        direction TB
+        NATIVE["<b>Native OPC UA clients</b><br/>Qt client / 3rd-party tools"]
+        BROWSER["<b>Browser client</b><br/>web/opcua-client"]
+    end
+
+    subgraph Adapters["Transport adapters"]
+        direction TB
+        BIN["<b>Binary adapter</b><br/>opcua_binary_server<br/>opcua_binary_runtime"]
+        WS["<b>WebSocket adapter</b><br/>websocket_transport<br/>opcua_ws_server<br/>opcua_json_codec"]
+    end
+
+    subgraph Core["Shared canonical core"]
+        direction TB
+        MSG["<b>opcua:: message model</b><br/>OpcUaRequestBody / OpcUaResponseBody"]
+        RT["<b>opcua::OpcUaRuntime</b><br/>request routing"]
+        SMGR["<b>opcua::OpcUaSessionManager</b><br/>session lifecycle"]
+        SESS["<b>opcua::OpcUaSession</b><br/>live session state"]
+        SUB["<b>opcua::OpcUaSubscription</b><br/>publish + replay"]
+        HANDLER["<b>opcua::OpcUaServiceHandler</b><br/>coroutine dispatch"]
+    end
+
+    subgraph Services["Server services"]
+        direction TB
+        CTX["<b>OpcUaServerContext</b>"]
+        ATTR["AttributeService"]
+        VIEW["ViewService"]
+        HIST["HistoryService"]
+        METH["MethodService"]
+        NODE["NodeManagementService"]
+        MON["MonitoredItemService"]
+    end
+
+    MOD["<b>server/opcua/opcua_module.*</b><br/>configures both endpoints"]
+
+    NATIVE -->|opc.tcp / UA Binary| BIN
+    BROWSER -->|opc.ws / opc.wss / UA-JSON| WS
+
+    BIN --> MSG
+    WS --> MSG
+    MSG --> RT
+    RT --> SMGR
+    RT --> SESS
+    RT --> HANDLER
+    SESS --> SUB
+    SESS --> SMGR
+    HANDLER --> CTX
+    SMGR --> CTX
+    CTX --> ATTR
+    CTX --> VIEW
+    CTX --> HIST
+    CTX --> METH
+    CTX --> NODE
+    CTX --> MON
+
+    MOD -.hosts/configures.-> BIN
+    MOD -.hosts/configures.-> WS
+
+    classDef clientStyle fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef adapterStyle fill:#dcfce7,stroke:#15803d,color:#111827,stroke-width:2px
+    classDef coreStyle fill:#fef3c7,stroke:#b45309,color:#111827
+    classDef serviceStyle fill:#f3f4f6,stroke:#374151,color:#111827
+    class NATIVE,BROWSER clientStyle
+    class BIN,WS,MOD adapterStyle
+    class MSG,RT,SMGR,SESS,SUB,HANDLER coreStyle
+    class CTX,ATTR,VIEW,HIST,METH,NODE,MON serviceStyle

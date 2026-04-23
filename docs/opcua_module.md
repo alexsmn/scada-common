@@ -6,6 +6,7 @@ Related documents:
 
 - [design.md](./design.md) for the broader common-library index
 - [../README.md](../README.md) for the top-level common-library overview
+- [opcua.md](./opcua.md) for the server-side Binary and WebSocket transport overview
 
 ## Diagrams
 
@@ -29,10 +30,12 @@ Source: [opcua_client_session_flow.mmd](./opcua_client_session_flow.mmd)
 
 ## Purpose
 
-The shared OPC UA module supplies both sides of the project's classic UA TCP
+The shared OPC UA module supplies the canonical OPC UA core used by both
+server-side transport adapters and by the project's outbound UA client
 integration:
 
-- server-side endpoint hosting through `OpcUaModule` and `OpcUaBinaryServer`
+- server-side endpoint hosting through `OpcUaModule`, `OpcUaBinaryServer`, and
+  the WS adapter stack under `common/opcua/websocket/`
 - client-side outbound UA sessions through `OpcUaSession`
 - conversion between OPC UA C-stack types and SCADA-native service types
 - monitored-item and event subscription bridging
@@ -195,7 +198,7 @@ Responsibilities:
 
 ## Runtime Composition
 
-The shared OPC UA pieces are wired in two main ways:
+The shared OPC UA pieces are wired in three main ways:
 
 1. The server creates `server/opcua/OpcUaModule`.
 2. `OpcUaModule` loads endpoint settings from `server.json`.
@@ -203,6 +206,15 @@ The shared OPC UA pieces are wired in two main ways:
    `OpcUaSessionManager`.
 4. `OpcUaBinaryServer` opens the `opc.tcp://` endpoint and routes inbound UA
    traffic into that shared runtime.
+
+Separately on the server:
+
+1. `OpcUaModule` also configures the websocket transport boundary.
+2. `WebSocketTransport` accepts `opc.ws://` / `opc.wss://` connections.
+3. `OpcUaWsServer` decodes UA-JSON envelopes and forwards canonical
+   `opcua::` requests into the shared runtime.
+4. The same shared session, subscription, and service-dispatch core handles
+   the request before the WS adapter encodes the response.
 
 Separately:
 
@@ -217,14 +229,28 @@ Separately:
 
 ### Server-side Request Handling
 
+Binary:
+
 1. A UA client sends a binary request to the `opc.tcp://` endpoint.
 2. `OpcUaBinaryServer` decodes frames and hands the service payload to the
    shared binary runtime.
-3. The shared runtime converts the request payload into SCADA-native types.
+3. The shared runtime converts the request payload into canonical `opcua::`
+   request types and SCADA-native service inputs.
 4. The corresponding shared service performs the real read, write, browse,
    method, or node-management work.
-5. The shared runtime converts the result back into OPC UA response types.
-6. `OpcUaBinaryServer` writes the response back to the UA client.
+5. The shared runtime converts the result back into canonical `opcua::`
+   response types.
+6. The Binary adapter encodes the response back onto the wire.
+
+WebSocket:
+
+1. A browser client sends a UA-JSON request over `opc.ws://` or `opc.wss://`.
+2. `OpcUaWsServer` decodes the JSON envelope into canonical `opcua::`
+   request/message types.
+3. The shared runtime and service handler perform the same semantic work as
+   on the Binary path.
+4. The WS adapter encodes the canonical response back into UA-JSON and writes
+   a websocket text frame.
 
 ### Client-side Session Handling
 
