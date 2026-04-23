@@ -9,18 +9,19 @@ sequenceDiagram
 
     Client->>Endpoint: UA Binary request
     Endpoint->>Dispatcher: decoded service payload
+    Note right of Dispatcher: Transport decode / adapter normalization happens at the Binary edge.
     Dispatcher->>BinRt: invoke decoded request
+    Note right of BinRt: Shared runtime session gating is limited to token lookup and authenticated dispatch checks.
     BinRt->>Runtime: canonical request dispatch
     Runtime->>Conv: convert request payload
     Conv-->>Runtime: SCADA-native inputs
+    Note right of Runtime: Shared service dispatch lives in opcua::OpcUaRuntime and routes canonical requests into shared SCADA services.
     Runtime->>Svc: Read / Write / Browse / Call / AddNodes / DeleteNodes
     Svc-->>Runtime: status + results
     Runtime->>Conv: convert results
     Conv-->>Runtime: OPC UA response payload
     Runtime-->>BinRt: canonical response
     BinRt-->>Dispatcher: Binary response body
+    Note right of Dispatcher: Response encoding / transport-specific exceptions stay wire-only, including HistoryReadEvents encoding.
     Dispatcher-->>Endpoint: encoded Binary response
     Endpoint-->>Client: UA Binary response
-
-    Note over BinRt,Runtime: Binary-only policy here is limited to session-token\nlookup, authenticated dispatch gating, and wire-only\nresponse encoding exceptions such as HistoryReadEvents.
-    Note over Runtime,Svc: Monitored-item creation follows the same boundary:\nOpcUaRuntime adapts CreateMonitoredItem into\nscada::MonitoredItemService and wraps it back as\nan OPC UA monitored-item response.
