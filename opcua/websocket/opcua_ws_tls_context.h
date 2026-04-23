@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace opcua_ws {
+namespace opcua {
 
 struct OpcUaWsTlsContextConfig {
   std::string certificate_chain_pem;
@@ -18,4 +18,4 @@ struct OpcUaWsTlsContextConfig {
     boost::asio::ssl::context& context,
     const OpcUaWsTlsContextConfig& config);
 
-}  // namespace opcua_ws
+}  // namespace opcua

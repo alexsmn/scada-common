@@ -1,4 +1,4 @@
-#include "opcua/websocket/opcua_ws_session_manager.h"
+#include "opcua/opcua_server_session_manager.h"
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
@@ -7,7 +7,7 @@
 
 using namespace testing;
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 class OpcUaWsSessionManagerTest : public Test {
@@ -24,7 +24,7 @@ class OpcUaWsSessionManagerTest : public Test {
   auto MakeManager(scada::AsyncAuthenticator authenticator,
                    base::TimeDelta default_timeout =
                        base::TimeDelta::FromMinutes(10)) {
-    return OpcUaWsSessionManager{{
+    return opcua::OpcUaSessionManager{{
         .authenticator = std::move(authenticator),
         .now = [this] { return now_; },
         .default_timeout = default_timeout,
@@ -244,4 +244,4 @@ TEST_F(OpcUaWsSessionManagerTest, SingleSessionUsersRequireDeleteExisting) {
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

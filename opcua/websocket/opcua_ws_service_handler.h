@@ -2,9 +2,9 @@
 
 #include "opcua/opcua_service_handler.h"
 
-namespace opcua_ws {
+namespace opcua {
 
 using OpcUaWsServiceHandlerContext = opcua::OpcUaServiceHandlerContext;
 using OpcUaWsServiceHandler = opcua::OpcUaServiceHandler;
 
-}  // namespace opcua_ws
+}  // namespace opcua

@@ -20,8 +20,14 @@ namespace v1 {
 
 class AddressSpaceFetcherImplTest : public Test {
  public:
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
+      executor_->Poll();
+  }
+
   AddressSpaceFetcherImplTest() {
     address_space_fetcher_->OnChannelOpened();
+    DrainExecutor();
     /*address_space_fetcher_->FetchNode(scada::id::RootFolder,
                       NodeFetchStatus::NodeAndChildren());*/
     Mock::VerifyAndClearExpectations(this);
@@ -75,6 +81,7 @@ TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
                                                NodeFetchStatus::NodeOnly()})));
 
   address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 }
 
 TEST_F(AddressSpaceFetcherImplTest,
@@ -111,6 +118,7 @@ TEST_F(AddressSpaceFetcherImplTest,
 
   address_space_fetcher_->FetchNode(node_id,
                                     NodeFetchStatus::NodeAndChildren());
+  DrainExecutor();
 
   ASSERT_TRUE(pending_read);
 
@@ -120,6 +128,7 @@ TEST_F(AddressSpaceFetcherImplTest,
                   NodeFetchStatus::NodeAndChildren()})));
 
   pending_read();
+  DrainExecutor();
 }
 
 TEST_F(AddressSpaceFetcherImplTest, DISABLED_ConfigurationLoad) {
@@ -197,6 +206,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeDeleted) {
 
   view_events->OnModelChanged(scada::ModelChangeEvent{
       .node_id = kNodeId, .verb = scada::ModelChangeEvent::NodeDeleted});
+  DrainExecutor();
 
   EXPECT_FALSE(client_address_space_.GetNode(kNodeId));
 }
@@ -214,6 +224,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_));
 
   address_space_fetcher_->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   {
     // Rename
@@ -225,6 +236,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   }
 
   view_events->OnNodeSemanticsChanged(scada::SemanticChangeEvent{kNodeId});
+  DrainExecutor();
 
   {
     auto* client_node = client_address_space_.GetNode(kNodeId);

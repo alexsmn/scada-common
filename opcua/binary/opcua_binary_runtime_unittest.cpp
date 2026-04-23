@@ -7,13 +7,6 @@
 namespace opcua {
 namespace {
 
-static_assert(std::is_same_v<OpcUaBinaryRequestBody, OpcUaRequestBody>);
-static_assert(std::is_same_v<OpcUaBinaryResponseBody, OpcUaResponseBody>);
-static_assert(
-    std::is_same_v<OpcUaBinaryHistoryReadEventsRequest, HistoryReadEventsRequest>);
-static_assert(std::is_same_v<OpcUaBinaryHistoryReadEventsResponse,
-                             HistoryReadEventsResponse>);
-
 class OpcUaBinaryRuntimeTest : public testing::Test,
                                public opcua::test::RuntimeContractTestBase {
  public:
@@ -28,13 +21,13 @@ class OpcUaBinaryRuntimeTest : public testing::Test,
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       ConnectionState& connection) {
-    const auto created = HandleResponse<OpcUaBinaryCreateSessionResponse>(
-        connection, OpcUaBinaryCreateSessionRequest{});
+    const auto created = HandleResponse<OpcUaCreateSessionResponse>(
+        connection, OpcUaCreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
-    const auto activated = HandleResponse<OpcUaBinaryActivateSessionResponse>(
+    const auto activated = HandleResponse<OpcUaActivateSessionResponse>(
         connection,
-        OpcUaBinaryActivateSessionRequest{
+        OpcUaActivateSessionRequest{
             .session_id = created.session_id,
             .authentication_token = created.authentication_token,
             .user_name = scada::LocalizedText{u"operator"},
@@ -48,20 +41,20 @@ class OpcUaBinaryRuntimeTest : public testing::Test,
   void Detach(ConnectionState& connection) { runtime_.Detach(connection); }
 
   scada::StatusCode ReadStatus(ConnectionState& connection, ReadRequest request) {
-    return HandleResponse<OpcUaBinaryReadResponse>(connection, std::move(request))
+    return HandleResponse<ReadResponse>(connection, std::move(request))
         .status.code();
   }
 
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
-    return HandleResponse<OpcUaBinaryHistoryReadRawResponse>(
+    return HandleResponse<HistoryReadRawResponse>(
                connection, std::move(request))
         .result.status.code();
   }
 
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
-    return HandleResponse<OpcUaBinaryHistoryReadEventsResponse>(
+    return HandleResponse<HistoryReadEventsResponse>(
                connection, std::move(request))
         .result.status.code();
   }
@@ -155,7 +148,7 @@ TEST_F(OpcUaBinaryRuntimeTest,
           connection, OpcUaBinaryDecodedRequest{
                           .header = {.authentication_token = {999u, 3},
                                      .request_handle = 7},
-                          .body = OpcUaBinaryActivateSessionRequest{
+                          .body = OpcUaActivateSessionRequest{
                               .authentication_token = {999u, 3},
                               .user_name = scada::LocalizedText{u"operator"},
                               .password = scada::LocalizedText{u"secret"},
@@ -187,7 +180,7 @@ TEST_F(OpcUaBinaryRuntimeTest,
                       }));
 
   ASSERT_TRUE(response.has_value());
-  const auto* read = std::get_if<OpcUaBinaryReadResponse>(&*response);
+  const auto* read = std::get_if<ReadResponse>(&*response);
   ASSERT_NE(read, nullptr);
   EXPECT_EQ(read->status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
   EXPECT_EQ(*connection.authentication_token, authentication_token);

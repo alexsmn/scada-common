@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/awaitable.h"
-#include "opcua/binary/opcua_binary_message.h"
 #include "opcua/binary/opcua_binary_service_codec.h"
+#include "opcua/opcua_message.h"
 #include "opcua/opcua_runtime.h"
 
 namespace opcua {
@@ -50,12 +50,12 @@ class OpcUaBinaryRuntime {
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<Response> Handle(OpcUaBinaryConnectionState& connection,
                                            Request request) {
-    auto body = co_await HandleBody(connection, OpcUaBinaryRequestBody{
+    auto body = co_await HandleBody(connection, OpcUaRequestBody{
                                                     std::move(request)});
     if (auto* typed = std::get_if<Response>(&body)) {
       co_return std::move(*typed);
     }
-    if (auto* fault = std::get_if<OpcUaBinaryServiceFault>(&body)) {
+    if (auto* fault = std::get_if<OpcUaServiceFault>(&body)) {
       co_return BuildBinaryRuntimeErrorResponse<Response>(fault->status);
     }
     co_return BuildBinaryRuntimeErrorResponse<Response>(scada::StatusCode::Bad);
@@ -63,7 +63,7 @@ class OpcUaBinaryRuntime {
 
   void Detach(OpcUaBinaryConnectionState& connection);
 
-  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
   HandleDecodedRequest(OpcUaBinaryConnectionState& connection,
                        const OpcUaBinaryDecodedRequest& request);
 
@@ -73,28 +73,28 @@ class OpcUaBinaryRuntime {
       OpcUaRequestBody request);
 
   template <typename Response, typename Request>
-  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
   HandleAuthenticatedRequest(OpcUaBinaryConnectionState& connection,
                              const OpcUaBinaryDecodedRequest& request,
                              Request typed_request) {
     if (!connection.authentication_token.has_value() ||
         *connection.authentication_token != request.header.authentication_token) {
-      co_return OpcUaBinaryResponseBody{BuildBinaryRuntimeErrorResponse<Response>(
+      co_return OpcUaResponseBody{BuildBinaryRuntimeErrorResponse<Response>(
           scada::StatusCode::Bad_SessionIsLoggedOff)};
     }
 
-    co_return OpcUaBinaryResponseBody{
+    co_return OpcUaResponseBody{
         co_await Handle<Response>(connection, std::move(typed_request))};
   }
 
-  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
                        OpcUaCreateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
                        const OpcUaBinaryServiceRequestHeader& header,
                        OpcUaActivateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
+  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
                        const OpcUaBinaryServiceRequestHeader& header,
                        OpcUaCloseSessionRequest request);

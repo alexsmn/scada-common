@@ -164,7 +164,9 @@ void NodeModelImpl::OnFetchCompleted() {
       << "Node fetch completed"
       << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
 
-  SetFetchStatus(scada::StatusCode::Good, NodeFetchStatus::NodeOnly());
+  auto fetch_status = fetch_status_;
+  fetch_status.node_fetched = true;
+  SetFetchStatus(scada::StatusCode::Good, fetch_status);
 }
 
 void NodeModelImpl::OnFetchError(scada::Status&& status) {

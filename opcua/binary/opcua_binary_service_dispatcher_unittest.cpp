@@ -29,13 +29,6 @@ using namespace testing;
 namespace opcua {
 namespace {
 
-static_assert(std::is_same_v<OpcUaBinaryRequestBody, OpcUaRequestBody>);
-static_assert(std::is_same_v<OpcUaBinaryResponseBody, OpcUaResponseBody>);
-static_assert(std::is_same_v<OpcUaBinaryCreateSubscriptionRequest,
-                             OpcUaCreateSubscriptionRequest>);
-static_assert(std::is_same_v<OpcUaBinaryCreateSubscriptionResponse,
-                             OpcUaCreateSubscriptionResponse>);
-
 constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
@@ -209,7 +202,7 @@ std::vector<char> EncodeCreateSessionRequestBody(std::uint32_t request_handle,
                                                  double requested_timeout_ms) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = scada::NodeId{}, .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryCreateSessionRequest{
+      OpcUaRequestBody{OpcUaCreateSessionRequest{
           .requested_timeout =
               base::TimeDelta::FromMillisecondsD(requested_timeout_ms)}});
   EXPECT_TRUE(encoded.has_value());
@@ -224,7 +217,7 @@ std::vector<char> EncodeUserNameActivateRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryActivateSessionRequest{
+      OpcUaRequestBody{OpcUaActivateSessionRequest{
           .authentication_token = authentication_token,
           .user_name = scada::ToLocalizedText(std::string{user_name}),
           .password = scada::ToLocalizedText(std::string{password}),
@@ -239,7 +232,7 @@ std::vector<char> EncodeCloseSessionRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryCloseSessionRequest{
+      OpcUaRequestBody{OpcUaCloseSessionRequest{
           .authentication_token = authentication_token}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -251,8 +244,8 @@ std::vector<char> EncodeReadRequestBody(std::uint32_t request_handle,
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryReadRequest{.inputs = {read_value_id}}});
+      OpcUaRequestBody{
+          ReadRequest{.inputs = {read_value_id}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -263,8 +256,8 @@ std::vector<char> EncodeWriteRequestBody(std::uint32_t request_handle,
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryWriteRequest{.inputs = {write_value}}});
+      OpcUaRequestBody{
+          WriteRequest{.inputs = {write_value}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -277,8 +270,8 @@ std::vector<char> EncodeBrowseRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryBrowseRequest{
+      OpcUaRequestBody{
+          BrowseRequest{
               .requested_max_references_per_node =
                   requested_max_references_per_node,
                                    .inputs = {browse_description}}});
@@ -294,7 +287,7 @@ std::vector<char> EncodeBrowseNextRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryBrowseNextRequest{
+      OpcUaRequestBody{BrowseNextRequest{
           .release_continuation_points = release_continuation_points,
           .continuation_points = std::move(continuation_points)}});
   EXPECT_TRUE(encoded.has_value());
@@ -308,8 +301,8 @@ std::vector<char> EncodeHistoryReadRawRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryHistoryReadRawRequest{.details = std::move(details)}});
+      OpcUaRequestBody{
+          HistoryReadRawRequest{.details = std::move(details)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -321,8 +314,8 @@ std::vector<char> EncodeHistoryReadEventsRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryHistoryReadEventsRequest{.details = std::move(details)}});
+      OpcUaRequestBody{
+          HistoryReadEventsRequest{.details = std::move(details)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -330,12 +323,12 @@ std::vector<char> EncodeHistoryReadEventsRequestBody(
 std::vector<char> EncodeCreateSubscriptionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
-    const OpcUaBinarySubscriptionParameters& parameters) {
+    const OpcUaSubscriptionParameters& parameters) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryCreateSubscriptionRequest{.parameters = parameters}});
+      OpcUaRequestBody{
+          OpcUaCreateSubscriptionRequest{.parameters = parameters}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -344,11 +337,11 @@ std::vector<char> EncodeModifySubscriptionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    const OpcUaBinarySubscriptionParameters& parameters) {
+    const OpcUaSubscriptionParameters& parameters) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryModifySubscriptionRequest{
+      OpcUaRequestBody{OpcUaModifySubscriptionRequest{
           .subscription_id = subscription_id, .parameters = parameters}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -362,7 +355,7 @@ std::vector<char> EncodeSetPublishingModeRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinarySetPublishingModeRequest{
+      OpcUaRequestBody{OpcUaSetPublishingModeRequest{
           .publishing_enabled = publishing_enabled,
           .subscription_ids = std::move(subscription_ids)}});
   EXPECT_TRUE(encoded.has_value());
@@ -376,7 +369,7 @@ std::vector<char> EncodeDeleteSubscriptionsRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryDeleteSubscriptionsRequest{
+      OpcUaRequestBody{OpcUaDeleteSubscriptionsRequest{
           .subscription_ids = std::move(subscription_ids)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -386,11 +379,11 @@ std::vector<char> EncodeCreateMonitoredItemsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    std::vector<OpcUaBinaryMonitoredItemCreateRequest> items_to_create) {
+    std::vector<OpcUaMonitoredItemCreateRequest> items_to_create) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryCreateMonitoredItemsRequest{
+      OpcUaRequestBody{OpcUaCreateMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .items_to_create = std::move(items_to_create)}});
   EXPECT_TRUE(encoded.has_value());
@@ -401,11 +394,11 @@ std::vector<char> EncodeModifyMonitoredItemsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    std::vector<OpcUaBinaryMonitoredItemModifyRequest> items_to_modify) {
+    std::vector<OpcUaMonitoredItemModifyRequest> items_to_modify) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryModifyMonitoredItemsRequest{
+      OpcUaRequestBody{OpcUaModifyMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .items_to_modify = std::move(items_to_modify)}});
   EXPECT_TRUE(encoded.has_value());
@@ -415,11 +408,11 @@ std::vector<char> EncodeModifyMonitoredItemsRequestBody(
 std::vector<char> EncodePublishRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
-    std::vector<OpcUaBinarySubscriptionAcknowledgement> acknowledgements = {}) {
+    std::vector<OpcUaSubscriptionAcknowledgement> acknowledgements = {}) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryPublishRequest{
+      OpcUaRequestBody{OpcUaPublishRequest{
           .subscription_acknowledgements = std::move(acknowledgements)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -433,7 +426,7 @@ std::vector<char> EncodeDeleteMonitoredItemsRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryDeleteMonitoredItemsRequest{
+      OpcUaRequestBody{OpcUaDeleteMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .monitored_item_ids = std::move(monitored_item_ids)}});
   EXPECT_TRUE(encoded.has_value());
@@ -444,12 +437,12 @@ std::vector<char> EncodeSetMonitoringModeRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    OpcUaBinaryMonitoringMode monitoring_mode,
+    OpcUaMonitoringMode monitoring_mode,
     std::vector<scada::UInt32> monitored_item_ids) {
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinarySetMonitoringModeRequest{
+      OpcUaRequestBody{OpcUaSetMonitoringModeRequest{
           .subscription_id = subscription_id,
           .monitoring_mode = monitoring_mode,
           .monitored_item_ids = std::move(monitored_item_ids)}});
@@ -465,7 +458,7 @@ std::vector<char> EncodeRepublishRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryRepublishRequest{
+      OpcUaRequestBody{OpcUaRepublishRequest{
           .subscription_id = subscription_id,
           .retransmit_sequence_number = retransmit_sequence_number}});
   EXPECT_TRUE(encoded.has_value());
@@ -480,7 +473,7 @@ std::vector<char> EncodeTransferSubscriptionsRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryTransferSubscriptionsRequest{
+      OpcUaRequestBody{OpcUaTransferSubscriptionsRequest{
           .subscription_ids = std::move(subscription_ids),
           .send_initial_values = send_initial_values}});
   EXPECT_TRUE(encoded.has_value());
@@ -496,8 +489,8 @@ std::vector<char> EncodeCallRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryCallRequest{.methods = {{.object_id = object_id,
+      OpcUaRequestBody{
+          CallRequest{.methods = {{.object_id = object_id,
                                               .method_id = method_id,
                                               .arguments = arguments}}}});
   EXPECT_TRUE(encoded.has_value());
@@ -511,8 +504,8 @@ std::vector<char> EncodeTranslateBrowsePathsRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryTranslateBrowsePathsRequest{.inputs = {browse_path}}});
+      OpcUaRequestBody{
+          TranslateBrowsePathsRequest{.inputs = {browse_path}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -524,8 +517,8 @@ std::vector<char> EncodeDeleteNodesRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryDeleteNodesRequest{.items = {item}}});
+      OpcUaRequestBody{
+          DeleteNodesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -537,8 +530,8 @@ std::vector<char> EncodeDeleteReferencesRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryDeleteReferencesRequest{.items = {item}}});
+      OpcUaRequestBody{
+          DeleteReferencesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -550,8 +543,8 @@ std::vector<char> EncodeAddReferencesRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{
-          OpcUaBinaryAddReferencesRequest{.items = {item}}});
+      OpcUaRequestBody{
+          AddReferencesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -563,7 +556,7 @@ std::vector<char> EncodeAddNodesRequestBody(
   const auto encoded = EncodeOpcUaBinaryServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaBinaryRequestBody{OpcUaBinaryAddNodesRequest{.items = {item}}});
+      OpcUaRequestBody{AddNodesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -1342,7 +1335,7 @@ std::optional<DecodedHistoryReadEventsResponse> DecodeHistoryReadEventsResponse(
 
 struct DecodedCreateMonitoredItemsResponse {
   std::uint32_t status = 0;
-  OpcUaBinaryMonitoredItemCreateResult result;
+  OpcUaMonitoredItemCreateResult result;
 };
 
 std::optional<DecodedCreateMonitoredItemsResponse>
@@ -1385,7 +1378,7 @@ DecodeCreateMonitoredItemsResponse(const std::vector<char>& payload) {
 
 struct DecodedModifyMonitoredItemsResponse {
   std::uint32_t status = 0;
-  OpcUaBinaryMonitoredItemModifyResult result;
+  OpcUaMonitoredItemModifyResult result;
 };
 
 std::optional<DecodedModifyMonitoredItemsResponse>
@@ -2612,11 +2605,11 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
             .requested_parameters =
                 {.client_handle = 44,
                  .sampling_interval_ms = 0,
-                 .filter = OpcUaBinaryMonitoringFilter{
-                     OpcUaBinaryDataChangeFilter{
+                 .filter = OpcUaMonitoringFilter{
+                     OpcUaDataChangeFilter{
                          .trigger =
-                             OpcUaBinaryDataChangeTrigger::StatusValueTimestamp,
-                         .deadband_type = OpcUaBinaryDeadbandType::Absolute,
+                             OpcUaDataChangeTrigger::StatusValueTimestamp,
+                         .deadband_type = OpcUaDeadbandType::Absolute,
                          .deadband_value = 1.5}},
                  .queue_size = 1,
                  .discard_oldest = true}}})));
@@ -2810,7 +2803,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
             .requested_parameters =
                 {.client_handle = 55,
                  .sampling_interval_ms = 0,
-                 .filter = OpcUaBinaryMonitoringFilter{
+                 .filter = OpcUaMonitoringFilter{
                      scada::opcua_endpoint::BuildEventFilter(
                          std::vector<std::vector<std::string>>{
                              {"Message"},
@@ -3152,7 +3145,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
       dispatcher.HandlePayload(EncodeSetMonitoringModeRequestBody(
           5, session->authentication_token,
           decoded_subscription->subscription_id,
-          OpcUaBinaryMonitoringMode::Sampling,
+          OpcUaMonitoringMode::Sampling,
           {decoded_items->result.monitored_item_id})));
   ASSERT_TRUE(set_mode.has_value());
   const auto status = DecodeSingleResultStatus(

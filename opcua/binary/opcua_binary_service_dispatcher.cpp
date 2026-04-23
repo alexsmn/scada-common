@@ -5,24 +5,24 @@ namespace opcua {
 namespace {
 std::optional<std::vector<char>> EncodeBinaryResponse(
     scada::UInt32 request_handle,
-    const OpcUaBinaryResponseBody& response) {
+    const OpcUaResponseBody& response) {
   return EncodeOpcUaBinaryServiceResponse(request_handle, response);
 }
 
 std::optional<std::vector<char>> EncodeBinaryResponse(
     scada::UInt32 request_handle,
     const std::vector<std::vector<std::string>>& history_event_field_paths,
-    const OpcUaBinaryResponseBody& response) {
+    const OpcUaResponseBody& response) {
   return std::visit(
       [request_handle, &history_event_field_paths](
           const auto& typed_response) -> std::optional<std::vector<char>> {
         using T = std::decay_t<decltype(typed_response)>;
-        if constexpr (std::is_same_v<T, OpcUaBinaryHistoryReadEventsResponse>) {
+        if constexpr (std::is_same_v<T, HistoryReadEventsResponse>) {
           return EncodeOpcUaBinaryHistoryReadEventsResponse(
               request_handle, typed_response, history_event_field_paths);
         } else {
           return EncodeBinaryResponse(request_handle,
-                                      OpcUaBinaryResponseBody{typed_response});
+                                      OpcUaResponseBody{typed_response});
         }
       },
       response);

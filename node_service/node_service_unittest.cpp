@@ -102,6 +102,7 @@ class NodeServiceTest : public Test {
   ViewEventsProvider MakeViewEventsProvider();
 
   void OpenChannel();
+  void DrainExecutor();
 
   void ExpectAnyUpdates();
   void ExpectNoUpdates();
@@ -163,11 +164,20 @@ ViewEventsProvider NodeServiceTest<NodeServiceImpl>::MakeViewEventsProvider() {
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::OpenChannel() {
   node_service_->OnChannelOpened();
+  DrainExecutor();
+}
+
+template <class NodeServiceImpl>
+void NodeServiceTest<NodeServiceImpl>::DrainExecutor() {
+  for (size_t i = 0; i < 100 && base_env_.executor->GetTaskCount() != 0; ++i)
+    base_env_.executor->Poll();
 }
 
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ValidateNodeFetched(
     const NodeRef& node) {
+  DrainExecutor();
+
   auto& server_address_space = *this->base_env_.server_address_space;
 
   EXPECT_TRUE(node.fetched());
@@ -230,6 +240,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.children_fetched());
@@ -250,6 +261,8 @@ void NodeServiceTest<NodeServiceImpl>::ExpectAnyUpdates() {
 
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ExpectNoUpdates() {
+  DrainExecutor();
+
   auto& server_address_space = *this->base_env_.server_address_space;
 
   Mock::VerifyAndClearExpectations(&server_address_space);
@@ -466,6 +479,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
@@ -583,6 +597,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
 
   this->view_events_->OnNodeSemanticsChanged(
       scada::SemanticChangeEvent{node_id});
+  this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
@@ -626,6 +641,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   EXPECT_CALL(fetch_callback, Call(_));
 
   node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  this->DrainExecutor();
 
   ASSERT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
 
@@ -677,6 +693,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
       scada::ModelChangeEvent{node_id, type_definition_id,
                               scada::ModelChangeEvent::ReferenceAdded |
                                   scada::ModelChangeEvent::ReferenceDeleted});
+  this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
   EXPECT_TRUE(node.status());
@@ -694,6 +711,7 @@ TYPED_TEST(NodeServiceTest,
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
   node.Fetch(NodeFetchStatus::NodeOnly());
+  this->DrainExecutor();
 
   auto target = node.target(server_address_space.kTestReferenceTypeId);
   EXPECT_EQ(target.node_id(), server_address_space.kTestNode3Id);
@@ -709,4 +727,94 @@ TYPED_TEST(NodeServiceTest, TsFormat) {
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
   node.Fetch(NodeFetchStatus::NodeOnly());
+  this->DrainExecutor();
+}
+
+class V2NodeServiceRegressionTest : public Test {
+ public:
+  V2NodeServiceRegressionTest() { node_service_->Subscribe(node_observer_); }
+  ~V2NodeServiceRegressionTest() override {
+    node_service_->Unsubscribe(node_observer_);
+  }
+
+ protected:
+  ViewEventsProvider MakeViewEventsProvider() {
+    return [this](scada::ViewEvents& events)
+               -> std::unique_ptr<IViewEventsSubscription> {
+      view_events_ = &events;
+      return std::make_unique<IViewEventsSubscription>();
+    };
+  }
+
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
+      executor_->Poll();
+  }
+
+  void OpenChannel() {
+    node_service_->OnChannelOpened();
+    DrainExecutor();
+  }
+
+  scada::ViewEvents* view_events_ = nullptr;
+  const std::shared_ptr<TestExecutor> executor_ =
+      std::make_shared<TestExecutor>();
+  const std::shared_ptr<TestAddressSpace> server_address_space_ =
+      std::make_shared<TestAddressSpace>();
+  BaseNodeServiceTestEnvironment base_env_{
+      .executor = executor_,
+      .server_address_space = server_address_space_,
+      .view_events_provider = MakeViewEventsProvider()};
+  NiceMock<MockNodeObserver> node_observer_;
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
+  std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
+      v2::NodeServiceImpl>(v2::NodeServiceImplContext{
+      .executor_ = executor_,
+      .view_service_ = *server_address_space_,
+      .attribute_service_ = *server_address_space_,
+      .monitored_item_service_ = monitored_item_service_,
+      .view_events_provider_ = base_env_.view_events_provider});
+};
+
+TEST_F(V2NodeServiceRegressionTest,
+       FetchNodeAndChildren_PreservesChildrenFetchedWhenChildrenWinRace) {
+  OpenChannel();
+
+  const auto node_id = server_address_space_->kTestNode2Id;
+
+  std::function<void()> pending_read;
+  EXPECT_CALL(*server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(*server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id))), _))
+      .WillOnce(Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+              const scada::ReadCallback& callback) {
+            pending_read = [&, context, inputs, callback] {
+              server_address_space_->attribute_service_impl.Read(context, inputs,
+                                                                 callback);
+            };
+          }));
+  EXPECT_CALL(*server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+
+  auto node = node_service_->GetNode(node_id);
+
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  node.Fetch(NodeFetchStatus::NodeAndChildren(),
+             fetch_callback.AsStdFunction());
+
+  DrainExecutor();
+
+  ASSERT_TRUE(pending_read);
+  EXPECT_FALSE(node.fetched());
+
+  pending_read();
+  DrainExecutor();
+
+  EXPECT_TRUE(node.fetched());
+  EXPECT_TRUE(node.children_fetched());
+  EXPECT_TRUE(node.status());
+  EXPECT_EQ(node.target(server_address_space_->kTestReferenceTypeId).node_id(),
+            server_address_space_->kTestNode3Id);
 }

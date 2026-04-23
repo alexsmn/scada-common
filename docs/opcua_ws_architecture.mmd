@@ -50,7 +50,7 @@ flowchart LR
         SVC["<b>scada services</b><br/>node manager, history,<br/>events, security"]
     end
 
-    MOD["<b>server/opcua_ws/<br/>OpcUaWsModule</b><br/>config + lifecycle"]
+    MOD["<b>server/opcua/<br/>opcua_module.*</b><br/>OpcUaModule config + lifecycle"]
 
     QT -->|opc.tcp| TCP
     NATIVE -->|opc.tcp| TCP

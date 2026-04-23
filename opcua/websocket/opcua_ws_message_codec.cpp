@@ -9,92 +9,94 @@
 #include <string_view>
 #include <type_traits>
 
-namespace opcua_ws {
+namespace opcua {
 
 namespace detail {
 boost::json::value EncodeCreateSubscriptionRequest(
-    const OpcUaWsCreateSubscriptionRequest& request);
-OpcUaWsCreateSubscriptionRequest DecodeCreateSubscriptionRequest(
+    const opcua::OpcUaCreateSubscriptionRequest& request);
+opcua::OpcUaCreateSubscriptionRequest DecodeCreateSubscriptionRequest(
     const boost::json::value& json);
 boost::json::value EncodeCreateSubscriptionResponse(
-    const OpcUaWsCreateSubscriptionResponse& response);
-OpcUaWsCreateSubscriptionResponse DecodeCreateSubscriptionResponse(
+    const opcua::OpcUaCreateSubscriptionResponse& response);
+opcua::OpcUaCreateSubscriptionResponse DecodeCreateSubscriptionResponse(
     const boost::json::value& json);
 boost::json::value EncodeModifySubscriptionRequest(
-    const OpcUaWsModifySubscriptionRequest& request);
-OpcUaWsModifySubscriptionRequest DecodeModifySubscriptionRequest(
+    const opcua::OpcUaModifySubscriptionRequest& request);
+opcua::OpcUaModifySubscriptionRequest DecodeModifySubscriptionRequest(
     const boost::json::value& json);
 boost::json::value EncodeModifySubscriptionResponse(
-    const OpcUaWsModifySubscriptionResponse& response);
-OpcUaWsModifySubscriptionResponse DecodeModifySubscriptionResponse(
+    const opcua::OpcUaModifySubscriptionResponse& response);
+opcua::OpcUaModifySubscriptionResponse DecodeModifySubscriptionResponse(
     const boost::json::value& json);
 boost::json::value EncodeSetPublishingModeRequest(
-    const OpcUaWsSetPublishingModeRequest& request);
-OpcUaWsSetPublishingModeRequest DecodeSetPublishingModeRequest(
+    const opcua::OpcUaSetPublishingModeRequest& request);
+opcua::OpcUaSetPublishingModeRequest DecodeSetPublishingModeRequest(
     const boost::json::value& json);
 boost::json::value EncodeSetPublishingModeResponse(
-    const OpcUaWsSetPublishingModeResponse& response);
-OpcUaWsSetPublishingModeResponse DecodeSetPublishingModeResponse(
+    const opcua::OpcUaSetPublishingModeResponse& response);
+opcua::OpcUaSetPublishingModeResponse DecodeSetPublishingModeResponse(
     const boost::json::value& json);
 boost::json::value EncodeDeleteSubscriptionsRequest(
-    const OpcUaWsDeleteSubscriptionsRequest& request);
-OpcUaWsDeleteSubscriptionsRequest DecodeDeleteSubscriptionsRequest(
+    const opcua::OpcUaDeleteSubscriptionsRequest& request);
+opcua::OpcUaDeleteSubscriptionsRequest DecodeDeleteSubscriptionsRequest(
     const boost::json::value& json);
 boost::json::value EncodeDeleteSubscriptionsResponse(
-    const OpcUaWsDeleteSubscriptionsResponse& response);
-OpcUaWsDeleteSubscriptionsResponse DecodeDeleteSubscriptionsResponse(
+    const opcua::OpcUaDeleteSubscriptionsResponse& response);
+opcua::OpcUaDeleteSubscriptionsResponse DecodeDeleteSubscriptionsResponse(
     const boost::json::value& json);
-boost::json::value EncodePublishRequest(const OpcUaWsPublishRequest& request);
-OpcUaWsPublishRequest DecodePublishRequest(const boost::json::value& json);
-boost::json::value EncodePublishResponse(const OpcUaWsPublishResponse& response);
-OpcUaWsPublishResponse DecodePublishResponse(const boost::json::value& json);
+boost::json::value EncodePublishRequest(const opcua::OpcUaPublishRequest& request);
+opcua::OpcUaPublishRequest DecodePublishRequest(const boost::json::value& json);
+boost::json::value EncodePublishResponse(
+    const opcua::OpcUaPublishResponse& response);
+opcua::OpcUaPublishResponse DecodePublishResponse(
+    const boost::json::value& json);
 boost::json::value EncodeRepublishRequest(
-    const OpcUaWsRepublishRequest& request);
-OpcUaWsRepublishRequest DecodeRepublishRequest(
+    const opcua::OpcUaRepublishRequest& request);
+opcua::OpcUaRepublishRequest DecodeRepublishRequest(
     const boost::json::value& json);
 boost::json::value EncodeRepublishResponse(
-    const OpcUaWsRepublishResponse& response);
-OpcUaWsRepublishResponse DecodeRepublishResponse(
+    const opcua::OpcUaRepublishResponse& response);
+opcua::OpcUaRepublishResponse DecodeRepublishResponse(
     const boost::json::value& json);
 boost::json::value EncodeTransferSubscriptionsRequest(
-    const OpcUaWsTransferSubscriptionsRequest& request);
-OpcUaWsTransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
+    const opcua::OpcUaTransferSubscriptionsRequest& request);
+opcua::OpcUaTransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
     const boost::json::value& json);
 boost::json::value EncodeTransferSubscriptionsResponse(
-    const OpcUaWsTransferSubscriptionsResponse& response);
-OpcUaWsTransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
+    const opcua::OpcUaTransferSubscriptionsResponse& response);
+opcua::OpcUaTransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
     const boost::json::value& json);
 boost::json::value EncodeCreateMonitoredItemsRequest(
-    const OpcUaWsCreateMonitoredItemsRequest& request);
-OpcUaWsCreateMonitoredItemsRequest DecodeCreateMonitoredItemsRequest(
+    const opcua::OpcUaCreateMonitoredItemsRequest& request);
+opcua::OpcUaCreateMonitoredItemsRequest DecodeCreateMonitoredItemsRequest(
     const boost::json::value& json);
 boost::json::value EncodeCreateMonitoredItemsResponse(
-    const OpcUaWsCreateMonitoredItemsResponse& response);
-OpcUaWsCreateMonitoredItemsResponse DecodeCreateMonitoredItemsResponse(
+    const opcua::OpcUaCreateMonitoredItemsResponse& response);
+opcua::OpcUaCreateMonitoredItemsResponse DecodeCreateMonitoredItemsResponse(
     const boost::json::value& json);
 boost::json::value EncodeModifyMonitoredItemsRequest(
-    const OpcUaWsModifyMonitoredItemsRequest& request);
-OpcUaWsModifyMonitoredItemsRequest DecodeModifyMonitoredItemsRequest(
+    const opcua::OpcUaModifyMonitoredItemsRequest& request);
+opcua::OpcUaModifyMonitoredItemsRequest DecodeModifyMonitoredItemsRequest(
     const boost::json::value& json);
 boost::json::value EncodeModifyMonitoredItemsResponse(
-    const OpcUaWsModifyMonitoredItemsResponse& response);
-OpcUaWsModifyMonitoredItemsResponse DecodeModifyMonitoredItemsResponse(
+    const opcua::OpcUaModifyMonitoredItemsResponse& response);
+opcua::OpcUaModifyMonitoredItemsResponse DecodeModifyMonitoredItemsResponse(
     const boost::json::value& json);
 boost::json::value EncodeDeleteMonitoredItemsRequest(
-    const OpcUaWsDeleteMonitoredItemsRequest& request);
-OpcUaWsDeleteMonitoredItemsRequest DecodeDeleteMonitoredItemsRequest(
+    const opcua::OpcUaDeleteMonitoredItemsRequest& request);
+opcua::OpcUaDeleteMonitoredItemsRequest DecodeDeleteMonitoredItemsRequest(
     const boost::json::value& json);
 boost::json::value EncodeDeleteMonitoredItemsResponse(
-    const OpcUaWsDeleteMonitoredItemsResponse& response);
-OpcUaWsDeleteMonitoredItemsResponse DecodeDeleteMonitoredItemsResponse(
+    const opcua::OpcUaDeleteMonitoredItemsResponse& response);
+opcua::OpcUaDeleteMonitoredItemsResponse DecodeDeleteMonitoredItemsResponse(
     const boost::json::value& json);
 boost::json::value EncodeSetMonitoringModeRequest(
-    const OpcUaWsSetMonitoringModeRequest& request);
-OpcUaWsSetMonitoringModeRequest DecodeSetMonitoringModeRequest(
+    const opcua::OpcUaSetMonitoringModeRequest& request);
+opcua::OpcUaSetMonitoringModeRequest DecodeSetMonitoringModeRequest(
     const boost::json::value& json);
 boost::json::value EncodeSetMonitoringModeResponse(
-    const OpcUaWsSetMonitoringModeResponse& response);
-OpcUaWsSetMonitoringModeResponse DecodeSetMonitoringModeResponse(
+    const opcua::OpcUaSetMonitoringModeResponse& response);
+opcua::OpcUaSetMonitoringModeResponse DecodeSetMonitoringModeResponse(
     const boost::json::value& json);
 }  // namespace detail
 
@@ -377,11 +379,11 @@ opcua::OpcUaCloseSessionResponse DecodeCloseSessionResponse(const value& json) {
   return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
-value EncodeServiceFault(const OpcUaWsServiceFault& fault) {
+value EncodeServiceFault(const opcua::OpcUaServiceFault& fault) {
   return object{{"Status", EncodeStatus(fault.status)}};
 }
 
-OpcUaWsServiceFault DecodeServiceFault(const value& json) {
+opcua::OpcUaServiceFault DecodeServiceFault(const value& json) {
   return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
@@ -403,37 +405,37 @@ boost::json::value EncodeJson(const opcua::OpcUaRequestMessage& request) {
         } else if constexpr (std::is_same_v<T, opcua::OpcUaCloseSessionRequest>) {
           json["service"] = "CloseSession";
           json["body"] = EncodeCloseSessionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCreateSubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCreateSubscriptionRequest>) {
           json["service"] = "CreateSubscription";
           json["body"] = detail::EncodeCreateSubscriptionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsModifySubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaModifySubscriptionRequest>) {
           json["service"] = "ModifySubscription";
           json["body"] = detail::EncodeModifySubscriptionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsSetPublishingModeRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaSetPublishingModeRequest>) {
           json["service"] = "SetPublishingMode";
           json["body"] = detail::EncodeSetPublishingModeRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsDeleteSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaDeleteSubscriptionsRequest>) {
           json["service"] = "DeleteSubscriptions";
           json["body"] = detail::EncodeDeleteSubscriptionsRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsPublishRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaPublishRequest>) {
           json["service"] = "Publish";
           json["body"] = detail::EncodePublishRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsRepublishRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaRepublishRequest>) {
           json["service"] = "Republish";
           json["body"] = detail::EncodeRepublishRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsTransferSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaTransferSubscriptionsRequest>) {
           json["service"] = "TransferSubscriptions";
           json["body"] = detail::EncodeTransferSubscriptionsRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCreateMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCreateMonitoredItemsRequest>) {
           json["service"] = "CreateMonitoredItems";
           json["body"] = detail::EncodeCreateMonitoredItemsRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsModifyMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaModifyMonitoredItemsRequest>) {
           json["service"] = "ModifyMonitoredItems";
           json["body"] = detail::EncodeModifyMonitoredItemsRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsDeleteMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaDeleteMonitoredItemsRequest>) {
           json["service"] = "DeleteMonitoredItems";
           json["body"] = detail::EncodeDeleteMonitoredItemsRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsSetMonitoringModeRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaSetMonitoringModeRequest>) {
           json["service"] = "SetMonitoringMode";
           json["body"] = detail::EncodeSetMonitoringModeRequest(typed_request);
         } else {
@@ -463,40 +465,40 @@ boost::json::value EncodeJson(const opcua::OpcUaResponseMessage& response) {
         } else if constexpr (std::is_same_v<T, opcua::OpcUaCloseSessionResponse>) {
           json["service"] = "CloseSession";
           json["body"] = EncodeCloseSessionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCreateSubscriptionResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCreateSubscriptionResponse>) {
           json["service"] = "CreateSubscription";
           json["body"] = detail::EncodeCreateSubscriptionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsModifySubscriptionResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaModifySubscriptionResponse>) {
           json["service"] = "ModifySubscription";
           json["body"] = detail::EncodeModifySubscriptionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsSetPublishingModeResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaSetPublishingModeResponse>) {
           json["service"] = "SetPublishingMode";
           json["body"] = detail::EncodeSetPublishingModeResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsDeleteSubscriptionsResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaDeleteSubscriptionsResponse>) {
           json["service"] = "DeleteSubscriptions";
           json["body"] = detail::EncodeDeleteSubscriptionsResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsPublishResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaPublishResponse>) {
           json["service"] = "Publish";
           json["body"] = detail::EncodePublishResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsRepublishResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaRepublishResponse>) {
           json["service"] = "Republish";
           json["body"] = detail::EncodeRepublishResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsTransferSubscriptionsResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaTransferSubscriptionsResponse>) {
           json["service"] = "TransferSubscriptions";
           json["body"] = detail::EncodeTransferSubscriptionsResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCreateMonitoredItemsResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCreateMonitoredItemsResponse>) {
           json["service"] = "CreateMonitoredItems";
           json["body"] = detail::EncodeCreateMonitoredItemsResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsModifyMonitoredItemsResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaModifyMonitoredItemsResponse>) {
           json["service"] = "ModifyMonitoredItems";
           json["body"] = detail::EncodeModifyMonitoredItemsResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsDeleteMonitoredItemsResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaDeleteMonitoredItemsResponse>) {
           json["service"] = "DeleteMonitoredItems";
           json["body"] = detail::EncodeDeleteMonitoredItemsResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsSetMonitoringModeResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaSetMonitoringModeResponse>) {
           json["service"] = "SetMonitoringMode";
           json["body"] = detail::EncodeSetMonitoringModeResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsServiceFault>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaServiceFault>) {
           json["service"] = "ServiceFault";
           json["body"] = EncodeServiceFault(typed_response);
         } else {
@@ -606,4 +608,4 @@ opcua::OpcUaResponseMessage DecodeResponseMessage(const boost::json::value& json
   return message;
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

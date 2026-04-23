@@ -3,7 +3,7 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ssl/context_base.hpp>
 
-namespace opcua_ws {
+namespace opcua {
 
 transport::error_code ConfigureServerTlsContext(
     boost::asio::ssl::context& context,
@@ -40,4 +40,4 @@ transport::error_code ConfigureServerTlsContext(
   return transport::OK;
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

@@ -31,7 +31,7 @@
 
 using namespace testing;
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 namespace http = boost::beast::http;
@@ -142,7 +142,7 @@ class BeastClient {
     websocket_.handshake(host + ":" + std::to_string(port), "/ua");
   }
 
-  void Send(const OpcUaWsRequestMessage& request) {
+  void Send(const opcua::OpcUaRequestMessage& request) {
     const auto payload = boost::json::serialize(EncodeJson(request));
     websocket_.text(true);
     websocket_.write(boost::asio::buffer(payload));
@@ -156,7 +156,7 @@ class BeastClient {
     return boost::beast::buffers_to_string(buffer.data());
   }
 
-  std::string Request(const OpcUaWsRequestMessage& request) {
+  std::string Request(const opcua::OpcUaRequestMessage& request) {
     Send(request);
     return Read();
   }
@@ -198,7 +198,7 @@ class TlsBeastClient {
     websocket_.handshake(host + ":" + std::to_string(port), "/ua");
   }
 
-  std::string Request(const OpcUaWsRequestMessage& request) {
+  std::string Request(const opcua::OpcUaRequestMessage& request) {
     const auto payload = boost::json::serialize(EncodeJson(request));
     websocket_.text(true);
     websocket_.write(boost::asio::buffer(payload));
@@ -225,22 +225,22 @@ class TlsBeastClient {
 template <typename TClient>
 void ExpectBrowsePagingRoundTrip(TClient& client) {
   const auto create_response = DecodeResponseMessage(boost::json::parse(
-      client.Request({.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}})));
+      client.Request({.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}})));
   const auto* created =
-      std::get_if<OpcUaWsCreateSessionResponse>(&create_response.body);
+      std::get_if<opcua::OpcUaCreateSessionResponse>(&create_response.body);
   ASSERT_NE(created, nullptr);
   EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
 
   const auto activate_response = DecodeResponseMessage(boost::json::parse(client.Request(
       {.request_handle = 2,
        .body =
-           OpcUaWsActivateSessionRequest{
+           opcua::OpcUaActivateSessionRequest{
                .session_id = created->session_id,
                .authentication_token = created->authentication_token,
                .user_name = scada::LocalizedText{u"operator"},
                .password = scada::LocalizedText{u"secret"}}})));
   const auto* activated =
-      std::get_if<OpcUaWsActivateSessionResponse>(&activate_response.body);
+      std::get_if<opcua::OpcUaActivateSessionResponse>(&activate_response.body);
   ASSERT_NE(activated, nullptr);
   EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
 
@@ -389,7 +389,7 @@ class OpcUaWsWebSocketServerTest : public Test {
   NiceMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
   std::shared_ptr<AsioExecutor> callback_executor_;
-  OpcUaWsSessionManager session_manager_{{
+  opcua::OpcUaSessionManager session_manager_{{
       .authenticator =
           [](scada::LocalizedText,
              scada::LocalizedText)
@@ -503,34 +503,34 @@ TEST_F(OpcUaWsWebSocketServerTest,
 
   const auto create_session = DecodeResponseMessage(
       boost::json::parse(client.Request(
-          {.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}})));
+          {.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}})));
   const auto created =
-      std::get<OpcUaWsCreateSessionResponse>(create_session.body);
+      std::get<opcua::OpcUaCreateSessionResponse>(create_session.body);
 
   const auto activate_session = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 2,
-                      .body = OpcUaWsActivateSessionRequest{
+                      .body = opcua::OpcUaActivateSessionRequest{
                           .session_id = created.session_id,
                           .authentication_token = created.authentication_token,
                           .user_name = scada::LocalizedText{u"operator"},
                           .password = scada::LocalizedText{u"secret"}}})));
-  EXPECT_EQ(std::get<OpcUaWsActivateSessionResponse>(activate_session.body)
+  EXPECT_EQ(std::get<opcua::OpcUaActivateSessionResponse>(activate_session.body)
                 .status.code(),
             scada::StatusCode::Good);
 
   const auto create_subscription = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 3,
-                      .body = OpcUaWsCreateSubscriptionRequest{
+                      .body = opcua::OpcUaCreateSubscriptionRequest{
                           .parameters = {.publishing_interval_ms = 500,
                                          .lifetime_count = 60,
                                          .max_keep_alive_count = 10,
                                          .publishing_enabled = true}}})));
   const auto subscription =
-      std::get<OpcUaWsCreateSubscriptionResponse>(create_subscription.body);
+      std::get<opcua::OpcUaCreateSubscriptionResponse>(create_subscription.body);
 
-  client.Send({.request_handle = 4, .body = OpcUaWsPublishRequest{}});
+  client.Send({.request_handle = 4, .body = opcua::OpcUaPublishRequest{}});
   client.Send({.request_handle = 5,
-               .body = OpcUaWsCreateMonitoredItemsRequest{
+               .body = opcua::OpcUaCreateMonitoredItemsRequest{
                    .subscription_id = subscription.subscription_id,
                    .items_to_create = {{.item_to_monitor =
                                             {.node_id = NumericNode(11),
@@ -545,7 +545,7 @@ TEST_F(OpcUaWsWebSocketServerTest,
   const auto create_items = DecodeResponseMessage(
       boost::json::parse(client.Read(std::chrono::milliseconds{200})));
   EXPECT_EQ(create_items.request_handle, 5u);
-  EXPECT_EQ(std::get<OpcUaWsCreateMonitoredItemsResponse>(create_items.body)
+  EXPECT_EQ(std::get<opcua::OpcUaCreateMonitoredItemsResponse>(create_items.body)
                 .status.code(),
             scada::StatusCode::Good);
 
@@ -553,4 +553,4 @@ TEST_F(OpcUaWsWebSocketServerTest,
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

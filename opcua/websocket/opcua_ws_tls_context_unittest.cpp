@@ -3,7 +3,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <gtest/gtest.h>
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 constexpr auto kTestCertificatePem = R"(-----BEGIN CERTIFICATE-----
@@ -91,4 +91,4 @@ TEST(OpcUaWsTlsContextTest, RejectsInvalidPrivateKeyPem) {
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

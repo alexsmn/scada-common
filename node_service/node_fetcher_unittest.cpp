@@ -43,6 +43,11 @@ class NodeFetcherTest : public Test {
   NodeFetcherTest();
 
  protected:
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
+      executor_->Poll();
+  }
+
   void ValidateFetchedNode();
 
   StrictMock<MockFunction<void(FetchCompletedResult&& result)>>
@@ -124,6 +129,7 @@ TEST_F(NodeFetcherTest, Fetch) {
                                  node_id, NodeFetchStatus::NodeOnly())))));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   ValidateFetchedNode();
 }
@@ -161,6 +167,7 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
                                  node_id, NodeFetchStatus::NodeOnly())))));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+  DrainExecutor();
 
   ValidateFetchedNode();
 }
@@ -185,6 +192,7 @@ TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
                              Contains(std::make_pair(node_id, fetch_status)))));
 
   node_fetcher_->Fetch(node_id, fetch_status);
+  DrainExecutor();
 
   ValidateFetchedNode();
 }
@@ -234,10 +242,12 @@ TEST_F(NodeFetcherTest, Cancel) {
   // First network request finishes.
 
   read_callback1(scada::StatusCode::Bad, {});
+  DrainExecutor();
 
   // Second network request finishes.
 
   read_callback2(scada::StatusCode::Bad, {});
+  DrainExecutor();
 }
 
 // Regression test for the fetcher-queue drain recursion observed in
@@ -294,6 +304,7 @@ TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryIsIterative) {
       });
 
   node_fetcher_->Fetch(chain.front(), NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   // Every chain node must have been fetched: if the completion handler
   // re-entry had been deferred through an executor, the first handler

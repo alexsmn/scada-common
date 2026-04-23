@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace opcua_ws {
+namespace opcua {
 
 namespace {
 
@@ -102,16 +102,17 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
     bool parse_failed = false;
     try {
       const std::string_view payload{buffer.data(), *read_result};
-      request = DecodeRequestMessage(boost::json::parse(payload));
+      request = opcua::DecodeRequestMessage(boost::json::parse(payload));
     } catch (...) {
       parse_failed = true;
     }
 
     if (parse_failed) {
-      auto encoded = boost::json::serialize(EncodeJson(opcua::OpcUaResponseMessage{
-          .request_handle = 0,
-          .body = opcua::OpcUaServiceFault{
-              .status = scada::StatusCode::Bad_CantParseString}}));
+      auto encoded =
+          boost::json::serialize(opcua::EncodeJson(opcua::OpcUaResponseMessage{
+              .request_handle = 0,
+              .body = opcua::OpcUaServiceFault{
+                  .status = scada::StatusCode::Bad_CantParseString}}));
       if (encoded.size() > max_message_size)
         break;
 
@@ -129,7 +130,7 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
               co_await runtime.Handle(state->connection, std::move(request.body));
           auto response = opcua::OpcUaResponseMessage{
               .request_handle = request.request_handle, .body = std::move(body)};
-          auto encoded = boost::json::serialize(EncodeJson(response));
+          auto encoded = boost::json::serialize(opcua::EncodeJson(response));
           if (encoded.size() > max_message_size)
             co_return;
 
@@ -154,4 +155,4 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
   [[maybe_unused]] auto close_result = co_await state->transport.close();
 }
 
-}  // namespace opcua_ws
+}  // namespace opcua

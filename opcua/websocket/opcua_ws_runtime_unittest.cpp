@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 class OpcUaWsRuntimeTest : public testing::Test,
@@ -14,13 +14,13 @@ class OpcUaWsRuntimeTest : public testing::Test,
  public:
   using ConnectionState = OpcUaWsConnectionState;
 
-  static_assert(std::is_same_v<OpcUaWsRequestBody, opcua::OpcUaRequestBody>);
-  static_assert(std::is_same_v<OpcUaWsResponseBody, opcua::OpcUaResponseBody>);
+  static_assert(std::is_same_v<opcua::OpcUaRequestBody, opcua::OpcUaRequestBody>);
+  static_assert(std::is_same_v<opcua::OpcUaResponseBody, opcua::OpcUaResponseBody>);
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
                                                                  std::move(request)}));
     if (const auto* typed = std::get_if<Response>(&body))
       return *typed;
@@ -52,11 +52,11 @@ class OpcUaWsRuntimeTest : public testing::Test,
 
   scada::StatusCode ReadStatus(ConnectionState& connection, ReadRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<ReadResponse>(&body))
       return response->status.code();
-    if (const auto* fault = std::get_if<OpcUaWsServiceFault>(&body))
+    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
@@ -64,11 +64,11 @@ class OpcUaWsRuntimeTest : public testing::Test,
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadRawResponse>(&body))
       return response->result.status.code();
-    if (const auto* fault = std::get_if<OpcUaWsServiceFault>(&body))
+    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
@@ -76,11 +76,11 @@ class OpcUaWsRuntimeTest : public testing::Test,
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, OpcUaWsRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadEventsResponse>(&body))
       return response->result.status.code();
-    if (const auto* fault = std::get_if<OpcUaWsServiceFault>(&body))
+    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
@@ -171,13 +171,13 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
                              .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
-  promise<OpcUaWsResponseBody> publish_promise;
+  promise<opcua::OpcUaResponseBody> publish_promise;
   CoSpawn(MakeTestAnyExecutor(executor_),
           [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
             try {
               publish_promise.resolve(
                   co_await runtime_.Handle(connection,
-                                           OpcUaWsRequestBody{
+                                           opcua::OpcUaRequestBody{
                                                opcua::OpcUaPublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
@@ -206,4 +206,4 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

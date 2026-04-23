@@ -12,7 +12,7 @@
 
 using namespace testing;
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -40,7 +40,7 @@ TEST(OpcUaJsonCodecTest, ReadResponseWireShapeMatchesSpec) {
   // Force a non-default status_code so it lands on the wire.
   read.results[0].status_code = scada::StatusCode::Bad_Disconnected;
 
-  const auto encoded = EncodeJson(OpcUaWsServiceResponse{read});
+  const auto encoded = EncodeJson(opcua::OpcUaServiceResponse{read});
   ASSERT_TRUE(encoded.is_object());
   const auto& body = encoded.as_object().at("body").as_object();
   ASSERT_TRUE(body.contains("Status"));
@@ -86,7 +86,7 @@ TEST(OpcUaJsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
                                    .forward = false,
                                    .node_id = NumericNode(302)}}}}};
 
-  const auto encoded = EncodeJson(OpcUaWsServiceResponse{browse});
+  const auto encoded = EncodeJson(opcua::OpcUaServiceResponse{browse});
   const auto& result = encoded.as_object()
                            .at("body").as_object()
                            .at("Results").as_array().at(0).as_object();
@@ -117,7 +117,7 @@ TEST(OpcUaJsonCodecTest, TranslateBrowsePathsWireShapeMatchesSpec) {
                                                           "urn:test", 2},
                                 .remaining_path_index = 1}}}}};
 
-  const auto encoded = EncodeJson(OpcUaWsServiceResponse{translate});
+  const auto encoded = EncodeJson(opcua::OpcUaServiceResponse{translate});
   const auto& target = encoded.as_object()
                            .at("body").as_object()
                            .at("Results").as_array().at(0).as_object()
@@ -146,7 +146,7 @@ TEST(OpcUaJsonCodecTest, EmptyVariantSerialisesAsJsonNull) {
   // fields are at their defaults).
   ReadResponse read{.status = scada::StatusCode::Good,
                     .results = {scada::DataValue{}}};
-  const auto encoded = EncodeJson(OpcUaWsServiceResponse{read});
+  const auto encoded = EncodeJson(opcua::OpcUaServiceResponse{read});
   const auto& dv = encoded.as_object()
                        .at("body").as_object()
                        .at("Results").as_array().at(0).as_object();
@@ -180,59 +180,32 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Requests) {
                                      .target_name = {"Child", 6}}}}}};
 
   const auto decoded_read = std::get<ReadRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{read})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{read})));
   ASSERT_EQ(decoded_read.inputs.size(), 1u);
   EXPECT_EQ(decoded_read.inputs[0], read.inputs[0]);
 
   const auto decoded_write = std::get<WriteRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{write})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{write})));
   ASSERT_EQ(decoded_write.inputs.size(), 1u);
   EXPECT_EQ(decoded_write.inputs[0], write.inputs[0]);
 
   const auto decoded_browse = std::get<BrowseRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{browse})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{browse})));
   EXPECT_EQ(decoded_browse.requested_max_references_per_node,
             browse.requested_max_references_per_node);
   ASSERT_EQ(decoded_browse.inputs.size(), 1u);
   EXPECT_EQ(decoded_browse.inputs[0], browse.inputs[0]);
 
   const auto decoded_browse_next = std::get<BrowseNextRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{browse_next})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{browse_next})));
   EXPECT_TRUE(decoded_browse_next.release_continuation_points);
   EXPECT_EQ(decoded_browse_next.continuation_points,
             browse_next.continuation_points);
 
   const auto decoded_translate = std::get<TranslateBrowsePathsRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{translate})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{translate})));
   ASSERT_EQ(decoded_translate.inputs.size(), 1u);
   EXPECT_EQ(decoded_translate.inputs[0], translate.inputs[0]);
-}
-
-TEST(OpcUaJsonCodecTest, ExposesCanonicalCodecSurfaceAlongsideWsAliases) {
-  static_assert(std::is_same_v<decltype(EncodeJson(
-                                  std::declval<const opcua::OpcUaServiceRequest&>())),
-                               boost::json::value>);
-  static_assert(std::is_same_v<decltype(EncodeJson(
-                                  std::declval<const opcua::OpcUaServiceResponse&>())),
-                               boost::json::value>);
-  static_assert(std::is_same_v<decltype(EncodeJson(
-                                  std::declval<const opcua::OpcUaRequestMessage&>())),
-                               boost::json::value>);
-  static_assert(std::is_same_v<decltype(EncodeJson(
-                                  std::declval<const opcua::OpcUaResponseMessage&>())),
-                               boost::json::value>);
-  static_assert(
-      std::is_same_v<decltype(DecodeServiceRequest(std::declval<const boost::json::value&>())),
-                     opcua::OpcUaServiceRequest>);
-  static_assert(
-      std::is_same_v<decltype(DecodeServiceResponse(std::declval<const boost::json::value&>())),
-                     opcua::OpcUaServiceResponse>);
-  static_assert(
-      std::is_same_v<decltype(DecodeRequestMessage(std::declval<const boost::json::value&>())),
-                     opcua::OpcUaRequestMessage>);
-  static_assert(
-      std::is_same_v<decltype(DecodeResponseMessage(std::declval<const boost::json::value&>())),
-                     opcua::OpcUaResponseMessage>);
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsCanonicalEnvelopeTypes) {
@@ -263,23 +236,23 @@ TEST(OpcUaJsonCodecTest, RoundTripsCanonicalEnvelopeTypes) {
 
 TEST(OpcUaJsonCodecTest, RequestWireShapeUsesSpecFieldNames) {
   const auto read_json =
-      EncodeJson(OpcUaWsServiceRequest{ReadRequest{
+      EncodeJson(opcua::OpcUaServiceRequest{ReadRequest{
           .inputs = {{.node_id = NumericNode(1),
                       .attribute_id = scada::AttributeId::Value}}}});
   const auto write_json =
-      EncodeJson(OpcUaWsServiceRequest{WriteRequest{
+      EncodeJson(opcua::OpcUaServiceRequest{WriteRequest{
           .inputs = {{.node_id = NumericNode(2),
                       .attribute_id = scada::AttributeId::Value,
                       .value = scada::Variant{scada::Int32{7}},
                       .flags = {}}}}});
-  const auto browse_json = EncodeJson(OpcUaWsServiceRequest{BrowseRequest{
+  const auto browse_json = EncodeJson(opcua::OpcUaServiceRequest{BrowseRequest{
       .requested_max_references_per_node = 5,
       .inputs = {{.node_id = NumericNode(3),
                   .direction = scada::BrowseDirection::Forward,
                   .reference_type_id = NumericNode(31),
                   .include_subtypes = true}}}});
   const auto translate_json = EncodeJson(
-      OpcUaWsServiceRequest{TranslateBrowsePathsRequest{
+      opcua::OpcUaServiceRequest{TranslateBrowsePathsRequest{
           .inputs = {{.node_id = NumericNode(4),
                       .relative_path = {{.reference_type_id = NumericNode(41),
                                          .inverse = false,
@@ -436,7 +409,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadRawRequest) {
            .release_continuation_point = true,
            .continuation_point = {'a', 'b', 'c'}}};
 
-  auto json = EncodeJson(OpcUaWsServiceRequest{request});
+  auto json = EncodeJson(opcua::OpcUaServiceRequest{request});
   auto decoded = DecodeServiceRequest(json);
   EXPECT_NE(boost::json::serialize(json).find("HistoryReadRaw"),
             std::string::npos);
@@ -463,7 +436,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadEventsRequest) {
                 .of_type = {NumericNode(77), NumericNode(78)},
                 .child_of = {NumericNode(79)}}}};
 
-  auto decoded = DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{request}));
+  auto decoded = DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{request}));
   const auto* typed = std::get_if<HistoryReadEventsRequest>(&decoded);
   ASSERT_NE(typed, nullptr);
   EXPECT_EQ(typed->details.node_id, request.details.node_id);
@@ -482,7 +455,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallRequestWithScalarAndArrayVariants) {
                         scada::Variant{scada::LocalizedText{u"hello"}},
                         scada::Variant{NumericNode(12)}}}}};
 
-  auto decoded = DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{request}));
+  auto decoded = DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{request}));
   const auto* typed = std::get_if<CallRequest>(&decoded);
   ASSERT_NE(typed, nullptr);
   ASSERT_EQ(typed->methods.size(), 1u);
@@ -492,7 +465,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallRequestWithScalarAndArrayVariants) {
 }
 
 TEST(OpcUaJsonCodecTest, CallWireShapeUsesSpecFieldNames) {
-  const auto json = EncodeJson(OpcUaWsServiceRequest{CallRequest{
+  const auto json = EncodeJson(opcua::OpcUaServiceRequest{CallRequest{
       .methods = {{.object_id = NumericNode(10),
                    .method_id = NumericNode(11),
                    .arguments = {scada::Variant{scada::Int32{5}}}}}}});
@@ -526,7 +499,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsOpaqueExtensionObjectVariants) {
                             {scada::ExpandedNodeId{NumericNode(124), "urn:test", 4},
                              array_payload_2}}}}}}};
 
-  const auto decoded = DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{request}));
+  const auto decoded = DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{request}));
   const auto* typed = std::get_if<CallRequest>(&decoded);
   ASSERT_NE(typed, nullptr);
   ASSERT_EQ(typed->methods.size(), 1u);
@@ -588,19 +561,19 @@ TEST(OpcUaJsonCodecTest, RoundTripsNodeManagementRequests) {
                  .delete_bidirectional = false}}};
 
   const auto decoded_add_nodes = std::get<AddNodesRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{add_nodes})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{add_nodes})));
   ASSERT_EQ(decoded_add_nodes.items.size(), 1u);
   EXPECT_EQ(decoded_add_nodes.items[0], add_nodes.items[0]);
 
   const auto decoded_delete_nodes = std::get<DeleteNodesRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{delete_nodes})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{delete_nodes})));
   ASSERT_EQ(decoded_delete_nodes.items.size(), 1u);
   EXPECT_EQ(decoded_delete_nodes.items[0].node_id, delete_nodes.items[0].node_id);
   EXPECT_EQ(decoded_delete_nodes.items[0].delete_target_references,
             delete_nodes.items[0].delete_target_references);
 
   const auto decoded_add_refs = std::get<AddReferencesRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{add_refs})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{add_refs})));
   ASSERT_EQ(decoded_add_refs.items.size(), 1u);
   EXPECT_EQ(decoded_add_refs.items[0].source_node_id,
             add_refs.items[0].source_node_id);
@@ -615,7 +588,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsNodeManagementRequests) {
             add_refs.items[0].target_node_class);
 
   const auto decoded_delete_refs = std::get<DeleteReferencesRequest>(
-      DecodeServiceRequest(EncodeJson(OpcUaWsServiceRequest{delete_refs})));
+      DecodeServiceRequest(EncodeJson(opcua::OpcUaServiceRequest{delete_refs})));
   ASSERT_EQ(decoded_delete_refs.items.size(), 1u);
   EXPECT_EQ(decoded_delete_refs.items[0].source_node_id,
             delete_refs.items[0].source_node_id);
@@ -629,15 +602,15 @@ TEST(OpcUaJsonCodecTest, RoundTripsNodeManagementRequests) {
 }
 
 TEST(OpcUaJsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
-  const auto add_nodes = EncodeJson(OpcUaWsServiceRequest{AddNodesRequest{
+  const auto add_nodes = EncodeJson(opcua::OpcUaServiceRequest{AddNodesRequest{
       .items = {{.requested_id = NumericNode(100),
                  .parent_id = NumericNode(101),
                  .node_class = scada::NodeClass::Variable,
                  .type_definition_id = NumericNode(102)}}}});
   const auto delete_nodes = EncodeJson(
-      OpcUaWsServiceRequest{DeleteNodesRequest{
+      opcua::OpcUaServiceRequest{DeleteNodesRequest{
           .items = {{.node_id = NumericNode(104), .delete_target_references = true}}}});
-  const auto add_refs = EncodeJson(OpcUaWsServiceRequest{AddReferencesRequest{
+  const auto add_refs = EncodeJson(opcua::OpcUaServiceRequest{AddReferencesRequest{
       .items = {{.source_node_id = NumericNode(105),
                  .reference_type_id = NumericNode(106),
                  .forward = false,
@@ -646,7 +619,7 @@ TEST(OpcUaJsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
                      scada::ExpandedNodeId{NumericNode(107), "urn:test", 2},
                  .target_node_class = scada::NodeClass::Object}}}});
   const auto delete_refs = EncodeJson(
-      OpcUaWsServiceRequest{DeleteReferencesRequest{
+      opcua::OpcUaServiceRequest{DeleteReferencesRequest{
           .items = {{.source_node_id = NumericNode(108),
                      .reference_type_id = NumericNode(109),
                      .forward = true,
@@ -712,7 +685,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadResponses) {
   // round-trip per-field rather than via vector equality (which would
   // print-loop on Qualifier diffs through GTest's Variant printer).
   const auto decoded_raw = std::get<HistoryReadRawResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{raw})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{raw})));
   EXPECT_EQ(decoded_raw.result.status.full_code(), raw.result.status.full_code());
   ASSERT_EQ(decoded_raw.result.values.size(), raw.result.values.size());
   EXPECT_TRUE(decoded_raw.result.values[0].value == raw.result.values[0].value);
@@ -723,7 +696,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsHistoryReadResponses) {
   EXPECT_EQ(decoded_raw.result.values[0].server_timestamp,
             raw.result.values[0].server_timestamp);
   EXPECT_EQ(std::get<HistoryReadEventsResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{events})))
+                EncodeJson(opcua::OpcUaServiceResponse{events})))
                 .result.events,
             events.result.events);
 }
@@ -765,7 +738,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
   // The scada::Qualifier is deliberately dropped on the wire, so the
   // decoded DataValue's qualifier is the default (assert per-field).
   const auto decoded_read = std::get<ReadResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{read})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{read})));
   EXPECT_EQ(decoded_read.status, read.status);
   ASSERT_EQ(decoded_read.results.size(), 1u);
   EXPECT_TRUE(decoded_read.results[0].value == read.results[0].value);
@@ -774,12 +747,12 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
   EXPECT_EQ(decoded_read.results[0].status_code, read.results[0].status_code);
 
   const auto decoded_write = std::get<WriteResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{write})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{write})));
   EXPECT_EQ(decoded_write.status, write.status);
   EXPECT_EQ(decoded_write.results, write.results);
 
   const auto decoded_browse = std::get<BrowseResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{browse})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{browse})));
   EXPECT_EQ(decoded_browse.status, browse.status);
   ASSERT_EQ(decoded_browse.results.size(), 1u);
   EXPECT_EQ(decoded_browse.results[0].status_code, browse.results[0].status_code);
@@ -788,12 +761,12 @@ TEST(OpcUaJsonCodecTest, RoundTripsPhase0Responses) {
   EXPECT_EQ(decoded_browse.results[0].references, browse.results[0].references);
 
   const auto decoded_browse_next = std::get<BrowseNextResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{browse_next})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{browse_next})));
   EXPECT_EQ(decoded_browse_next.status, browse_next.status);
   EXPECT_EQ(decoded_browse_next.results, browse_next.results);
 
   const auto decoded_translate = std::get<TranslateBrowsePathsResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{translate})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{translate})));
   EXPECT_EQ(decoded_translate.status, translate.status);
   ASSERT_EQ(decoded_translate.results.size(), 1u);
   EXPECT_EQ(decoded_translate.results[0].status_code,
@@ -812,7 +785,7 @@ TEST(OpcUaJsonCodecTest, CallResponseWireShapeUsesSpecFields) {
                                      .output_arguments =
                                          {scada::Variant{scada::Int32{9}}}}}};
 
-  const auto encoded = EncodeJson(OpcUaWsServiceResponse{response});
+  const auto encoded = EncodeJson(opcua::OpcUaServiceResponse{response});
   const auto& result = encoded.as_object()
                            .at("body")
                            .as_object()
@@ -896,7 +869,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
-  OpcUaWsRequestMessage request{
+  opcua::OpcUaRequestMessage request{
       .request_handle = 31,
       .body = BrowseRequest{
           .requested_max_references_per_node = 5,
@@ -904,7 +877,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
                       .direction = scada::BrowseDirection::Forward,
                       .reference_type_id = NumericNode(41),
                       .include_subtypes = true}}}};
-  OpcUaWsResponseMessage response{
+  opcua::OpcUaResponseMessage response{
       .request_handle = 31,
       .body = BrowseResponse{
           .status = scada::StatusCode::Good,
@@ -935,12 +908,12 @@ TEST(OpcUaJsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsBrowseNextMessagesWithEnvelope) {
-  OpcUaWsRequestMessage request{
+  opcua::OpcUaRequestMessage request{
       .request_handle = 32,
       .body = BrowseNextRequest{
           .release_continuation_points = false,
           .continuation_points = {{'a', 'b', 'c'}}}};
-  OpcUaWsResponseMessage response{
+  opcua::OpcUaResponseMessage response{
       .request_handle = 32,
       .body = BrowseNextResponse{
           .status = scada::StatusCode::Good,
@@ -966,9 +939,9 @@ TEST(OpcUaJsonCodecTest, RoundTripsBrowseNextMessagesWithEnvelope) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
-  OpcUaWsRequestMessage create_subscription{
+  opcua::OpcUaRequestMessage create_subscription{
       .request_handle = 41,
-      .body = OpcUaWsCreateSubscriptionRequest{
+      .body = opcua::OpcUaCreateSubscriptionRequest{
           .parameters =
               {.publishing_interval_ms = 1000,
                .lifetime_count = 60,
@@ -976,9 +949,9 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
                .max_notifications_per_publish = 0,
                .publishing_enabled = true,
                .priority = 1}}};
-  OpcUaWsRequestMessage modify_subscription{
+  opcua::OpcUaRequestMessage modify_subscription{
       .request_handle = 42,
-      .body = OpcUaWsModifySubscriptionRequest{
+      .body = opcua::OpcUaModifySubscriptionRequest{
           .subscription_id = 17,
           .parameters =
               {.publishing_interval_ms = 250,
@@ -987,65 +960,65 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
                .max_notifications_per_publish = 100,
                .publishing_enabled = true,
                .priority = 2}}};
-  OpcUaWsRequestMessage set_publishing_mode{
+  opcua::OpcUaRequestMessage set_publishing_mode{
       .request_handle = 43,
-      .body = OpcUaWsSetPublishingModeRequest{
+      .body = opcua::OpcUaSetPublishingModeRequest{
           .publishing_enabled = false,
           .subscription_ids = {17, 18}}};
-  OpcUaWsRequestMessage delete_subscriptions{
+  opcua::OpcUaRequestMessage delete_subscriptions{
       .request_handle = 44,
-      .body = OpcUaWsDeleteSubscriptionsRequest{.subscription_ids = {19}}};
+      .body = opcua::OpcUaDeleteSubscriptionsRequest{.subscription_ids = {19}}};
 
   const auto create_decoded =
       DecodeRequestMessage(EncodeJson(create_subscription));
   EXPECT_EQ(create_decoded.request_handle, 41u);
-  EXPECT_EQ(std::get<OpcUaWsCreateSubscriptionRequest>(create_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaCreateSubscriptionRequest>(create_decoded.body)
                 .parameters.max_keep_alive_count,
             10u);
 
   const auto modify_decoded =
       DecodeRequestMessage(EncodeJson(modify_subscription));
-  EXPECT_EQ(std::get<OpcUaWsModifySubscriptionRequest>(modify_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaModifySubscriptionRequest>(modify_decoded.body)
                 .subscription_id,
             17u);
 
   const auto set_mode_decoded =
       DecodeRequestMessage(EncodeJson(set_publishing_mode));
   const auto& set_mode_body =
-      std::get<OpcUaWsSetPublishingModeRequest>(set_mode_decoded.body);
+      std::get<opcua::OpcUaSetPublishingModeRequest>(set_mode_decoded.body);
   EXPECT_FALSE(set_mode_body.publishing_enabled);
   EXPECT_EQ(set_mode_body.subscription_ids,
-            (std::vector<OpcUaWsSubscriptionId>{17u, 18u}));
+            (std::vector<opcua::OpcUaSubscriptionId>{17u, 18u}));
 
   const auto delete_decoded =
       DecodeRequestMessage(EncodeJson(delete_subscriptions));
-  EXPECT_EQ(std::get<OpcUaWsDeleteSubscriptionsRequest>(delete_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaDeleteSubscriptionsRequest>(delete_decoded.body)
                 .subscription_ids,
-            (std::vector<OpcUaWsSubscriptionId>{19u}));
+            (std::vector<opcua::OpcUaSubscriptionId>{19u}));
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
   const boost::json::value raw_event_filter =
       boost::json::parse(R"({"Select":["Message"],"Where":{"Severity":60}})");
-  OpcUaWsRequestMessage create_items{
+  opcua::OpcUaRequestMessage create_items{
       .request_handle = 51,
-      .body = OpcUaWsCreateMonitoredItemsRequest{
+      .body = opcua::OpcUaCreateMonitoredItemsRequest{
           .subscription_id = 17,
-          .timestamps_to_return = OpcUaWsTimestampsToReturn::Both,
+          .timestamps_to_return = opcua::OpcUaTimestampsToReturn::Both,
           .items_to_create =
               {{.item_to_monitor =
                     {.node_id = NumericNode(70),
                      .attribute_id = scada::AttributeId::Value},
-                .monitoring_mode = OpcUaWsMonitoringMode::Reporting,
+                .monitoring_mode = opcua::OpcUaMonitoringMode::Reporting,
                 .requested_parameters =
                     {.client_handle = 1,
                      .sampling_interval_ms = 250,
-                     .filter = OpcUaWsMonitoringFilter{
-                         OpcUaWsDataChangeFilter{
+                     .filter = opcua::OpcUaMonitoringFilter{
+                         opcua::OpcUaDataChangeFilter{
                              .trigger =
-                                 OpcUaWsDataChangeTrigger::StatusValue,
+                                 opcua::OpcUaDataChangeTrigger::StatusValue,
                              .deadband_type =
-                                 OpcUaWsDeadbandType::Absolute,
+                                 opcua::OpcUaDeadbandType::Absolute,
                              .deadband_value = 0.5}},
                      .queue_size = 4,
                      .discard_oldest = true}},
@@ -1053,18 +1026,18 @@ TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
                     {.node_id = NumericNode(71),
                      .attribute_id = scada::AttributeId::EventNotifier},
                 .index_range = "0:10",
-                .monitoring_mode = OpcUaWsMonitoringMode::Sampling,
+                .monitoring_mode = opcua::OpcUaMonitoringMode::Sampling,
                 .requested_parameters =
                     {.client_handle = 2,
                      .sampling_interval_ms = 1000,
-                     .filter = OpcUaWsMonitoringFilter{raw_event_filter},
+                     .filter = opcua::OpcUaMonitoringFilter{raw_event_filter},
                      .queue_size = 1,
                      .discard_oldest = false}}}}};
-  OpcUaWsRequestMessage modify_items{
+  opcua::OpcUaRequestMessage modify_items{
       .request_handle = 52,
-      .body = OpcUaWsModifyMonitoredItemsRequest{
+      .body = opcua::OpcUaModifyMonitoredItemsRequest{
           .subscription_id = 17,
-          .timestamps_to_return = OpcUaWsTimestampsToReturn::Source,
+          .timestamps_to_return = opcua::OpcUaTimestampsToReturn::Source,
           .items_to_modify =
               {{.monitored_item_id = 42,
                 .requested_parameters =
@@ -1072,26 +1045,26 @@ TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
                      .sampling_interval_ms = 1000,
                      .queue_size = 8,
                      .discard_oldest = false}}}}};
-  OpcUaWsRequestMessage delete_items{
+  opcua::OpcUaRequestMessage delete_items{
       .request_handle = 53,
-      .body = OpcUaWsDeleteMonitoredItemsRequest{
+      .body = opcua::OpcUaDeleteMonitoredItemsRequest{
           .subscription_id = 17,
           .monitored_item_ids = {42, 43}}};
-  OpcUaWsRequestMessage set_monitoring_mode{
+  opcua::OpcUaRequestMessage set_monitoring_mode{
       .request_handle = 54,
-      .body = OpcUaWsSetMonitoringModeRequest{
+      .body = opcua::OpcUaSetMonitoringModeRequest{
           .subscription_id = 17,
-          .monitoring_mode = OpcUaWsMonitoringMode::Disabled,
+          .monitoring_mode = opcua::OpcUaMonitoringMode::Disabled,
           .monitored_item_ids = {42}}};
 
   const auto create_decoded = DecodeRequestMessage(EncodeJson(create_items));
   const auto& create_body =
-      std::get<OpcUaWsCreateMonitoredItemsRequest>(create_decoded.body);
+      std::get<opcua::OpcUaCreateMonitoredItemsRequest>(create_decoded.body);
   EXPECT_EQ(create_body.subscription_id, 17u);
   ASSERT_EQ(create_body.items_to_create.size(), 2u);
   EXPECT_EQ(create_body.items_to_create[0].requested_parameters.queue_size, 4u);
   ASSERT_TRUE(create_body.items_to_create[0].requested_parameters.filter.has_value());
-  const auto* first_filter = std::get_if<OpcUaWsDataChangeFilter>(
+  const auto* first_filter = std::get_if<opcua::OpcUaDataChangeFilter>(
       &*create_body.items_to_create[0].requested_parameters.filter);
   ASSERT_NE(first_filter, nullptr);
   EXPECT_EQ(first_filter->deadband_value, 0.5);
@@ -1102,50 +1075,50 @@ TEST(OpcUaJsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
   EXPECT_EQ(*second_filter, raw_event_filter);
 
   const auto modify_decoded = DecodeRequestMessage(EncodeJson(modify_items));
-  EXPECT_EQ(std::get<OpcUaWsModifyMonitoredItemsRequest>(modify_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaModifyMonitoredItemsRequest>(modify_decoded.body)
                 .items_to_modify[0]
                 .requested_parameters.sampling_interval_ms,
             1000);
 
   const auto delete_decoded = DecodeRequestMessage(EncodeJson(delete_items));
-  EXPECT_EQ(std::get<OpcUaWsDeleteMonitoredItemsRequest>(delete_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaDeleteMonitoredItemsRequest>(delete_decoded.body)
                 .monitored_item_ids,
-            (std::vector<OpcUaWsMonitoredItemId>{42u, 43u}));
+            (std::vector<opcua::OpcUaMonitoredItemId>{42u, 43u}));
 
   const auto set_mode_decoded =
       DecodeRequestMessage(EncodeJson(set_monitoring_mode));
-  EXPECT_EQ(std::get<OpcUaWsSetMonitoringModeRequest>(set_mode_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaSetMonitoringModeRequest>(set_mode_decoded.body)
                 .monitoring_mode,
-            OpcUaWsMonitoringMode::Disabled);
+            opcua::OpcUaMonitoringMode::Disabled);
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   const boost::json::value filter_result =
       boost::json::parse(R"({"Kind":"event","SelectClauseResults":[0]})");
-  OpcUaWsResponseMessage create_subscription{
+  opcua::OpcUaResponseMessage create_subscription{
       .request_handle = 61,
-      .body = OpcUaWsCreateSubscriptionResponse{
+      .body = opcua::OpcUaCreateSubscriptionResponse{
           .status = scada::StatusCode::Good,
           .subscription_id = 17,
           .revised_publishing_interval_ms = 1000,
           .revised_lifetime_count = 60,
           .revised_max_keep_alive_count = 10}};
-  OpcUaWsResponseMessage modify_subscription{
+  opcua::OpcUaResponseMessage modify_subscription{
       .request_handle = 62,
-      .body = OpcUaWsModifySubscriptionResponse{
+      .body = opcua::OpcUaModifySubscriptionResponse{
           .status = scada::StatusCode::Good,
           .revised_publishing_interval_ms = 250,
           .revised_lifetime_count = 30,
           .revised_max_keep_alive_count = 5}};
-  OpcUaWsResponseMessage set_publishing_mode{
+  opcua::OpcUaResponseMessage set_publishing_mode{
       .request_handle = 63,
-      .body = OpcUaWsSetPublishingModeResponse{
+      .body = opcua::OpcUaSetPublishingModeResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::StatusCode::Good,
                       scada::StatusCode::Bad_WrongSubscriptionId}}};
-  OpcUaWsResponseMessage create_items{
+  opcua::OpcUaResponseMessage create_items{
       .request_handle = 64,
-      .body = OpcUaWsCreateMonitoredItemsResponse{
+      .body = opcua::OpcUaCreateMonitoredItemsResponse{
           .status = scada::StatusCode::Good,
           .results =
               {{.status = scada::StatusCode::Good,
@@ -1157,34 +1130,34 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
                 .revised_sampling_interval_ms = 1000,
                 .revised_queue_size = 4,
                 .filter_result = filter_result}}}};
-  OpcUaWsResponseMessage modify_items{
+  opcua::OpcUaResponseMessage modify_items{
       .request_handle = 65,
-      .body = OpcUaWsModifyMonitoredItemsResponse{
+      .body = opcua::OpcUaModifyMonitoredItemsResponse{
           .status = scada::StatusCode::Good,
           .results = {{.status = scada::StatusCode::Good,
                        .revised_sampling_interval_ms = 500,
                        .revised_queue_size = 8}}}};
-  OpcUaWsResponseMessage delete_items{
+  opcua::OpcUaResponseMessage delete_items{
       .request_handle = 66,
-      .body = OpcUaWsDeleteMonitoredItemsResponse{
+      .body = opcua::OpcUaDeleteMonitoredItemsResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::StatusCode::Good}}};
-  OpcUaWsResponseMessage set_monitoring_mode{
+  opcua::OpcUaResponseMessage set_monitoring_mode{
       .request_handle = 67,
-      .body = OpcUaWsSetMonitoringModeResponse{
+      .body = opcua::OpcUaSetMonitoringModeResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::StatusCode::Good,
                       scada::StatusCode::Bad_WrongSubscriptionId}}};
 
-  EXPECT_EQ(std::get<OpcUaWsCreateSubscriptionResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaCreateSubscriptionResponse>(
                 DecodeResponseMessage(EncodeJson(create_subscription)).body)
                 .subscription_id,
             17u);
-  EXPECT_EQ(std::get<OpcUaWsModifySubscriptionResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaModifySubscriptionResponse>(
                 DecodeResponseMessage(EncodeJson(modify_subscription)).body)
                 .revised_max_keep_alive_count,
             5u);
-  EXPECT_EQ(std::get<OpcUaWsSetPublishingModeResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaSetPublishingModeResponse>(
                 DecodeResponseMessage(EncodeJson(set_publishing_mode)).body)
                 .results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good,
@@ -1203,7 +1176,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   const auto decoded_create_items =
       DecodeResponseMessage(EncodeJson(create_items));
   const auto& create_items_body =
-      std::get<OpcUaWsCreateMonitoredItemsResponse>(
+      std::get<opcua::OpcUaCreateMonitoredItemsResponse>(
           decoded_create_items.body);
   ASSERT_EQ(create_items_body.results.size(), 2u);
   EXPECT_EQ(create_items_body.results[0].status.code(), scada::StatusCode::Good);
@@ -1212,16 +1185,16 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   ASSERT_TRUE(create_items_body.results[1].filter_result.has_value());
   EXPECT_EQ(*create_items_body.results[1].filter_result, filter_result);
 
-  EXPECT_EQ(std::get<OpcUaWsModifyMonitoredItemsResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaModifyMonitoredItemsResponse>(
                 DecodeResponseMessage(EncodeJson(modify_items)).body)
                 .results[0]
                 .revised_queue_size,
             8u);
-  EXPECT_EQ(std::get<OpcUaWsDeleteMonitoredItemsResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaDeleteMonitoredItemsResponse>(
                 DecodeResponseMessage(EncodeJson(delete_items)).body)
                 .results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
-  EXPECT_EQ(std::get<OpcUaWsSetMonitoringModeResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaSetMonitoringModeResponse>(
                 DecodeResponseMessage(EncodeJson(set_monitoring_mode)).body)
                 .results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good,
@@ -1229,39 +1202,39 @@ TEST(OpcUaJsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryRequestMessages) {
-  OpcUaWsRequestMessage publish{
+  opcua::OpcUaRequestMessage publish{
       .request_handle = 71,
-      .body = OpcUaWsPublishRequest{
+      .body = opcua::OpcUaPublishRequest{
           .subscription_acknowledgements =
               {{.subscription_id = 17, .sequence_number = 3},
                {.subscription_id = 18, .sequence_number = 7}}}};
-  OpcUaWsRequestMessage republish{
+  opcua::OpcUaRequestMessage republish{
       .request_handle = 72,
-      .body = OpcUaWsRepublishRequest{
+      .body = opcua::OpcUaRepublishRequest{
           .subscription_id = 17, .retransmit_sequence_number = 5}};
-  OpcUaWsRequestMessage transfer{
+  opcua::OpcUaRequestMessage transfer{
       .request_handle = 73,
-      .body = OpcUaWsTransferSubscriptionsRequest{
+      .body = opcua::OpcUaTransferSubscriptionsRequest{
           .subscription_ids = {17, 18}, .send_initial_values = true}};
-  const std::vector<OpcUaWsSubscriptionAcknowledgement> expected_acks{
+  const std::vector<opcua::OpcUaSubscriptionAcknowledgement> expected_acks{
       {.subscription_id = 17, .sequence_number = 3},
       {.subscription_id = 18, .sequence_number = 7}};
-  const std::vector<OpcUaWsSubscriptionId> expected_transfer_ids{17u, 18u};
+  const std::vector<opcua::OpcUaSubscriptionId> expected_transfer_ids{17u, 18u};
 
   const auto publish_decoded = DecodeRequestMessage(EncodeJson(publish));
   EXPECT_EQ(publish_decoded.request_handle, 71u);
-  EXPECT_EQ(std::get<OpcUaWsPublishRequest>(publish_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaPublishRequest>(publish_decoded.body)
                 .subscription_acknowledgements,
             expected_acks);
 
   const auto republish_decoded = DecodeRequestMessage(EncodeJson(republish));
-  EXPECT_EQ(std::get<OpcUaWsRepublishRequest>(republish_decoded.body)
+  EXPECT_EQ(std::get<opcua::OpcUaRepublishRequest>(republish_decoded.body)
                 .retransmit_sequence_number,
             5u);
 
   const auto transfer_decoded = DecodeRequestMessage(EncodeJson(transfer));
   const auto& transfer_body =
-      std::get<OpcUaWsTransferSubscriptionsRequest>(transfer_decoded.body);
+      std::get<opcua::OpcUaTransferSubscriptionsRequest>(transfer_decoded.body);
   EXPECT_EQ(transfer_body.subscription_ids, expected_transfer_ids);
   EXPECT_TRUE(transfer_body.send_initial_values);
 }
@@ -1270,11 +1243,11 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   const auto publish_time = ParseTime("2026-04-19 00:00:05");
   scada::DataValue republish_value;
   republish_value.value = scada::Variant{true};
-  OpcUaWsNotificationMessage publish_message{
+  opcua::OpcUaNotificationMessage publish_message{
       .sequence_number = 3,
       .publish_time = publish_time,
       .notification_data =
-          {OpcUaWsDataChangeNotification{
+          {opcua::OpcUaDataChangeNotification{
                .monitored_items =
                    {{.client_handle = 1,
                      .value = scada::DataValue{
@@ -1282,46 +1255,46 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
                          scada::Qualifier{scada::Qualifier::MANUAL},
                          ParseTime("2026-04-19 00:00:05"),
                          ParseTime("2026-04-19 00:00:06")}}}},
-           OpcUaWsEventNotificationList{
+           opcua::OpcUaEventNotificationList{
                .events = {{.client_handle = 2,
                            .event_fields =
                                {scada::Variant{std::string{"AlarmRaised"}},
                                 scada::Variant{scada::UInt32{500}}}}}},
-           OpcUaWsStatusChangeNotification{
+           opcua::OpcUaStatusChangeNotification{
                .status = scada::StatusCode::Bad_Timeout}}};
-  OpcUaWsResponseMessage publish{
+  opcua::OpcUaResponseMessage publish{
       .request_handle = 81,
-      .body = OpcUaWsPublishResponse{
+      .body = opcua::OpcUaPublishResponse{
           .status = scada::StatusCode::Good,
           .subscription_id = 17,
           .results = {scada::StatusCode::Good},
           .more_notifications = true,
           .notification_message = publish_message,
           .available_sequence_numbers = {3, 4}}};
-  OpcUaWsResponseMessage republish{
+  opcua::OpcUaResponseMessage republish{
       .request_handle = 82,
-      .body = OpcUaWsRepublishResponse{
+      .body = opcua::OpcUaRepublishResponse{
           .status = scada::StatusCode::Good,
           .notification_message =
               {.sequence_number = 5,
                .publish_time = ParseTime("2026-04-19 00:00:07"),
-               .notification_data = {OpcUaWsDataChangeNotification{
+               .notification_data = {opcua::OpcUaDataChangeNotification{
                    .monitored_items = {{.client_handle = 9,
                                         .value = republish_value}}}}}}};
-  OpcUaWsResponseMessage transfer{
+  opcua::OpcUaResponseMessage transfer{
       .request_handle = 83,
-      .body = OpcUaWsTransferSubscriptionsResponse{
+      .body = opcua::OpcUaTransferSubscriptionsResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::StatusCode::Good,
                       scada::StatusCode::Bad_WrongSubscriptionId}}};
 
   std::optional<boost::json::value> publish_json;
   ASSERT_NO_THROW(publish_json.emplace(EncodeJson(publish)));
-  std::optional<OpcUaWsResponseMessage> decoded_publish;
+  std::optional<opcua::OpcUaResponseMessage> decoded_publish;
   ASSERT_NO_THROW(decoded_publish.emplace(DecodeResponseMessage(*publish_json)));
   EXPECT_EQ(decoded_publish->request_handle, 81u);
   const auto& publish_body =
-      std::get<OpcUaWsPublishResponse>(decoded_publish->body);
+      std::get<opcua::OpcUaPublishResponse>(decoded_publish->body);
   EXPECT_EQ(publish_body.subscription_id, 17u);
   EXPECT_EQ(publish_body.available_sequence_numbers,
             (std::vector<scada::UInt32>{3u, 4u}));
@@ -1329,19 +1302,19 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   EXPECT_EQ(publish_body.notification_message.sequence_number, 3u);
   EXPECT_EQ(publish_body.notification_message.publish_time, publish_time);
   ASSERT_EQ(publish_body.notification_message.notification_data.size(), 3u);
-  const auto* data_change = std::get_if<OpcUaWsDataChangeNotification>(
+  const auto* data_change = std::get_if<opcua::OpcUaDataChangeNotification>(
       &publish_body.notification_message.notification_data[0]);
   ASSERT_NE(data_change, nullptr);
   ASSERT_EQ(data_change->monitored_items.size(), 1u);
   EXPECT_EQ(data_change->monitored_items[0].client_handle, 1u);
   EXPECT_EQ(data_change->monitored_items[0].value.value.get<double>(), 42.5);
-  const auto* events = std::get_if<OpcUaWsEventNotificationList>(
+  const auto* events = std::get_if<opcua::OpcUaEventNotificationList>(
       &publish_body.notification_message.notification_data[1]);
   ASSERT_NE(events, nullptr);
   ASSERT_EQ(events->events.size(), 1u);
   EXPECT_EQ(events->events[0].client_handle, 2u);
   EXPECT_EQ(events->events[0].event_fields.size(), 2u);
-  const auto* status_change = std::get_if<OpcUaWsStatusChangeNotification>(
+  const auto* status_change = std::get_if<opcua::OpcUaStatusChangeNotification>(
       &publish_body.notification_message.notification_data[2]);
   ASSERT_NE(status_change, nullptr);
   EXPECT_EQ(status_change->status, scada::StatusCode::Bad_Timeout);
@@ -1350,17 +1323,17 @@ TEST(OpcUaJsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
 
   std::optional<boost::json::value> republish_json;
   ASSERT_NO_THROW(republish_json.emplace(EncodeJson(republish)));
-  std::optional<OpcUaWsResponseMessage> decoded_republish;
+  std::optional<opcua::OpcUaResponseMessage> decoded_republish;
   ASSERT_NO_THROW(decoded_republish.emplace(DecodeResponseMessage(*republish_json)));
-  EXPECT_EQ(std::get<OpcUaWsRepublishResponse>(decoded_republish->body)
+  EXPECT_EQ(std::get<opcua::OpcUaRepublishResponse>(decoded_republish->body)
                 .notification_message.sequence_number,
             5u);
 
   std::optional<boost::json::value> transfer_json;
   ASSERT_NO_THROW(transfer_json.emplace(EncodeJson(transfer)));
-  std::optional<OpcUaWsResponseMessage> decoded_transfer;
+  std::optional<opcua::OpcUaResponseMessage> decoded_transfer;
   ASSERT_NO_THROW(decoded_transfer.emplace(DecodeResponseMessage(*transfer_json)));
-  EXPECT_EQ(std::get<OpcUaWsTransferSubscriptionsResponse>(
+  EXPECT_EQ(std::get<opcua::OpcUaTransferSubscriptionsResponse>(
                 decoded_transfer->body)
                 .results,
             (std::vector<scada::StatusCode>{
@@ -1386,12 +1359,12 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {
       .results = {scada::StatusCode::Good}};
 
   const auto decoded_call = std::get<CallResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{call})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{call})));
   ASSERT_EQ(decoded_call.results.size(), call.results.size());
   EXPECT_EQ(decoded_call.results[0].status.code(), call.results[0].status.code());
   EXPECT_EQ(decoded_call.results[1].status.code(), call.results[1].status.code());
   const auto decoded_add_nodes = std::get<AddNodesResponse>(
-      DecodeServiceResponse(EncodeJson(OpcUaWsServiceResponse{add_nodes})));
+      DecodeServiceResponse(EncodeJson(opcua::OpcUaServiceResponse{add_nodes})));
   EXPECT_EQ(decoded_add_nodes.status, add_nodes.status);
   ASSERT_EQ(decoded_add_nodes.results.size(), 1u);
   EXPECT_EQ(decoded_add_nodes.results[0].status_code,
@@ -1399,15 +1372,15 @@ TEST(OpcUaJsonCodecTest, RoundTripsCallAndMutationResponses) {
   EXPECT_EQ(decoded_add_nodes.results[0].added_node_id,
             add_nodes.results[0].added_node_id);
   EXPECT_EQ(std::get<DeleteNodesResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{delete_nodes})))
+                EncodeJson(opcua::OpcUaServiceResponse{delete_nodes})))
                 .results,
             delete_nodes.results);
   EXPECT_EQ(std::get<AddReferencesResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{add_refs})))
+                EncodeJson(opcua::OpcUaServiceResponse{add_refs})))
                 .results,
             add_refs.results);
   EXPECT_EQ(std::get<DeleteReferencesResponse>(DecodeServiceResponse(
-                EncodeJson(OpcUaWsServiceResponse{delete_refs})))
+                EncodeJson(opcua::OpcUaServiceResponse{delete_refs})))
                 .results,
             delete_refs.results);
 }
@@ -1420,4 +1393,4 @@ TEST(OpcUaJsonCodecTest, RejectsUnknownService) {
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

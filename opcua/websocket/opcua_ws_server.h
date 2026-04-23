@@ -5,7 +5,7 @@
 #include <transport/any_transport.h>
 #include <transport/error.h>
 
-namespace opcua_ws {
+namespace opcua {
 
 struct OpcUaWsServerContext {
   transport::any_transport acceptor;
@@ -28,4 +28,4 @@ class OpcUaWsServer : private OpcUaWsServerContext {
   bool opened_ = false;
 };
 
-}  // namespace opcua_ws
+}  // namespace opcua

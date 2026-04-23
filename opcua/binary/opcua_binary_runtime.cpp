@@ -79,15 +79,15 @@ void OpcUaBinaryRuntime::Detach(OpcUaBinaryConnectionState& connection) {
   runtime_.Detach(connection);
 }
 
-Awaitable<std::optional<OpcUaBinaryResponseBody>>
+Awaitable<std::optional<OpcUaResponseBody>>
 OpcUaBinaryRuntime::HandleSessionRequest(
     OpcUaBinaryConnectionState& connection,
     OpcUaCreateSessionRequest request) {
-  co_return OpcUaBinaryResponseBody{
+  co_return OpcUaResponseBody{
       co_await Handle<OpcUaCreateSessionResponse>(connection, std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaBinaryResponseBody>>
+Awaitable<std::optional<OpcUaResponseBody>>
 OpcUaBinaryRuntime::HandleSessionRequest(
     OpcUaBinaryConnectionState& connection,
     const OpcUaBinaryServiceRequestHeader& header,
@@ -99,35 +99,35 @@ OpcUaBinaryRuntime::HandleSessionRequest(
 
   request.session_id = session->session_id;
   request.authentication_token = header.authentication_token;
-  co_return OpcUaBinaryResponseBody{
+  co_return OpcUaResponseBody{
       co_await Handle<OpcUaActivateSessionResponse>(connection,
                                                     std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaBinaryResponseBody>>
+Awaitable<std::optional<OpcUaResponseBody>>
 OpcUaBinaryRuntime::HandleSessionRequest(
     OpcUaBinaryConnectionState& connection,
     const OpcUaBinaryServiceRequestHeader& header,
     OpcUaCloseSessionRequest request) {
   const auto session = session_manager_.FindSession(header.authentication_token);
   if (!session.has_value()) {
-    co_return OpcUaBinaryResponseBody{OpcUaCloseSessionResponse{
+    co_return OpcUaResponseBody{OpcUaCloseSessionResponse{
         .status = scada::StatusCode::Bad_SessionIsLoggedOff}};
   }
 
   request.session_id = session->session_id;
   request.authentication_token = header.authentication_token;
-  co_return OpcUaBinaryResponseBody{
+  co_return OpcUaResponseBody{
       co_await Handle<OpcUaCloseSessionResponse>(connection, std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaBinaryResponseBody>>
+Awaitable<std::optional<OpcUaResponseBody>>
 OpcUaBinaryRuntime::HandleDecodedRequest(
     OpcUaBinaryConnectionState& connection,
     const OpcUaBinaryDecodedRequest& request) {
   co_return co_await std::visit(
       [this, &connection, &request](auto typed_request)
-          -> Awaitable<std::optional<OpcUaBinaryResponseBody>> {
+          -> Awaitable<std::optional<OpcUaResponseBody>> {
         using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, OpcUaCreateSessionRequest>) {
           co_return co_await HandleSessionRequest(connection,

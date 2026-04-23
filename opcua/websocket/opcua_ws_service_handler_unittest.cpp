@@ -1,5 +1,4 @@
 #include "opcua/websocket/opcua_ws_service_handler.h"
-#include "opcua/websocket/opcua_ws_service_message.h"
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
@@ -16,7 +15,7 @@
 
 using namespace testing;
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 class OpcUaWsServiceHandlerTest : public Test {
@@ -398,4 +397,4 @@ TEST_F(OpcUaWsServiceHandlerTest,
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

@@ -21,7 +21,7 @@
 
 using namespace testing;
 
-namespace opcua_ws {
+namespace opcua {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -180,7 +180,7 @@ class OpcUaWsServerTest : public Test {
   StrictMock<scada::MockMethodService> method_service_;
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
-  OpcUaWsSessionManager session_manager_{{
+  opcua::OpcUaSessionManager session_manager_{{
       .authenticator =
           [](scada::LocalizedText, scada::LocalizedText)
               -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
@@ -313,4 +313,4 @@ TEST_F(OpcUaWsServerTest, OpenAndCloseDriveAcceptorLifecycle) {
 }
 
 }  // namespace
-}  // namespace opcua_ws
+}  // namespace opcua

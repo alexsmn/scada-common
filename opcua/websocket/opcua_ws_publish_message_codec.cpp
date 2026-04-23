@@ -8,7 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace opcua_ws::detail {
+namespace opcua::detail {
 
 namespace {
 
@@ -115,7 +115,8 @@ value EncodeVariant(const scada::Variant& variant) {
       .methods = {{.object_id = scada::NodeId{},
                    .method_id = scada::NodeId{},
                    .arguments = {variant}}}};
-  const auto service_json = RequireObject(EncodeJson(OpcUaWsServiceRequest{request}));
+  const auto service_json =
+      RequireObject(EncodeJson(opcua::OpcUaServiceRequest{request}));
   const auto& body = RequireObject(RequireField(service_json, "body"));
   const auto& methods = RequireArray(RequireField(body, "MethodsToCall"));
   return RequireArray(
@@ -141,7 +142,7 @@ value EncodeDataValue(const scada::DataValue& data_value) {
   ReadResponse response{.status = scada::StatusCode::Good,
                         .results = {data_value}};
   const auto service_json =
-      RequireObject(EncodeJson(OpcUaWsServiceResponse{response}));
+      RequireObject(EncodeJson(opcua::OpcUaServiceResponse{response}));
   const auto& body = RequireObject(RequireField(service_json, "body"));
   return RequireArray(RequireField(body, "Results")).front();
 }
@@ -157,27 +158,27 @@ scada::DataValue DecodeDataValue(const value& json) {
 }
 
 value EncodeSubscriptionAcknowledgement(
-    const OpcUaWsSubscriptionAcknowledgement& acknowledgement) {
+    const opcua::OpcUaSubscriptionAcknowledgement& acknowledgement) {
   return object{{"SubscriptionId", acknowledgement.subscription_id},
                 {"SequenceNumber", acknowledgement.sequence_number}};
 }
 
-OpcUaWsSubscriptionAcknowledgement DecodeSubscriptionAcknowledgement(
+opcua::OpcUaSubscriptionAcknowledgement DecodeSubscriptionAcknowledgement(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
+  return {.subscription_id = static_cast<opcua::OpcUaSubscriptionId>(
               RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .sequence_number = static_cast<scada::UInt32>(
               RequireUInt64(RequireField(obj, "SequenceNumber")))};
 }
 
 value EncodeMonitoredItemNotification(
-    const OpcUaWsMonitoredItemNotification& notification) {
+    const opcua::OpcUaMonitoredItemNotification& notification) {
   return object{{"ClientHandle", notification.client_handle},
                 {"Value", EncodeDataValue(notification.value)}};
 }
 
-OpcUaWsMonitoredItemNotification DecodeMonitoredItemNotification(
+opcua::OpcUaMonitoredItemNotification DecodeMonitoredItemNotification(
     const value& json) {
   const auto& obj = RequireObject(json);
   return {.client_handle = static_cast<scada::UInt32>(
@@ -185,12 +186,12 @@ OpcUaWsMonitoredItemNotification DecodeMonitoredItemNotification(
           .value = DecodeDataValue(RequireField(obj, "Value"))};
 }
 
-value EncodeEventFieldList(const OpcUaWsEventFieldList& fields) {
+value EncodeEventFieldList(const opcua::OpcUaEventFieldList& fields) {
   return object{{"ClientHandle", fields.client_handle},
                 {"EventFields", EncodeList(fields.event_fields, EncodeVariant)}};
 }
 
-OpcUaWsEventFieldList DecodeEventFieldList(const value& json) {
+opcua::OpcUaEventFieldList DecodeEventFieldList(const value& json) {
   const auto& obj = RequireObject(json);
   return {.client_handle = static_cast<scada::UInt32>(
               RequireUInt64(RequireField(obj, "ClientHandle"))),
@@ -198,17 +199,17 @@ OpcUaWsEventFieldList DecodeEventFieldList(const value& json) {
               RequireField(obj, "EventFields"), DecodeVariant)};
 }
 
-value EncodeNotificationData(const OpcUaWsNotificationData& notification) {
+value EncodeNotificationData(const opcua::OpcUaNotificationData& notification) {
   return std::visit(
       [](const auto& typed_notification) -> value {
         using T = std::decay_t<decltype(typed_notification)>;
-        if constexpr (std::is_same_v<T, OpcUaWsDataChangeNotification>) {
+        if constexpr (std::is_same_v<T, opcua::OpcUaDataChangeNotification>) {
           return object{
               {"Type", "DataChangeNotification"},
               {"MonitoredItems",
                EncodeList(typed_notification.monitored_items,
                           EncodeMonitoredItemNotification)}};
-        } else if constexpr (std::is_same_v<T, OpcUaWsEventNotificationList>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaEventNotificationList>) {
           return object{{"Type", "EventNotificationList"},
                         {"Events", EncodeList(typed_notification.events,
                                               EncodeEventFieldList)}};
@@ -220,28 +221,28 @@ value EncodeNotificationData(const OpcUaWsNotificationData& notification) {
       notification);
 }
 
-OpcUaWsNotificationData DecodeNotificationData(const value& json) {
+opcua::OpcUaNotificationData DecodeNotificationData(const value& json) {
   const auto& obj = RequireObject(json);
   const auto type = RequireString(RequireField(obj, "Type"));
   if (type == "DataChangeNotification") {
-    return OpcUaWsDataChangeNotification{
-        .monitored_items = DecodeList<OpcUaWsMonitoredItemNotification>(
+    return opcua::OpcUaDataChangeNotification{
+        .monitored_items = DecodeList<opcua::OpcUaMonitoredItemNotification>(
             RequireField(obj, "MonitoredItems"), DecodeMonitoredItemNotification)};
   }
   if (type == "EventNotificationList") {
-    return OpcUaWsEventNotificationList{
-        .events = DecodeList<OpcUaWsEventFieldList>(
+    return opcua::OpcUaEventNotificationList{
+        .events = DecodeList<opcua::OpcUaEventFieldList>(
             RequireField(obj, "Events"), DecodeEventFieldList)};
   }
   if (type == "StatusChangeNotification") {
-    return OpcUaWsStatusChangeNotification{
+    return opcua::OpcUaStatusChangeNotification{
         .status = DecodeStatusCode(RequireField(obj, "Status"))};
   }
   ThrowJsonError("Unknown NotificationData type");
 }
 
 value EncodeNotificationMessage(
-    const OpcUaWsNotificationMessage& notification_message) {
+    const opcua::OpcUaNotificationMessage& notification_message) {
   return object{{"SequenceNumber", notification_message.sequence_number},
                 {"PublishTime", EncodeDateTime(notification_message.publish_time)},
                 {"NotificationData",
@@ -249,12 +250,12 @@ value EncodeNotificationMessage(
                             EncodeNotificationData)}};
 }
 
-OpcUaWsNotificationMessage DecodeNotificationMessage(const value& json) {
+opcua::OpcUaNotificationMessage DecodeNotificationMessage(const value& json) {
   const auto& obj = RequireObject(json);
   return {.sequence_number = static_cast<scada::UInt32>(
               RequireUInt64(RequireField(obj, "SequenceNumber"))),
           .publish_time = DecodeDateTime(RequireField(obj, "PublishTime")),
-          .notification_data = DecodeList<OpcUaWsNotificationData>(
+          .notification_data = DecodeList<opcua::OpcUaNotificationData>(
               RequireField(obj, "NotificationData"), DecodeNotificationData)};
 }
 
@@ -274,20 +275,20 @@ Response DecodeMultiStatusResponse(const value& json) {
 
 }  // namespace
 
-value EncodePublishRequest(const OpcUaWsPublishRequest& request) {
+value EncodePublishRequest(const opcua::OpcUaPublishRequest& request) {
   return object{{"SubscriptionAcknowledgements",
                  EncodeList(request.subscription_acknowledgements,
                             EncodeSubscriptionAcknowledgement)}};
 }
 
-OpcUaWsPublishRequest DecodePublishRequest(const value& json) {
+opcua::OpcUaPublishRequest DecodePublishRequest(const value& json) {
   return {.subscription_acknowledgements =
-              DecodeList<OpcUaWsSubscriptionAcknowledgement>(
+              DecodeList<opcua::OpcUaSubscriptionAcknowledgement>(
                   RequireField(RequireObject(json), "SubscriptionAcknowledgements"),
                   DecodeSubscriptionAcknowledgement)};
 }
 
-value EncodePublishResponse(const OpcUaWsPublishResponse& response) {
+value EncodePublishResponse(const opcua::OpcUaPublishResponse& response) {
   return object{{"Status", EncodeStatus(response.status)},
                 {"SubscriptionId", response.subscription_id},
                 {"AvailableSequenceNumbers",
@@ -301,10 +302,10 @@ value EncodePublishResponse(const OpcUaWsPublishResponse& response) {
                 {"Results", EncodeList(response.results, EncodeStatusCode)}};
 }
 
-OpcUaWsPublishResponse DecodePublishResponse(const value& json) {
+opcua::OpcUaPublishResponse DecodePublishResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
-          .subscription_id = static_cast<OpcUaWsSubscriptionId>(
+          .subscription_id = static_cast<opcua::OpcUaSubscriptionId>(
               RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .results = DecodeList<scada::StatusCode>(
               RequireField(obj, "Results"), DecodeStatusCode),
@@ -319,27 +320,27 @@ OpcUaWsPublishResponse DecodePublishResponse(const value& json) {
               })};
 }
 
-value EncodeRepublishRequest(const OpcUaWsRepublishRequest& request) {
+value EncodeRepublishRequest(const opcua::OpcUaRepublishRequest& request) {
   return object{{"SubscriptionId", request.subscription_id},
                 {"RetransmitSequenceNumber",
                  request.retransmit_sequence_number}};
 }
 
-OpcUaWsRepublishRequest DecodeRepublishRequest(const value& json) {
+opcua::OpcUaRepublishRequest DecodeRepublishRequest(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.subscription_id = static_cast<OpcUaWsSubscriptionId>(
+  return {.subscription_id = static_cast<opcua::OpcUaSubscriptionId>(
               RequireUInt64(RequireField(obj, "SubscriptionId"))),
           .retransmit_sequence_number = static_cast<scada::UInt32>(
               RequireUInt64(RequireField(obj, "RetransmitSequenceNumber")))};
 }
 
-value EncodeRepublishResponse(const OpcUaWsRepublishResponse& response) {
+value EncodeRepublishResponse(const opcua::OpcUaRepublishResponse& response) {
   return object{{"Status", EncodeStatus(response.status)},
                 {"NotificationMessage",
                  EncodeNotificationMessage(response.notification_message)}};
 }
 
-OpcUaWsRepublishResponse DecodeRepublishResponse(const value& json) {
+opcua::OpcUaRepublishResponse DecodeRepublishResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .notification_message =
@@ -347,7 +348,7 @@ OpcUaWsRepublishResponse DecodeRepublishResponse(const value& json) {
 }
 
 value EncodeTransferSubscriptionsRequest(
-    const OpcUaWsTransferSubscriptionsRequest& request) {
+    const opcua::OpcUaTransferSubscriptionsRequest& request) {
   return object{{"SubscriptionIds",
                  EncodeList(request.subscription_ids, [](auto value) {
                    return boost::json::value(
@@ -356,25 +357,25 @@ value EncodeTransferSubscriptionsRequest(
                 {"SendInitialValues", request.send_initial_values}};
 }
 
-OpcUaWsTransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
+opcua::OpcUaTransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
     const value& json) {
   const auto& obj = RequireObject(json);
-  return {.subscription_ids = DecodeList<OpcUaWsSubscriptionId>(
+  return {.subscription_ids = DecodeList<opcua::OpcUaSubscriptionId>(
               RequireField(obj, "SubscriptionIds"), [](const value& entry) {
-                return static_cast<OpcUaWsSubscriptionId>(RequireUInt64(entry));
+                return static_cast<opcua::OpcUaSubscriptionId>(RequireUInt64(entry));
               }),
           .send_initial_values =
               RequireBool(RequireField(obj, "SendInitialValues"))};
 }
 
 value EncodeTransferSubscriptionsResponse(
-    const OpcUaWsTransferSubscriptionsResponse& response) {
+    const opcua::OpcUaTransferSubscriptionsResponse& response) {
   return EncodeMultiStatusResponse(response);
 }
 
-OpcUaWsTransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
+opcua::OpcUaTransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
     const value& json) {
-  return DecodeMultiStatusResponse<OpcUaWsTransferSubscriptionsResponse>(json);
+  return DecodeMultiStatusResponse<opcua::OpcUaTransferSubscriptionsResponse>(json);
 }
 
-}  // namespace opcua_ws::detail
+}  // namespace opcua::detail
