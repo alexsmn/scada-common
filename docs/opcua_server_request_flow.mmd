@@ -11,7 +11,7 @@ sequenceDiagram
     Endpoint->>Dispatcher: decoded service payload
     Note right of Dispatcher: Transport decode / adapter normalization happens at the Binary edge.
     Dispatcher->>BinRt: invoke decoded request
-    Note right of BinRt: Shared runtime session gating is limited to token lookup and authenticated dispatch checks.
+    Note right of BinRt: Binary-only runtime work is limited to token lookup and authenticated dispatch over canonical opcua:: request/response types.
     BinRt->>Runtime: canonical request dispatch
     Runtime->>Conv: convert request payload
     Conv-->>Runtime: SCADA-native inputs

@@ -312,6 +312,10 @@ Progress:
   encode responses
 - the remaining Binary-only branch is the `HistoryReadEvents` response encoder,
   because it needs the request's decoded event-field path metadata
+- `common/opcua/opcua_binary_runtime.{h,cpp}` now dispatches canonical
+  `opcua::` request/response types directly inside the shared Binary adapter
+  runtime, leaving `OpcUaBinary*` spellings as compatibility aliases around
+  the wire-facing decode/encode boundary only
 - the shared runtime now has one reusable contract-test suite that exercises
   the same semantic scenarios through the canonical runtime surface plus the
   Binary and WS adapter runtimes for read routing, detach/resume, transfer,

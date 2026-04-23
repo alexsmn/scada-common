@@ -170,6 +170,8 @@ Responsibilities:
   encode and the few response encoders that still need Binary-only wire
   metadata such as `HistoryReadEvents`, with `OpcUaBinaryRuntime` owning
   Binary session-token lookup and authenticated canonical request dispatch
+  over the transport-neutral `opcua::` request/response types, with
+  `OpcUaBinary*` names retained as compatibility aliases at the adapter edge
 - define the transport-neutral runtime contract-test scenarios in
   `opcua_runtime_contract_test.h`, then execute them against the canonical
   runtime plus the Binary and WS adapter runtimes so semantic parity stays

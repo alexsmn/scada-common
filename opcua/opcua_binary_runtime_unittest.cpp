@@ -193,5 +193,33 @@ TEST_F(OpcUaBinaryRuntimeTest,
   EXPECT_EQ(*connection.authentication_token, authentication_token);
 }
 
+TEST_F(OpcUaBinaryRuntimeTest,
+       AcceptsCanonicalRequestAndResponseTypesThroughBinaryAdapterSurface) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+              const scada::ReadCallback& callback) {
+            EXPECT_EQ(context.user_id(), expected_user_id_);
+            ASSERT_EQ(inputs->size(), 1u);
+            EXPECT_EQ((*inputs)[0].node_id, test::NumericNode(10));
+            EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
+            callback(scada::StatusCode::Good,
+                     {scada::DataValue{scada::Variant{99.0}, {}, now_, now_}});
+          }));
+
+  const auto response = HandleResponse<ReadResponse>(
+      connection,
+      ReadRequest{.inputs = {{.node_id = test::NumericNode(10),
+                              .attribute_id = scada::AttributeId::Value}}});
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, scada::Variant{99.0});
+}
+
 }  // namespace
 }  // namespace opcua

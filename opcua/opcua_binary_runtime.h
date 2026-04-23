@@ -68,9 +68,9 @@ class OpcUaBinaryRuntime {
                        const OpcUaBinaryDecodedRequest& request);
 
  private:
-  [[nodiscard]] Awaitable<OpcUaBinaryResponseBody> HandleBody(
+  [[nodiscard]] Awaitable<OpcUaResponseBody> HandleBody(
       OpcUaBinaryConnectionState& connection,
-      OpcUaBinaryRequestBody request);
+      OpcUaRequestBody request);
 
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
@@ -89,15 +89,15 @@ class OpcUaBinaryRuntime {
 
   [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
-                       OpcUaBinaryCreateSessionRequest request);
+                       OpcUaCreateSessionRequest request);
   [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
                        const OpcUaBinaryServiceRequestHeader& header,
-                       OpcUaBinaryActivateSessionRequest request);
+                       OpcUaActivateSessionRequest request);
   [[nodiscard]] Awaitable<std::optional<OpcUaBinaryResponseBody>>
   HandleSessionRequest(OpcUaBinaryConnectionState& connection,
                        const OpcUaBinaryServiceRequestHeader& header,
-                       OpcUaBinaryCloseSessionRequest request);
+                       OpcUaCloseSessionRequest request);
 
   OpcUaSessionManager& session_manager_;
   OpcUaRuntime runtime_;
