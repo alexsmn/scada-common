@@ -57,8 +57,8 @@ At runtime it sits between:
 Files:
 
 - `server/opcua/opcua_module.cpp`
-- `common/opcua/opcua_binary_server.h`
-- `common/opcua/opcua_binary_server.cpp`
+- `common/opcua/binary/opcua_binary_server.h`
+- `common/opcua/binary/opcua_binary_server.cpp`
 
 Server-side TCP listener and connection host for the transport-backed OPC UA
 binary runtime.
@@ -147,7 +147,7 @@ Files:
 - `common/opcua/opcua_server_session.{h,cpp}`
 - `common/opcua/opcua_server_subscription.{h,cpp}`
 - `common/opcua/opcua_runtime.{h,cpp}`
-- `common/opcua_ws/opcua_ws_runtime.h`
+- `common/opcua/websocket/opcua_ws_runtime.h`
 
 Canonical server-side request/response and service-dispatch contract used by
 both the UA Binary adapter and the UA-JSON/WebSocket adapter.
@@ -246,3 +246,26 @@ Separately:
   rather than adding another transport-specific server bridge.
 - The shared conversion layer is also the natural place to keep any future
   UA transport siblings consistent on SCADA-native type semantics.
+
+## Transport-Neutral Ownership Rules
+
+The shared `common/opcua/` server runtime is the semantic source of truth for
+server-side OPC UA behavior used by both the Binary and WS adapters.
+
+- session lifecycle, subscription ownership, publish behavior, republish
+  caching, browse continuation handling, and coroutine service dispatch belong
+  in `common/opcua/`
+- Binary-specific concerns stay in the Binary adapter layer:
+  UA Binary / UACP framing, SecureChannel/TCP integration, request-header
+  adaptation, and response encoders that require Binary-only wire metadata
+- WS-specific concerns stay in `common/opcua/websocket/`:
+  UA-JSON envelope handling, WebSocket/WSS transport policy, browser-origin
+  checks, and JSON codec behavior
+- the design does not require merging Binary and WS wire codecs, sharing
+  handshake logic, or forcing the transports onto one framing model
+
+When Binary and WS differ on OPC UA semantics, the source of truth is the OPC
+Foundation specification rather than historical in-repo behavior. That check is
+especially important for session lifecycle, publish/keep-alive/republish,
+`TransferSubscriptions`, monitored-item initial-value behavior,
+`BrowseNext` continuation handling, and Binary-vs-JSON field-level mismatches.
