@@ -71,21 +71,21 @@
 
 ### Module architecture
 
-![OPC UA WebSocket architecture](./opcua_ws_architecture.svg)
+![OPC UA WebSocket architecture](./opcua_architecture.svg)
 
-Source: [opcua_ws_architecture.mmd](./opcua_ws_architecture.mmd)
+Source: [opcua_architecture.mmd](./opcua_architecture.mmd)
 
 ### Session lifecycle
 
-![OPC UA WebSocket session sequence](./opcua_ws_session_sequence.svg)
+![OPC UA WebSocket session sequence](./opcua_session_sequence.svg)
 
-Source: [opcua_ws_session_sequence.mmd](./opcua_ws_session_sequence.mmd)
+Source: [opcua_session_sequence.mmd](./opcua_session_sequence.mmd)
 
 ### Subscription and publish loop
 
-![OPC UA WebSocket subscription sequence](./opcua_ws_subscription_sequence.svg)
+![OPC UA WebSocket subscription sequence](./opcua_subscription_sequence.svg)
 
-Source: [opcua_ws_subscription_sequence.mmd](./opcua_ws_subscription_sequence.mmd)
+Source: [opcua_subscription_sequence.mmd](./opcua_subscription_sequence.mmd)
 
 ## Motivation
 

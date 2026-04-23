@@ -33,7 +33,7 @@ flowchart LR
         WSSOCK["<b>WebSocketTransport</b><br/><i>third_party/net/transport</i><br/>WS/WSS acceptor<br/>TLS enabled"]
     end
 
-    subgraph WsInternals["opcua_ws adapters"]
+    subgraph WsInternals["opcua adapters"]
         direction TB
         WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
         SESS["<b>opcua::OpcUaSession</b><br/>live session state +<br/>subscription orchestration"]
