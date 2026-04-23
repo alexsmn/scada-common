@@ -316,6 +316,12 @@ Progress:
   the same semantic scenarios through the canonical runtime surface plus the
   Binary and WS adapter runtimes for read routing, detach/resume, transfer,
   close-session, and unauthenticated history-read behavior
+- the WS UA-JSON envelope/server boundary now uses canonical
+  `opcua::OpcUaRequestMessage`, `opcua::OpcUaResponseMessage`,
+  `opcua::OpcUaCreateSessionRequest`, `opcua::OpcUaActivateSessionRequest`,
+  and `opcua::OpcUaCloseSessionRequest` types directly inside the adapter
+  implementation/tests, with `OpcUaWs*` spellings retained only as
+  compatibility aliases
 - that shared contract suite now also covers session-scoped browse
   continuation handling plus publish keep-alive / republish / acknowledgement
   semantics across the canonical runtime, Binary runtime adapter, and WS

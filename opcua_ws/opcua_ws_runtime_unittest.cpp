@@ -4,6 +4,7 @@
 
 #include <future>
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace opcua_ws {
 namespace {
@@ -12,6 +13,9 @@ class OpcUaWsRuntimeTest : public testing::Test,
                            public opcua::test::RuntimeContractTestBase {
  public:
   using ConnectionState = OpcUaWsConnectionState;
+
+  static_assert(std::is_same_v<OpcUaWsRequestBody, opcua::OpcUaRequestBody>);
+  static_assert(std::is_same_v<OpcUaWsResponseBody, opcua::OpcUaResponseBody>);
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
@@ -27,13 +31,13 @@ class OpcUaWsRuntimeTest : public testing::Test,
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       ConnectionState& connection) {
     const auto created =
-        HandleResponse<OpcUaWsCreateSessionResponse>(connection,
-                                                     OpcUaWsCreateSessionRequest{});
+        HandleResponse<opcua::OpcUaCreateSessionResponse>(
+            connection, opcua::OpcUaCreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
-    const auto activated = HandleResponse<OpcUaWsActivateSessionResponse>(
+    const auto activated = HandleResponse<opcua::OpcUaActivateSessionResponse>(
         connection,
-        OpcUaWsActivateSessionRequest{
+        opcua::OpcUaActivateSessionRequest{
             .session_id = created.session_id,
             .authentication_token = created.authentication_token,
             .user_name = scada::LocalizedText{u"operator"},
@@ -158,9 +162,9 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
   CreateAndActivate(connection);
 
   const auto created_subscription =
-      HandleResponse<OpcUaWsCreateSubscriptionResponse>(
+      HandleResponse<opcua::OpcUaCreateSubscriptionResponse>(
           connection,
-          OpcUaWsCreateSubscriptionRequest{
+          opcua::OpcUaCreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
@@ -174,7 +178,7 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
               publish_promise.resolve(
                   co_await runtime_.Handle(connection,
                                            OpcUaWsRequestBody{
-                                               OpcUaWsPublishRequest{}}));
+                                               opcua::OpcUaPublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
             }
@@ -194,7 +198,8 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
   ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
 
   const auto publish_message = publish_promise.get();
-  const auto* publish = std::get_if<OpcUaWsPublishResponse>(&publish_message);
+  const auto* publish =
+      std::get_if<opcua::OpcUaPublishResponse>(&publish_message);
   ASSERT_NE(publish, nullptr);
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(publish->notification_message.notification_data.empty());

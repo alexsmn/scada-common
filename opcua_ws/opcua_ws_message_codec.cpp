@@ -271,18 +271,19 @@ std::vector<T> DecodeList(const value& json, Decoder&& decoder) {
   return result;
 }
 
-value EncodeCreateSessionRequest(const OpcUaWsCreateSessionRequest& request) {
+value EncodeCreateSessionRequest(const opcua::OpcUaCreateSessionRequest& request) {
   return object{
       {"RequestedSessionTimeout", request.requested_timeout.InMilliseconds()}};
 }
 
-OpcUaWsCreateSessionRequest DecodeCreateSessionRequest(const value& json) {
+opcua::OpcUaCreateSessionRequest DecodeCreateSessionRequest(const value& json) {
   return {.requested_timeout = base::TimeDelta::FromMilliseconds(
               RequireInt64(
                   RequireField(RequireObject(json), "RequestedSessionTimeout")))};
 }
 
-value EncodeCreateSessionResponse(const OpcUaWsCreateSessionResponse& response) {
+value EncodeCreateSessionResponse(
+    const opcua::OpcUaCreateSessionResponse& response) {
   return object{{"Status", EncodeStatus(response.status)},
                 {"SessionId", EncodeNodeId(response.session_id)},
                 {"AuthenticationToken",
@@ -292,7 +293,8 @@ value EncodeCreateSessionResponse(const OpcUaWsCreateSessionResponse& response) 
                  response.revised_timeout.InMilliseconds()}};
 }
 
-OpcUaWsCreateSessionResponse DecodeCreateSessionResponse(const value& json) {
+opcua::OpcUaCreateSessionResponse DecodeCreateSessionResponse(
+    const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
@@ -303,7 +305,8 @@ OpcUaWsCreateSessionResponse DecodeCreateSessionResponse(const value& json) {
               RequireInt64(RequireField(obj, "RevisedSessionTimeout")))};
 }
 
-value EncodeActivateSessionRequest(const OpcUaWsActivateSessionRequest& request) {
+value EncodeActivateSessionRequest(
+    const opcua::OpcUaActivateSessionRequest& request) {
   object json{{"SessionId", EncodeNodeId(request.session_id)},
               {"AuthenticationToken",
                EncodeNodeId(request.authentication_token)},
@@ -320,9 +323,10 @@ value EncodeActivateSessionRequest(const OpcUaWsActivateSessionRequest& request)
   return json;
 }
 
-OpcUaWsActivateSessionRequest DecodeActivateSessionRequest(const value& json) {
+opcua::OpcUaActivateSessionRequest DecodeActivateSessionRequest(
+    const value& json) {
   const auto& obj = RequireObject(json);
-  OpcUaWsActivateSessionRequest request{
+  opcua::OpcUaActivateSessionRequest request{
       .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
       .authentication_token =
           DecodeNodeId(RequireField(obj, "AuthenticationToken")),
@@ -339,35 +343,37 @@ OpcUaWsActivateSessionRequest DecodeActivateSessionRequest(const value& json) {
 }
 
 value EncodeActivateSessionResponse(
-    const OpcUaWsActivateSessionResponse& response) {
+    const opcua::OpcUaActivateSessionResponse& response) {
   return object{{"Status", EncodeStatus(response.status)},
                 {"Resumed", response.resumed}};
 }
 
-OpcUaWsActivateSessionResponse DecodeActivateSessionResponse(const value& json) {
+opcua::OpcUaActivateSessionResponse DecodeActivateSessionResponse(
+    const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .resumed = RequireBool(RequireField(obj, "Resumed"))};
 }
 
-value EncodeCloseSessionRequest(const OpcUaWsCloseSessionRequest& request) {
+value EncodeCloseSessionRequest(const opcua::OpcUaCloseSessionRequest& request) {
   return object{{"SessionId", EncodeNodeId(request.session_id)},
                 {"AuthenticationToken",
                  EncodeNodeId(request.authentication_token)}};
 }
 
-OpcUaWsCloseSessionRequest DecodeCloseSessionRequest(const value& json) {
+opcua::OpcUaCloseSessionRequest DecodeCloseSessionRequest(const value& json) {
   const auto& obj = RequireObject(json);
   return {.session_id = DecodeNodeId(RequireField(obj, "SessionId")),
           .authentication_token =
               DecodeNodeId(RequireField(obj, "AuthenticationToken"))};
 }
 
-value EncodeCloseSessionResponse(const OpcUaWsCloseSessionResponse& response) {
+value EncodeCloseSessionResponse(
+    const opcua::OpcUaCloseSessionResponse& response) {
   return object{{"Status", EncodeStatus(response.status)}};
 }
 
-OpcUaWsCloseSessionResponse DecodeCloseSessionResponse(const value& json) {
+opcua::OpcUaCloseSessionResponse DecodeCloseSessionResponse(const value& json) {
   return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
@@ -387,13 +393,14 @@ boost::json::value EncodeJson(const opcua::OpcUaRequestMessage& request) {
         object json;
         json["requestHandle"] = request.request_handle;
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, OpcUaWsCreateSessionRequest>) {
+        if constexpr (std::is_same_v<T, opcua::OpcUaCreateSessionRequest>) {
           json["service"] = "CreateSession";
           json["body"] = EncodeCreateSessionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsActivateSessionRequest>) {
+        } else if constexpr (std::is_same_v<T,
+                                            opcua::OpcUaActivateSessionRequest>) {
           json["service"] = "ActivateSession";
           json["body"] = EncodeActivateSessionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCloseSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCloseSessionRequest>) {
           json["service"] = "CloseSession";
           json["body"] = EncodeCloseSessionRequest(typed_request);
         } else if constexpr (std::is_same_v<T, OpcUaWsCreateSubscriptionRequest>) {
@@ -446,13 +453,14 @@ boost::json::value EncodeJson(const opcua::OpcUaResponseMessage& response) {
         object json;
         json["requestHandle"] = response.request_handle;
         using T = std::decay_t<decltype(typed_response)>;
-        if constexpr (std::is_same_v<T, OpcUaWsCreateSessionResponse>) {
+        if constexpr (std::is_same_v<T, opcua::OpcUaCreateSessionResponse>) {
           json["service"] = "CreateSession";
           json["body"] = EncodeCreateSessionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsActivateSessionResponse>) {
+        } else if constexpr (std::is_same_v<T,
+                                            opcua::OpcUaActivateSessionResponse>) {
           json["service"] = "ActivateSession";
           json["body"] = EncodeActivateSessionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T, OpcUaWsCloseSessionResponse>) {
+        } else if constexpr (std::is_same_v<T, opcua::OpcUaCloseSessionResponse>) {
           json["service"] = "CloseSession";
           json["body"] = EncodeCloseSessionResponse(typed_response);
         } else if constexpr (std::is_same_v<T, OpcUaWsCreateSubscriptionResponse>) {
@@ -509,7 +517,7 @@ opcua::OpcUaRequestMessage DecodeRequestMessage(const boost::json::value& json) 
   opcua::OpcUaRequestMessage message{
       .request_handle = static_cast<scada::UInt32>(
           RequireUInt64(RequireField(obj, "requestHandle"))),
-      .body = OpcUaWsCloseSessionRequest{},
+      .body = opcua::OpcUaCloseSessionRequest{},
   };
   if (service == "CreateSession") {
     message.body = DecodeCreateSessionRequest(body);
@@ -556,7 +564,7 @@ opcua::OpcUaResponseMessage DecodeResponseMessage(const boost::json::value& json
   opcua::OpcUaResponseMessage message{
       .request_handle = static_cast<scada::UInt32>(
           RequireUInt64(RequireField(obj, "requestHandle"))),
-      .body = OpcUaWsCloseSessionResponse{},
+      .body = opcua::OpcUaCloseSessionResponse{},
   };
   if (service == "CreateSession") {
     message.body = DecodeCreateSessionResponse(body);

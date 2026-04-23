@@ -106,11 +106,12 @@ void ExpectRoutesWriteRequestsThroughActivatedSessionUser(Fixture& fixture) {
   typename Fixture::ConnectionState connection;
   fixture.CreateAndActivate(connection);
 
-  WriteRequest request{
-      .inputs = {{.node_id = NumericNode(2),
-                  .attribute_id = scada::AttributeId::Value,
-                  .value = scada::DataValue{
-                      scada::Variant{17.5}, {}, fixture.now_, fixture.now_}}}};
+  WriteRequest request;
+  request.inputs.push_back(scada::WriteValue{
+      .node_id = NumericNode(2),
+      .attribute_id = scada::AttributeId::Value,
+      .value = scada::Variant{17.5},
+  });
   EXPECT_CALL(fixture.attribute_service_,
               Write(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
@@ -123,14 +124,16 @@ void ExpectRoutesWriteRequestsThroughActivatedSessionUser(Fixture& fixture) {
             EXPECT_EQ((*inputs)[0].attribute_id, request.inputs[0].attribute_id);
             EXPECT_EQ((*inputs)[0].value, request.inputs[0].value);
             callback(scada::StatusCode::Good,
-                     {scada::StatusCode::Good_Clamped});
+                     std::vector<scada::StatusCode>{
+                         scada::StatusCode::Good_Manual});
           }));
 
   const auto response =
       fixture.template HandleResponse<WriteResponse>(connection, request);
   EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
   EXPECT_THAT(response.results,
-              testing::ElementsAre(scada::StatusCode::Good_Clamped));
+              testing::ElementsAre(
+                  static_cast<scada::StatusCode>(scada::StatusCode::Good_Manual)));
 }
 
 template <typename Fixture>

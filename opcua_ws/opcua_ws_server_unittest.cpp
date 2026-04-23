@@ -154,11 +154,11 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 
 class OpcUaWsServerTest : public Test {
  protected:
-  std::string Encode(const OpcUaWsRequestMessage& request) {
+  std::string Encode(const opcua::OpcUaRequestMessage& request) {
     return boost::json::serialize(EncodeJson(request));
   }
 
-  OpcUaWsResponseMessage DecodeResponse(const std::string& response) {
+  opcua::OpcUaResponseMessage DecodeResponse(const std::string& response) {
     return DecodeResponseMessage(boost::json::parse(response));
   }
 
@@ -212,10 +212,10 @@ class OpcUaWsServerTest : public Test {
 TEST_F(OpcUaWsServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
   auto peer = std::make_shared<MessagePeerState>();
   peer->incoming.push_back(
-      Encode({.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}}));
+      Encode({.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}}));
   peer->incoming.push_back(Encode(
       {.request_handle = 2,
-       .body = OpcUaWsActivateSessionRequest{
+       .body = opcua::OpcUaActivateSessionRequest{
            .session_id = NumericNode(1),
            .authentication_token = NumericNode(1, 3),
            .user_name = scada::LocalizedText{u"operator"},
@@ -243,10 +243,11 @@ TEST_F(OpcUaWsServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
 
   ASSERT_EQ(peer->writes.size(), 3u);
   const auto create_response =
-      std::get<OpcUaWsCreateSessionResponse>(DecodeResponse(peer->writes[0]).body);
+      std::get<opcua::OpcUaCreateSessionResponse>(
+          DecodeResponse(peer->writes[0]).body);
   EXPECT_EQ(create_response.status.code(), scada::StatusCode::Good);
 
-  const auto activate_response = std::get<OpcUaWsActivateSessionResponse>(
+  const auto activate_response = std::get<opcua::OpcUaActivateSessionResponse>(
       DecodeResponse(peer->writes[1]).body);
   EXPECT_EQ(activate_response.status.code(), scada::StatusCode::Good);
 
@@ -265,7 +266,7 @@ TEST_F(OpcUaWsServerTest, InvalidJsonProducesServiceFault) {
 
   ASSERT_EQ(peer->writes.size(), 1u);
   const auto response = DecodeResponse(peer->writes[0]);
-  const auto* fault = std::get_if<OpcUaWsServiceFault>(&response.body);
+  const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&response.body);
   ASSERT_NE(fault, nullptr);
   EXPECT_EQ(fault->status.code(), scada::StatusCode::Bad_CantParseString);
 }
@@ -273,10 +274,10 @@ TEST_F(OpcUaWsServerTest, InvalidJsonProducesServiceFault) {
 TEST_F(OpcUaWsServerTest, DisconnectDetachesSessionForResume) {
   auto first_peer = std::make_shared<MessagePeerState>();
   first_peer->incoming.push_back(
-      Encode({.request_handle = 1, .body = OpcUaWsCreateSessionRequest{}}));
+      Encode({.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}}));
   first_peer->incoming.push_back(Encode(
       {.request_handle = 2,
-       .body = OpcUaWsActivateSessionRequest{
+       .body = opcua::OpcUaActivateSessionRequest{
            .session_id = NumericNode(1),
            .authentication_token = NumericNode(1, 3),
            .user_name = scada::LocalizedText{u"operator"},
@@ -287,13 +288,13 @@ TEST_F(OpcUaWsServerTest, DisconnectDetachesSessionForResume) {
   auto second_peer = std::make_shared<MessagePeerState>();
   second_peer->incoming.push_back(Encode(
       {.request_handle = 3,
-       .body = OpcUaWsActivateSessionRequest{
+       .body = opcua::OpcUaActivateSessionRequest{
            .session_id = NumericNode(1),
            .authentication_token = NumericNode(1, 3)}}));
   ServePeer(second_peer);
 
   ASSERT_EQ(second_peer->writes.size(), 1u);
-  const auto resumed = std::get<OpcUaWsActivateSessionResponse>(
+  const auto resumed = std::get<opcua::OpcUaActivateSessionResponse>(
       DecodeResponse(second_peer->writes[0]).body);
   EXPECT_EQ(resumed.status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(resumed.resumed);

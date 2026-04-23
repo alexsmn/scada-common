@@ -337,13 +337,13 @@ TEST(OpcUaJsonCodecTest, DecodeWriteRequestAcceptsLegacyDataValueWrapper) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
-  OpcUaWsRequestMessage create{
+  opcua::OpcUaRequestMessage create{
       .request_handle = 11,
-      .body = OpcUaWsCreateSessionRequest{
+      .body = opcua::OpcUaCreateSessionRequest{
           .requested_timeout = base::TimeDelta::FromSeconds(45)}};
-  OpcUaWsRequestMessage activate{
+  opcua::OpcUaRequestMessage activate{
       .request_handle = 12,
-      .body = OpcUaWsActivateSessionRequest{
+      .body = opcua::OpcUaActivateSessionRequest{
           .session_id = NumericNode(20),
           .authentication_token = NumericNode(21, 3),
           .user_name = scada::LocalizedText{u"operator"},
@@ -351,16 +351,16 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
           .delete_existing = true,
           .allow_anonymous = false,
       }};
-  OpcUaWsRequestMessage close{
+  opcua::OpcUaRequestMessage close{
       .request_handle = 13,
-      .body = OpcUaWsCloseSessionRequest{
+      .body = opcua::OpcUaCloseSessionRequest{
           .session_id = NumericNode(22),
           .authentication_token = NumericNode(23, 3)}};
 
   const auto decoded_create = DecodeRequestMessage(EncodeJson(create));
   EXPECT_EQ(decoded_create.request_handle, create.request_handle);
   const auto* create_body =
-      std::get_if<OpcUaWsCreateSessionRequest>(&decoded_create.body);
+      std::get_if<opcua::OpcUaCreateSessionRequest>(&decoded_create.body);
   ASSERT_NE(create_body, nullptr);
   EXPECT_EQ(create_body->requested_timeout,
             base::TimeDelta::FromSeconds(45));
@@ -368,7 +368,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
   const auto decoded_activate = DecodeRequestMessage(EncodeJson(activate));
   EXPECT_EQ(decoded_activate.request_handle, activate.request_handle);
   const auto* activate_body =
-      std::get_if<OpcUaWsActivateSessionRequest>(&decoded_activate.body);
+      std::get_if<opcua::OpcUaActivateSessionRequest>(&decoded_activate.body);
   ASSERT_NE(activate_body, nullptr);
   EXPECT_EQ(activate_body->session_id, NumericNode(20));
   EXPECT_EQ(activate_body->authentication_token, NumericNode(21, 3));
@@ -382,16 +382,16 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionRequestMessages) {
   const auto decoded_close = DecodeRequestMessage(EncodeJson(close));
   EXPECT_EQ(decoded_close.request_handle, close.request_handle);
   const auto* close_body =
-      std::get_if<OpcUaWsCloseSessionRequest>(&decoded_close.body);
+      std::get_if<opcua::OpcUaCloseSessionRequest>(&decoded_close.body);
   ASSERT_NE(close_body, nullptr);
   EXPECT_EQ(close_body->session_id, NumericNode(22));
   EXPECT_EQ(close_body->authentication_token, NumericNode(23, 3));
 }
 
 TEST(OpcUaJsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
-  const auto create_json = EncodeJson(OpcUaWsRequestMessage{
+  const auto create_json = EncodeJson(opcua::OpcUaRequestMessage{
       .request_handle = 11,
-      .body = OpcUaWsCreateSessionRequest{
+      .body = opcua::OpcUaCreateSessionRequest{
           .requested_timeout = base::TimeDelta::FromSeconds(45)}});
   const auto create_text = boost::json::serialize(create_json);
   EXPECT_NE(create_text.find("\"RequestedSessionTimeout\""), std::string::npos);
@@ -400,13 +400,13 @@ TEST(OpcUaJsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
   const auto decoded_create = DecodeRequestMessage(boost::json::parse(
       R"({"requestHandle":11,"service":"CreateSession","body":{"RequestedSessionTimeout":45000}})"));
   const auto* create_body =
-      std::get_if<OpcUaWsCreateSessionRequest>(&decoded_create.body);
+      std::get_if<opcua::OpcUaCreateSessionRequest>(&decoded_create.body);
   ASSERT_NE(create_body, nullptr);
   EXPECT_EQ(create_body->requested_timeout, base::TimeDelta::FromSeconds(45));
 
-  const auto activate_json = EncodeJson(OpcUaWsRequestMessage{
+  const auto activate_json = EncodeJson(opcua::OpcUaRequestMessage{
       .request_handle = 12,
-      .body = OpcUaWsActivateSessionRequest{
+      .body = opcua::OpcUaActivateSessionRequest{
           .session_id = NumericNode(20),
           .authentication_token = NumericNode(21, 3),
           .user_name = scada::LocalizedText{u"operator"},
@@ -836,34 +836,34 @@ TEST(OpcUaJsonCodecTest, CallResponseWireShapeUsesSpecFields) {
 }
 
 TEST(OpcUaJsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
-  OpcUaWsResponseMessage create{
+  opcua::OpcUaResponseMessage create{
       .request_handle = 21,
-      .body = OpcUaWsCreateSessionResponse{
+      .body = opcua::OpcUaCreateSessionResponse{
           .status = scada::StatusCode::Good,
           .session_id = NumericNode(30),
           .authentication_token = NumericNode(31, 3),
           .server_nonce = {1, 2, 3, 4},
           .revised_timeout = base::TimeDelta::FromMinutes(5),
       }};
-  OpcUaWsResponseMessage activate{
+  opcua::OpcUaResponseMessage activate{
       .request_handle = 22,
-      .body = OpcUaWsActivateSessionResponse{
+      .body = opcua::OpcUaActivateSessionResponse{
           .status = scada::StatusCode::Bad_WrongLoginCredentials,
           .resumed = true,
       }};
-  OpcUaWsResponseMessage close{
+  opcua::OpcUaResponseMessage close{
       .request_handle = 23,
-      .body = OpcUaWsCloseSessionResponse{
+      .body = opcua::OpcUaCloseSessionResponse{
           .status = scada::StatusCode::Good}};
-  OpcUaWsResponseMessage fault{
+  opcua::OpcUaResponseMessage fault{
       .request_handle = 24,
-      .body = OpcUaWsServiceFault{
+      .body = opcua::OpcUaServiceFault{
           .status = scada::StatusCode::Bad_Disconnected}};
 
   const auto decoded_create = DecodeResponseMessage(EncodeJson(create));
   EXPECT_EQ(decoded_create.request_handle, create.request_handle);
   const auto* create_body =
-      std::get_if<OpcUaWsCreateSessionResponse>(&decoded_create.body);
+      std::get_if<opcua::OpcUaCreateSessionResponse>(&decoded_create.body);
   ASSERT_NE(create_body, nullptr);
   EXPECT_EQ(create_body->status, scada::StatusCode::Good);
   EXPECT_EQ(create_body->session_id, NumericNode(30));
@@ -874,7 +874,7 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
   const auto decoded_activate = DecodeResponseMessage(EncodeJson(activate));
   EXPECT_EQ(decoded_activate.request_handle, activate.request_handle);
   const auto* activate_body =
-      std::get_if<OpcUaWsActivateSessionResponse>(&decoded_activate.body);
+      std::get_if<opcua::OpcUaActivateSessionResponse>(&decoded_activate.body);
   ASSERT_NE(activate_body, nullptr);
   EXPECT_EQ(activate_body->status.code(),
             scada::StatusCode::Bad_WrongLoginCredentials);
@@ -883,13 +883,14 @@ TEST(OpcUaJsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
   const auto decoded_close = DecodeResponseMessage(EncodeJson(close));
   EXPECT_EQ(decoded_close.request_handle, close.request_handle);
   const auto* close_body =
-      std::get_if<OpcUaWsCloseSessionResponse>(&decoded_close.body);
+      std::get_if<opcua::OpcUaCloseSessionResponse>(&decoded_close.body);
   ASSERT_NE(close_body, nullptr);
   EXPECT_EQ(close_body->status.code(), scada::StatusCode::Good);
 
   const auto decoded_fault = DecodeResponseMessage(EncodeJson(fault));
   EXPECT_EQ(decoded_fault.request_handle, fault.request_handle);
-  const auto* fault_body = std::get_if<OpcUaWsServiceFault>(&decoded_fault.body);
+  const auto* fault_body =
+      std::get_if<opcua::OpcUaServiceFault>(&decoded_fault.body);
   ASSERT_NE(fault_body, nullptr);
   EXPECT_EQ(fault_body->status.code(), scada::StatusCode::Bad_Disconnected);
 }

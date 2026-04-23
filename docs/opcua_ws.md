@@ -133,7 +133,7 @@ core:
 | Path | Role |
 |---|---|
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
-| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaRuntime`, writes responses, detaches sessions on disconnect |
+| `common/opcua_ws/opcua_ws_server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes canonical `opcua::OpcUaRequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaRuntime`, writes canonical `opcua::OpcUaResponseMessage` envelopes, and detaches sessions on disconnect |
 | `common/opcua/opcua_server_session.{h,cpp}` + `common/opcua_ws/opcua_ws_session.h` | Canonical transport-independent live session state owned by `opcua::OpcUaSession`, with the WS header retained as an alias wrapper |
 | `common/opcua/opcua_runtime.{h,cpp}` + `common/opcua_ws/opcua_ws_runtime.h` | Canonical shared runtime plus WS compatibility alias: transport-neutral request-body routing, shared connection state, and session/subscription ownership tracking |
 | `common/opcua/opcua_server_session_manager.{h,cpp}` + `common/opcua_ws/opcua_ws_session_manager.h` | Canonical transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement, with the WS header retained as an alias wrapper |
@@ -142,7 +142,7 @@ core:
 | `common/opcua/opcua_message.h` + `common/opcua/opcua_service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters, with the Binary `OpcUaBinary*Body` spellings now reduced to direct aliases over the shared variants |
 | `common/opcua_ws/opcua_ws_message.h` + `common/opcua_ws/opcua_ws_message_codec.cpp` + `common/opcua_ws/opcua_ws_subscription_message_codec.cpp` + `common/opcua_ws/opcua_ws_publish_message_codec.cpp` | WS alias layer plus UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the Phase 1 subscription / publish / monitored-item payloads |
 | `common/opcua/opcua_service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService` |
-| `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/opcua_runtime_contract_test.h` |
+| `common/opcua_ws/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/opcua_runtime_contract_test.h`; the envelope/runtime/server tests now exercise canonical `opcua::` message and session types directly while `OpcUaWs*` spellings remain compatibility aliases |
 | `server/opcua_ws/opcua_ws_module.{h,cpp}` | Config loader + lifecycle; templated on `server/opcua/opcua_module.cpp` |
 
 The new endpoint reuses the same `OpcUaServerContext` service collaborators
@@ -405,10 +405,11 @@ Current implementation note:
 - The message-oriented accepted-transport server loop is now in place under
   `common/opcua_ws/opcua_ws_server.{h,cpp}` with unit tests. It opens an
   accepted transport, reads framed JSON messages, decodes
-  `OpcUaWsRequestMessage`, dispatches the canonical request body through
-  `opcua::OpcUaRuntime`, encodes `OpcUaWsResponseMessage`, writes the reply,
-  emits `ServiceFault` on malformed JSON, and detaches session state on
-  disconnect.
+  `opcua::OpcUaRequestMessage`, dispatches the canonical request body through
+  `opcua::OpcUaRuntime`, encodes `opcua::OpcUaResponseMessage`, writes the
+  reply, emits `ServiceFault` on malformed JSON, and detaches session state on
+  disconnect. The `OpcUaWs*` spellings remain compatibility aliases over those
+  canonical envelopes.
 - A concrete websocket boundary is now in place under
   `third_party/net/transport/websocket_transport.{h,cpp}` with loopback
   integration tests and direct `OpcUaWsServer` integration coverage. It
