@@ -6,10 +6,13 @@
 #include "scada/localized_text.h"
 #include "scada/standard_node_ids.h"
 
-#include <opcuapp/structs.h>
-
 namespace opcua {
 namespace {
+
+// OPC UA Part 4, 7.7.3: filter operator codes. Only the subset actually
+// emitted/consumed by opcua_endpoint events is enumerated here.
+constexpr std::uint32_t kFilterOperatorOfType = 11;
+constexpr std::uint32_t kFilterOperatorRelatedTo = 15;
 
 constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
@@ -250,13 +253,13 @@ void AppendEventFilter(binary::BinaryEncoder& encoder,
                                                 filter.child_of.size()));
   for (const auto& of_type : filter.of_type) {
     body_encoder.Encode(
-        static_cast<std::uint32_t>(OpcUa_FilterOperator_OfType));
+        kFilterOperatorOfType);
     body_encoder.Encode(std::int32_t{1});
     AppendLiteralOperand(body_encoder, scada::Variant{of_type});
   }
   for (const auto& child_of : filter.child_of) {
     body_encoder.Encode(
-        static_cast<std::uint32_t>(OpcUa_FilterOperator_RelatedTo));
+        kFilterOperatorRelatedTo);
     body_encoder.Encode(std::int32_t{1});
     AppendLiteralOperand(body_encoder, scada::Variant{child_of});
   }
@@ -1828,10 +1831,10 @@ bool DecodeEventFilterBody(binary::BinaryDecoder& filter_decoder,
       return false;
     }
 
-    if (filter_operator == static_cast<std::uint32_t>(OpcUa_FilterOperator_OfType)) {
+    if (filter_operator == kFilterOperatorOfType) {
       filter.of_type.push_back(std::move(node_id));
     } else if (filter_operator ==
-               static_cast<std::uint32_t>(OpcUa_FilterOperator_RelatedTo)) {
+               kFilterOperatorRelatedTo) {
       filter.child_of.push_back(std::move(node_id));
     } else {
       return false;

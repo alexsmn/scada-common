@@ -1,113 +1,60 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "opcua/binary/client/opcua_binary_client_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
 #include "scada/status.h"
 
-#include <map>
+#include <cstdint>
 #include <memory>
-#include <opcuapp/basic_types.h>
-#include <opcuapp/client/subscription.h>
-#include <vector>
+#include <unordered_map>
 
-namespace opcua::client {
-class Session;
-}  // namespace opcua::client
+class OpcUaSession;
 
-class OpcUaMonitoredItem;
-
-struct OpcUaMonitoredItemCreateResult {
-  opcua::StatusCode status_code;
-  opcua::MonitoredItemId monitored_item_id;
-  double revised_sampling_interval;
-};
-
-struct OpcUaSubscriptionContext {
-  opcua::client::Session& session_;
-  AnyExecutor executor_;
-  std::function<void(scada::Status&& status)> error_handler_;
-};
-
+// Qt-client-facing subscription wrapper. Creates a server-side OPC UA
+// subscription lazily on first CreateMonitoredItem, then runs a background
+// Publish loop so data-change notifications flow to the registered
+// handlers.
 class OpcUaSubscription
-    : public std::enable_shared_from_this<OpcUaSubscription>,
-      private OpcUaSubscriptionContext {
+    : public std::enable_shared_from_this<OpcUaSubscription> {
  public:
-  static std::shared_ptr<OpcUaSubscription> Create(
-      OpcUaSubscriptionContext&& context);
+  static std::shared_ptr<OpcUaSubscription> Create(OpcUaSession& session);
 
   OpcUaSubscription(const OpcUaSubscription&) = delete;
+  OpcUaSubscription& operator=(const OpcUaSubscription&) = delete;
   ~OpcUaSubscription();
 
-  void Reset();
-
-  bool created() const { return created_; }
-
-  std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
+  [[nodiscard]] std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& read_value_id,
       const scada::MonitoringParameters& params);
 
- private:
-  explicit OpcUaSubscription(OpcUaSubscriptionContext&& session);
-
-  void Init();
-
-  struct Item {
-    const opcua::MonitoredItemClientHandle client_handle;
-    const scada::ReadValueId read_value_id;
-    const scada::MonitoringParameters params;
-    // The handler is reset on unsubscribe, supposedly to release functor.
-    std::optional<scada::MonitoredItemHandler> handler;
-    bool subscribed;
-    bool added;
-    opcua::MonitoredItemId id;
-  };
-
-  void Subscribe(opcua::MonitoredItemClientHandle client_handle,
-                 scada::ReadValueId read_value_id,
-                 scada::MonitoringParameters params,
+  // Invoked by OpcUaMonitoredItem during Subscribe() to attach its handler
+  // and launch the server-side monitored item.
+  void Subscribe(std::uint32_t local_id,
+                 const scada::ReadValueId& read_value_id,
+                 const scada::MonitoringParameters& params,
                  scada::MonitoredItemHandler handler);
 
-  void Unsubscribe(opcua::MonitoredItemClientHandle client_handle);
+  // Invoked by OpcUaMonitoredItem during destruction; removes the item
+  // from the server and drops the handler.
+  void Unsubscribe(std::uint32_t local_id);
 
-  Item* FindItem(opcua::MonitoredItemClientHandle client_handle);
+ private:
+  explicit OpcUaSubscription(OpcUaSession& session);
 
-  void ScheduleCommitItems();
-  void ScheduleCommitItemsDone();
-  void CommitItems();
+  void EnsureCreated();
+  void StartPublishLoop();
 
-  void CreateSubscription();
-  void OnCreateSubscriptionResponse(scada::Status&& status);
+  OpcUaSession& session_;
+  std::unique_ptr<opcua::OpcUaBinaryClientSubscription> impl_;
+  bool is_creating_ = false;
+  bool publish_loop_running_ = false;
+  std::uint32_t next_local_id_ = 1;
 
-  void CreateMonitoredItems();
-
-  void OnCreateMonitoredItemsResponse(
-      scada::Status&& status,
-      std::vector<OpcUaMonitoredItemCreateResult> results);
-
-  void DeleteMonitoredItems();
-
-  void OnDeleteMonitoredItemsResponse(scada::Status&& status,
-                                      std::vector<scada::StatusCode> results);
-
-  void OnDataChange(
-      std::vector<opcua::MonitoredItemNotification> notifications);
-  void OnEvents(std::vector<opcua::EventFieldList> notifications);
-  void OnError(scada::Status&& status);
-
-  opcua::client::Subscription subscription_;
-
-  bool created_ = false;
-  bool commit_items_scheduled_ = false;
-
-  std::map<opcua::MonitoredItemClientHandle, Item> items_;
-  std::vector<Item*> pending_subscribe_items_;
-  std::vector<Item*> subscribing_items_;
-  std::vector<Item*> pending_unsubscribe_items_;
-  std::vector<Item*> unsubscribing_items_;
-
-  opcua::MonitoredItemClientHandle next_monitored_item_client_handle_ = 0;
-
-  friend class OpcUaMonitoredItem;
+  // Maps the OpcUaMonitoredItem's local id to the server-assigned
+  // OpcUaMonitoredItemId, set once the create completes.
+  std::unordered_map<std::uint32_t, opcua::OpcUaMonitoredItemId>
+      server_ids_by_local_id_;
 };

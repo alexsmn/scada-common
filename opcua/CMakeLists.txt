@@ -1,5 +1,3 @@
-find_package(OPCUAPP REQUIRED)
-
 scada_module(scada_core_opcua)
 scada_module_sources(scada_core_opcua PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/binary"
@@ -9,52 +7,38 @@ target_precompile_headers(scada_core_opcua REUSE_FROM scada_base)
 
 target_include_directories(scada_core_opcua PUBLIC "..")
 
-set(OPCUA_LEGACY_CLIENT_SOURCES
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_services_factory.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_subscription.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_subscription.h"
+# The legacy opcuapp-backed conversion helpers are still on disk pending a
+# tree-wide cleanup; exclude them from the compilation until the user
+# authorizes their deletion. The Qt-client-facing wrappers
+# (opcua_session/subscription/monitored_item/services_factory) ship with
+# scada_core_opcua now that they're built on top of the native binary
+# client under common/opcua/binary/client/.
+set(OPCUA_DEAD_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_conversion.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_conversion.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_conversion_unittest.cpp"
 )
 
 get_target_property(OPCUA_MODULE_SOURCES scada_core_opcua SOURCES)
-list(REMOVE_ITEM OPCUA_MODULE_SOURCES ${OPCUA_LEGACY_CLIENT_SOURCES})
+list(REMOVE_ITEM OPCUA_MODULE_SOURCES ${OPCUA_DEAD_SOURCES})
 set_property(TARGET scada_core_opcua PROPERTY SOURCES ${OPCUA_MODULE_SOURCES})
 
-target_include_directories(scada_core_opcua PUBLIC
-  $<TARGET_PROPERTY:OPCUAPP,INTERFACE_INCLUDE_DIRECTORIES>
-)
-target_compile_definitions(scada_core_opcua PUBLIC
-  $<TARGET_PROPERTY:OPCUAPP,INTERFACE_COMPILE_DEFINITIONS>
-)
-target_compile_options(scada_core_opcua PUBLIC
-  $<TARGET_PROPERTY:OPCUAPP,INTERFACE_COMPILE_OPTIONS>
-)
+if(TARGET scada_core_opcua_unittests)
+  get_target_property(OPCUA_UNITTESTS_SOURCES scada_core_opcua_unittests SOURCES)
+  list(REMOVE_ITEM OPCUA_UNITTESTS_SOURCES ${OPCUA_DEAD_SOURCES})
+  set_property(TARGET scada_core_opcua_unittests PROPERTY SOURCES
+               ${OPCUA_UNITTESTS_SOURCES})
+endif()
 
 target_link_libraries(scada_core_opcua PUBLIC
   scada_core
   transport
 )
 
-add_library(scada_core_opcua_client
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_monitored_item.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_services_factory.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_session.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_subscription.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/opcua_subscription.h"
-)
-
-target_precompile_headers(scada_core_opcua_client REUSE_FROM scada_base)
-target_include_directories(scada_core_opcua_client PUBLIC "..")
-target_link_libraries(scada_core_opcua_client PUBLIC
-  scada_core_opcua
-  OPCUAPP
-)
-
-if(TARGET scada_core_opcua_unittests)
-  target_link_libraries(scada_core_opcua_unittests PRIVATE OPCUAPP)
-endif()
+# scada_core_opcua_client is retained as an alias for backwards compatibility
+# with downstream CMakeLists that still target it directly. It now links the
+# same sources as scada_core_opcua (which already ships the session / sub /
+# monitored-item / factory translation units) and no longer pulls in the
+# external opcuapp dependency.
+add_library(scada_core_opcua_client INTERFACE)
+target_link_libraries(scada_core_opcua_client INTERFACE scada_core_opcua)
