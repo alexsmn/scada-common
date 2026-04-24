@@ -35,4 +35,16 @@ std::optional<std::vector<char>> EncodeOpcUaBinaryHistoryReadEventsResponse(
     const HistoryReadEventsResponse& response,
     std::span<const std::vector<std::string>> field_paths);
 
+// Client-side inverse of EncodeOpcUaBinaryServiceResponse: decodes the body
+// that the server produced on the wire into a typed OpcUaResponseBody plus
+// the originating request_handle. Returns std::nullopt for malformed or
+// unsupported response encodings.
+struct OpcUaBinaryDecodedResponse {
+  std::uint32_t request_handle = 0;
+  OpcUaResponseBody body;
+};
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeOpcUaBinaryServiceResponse(
+    const std::vector<char>& payload);
+
 }  // namespace opcua

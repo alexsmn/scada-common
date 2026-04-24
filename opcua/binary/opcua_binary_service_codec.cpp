@@ -825,6 +825,676 @@ bool DecodeAddReferencesItem(binary::BinaryDecoder& decoder,
   return true;
 }
 
+// -- Response decode helpers (client-side inverses of Append*/Encode*) -------
+
+struct OpcUaBinaryDecodedResponseHeader {
+  std::uint32_t request_handle = 0;
+  scada::Status service_result{scada::StatusCode::Good};
+};
+
+bool ReadResponseHeader(binary::BinaryDecoder& decoder,
+                        OpcUaBinaryDecodedResponseHeader& header) {
+  std::int64_t ignored_timestamp = 0;
+  std::uint32_t status_word = 0;
+  std::uint8_t ignored_diagnostics_mask = 0;
+  std::int32_t ignored_string_table_count = 0;
+  if (!decoder.Decode(ignored_timestamp) ||
+      !decoder.Decode(header.request_handle) ||
+      !decoder.Decode(status_word) ||
+      !decoder.Decode(ignored_diagnostics_mask) ||
+      !decoder.Decode(ignored_string_table_count)) {
+    return false;
+  }
+  header.service_result = scada::Status::FromFullCode(status_word);
+
+  // Additional header is an ExtensionObject; skip it.
+  binary::DecodedExtensionObject ignored_additional;
+  return decoder.Decode(ignored_additional);
+}
+
+// After every response payload, the encoder writes a trailing
+// `std::int32_t{-1}` to signal "no diagnostic info array". Skip it.
+bool SkipTrailingDiagnosticInfo(binary::BinaryDecoder& decoder) {
+  std::int32_t sentinel = 0;
+  if (!decoder.Decode(sentinel)) {
+    return false;
+  }
+  return sentinel == -1 || sentinel == 0;
+}
+
+bool ReadDataValue(binary::BinaryDecoder& decoder, scada::DataValue& value) {
+  std::uint8_t mask = 0;
+  if (!decoder.Decode(mask)) {
+    return false;
+  }
+  if ((mask & 0x01) != 0) {
+    if (!decoder.Decode(value.value)) {
+      return false;
+    }
+  }
+  if ((mask & 0x02) != 0) {
+    std::uint32_t status_word = 0;
+    if (!decoder.Decode(status_word)) {
+      return false;
+    }
+    value.status_code = static_cast<scada::StatusCode>(status_word >> 16);
+  }
+  if ((mask & 0x04) != 0) {
+    if (!decoder.Decode(value.source_timestamp)) {
+      return false;
+    }
+  }
+  if ((mask & 0x08) != 0) {
+    if (!decoder.Decode(value.server_timestamp)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ReadReferenceDescription(binary::BinaryDecoder& decoder,
+                              scada::ReferenceDescription& reference) {
+  scada::ExpandedNodeId expanded_node_id;
+  scada::QualifiedName ignored_browse_name;
+  scada::LocalizedText ignored_display_name;
+  std::uint32_t ignored_node_class = 0;
+  scada::ExpandedNodeId ignored_type_definition;
+  if (!decoder.Decode(reference.reference_type_id) ||
+      !decoder.Decode(reference.forward) ||
+      !decoder.Decode(expanded_node_id) ||
+      !decoder.Decode(ignored_browse_name) ||
+      !decoder.Decode(ignored_display_name) ||
+      !decoder.Decode(ignored_node_class) ||
+      !decoder.Decode(ignored_type_definition)) {
+    return false;
+  }
+  reference.node_id = expanded_node_id.node_id();
+  return true;
+}
+
+bool ReadBrowseResult(binary::BinaryDecoder& decoder,
+                      scada::BrowseResult& result) {
+  std::uint32_t status_word = 0;
+  std::int32_t reference_count = 0;
+  if (!decoder.Decode(status_word) ||
+      !decoder.Decode(result.continuation_point) ||
+      !decoder.Decode(reference_count)) {
+    return false;
+  }
+  result.status_code = static_cast<scada::StatusCode>(status_word >> 16);
+  if (reference_count < 0) {
+    reference_count = 0;
+  }
+  result.references.resize(static_cast<std::size_t>(reference_count));
+  for (auto& reference : result.references) {
+    if (!ReadReferenceDescription(decoder, reference)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ReadBrowsePathTarget(binary::BinaryDecoder& decoder,
+                          scada::BrowsePathTarget& target) {
+  std::uint32_t remaining = 0;
+  if (!decoder.Decode(target.target_id) || !decoder.Decode(remaining)) {
+    return false;
+  }
+  target.remaining_path_index = remaining;
+  return true;
+}
+
+bool ReadBrowsePathResult(binary::BinaryDecoder& decoder,
+                          scada::BrowsePathResult& result) {
+  std::uint32_t status_word = 0;
+  std::int32_t target_count = 0;
+  if (!decoder.Decode(status_word) || !decoder.Decode(target_count)) {
+    return false;
+  }
+  result.status_code = static_cast<scada::StatusCode>(status_word >> 16);
+  if (target_count < 0) {
+    target_count = 0;
+  }
+  result.targets.resize(static_cast<std::size_t>(target_count));
+  for (auto& target : result.targets) {
+    if (!ReadBrowsePathTarget(decoder, target)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ReadMonitoredItemCreateResult(binary::BinaryDecoder& decoder,
+                                   OpcUaMonitoredItemCreateResult& result) {
+  std::uint32_t status_word = 0;
+  binary::DecodedExtensionObject ignored_filter;
+  if (!decoder.Decode(status_word) ||
+      !decoder.Decode(result.monitored_item_id) ||
+      !decoder.Decode(result.revised_sampling_interval_ms) ||
+      !decoder.Decode(result.revised_queue_size) ||
+      !decoder.Decode(ignored_filter)) {
+    return false;
+  }
+  result.status = scada::Status::FromFullCode(status_word);
+  return true;
+}
+
+bool ReadMonitoredItemModifyResult(binary::BinaryDecoder& decoder,
+                                   OpcUaMonitoredItemModifyResult& result) {
+  std::uint32_t status_word = 0;
+  binary::DecodedExtensionObject ignored_filter;
+  if (!decoder.Decode(status_word) ||
+      !decoder.Decode(result.revised_sampling_interval_ms) ||
+      !decoder.Decode(result.revised_queue_size) ||
+      !decoder.Decode(ignored_filter)) {
+    return false;
+  }
+  result.status = scada::Status::FromFullCode(status_word);
+  return true;
+}
+
+bool ReadNotificationData(binary::BinaryDecoder& decoder,
+                          OpcUaNotificationData& data) {
+  binary::DecodedExtensionObject ext;
+  if (!decoder.Decode(ext) || ext.encoding != 0x01) {
+    return false;
+  }
+  binary::BinaryDecoder body{ext.body};
+  if (ext.type_id == kDataChangeNotificationBinaryEncodingId) {
+    OpcUaDataChangeNotification change;
+    std::int32_t item_count = 0;
+    if (!body.Decode(item_count)) {
+      return false;
+    }
+    if (item_count < 0) {
+      item_count = 0;
+    }
+    change.monitored_items.resize(static_cast<std::size_t>(item_count));
+    for (auto& item : change.monitored_items) {
+      if (!body.Decode(item.client_handle) ||
+          !ReadDataValue(body, item.value)) {
+        return false;
+      }
+    }
+    data = std::move(change);
+    return true;
+  }
+  if (ext.type_id == kEventNotificationListBinaryEncodingId) {
+    OpcUaEventNotificationList list;
+    std::int32_t event_count = 0;
+    if (!body.Decode(event_count)) {
+      return false;
+    }
+    if (event_count < 0) {
+      event_count = 0;
+    }
+    list.events.resize(static_cast<std::size_t>(event_count));
+    for (auto& event : list.events) {
+      binary::DecodedExtensionObject event_ext;
+      if (!body.Decode(event_ext) ||
+          event_ext.type_id != kEventFieldListBinaryEncodingId ||
+          event_ext.encoding != 0x01) {
+        return false;
+      }
+      binary::BinaryDecoder event_body{event_ext.body};
+      std::int32_t field_count = 0;
+      if (!event_body.Decode(event.client_handle) ||
+          !event_body.Decode(field_count)) {
+        return false;
+      }
+      if (field_count < 0) {
+        field_count = 0;
+      }
+      event.event_fields.resize(static_cast<std::size_t>(field_count));
+      for (auto& field : event.event_fields) {
+        if (!event_body.Decode(field)) {
+          return false;
+        }
+      }
+    }
+    data = std::move(list);
+    return true;
+  }
+  if (ext.type_id == kStatusChangeNotificationBinaryEncodingId) {
+    OpcUaStatusChangeNotification change;
+    std::uint32_t status_word = 0;
+    if (!body.Decode(status_word)) {
+      return false;
+    }
+    change.status = static_cast<scada::StatusCode>(status_word >> 16);
+    data = std::move(change);
+    return true;
+  }
+  return false;
+}
+
+bool ReadNotificationMessage(binary::BinaryDecoder& decoder,
+                             OpcUaNotificationMessage& message) {
+  std::int32_t data_count = 0;
+  if (!decoder.Decode(message.sequence_number) ||
+      !decoder.Decode(message.publish_time) ||
+      !decoder.Decode(data_count)) {
+    return false;
+  }
+  if (data_count < 0) {
+    data_count = 0;
+  }
+  message.notification_data.resize(static_cast<std::size_t>(data_count));
+  for (auto& data : message.notification_data) {
+    if (!ReadNotificationData(decoder, data)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// -- Decode*Response helpers -------------------------------------------------
+
+// Each returns a populated OpcUaBinaryDecodedResponse on success. They operate
+// on the payload inside the ExtensionObject wrapper (the caller strips the
+// wrapper via binary::ReadMessage).
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeCreateSessionResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  if (!ReadResponseHeader(decoder, header)) {
+    return std::nullopt;
+  }
+
+  OpcUaCreateSessionResponse response{.status = header.service_result};
+  scada::ByteString ignored_bytes;
+  std::int32_t ignored_endpoints = 0;
+  std::int32_t ignored_policies = 0;
+  std::string ignored_server_signature_algorithm;
+  scada::ByteString ignored_server_signature;
+  std::uint32_t ignored_max_request_size = 0;
+  double revised_timeout_ms = 0;
+  if (!decoder.Decode(response.session_id) ||
+      !decoder.Decode(response.authentication_token) ||
+      !decoder.Decode(revised_timeout_ms) ||
+      !decoder.Decode(response.server_nonce) ||
+      !decoder.Decode(ignored_bytes) ||
+      !decoder.Decode(ignored_endpoints) ||
+      !decoder.Decode(ignored_policies) ||
+      !decoder.Decode(ignored_server_signature_algorithm) ||
+      !decoder.Decode(ignored_server_signature) ||
+      !decoder.Decode(ignored_max_request_size)) {
+    return std::nullopt;
+  }
+  response.revised_timeout =
+      base::TimeDelta::FromMillisecondsD(revised_timeout_ms);
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeActivateSessionResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  scada::ByteString ignored_nonce;
+  std::int32_t ignored_results = 0;
+  std::int32_t ignored_diagnostic_infos = 0;
+  if (!ReadResponseHeader(decoder, header) ||
+      !decoder.Decode(ignored_nonce) ||
+      !decoder.Decode(ignored_results) ||
+      !decoder.Decode(ignored_diagnostic_infos)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{
+      .request_handle = header.request_handle,
+      .body = OpcUaActivateSessionResponse{.status = header.service_result}};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeCloseSessionResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  if (!ReadResponseHeader(decoder, header)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{
+      .request_handle = header.request_handle,
+      .body = OpcUaCloseSessionResponse{.status = header.service_result}};
+}
+
+template <typename Response>
+std::optional<OpcUaBinaryDecodedResponse>
+DecodeStatusCodeArrayResponse(std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  Response response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& status : response.results) {
+    std::uint32_t status_word = 0;
+    if (!decoder.Decode(status_word)) {
+      return std::nullopt;
+    }
+    status = static_cast<scada::StatusCode>(status_word >> 16);
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeCreateSubscriptionResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  OpcUaCreateSubscriptionResponse response;
+  if (!ReadResponseHeader(decoder, header) ||
+      !decoder.Decode(response.subscription_id) ||
+      !decoder.Decode(response.revised_publishing_interval_ms) ||
+      !decoder.Decode(response.revised_lifetime_count) ||
+      !decoder.Decode(response.revised_max_keep_alive_count)) {
+    return std::nullopt;
+  }
+  response.status = header.service_result;
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeModifySubscriptionResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  OpcUaModifySubscriptionResponse response;
+  if (!ReadResponseHeader(decoder, header) ||
+      !decoder.Decode(response.revised_publishing_interval_ms) ||
+      !decoder.Decode(response.revised_lifetime_count) ||
+      !decoder.Decode(response.revised_max_keep_alive_count)) {
+    return std::nullopt;
+  }
+  response.status = header.service_result;
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeCreateMonitoredItemsResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  OpcUaCreateMonitoredItemsResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    if (!ReadMonitoredItemCreateResult(decoder, result)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeModifyMonitoredItemsResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  OpcUaModifyMonitoredItemsResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    if (!ReadMonitoredItemModifyResult(decoder, result)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodePublishResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  OpcUaPublishResponse response;
+  std::int32_t sequence_number_count = 0;
+  if (!ReadResponseHeader(decoder, header) ||
+      !decoder.Decode(response.subscription_id) ||
+      !decoder.Decode(sequence_number_count)) {
+    return std::nullopt;
+  }
+  if (sequence_number_count < 0) {
+    sequence_number_count = 0;
+  }
+  response.available_sequence_numbers.resize(
+      static_cast<std::size_t>(sequence_number_count));
+  for (auto& sequence_number : response.available_sequence_numbers) {
+    if (!decoder.Decode(sequence_number)) {
+      return std::nullopt;
+    }
+  }
+  if (!decoder.Decode(response.more_notifications) ||
+      !ReadNotificationMessage(decoder, response.notification_message)) {
+    return std::nullopt;
+  }
+  std::int32_t result_count = 0;
+  if (!decoder.Decode(result_count)) {
+    return std::nullopt;
+  }
+  if (result_count < 0) {
+    result_count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(result_count));
+  for (auto& status : response.results) {
+    std::uint32_t status_word = 0;
+    if (!decoder.Decode(status_word)) {
+      return std::nullopt;
+    }
+    status = static_cast<scada::StatusCode>(status_word >> 16);
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  response.status = header.service_result;
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeRepublishResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  OpcUaRepublishResponse response;
+  if (!ReadResponseHeader(decoder, header) ||
+      !ReadNotificationMessage(decoder, response.notification_message)) {
+    return std::nullopt;
+  }
+  response.status = header.service_result;
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeReadResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  ReadResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& value : response.results) {
+    if (!ReadDataValue(decoder, value)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeWriteResponse(
+    std::span<const char> body) {
+  if (auto decoded = DecodeStatusCodeArrayResponse<WriteResponse>(body)) {
+    return decoded;
+  }
+  return std::nullopt;
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeBrowseResponseImpl(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  BrowseResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    if (!ReadBrowseResult(decoder, result)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeBrowseNextResponseImpl(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  BrowseNextResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    if (!ReadBrowseResult(decoder, result)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeTranslateBrowsePathsResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  TranslateBrowsePathsResponse response{.status = header.service_result};
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    if (!ReadBrowsePathResult(decoder, result)) {
+      return std::nullopt;
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeCallResponse(
+    std::span<const char> body) {
+  binary::BinaryDecoder decoder{body};
+  OpcUaBinaryDecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count)) {
+    return std::nullopt;
+  }
+  CallResponse response;
+  if (count < 0) {
+    count = 0;
+  }
+  response.results.resize(static_cast<std::size_t>(count));
+  for (auto& result : response.results) {
+    std::uint32_t status_word = 0;
+    std::int32_t input_argument_count = 0;
+    if (!decoder.Decode(status_word) ||
+        !decoder.Decode(input_argument_count)) {
+      return std::nullopt;
+    }
+    result.status = scada::Status::FromFullCode(status_word);
+    if (input_argument_count < 0) {
+      input_argument_count = 0;
+    }
+    result.input_argument_results.resize(
+        static_cast<std::size_t>(input_argument_count));
+    for (auto& arg_status : result.input_argument_results) {
+      std::uint32_t arg_status_word = 0;
+      if (!decoder.Decode(arg_status_word)) {
+        return std::nullopt;
+      }
+      arg_status = static_cast<scada::StatusCode>(arg_status_word >> 16);
+    }
+    std::int32_t input_argument_diag_count = 0;
+    std::int32_t output_count = 0;
+    if (!decoder.Decode(input_argument_diag_count) ||
+        !decoder.Decode(output_count)) {
+      return std::nullopt;
+    }
+    if (output_count < 0) {
+      output_count = 0;
+    }
+    result.output_arguments.resize(static_cast<std::size_t>(output_count));
+    for (auto& output : result.output_arguments) {
+      if (!decoder.Decode(output)) {
+        return std::nullopt;
+      }
+    }
+  }
+  if (!SkipTrailingDiagnosticInfo(decoder)) {
+    return std::nullopt;
+  }
+  return OpcUaBinaryDecodedResponse{.request_handle = header.request_handle,
+                                    .body = std::move(response)};
+}
+
 std::optional<OpcUaBinaryDecodedRequest> DecodeCreateSessionRequest(
     std::span<const char> body) {
   binary::BinaryDecoder decoder{body};
@@ -2355,6 +3025,74 @@ std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
       return DecodeDeleteReferencesRequest(message->second);
     case kAddReferencesRequestBinaryEncodingId:
       return DecodeAddReferencesRequest(message->second);
+    default:
+      return std::nullopt;
+  }
+}
+
+std::optional<OpcUaBinaryDecodedResponse> DecodeOpcUaBinaryServiceResponse(
+    const std::vector<char>& payload) {
+  binary::BinaryDecoder decoder{payload};
+  const auto message = binary::ReadMessage(decoder);
+  if (!message.has_value()) {
+    return std::nullopt;
+  }
+
+  switch (message->first) {
+    case kCreateSessionResponseBinaryEncodingId:
+      return DecodeCreateSessionResponse(message->second);
+    case kActivateSessionResponseBinaryEncodingId:
+      return DecodeActivateSessionResponse(message->second);
+    case kCloseSessionResponseBinaryEncodingId:
+      return DecodeCloseSessionResponse(message->second);
+    case kCreateSubscriptionResponseBinaryEncodingId:
+      return DecodeCreateSubscriptionResponse(message->second);
+    case kModifySubscriptionResponseBinaryEncodingId:
+      return DecodeModifySubscriptionResponse(message->second);
+    case kSetPublishingModeResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<OpcUaSetPublishingModeResponse>(
+          message->second);
+    case kDeleteSubscriptionsResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<OpcUaDeleteSubscriptionsResponse>(
+          message->second);
+    case kCreateMonitoredItemsResponseBinaryEncodingId:
+      return DecodeCreateMonitoredItemsResponse(message->second);
+    case kModifyMonitoredItemsResponseBinaryEncodingId:
+      return DecodeModifyMonitoredItemsResponse(message->second);
+    case kDeleteMonitoredItemsResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<OpcUaDeleteMonitoredItemsResponse>(
+          message->second);
+    case kSetMonitoringModeResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<OpcUaSetMonitoringModeResponse>(
+          message->second);
+    case kPublishResponseBinaryEncodingId:
+      return DecodePublishResponse(message->second);
+    case kRepublishResponseBinaryEncodingId:
+      return DecodeRepublishResponse(message->second);
+    case kTransferSubscriptionsResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<OpcUaTransferSubscriptionsResponse>(
+          message->second);
+    case kReadResponseBinaryEncodingId:
+      return DecodeReadResponse(message->second);
+    case kWriteResponseBinaryEncodingId:
+      return DecodeWriteResponse(message->second);
+    case kBrowseResponseBinaryEncodingId:
+      return DecodeBrowseResponseImpl(message->second);
+    case kBrowseNextResponseBinaryEncodingId:
+      return DecodeBrowseNextResponseImpl(message->second);
+    case kTranslateBrowsePathsResponseBinaryEncodingId:
+      return DecodeTranslateBrowsePathsResponse(message->second);
+    case kCallResponseBinaryEncodingId:
+      return DecodeCallResponse(message->second);
+    case kDeleteNodesResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<DeleteNodesResponse>(
+          message->second);
+    case kDeleteReferencesResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<DeleteReferencesResponse>(
+          message->second);
+    case kAddReferencesResponseBinaryEncodingId:
+      return DecodeStatusCodeArrayResponse<AddReferencesResponse>(
+          message->second);
     default:
       return std::nullopt;
   }
