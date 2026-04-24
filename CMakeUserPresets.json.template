@@ -26,9 +26,6 @@
         "CMAKE_PREFIX_PATH": "<VCPKG_ROOT>/installed/x86-windows",
         "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded",
         "OPENSSL_ROOT_DIR": "$env{THIRD_PARTY}/openssl",
-        "OPCUA_ROOT_DIR": "$env{THIRD_PARTY}/UA-AnsiC",
-        "OPCUAPP_DIR": "$env{THIRD_PARTY}/opcuapp",
-        "OPCUA_DIR": "$env{THIRD_PARTY}/opcuapp",
         "CMAKE_MODULE_PATH": "${sourceDir};${sourceDir}/../core;${sourceDir}/../third_party/net;$env{THIRD_PARTY}/chromebase;$env{THIRD_PARTY}/express;$env{THIRD_PARTY}/opc_client;$env{THIRD_PARTY}/OPCFoundation;$env{THIRD_PARTY}/midl;$env{THIRD_PARTY}/promise.hpp"
       }
     }
