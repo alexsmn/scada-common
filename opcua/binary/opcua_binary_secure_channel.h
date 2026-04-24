@@ -108,6 +108,17 @@ DecodeOpenSecureChannelRequestBody(const std::vector<char>& body);
 [[nodiscard]] std::optional<OpcUaBinaryCloseSecureChannelRequest>
 DecodeCloseSecureChannelRequestBody(const std::vector<char>& body);
 
+// Client-side inverses: these encode/decode the complementary direction of
+// the OPC UA Part 6 SecureChannel request/response pairs, so the new UA
+// Binary client under common/opcua/binary/client/ can talk to the existing
+// server-side OpcUaBinarySecureChannel using the same bytes on the wire.
+[[nodiscard]] std::vector<char> EncodeOpenSecureChannelRequestBody(
+    const OpcUaBinaryOpenSecureChannelRequest& request);
+[[nodiscard]] std::optional<OpcUaBinaryOpenSecureChannelResponse>
+DecodeOpenSecureChannelResponseBody(const std::vector<char>& body);
+[[nodiscard]] std::vector<char> EncodeCloseSecureChannelRequestBody(
+    const OpcUaBinaryCloseSecureChannelRequest& request);
+
 class OpcUaBinarySecureChannel {
  public:
   struct Result {
