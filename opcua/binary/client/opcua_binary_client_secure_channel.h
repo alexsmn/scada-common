@@ -8,7 +8,9 @@
 #include "scada/status.h"
 #include "scada/status_or.h"
 
+#include <chrono>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -38,6 +40,9 @@ class OpcUaBinaryClientSecureChannel {
     crypto::Certificate client_certificate;
     crypto::PrivateKey client_private_key;
     crypto::Certificate server_certificate;
+    // Basic256Sha256 only. Defaults to a CSPRNG-backed 32-byte nonce; tests
+    // may inject a deterministic generator.
+    std::function<scada::StatusOr<scada::ByteString>()> client_nonce_generator;
   };
 
   explicit OpcUaBinaryClientSecureChannel(OpcUaBinaryClientTransport& transport);
@@ -52,6 +57,12 @@ class OpcUaBinaryClientSecureChannel {
   // the negotiated channel_id / token_id. For Basic256Sha256 SignAndEncrypt
   // also derives the symmetric keys used by subsequent service traffic.
   [[nodiscard]] Awaitable<scada::Status> Open(
+      std::uint32_t requested_lifetime_ms = 60000);
+
+  // Renews the current SecureChannel token with an OpenSecureChannel request
+  // whose request_type is Renew. The server returns a fresh token_id and
+  // revised lifetime while preserving the logical channel.
+  [[nodiscard]] Awaitable<scada::Status> Renew(
       std::uint32_t requested_lifetime_ms = 60000);
 
   // Wraps `body` into a symmetric SecureMessage frame and writes it to the
@@ -75,18 +86,30 @@ class OpcUaBinaryClientSecureChannel {
   [[nodiscard]] bool opened() const { return opened_; }
   [[nodiscard]] std::uint32_t channel_id() const { return channel_id_; }
   [[nodiscard]] std::uint32_t token_id() const { return token_id_; }
+  [[nodiscard]] std::uint32_t revised_lifetime_ms() const {
+    return revised_lifetime_ms_;
+  }
 
   [[nodiscard]] std::uint32_t NextRequestId();
 
  private:
   [[nodiscard]] bool UsesBasic256Sha256() const;
   [[nodiscard]] bool UsesSignAndEncrypt() const;
+  [[nodiscard]] scada::StatusOr<scada::ByteString> GenerateClientNonce();
+  [[nodiscard]] bool ShouldRenew() const;
+  void ArmRenewalTimer(std::uint32_t revised_lifetime_ms);
+  [[nodiscard]] Awaitable<scada::Status> RenewIfNeeded();
+  [[nodiscard]] Awaitable<scada::Status> OpenSecureChannel(
+      OpcUaBinarySecurityTokenRequestType request_type,
+      std::uint32_t requested_lifetime_ms);
 
   // Build a plaintext OPN frame (no signing, no encryption). Used for the
   // None path and as the pre-sign plaintext for Basic256Sha256.
   [[nodiscard]] std::vector<char> BuildPlaintextOpenFrame(
       std::uint32_t request_id,
       std::uint32_t request_handle,
+      OpcUaBinarySecurityTokenRequestType request_type,
+      std::uint32_t secure_channel_id,
       const scada::ByteString& client_nonce,
       std::uint32_t requested_lifetime_ms);
 
@@ -95,6 +118,8 @@ class OpcUaBinaryClientSecureChannel {
   [[nodiscard]] scada::StatusOr<std::vector<char>>
   BuildAsymmetricBasic256Sha256OpenFrame(std::uint32_t request_id,
                                           std::uint32_t request_handle,
+                                          OpcUaBinarySecurityTokenRequestType request_type,
+                                          std::uint32_t secure_channel_id,
                                           const scada::ByteString& client_nonce,
                                           std::uint32_t requested_lifetime_ms);
 
@@ -123,6 +148,8 @@ class OpcUaBinaryClientSecureChannel {
   bool opened_ = false;
   std::uint32_t channel_id_ = 0;
   std::uint32_t token_id_ = 0;
+  std::uint32_t revised_lifetime_ms_ = 0;
+  std::chrono::steady_clock::time_point renew_at_{};
   std::uint32_t next_sequence_number_ = 1;
   std::uint32_t next_request_id_ = 1;
 

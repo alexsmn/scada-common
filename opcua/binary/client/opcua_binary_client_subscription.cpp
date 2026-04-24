@@ -6,6 +6,8 @@
 namespace opcua {
 namespace {
 
+constexpr std::size_t kMaxOutstandingPublishRequests = 2;
+
 template <typename Response>
 scada::StatusOr<Response> NarrowResponse(
     scada::StatusOr<OpcUaResponseBody> result) {
@@ -122,34 +124,53 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::DeleteMonitoredItem(
   co_return narrowed->status;
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::Publish() {
-  if (!is_created_) {
-    co_return scada::Status{scada::StatusCode::Bad};
-  }
+Awaitable<scada::Status> OpcUaBinaryClientSubscription::SendPublishRequest() {
   auto acks = std::move(pending_acks_);
   pending_acks_.clear();
 
   const auto handle = channel_.NextRequestHandle();
-  auto result = co_await channel_.Call(
+  auto request_id = co_await channel_.Send(
       handle, OpcUaRequestBody{OpcUaPublishRequest{
                   .subscription_acknowledgements = std::move(acks)}});
-  auto narrowed = NarrowResponse<OpcUaPublishResponse>(std::move(result));
-  if (!narrowed.ok()) {
-    co_return narrowed.status();
+  if (!request_id.ok()) {
+    pending_acks_.insert(pending_acks_.begin(), acks.begin(), acks.end());
+    co_return request_id.status();
   }
-  if (narrowed->status.bad()) {
-    co_return narrowed->status;
+  outstanding_publishes_.push_back(OutstandingPublish{
+      .request_id = *request_id,
+      .request_handle = handle,
+  });
+  co_return scada::Status{scada::StatusCode::Good};
+}
+
+Awaitable<scada::Status> OpcUaBinaryClientSubscription::FillPublishWindow() {
+  while (outstanding_publishes_.size() < kMaxOutstandingPublishRequests) {
+    const auto status = co_await SendPublishRequest();
+    if (status.bad()) {
+      co_return status;
+    }
+  }
+  co_return scada::Status{scada::StatusCode::Good};
+}
+
+scada::Status OpcUaBinaryClientSubscription::HandlePublishResponse(
+    OpcUaPublishResponse response) {
+  if (response.status.bad()) {
+    return response.status;
   }
 
   // Queue ack for the sequence number we just received so it goes out on
-  // the next PublishRequest.
-  pending_acks_.push_back(OpcUaSubscriptionAcknowledgement{
-      .subscription_id = narrowed->subscription_id,
-      .sequence_number = narrowed->notification_message.sequence_number,
-  });
+  // the next PublishRequest. Keep-alive responses carry sequence number 0
+  // and do not need acknowledgement.
+  if (response.notification_message.sequence_number != 0) {
+    pending_acks_.push_back(OpcUaSubscriptionAcknowledgement{
+        .subscription_id = response.subscription_id,
+        .sequence_number = response.notification_message.sequence_number,
+    });
+  }
 
   // Dispatch data-change notifications to handlers by client_handle.
-  for (const auto& data : narrowed->notification_message.notification_data) {
+  for (const auto& data : response.notification_message.notification_data) {
     if (const auto* change = std::get_if<OpcUaDataChangeNotification>(&data)) {
       for (const auto& item : change->monitored_items) {
         if (auto it = handlers_.find(item.client_handle);
@@ -161,7 +182,27 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::Publish() {
     // Event + StatusChange notifications are intentionally not wired up in
     // this revision; the existing client didn't consume them either.
   }
-  co_return scada::Status{scada::StatusCode::Good};
+  return scada::Status{scada::StatusCode::Good};
+}
+
+Awaitable<scada::Status> OpcUaBinaryClientSubscription::Publish() {
+  if (!is_created_) {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+  const auto fill_status = co_await FillPublishWindow();
+  if (fill_status.bad()) {
+    co_return fill_status;
+  }
+
+  const auto published = outstanding_publishes_.front();
+  outstanding_publishes_.pop_front();
+  auto result =
+      co_await channel_.Receive(published.request_id, published.request_handle);
+  auto narrowed = NarrowResponse<OpcUaPublishResponse>(std::move(result));
+  if (!narrowed.ok()) {
+    co_return narrowed.status();
+  }
+  co_return HandlePublishResponse(std::move(*narrowed));
 }
 
 Awaitable<scada::Status> OpcUaBinaryClientSubscription::Delete() {
@@ -176,6 +217,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::Delete() {
   handlers_.clear();
   client_handle_by_item_id_.clear();
   pending_acks_.clear();
+  outstanding_publishes_.clear();
   auto narrowed = NarrowResponse<OpcUaDeleteSubscriptionsResponse>(
       std::move(result));
   if (!narrowed.ok()) {

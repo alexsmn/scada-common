@@ -9,6 +9,7 @@
 #include "scada/status_or.h"
 
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <unordered_map>
 #include <vector>
@@ -20,10 +21,9 @@ namespace opcua {
 // drives the Publish service to pull data-change notifications off the
 // server and dispatch them to per-item callbacks.
 //
-// This first revision issues one PublishRequest at a time (on demand, via
-// Publish()). A follow-up can replace that with a background pump that
-// keeps 2 PublishRequests outstanding at all times (the OPC UA convention;
-// the web codec does the same).
+// Publish() keeps up to two PublishRequests outstanding, matching the common
+// OPC UA client convention and reducing notification latency while preserving
+// the existing "one response per await" API.
 class OpcUaBinaryClientSubscription {
  public:
   using DataChangeHandler = std::function<void(scada::DataValue)>;
@@ -66,6 +66,16 @@ class OpcUaBinaryClientSubscription {
   [[nodiscard]] Awaitable<scada::Status> Delete();
 
  private:
+  struct OutstandingPublish {
+    std::uint32_t request_id = 0;
+    std::uint32_t request_handle = 0;
+  };
+
+  [[nodiscard]] Awaitable<scada::Status> FillPublishWindow();
+  [[nodiscard]] Awaitable<scada::Status> SendPublishRequest();
+  [[nodiscard]] scada::Status HandlePublishResponse(
+      OpcUaPublishResponse response);
+
   OpcUaBinaryClientChannel& channel_;
   bool is_created_ = false;
   OpcUaSubscriptionId subscription_id_ = 0;
@@ -74,6 +84,7 @@ class OpcUaBinaryClientSubscription {
   std::unordered_map<OpcUaMonitoredItemId, scada::UInt32>
       client_handle_by_item_id_;
   std::vector<OpcUaSubscriptionAcknowledgement> pending_acks_;
+  std::deque<OutstandingPublish> outstanding_publishes_;
 };
 
 }  // namespace opcua

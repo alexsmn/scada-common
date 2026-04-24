@@ -329,5 +329,62 @@ TEST_F(OpcUaBinaryClientChannelTest,
   EXPECT_EQ(request->header.request_handle, request_handle);
 }
 
+TEST_F(OpcUaBinaryClientChannelTest,
+       SplitSendReceiveBuffersOutOfOrderResponses) {
+  auto state = std::make_shared<ScriptedState>();
+  auto transport = MakeClientTransport(state);
+  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  OpenChannel(state, *transport, secure_channel);
+
+  OpcUaBinaryClientChannel channel{{.transport = *transport,
+                                    .secure_channel = secure_channel}};
+
+  const std::uint32_t first_handle = 21;
+  const std::uint32_t second_handle = 22;
+  auto first_request_id = WaitAwaitable(
+      executor_,
+      channel.Send(first_handle, OpcUaRequestBody{ReadRequest{.inputs = {}}}));
+  auto second_request_id = WaitAwaitable(
+      executor_,
+      channel.Send(second_handle, OpcUaRequestBody{WriteRequest{.inputs = {}}}));
+  ASSERT_TRUE(first_request_id.ok());
+  ASSERT_TRUE(second_request_id.ok());
+  EXPECT_EQ(*first_request_id, 2u);
+  EXPECT_EQ(*second_request_id, 3u);
+
+  const auto second_body = EncodeOpcUaBinaryServiceResponse(
+      second_handle,
+      OpcUaResponseBody{WriteResponse{.status = scada::StatusCode::Good,
+                                      .results = {scada::StatusCode::Good}}});
+  const auto first_body = EncodeOpcUaBinaryServiceResponse(
+      first_handle,
+      OpcUaResponseBody{ReadResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::DataValue{scada::Variant{std::int32_t{7}}, {}, {},
+                                       {}}}}});
+  ASSERT_TRUE(second_body.has_value());
+  ASSERT_TRUE(first_body.has_value());
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      kChannelId, kTokenId, *second_request_id, *second_body)));
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      kChannelId, kTokenId, *first_request_id, *first_body)));
+
+  const auto first = WaitAwaitable(
+      executor_, channel.Receive(*first_request_id, first_handle));
+  ASSERT_TRUE(first.ok());
+  const auto* read = std::get_if<ReadResponse>(&first.value());
+  ASSERT_NE(read, nullptr);
+  ASSERT_EQ(read->results.size(), 1u);
+  EXPECT_EQ(read->results[0].value, (scada::Variant{std::int32_t{7}}));
+
+  const auto second = WaitAwaitable(
+      executor_, channel.Receive(*second_request_id, second_handle));
+  ASSERT_TRUE(second.ok());
+  const auto* write = std::get_if<WriteResponse>(&second.value());
+  ASSERT_NE(write, nullptr);
+  ASSERT_EQ(write->results.size(), 1u);
+  EXPECT_EQ(write->results[0], scada::StatusCode::Good);
+}
+
 }  // namespace
 }  // namespace opcua

@@ -285,6 +285,28 @@ TEST_F(OpcUaBinaryClientSubscriptionTest,
   ASSERT_TRUE(status.good());
   ASSERT_EQ(received.size(), 1u);
   EXPECT_EQ(received[0].value, (scada::Variant{std::int32_t{88}}));
+
+  // CreateSubscription + CreateMonitoredItem are writes[2] and writes[3].
+  // The first Publish() call fills a two-request Publish window before it
+  // waits for the first response.
+  ASSERT_GE(state->writes.size(), 6u);
+  const auto first_publish_bytes = std::vector<char>{
+      state->writes[4].begin(), state->writes[4].end()};
+  const auto second_publish_bytes = std::vector<char>{
+      state->writes[5].begin(), state->writes[5].end()};
+  const auto first_message = DecodeSecureConversationMessage(first_publish_bytes);
+  const auto second_message =
+      DecodeSecureConversationMessage(second_publish_bytes);
+  ASSERT_TRUE(first_message.has_value());
+  ASSERT_TRUE(second_message.has_value());
+  const auto first_request =
+      DecodeOpcUaBinaryServiceRequest(first_message->body);
+  const auto second_request =
+      DecodeOpcUaBinaryServiceRequest(second_message->body);
+  ASSERT_TRUE(first_request.has_value());
+  ASSERT_TRUE(second_request.has_value());
+  EXPECT_NE(std::get_if<OpcUaPublishRequest>(&first_request->body), nullptr);
+  EXPECT_NE(std::get_if<OpcUaPublishRequest>(&second_request->body), nullptr);
 }
 
 TEST_F(OpcUaBinaryClientSubscriptionTest, PublishAcksPriorSequenceNumber) {
@@ -319,12 +341,12 @@ TEST_F(OpcUaBinaryClientSubscriptionTest, PublishAcksPriorSequenceNumber) {
   ASSERT_TRUE(WaitAwaitable(executor_, subscription.Publish()).good());
   ASSERT_TRUE(WaitAwaitable(executor_, subscription.Publish()).good());
 
-  // After Hello + OPN + CreateSubscription, writes[3] and writes[4] are the
-  // two Publish requests. The second one should include an ack for the
-  // first's sequence_number (7).
-  ASSERT_GE(state->writes.size(), 5u);
+  // Publish() now keeps two requests outstanding. The first two Publish
+  // requests are sent before any response is received; the third carries
+  // the ack for the first response's sequence_number (7).
+  ASSERT_GE(state->writes.size(), 6u);
   const auto second_publish_bytes = std::vector<char>{
-      state->writes[4].begin(), state->writes[4].end()};
+      state->writes[5].begin(), state->writes[5].end()};
   const auto message = DecodeSecureConversationMessage(second_publish_bytes);
   ASSERT_TRUE(message.has_value());
   const auto decoded_request = DecodeOpcUaBinaryServiceRequest(message->body);

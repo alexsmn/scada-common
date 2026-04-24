@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 
 namespace opcua {
 
@@ -57,11 +58,27 @@ class OpcUaBinaryClientChannel {
       std::uint32_t request_handle,
       OpcUaRequestBody request);
 
+  // Lower-level split send/receive API for callers that keep multiple
+  // requests outstanding (Publish). `Receive` buffers unrelated responses
+  // for later matching by request_id.
+  [[nodiscard]] Awaitable<scada::StatusOr<std::uint32_t>> Send(
+      std::uint32_t request_handle,
+      OpcUaRequestBody request);
+  [[nodiscard]] Awaitable<scada::StatusOr<OpcUaResponseBody>> Receive(
+      std::uint32_t request_id,
+      std::uint32_t request_handle);
+
  private:
+  struct BufferedResponse {
+    std::uint32_t request_handle = 0;
+    OpcUaResponseBody body;
+  };
+
   OpcUaBinaryClientTransport& transport_;
   OpcUaBinaryClientSecureChannel& secure_channel_;
   scada::NodeId authentication_token_;
   std::uint32_t next_request_handle_ = 1;
+  std::unordered_map<std::uint32_t, BufferedResponse> buffered_responses_;
 };
 
 }  // namespace opcua

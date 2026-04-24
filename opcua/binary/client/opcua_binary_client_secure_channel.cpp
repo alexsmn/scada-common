@@ -2,7 +2,10 @@
 
 #include "opcua/binary/opcua_binary_codec_utils.h"
 
+#include <openssl/rand.h>
+
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <utility>
 
@@ -54,12 +57,14 @@ std::uint32_t OpcUaBinaryClientSecureChannel::NextRequestId() {
 std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
     std::uint32_t request_id,
     std::uint32_t request_handle,
+    OpcUaBinarySecurityTokenRequestType request_type,
+    std::uint32_t secure_channel_id,
     const scada::ByteString& client_nonce,
     std::uint32_t requested_lifetime_ms) {
   const OpcUaBinaryOpenSecureChannelRequest request{
       .request_header = {.request_handle = request_handle},
       .client_protocol_version = 0,
-      .request_type = OpcUaBinarySecurityTokenRequestType::Issue,
+      .request_type = request_type,
       .security_mode = security_.security_mode,
       .client_nonce = client_nonce,
       .requested_lifetime = requested_lifetime_ms,
@@ -86,7 +91,7 @@ std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
       .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
-      .secure_channel_id = 0,
+      .secure_channel_id = secure_channel_id,
       .asymmetric_security_header = std::move(asym_header),
       .symmetric_security_header = std::nullopt,
       .sequence_header = {.sequence_number = next_sequence_number_++,
@@ -100,12 +105,15 @@ scada::StatusOr<std::vector<char>>
 OpcUaBinaryClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
     std::uint32_t request_id,
     std::uint32_t request_handle,
+    OpcUaBinarySecurityTokenRequestType request_type,
+    std::uint32_t secure_channel_id,
     const scada::ByteString& client_nonce,
     std::uint32_t requested_lifetime_ms) {
   // 1. Build the plaintext frame (header + chan_id + asym_header +
   //    seq_header + body). EncodeSecureConversationMessage has already
   //    laid out those fields contiguously.
-  auto frame = BuildPlaintextOpenFrame(request_id, request_handle,
+  auto frame = BuildPlaintextOpenFrame(request_id, request_handle, request_type,
+                                       secure_channel_id,
                                        client_nonce, requested_lifetime_ms);
 
   // 2. Locate the boundary between the plaintext prefix (which stays in
@@ -120,7 +128,7 @@ OpcUaBinaryClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
     plaintext_prefix.insert(plaintext_prefix.end(), frame.begin(),
                             frame.begin() + 8);
     binary::BinaryEncoder tail_enc{plaintext_prefix};
-    tail_enc.Encode(std::uint32_t{0});  // secure_channel_id (0 during OPN)
+    tail_enc.Encode(secure_channel_id);
     tail_enc.Encode(security_.security_policy_uri);
     auto sender_der = crypto::CertificateDer(security_.client_certificate);
     auto recv_thumb =
@@ -311,32 +319,103 @@ OpcUaBinaryClientSecureChannel::DecodeAsymmetricBasic256Sha256OpenFrame(
   return scada::StatusOr<AsymmetricDecodedResponse>{std::move(result)};
 }
 
+scada::StatusOr<scada::ByteString>
+OpcUaBinaryClientSecureChannel::GenerateClientNonce() {
+  if (security_.client_nonce_generator) {
+    auto nonce = security_.client_nonce_generator();
+    if (!nonce.ok()) {
+      return nonce;
+    }
+    if (nonce->size() != 32) {
+      return scada::StatusOr<scada::ByteString>{
+          scada::Status{scada::StatusCode::Bad}};
+    }
+    return nonce;
+  }
+
+  scada::ByteString nonce(32, 0);
+  if (RAND_bytes(reinterpret_cast<unsigned char*>(nonce.data()),
+                 static_cast<int>(nonce.size())) != 1) {
+    return scada::StatusOr<scada::ByteString>{
+        scada::Status{scada::StatusCode::Bad}};
+  }
+  return scada::StatusOr<scada::ByteString>{std::move(nonce)};
+}
+
+bool OpcUaBinaryClientSecureChannel::ShouldRenew() const {
+  return opened_ && std::chrono::steady_clock::now() >= renew_at_;
+}
+
+void OpcUaBinaryClientSecureChannel::ArmRenewalTimer(
+    std::uint32_t revised_lifetime_ms) {
+  revised_lifetime_ms_ = revised_lifetime_ms;
+  if (revised_lifetime_ms_ == 0) {
+    renew_at_ = std::chrono::steady_clock::time_point{};
+    return;
+  }
+
+  const auto renew_after_ms = std::max<std::uint64_t>(
+      1, (static_cast<std::uint64_t>(revised_lifetime_ms_) * 3) / 4);
+  const auto renew_after = std::chrono::milliseconds{
+      static_cast<std::chrono::milliseconds::rep>(renew_after_ms)};
+  renew_at_ = std::chrono::steady_clock::now() + renew_after;
+}
+
 Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Open(
+    std::uint32_t requested_lifetime_ms) {
+  co_return co_await OpenSecureChannel(
+      OpcUaBinarySecurityTokenRequestType::Issue, requested_lifetime_ms);
+}
+
+Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Renew(
+    std::uint32_t requested_lifetime_ms) {
+  if (!opened_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  co_return co_await OpenSecureChannel(
+      OpcUaBinarySecurityTokenRequestType::Renew, requested_lifetime_ms);
+}
+
+Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::RenewIfNeeded() {
+  if (!ShouldRenew()) {
+    co_return scada::Status{scada::StatusCode::Good};
+  }
+  co_return co_await Renew(revised_lifetime_ms_);
+}
+
+Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::OpenSecureChannel(
+    OpcUaBinarySecurityTokenRequestType request_type,
     std::uint32_t requested_lifetime_ms) {
   const std::uint32_t request_id = NextRequestId();
   const std::uint32_t request_handle = request_id;
+  const std::uint32_t secure_channel_id =
+      request_type == OpcUaBinarySecurityTokenRequestType::Renew ? channel_id_
+                                                                 : 0;
 
   // For Basic256Sha256 we generate a 32-byte client nonce that's fed into
   // the symmetric KDF once the server nonce comes back.
   scada::ByteString client_nonce;
   if (UsesBasic256Sha256()) {
-    client_nonce.resize(32);
-    // Zero-initialized is deterministic for tests; a production call site
-    // should inject a random nonce through an extension point. Keep the
-    // integration scope tight here.
+    auto generated = GenerateClientNonce();
+    if (!generated.ok()) {
+      co_return generated.status();
+    }
+    client_nonce = std::move(*generated);
     client_nonce_ = client_nonce;
   }
 
   std::vector<char> out_frame;
   if (UsesBasic256Sha256()) {
     auto framed = BuildAsymmetricBasic256Sha256OpenFrame(
-        request_id, request_handle, client_nonce, requested_lifetime_ms);
+        request_id, request_handle, request_type, secure_channel_id,
+        client_nonce, requested_lifetime_ms);
     if (!framed.ok()) {
       co_return framed.status();
     }
     out_frame = std::move(*framed);
   } else {
     out_frame = BuildPlaintextOpenFrame(request_id, request_handle,
+                                        request_type, secure_channel_id,
                                         client_nonce, requested_lifetime_ms);
   }
   auto write_status = co_await transport_.WriteFrame(out_frame);
@@ -383,6 +462,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Open(
 
   channel_id_ = response.security_token.channel_id;
   token_id_ = response.security_token.token_id;
+  ArmRenewalTimer(response.security_token.revised_lifetime);
 
   if (UsesBasic256Sha256()) {
     // OPC UA Part 6 §6.7.5 key derivation:
@@ -582,6 +662,10 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::SendServiceRequest(
     const std::vector<char>& body) {
   if (!opened_) {
     co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  const auto renew_status = co_await RenewIfNeeded();
+  if (renew_status.bad()) {
+    co_return renew_status;
   }
   if (UsesSignAndEncrypt()) {
     auto framed = BuildSymmetricBasic256Sha256Frame(
