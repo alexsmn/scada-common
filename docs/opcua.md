@@ -158,7 +158,9 @@ Files:
 Outbound-client adapter that implements the shared SCADA service
 interfaces (`SessionService`, `ViewService`, `AttributeService`,
 `MonitoredItemService`, `MethodService`) on top of the native client stack
-above.
+above. Lifecycle and service-call internals are coroutine-native; the
+legacy promise/callback interfaces delegate into `Awaitable` methods at the
+compatibility boundary.
 
 Responsibilities:
 
@@ -167,9 +169,11 @@ Responsibilities:
 - build the native client stack and drive
   `OpcUaBinaryClientSession::Create()` (transport.Connect →
   SecureChannel.Open → CreateSession → ActivateSession)
-- bridge each service method: `CoSpawn` the matching
-  `OpcUaBinaryClientSession` coroutine and invoke the legacy callback /
-  promise when the awaitable resolves
+- expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
+  `CoroutineViewService`, `CoroutineAttributeService`, and
+  `CoroutineMethodService` methods for awaitable-first callers
+- keep legacy `SessionService` promises and callback services as thin
+  wrappers over those awaitable bodies
 - fan `session_state_changed` transitions out through
   `boost::signals2`
 

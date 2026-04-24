@@ -1,9 +1,10 @@
 #include "opcua/opcua_session.h"
 
+#include "base/awaitable_promise.h"
 #include "base/executor_conversions.h"
 #include "net/net_executor_adapter.h"
 #include "opcua/opcua_subscription.h"
-#include "scada/status_promise.h"
+#include "scada/status_exception.h"
 #include "transport/transport_factory.h"
 #include "transport/transport_string.h"
 
@@ -70,13 +71,25 @@ OpcUaSession::~OpcUaSession() = default;
 
 promise<void> OpcUaSession::Connect(
     const scada::SessionConnectParams& params) {
+  return ToPromise(NetExecutorAdapter{executor_}, ConnectAsync(params));
+}
+
+promise<void> OpcUaSession::Disconnect() {
+  return ToPromise(NetExecutorAdapter{executor_}, DisconnectAsync());
+}
+
+promise<void> OpcUaSession::Reconnect() {
+  return ToPromise(NetExecutorAdapter{executor_}, ReconnectAsync());
+}
+
+Awaitable<void> OpcUaSession::ConnectAsync(scada::SessionConnectParams params) {
   // Use `connection_string` when populated, otherwise compose from `host`.
   std::string endpoint = params.connection_string.empty()
                              ? std::string{"opc.tcp://"} + params.host
                              : params.connection_string;
   const auto parsed = ParseEndpointUrl(endpoint);
   if (!parsed.valid) {
-    return scada::MakeRejectedStatusPromise(scada::StatusCode::Bad);
+    throw scada::status_exception{scada::StatusCode::Bad};
   }
 
   transport::TransportString ts;
@@ -89,8 +102,8 @@ promise<void> OpcUaSession::Connect(
   auto transport_result = transport_factory_.CreateTransport(
       ts, net_executor, transport::log_source{});
   if (!transport_result.ok()) {
-    return scada::MakeRejectedStatusPromise(
-        scada::Status{scada::StatusCode::Bad_Disconnected});
+    throw scada::status_exception{
+        scada::Status{scada::StatusCode::Bad_Disconnected}};
   }
 
   endpoint_url_ = std::move(endpoint);
@@ -114,48 +127,27 @@ promise<void> OpcUaSession::Connect(
           .channel = *channel_,
       });
 
-  promise<void> p;
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, p, weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    const auto status = co_await session_->Create();
-    if (status.bad()) {
-      Reset();
-      NotifyStateChanged(false, status);
-      scada::CompleteStatusPromise(p, status);
-      co_return;
-    }
-    is_connected_ = true;
-    NotifyStateChanged(true, scada::Status{scada::StatusCode::Good});
-    p.resolve();
-  });
-  return p;
-}
-
-promise<void> OpcUaSession::Disconnect() {
-  if (!session_) {
-    return make_resolved_promise();
-  }
-  promise<void> p;
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, p, weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    co_await session_->Close();
+  const auto status = co_await session_->Create();
+  if (status.bad()) {
     Reset();
-    NotifyStateChanged(false, scada::Status{scada::StatusCode::Good});
-    p.resolve();
-  });
-  return p;
+    NotifyStateChanged(false, status);
+    throw scada::status_exception{status};
+  }
+  is_connected_ = true;
+  NotifyStateChanged(true, scada::Status{scada::StatusCode::Good});
 }
 
-promise<void> OpcUaSession::Reconnect() {
-  return make_resolved_promise();
+Awaitable<void> OpcUaSession::DisconnectAsync() {
+  if (!session_) {
+    co_return;
+  }
+  co_await session_->Close();
+  Reset();
+  NotifyStateChanged(false, scada::Status{scada::StatusCode::Good});
+}
+
+Awaitable<void> OpcUaSession::ReconnectAsync() {
+  co_return;
 }
 
 bool OpcUaSession::IsConnected(base::TimeDelta* ping_delay) const {
@@ -187,52 +179,34 @@ scada::SessionDebugger* OpcUaSession::GetSessionDebugger() {
   return nullptr;
 }
 
-void OpcUaSession::Browse(const scada::ServiceContext& /*context*/,
+void OpcUaSession::Browse(const scada::ServiceContext& context,
                           const std::vector<scada::BrowseDescription>& nodes,
                           const scada::BrowseCallback& callback) {
-  if (!session_ || !is_connected_) {
-    callback(scada::Status{scada::StatusCode::Bad_Disconnected}, {});
-    return;
-  }
   auto weak_self = weak_from_this();
-  auto inputs = nodes;
-  CoSpawn(any_executor_, [this, inputs = std::move(inputs), callback,
-                      weak_self]() mutable -> Awaitable<void> {
+  CoSpawn(any_executor_, [this, context, inputs = nodes, callback,
+                          weak_self]() mutable -> Awaitable<void> {
     auto self = weak_self.lock();
     if (!self) {
       co_return;
     }
-    auto result = co_await session_->Browse(std::move(inputs));
-    if (result.ok()) {
-      callback(scada::Status{scada::StatusCode::Good}, std::move(*result));
-    } else {
-      callback(result.status(), {});
-    }
+    auto [status, results] = co_await Browse(std::move(context),
+                                             std::move(inputs));
+    callback(std::move(status), std::move(results));
   });
 }
 
 void OpcUaSession::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
-  if (!session_ || !is_connected_) {
-    callback(scada::Status{scada::StatusCode::Bad_Disconnected}, {});
-    return;
-  }
   auto weak_self = weak_from_this();
-  auto inputs = browse_paths;
-  CoSpawn(any_executor_, [this, inputs = std::move(inputs), callback,
-                      weak_self]() mutable -> Awaitable<void> {
+  CoSpawn(any_executor_, [this, inputs = browse_paths, callback,
+                          weak_self]() mutable -> Awaitable<void> {
     auto self = weak_self.lock();
     if (!self) {
       co_return;
     }
-    auto result =
-        co_await session_->TranslateBrowsePathsToNodeIds(std::move(inputs));
-    if (result.ok()) {
-      callback(scada::Status{scada::StatusCode::Good}, std::move(*result));
-    } else {
-      callback(result.status(), {});
-    }
+    auto [status, results] = co_await TranslateBrowsePaths(std::move(inputs));
+    callback(std::move(status), std::move(results));
   });
 }
 
@@ -244,90 +218,147 @@ std::shared_ptr<scada::MonitoredItem> OpcUaSession::CreateMonitoredItem(
 }
 
 void OpcUaSession::Read(
-    const scada::ServiceContext& /*context*/,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  if (!session_ || !is_connected_) {
-    callback(scada::Status{scada::StatusCode::Bad_Disconnected}, {});
-    return;
-  }
   auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, inputs, callback,
-                      weak_self]() mutable -> Awaitable<void> {
+  CoSpawn(any_executor_, [this, context, inputs, callback,
+                          weak_self]() mutable -> Awaitable<void> {
     auto self = weak_self.lock();
     if (!self) {
       co_return;
     }
-    auto copy = *inputs;
-    auto result = co_await session_->Read(std::move(copy));
-    if (result.ok()) {
-      callback(scada::Status{scada::StatusCode::Good}, std::move(*result));
-    } else {
-      callback(result.status(), {});
-    }
+    auto [status, results] = co_await Read(std::move(context), inputs);
+    callback(std::move(status), std::move(results));
   });
 }
 
 void OpcUaSession::Write(
-    const scada::ServiceContext& /*context*/,
+    const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  if (!session_ || !is_connected_) {
-    scada::Status bad{scada::StatusCode::Bad_Disconnected};
-    std::vector<scada::StatusCode> empty;
-    callback(std::move(bad), std::move(empty));
-    return;
-  }
   auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, inputs, callback,
-                      weak_self]() mutable -> Awaitable<void> {
+  CoSpawn(any_executor_, [this, context, inputs, callback,
+                          weak_self]() mutable -> Awaitable<void> {
     auto self = weak_self.lock();
     if (!self) {
       co_return;
     }
-    auto copy = *inputs;
-    auto result = co_await session_->Write(std::move(copy));
-    if (result.ok()) {
-      scada::Status good{scada::StatusCode::Good};
-      auto results = std::move(*result);
-      callback(std::move(good), std::move(results));
-    } else {
-      auto status = result.status();
-      std::vector<scada::StatusCode> empty;
-      callback(std::move(status), std::move(empty));
-    }
+    auto [status, results] = co_await Write(std::move(context), inputs);
+    callback(std::move(status), std::move(results));
   });
 }
 
 void OpcUaSession::Call(const scada::NodeId& node_id,
                         const scada::NodeId& method_id,
                         const std::vector<scada::Variant>& arguments,
-                        const scada::NodeId& /*user_id*/,
+                        const scada::NodeId& user_id,
                         const scada::StatusCallback& callback) {
-  if (!session_ || !is_connected_) {
-    scada::Status bad{scada::StatusCode::Bad_Disconnected};
-    callback(std::move(bad));
-    return;
-  }
   auto weak_self = weak_from_this();
-  auto args_copy = arguments;
   CoSpawn(any_executor_,
-          [this, node_id, method_id, args = std::move(args_copy), callback,
+          [this, node_id, method_id, args = arguments, user_id, callback,
            weak_self]() mutable -> Awaitable<void> {
             auto self = weak_self.lock();
             if (!self) {
               co_return;
             }
-            auto result = co_await session_->Call(
-                std::move(node_id), std::move(method_id), std::move(args));
-            if (result.ok()) {
-              scada::Status status = result->status;
-              callback(std::move(status));
-            } else {
-              scada::Status status = result.status();
-              callback(std::move(status));
-            }
+            auto status = co_await Call(std::move(node_id),
+                                        std::move(method_id), std::move(args),
+                                        std::move(user_id));
+            callback(std::move(status));
           });
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+OpcUaSession::Browse(scada::ServiceContext /*context*/,
+                     std::vector<scada::BrowseDescription> inputs) {
+  if (!is_connected_) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                         std::vector<scada::BrowseResult>{}};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->Browse(std::move(inputs));
+  if (result.ok()) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         std::move(*result)};
+  }
+  co_return std::tuple{result.status(), std::vector<scada::BrowseResult>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+OpcUaSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
+  if (!is_connected_) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                         std::vector<scada::BrowsePathResult>{}};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result =
+      co_await session->TranslateBrowsePathsToNodeIds(std::move(inputs));
+  if (result.ok()) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         std::move(*result)};
+  }
+  co_return std::tuple{result.status(),
+                       std::vector<scada::BrowsePathResult>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+OpcUaSession::Read(
+    scada::ServiceContext /*context*/,
+    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+  if (!is_connected_) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                         std::vector<scada::DataValue>{}};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto copy = *inputs;
+  auto result = co_await session->Read(std::move(copy));
+  if (result.ok()) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         std::move(*result)};
+  }
+  co_return std::tuple{result.status(), std::vector<scada::DataValue>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+OpcUaSession::Write(
+    scada::ServiceContext /*context*/,
+    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+  if (!is_connected_) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                         std::vector<scada::StatusCode>{}};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto copy = *inputs;
+  auto result = co_await session->Write(std::move(copy));
+  if (result.ok()) {
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         std::move(*result)};
+  }
+  co_return std::tuple{result.status(), std::vector<scada::StatusCode>{}};
+}
+
+Awaitable<scada::Status> OpcUaSession::Call(
+    scada::NodeId node_id,
+    scada::NodeId method_id,
+    std::vector<scada::Variant> arguments,
+    scada::NodeId /*user_id*/) {
+  if (!is_connected_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->Call(std::move(node_id),
+                                       std::move(method_id),
+                                       std::move(arguments));
+  if (result.ok()) {
+    co_return result->status;
+  }
+  co_return result.status();
 }
 
 OpcUaSubscription& OpcUaSession::GetDefaultSubscription() {

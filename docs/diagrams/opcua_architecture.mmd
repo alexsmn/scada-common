@@ -37,7 +37,7 @@ flowchart LR
         direction TB
         BINARY["<b>OpcUaBinaryRuntime</b><br/>binary request adaptation<br/>+ authenticated dispatch"]
         WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
-        SESS["<b>opcua::OpcUaSession</b><br/>live session state +<br/>subscription orchestration"]
+        SESS["<b>opcua::OpcUaSession</b><br/>awaitable service adapter +<br/>subscription orchestration"]
         SMGR["<b>opcua::OpcUaSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
         SUB["<b>opcua::OpcUaSubscription</b><br/>per-subscription queue,<br/>replay, keepalive"]
         CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode<br/>requestHandle + session envelopes"]

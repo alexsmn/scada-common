@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "base/awaitable.h"
 #include "base/executor.h"
 #include "base/promise.h"
 #include "opcua/binary/client/opcua_binary_client_channel.h"
@@ -8,6 +9,7 @@
 #include "opcua/binary/client/opcua_binary_client_session.h"
 #include "opcua/binary/client/opcua_binary_client_transport.h"
 #include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/session_service.h"
@@ -15,6 +17,7 @@
 
 #include <boost/signals2/signal.hpp>
 #include <memory>
+#include <tuple>
 
 namespace transport {
 class TransportFactory;
@@ -28,6 +31,9 @@ class OpcUaSubscription;
 // the coroutine-native client stack underneath.
 class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
                            public scada::SessionService,
+                           public scada::CoroutineViewService,
+                           public scada::CoroutineAttributeService,
+                           public scada::CoroutineMethodService,
                            public scada::ViewService,
                            public scada::AttributeService,
                            public scada::MonitoredItemService,
@@ -51,6 +57,11 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
   boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
   scada::SessionDebugger* GetSessionDebugger() override;
+
+  [[nodiscard]] Awaitable<void> ConnectAsync(
+      scada::SessionConnectParams params);
+  [[nodiscard]] Awaitable<void> DisconnectAsync();
+  [[nodiscard]] Awaitable<void> ReconnectAsync();
 
   // scada::ViewService
   void Browse(const scada::ServiceContext& context,
@@ -81,6 +92,32 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
             const std::vector<scada::Variant>& arguments,
             const scada::NodeId& user_id,
             const scada::StatusCallback& callback) override;
+
+  // scada::CoroutineViewService
+  [[nodiscard]] Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext context,
+         std::vector<scada::BrowseDescription> inputs) override;
+  [[nodiscard]] Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+
+  // scada::CoroutineAttributeService
+  [[nodiscard]] Awaitable<
+      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  Read(scada::ServiceContext context,
+       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+  [[nodiscard]] Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Write(scada::ServiceContext context,
+        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+
+  // scada::CoroutineMethodService
+  [[nodiscard]] Awaitable<scada::Status> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::NodeId user_id) override;
 
   // Access for OpcUaSubscription / OpcUaMonitoredItem.
   [[nodiscard]] opcua::OpcUaBinaryClientChannel& channel() { return *channel_; }
