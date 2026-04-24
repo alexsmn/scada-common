@@ -1,0 +1,83 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'primaryColor': '#f3f4f6',
+    'primaryBorderColor': '#374151',
+    'primaryTextColor': '#111827',
+    'secondaryColor': '#dbeafe',
+    'secondaryBorderColor': '#1d4ed8',
+    'secondaryTextColor': '#111827',
+    'tertiaryColor': '#dcfce7',
+    'tertiaryBorderColor': '#15803d',
+    'tertiaryTextColor': '#111827',
+    'lineColor': '#374151',
+    'defaultLinkColor': '#374151',
+    'clusterBkg': '#f9fafb',
+    'clusterBorder': '#6b7280',
+    'titleColor': '#111827'
+  },
+  'flowchart': {'htmlLabels': true}
+}}%%
+flowchart TB
+    subgraph Consumers["Client consumers"]
+        direction TB
+        QT["<b>Qt client</b><br/>DataServices / SessionService"]
+        OTHER["<b>Other OPC UA callers</b><br/>future"]
+    end
+
+    subgraph Client["common/opcua/binary/client/"]
+        direction TB
+        SESS["<b>OpcUaBinaryClientSession</b><br/>Create / Close<br/>Read / Write / Browse / BrowseNext<br/>TranslateBrowsePaths / Call"]
+        SUB["<b>OpcUaBinaryClientSubscription</b><br/>Create / Publish / Delete<br/>CreateMonitoredItem / DeleteMonitoredItem<br/>DataChangeHandler dispatch"]
+        CHAN["<b>OpcUaBinaryClientChannel</b><br/>Call&lt;Req, Resp&gt; → Awaitable&lt;StatusOr&gt;<br/>request_handle + request_id correlation<br/>authentication_token bind"]
+        SC["<b>OpcUaBinaryClientSecureChannel</b><br/>Open / Close<br/>SendServiceRequest / ReadServiceResponse<br/>channel_id + token_id + sequence_number"]
+        TRANS["<b>OpcUaBinaryClientTransport</b><br/>Connect (HEL / ACK)<br/>ReadFrame / WriteFrame<br/>transport::any_transport"]
+    end
+
+    subgraph Shared["Shared UA Binary primitives<br/>common/opcua/binary/"]
+        direction TB
+        SVC["<b>opcua_binary_service_codec</b><br/>Encode/DecodeOpcUaBinaryServiceRequest<br/>Encode/DecodeOpcUaBinaryServiceResponse"]
+        SECCODEC["<b>opcua_binary_secure_channel</b><br/>Encode/DecodeOpenSecureChannelRequestBody<br/>Encode/DecodeOpenSecureChannelResponseBody<br/>Encode/DecodeCloseSecureChannelRequestBody"]
+        PROTO["<b>opcua_binary_protocol</b><br/>HEL / ACK / ERR framing<br/>Secure Conversation framing"]
+        UTILS["<b>opcua_binary_codec_utils</b><br/>BinaryEncoder / BinaryDecoder<br/>Variant / NodeId / DataValue / …"]
+    end
+
+    subgraph Model["Shared message model<br/>common/opcua/"]
+        direction TB
+        MSG["<b>opcua_message.h</b><br/>OpcUaRequestBody / OpcUaResponseBody<br/>(std::variant of all typed services)"]
+    end
+
+    subgraph Net["third_party/net"]
+        direction TB
+        ANY["<b>transport::any_transport</b><br/>TCP / WS / in-memory"]
+    end
+
+    QT --> SESS
+    OTHER -.-> SESS
+    SESS --> CHAN
+    SESS -.owns.-> SUB
+    SUB --> CHAN
+    CHAN --> SC
+    SC --> TRANS
+    TRANS --> ANY
+
+    CHAN -.encodes requests / decodes responses via.-> SVC
+    SC -.frames via.-> SECCODEC
+    TRANS -.frames via.-> PROTO
+    SVC --> UTILS
+    SECCODEC --> UTILS
+    PROTO --> UTILS
+    SVC --> MSG
+    CHAN --> MSG
+
+    classDef consumerStyle fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef clientStyle fill:#dcfce7,stroke:#15803d,color:#111827,stroke-width:2px
+    classDef sharedStyle fill:#fef3c7,stroke:#b45309,color:#111827
+    classDef modelStyle fill:#e9d5ff,stroke:#6b21a8,color:#111827
+    classDef netStyle fill:#f3f4f6,stroke:#374151,color:#111827
+    class QT,OTHER consumerStyle
+    class SESS,SUB,CHAN,SC,TRANS clientStyle
+    class SVC,SECCODEC,PROTO,UTILS sharedStyle
+    class MSG modelStyle
+    class ANY netStyle
