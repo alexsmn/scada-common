@@ -1,7 +1,7 @@
 #include "node_service/node_fetcher_impl.h"
 
 #include "base/auto_reset.h"
-#include "base/executor.h"
+#include "base/any_executor_dispatch.h"
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"

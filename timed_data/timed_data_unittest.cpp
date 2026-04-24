@@ -41,7 +41,7 @@ class TimedDataTest : public Test {
       {.monitored_item_service = &monitored_item_service_}};
 
   TimedDataServiceImpl service_{
-      {.executor_ = executor_,
+      {.executor_ = MakeTestAnyExecutor(executor_),
        .alias_resolver_ = alias_resolver_.AsStdFunction(),
        .node_service_ = node_service_,
        .services_ = {.attribute_service = &attribute_service_,

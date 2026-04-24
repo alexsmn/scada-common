@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "events/view_events_subscription.h"
@@ -26,7 +27,7 @@ class NodeModelImpl;
 struct NodeModelImplReference;
 
 struct NodeServiceImplContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;

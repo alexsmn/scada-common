@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/boost_log.h"
 #include "node_service/fetch_queue.h"
 #include "node_service/fetching_node_graph.h"
@@ -18,10 +19,8 @@ class ViewService;
 struct ReadValueId;
 }  // namespace scada
 
-class Executor;
-
 struct NodeFetcherImplContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
   const FetchCompletedHandler fetch_completed_handler_;

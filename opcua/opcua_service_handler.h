@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/awaitable.h"
-#include "base/executor.h"
 #include "opcua/opcua_service_message.h"
 
 #include "scada/attribute_service.h"
@@ -15,7 +14,7 @@
 namespace opcua {
 
 struct OpcUaServiceHandlerContext {
-  std::shared_ptr<Executor> executor;
+  AnyExecutor executor;
   scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
   scada::HistoryService& history_service;

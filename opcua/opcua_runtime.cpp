@@ -2,6 +2,7 @@
 
 #include "base/boost_log.h"
 #include "base/callback_awaitable.h"
+#include "base/executor_util.h"
 
 #include <algorithm>
 #include <cassert>
@@ -106,10 +107,17 @@ Awaitable<void> OpcUaRuntime::Delay(base::TimeDelta delay) const {
     co_return;
 
   co_await CallbackToAwaitable<>(
-      this->executor, [executor = this->executor, delay](auto done) mutable {
-        executor->PostDelayedTask(
-            std::chrono::milliseconds{delay.InMilliseconds()},
-            [done = std::move(done)]() mutable { done(); });
+      this->executor,
+      [executor = this->executor,
+       post_delayed_task = this->post_delayed_task,
+       delay](auto done) mutable {
+        auto ms = std::chrono::milliseconds{delay.InMilliseconds()};
+        auto callback = [done = std::move(done)]() mutable { done(); };
+        if (post_delayed_task) {
+          post_delayed_task(delay, std::move(callback));
+        } else {
+          PostDelayedTask(executor, ms, std::move(callback));
+        }
       });
 }
 

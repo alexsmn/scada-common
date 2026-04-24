@@ -13,7 +13,7 @@ namespace {
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
 EndpointReadAsync(
-    const std::shared_ptr<Executor>& executor,
+    const AnyExecutor& executor,
     scada::AttributeService& attribute_service,
     const scada::NodeId& user_id,
     std::vector<scada::ReadValueId> inputs) {
@@ -32,7 +32,7 @@ EndpointReadAsync(
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
 EndpointWriteAsync(
-    const std::shared_ptr<Executor>& executor,
+    const AnyExecutor& executor,
     scada::AttributeService& attribute_service,
     const scada::NodeId& user_id,
     std::vector<scada::WriteValue> inputs) {
@@ -50,7 +50,7 @@ EndpointWriteAsync(
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
-EndpointBrowseAsync(const std::shared_ptr<Executor>& executor,
+EndpointBrowseAsync(const AnyExecutor& executor,
                     scada::ViewService& view_service,
                     const scada::NodeId& user_id,
                     std::vector<scada::BrowseDescription> inputs) {
@@ -67,7 +67,7 @@ EndpointBrowseAsync(const std::shared_ptr<Executor>& executor,
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
 EndpointTranslateBrowsePathsAwaitable(
-    const std::shared_ptr<Executor>& executor,
+    const AnyExecutor& executor,
     scada::ViewService& view_service,
     std::vector<scada::BrowsePath> inputs) {
   co_return co_await
@@ -80,7 +80,7 @@ EndpointTranslateBrowsePathsAwaitable(
 }
 
 Awaitable<scada::Status> EndpointCallAsync(
-    const std::shared_ptr<Executor>& executor,
+    const AnyExecutor& executor,
     scada::MethodService& method_service,
     scada::NodeId node_id,
     scada::NodeId method_id,
@@ -99,7 +99,7 @@ Awaitable<scada::Status> EndpointCallAsync(
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
-EndpointAddNodesAsync(const std::shared_ptr<Executor>& executor,
+EndpointAddNodesAsync(const AnyExecutor& executor,
                       scada::NodeManagementService& node_management_service,
                       std::vector<scada::AddNodesItem> inputs) {
   co_return co_await
@@ -114,7 +114,7 @@ EndpointAddNodesAsync(const std::shared_ptr<Executor>& executor,
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
-EndpointDeleteNodesAsync(const std::shared_ptr<Executor>& executor,
+EndpointDeleteNodesAsync(const AnyExecutor& executor,
                          scada::NodeManagementService& node_management_service,
                          std::vector<scada::DeleteNodesItem> inputs) {
   co_return co_await

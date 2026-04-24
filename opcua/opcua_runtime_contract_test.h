@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "base/time_utils.h"
@@ -52,6 +53,7 @@ class RuntimeContractTestBase {
   const scada::NodeId expected_user_id_ = NumericNode(700, 5);
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
+  const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
   testing::StrictMock<scada::MockAttributeService> attribute_service_;
   testing::StrictMock<scada::MockViewService> view_service_;
   testing::StrictMock<scada::MockHistoryService> history_service_;

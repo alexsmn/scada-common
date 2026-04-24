@@ -1,17 +1,17 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "common/aliases.h"
 #include "scada/node_id.h"
 #include "scada/services.h"
 
 #include <memory>
 
-class Executor;
 class NodeEventProvider;
 class NodeService;
 
 struct TimedDataContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
   const scada::services services_;

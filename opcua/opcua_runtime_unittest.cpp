@@ -81,7 +81,7 @@ class OpcUaRuntimeTest : public testing::Test,
   }
 
   OpcUaRuntime runtime_{OpcUaRuntimeContext{
-      .executor = executor_,
+      .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
       .attribute_service = attribute_service_,
@@ -90,6 +90,10 @@ class OpcUaRuntimeTest : public testing::Test,
       .method_service = method_service_,
       .node_management_service = node_management_service_,
       .now = [this] { return now_; },
+      .post_delayed_task = [this](base::TimeDelta d, std::function<void()> fn) {
+        executor_->PostDelayedTask(
+            std::chrono::milliseconds{d.InMilliseconds()}, std::move(fn));
+      },
   }};
 };
 

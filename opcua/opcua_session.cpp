@@ -1,6 +1,6 @@
 #include "opcua/opcua_session.h"
 
-#include "base/executor.h"
+#include "base/any_executor_dispatch.h"
 #include "opcua/opcua_conversion.h"
 #include "opcua_subscription.h"
 #include "scada/status_promise.h"
@@ -35,7 +35,7 @@ OpcUa_ProxyStubConfiguration MakeProxyStubConfiguration() {
 
 }  // namespace
 
-OpcUaSession::OpcUaSession(std::shared_ptr<Executor> executor)
+OpcUaSession::OpcUaSession(AnyExecutor executor)
     : executor_{std::move(executor)},
       proxy_stub_{platform_, MakeProxyStubConfiguration()},
       session_{channel_} {}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/executor.h"
+#include "base/any_executor_dispatch.h"
 #include "scada/event.h"
 #include "scada/method_service.h"
 
@@ -10,7 +10,7 @@
 
 struct EventAckQueueContext {
   const std::shared_ptr<const Logger> logger_;
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::MethodService& method_service_;
 };
 
@@ -72,7 +72,7 @@ inline void EventAckQueue::PostAckPendingEvents() {
   if (!ack_pending_) {
     ack_pending_ = true;
     // TODO: Captures `this`.
-    Dispatch(*executor_, [this] { AckPendingEvents(); });
+    Dispatch(executor_, [this] { AckPendingEvents(); });
   }
 }
 

@@ -1,10 +1,11 @@
 #pragma once
 
+#include "base/any_executor.h"
+#include "base/promise.h"
 #include "scada/attribute_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/session_service.h"
-#include "base/promise.h"
 #include "scada/view_service.h"
 
 #include <opcuapp/client/channel.h>
@@ -13,7 +14,6 @@
 #include <opcuapp/proxy_stub.h>
 #include <opcuapp/status_code.h>
 
-class Executor;
 class OpcUaSubscription;
 
 class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
@@ -23,7 +23,7 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
                            public scada::MonitoredItemService,
                            public scada::MethodService {
  public:
-  explicit OpcUaSession(std::shared_ptr<Executor> executor);
+  explicit OpcUaSession(AnyExecutor executor);
   virtual ~OpcUaSession();
 
   // scada::SessionService
@@ -87,7 +87,7 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
 
   OpcUaSubscription& GetDefaultSubscription();
 
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
 
   opcua::Platform platform_;
   opcua::ProxyStub proxy_stub_;

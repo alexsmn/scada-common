@@ -3,6 +3,7 @@
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
 #include "base/test/test_executor.h"
+#include "base/executor_conversions.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/node_class.h"
@@ -63,7 +64,8 @@ class NodeFetcherTest : public Test {
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          executor_, server_address_space_, server_address_space_,
+          MakeTestAnyExecutor(executor_), server_address_space_,
+          server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction()})};
 

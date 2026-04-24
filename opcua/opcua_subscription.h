@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
@@ -15,7 +16,6 @@ namespace opcua::client {
 class Session;
 }  // namespace opcua::client
 
-class Executor;
 class OpcUaMonitoredItem;
 
 struct OpcUaMonitoredItemCreateResult {
@@ -26,7 +26,7 @@ struct OpcUaMonitoredItemCreateResult {
 
 struct OpcUaSubscriptionContext {
   opcua::client::Session& session_;
-  std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   std::function<void(scada::Status&& status)> error_handler_;
 };
 

@@ -1738,7 +1738,7 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
   }};
   OpcUaBinaryConnectionState connection_;
   OpcUaBinaryRuntime runtime_{{
-      .executor = executor_,
+      .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
       .attribute_service = attribute_service_,

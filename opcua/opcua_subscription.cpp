@@ -1,6 +1,7 @@
 #include "opcua_subscription.h"
 
-#include "base/executor.h"
+#include "base/any_executor_dispatch.h"
+#include "base/executor_util.h"
 #include "opcua/opcua_conversion.h"
 #include "opcua/opcua_endpoint_core.h"
 #include "scada/event_util.h"
@@ -473,8 +474,8 @@ void OpcUaSubscription::ScheduleCommitItems() {
 
   commit_items_scheduled_ = true;
 
-  executor_->PostDelayedTask(
-      kCommitItemsDelay,
+  PostDelayedTask(
+      executor_, kCommitItemsDelay,
       BindCancelation(weak_from_this(), [this] { ScheduleCommitItemsDone(); }));
 }
 

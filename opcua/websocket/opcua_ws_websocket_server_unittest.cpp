@@ -1,7 +1,7 @@
 #include "opcua/websocket/opcua_json_codec.h"
 #include "opcua/websocket/opcua_ws_server.h"
 
-#include "base/asio_executor.h"
+#include "base/any_executor.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
@@ -288,7 +288,7 @@ class OpcUaWsWebSocketServerTest : public Test {
       acceptor_ = nullptr;
     }
     runtime_.reset();
-    callback_executor_.reset();
+    callback_executor_ = AnyExecutor{};
     work_.reset();
     io_context_.stop();
     if (thread_)
@@ -297,8 +297,7 @@ class OpcUaWsWebSocketServerTest : public Test {
 
   void StartServer(
       std::optional<transport::WebSocketServerTlsConfig> tls = std::nullopt) {
-    callback_executor_ =
-        std::make_shared<AsioExecutor>(io_context_.get_executor());
+    callback_executor_ = io_context_.get_executor();
     runtime_.emplace(OpcUaWsRuntimeContext{
         .executor = callback_executor_,
         .session_manager = session_manager_,
@@ -388,7 +387,7 @@ class OpcUaWsWebSocketServerTest : public Test {
   NiceMock<scada::MockMethodService> method_service_;
   NiceMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
-  std::shared_ptr<AsioExecutor> callback_executor_;
+  AnyExecutor callback_executor_;
   opcua::OpcUaSessionManager session_manager_{{
       .authenticator =
           [](scada::LocalizedText,

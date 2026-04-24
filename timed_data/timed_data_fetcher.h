@@ -1,10 +1,11 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "common/history_util.h"
 
 struct TimedDataFetcherContext {
   TimedDataView& timed_data_view_;
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::HistoryService& history_service_;
   const scada::AggregateFilter aggregate_filter_;
 };

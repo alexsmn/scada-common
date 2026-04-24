@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "scada/client.h"
 
 #include <memory>
@@ -13,11 +14,10 @@ class SessionService;
 class ViewService;
 }  // namespace scada
 
-class Executor;
 class NodeService;
 
 struct NodeServiceContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   const scada::ServiceContext service_context_;
   // TODO: Remove services and keep `scada::client` only.
   scada::SessionService& session_service_;

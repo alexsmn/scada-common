@@ -2,6 +2,7 @@
 
 #include <span>
 
+#include "base/any_executor.h"
 #include "base/cancelation.h"
 #include "events/node_event_provider.h"
 
@@ -12,14 +13,13 @@ class MonitoredItemService;
 struct HistoryReadEventsResult;
 }  // namespace scada
 
-class Executor;
 class EventAckQueue;
 class EventObserver;
 class EventStorage;
 class Logger;
 
 struct EventFetcherContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
   const std::shared_ptr<const Logger> logger_;

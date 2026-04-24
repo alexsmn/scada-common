@@ -52,7 +52,7 @@ AddressSpaceFetcherFactory
 NodeServiceTestContext::MakeAddressSpaceFetcherFactory() {
   return [this](AddressSpaceFetcherFactoryContext&& context) {
     return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
-        .executor_ = base_env.executor,
+        .executor_ = MakeTestAnyExecutor(base_env.executor),
         .view_service_ = *base_env.server_address_space,
         .attribute_service_ = *base_env.server_address_space,
         .address_space_ = client_address_space,
@@ -76,7 +76,7 @@ struct NodeServiceTestContext {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      .executor_ = base_env.executor,
+      .executor_ = MakeTestAnyExecutor(base_env.executor),
       .view_service_ = *base_env.server_address_space,
       .attribute_service_ = *base_env.server_address_space,
       .monitored_item_service_ = monitored_item_service,
@@ -769,7 +769,7 @@ class V2NodeServiceRegressionTest : public Test {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
   std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
       v2::NodeServiceImpl>(v2::NodeServiceImplContext{
-      .executor_ = executor_,
+      .executor_ = MakeTestAnyExecutor(executor_),
       .view_service_ = *server_address_space_,
       .attribute_service_ = *server_address_space_,
       .monitored_item_service_ = monitored_item_service_,

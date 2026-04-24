@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/boost_log.h"
 #include "base/time/time.h"
 #include "scada/service_context.h"
@@ -21,13 +22,11 @@ struct BrowseDescription;
 struct BrowseResult;
 }  // namespace scada
 
-class Executor;
-
 using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
                                               scada::BrowseResult&& result)>;
 
 struct NodeChildrenFetcherContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::ServiceContext service_context_;
   scada::ViewService& view_service_;
   ReferenceValidator reference_validator_;

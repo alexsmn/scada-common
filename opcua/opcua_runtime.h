@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/awaitable.h"
-#include "base/executor.h"
 #include "base/time/time.h"
 #include "opcua/opcua_message.h"
 #include "opcua/opcua_server_session.h"
@@ -19,7 +18,7 @@ struct OpcUaConnectionState {
 };
 
 struct OpcUaRuntimeContext {
-  std::shared_ptr<Executor> executor;
+  AnyExecutor executor;
   OpcUaSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::AttributeService& attribute_service;
@@ -28,6 +27,9 @@ struct OpcUaRuntimeContext {
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
   std::function<base::Time()> now = &base::Time::Now;
+  // Optional override for delayed task scheduling. Defaults to
+  // boost::asio::steady_timer-based posting when null.
+  std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
 };
 
 class OpcUaRuntime : private OpcUaRuntimeContext {

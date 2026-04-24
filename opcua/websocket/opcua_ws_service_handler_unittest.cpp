@@ -1,6 +1,7 @@
 #include "opcua/websocket/opcua_ws_service_handler.h"
 
 #include "base/test/awaitable_test.h"
+#include "base/any_executor.h"
 #include "base/test/test_executor.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
@@ -32,9 +33,10 @@ class OpcUaWsServiceHandlerTest : public Test {
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
+  const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
   const scada::NodeId user_id_ = NumericNode(700, 3);
   OpcUaWsServiceHandler handler_{
-      {executor_,
+      {any_executor_,
        attribute_service_,
        view_service_,
        history_service_,

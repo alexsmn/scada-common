@@ -30,7 +30,7 @@ Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
 using OpcUaBinaryConnectionState = OpcUaConnectionState;
 
 struct OpcUaBinaryRuntimeContext {
-  std::shared_ptr<Executor> executor;
+  AnyExecutor executor;
   OpcUaSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::AttributeService& attribute_service;

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "node_service/node_service.h"
 
 #include <unordered_map>
 
-class Executor;
 class ProxyNodeModel;
 
 class ProxyNodeService : public NodeService {
@@ -15,7 +15,7 @@ class ProxyNodeService : public NodeService {
   virtual size_t GetPendingTaskCount() const override;
 
  private:
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   const std::shared_ptr<NodeService> source_node_service_;
 
   std::unordered_map<scada::NodeId, std::shared_ptr<ProxyNodeModel>>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/observer_list.h"
 #include "events/view_events_subscription.h"
 #include "node_service/node_children_fetcher.h"
@@ -21,7 +22,7 @@ class NodeModelImpl;
 struct NodeModelImplReference;
 
 struct NodeServiceImplContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   scada::MonitoredItemService& monitored_item_service_;
   const std::shared_ptr<NodeFetcher> node_fetcher_;
 };

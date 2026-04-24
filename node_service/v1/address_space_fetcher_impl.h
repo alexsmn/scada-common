@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "common/node_state.h"
 #include "events/view_events_subscription.h"
 #include "node_service/node_children_fetcher.h"
@@ -9,8 +10,6 @@
 
 #include <map>
 #include <memory>
-
-class Executor;
 
 namespace scada {
 class AttributeService;
@@ -23,7 +22,7 @@ class NodeFactory;
 namespace v1 {
 
 struct AddressSpaceFetcherImplContext {
-  const std::shared_ptr<Executor> executor_;
+  AnyExecutor executor_;
   const scada::ServiceContext service_context_;
   scada::ViewService& view_service_;
   scada::AttributeService& attribute_service_;
