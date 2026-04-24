@@ -59,7 +59,7 @@ struct OpcUaSessionLookupResult {
 };
 
 struct OpcUaSessionManagerContext {
-  scada::AsyncAuthenticator authenticator;
+  std::shared_ptr<scada::CoroutineAuthenticator> authenticator;
   std::function<base::Time()> now = &base::Time::Now;
   base::TimeDelta default_timeout = base::TimeDelta::FromMinutes(10);
   base::TimeDelta min_timeout = base::TimeDelta::FromSeconds(30);
@@ -117,4 +117,3 @@ class OpcUaSessionManager : private OpcUaSessionManagerContext {
 };
 
 }  // namespace opcua
-

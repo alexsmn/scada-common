@@ -1,5 +1,6 @@
 #include "opcua/opcua_server_session_manager.h"
 
+#include "scada/authentication_adapters.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 
@@ -16,7 +17,7 @@ class OpcUaServerSessionManagerTest : public testing::Test {
 
   OpcUaSessionManager MakeManager() {
     return OpcUaSessionManager{{
-        .authenticator =
+        .authenticator = scada::MakeCoroutineAuthenticator(
             [](scada::LocalizedText user_name,
                scada::LocalizedText password)
                 -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
@@ -24,7 +25,7 @@ class OpcUaServerSessionManagerTest : public testing::Test {
               EXPECT_EQ(password, scada::LocalizedText{u"secret"});
               co_return scada::AuthenticationResult{
                   .user_id = scada::NodeId{42, 4}, .multi_sessions = true};
-            },
+            }),
         .now = [this] { return now_; },
         .min_timeout = base::TimeDelta::FromSeconds(10),
     }};
@@ -75,4 +76,3 @@ TEST_F(OpcUaServerSessionManagerTest, ActivatesDetachesResumesAndClosesSession) 
 
 }  // namespace
 }  // namespace opcua
-

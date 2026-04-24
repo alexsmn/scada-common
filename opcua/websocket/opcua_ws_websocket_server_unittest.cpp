@@ -2,6 +2,7 @@
 #include "opcua/websocket/opcua_ws_server.h"
 
 #include "base/any_executor.h"
+#include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
@@ -389,13 +390,13 @@ class OpcUaWsWebSocketServerTest : public Test {
   TestMonitoredItemService monitored_item_service_;
   AnyExecutor callback_executor_;
   opcua::OpcUaSessionManager session_manager_{{
-      .authenticator =
+      .authenticator = scada::MakeCoroutineAuthenticator(
           [](scada::LocalizedText,
              scada::LocalizedText)
               -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
-        co_return scada::AuthenticationResult{
-            .user_id = NumericNode(700, 5), .multi_sessions = true};
-      }}};
+            co_return scada::AuthenticationResult{
+                .user_id = NumericNode(700, 5), .multi_sessions = true};
+          })}};
   std::optional<OpcUaWsRuntime> runtime_;
   transport::WebSocketTransport* acceptor_ = nullptr;
   std::optional<OpcUaWsServer> server_;

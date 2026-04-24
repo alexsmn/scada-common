@@ -9,6 +9,7 @@
 #include "opcua/binary/opcua_binary_protocol.h"
 #include "opcua/binary/opcua_binary_secure_channel.h"
 #include "opcua/binary/opcua_binary_tcp_connection.h"
+#include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
@@ -1725,15 +1726,15 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
   OpcUaSessionManager session_manager_{{
-      .authenticator =
+      .authenticator = scada::MakeCoroutineAuthenticator(
           [this](scada::LocalizedText user_name,
                  scada::LocalizedText password)
               -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
-        EXPECT_EQ(user_name, scada::LocalizedText{u"operator"});
-        EXPECT_EQ(password, scada::LocalizedText{u"secret"});
-        co_return scada::AuthenticationResult{
-            .user_id = expected_user_id_, .multi_sessions = true};
-      },
+            EXPECT_EQ(user_name, scada::LocalizedText{u"operator"});
+            EXPECT_EQ(password, scada::LocalizedText{u"secret"});
+            co_return scada::AuthenticationResult{
+                .user_id = expected_user_id_, .multi_sessions = true};
+          }),
       .now = [this] { return now_; },
   }};
   OpcUaBinaryConnectionState connection_;

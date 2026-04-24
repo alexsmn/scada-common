@@ -1,5 +1,6 @@
 #include "opcua/opcua_server_session_manager.h"
 
+#include "scada/authentication_adapters.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 
@@ -21,7 +22,7 @@ class OpcUaWsSessionManagerTest : public Test {
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
 
-  auto MakeManager(scada::AsyncAuthenticator authenticator,
+  auto MakeManager(std::shared_ptr<scada::CoroutineAuthenticator> authenticator,
                    base::TimeDelta default_timeout =
                        base::TimeDelta::FromMinutes(10)) {
     return opcua::OpcUaSessionManager{{
@@ -36,15 +37,16 @@ class OpcUaWsSessionManagerTest : public Test {
 
 TEST_F(OpcUaWsSessionManagerTest, CreateActivateDetachResumeAndClose) {
   const auto expected_user_id = scada::NodeId{42, 4};
-  auto manager = MakeManager([expected_user_id](scada::LocalizedText user_name,
-                                                scada::LocalizedText password)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    EXPECT_EQ(user_name, scada::LocalizedText{u"operator"});
-    EXPECT_EQ(password, scada::LocalizedText{u"secret"});
-    co_return scada::AuthenticationResult{
-        .user_id = expected_user_id, .user_rights = 7, .multi_sessions = false};
-  });
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+      [expected_user_id](scada::LocalizedText user_name,
+                         scada::LocalizedText password)
+          -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
+        EXPECT_EQ(user_name, scada::LocalizedText{u"operator"});
+        EXPECT_EQ(password, scada::LocalizedText{u"secret"});
+        co_return scada::AuthenticationResult{.user_id = expected_user_id,
+                                              .user_rights = 7,
+                                              .multi_sessions = false};
+      }));
 
   const auto created = WaitAwaitable(executor_, manager.CreateSession({}));
   EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
@@ -94,11 +96,11 @@ TEST_F(OpcUaWsSessionManagerTest, CreateActivateDetachResumeAndClose) {
 }
 
 TEST_F(OpcUaWsSessionManagerTest, ActivateMissingSessionRejected) {
-  auto manager = MakeManager([](scada::LocalizedText, scada::LocalizedText)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    co_return scada::AuthenticationResult{};
-  });
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+      [](scada::LocalizedText, scada::LocalizedText)
+          -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
+        co_return scada::AuthenticationResult{};
+      }));
 
   const auto response = WaitAwaitable(
       executor_,
@@ -110,11 +112,12 @@ TEST_F(OpcUaWsSessionManagerTest, ActivateMissingSessionRejected) {
 }
 
 TEST_F(OpcUaWsSessionManagerTest, PendingSessionTimeoutIsPruned) {
-  auto manager = MakeManager([](scada::LocalizedText, scada::LocalizedText)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    co_return scada::AuthenticationResult{};
-  },
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+                                 [](scada::LocalizedText, scada::LocalizedText)
+                                     -> Awaitable<scada::StatusOr<
+                                         scada::AuthenticationResult>> {
+                                   co_return scada::AuthenticationResult{};
+                                 }),
                              base::TimeDelta::FromSeconds(30));
 
   const auto created = WaitAwaitable(
@@ -130,12 +133,12 @@ TEST_F(OpcUaWsSessionManagerTest, PendingSessionTimeoutIsPruned) {
 
 TEST_F(OpcUaWsSessionManagerTest, AnonymousActivationUsesRevisedTimeout) {
   const auto null_user_id = scada::NodeId{};
-  auto manager = MakeManager([](scada::LocalizedText, scada::LocalizedText)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    ADD_FAILURE() << "Authenticator should not run for anonymous activation";
-    co_return scada::AuthenticationResult{};
-  });
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+      [](scada::LocalizedText, scada::LocalizedText)
+          -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
+        ADD_FAILURE() << "Authenticator should not run for anonymous activation";
+        co_return scada::AuthenticationResult{};
+      }));
 
   const auto created =
       WaitAwaitable(executor_,
@@ -164,12 +167,15 @@ TEST_F(OpcUaWsSessionManagerTest, AnonymousActivationUsesRevisedTimeout) {
 }
 
 TEST_F(OpcUaWsSessionManagerTest, ExpiredActivatedSessionCannotResume) {
-  auto manager = MakeManager([](scada::LocalizedText, scada::LocalizedText)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    co_return scada::AuthenticationResult{
-        .user_id = scada::NodeId{55, 6}, .multi_sessions = true};
-  },
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+                                 [](scada::LocalizedText,
+                                    scada::LocalizedText)
+                                     -> Awaitable<scada::StatusOr<
+                                         scada::AuthenticationResult>> {
+                                   co_return scada::AuthenticationResult{
+                                       .user_id = scada::NodeId{55, 6},
+                                       .multi_sessions = true};
+                                 }),
                              base::TimeDelta::FromSeconds(30));
 
   const auto created = WaitAwaitable(
@@ -200,12 +206,12 @@ TEST_F(OpcUaWsSessionManagerTest, ExpiredActivatedSessionCannotResume) {
 }
 
 TEST_F(OpcUaWsSessionManagerTest, SingleSessionUsersRequireDeleteExisting) {
-  auto manager = MakeManager([](scada::LocalizedText, scada::LocalizedText)
-                                 -> Awaitable<scada::StatusOr<
-                                     scada::AuthenticationResult>> {
-    co_return scada::AuthenticationResult{
-        .user_id = scada::NodeId{77, 8}, .multi_sessions = false};
-  });
+  auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
+      [](scada::LocalizedText, scada::LocalizedText)
+          -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
+        co_return scada::AuthenticationResult{
+            .user_id = scada::NodeId{77, 8}, .multi_sessions = false};
+      }));
 
   const auto first = WaitAwaitable(executor_, manager.CreateSession({}));
   const auto first_activated = WaitAwaitable(

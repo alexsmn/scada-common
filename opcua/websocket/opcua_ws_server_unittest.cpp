@@ -3,6 +3,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/websocket/opcua_json_codec.h"
+#include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
@@ -181,12 +182,12 @@ class OpcUaWsServerTest : public Test {
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
   opcua::OpcUaSessionManager session_manager_{{
-      .authenticator =
+      .authenticator = scada::MakeCoroutineAuthenticator(
           [](scada::LocalizedText, scada::LocalizedText)
               -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
-        co_return scada::AuthenticationResult{
-            .user_id = scada::NodeId{55, 3}, .multi_sessions = true};
-      },
+            co_return scada::AuthenticationResult{
+                .user_id = scada::NodeId{55, 3}, .multi_sessions = true};
+          }),
   }};
   OpcUaWsRuntime runtime_{{
       .executor = any_executor_,

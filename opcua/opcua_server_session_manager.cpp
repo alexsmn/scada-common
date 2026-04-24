@@ -105,8 +105,8 @@ Awaitable<OpcUaActivateSessionResponse> OpcUaSessionManager::ActivateSession(
           scada::StatusCode::Bad_WrongLoginCredentials};
     }
 
-    auto auth = co_await authenticator(std::move(*request.user_name),
-                                       std::move(*request.password));
+    auto auth = co_await authenticator->Authenticate(
+        std::move(*request.user_name), std::move(*request.password));
     if (!auth.ok()) {
       LOG_WARNING(logger_) << "OPC UA session activation failed"
                            << LOG_TAG("Reason", "AuthenticationFailed")
