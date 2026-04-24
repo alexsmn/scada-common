@@ -90,7 +90,14 @@ integration:
 
 At runtime it sits between:
 
-- the OPC Foundation ANSI C stack wrapped by `opcuapp`
+- the in-repo native UA Binary client stack under
+  `common/opcua/binary/client/` (Transport → SecureChannel → Channel →
+  Session → Subscription). No external OPC UA SDK is linked: codec,
+  framing, secure-channel and service dispatch are all implemented here
+  against the OPC Foundation type schema
+  (<https://files.opcfoundation.org/schemas/UA/1.04/Opc.Ua.Types.bsd.xml>).
+  See the architecture diagram at
+  `common/docs/diagrams/opcua_binary_client_architecture.svg`.
 - the shared SCADA service interfaces such as `AttributeService`,
   `ViewService`, `MethodService`, and `MonitoredItemService`
 - the server module in `server/opcua/`
@@ -120,6 +127,27 @@ Responsibilities:
 Business logic, session state, and service dispatch live below this layer in
 the shared runtime model rather than in a transport-specific server bridge.
 
+### Native UA Binary client stack
+
+Files:
+
+- `common/opcua/binary/client/opcua_binary_client_transport.{h,cpp}`
+- `common/opcua/binary/client/opcua_binary_client_secure_channel.{h,cpp}`
+- `common/opcua/binary/client/opcua_binary_client_channel.{h,cpp}`
+- `common/opcua/binary/client/opcua_binary_client_session.{h,cpp}`
+- `common/opcua/binary/client/opcua_binary_client_subscription.{h,cpp}`
+
+Five-layer in-repo OPC UA Binary client, sibling to the server-side runtime
+already in `common/opcua/binary/`. Coroutine-native throughout
+(`Awaitable<scada::Status>` / `Awaitable<scada::StatusOr<T>>` at every
+layer). See `common/docs/diagrams/opcua_binary_client_architecture.svg`
+for the component graph.
+
+Security support in this revision: `SecurityPolicy=None` /
+`SecurityMode=None`. `Basic256Sha256` sign-and-encrypt is tracked as a
+follow-up and will plug into `OpcUaBinaryClientSecureChannel` without
+changing the surface above it.
+
 ### `OpcUaSession`
 
 Files:
@@ -127,16 +155,23 @@ Files:
 - `common/opcua/opcua_session.h`
 - `common/opcua/opcua_session.cpp`
 
-Client-side UA session adapter that implements the shared SCADA service
-interfaces on top of an outbound OPC UA channel and session.
+Qt-client-facing adapter that implements the shared SCADA service
+interfaces (`SessionService`, `ViewService`, `AttributeService`,
+`MonitoredItemService`, `MethodService`) on top of the native client stack
+above.
 
 Responsibilities:
 
-- connect a client channel and session to a remote `opc.tcp://` endpoint
-- expose browse, read, write, method-call, and monitored-item operations
-  through the shared service interfaces
-- keep the default subscription alive for monitored-item traffic
-- translate channel/session failures into the shared status model
+- parse the `opc.tcp://host:port` endpoint from `SessionConnectParams` and
+  construct a `transport::any_transport` via `TransportFactory`
+- build the native client stack and drive
+  `OpcUaBinaryClientSession::Create()` (transport.Connect →
+  SecureChannel.Open → CreateSession → ActivateSession)
+- bridge each service method: `CoSpawn` the matching
+  `OpcUaBinaryClientSession` coroutine and invoke the legacy callback /
+  promise when the awaitable resolves
+- fan `session_state_changed` transitions out through
+  `boost::signals2`
 
 ### `OpcUaSubscription`
 
@@ -145,33 +180,31 @@ Files:
 - `common/opcua/opcua_subscription.h`
 - `common/opcua/opcua_subscription.cpp`
 
-Client-side monitored-item manager layered on one OPC UA subscription.
+Qt-client-facing monitored-item manager layered on a single
+`OpcUaBinaryClientSubscription`.
 
 Responsibilities:
 
-- create the default OPC UA subscription for `OpcUaSession`
-- batch monitored-item subscribe and unsubscribe operations
-- route data-change notifications into `scada::DataChangeHandler`
-- route event notifications into `scada::EventHandler`
-- propagate subscription-level failures back through the session error path
+- create the server-side subscription lazily on first
+  `CreateMonitoredItem`
+- drive a background Publish loop that calls
+  `OpcUaBinaryClientSubscription::Publish()` until the session closes,
+  dispatching each data-change notification to the matching
+  `scada::DataChangeHandler`
+- add and remove monitored items against the server through the
+  subscription
 
-### `opcua_conversion.*`
+### `OpcUaMonitoredItem`
 
 Files:
 
-- `common/opcua/opcua_conversion.h`
-- `common/opcua/opcua_conversion.cpp`
-- `common/opcua/opcua_conversion_unittest.cpp`
+- `common/opcua/opcua_monitored_item.h`
+- `common/opcua/opcua_monitored_item.cpp`
 
-Type-conversion layer between OPC UA C-stack structs and SCADA-native types.
-
-Responsibilities:
-
-- convert scalar and structured values such as `Variant`, `DataValue`,
-  `NodeId`, `ExpandedNodeId`, `QualifiedName`, and `LocalizedText`
-- convert browse, method, node-management, monitoring, and event-filter
-  payloads
-- normalize status-code translation between the two type systems
+`scada::MonitoredItem` instance returned from
+`OpcUaSession::CreateMonitoredItem`. Holds a back-reference to the
+subscription plus the client-local id. `Subscribe(handler)` registers the
+handler; destruction removes the item from the server.
 
 ### Shared server runtime model
 
