@@ -20,9 +20,9 @@
   'flowchart': {'htmlLabels': true}
 }}%%
 flowchart TB
-    subgraph Consumers["Client consumers"]
+    subgraph Consumers["Outbound-client adapters"]
         direction TB
-        QT["<b>Qt client</b><br/>DataServices / SessionService"]
+        QT["<b>OpcUaSession</b><br/>scada::SessionService / ViewService /<br/>AttributeService / MonitoredItemService /<br/>MethodService"]
         OTHER["<b>Other OPC UA callers</b><br/>future"]
     end
 

@@ -155,7 +155,7 @@ Files:
 - `common/opcua/opcua_session.h`
 - `common/opcua/opcua_session.cpp`
 
-Qt-client-facing adapter that implements the shared SCADA service
+Outbound-client adapter that implements the shared SCADA service
 interfaces (`SessionService`, `ViewService`, `AttributeService`,
 `MonitoredItemService`, `MethodService`) on top of the native client stack
 above.
@@ -180,7 +180,7 @@ Files:
 - `common/opcua/opcua_subscription.h`
 - `common/opcua/opcua_subscription.cpp`
 
-Qt-client-facing monitored-item manager layered on a single
+Outbound-client monitored-item manager layered on a single
 `OpcUaBinaryClientSubscription`.
 
 Responsibilities:
@@ -259,7 +259,7 @@ Everything semantic stays in the shared `common/opcua/` core.
 
 | Transport | Main consumer | Adapter boundary | Wire format |
 |---|---|---|---|
-| `opc.tcp://` | Qt/native/3rd-party OPC UA clients | `common/opcua/binary/` | UA Binary over UACP/TCP |
+| `opc.tcp://` | Native / 3rd-party OPC UA clients | `common/opcua/binary/` | UA Binary over UACP/TCP |
 | `opc.ws://` / `opc.wss://` | Browser/web client | `common/opcua/websocket/` | UA-JSON over WebSocket |
 
 ## Transport choice: UA-JSON over WebSocket
