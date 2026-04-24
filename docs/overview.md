@@ -6,7 +6,7 @@ server and client.
 Related documents:
 
 - [../README.md](../README.md) for the top-level common-library overview
-- [./opcua_module.md](./opcua_module.md) for the shared OPC UA transport and
+- [./opcua/module.md](./opcua/module.md) for the shared OPC UA transport and
   conversion layer
 
 ## Modules
@@ -36,20 +36,20 @@ The `common/opcua/` module is the shared OPC UA boundary. It provides:
 
 ### Module Overview
 
-![Common OPC UA module overview](./opcua_module_overview.svg)
+![Common OPC UA module overview](./diagrams/opcua_module_overview.svg)
 
-Source: [opcua_module_overview.mmd](./opcua_module_overview.mmd)
+Source: [opcua_module_overview.mmd](./diagrams/opcua_module_overview.mmd)
 
 ### Server Request Flow
 
-![Common OPC UA server request flow](./opcua_server_request_flow.svg)
+![Common OPC UA server request flow](./diagrams/opcua_server_request_flow.svg)
 
-Source: [opcua_server_request_flow.mmd](./opcua_server_request_flow.mmd)
+Source: [opcua_server_request_flow.mmd](./diagrams/opcua_server_request_flow.mmd)
 
 ### Client Session Flow
 
-![Common OPC UA client session flow](./opcua_client_session_flow.svg)
+![Common OPC UA client session flow](./diagrams/opcua_client_session_flow.svg)
 
-Source: [opcua_client_session_flow.mmd](./opcua_client_session_flow.mmd)
+Source: [opcua_client_session_flow.mmd](./diagrams/opcua_client_session_flow.mmd)
 
-See also: [opcua_module.md](./opcua_module.md)
+See also: [opcua/module.md](./opcua/module.md)

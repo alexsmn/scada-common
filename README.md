@@ -4,8 +4,8 @@ Shared C++ libraries for the Telecontrol SCADA client and server, providing the 
 
 Design docs:
 
-- [common/docs/design.md](./docs/design.md)
-- [common/docs/opcua_module.md](./docs/opcua_module.md)
+- [common/docs/overview.md](./docs/overview.md)
+- [common/docs/opcua.md](./docs/opcua.md)
 
 ## Modules
 

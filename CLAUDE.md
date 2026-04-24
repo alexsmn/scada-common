@@ -120,12 +120,12 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
   can fail with Puppeteer/Chrome startup errors, while the Windows-side render
   works reliably with Edge.
 - Use the checked-in Windows Puppeteer config at
-  `docs/mermaid-puppeteer-config-win.json`:
+  `docs/tools/mermaid-puppeteer-config-win.json`:
 
 ```bash
-cmd.exe /c mmdc -p C:/tc/scada/common/docs/mermaid-puppeteer-config-win.json \
-  -i C:/tc/scada/common/docs/<diagram>.mmd \
-  -o C:/tc/scada/common/docs/<diagram>.svg \
+cmd.exe /c mmdc -p C:/tc/scada/common/docs/tools/mermaid-puppeteer-config-win.json \
+  -i C:/tc/scada/common/docs/diagrams/<diagram>.mmd \
+  -o C:/tc/scada/common/docs/diagrams/<diagram>.svg \
   -b white
 ```
 
