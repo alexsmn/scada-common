@@ -2,133 +2,12 @@
 
 #include "opcua/opcua_endpoint_core.h"
 
-#include "base/callback_awaitable.h"
 #include "scada/service_awaitable.h"
 
 #include <type_traits>
 #include <utility>
 
 namespace opcua {
-namespace {
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
-EndpointReadAsync(
-    const AnyExecutor& executor,
-    scada::AttributeService& attribute_service,
-    const scada::NodeId& user_id,
-    std::vector<scada::ReadValueId> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::DataValue>>(
-          executor,
-          [&attribute_service, user_id,
-           inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-               std::move(inputs))](auto callback) mutable {
-            scada::opcua_endpoint::Read(
-                attribute_service,
-                scada::opcua_endpoint::MakeServiceContext(user_id),
-                std::move(inputs), std::move(callback));
-          });
-}
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
-EndpointWriteAsync(
-    const AnyExecutor& executor,
-    scada::AttributeService& attribute_service,
-    const scada::NodeId& user_id,
-    std::vector<scada::WriteValue> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::StatusCode>>(
-          executor,
-          [&attribute_service, user_id,
-           inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-               std::move(inputs))](auto callback) mutable {
-            scada::opcua_endpoint::Write(
-                attribute_service,
-                scada::opcua_endpoint::MakeServiceContext(user_id),
-                std::move(inputs), std::move(callback));
-          });
-}
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
-EndpointBrowseAsync(const AnyExecutor& executor,
-                    scada::ViewService& view_service,
-                    const scada::NodeId& user_id,
-                    std::vector<scada::BrowseDescription> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::BrowseResult>>(
-          executor,
-          [&view_service, user_id,
-           inputs = std::move(inputs)](auto callback) mutable {
-            scada::opcua_endpoint::Browse(
-                view_service, scada::opcua_endpoint::MakeServiceContext(user_id),
-                std::move(inputs), std::move(callback));
-          });
-}
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
-EndpointTranslateBrowsePathsAwaitable(
-    const AnyExecutor& executor,
-    scada::ViewService& view_service,
-    std::vector<scada::BrowsePath> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::BrowsePathResult>>(
-          executor,
-          [&view_service, inputs = std::move(inputs)](auto callback) mutable {
-            scada::opcua_endpoint::TranslateBrowsePaths(
-                view_service, std::move(inputs), std::move(callback));
-          });
-}
-
-Awaitable<scada::Status> EndpointCallAsync(
-    const AnyExecutor& executor,
-    scada::MethodService& method_service,
-    scada::NodeId node_id,
-    scada::NodeId method_id,
-    std::vector<scada::Variant> arguments,
-    scada::NodeId user_id) {
-  auto [status] = co_await CallbackToAwaitable<scada::Status>(
-      executor, [&method_service, node_id = std::move(node_id),
-                 method_id = std::move(method_id),
-                 arguments = std::move(arguments),
-                 user_id = std::move(user_id)](auto callback) mutable {
-        scada::opcua_endpoint::CallMethod(method_service, node_id, method_id,
-                                          arguments, user_id,
-                                          std::move(callback));
-      });
-  co_return std::move(status);
-}
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
-EndpointAddNodesAsync(const AnyExecutor& executor,
-                      scada::NodeManagementService& node_management_service,
-                      std::vector<scada::AddNodesItem> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::AddNodesResult>>(
-          executor,
-          [&node_management_service,
-           inputs = std::move(inputs)](auto callback) mutable {
-            scada::opcua_endpoint::AddNodes(
-                node_management_service, std::move(inputs),
-                std::move(callback));
-          });
-}
-
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
-EndpointDeleteNodesAsync(const AnyExecutor& executor,
-                         scada::NodeManagementService& node_management_service,
-                         std::vector<scada::DeleteNodesItem> inputs) {
-  co_return co_await
-      CallbackToAwaitable<scada::Status, std::vector<scada::StatusCode>>(
-          executor,
-          [&node_management_service,
-           inputs = std::move(inputs)](auto callback) mutable {
-            scada::opcua_endpoint::DeleteNodes(
-                node_management_service, std::move(inputs),
-                std::move(callback));
-          });
-}
-
-}  // namespace
 
 OpcUaServiceHandler::OpcUaServiceHandler(OpcUaServiceHandlerContext&& context)
     : OpcUaServiceHandlerContext{std::move(context)} {}
@@ -171,27 +50,32 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::Handle(
 
 Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleRead(
     ReadRequest request) const {
-  auto [status, results] =
-      co_await EndpointReadAsync(executor, attribute_service, user_id,
-                                 std::move(request.inputs));
+  auto [status, results] = co_await scada::ReadAsync(
+      executor, attribute_service,
+      scada::opcua_endpoint::MakeServiceContext(user_id),
+      std::make_shared<const std::vector<scada::ReadValueId>>(
+          std::move(request.inputs)));
+  results = scada::opcua_endpoint::NormalizeReadResults(std::move(results));
   co_return OpcUaServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleWrite(
     WriteRequest request) const {
-  auto [status, results] =
-      co_await EndpointWriteAsync(executor, attribute_service, user_id,
-                                  std::move(request.inputs));
+  auto [status, results] = co_await scada::WriteAsync(
+      executor, attribute_service,
+      scada::opcua_endpoint::MakeServiceContext(user_id),
+      std::make_shared<const std::vector<scada::WriteValue>>(
+          std::move(request.inputs)));
   co_return OpcUaServiceResponse{
       WriteResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleBrowse(
     BrowseRequest request) const {
-  auto [status, results] =
-      co_await EndpointBrowseAsync(executor, view_service, user_id,
-                                   std::move(request.inputs));
+  auto [status, results] = co_await scada::BrowseAsync(
+      executor, view_service, scada::opcua_endpoint::MakeServiceContext(user_id),
+      std::move(request.inputs));
   co_return OpcUaServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
 }
@@ -199,7 +83,7 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleBrowse(
 Awaitable<OpcUaServiceResponse>
 OpcUaServiceHandler::HandleTranslateBrowsePaths(
     TranslateBrowsePathsRequest request) const {
-  auto [status, results] = co_await EndpointTranslateBrowsePathsAwaitable(
+  auto [status, results] = co_await scada::TranslateBrowsePathsAsync(
       executor, view_service, std::move(request.inputs));
   co_return OpcUaServiceResponse{
       TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
@@ -210,7 +94,7 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleCall(
   CallResponse response;
   response.results.reserve(request.methods.size());
   for (auto& method : request.methods) {
-    auto status = co_await EndpointCallAsync(
+    auto status = co_await scada::CallAsync(
         executor, method_service, std::move(method.object_id),
         std::move(method.method_id), std::move(method.arguments), user_id);
     response.results.push_back(OpcUaMethodCallResult{std::move(status)});
@@ -237,7 +121,7 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleHistoryReadEvents(
 
 Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleAddNodes(
     AddNodesRequest request) const {
-  auto [status, results] = co_await EndpointAddNodesAsync(
+  auto [status, results] = co_await scada::AddNodesAsync(
       executor, node_management_service, std::move(request.items));
   co_return OpcUaServiceResponse{
       AddNodesResponse{std::move(status), std::move(results)}};
@@ -245,7 +129,7 @@ Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleAddNodes(
 
 Awaitable<OpcUaServiceResponse> OpcUaServiceHandler::HandleDeleteNodes(
     DeleteNodesRequest request) const {
-  auto [status, results] = co_await EndpointDeleteNodesAsync(
+  auto [status, results] = co_await scada::DeleteNodesAsync(
       executor, node_management_service, std::move(request.items));
   co_return OpcUaServiceResponse{
       DeleteNodesResponse{std::move(status), std::move(results)}};
