@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/any_executor.h"
-#include "opcua/binary/client/opcua_binary_client_subscription.h"
+#include "opcua/client/opcua_client_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
@@ -48,7 +48,7 @@ class OpcUaSubscription
   void StartPublishLoop();
 
   OpcUaSession& session_;
-  std::unique_ptr<opcua::OpcUaBinaryClientSubscription> impl_;
+  std::unique_ptr<opcua::OpcUaClientSubscription> impl_;
   bool is_creating_ = false;
   bool publish_loop_running_ = false;
   std::uint32_t next_local_id_ = 1;

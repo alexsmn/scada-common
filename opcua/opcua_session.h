@@ -4,10 +4,11 @@
 #include "base/awaitable.h"
 #include "base/executor.h"
 #include "base/promise.h"
-#include "opcua/binary/client/opcua_binary_client_channel.h"
+#include "opcua/binary/client/opcua_binary_client_connection.h"
 #include "opcua/binary/client/opcua_binary_client_secure_channel.h"
-#include "opcua/binary/client/opcua_binary_client_session.h"
 #include "opcua/binary/client/opcua_binary_client_transport.h"
+#include "opcua/client/opcua_client_channel.h"
+#include "opcua/client/opcua_client_session.h"
 #include "scada/attribute_service.h"
 #include "scada/coroutine_services.h"
 #include "scada/method_service.h"
@@ -120,7 +121,7 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
       scada::NodeId user_id) override;
 
   // Access for OpcUaSubscription / OpcUaMonitoredItem.
-  [[nodiscard]] opcua::OpcUaBinaryClientChannel& channel() { return *channel_; }
+  [[nodiscard]] opcua::OpcUaClientChannel& channel() { return *channel_; }
   [[nodiscard]] const AnyExecutor& any_executor() const { return any_executor_; }
   [[nodiscard]] bool is_connected() const { return is_connected_; }
 
@@ -149,8 +150,9 @@ class OpcUaSession final : public std::enable_shared_from_this<OpcUaSession>,
   // Disconnect() / error.
   std::unique_ptr<opcua::OpcUaBinaryClientTransport> transport_;
   std::unique_ptr<opcua::OpcUaBinaryClientSecureChannel> secure_channel_;
-  std::unique_ptr<opcua::OpcUaBinaryClientChannel> channel_;
-  std::unique_ptr<opcua::OpcUaBinaryClientSession> session_;
+  std::unique_ptr<opcua::OpcUaBinaryClientConnection> connection_;
+  std::unique_ptr<opcua::OpcUaClientChannel> channel_;
+  std::unique_ptr<opcua::OpcUaClientSession> session_;
 
   bool is_connected_ = false;
   std::string endpoint_url_;

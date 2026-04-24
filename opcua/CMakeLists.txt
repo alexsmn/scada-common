@@ -3,6 +3,7 @@ find_package(OpenSSL REQUIRED)
 scada_module(scada_core_opcua)
 scada_module_sources(scada_core_opcua PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/binary"
+  "${CMAKE_CURRENT_SOURCE_DIR}/client"
   RECURSE)
 
 target_precompile_headers(scada_core_opcua REUSE_FROM scada_base)

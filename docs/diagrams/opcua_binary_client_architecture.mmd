@@ -26,11 +26,16 @@ flowchart TB
         OTHER["<b>Other OPC UA callers</b><br/>future"]
     end
 
-    subgraph Client["common/opcua/binary/client/"]
+    subgraph Client["Reusable client layer<br/>common/opcua/client/"]
         direction TB
-        SESS["<b>OpcUaBinaryClientSession</b><br/>Create / Close<br/>Read / Write / Browse / BrowseNext<br/>TranslateBrowsePaths / Call"]
-        SUB["<b>OpcUaBinaryClientSubscription</b><br/>Create / Publish / Delete<br/>CreateMonitoredItem / DeleteMonitoredItem<br/>DataChangeHandler dispatch"]
-        CHAN["<b>OpcUaBinaryClientChannel</b><br/>Call&lt;Req, Resp&gt; → Awaitable&lt;StatusOr&gt;<br/>request_handle + request_id correlation<br/>authentication_token bind"]
+        SESS["<b>OpcUaClientSession</b><br/>Create / Close<br/>Read / Write / Browse / BrowseNext<br/>TranslateBrowsePaths / Call"]
+        SUB["<b>OpcUaClientSubscription</b><br/>Create / Publish / Delete<br/>CreateMonitoredItem / DeleteMonitoredItem<br/>DataChangeHandler dispatch"]
+        CHAN["<b>OpcUaClientChannel</b><br/>Call&lt;Req, Resp&gt; → Awaitable&lt;StatusOr&gt;<br/>request_handle + request_id correlation<br/>authentication_token bind"]
+    end
+
+    subgraph BinaryClient["Binary TCP client adapter<br/>common/opcua/binary/client/"]
+        direction TB
+        CONN["<b>OpcUaBinaryClientConnection</b><br/>Open / Close<br/>Encode requests / decode responses"]
         SC["<b>OpcUaBinaryClientSecureChannel</b><br/>Open / Close<br/>SendServiceRequest / ReadServiceResponse<br/>channel_id + token_id + sequence_number"]
         TRANS["<b>OpcUaBinaryClientTransport</b><br/>Connect (HEL / ACK)<br/>ReadFrame / WriteFrame<br/>transport::any_transport"]
     end
@@ -58,11 +63,12 @@ flowchart TB
     SESS --> CHAN
     SESS -.owns.-> SUB
     SUB --> CHAN
-    CHAN --> SC
+    CHAN --> CONN
+    CONN --> SC
     SC --> TRANS
     TRANS --> ANY
 
-    CHAN -.encodes requests / decodes responses via.-> SVC
+    CONN -.encodes requests / decodes responses via.-> SVC
     SC -.frames via.-> SECCODEC
     TRANS -.frames via.-> PROTO
     SVC --> UTILS
@@ -77,7 +83,7 @@ flowchart TB
     classDef modelStyle fill:#e9d5ff,stroke:#6b21a8,color:#111827
     classDef netStyle fill:#f3f4f6,stroke:#374151,color:#111827
     class QT,OTHER consumerStyle
-    class SESS,SUB,CHAN,SC,TRANS clientStyle
+    class SESS,SUB,CHAN,CONN,SC,TRANS clientStyle
     class SVC,SECCODEC,PROTO,UTILS sharedStyle
     class MSG modelStyle
     class ANY netStyle

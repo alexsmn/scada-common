@@ -133,15 +133,20 @@ Files:
 
 - `common/opcua/binary/client/opcua_binary_client_transport.{h,cpp}`
 - `common/opcua/binary/client/opcua_binary_client_secure_channel.{h,cpp}`
-- `common/opcua/binary/client/opcua_binary_client_channel.{h,cpp}`
-- `common/opcua/binary/client/opcua_binary_client_session.{h,cpp}`
-- `common/opcua/binary/client/opcua_binary_client_subscription.{h,cpp}`
+- `common/opcua/binary/client/opcua_binary_client_connection.{h,cpp}`
+- `common/opcua/client/opcua_client_channel.{h,cpp}`
+- `common/opcua/client/opcua_client_session.{h,cpp}`
+- `common/opcua/client/opcua_client_subscription.{h,cpp}`
 
-Five-layer in-repo OPC UA Binary client, sibling to the server-side runtime
-already in `common/opcua/binary/`. Coroutine-native throughout
+In-repo OPC UA client stack, sibling to the server-side runtime already in
+`common/opcua/binary/`. The TCP binary-specific pieces live under
+`common/opcua/binary/client/`; reusable request correlation, session
+lifecycle, and subscription handling live under `common/opcua/client/` so a
+future WebSocket client can provide a different `OpcUaClientConnection`
+without copying service-level behavior. Coroutine-native throughout
 (`Awaitable<scada::Status>` / `Awaitable<scada::StatusOr<T>>` at every
-layer). See `common/docs/diagrams/opcua_binary_client_architecture.svg`
-for the component graph.
+layer). See `common/docs/diagrams/opcua_binary_client_architecture.svg` for
+the component graph.
 
 Security support in this revision: `SecurityPolicy=None` /
 `SecurityMode=None`. `Basic256Sha256` sign-and-encrypt is tracked as a
@@ -167,8 +172,8 @@ Responsibilities:
 - parse the `opc.tcp://host:port` endpoint from `SessionConnectParams` and
   construct a `transport::any_transport` via `TransportFactory`
 - build the native client stack and drive
-  `OpcUaBinaryClientSession::Create()` (transport.Connect →
-  SecureChannel.Open → CreateSession → ActivateSession)
+  `OpcUaClientSession::Create()` (connection.Open → CreateSession →
+  ActivateSession)
 - expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
   `CoroutineViewService`, `CoroutineAttributeService`, and
   `CoroutineMethodService` methods for awaitable-first callers
@@ -185,14 +190,14 @@ Files:
 - `common/opcua/opcua_subscription.cpp`
 
 Outbound-client monitored-item manager layered on a single
-`OpcUaBinaryClientSubscription`.
+`OpcUaClientSubscription`.
 
 Responsibilities:
 
 - create the server-side subscription lazily on first
   `CreateMonitoredItem`
 - drive a background Publish loop that calls
-  `OpcUaBinaryClientSubscription::Publish()` until the session closes,
+  `OpcUaClientSubscription::Publish()` until the session closes,
   dispatching each data-change notification to the matching
   `scada::DataChangeHandler`
 - add and remove monitored items against the server through the

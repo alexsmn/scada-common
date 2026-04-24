@@ -1,4 +1,4 @@
-#include "opcua/binary/client/opcua_binary_client_subscription.h"
+#include "opcua/client/opcua_client_subscription.h"
 
 #include <utility>
 #include <variant>
@@ -25,11 +25,11 @@ scada::StatusOr<Response> NarrowResponse(
 
 }  // namespace
 
-OpcUaBinaryClientSubscription::OpcUaBinaryClientSubscription(
-    OpcUaBinaryClientChannel& channel)
+OpcUaClientSubscription::OpcUaClientSubscription(
+    OpcUaClientChannel& channel)
     : channel_{channel} {}
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::Create(
+Awaitable<scada::Status> OpcUaClientSubscription::Create(
     OpcUaSubscriptionParameters parameters) {
   const auto handle = channel_.NextRequestHandle();
   auto result = co_await channel_.Call(
@@ -48,8 +48,8 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::Create(
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<scada::StatusOr<OpcUaBinaryClientSubscription::CreateMonitoredItemResult>>
-OpcUaBinaryClientSubscription::CreateMonitoredItem(
+Awaitable<scada::StatusOr<OpcUaClientSubscription::CreateMonitoredItemResult>>
+OpcUaClientSubscription::CreateMonitoredItem(
     scada::ReadValueId read_value_id,
     OpcUaMonitoringParameters params,
     DataChangeHandler handler) {
@@ -97,7 +97,7 @@ OpcUaBinaryClientSubscription::CreateMonitoredItem(
       }};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::DeleteMonitoredItem(
+Awaitable<scada::Status> OpcUaClientSubscription::DeleteMonitoredItem(
     OpcUaMonitoredItemId monitored_item_id) {
   if (!is_created_) {
     co_return scada::Status{scada::StatusCode::Bad};
@@ -113,7 +113,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::DeleteMonitoredItem(
   if (!narrowed.ok()) {
     co_return narrowed.status();
   }
-  // Drop the handler regardless of server response — on a bad response the
+  // Drop the handler regardless of server response; on a bad response the
   // server may or may not have removed it, but our client state is
   // unambiguous.
   if (auto it = client_handle_by_item_id_.find(monitored_item_id);
@@ -124,7 +124,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::DeleteMonitoredItem(
   co_return narrowed->status;
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::SendPublishRequest() {
+Awaitable<scada::Status> OpcUaClientSubscription::SendPublishRequest() {
   auto acks = std::move(pending_acks_);
   pending_acks_.clear();
 
@@ -143,7 +143,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::SendPublishRequest() {
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::FillPublishWindow() {
+Awaitable<scada::Status> OpcUaClientSubscription::FillPublishWindow() {
   while (outstanding_publishes_.size() < kMaxOutstandingPublishRequests) {
     const auto status = co_await SendPublishRequest();
     if (status.bad()) {
@@ -153,7 +153,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::FillPublishWindow() {
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-scada::Status OpcUaBinaryClientSubscription::HandlePublishResponse(
+scada::Status OpcUaClientSubscription::HandlePublishResponse(
     OpcUaPublishResponse response) {
   if (response.status.bad()) {
     return response.status;
@@ -185,7 +185,7 @@ scada::Status OpcUaBinaryClientSubscription::HandlePublishResponse(
   return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::Publish() {
+Awaitable<scada::Status> OpcUaClientSubscription::Publish() {
   if (!is_created_) {
     co_return scada::Status{scada::StatusCode::Bad};
   }
@@ -205,7 +205,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSubscription::Publish() {
   co_return HandlePublishResponse(std::move(*narrowed));
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSubscription::Delete() {
+Awaitable<scada::Status> OpcUaClientSubscription::Delete() {
   if (!is_created_) {
     co_return scada::Status{scada::StatusCode::Good};
   }

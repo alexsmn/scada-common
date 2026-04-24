@@ -1,4 +1,5 @@
 #include "opcua/binary/client/opcua_binary_client_channel.h"
+#include "opcua/binary/client/opcua_binary_client_connection.h"
 
 #include "base/executor_conversions.h"
 #include "base/test/awaitable_test.h"
@@ -175,8 +176,9 @@ TEST_F(OpcUaBinaryClientChannelTest, RequestHandlesAreMonotonic) {
   auto transport = MakeClientTransport(state);
   ASSERT_TRUE(WaitAwaitable(executor_, transport->Connect()).good());
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   EXPECT_EQ(channel.NextRequestHandle(), 1u);
   EXPECT_EQ(channel.NextRequestHandle(), 2u);
 }
@@ -200,8 +202,9 @@ TEST_F(OpcUaBinaryClientChannelTest, CallReadReturnsTypedResponse) {
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, /*request_id=*/2, *encoded_body)));
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
@@ -233,8 +236,9 @@ TEST_F(OpcUaBinaryClientChannelTest, CallWriteReturnsStatusCodes) {
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
@@ -262,8 +266,9 @@ TEST_F(OpcUaBinaryClientChannelTest, CallRejectsMismatchedRequestHandle) {
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(/*request_handle=*/7,
@@ -278,8 +283,9 @@ TEST_F(OpcUaBinaryClientChannelTest, CallReturnsBadOnConnectionClosed) {
   OpenChannel(state, *transport, secure_channel);
   // No service response queued — the ReadFrame will see EOF and report bad.
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(
@@ -304,8 +310,9 @@ TEST_F(OpcUaBinaryClientChannelTest,
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   channel.set_authentication_token(scada::NodeId{0xABCDEF});
   EXPECT_EQ(channel.authentication_token(), scada::NodeId{0xABCDEF});
 
@@ -336,8 +343,9 @@ TEST_F(OpcUaBinaryClientChannelTest,
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
-  OpcUaBinaryClientChannel channel{{.transport = *transport,
-                                    .secure_channel = secure_channel}};
+  OpcUaBinaryClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
 
   const std::uint32_t first_handle = 21;
   const std::uint32_t second_handle = 22;

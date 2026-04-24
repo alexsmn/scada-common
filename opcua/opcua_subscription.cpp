@@ -40,7 +40,7 @@ void OpcUaSubscription::EnsureCreated() {
     return;
   }
   is_creating_ = true;
-  impl_ = std::make_unique<opcua::OpcUaBinaryClientSubscription>(
+  impl_ = std::make_unique<opcua::OpcUaClientSubscription>(
       session_.channel());
   auto weak_self = weak_from_this();
   CoSpawn(session_.any_executor(),

@@ -1,18 +1,17 @@
-#include "opcua/binary/client/opcua_binary_client_session.h"
+#include "opcua/client/opcua_client_session.h"
 
 #include <utility>
 #include <variant>
 
 namespace opcua {
 
-OpcUaBinaryClientSession::OpcUaBinaryClientSession(Context context)
-    : transport_{context.transport},
-      secure_channel_{context.secure_channel},
+OpcUaClientSession::OpcUaClientSession(Context context)
+    : connection_{context.connection},
       channel_{context.channel} {}
 
 template <typename Response>
 Awaitable<scada::StatusOr<Response>>
-OpcUaBinaryClientSession::CallTyped(OpcUaRequestBody request) {
+OpcUaClientSession::CallTyped(OpcUaRequestBody request) {
   const std::uint32_t request_handle = channel_.NextRequestHandle();
   auto result =
       co_await channel_.Call(request_handle, std::move(request));
@@ -28,14 +27,10 @@ OpcUaBinaryClientSession::CallTyped(OpcUaRequestBody request) {
   co_return scada::StatusOr<Response>{scada::Status{scada::StatusCode::Bad}};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSession::Create(
+Awaitable<scada::Status> OpcUaClientSession::Create(
     base::TimeDelta requested_timeout,
     Identity identity) {
-  auto connect_status = co_await transport_.Connect();
-  if (connect_status.bad()) {
-    co_return connect_status;
-  }
-  auto open_status = co_await secure_channel_.Open();
+  auto open_status = co_await connection_.Open();
   if (open_status.bad()) {
     co_return open_status;
   }
@@ -78,7 +73,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSession::Create(
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSession::Close() {
+Awaitable<scada::Status> OpcUaClientSession::Close() {
   if (is_active_) {
     auto close_result = co_await CallTyped<OpcUaCloseSessionResponse>(
         OpcUaRequestBody{OpcUaCloseSessionRequest{
@@ -86,17 +81,16 @@ Awaitable<scada::Status> OpcUaBinaryClientSession::Close() {
             .authentication_token = authentication_token_,
         }});
     is_active_ = false;
-    // Swallow the close status — the secure channel + transport shutdown
-    // below are more important to run than to report.
+    // Swallow the close status; the connection shutdown below is more
+    // important to run than to report.
     (void)close_result;
   }
-  (void)(co_await secure_channel_.Close());
-  co_await transport_.Close();
+  (void)(co_await connection_.Close());
   co_return scada::Status{scada::StatusCode::Good};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-OpcUaBinaryClientSession::Read(std::vector<scada::ReadValueId> inputs) {
+OpcUaClientSession::Read(std::vector<scada::ReadValueId> inputs) {
   auto result = co_await CallTyped<ReadResponse>(
       OpcUaRequestBody{ReadRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
@@ -110,7 +104,7 @@ OpcUaBinaryClientSession::Read(std::vector<scada::ReadValueId> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-OpcUaBinaryClientSession::Write(std::vector<scada::WriteValue> inputs) {
+OpcUaClientSession::Write(std::vector<scada::WriteValue> inputs) {
   auto result = co_await CallTyped<WriteResponse>(
       OpcUaRequestBody{WriteRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
@@ -124,7 +118,7 @@ OpcUaBinaryClientSession::Write(std::vector<scada::WriteValue> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-OpcUaBinaryClientSession::Browse(std::vector<scada::BrowseDescription> inputs) {
+OpcUaClientSession::Browse(std::vector<scada::BrowseDescription> inputs) {
   auto result = co_await CallTyped<BrowseResponse>(OpcUaRequestBody{
       BrowseRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
@@ -138,7 +132,7 @@ OpcUaBinaryClientSession::Browse(std::vector<scada::BrowseDescription> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-OpcUaBinaryClientSession::BrowseNext(
+OpcUaClientSession::BrowseNext(
     std::vector<scada::ByteString> continuation_points,
     bool release_continuation_points) {
   auto result = co_await CallTyped<BrowseNextResponse>(OpcUaRequestBody{
@@ -157,7 +151,7 @@ OpcUaBinaryClientSession::BrowseNext(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-OpcUaBinaryClientSession::TranslateBrowsePathsToNodeIds(
+OpcUaClientSession::TranslateBrowsePathsToNodeIds(
     std::vector<scada::BrowsePath> inputs) {
   auto result = co_await CallTyped<TranslateBrowsePathsResponse>(
       OpcUaRequestBody{
@@ -174,10 +168,10 @@ OpcUaBinaryClientSession::TranslateBrowsePathsToNodeIds(
       std::move(result->results)};
 }
 
-Awaitable<scada::StatusOr<OpcUaBinaryClientSession::CallResult>>
-OpcUaBinaryClientSession::Call(scada::NodeId object_id,
-                               scada::NodeId method_id,
-                               std::vector<scada::Variant> arguments) {
+Awaitable<scada::StatusOr<OpcUaClientSession::CallResult>>
+OpcUaClientSession::Call(scada::NodeId object_id,
+                         scada::NodeId method_id,
+                         std::vector<scada::Variant> arguments) {
   auto result = co_await CallTyped<CallResponse>(
       OpcUaRequestBody{CallRequest{.methods = {OpcUaMethodCallRequest{
                                        .object_id = std::move(object_id),

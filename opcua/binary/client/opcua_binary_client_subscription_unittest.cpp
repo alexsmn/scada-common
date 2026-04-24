@@ -4,6 +4,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/binary/client/opcua_binary_client_channel.h"
+#include "opcua/binary/client/opcua_binary_client_connection.h"
 #include "opcua/binary/client/opcua_binary_client_secure_channel.h"
 #include "opcua/binary/client/opcua_binary_client_transport.h"
 #include "opcua/binary/opcua_binary_secure_channel.h"
@@ -177,8 +178,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest, CreateCapturesSubscriptionId) {
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -208,8 +210,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest,
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -264,8 +267,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest,
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -332,8 +336,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest, PublishAcksPriorSequenceNumber) {
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -399,8 +404,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest, DeleteMonitoredItemDropsHandler) {
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -436,8 +442,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest, DeleteClearsServerSubscription) {
 
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};
@@ -451,8 +458,9 @@ TEST_F(OpcUaBinaryClientSubscriptionTest,
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
   OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   OpcUaBinaryClientSubscription subscription{channel};

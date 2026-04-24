@@ -4,6 +4,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/binary/client/opcua_binary_client_channel.h"
+#include "opcua/binary/client/opcua_binary_client_connection.h"
 #include "opcua/binary/client/opcua_binary_client_secure_channel.h"
 #include "opcua/binary/client/opcua_binary_client_transport.h"
 #include "opcua/binary/opcua_binary_secure_channel.h"
@@ -190,12 +191,11 @@ TEST_F(OpcUaBinaryClientSessionTest, CreateRunsCreateAndActivate) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
 
   const auto status = WaitAwaitable(executor_, session.Create());
   ASSERT_TRUE(status.good());
@@ -219,12 +219,11 @@ TEST_F(OpcUaBinaryClientSessionTest, CreatePropagatesCreateSessionBadStatus) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
 
   const auto status = WaitAwaitable(executor_, session.Create());
   EXPECT_TRUE(status.bad());
@@ -250,12 +249,11 @@ TEST_F(OpcUaBinaryClientSessionTest, ReadReturnsDataValuesOnSuccess) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
   const auto read = WaitAwaitable(
@@ -284,12 +282,11 @@ TEST_F(OpcUaBinaryClientSessionTest, WriteReturnsStatusCodes) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
   const auto write = WaitAwaitable(
@@ -325,12 +322,11 @@ TEST_F(OpcUaBinaryClientSessionTest, BrowseReturnsReferences) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
   const auto browse = WaitAwaitable(
@@ -363,12 +359,11 @@ TEST_F(OpcUaBinaryClientSessionTest, CallRoundTripsArguments) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
   const auto call = WaitAwaitable(
@@ -397,12 +392,11 @@ TEST_F(OpcUaBinaryClientSessionTest, CloseRunsCloseSessionBestEffort) {
       .limits = {},
   }};
   OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientChannel channel{
+  OpcUaBinaryClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
+  OpcUaBinaryClientChannel channel{{.connection = connection}};
   OpcUaBinaryClientSession session{
-      {.transport = transport,
-       .secure_channel = secure_channel,
-       .channel = channel}};
+      {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
   const auto status = WaitAwaitable(executor_, session.Close());

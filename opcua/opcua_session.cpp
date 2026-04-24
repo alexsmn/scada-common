@@ -115,19 +115,29 @@ Awaitable<void> OpcUaSession::ConnectAsync(scada::SessionConnectParams params) {
       });
   secure_channel_ =
       std::make_unique<opcua::OpcUaBinaryClientSecureChannel>(*transport_);
-  channel_ = std::make_unique<opcua::OpcUaBinaryClientChannel>(
-      opcua::OpcUaBinaryClientChannel::Context{
+  connection_ = std::make_unique<opcua::OpcUaBinaryClientConnection>(
+      opcua::OpcUaBinaryClientConnection::Context{
           .transport = *transport_,
           .secure_channel = *secure_channel_,
       });
-  session_ = std::make_unique<opcua::OpcUaBinaryClientSession>(
-      opcua::OpcUaBinaryClientSession::Context{
-          .transport = *transport_,
-          .secure_channel = *secure_channel_,
+  channel_ = std::make_unique<opcua::OpcUaClientChannel>(
+      opcua::OpcUaClientChannel::Context{
+          .connection = *connection_,
+      });
+  session_ = std::make_unique<opcua::OpcUaClientSession>(
+      opcua::OpcUaClientSession::Context{
+          .connection = *connection_,
           .channel = *channel_,
       });
 
-  const auto status = co_await session_->Create();
+  opcua::OpcUaClientSession::Identity identity;
+  if (!params.user_name.empty()) {
+    identity.user_name = params.user_name;
+    identity.password = params.password;
+  }
+
+  const auto status = co_await session_->Create(
+      base::TimeDelta::FromMinutes(10), std::move(identity));
   if (status.bad()) {
     Reset();
     NotifyStateChanged(false, status);
@@ -372,6 +382,7 @@ void OpcUaSession::Reset() {
   default_subscription_.reset();
   session_.reset();
   channel_.reset();
+  connection_.reset();
   secure_channel_.reset();
   transport_.reset();
   is_connected_ = false;
