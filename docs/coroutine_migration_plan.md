@@ -128,3 +128,7 @@ each slice is touched.
   `scada/service_awaitable.h` helpers. `ServerRuntime` adapts its callback
   service dependencies once at construction; OPC UA tests cover the canonical,
   websocket, server-runtime, and binary dispatch paths.
+- Event and node-service channel notifiers now consume
+  `CoroutineSessionService`; their builders adapt the public `SessionService`
+  boundary once with `PromiseToCoroutineSessionServiceAdapter`, and common
+  tests cover connected-session startup plus later session-state callbacks.

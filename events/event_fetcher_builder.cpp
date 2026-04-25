@@ -3,8 +3,8 @@
 #include "base/nested_logger.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
-#include "events/event_fetcher_notifier.h"
 #include "events/event_storage.h"
+#include "common/coroutine_session_proxy_notifier.h"
 #include "scada/coroutine_services.h"
 
 namespace internal {
@@ -26,6 +26,9 @@ struct EventFetcherHolder : EventFetcherBuilder {
   scada::CallbackToCoroutineHistoryServiceAdapter history_service_{
       executor_, *services_.history_service};
 
+  scada::PromiseToCoroutineSessionServiceAdapter session_service_{
+      executor_, *services_.session_service};
+
   EventFetcher event_fetcher_{EventFetcherContext{
       .executor_ = executor_,
       .monitored_item_service_ = *services_.monitored_item_service,
@@ -34,8 +37,8 @@ struct EventFetcherHolder : EventFetcherBuilder {
       .event_storage_ = event_storage_,
       .event_ack_queue_ = event_ack_queue_}};
 
-  EventFetcherNotifier event_fetcher_notifier_{event_fetcher_,
-                                               *services_.session_service};
+  CoroutineSessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
+      event_fetcher_, session_service_};
 };
 
 }  // namespace internal

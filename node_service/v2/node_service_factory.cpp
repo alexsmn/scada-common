@@ -1,10 +1,11 @@
 #include "node_service/v2/node_service_factory.h"
 
+#include "common/coroutine_session_proxy_notifier.h"
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "node_service/node_service_factory.h"
 #include "node_service/v2/node_service_impl.h"
-#include "remote/session_proxy_notifier.h"
+#include "scada/coroutine_services.h"
 
 namespace v2 {
 
@@ -13,8 +14,9 @@ namespace {
 struct NodeServiceHolder {
   explicit NodeServiceHolder(const NodeServiceContext& node_service_context)
       : node_service{MakeNodeServiceImplContext(node_service_context)},
-        node_service_notifier{node_service,
-                              node_service_context.session_service_} {}
+        session_service_adapter{node_service_context.executor_,
+                                node_service_context.session_service_},
+        node_service_notifier{node_service, session_service_adapter} {}
 
   NodeServiceImplContext MakeNodeServiceImplContext(
       const NodeServiceContext& node_service_context) {
@@ -31,7 +33,8 @@ struct NodeServiceHolder {
   }
 
   NodeServiceImpl node_service;
-  SessionProxyNotifier<NodeServiceImpl> node_service_notifier;
+  scada::PromiseToCoroutineSessionServiceAdapter session_service_adapter;
+  CoroutineSessionProxyNotifier<NodeServiceImpl> node_service_notifier;
 };
 
 }  // namespace
