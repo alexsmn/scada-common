@@ -29,8 +29,7 @@ void EventAckQueue::PostAckPendingEvents() {
 
   if (!ack_pending_) {
     ack_pending_ = true;
-    // TODO: Captures `this`.
-    Dispatch(executor_, [this] { AckPendingEvents(); });
+    Dispatch(executor_, cancelation_, [this] { AckPendingEvents(); });
   }
 }
 

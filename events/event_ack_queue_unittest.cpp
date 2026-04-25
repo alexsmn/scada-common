@@ -110,3 +110,13 @@ TEST_F(EventAckQueueTest, DuplicateAckIsIgnoredWhilePending) {
   queue.Ack(42);
   DrainExecutor();
 }
+
+TEST_F(EventAckQueueTest, DestroyedQueueSuppressesPendingAckDispatch) {
+  {
+    auto queue = MakeQueue();
+    queue.OnChannelOpened(scada::id::Server);
+    queue.Ack(11);
+  }
+
+  DrainExecutor();
+}

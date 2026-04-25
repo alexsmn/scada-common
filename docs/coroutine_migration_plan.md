@@ -135,6 +135,10 @@ each slice is touched.
 - `EventAckQueue` now consumes `CoroutineMethodService` directly; the event
   fetcher builder and tests adapt callback method services at construction
   boundaries, keeping acknowledgement scheduling coroutine-first.
+- `EventAckQueue` pending acknowledgement dispatch is now cancellation-bound
+  before it touches queue state, so destroying the queue suppresses posted ack
+  drains as well as in-flight coroutine method calls; events tests cover the
+  destroyed-queue suppression path.
 - Node-service v1 `AddressSpaceFetcherImpl` and v2 `NodeServiceImpl` now
   receive coroutine attribute/view services directly; their factories and tests
   own the callback-to-coroutine adapters at construction boundaries.
