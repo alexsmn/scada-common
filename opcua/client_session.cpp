@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr std::size_t kOpcTcpPrefixLen = 9;  // "opc.tcp://"
+constexpr std::size_t kOpcTcpPrefixLen = 10;  // "opc.tcp://"
 
 }  // namespace
 

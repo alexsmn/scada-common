@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace opcua {
 class ClientSession;
@@ -48,6 +49,18 @@ class ClientSubscription
 
   void EnsureCreated();
   void StartPublishLoop();
+  void FlushPendingSubscriptions();
+  void SpawnCreateMonitoredItem(std::uint32_t local_id,
+                                scada::ReadValueId read_value_id,
+                                scada::MonitoringParameters params,
+                                scada::DataChangeHandler dispatch);
+
+  struct PendingSubscription {
+    std::uint32_t local_id = 0;
+    scada::ReadValueId read_value_id;
+    scada::MonitoringParameters params;
+    scada::DataChangeHandler dispatch;
+  };
 
   ClientSession& session_;
   std::unique_ptr<ClientProtocolSubscription> impl_;
@@ -59,6 +72,7 @@ class ClientSubscription
   // MonitoredItemId, set once the create completes.
   std::unordered_map<std::uint32_t, MonitoredItemId>
       server_ids_by_local_id_;
+  std::vector<PendingSubscription> pending_subscriptions_;
 };
 
 }  // namespace opcua

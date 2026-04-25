@@ -74,6 +74,11 @@ each slice is touched.
   weak coroutine dispatch helper instead of capturing raw session state in each
   wrapper; OPC UA tests cover all callback wrappers and destroyed-session
   callback suppression.
+- `ClientSubscription` lazy subscription and monitored-item operations now run
+  through weak coroutine tasks that keep subscription state alive across awaits;
+  pending monitored-item subscriptions are queued until server subscription
+  creation completes, and OPC UA tests cover the public client monitored-item
+  create/delete flow.
 - `ServerRuntime` publish-delay waiting now bridges delayed callbacks through
   `AwaitPromise` instead of a local `CallbackToAwaitable` adapter; OPC UA tests
   cover the injected scheduler callback path.
