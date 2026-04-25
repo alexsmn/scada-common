@@ -173,3 +173,8 @@ each slice is touched.
   for attribute/view services while preserving the legacy callback-service
   factory path; factory tests cover connected-session fetches through direct
   coroutine services for both implementations.
+- `EventFetcherBuilder` now has a coroutine-native construction path for
+  session, history, and method services while the legacy builder keeps adapter
+  ownership at the callback-service boundary; events tests cover connected
+  startup history refresh and acknowledgement dispatch through direct coroutine
+  services.
