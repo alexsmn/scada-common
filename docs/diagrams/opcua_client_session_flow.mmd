@@ -1,13 +1,13 @@
 sequenceDiagram
     participant Caller as Shared caller
     participant Factory as CreateOpcUaServices
-    participant Session as OpcUaSession
+    participant Session as OpcUaClientSession
     participant Channel as UA channel/session
-    participant Sub as OpcUaSubscription
+    participant Sub as OpcUaClientSubscription
     participant Peer as Remote OPC UA server
 
     Caller->>Factory: create data services
-    Factory->>Session: construct OpcUaSession
+    Factory->>Session: construct OpcUaClientSession
     Factory-->>Caller: DataServices bundle
 
     Caller->>Session: Connect(params)

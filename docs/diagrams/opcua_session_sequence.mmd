@@ -19,9 +19,9 @@ sequenceDiagram
     participant B as Browser (UaClient)
     participant WST as WebSocketTransport
     participant WS as OpcUaWsServer
-    participant RT as opcua::OpcUaRuntime
-    participant S as OpcUaSession
-    participant M as OpcUaSessionManager
+    participant RT as opcua::OpcUaServerRuntime
+    participant S as OpcUaServerSession
+    participant M as OpcUaServerSessionManager
     participant SEC as SecurityService
 
     Note over B,WST: WebSocketTransport accepts WS/WSS and enforces<br/>path, subprotocol, and allowed Origin
@@ -41,11 +41,11 @@ sequenceDiagram
     M->>SEC: authenticate(user, token)
     SEC-->>M: identity accepted
     M-->>RT: attached session + scada::ServiceContext
-    RT->>S: attach/create OpcUaSession
+    RT->>S: attach/create OpcUaServerSession
     S-->>B: requestHandle=2<br/>ActivateSessionResponse
 
     Note over B,M: Data plane opens after the session is attached
-    Note over B,RT: Implemented in common today: opcua::OpcUaRuntime routes decoded request bodies<br/>through OpcUaSessionManager, OpcUaSession, and opcua::OpcUaServiceHandler
+    Note over B,RT: Implemented in common today: opcua::OpcUaServerRuntime routes decoded request bodies<br/>through OpcUaServerSessionManager, OpcUaServerSession, and opcua::OpcUaServiceHandler
 
     Note over B,S: Connection drops, browser reconnects before timeout
     S->>RT: disconnect / detach
@@ -54,7 +54,7 @@ sequenceDiagram
     S->>RT: decoded request envelope
     RT->>M: ActivateSession(resume)
     M-->>RT: resumed attached session
-    RT->>S: reattach existing OpcUaSession
+    RT->>S: reattach existing OpcUaServerSession
     S-->>B: requestHandle=3<br/>ActivateSessionResponse(resumed=true)
 
     B->>S: requestHandle=4<br/>CloseSessionRequest

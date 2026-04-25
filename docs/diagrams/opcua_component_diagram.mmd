@@ -28,17 +28,17 @@ flowchart LR
 
     subgraph Adapters["Transport adapters"]
         direction TB
-        BIN["<b>Binary adapter</b><br/>opcua_binary_server<br/>opcua_binary_runtime"]
-        WS["<b>WebSocket adapter</b><br/>websocket_transport<br/>opcua_ws_server<br/>opcua_json_codec"]
+        BIN["<b>Binary adapter</b><br/>server<br/>runtime"]
+        WS["<b>WebSocket adapter</b><br/>websocket_transport<br/>server<br/>json_codec"]
     end
 
     subgraph Core["Shared canonical core"]
         direction TB
         MSG["<b>opcua:: message model</b><br/>OpcUaRequestBody / OpcUaResponseBody"]
-        RT["<b>opcua::OpcUaRuntime</b><br/>request routing"]
-        SMGR["<b>opcua::OpcUaSessionManager</b><br/>session lifecycle"]
-        SESS["<b>opcua::OpcUaSession</b><br/>live session state"]
-        SUB["<b>opcua::OpcUaSubscription</b><br/>publish + replay"]
+        RT["<b>opcua::OpcUaServerRuntime</b><br/>request routing"]
+        SMGR["<b>opcua::OpcUaServerSessionManager</b><br/>session lifecycle"]
+        SESS["<b>opcua::OpcUaServerSession</b><br/>live session state"]
+        SUB["<b>opcua::OpcUaServerSubscription</b><br/>publish + replay"]
         HANDLER["<b>opcua::OpcUaServiceHandler</b><br/>coroutine dispatch"]
     end
 

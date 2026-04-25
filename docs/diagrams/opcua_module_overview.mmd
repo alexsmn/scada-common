@@ -8,8 +8,8 @@ flowchart TD
 
     subgraph ClientSide["Client-side OPC UA runtime"]
         Factory["CreateOpcUaServices(...)<br/>DataServices factory"]
-        Session["common/opcua/OpcUaSession<br/>SessionService + service adapters"]
-        Subscription["common/opcua/OpcUaSubscription<br/>monitored-item batching"]
+        Session["common/opcua/OpcUaClientSession<br/>SessionService + service adapters"]
+        Subscription["common/opcua/OpcUaClientSubscription<br/>monitored-item batching"]
         Channel["opcuapp client channel + session<br/>remote opc.tcp endpoint"]
     end
 

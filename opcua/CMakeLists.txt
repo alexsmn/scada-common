@@ -1,10 +1,7 @@
 find_package(OpenSSL REQUIRED)
 
 scada_module(scada_core_opcua)
-scada_module_sources(scada_core_opcua PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/binary"
-  "${CMAKE_CURRENT_SOURCE_DIR}/client"
-  RECURSE)
+add_subdirectory(binary)
 
 target_precompile_headers(scada_core_opcua REUSE_FROM scada_base)
 
@@ -15,7 +12,7 @@ target_link_libraries(scada_core_opcua PUBLIC
   transport
 )
 
-# The Basic256Sha256 crypto helper under binary/client/ is the only
+# The Basic256Sha256 crypto helper under binary/ is the only
 # consumer of OpenSSL in this module; keep the link private.
 target_link_libraries(scada_core_opcua PRIVATE
   OpenSSL::SSL
@@ -23,7 +20,7 @@ target_link_libraries(scada_core_opcua PRIVATE
 )
 
 if(TARGET scada_core_opcua_unittests)
-  # opcua_binary_crypto_unittest.cpp generates its RSA test fixtures via
+  # crypto_unittest.cpp generates its RSA test fixtures via
   # OpenSSL directly.
   target_link_libraries(scada_core_opcua_unittests PRIVATE
     OpenSSL::SSL
