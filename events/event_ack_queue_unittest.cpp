@@ -51,6 +51,25 @@ TEST_F(EventAckQueueTest, AckDispatchesMethodCallFromCoroutineTask) {
   DrainExecutor();
 }
 
+TEST_F(EventAckQueueTest, AckAcceptsDelayedMethodCompletionThroughAdapter) {
+  auto queue = MakeQueue();
+  queue.OnChannelOpened(scada::id::Server);
+  scada::StatusCallback callback;
+
+  EXPECT_CALL(method_service_,
+              Call(_, _,
+                   ArgumentsContainEventIds(std::vector<scada::EventId>{11}),
+                   _, _))
+      .WillOnce(SaveArg<4>(&callback));
+
+  queue.Ack(11);
+  DrainExecutor();
+  ASSERT_TRUE(callback);
+
+  callback(scada::StatusCode::Good);
+  DrainExecutor();
+}
+
 TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
   auto queue = MakeQueue();
   queue.OnChannelOpened(scada::id::Server);

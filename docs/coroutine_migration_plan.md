@@ -104,10 +104,10 @@ each slice is touched.
   `CoroutineHistoryService` internally, with callback history services adapted
   once at construction boundaries; timed-data tests cover cleanup dispatch,
   explicit continuation-point release, and adapter-backed completion.
-- `EventFetcher` history refresh now consumes `CoroutineHistoryService`;
-  `EventAckQueue` acknowledgement dispatch still runs through coroutine tasks.
-  Events tests cover adapter-backed history refresh, dispatch, duplicate
-  suppression, and max-parallel scheduling.
+- `EventFetcher` history refresh now consumes `CoroutineHistoryService`, and
+  `EventAckQueue` owns a coroutine method-service adapter for acknowledgement
+  dispatch. Events tests cover adapter-backed history refresh and
+  acknowledgement dispatch, duplicate suppression, and max-parallel scheduling.
 - `EventFetcher` monitored-item event delivery now posts through coroutine
   tasks guarded by the fetcher's cancellation token; tests cover executor
   delivery and destroyed-fetcher suppression.
@@ -123,3 +123,7 @@ each slice is touched.
 - `ServerRuntime` publish-delay waiting now bridges delayed callbacks through
   `AwaitPromise` instead of a local `CallbackToAwaitable` adapter; OPC UA tests
   cover the injected scheduler callback path.
+- `ServiceHandler` now owns coroutine adapters for attribute, view, history,
+  method, and node-management services and no longer uses per-call
+  `scada/service_awaitable.h` helpers; OPC UA tests cover the canonical,
+  websocket, server-runtime, and binary dispatch paths.

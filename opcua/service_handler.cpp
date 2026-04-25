@@ -2,7 +2,7 @@
 
 #include "opcua/endpoint_core.h"
 
-#include "scada/service_awaitable.h"
+#include "scada/coroutine_services.h"
 
 #include <type_traits>
 #include <utility>
@@ -10,7 +10,25 @@
 namespace opcua {
 
 ServiceHandler::ServiceHandler(ServiceHandlerContext&& context)
-    : ServiceHandlerContext{std::move(context)} {}
+    : ServiceHandlerContext{std::move(context)},
+      attribute_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+              executor, attribute_service)},
+      view_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
+              executor, view_service)},
+      history_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
+              executor, history_service)},
+      method_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
+              executor, method_service)},
+      node_management_service_adapter_{
+          std::make_unique<
+              scada::CallbackToCoroutineNodeManagementServiceAdapter>(
+              executor, node_management_service)} {}
+
+ServiceHandler::~ServiceHandler() = default;
 
 Awaitable<ServiceResponse> ServiceHandler::Handle(
     ServiceRequest request) const {
@@ -50,8 +68,7 @@ Awaitable<ServiceResponse> ServiceHandler::Handle(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleRead(
     ReadRequest request) const {
-  auto [status, results] = co_await scada::ReadAsync(
-      executor, attribute_service,
+  auto [status, results] = co_await attribute_service_adapter_->Read(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::ReadValueId>>(
           std::move(request.inputs)));
@@ -62,8 +79,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleRead(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
     WriteRequest request) const {
-  auto [status, results] = co_await scada::WriteAsync(
-      executor, attribute_service,
+  auto [status, results] = co_await attribute_service_adapter_->Write(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::WriteValue>>(
           std::move(request.inputs)));
@@ -73,9 +89,8 @@ Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
     BrowseRequest request) const {
-  auto [status, results] = co_await scada::BrowseAsync(
-      executor, view_service, MakeServiceContext(user_id),
-      std::move(request.inputs));
+  auto [status, results] = co_await view_service_adapter_->Browse(
+      MakeServiceContext(user_id), std::move(request.inputs));
   co_return ServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
 }
@@ -83,8 +98,8 @@ Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
 Awaitable<ServiceResponse>
 ServiceHandler::HandleTranslateBrowsePaths(
     TranslateBrowsePathsRequest request) const {
-  auto [status, results] = co_await scada::TranslateBrowsePathsAsync(
-      executor, view_service, std::move(request.inputs));
+  auto [status, results] = co_await view_service_adapter_->TranslateBrowsePaths(
+      std::move(request.inputs));
   co_return ServiceResponse{
       TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
 }
@@ -94,9 +109,9 @@ Awaitable<ServiceResponse> ServiceHandler::HandleCall(
   CallResponse response;
   response.results.reserve(request.methods.size());
   for (auto& method : request.methods) {
-    auto status = co_await scada::CallAsync(
-        executor, method_service, std::move(method.object_id),
-        std::move(method.method_id), std::move(method.arguments), user_id);
+    auto status = co_await method_service_adapter_->Call(
+        std::move(method.object_id), std::move(method.method_id),
+        std::move(method.arguments), user_id);
     response.results.push_back(MethodCallResult{std::move(status)});
   }
 
@@ -105,48 +120,51 @@ Awaitable<ServiceResponse> ServiceHandler::HandleCall(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadRaw(
     HistoryReadRawRequest request) const {
-  auto result = co_await scada::HistoryReadRawAsync(executor, history_service,
-                                                    std::move(request.details));
+  auto result = co_await history_service_adapter_->HistoryReadRaw(
+      std::move(request.details));
   co_return ServiceResponse{HistoryReadRawResponse{std::move(result)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadEvents(
     HistoryReadEventsRequest request) const {
-  auto result = co_await scada::HistoryReadEventsAsync(
-      executor, history_service, std::move(request.details.node_id),
-      request.details.from, request.details.to, std::move(request.details.filter));
+  auto result = co_await history_service_adapter_->HistoryReadEvents(
+      std::move(request.details.node_id), request.details.from,
+      request.details.to, std::move(request.details.filter));
   co_return ServiceResponse{
       HistoryReadEventsResponse{std::move(result)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleAddNodes(
     AddNodesRequest request) const {
-  auto [status, results] = co_await scada::AddNodesAsync(
-      executor, node_management_service, std::move(request.items));
+  auto [status, results] = co_await node_management_service_adapter_->AddNodes(
+      std::move(request.items));
   co_return ServiceResponse{
       AddNodesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteNodes(
     DeleteNodesRequest request) const {
-  auto [status, results] = co_await scada::DeleteNodesAsync(
-      executor, node_management_service, std::move(request.items));
+  auto [status, results] =
+      co_await node_management_service_adapter_->DeleteNodes(
+          std::move(request.items));
   co_return ServiceResponse{
       DeleteNodesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleAddReferences(
     AddReferencesRequest request) const {
-  auto [status, results] = co_await scada::AddReferencesAsync(
-      executor, node_management_service, std::move(request.items));
+  auto [status, results] =
+      co_await node_management_service_adapter_->AddReferences(
+          std::move(request.items));
   co_return ServiceResponse{
       AddReferencesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteReferences(
     DeleteReferencesRequest request) const {
-  auto [status, results] = co_await scada::DeleteReferencesAsync(
-      executor, node_management_service, std::move(request.items));
+  auto [status, results] =
+      co_await node_management_service_adapter_->DeleteReferences(
+          std::move(request.items));
   co_return ServiceResponse{
       DeleteReferencesResponse{std::move(status), std::move(results)}};
 }

@@ -11,6 +11,14 @@
 
 #include <memory>
 
+namespace scada {
+class CallbackToCoroutineAttributeServiceAdapter;
+class CallbackToCoroutineHistoryServiceAdapter;
+class CallbackToCoroutineMethodServiceAdapter;
+class CallbackToCoroutineNodeManagementServiceAdapter;
+class CallbackToCoroutineViewServiceAdapter;
+}  // namespace scada
+
 namespace opcua {
 
 struct ServiceHandlerContext {
@@ -26,6 +34,7 @@ struct ServiceHandlerContext {
 class ServiceHandler : private ServiceHandlerContext {
  public:
   explicit ServiceHandler(ServiceHandlerContext&& context);
+  ~ServiceHandler();
 
   [[nodiscard]] Awaitable<ServiceResponse> Handle(
       ServiceRequest request) const;
@@ -53,6 +62,17 @@ class ServiceHandler : private ServiceHandlerContext {
       AddReferencesRequest request) const;
   [[nodiscard]] Awaitable<ServiceResponse> HandleDeleteReferences(
       DeleteReferencesRequest request) const;
+
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+      attribute_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
+      view_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
+      history_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
+      method_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
+      node_management_service_adapter_;
 };
 
 }  // namespace opcua
