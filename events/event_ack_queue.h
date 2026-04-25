@@ -1,8 +1,10 @@
 #pragma once
 
+#include "base/awaitable.h"
 #include "base/any_executor_dispatch.h"
 #include "scada/event.h"
 #include "scada/method_service.h"
+#include "scada/service_awaitable.h"
 
 #include <algorithm>
 #include <deque>
@@ -18,6 +20,8 @@ class EventAckQueue : private EventAckQueueContext {
  public:
   explicit EventAckQueue(EventAckQueueContext&& context)
       : EventAckQueueContext{std::move(context)} {}
+
+  ~EventAckQueue() { cancelation_.Cancel(); }
 
   void OnChannelOpened(const scada::NodeId& user_id) { user_id_ = user_id; }
 
@@ -50,6 +54,8 @@ class EventAckQueue : private EventAckQueueContext {
 
   // Acknowledger user ID.
   scada::NodeId user_id_;
+
+  Cancelation cancelation_;
 
   static const size_t kMaxParallelAcks = 5;
 };
@@ -93,10 +99,15 @@ inline void EventAckQueue::AckPendingEvents() {
   if (!event_ids.empty()) {
     logger_->WriteF(LogSeverity::Normal, "Acknowledge events {}",
                     ToString(event_ids));
-    method_service_.Call(scada::id::Server,
-                         scada::id::AcknowledgeableConditionType_Acknowledge,
-                         {event_ids, scada::DateTime::Now()}, user_id_,
-                         [](scada::Status&& status) {});
+    CoSpawn(executor_, cancelation_,
+            [executor = executor_, &method_service = method_service_,
+             event_ids = std::move(event_ids),
+             user_id = user_id_]() mutable -> Awaitable<void> {
+              co_await scada::CallAsync(
+                  executor, method_service, scada::id::Server,
+                  scada::id::AcknowledgeableConditionType_Acknowledge,
+                  {event_ids, scada::DateTime::Now()}, user_id);
+            });
   }
 
   PostAckPendingEvents();

@@ -3,12 +3,14 @@
 #include "base/cancelation.h"
 #include "base/debug_util.h"
 #include "base/any_executor_dispatch.h"
+#include "base/awaitable.h"
 #include "base/format_time.h"
 #include "base/interval.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "model/node_id_util.h"
 #include "scada/history_service.h"
+#include "scada/service_awaitable.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_util.h"
 
@@ -44,20 +46,17 @@ void TimedDataFetcher::FetchNextGap() {
   scada::HistoryReadRawDetails details{node_.node_id(), querying_range_.first,
                                        querying_range_.second, kMaxReadCount,
                                        aggregate_filter_};
-  // Canot use |BindCancelation| as |ScopedContinuationPoint| must always be
-  // handled.
-  history_service_.HistoryReadRaw(
-      details,
-      BindExecutor(executor_, [weak_ptr = weak_from_this(),
-                               &history_service = history_service_,
-                               details](scada::HistoryReadRawResult result) {
-        ScopedContinuationPoint scoped_continuation_point{
-            history_service, details, std::move(result.continuation_point)};
-        if (auto ptr = weak_ptr.lock()) {
-          ptr->OnHistoryReadRawComplete(std::move(result.values),
-                                        std::move(scoped_continuation_point));
-        }
-      }));
+  CoSpawn(executor_, weak_from_this(),
+          [details](std::shared_ptr<TimedDataFetcher> self)
+              -> Awaitable<void> {
+            auto result = co_await scada::HistoryReadRawAsync(
+                self->executor_, self->history_service_, details);
+            ScopedContinuationPoint scoped_continuation_point{
+                self->history_service_, details,
+                std::move(result.continuation_point)};
+            self->OnHistoryReadRawComplete(std::move(result.values),
+                                           std::move(scoped_continuation_point));
+          });
 }
 
 void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
@@ -92,20 +91,17 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
                                        aggregate_filter_,
                                        false,
                                        continuation_point.release()};
-  // Cannot use |BindCancelation| as |ScopedContinuationPoint| must always be
-  // handled.
-  history_service_.HistoryReadRaw(
-      details,
-      BindExecutor(executor_, [weak_ptr = weak_from_this(),
-                               &history_service = history_service_,
-                               details](scada::HistoryReadRawResult result) {
-        ScopedContinuationPoint scoped_continuation_point{
-            history_service, details, std::move(result.continuation_point)};
-        if (auto ptr = weak_ptr.lock()) {
-          ptr->OnHistoryReadRawComplete(std::move(result.values),
-                                        std::move(scoped_continuation_point));
-        }
-      }));
+  CoSpawn(executor_, weak_from_this(),
+          [details](std::shared_ptr<TimedDataFetcher> self)
+              -> Awaitable<void> {
+            auto result = co_await scada::HistoryReadRawAsync(
+                self->executor_, self->history_service_, details);
+            ScopedContinuationPoint scoped_continuation_point{
+                self->history_service_, details,
+                std::move(result.continuation_point)};
+            self->OnHistoryReadRawComplete(std::move(result.values),
+                                           std::move(scoped_continuation_point));
+          });
 }
 
 void TimedDataFetcher::OnHistoryReadRawComplete(

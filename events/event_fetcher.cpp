@@ -1,6 +1,7 @@
 #include "events/event_fetcher.h"
 
 #include "base/any_executor_dispatch.h"
+#include "base/awaitable.h"
 #include "base/logger.h"
 #include "base/range_util.h"
 #include "base/span_util.h"
@@ -12,6 +13,7 @@
 #include "scada/monitored_item_service.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
+#include "scada/service_awaitable.h"
 #include "scada/standard_node_ids.h"
 
 #include <boost/range/adaptor/filtered.hpp>
@@ -44,7 +46,9 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
       })));
 }
 
-EventFetcher::~EventFetcher() = default;
+EventFetcher::~EventFetcher() {
+  cancelation_.Cancel();
+}
 
 const EventFetcher::EventContainer& EventFetcher::unacked_events() const {
   return event_storage_.events();
@@ -139,14 +143,16 @@ void EventFetcher::AcknowledgeAllEvents() {
 }
 
 void EventFetcher::Update() {
-  history_service_.HistoryReadEvents(
-      scada::id::Server, {}, {},
-      scada::EventFilter{scada::EventFilter::UNACKED},
-      BindExecutor(executor_,
-                   cancelation_.Bind(
-                       [this](scada::HistoryReadEventsResult result) {
-                         OnHistoryReadEventsComplete(std::move(result));
-                       })));
+  CoSpawn(executor_, cancelation_,
+          [this, cancelation = cancelation_.ref()]() mutable
+              -> Awaitable<void> {
+            auto result = co_await scada::HistoryReadEventsAsync(
+                executor_, history_service_, scada::id::Server, {}, {},
+                scada::EventFilter{scada::EventFilter::UNACKED});
+            if (cancelation.canceled())
+              co_return;
+            OnHistoryReadEventsComplete(std::move(result));
+          });
 }
 
 void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {

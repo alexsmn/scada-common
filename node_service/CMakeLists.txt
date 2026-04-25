@@ -9,6 +9,10 @@ target_link_libraries(node_service PUBLIC
  scada_common
 )
 
+target_link_libraries(node_service PRIVATE
+  transport
+)
+
 # Implementations.
 
 add_subdirectory(v1)

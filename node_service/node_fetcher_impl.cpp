@@ -2,6 +2,9 @@
 
 #include "base/auto_reset.h"
 #include "base/any_executor_dispatch.h"
+#include "base/awaitable.h"
+#include "base/awaitable_promise.h"
+#include "base/promise.h"
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"
@@ -23,6 +26,10 @@ const size_t kMaxParallelRequestCount = 5;
 const size_t kPrimitiveRequestCount = 2;
 const size_t kFetchAttributesReserveFactor = 5;
 const size_t kFetchReferencesReserveFactor = 3;
+
+using ReadResult = std::tuple<scada::Status, std::vector<scada::DataValue>>;
+using BrowseResult =
+    std::tuple<scada::Status, std::vector<scada::BrowseResult>>;
 
 void LogUnexpectedAttributeValue(BoostLogger& logger,
                                  const FetchingNode& node,
@@ -273,14 +280,25 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   assert(AssertValid());
 
+  promise<ReadResult> read_promise;
+  CoSpawn(executor_, weak_from_this(),
+          [request_id, start_ticks,
+           read_promise,
+           read_ids](std::shared_ptr<NodeFetcherImpl> self)
+              -> Awaitable<void> {
+            auto [status, results] =
+                co_await AwaitPromise(self->executor_, read_promise);
+            self->OnReadResult(request_id, start_ticks, std::move(status),
+                               *read_ids, std::move(results));
+          });
   attribute_service_.Read(
       service_context_, read_ids,
       BindExecutor(
-          executor_, weak_from_this(),
-          [this, request_id, start_ticks, read_ids](
-              scada::Status status, std::vector<scada::DataValue> results) {
-            OnReadResult(request_id, start_ticks, std::move(status), *read_ids,
-                         std::move(results));
+          executor_, [read_promise](scada::Status status,
+                                    std::vector<scada::DataValue> results)
+                         mutable {
+            read_promise.resolve(
+                ReadResult{std::move(status), std::move(results)});
           }));
 
   // References
@@ -300,14 +318,24 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   assert(AssertValid());
 
+  promise<BrowseResult> browse_promise;
+  CoSpawn(executor_, weak_from_this(),
+          [request_id, start_ticks, browse_promise, descriptions](
+              std::shared_ptr<NodeFetcherImpl> self) mutable
+              -> Awaitable<void> {
+            auto [status, results] =
+                co_await AwaitPromise(self->executor_, browse_promise);
+            self->OnBrowseResult(request_id, start_ticks, std::move(status),
+                                 descriptions, std::move(results));
+          });
   view_service_.Browse(
       service_context_, descriptions,
       BindExecutor(
-          executor_, weak_from_this(),
-          [this, request_id, start_ticks, descriptions](
-              scada::Status status, std::vector<scada::BrowseResult> results) {
-            OnBrowseResult(request_id, start_ticks, std::move(status),
-                           std::move(descriptions), std::move(results));
+          executor_, [browse_promise](scada::Status status,
+                                      std::vector<scada::BrowseResult> results)
+                         mutable {
+            browse_promise.resolve(
+                BrowseResult{std::move(status), std::move(results)});
           }));
 }
 
