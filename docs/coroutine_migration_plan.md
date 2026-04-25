@@ -10,6 +10,8 @@ use the shared repo utilities:
 - `ToPromise(...)` and `AwaitPromise(...)` from `base/awaitable_promise.h`
 - `CallbackToAwaitable(...)` from `base/callback_awaitable.h`
 - SCADA service helpers from `scada/service_awaitable.h`
+- Coroutine SCADA service interfaces and adapters from
+  `scada/coroutine_services.h`
 
 Do not add common-specific async primitives.
 
@@ -22,6 +24,11 @@ Do not add common-specific async primitives.
 - Preserve `AnyExecutor` affinity and existing shutdown/cancelation behavior.
 - Use shared service awaitable helpers instead of open-coded
   callback-to-awaitable bridges.
+- Prefer `scada::Coroutine*Service` interfaces from
+  `core/scada/coroutine_services.h` for newly migrated internals. Use
+  `CallbackToCoroutine*ServiceAdapter` at legacy callback service boundaries
+  and `CoroutineToCallback*ServiceAdapter` only where downstream public APIs
+  still require callback services.
 - Treat adapters as compatibility boundaries, not as permanent layering for
   each class.
 
@@ -30,17 +37,45 @@ Do not add common-specific async primitives.
 - `common/node_service`: migrate service request dispatch inside
   `NodeFetcherImpl` and `NodeChildrenFetcher` while preserving batching,
   request IDs, late-response cancellation, queued-child cancellation, and
-  fetched-node notification behavior.
+  fetched-node notification behavior. New request pipelines should depend on
+  coroutine SCADA service interfaces where practical, adapting legacy
+  `AttributeService` and `ViewService` dependencies at module boundaries.
 - `common/timed_data`: migrate history-read gaps to coroutine helpers while
-  preserving continuation-point cleanup.
+  preserving continuation-point cleanup. Move internal history access toward
+  `CoroutineHistoryService`; keep `HistoryService` adapters only at public
+  callback-facing boundaries.
 - `common/events`: migrate event history refresh and acknowledgement calls to
   coroutine tasks while preserving observer, queueing, and max-parallel-ack
-  behavior.
+  behavior. Event history and acknowledgement internals should consume
+  coroutine service interfaces once their owning services can supply them.
 - `common/opcua`: keep existing binary/client coroutine code as the reference
   pattern and remove local bridges where shared service awaitable helpers
   already cover the same boundary. Legacy callback entry points should only
   schedule coroutine work through a weak-session dispatch point so queued
-  callbacks do not touch torn-down client state.
+  callbacks do not touch torn-down client state. Prefer coroutine SCADA service
+  adapters for server/runtime dependencies rather than wrapping individual
+  callback methods at each call site.
+
+## Coroutine Service Migration
+
+The next stage is to migrate common internals from callback SCADA service
+interfaces (`AttributeService`, `HistoryService`, `ViewService`,
+`MethodService`, `NodeManagementService`, and `SessionService`) to the
+coroutine service interfaces in `core/scada/coroutine_services.h`.
+
+- Use `CoroutineAttributeService`, `CoroutineHistoryService`,
+  `CoroutineViewService`, `CoroutineMethodService`,
+  `CoroutineNodeManagementService`, and `CoroutineSessionService` as internal
+  dependencies for migrated code.
+- Use `CallbackToCoroutine*ServiceAdapter` to wrap existing callback services
+  when a module has not yet been converted end to end.
+- Use `CoroutineToCallback*ServiceAdapter` to preserve existing public callback
+  APIs while the implementation behind them is coroutine-first.
+- Keep `scada/service_awaitable.h` helpers for narrow transitional call sites,
+  but do not add new local callback-to-awaitable wrappers in `common/`.
+- Tests for each converted module should cover both synchronous callback
+  completion through adapters and delayed executor completion, so adapter
+  scheduling and lifetime behavior stay explicit.
 
 ## Verification
 
@@ -48,6 +83,7 @@ Build and run the focused common unit targets:
 
 - `node_service_unittests`
 - `timed_data_unittests`
+- `scada_common_events_unittests`
 - `scada_core_opcua_unittests`
 
 Add targeted tests for synchronous service completion, late response
@@ -62,14 +98,14 @@ each slice is touched.
 - `NodeChildrenFetcher` now routes browse completion handling through a
   coroutine continuation and has coverage for delayed completion, merge
   behavior, and queued-child cancellation.
-- `TimedDataFetcher` history reads now use coroutine tasks while preserving
-  continuation-point ownership.
-- `ScopedContinuationPoint` now releases history continuation points through a
-  detached coroutine using `HistoryReadRawAsync`; timed-data tests cover
-  cleanup dispatch and explicit continuation-point release.
-- `EventFetcher` history refresh and `EventAckQueue` acknowledgement dispatch
-  now use coroutine tasks; `EventAckQueue` has coverage for dispatch,
-  duplicate suppression, and max-parallel scheduling.
+- `TimedDataFetcher` and `ScopedContinuationPoint` now consume
+  `CoroutineHistoryService` internally, with callback history services adapted
+  once at construction boundaries; timed-data tests cover cleanup dispatch,
+  explicit continuation-point release, and adapter-backed completion.
+- `EventFetcher` history refresh now consumes `CoroutineHistoryService`;
+  `EventAckQueue` acknowledgement dispatch still runs through coroutine tasks.
+  Events tests cover adapter-backed history refresh, dispatch, duplicate
+  suppression, and max-parallel scheduling.
 - `EventFetcher` monitored-item event delivery now posts through coroutine
   tasks guarded by the fetcher's cancellation token; tests cover executor
   delivery and destroyed-fetcher suppression.

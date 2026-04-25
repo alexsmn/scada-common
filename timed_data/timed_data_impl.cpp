@@ -7,6 +7,7 @@
 #include "events/event_set.h"
 #include "events/node_event_provider.h"
 #include "model/node_id_util.h"
+#include "scada/coroutine_services.h"
 #include "scada/monitoring_parameters.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_observer.h"
@@ -19,10 +20,15 @@ TimedDataImpl::TimedDataImpl(scada::AggregateFilter aggregate_filter,
                              TimedDataContext context)
     : TimedDataContext{std::move(context)},
       aggregate_filter_{std::move(aggregate_filter)},
-      timed_data_fetcher_{
+      history_service_{
           services_.history_service
+              ? std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
+                    executor_, *services_.history_service)
+              : nullptr},
+      timed_data_fetcher_{
+          history_service_
               ? std::make_shared<TimedDataFetcher>(TimedDataFetcherContext{
-                    timed_data_view_, executor_, *services_.history_service,
+                    timed_data_view_, executor_, *history_service_,
                     aggregate_filter_})
               : nullptr} {}
 

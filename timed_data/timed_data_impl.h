@@ -7,6 +7,12 @@
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
 
+#include <memory>
+
+namespace scada {
+class CoroutineHistoryService;
+}
+
 class TimedDataFetcher;
 
 class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
@@ -46,6 +52,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                                    const EventSet& events) override;
 
   const scada::AggregateFilter aggregate_filter_;
+  std::unique_ptr<scada::CoroutineHistoryService> history_service_;
 
   NodeRef node_;
   scada::monitored_item monitored_item_;

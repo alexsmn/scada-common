@@ -6,7 +6,7 @@
 struct TimedDataFetcherContext {
   TimedDataView& timed_data_view_;
   AnyExecutor executor_;
-  scada::HistoryService& history_service_;
+  scada::CoroutineHistoryService& history_service_;
   const scada::AggregateFilter aggregate_filter_;
 };
 

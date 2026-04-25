@@ -11,6 +11,7 @@
 #include "node_service/node_model_mock.h"
 #include "node_service/node_service_mock.h"
 #include "node_service/static/static_node_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
@@ -37,6 +38,8 @@ class TimedDataTest : public Test {
   StrictMock<scada::MockMethodService> method_service_;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
   StrictMock<scada::MockHistoryService> history_service_;
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter_{
+      MakeTestAnyExecutor(executor_), history_service_};
   NiceMock<MockNodeEventProvider> node_event_provider_;
 
   StaticNodeService node_service_{
@@ -180,7 +183,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
       }));
 
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_, details,
+      MakeTestAnyExecutor(executor_), history_service_adapter_, details,
       continuation_point};
   scoped_continuation_point.reset();
 
@@ -199,7 +202,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   EXPECT_CALL(history_service_, HistoryReadRaw(_, _)).Times(0);
 
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_, details,
+      MakeTestAnyExecutor(executor_), history_service_adapter_, details,
       continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();

@@ -10,7 +10,7 @@
 #include "common/timed_data_util.h"
 #include "model/node_id_util.h"
 #include "scada/history_service.h"
-#include "scada/service_awaitable.h"
+#include "scada/coroutine_services.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_util.h"
 
@@ -49,8 +49,8 @@ void TimedDataFetcher::FetchNextGap() {
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self)
               -> Awaitable<void> {
-            auto result = co_await scada::HistoryReadRawAsync(
-                self->executor_, self->history_service_, details);
+            auto result =
+                co_await self->history_service_.HistoryReadRaw(details);
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};
@@ -94,8 +94,8 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self)
               -> Awaitable<void> {
-            auto result = co_await scada::HistoryReadRawAsync(
-                self->executor_, self->history_service_, details);
+            auto result =
+                co_await self->history_service_.HistoryReadRaw(details);
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};

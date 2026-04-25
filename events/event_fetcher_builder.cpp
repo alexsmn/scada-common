@@ -5,6 +5,7 @@
 #include "events/event_fetcher.h"
 #include "events/event_fetcher_notifier.h"
 #include "events/event_storage.h"
+#include "scada/coroutine_services.h"
 
 namespace internal {
 
@@ -22,10 +23,13 @@ struct EventFetcherHolder : EventFetcherBuilder {
                            .executor_ = executor_,
                            .method_service_ = *services_.method_service}};
 
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_{
+      executor_, *services_.history_service};
+
   EventFetcher event_fetcher_{EventFetcherContext{
       .executor_ = executor_,
       .monitored_item_service_ = *services_.monitored_item_service,
-      .history_service_ = *services_.history_service,
+      .history_service_ = history_service_,
       .logger_ = nested_logger_,
       .event_storage_ = event_storage_,
       .event_ack_queue_ = event_ack_queue_}};

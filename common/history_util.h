@@ -2,11 +2,10 @@
 
 #include "base/any_executor.h"
 #include "base/awaitable.h"
-#include "scada/history_service.h"
-#include "scada/service_awaitable.h"
+#include "scada/coroutine_services.h"
 
 inline void CancelHistory(AnyExecutor executor,
-                          scada::HistoryService& service,
+                          scada::CoroutineHistoryService& service,
                           const scada::HistoryReadRawDetails& details,
                           scada::ByteString&& continuation_point) {
   assert(!continuation_point.empty());
@@ -14,13 +13,11 @@ inline void CancelHistory(AnyExecutor executor,
   auto cancel_details = details;
   cancel_details.release_continuation_point = true;
   cancel_details.continuation_point = std::move(continuation_point);
-  auto cleanup_executor = executor;
   CoSpawn(std::move(executor),
-          [cleanup_executor = std::move(cleanup_executor), &service,
-           cancel_details = std::move(cancel_details)]() mutable
+          [&service, cancel_details = std::move(cancel_details)]() mutable
               -> Awaitable<void> {
-            [[maybe_unused]] auto result = co_await scada::HistoryReadRawAsync(
-                std::move(cleanup_executor), service, std::move(cancel_details));
+            [[maybe_unused]] auto result =
+                co_await service.HistoryReadRaw(std::move(cancel_details));
           });
 }
 
@@ -31,7 +28,7 @@ class ScopedContinuationPoint {
   ScopedContinuationPoint() {}
 
   ScopedContinuationPoint(AnyExecutor executor,
-                          scada::HistoryService& service,
+                          scada::CoroutineHistoryService& service,
                           scada::HistoryReadRawDetails details,
                           scada::ByteString continuation_point)
       : executor_{std::move(executor)},
@@ -84,7 +81,7 @@ class ScopedContinuationPoint {
 
  private:
   AnyExecutor executor_;
-  scada::HistoryService* service_ = nullptr;
+  scada::CoroutineHistoryService* service_ = nullptr;
   scada::HistoryReadRawDetails details_;
   scada::ByteString continuation_point_;
 };

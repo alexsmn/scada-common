@@ -7,12 +7,11 @@
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
-#include "scada/history_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
-#include "scada/service_awaitable.h"
 #include "scada/standard_node_ids.h"
 
 #include <boost/range/adaptor/filtered.hpp>
@@ -152,8 +151,8 @@ void EventFetcher::Update() {
   CoSpawn(executor_, cancelation_,
           [this, cancelation = cancelation_.ref()]() mutable
               -> Awaitable<void> {
-            auto result = co_await scada::HistoryReadEventsAsync(
-                executor_, history_service_, scada::id::Server, {}, {},
+            auto result = co_await history_service_.HistoryReadEvents(
+                scada::id::Server, {}, {},
                 scada::EventFilter{scada::EventFilter::UNACKED});
             if (cancelation.canceled())
               co_return;

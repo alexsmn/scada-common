@@ -7,7 +7,7 @@
 #include "events/node_event_provider.h"
 
 namespace scada {
-class HistoryService;
+class CoroutineHistoryService;
 class MonitoredItem;
 class MonitoredItemService;
 struct HistoryReadEventsResult;
@@ -21,7 +21,7 @@ class Logger;
 struct EventFetcherContext {
   AnyExecutor executor_;
   scada::MonitoredItemService& monitored_item_service_;
-  scada::HistoryService& history_service_;
+  scada::CoroutineHistoryService& history_service_;
   const std::shared_ptr<const Logger> logger_;
   EventStorage& event_storage_;
   EventAckQueue& event_ack_queue_;
