@@ -7,7 +7,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace opcua::detail {
+namespace opcua::ws::detail {
 
 namespace {
 
@@ -631,4 +631,4 @@ SetMonitoringModeResponse DecodeSetMonitoringModeResponse(
   return DecodeMultiStatusResponse<SetMonitoringModeResponse>(json);
 }
 
-}  // namespace opcua::detail
+}  // namespace opcua::ws::detail

@@ -9,7 +9,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace opcua {
+namespace opcua::ws {
 
 namespace detail {
 boost::json::value EncodeCreateSubscriptionRequest(
@@ -608,4 +608,4 @@ ResponseMessage DecodeResponseMessage(const boost::json::value& json) {
   return message;
 }
 
-}  // namespace opcua
+}  // namespace opcua::ws

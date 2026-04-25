@@ -14,11 +14,11 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::ws {
 
 namespace {
 
-BoostLogger logger_{LOG_NAME("WsServer")};
+BoostLogger logger_{LOG_NAME("Server")};
 std::atomic_uint64_t next_connection_id_{1};
 
 template <typename T>
@@ -40,10 +40,10 @@ struct ConnectionTaskState {
 
 }  // namespace
 
-WsServer::WsServer(WsServerContext&& context)
-    : WsServerContext{std::move(context)} {}
+Server::Server(ServerContext&& context)
+    : ServerContext{std::move(context)} {}
 
-Awaitable<transport::error_code> WsServer::Open() {
+Awaitable<transport::error_code> Server::Open() {
   if (opened_)
     co_return transport::OK;
 
@@ -57,7 +57,7 @@ Awaitable<transport::error_code> WsServer::Open() {
   co_return transport::OK;
 }
 
-Awaitable<transport::error_code> WsServer::Close() {
+Awaitable<transport::error_code> Server::Close() {
   if (!opened_)
     co_return transport::OK;
 
@@ -65,11 +65,11 @@ Awaitable<transport::error_code> WsServer::Close() {
   co_return co_await acceptor.close();
 }
 
-Awaitable<void> WsServer::ServeConnection(transport::any_transport transport) {
+Awaitable<void> Server::ServeConnection(transport::any_transport transport) {
   co_await RunConnection(std::move(transport));
 }
 
-Awaitable<void> WsServer::AcceptLoop() {
+Awaitable<void> Server::AcceptLoop() {
   while (opened_) {
     auto accepted = co_await acceptor.accept();
     if (!accepted.ok())
@@ -84,7 +84,7 @@ Awaitable<void> WsServer::AcceptLoop() {
   }
 }
 
-Awaitable<void> WsServer::RunConnection(transport::any_transport transport) {
+Awaitable<void> Server::RunConnection(transport::any_transport transport) {
   auto state =
       std::make_shared<ConnectionTaskState>(std::move(transport));
   [[maybe_unused]] auto open_result = co_await state->transport.open();
@@ -155,4 +155,4 @@ Awaitable<void> WsServer::RunConnection(transport::any_transport transport) {
   [[maybe_unused]] auto close_result = co_await state->transport.close();
 }
 
-}  // namespace opcua
+}  // namespace opcua::ws

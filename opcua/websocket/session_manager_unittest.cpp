@@ -8,10 +8,10 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
-class WsSessionManagerTest : public Test {
+class SessionManagerTest : public Test {
  protected:
   static scada::NodeId NumericNode(scada::NumericId id,
                                    scada::NamespaceIndex ns = 2) {
@@ -35,7 +35,7 @@ class WsSessionManagerTest : public Test {
   }
 };
 
-TEST_F(WsSessionManagerTest, CreateActivateDetachResumeAndClose) {
+TEST_F(SessionManagerTest, CreateActivateDetachResumeAndClose) {
   const auto expected_user_id = scada::NodeId{42, 4};
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
       [expected_user_id](scada::LocalizedText user_name,
@@ -95,7 +95,7 @@ TEST_F(WsSessionManagerTest, CreateActivateDetachResumeAndClose) {
   EXPECT_FALSE(manager.FindSession(created.authentication_token).has_value());
 }
 
-TEST_F(WsSessionManagerTest, ActivateMissingSessionRejected) {
+TEST_F(SessionManagerTest, ActivateMissingSessionRejected) {
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
       [](scada::LocalizedText, scada::LocalizedText)
           -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
@@ -111,7 +111,7 @@ TEST_F(WsSessionManagerTest, ActivateMissingSessionRejected) {
   EXPECT_EQ(response.status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
 }
 
-TEST_F(WsSessionManagerTest, PendingSessionTimeoutIsPruned) {
+TEST_F(SessionManagerTest, PendingSessionTimeoutIsPruned) {
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
                                  [](scada::LocalizedText, scada::LocalizedText)
                                      -> Awaitable<scada::StatusOr<
@@ -131,7 +131,7 @@ TEST_F(WsSessionManagerTest, PendingSessionTimeoutIsPruned) {
   EXPECT_FALSE(manager.FindSession(created.authentication_token).has_value());
 }
 
-TEST_F(WsSessionManagerTest, AnonymousActivationUsesRevisedTimeout) {
+TEST_F(SessionManagerTest, AnonymousActivationUsesRevisedTimeout) {
   const auto null_user_id = scada::NodeId{};
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
       [](scada::LocalizedText, scada::LocalizedText)
@@ -166,7 +166,7 @@ TEST_F(WsSessionManagerTest, AnonymousActivationUsesRevisedTimeout) {
   EXPECT_FALSE(manager.FindSession(created.authentication_token).has_value());
 }
 
-TEST_F(WsSessionManagerTest, ExpiredActivatedSessionCannotResume) {
+TEST_F(SessionManagerTest, ExpiredActivatedSessionCannotResume) {
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
                                  [](scada::LocalizedText,
                                     scada::LocalizedText)
@@ -205,7 +205,7 @@ TEST_F(WsSessionManagerTest, ExpiredActivatedSessionCannotResume) {
   EXPECT_EQ(resumed.status.code(), scada::StatusCode::Bad_SessionIsLoggedOff);
 }
 
-TEST_F(WsSessionManagerTest, SingleSessionUsersRequireDeleteExisting) {
+TEST_F(SessionManagerTest, SingleSessionUsersRequireDeleteExisting) {
   auto manager = MakeManager(scada::MakeCoroutineAuthenticator(
       [](scada::LocalizedText, scada::LocalizedText)
           -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
@@ -250,4 +250,4 @@ TEST_F(WsSessionManagerTest, SingleSessionUsersRequireDeleteExisting) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

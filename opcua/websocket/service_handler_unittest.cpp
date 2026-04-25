@@ -16,7 +16,7 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 class ServiceHandlerTest : public Test {
@@ -399,4 +399,4 @@ TEST_F(ServiceHandlerTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

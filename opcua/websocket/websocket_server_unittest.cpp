@@ -32,7 +32,7 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 namespace http = boost::beast::http;
@@ -273,7 +273,7 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(86));
 }
 
-class WsWebSocketServerTest : public Test {
+class WebSocketServerTest : public Test {
  protected:
   void SetUp() override {
     work_.emplace(boost::asio::make_work_guard(io_context_));
@@ -364,7 +364,7 @@ class WsWebSocketServerTest : public Test {
             },
         });
     acceptor_ = acceptor.get();
-    server_.emplace(WsServerContext{
+    server_.emplace(ServerContext{
         .acceptor = transport::any_transport{std::move(acceptor)},
         .runtime = *runtime_,
         .max_message_size = 4 * 1024 * 1024,
@@ -399,10 +399,10 @@ class WsWebSocketServerTest : public Test {
           })}};
   std::optional<ServerRuntime> runtime_;
   transport::WebSocketTransport* acceptor_ = nullptr;
-  std::optional<WsServer> server_;
+  std::optional<Server> server_;
 };
 
-TEST_F(WsWebSocketServerTest,
+TEST_F(WebSocketServerTest,
        AcceptsValidHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer();
 
@@ -432,7 +432,7 @@ TEST_F(WsWebSocketServerTest,
   client.Close();
 }
 
-TEST_F(WsWebSocketServerTest,
+TEST_F(WebSocketServerTest,
        AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
@@ -465,7 +465,7 @@ TEST_F(WsWebSocketServerTest,
   client.Close();
 }
 
-TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowList) {
+TEST_F(WebSocketServerTest, RejectsOriginOutsideAllowList) {
   StartServer();
 
   BeastClient client;
@@ -474,7 +474,7 @@ TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowList) {
       boost::system::system_error);
 }
 
-TEST_F(WsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
+TEST_F(WebSocketServerTest, RejectsMissingRequiredSubprotocol) {
   StartServer();
 
   BeastClient client;
@@ -482,7 +482,7 @@ TEST_F(WsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
                boost::system::system_error);
 }
 
-TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
+TEST_F(WebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
   StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
       .private_key_pem = kTestPrivateKeyPem,
@@ -494,7 +494,7 @@ TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
       boost::system::system_error);
 }
 
-TEST_F(WsWebSocketServerTest,
+TEST_F(WebSocketServerTest,
        PublishDoesNotBlockCreateMonitoredItemsOnSameSocket) {
   StartServer();
 
@@ -553,4 +553,4 @@ TEST_F(WsWebSocketServerTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

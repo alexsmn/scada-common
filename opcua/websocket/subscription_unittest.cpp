@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -42,7 +42,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
-TEST(WsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
+TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 10:00:00");
   ServerSubscription subscription{
@@ -112,7 +112,7 @@ TEST(WsSubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   EXPECT_EQ(republish_second.notification_message.sequence_number, 2u);
 }
 
-TEST(WsSubscriptionTest,
+TEST(SubscriptionTest,
      ReportsSpecStatusesForUnknownMonitoredItemsAndUnknownSequenceNumbers) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 15:00:00");
@@ -162,7 +162,7 @@ TEST(WsSubscriptionTest,
             scada::StatusCode::Bad_MessageNotAvailable);
 }
 
-TEST(WsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
+TEST(SubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 11:00:00");
   ServerSubscription subscription{
@@ -216,7 +216,7 @@ TEST(WsSubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
   EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 77.0);
 }
 
-TEST(WsSubscriptionTest,
+TEST(SubscriptionTest,
      WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 11:30:00");
@@ -269,7 +269,7 @@ TEST(WsSubscriptionTest,
   EXPECT_TRUE(keep_alive->notification_message.notification_data.empty());
 }
 
-TEST(WsSubscriptionTest,
+TEST(SubscriptionTest,
      ProjectsDefaultEventFieldsAndDropsOldQueuedEventsByQueueSize) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 12:00:00");
@@ -339,7 +339,7 @@ TEST(WsSubscriptionTest,
   EXPECT_EQ(events->events[0].event_fields[2].get<scada::UInt32>(), 700u);
 }
 
-TEST(WsSubscriptionTest,
+TEST(SubscriptionTest,
      RebindsModifiedItemsAndIgnoresLateCallbacksFromPreviousBinding) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 13:00:00");
@@ -409,7 +409,7 @@ TEST(WsSubscriptionTest,
                    .has_value());
 }
 
-TEST(WsSubscriptionTest,
+TEST(SubscriptionTest,
      CreateMonitoredItemsReportsPreciseStatusForUnknownNodeAndBadAttribute) {
   TestMonitoredItemService monitored_item_service;
   monitored_item_service.return_null_for_all_requests = true;
@@ -456,4 +456,4 @@ TEST(WsSubscriptionTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

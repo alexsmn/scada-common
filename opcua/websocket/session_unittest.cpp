@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -48,7 +48,7 @@ ServerSession MakeSession(scada::MonitoredItemService& monitored_item_service,
   }};
 }
 
-TEST(WsSessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) {
+TEST(SessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 14:00:00");
   auto session = MakeSession(monitored_item_service, [&] { return now; });
@@ -122,7 +122,7 @@ TEST(WsSessionTest, PublishesAcrossSubscriptionsRoundRobinAndAcknowledges) {
   EXPECT_EQ(republish.status.code(), scada::StatusCode::Good);
 }
 
-TEST(WsSessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
+TEST(SessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 15:00:00");
   auto session = MakeSession(monitored_item_service, [&] { return now; });
@@ -156,7 +156,7 @@ TEST(WsSessionTest, PrimesKeepAliveAndHonorsPublishingMode) {
   EXPECT_EQ(disabled_publish.notification_message.sequence_number, 1u);
 }
 
-TEST(WsSessionTest,
+TEST(SessionTest,
      PollPublishRechecksWithinPublishingIntervalBeforeKeepAliveDeadline) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 15:30:00");
@@ -174,7 +174,7 @@ TEST(WsSessionTest,
   EXPECT_EQ(*poll.wait_for, base::TimeDelta::FromMilliseconds(100));
 }
 
-TEST(WsSessionTest, RoutesMonitoredItemOperationsToSubscription) {
+TEST(SessionTest, RoutesMonitoredItemOperationsToSubscription) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 16:00:00");
   auto session = MakeSession(monitored_item_service, [&] { return now; });
@@ -228,7 +228,7 @@ TEST(WsSessionTest, RoutesMonitoredItemOperationsToSubscription) {
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
 }
 
-TEST(WsSessionTest, TransfersSubscriptionsBetweenSessions) {
+TEST(SessionTest, TransfersSubscriptionsBetweenSessions) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 17:00:00");
   auto source = MakeSession(monitored_item_service, [&] { return now; });
@@ -274,7 +274,7 @@ TEST(WsSessionTest, TransfersSubscriptionsBetweenSessions) {
   EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 55.0);
 }
 
-TEST(WsSessionTest, StoresBrowseContinuationPointsAndResumesPages) {
+TEST(SessionTest, StoresBrowseContinuationPointsAndResumesPages) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 17:30:00");
   auto session = MakeSession(monitored_item_service, [&] { return now; });
@@ -314,7 +314,7 @@ TEST(WsSessionTest, StoresBrowseContinuationPointsAndResumesPages) {
   EXPECT_EQ(invalid.results[0].status_code, scada::StatusCode::Bad_WrongIndex);
 }
 
-TEST(WsSessionTest, ReleasesBrowseContinuationPointsWithoutReturningData) {
+TEST(SessionTest, ReleasesBrowseContinuationPointsWithoutReturningData) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 17:40:00");
   auto session = MakeSession(monitored_item_service, [&] { return now; });
@@ -344,4 +344,4 @@ TEST(WsSessionTest, ReleasesBrowseContinuationPointsWithoutReturningData) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

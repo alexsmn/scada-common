@@ -5,7 +5,7 @@
 
 #include <boost/json/value.hpp>
 
-namespace opcua {
+namespace opcua::ws {
 
 boost::json::value EncodeJson(const ServiceRequest& request);
 boost::json::value EncodeJson(const ServiceResponse& response);
@@ -17,4 +17,4 @@ ServiceResponse DecodeServiceResponse(const boost::json::value& json);
 RequestMessage DecodeRequestMessage(const boost::json::value& json);
 ResponseMessage DecodeResponseMessage(const boost::json::value& json);
 
-}  // namespace opcua
+}  // namespace opcua::ws

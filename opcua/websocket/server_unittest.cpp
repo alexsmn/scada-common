@@ -22,7 +22,7 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -153,7 +153,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   }
 };
 
-class WsServerTest : public Test {
+class ServerTest : public Test {
  protected:
   std::string Encode(const RequestMessage& request) {
     return boost::json::serialize(EncodeJson(request));
@@ -201,8 +201,8 @@ class WsServerTest : public Test {
   }};
   std::shared_ptr<AcceptorState> acceptor_state_ =
       std::make_shared<AcceptorState>();
-  std::unique_ptr<WsServer> server_ = std::make_unique<WsServer>(
-      WsServerContext{
+  std::unique_ptr<Server> server_ = std::make_unique<Server>(
+      ServerContext{
           .acceptor = transport::any_transport{ScriptedAcceptorTransport{
               any_executor_, acceptor_state_}},
           .runtime = runtime_,
@@ -210,7 +210,7 @@ class WsServerTest : public Test {
       });
 };
 
-TEST_F(WsServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
+TEST_F(ServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
   auto peer = std::make_shared<MessagePeerState>();
   peer->incoming.push_back(
       Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
@@ -260,7 +260,7 @@ TEST_F(WsServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
             scada::Variant{scada::LocalizedText{u"Pump"}});
 }
 
-TEST_F(WsServerTest, InvalidJsonProducesServiceFault) {
+TEST_F(ServerTest, InvalidJsonProducesServiceFault) {
   auto peer = std::make_shared<MessagePeerState>();
   peer->incoming.push_back("{not-json");
   ServePeer(peer);
@@ -272,7 +272,7 @@ TEST_F(WsServerTest, InvalidJsonProducesServiceFault) {
   EXPECT_EQ(fault->status.code(), scada::StatusCode::Bad_CantParseString);
 }
 
-TEST_F(WsServerTest, DisconnectDetachesSessionForResume) {
+TEST_F(ServerTest, DisconnectDetachesSessionForResume) {
   auto first_peer = std::make_shared<MessagePeerState>();
   first_peer->incoming.push_back(
       Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
@@ -301,7 +301,7 @@ TEST_F(WsServerTest, DisconnectDetachesSessionForResume) {
   EXPECT_TRUE(resumed.resumed);
 }
 
-TEST_F(WsServerTest, OpenAndCloseDriveAcceptorLifecycle) {
+TEST_F(ServerTest, OpenAndCloseDriveAcceptorLifecycle) {
   EXPECT_FALSE(acceptor_state_->opened);
   EXPECT_FALSE(acceptor_state_->closed);
 
@@ -314,4 +314,4 @@ TEST_F(WsServerTest, OpenAndCloseDriveAcceptorLifecycle) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

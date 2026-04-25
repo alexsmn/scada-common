@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <string_view>
 
-namespace opcua {
+namespace opcua::ws {
 
 namespace {
 
@@ -1639,4 +1639,4 @@ ServiceResponse DecodeServiceResponse(const boost::json::value& json) {
   ThrowJsonError("Unknown service response");
 }
 
-}  // namespace opcua
+}  // namespace opcua::ws

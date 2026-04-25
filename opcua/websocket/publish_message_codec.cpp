@@ -8,7 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace opcua::detail {
+namespace opcua::ws::detail {
 
 namespace {
 
@@ -378,4 +378,4 @@ TransferSubscriptionsResponse DecodeTransferSubscriptionsResponse(
   return DecodeMultiStatusResponse<TransferSubscriptionsResponse>(json);
 }
 
-}  // namespace opcua::detail
+}  // namespace opcua::ws::detail

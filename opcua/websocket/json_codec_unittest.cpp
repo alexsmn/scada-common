@@ -12,7 +12,7 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
@@ -1393,4 +1393,4 @@ TEST(JsonCodecTest, RejectsUnknownService) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

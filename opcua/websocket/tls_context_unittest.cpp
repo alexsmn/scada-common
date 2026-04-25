@@ -3,7 +3,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <gtest/gtest.h>
 
-namespace opcua {
+namespace opcua::ws {
 namespace {
 
 constexpr auto kTestCertificatePem = R"(-----BEGIN CERTIFICATE-----
@@ -57,7 +57,7 @@ mCzxKIlbzMnhGhGlzdKwqs5Uhw==
 -----END PRIVATE KEY-----
 )";
 
-TEST(WsTlsContextTest, LoadsValidPemCertificateAndKey) {
+TEST(TlsContextTest, LoadsValidPemCertificateAndKey) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_EQ(
@@ -68,7 +68,7 @@ TEST(WsTlsContextTest, LoadsValidPemCertificateAndKey) {
       transport::OK);
 }
 
-TEST(WsTlsContextTest, RejectsInvalidCertificatePem) {
+TEST(TlsContextTest, RejectsInvalidCertificatePem) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_NE(
@@ -79,7 +79,7 @@ TEST(WsTlsContextTest, RejectsInvalidCertificatePem) {
       transport::OK);
 }
 
-TEST(WsTlsContextTest, RejectsInvalidPrivateKeyPem) {
+TEST(TlsContextTest, RejectsInvalidPrivateKeyPem) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_NE(
@@ -91,4 +91,4 @@ TEST(WsTlsContextTest, RejectsInvalidPrivateKeyPem) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::ws

@@ -3,11 +3,11 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ssl/context_base.hpp>
 
-namespace opcua {
+namespace opcua::ws {
 
 transport::error_code ConfigureServerTlsContext(
     boost::asio::ssl::context& context,
-    const WsTlsContextConfig& config) {
+    const TlsContextConfig& config) {
   boost::system::error_code ec;
 
   context.set_options(boost::asio::ssl::context::default_workarounds |
@@ -40,4 +40,4 @@ transport::error_code ConfigureServerTlsContext(
   return transport::OK;
 }
 
-}  // namespace opcua
+}  // namespace opcua::ws

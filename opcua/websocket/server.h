@@ -5,17 +5,17 @@
 #include <transport/any_transport.h>
 #include <transport/error.h>
 
-namespace opcua {
+namespace opcua::ws {
 
-struct WsServerContext {
+struct ServerContext {
   transport::any_transport acceptor;
   ServerRuntime& runtime;
   size_t max_message_size = 4 * 1024 * 1024;
 };
 
-class WsServer : private WsServerContext {
+class Server : private ServerContext {
  public:
-  explicit WsServer(WsServerContext&& context);
+  explicit Server(ServerContext&& context);
 
   [[nodiscard]] Awaitable<transport::error_code> Open();
   [[nodiscard]] Awaitable<transport::error_code> Close();
@@ -28,4 +28,4 @@ class WsServer : private WsServerContext {
   bool opened_ = false;
 };
 
-}  // namespace opcua
+}  // namespace opcua::ws

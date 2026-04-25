@@ -2,6 +2,7 @@
 
 #include "opcua/server_runtime_contract_test.h"
 
+#include <future>
 #include <gtest/gtest.h>
 
 namespace opcua {
@@ -154,6 +155,52 @@ TEST_F(ServerRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
 
 TEST_F(ServerRuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
   test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
+}
+
+TEST_F(ServerRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const auto created_subscription =
+      HandleResponse<CreateSubscriptionResponse>(
+          connection,
+          CreateSubscriptionRequest{
+              .parameters = {.publishing_interval_ms = 100,
+                             .lifetime_count = 60,
+                             .max_keep_alive_count = 3,
+                             .publishing_enabled = true}});
+  EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
+
+  promise<ResponseBody> publish_promise;
+  CoSpawn(MakeTestAnyExecutor(executor_),
+          [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
+            try {
+              publish_promise.resolve(
+                  co_await runtime_.Handle(connection,
+                                           RequestBody{PublishRequest{}}));
+            } catch (...) {
+              publish_promise.reject(std::current_exception());
+            }
+          });
+
+  const auto drain_ready = [&] {
+    for (size_t i = 0; i < 8; ++i)
+      executor_->Poll();
+  };
+
+  drain_ready();
+  EXPECT_EQ(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+
+  now_ = now_ + base::TimeDelta::FromMilliseconds(300);
+  executor_->Advance(300ms);
+  drain_ready();
+  ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+
+  const auto publish_message = publish_promise.get();
+  const auto* publish = std::get_if<PublishResponse>(&publish_message);
+  ASSERT_NE(publish, nullptr);
+  EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
+  EXPECT_TRUE(publish->notification_message.notification_data.empty());
 }
 
 }  // namespace
