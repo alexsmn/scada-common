@@ -2,10 +2,7 @@
 
 #include "address_space/address_space_impl.h"
 #include "address_space/object.h"
-#include "scada/attribute_service_mock.h"
-#include "scada/method_service_mock.h"
 #include "scada/monitored_item.h"
-#include "scada/monitored_item_service_mock.h"
 
 #include <gmock/gmock.h>
 
@@ -34,15 +31,10 @@ TEST(NodeModelImpl, Fetch) {
 
   AddressSpaceImpl address_space;
   MockAddressSpaceNodeModelDelegate delegate;
-  NiceMock<scada::MockAttributeService> attribute_service;
-  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-  NiceMock<scada::MockMethodService> method_service;
   NodeModelImpl node{NodeModelImplContext{
-      delegate,
-      kNodeId,
-      attribute_service,
-      monitored_item_service,
-      method_service,
+      .delegate_ = delegate,
+      .node_id_ = kNodeId,
+      .scada_node_ = {},
   }};
   EXPECT_CALL(delegate,
               OnNodeModelFetchRequested(kNodeId, NodeFetchStatus::NodeOnly()));

@@ -142,3 +142,6 @@ each slice is touched.
   and passes a shared `CoroutineHistoryService` dependency through
   `TimedDataContext`; `TimedDataImpl` no longer creates per-instance history
   adapters.
+- Removed stale callback attribute, method, and monitored-item service
+  dependencies from v1 `NodeServiceImpl`/`NodeModelImpl`; v1 node models now
+  keep only node state and the public `scada::node` handle they actually use.

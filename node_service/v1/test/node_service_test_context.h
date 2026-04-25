@@ -4,10 +4,11 @@
 #include "address_space/generic_node_factory.h"
 #include "address_space/test/test_address_space.h"
 #include "base/test/test_executor.h"
-#include "scada/method_service_mock.h"
-#include "scada/monitored_item_service_mock.h"
 #include "node_service/mock_node_observer.h"
+#include "node_service/v1/address_space_fetcher_mock.h"
 #include "node_service/v1/node_service_impl.h"
+
+#include <gmock/gmock.h>
 
 namespace v1 {
 
@@ -33,9 +34,6 @@ struct NodeServiceTestContext {
 
   GenericNodeFactory node_factory{client_address_space};
 
-  scada::MockMonitoredItemService monitored_item_service;
-  scada::MockMethodService method_service;
-
   scada::ViewEvents* view_events = nullptr;
 
   ViewEventsProvider view_events_provider = [this](scada::ViewEvents& events)
@@ -46,11 +44,24 @@ struct NodeServiceTestContext {
   };
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      executor, view_events_provider, server_address_space,
-      server_address_space, client_address_space, node_factory,
-      monitored_item_service, method_service}};
+      .address_space_fetcher_factory_ = MakeAddressSpaceFetcherFactory(),
+      .address_space_ = client_address_space,
+      .scada_client_ = {}}};
 
   testing::NiceMock<MockNodeObserver> node_observer;
+
+ private:
+  AddressSpaceFetcherFactory MakeAddressSpaceFetcherFactory() {
+    return [](AddressSpaceFetcherFactoryContext&& context) {
+      auto address_space_fetcher =
+          std::make_shared<testing::NiceMock<MockAddressSpaceFetcher>>();
+      ON_CALL(*address_space_fetcher, GetNodeFetchStatus(testing::_))
+          .WillByDefault(testing::Return(
+              std::make_pair(scada::Status{scada::StatusCode::Good},
+                             NodeFetchStatus::Max())));
+      return address_space_fetcher;
+    };
+  }
 };
 
 }  // namespace v1

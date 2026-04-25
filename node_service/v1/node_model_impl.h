@@ -6,9 +6,6 @@
 #include "node_service/base_node_model.h"
 
 namespace scada {
-class AttributeService;
-class MethodService;
-class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
 
@@ -33,10 +30,6 @@ class NodeModelDelegate {
 struct NodeModelImplContext {
   NodeModelDelegate& delegate_;
   const scada::NodeId node_id_;
-  // TODO: Remove and replace by `delegate_.GetScadaClient()`.
-  scada::AttributeService& attribute_service_;
-  scada::MonitoredItemService& monitored_item_service_;
-  scada::MethodService& method_service_;
   scada::node scada_node_;
 };
 

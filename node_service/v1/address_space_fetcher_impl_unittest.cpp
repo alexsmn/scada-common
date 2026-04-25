@@ -8,7 +8,6 @@
 #include "base/test/test_executor.h"
 #include "scada/coroutine_services.h"
 #include "scada/event.h"
-#include "scada/monitored_item_service_mock.h"
 #include "scada/service_context.h"
 
 #include <gmock/gmock.h>
@@ -46,8 +45,6 @@ class AddressSpaceFetcherImplTest : public Test {
       MakeTestAnyExecutor(executor_), server_address_space_};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
       MakeTestAnyExecutor(executor_), server_address_space_};
-
-  NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
 
   AddressSpaceImpl client_address_space_;
 

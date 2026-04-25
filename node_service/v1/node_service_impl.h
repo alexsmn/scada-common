@@ -23,10 +23,6 @@ struct NodeFetchStatusChangedItem;
 struct NodeServiceImplContext {
   const AddressSpaceFetcherFactory address_space_fetcher_factory_;
   scada::AddressSpace& address_space_;
-  // For node async calls.
-  scada::AttributeService& attribute_service_;
-  scada::MonitoredItemService& monitored_item_service_;
-  scada::MethodService& method_service_;
   scada::client scada_client_;
 };
 

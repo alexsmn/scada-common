@@ -1,8 +1,5 @@
 #pragma once
 
-#include "scada/attribute_service_mock.h"
-#include "scada/method_service_mock.h"
-#include "scada/monitored_item_service_mock.h"
 #include "node_service/v1/address_space_fetcher_factory.h"
 #include "node_service/v1/address_space_fetcher_mock.h"
 #include "node_service/v1/node_service_impl.h"
@@ -33,13 +30,10 @@ inline std::shared_ptr<NodeService> CreateTestNodeService(
 
     scada::AddressSpace& address_space;
 
-    NiceMock<scada::MockAttributeService> attribute_service;
-    NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-    NiceMock<scada::MockMethodService> method_service;
-
     NodeServiceImpl node_service{NodeServiceImplContext{
-        MakeAddressSpaceFetcherFactory(), address_space, attribute_service,
-        monitored_item_service, method_service}};
+        .address_space_fetcher_factory_ = MakeAddressSpaceFetcherFactory(),
+        .address_space_ = address_space,
+        .scada_client_ = {}}};
   };
 
   auto holder = std::make_shared<Holder>(address_space);

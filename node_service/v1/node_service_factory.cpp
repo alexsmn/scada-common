@@ -29,9 +29,6 @@ struct NodeServiceHolder {
         .address_space_fetcher_factory_ =
             MakeAddressSpaceFetcherFactory(node_service_context),
         .address_space_ = address_space,
-        .attribute_service_ = node_service_context.attribute_service_,
-        .monitored_item_service_ = node_service_context.monitored_item_service_,
-        .method_service_ = node_service_context.method_service_,
         .scada_client_ = node_service_context.scada_client_};
   }
 

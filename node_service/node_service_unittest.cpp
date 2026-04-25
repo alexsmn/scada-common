@@ -9,7 +9,6 @@
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
 #include "scada/coroutine_services.h"
-#include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
 
 #include <gmock/gmock.h>
@@ -35,8 +34,6 @@ struct NodeServiceTestContext {
 
   GenericNodeFactory node_factory{client_address_space};
 
-  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-  NiceMock<scada::MockMethodService> method_service;
   scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
@@ -45,9 +42,7 @@ struct NodeServiceTestContext {
   NodeServiceImpl node_service{NodeServiceImplContext{
       .address_space_fetcher_factory_ = MakeAddressSpaceFetcherFactory(),
       .address_space_ = *base_env.server_address_space,
-      .attribute_service_ = *base_env.server_address_space,
-      .monitored_item_service_ = monitored_item_service,
-      .method_service_ = method_service}};
+      .scada_client_ = {}}};
 
  private:
   AddressSpaceFetcherFactory MakeAddressSpaceFetcherFactory();
