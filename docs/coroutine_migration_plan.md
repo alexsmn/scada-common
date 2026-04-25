@@ -123,7 +123,8 @@ each slice is touched.
 - `ServerRuntime` publish-delay waiting now bridges delayed callbacks through
   `AwaitPromise` instead of a local `CallbackToAwaitable` adapter; OPC UA tests
   cover the injected scheduler callback path.
-- `ServiceHandler` now owns coroutine adapters for attribute, view, history,
-  method, and node-management services and no longer uses per-call
-  `scada/service_awaitable.h` helpers; OPC UA tests cover the canonical,
+- `ServiceHandler` now consumes coroutine attribute, view, history, method,
+  and node-management services directly and no longer uses per-call
+  `scada/service_awaitable.h` helpers. `ServerRuntime` adapts its callback
+  service dependencies once at construction; OPC UA tests cover the canonical,
   websocket, server-runtime, and binary dispatch paths.

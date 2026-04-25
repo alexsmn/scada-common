@@ -4,6 +4,7 @@
 #include "base/any_executor.h"
 #include "base/test/test_executor.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
@@ -34,14 +35,23 @@ class ServiceHandlerTest : public Test {
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+      any_executor_, attribute_service_};
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+      any_executor_, view_service_};
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter_{
+      any_executor_, history_service_};
+  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter_{
+      any_executor_, method_service_};
+  scada::CallbackToCoroutineNodeManagementServiceAdapter
+      node_management_service_adapter_{any_executor_, node_management_service_};
   const scada::NodeId user_id_ = NumericNode(700, 3);
   ServiceHandler handler_{
-      {any_executor_,
-       attribute_service_,
-       view_service_,
-       history_service_,
-       method_service_,
-       node_management_service_,
+      {attribute_service_adapter_,
+       view_service_adapter_,
+       history_service_adapter_,
+       method_service_adapter_,
+       node_management_service_adapter_,
        user_id_}};
 };
 

@@ -12,29 +12,27 @@
 #include <memory>
 
 namespace scada {
-class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineHistoryServiceAdapter;
-class CallbackToCoroutineMethodServiceAdapter;
-class CallbackToCoroutineNodeManagementServiceAdapter;
-class CallbackToCoroutineViewServiceAdapter;
+class CoroutineAttributeService;
+class CoroutineHistoryService;
+class CoroutineMethodService;
+class CoroutineNodeManagementService;
+class CoroutineViewService;
 }  // namespace scada
 
 namespace opcua {
 
 struct ServiceHandlerContext {
-  AnyExecutor executor;
-  scada::AttributeService& attribute_service;
-  scada::ViewService& view_service;
-  scada::HistoryService& history_service;
-  scada::MethodService& method_service;
-  scada::NodeManagementService& node_management_service;
+  scada::CoroutineAttributeService& attribute_service;
+  scada::CoroutineViewService& view_service;
+  scada::CoroutineHistoryService& history_service;
+  scada::CoroutineMethodService& method_service;
+  scada::CoroutineNodeManagementService& node_management_service;
   scada::NodeId user_id;
 };
 
 class ServiceHandler : private ServiceHandlerContext {
  public:
   explicit ServiceHandler(ServiceHandlerContext&& context);
-  ~ServiceHandler();
 
   [[nodiscard]] Awaitable<ServiceResponse> Handle(
       ServiceRequest request) const;
@@ -62,17 +60,6 @@ class ServiceHandler : private ServiceHandlerContext {
       AddReferencesRequest request) const;
   [[nodiscard]] Awaitable<ServiceResponse> HandleDeleteReferences(
       DeleteReferencesRequest request) const;
-
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
-      history_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
-      method_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
-      node_management_service_adapter_;
 };
 
 }  // namespace opcua

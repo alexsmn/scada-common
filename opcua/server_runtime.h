@@ -10,6 +10,14 @@
 #include <optional>
 #include <unordered_map>
 
+namespace scada {
+class CallbackToCoroutineAttributeServiceAdapter;
+class CallbackToCoroutineHistoryServiceAdapter;
+class CallbackToCoroutineMethodServiceAdapter;
+class CallbackToCoroutineNodeManagementServiceAdapter;
+class CallbackToCoroutineViewServiceAdapter;
+}  // namespace scada
+
 namespace opcua {
 
 struct ConnectionState {
@@ -35,6 +43,7 @@ struct ServerRuntimeContext {
 class ServerRuntime : private ServerRuntimeContext {
  public:
   explicit ServerRuntime(ServerRuntimeContext&& context);
+  ~ServerRuntime();
 
   [[nodiscard]] Awaitable<ResponseBody> Handle(
       ConnectionState& connection,
@@ -57,11 +66,25 @@ class ServerRuntime : private ServerRuntimeContext {
   [[nodiscard]] Awaitable<ResponseBody> HandleActivateSession(
       ConnectionState& connection,
       ActivateSessionRequest request);
+  [[nodiscard]] Awaitable<ServiceResponse> HandleServiceRequest(
+      const ServerSession& session,
+      ServiceRequest request) const;
   [[nodiscard]] Awaitable<void> Delay(base::TimeDelta delay) const;
 
   SessionMap sessions_;
   std::unordered_map<SubscriptionId, scada::NodeId> subscription_owners_;
   SubscriptionId next_subscription_id_ = 1;
+
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+      attribute_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
+      view_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
+      history_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
+      method_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
+      node_management_service_adapter_;
 };
 
 }  // namespace opcua

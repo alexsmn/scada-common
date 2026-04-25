@@ -10,25 +10,7 @@
 namespace opcua {
 
 ServiceHandler::ServiceHandler(ServiceHandlerContext&& context)
-    : ServiceHandlerContext{std::move(context)},
-      attribute_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              executor, attribute_service)},
-      view_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              executor, view_service)},
-      history_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-              executor, history_service)},
-      method_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              executor, method_service)},
-      node_management_service_adapter_{
-          std::make_unique<
-              scada::CallbackToCoroutineNodeManagementServiceAdapter>(
-              executor, node_management_service)} {}
-
-ServiceHandler::~ServiceHandler() = default;
+    : ServiceHandlerContext{std::move(context)} {}
 
 Awaitable<ServiceResponse> ServiceHandler::Handle(
     ServiceRequest request) const {
@@ -68,7 +50,7 @@ Awaitable<ServiceResponse> ServiceHandler::Handle(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleRead(
     ReadRequest request) const {
-  auto [status, results] = co_await attribute_service_adapter_->Read(
+  auto [status, results] = co_await attribute_service.Read(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::ReadValueId>>(
           std::move(request.inputs)));
@@ -79,7 +61,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleRead(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
     WriteRequest request) const {
-  auto [status, results] = co_await attribute_service_adapter_->Write(
+  auto [status, results] = co_await attribute_service.Write(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::WriteValue>>(
           std::move(request.inputs)));
@@ -89,7 +71,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
     BrowseRequest request) const {
-  auto [status, results] = co_await view_service_adapter_->Browse(
+  auto [status, results] = co_await view_service.Browse(
       MakeServiceContext(user_id), std::move(request.inputs));
   co_return ServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
@@ -98,7 +80,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
 Awaitable<ServiceResponse>
 ServiceHandler::HandleTranslateBrowsePaths(
     TranslateBrowsePathsRequest request) const {
-  auto [status, results] = co_await view_service_adapter_->TranslateBrowsePaths(
+  auto [status, results] = co_await view_service.TranslateBrowsePaths(
       std::move(request.inputs));
   co_return ServiceResponse{
       TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
@@ -109,7 +91,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleCall(
   CallResponse response;
   response.results.reserve(request.methods.size());
   for (auto& method : request.methods) {
-    auto status = co_await method_service_adapter_->Call(
+    auto status = co_await method_service.Call(
         std::move(method.object_id), std::move(method.method_id),
         std::move(method.arguments), user_id);
     response.results.push_back(MethodCallResult{std::move(status)});
@@ -120,14 +102,14 @@ Awaitable<ServiceResponse> ServiceHandler::HandleCall(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadRaw(
     HistoryReadRawRequest request) const {
-  auto result = co_await history_service_adapter_->HistoryReadRaw(
+  auto result = co_await history_service.HistoryReadRaw(
       std::move(request.details));
   co_return ServiceResponse{HistoryReadRawResponse{std::move(result)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadEvents(
     HistoryReadEventsRequest request) const {
-  auto result = co_await history_service_adapter_->HistoryReadEvents(
+  auto result = co_await history_service.HistoryReadEvents(
       std::move(request.details.node_id), request.details.from,
       request.details.to, std::move(request.details.filter));
   co_return ServiceResponse{
@@ -136,7 +118,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadEvents(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleAddNodes(
     AddNodesRequest request) const {
-  auto [status, results] = co_await node_management_service_adapter_->AddNodes(
+  auto [status, results] = co_await node_management_service.AddNodes(
       std::move(request.items));
   co_return ServiceResponse{
       AddNodesResponse{std::move(status), std::move(results)}};
@@ -145,7 +127,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleAddNodes(
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteNodes(
     DeleteNodesRequest request) const {
   auto [status, results] =
-      co_await node_management_service_adapter_->DeleteNodes(
+      co_await node_management_service.DeleteNodes(
           std::move(request.items));
   co_return ServiceResponse{
       DeleteNodesResponse{std::move(status), std::move(results)}};
@@ -154,7 +136,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleDeleteNodes(
 Awaitable<ServiceResponse> ServiceHandler::HandleAddReferences(
     AddReferencesRequest request) const {
   auto [status, results] =
-      co_await node_management_service_adapter_->AddReferences(
+      co_await node_management_service.AddReferences(
           std::move(request.items));
   co_return ServiceResponse{
       AddReferencesResponse{std::move(status), std::move(results)}};
@@ -163,7 +145,7 @@ Awaitable<ServiceResponse> ServiceHandler::HandleAddReferences(
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteReferences(
     DeleteReferencesRequest request) const {
   auto [status, results] =
-      co_await node_management_service_adapter_->DeleteReferences(
+      co_await node_management_service.DeleteReferences(
           std::move(request.items));
   co_return ServiceResponse{
       DeleteReferencesResponse{std::move(status), std::move(results)}};

@@ -3,6 +3,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
@@ -29,14 +30,24 @@ TEST(ServiceHandlerCanonicalTest,
   StrictMock<scada::MockMethodService> method_service;
   StrictMock<scada::MockNodeManagementService> node_management_service;
   const auto executor = std::make_shared<TestExecutor>();
+  const auto any_executor = MakeTestAnyExecutor(executor);
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+      any_executor, attribute_service};
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+      any_executor, view_service};
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
+      any_executor, history_service};
+  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter{
+      any_executor, method_service};
+  scada::CallbackToCoroutineNodeManagementServiceAdapter
+      node_management_service_adapter{any_executor, node_management_service};
   const auto user_id = NumericNode(700, 5);
-  ServiceHandler handler{{MakeTestAnyExecutor(executor),
-                               attribute_service,
-                               view_service,
-                               history_service,
-                               method_service,
-                               node_management_service,
-                               user_id}};
+  ServiceHandler handler{{attribute_service_adapter,
+                          view_service_adapter,
+                          history_service_adapter,
+                          method_service_adapter,
+                          node_management_service_adapter,
+                          user_id}};
 
   ReadRequest request{
       .inputs = {{.node_id = NumericNode(1),

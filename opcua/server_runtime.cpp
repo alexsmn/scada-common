@@ -4,6 +4,7 @@
 #include "base/boost_log.h"
 #include "base/executor_util.h"
 #include "base/promise.h"
+#include "scada/coroutine_services.h"
 
 #include <algorithm>
 #include <cassert>
@@ -26,27 +27,42 @@ ResponseBody SessionMissingResponse<ResponseBody>() {
   return ServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
 }
 
-template <typename Request>
-Awaitable<ServiceResponse> HandleServiceRequest(
-    const ServerRuntimeContext& context,
-    const ServerSession& session,
-    Request request) {
-  const auto user_id = session.GetServiceContext().user_id();
-  co_return co_await ServiceHandler{
-      {.executor = context.executor,
-       .attribute_service = context.attribute_service,
-       .view_service = context.view_service,
-       .history_service = context.history_service,
-       .method_service = context.method_service,
-       .node_management_service = context.node_management_service,
-       .user_id = user_id}}
-      .Handle(ServiceRequest{std::move(request)});
-}
-
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
-    : ServerRuntimeContext{std::move(context)} {}
+    : ServerRuntimeContext{std::move(context)},
+      attribute_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+              executor, attribute_service)},
+      view_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
+              executor, view_service)},
+      history_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
+              executor, history_service)},
+      method_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
+              executor, method_service)},
+      node_management_service_adapter_{
+          std::make_unique<
+              scada::CallbackToCoroutineNodeManagementServiceAdapter>(
+              executor, node_management_service)} {}
+
+ServerRuntime::~ServerRuntime() = default;
+
+Awaitable<ServiceResponse> ServerRuntime::HandleServiceRequest(
+    const ServerSession& session,
+    ServiceRequest request) const {
+  const auto user_id = session.GetServiceContext().user_id();
+  co_return co_await ServiceHandler{
+      {.attribute_service = *attribute_service_adapter_,
+       .view_service = *view_service_adapter_,
+       .history_service = *history_service_adapter_,
+       .method_service = *method_service_adapter_,
+       .node_management_service = *node_management_service_adapter_,
+       .user_id = user_id}}
+      .Handle(std::move(request));
+}
 
 void ServerRuntime::Detach(ConnectionState& connection) {
   if (!connection.authentication_token.has_value())
@@ -303,11 +319,12 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
           if (!session)
             co_return SessionMissingResponse<ResponseBody>();
           // cppcheck-suppress nullPointerRedundantCheck
-          auto response = co_await HandleServiceRequest(*this, *session,
-                                                        BrowseRequest{
-                                                            .inputs = std::move(
-                                                                typed_request.inputs),
-                                                        });
+          auto& attached_session = *session;
+          auto response = co_await HandleServiceRequest(
+              attached_session,
+              ServiceRequest{BrowseRequest{
+                  .inputs = std::move(typed_request.inputs),
+              }});
           if (!std::holds_alternative<BrowseResponse>(response))
             co_return SessionMissingResponse<ResponseBody>();
           auto browse = std::get<BrowseResponse>(std::move(response));
@@ -325,9 +342,8 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
           if (!session)
             co_return SessionMissingResponse<ResponseBody>();
           assert(session != nullptr);
-          auto service_response =
-              co_await HandleServiceRequest(*this, *session,
-                                            std::move(typed_request));
+          auto service_response = co_await HandleServiceRequest(
+              *session, ServiceRequest{std::move(typed_request)});
           co_return std::visit(
               [](auto&& typed_response) -> ResponseBody {
                 return ResponseBody{std::move(typed_response)};
