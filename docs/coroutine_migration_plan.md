@@ -177,6 +177,10 @@ each slice is touched.
   `CoroutineSessionService` directly, leaving `SessionService` adaptation only
   on the legacy factory path; factory tests verify connected startup and node
   fetches through direct coroutine session, attribute, and view services.
+- Removed the stale `MethodService` dependency from the node-service coroutine
+  factory context; the direct coroutine path now carries only the services that
+  node fetching actually uses, and factory tests no longer need callback
+  method/session mocks for coroutine construction.
 - `EventFetcherBuilder` now has a coroutine-native construction path for
   session, history, and method services while the legacy builder keeps adapter
   ownership at the callback-service boundary; events tests cover connected

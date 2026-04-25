@@ -5,9 +5,7 @@
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
 #include "scada/coroutine_services.h"
-#include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
-#include "scada/session_service_mock.h"
 #include "scada/standard_node_ids.h"
 
 #include <boost/signals2/signal.hpp>
@@ -65,7 +63,6 @@ void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
 std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
     TestAddressSpace& address_space,
     scada::CoroutineSessionService& session_service,
-    scada::MethodService& method_service,
     scada::MonitoredItemService& monitored_item_service,
     const std::shared_ptr<TestExecutor>& executor,
     bool use_v2) {
@@ -77,7 +74,6 @@ std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
           .attribute_service_ = address_space.attribute_service_impl,
           .view_service_ = address_space.view_service_impl,
           .monitored_item_service_ = monitored_item_service,
-          .method_service_ = method_service,
           .scada_client_ = {}},
       use_v2);
 }
@@ -86,12 +82,10 @@ void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
   const auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   TestCoroutineSessionService session_service;
-  NiceMock<scada::MockMethodService> method_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   const auto node_service = CreateCoroutineFactoryNodeService(
-      address_space, session_service, method_service, monitored_item_service,
-      executor, use_v2);
+      address_space, session_service, monitored_item_service, executor, use_v2);
   auto node = node_service->GetNode(address_space.kTestNode2Id);
 
   node.Fetch(NodeFetchStatus::NodeAndChildren());

@@ -39,7 +39,6 @@ struct CoroutineNodeServiceContext {
   scada::CoroutineAttributeService& attribute_service_;
   scada::CoroutineViewService& view_service_;
   scada::MonitoredItemService& monitored_item_service_;
-  scada::MethodService& method_service_;
   scada::client scada_client_;
 };
 
