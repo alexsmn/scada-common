@@ -80,12 +80,6 @@ void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)),
-      view_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              executor_, view_service_)},
-      attribute_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              executor_, attribute_service_)},
       node_fetcher_{NodeFetcherImpl::Create(MakeNodeFetcherImplContext())},
       node_children_fetcher_{
           NodeChildrenFetcher::Create(MakeNodeChildrenFetcherContext())},
@@ -236,8 +230,8 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
   };
 
   return NodeFetcherImplContext{executor_,
-                                *view_service_adapter_,
-                                *attribute_service_adapter_,
+                                view_service_,
+                                attribute_service_,
                                 std::move(fetch_completed_handler),
                                 std::move(node_validator),
                                 scada::ServiceContext{}};
@@ -250,7 +244,7 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
           node->OnChildrenFetched(std::move(result.references));
       };
 
-  return {executor_, scada::ServiceContext{}, *view_service_adapter_,
+  return {executor_, scada::ServiceContext{}, view_service_,
           reference_validator};
 }
 

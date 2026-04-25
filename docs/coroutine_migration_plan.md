@@ -135,3 +135,6 @@ each slice is touched.
 - `EventAckQueue` now consumes `CoroutineMethodService` directly; the event
   fetcher builder and tests adapt callback method services at construction
   boundaries, keeping acknowledgement scheduling coroutine-first.
+- Node-service v1 `AddressSpaceFetcherImpl` and v2 `NodeServiceImpl` now
+  receive coroutine attribute/view services directly; their factories and tests
+  own the callback-to-coroutine adapters at construction boundaries.

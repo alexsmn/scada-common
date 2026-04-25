@@ -13,7 +13,11 @@ namespace {
 
 struct NodeServiceHolder {
   explicit NodeServiceHolder(const NodeServiceContext& node_service_context)
-      : node_service{MakeNodeServiceImplContext(node_service_context)},
+      : view_service_adapter{node_service_context.executor_,
+                             node_service_context.view_service_},
+        attribute_service_adapter{node_service_context.executor_,
+                                  node_service_context.attribute_service_},
+        node_service{MakeNodeServiceImplContext(node_service_context)},
         session_service_adapter{node_service_context.executor_,
                                 node_service_context.session_service_},
         node_service_notifier{node_service, session_service_adapter} {}
@@ -25,13 +29,15 @@ struct NodeServiceHolder {
 
     return NodeServiceImplContext{
         node_service_context.executor_,
-        node_service_context.view_service_,
-        node_service_context.attribute_service_,
+        view_service_adapter,
+        attribute_service_adapter,
         node_service_context.monitored_item_service_,
         view_events_provider,
     };
   }
 
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter;
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter;
   NodeServiceImpl node_service;
   scada::PromiseToCoroutineSessionServiceAdapter session_service_adapter;
   CoroutineSessionProxyNotifier<NodeServiceImpl> node_service_notifier;

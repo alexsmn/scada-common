@@ -16,9 +16,8 @@
 class NodeFetcher;
 
 namespace scada {
-class AttributeService;
-class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineViewServiceAdapter;
+class CoroutineAttributeService;
+class CoroutineViewService;
 class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
@@ -31,8 +30,8 @@ struct NodeModelImplReference;
 
 struct NodeServiceImplContext {
   AnyExecutor executor_;
-  scada::ViewService& view_service_;
-  scada::AttributeService& attribute_service_;
+  scada::CoroutineViewService& view_service_;
+  scada::CoroutineAttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   const ViewEventsProvider view_events_provider_;
 };
@@ -113,11 +112,6 @@ class NodeServiceImpl : private NodeServiceImplContext,
   mutable base::ObserverList<NodeRefObserver> observers_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
-
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   const std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;

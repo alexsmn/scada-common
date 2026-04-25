@@ -54,12 +54,6 @@ std::vector<scada::NodeId> CollectNodeIds(
 AddressSpaceFetcherImpl::AddressSpaceFetcherImpl(
     AddressSpaceFetcherImplContext&& context)
     : AddressSpaceFetcherImplContext{std::move(context)},
-      view_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              executor_, view_service_)},
-      attribute_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              executor_, attribute_service_)},
       node_fetch_status_tracker_{
           {node_fetch_status_changed_handler_,
            [this](const scada::NodeId& node_id) {
@@ -90,8 +84,8 @@ void AddressSpaceFetcherImpl::Init() {
   };
 
   node_fetcher_ = NodeFetcherImpl::Create(
-      NodeFetcherImplContext{executor_, *view_service_adapter_,
-                             *attribute_service_adapter_,
+      NodeFetcherImplContext{executor_, view_service_,
+                             attribute_service_,
                              std::move(fetch_completed_handler),
                              std::move(node_validator), service_context_});
 
@@ -101,7 +95,7 @@ void AddressSpaceFetcherImpl::Init() {
       };
 
   node_children_fetcher_ = NodeChildrenFetcher::Create(
-      {executor_, service_context_, *view_service_adapter_,
+      {executor_, service_context_, view_service_,
        reference_validator});
 }
 
@@ -311,7 +305,7 @@ AddressSpaceFetcherImpl::MakeNodeChildrenFetcherContext() {
         OnChildrenFetched(node_id, std::move(result.references));
       };
 
-  return {executor_, service_context_, *view_service_adapter_,
+  return {executor_, service_context_, view_service_,
           reference_validator};
 }
 

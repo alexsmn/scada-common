@@ -6,6 +6,7 @@
 #include "address_space/test/test_matchers.h"
 #include "address_space/variable.h"
 #include "base/test/test_executor.h"
+#include "scada/coroutine_services.h"
 #include "scada/event.h"
 #include "scada/monitored_item_service_mock.h"
 #include "scada/service_context.h"
@@ -41,6 +42,10 @@ class AddressSpaceFetcherImplTest : public Test {
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space_;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+      MakeTestAnyExecutor(executor_), server_address_space_};
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+      MakeTestAnyExecutor(executor_), server_address_space_};
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
 
@@ -53,8 +58,8 @@ class AddressSpaceFetcherImplTest : public Test {
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
       AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
           .executor_ = MakeTestAnyExecutor(executor_),
-          .view_service_ = server_address_space_,
-          .attribute_service_ = server_address_space_,
+          .view_service_ = view_service_adapter_,
+          .attribute_service_ = attribute_service_adapter_,
           .address_space_ = client_address_space_,
           .node_factory_ = node_factory,
           .view_events_provider_ =

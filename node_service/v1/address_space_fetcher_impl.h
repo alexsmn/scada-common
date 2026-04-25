@@ -12,9 +12,8 @@
 #include <memory>
 
 namespace scada {
-class AttributeService;
-class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineViewServiceAdapter;
+class CoroutineAttributeService;
+class CoroutineViewService;
 class ServiceContext;
 }  // namespace scada
 
@@ -26,8 +25,8 @@ namespace v1 {
 struct AddressSpaceFetcherImplContext {
   AnyExecutor executor_;
   const scada::ServiceContext service_context_;
-  scada::ViewService& view_service_;
-  scada::AttributeService& attribute_service_;
+  scada::CoroutineViewService& view_service_;
+  scada::CoroutineAttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 
@@ -84,11 +83,6 @@ class AddressSpaceFetcherImpl
       const scada::SemanticChangeEvent& event) override;
 
   BoostLogger logger_{LOG_NAME("AddressSpaceFetcherImpl")};
-
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
 
   std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;

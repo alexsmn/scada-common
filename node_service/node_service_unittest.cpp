@@ -8,6 +8,7 @@
 #include "base/test/test_executor.h"
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
+#include "scada/coroutine_services.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
 
@@ -36,6 +37,10 @@ struct NodeServiceTestContext {
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   NiceMock<scada::MockMethodService> method_service;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
       .address_space_fetcher_factory_ = MakeAddressSpaceFetcherFactory(),
@@ -53,8 +58,8 @@ NodeServiceTestContext::MakeAddressSpaceFetcherFactory() {
   return [this](AddressSpaceFetcherFactoryContext&& context) {
     return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
         .executor_ = MakeTestAnyExecutor(base_env.executor),
-        .view_service_ = *base_env.server_address_space,
-        .attribute_service_ = *base_env.server_address_space,
+        .view_service_ = view_service_adapter,
+        .attribute_service_ = attribute_service_adapter,
         .address_space_ = client_address_space,
         .node_factory_ = node_factory,
         .view_events_provider_ = base_env.view_events_provider,
@@ -74,11 +79,15 @@ struct NodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
       .executor_ = MakeTestAnyExecutor(base_env.executor),
-      .view_service_ = *base_env.server_address_space,
-      .attribute_service_ = *base_env.server_address_space,
+      .view_service_ = view_service_adapter,
+      .attribute_service_ = attribute_service_adapter,
       .monitored_item_service_ = monitored_item_service,
       .view_events_provider_ = base_env.view_events_provider}};
 };
@@ -767,11 +776,15 @@ class V2NodeServiceRegressionTest : public Test {
       .view_events_provider = MakeViewEventsProvider()};
   NiceMock<MockNodeObserver> node_observer_;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+      MakeTestAnyExecutor(executor_), *server_address_space_};
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+      MakeTestAnyExecutor(executor_), *server_address_space_};
   std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
       v2::NodeServiceImpl>(v2::NodeServiceImplContext{
       .executor_ = MakeTestAnyExecutor(executor_),
-      .view_service_ = *server_address_space_,
-      .attribute_service_ = *server_address_space_,
+      .view_service_ = view_service_adapter_,
+      .attribute_service_ = attribute_service_adapter_,
       .monitored_item_service_ = monitored_item_service_,
       .view_events_provider_ = base_env_.view_events_provider});
 };
