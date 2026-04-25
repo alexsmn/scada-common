@@ -149,3 +149,7 @@ each slice is touched.
   `CoroutineAttributeService` and `CoroutineViewService` directly while
   preserving their callback service APIs; coroutine tests cover read, write,
   browse, and browse-path translation against the same sync service core.
+- Local address-space method and node-management service stubs now expose
+  `CoroutineMethodService` and `CoroutineNodeManagementService` directly while
+  preserving their callback APIs; coroutine tests cover the method call and all
+  node-management mutation stubs.
