@@ -52,7 +52,7 @@ void TimedDataFetcher::FetchNextGap() {
             auto result = co_await scada::HistoryReadRawAsync(
                 self->executor_, self->history_service_, details);
             ScopedContinuationPoint scoped_continuation_point{
-                self->history_service_, details,
+                self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};
             self->OnHistoryReadRawComplete(std::move(result.values),
                                            std::move(scoped_continuation_point));
@@ -97,7 +97,7 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
             auto result = co_await scada::HistoryReadRawAsync(
                 self->executor_, self->history_service_, details);
             ScopedContinuationPoint scoped_continuation_point{
-                self->history_service_, details,
+                self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};
             self->OnHistoryReadRawComplete(std::move(result.values),
                                            std::move(scoped_continuation_point));

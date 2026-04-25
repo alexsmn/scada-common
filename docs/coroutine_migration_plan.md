@@ -64,6 +64,9 @@ each slice is touched.
   behavior, and queued-child cancellation.
 - `TimedDataFetcher` history reads now use coroutine tasks while preserving
   continuation-point ownership.
+- `ScopedContinuationPoint` now releases history continuation points through a
+  detached coroutine using `HistoryReadRawAsync`; timed-data tests cover
+  cleanup dispatch and explicit continuation-point release.
 - `EventFetcher` history refresh and `EventAckQueue` acknowledgement dispatch
   now use coroutine tasks; `EventAckQueue` has coverage for dispatch,
   duplicate suppression, and max-parallel scheduling.

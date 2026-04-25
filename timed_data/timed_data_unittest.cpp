@@ -1,6 +1,8 @@
 #include "address_space/test/test_scada_node_states.h"
+#include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "common/aliases_mock.h"
+#include "common/history_util.h"
 #include "common/variable_handle.h"
 #include "events/node_event_provider_mock.h"
 #include "model/data_items_node_ids.h"
@@ -154,4 +156,53 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
   node_value_variable_->UpdateQualifier(scada::Qualifier::BAD, 0);
 
   EXPECT_TRUE(spec.current().qualifier.good());
+}
+
+TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
+  const scada::HistoryReadRawDetails details{
+      .node_id = kDataItemId,
+      .from = base::Time::Now(),
+      .to = base::Time::Now() + base::TimeDelta::FromSeconds(1),
+      .max_count = 100,
+  };
+  const scada::ByteString continuation_point{'c', 'p'};
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& cleanup,
+                           const scada::HistoryReadRawCallback& callback) {
+        EXPECT_EQ(cleanup.node_id, details.node_id);
+        EXPECT_EQ(cleanup.from, details.from);
+        EXPECT_EQ(cleanup.to, details.to);
+        EXPECT_EQ(cleanup.max_count, details.max_count);
+        EXPECT_TRUE(cleanup.release_continuation_point);
+        EXPECT_EQ(cleanup.continuation_point, continuation_point);
+        callback({});
+      }));
+
+  ScopedContinuationPoint scoped_continuation_point{
+      MakeTestAnyExecutor(executor_), history_service_, details,
+      continuation_point};
+  scoped_continuation_point.reset();
+
+  Drain(executor_);
+}
+
+TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
+  const scada::HistoryReadRawDetails details{
+      .node_id = kDataItemId,
+      .from = base::Time::Now(),
+      .to = base::Time::Now() + base::TimeDelta::FromSeconds(1),
+      .max_count = 100,
+  };
+  const scada::ByteString continuation_point{'c', 'p'};
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_, _)).Times(0);
+
+  ScopedContinuationPoint scoped_continuation_point{
+      MakeTestAnyExecutor(executor_), history_service_, details,
+      continuation_point};
+  EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
+  scoped_continuation_point.reset();
+
+  Drain(executor_);
 }
