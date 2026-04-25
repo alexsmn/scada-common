@@ -1,6 +1,8 @@
+#include "address_space/address_space_impl.h"
 #include "address_space/local_method_service.h"
 #include "address_space/local_history_service.h"
 #include "address_space/local_node_management_service.h"
+#include "address_space/method_service_impl.h"
 
 #include "base/test/awaitable_test.h"
 #include "scada/standard_node_ids.h"
@@ -19,6 +21,18 @@ TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
       service.Call(id::ObjectsFolder, NodeId{1, 2}, {}, NodeId{}));
 
   EXPECT_EQ(status.code(), StatusCode::Bad);
+}
+
+TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
+  const auto executor = std::make_shared<TestExecutor>();
+  AddressSpaceImpl address_space;
+  MethodServiceImpl service{{address_space}};
+
+  const auto status =
+      WaitAwaitable(executor, service.Call(NodeId{1, 2}, NodeId{2, 2}, {},
+                                           NodeId{}));
+
+  EXPECT_EQ(status.code(), StatusCode::Bad_WrongMethodId);
 }
 
 TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {

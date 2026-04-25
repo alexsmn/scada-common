@@ -156,3 +156,6 @@ each slice is touched.
 - Local address-space history service now exposes `CoroutineHistoryService`
   directly while preserving the callback API; coroutine tests cover generated
   raw profiles and stored event reads.
+- Address-space method service implementation now exposes
+  `CoroutineMethodService` directly while preserving its callback helper;
+  coroutine tests cover the built-in wrong-method-id result.
