@@ -190,3 +190,7 @@ each slice is touched.
   for `CoroutineHistoryService` while the legacy factory keeps callback adapter
   ownership at the service boundary; timed-data tests cover range history fetch
   through direct coroutine services.
+- Removed stale callback-service dispatch helpers from OPC UA
+  `endpoint_core`; service routing now lives only in coroutine
+  `ServiceHandler`, while endpoint-core tests cover the remaining
+  normalization, monitored-item, and event-field helpers.

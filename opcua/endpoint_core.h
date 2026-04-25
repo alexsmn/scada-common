@@ -4,12 +4,9 @@
 #include "scada/attribute_service.h"
 #include "scada/event.h"
 #include "scada/event_util.h"
-#include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/monitored_item.h"
-#include "scada/node_management_service.h"
 #include "scada/service_context.h"
-#include "scada/view_service.h"
 
 #include <boost/json/value.hpp>
 
@@ -42,60 +39,6 @@ inline std::vector<scada::DataValue> NormalizeReadResults(
   for (auto& result : results)
     result = NormalizeReadResult(std::move(result));
   return results;
-}
-
-inline void Read(scada::AttributeService& attribute_service,
-                 ServiceContext context,
-                 std::shared_ptr<const std::vector<scada::ReadValueId>> inputs,
-                 const scada::ReadCallback& callback) {
-  attribute_service.Read(
-      context, std::move(inputs),
-      [callback](scada::Status status, std::vector<scada::DataValue> results) {
-        callback(std::move(status), NormalizeReadResults(std::move(results)));
-      });
-}
-
-inline void Write(scada::AttributeService& attribute_service,
-                  ServiceContext context,
-                  std::shared_ptr<const std::vector<scada::WriteValue>> inputs,
-                  const scada::WriteCallback& callback) {
-  attribute_service.Write(context, std::move(inputs), callback);
-}
-
-inline void Browse(scada::ViewService& view_service,
-                   ServiceContext context,
-                   std::vector<scada::BrowseDescription> inputs,
-                   const scada::BrowseCallback& callback) {
-  view_service.Browse(context, std::move(inputs), callback);
-}
-
-inline void TranslateBrowsePaths(
-    scada::ViewService& view_service,
-    std::vector<scada::BrowsePath> inputs,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  view_service.TranslateBrowsePaths(std::move(inputs), callback);
-}
-
-inline void AddNodes(scada::NodeManagementService& node_management_service,
-                     std::vector<scada::AddNodesItem> inputs,
-                     const scada::AddNodesCallback& callback) {
-  node_management_service.AddNodes(std::move(inputs), callback);
-}
-
-inline void DeleteNodes(
-    scada::NodeManagementService& node_management_service,
-    std::vector<scada::DeleteNodesItem> inputs,
-    const scada::DeleteNodesCallback& callback) {
-  node_management_service.DeleteNodes(std::move(inputs), callback);
-}
-
-inline void CallMethod(scada::MethodService& method_service,
-                       const scada::NodeId& node_id,
-                       const scada::NodeId& method_id,
-                       const std::vector<scada::Variant>& arguments,
-                       const scada::NodeId& user_id,
-                       const scada::StatusCallback& callback) {
-  method_service.Call(node_id, method_id, arguments, user_id, callback);
 }
 
 inline bool IsAttributeEventNotifier(scada::AttributeId attribute_id) {
