@@ -4,6 +4,8 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
+#include "address_space/test/test_address_space.h"
+#include "base/test/awaitable_test.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service.h"
@@ -162,6 +164,51 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
         ASSERT_EQ(1 + context.kItems.size(), references.size());
       });
   EXPECT_TRUE(called);
+}
+
+TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
+  TestAddressSpace address_space;
+  const auto executor = std::make_shared<TestExecutor>();
+
+  auto [status, results] = WaitAwaitable(
+      executor, address_space.view_service_impl.Browse(
+                    scada::ServiceContext{},
+                    {{scada::id::RootFolder,
+                      scada::BrowseDirection::Forward,
+                      scada::id::HierarchicalReferences,
+                      true}}));
+
+  EXPECT_TRUE(status);
+  ASSERT_EQ(results.size(), 1u);
+  EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
+  EXPECT_THAT(results[0].references,
+              testing::Contains(testing::Field(
+                  &scada::ReferenceDescription::node_id,
+                  address_space.kTestNode1Id)));
+}
+
+TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
+  TestAddressSpace address_space;
+  const auto executor = std::make_shared<TestExecutor>();
+
+  auto [status, results] = WaitAwaitable(
+      executor, address_space.view_service_impl.TranslateBrowsePaths(
+                    {{.node_id = scada::id::RootFolder,
+                      .relative_path = {{.reference_type_id =
+                                             scada::id::HierarchicalReferences,
+                                         .include_subtypes = true,
+                                         .target_name =
+                                             scada::QualifiedName{
+                                                 "TestNode1",
+                                                 TestAddressSpace::
+                                                     kNamespaceIndex}}}}}));
+
+  EXPECT_TRUE(status);
+  ASSERT_EQ(results.size(), 1u);
+  EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
+  ASSERT_EQ(results[0].targets.size(), 1u);
+  EXPECT_EQ(results[0].targets[0].target_id.node_id(),
+            address_space.kTestNode1Id);
 }
 
 TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {

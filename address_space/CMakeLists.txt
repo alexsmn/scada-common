@@ -6,6 +6,7 @@ target_include_directories(address_space PUBLIC "..")
 
 target_link_libraries(address_space PUBLIC
   scada_core
+  transport
 )
 
 target_link_libraries(address_space PRIVATE

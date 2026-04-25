@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/sync_view_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/view_service.h"
 
 #include <memory>
@@ -38,7 +39,8 @@ class SyncViewServiceImpl : private ViewServiceImplContext,
   scada::BrowsePathResult TranslateBrowsePath(const scada::BrowsePath& input);
 };
 
-class ViewServiceImpl : public scada::ViewService {
+class ViewServiceImpl : public scada::ViewService,
+                        public scada::CoroutineViewService {
  public:
   explicit ViewServiceImpl(SyncViewService& sync_service);
 
@@ -50,6 +52,14 @@ class ViewServiceImpl : public scada::ViewService {
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;
+
+  // scada::CoroutineViewService
+  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext context,
+         std::vector<scada::BrowseDescription> descriptions) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> browse_paths) override;
 
  private:
   SyncViewService& sync_view_service_;

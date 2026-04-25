@@ -145,3 +145,7 @@ each slice is touched.
 - Removed stale callback attribute, method, and monitored-item service
   dependencies from v1 `NodeServiceImpl`/`NodeModelImpl`; v1 node models now
   keep only node state and the public `scada::node` handle they actually use.
+- Local address-space attribute and view service implementations now expose
+  `CoroutineAttributeService` and `CoroutineViewService` directly while
+  preserving their callback service APIs; coroutine tests cover read, write,
+  browse, and browse-path translation against the same sync service core.

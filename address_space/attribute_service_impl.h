@@ -2,6 +2,7 @@
 
 #include "common/sync_attribute_service.h"
 #include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 
 #include <span>
 
@@ -33,7 +34,8 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
                             scada::AttributeId attribute_id);
 };
 
-class AttributeServiceImpl : public scada::AttributeService {
+class AttributeServiceImpl : public scada::AttributeService,
+                             public scada::CoroutineAttributeService {
  public:
   explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
 
@@ -46,6 +48,14 @@ class AttributeServiceImpl : public scada::AttributeService {
       const scada::ServiceContext& context,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
+
+  // scada::CoroutineAttributeService
+  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  Read(scada::ServiceContext context,
+       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Write(scada::ServiceContext context,
+        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
  private:
   SyncAttributeService& sync_attribute_service_;
