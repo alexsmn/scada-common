@@ -3,14 +3,14 @@
 
 #include <cstring>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
-void AppendNumericNodeId(binary::BinaryEncoder& encoder, std::uint32_t id) {
+void AppendNumericNodeId(Encoder& encoder, std::uint32_t id) {
   encoder.Encode(scada::NodeId{id});
 }
 
-bool ReadNumericNodeId(binary::BinaryDecoder& decoder, std::uint32_t& id) {
+bool ReadNumericNodeId(Decoder& decoder, std::uint32_t& id) {
   scada::NodeId node_id;
   if (!decoder.Decode(node_id) || !node_id.is_numeric() ||
       node_id.namespace_index() != 0) {
@@ -20,17 +20,17 @@ bool ReadNumericNodeId(binary::BinaryDecoder& decoder, std::uint32_t& id) {
   return true;
 }
 
-void AppendExtensionObject(binary::BinaryEncoder& encoder,
+void AppendExtensionObject(Encoder& encoder,
                            std::uint32_t type_id,
                            const std::vector<char>& body) {
-  encoder.Encode(binary::EncodedExtensionObject{.type_id = type_id, .body = body});
+  encoder.Encode(EncodedExtensionObject{.type_id = type_id, .body = body});
 }
 
-bool ReadExtensionObject(binary::BinaryDecoder& decoder,
+bool ReadExtensionObject(Decoder& decoder,
                          std::uint32_t& type_id,
                          std::uint8_t& encoding,
                          std::vector<char>& body) {
-  binary::DecodedExtensionObject value;
+  DecodedExtensionObject value;
   if (!decoder.Decode(value)) {
     return false;
   }
@@ -40,8 +40,8 @@ bool ReadExtensionObject(binary::BinaryDecoder& decoder,
   return true;
 }
 
-bool ReadRequestHeader(binary::BinaryDecoder& decoder,
-                       OpcUaBinaryRequestHeader& header) {
+bool ReadRequestHeader(Decoder& decoder,
+                       RequestHeader& header) {
   std::uint32_t ignored_node_id = 0;
   std::int64_t ignored_timestamp = 0;
   if (!ReadNumericNodeId(decoder, ignored_node_id) ||
@@ -60,8 +60,8 @@ bool ReadRequestHeader(binary::BinaryDecoder& decoder,
                              additional_body);
 }
 
-void AppendResponseHeader(binary::BinaryEncoder& encoder,
-                          const OpcUaBinaryResponseHeader& header) {
+void AppendResponseHeader(Encoder& encoder,
+                          const ResponseHeader& header) {
   encoder.Encode(std::int64_t{0});
   encoder.Encode(header.request_handle);
   encoder.Encode(header.service_result.good() ? 0u : 0x80000000u);
@@ -71,8 +71,8 @@ void AppendResponseHeader(binary::BinaryEncoder& encoder,
   encoder.Encode(std::uint8_t{0x00});
 }
 
-void AppendRequestHeader(binary::BinaryEncoder& encoder,
-                         const OpcUaBinaryRequestHeader& header) {
+void AppendRequestHeader(Encoder& encoder,
+                         const RequestHeader& header) {
   AppendNumericNodeId(encoder, 0);
   encoder.Encode(std::int64_t{0});
   encoder.Encode(header.request_handle);
@@ -83,8 +83,8 @@ void AppendRequestHeader(binary::BinaryEncoder& encoder,
   encoder.Encode(std::uint8_t{0x00});
 }
 
-bool ReadResponseHeader(binary::BinaryDecoder& decoder,
-                        OpcUaBinaryResponseHeader& header) {
+bool ReadResponseHeader(Decoder& decoder,
+                        ResponseHeader& header) {
   std::int64_t ignored_timestamp = 0;
   std::uint32_t status_word = 0;
   std::uint8_t ignored_service_diagnostics_mask = 0;
@@ -107,22 +107,22 @@ bool ReadResponseHeader(binary::BinaryDecoder& decoder,
 
 }  // namespace
 
-std::optional<OpcUaBinarySecureConversationMessage>
+std::optional<SecureConversationMessage>
 DecodeSecureConversationMessage(const std::vector<char>& frame) {
-  const auto frame_header = DecodeBinaryFrameHeader(frame);
+  const auto frame_header = DecodeFrameHeader(frame);
   if (!frame_header || frame_header->message_size != frame.size()) {
     return std::nullopt;
   }
 
-  OpcUaBinarySecureConversationMessage message;
+  SecureConversationMessage message;
   message.frame_header = *frame_header;
-  binary::BinaryDecoder decoder{std::span<const char>{frame}.subspan(8)};
+  Decoder decoder{std::span<const char>{frame}.subspan(8)};
   if (!decoder.Decode(message.secure_channel_id)) {
     return std::nullopt;
   }
 
-  if (frame_header->message_type == OpcUaBinaryMessageType::SecureOpen) {
-    OpcUaBinaryAsymmetricSecurityHeader header;
+  if (frame_header->message_type == MessageType::SecureOpen) {
+    AsymmetricSecurityHeader header;
     if (!decoder.Decode(header.security_policy_uri) ||
         !decoder.Decode(header.sender_certificate) ||
         !decoder.Decode(
@@ -131,7 +131,7 @@ DecodeSecureConversationMessage(const std::vector<char>& frame) {
     }
     message.asymmetric_security_header = std::move(header);
   } else {
-    OpcUaBinarySymmetricSecurityHeader header;
+    SymmetricSecurityHeader header;
     if (!decoder.Decode(header.token_id)) {
       return std::nullopt;
     }
@@ -149,15 +149,15 @@ DecodeSecureConversationMessage(const std::vector<char>& frame) {
 }
 
 std::vector<char> EncodeSecureConversationMessage(
-    const OpcUaBinarySecureConversationMessage& message) {
-  std::vector<char> frame = EncodeBinaryFrameHeader(
+    const SecureConversationMessage& message) {
+  std::vector<char> frame = EncodeFrameHeader(
       {.message_type = message.frame_header.message_type,
        .chunk_type = message.frame_header.chunk_type,
        .message_size = 0});
-  binary::BinaryEncoder encoder{frame};
+  Encoder encoder{frame};
   encoder.Encode(message.secure_channel_id);
 
-  if (message.frame_header.message_type == OpcUaBinaryMessageType::SecureOpen) {
+  if (message.frame_header.message_type == MessageType::SecureOpen) {
     const auto& header = *message.asymmetric_security_header;
     encoder.Encode(header.security_policy_uri);
     encoder.Encode(header.sender_certificate);
@@ -175,20 +175,20 @@ std::vector<char> EncodeSecureConversationMessage(
   return frame;
 }
 
-std::optional<OpcUaBinaryOpenSecureChannelRequest>
+std::optional<OpenSecureChannelRequest>
 DecodeOpenSecureChannelRequestBody(const std::vector<char>& body) {
-  binary::BinaryDecoder body_decoder{body};
+  Decoder body_decoder{body};
   std::uint32_t type_id = 0;
   std::uint8_t encoding = 0;
   std::vector<char> payload;
   if (!ReadExtensionObject(body_decoder, type_id, encoding, payload) ||
-      type_id != kOpenSecureChannelRequestBinaryEncodingId || encoding != 0x01 ||
+      type_id != kOpenSecureChannelRequestEncodingId || encoding != 0x01 ||
       !body_decoder.consumed()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryOpenSecureChannelRequest request;
-  binary::BinaryDecoder payload_decoder{payload};
+  OpenSecureChannelRequest request;
+  Decoder payload_decoder{payload};
   std::uint32_t request_type = 0;
   std::uint32_t security_mode = 0;
   if (!ReadRequestHeader(payload_decoder, request.request_header) ||
@@ -202,16 +202,16 @@ DecodeOpenSecureChannelRequestBody(const std::vector<char>& body) {
   }
 
   request.request_type =
-      static_cast<OpcUaBinarySecurityTokenRequestType>(request_type);
+      static_cast<SecurityTokenRequestType>(request_type);
   request.security_mode =
-      static_cast<OpcUaBinaryMessageSecurityMode>(security_mode);
+      static_cast<MessageSecurityMode>(security_mode);
   return request;
 }
 
 std::vector<char> EncodeOpenSecureChannelResponseBody(
-    const OpcUaBinaryOpenSecureChannelResponse& response) {
+    const OpenSecureChannelResponse& response) {
   std::vector<char> payload;
-  binary::BinaryEncoder payload_encoder{payload};
+  Encoder payload_encoder{payload};
   AppendResponseHeader(payload_encoder, response.response_header);
   payload_encoder.Encode(response.server_protocol_version);
   payload_encoder.Encode(response.security_token.channel_id);
@@ -221,26 +221,26 @@ std::vector<char> EncodeOpenSecureChannelResponseBody(
   payload_encoder.Encode(response.server_nonce);
 
   std::vector<char> body;
-  binary::BinaryEncoder body_encoder{body};
+  Encoder body_encoder{body};
   AppendExtensionObject(body_encoder,
-                        kOpenSecureChannelResponseBinaryEncodingId, payload);
+                        kOpenSecureChannelResponseEncodingId, payload);
   return body;
 }
 
-std::optional<OpcUaBinaryCloseSecureChannelRequest>
+std::optional<CloseSecureChannelRequest>
 DecodeCloseSecureChannelRequestBody(const std::vector<char>& body) {
-  binary::BinaryDecoder body_decoder{body};
+  Decoder body_decoder{body};
   std::uint32_t type_id = 0;
   std::uint8_t encoding = 0;
   std::vector<char> payload;
   if (!ReadExtensionObject(body_decoder, type_id, encoding, payload) ||
-      type_id != kCloseSecureChannelRequestBinaryEncodingId || encoding != 0x01 ||
+      type_id != kCloseSecureChannelRequestEncodingId || encoding != 0x01 ||
       !body_decoder.consumed()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryCloseSecureChannelRequest request;
-  binary::BinaryDecoder payload_decoder{payload};
+  CloseSecureChannelRequest request;
+  Decoder payload_decoder{payload};
   if (!ReadRequestHeader(payload_decoder, request.request_header) ||
       !payload_decoder.consumed()) {
     return std::nullopt;
@@ -249,9 +249,9 @@ DecodeCloseSecureChannelRequestBody(const std::vector<char>& body) {
 }
 
 std::vector<char> EncodeOpenSecureChannelRequestBody(
-    const OpcUaBinaryOpenSecureChannelRequest& request) {
+    const OpenSecureChannelRequest& request) {
   std::vector<char> payload;
-  binary::BinaryEncoder payload_encoder{payload};
+  Encoder payload_encoder{payload};
   AppendRequestHeader(payload_encoder, request.request_header);
   payload_encoder.Encode(request.client_protocol_version);
   payload_encoder.Encode(static_cast<std::uint32_t>(request.request_type));
@@ -260,26 +260,26 @@ std::vector<char> EncodeOpenSecureChannelRequestBody(
   payload_encoder.Encode(request.requested_lifetime);
 
   std::vector<char> body;
-  binary::BinaryEncoder body_encoder{body};
+  Encoder body_encoder{body};
   AppendExtensionObject(body_encoder,
-                        kOpenSecureChannelRequestBinaryEncodingId, payload);
+                        kOpenSecureChannelRequestEncodingId, payload);
   return body;
 }
 
-std::optional<OpcUaBinaryOpenSecureChannelResponse>
+std::optional<OpenSecureChannelResponse>
 DecodeOpenSecureChannelResponseBody(const std::vector<char>& body) {
-  binary::BinaryDecoder body_decoder{body};
+  Decoder body_decoder{body};
   std::uint32_t type_id = 0;
   std::uint8_t encoding = 0;
   std::vector<char> payload;
   if (!ReadExtensionObject(body_decoder, type_id, encoding, payload) ||
-      type_id != kOpenSecureChannelResponseBinaryEncodingId || encoding != 0x01 ||
+      type_id != kOpenSecureChannelResponseEncodingId || encoding != 0x01 ||
       !body_decoder.consumed()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryOpenSecureChannelResponse response;
-  binary::BinaryDecoder payload_decoder{payload};
+  OpenSecureChannelResponse response;
+  Decoder payload_decoder{payload};
   if (!ReadResponseHeader(payload_decoder, response.response_header) ||
       !payload_decoder.Decode(response.server_protocol_version) ||
       !payload_decoder.Decode(response.security_token.channel_id) ||
@@ -294,22 +294,22 @@ DecodeOpenSecureChannelResponseBody(const std::vector<char>& body) {
 }
 
 std::vector<char> EncodeCloseSecureChannelRequestBody(
-    const OpcUaBinaryCloseSecureChannelRequest& request) {
+    const CloseSecureChannelRequest& request) {
   std::vector<char> payload;
-  binary::BinaryEncoder payload_encoder{payload};
+  Encoder payload_encoder{payload};
   AppendRequestHeader(payload_encoder, request.request_header);
 
   std::vector<char> body;
-  binary::BinaryEncoder body_encoder{body};
+  Encoder body_encoder{body};
   AppendExtensionObject(body_encoder,
-                        kCloseSecureChannelRequestBinaryEncodingId, payload);
+                        kCloseSecureChannelRequestEncodingId, payload);
   return body;
 }
 
-OpcUaBinarySecureChannel::OpcUaBinarySecureChannel(std::uint32_t channel_id)
+SecureChannel::SecureChannel(std::uint32_t channel_id)
     : channel_id_{channel_id} {}
 
-Awaitable<OpcUaBinarySecureChannel::Result> OpcUaBinarySecureChannel::HandleFrame(
+Awaitable<SecureChannel::Result> SecureChannel::HandleFrame(
     std::vector<char> frame) {
   const auto message = DecodeSecureConversationMessage(frame);
   if (!message.has_value()) {
@@ -317,14 +317,14 @@ Awaitable<OpcUaBinarySecureChannel::Result> OpcUaBinarySecureChannel::HandleFram
   }
 
   switch (message->frame_header.message_type) {
-    case OpcUaBinaryMessageType::SecureOpen: {
+    case MessageType::SecureOpen: {
       const auto request = DecodeOpenSecureChannelRequestBody(message->body);
       if (!request.has_value()) {
         co_return Result{.close_transport = true};
       }
 
       const auto supported_security =
-          request->security_mode == OpcUaBinaryMessageSecurityMode::None &&
+          request->security_mode == MessageSecurityMode::None &&
           message->asymmetric_security_header &&
           message->asymmetric_security_header->security_policy_uri ==
               kSecurityPolicyNone;
@@ -334,14 +334,14 @@ Awaitable<OpcUaBinarySecureChannel::Result> OpcUaBinarySecureChannel::HandleFram
           supported_security ? scada::StatusCode::Good : scada::StatusCode::Bad);
       if (supported_security) {
         opened_ = true;
-        if (request->request_type == OpcUaBinarySecurityTokenRequestType::Renew) {
+        if (request->request_type == SecurityTokenRequestType::Renew) {
           ++token_id_;
         }
       }
       co_return Result{.outbound_frame = std::move(response)};
     }
 
-    case OpcUaBinaryMessageType::SecureMessage: {
+    case MessageType::SecureMessage: {
       if (!opened_ || message->secure_channel_id != channel_id_ ||
           !message->symmetric_security_header ||
           message->symmetric_security_header->token_id != token_id_) {
@@ -351,7 +351,7 @@ Awaitable<OpcUaBinarySecureChannel::Result> OpcUaBinarySecureChannel::HandleFram
                        .request_id = message->sequence_header.request_id};
     }
 
-    case OpcUaBinaryMessageType::SecureClose: {
+    case MessageType::SecureClose: {
       if (!opened_ || message->secure_channel_id != channel_id_ ||
           !message->symmetric_security_header ||
           message->symmetric_security_header->token_id != token_id_) {
@@ -362,27 +362,27 @@ Awaitable<OpcUaBinarySecureChannel::Result> OpcUaBinarySecureChannel::HandleFram
       co_return Result{.close_transport = !request.has_value() || true};
     }
 
-    case OpcUaBinaryMessageType::Hello:
-    case OpcUaBinaryMessageType::Acknowledge:
-    case OpcUaBinaryMessageType::Error:
-    case OpcUaBinaryMessageType::ReverseHello:
+    case MessageType::Hello:
+    case MessageType::Acknowledge:
+    case MessageType::Error:
+    case MessageType::ReverseHello:
       co_return Result{.close_transport = true};
   }
 
   co_return Result{.close_transport = true};
 }
 
-std::vector<char> OpcUaBinarySecureChannel::BuildServiceResponse(
+std::vector<char> SecureChannel::BuildServiceResponse(
     std::uint32_t request_id,
     std::vector<char> body) {
-  OpcUaBinarySecureConversationMessage message{
+  SecureConversationMessage message{
       .frame_header =
-          {.message_type = OpcUaBinaryMessageType::SecureMessage,
+          {.message_type = MessageType::SecureMessage,
            .chunk_type = 'F',
            .message_size = 0},
       .secure_channel_id = channel_id_,
       .symmetric_security_header =
-          OpcUaBinarySymmetricSecurityHeader{.token_id = token_id_},
+          SymmetricSecurityHeader{.token_id = token_id_},
       .sequence_header =
           {.sequence_number = next_sequence_number_++, .request_id = request_id},
       .body = std::move(body),
@@ -390,11 +390,11 @@ std::vector<char> OpcUaBinarySecureChannel::BuildServiceResponse(
   return EncodeSecureConversationMessage(message);
 }
 
-std::vector<char> OpcUaBinarySecureChannel::BuildOpenResponse(
-    const OpcUaBinarySecureConversationMessage& request_message,
-    const OpcUaBinaryOpenSecureChannelRequest& request,
+std::vector<char> SecureChannel::BuildOpenResponse(
+    const SecureConversationMessage& request_message,
+    const OpenSecureChannelRequest& request,
     scada::Status service_result) {
-  OpcUaBinaryOpenSecureChannelResponse response{
+  OpenSecureChannelResponse response{
       .response_header = {.request_handle = request.request_header.request_handle,
                           .service_result = service_result},
       .server_protocol_version = request.client_protocol_version,
@@ -406,13 +406,13 @@ std::vector<char> OpcUaBinarySecureChannel::BuildOpenResponse(
       .server_nonce = {},
   };
 
-  OpcUaBinarySecureConversationMessage message{
+  SecureConversationMessage message{
       .frame_header =
-          {.message_type = OpcUaBinaryMessageType::SecureOpen,
+          {.message_type = MessageType::SecureOpen,
            .chunk_type = 'F',
            .message_size = 0},
       .secure_channel_id = channel_id_,
-      .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+      .asymmetric_security_header = AsymmetricSecurityHeader{
           .security_policy_uri = std::string{kSecurityPolicyNone},
           .sender_certificate = {},
           .receiver_certificate_thumbprint = {},
@@ -425,4 +425,4 @@ std::vector<char> OpcUaBinarySecureChannel::BuildOpenResponse(
   return EncodeSecureConversationMessage(message);
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

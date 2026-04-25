@@ -13,10 +13,10 @@
 
 using namespace testing;
 
-namespace scada::opcua_endpoint {
+namespace opcua {
 namespace {
 
-class OpcUaEndpointCoreTest : public Test {
+class EndpointCoreTest : public Test {
  protected:
   static scada::NodeId NumericNode(scada::NumericId id,
                                    scada::NamespaceIndex ns = 2) {
@@ -30,13 +30,13 @@ class OpcUaEndpointCoreTest : public Test {
   StrictMock<scada::MockViewService> view_service_;
 };
 
-TEST_F(OpcUaEndpointCoreTest, MakeServiceContext_SetsRequestedUserId) {
+TEST_F(EndpointCoreTest, MakeServiceContext_SetsRequestedUserId) {
   const auto user_id = NumericNode(42, 3);
   const auto context = MakeServiceContext(user_id);
   EXPECT_EQ(context.user_id(), user_id);
 }
 
-TEST_F(OpcUaEndpointCoreTest, Read_NormalizesBadWrongNodeIdInCallbackPath) {
+TEST_F(EndpointCoreTest, Read_NormalizesBadWrongNodeIdInCallbackPath) {
   const auto user_id = NumericNode(99, 4);
   auto inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{
@@ -68,7 +68,7 @@ TEST_F(OpcUaEndpointCoreTest, Read_NormalizesBadWrongNodeIdInCallbackPath) {
   EXPECT_EQ(scada::Status((*results)[0].status_code).full_code(), 0x80340000u);
 }
 
-TEST_F(OpcUaEndpointCoreTest, Write_ForwardsUserContextAndResults) {
+TEST_F(EndpointCoreTest, Write_ForwardsUserContextAndResults) {
   const auto user_id = NumericNode(101, 4);
   auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{{
@@ -101,7 +101,7 @@ TEST_F(OpcUaEndpointCoreTest, Write_ForwardsUserContextAndResults) {
   EXPECT_THAT(*results, ElementsAre(scada::StatusCode::Good));
 }
 
-TEST_F(OpcUaEndpointCoreTest, Browse_ForwardsContextInputsAndResults) {
+TEST_F(EndpointCoreTest, Browse_ForwardsContextInputsAndResults) {
   const auto user_id = NumericNode(55, 6);
   const auto inputs = std::vector<scada::BrowseDescription>{
       {.node_id = NumericNode(5),
@@ -143,7 +143,7 @@ TEST_F(OpcUaEndpointCoreTest, Browse_ForwardsContextInputsAndResults) {
                   .node_id = NumericNode(11)}));
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        TranslateBrowsePaths_ForwardsInputsAndResults) {
   const auto inputs = std::vector<scada::BrowsePath>{
       {.node_id = NumericNode(12),
@@ -182,7 +182,7 @@ TEST_F(OpcUaEndpointCoreTest,
             scada::ExpandedNodeId{NumericNode(14)});
 }
 
-TEST_F(OpcUaEndpointCoreTest, AddNodes_ForwardsInputsAndResults) {
+TEST_F(EndpointCoreTest, AddNodes_ForwardsInputsAndResults) {
   const auto inputs = std::vector<scada::AddNodesItem>{
       {.requested_id = NumericNode(20),
        .parent_id = NumericNode(21),
@@ -219,7 +219,7 @@ TEST_F(OpcUaEndpointCoreTest, AddNodes_ForwardsInputsAndResults) {
   EXPECT_EQ((*results)[0].added_node_id, NumericNode(24));
 }
 
-TEST_F(OpcUaEndpointCoreTest, DeleteNodes_ForwardsInputsAndResults) {
+TEST_F(EndpointCoreTest, DeleteNodes_ForwardsInputsAndResults) {
   const auto inputs = std::vector<scada::DeleteNodesItem>{
       {.node_id = NumericNode(30), .delete_target_references = true}};
 
@@ -250,7 +250,7 @@ TEST_F(OpcUaEndpointCoreTest, DeleteNodes_ForwardsInputsAndResults) {
   EXPECT_THAT(*results, ElementsAre(scada::StatusCode::Bad_WrongNodeId));
 }
 
-TEST_F(OpcUaEndpointCoreTest, CallMethod_ForwardsMethodArgumentsAndUserId) {
+TEST_F(EndpointCoreTest, CallMethod_ForwardsMethodArgumentsAndUserId) {
   const auto node_id = NumericNode(40, 8);
   const auto method_id = NumericNode(41, 8);
   const auto user_id = NumericNode(42, 8);
@@ -279,7 +279,7 @@ TEST_F(OpcUaEndpointCoreTest, CallMethod_ForwardsMethodArgumentsAndUserId) {
   EXPECT_EQ(status->code(), scada::StatusCode::Bad_WrongCallArguments);
 }
 
-TEST_F(OpcUaEndpointCoreTest, CreateMonitoredItem_ForwardsInputsAndReturnsItem) {
+TEST_F(EndpointCoreTest, CreateMonitoredItem_ForwardsInputsAndReturnsItem) {
   const auto read_value_id = scada::ReadValueId{
       .node_id = NumericNode(50, 9),
       .attribute_id = scada::AttributeId::Value};
@@ -313,7 +313,7 @@ TEST_F(OpcUaEndpointCoreTest, CreateMonitoredItem_ForwardsInputsAndReturnsItem) 
   EXPECT_EQ(created.monitored_item, monitored_item);
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        CreateMonitoredItem_TranslatesBadAttributeAndUnknownNodeFailures) {
   const auto bad_attribute = scada::ReadValueId{
       .node_id = NumericNode(60, 9),
@@ -342,7 +342,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_FALSE(unknown_node_result.monitored_item);
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        SubscribeMonitoredItemNotifications_UsesDataChangeHandlerForValueItems) {
   auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
   const auto read_value_id = scada::ReadValueId{
@@ -363,7 +363,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(*delivered, value);
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        SubscribeMonitoredItemNotifications_UsesEventHandlerForEventItems) {
   auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
   const auto read_value_id = scada::ReadValueId{
@@ -388,7 +388,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(*delivered_event_id, 42);
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        DispatchMonitoredItemNotifications_ForwardsMatchingHandlerKinds) {
   const auto value_item = scada::ReadValueId{
       .node_id = NumericNode(72, 9),
@@ -428,7 +428,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(*delivered_event_id, 91);
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        ProjectEventFields_PreservesRequestedSelectClauseOrder) {
   scada::Event event;
   event.event_id = 11;
@@ -449,7 +449,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_TRUE(fields[3].is_null());
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        NormalizeEventFieldPaths_UsesDefaultsOnlyWhenEmpty) {
   const auto defaults = NormalizeEventFieldPaths({});
   EXPECT_EQ(defaults, DefaultEventFieldPaths());
@@ -461,7 +461,7 @@ TEST_F(OpcUaEndpointCoreTest,
   EXPECT_EQ(NormalizeEventFieldPaths(custom), custom);
 }
 
-TEST_F(OpcUaEndpointCoreTest, ParseAndBuildEventFilter_RoundTripsFieldPaths) {
+TEST_F(EndpointCoreTest, ParseAndBuildEventFilter_RoundTripsFieldPaths) {
   const auto filter = BuildEventFilter(std::vector<std::vector<std::string>>{
       {"Severity"},
       {"Message"},
@@ -471,7 +471,7 @@ TEST_F(OpcUaEndpointCoreTest, ParseAndBuildEventFilter_RoundTripsFieldPaths) {
                                                    {"Message"}}));
 }
 
-TEST_F(OpcUaEndpointCoreTest,
+TEST_F(EndpointCoreTest,
        DispatchEventFieldNotification_AssemblesAndForwardsModelChangeEvents) {
   const auto event_item = scada::ReadValueId{
       .node_id = NumericNode(74, 9),
@@ -507,4 +507,4 @@ TEST_F(OpcUaEndpointCoreTest,
 }
 
 }  // namespace
-}  // namespace scada::opcua_endpoint
+}  // namespace opcua

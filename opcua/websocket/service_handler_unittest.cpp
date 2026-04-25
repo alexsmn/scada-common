@@ -19,7 +19,7 @@ using namespace testing;
 namespace opcua {
 namespace {
 
-class OpcUaServiceHandlerTest : public Test {
+class ServiceHandlerTest : public Test {
  protected:
   static scada::NodeId NumericNode(scada::NumericId id,
                                    scada::NamespaceIndex ns = 2) {
@@ -35,7 +35,7 @@ class OpcUaServiceHandlerTest : public Test {
       std::make_shared<TestExecutor>();
   const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
   const scada::NodeId user_id_ = NumericNode(700, 3);
-  OpcUaServiceHandler handler_{
+  ServiceHandler handler_{
       {any_executor_,
        attribute_service_,
        view_service_,
@@ -45,7 +45,7 @@ class OpcUaServiceHandlerTest : public Test {
        user_id_}};
 };
 
-TEST_F(OpcUaServiceHandlerTest,
+TEST_F(ServiceHandlerTest,
        HandleReadWriteBrowseAndTranslate_UsesPhase0Services) {
   ReadRequest read_request{
       .inputs = {{.node_id = NumericNode(1),
@@ -148,8 +148,8 @@ TEST_F(OpcUaServiceHandlerTest,
   EXPECT_EQ(translate_response->results[0].targets[0].remaining_path_index, 0u);
 }
 
-TEST_F(OpcUaServiceHandlerTest,
-       HandleRead_MapsWrongNodeIdToOpcUaBadNodeIdUnknown) {
+TEST_F(ServiceHandlerTest,
+       HandleRead_MapsWrongNodeIdToBadNodeIdUnknown) {
   ReadRequest read_request{
       .inputs = {{.node_id = NumericNode(9999),
                   .attribute_id = scada::AttributeId::Value}}};
@@ -174,7 +174,7 @@ TEST_F(OpcUaServiceHandlerTest,
             0x80340000u);
 }
 
-TEST_F(OpcUaServiceHandlerTest,
+TEST_F(ServiceHandlerTest,
        HandleCall_ForwardsEachMethodWithSessionUserId) {
   CallRequest request{.methods = {
                           {.object_id = NumericNode(10),
@@ -222,7 +222,7 @@ TEST_F(OpcUaServiceHandlerTest,
             scada::StatusCode::Bad_WrongCallArguments);
 }
 
-TEST_F(OpcUaServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
+TEST_F(ServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
   const auto node_id = NumericNode(30);
   const auto from = base::Time::Now() - base::TimeDelta::FromHours(1);
   const auto to = base::Time::Now();
@@ -253,7 +253,7 @@ TEST_F(OpcUaServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
             (scada::ByteString{1, 2, 3}));
 }
 
-TEST_F(OpcUaServiceHandlerTest,
+TEST_F(ServiceHandlerTest,
        HandleHistoryReadEvents_ForwardsFilterAndEvents) {
   scada::HistoryReadEventsDetails details{
       .node_id = NumericNode(40),
@@ -293,7 +293,7 @@ TEST_F(OpcUaServiceHandlerTest,
   EXPECT_EQ(events_response->result.events[0].event_id, 99u);
 }
 
-TEST_F(OpcUaServiceHandlerTest, HandleAddNodes_ForwardsBatchResults) {
+TEST_F(ServiceHandlerTest, HandleAddNodes_ForwardsBatchResults) {
   AddNodesRequest request{.items = {
                               {.requested_id = NumericNode(50),
                                .parent_id = NumericNode(51),
@@ -322,7 +322,7 @@ TEST_F(OpcUaServiceHandlerTest, HandleAddNodes_ForwardsBatchResults) {
   EXPECT_EQ(add_nodes_response->results[0].added_node_id, (scada::NodeId{500, 4}));
 }
 
-TEST_F(OpcUaServiceHandlerTest,
+TEST_F(ServiceHandlerTest,
        HandleDeleteAndReferenceMutations_PropagatesStatuses) {
   DeleteNodesRequest delete_nodes_request{
       .items = {{.node_id = NumericNode(60), .delete_target_references = true}}};

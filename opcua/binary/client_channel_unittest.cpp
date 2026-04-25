@@ -20,7 +20,7 @@
 #include <variant>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 struct ScriptedState {
@@ -85,7 +85,7 @@ std::string AsString(const std::vector<char>& bytes) {
 
 std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
                                          std::uint32_t token_id) {
-  const OpcUaBinaryOpenSecureChannelResponse response{
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = 1,
                           .service_result = scada::StatusCode::Good},
       .server_protocol_version = 0,
@@ -95,12 +95,12 @@ std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
                          .revised_lifetime = 60000},
       .server_nonce = {},
   };
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id,
-      .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+      .asymmetric_security_header = AsymmetricSecurityHeader{
           .security_policy_uri = std::string{kSecurityPolicyNone},
           .sender_certificate = {},
           .receiver_certificate_thumbprint = {},
@@ -111,35 +111,35 @@ std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
   return EncodeSecureConversationMessage(message);
 }
 
-// Wraps a service-response body (produced by EncodeOpcUaBinaryServiceResponse)
+// Wraps a service-response body (produced by EncodeServiceResponse)
 // into a SecureMessage frame at the given channel/token/request_id.
 std::vector<char> BuildServiceResponseFrame(std::uint32_t channel_id,
                                             std::uint32_t token_id,
                                             std::uint32_t request_id,
                                             std::vector<char> body) {
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureMessage,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureMessage,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id,
       .asymmetric_security_header = std::nullopt,
       .symmetric_security_header =
-          OpcUaBinarySymmetricSecurityHeader{.token_id = token_id},
+          SymmetricSecurityHeader{.token_id = token_id},
       .sequence_header = {.sequence_number = 2, .request_id = request_id},
       .body = std::move(body),
   };
   return EncodeSecureConversationMessage(message);
 }
 
-class OpcUaClientChannelTest : public ::testing::Test {
+class ClientChannelTest : public ::testing::Test {
  protected:
   static constexpr std::uint32_t kChannelId = 42;
   static constexpr std::uint32_t kTokenId = 1;
 
-  std::unique_ptr<OpcUaBinaryClientTransport> MakeClientTransport(
+  std::unique_ptr<ClientTransport> MakeClientTransport(
       const std::shared_ptr<ScriptedState>& state) {
-    return std::make_unique<OpcUaBinaryClientTransport>(
-        OpcUaBinaryClientTransportContext{
+    return std::make_unique<ClientTransport>(
+        ClientTransportContext{
             .transport = transport::any_transport{
                 ScriptedTransport{any_executor_, state}},
             .endpoint_url = "opc.tcp://localhost:4840",
@@ -148,7 +148,7 @@ class OpcUaClientChannelTest : public ::testing::Test {
   }
 
   void PrimeAcknowledge(const std::shared_ptr<ScriptedState>& state) {
-    state->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage(
+    state->incoming.push_back(AsString(EncodeAcknowledgeMessage(
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
   }
 
@@ -156,8 +156,8 @@ class OpcUaClientChannelTest : public ::testing::Test {
   // the opened state with the channel_id/token_id above. The test should
   // push service response frames into state->incoming AFTER calling this.
   void OpenChannel(const std::shared_ptr<ScriptedState>& state,
-                   OpcUaBinaryClientTransport& transport,
-                   OpcUaBinaryClientSecureChannel& secure_channel) {
+                   ClientTransport& transport,
+                   ClientSecureChannel& secure_channel) {
     PrimeAcknowledge(state);
     state->incoming.push_back(
         AsString(BuildOpenResponseFrame(kChannelId, kTokenId)));
@@ -170,23 +170,23 @@ class OpcUaClientChannelTest : public ::testing::Test {
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
 };
 
-TEST_F(OpcUaClientChannelTest, RequestHandlesAreMonotonic) {
+TEST_F(ClientChannelTest, RequestHandlesAreMonotonic) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto transport = MakeClientTransport(state);
   ASSERT_TRUE(WaitAwaitable(executor_, transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{*transport};
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   EXPECT_EQ(channel.NextRequestHandle(), 1u);
   EXPECT_EQ(channel.NextRequestHandle(), 2u);
 }
 
-TEST_F(OpcUaClientChannelTest, CallReadReturnsTypedResponse) {
+TEST_F(ClientChannelTest, CallReadReturnsTypedResponse) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
   const std::uint32_t request_handle = 7;
@@ -196,19 +196,19 @@ TEST_F(OpcUaClientChannelTest, CallReadReturnsTypedResponse) {
       .status = scada::StatusCode::Good,
       .results = {scada::DataValue{scada::Variant{std::int32_t{42}}, {}, {}, {}}},
   };
-  const auto encoded_body = EncodeOpcUaBinaryServiceResponse(
-      request_handle, OpcUaResponseBody{server_reply});
+  const auto encoded_body = EncodeServiceResponse(
+      request_handle, ResponseBody{server_reply});
   ASSERT_TRUE(encoded_body.has_value());
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, /*request_id=*/2, *encoded_body)));
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
-                   OpcUaRequestBody{ReadRequest{.inputs = {}}}));
+                   RequestBody{ReadRequest{.inputs = {}}}));
   ASSERT_TRUE(result.ok());
   const auto* typed = std::get_if<ReadResponse>(&result.value());
   ASSERT_NE(typed, nullptr);
@@ -218,10 +218,10 @@ TEST_F(OpcUaClientChannelTest, CallReadReturnsTypedResponse) {
             (scada::Variant{std::int32_t{42}}));
 }
 
-TEST_F(OpcUaClientChannelTest, CallWriteReturnsStatusCodes) {
+TEST_F(ClientChannelTest, CallWriteReturnsStatusCodes) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
   const std::uint32_t request_handle = 8;
@@ -230,19 +230,19 @@ TEST_F(OpcUaClientChannelTest, CallWriteReturnsStatusCodes) {
       .results = {scada::StatusCode::Good,
                   scada::StatusCode::Bad_WrongAttributeId},
   };
-  const auto encoded_body = EncodeOpcUaBinaryServiceResponse(
-      request_handle, OpcUaResponseBody{server_reply});
+  const auto encoded_body = EncodeServiceResponse(
+      request_handle, ResponseBody{server_reply});
   ASSERT_TRUE(encoded_body.has_value());
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
-                   OpcUaRequestBody{WriteRequest{.inputs = {}}}));
+                   RequestBody{WriteRequest{.inputs = {}}}));
   ASSERT_TRUE(result.ok());
   const auto* typed = std::get_if<WriteResponse>(&result.value());
   ASSERT_NE(typed, nullptr);
@@ -251,74 +251,74 @@ TEST_F(OpcUaClientChannelTest, CallWriteReturnsStatusCodes) {
   EXPECT_EQ(typed->results[1], scada::StatusCode::Bad_WrongAttributeId);
 }
 
-TEST_F(OpcUaClientChannelTest, CallRejectsMismatchedRequestHandle) {
+TEST_F(ClientChannelTest, CallRejectsMismatchedRequestHandle) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
   // Server response encoded with request_handle=999 while the client sends
   // request_handle=7.
   WriteResponse stray{.status = scada::StatusCode::Good};
-  const auto encoded_body = EncodeOpcUaBinaryServiceResponse(
-      999, OpcUaResponseBody{stray});
+  const auto encoded_body = EncodeServiceResponse(
+      999, ResponseBody{stray});
   ASSERT_TRUE(encoded_body.has_value());
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(/*request_handle=*/7,
-                   OpcUaRequestBody{WriteRequest{.inputs = {}}}));
+                   RequestBody{WriteRequest{.inputs = {}}}));
   EXPECT_FALSE(result.ok());
 }
 
-TEST_F(OpcUaClientChannelTest, CallReturnsBadOnConnectionClosed) {
+TEST_F(ClientChannelTest, CallReturnsBadOnConnectionClosed) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
   // No service response queued — the ReadFrame will see EOF and report bad.
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(
-          1, OpcUaRequestBody{ReadRequest{.inputs = {}}}));
+          1, RequestBody{ReadRequest{.inputs = {}}}));
   EXPECT_FALSE(result.ok());
   EXPECT_TRUE(result.status().bad());
 }
 
-TEST_F(OpcUaClientChannelTest,
+TEST_F(ClientChannelTest,
        CallIncludesAuthenticationTokenInRequestHeader) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
   // Queue any response so the Call completes.
   const std::uint32_t request_handle = 11;
-  const auto encoded_body = EncodeOpcUaBinaryServiceResponse(
+  const auto encoded_body = EncodeServiceResponse(
       request_handle,
-      OpcUaResponseBody{OpcUaCloseSessionResponse{.status = scada::StatusCode::Good}});
+      ResponseBody{CloseSessionResponse{.status = scada::StatusCode::Good}});
   ASSERT_TRUE(encoded_body.has_value());
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       kChannelId, kTokenId, 2, *encoded_body)));
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
   channel.set_authentication_token(scada::NodeId{0xABCDEF});
   EXPECT_EQ(channel.authentication_token(), scada::NodeId{0xABCDEF});
 
   [[maybe_unused]] auto unused = WaitAwaitable(
       executor_, channel.Call(request_handle,
-                              OpcUaRequestBody{OpcUaCloseSessionRequest{}}));
+                              RequestBody{CloseSessionRequest{}}));
 
   // The outgoing SecureMessage is writes[2] (after Hello + OPN). Its body
   // starts with the OPC UA request header, whose first field is the
@@ -330,43 +330,43 @@ TEST_F(OpcUaClientChannelTest,
   const auto decoded = DecodeSecureConversationMessage(bytes);
   ASSERT_TRUE(decoded.has_value());
   const auto request =
-      DecodeOpcUaBinaryServiceRequest(decoded->body);
+      DecodeServiceRequest(decoded->body);
   ASSERT_TRUE(request.has_value());
   EXPECT_EQ(request->header.authentication_token, scada::NodeId{0xABCDEF});
   EXPECT_EQ(request->header.request_handle, request_handle);
 }
 
-TEST_F(OpcUaClientChannelTest,
+TEST_F(ClientChannelTest,
        SplitSendReceiveBuffersOutOfOrderResponses) {
   auto state = std::make_shared<ScriptedState>();
   auto transport = MakeClientTransport(state);
-  OpcUaBinaryClientSecureChannel secure_channel{*transport};
+  ClientSecureChannel secure_channel{*transport};
   OpenChannel(state, *transport, secure_channel);
 
-  OpcUaBinaryClientConnection connection{
+  ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.connection = connection}};
 
   const std::uint32_t first_handle = 21;
   const std::uint32_t second_handle = 22;
   auto first_request_id = WaitAwaitable(
       executor_,
-      channel.Send(first_handle, OpcUaRequestBody{ReadRequest{.inputs = {}}}));
+      channel.Send(first_handle, RequestBody{ReadRequest{.inputs = {}}}));
   auto second_request_id = WaitAwaitable(
       executor_,
-      channel.Send(second_handle, OpcUaRequestBody{WriteRequest{.inputs = {}}}));
+      channel.Send(second_handle, RequestBody{WriteRequest{.inputs = {}}}));
   ASSERT_TRUE(first_request_id.ok());
   ASSERT_TRUE(second_request_id.ok());
   EXPECT_EQ(*first_request_id, 2u);
   EXPECT_EQ(*second_request_id, 3u);
 
-  const auto second_body = EncodeOpcUaBinaryServiceResponse(
+  const auto second_body = EncodeServiceResponse(
       second_handle,
-      OpcUaResponseBody{WriteResponse{.status = scada::StatusCode::Good,
+      ResponseBody{WriteResponse{.status = scada::StatusCode::Good,
                                       .results = {scada::StatusCode::Good}}});
-  const auto first_body = EncodeOpcUaBinaryServiceResponse(
+  const auto first_body = EncodeServiceResponse(
       first_handle,
-      OpcUaResponseBody{ReadResponse{
+      ResponseBody{ReadResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::DataValue{scada::Variant{std::int32_t{7}}, {}, {},
                                        {}}}}});
@@ -395,4 +395,4 @@ TEST_F(OpcUaClientChannelTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

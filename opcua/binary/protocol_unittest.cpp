@@ -2,11 +2,11 @@
 
 #include <gtest/gtest.h>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
-TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesHelloMessage) {
-  const OpcUaBinaryHelloMessage source{
+TEST(ProtocolTest, EncodesAndDecodesHelloMessage) {
+  const HelloMessage source{
       .protocol_version = 0,
       .receive_buffer_size = 65536,
       .send_buffer_size = 32768,
@@ -15,14 +15,14 @@ TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesHelloMessage) {
       .endpoint_url = "opc.tcp://localhost:4840",
   };
 
-  const auto encoded = EncodeBinaryHelloMessage(source);
-  const auto header = DecodeBinaryFrameHeader(encoded);
+  const auto encoded = EncodeHelloMessage(source);
+  const auto header = DecodeFrameHeader(encoded);
   ASSERT_TRUE(header.has_value());
-  EXPECT_EQ(header->message_type, OpcUaBinaryMessageType::Hello);
+  EXPECT_EQ(header->message_type, MessageType::Hello);
   EXPECT_EQ(header->chunk_type, 'F');
   EXPECT_EQ(header->message_size, encoded.size());
 
-  const auto decoded = DecodeBinaryHelloMessage(encoded);
+  const auto decoded = DecodeHelloMessage(encoded);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->protocol_version, source.protocol_version);
   EXPECT_EQ(decoded->receive_buffer_size, source.receive_buffer_size);
@@ -32,8 +32,8 @@ TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesHelloMessage) {
   EXPECT_EQ(decoded->endpoint_url, source.endpoint_url);
 }
 
-TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesAcknowledgeMessage) {
-  const OpcUaBinaryAcknowledgeMessage source{
+TEST(ProtocolTest, EncodesAndDecodesAcknowledgeMessage) {
+  const AcknowledgeMessage source{
       .protocol_version = 0,
       .receive_buffer_size = 32768,
       .send_buffer_size = 16384,
@@ -41,8 +41,8 @@ TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesAcknowledgeMessage) {
       .max_chunk_count = 0,
   };
 
-  const auto encoded = EncodeBinaryAcknowledgeMessage(source);
-  const auto decoded = DecodeBinaryAcknowledgeMessage(encoded);
+  const auto encoded = EncodeAcknowledgeMessage(source);
+  const auto decoded = DecodeAcknowledgeMessage(encoded);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->protocol_version, source.protocol_version);
   EXPECT_EQ(decoded->receive_buffer_size, source.receive_buffer_size);
@@ -51,26 +51,26 @@ TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesAcknowledgeMessage) {
   EXPECT_EQ(decoded->max_chunk_count, source.max_chunk_count);
 }
 
-TEST(OpcUaBinaryProtocolTest, EncodesAndDecodesErrorMessage) {
-  const OpcUaBinaryErrorMessage source{
+TEST(ProtocolTest, EncodesAndDecodesErrorMessage) {
+  const ErrorMessage source{
       .error = scada::StatusCode::Bad_UnsupportedProtocolVersion,
       .reason = "Unsupported protocol version",
   };
 
-  const auto encoded = EncodeBinaryErrorMessage(source);
-  const auto decoded = DecodeBinaryErrorMessage(encoded);
+  const auto encoded = EncodeErrorMessage(source);
+  const auto decoded = DecodeErrorMessage(encoded);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->error.code(), source.error.code());
   EXPECT_EQ(decoded->reason, source.reason);
 }
 
-TEST(OpcUaBinaryProtocolTest, RejectsUnknownFrameHeaderType) {
+TEST(ProtocolTest, RejectsUnknownFrameHeaderType) {
   std::vector<char> bytes = {'X', 'Y', 'Z', 'F', 8, 0, 0, 0};
-  EXPECT_FALSE(DecodeBinaryFrameHeader(bytes).has_value());
+  EXPECT_FALSE(DecodeFrameHeader(bytes).has_value());
 }
 
-TEST(OpcUaBinaryProtocolTest, NegotiatesBuffersAgainstPeerLimits) {
-  const OpcUaBinaryHelloMessage hello{
+TEST(ProtocolTest, NegotiatesBuffersAgainstPeerLimits) {
+  const HelloMessage hello{
       .protocol_version = 3,
       .receive_buffer_size = 8192,
       .send_buffer_size = 4096,
@@ -78,7 +78,7 @@ TEST(OpcUaBinaryProtocolTest, NegotiatesBuffersAgainstPeerLimits) {
       .max_chunk_count = 32,
       .endpoint_url = "opc.tcp://localhost:4840",
   };
-  const OpcUaBinaryTransportLimits server{
+  const TransportLimits server{
       .protocol_version = 0,
       .receive_buffer_size = 16384,
       .send_buffer_size = 2048,
@@ -86,7 +86,7 @@ TEST(OpcUaBinaryProtocolTest, NegotiatesBuffersAgainstPeerLimits) {
       .max_chunk_count = 64,
   };
 
-  const auto negotiated = NegotiateBinaryHello(hello, server);
+  const auto negotiated = NegotiateHello(hello, server);
   ASSERT_TRUE(negotiated.acknowledge.has_value());
   EXPECT_FALSE(negotiated.error.has_value());
   EXPECT_EQ(negotiated.acknowledge->protocol_version, 0u);
@@ -96,8 +96,8 @@ TEST(OpcUaBinaryProtocolTest, NegotiatesBuffersAgainstPeerLimits) {
   EXPECT_EQ(negotiated.acknowledge->max_chunk_count, 64u);
 }
 
-TEST(OpcUaBinaryProtocolTest, RejectsZeroPeerBuffers) {
-  const OpcUaBinaryHelloMessage hello{
+TEST(ProtocolTest, RejectsZeroPeerBuffers) {
+  const HelloMessage hello{
       .protocol_version = 0,
       .receive_buffer_size = 0,
       .send_buffer_size = 8192,
@@ -107,10 +107,10 @@ TEST(OpcUaBinaryProtocolTest, RejectsZeroPeerBuffers) {
   };
 
   const auto negotiated =
-      NegotiateBinaryHello(hello, OpcUaBinaryTransportLimits{});
+      NegotiateHello(hello, TransportLimits{});
   ASSERT_TRUE(negotiated.error.has_value());
   EXPECT_FALSE(negotiated.acknowledge.has_value());
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

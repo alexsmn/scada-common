@@ -34,17 +34,17 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
-TEST(OpcUaServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) {
+TEST(ServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 17:00:00");
-  OpcUaServerSession source{{
+  ServerSession source{{
       .session_id = NumericNode(1001),
       .authentication_token = NumericNode(2001, 3),
       .service_context = scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
-  OpcUaServerSession target{{
+  ServerSession target{{
       .session_id = NumericNode(1002),
       .authentication_token = NumericNode(2002, 3),
       .service_context = scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
@@ -88,18 +88,18 @@ TEST(OpcUaServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) 
   EXPECT_TRUE(target.HasSubscription(created.subscription_id));
 }
 
-TEST(OpcUaServerSessionTest,
+TEST(ServerSessionTest,
      TransfersSubscriptionsAcrossSessionsAndPublishesQueuedData) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 18:00:00");
-  OpcUaServerSession source{{
+  ServerSession source{{
       .session_id = NumericNode(1101),
       .authentication_token = NumericNode(2101, 3),
       .service_context = scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
-  OpcUaServerSession target{{
+  ServerSession target{{
       .session_id = NumericNode(1102),
       .authentication_token = NumericNode(2102, 3),
       .service_context = scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
@@ -143,7 +143,7 @@ TEST(OpcUaServerSessionTest,
   EXPECT_EQ(published.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(published.subscription_id, created_subscription.subscription_id);
   ASSERT_EQ(published.notification_message.notification_data.size(), 1u);
-  const auto* data_change = std::get_if<OpcUaDataChangeNotification>(
+  const auto* data_change = std::get_if<DataChangeNotification>(
       &published.notification_message.notification_data[0]);
   ASSERT_NE(data_change, nullptr);
   ASSERT_EQ(data_change->monitored_items.size(), 1u);
@@ -151,11 +151,11 @@ TEST(OpcUaServerSessionTest,
   EXPECT_EQ(data_change->monitored_items[0].value.value.get<double>(), 77.0);
 }
 
-TEST(OpcUaServerSessionTest,
+TEST(ServerSessionTest,
      ModifiesSubscriptionsAndRoutesMonitoredItemOperations) {
   TestMonitoredItemService monitored_item_service;
   auto now = ParseTime("2026-04-20 19:00:00");
-  OpcUaServerSession session{{
+  ServerSession session{{
       .session_id = NumericNode(1201),
       .authentication_token = NumericNode(2201, 3),
       .service_context = scada::ServiceContext{}.with_user_id(NumericNode(79, 4)),
@@ -206,7 +206,7 @@ TEST(OpcUaServerSessionTest,
 
   const auto monitoring_mode = session.SetMonitoringMode(
       {.subscription_id = created_subscription.subscription_id,
-       .monitoring_mode = OpcUaMonitoringMode::Sampling,
+       .monitoring_mode = MonitoringMode::Sampling,
        .monitored_item_ids = {monitored_item_id}});
   EXPECT_EQ(monitoring_mode.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));

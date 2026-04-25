@@ -27,9 +27,9 @@ struct DecodedExtensionObject {
   std::vector<char> body;
 };
 
-class BinaryEncoder {
+class Encoder {
  public:
-  explicit BinaryEncoder(std::vector<char>& bytes) : bytes_{bytes} {}
+  explicit Encoder(std::vector<char>& bytes) : bytes_{bytes} {}
 
   void Encode(std::uint8_t value);
   void Encode(std::uint16_t value);
@@ -56,10 +56,10 @@ class BinaryEncoder {
   std::vector<char>& bytes_;
 };
 
-class BinaryDecoder {
+class Decoder {
  public:
-  explicit BinaryDecoder(std::span<const char> bytes) : bytes_{bytes} {}
-  explicit BinaryDecoder(const std::vector<char>& bytes) : bytes_{bytes} {}
+  explicit Decoder(std::span<const char> bytes) : bytes_{bytes} {}
+  explicit Decoder(const std::vector<char>& bytes) : bytes_{bytes} {}
 
   bool Decode(std::uint8_t& value);
   bool Decode(std::uint16_t& value);
@@ -89,12 +89,12 @@ class BinaryDecoder {
   std::size_t offset_ = 0;
 };
 
-void AppendMessage(BinaryEncoder& encoder,
+void AppendMessage(Encoder& encoder,
                    std::uint32_t type_id,
                    std::span<const char> payload);
 // The returned payload span aliases the decoder input storage, so its lifetime
 // is bound to the lifetime of the bytes owned by the input decoder.
 std::optional<std::pair<std::uint32_t, std::span<const char>>> ReadMessage(
-    BinaryDecoder& decoder);
+    Decoder& decoder);
 
 }  // namespace opcua::binary

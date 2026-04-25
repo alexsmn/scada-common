@@ -26,14 +26,14 @@ class TransportFactory;
 
 namespace opcua {
 
-class OpcUaClientSubscription;
+class ClientSubscription;
 
 // Qt client's adapter onto the in-repo OPC UA Binary client (see
 // common/opcua/binary/*). Implements the five scada::* service
 // interfaces and bridges their callback / promise calling conventions to
 // the coroutine-native client stack underneath.
-class OpcUaClientSession final
-    : public std::enable_shared_from_this<OpcUaClientSession>,
+class ClientSession final
+    : public std::enable_shared_from_this<ClientSession>,
       public scada::SessionService,
       public scada::CoroutineViewService,
       public scada::CoroutineAttributeService,
@@ -43,9 +43,9 @@ class OpcUaClientSession final
       public scada::MonitoredItemService,
       public scada::MethodService {
  public:
-  OpcUaClientSession(std::shared_ptr<Executor> executor,
+  ClientSession(std::shared_ptr<Executor> executor,
                      transport::TransportFactory& transport_factory);
-  ~OpcUaClientSession() override;
+  ~ClientSession() override;
 
   // scada::SessionService
   promise<void> Connect(
@@ -123,8 +123,8 @@ class OpcUaClientSession final
       std::vector<scada::Variant> arguments,
       scada::NodeId user_id) override;
 
-  // Access for OpcUaClientSubscription / OpcUaMonitoredItem.
-  [[nodiscard]] OpcUaClientChannel& channel() { return *channel_; }
+  // Access for ClientSubscription / MonitoredItem.
+  [[nodiscard]] ClientChannel& channel() { return *channel_; }
   [[nodiscard]] const AnyExecutor& any_executor() const { return any_executor_; }
   [[nodiscard]] bool is_connected() const { return is_connected_; }
 
@@ -143,7 +143,7 @@ class OpcUaClientSession final
 
   void NotifyStateChanged(bool connected, scada::Status status);
 
-  OpcUaClientSubscription& GetDefaultSubscription();
+  ClientSubscription& GetDefaultSubscription();
 
   const std::shared_ptr<Executor> executor_;
   const AnyExecutor any_executor_;
@@ -151,17 +151,17 @@ class OpcUaClientSession final
 
   // Entire client stack is lazily constructed on Connect() and torn down on
   // Disconnect() / error.
-  std::unique_ptr<OpcUaBinaryClientTransport> transport_;
-  std::unique_ptr<OpcUaBinaryClientSecureChannel> secure_channel_;
-  std::unique_ptr<OpcUaBinaryClientConnection> connection_;
-  std::unique_ptr<OpcUaClientChannel> channel_;
-  std::unique_ptr<OpcUaClientProtocolSession> session_;
+  std::unique_ptr<binary::ClientTransport> transport_;
+  std::unique_ptr<binary::ClientSecureChannel> secure_channel_;
+  std::unique_ptr<binary::ClientConnection> connection_;
+  std::unique_ptr<ClientChannel> channel_;
+  std::unique_ptr<ClientProtocolSession> session_;
 
   bool is_connected_ = false;
   std::string endpoint_url_;
 
   // Lazily created on first CreateMonitoredItem.
-  std::shared_ptr<OpcUaClientSubscription> default_subscription_;
+  std::shared_ptr<ClientSubscription> default_subscription_;
 
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed_;

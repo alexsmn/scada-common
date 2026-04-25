@@ -9,14 +9,14 @@
 namespace opcua {
 namespace {
 
-class OpcUaServerSessionManagerTest : public testing::Test {
+class ServerSessionManagerTest : public testing::Test {
  protected:
   base::Time now_ = base::Time::Now();
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
 
-  OpcUaServerSessionManager MakeManager() {
-    return OpcUaServerSessionManager{{
+  ServerSessionManager MakeManager() {
+    return ServerSessionManager{{
         .authenticator = scada::MakeCoroutineAuthenticator(
             [](scada::LocalizedText user_name,
                scada::LocalizedText password)
@@ -32,7 +32,7 @@ class OpcUaServerSessionManagerTest : public testing::Test {
   }
 };
 
-TEST_F(OpcUaServerSessionManagerTest, ActivatesDetachesResumesAndClosesSession) {
+TEST_F(ServerSessionManagerTest, ActivatesDetachesResumesAndClosesSession) {
   auto manager = MakeManager();
 
   const auto created = WaitAwaitable(executor_, manager.CreateSession({}));

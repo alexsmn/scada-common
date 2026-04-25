@@ -4,16 +4,16 @@
 #include "opcua/binary/client_transport.h"
 #include "opcua/client_connection.h"
 
-namespace opcua {
+namespace opcua::binary {
 
-class OpcUaBinaryClientConnection final : public OpcUaClientConnection {
+class ClientConnection final : public opcua::ClientConnection {
  public:
   struct Context {
-    OpcUaBinaryClientTransport& transport;
-    OpcUaBinaryClientSecureChannel& secure_channel;
+    ClientTransport& transport;
+    ClientSecureChannel& secure_channel;
   };
 
-  explicit OpcUaBinaryClientConnection(Context context);
+  explicit ClientConnection(Context context);
 
   [[nodiscard]] Awaitable<scada::Status> Open() override;
   [[nodiscard]] Awaitable<scada::Status> Close() override;
@@ -21,14 +21,14 @@ class OpcUaBinaryClientConnection final : public OpcUaClientConnection {
   [[nodiscard]] std::uint32_t NextRequestId() override;
   [[nodiscard]] Awaitable<scada::Status> SendRequest(
       std::uint32_t request_id,
-      const OpcUaRequestMessage& message,
+      const RequestMessage& message,
       const scada::NodeId& authentication_token) override;
-  [[nodiscard]] Awaitable<scada::StatusOr<OpcUaClientResponseFrame>>
+  [[nodiscard]] Awaitable<scada::StatusOr<ClientResponseFrame>>
   ReadResponse() override;
 
  private:
-  OpcUaBinaryClientTransport& transport_;
-  OpcUaBinaryClientSecureChannel& secure_channel_;
+  ClientTransport& transport_;
+  ClientSecureChannel& secure_channel_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

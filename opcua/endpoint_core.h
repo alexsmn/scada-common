@@ -19,7 +19,9 @@
 #include <string_view>
 #include <utility>
 
-namespace scada::opcua_endpoint {
+namespace opcua {
+
+using scada::ServiceContext;
 
 inline ServiceContext MakeServiceContext(const scada::NodeId& user_id,
                                          ServiceContext base_context = {}) {
@@ -339,4 +341,4 @@ inline bool DispatchEventFieldNotification(
                                    scada::AssembleEvent(event_fields));
 }
 
-}  // namespace scada::opcua_endpoint
+}  // namespace opcua

@@ -48,7 +48,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
-class OpcUaServerRuntimeContractTestBase {
+class ServerRuntimeContractTestBase {
  public:
   base::Time now_ = ParseTime("2026-04-22 09:00:00");
   const scada::NodeId expected_user_id_ = NumericNode(700, 5);
@@ -62,7 +62,7 @@ class OpcUaServerRuntimeContractTestBase {
   testing::StrictMock<scada::MockNodeManagementService>
       node_management_service_;
   TestMonitoredItemService monitored_item_service_;
-  OpcUaServerSessionManager session_manager_{{
+  ServerSessionManager session_manager_{{
       .authenticator = scada::MakeCoroutineAuthenticator(
           [this](scada::LocalizedText user_name,
                  scada::LocalizedText password)
@@ -370,9 +370,9 @@ void ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(
       fixture.CreateAndActivate(first_connection);
 
   const auto subscription =
-      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+      fixture.template HandleResponse<CreateSubscriptionResponse>(
           first_connection,
-          OpcUaCreateSubscriptionRequest{
+          CreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
@@ -380,9 +380,9 @@ void ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(
   ASSERT_EQ(subscription.status.code(), scada::StatusCode::Good);
 
   const auto create_items =
-      fixture.template HandleResponse<OpcUaCreateMonitoredItemsResponse>(
+      fixture.template HandleResponse<CreateMonitoredItemsResponse>(
           first_connection,
-          OpcUaCreateMonitoredItemsRequest{
+          CreateMonitoredItemsRequest{
               .subscription_id = subscription.subscription_id,
               .items_to_create = {{.item_to_monitor =
                                        {.node_id = NumericNode(11),
@@ -403,9 +403,9 @@ void ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(
 
   typename Fixture::ConnectionState second_connection;
   const auto resumed =
-      fixture.template HandleResponse<OpcUaActivateSessionResponse>(
+      fixture.template HandleResponse<ActivateSessionResponse>(
           second_connection,
-          OpcUaActivateSessionRequest{
+          ActivateSessionRequest{
               .session_id = session_id,
               .authentication_token = authentication_token,
           });
@@ -413,11 +413,11 @@ void ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(
   EXPECT_TRUE(resumed.resumed);
 
   fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(100);
-  const auto publish = fixture.template HandleResponse<OpcUaPublishResponse>(
-      second_connection, OpcUaPublishRequest{});
+  const auto publish = fixture.template HandleResponse<PublishResponse>(
+      second_connection, PublishRequest{});
   EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(publish.subscription_id, subscription.subscription_id);
-  const auto* data = std::get_if<OpcUaDataChangeNotification>(
+  const auto* data = std::get_if<DataChangeNotification>(
       &publish.notification_message.notification_data[0]);
   ASSERT_NE(data, nullptr);
   EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 12.5);
@@ -429,9 +429,9 @@ void ExpectTransfersSubscriptionsAcrossSessions(Fixture& fixture) {
   fixture.CreateAndActivate(source_connection);
 
   const auto created_subscription =
-      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+      fixture.template HandleResponse<CreateSubscriptionResponse>(
           source_connection,
-          OpcUaCreateSubscriptionRequest{
+          CreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
@@ -439,9 +439,9 @@ void ExpectTransfersSubscriptionsAcrossSessions(Fixture& fixture) {
   ASSERT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
   const auto created_items =
-      fixture.template HandleResponse<OpcUaCreateMonitoredItemsResponse>(
+      fixture.template HandleResponse<CreateMonitoredItemsResponse>(
           source_connection,
-          OpcUaCreateMonitoredItemsRequest{
+          CreateMonitoredItemsRequest{
               .subscription_id = created_subscription.subscription_id,
               .items_to_create = {{.item_to_monitor =
                                        {.node_id = NumericNode(21),
@@ -461,24 +461,24 @@ void ExpectTransfersSubscriptionsAcrossSessions(Fixture& fixture) {
   typename Fixture::ConnectionState target_connection;
   fixture.CreateAndActivate(target_connection);
   const auto transferred =
-      fixture.template HandleResponse<OpcUaTransferSubscriptionsResponse>(
+      fixture.template HandleResponse<TransferSubscriptionsResponse>(
           target_connection,
-          OpcUaTransferSubscriptionsRequest{
+          TransferSubscriptionsRequest{
               .subscription_ids = {created_subscription.subscription_id},
               .send_initial_values = true});
   EXPECT_EQ(transferred.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
 
-  const auto source_publish = fixture.template HandleResponse<OpcUaPublishResponse>(
-      source_connection, OpcUaPublishRequest{});
+  const auto source_publish = fixture.template HandleResponse<PublishResponse>(
+      source_connection, PublishRequest{});
   EXPECT_EQ(source_publish.status.code(), scada::StatusCode::Bad_NothingToDo);
 
   fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(100);
-  const auto target_publish = fixture.template HandleResponse<OpcUaPublishResponse>(
-      target_connection, OpcUaPublishRequest{});
+  const auto target_publish = fixture.template HandleResponse<PublishResponse>(
+      target_connection, PublishRequest{});
   EXPECT_EQ(target_publish.subscription_id,
             created_subscription.subscription_id);
-  const auto* data = std::get_if<OpcUaDataChangeNotification>(
+  const auto* data = std::get_if<DataChangeNotification>(
       &target_publish.notification_message.notification_data[0]);
   ASSERT_NE(data, nullptr);
   EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 77.0);
@@ -490,9 +490,9 @@ void ExpectCloseSessionClearsAttachedState(Fixture& fixture) {
   const auto [session_id, authentication_token] =
       fixture.CreateAndActivate(connection);
 
-  const auto closed = fixture.template HandleResponse<OpcUaCloseSessionResponse>(
+  const auto closed = fixture.template HandleResponse<CloseSessionResponse>(
       connection,
-      OpcUaCloseSessionRequest{
+      CloseSessionRequest{
           .session_id = session_id,
           .authentication_token = authentication_token,
       });
@@ -611,9 +611,9 @@ void ExpectPublishReturnsKeepAliveWhenNoNotifications(Fixture& fixture) {
   fixture.CreateAndActivate(connection);
 
   const auto created_subscription =
-      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+      fixture.template HandleResponse<CreateSubscriptionResponse>(
           connection,
-          OpcUaCreateSubscriptionRequest{
+          CreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
@@ -621,8 +621,8 @@ void ExpectPublishReturnsKeepAliveWhenNoNotifications(Fixture& fixture) {
   ASSERT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
   fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(300);
-  const auto publish = fixture.template HandleResponse<OpcUaPublishResponse>(
-      connection, OpcUaPublishRequest{});
+  const auto publish = fixture.template HandleResponse<PublishResponse>(
+      connection, PublishRequest{});
   EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(publish.subscription_id, created_subscription.subscription_id);
   EXPECT_TRUE(publish.notification_message.notification_data.empty());
@@ -636,9 +636,9 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
   fixture.CreateAndActivate(connection);
 
   const auto created_subscription =
-      fixture.template HandleResponse<OpcUaCreateSubscriptionResponse>(
+      fixture.template HandleResponse<CreateSubscriptionResponse>(
           connection,
-          OpcUaCreateSubscriptionRequest{
+          CreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
@@ -646,9 +646,9 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
   ASSERT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
   const auto create_items =
-      fixture.template HandleResponse<OpcUaCreateMonitoredItemsResponse>(
+      fixture.template HandleResponse<CreateMonitoredItemsResponse>(
           connection,
-          OpcUaCreateMonitoredItemsRequest{
+          CreateMonitoredItemsRequest{
               .subscription_id = created_subscription.subscription_id,
               .items_to_create = {{.item_to_monitor =
                                        {.node_id = NumericNode(51),
@@ -666,23 +666,23 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
       scada::DataValue{scada::Variant{42.5}, {}, fixture.now_, fixture.now_});
   fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(100);
 
-  const auto publish = fixture.template HandleResponse<OpcUaPublishResponse>(
-      connection, OpcUaPublishRequest{});
+  const auto publish = fixture.template HandleResponse<PublishResponse>(
+      connection, PublishRequest{});
   EXPECT_EQ(publish.status.code(), scada::StatusCode::Good);
   EXPECT_EQ(publish.subscription_id, created_subscription.subscription_id);
   EXPECT_EQ(publish.available_sequence_numbers,
             (std::vector<scada::UInt32>{1u}));
   ASSERT_EQ(publish.notification_message.notification_data.size(), 1u);
-  const auto* published_data = std::get_if<OpcUaDataChangeNotification>(
+  const auto* published_data = std::get_if<DataChangeNotification>(
       &publish.notification_message.notification_data[0]);
   ASSERT_NE(published_data, nullptr);
   ASSERT_EQ(published_data->monitored_items.size(), 1u);
   EXPECT_EQ(published_data->monitored_items[0].client_handle, 88u);
   EXPECT_EQ(published_data->monitored_items[0].value.value.get<double>(), 42.5);
 
-  const auto republish = fixture.template HandleResponse<OpcUaRepublishResponse>(
+  const auto republish = fixture.template HandleResponse<RepublishResponse>(
       connection,
-      OpcUaRepublishRequest{
+      RepublishRequest{
           .subscription_id = created_subscription.subscription_id,
           .retransmit_sequence_number =
               publish.notification_message.sequence_number});
@@ -690,9 +690,9 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
   EXPECT_EQ(republish.notification_message, publish.notification_message);
 
   fixture.now_ = fixture.now_ + base::TimeDelta::FromMilliseconds(300);
-  const auto ack_publish = fixture.template HandleResponse<OpcUaPublishResponse>(
+  const auto ack_publish = fixture.template HandleResponse<PublishResponse>(
       connection,
-      OpcUaPublishRequest{
+      PublishRequest{
           .subscription_acknowledgements = {{
               .subscription_id = created_subscription.subscription_id,
               .sequence_number = publish.notification_message.sequence_number,
@@ -703,9 +703,9 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
   EXPECT_TRUE(ack_publish.available_sequence_numbers.empty());
 
   const auto after_ack =
-      fixture.template HandleResponse<OpcUaRepublishResponse>(
+      fixture.template HandleResponse<RepublishResponse>(
           connection,
-          OpcUaRepublishRequest{
+          RepublishRequest{
               .subscription_id = created_subscription.subscription_id,
               .retransmit_sequence_number =
                   publish.notification_message.sequence_number});

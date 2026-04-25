@@ -7,9 +7,9 @@
 namespace opcua::binary {
 namespace {
 
-TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
+TEST(CodecUtilsTest, RoundTripsPrimitiveValues) {
   std::vector<char> bytes;
-  BinaryEncoder encoder{bytes};
+  Encoder encoder{bytes};
   encoder.Encode(std::uint8_t{0xab});
   encoder.Encode(std::uint16_t{0x1234});
   encoder.Encode(std::uint32_t{0x89abcdef});
@@ -18,7 +18,7 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
   encoder.Encode(std::int64_t{-9876543210LL});
   encoder.Encode(12.5);
 
-  BinaryDecoder decoder{bytes};
+  Decoder decoder{bytes};
   std::uint8_t u8 = 0;
   std::uint16_t u16 = 0;
   std::uint32_t u32 = 0;
@@ -44,9 +44,9 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsPrimitiveValues) {
   EXPECT_TRUE(decoder.consumed());
 }
 
-TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
+TEST(CodecUtilsTest, HandlesStringsAndByteStrings) {
   std::vector<char> bytes;
-  BinaryEncoder encoder{bytes};
+  Encoder encoder{bytes};
   encoder.Encode(std::string_view{"opc.tcp://localhost:4840"});
   encoder.Encode(scada::QualifiedName{"BrowseName", 2});
   encoder.Encode(scada::ToLocalizedText(u"DisplayName"));
@@ -54,7 +54,7 @@ TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
   encoder.Encode(std::int32_t{-1});
   encoder.Encode(std::int32_t{-1});
 
-  BinaryDecoder decoder{bytes};
+  Decoder decoder{bytes};
   std::string string_value;
   scada::QualifiedName qualified_name;
   scada::LocalizedText localized_text;
@@ -77,16 +77,16 @@ TEST(OpcUaBinaryCodecUtilsTest, HandlesStringsAndByteStrings) {
   EXPECT_TRUE(decoder.consumed());
 }
 
-TEST(OpcUaBinaryCodecUtilsTest, RoundTripsNumericNodeIds) {
+TEST(CodecUtilsTest, RoundTripsNumericNodeIds) {
   std::vector<char> bytes;
-  BinaryEncoder encoder{bytes};
+  Encoder encoder{bytes};
   encoder.Encode(scada::NodeId{});
   encoder.Encode(scada::NodeId{255, 2});
   encoder.Encode(scada::NodeId{70000, 513});
   encoder.Encode(
       scada::ExpandedNodeId{scada::NodeId{42, 2}, "urn:test", 7});
 
-  BinaryDecoder decoder{bytes};
+  Decoder decoder{bytes};
   scada::NodeId null_id;
   scada::NodeId small_id;
   scada::NodeId large_id;
@@ -104,15 +104,15 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsNumericNodeIds) {
   EXPECT_TRUE(decoder.consumed());
 }
 
-TEST(OpcUaBinaryCodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
+TEST(CodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
   const std::vector<char> body{'x', 'y', 'z'};
 
   std::vector<char> extension_bytes;
-  BinaryEncoder extension_encoder{extension_bytes};
+  Encoder extension_encoder{extension_bytes};
   extension_encoder.Encode(
       EncodedExtensionObject{.type_id = 324, .body = body});
 
-  BinaryDecoder extension_decoder{extension_bytes};
+  Decoder extension_decoder{extension_bytes};
   DecodedExtensionObject extension;
   ASSERT_TRUE(extension_decoder.Decode(extension));
   EXPECT_EQ(extension.type_id, 324u);
@@ -121,9 +121,9 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
   EXPECT_TRUE(extension_decoder.consumed());
 
   std::vector<char> message_bytes;
-  BinaryEncoder message_encoder{message_bytes};
+  Encoder message_encoder{message_bytes};
   AppendMessage(message_encoder, 629, body);
-  BinaryDecoder message_decoder{message_bytes};
+  Decoder message_decoder{message_bytes};
   const auto message = ReadMessage(message_decoder);
   ASSERT_TRUE(message.has_value());
   EXPECT_EQ(message->first, 629u);
@@ -132,9 +132,9 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
                          body.end()));
 }
 
-TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
+TEST(CodecUtilsTest, RoundTripsVariants) {
   std::vector<char> bytes;
-  BinaryEncoder encoder{bytes};
+  Encoder encoder{bytes};
   const auto date_time =
       base::Time::FromDeltaSinceWindowsEpoch(
           base::TimeDelta::FromMicroseconds(1234567));
@@ -188,7 +188,7 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
   encoder.Encode(scada::Variant{
       std::vector<scada::ExtensionObject>{extension_object}});
 
-  BinaryDecoder decoder{bytes};
+  Decoder decoder{bytes};
   std::vector<scada::Variant> decoded(37);
   for (auto& variant : decoded) {
     EXPECT_TRUE(decoder.Decode(variant));
@@ -262,18 +262,18 @@ TEST(OpcUaBinaryCodecUtilsTest, RoundTripsVariants) {
   EXPECT_TRUE(decoder.consumed());
 }
 
-TEST(OpcUaBinaryCodecUtilsTest, RejectsTruncatedPayloads) {
+TEST(CodecUtilsTest, RejectsTruncatedPayloads) {
   std::vector<char> truncated_string;
-  BinaryEncoder truncated_encoder{truncated_string};
+  Encoder truncated_encoder{truncated_string};
   truncated_encoder.Encode(std::int32_t{4});
   truncated_string.push_back('o');
 
-  BinaryDecoder truncated_decoder{truncated_string};
+  Decoder truncated_decoder{truncated_string};
   std::string value;
   EXPECT_FALSE(truncated_decoder.Decode(value));
 
   std::vector<char> invalid_message{0x03};
-  BinaryDecoder invalid_decoder{invalid_message};
+  Decoder invalid_decoder{invalid_message};
   EXPECT_FALSE(ReadMessage(invalid_decoder).has_value());
 }
 

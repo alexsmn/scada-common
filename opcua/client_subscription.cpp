@@ -19,32 +19,32 @@ constexpr std::uint32_t kDefaultMaxKeepAliveCount = 10000;
 }  // namespace
 
 // static
-std::shared_ptr<OpcUaClientSubscription> OpcUaClientSubscription::Create(
-    OpcUaClientSession& session) {
-  return std::shared_ptr<OpcUaClientSubscription>(
-      new OpcUaClientSubscription(session));
+std::shared_ptr<ClientSubscription> ClientSubscription::Create(
+    ClientSession& session) {
+  return std::shared_ptr<ClientSubscription>(
+      new ClientSubscription(session));
 }
 
-OpcUaClientSubscription::OpcUaClientSubscription(OpcUaClientSession& session)
+ClientSubscription::ClientSubscription(ClientSession& session)
     : session_{session} {}
 
-OpcUaClientSubscription::~OpcUaClientSubscription() = default;
+ClientSubscription::~ClientSubscription() = default;
 
 std::shared_ptr<scada::MonitoredItem>
-OpcUaClientSubscription::CreateMonitoredItem(
+ClientSubscription::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   const std::uint32_t local_id = next_local_id_++;
-  return std::make_shared<OpcUaMonitoredItem>(shared_from_this(), local_id,
+  return std::make_shared<MonitoredItem>(shared_from_this(), local_id,
                                               read_value_id, params);
 }
 
-void OpcUaClientSubscription::EnsureCreated() {
+void ClientSubscription::EnsureCreated() {
   if (impl_ || is_creating_) {
     return;
   }
   is_creating_ = true;
-  impl_ = std::make_unique<OpcUaClientProtocolSubscription>(session_.channel());
+  impl_ = std::make_unique<ClientProtocolSubscription>(session_.channel());
   auto weak_self = weak_from_this();
   CoSpawn(session_.any_executor(),
           [this, weak_self]() mutable -> Awaitable<void> {
@@ -52,7 +52,7 @@ void OpcUaClientSubscription::EnsureCreated() {
             if (!self) {
               co_return;
             }
-            OpcUaSubscriptionParameters params{
+            SubscriptionParameters params{
                 .publishing_interval_ms = kDefaultPublishingIntervalMs,
                 .lifetime_count = kDefaultLifetimeCount,
                 .max_keep_alive_count = kDefaultMaxKeepAliveCount,
@@ -70,7 +70,7 @@ void OpcUaClientSubscription::EnsureCreated() {
           });
 }
 
-void OpcUaClientSubscription::StartPublishLoop() {
+void ClientSubscription::StartPublishLoop() {
   if (publish_loop_running_ || !impl_) {
     return;
   }
@@ -92,7 +92,7 @@ void OpcUaClientSubscription::StartPublishLoop() {
           });
 }
 
-void OpcUaClientSubscription::Subscribe(
+void ClientSubscription::Subscribe(
     std::uint32_t local_id,
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params,
@@ -118,7 +118,7 @@ void OpcUaClientSubscription::Subscribe(
         // single Publish turn will resolve by then; otherwise Subscribe
         // still posts the CreateMonitoredItem request and the server
         // queues it).
-        OpcUaMonitoringParameters monitoring{
+        MonitoringParameters monitoring{
             .client_handle = 0,  // will be overwritten by impl_
             .sampling_interval_ms =
                 params.sampling_interval.has_value()
@@ -142,7 +142,7 @@ void OpcUaClientSubscription::Subscribe(
       });
 }
 
-void OpcUaClientSubscription::Unsubscribe(std::uint32_t local_id) {
+void ClientSubscription::Unsubscribe(std::uint32_t local_id) {
   if (!impl_) {
     server_ids_by_local_id_.erase(local_id);
     return;

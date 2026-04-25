@@ -34,17 +34,17 @@ flowchart LR
 
     subgraph Core["Shared canonical core"]
         direction TB
-        MSG["<b>opcua:: message model</b><br/>OpcUaRequestBody / OpcUaResponseBody"]
-        RT["<b>opcua::OpcUaServerRuntime</b><br/>request routing"]
-        SMGR["<b>opcua::OpcUaServerSessionManager</b><br/>session lifecycle"]
-        SESS["<b>opcua::OpcUaServerSession</b><br/>live session state"]
-        SUB["<b>opcua::OpcUaServerSubscription</b><br/>publish + replay"]
-        HANDLER["<b>opcua::OpcUaServiceHandler</b><br/>coroutine dispatch"]
+        MSG["<b>opcua:: message model</b><br/>RequestBody / ResponseBody"]
+        RT["<b>opcua::ServerRuntime</b><br/>request routing"]
+        SMGR["<b>opcua::ServerSessionManager</b><br/>session lifecycle"]
+        SESS["<b>opcua::ServerSession</b><br/>live session state"]
+        SUB["<b>opcua::ServerSubscription</b><br/>publish + replay"]
+        HANDLER["<b>opcua::ServiceHandler</b><br/>coroutine dispatch"]
     end
 
     subgraph Services["Server services"]
         direction TB
-        CTX["<b>OpcUaServerContext</b>"]
+        CTX["<b>ServerContext</b>"]
         ATTR["AttributeService"]
         VIEW["ViewService"]
         HIST["HistoryService"]

@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 struct ConnectionTaskState {
@@ -13,15 +13,15 @@ struct ConnectionTaskState {
       : transport{std::move(transport)} {}
 
   transport::any_transport transport;
-  OpcUaBinaryConnectionState connection;
+  ConnectionState connection;
 };
 
 }  // namespace
 
-OpcUaBinaryServer::OpcUaBinaryServer(OpcUaBinaryServerContext&& context)
-    : OpcUaBinaryServerContext{std::move(context)} {}
+Server::Server(ServerContext&& context)
+    : ServerContext{std::move(context)} {}
 
-Awaitable<transport::error_code> OpcUaBinaryServer::Open() {
+Awaitable<transport::error_code> Server::Open() {
   if (opened_) {
     co_return transport::OK;
   }
@@ -37,7 +37,7 @@ Awaitable<transport::error_code> OpcUaBinaryServer::Open() {
   co_return transport::OK;
 }
 
-Awaitable<transport::error_code> OpcUaBinaryServer::Close() {
+Awaitable<transport::error_code> Server::Close() {
   if (!opened_) {
     co_return transport::OK;
   }
@@ -46,12 +46,12 @@ Awaitable<transport::error_code> OpcUaBinaryServer::Close() {
   co_return co_await acceptor.close();
 }
 
-Awaitable<void> OpcUaBinaryServer::ServeConnection(
+Awaitable<void> Server::ServeConnection(
     transport::any_transport transport) {
   co_await RunConnection(std::move(transport));
 }
 
-Awaitable<void> OpcUaBinaryServer::AcceptLoop() {
+Awaitable<void> Server::AcceptLoop() {
   while (opened_) {
     auto accepted = co_await acceptor.accept();
     if (!accepted.ok()) {
@@ -67,12 +67,12 @@ Awaitable<void> OpcUaBinaryServer::AcceptLoop() {
   }
 }
 
-Awaitable<void> OpcUaBinaryServer::RunConnection(transport::any_transport transport) {
+Awaitable<void> Server::RunConnection(transport::any_transport transport) {
   auto state = std::make_shared<ConnectionTaskState>(std::move(transport));
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime,
        .connection = state->connection}};
-  co_await OpcUaBinaryTcpConnection{
+  co_await TcpConnection{
       {.transport = std::move(state->transport),
        .read_buffer_size = this->read_buffer_size,
        .max_frame_size = max_frame_size,
@@ -86,4 +86,4 @@ Awaitable<void> OpcUaBinaryServer::RunConnection(transport::any_transport transp
   runtime.Detach(state->connection);
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

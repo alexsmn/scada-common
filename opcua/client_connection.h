@@ -9,20 +9,20 @@
 
 namespace opcua {
 
-struct OpcUaClientResponseFrame {
+struct ClientResponseFrame {
   std::uint32_t request_id = 0;
-  OpcUaResponseMessage message;
+  ResponseMessage message;
 };
 
 // Transport/protocol adapter used by the reusable OPC UA client layer.
 // Binary TCP and future WebSocket clients provide concrete implementations
 // that translate typed request/response messages to their wire format.
-class OpcUaClientConnection {
+class ClientConnection {
  public:
-  OpcUaClientConnection() = default;
-  OpcUaClientConnection(const OpcUaClientConnection&) = delete;
-  OpcUaClientConnection& operator=(const OpcUaClientConnection&) = delete;
-  virtual ~OpcUaClientConnection() = default;
+  ClientConnection() = default;
+  ClientConnection(const ClientConnection&) = delete;
+  ClientConnection& operator=(const ClientConnection&) = delete;
+  virtual ~ClientConnection() = default;
 
   [[nodiscard]] virtual Awaitable<scada::Status> Open() = 0;
   [[nodiscard]] virtual Awaitable<scada::Status> Close() = 0;
@@ -30,9 +30,9 @@ class OpcUaClientConnection {
   [[nodiscard]] virtual std::uint32_t NextRequestId() = 0;
   [[nodiscard]] virtual Awaitable<scada::Status> SendRequest(
       std::uint32_t request_id,
-      const OpcUaRequestMessage& message,
+      const RequestMessage& message,
       const scada::NodeId& authentication_token) = 0;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<OpcUaClientResponseFrame>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<ClientResponseFrame>>
   ReadResponse() = 0;
 };
 

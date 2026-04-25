@@ -6,19 +6,19 @@
 #include <transport/any_transport.h>
 #include <transport/error.h>
 
-namespace opcua {
+namespace opcua::binary {
 
-struct OpcUaBinaryServerContext {
+struct ServerContext {
   transport::any_transport acceptor;
-  OpcUaBinaryRuntime& runtime;
-  OpcUaServerSessionManager& session_manager;
+  Runtime& runtime;
+  ServerSessionManager& session_manager;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
 };
 
-class OpcUaBinaryServer : private OpcUaBinaryServerContext {
+class Server : private ServerContext {
  public:
-  explicit OpcUaBinaryServer(OpcUaBinaryServerContext&& context);
+  explicit Server(ServerContext&& context);
 
   [[nodiscard]] Awaitable<transport::error_code> Open();
   [[nodiscard]] Awaitable<transport::error_code> Close();
@@ -31,4 +31,4 @@ class OpcUaBinaryServer : private OpcUaBinaryServerContext {
   bool opened_ = false;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

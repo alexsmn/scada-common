@@ -12,87 +12,87 @@
 
 namespace opcua {
 
-struct OpcUaServiceFault {
+struct ServiceFault {
   scada::Status status{scada::StatusCode::Bad};
 };
 
-using OpcUaSubscriptionId = scada::UInt32;
-using OpcUaMonitoredItemId = scada::UInt32;
+using SubscriptionId = scada::UInt32;
+using MonitoredItemId = scada::UInt32;
 
-enum class OpcUaMonitoringMode : scada::UInt32 {
+enum class MonitoringMode : scada::UInt32 {
   Disabled = 0,
   Sampling = 1,
   Reporting = 2,
 };
 
-enum class OpcUaTimestampsToReturn : scada::UInt32 {
+enum class TimestampsToReturn : scada::UInt32 {
   Source = 0,
   Server = 1,
   Both = 2,
   Neither = 3,
 };
 
-enum class OpcUaDeadbandType : scada::UInt32 {
+enum class DeadbandType : scada::UInt32 {
   None = 0,
   Absolute = 1,
   Percent = 2,
 };
 
-enum class OpcUaDataChangeTrigger : scada::UInt32 {
+enum class DataChangeTrigger : scada::UInt32 {
   Status = 0,
   StatusValue = 1,
   StatusValueTimestamp = 2,
 };
 
-struct OpcUaDataChangeFilter {
-  bool operator==(const OpcUaDataChangeFilter&) const = default;
+struct DataChangeFilter {
+  bool operator==(const DataChangeFilter&) const = default;
 
-  OpcUaDataChangeTrigger trigger = OpcUaDataChangeTrigger::StatusValue;
-  OpcUaDeadbandType deadband_type = OpcUaDeadbandType::None;
+  DataChangeTrigger trigger = DataChangeTrigger::StatusValue;
+  DeadbandType deadband_type = DeadbandType::None;
   double deadband_value = 0;
 };
 
-using OpcUaMonitoringFilter =
-    std::variant<OpcUaDataChangeFilter, boost::json::value>;
+using MonitoringFilter =
+    std::variant<DataChangeFilter, boost::json::value>;
 
-struct OpcUaMonitoringParameters {
-  bool operator==(const OpcUaMonitoringParameters&) const = default;
+struct MonitoringParameters {
+  bool operator==(const MonitoringParameters&) const = default;
 
   scada::UInt32 client_handle = 0;
   double sampling_interval_ms = 0;
-  std::optional<OpcUaMonitoringFilter> filter;
+  std::optional<MonitoringFilter> filter;
   scada::UInt32 queue_size = 1;
   bool discard_oldest = true;
 };
 
-struct OpcUaMonitoredItemCreateRequest {
-  bool operator==(const OpcUaMonitoredItemCreateRequest&) const = default;
+struct MonitoredItemCreateRequest {
+  bool operator==(const MonitoredItemCreateRequest&) const = default;
 
   scada::ReadValueId item_to_monitor;
   std::optional<std::string> index_range;
-  OpcUaMonitoringMode monitoring_mode = OpcUaMonitoringMode::Reporting;
-  OpcUaMonitoringParameters requested_parameters;
+  MonitoringMode monitoring_mode = MonitoringMode::Reporting;
+  MonitoringParameters requested_parameters;
 };
 
-struct OpcUaMonitoredItemCreateResult {
-  bool operator==(const OpcUaMonitoredItemCreateResult&) const = default;
+struct MonitoredItemCreateResult {
+  bool operator==(const MonitoredItemCreateResult&) const = default;
 
   scada::Status status{scada::StatusCode::Good};
-  OpcUaMonitoredItemId monitored_item_id = 0;
+  MonitoredItemId monitored_item_id = 0;
   double revised_sampling_interval_ms = 0;
   scada::UInt32 revised_queue_size = 0;
   std::optional<boost::json::value> filter_result;
 };
 
-struct OpcUaMonitoredItemModifyRequest {
-  bool operator==(const OpcUaMonitoredItemModifyRequest&) const = default;
+struct MonitoredItemModifyRequest {
+  bool operator==(const MonitoredItemModifyRequest&) const = default;
 
-  OpcUaMonitoredItemId monitored_item_id = 0;
-  OpcUaMonitoringParameters requested_parameters;
+  MonitoredItemId monitored_item_id = 0;
+  MonitoringParameters requested_parameters;
 };
 
-struct OpcUaMonitoredItemModifyResult {
-  bool operator==(const OpcUaMonitoredItemModifyResult&) const = default;
+struct MonitoredItemModifyResult {
+  bool operator==(const MonitoredItemModifyResult&) const = default;
 
   scada::Status status{scada::StatusCode::Good};
   double revised_sampling_interval_ms = 0;
@@ -100,8 +100,8 @@ struct OpcUaMonitoredItemModifyResult {
   std::optional<boost::json::value> filter_result;
 };
 
-struct OpcUaSubscriptionParameters {
-  bool operator==(const OpcUaSubscriptionParameters&) const = default;
+struct SubscriptionParameters {
+  bool operator==(const SubscriptionParameters&) const = default;
 
   double publishing_interval_ms = 0;
   scada::UInt32 lifetime_count = 0;
@@ -111,194 +111,194 @@ struct OpcUaSubscriptionParameters {
   scada::UInt8 priority = 0;
 };
 
-struct OpcUaCreateSubscriptionRequest {
-  OpcUaSubscriptionParameters parameters;
+struct CreateSubscriptionRequest {
+  SubscriptionParameters parameters;
 };
 
-struct OpcUaCreateSubscriptionResponse {
+struct CreateSubscriptionResponse {
   scada::Status status{scada::StatusCode::Good};
-  OpcUaSubscriptionId subscription_id = 0;
+  SubscriptionId subscription_id = 0;
   double revised_publishing_interval_ms = 0;
   scada::UInt32 revised_lifetime_count = 0;
   scada::UInt32 revised_max_keep_alive_count = 0;
 };
 
-struct OpcUaModifySubscriptionRequest {
-  OpcUaSubscriptionId subscription_id = 0;
-  OpcUaSubscriptionParameters parameters;
+struct ModifySubscriptionRequest {
+  SubscriptionId subscription_id = 0;
+  SubscriptionParameters parameters;
 };
 
-struct OpcUaModifySubscriptionResponse {
+struct ModifySubscriptionResponse {
   scada::Status status{scada::StatusCode::Good};
   double revised_publishing_interval_ms = 0;
   scada::UInt32 revised_lifetime_count = 0;
   scada::UInt32 revised_max_keep_alive_count = 0;
 };
 
-struct OpcUaSetPublishingModeRequest {
+struct SetPublishingModeRequest {
   bool publishing_enabled = true;
-  std::vector<OpcUaSubscriptionId> subscription_ids;
+  std::vector<SubscriptionId> subscription_ids;
 };
 
-struct OpcUaSetPublishingModeResponse {
+struct SetPublishingModeResponse {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> results;
 };
 
-struct OpcUaDeleteSubscriptionsRequest {
-  std::vector<OpcUaSubscriptionId> subscription_ids;
+struct DeleteSubscriptionsRequest {
+  std::vector<SubscriptionId> subscription_ids;
 };
 
-struct OpcUaDeleteSubscriptionsResponse {
+struct DeleteSubscriptionsResponse {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> results;
 };
 
-struct OpcUaCreateMonitoredItemsRequest {
-  OpcUaSubscriptionId subscription_id = 0;
-  OpcUaTimestampsToReturn timestamps_to_return =
-      OpcUaTimestampsToReturn::Both;
-  std::vector<OpcUaMonitoredItemCreateRequest> items_to_create;
+struct CreateMonitoredItemsRequest {
+  SubscriptionId subscription_id = 0;
+  TimestampsToReturn timestamps_to_return =
+      TimestampsToReturn::Both;
+  std::vector<MonitoredItemCreateRequest> items_to_create;
 };
 
-struct OpcUaCreateMonitoredItemsResponse {
+struct CreateMonitoredItemsResponse {
   scada::Status status{scada::StatusCode::Good};
-  std::vector<OpcUaMonitoredItemCreateResult> results;
+  std::vector<MonitoredItemCreateResult> results;
 };
 
-struct OpcUaModifyMonitoredItemsRequest {
-  OpcUaSubscriptionId subscription_id = 0;
-  OpcUaTimestampsToReturn timestamps_to_return =
-      OpcUaTimestampsToReturn::Both;
-  std::vector<OpcUaMonitoredItemModifyRequest> items_to_modify;
+struct ModifyMonitoredItemsRequest {
+  SubscriptionId subscription_id = 0;
+  TimestampsToReturn timestamps_to_return =
+      TimestampsToReturn::Both;
+  std::vector<MonitoredItemModifyRequest> items_to_modify;
 };
 
-struct OpcUaModifyMonitoredItemsResponse {
+struct ModifyMonitoredItemsResponse {
   scada::Status status{scada::StatusCode::Good};
-  std::vector<OpcUaMonitoredItemModifyResult> results;
+  std::vector<MonitoredItemModifyResult> results;
 };
 
-struct OpcUaDeleteMonitoredItemsRequest {
-  OpcUaSubscriptionId subscription_id = 0;
-  std::vector<OpcUaMonitoredItemId> monitored_item_ids;
+struct DeleteMonitoredItemsRequest {
+  SubscriptionId subscription_id = 0;
+  std::vector<MonitoredItemId> monitored_item_ids;
 };
 
-struct OpcUaDeleteMonitoredItemsResponse {
-  scada::Status status{scada::StatusCode::Good};
-  std::vector<scada::StatusCode> results;
-};
-
-struct OpcUaSetMonitoringModeRequest {
-  OpcUaSubscriptionId subscription_id = 0;
-  OpcUaMonitoringMode monitoring_mode = OpcUaMonitoringMode::Reporting;
-  std::vector<OpcUaMonitoredItemId> monitored_item_ids;
-};
-
-struct OpcUaSetMonitoringModeResponse {
+struct DeleteMonitoredItemsResponse {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> results;
 };
 
-struct OpcUaSubscriptionAcknowledgement {
-  bool operator==(const OpcUaSubscriptionAcknowledgement&) const = default;
+struct SetMonitoringModeRequest {
+  SubscriptionId subscription_id = 0;
+  MonitoringMode monitoring_mode = MonitoringMode::Reporting;
+  std::vector<MonitoredItemId> monitored_item_ids;
+};
 
-  OpcUaSubscriptionId subscription_id = 0;
+struct SetMonitoringModeResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<scada::StatusCode> results;
+};
+
+struct SubscriptionAcknowledgement {
+  bool operator==(const SubscriptionAcknowledgement&) const = default;
+
+  SubscriptionId subscription_id = 0;
   scada::UInt32 sequence_number = 0;
 };
 
-struct OpcUaMonitoredItemNotification {
-  bool operator==(const OpcUaMonitoredItemNotification&) const = default;
+struct MonitoredItemNotification {
+  bool operator==(const MonitoredItemNotification&) const = default;
 
   scada::UInt32 client_handle = 0;
   scada::DataValue value;
 };
 
-struct OpcUaEventFieldList {
-  bool operator==(const OpcUaEventFieldList&) const = default;
+struct EventFieldList {
+  bool operator==(const EventFieldList&) const = default;
 
   scada::UInt32 client_handle = 0;
   std::vector<scada::Variant> event_fields;
 };
 
-struct OpcUaDataChangeNotification {
-  bool operator==(const OpcUaDataChangeNotification&) const = default;
+struct DataChangeNotification {
+  bool operator==(const DataChangeNotification&) const = default;
 
-  std::vector<OpcUaMonitoredItemNotification> monitored_items;
+  std::vector<MonitoredItemNotification> monitored_items;
 };
 
-struct OpcUaEventNotificationList {
-  bool operator==(const OpcUaEventNotificationList&) const = default;
+struct EventNotificationList {
+  bool operator==(const EventNotificationList&) const = default;
 
-  std::vector<OpcUaEventFieldList> events;
+  std::vector<EventFieldList> events;
 };
 
-struct OpcUaStatusChangeNotification {
-  bool operator==(const OpcUaStatusChangeNotification&) const = default;
+struct StatusChangeNotification {
+  bool operator==(const StatusChangeNotification&) const = default;
 
   scada::StatusCode status = scada::StatusCode::Good;
 };
 
-using OpcUaNotificationData =
-    std::variant<OpcUaDataChangeNotification,
-                 OpcUaEventNotificationList,
-                 OpcUaStatusChangeNotification>;
+using NotificationData =
+    std::variant<DataChangeNotification,
+                 EventNotificationList,
+                 StatusChangeNotification>;
 
-struct OpcUaNotificationMessage {
-  bool operator==(const OpcUaNotificationMessage&) const = default;
+struct NotificationMessage {
+  bool operator==(const NotificationMessage&) const = default;
 
   scada::UInt32 sequence_number = 0;
   base::Time publish_time;
-  std::vector<OpcUaNotificationData> notification_data;
+  std::vector<NotificationData> notification_data;
 };
 
-struct OpcUaPublishRequest {
-  std::vector<OpcUaSubscriptionAcknowledgement> subscription_acknowledgements;
+struct PublishRequest {
+  std::vector<SubscriptionAcknowledgement> subscription_acknowledgements;
 };
 
-struct OpcUaPublishResponse {
+struct PublishResponse {
   scada::Status status{scada::StatusCode::Good};
-  OpcUaSubscriptionId subscription_id = 0;
+  SubscriptionId subscription_id = 0;
   std::vector<scada::StatusCode> results;
   bool more_notifications = false;
-  OpcUaNotificationMessage notification_message;
-  std::vector<OpcUaSubscriptionId> available_sequence_numbers;
+  NotificationMessage notification_message;
+  std::vector<SubscriptionId> available_sequence_numbers;
 };
 
-struct OpcUaRepublishRequest {
-  OpcUaSubscriptionId subscription_id = 0;
+struct RepublishRequest {
+  SubscriptionId subscription_id = 0;
   scada::UInt32 retransmit_sequence_number = 0;
 };
 
-struct OpcUaRepublishResponse {
+struct RepublishResponse {
   scada::Status status{scada::StatusCode::Good};
-  OpcUaNotificationMessage notification_message;
+  NotificationMessage notification_message;
 };
 
-struct OpcUaTransferSubscriptionsRequest {
-  std::vector<OpcUaSubscriptionId> subscription_ids;
+struct TransferSubscriptionsRequest {
+  std::vector<SubscriptionId> subscription_ids;
   bool send_initial_values = false;
 };
 
-struct OpcUaTransferSubscriptionsResponse {
+struct TransferSubscriptionsResponse {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> results;
 };
 
-using OpcUaRequestBody =
-    std::variant<OpcUaCreateSessionRequest,
-                 OpcUaActivateSessionRequest,
-                 OpcUaCloseSessionRequest,
-                 OpcUaCreateSubscriptionRequest,
-                 OpcUaModifySubscriptionRequest,
-                 OpcUaSetPublishingModeRequest,
-                 OpcUaDeleteSubscriptionsRequest,
-                 OpcUaPublishRequest,
-                 OpcUaRepublishRequest,
-                 OpcUaTransferSubscriptionsRequest,
-                 OpcUaCreateMonitoredItemsRequest,
-                 OpcUaModifyMonitoredItemsRequest,
-                 OpcUaDeleteMonitoredItemsRequest,
-                 OpcUaSetMonitoringModeRequest,
+using RequestBody =
+    std::variant<CreateSessionRequest,
+                 ActivateSessionRequest,
+                 CloseSessionRequest,
+                 CreateSubscriptionRequest,
+                 ModifySubscriptionRequest,
+                 SetPublishingModeRequest,
+                 DeleteSubscriptionsRequest,
+                 PublishRequest,
+                 RepublishRequest,
+                 TransferSubscriptionsRequest,
+                 CreateMonitoredItemsRequest,
+                 ModifyMonitoredItemsRequest,
+                 DeleteMonitoredItemsRequest,
+                 SetMonitoringModeRequest,
                  ReadRequest,
                  WriteRequest,
                  BrowseRequest,
@@ -312,22 +312,22 @@ using OpcUaRequestBody =
                  AddReferencesRequest,
                  DeleteReferencesRequest>;
 
-using OpcUaResponseBody =
-    std::variant<OpcUaCreateSessionResponse,
-                 OpcUaActivateSessionResponse,
-                 OpcUaCloseSessionResponse,
-                 OpcUaCreateSubscriptionResponse,
-                 OpcUaModifySubscriptionResponse,
-                 OpcUaSetPublishingModeResponse,
-                 OpcUaDeleteSubscriptionsResponse,
-                 OpcUaPublishResponse,
-                 OpcUaRepublishResponse,
-                 OpcUaTransferSubscriptionsResponse,
-                 OpcUaCreateMonitoredItemsResponse,
-                 OpcUaModifyMonitoredItemsResponse,
-                 OpcUaDeleteMonitoredItemsResponse,
-                 OpcUaSetMonitoringModeResponse,
-                 OpcUaServiceFault,
+using ResponseBody =
+    std::variant<CreateSessionResponse,
+                 ActivateSessionResponse,
+                 CloseSessionResponse,
+                 CreateSubscriptionResponse,
+                 ModifySubscriptionResponse,
+                 SetPublishingModeResponse,
+                 DeleteSubscriptionsResponse,
+                 PublishResponse,
+                 RepublishResponse,
+                 TransferSubscriptionsResponse,
+                 CreateMonitoredItemsResponse,
+                 ModifyMonitoredItemsResponse,
+                 DeleteMonitoredItemsResponse,
+                 SetMonitoringModeResponse,
+                 ServiceFault,
                  ReadResponse,
                  WriteResponse,
                  BrowseResponse,
@@ -341,14 +341,14 @@ using OpcUaResponseBody =
                  AddReferencesResponse,
                  DeleteReferencesResponse>;
 
-struct OpcUaRequestMessage {
+struct RequestMessage {
   scada::UInt32 request_handle = 0;
-  OpcUaRequestBody body;
+  RequestBody body;
 };
 
-struct OpcUaResponseMessage {
+struct ResponseMessage {
   scada::UInt32 request_handle = 0;
-  OpcUaResponseBody body;
+  ResponseBody body;
 };
 
 }  // namespace opcua

@@ -12,7 +12,7 @@
 #include <cstring>
 #include <utility>
 
-namespace opcua::crypto {
+namespace opcua::binary::crypto {
 namespace {
 
 constexpr int kSha1DigestSize = 20;
@@ -439,4 +439,4 @@ DerivedKeys DeriveBasic256Sha256Keys(std::span<const std::uint8_t> secret,
   return keys;
 }
 
-}  // namespace opcua::crypto
+}  // namespace opcua::binary::crypto

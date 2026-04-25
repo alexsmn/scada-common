@@ -1,15 +1,15 @@
 flowchart TD
     subgraph ServerSide["Server-side OPC UA runtime"]
         Module["server/opcua/OpcUaModule<br/>config + certificate loading"]
-        Server["common/opcua/OpcUaServer<br/>opc.tcp endpoint adapter"]
+        Server["common/opcua/Server<br/>opc.tcp endpoint adapter"]
         Endpoint["opcuapp::server::Endpoint<br/>UA Binary listener"]
         Services["SCADA services<br/>attribute / view / monitored-item /<br/>node-management / method"]
     end
 
     subgraph ClientSide["Client-side OPC UA runtime"]
-        Factory["CreateOpcUaServices(...)<br/>DataServices factory"]
-        Session["common/opcua/OpcUaClientSession<br/>SessionService + service adapters"]
-        Subscription["common/opcua/OpcUaClientSubscription<br/>monitored-item batching"]
+        Factory["CreateServices(...)<br/>DataServices factory"]
+        Session["common/opcua/ClientSession<br/>SessionService + service adapters"]
+        Subscription["common/opcua/ClientSubscription<br/>monitored-item batching"]
         Channel["opcuapp client channel + session<br/>remote opc.tcp endpoint"]
     end
 

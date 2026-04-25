@@ -15,9 +15,9 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 
-// Client-side counterpart of the server's OpcUaBinarySecureChannel. Drives
+// Client-side counterpart of the server's SecureChannel. Drives
 // the OpenSecureChannel handshake, attaches symmetric headers to outgoing
 // service requests, strips them from incoming responses, and issues a
 // CloseSecureChannel when the channel is no longer needed.
@@ -29,13 +29,13 @@ namespace opcua {
 //     uses AES-256-CBC + HMAC-SHA256 with keys derived from the nonce
 //     exchange (OPC UA Part 6 §6.7). Sign-only is not implemented since
 //     the outbound client callers always want end-to-end confidentiality.
-class OpcUaBinaryClientSecureChannel {
+class ClientSecureChannel {
  public:
   // Security configuration for a single channel. Empty for None mode.
   struct Security {
     std::string security_policy_uri = std::string{kSecurityPolicyNone};
-    OpcUaBinaryMessageSecurityMode security_mode =
-        OpcUaBinaryMessageSecurityMode::None;
+    MessageSecurityMode security_mode =
+        MessageSecurityMode::None;
     // All three are only read when policy != None.
     crypto::Certificate client_certificate;
     crypto::PrivateKey client_private_key;
@@ -45,13 +45,13 @@ class OpcUaBinaryClientSecureChannel {
     std::function<scada::StatusOr<scada::ByteString>()> client_nonce_generator;
   };
 
-  explicit OpcUaBinaryClientSecureChannel(OpcUaBinaryClientTransport& transport);
-  OpcUaBinaryClientSecureChannel(OpcUaBinaryClientTransport& transport,
+  explicit ClientSecureChannel(ClientTransport& transport);
+  ClientSecureChannel(ClientTransport& transport,
                                   Security security);
 
-  OpcUaBinaryClientSecureChannel(const OpcUaBinaryClientSecureChannel&) = delete;
-  OpcUaBinaryClientSecureChannel& operator=(
-      const OpcUaBinaryClientSecureChannel&) = delete;
+  ClientSecureChannel(const ClientSecureChannel&) = delete;
+  ClientSecureChannel& operator=(
+      const ClientSecureChannel&) = delete;
 
   // Sends the OpenSecureChannel request, waits for the response, and stores
   // the negotiated channel_id / token_id. For Basic256Sha256 SignAndEncrypt
@@ -100,7 +100,7 @@ class OpcUaBinaryClientSecureChannel {
   void ArmRenewalTimer(std::uint32_t revised_lifetime_ms);
   [[nodiscard]] Awaitable<scada::Status> RenewIfNeeded();
   [[nodiscard]] Awaitable<scada::Status> OpenSecureChannel(
-      OpcUaBinarySecurityTokenRequestType request_type,
+      SecurityTokenRequestType request_type,
       std::uint32_t requested_lifetime_ms);
 
   // Build a plaintext OPN frame (no signing, no encryption). Used for the
@@ -108,7 +108,7 @@ class OpcUaBinaryClientSecureChannel {
   [[nodiscard]] std::vector<char> BuildPlaintextOpenFrame(
       std::uint32_t request_id,
       std::uint32_t request_handle,
-      OpcUaBinarySecurityTokenRequestType request_type,
+      SecurityTokenRequestType request_type,
       std::uint32_t secure_channel_id,
       const scada::ByteString& client_nonce,
       std::uint32_t requested_lifetime_ms);
@@ -118,7 +118,7 @@ class OpcUaBinaryClientSecureChannel {
   [[nodiscard]] scada::StatusOr<std::vector<char>>
   BuildAsymmetricBasic256Sha256OpenFrame(std::uint32_t request_id,
                                           std::uint32_t request_handle,
-                                          OpcUaBinarySecurityTokenRequestType request_type,
+                                          SecurityTokenRequestType request_type,
                                           std::uint32_t secure_channel_id,
                                           const scada::ByteString& client_nonce,
                                           std::uint32_t requested_lifetime_ms);
@@ -127,8 +127,8 @@ class OpcUaBinaryClientSecureChannel {
   // SignAndEncrypt: split on the asymmetric header, RSA-OAEP decrypt,
   // verify RSA-PKCS1-SHA256 signature, extract sequence header + body.
   struct AsymmetricDecodedResponse {
-    OpcUaBinaryAsymmetricSecurityHeader security_header;
-    OpcUaBinarySequenceHeader sequence_header;
+    AsymmetricSecurityHeader security_header;
+    SequenceHeader sequence_header;
     std::vector<char> body;
   };
   [[nodiscard]] scada::StatusOr<AsymmetricDecodedResponse>
@@ -136,13 +136,13 @@ class OpcUaBinaryClientSecureChannel {
 
   // Symmetric SignAndEncrypt (MSG / CLO) framing helpers.
   [[nodiscard]] scada::StatusOr<std::vector<char>>
-  BuildSymmetricBasic256Sha256Frame(OpcUaBinaryMessageType type,
+  BuildSymmetricBasic256Sha256Frame(MessageType type,
                                      std::uint32_t request_id,
                                      const std::vector<char>& body);
   [[nodiscard]] scada::StatusOr<ServiceResponse>
   DecodeSymmetricBasic256Sha256Frame(const std::vector<char>& frame);
 
-  OpcUaBinaryClientTransport& transport_;
+  ClientTransport& transport_;
   Security security_;
 
   bool opened_ = false;
@@ -161,4 +161,4 @@ class OpcUaBinaryClientSecureChannel {
   scada::ByteString client_nonce_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

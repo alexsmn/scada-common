@@ -59,24 +59,24 @@ struct TranslateBrowsePathsResponse {
   std::vector<scada::BrowsePathResult> results;
 };
 
-struct OpcUaMethodCallRequest {
+struct MethodCallRequest {
   scada::NodeId object_id;
   scada::NodeId method_id;
   std::vector<scada::Variant> arguments;
 };
 
-struct OpcUaMethodCallResult {
+struct MethodCallResult {
   scada::Status status{scada::StatusCode::Good};
   std::vector<scada::StatusCode> input_argument_results;
   std::vector<scada::Variant> output_arguments;
 };
 
 struct CallRequest {
-  std::vector<OpcUaMethodCallRequest> methods;
+  std::vector<MethodCallRequest> methods;
 };
 
 struct CallResponse {
-  std::vector<OpcUaMethodCallResult> results;
+  std::vector<MethodCallResult> results;
 };
 
 struct HistoryReadRawRequest {
@@ -131,7 +131,7 @@ struct DeleteReferencesResponse {
   std::vector<scada::StatusCode> results;
 };
 
-using OpcUaServiceRequest =
+using ServiceRequest =
     std::variant<ReadRequest,
                  WriteRequest,
                  BrowseRequest,
@@ -145,7 +145,7 @@ using OpcUaServiceRequest =
                  AddReferencesRequest,
                  DeleteReferencesRequest>;
 
-using OpcUaServiceResponse =
+using ServiceResponse =
     std::variant<ReadResponse,
                  WriteResponse,
                  BrowseResponse,

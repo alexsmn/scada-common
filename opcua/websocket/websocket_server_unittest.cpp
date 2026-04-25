@@ -143,7 +143,7 @@ class BeastClient {
     websocket_.handshake(host + ":" + std::to_string(port), "/ua");
   }
 
-  void Send(const opcua::OpcUaRequestMessage& request) {
+  void Send(const RequestMessage& request) {
     const auto payload = boost::json::serialize(EncodeJson(request));
     websocket_.text(true);
     websocket_.write(boost::asio::buffer(payload));
@@ -157,7 +157,7 @@ class BeastClient {
     return boost::beast::buffers_to_string(buffer.data());
   }
 
-  std::string Request(const opcua::OpcUaRequestMessage& request) {
+  std::string Request(const RequestMessage& request) {
     Send(request);
     return Read();
   }
@@ -199,7 +199,7 @@ class TlsBeastClient {
     websocket_.handshake(host + ":" + std::to_string(port), "/ua");
   }
 
-  std::string Request(const opcua::OpcUaRequestMessage& request) {
+  std::string Request(const RequestMessage& request) {
     const auto payload = boost::json::serialize(EncodeJson(request));
     websocket_.text(true);
     websocket_.write(boost::asio::buffer(payload));
@@ -226,22 +226,22 @@ class TlsBeastClient {
 template <typename TClient>
 void ExpectBrowsePagingRoundTrip(TClient& client) {
   const auto create_response = DecodeResponseMessage(boost::json::parse(
-      client.Request({.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}})));
+      client.Request({.request_handle = 1, .body = CreateSessionRequest{}})));
   const auto* created =
-      std::get_if<opcua::OpcUaCreateSessionResponse>(&create_response.body);
+      std::get_if<CreateSessionResponse>(&create_response.body);
   ASSERT_NE(created, nullptr);
   EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
 
   const auto activate_response = DecodeResponseMessage(boost::json::parse(client.Request(
       {.request_handle = 2,
        .body =
-           opcua::OpcUaActivateSessionRequest{
+           ActivateSessionRequest{
                .session_id = created->session_id,
                .authentication_token = created->authentication_token,
                .user_name = scada::LocalizedText{u"operator"},
                .password = scada::LocalizedText{u"secret"}}})));
   const auto* activated =
-      std::get_if<opcua::OpcUaActivateSessionResponse>(&activate_response.body);
+      std::get_if<ActivateSessionResponse>(&activate_response.body);
   ASSERT_NE(activated, nullptr);
   EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
 
@@ -273,7 +273,7 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   EXPECT_EQ(browse_next->results[0].references[0].node_id, NumericNode(86));
 }
 
-class OpcUaWsWebSocketServerTest : public Test {
+class WsWebSocketServerTest : public Test {
  protected:
   void SetUp() override {
     work_.emplace(boost::asio::make_work_guard(io_context_));
@@ -299,7 +299,7 @@ class OpcUaWsWebSocketServerTest : public Test {
   void StartServer(
       std::optional<transport::WebSocketServerTlsConfig> tls = std::nullopt) {
     callback_executor_ = io_context_.get_executor();
-    runtime_.emplace(OpcUaWsRuntimeContext{
+    runtime_.emplace(ServerRuntimeContext{
         .executor = callback_executor_,
         .session_manager = session_manager_,
         .monitored_item_service = monitored_item_service_,
@@ -364,7 +364,7 @@ class OpcUaWsWebSocketServerTest : public Test {
             },
         });
     acceptor_ = acceptor.get();
-    server_.emplace(OpcUaWsServerContext{
+    server_.emplace(WsServerContext{
         .acceptor = transport::any_transport{std::move(acceptor)},
         .runtime = *runtime_,
         .max_message_size = 4 * 1024 * 1024,
@@ -389,7 +389,7 @@ class OpcUaWsWebSocketServerTest : public Test {
   NiceMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
   AnyExecutor callback_executor_;
-  opcua::OpcUaServerSessionManager session_manager_{{
+  ServerSessionManager session_manager_{{
       .authenticator = scada::MakeCoroutineAuthenticator(
           [](scada::LocalizedText,
              scada::LocalizedText)
@@ -397,12 +397,12 @@ class OpcUaWsWebSocketServerTest : public Test {
             co_return scada::AuthenticationResult{
                 .user_id = NumericNode(700, 5), .multi_sessions = true};
           })}};
-  std::optional<OpcUaWsRuntime> runtime_;
+  std::optional<ServerRuntime> runtime_;
   transport::WebSocketTransport* acceptor_ = nullptr;
-  std::optional<OpcUaWsServer> server_;
+  std::optional<WsServer> server_;
 };
 
-TEST_F(OpcUaWsWebSocketServerTest,
+TEST_F(WsWebSocketServerTest,
        AcceptsValidHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer();
 
@@ -432,7 +432,7 @@ TEST_F(OpcUaWsWebSocketServerTest,
   client.Close();
 }
 
-TEST_F(OpcUaWsWebSocketServerTest,
+TEST_F(WsWebSocketServerTest,
        AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
@@ -465,7 +465,7 @@ TEST_F(OpcUaWsWebSocketServerTest,
   client.Close();
 }
 
-TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowList) {
+TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowList) {
   StartServer();
 
   BeastClient client;
@@ -474,7 +474,7 @@ TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowList) {
       boost::system::system_error);
 }
 
-TEST_F(OpcUaWsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
+TEST_F(WsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
   StartServer();
 
   BeastClient client;
@@ -482,7 +482,7 @@ TEST_F(OpcUaWsWebSocketServerTest, RejectsMissingRequiredSubprotocol) {
                boost::system::system_error);
 }
 
-TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
+TEST_F(WsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
   StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
       .private_key_pem = kTestPrivateKeyPem,
@@ -494,7 +494,7 @@ TEST_F(OpcUaWsWebSocketServerTest, RejectsOriginOutsideAllowListOverTls) {
       boost::system::system_error);
 }
 
-TEST_F(OpcUaWsWebSocketServerTest,
+TEST_F(WsWebSocketServerTest,
        PublishDoesNotBlockCreateMonitoredItemsOnSameSocket) {
   StartServer();
 
@@ -503,34 +503,34 @@ TEST_F(OpcUaWsWebSocketServerTest,
 
   const auto create_session = DecodeResponseMessage(
       boost::json::parse(client.Request(
-          {.request_handle = 1, .body = opcua::OpcUaCreateSessionRequest{}})));
+          {.request_handle = 1, .body = CreateSessionRequest{}})));
   const auto created =
-      std::get<opcua::OpcUaCreateSessionResponse>(create_session.body);
+      std::get<CreateSessionResponse>(create_session.body);
 
   const auto activate_session = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 2,
-                      .body = opcua::OpcUaActivateSessionRequest{
+                      .body = ActivateSessionRequest{
                           .session_id = created.session_id,
                           .authentication_token = created.authentication_token,
                           .user_name = scada::LocalizedText{u"operator"},
                           .password = scada::LocalizedText{u"secret"}}})));
-  EXPECT_EQ(std::get<opcua::OpcUaActivateSessionResponse>(activate_session.body)
+  EXPECT_EQ(std::get<ActivateSessionResponse>(activate_session.body)
                 .status.code(),
             scada::StatusCode::Good);
 
   const auto create_subscription = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 3,
-                      .body = opcua::OpcUaCreateSubscriptionRequest{
+                      .body = CreateSubscriptionRequest{
                           .parameters = {.publishing_interval_ms = 500,
                                          .lifetime_count = 60,
                                          .max_keep_alive_count = 10,
                                          .publishing_enabled = true}}})));
   const auto subscription =
-      std::get<opcua::OpcUaCreateSubscriptionResponse>(create_subscription.body);
+      std::get<CreateSubscriptionResponse>(create_subscription.body);
 
-  client.Send({.request_handle = 4, .body = opcua::OpcUaPublishRequest{}});
+  client.Send({.request_handle = 4, .body = PublishRequest{}});
   client.Send({.request_handle = 5,
-               .body = opcua::OpcUaCreateMonitoredItemsRequest{
+               .body = CreateMonitoredItemsRequest{
                    .subscription_id = subscription.subscription_id,
                    .items_to_create = {{.item_to_monitor =
                                             {.node_id = NumericNode(11),
@@ -545,7 +545,7 @@ TEST_F(OpcUaWsWebSocketServerTest,
   const auto create_items = DecodeResponseMessage(
       boost::json::parse(client.Read(std::chrono::milliseconds{200})));
   EXPECT_EQ(create_items.request_handle, 5u);
-  EXPECT_EQ(std::get<opcua::OpcUaCreateMonitoredItemsResponse>(create_items.body)
+  EXPECT_EQ(std::get<CreateMonitoredItemsResponse>(create_items.body)
                 .status.code(),
             scada::StatusCode::Good);
 

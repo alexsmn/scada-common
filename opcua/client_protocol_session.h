@@ -20,22 +20,22 @@
 
 namespace opcua {
 
-// Thin typed facade over OpcUaClientChannel. Drives the Session
+// Thin typed facade over ClientChannel. Drives the Session
 // lifecycle (CreateSession -> ActivateSession -> ... -> CloseSession) and
-// packages each OPC UA service call into an OpcUaRequestBody /
-// OpcUaResponseBody round-trip.
+// packages each OPC UA service call into an RequestBody /
+// ResponseBody round-trip.
 //
 // All service methods return Awaitable<StatusOr<Result>> so the caller can
 // compose them with other coroutines. Errors at any layer (connection,
 // codec, service fault, wrong response type) surface as a bad Status.
-class OpcUaClientProtocolSession {
+class ClientProtocolSession {
  public:
   struct Context {
-    OpcUaClientConnection& connection;
-    OpcUaClientChannel& channel;
+    ClientConnection& connection;
+    ClientChannel& channel;
   };
 
-  explicit OpcUaClientProtocolSession(Context context);
+  explicit ClientProtocolSession(Context context);
 
   // Runs the connection-establishment dance:
   //   1. connection.Open()
@@ -97,13 +97,13 @@ class OpcUaClientProtocolSession {
  private:
   // Helper that sends a typed request and extracts the typed response. On a
   // variant mismatch, decode error, or transport error it yields a bad
-  // Status. On OpcUaServiceFault the fault status is propagated.
+  // Status. On ServiceFault the fault status is propagated.
   template <typename Response>
   [[nodiscard]] Awaitable<scada::StatusOr<Response>>
-  CallTyped(OpcUaRequestBody request);
+  CallTyped(RequestBody request);
 
-  OpcUaClientConnection& connection_;
-  OpcUaClientChannel& channel_;
+  ClientConnection& connection_;
+  ClientChannel& channel_;
 
   bool is_active_ = false;
   scada::NodeId session_id_;

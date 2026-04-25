@@ -21,7 +21,7 @@ scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
   return {id, ns};
 }
 
-TEST(OpcUaServiceHandlerCanonicalTest,
+TEST(ServiceHandlerCanonicalTest,
      HandleRead_UsesCanonicalCommonSurfaceAndUserContext) {
   StrictMock<scada::MockAttributeService> attribute_service;
   StrictMock<scada::MockViewService> view_service;
@@ -30,7 +30,7 @@ TEST(OpcUaServiceHandlerCanonicalTest,
   StrictMock<scada::MockNodeManagementService> node_management_service;
   const auto executor = std::make_shared<TestExecutor>();
   const auto user_id = NumericNode(700, 5);
-  OpcUaServiceHandler handler{{MakeTestAnyExecutor(executor),
+  ServiceHandler handler{{MakeTestAnyExecutor(executor),
                                attribute_service,
                                view_service,
                                history_service,

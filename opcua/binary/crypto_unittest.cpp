@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace opcua::crypto {
+namespace opcua::binary::crypto {
 namespace {
 
 // --- On-the-fly RSA test cert / key -----------------------------------------
@@ -78,7 +78,7 @@ std::span<const std::uint8_t> AsByteSpan(const scada::ByteString& bs) {
 
 // -----------------------------------------------------------------------------
 
-TEST(OpcUaBinaryCryptoTest, LoadPemCertificateAndKey) {
+TEST(CryptoTest, LoadPemCertificateAndKey) {
   const auto keypair = GenerateSelfSignedRsa();
   ASSERT_FALSE(keypair.cert_pem.empty());
 
@@ -95,12 +95,12 @@ TEST(OpcUaBinaryCryptoTest, LoadPemCertificateAndKey) {
   EXPECT_FALSE(der->empty());
 }
 
-TEST(OpcUaBinaryCryptoTest, LoadPemCertificateRejectsGarbage) {
+TEST(CryptoTest, LoadPemCertificateRejectsGarbage) {
   const auto cert = LoadPemCertificate("not a pem certificate");
   EXPECT_FALSE(cert.ok());
 }
 
-TEST(OpcUaBinaryCryptoTest, ThumbprintIs20Bytes) {
+TEST(CryptoTest, ThumbprintIs20Bytes) {
   const auto keypair = GenerateSelfSignedRsa();
   auto cert = LoadPemCertificate(keypair.cert_pem);
   ASSERT_TRUE(cert.ok());
@@ -114,7 +114,7 @@ TEST(OpcUaBinaryCryptoTest, ThumbprintIs20Bytes) {
   EXPECT_EQ(*thumbprint, *second);
 }
 
-TEST(OpcUaBinaryCryptoTest, RsaOaepRoundTripShortMessage) {
+TEST(CryptoTest, RsaOaepRoundTripShortMessage) {
   const auto keypair = GenerateSelfSignedRsa();
   auto priv = LoadPemPrivateKey(keypair.private_key_pem);
   ASSERT_TRUE(priv.ok());
@@ -138,7 +138,7 @@ TEST(OpcUaBinaryCryptoTest, RsaOaepRoundTripShortMessage) {
       std::memcmp(decrypted->data(), plaintext.data(), plaintext.size()), 0);
 }
 
-TEST(OpcUaBinaryCryptoTest, RsaOaepMultiBlockRoundTrip) {
+TEST(CryptoTest, RsaOaepMultiBlockRoundTrip) {
   const auto keypair = GenerateSelfSignedRsa();
   auto priv = LoadPemPrivateKey(keypair.private_key_pem);
   ASSERT_TRUE(priv.ok());
@@ -164,7 +164,7 @@ TEST(OpcUaBinaryCryptoTest, RsaOaepMultiBlockRoundTrip) {
       std::memcmp(decrypted->data(), plaintext.data(), plaintext.size()), 0);
 }
 
-TEST(OpcUaBinaryCryptoTest, RsaPkcs1Sha256SignAndVerify) {
+TEST(CryptoTest, RsaPkcs1Sha256SignAndVerify) {
   const auto keypair = GenerateSelfSignedRsa();
   auto priv = LoadPemPrivateKey(keypair.private_key_pem);
   ASSERT_TRUE(priv.ok());
@@ -173,7 +173,7 @@ TEST(OpcUaBinaryCryptoTest, RsaPkcs1Sha256SignAndVerify) {
   auto pub = CertificatePublicKey(*cert);
   ASSERT_TRUE(pub.ok());
 
-  const std::string data = "OpcUaPart6Test";
+  const std::string data = "Part6Test";
   std::span<const std::uint8_t> data_span{
       reinterpret_cast<const std::uint8_t*>(data.data()), data.size()};
   auto signature = RsaPkcs1Sha256Sign(*priv, data_span);
@@ -191,7 +191,7 @@ TEST(OpcUaBinaryCryptoTest, RsaPkcs1Sha256SignAndVerify) {
       RsaPkcs1Sha256Verify(*pub, tampered_span, AsByteSpan(*signature)));
 }
 
-TEST(OpcUaBinaryCryptoTest, HmacSha256IsDeterministic) {
+TEST(CryptoTest, HmacSha256IsDeterministic) {
   const std::array<std::uint8_t, 32> key{};  // all zeros
   const std::string data = "payload";
   std::span<const std::uint8_t> data_span{
@@ -202,7 +202,7 @@ TEST(OpcUaBinaryCryptoTest, HmacSha256IsDeterministic) {
   EXPECT_EQ(mac_a.size(), 32u);
 }
 
-TEST(OpcUaBinaryCryptoTest, HmacSha256KeyDifferenceChangesTag) {
+TEST(CryptoTest, HmacSha256KeyDifferenceChangesTag) {
   std::array<std::uint8_t, 32> key_a{};
   std::array<std::uint8_t, 32> key_b{};
   key_b[0] = 1;
@@ -212,7 +212,7 @@ TEST(OpcUaBinaryCryptoTest, HmacSha256KeyDifferenceChangesTag) {
   EXPECT_NE(HmacSha256(key_a, data_span), HmacSha256(key_b, data_span));
 }
 
-TEST(OpcUaBinaryCryptoTest, AesCbcRoundTrip) {
+TEST(CryptoTest, AesCbcRoundTrip) {
   std::array<std::uint8_t, 32> key{};
   std::array<std::uint8_t, 16> iv{};
   for (std::size_t i = 0; i < key.size(); ++i) {
@@ -239,14 +239,14 @@ TEST(OpcUaBinaryCryptoTest, AesCbcRoundTrip) {
       std::memcmp(decrypted->data(), plaintext.data(), plaintext.size()), 0);
 }
 
-TEST(OpcUaBinaryCryptoTest, AesCbcRejectsNonBlockMultiple) {
+TEST(CryptoTest, AesCbcRejectsNonBlockMultiple) {
   std::array<std::uint8_t, 32> key{};
   std::array<std::uint8_t, 16> iv{};
   std::vector<std::uint8_t> plaintext(15);  // not a multiple of 16
   EXPECT_FALSE(AesCbcEncrypt(key, iv, plaintext).ok());
 }
 
-TEST(OpcUaBinaryCryptoTest, PSha256ExpandsToRequestedLength) {
+TEST(CryptoTest, PSha256ExpandsToRequestedLength) {
   const std::array<std::uint8_t, 4> secret{1, 2, 3, 4};
   const std::array<std::uint8_t, 4> seed{5, 6, 7, 8};
 
@@ -264,7 +264,7 @@ TEST(OpcUaBinaryCryptoTest, PSha256ExpandsToRequestedLength) {
   EXPECT_NE(PSha256(secret, seed2, 32), out_32);
 }
 
-TEST(OpcUaBinaryCryptoTest, DeriveBasic256Sha256KeysShape) {
+TEST(CryptoTest, DeriveBasic256Sha256KeysShape) {
   const std::array<std::uint8_t, 32> secret{};
   const std::array<std::uint8_t, 32> seed{};
   const auto keys = DeriveBasic256Sha256Keys(secret, seed);
@@ -276,4 +276,4 @@ TEST(OpcUaBinaryCryptoTest, DeriveBasic256Sha256KeysShape) {
 }
 
 }  // namespace
-}  // namespace opcua::crypto
+}  // namespace opcua::binary::crypto

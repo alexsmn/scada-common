@@ -23,8 +23,8 @@ constexpr std::size_t kOpcTcpPrefixLen = 9;  // "opc.tcp://"
 namespace opcua {
 
 // static
-OpcUaClientSession::ParsedEndpoint
-OpcUaClientSession::ParseEndpointUrl(const std::string& url) {
+ClientSession::ParsedEndpoint
+ClientSession::ParseEndpointUrl(const std::string& url) {
   ParsedEndpoint result;
   // "opc.tcp://host[:port][/path]". Any /path suffix is discarded (the
   // server endpoint name is tracked separately by CreateSession's
@@ -63,29 +63,29 @@ OpcUaClientSession::ParseEndpointUrl(const std::string& url) {
   return result;
 }
 
-OpcUaClientSession::OpcUaClientSession(
+ClientSession::ClientSession(
     std::shared_ptr<Executor> executor,
     transport::TransportFactory& transport_factory)
     : executor_{std::move(executor)},
       any_executor_{MakeAnyExecutor(executor_)},
       transport_factory_{transport_factory} {}
 
-OpcUaClientSession::~OpcUaClientSession() = default;
+ClientSession::~ClientSession() = default;
 
-promise<void> OpcUaClientSession::Connect(
+promise<void> ClientSession::Connect(
     const scada::SessionConnectParams& params) {
   return ToPromise(NetExecutorAdapter{executor_}, ConnectAsync(params));
 }
 
-promise<void> OpcUaClientSession::Disconnect() {
+promise<void> ClientSession::Disconnect() {
   return ToPromise(NetExecutorAdapter{executor_}, DisconnectAsync());
 }
 
-promise<void> OpcUaClientSession::Reconnect() {
+promise<void> ClientSession::Reconnect() {
   return ToPromise(NetExecutorAdapter{executor_}, ReconnectAsync());
 }
 
-Awaitable<void> OpcUaClientSession::ConnectAsync(
+Awaitable<void> ClientSession::ConnectAsync(
     scada::SessionConnectParams params) {
   // Use `connection_string` when populated, otherwise compose from `host`.
   std::string endpoint = params.connection_string.empty()
@@ -111,30 +111,30 @@ Awaitable<void> OpcUaClientSession::ConnectAsync(
   }
 
   endpoint_url_ = std::move(endpoint);
-  transport_ = std::make_unique<OpcUaBinaryClientTransport>(
-      OpcUaBinaryClientTransportContext{
+  transport_ = std::make_unique<binary::ClientTransport>(
+      binary::ClientTransportContext{
           .transport = std::move(*transport_result),
           .endpoint_url = endpoint_url_,
           .limits = {},
       });
   secure_channel_ =
-      std::make_unique<OpcUaBinaryClientSecureChannel>(*transport_);
-  connection_ = std::make_unique<OpcUaBinaryClientConnection>(
-      OpcUaBinaryClientConnection::Context{
+      std::make_unique<binary::ClientSecureChannel>(*transport_);
+  connection_ = std::make_unique<binary::ClientConnection>(
+      binary::ClientConnection::Context{
           .transport = *transport_,
           .secure_channel = *secure_channel_,
       });
-  channel_ = std::make_unique<OpcUaClientChannel>(
-      OpcUaClientChannel::Context{
+  channel_ = std::make_unique<ClientChannel>(
+      ClientChannel::Context{
           .connection = *connection_,
       });
-  session_ = std::make_unique<OpcUaClientProtocolSession>(
-      OpcUaClientProtocolSession::Context{
+  session_ = std::make_unique<ClientProtocolSession>(
+      ClientProtocolSession::Context{
           .connection = *connection_,
           .channel = *channel_,
       });
 
-  OpcUaClientProtocolSession::Identity identity;
+  ClientProtocolSession::Identity identity;
   if (!params.user_name.empty()) {
     identity.user_name = params.user_name;
     identity.password = params.password;
@@ -151,7 +151,7 @@ Awaitable<void> OpcUaClientSession::ConnectAsync(
   NotifyStateChanged(true, scada::Status{scada::StatusCode::Good});
 }
 
-Awaitable<void> OpcUaClientSession::DisconnectAsync() {
+Awaitable<void> ClientSession::DisconnectAsync() {
   if (!session_) {
     co_return;
   }
@@ -160,40 +160,40 @@ Awaitable<void> OpcUaClientSession::DisconnectAsync() {
   NotifyStateChanged(false, scada::Status{scada::StatusCode::Good});
 }
 
-Awaitable<void> OpcUaClientSession::ReconnectAsync() {
+Awaitable<void> ClientSession::ReconnectAsync() {
   co_return;
 }
 
-bool OpcUaClientSession::IsConnected(base::TimeDelta* ping_delay) const {
+bool ClientSession::IsConnected(base::TimeDelta* ping_delay) const {
   if (ping_delay) {
     *ping_delay = {};
   }
   return is_connected_;
 }
 
-bool OpcUaClientSession::HasPrivilege(scada::Privilege) const {
+bool ClientSession::HasPrivilege(scada::Privilege) const {
   return true;
 }
 
-scada::NodeId OpcUaClientSession::GetUserId() const {
+scada::NodeId ClientSession::GetUserId() const {
   return {};
 }
 
-std::string OpcUaClientSession::GetHostName() const {
+std::string ClientSession::GetHostName() const {
   return {};
 }
 
-boost::signals2::scoped_connection OpcUaClientSession::SubscribeSessionStateChanged(
+boost::signals2::scoped_connection ClientSession::SubscribeSessionStateChanged(
     const SessionStateChangedCallback& callback) {
   return boost::signals2::scoped_connection{
       session_state_changed_.connect(callback)};
 }
 
-scada::SessionDebugger* OpcUaClientSession::GetSessionDebugger() {
+scada::SessionDebugger* ClientSession::GetSessionDebugger() {
   return nullptr;
 }
 
-void OpcUaClientSession::Browse(const scada::ServiceContext& context,
+void ClientSession::Browse(const scada::ServiceContext& context,
                           const std::vector<scada::BrowseDescription>& nodes,
                           const scada::BrowseCallback& callback) {
   auto weak_self = weak_from_this();
@@ -209,7 +209,7 @@ void OpcUaClientSession::Browse(const scada::ServiceContext& context,
   });
 }
 
-void OpcUaClientSession::TranslateBrowsePaths(
+void ClientSession::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
   auto weak_self = weak_from_this();
@@ -224,14 +224,14 @@ void OpcUaClientSession::TranslateBrowsePaths(
   });
 }
 
-std::shared_ptr<scada::MonitoredItem> OpcUaClientSession::CreateMonitoredItem(
+std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   assert(!read_value_id.node_id.is_null());
   return GetDefaultSubscription().CreateMonitoredItem(read_value_id, params);
 }
 
-void OpcUaClientSession::Read(
+void ClientSession::Read(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
@@ -247,7 +247,7 @@ void OpcUaClientSession::Read(
   });
 }
 
-void OpcUaClientSession::Write(
+void ClientSession::Write(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
@@ -263,7 +263,7 @@ void OpcUaClientSession::Write(
   });
 }
 
-void OpcUaClientSession::Call(const scada::NodeId& node_id,
+void ClientSession::Call(const scada::NodeId& node_id,
                         const scada::NodeId& method_id,
                         const std::vector<scada::Variant>& arguments,
                         const scada::NodeId& user_id,
@@ -284,7 +284,7 @@ void OpcUaClientSession::Call(const scada::NodeId& node_id,
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
-OpcUaClientSession::Browse(scada::ServiceContext /*context*/,
+ClientSession::Browse(scada::ServiceContext /*context*/,
                      std::vector<scada::BrowseDescription> inputs) {
   if (!is_connected_) {
     co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
@@ -301,7 +301,7 @@ OpcUaClientSession::Browse(scada::ServiceContext /*context*/,
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
-OpcUaClientSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
+ClientSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   if (!is_connected_) {
     co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
                          std::vector<scada::BrowsePathResult>{}};
@@ -319,7 +319,7 @@ OpcUaClientSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) 
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
-OpcUaClientSession::Read(
+ClientSession::Read(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
   if (!is_connected_) {
@@ -338,7 +338,7 @@ OpcUaClientSession::Read(
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
-OpcUaClientSession::Write(
+ClientSession::Write(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
   if (!is_connected_) {
@@ -356,7 +356,7 @@ OpcUaClientSession::Write(
   co_return std::tuple{result.status(), std::vector<scada::StatusCode>{}};
 }
 
-Awaitable<scada::Status> OpcUaClientSession::Call(
+Awaitable<scada::Status> ClientSession::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
@@ -375,14 +375,14 @@ Awaitable<scada::Status> OpcUaClientSession::Call(
   co_return result.status();
 }
 
-OpcUaClientSubscription& OpcUaClientSession::GetDefaultSubscription() {
+ClientSubscription& ClientSession::GetDefaultSubscription() {
   if (!default_subscription_) {
-    default_subscription_ = OpcUaClientSubscription::Create(*this);
+    default_subscription_ = ClientSubscription::Create(*this);
   }
   return *default_subscription_;
 }
 
-void OpcUaClientSession::Reset() {
+void ClientSession::Reset() {
   default_subscription_.reset();
   session_.reset();
   channel_.reset();
@@ -392,7 +392,7 @@ void OpcUaClientSession::Reset() {
   is_connected_ = false;
 }
 
-void OpcUaClientSession::NotifyStateChanged(bool connected,
+void ClientSession::NotifyStateChanged(bool connected,
                                             scada::Status status) {
   session_state_changed_(connected, status);
 }

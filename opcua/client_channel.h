@@ -13,16 +13,16 @@
 namespace opcua {
 
 // Request-response correlation layer shared by OPC UA client transports.
-class OpcUaClientChannel {
+class ClientChannel {
  public:
   struct Context {
-    OpcUaClientConnection& connection;
+    ClientConnection& connection;
     // Authentication token from a successful CreateSession; empty node id
     // before session activation.
     scada::NodeId authentication_token;
   };
 
-  explicit OpcUaClientChannel(Context context);
+  explicit ClientChannel(Context context);
 
   // Allocates a fresh request handle (monotonically increasing).
   [[nodiscard]] std::uint32_t NextRequestHandle();
@@ -37,27 +37,27 @@ class OpcUaClientChannel {
   // Sends `request` and awaits the matching response. The returned body's
   // concrete type depends on the request; callers typically `std::get` or
   // `std::visit` on the variant.
-  [[nodiscard]] Awaitable<scada::StatusOr<OpcUaResponseBody>> Call(
+  [[nodiscard]] Awaitable<scada::StatusOr<ResponseBody>> Call(
       std::uint32_t request_handle,
-      OpcUaRequestBody request);
+      RequestBody request);
 
   // Lower-level split send/receive API for callers that keep multiple
   // requests outstanding (Publish). `Receive` buffers unrelated responses
   // for later matching by request_id.
   [[nodiscard]] Awaitable<scada::StatusOr<std::uint32_t>> Send(
       std::uint32_t request_handle,
-      OpcUaRequestBody request);
-  [[nodiscard]] Awaitable<scada::StatusOr<OpcUaResponseBody>> Receive(
+      RequestBody request);
+  [[nodiscard]] Awaitable<scada::StatusOr<ResponseBody>> Receive(
       std::uint32_t request_id,
       std::uint32_t request_handle);
 
  private:
   struct BufferedResponse {
     std::uint32_t request_handle = 0;
-    OpcUaResponseBody body;
+    ResponseBody body;
   };
 
-  OpcUaClientConnection& connection_;
+  ClientConnection& connection_;
   scada::NodeId authentication_token_;
   std::uint32_t next_request_handle_ = 1;
   std::unordered_map<std::uint32_t, BufferedResponse> buffered_responses_;

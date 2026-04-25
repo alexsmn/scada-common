@@ -29,25 +29,25 @@ flowchart LR
 
     subgraph Endpoints["Server OPC UA endpoints"]
         direction TB
-        TCP["<b>OpcUaBinaryServer</b><br/><i>common/opcua/binary</i><br/>opc.tcp://:4840<br/>UA Binary"]
+        TCP["<b>binary::Server</b><br/><i>common/opcua/binary</i><br/>opc.tcp://:4840<br/>UA Binary"]
         WSSOCK["<b>WebSocketTransport</b><br/><i>third_party/net/transport</i><br/>WS/WSS acceptor<br/>TLS enabled"]
     end
 
     subgraph Adapters["Transport adapters"]
         direction TB
-        BINARY["<b>OpcUaBinaryRuntime</b><br/>binary request adaptation<br/>+ authenticated dispatch"]
-        WS["<b>OpcUaWsServer</b><br/>message-oriented UA-JSON loop"]
-        SESS["<b>opcua::OpcUaServerSession</b><br/>awaitable service adapter +<br/>subscription orchestration"]
-        SMGR["<b>opcua::OpcUaServerSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
-        SUB["<b>opcua::OpcUaServerSubscription</b><br/>per-subscription queue,<br/>replay, keepalive"]
-        CODEC["<b>OpcUaJsonCodec</b><br/>UA-JSON encode/decode<br/>requestHandle + session envelopes"]
+        BINARY["<b>binary::Runtime</b><br/>binary request adaptation<br/>+ authenticated dispatch"]
+        WS["<b>WsServer</b><br/>message-oriented UA-JSON loop"]
+        SESS["<b>opcua::ServerSession</b><br/>awaitable service adapter +<br/>subscription orchestration"]
+        SMGR["<b>opcua::ServerSessionManager</b><br/>session ids, auth tokens,<br/>timeouts, detach/resume"]
+        SUB["<b>opcua::ServerSubscription</b><br/>per-subscription queue,<br/>replay, keepalive"]
+        CODEC["<b>JsonCodec</b><br/>UA-JSON encode/decode<br/>requestHandle + session envelopes"]
     end
 
     subgraph Core["Shared core"]
         direction TB
-        RT["<b>opcua::OpcUaServerRuntime</b><br/>transport-neutral request-body routing"]
-        HANDLER["<b>opcua::OpcUaServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
-        CTX["<b>OpcUaServerContext</b><br/>attribute / view /<br/>monitored-item / method /<br/>node-management services"]
+        RT["<b>opcua::ServerRuntime</b><br/>transport-neutral request-body routing"]
+        HANDLER["<b>opcua::ServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
+        CTX["<b>ServerContext</b><br/>attribute / view /<br/>monitored-item / method /<br/>node-management services"]
         SVC["<b>scada services</b><br/>node manager, history,<br/>events, security"]
     end
 

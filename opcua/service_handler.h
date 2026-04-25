@@ -13,7 +13,7 @@
 
 namespace opcua {
 
-struct OpcUaServiceHandlerContext {
+struct ServiceHandlerContext {
   AnyExecutor executor;
   scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
@@ -23,35 +23,35 @@ struct OpcUaServiceHandlerContext {
   scada::NodeId user_id;
 };
 
-class OpcUaServiceHandler : private OpcUaServiceHandlerContext {
+class ServiceHandler : private ServiceHandlerContext {
  public:
-  explicit OpcUaServiceHandler(OpcUaServiceHandlerContext&& context);
+  explicit ServiceHandler(ServiceHandlerContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> Handle(
-      OpcUaServiceRequest request) const;
+  [[nodiscard]] Awaitable<ServiceResponse> Handle(
+      ServiceRequest request) const;
 
  private:
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleRead(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleRead(
       ReadRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleWrite(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleWrite(
       WriteRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleBrowse(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleBrowse(
       BrowseRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleTranslateBrowsePaths(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleTranslateBrowsePaths(
       TranslateBrowsePathsRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleCall(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleCall(
       CallRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleHistoryReadRaw(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleHistoryReadRaw(
       HistoryReadRawRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleHistoryReadEvents(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleHistoryReadEvents(
       HistoryReadEventsRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleAddNodes(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleAddNodes(
       AddNodesRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleDeleteNodes(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleDeleteNodes(
       DeleteNodesRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleAddReferences(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleAddReferences(
       AddReferencesRequest request) const;
-  [[nodiscard]] Awaitable<OpcUaServiceResponse> HandleDeleteReferences(
+  [[nodiscard]] Awaitable<ServiceResponse> HandleDeleteReferences(
       DeleteReferencesRequest request) const;
 };
 

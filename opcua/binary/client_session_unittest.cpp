@@ -21,7 +21,7 @@
 #include <variant>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 struct ScriptedState {
@@ -91,7 +91,7 @@ constexpr std::uint32_t kChannelId = 42;
 constexpr std::uint32_t kTokenId = 1;
 
 std::vector<char> BuildOpenResponseFrame() {
-  const OpcUaBinaryOpenSecureChannelResponse response{
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = 1,
                           .service_result = scada::StatusCode::Good},
       .server_protocol_version = 0,
@@ -101,12 +101,12 @@ std::vector<char> BuildOpenResponseFrame() {
                          .revised_lifetime = 60000},
       .server_nonce = {},
   };
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = kChannelId,
-      .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+      .asymmetric_security_header = AsymmetricSecurityHeader{
           .security_policy_uri = std::string{kSecurityPolicyNone},
           .sender_certificate = {},
           .receiver_certificate_thumbprint = {},
@@ -119,17 +119,17 @@ std::vector<char> BuildOpenResponseFrame() {
 
 std::vector<char> BuildServiceResponseFrame(std::uint32_t request_id,
                                             std::uint32_t request_handle,
-                                            OpcUaResponseBody body) {
+                                            ResponseBody body) {
   const auto encoded =
-      EncodeOpcUaBinaryServiceResponse(request_handle, std::move(body));
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureMessage,
+      EncodeServiceResponse(request_handle, std::move(body));
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureMessage,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = kChannelId,
       .asymmetric_security_header = std::nullopt,
       .symmetric_security_header =
-          OpcUaBinarySymmetricSecurityHeader{.token_id = kTokenId},
+          SymmetricSecurityHeader{.token_id = kTokenId},
       .sequence_header = {.sequence_number = request_id + 1,
                           .request_id = request_id},
       .body = encoded.value(),
@@ -137,7 +137,7 @@ std::vector<char> BuildServiceResponseFrame(std::uint32_t request_id,
   return EncodeSecureConversationMessage(message);
 }
 
-class OpcUaClientProtocolSessionTest : public ::testing::Test {
+class ClientProtocolSessionTest : public ::testing::Test {
  protected:
   // Every client call advances the secure channel's request_id by 1. The
   // helpers below queue responses for specific request_ids so the reader
@@ -147,7 +147,7 @@ class OpcUaClientProtocolSessionTest : public ::testing::Test {
   //   request_id 3 -> ActivateSession
   //   request_id 4+ -> post-Create service calls
   void PrimeConnectAndOpen(const std::shared_ptr<ScriptedState>& state) {
-    state->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage(
+    state->incoming.push_back(AsString(EncodeAcknowledgeMessage(
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
     state->incoming.push_back(AsString(BuildOpenResponseFrame()));
   }
@@ -160,7 +160,7 @@ class OpcUaClientProtocolSessionTest : public ::testing::Test {
     const scada::NodeId auth_token{0xABCDEF};
     state->incoming.push_back(AsString(BuildServiceResponseFrame(
         /*request_id=*/2, /*request_handle=*/1,
-        OpcUaResponseBody{OpcUaCreateSessionResponse{
+        ResponseBody{CreateSessionResponse{
             .status = scada::StatusCode::Good,
             .session_id = session_id,
             .authentication_token = auth_token,
@@ -169,7 +169,7 @@ class OpcUaClientProtocolSessionTest : public ::testing::Test {
         }})));
     state->incoming.push_back(AsString(BuildServiceResponseFrame(
         /*request_id=*/3, /*request_handle=*/2,
-        OpcUaResponseBody{OpcUaActivateSessionResponse{
+        ResponseBody{ActivateSessionResponse{
             .status = scada::StatusCode::Good}})));
     return auth_token;
   }
@@ -179,22 +179,22 @@ class OpcUaClientProtocolSessionTest : public ::testing::Test {
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
 };
 
-TEST_F(OpcUaClientProtocolSessionTest, CreateRunsCreateAndActivate) {
+TEST_F(ClientProtocolSessionTest, CreateRunsCreateAndActivate) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   const auto auth_token = PrimeSessionEstablishment(state);
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
 
   const auto status = WaitAwaitable(executor_, session.Create());
@@ -204,25 +204,25 @@ TEST_F(OpcUaClientProtocolSessionTest, CreateRunsCreateAndActivate) {
   EXPECT_EQ(session.authentication_token(), auth_token);
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, CreatePropagatesCreateSessionBadStatus) {
+TEST_F(ClientProtocolSessionTest, CreatePropagatesCreateSessionBadStatus) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/2, /*request_handle=*/1,
-      OpcUaResponseBody{OpcUaCreateSessionResponse{
+      ResponseBody{CreateSessionResponse{
           .status = scada::StatusCode::Bad_WrongLoginCredentials}})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
 
   const auto status = WaitAwaitable(executor_, session.Create());
@@ -230,29 +230,29 @@ TEST_F(OpcUaClientProtocolSessionTest, CreatePropagatesCreateSessionBadStatus) {
   EXPECT_FALSE(session.is_active());
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, ReadReturnsDataValuesOnSuccess) {
+TEST_F(ClientProtocolSessionTest, ReadReturnsDataValuesOnSuccess) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
   // Read is the next call after Activate, so request_id=4, request_handle=3.
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
-      OpcUaResponseBody{ReadResponse{
+      ResponseBody{ReadResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::DataValue{scada::Variant{std::int32_t{7}}, {}, {}, {}}},
       }})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
@@ -265,27 +265,27 @@ TEST_F(OpcUaClientProtocolSessionTest, ReadReturnsDataValuesOnSuccess) {
   EXPECT_EQ((*read)[0].value, (scada::Variant{std::int32_t{7}}));
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, WriteReturnsStatusCodes) {
+TEST_F(ClientProtocolSessionTest, WriteReturnsStatusCodes) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
-      OpcUaResponseBody{WriteResponse{
+      ResponseBody{WriteResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::StatusCode::Good}}})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
@@ -300,13 +300,13 @@ TEST_F(OpcUaClientProtocolSessionTest, WriteReturnsStatusCodes) {
   EXPECT_EQ((*write)[0], scada::StatusCode::Good);
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, BrowseReturnsReferences) {
+TEST_F(ClientProtocolSessionTest, BrowseReturnsReferences) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
-      OpcUaResponseBody{BrowseResponse{
+      ResponseBody{BrowseResponse{
           .status = scada::StatusCode::Good,
           .results = {scada::BrowseResult{
               .status_code = scada::StatusCode::Good,
@@ -315,17 +315,17 @@ TEST_F(OpcUaClientProtocolSessionTest, BrowseReturnsReferences) {
                   .forward = true,
                   .node_id = scada::NodeId{1000}}}}}}})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
@@ -339,7 +339,7 @@ TEST_F(OpcUaClientProtocolSessionTest, BrowseReturnsReferences) {
   EXPECT_EQ((*browse)[0].references[0].node_id, scada::NodeId{1000});
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, CallRoundTripsArguments) {
+TEST_F(ClientProtocolSessionTest, CallRoundTripsArguments) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
@@ -350,19 +350,19 @@ TEST_F(OpcUaClientProtocolSessionTest, CallRoundTripsArguments) {
        .output_arguments = {scada::Variant{std::int32_t{123}}}});
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
-      OpcUaResponseBody{server_reply})));
+      ResponseBody{server_reply})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
@@ -376,26 +376,26 @@ TEST_F(OpcUaClientProtocolSessionTest, CallRoundTripsArguments) {
             (scada::Variant{std::int32_t{123}}));
 }
 
-TEST_F(OpcUaClientProtocolSessionTest, CloseRunsCloseSessionBestEffort) {
+TEST_F(ClientProtocolSessionTest, CloseRunsCloseSessionBestEffort) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
-      OpcUaResponseBody{OpcUaCloseSessionResponse{
+      ResponseBody{CloseSessionResponse{
           .status = scada::StatusCode::Good}})));
 
-  OpcUaBinaryClientTransport transport{OpcUaBinaryClientTransportContext{
+  ClientTransport transport{ClientTransportContext{
       .transport = transport::any_transport{
           ScriptedTransport{any_executor_, state}},
       .endpoint_url = "opc.tcp://localhost:4840",
       .limits = {},
   }};
-  OpcUaBinaryClientSecureChannel secure_channel{transport};
-  OpcUaBinaryClientConnection connection{
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  OpcUaClientChannel channel{{.connection = connection}};
-  OpcUaClientProtocolSession session{
+  ClientChannel channel{{.connection = connection}};
+  ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
 
@@ -405,4 +405,4 @@ TEST_F(OpcUaClientProtocolSessionTest, CloseRunsCloseSessionBestEffort) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

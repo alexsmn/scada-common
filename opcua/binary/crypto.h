@@ -17,7 +17,7 @@ using X509 = x509_st;
 struct evp_pkey_st;
 using EVP_PKEY = evp_pkey_st;
 
-namespace opcua::crypto {
+namespace opcua::binary::crypto {
 
 // RAII wrappers around the OpenSSL handles. Constructed via Load* helpers
 // below; callers pass them by (const) reference into the sign/encrypt
@@ -144,4 +144,4 @@ struct DerivedKeys {
     std::span<const std::uint8_t> secret,
     std::span<const std::uint8_t> seed);
 
-}  // namespace opcua::crypto
+}  // namespace opcua::binary::crypto

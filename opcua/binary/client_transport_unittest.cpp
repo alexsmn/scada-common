@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 struct StreamPeerState {
@@ -81,14 +81,14 @@ std::string AsString(const std::vector<char>& bytes) {
   return {bytes.begin(), bytes.end()};
 }
 
-class OpcUaBinaryClientTransportTest : public ::testing::Test {
+class ClientTransportTest : public ::testing::Test {
  protected:
-  std::unique_ptr<OpcUaBinaryClientTransport> MakeClient(
+  std::unique_ptr<ClientTransport> MakeClient(
       const std::shared_ptr<StreamPeerState>& peer,
       std::string endpoint_url = "opc.tcp://localhost:4840",
-      OpcUaBinaryTransportLimits limits = {}) {
-    return std::make_unique<OpcUaBinaryClientTransport>(
-        OpcUaBinaryClientTransportContext{
+      TransportLimits limits = {}) {
+    return std::make_unique<ClientTransport>(
+        ClientTransportContext{
             .transport = transport::any_transport{
                 ScriptedStreamTransport{any_executor_, peer}},
             .endpoint_url = std::move(endpoint_url),
@@ -101,9 +101,9 @@ class OpcUaBinaryClientTransportTest : public ::testing::Test {
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
 };
 
-TEST_F(OpcUaBinaryClientTransportTest, SendsHelloAndCapturesAcknowledge) {
+TEST_F(ClientTransportTest, SendsHelloAndCapturesAcknowledge) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto ack_frame = EncodeBinaryAcknowledgeMessage(
+  const auto ack_frame = EncodeAcknowledgeMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 8192,
        .send_buffer_size = 4096,
@@ -127,7 +127,7 @@ TEST_F(OpcUaBinaryClientTransportTest, SendsHelloAndCapturesAcknowledge) {
   // A single Hello frame was written; decode it and verify the endpoint URL
   // + requested buffer sizes survive serialization.
   ASSERT_EQ(peer->writes.size(), 1u);
-  const auto hello = DecodeBinaryHelloMessage(std::vector<char>{
+  const auto hello = DecodeHelloMessage(std::vector<char>{
       peer->writes[0].begin(), peer->writes[0].end()});
   ASSERT_TRUE(hello.has_value());
   EXPECT_EQ(hello->endpoint_url, "opc.tcp://localhost:4840");
@@ -135,9 +135,9 @@ TEST_F(OpcUaBinaryClientTransportTest, SendsHelloAndCapturesAcknowledge) {
   EXPECT_EQ(hello->send_buffer_size, 2048u);
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, PropagatesServerErrorReply) {
+TEST_F(ClientTransportTest, PropagatesServerErrorReply) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto error_frame = EncodeBinaryErrorMessage(
+  const auto error_frame = EncodeErrorMessage(
       {.error = scada::StatusCode::Bad_Disconnected,
        .reason = "bad endpoint"});
   peer->incoming.push_back(AsString(error_frame));
@@ -148,10 +148,10 @@ TEST_F(OpcUaBinaryClientTransportTest, PropagatesServerErrorReply) {
   EXPECT_FALSE(client->is_open());
 }
 
-TEST_F(OpcUaBinaryClientTransportTest,
+TEST_F(ClientTransportTest,
        ReadFrameReassemblesAcrossChunkedReads) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto ack_frame = EncodeBinaryAcknowledgeMessage(
+  const auto ack_frame = EncodeAcknowledgeMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 65535,
        .send_buffer_size = 65535});
@@ -173,9 +173,9 @@ TEST_F(OpcUaBinaryClientTransportTest,
   EXPECT_TRUE(client->is_open());
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, WriteFrameForwardsBytesToTransport) {
+TEST_F(ClientTransportTest, WriteFrameForwardsBytesToTransport) {
   auto peer = std::make_shared<StreamPeerState>();
-  peer->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage({})));
+  peer->incoming.push_back(AsString(EncodeAcknowledgeMessage({})));
 
   auto client = MakeClient(peer);
   ASSERT_TRUE(WaitAwaitable(executor_, client->Connect()).good());
@@ -189,9 +189,9 @@ TEST_F(OpcUaBinaryClientTransportTest, WriteFrameForwardsBytesToTransport) {
   EXPECT_EQ(peer->writes[1], std::string(frame.begin(), frame.end()));
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, ReadFrameReportsConnectionClosed) {
+TEST_F(ClientTransportTest, ReadFrameReportsConnectionClosed) {
   auto peer = std::make_shared<StreamPeerState>();
-  peer->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage({})));
+  peer->incoming.push_back(AsString(EncodeAcknowledgeMessage({})));
 
   auto client = MakeClient(peer);
   ASSERT_TRUE(WaitAwaitable(executor_, client->Connect()).good());
@@ -243,10 +243,10 @@ class FailingOpenTransport {
   std::shared_ptr<StreamPeerState> state_;
 };
 
-TEST_F(OpcUaBinaryClientTransportTest, ConnectFailsWhenTransportOpenFails) {
+TEST_F(ClientTransportTest, ConnectFailsWhenTransportOpenFails) {
   auto peer = std::make_shared<StreamPeerState>();
-  auto client = std::make_unique<OpcUaBinaryClientTransport>(
-      OpcUaBinaryClientTransportContext{
+  auto client = std::make_unique<ClientTransport>(
+      ClientTransportContext{
           .transport = transport::any_transport{
               FailingOpenTransport{any_executor_, peer}},
           .endpoint_url = "opc.tcp://localhost:4840",
@@ -258,12 +258,12 @@ TEST_F(OpcUaBinaryClientTransportTest, ConnectFailsWhenTransportOpenFails) {
   EXPECT_FALSE(client->is_open());
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, ReadFrameRejectsOversizedFrame) {
+TEST_F(ClientTransportTest, ReadFrameRejectsOversizedFrame) {
   auto peer = std::make_shared<StreamPeerState>();
   // Forge a frame header with message_size just above our max_frame_size.
   // The ACK frame passes Connect; the oversized frame is what the next
   // ReadFrame sees.
-  peer->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage({})));
+  peer->incoming.push_back(AsString(EncodeAcknowledgeMessage({})));
   const std::uint32_t kMax = 2048;
   const std::uint32_t oversized = kMax + 32;
   std::vector<char> bad_frame(8);
@@ -274,8 +274,8 @@ TEST_F(OpcUaBinaryClientTransportTest, ReadFrameRejectsOversizedFrame) {
   bad_frame[7] = static_cast<char>((oversized >> 24) & 0xff);
   peer->incoming.push_back(AsString(bad_frame));
 
-  auto client = std::make_unique<OpcUaBinaryClientTransport>(
-      OpcUaBinaryClientTransportContext{
+  auto client = std::make_unique<ClientTransport>(
+      ClientTransportContext{
           .transport = transport::any_transport{
               ScriptedStreamTransport{any_executor_, peer}},
           .endpoint_url = "opc.tcp://localhost:4840",
@@ -289,9 +289,9 @@ TEST_F(OpcUaBinaryClientTransportTest, ReadFrameRejectsOversizedFrame) {
   EXPECT_TRUE(read_result.status().bad());
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, CloseClearsIsOpen) {
+TEST_F(ClientTransportTest, CloseClearsIsOpen) {
   auto peer = std::make_shared<StreamPeerState>();
-  peer->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage({})));
+  peer->incoming.push_back(AsString(EncodeAcknowledgeMessage({})));
 
   auto client = MakeClient(peer);
   ASSERT_TRUE(WaitAwaitable(executor_, client->Connect()).good());
@@ -302,9 +302,9 @@ TEST_F(OpcUaBinaryClientTransportTest, CloseClearsIsOpen) {
   EXPECT_TRUE(peer->closed);
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, AcknowledgeReflectsServerLimits) {
+TEST_F(ClientTransportTest, AcknowledgeReflectsServerLimits) {
   auto peer = std::make_shared<StreamPeerState>();
-  peer->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage(
+  peer->incoming.push_back(AsString(EncodeAcknowledgeMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 1024,
        .send_buffer_size = 2048,
@@ -320,15 +320,15 @@ TEST_F(OpcUaBinaryClientTransportTest, AcknowledgeReflectsServerLimits) {
   EXPECT_EQ(client->acknowledge().max_chunk_count, 7u);
 }
 
-TEST_F(OpcUaBinaryClientTransportTest, ReadFrameReturnsWriteQueuedFrame) {
+TEST_F(ClientTransportTest, ReadFrameReturnsWriteQueuedFrame) {
   // Confirm that ReadFrame returns a complete frame once enough bytes arrive,
   // exercising the second branch of the reassembly loop (bytes buffered >
   // header size but < full frame).
   auto peer = std::make_shared<StreamPeerState>();
-  const auto ack = EncodeBinaryAcknowledgeMessage({});
+  const auto ack = EncodeAcknowledgeMessage({});
   peer->incoming.push_back(AsString(ack));
   // A second ACK-shaped frame follows, split across three reads.
-  const auto next_frame = EncodeBinaryAcknowledgeMessage(
+  const auto next_frame = EncodeAcknowledgeMessage(
       {.receive_buffer_size = 4096});
   ASSERT_GE(next_frame.size(), 9u);
   peer->incoming.push_back(
@@ -347,4 +347,4 @@ TEST_F(OpcUaBinaryClientTransportTest, ReadFrameReturnsWriteQueuedFrame) {
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

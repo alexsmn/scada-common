@@ -11,25 +11,25 @@
 #include <optional>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 
-using OpcUaBinarySecureFrameHandler =
+using SecureFrameHandler =
     std::function<Awaitable<std::optional<std::vector<char>>>(std::vector<char>)>;
 
-struct OpcUaBinaryTcpConnectionContext {
+struct TcpConnectionContext {
   transport::any_transport transport;
-  OpcUaBinaryTransportLimits limits;
+  TransportLimits limits;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
-  OpcUaBinarySecureFrameHandler on_secure_frame =
+  SecureFrameHandler on_secure_frame =
       [](std::vector<char>) -> Awaitable<std::optional<std::vector<char>>> {
     co_return std::nullopt;
   };
 };
 
-class OpcUaBinaryTcpConnection : private OpcUaBinaryTcpConnectionContext {
+class TcpConnection : private TcpConnectionContext {
  public:
-  explicit OpcUaBinaryTcpConnection(OpcUaBinaryTcpConnectionContext&& context);
+  explicit TcpConnection(TcpConnectionContext&& context);
 
   [[nodiscard]] Awaitable<void> Run();
 
@@ -45,7 +45,7 @@ class OpcUaBinaryTcpConnection : private OpcUaBinaryTcpConnectionContext {
       std::string reason);
 
   bool hello_received_ = false;
-  OpcUaBinarySecureChannel secure_channel_;
+  SecureChannel secure_channel_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

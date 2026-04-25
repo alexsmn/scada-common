@@ -14,7 +14,7 @@
 
 namespace {
 
-using opcua::OpcUaClientSession;
+using opcua::ClientSession;
 
 class UnusedTransportFactory final : public transport::TransportFactory {
  public:
@@ -27,15 +27,15 @@ class UnusedTransportFactory final : public transport::TransportFactory {
   }
 };
 
-class OpcUaClientSessionTest : public ::testing::Test {
+class ClientSessionTest : public ::testing::Test {
  protected:
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   UnusedTransportFactory transport_factory_;
 };
 
-TEST_F(OpcUaClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
-  auto session = std::make_shared<OpcUaClientSession>(executor_,
+TEST_F(ClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
+  auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
   try {
@@ -49,8 +49,8 @@ TEST_F(OpcUaClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
   }
 }
 
-TEST_F(OpcUaClientSessionTest, InvalidEndpointRejectsLegacyPromiseWithStatus) {
-  auto session = std::make_shared<OpcUaClientSession>(executor_,
+TEST_F(ClientSessionTest, InvalidEndpointRejectsLegacyPromiseWithStatus) {
+  auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
   try {
@@ -62,8 +62,8 @@ TEST_F(OpcUaClientSessionTest, InvalidEndpointRejectsLegacyPromiseWithStatus) {
   }
 }
 
-TEST_F(OpcUaClientSessionTest, AwaitableServicesReportDisconnected) {
-  auto session = std::make_shared<OpcUaClientSession>(executor_,
+TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
+  auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
@@ -105,8 +105,8 @@ TEST_F(OpcUaClientSessionTest, AwaitableServicesReportDisconnected) {
   EXPECT_EQ(call_status.code(), scada::StatusCode::Bad_Disconnected);
 }
 
-TEST_F(OpcUaClientSessionTest, LegacyCallbacksUseAwaitableServices) {
-  auto session = std::make_shared<OpcUaClientSession>(executor_,
+TEST_F(ClientSessionTest, LegacyCallbacksUseAwaitableServices) {
+  auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
   bool read_called = false;

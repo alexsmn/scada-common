@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 std::vector<char> SubspanToVector(const std::vector<char>& bytes,
@@ -14,11 +14,11 @@ std::vector<char> SubspanToVector(const std::vector<char>& bytes,
 
 }  // namespace
 
-OpcUaBinaryTcpConnection::OpcUaBinaryTcpConnection(
-    OpcUaBinaryTcpConnectionContext&& context)
-    : OpcUaBinaryTcpConnectionContext{std::move(context)}, secure_channel_{} {}
+TcpConnection::TcpConnection(
+    TcpConnectionContext&& context)
+    : TcpConnectionContext{std::move(context)}, secure_channel_{} {}
 
-Awaitable<void> OpcUaBinaryTcpConnection::Run() {
+Awaitable<void> TcpConnection::Run() {
   [[maybe_unused]] auto open_result = co_await transport.open();
   transport::WriteQueue write_queue{transport};
   std::vector<char> read_buffer(read_buffer_size);
@@ -41,7 +41,7 @@ Awaitable<void> OpcUaBinaryTcpConnection::Run() {
   [[maybe_unused]] auto close_result = co_await transport.close();
 }
 
-Awaitable<bool> OpcUaBinaryTcpConnection::ProcessBufferedFrames(
+Awaitable<bool> TcpConnection::ProcessBufferedFrames(
     transport::WriteQueue& write_queue,
     std::vector<char>& pending_bytes) {
   for (;;) {
@@ -49,7 +49,7 @@ Awaitable<bool> OpcUaBinaryTcpConnection::ProcessBufferedFrames(
       co_return true;
     }
 
-    const auto header = DecodeBinaryFrameHeader(
+    const auto header = DecodeFrameHeader(
         std::vector<char>{pending_bytes.begin(), pending_bytes.begin() + 8});
     if (!header.has_value()) {
       co_return co_await WriteErrorAndClose(
@@ -73,32 +73,32 @@ Awaitable<bool> OpcUaBinaryTcpConnection::ProcessBufferedFrames(
   }
 }
 
-Awaitable<bool> OpcUaBinaryTcpConnection::ProcessFrame(
+Awaitable<bool> TcpConnection::ProcessFrame(
     transport::WriteQueue& write_queue,
     const std::vector<char>& frame) {
-  const auto header = DecodeBinaryFrameHeader(frame);
+  const auto header = DecodeFrameHeader(frame);
   if (!header.has_value()) {
     co_return co_await WriteErrorAndClose(
         write_queue, scada::StatusCode::Bad, "Invalid UA TCP frame header");
   }
 
   switch (header->message_type) {
-    case OpcUaBinaryMessageType::Hello: {
+    case MessageType::Hello: {
       if (hello_received_) {
         co_return co_await WriteErrorAndClose(
             write_queue, scada::StatusCode::Bad,
             "Hello may only be sent once per connection");
       }
 
-      const auto hello = DecodeBinaryHelloMessage(frame);
+      const auto hello = DecodeHelloMessage(frame);
       if (!hello.has_value()) {
         co_return co_await WriteErrorAndClose(
             write_queue, scada::StatusCode::Bad, "Malformed Hello message");
       }
 
-      const auto negotiated = NegotiateBinaryHello(*hello, limits);
+      const auto negotiated = NegotiateHello(*hello, limits);
       if (negotiated.error.has_value()) {
-        const auto encoded = EncodeBinaryErrorMessage(*negotiated.error);
+        const auto encoded = EncodeErrorMessage(*negotiated.error);
         [[maybe_unused]] auto write_result =
             co_await write_queue.Write({encoded.data(), encoded.size()});
         co_return false;
@@ -106,15 +106,15 @@ Awaitable<bool> OpcUaBinaryTcpConnection::ProcessFrame(
 
       hello_received_ = true;
       const auto encoded =
-          EncodeBinaryAcknowledgeMessage(*negotiated.acknowledge);
+          EncodeAcknowledgeMessage(*negotiated.acknowledge);
       [[maybe_unused]] auto write_result =
           co_await write_queue.Write({encoded.data(), encoded.size()});
       co_return true;
     }
 
-    case OpcUaBinaryMessageType::SecureOpen:
-    case OpcUaBinaryMessageType::SecureMessage:
-    case OpcUaBinaryMessageType::SecureClose: {
+    case MessageType::SecureOpen:
+    case MessageType::SecureMessage:
+    case MessageType::SecureClose: {
       if (!hello_received_) {
         co_return co_await WriteErrorAndClose(
             write_queue, scada::StatusCode::Bad,
@@ -144,9 +144,9 @@ Awaitable<bool> OpcUaBinaryTcpConnection::ProcessFrame(
       co_return true;
     }
 
-    case OpcUaBinaryMessageType::Acknowledge:
-    case OpcUaBinaryMessageType::Error:
-    case OpcUaBinaryMessageType::ReverseHello:
+    case MessageType::Acknowledge:
+    case MessageType::Error:
+    case MessageType::ReverseHello:
       co_return co_await WriteErrorAndClose(
           write_queue, scada::StatusCode::Bad,
           "Unexpected UA TCP message type for server connection");
@@ -155,15 +155,15 @@ Awaitable<bool> OpcUaBinaryTcpConnection::ProcessFrame(
   co_return false;
 }
 
-Awaitable<bool> OpcUaBinaryTcpConnection::WriteErrorAndClose(
+Awaitable<bool> TcpConnection::WriteErrorAndClose(
     transport::WriteQueue& write_queue,
     scada::Status error,
     std::string reason) {
-  const auto encoded = EncodeBinaryErrorMessage(
+  const auto encoded = EncodeErrorMessage(
       {.error = error, .reason = std::move(reason)});
   [[maybe_unused]] auto write_result =
       co_await write_queue.Write({encoded.data(), encoded.size()});
   co_return false;
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

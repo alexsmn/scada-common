@@ -5,17 +5,17 @@
 
 #include <gtest/gtest.h>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 const std::shared_ptr<TestExecutor> executor_ = std::make_shared<TestExecutor>();
 
 std::vector<char> EncodeOpenRequestBody(
     std::uint32_t request_handle,
-    OpcUaBinarySecurityTokenRequestType request_type =
-        OpcUaBinarySecurityTokenRequestType::Issue,
-    OpcUaBinaryMessageSecurityMode security_mode =
-        OpcUaBinaryMessageSecurityMode::None,
+    SecurityTokenRequestType request_type =
+        SecurityTokenRequestType::Issue,
+    MessageSecurityMode security_mode =
+        MessageSecurityMode::None,
     std::uint32_t requested_lifetime = 60000) {
   auto append_u8 = [](std::vector<char>& bytes, std::uint8_t value) {
     bytes.push_back(static_cast<char>(value));
@@ -82,7 +82,7 @@ std::vector<char> EncodeOpenRequestBody(
   append_u32(payload, requested_lifetime);
 
   std::vector<char> body;
-  append_extension(body, kOpenSecureChannelRequestBinaryEncodingId, payload);
+  append_extension(body, kOpenSecureChannelRequestEncodingId, payload);
   return body;
 }
 
@@ -142,16 +142,16 @@ std::vector<char> EncodeCloseRequestBody(std::uint32_t request_handle) {
   append_u8(payload, 0x00);
 
   std::vector<char> body;
-  append_extension(body, kCloseSecureChannelRequestBinaryEncodingId, payload);
+  append_extension(body, kCloseSecureChannelRequestEncodingId, payload);
   return body;
 }
 
-TEST(OpcUaBinarySecureChannelTest, DecodesAndEncodesOpenRequestResponse) {
+TEST(SecureChannelTest, DecodesAndEncodesOpenRequestResponse) {
   const auto body = EncodeOpenRequestBody(77);
   const auto request = DecodeOpenSecureChannelRequestBody(body);
   ASSERT_TRUE(request.has_value());
   EXPECT_EQ(request->request_header.request_handle, 77u);
-  EXPECT_EQ(request->security_mode, OpcUaBinaryMessageSecurityMode::None);
+  EXPECT_EQ(request->security_mode, MessageSecurityMode::None);
 
   const auto response_body = EncodeOpenSecureChannelResponseBody(
       {.response_header = {.request_handle = 77,
@@ -163,15 +163,15 @@ TEST(OpcUaBinarySecureChannelTest, DecodesAndEncodesOpenRequestResponse) {
   EXPECT_FALSE(response_body.empty());
 }
 
-TEST(OpcUaBinarySecureChannelTest, OpenRequestProducesOpenResponseFrame) {
-  OpcUaBinarySecureChannel channel{91};
+TEST(SecureChannelTest, OpenRequestProducesOpenResponseFrame) {
+  SecureChannel channel{91};
   const auto frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -187,43 +187,43 @@ TEST(OpcUaBinarySecureChannelTest, OpenRequestProducesOpenResponseFrame) {
   const auto response = DecodeSecureConversationMessage(*result.outbound_frame);
   ASSERT_TRUE(response.has_value());
   EXPECT_EQ(response->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureOpen);
+            MessageType::SecureOpen);
   EXPECT_EQ(response->secure_channel_id, 91u);
   EXPECT_EQ(response->sequence_header.request_id, 8u);
 }
 
-TEST(OpcUaBinarySecureChannelTest, RejectsUnsupportedSecurityModeInOpen) {
-  OpcUaBinarySecureChannel channel{19};
+TEST(SecureChannelTest, RejectsUnsupportedSecurityModeInOpen) {
+  SecureChannel channel{19};
   const auto frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
        },
        .sequence_header = {.sequence_number = 1, .request_id = 2},
        .body = EncodeOpenRequestBody(
-           12, OpcUaBinarySecurityTokenRequestType::Issue,
-           OpcUaBinaryMessageSecurityMode::Sign)});
+           12, SecurityTokenRequestType::Issue,
+           MessageSecurityMode::Sign)});
 
   const auto result = WaitAwaitable(executor_, channel.HandleFrame(frame));
   ASSERT_TRUE(result.outbound_frame.has_value());
   EXPECT_FALSE(channel.opened());
 }
 
-TEST(OpcUaBinarySecureChannelTest, RoutesMessageBodyAfterOpen) {
-  OpcUaBinarySecureChannel channel{7};
+TEST(SecureChannelTest, RoutesMessageBodyAfterOpen) {
+  SecureChannel channel{7};
   const auto open_frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -236,11 +236,11 @@ TEST(OpcUaBinarySecureChannelTest, RoutesMessageBodyAfterOpen) {
   const std::vector<char> payload{'x', 'y', 'z'};
   const auto msg_frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureMessage,
+           {.message_type = MessageType::SecureMessage,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 7,
-       .symmetric_security_header = OpcUaBinarySymmetricSecurityHeader{
+       .symmetric_security_header = SymmetricSecurityHeader{
            .token_id = channel.token_id()},
        .sequence_header = {.sequence_number = 2, .request_id = 5},
        .body = payload});
@@ -256,20 +256,20 @@ TEST(OpcUaBinarySecureChannelTest, RoutesMessageBodyAfterOpen) {
   const auto response = DecodeSecureConversationMessage(response_frame);
   ASSERT_TRUE(response.has_value());
   EXPECT_EQ(response->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureMessage);
+            MessageType::SecureMessage);
   EXPECT_EQ(response->sequence_header.request_id, 5u);
   EXPECT_EQ(response->body, (std::vector<char>{'o', 'k'}));
 }
 
-TEST(OpcUaBinarySecureChannelTest, OpenRequestBodyRoundTrips) {
-  const OpcUaBinaryOpenSecureChannelRequest request{
+TEST(SecureChannelTest, OpenRequestBodyRoundTrips) {
+  const OpenSecureChannelRequest request{
       .request_header = {.request_handle = 123,
                          .return_diagnostics = 0,
                          .audit_entry_id = {},
                          .timeout_hint = 0},
       .client_protocol_version = 0,
-      .request_type = OpcUaBinarySecurityTokenRequestType::Renew,
-      .security_mode = OpcUaBinaryMessageSecurityMode::None,
+      .request_type = SecurityTokenRequestType::Renew,
+      .security_mode = MessageSecurityMode::None,
       .client_nonce = scada::ByteString{'a', 'b', 'c', 'd'},
       .requested_lifetime = 90000,
   };
@@ -278,14 +278,14 @@ TEST(OpcUaBinarySecureChannelTest, OpenRequestBodyRoundTrips) {
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->request_header.request_handle, 123u);
   EXPECT_EQ(decoded->request_type,
-            OpcUaBinarySecurityTokenRequestType::Renew);
-  EXPECT_EQ(decoded->security_mode, OpcUaBinaryMessageSecurityMode::None);
+            SecurityTokenRequestType::Renew);
+  EXPECT_EQ(decoded->security_mode, MessageSecurityMode::None);
   EXPECT_EQ(decoded->client_nonce, request.client_nonce);
   EXPECT_EQ(decoded->requested_lifetime, 90000u);
 }
 
-TEST(OpcUaBinarySecureChannelTest, OpenResponseBodyRoundTrips) {
-  const OpcUaBinaryOpenSecureChannelResponse response{
+TEST(SecureChannelTest, OpenResponseBodyRoundTrips) {
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = 77,
                           .service_result = scada::StatusCode::Good},
       .server_protocol_version = 0,
@@ -307,8 +307,8 @@ TEST(OpcUaBinarySecureChannelTest, OpenResponseBodyRoundTrips) {
   EXPECT_EQ(decoded->server_nonce, response.server_nonce);
 }
 
-TEST(OpcUaBinarySecureChannelTest, CloseRequestBodyRoundTrips) {
-  const OpcUaBinaryCloseSecureChannelRequest request{
+TEST(SecureChannelTest, CloseRequestBodyRoundTrips) {
+  const CloseSecureChannelRequest request{
       .request_header = {.request_handle = 321},
   };
   const auto body = EncodeCloseSecureChannelRequestBody(request);
@@ -318,26 +318,26 @@ TEST(OpcUaBinarySecureChannelTest, CloseRequestBodyRoundTrips) {
 }
 
 // A client can build the same OpenSecureChannel request body that the
-// existing server-side OpcUaBinarySecureChannel already accepts end-to-end
+// existing server-side SecureChannel already accepts end-to-end
 // (wrapped in a SecureOpen frame). This wires up the new client encoder
 // against the existing server handler without standing up a transport.
-TEST(OpcUaBinarySecureChannelTest, ClientOpenRequestAcceptedByServerChannel) {
-  const OpcUaBinaryOpenSecureChannelRequest client_request{
+TEST(SecureChannelTest, ClientOpenRequestAcceptedByServerChannel) {
+  const OpenSecureChannelRequest client_request{
       .request_header = {.request_handle = 42},
       .client_protocol_version = 0,
-      .request_type = OpcUaBinarySecurityTokenRequestType::Issue,
-      .security_mode = OpcUaBinaryMessageSecurityMode::None,
+      .request_type = SecurityTokenRequestType::Issue,
+      .security_mode = MessageSecurityMode::None,
       .client_nonce = {},
       .requested_lifetime = 60000,
   };
   const auto body = EncodeOpenSecureChannelRequestBody(client_request);
-  OpcUaBinarySecureChannel server_channel{123};
+  SecureChannel server_channel{123};
   const auto frame = EncodeSecureConversationMessage(
-      {.frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+      {.frame_header = {.message_type = MessageType::SecureOpen,
                         .chunk_type = 'F',
                         .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -364,15 +364,15 @@ TEST(OpcUaBinarySecureChannelTest, ClientOpenRequestAcceptedByServerChannel) {
   EXPECT_EQ(response_body->security_token.token_id, server_channel.token_id());
 }
 
-TEST(OpcUaBinarySecureChannelTest, CloseRequestClosesTransport) {
-  OpcUaBinarySecureChannel channel{11};
+TEST(SecureChannelTest, CloseRequestClosesTransport) {
+  SecureChannel channel{11};
   const auto open_frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -384,11 +384,11 @@ TEST(OpcUaBinarySecureChannelTest, CloseRequestClosesTransport) {
 
   const auto close_frame = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureClose,
+           {.message_type = MessageType::SecureClose,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 11,
-       .symmetric_security_header = OpcUaBinarySymmetricSecurityHeader{
+       .symmetric_security_header = SymmetricSecurityHeader{
            .token_id = channel.token_id()},
        .sequence_header = {.sequence_number = 2, .request_id = 2},
        .body = EncodeCloseRequestBody(2)});
@@ -397,10 +397,10 @@ TEST(OpcUaBinarySecureChannelTest, CloseRequestClosesTransport) {
   EXPECT_TRUE(result.close_transport);
 }
 
-TEST(OpcUaBinarySecureChannelTest,
+TEST(SecureChannelTest,
      DecodeOpenResponseRejectsTruncatedPayload) {
   // A well-formed body wraps the response payload in an ExtensionObject with
-  // type_id = kOpenSecureChannelResponseBinaryEncodingId. Truncating past
+  // type_id = kOpenSecureChannelResponseEncodingId. Truncating past
   // the wrapper should yield std::nullopt, not garbage.
   auto body = EncodeOpenSecureChannelResponseBody(
       {.response_header = {.request_handle = 1,
@@ -417,21 +417,21 @@ TEST(OpcUaBinarySecureChannelTest,
   EXPECT_FALSE(decoded.has_value());
 }
 
-TEST(OpcUaBinarySecureChannelTest,
+TEST(SecureChannelTest,
      DecodeOpenResponseRejectsWrongExtensionTypeId) {
   // Hand-roll a body whose extension object has a bogus type id and confirm
   // the decoder refuses it rather than treating arbitrary bytes as a
   // response payload.
   std::vector<char> body;
-  binary::BinaryEncoder encoder{body};
+  Encoder encoder{body};
   encoder.Encode(scada::NodeId{/*numeric id*/ 9999});  // wrong type id
   encoder.Encode(std::uint8_t{0x01});                  // ByteString encoding
   encoder.Encode(std::int32_t{0});                     // empty payload
   EXPECT_FALSE(DecodeOpenSecureChannelResponseBody(body).has_value());
 }
 
-TEST(OpcUaBinarySecureChannelTest, OpenResponseRoundTripPreservesBadStatus) {
-  const OpcUaBinaryOpenSecureChannelResponse response{
+TEST(SecureChannelTest, OpenResponseRoundTripPreservesBadStatus) {
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = 11,
                           .service_result = scada::StatusCode::Bad},
       .server_protocol_version = 0,
@@ -450,10 +450,10 @@ TEST(OpcUaBinarySecureChannelTest, OpenResponseRoundTripPreservesBadStatus) {
   EXPECT_TRUE(decoded->response_header.service_result.bad());
 }
 
-TEST(OpcUaBinarySecureChannelTest,
+TEST(SecureChannelTest,
      DecodeCloseRequestRejectsWrongExtensionTypeId) {
   std::vector<char> body;
-  binary::BinaryEncoder encoder{body};
+  Encoder encoder{body};
   encoder.Encode(scada::NodeId{/*numeric id*/ 12345});
   encoder.Encode(std::uint8_t{0x01});
   encoder.Encode(std::int32_t{0});
@@ -461,4 +461,4 @@ TEST(OpcUaBinarySecureChannelTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

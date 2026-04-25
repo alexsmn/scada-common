@@ -26,12 +26,12 @@ Related documents:
 
 The `common/opcua/` module is the shared OPC UA boundary. It provides:
 
-- `OpcUaModule` plus `OpcUaBinaryServer` for the server-side `opc.tcp://` endpoint
-- `OpcUaClientSession` for client-side outbound UA sessions
-- `OpcUaClientSubscription` and monitored-item plumbing for live updates
+- `OpcUaModule` plus `binary::Server` for the server-side `opc.tcp://` endpoint
+- `ClientSession` for client-side outbound UA sessions
+- `ClientSubscription` and monitored-item plumbing for live updates
 - `opcua_conversion.*` for converting between OPC UA C-stack types and
   SCADA-native types
-- `CreateOpcUaServices(...)` for exposing an outbound UA session through the
+- `CreateServices(...)` for exposing an outbound UA session through the
   shared SCADA service interfaces
 
 ### Module Overview

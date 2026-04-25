@@ -11,25 +11,25 @@ constexpr size_t kNotFound = static_cast<size_t>(-1);
 
 }  // namespace
 
-OpcUaServerSession::OpcUaServerSession(OpcUaServerSessionContext&& context)
-    : OpcUaServerSessionContext{std::move(context)} {}
+ServerSession::ServerSession(ServerSessionContext&& context)
+    : ServerSessionContext{std::move(context)} {}
 
-size_t OpcUaServerSession::ByteStringHash::operator()(
+size_t ServerSession::ByteStringHash::operator()(
     const scada::ByteString& value) const {
   return std::hash<std::string_view>{}(
       std::string_view{value.data(), value.size()});
 }
 
-OpcUaCreateSubscriptionResponse OpcUaServerSession::CreateSubscription(
-    const OpcUaCreateSubscriptionRequest& request) {
+CreateSubscriptionResponse ServerSession::CreateSubscription(
+    const CreateSubscriptionRequest& request) {
   return CreateSubscriptionWithId(next_subscription_id_++, request);
 }
 
-OpcUaCreateSubscriptionResponse OpcUaServerSession::CreateSubscriptionWithId(
-    OpcUaSubscriptionId subscription_id,
-    const OpcUaCreateSubscriptionRequest& request) {
+CreateSubscriptionResponse ServerSession::CreateSubscriptionWithId(
+    SubscriptionId subscription_id,
+    const CreateSubscriptionRequest& request) {
   next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
-  auto subscription = std::make_unique<OpcUaServerSubscription>(
+  auto subscription = std::make_unique<ServerSubscription>(
       subscription_id, request.parameters, this->monitored_item_service,
       Now());
 
@@ -43,17 +43,17 @@ OpcUaCreateSubscriptionResponse OpcUaServerSession::CreateSubscriptionWithId(
           .revised_max_keep_alive_count = request.parameters.max_keep_alive_count};
 }
 
-OpcUaModifySubscriptionResponse OpcUaServerSession::ModifySubscription(
-    const OpcUaModifySubscriptionRequest& request) {
+ModifySubscriptionResponse ServerSession::ModifySubscription(
+    const ModifySubscriptionRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->Modify(request);
 }
 
-OpcUaSetPublishingModeResponse OpcUaServerSession::SetPublishingMode(
-    const OpcUaSetPublishingModeRequest& request) {
-  OpcUaSetPublishingModeResponse response{.status = scada::StatusCode::Good};
+SetPublishingModeResponse ServerSession::SetPublishingMode(
+    const SetPublishingModeRequest& request) {
+  SetPublishingModeResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
 
   for (const auto subscription_id : request.subscription_ids) {
@@ -69,9 +69,9 @@ OpcUaSetPublishingModeResponse OpcUaServerSession::SetPublishingMode(
   return response;
 }
 
-OpcUaDeleteSubscriptionsResponse OpcUaServerSession::DeleteSubscriptions(
-    const OpcUaDeleteSubscriptionsRequest& request) {
-  OpcUaDeleteSubscriptionsResponse response{.status = scada::StatusCode::Good};
+DeleteSubscriptionsResponse ServerSession::DeleteSubscriptions(
+    const DeleteSubscriptionsRequest& request) {
+  DeleteSubscriptionsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
 
   for (const auto subscription_id : request.subscription_ids) {
@@ -86,10 +86,10 @@ OpcUaDeleteSubscriptionsResponse OpcUaServerSession::DeleteSubscriptions(
   return response;
 }
 
-OpcUaTransferSubscriptionsResponse OpcUaServerSession::TransferSubscriptionsFrom(
-    OpcUaServerSession& source,
-    const OpcUaTransferSubscriptionsRequest& request) {
-  OpcUaTransferSubscriptionsResponse response{
+TransferSubscriptionsResponse ServerSession::TransferSubscriptionsFrom(
+    ServerSession& source,
+    const TransferSubscriptionsRequest& request) {
+  TransferSubscriptionsResponse response{
       .status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
 
@@ -115,43 +115,43 @@ OpcUaTransferSubscriptionsResponse OpcUaServerSession::TransferSubscriptionsFrom
   return response;
 }
 
-OpcUaCreateMonitoredItemsResponse OpcUaServerSession::CreateMonitoredItems(
-    const OpcUaCreateMonitoredItemsRequest& request) {
+CreateMonitoredItemsResponse ServerSession::CreateMonitoredItems(
+    const CreateMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->CreateMonitoredItems(request);
 }
 
-OpcUaModifyMonitoredItemsResponse OpcUaServerSession::ModifyMonitoredItems(
-    const OpcUaModifyMonitoredItemsRequest& request) {
+ModifyMonitoredItemsResponse ServerSession::ModifyMonitoredItems(
+    const ModifyMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->ModifyMonitoredItems(request);
 }
 
-OpcUaDeleteMonitoredItemsResponse OpcUaServerSession::DeleteMonitoredItems(
-    const OpcUaDeleteMonitoredItemsRequest& request) {
+DeleteMonitoredItemsResponse ServerSession::DeleteMonitoredItems(
+    const DeleteMonitoredItemsRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->DeleteMonitoredItems(request);
 }
 
-OpcUaSetMonitoringModeResponse OpcUaServerSession::SetMonitoringMode(
-    const OpcUaSetMonitoringModeRequest& request) {
+SetMonitoringModeResponse ServerSession::SetMonitoringMode(
+    const SetMonitoringModeRequest& request) {
   auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->SetMonitoringMode(request);
 }
 
-std::vector<scada::StatusCode> OpcUaServerSession::AcknowledgePublishRequest(
-    const OpcUaPublishRequest& request) {
+std::vector<scada::StatusCode> ServerSession::AcknowledgePublishRequest(
+    const PublishRequest& request) {
   std::vector<scada::StatusCode> ack_results(
       request.subscription_acknowledgements.size(), scada::StatusCode::Good);
-  std::unordered_map<OpcUaSubscriptionId,
+  std::unordered_map<SubscriptionId,
                      std::vector<std::pair<size_t, scada::UInt32>>>
       grouped_acknowledgements;
 
@@ -183,7 +183,7 @@ std::vector<scada::StatusCode> OpcUaServerSession::AcknowledgePublishRequest(
   return ack_results;
 }
 
-OpcUaServerSession::PublishPollResult OpcUaServerSession::PollPublish() {
+ServerSession::PublishPollResult ServerSession::PollPublish() {
   const auto now_time = Now();
   const auto pending_index = FindNextReadySubscription(now_time, true);
   const auto publish_index =
@@ -191,7 +191,7 @@ OpcUaServerSession::PublishPollResult OpcUaServerSession::PollPublish() {
                                  : FindNextReadySubscription(now_time, false);
   if (publish_index == kNotFound) {
     if (subscriptions_.empty()) {
-      return {.response = OpcUaPublishResponse{
+      return {.response = PublishResponse{
                   .status = scada::StatusCode::Bad_NothingToDo}};
     }
 
@@ -217,7 +217,7 @@ OpcUaServerSession::PublishPollResult OpcUaServerSession::PollPublish() {
     }
 
     if (!earliest_deadline.has_value()) {
-      return {.response = OpcUaPublishResponse{
+      return {.response = PublishResponse{
                   .status = scada::StatusCode::Good}};
     }
 
@@ -231,20 +231,20 @@ OpcUaServerSession::PublishPollResult OpcUaServerSession::PollPublish() {
   const auto subscription_id = publish_order_[publish_index];
   auto* subscription = FindSubscription(subscription_id);
   if (!subscription) {
-    return {.response = OpcUaPublishResponse{.status = scada::StatusCode::Bad}};
+    return {.response = PublishResponse{.status = scada::StatusCode::Bad}};
   }
 
   auto published = subscription->TryPublish(now_time);
   if (!published.has_value()) {
-    return {.response = OpcUaPublishResponse{.status = scada::StatusCode::Good}};
+    return {.response = PublishResponse{.status = scada::StatusCode::Good}};
   }
 
   AdvancePublishCursorAfter(publish_index);
   return {.response = std::move(published)};
 }
 
-OpcUaPublishResponse OpcUaServerSession::Publish(
-    const OpcUaPublishRequest& request) {
+PublishResponse ServerSession::Publish(
+    const PublishRequest& request) {
   auto ack_results = AcknowledgePublishRequest(request);
   auto poll = PollPublish();
   if (!poll.response.has_value()) {
@@ -256,15 +256,15 @@ OpcUaPublishResponse OpcUaServerSession::Publish(
   return *poll.response;
 }
 
-OpcUaRepublishResponse OpcUaServerSession::Republish(
-    const OpcUaRepublishRequest& request) const {
+RepublishResponse ServerSession::Republish(
+    const RepublishRequest& request) const {
   const auto* subscription = FindSubscription(request.subscription_id);
   if (!subscription)
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   return subscription->Republish(request.retransmit_sequence_number);
 }
 
-BrowseResponse OpcUaServerSession::StoreBrowseResults(
+BrowseResponse ServerSession::StoreBrowseResults(
     BrowseResponse response,
     size_t requested_max_references_per_node) {
   if (requested_max_references_per_node == 0)
@@ -276,7 +276,7 @@ BrowseResponse OpcUaServerSession::StoreBrowseResults(
   return response;
 }
 
-BrowseNextResponse OpcUaServerSession::BrowseNext(const BrowseNextRequest& request) {
+BrowseNextResponse ServerSession::BrowseNext(const BrowseNextRequest& request) {
   BrowseNextResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.continuation_points.size());
 
@@ -300,8 +300,8 @@ BrowseNextResponse OpcUaServerSession::BrowseNext(const BrowseNextRequest& reque
   return response;
 }
 
-std::vector<OpcUaSubscriptionId> OpcUaServerSession::GetSubscriptionIds() const {
-  std::vector<OpcUaSubscriptionId> result;
+std::vector<SubscriptionId> ServerSession::GetSubscriptionIds() const {
+  std::vector<SubscriptionId> result;
   result.reserve(publish_order_.size());
   for (const auto subscription_id : publish_order_) {
     if (FindSubscription(subscription_id))
@@ -310,23 +310,23 @@ std::vector<OpcUaSubscriptionId> OpcUaServerSession::GetSubscriptionIds() const 
   return result;
 }
 
-bool OpcUaServerSession::HasSubscription(OpcUaSubscriptionId subscription_id) const {
+bool ServerSession::HasSubscription(SubscriptionId subscription_id) const {
   return FindSubscription(subscription_id) != nullptr;
 }
 
-OpcUaServerSubscription* OpcUaServerSession::FindSubscription(
-    OpcUaSubscriptionId subscription_id) {
+ServerSubscription* ServerSession::FindSubscription(
+    SubscriptionId subscription_id) {
   const auto it = subscriptions_.find(subscription_id);
   return it != subscriptions_.end() ? it->second.get() : nullptr;
 }
 
-const OpcUaServerSubscription* OpcUaServerSession::FindSubscription(
-    OpcUaSubscriptionId subscription_id) const {
+const ServerSubscription* ServerSession::FindSubscription(
+    SubscriptionId subscription_id) const {
   const auto it = subscriptions_.find(subscription_id);
   return it != subscriptions_.end() ? it->second.get() : nullptr;
 }
 
-void OpcUaServerSession::EraseSubscription(OpcUaSubscriptionId subscription_id) {
+void ServerSession::EraseSubscription(SubscriptionId subscription_id) {
   subscriptions_.erase(subscription_id);
   const auto it = std::find(publish_order_.begin(), publish_order_.end(),
                             subscription_id);
@@ -345,7 +345,7 @@ void OpcUaServerSession::EraseSubscription(OpcUaSubscriptionId subscription_id) 
     next_publish_index_ = 0;
 }
 
-void OpcUaServerSession::AdvancePublishCursorAfter(size_t index) {
+void ServerSession::AdvancePublishCursorAfter(size_t index) {
   if (publish_order_.empty()) {
     next_publish_index_ = 0;
     return;
@@ -353,7 +353,7 @@ void OpcUaServerSession::AdvancePublishCursorAfter(size_t index) {
   next_publish_index_ = (index + 1) % publish_order_.size();
 }
 
-size_t OpcUaServerSession::FindNextReadySubscription(base::Time now,
+size_t ServerSession::FindNextReadySubscription(base::Time now,
                                                bool require_pending) const {
   if (publish_order_.empty())
     return kNotFound;
@@ -373,19 +373,19 @@ size_t OpcUaServerSession::FindNextReadySubscription(base::Time now,
   return kNotFound;
 }
 
-void OpcUaServerSession::RefreshNextSubscriptionId() {
+void ServerSession::RefreshNextSubscriptionId() {
   for (const auto& [subscription_id, subscription] : subscriptions_)
     next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
 }
 
-scada::ByteString OpcUaServerSession::MakeBrowseContinuationPoint() {
+scada::ByteString ServerSession::MakeBrowseContinuationPoint() {
   scada::ByteString value(sizeof(next_browse_continuation_id_), '\0');
   const auto raw = next_browse_continuation_id_++;
   std::memcpy(value.data(), &raw, sizeof(raw));
   return value;
 }
 
-scada::BrowseResult OpcUaServerSession::PageBrowseResult(
+scada::BrowseResult ServerSession::PageBrowseResult(
     scada::BrowseResult result,
     size_t requested_max_references_per_node) {
   result.continuation_point.clear();
@@ -407,7 +407,7 @@ scada::BrowseResult OpcUaServerSession::PageBrowseResult(
   return result;
 }
 
-scada::BrowseResult OpcUaServerSession::ResumeBrowseResult(
+scada::BrowseResult ServerSession::ResumeBrowseResult(
     const scada::ByteString& continuation_point) {
   auto it = browse_continuations_.find(continuation_point);
   if (it == browse_continuations_.end()) {

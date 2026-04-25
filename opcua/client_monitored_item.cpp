@@ -6,8 +6,8 @@
 
 namespace opcua {
 
-OpcUaMonitoredItem::OpcUaMonitoredItem(
-    std::shared_ptr<OpcUaClientSubscription> subscription,
+MonitoredItem::MonitoredItem(
+    std::shared_ptr<ClientSubscription> subscription,
     std::uint32_t local_id,
     scada::ReadValueId read_value_id,
     scada::MonitoringParameters params)
@@ -16,13 +16,13 @@ OpcUaMonitoredItem::OpcUaMonitoredItem(
       read_value_id_{std::move(read_value_id)},
       params_{std::move(params)} {}
 
-OpcUaMonitoredItem::~OpcUaMonitoredItem() {
+MonitoredItem::~MonitoredItem() {
   if (subscription_) {
     subscription_->Unsubscribe(local_id_);
   }
 }
 
-void OpcUaMonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {
+void MonitoredItem::Subscribe(scada::MonitoredItemHandler handler) {
   subscription_->Subscribe(local_id_, read_value_id_, params_,
                            std::move(handler));
 }

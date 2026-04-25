@@ -36,10 +36,10 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
-TEST(OpcUaServerSubscriptionTest, PublishesAcknowledgesAndRepublishesData) {
+TEST(ServerSubscriptionTest, PublishesAcknowledgesAndRepublishesData) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 10:00:00");
-  OpcUaServerSubscription subscription{
+  ServerSubscription subscription{
       17,
       {.publishing_interval_ms = 100,
        .lifetime_count = 60,
@@ -77,11 +77,11 @@ TEST(OpcUaServerSubscriptionTest, PublishesAcknowledgesAndRepublishesData) {
             scada::StatusCode::Bad_MessageNotAvailable);
 }
 
-TEST(OpcUaServerSubscriptionTest,
+TEST(ServerSubscriptionTest,
      ModifiesParametersAndGeneratesAcknowledgedKeepAlive) {
   TestMonitoredItemService monitored_item_service;
   const auto start = ParseTime("2026-04-20 11:00:00");
-  OpcUaServerSubscription subscription{
+  ServerSubscription subscription{
       19,
       {.publishing_interval_ms = 100,
        .lifetime_count = 60,
@@ -137,13 +137,13 @@ TEST(OpcUaServerSubscriptionTest,
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(1760));
   ASSERT_TRUE(publish.has_value());
   ASSERT_EQ(publish->notification_message.notification_data.size(), 1u);
-  const auto* data_change = std::get_if<OpcUaDataChangeNotification>(
+  const auto* data_change = std::get_if<DataChangeNotification>(
       &publish->notification_message.notification_data[0]);
   ASSERT_NE(data_change, nullptr);
   EXPECT_EQ(data_change->monitored_items[0].value.value.get<double>(), 77.0);
 }
 
-TEST(OpcUaServerSubscriptionTest,
+TEST(ServerSubscriptionTest,
      CreateMonitoredItemsReportsPreciseStatusForUnknownNodeAndBadAttribute) {
   class NullMonitoredItemService : public scada::MonitoredItemService {
    public:
@@ -155,7 +155,7 @@ TEST(OpcUaServerSubscriptionTest,
   } monitored_item_service;
 
   const auto start = ParseTime("2026-04-20 12:00:00");
-  OpcUaServerSubscription subscription{
+  ServerSubscription subscription{
       31,
       {.publishing_interval_ms = 100,
        .lifetime_count = 60,

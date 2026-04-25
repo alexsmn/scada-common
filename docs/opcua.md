@@ -78,9 +78,9 @@ The shared `common/opcua/` module supplies the canonical OPC UA core used by
 both server-side transport adapters and by the project's outbound UA client
 integration:
 
-- server-side endpoint hosting through `OpcUaModule`, `OpcUaBinaryServer`, and
+- server-side endpoint hosting through `OpcUaModule`, `binary::Server`, and
   the WS adapter stack under `common/opcua/websocket/`
-- client-side outbound UA sessions through `OpcUaClientSession`
+- client-side outbound UA sessions through `ClientSession`
 - conversion between OPC UA C-stack types and SCADA-native service types
 - monitored-item and event subscription bridging
 - a `DataServicesFactory` adapter that exposes an outbound UA session as the
@@ -106,7 +106,7 @@ At runtime it sits between:
 
 ## Main components
 
-### `OpcUaModule` / `OpcUaBinaryServer`
+### `OpcUaModule` / `binary::Server`
 
 Files:
 
@@ -122,7 +122,7 @@ Responsibilities:
 - parse and validate the `opc.tcp://` endpoint configuration
 - open and close the passive TCP listener
 - host the UA binary frame server on accepted transports
-- wire the listener to the shared `opcua::OpcUaBinaryRuntime`
+- wire the listener to the shared `opcua::binary::Runtime`
 
 Business logic, session state, and service dispatch live below this layer in
 the shared runtime model rather than in a transport-specific server bridge.
@@ -142,7 +142,7 @@ In-repo OPC UA client stack, sibling to the server-side runtime already in
 `common/opcua/binary/`. The TCP binary-specific pieces live under
 `common/opcua/binary/`; reusable request correlation, session
 lifecycle, and subscription handling live under `common/opcua/` so a
-future WebSocket client can provide a different `OpcUaClientConnection`
+future WebSocket client can provide a different `ClientConnection`
 without copying service-level behavior. Coroutine-native throughout
 (`Awaitable<scada::Status>` / `Awaitable<scada::StatusOr<T>>` at every
 layer). See `common/docs/diagrams/client_architecture.svg` for
@@ -150,10 +150,10 @@ the component graph.
 
 Security support in this revision: `SecurityPolicy=None` /
 `SecurityMode=None`. `Basic256Sha256` sign-and-encrypt is tracked as a
-follow-up and will plug into `OpcUaBinaryClientSecureChannel` without
+follow-up and will plug into `binary::ClientSecureChannel` without
 changing the surface above it.
 
-### `OpcUaClientSession`
+### `ClientSession`
 
 Files:
 
@@ -172,7 +172,7 @@ Responsibilities:
 - parse the `opc.tcp://host:port` endpoint from `SessionConnectParams` and
   construct a `transport::any_transport` via `TransportFactory`
 - build the native client stack and drive
-  `OpcUaClientProtocolSession::Create()` (connection.Open → CreateSession →
+  `ClientProtocolSession::Create()` (connection.Open → CreateSession →
   ActivateSession)
 - expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
   `CoroutineViewService`, `CoroutineAttributeService`, and
@@ -182,7 +182,7 @@ Responsibilities:
 - fan `session_state_changed` transitions out through
   `boost::signals2`
 
-### `OpcUaClientSubscription`
+### `ClientSubscription`
 
 Files:
 
@@ -190,20 +190,20 @@ Files:
 - `common/opcua/client_subscription.cpp`
 
 Outbound-client monitored-item manager layered on a single
-`OpcUaClientProtocolSubscription`.
+`ClientProtocolSubscription`.
 
 Responsibilities:
 
 - create the server-side subscription lazily on first
   `CreateMonitoredItem`
 - drive a background Publish loop that calls
-  `OpcUaClientProtocolSubscription::Publish()` until the session closes,
+  `ClientProtocolSubscription::Publish()` until the session closes,
   dispatching each data-change notification to the matching
   `scada::DataChangeHandler`
 - add and remove monitored items against the server through the
   subscription
 
-### `OpcUaMonitoredItem`
+### `MonitoredItem`
 
 Files:
 
@@ -211,7 +211,7 @@ Files:
 - `common/opcua/client_monitored_item.cpp`
 
 `scada::MonitoredItem` instance returned from
-`OpcUaClientSession::CreateMonitoredItem`. Holds a back-reference to the
+`ClientSession::CreateMonitoredItem`. Holds a back-reference to the
 subscription plus the client-local id. `Subscribe(handler)` registers the
 handler; destruction removes the item from the server.
 
@@ -231,21 +231,21 @@ Files:
 Canonical server-side request/response and service-dispatch contract used by
 both the UA Binary adapter and the UA-JSON/WebSocket adapter.
 
-### `CreateOpcUaServices(...)`
+### `CreateServices(...)`
 
 File:
 
 - `common/opcua/services_factory.cpp`
 
-Factory adapter that exposes one outbound `OpcUaClientSession` through the shared
+Factory adapter that exposes one outbound `ClientSession` through the shared
 `DataServices` bundle.
 
 Responsibilities:
 
-- construct `OpcUaClientSession`
+- construct `ClientSession`
 - publish that session as the `session`, `view`, `attribute`, `method`, and
   `monitored-item` service surface
-- shield callers from `OpcUaClientSession` construction failures
+- shield callers from `ClientSession` construction failures
 
 ## Motivation
 
@@ -305,20 +305,20 @@ transport-neutral semantic core:
 | `common/opcua/binary/runtime.{h,cpp}` | Binary adapter runtime: request decode / response encode, secure-channel/session-token lookup, and authenticated dispatch into the canonical `opcua::` request/response model |
 | `common/opcua/binary/service_dispatcher.{h,cpp}` | Binary adapter boundary for request-header adaptation and Binary-only response encoding details |
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
-| `common/opcua/websocket/server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes canonical `opcua::OpcUaRequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::OpcUaServerRuntime`, writes canonical `opcua::OpcUaResponseMessage` envelopes, and detaches sessions on disconnect |
-| `common/opcua/server_session.{h,cpp}` | Canonical transport-independent live session state owned by `opcua::OpcUaServerSession` |
+| `common/opcua/websocket/server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes canonical `opcua::RequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::ServerRuntime`, writes canonical `opcua::ResponseMessage` envelopes, and detaches sessions on disconnect |
+| `common/opcua/server_session.{h,cpp}` | Canonical transport-independent live session state owned by `opcua::ServerSession` |
 | `common/opcua/server_runtime.{h,cpp}` + `common/opcua/websocket/runtime.h` | Canonical shared runtime plus the remaining WS convenience wrapper: transport-neutral request-body routing, shared connection state, and session/subscription ownership tracking |
 | `common/opcua/server_session_manager.{h,cpp}` | Canonical transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
-| `common/opcua/server_subscription.{h,cpp}` | Canonical `opcua::OpcUaServerSubscription` publish queue, keep-alive timer, and data-change delivery |
+| `common/opcua/server_subscription.{h,cpp}` | Canonical `opcua::ServerSubscription` publish queue, keep-alive timer, and data-change delivery |
 | `common/opcua/websocket/json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; consumes and produces the canonical `opcua::` request/response/envelope types, and reuses `common/opcua/conversion.{h,cpp}` for UA ↔ scada conversion |
-| `common/opcua/message.h` + `common/opcua/service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters, with Binary `OpcUaBinary*Body` spellings retained as aliases at the adapter edge |
+| `common/opcua/message.h` + `common/opcua/service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters, with Binary `Binary*Body` spellings retained as aliases at the adapter edge |
 | `common/opcua/websocket/message_codec.cpp` + `common/opcua/websocket/subscription_message_codec.cpp` + `common/opcua/websocket/publish_message_codec.cpp` | UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the subscription / publish / monitored-item payloads, implemented directly against the canonical `opcua::` message model |
 | `common/opcua/service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService`, now routed through the shared `core/scada/service_awaitable.h` helpers rather than a second local callback-bridge layer |
 | `common/opcua/websocket/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/server_runtime_contract_test.h`; the envelope/runtime/server tests exercise the canonical `opcua::` message and session types directly |
 | `common/opcua/binary/*_unittest.cpp` | Binary adapter coverage for request decoding, response encoding, secure-channel/session integration, and the Binary execution of the shared runtime contract where applicable |
 | `server/opcua/opcua_module.{h,cpp}` | Config loader + lifecycle for both TCP and WS listeners |
 
-Both transport adapters reuse the same `OpcUaServerContext` service
+Both transport adapters reuse the same `ServerContext` service
 collaborators:
 
 - `AttributeService` — Read, Write, HistoryRead
@@ -465,7 +465,7 @@ service request/response body field names are governed by the spec casing.
 
 ## Authentication
 
-On `ActivateSessionRequest`, `opcua::OpcUaServerSession` constructs the same
+On `ActivateSessionRequest`, `opcua::ServerSession` constructs the same
 `scada::ServiceContext` the TCP endpoint constructs. Identity tokens
 supported here:
 
@@ -630,7 +630,7 @@ Covers the message-oriented server loop for:
 
 `common/opcua/websocket/websocket_server_unittest.cpp`
 
-Builds `OpcUaWsServer` on top of a loopback `transport::WebSocketTransport`
+Builds `WsServer` on top of a loopback `transport::WebSocketTransport`
 listener with an in-memory runtime fixture, opens Beast WebSocket clients over
 both plain WS and TLS/WSS, validates the browser-facing handshake policy
 (`Origin`, `Sec-WebSocket-Protocol`), and drives the session + browse

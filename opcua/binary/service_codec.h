@@ -6,45 +6,45 @@
 #include <span>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 
-struct OpcUaBinaryServiceRequestHeader {
+struct ServiceRequestHeader {
   scada::NodeId authentication_token;
   std::uint32_t request_handle = 0;
 };
 
-struct OpcUaBinaryDecodedRequest {
-  OpcUaBinaryServiceRequestHeader header;
-  OpcUaRequestBody body;
+struct DecodedRequest {
+  ServiceRequestHeader header;
+  RequestBody body;
   std::vector<std::vector<std::string>> history_event_field_paths;
 };
 
-std::optional<std::vector<char>> EncodeOpcUaBinaryServiceRequest(
-    const OpcUaBinaryServiceRequestHeader& header,
-    const OpcUaRequestBody& request);
+std::optional<std::vector<char>> EncodeServiceRequest(
+    const ServiceRequestHeader& header,
+    const RequestBody& request);
 
-std::optional<OpcUaBinaryDecodedRequest> DecodeOpcUaBinaryServiceRequest(
+std::optional<DecodedRequest> DecodeServiceRequest(
     const std::vector<char>& payload);
 
-std::optional<std::vector<char>> EncodeOpcUaBinaryServiceResponse(
+std::optional<std::vector<char>> EncodeServiceResponse(
     std::uint32_t request_handle,
-    const OpcUaResponseBody& response);
+    const ResponseBody& response);
 
-std::optional<std::vector<char>> EncodeOpcUaBinaryHistoryReadEventsResponse(
+std::optional<std::vector<char>> EncodeHistoryReadEventsResponse(
     std::uint32_t request_handle,
     const HistoryReadEventsResponse& response,
     std::span<const std::vector<std::string>> field_paths);
 
-// Client-side inverse of EncodeOpcUaBinaryServiceResponse: decodes the body
-// that the server produced on the wire into a typed OpcUaResponseBody plus
+// Client-side inverse of EncodeServiceResponse: decodes the body
+// that the server produced on the wire into a typed ResponseBody plus
 // the originating request_handle. Returns std::nullopt for malformed or
 // unsupported response encodings.
-struct OpcUaBinaryDecodedResponse {
+struct DecodedResponse {
   std::uint32_t request_handle = 0;
-  OpcUaResponseBody body;
+  ResponseBody body;
 };
 
-std::optional<OpcUaBinaryDecodedResponse> DecodeOpcUaBinaryServiceResponse(
+std::optional<DecodedResponse> DecodeServiceResponse(
     const std::vector<char>& payload);
 
-}  // namespace opcua
+}  // namespace opcua::binary

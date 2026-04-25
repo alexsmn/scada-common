@@ -1,9 +1,9 @@
 sequenceDiagram
     participant Client as OPC UA client
     participant Endpoint as opcuapp Endpoint
-    participant Dispatcher as OpcUaBinaryServiceDispatcher
-    participant BinRt as OpcUaBinaryRuntime
-    participant Runtime as opcua::OpcUaServerRuntime
+    participant Dispatcher as binary::ServiceDispatcher
+    participant BinRt as binary::Runtime
+    participant Runtime as opcua::ServerRuntime
     participant Conv as opcua_conversion
     participant Svc as SCADA service
 
@@ -15,7 +15,7 @@ sequenceDiagram
     BinRt->>Runtime: canonical request dispatch
     Runtime->>Conv: convert request payload
     Conv-->>Runtime: SCADA-native inputs
-    Note right of Runtime: Shared service dispatch lives in opcua::OpcUaServerRuntime and routes canonical requests into shared SCADA services.
+    Note right of Runtime: Shared service dispatch lives in opcua::ServerRuntime and routes canonical requests into shared SCADA services.
     Runtime->>Svc: Read / Write / Browse / Call / AddNodes / DeleteNodes
     Svc-->>Runtime: status + results
     Runtime->>Conv: convert results

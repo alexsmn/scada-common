@@ -12,11 +12,11 @@
 
 namespace opcua {
 
-struct OpcUaCreateSessionRequest {
+struct CreateSessionRequest {
   base::TimeDelta requested_timeout = base::TimeDelta::FromMinutes(10);
 };
 
-struct OpcUaCreateSessionResponse {
+struct CreateSessionResponse {
   scada::Status status{scada::StatusCode::Good};
   scada::NodeId session_id;
   scada::NodeId authentication_token;
@@ -24,7 +24,7 @@ struct OpcUaCreateSessionResponse {
   base::TimeDelta revised_timeout;
 };
 
-struct OpcUaActivateSessionRequest {
+struct ActivateSessionRequest {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   std::optional<scada::LocalizedText> user_name;
@@ -33,23 +33,23 @@ struct OpcUaActivateSessionRequest {
   bool allow_anonymous = false;
 };
 
-struct OpcUaActivateSessionResponse {
+struct ActivateSessionResponse {
   scada::Status status{scada::StatusCode::Good};
   scada::ServiceContext service_context;
   std::optional<scada::AuthenticationResult> authentication_result;
   bool resumed = false;
 };
 
-struct OpcUaCloseSessionRequest {
+struct CloseSessionRequest {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
 };
 
-struct OpcUaCloseSessionResponse {
+struct CloseSessionResponse {
   scada::Status status{scada::StatusCode::Good};
 };
 
-struct OpcUaServerSessionLookupResult {
+struct ServerSessionLookupResult {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ServiceContext service_context;
@@ -58,7 +58,7 @@ struct OpcUaServerSessionLookupResult {
   bool activated = false;
 };
 
-struct OpcUaServerSessionManagerContext {
+struct ServerSessionManagerContext {
   std::shared_ptr<scada::CoroutineAuthenticator> authenticator;
   std::function<base::Time()> now = &base::Time::Now;
   base::TimeDelta default_timeout = base::TimeDelta::FromMinutes(10);
@@ -68,21 +68,21 @@ struct OpcUaServerSessionManagerContext {
   scada::NamespaceIndex token_namespace_index = 3;
 };
 
-class OpcUaServerSessionManager : private OpcUaServerSessionManagerContext {
+class ServerSessionManager : private ServerSessionManagerContext {
  public:
-  explicit OpcUaServerSessionManager(OpcUaServerSessionManagerContext&& context);
+  explicit ServerSessionManager(ServerSessionManagerContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaCreateSessionResponse> CreateSession(
-      OpcUaCreateSessionRequest request = {});
-  [[nodiscard]] Awaitable<OpcUaActivateSessionResponse> ActivateSession(
-      OpcUaActivateSessionRequest request);
-  [[nodiscard]] OpcUaCloseSessionResponse CloseSession(
-      OpcUaCloseSessionRequest request);
+  [[nodiscard]] Awaitable<CreateSessionResponse> CreateSession(
+      CreateSessionRequest request = {});
+  [[nodiscard]] Awaitable<ActivateSessionResponse> ActivateSession(
+      ActivateSessionRequest request);
+  [[nodiscard]] CloseSessionResponse CloseSession(
+      CloseSessionRequest request);
 
   void DetachSession(const scada::NodeId& authentication_token);
   void PruneExpiredSessions();
 
-  [[nodiscard]] std::optional<OpcUaServerSessionLookupResult> FindSession(
+  [[nodiscard]] std::optional<ServerSessionLookupResult> FindSession(
       const scada::NodeId& authentication_token) const;
 
  private:

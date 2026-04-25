@@ -22,35 +22,35 @@
 flowchart TB
     subgraph Consumers["Outbound-client adapters"]
         direction TB
-        QT["<b>OpcUaClientSession</b><br/>scada::SessionService / ViewService /<br/>AttributeService / MonitoredItemService /<br/>MethodService"]
+        QT["<b>ClientSession</b><br/>scada::SessionService / ViewService /<br/>AttributeService / MonitoredItemService /<br/>MethodService"]
         OTHER["<b>Other OPC UA callers</b><br/>future"]
     end
 
     subgraph Client["Reusable client layer<br/>common/opcua/"]
         direction TB
-        SESS["<b>OpcUaClientProtocolSession</b><br/>Create / Close<br/>Read / Write / Browse / BrowseNext<br/>TranslateBrowsePaths / Call"]
-        SUB["<b>OpcUaClientProtocolSubscription</b><br/>Create / Publish / Delete<br/>CreateMonitoredItem / DeleteMonitoredItem<br/>DataChangeHandler dispatch"]
-        CHAN["<b>OpcUaClientChannel</b><br/>Call&lt;Req, Resp&gt; → Awaitable&lt;StatusOr&gt;<br/>request_handle + request_id correlation<br/>authentication_token bind"]
+        SESS["<b>ClientProtocolSession</b><br/>Create / Close<br/>Read / Write / Browse / BrowseNext<br/>TranslateBrowsePaths / Call"]
+        SUB["<b>ClientProtocolSubscription</b><br/>Create / Publish / Delete<br/>CreateMonitoredItem / DeleteMonitoredItem<br/>DataChangeHandler dispatch"]
+        CHAN["<b>ClientChannel</b><br/>Call&lt;Req, Resp&gt; → Awaitable&lt;StatusOr&gt;<br/>request_handle + request_id correlation<br/>authentication_token bind"]
     end
 
     subgraph BinaryClient["Binary TCP client adapter<br/>common/opcua/binary/"]
         direction TB
-        CONN["<b>OpcUaBinaryClientConnection</b><br/>Open / Close<br/>Encode requests / decode responses"]
-        SC["<b>OpcUaBinaryClientSecureChannel</b><br/>Open / Close<br/>SendServiceRequest / ReadServiceResponse<br/>channel_id + token_id + sequence_number"]
-        TRANS["<b>OpcUaBinaryClientTransport</b><br/>Connect (HEL / ACK)<br/>ReadFrame / WriteFrame<br/>transport::any_transport"]
+        CONN["<b>binary::ClientConnection</b><br/>Open / Close<br/>Encode requests / decode responses"]
+        SC["<b>binary::ClientSecureChannel</b><br/>Open / Close<br/>SendServiceRequest / ReadServiceResponse<br/>channel_id + token_id + sequence_number"]
+        TRANS["<b>binary::ClientTransport</b><br/>Connect (HEL / ACK)<br/>ReadFrame / WriteFrame<br/>transport::any_transport"]
     end
 
     subgraph Shared["Shared UA Binary primitives<br/>common/opcua/binary/"]
         direction TB
-        SVC["<b>service_codec</b><br/>Encode/DecodeOpcUaBinaryServiceRequest<br/>Encode/DecodeOpcUaBinaryServiceResponse"]
+        SVC["<b>service_codec</b><br/>Encode/binary::DecodeServiceRequest<br/>Encode/binary::DecodeServiceResponse"]
         SECCODEC["<b>secure_channel</b><br/>Encode/DecodeOpenSecureChannelRequestBody<br/>Encode/DecodeOpenSecureChannelResponseBody<br/>Encode/DecodeCloseSecureChannelRequestBody"]
         PROTO["<b>protocol</b><br/>HEL / ACK / ERR framing<br/>Secure Conversation framing"]
-        UTILS["<b>codec_utils</b><br/>BinaryEncoder / BinaryDecoder<br/>Variant / NodeId / DataValue / …"]
+        UTILS["<b>codec_utils</b><br/>binary::Encoder / binary::Decoder<br/>Variant / NodeId / DataValue / …"]
     end
 
     subgraph Model["Shared message model<br/>common/opcua/"]
         direction TB
-        MSG["<b>opcua_message.h</b><br/>OpcUaRequestBody / OpcUaResponseBody<br/>(std::variant of all typed services)"]
+        MSG["<b>opcua_message.h</b><br/>RequestBody / ResponseBody<br/>(std::variant of all typed services)"]
     end
 
     subgraph Net["third_party/net"]

@@ -27,63 +27,63 @@
 
 using namespace testing;
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
-constexpr std::uint32_t kCreateSessionRequestBinaryEncodingId = 461;
-constexpr std::uint32_t kCreateSessionResponseBinaryEncodingId = 464;
-constexpr std::uint32_t kActivateSessionRequestBinaryEncodingId = 467;
-constexpr std::uint32_t kActivateSessionResponseBinaryEncodingId = 470;
-constexpr std::uint32_t kCloseSessionRequestBinaryEncodingId = 473;
-constexpr std::uint32_t kCloseSessionResponseBinaryEncodingId = 476;
-constexpr std::uint32_t kAddNodesRequestBinaryEncodingId = 488;
-constexpr std::uint32_t kAddNodesResponseBinaryEncodingId = 491;
-constexpr std::uint32_t kAddReferencesRequestBinaryEncodingId = 494;
-constexpr std::uint32_t kAddReferencesResponseBinaryEncodingId = 497;
-constexpr std::uint32_t kDeleteNodesRequestBinaryEncodingId = 500;
-constexpr std::uint32_t kDeleteNodesResponseBinaryEncodingId = 503;
-constexpr std::uint32_t kDeleteReferencesRequestBinaryEncodingId = 506;
-constexpr std::uint32_t kDeleteReferencesResponseBinaryEncodingId = 509;
-constexpr std::uint32_t kBrowseRequestBinaryEncodingId = 525;
-constexpr std::uint32_t kBrowseResponseBinaryEncodingId = 528;
-constexpr std::uint32_t kBrowseNextRequestBinaryEncodingId = 533;
-constexpr std::uint32_t kBrowseNextResponseBinaryEncodingId = 536;
-constexpr std::uint32_t kCreateSubscriptionRequestBinaryEncodingId = 787;
-constexpr std::uint32_t kCreateSubscriptionResponseBinaryEncodingId = 790;
-constexpr std::uint32_t kModifySubscriptionRequestBinaryEncodingId = 793;
-constexpr std::uint32_t kModifySubscriptionResponseBinaryEncodingId = 796;
-constexpr std::uint32_t kSetPublishingModeRequestBinaryEncodingId = 799;
-constexpr std::uint32_t kSetPublishingModeResponseBinaryEncodingId = 802;
-constexpr std::uint32_t kCreateMonitoredItemsRequestBinaryEncodingId = 751;
-constexpr std::uint32_t kCreateMonitoredItemsResponseBinaryEncodingId = 754;
-constexpr std::uint32_t kModifyMonitoredItemsRequestBinaryEncodingId = 763;
-constexpr std::uint32_t kModifyMonitoredItemsResponseBinaryEncodingId = 766;
-constexpr std::uint32_t kSetMonitoringModeRequestBinaryEncodingId = 769;
-constexpr std::uint32_t kSetMonitoringModeResponseBinaryEncodingId = 772;
-constexpr std::uint32_t kDeleteMonitoredItemsRequestBinaryEncodingId = 781;
-constexpr std::uint32_t kDeleteMonitoredItemsResponseBinaryEncodingId = 784;
-constexpr std::uint32_t kDeleteSubscriptionsRequestBinaryEncodingId = 847;
-constexpr std::uint32_t kDeleteSubscriptionsResponseBinaryEncodingId = 850;
-constexpr std::uint32_t kPublishRequestBinaryEncodingId = 826;
-constexpr std::uint32_t kPublishResponseBinaryEncodingId = 829;
-constexpr std::uint32_t kRepublishRequestBinaryEncodingId = 832;
-constexpr std::uint32_t kRepublishResponseBinaryEncodingId = 835;
-constexpr std::uint32_t kTransferSubscriptionsRequestBinaryEncodingId = 841;
-constexpr std::uint32_t kTransferSubscriptionsResponseBinaryEncodingId = 844;
-constexpr std::uint32_t kTranslateBrowsePathsRequestBinaryEncodingId = 554;
-constexpr std::uint32_t kTranslateBrowsePathsResponseBinaryEncodingId = 557;
-constexpr std::uint32_t kReadRawModifiedDetailsBinaryEncodingId = 649;
-constexpr std::uint32_t kHistoryDataBinaryEncodingId = 658;
-constexpr std::uint32_t kHistoryEventBinaryEncodingId = 661;
-constexpr std::uint32_t kHistoryReadRequestBinaryEncodingId = 664;
-constexpr std::uint32_t kHistoryReadResponseBinaryEncodingId = 667;
-constexpr std::uint32_t kCallRequestBinaryEncodingId = 710;
-constexpr std::uint32_t kCallResponseBinaryEncodingId = 713;
-constexpr std::uint32_t kReadRequestBinaryEncodingId = 629;
-constexpr std::uint32_t kReadResponseBinaryEncodingId = 632;
-constexpr std::uint32_t kWriteRequestBinaryEncodingId = 671;
-constexpr std::uint32_t kWriteResponseBinaryEncodingId = 674;
-constexpr std::uint32_t kUserNameIdentityTokenBinaryEncodingId = 324;
+constexpr std::uint32_t kCreateSessionRequestEncodingId = 461;
+constexpr std::uint32_t kCreateSessionResponseEncodingId = 464;
+constexpr std::uint32_t kActivateSessionRequestEncodingId = 467;
+constexpr std::uint32_t kActivateSessionResponseEncodingId = 470;
+constexpr std::uint32_t kCloseSessionRequestEncodingId = 473;
+constexpr std::uint32_t kCloseSessionResponseEncodingId = 476;
+constexpr std::uint32_t kAddNodesRequestEncodingId = 488;
+constexpr std::uint32_t kAddNodesResponseEncodingId = 491;
+constexpr std::uint32_t kAddReferencesRequestEncodingId = 494;
+constexpr std::uint32_t kAddReferencesResponseEncodingId = 497;
+constexpr std::uint32_t kDeleteNodesRequestEncodingId = 500;
+constexpr std::uint32_t kDeleteNodesResponseEncodingId = 503;
+constexpr std::uint32_t kDeleteReferencesRequestEncodingId = 506;
+constexpr std::uint32_t kDeleteReferencesResponseEncodingId = 509;
+constexpr std::uint32_t kBrowseRequestEncodingId = 525;
+constexpr std::uint32_t kBrowseResponseEncodingId = 528;
+constexpr std::uint32_t kBrowseNextRequestEncodingId = 533;
+constexpr std::uint32_t kBrowseNextResponseEncodingId = 536;
+constexpr std::uint32_t kCreateSubscriptionRequestEncodingId = 787;
+constexpr std::uint32_t kCreateSubscriptionResponseEncodingId = 790;
+constexpr std::uint32_t kModifySubscriptionRequestEncodingId = 793;
+constexpr std::uint32_t kModifySubscriptionResponseEncodingId = 796;
+constexpr std::uint32_t kSetPublishingModeRequestEncodingId = 799;
+constexpr std::uint32_t kSetPublishingModeResponseEncodingId = 802;
+constexpr std::uint32_t kCreateMonitoredItemsRequestEncodingId = 751;
+constexpr std::uint32_t kCreateMonitoredItemsResponseEncodingId = 754;
+constexpr std::uint32_t kModifyMonitoredItemsRequestEncodingId = 763;
+constexpr std::uint32_t kModifyMonitoredItemsResponseEncodingId = 766;
+constexpr std::uint32_t kSetMonitoringModeRequestEncodingId = 769;
+constexpr std::uint32_t kSetMonitoringModeResponseEncodingId = 772;
+constexpr std::uint32_t kDeleteMonitoredItemsRequestEncodingId = 781;
+constexpr std::uint32_t kDeleteMonitoredItemsResponseEncodingId = 784;
+constexpr std::uint32_t kDeleteSubscriptionsRequestEncodingId = 847;
+constexpr std::uint32_t kDeleteSubscriptionsResponseEncodingId = 850;
+constexpr std::uint32_t kPublishRequestEncodingId = 826;
+constexpr std::uint32_t kPublishResponseEncodingId = 829;
+constexpr std::uint32_t kRepublishRequestEncodingId = 832;
+constexpr std::uint32_t kRepublishResponseEncodingId = 835;
+constexpr std::uint32_t kTransferSubscriptionsRequestEncodingId = 841;
+constexpr std::uint32_t kTransferSubscriptionsResponseEncodingId = 844;
+constexpr std::uint32_t kTranslateBrowsePathsRequestEncodingId = 554;
+constexpr std::uint32_t kTranslateBrowsePathsResponseEncodingId = 557;
+constexpr std::uint32_t kReadRawModifiedDetailsEncodingId = 649;
+constexpr std::uint32_t kHistoryDataEncodingId = 658;
+constexpr std::uint32_t kHistoryEventEncodingId = 661;
+constexpr std::uint32_t kHistoryReadRequestEncodingId = 664;
+constexpr std::uint32_t kHistoryReadResponseEncodingId = 667;
+constexpr std::uint32_t kCallRequestEncodingId = 710;
+constexpr std::uint32_t kCallResponseEncodingId = 713;
+constexpr std::uint32_t kReadRequestEncodingId = 629;
+constexpr std::uint32_t kReadResponseEncodingId = 632;
+constexpr std::uint32_t kWriteRequestEncodingId = 671;
+constexpr std::uint32_t kWriteResponseEncodingId = 674;
+constexpr std::uint32_t kUserNameIdentityTokenEncodingId = 324;
 
 struct StreamPeerState {
   std::deque<std::string> incoming;
@@ -161,7 +161,7 @@ base::Time ParseTime(std::string_view value) {
 void AppendRequestHeader(std::vector<char>& bytes,
                          const scada::NodeId& authentication_token,
                          std::uint32_t request_handle) {
-  binary::BinaryEncoder encoder{bytes};
+  Encoder encoder{bytes};
   encoder.Encode(authentication_token);
   encoder.Encode(std::int64_t{0});
   encoder.Encode(request_handle);
@@ -174,7 +174,7 @@ void AppendRequestHeader(std::vector<char>& bytes,
 
 std::vector<char> EncodeOpenRequestBody(std::uint32_t request_handle) {
   std::vector<char> payload;
-  binary::BinaryEncoder payload_encoder{payload};
+  Encoder payload_encoder{payload};
   payload_encoder.Encode(scada::NodeId{});
   payload_encoder.Encode(std::int64_t{0});
   payload_encoder.Encode(request_handle);
@@ -185,25 +185,25 @@ std::vector<char> EncodeOpenRequestBody(std::uint32_t request_handle) {
   payload_encoder.Encode(std::uint8_t{0x00});
   payload_encoder.Encode(std::uint32_t{0});
   payload_encoder.Encode(
-      static_cast<std::uint32_t>(OpcUaBinarySecurityTokenRequestType::Issue));
+      static_cast<std::uint32_t>(SecurityTokenRequestType::Issue));
   payload_encoder.Encode(
-      static_cast<std::uint32_t>(OpcUaBinaryMessageSecurityMode::None));
+      static_cast<std::uint32_t>(MessageSecurityMode::None));
   payload_encoder.Encode(scada::ByteString{});
   payload_encoder.Encode(std::uint32_t{60000});
 
   std::vector<char> body;
-  binary::BinaryEncoder body_encoder{body};
-  body_encoder.Encode(binary::EncodedExtensionObject{
-      .type_id = kOpenSecureChannelRequestBinaryEncodingId,
+  Encoder body_encoder{body};
+  body_encoder.Encode(EncodedExtensionObject{
+      .type_id = kOpenSecureChannelRequestEncodingId,
       .body = payload});
   return body;
 }
 
 std::vector<char> EncodeCreateSessionRequestBody(std::uint32_t request_handle,
                                                  double requested_timeout_ms) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = scada::NodeId{}, .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaCreateSessionRequest{
+      RequestBody{CreateSessionRequest{
           .requested_timeout =
               base::TimeDelta::FromMillisecondsD(requested_timeout_ms)}});
   EXPECT_TRUE(encoded.has_value());
@@ -215,10 +215,10 @@ std::vector<char> EncodeUserNameActivateRequestBody(
     const scada::NodeId& authentication_token,
     std::string_view user_name,
     std::string_view password) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaActivateSessionRequest{
+      RequestBody{ActivateSessionRequest{
           .authentication_token = authentication_token,
           .user_name = scada::ToLocalizedText(std::string{user_name}),
           .password = scada::ToLocalizedText(std::string{password}),
@@ -230,10 +230,10 @@ std::vector<char> EncodeUserNameActivateRequestBody(
 std::vector<char> EncodeCloseSessionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaCloseSessionRequest{
+      RequestBody{CloseSessionRequest{
           .authentication_token = authentication_token}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -242,10 +242,10 @@ std::vector<char> EncodeCloseSessionRequestBody(
 std::vector<char> EncodeReadRequestBody(std::uint32_t request_handle,
                                         const scada::NodeId& authentication_token,
                                         const scada::ReadValueId& read_value_id) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           ReadRequest{.inputs = {read_value_id}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -254,10 +254,10 @@ std::vector<char> EncodeReadRequestBody(std::uint32_t request_handle,
 std::vector<char> EncodeWriteRequestBody(std::uint32_t request_handle,
                                          const scada::NodeId& authentication_token,
                                          const scada::WriteValue& write_value) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           WriteRequest{.inputs = {write_value}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -268,10 +268,10 @@ std::vector<char> EncodeBrowseRequestBody(
     const scada::NodeId& authentication_token,
     const scada::BrowseDescription& browse_description,
     size_t requested_max_references_per_node = 0) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           BrowseRequest{
               .requested_max_references_per_node =
                   requested_max_references_per_node,
@@ -285,10 +285,10 @@ std::vector<char> EncodeBrowseNextRequestBody(
     const scada::NodeId& authentication_token,
     bool release_continuation_points,
     std::vector<scada::ByteString> continuation_points) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{BrowseNextRequest{
+      RequestBody{BrowseNextRequest{
           .release_continuation_points = release_continuation_points,
           .continuation_points = std::move(continuation_points)}});
   EXPECT_TRUE(encoded.has_value());
@@ -299,10 +299,10 @@ std::vector<char> EncodeHistoryReadRawRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::HistoryReadRawDetails details) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           HistoryReadRawRequest{.details = std::move(details)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -312,10 +312,10 @@ std::vector<char> EncodeHistoryReadEventsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::HistoryReadEventsDetails details) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           HistoryReadEventsRequest{.details = std::move(details)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -324,12 +324,12 @@ std::vector<char> EncodeHistoryReadEventsRequestBody(
 std::vector<char> EncodeCreateSubscriptionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
-    const OpcUaSubscriptionParameters& parameters) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+    const SubscriptionParameters& parameters) {
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
-          OpcUaCreateSubscriptionRequest{.parameters = parameters}});
+      RequestBody{
+          CreateSubscriptionRequest{.parameters = parameters}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -338,11 +338,11 @@ std::vector<char> EncodeModifySubscriptionRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    const OpcUaSubscriptionParameters& parameters) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+    const SubscriptionParameters& parameters) {
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaModifySubscriptionRequest{
+      RequestBody{ModifySubscriptionRequest{
           .subscription_id = subscription_id, .parameters = parameters}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -353,10 +353,10 @@ std::vector<char> EncodeSetPublishingModeRequestBody(
     const scada::NodeId& authentication_token,
     bool publishing_enabled,
     std::vector<scada::UInt32> subscription_ids) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaSetPublishingModeRequest{
+      RequestBody{SetPublishingModeRequest{
           .publishing_enabled = publishing_enabled,
           .subscription_ids = std::move(subscription_ids)}});
   EXPECT_TRUE(encoded.has_value());
@@ -367,10 +367,10 @@ std::vector<char> EncodeDeleteSubscriptionsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     std::vector<scada::UInt32> subscription_ids) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaDeleteSubscriptionsRequest{
+      RequestBody{DeleteSubscriptionsRequest{
           .subscription_ids = std::move(subscription_ids)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -380,11 +380,11 @@ std::vector<char> EncodeCreateMonitoredItemsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    std::vector<OpcUaMonitoredItemCreateRequest> items_to_create) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+    std::vector<MonitoredItemCreateRequest> items_to_create) {
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaCreateMonitoredItemsRequest{
+      RequestBody{CreateMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .items_to_create = std::move(items_to_create)}});
   EXPECT_TRUE(encoded.has_value());
@@ -395,11 +395,11 @@ std::vector<char> EncodeModifyMonitoredItemsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    std::vector<OpcUaMonitoredItemModifyRequest> items_to_modify) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+    std::vector<MonitoredItemModifyRequest> items_to_modify) {
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaModifyMonitoredItemsRequest{
+      RequestBody{ModifyMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .items_to_modify = std::move(items_to_modify)}});
   EXPECT_TRUE(encoded.has_value());
@@ -409,11 +409,11 @@ std::vector<char> EncodeModifyMonitoredItemsRequestBody(
 std::vector<char> EncodePublishRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
-    std::vector<OpcUaSubscriptionAcknowledgement> acknowledgements = {}) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+    std::vector<SubscriptionAcknowledgement> acknowledgements = {}) {
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaPublishRequest{
+      RequestBody{PublishRequest{
           .subscription_acknowledgements = std::move(acknowledgements)}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -424,10 +424,10 @@ std::vector<char> EncodeDeleteMonitoredItemsRequestBody(
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
     std::vector<scada::UInt32> monitored_item_ids) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaDeleteMonitoredItemsRequest{
+      RequestBody{DeleteMonitoredItemsRequest{
           .subscription_id = subscription_id,
           .monitored_item_ids = std::move(monitored_item_ids)}});
   EXPECT_TRUE(encoded.has_value());
@@ -438,12 +438,12 @@ std::vector<char> EncodeSetMonitoringModeRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
-    OpcUaMonitoringMode monitoring_mode,
+    MonitoringMode monitoring_mode,
     std::vector<scada::UInt32> monitored_item_ids) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaSetMonitoringModeRequest{
+      RequestBody{SetMonitoringModeRequest{
           .subscription_id = subscription_id,
           .monitoring_mode = monitoring_mode,
           .monitored_item_ids = std::move(monitored_item_ids)}});
@@ -456,10 +456,10 @@ std::vector<char> EncodeRepublishRequestBody(
     const scada::NodeId& authentication_token,
     scada::UInt32 subscription_id,
     scada::UInt32 retransmit_sequence_number) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaRepublishRequest{
+      RequestBody{RepublishRequest{
           .subscription_id = subscription_id,
           .retransmit_sequence_number = retransmit_sequence_number}});
   EXPECT_TRUE(encoded.has_value());
@@ -471,10 +471,10 @@ std::vector<char> EncodeTransferSubscriptionsRequestBody(
     const scada::NodeId& authentication_token,
     std::vector<scada::UInt32> subscription_ids,
     bool send_initial_values) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{OpcUaTransferSubscriptionsRequest{
+      RequestBody{TransferSubscriptionsRequest{
           .subscription_ids = std::move(subscription_ids),
           .send_initial_values = send_initial_values}});
   EXPECT_TRUE(encoded.has_value());
@@ -487,10 +487,10 @@ std::vector<char> EncodeCallRequestBody(
     const scada::NodeId& object_id,
     const scada::NodeId& method_id,
     const std::vector<scada::Variant>& arguments) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           CallRequest{.methods = {{.object_id = object_id,
                                               .method_id = method_id,
                                               .arguments = arguments}}}});
@@ -502,10 +502,10 @@ std::vector<char> EncodeTranslateBrowsePathsRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     const scada::BrowsePath& browse_path) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           TranslateBrowsePathsRequest{.inputs = {browse_path}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -515,10 +515,10 @@ std::vector<char> EncodeDeleteNodesRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     const scada::DeleteNodesItem& item) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           DeleteNodesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -528,10 +528,10 @@ std::vector<char> EncodeDeleteReferencesRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     const scada::DeleteReferencesItem& item) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           DeleteReferencesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -541,10 +541,10 @@ std::vector<char> EncodeAddReferencesRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     const scada::AddReferencesItem& item) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{
+      RequestBody{
           AddReferencesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
@@ -554,10 +554,10 @@ std::vector<char> EncodeAddNodesRequestBody(
     std::uint32_t request_handle,
     const scada::NodeId& authentication_token,
     const scada::AddNodesItem& item) {
-  const auto encoded = EncodeOpcUaBinaryServiceRequest(
+  const auto encoded = EncodeServiceRequest(
       {.authentication_token = authentication_token,
        .request_handle = request_handle},
-      OpcUaRequestBody{AddNodesRequest{.items = {item}}});
+      RequestBody{AddNodesRequest{.items = {item}}});
   EXPECT_TRUE(encoded.has_value());
   return encoded.value_or(std::vector<char>{});
 }
@@ -573,13 +573,13 @@ struct DecodedCreateSessionResponse {
 
 std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kCreateSessionResponseBinaryEncodingId) {
+      message->first != kCreateSessionResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -605,13 +605,13 @@ std::optional<DecodedCreateSessionResponse> DecodeCreateSessionResponse(
 
 std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes,
                                                   std::uint32_t expected_type_id) {
-  binary::BinaryDecoder message_decoder{bytes};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{bytes};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() || message->first != expected_type_id) {
     return std::nullopt;
   }
 
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t status_code = 0;
@@ -625,12 +625,12 @@ std::optional<std::uint32_t> DecodeResponseStatus(const std::vector<char>& bytes
 
 std::optional<double> DecodeSingleDoubleReadResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kReadResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kReadResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -667,12 +667,12 @@ std::optional<double> DecodeSingleDoubleReadResponse(
 
 std::optional<std::uint32_t> DecodeSingleWriteResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kWriteResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kWriteResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -699,12 +699,12 @@ std::optional<std::uint32_t> DecodeSingleWriteResponseStatus(
 
 std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kBrowseResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kBrowseResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -754,12 +754,12 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
 std::optional<scada::BrowseResult> DecodeSingleBrowseResult(
     const std::vector<char>& payload,
     std::uint32_t expected_encoding_id) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() || message->first != expected_encoding_id) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -817,13 +817,13 @@ struct DecodedCreateSubscriptionResponse {
 
 std::optional<DecodedCreateSubscriptionResponse> DecodeCreateSubscriptionResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kCreateSubscriptionResponseBinaryEncodingId) {
+      message->first != kCreateSubscriptionResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -855,13 +855,13 @@ struct DecodedModifySubscriptionResponse {
 
 std::optional<DecodedModifySubscriptionResponse> DecodeModifySubscriptionResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kModifySubscriptionResponseBinaryEncodingId) {
+      message->first != kModifySubscriptionResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedModifySubscriptionResponse result;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -884,13 +884,13 @@ std::optional<DecodedModifySubscriptionResponse> DecodeModifySubscriptionRespons
 
 std::optional<std::uint32_t> DecodeSingleSetPublishingModeResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kSetPublishingModeResponseBinaryEncodingId) {
+      message->first != kSetPublishingModeResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -913,13 +913,13 @@ std::optional<std::uint32_t> DecodeSingleSetPublishingModeResponseStatus(
 
 std::optional<std::uint32_t> DecodeSingleDeleteSubscriptionsResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kDeleteSubscriptionsResponseBinaryEncodingId) {
+      message->first != kDeleteSubscriptionsResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -942,17 +942,17 @@ std::optional<std::uint32_t> DecodeSingleDeleteSubscriptionsResponseStatus(
 
 std::optional<scada::BrowseResult> DecodeSingleBrowseNextResult(
     const std::vector<char>& payload) {
-  return DecodeSingleBrowseResult(payload, kBrowseNextResponseBinaryEncodingId);
+  return DecodeSingleBrowseResult(payload, kBrowseNextResponseEncodingId);
 }
 
 std::optional<std::uint32_t> DecodeSingleCallResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kCallResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kCallResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -989,13 +989,13 @@ std::optional<std::uint32_t> DecodeSingleCallResponseStatus(
 
 std::optional<scada::BrowsePathTarget> DecodeSingleTranslateBrowsePathTarget(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kTranslateBrowsePathsResponseBinaryEncodingId) {
+      message->first != kTranslateBrowsePathsResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1032,13 +1032,13 @@ std::optional<scada::BrowsePathTarget> DecodeSingleTranslateBrowsePathTarget(
 
 std::optional<std::uint32_t> DecodeSingleDeleteNodesResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kDeleteNodesResponseBinaryEncodingId) {
+      message->first != kDeleteNodesResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1065,12 +1065,12 @@ std::optional<std::uint32_t> DecodeSingleDeleteNodesResponseStatus(
 
 std::optional<scada::AddNodesResult> DecodeSingleAddNodesResponseResult(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kAddNodesResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kAddNodesResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1100,13 +1100,13 @@ std::optional<scada::AddNodesResult> DecodeSingleAddNodesResponseResult(
 
 std::optional<std::uint32_t> DecodeSingleDeleteReferencesResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kDeleteReferencesResponseBinaryEncodingId) {
+      message->first != kDeleteReferencesResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1133,12 +1133,12 @@ std::optional<std::uint32_t> DecodeSingleDeleteReferencesResponseStatus(
 
 std::optional<std::uint32_t> DecodeSingleAddReferencesResponseStatus(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kAddReferencesResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kAddReferencesResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1165,12 +1165,12 @@ std::optional<std::uint32_t> DecodeSingleAddReferencesResponseStatus(
 std::optional<std::uint32_t> DecodeSingleResultStatus(
     const std::vector<char>& payload,
     std::uint32_t expected_type_id) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() || message->first != expected_type_id) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t ignored_status = 0;
@@ -1199,14 +1199,14 @@ struct DecodedHistoryReadRawResponse {
 
 std::optional<DecodedHistoryReadRawResponse> DecodeHistoryReadRawResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kHistoryReadResponseBinaryEncodingId) {
+      message->first != kHistoryReadResponseEncodingId) {
     return std::nullopt;
   }
 
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedHistoryReadRawResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1215,7 +1215,7 @@ std::optional<DecodedHistoryReadRawResponse> DecodeHistoryReadRawResponse(
   scada::NodeId ignored_header_extension;
   std::int32_t result_count = 0;
   std::uint32_t raw_status = 0;
-  binary::DecodedExtensionObject history_data;
+  DecodedExtensionObject history_data;
   if (!decoder.Decode(ignored_timestamp) ||
       !decoder.Decode(ignored_request_handle) ||
       !decoder.Decode(raw_status) || !decoder.Decode(ignored_byte) ||
@@ -1225,14 +1225,14 @@ std::optional<DecodedHistoryReadRawResponse> DecodeHistoryReadRawResponse(
       result_count != 1 || !decoder.Decode(raw_status) ||
       !decoder.Decode(response.continuation_point) ||
       !decoder.Decode(history_data) ||
-      history_data.type_id != kHistoryDataBinaryEncodingId ||
+      history_data.type_id != kHistoryDataEncodingId ||
       history_data.encoding != 0x01 || !decoder.Decode(ignored_array) ||
       !decoder.consumed()) {
     return std::nullopt;
   }
 
   response.status = scada::Status::FromFullCode(raw_status);
-  binary::BinaryDecoder history_decoder{history_data.body};
+  Decoder history_decoder{history_data.body};
   std::int32_t value_count = 0;
   if (!history_decoder.Decode(value_count) || value_count < 0) {
     return std::nullopt;
@@ -1275,14 +1275,14 @@ struct DecodedHistoryReadEventsResponse {
 
 std::optional<DecodedHistoryReadEventsResponse> DecodeHistoryReadEventsResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kHistoryReadResponseBinaryEncodingId) {
+      message->first != kHistoryReadResponseEncodingId) {
     return std::nullopt;
   }
 
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedHistoryReadEventsResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1292,7 +1292,7 @@ std::optional<DecodedHistoryReadEventsResponse> DecodeHistoryReadEventsResponse(
   std::int32_t result_count = 0;
   std::uint32_t raw_status = 0;
   scada::ByteString continuation_point;
-  binary::DecodedExtensionObject history_event;
+  DecodedExtensionObject history_event;
   if (!decoder.Decode(ignored_timestamp) ||
       !decoder.Decode(ignored_request_handle) ||
       !decoder.Decode(raw_status) || !decoder.Decode(ignored_byte) ||
@@ -1302,14 +1302,14 @@ std::optional<DecodedHistoryReadEventsResponse> DecodeHistoryReadEventsResponse(
       result_count != 1 || !decoder.Decode(raw_status) ||
       !decoder.Decode(continuation_point) || !continuation_point.empty() ||
       !decoder.Decode(history_event) ||
-      history_event.type_id != kHistoryEventBinaryEncodingId ||
+      history_event.type_id != kHistoryEventEncodingId ||
       history_event.encoding != 0x01 || !decoder.Decode(ignored_array) ||
       !decoder.consumed()) {
     return std::nullopt;
   }
 
   response.status = scada::Status::FromFullCode(raw_status);
-  binary::BinaryDecoder history_decoder{history_event.body};
+  Decoder history_decoder{history_event.body};
   std::int32_t event_count = 0;
   if (!history_decoder.Decode(event_count) || event_count < 0) {
     return std::nullopt;
@@ -1336,18 +1336,18 @@ std::optional<DecodedHistoryReadEventsResponse> DecodeHistoryReadEventsResponse(
 
 struct DecodedCreateMonitoredItemsResponse {
   std::uint32_t status = 0;
-  OpcUaMonitoredItemCreateResult result;
+  MonitoredItemCreateResult result;
 };
 
 std::optional<DecodedCreateMonitoredItemsResponse>
 DecodeCreateMonitoredItemsResponse(const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kCreateMonitoredItemsResponseBinaryEncodingId) {
+      message->first != kCreateMonitoredItemsResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedCreateMonitoredItemsResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1368,7 +1368,7 @@ DecodeCreateMonitoredItemsResponse(const std::vector<char>& payload) {
       !decoder.Decode(response.result.revised_queue_size)) {
     return std::nullopt;
   }
-  binary::DecodedExtensionObject ignored_filter_result;
+  DecodedExtensionObject ignored_filter_result;
   if (!decoder.Decode(ignored_filter_result) ||
       !decoder.Decode(ignored_array)) {
     return std::nullopt;
@@ -1379,18 +1379,18 @@ DecodeCreateMonitoredItemsResponse(const std::vector<char>& payload) {
 
 struct DecodedModifyMonitoredItemsResponse {
   std::uint32_t status = 0;
-  OpcUaMonitoredItemModifyResult result;
+  MonitoredItemModifyResult result;
 };
 
 std::optional<DecodedModifyMonitoredItemsResponse>
 DecodeModifyMonitoredItemsResponse(const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kModifyMonitoredItemsResponseBinaryEncodingId) {
+      message->first != kModifyMonitoredItemsResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedModifyMonitoredItemsResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1410,7 +1410,7 @@ DecodeModifyMonitoredItemsResponse(const std::vector<char>& payload) {
       !decoder.Decode(response.result.revised_queue_size)) {
     return std::nullopt;
   }
-  binary::DecodedExtensionObject ignored_filter_result;
+  DecodedExtensionObject ignored_filter_result;
   if (!decoder.Decode(ignored_filter_result) ||
       !decoder.Decode(ignored_array)) {
     return std::nullopt;
@@ -1435,12 +1435,12 @@ struct DecodedPublishResponse {
 
 std::optional<DecodedPublishResponse> DecodePublishResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
-  if (!message.has_value() || message->first != kPublishResponseBinaryEncodingId) {
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
+  if (!message.has_value() || message->first != kPublishResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedPublishResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1450,7 +1450,7 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
   std::int32_t available_count = 0;
   std::int64_t ignored_publish_time = 0;
   std::int32_t notification_count = 0;
-  binary::DecodedExtensionObject notification_data;
+  DecodedExtensionObject notification_data;
   if (!decoder.Decode(ignored_timestamp) ||
       !decoder.Decode(ignored_request_handle) ||
       !decoder.Decode(response.status) || !decoder.Decode(ignored_byte) ||
@@ -1477,7 +1477,7 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
     if (!decoder.Decode(notification_data) || notification_data.encoding != 0x01) {
       return std::nullopt;
     }
-    binary::BinaryDecoder notification_decoder{notification_data.body};
+    Decoder notification_decoder{notification_data.body};
     if (notification_data.type_id == 811) {
       std::int32_t item_count = 0;
       scada::UInt32 client_handle = 0;
@@ -1512,14 +1512,14 @@ std::optional<DecodedPublishResponse> DecodePublishResponse(
       response.data_change_value = value.get<scada::Double>();
     } else if (notification_data.type_id == 916) {
       std::int32_t event_count = 0;
-      binary::DecodedExtensionObject event_field_list;
+      DecodedExtensionObject event_field_list;
       if (!notification_decoder.Decode(event_count) || event_count != 1 ||
           !notification_decoder.Decode(event_field_list) ||
           event_field_list.type_id != 919 ||
           event_field_list.encoding != 0x01) {
         return std::nullopt;
       }
-      binary::BinaryDecoder event_decoder{event_field_list.body};
+      Decoder event_decoder{event_field_list.body};
       std::int32_t field_count = 0;
       if (!event_decoder.Decode(response.event_client_handle) ||
           !event_decoder.Decode(field_count) || field_count < 0) {
@@ -1565,13 +1565,13 @@ struct DecodedRepublishResponse {
 
 std::optional<DecodedRepublishResponse> DecodeRepublishResponse(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kRepublishResponseBinaryEncodingId) {
+      message->first != kRepublishResponseEncodingId) {
     return std::nullopt;
   }
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   DecodedRepublishResponse response;
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
@@ -1580,7 +1580,7 @@ std::optional<DecodedRepublishResponse> DecodeRepublishResponse(
   scada::NodeId ignored_header_extension;
   std::int64_t ignored_publish_time = 0;
   std::int32_t notification_count = 0;
-  binary::DecodedExtensionObject notification_data;
+  DecodedExtensionObject notification_data;
   std::int32_t item_count = 0;
   scada::UInt32 client_handle = 0;
   std::uint8_t value_mask = 0;
@@ -1601,7 +1601,7 @@ std::optional<DecodedRepublishResponse> DecodeRepublishResponse(
       notification_data.type_id != 811 || notification_data.encoding != 0x01) {
     return std::nullopt;
   }
-  binary::BinaryDecoder notification_decoder{notification_data.body};
+  Decoder notification_decoder{notification_data.body};
   if (!notification_decoder.Decode(item_count) || item_count != 1 ||
       !notification_decoder.Decode(client_handle) ||
       !notification_decoder.Decode(value_mask) || (value_mask & 0x01) == 0 ||
@@ -1630,14 +1630,14 @@ std::optional<DecodedRepublishResponse> DecodeRepublishResponse(
 
 std::optional<std::vector<std::uint32_t>> DecodeTransferSubscriptionsResponseResults(
     const std::vector<char>& payload) {
-  binary::BinaryDecoder message_decoder{payload};
-  const auto message = binary::ReadMessage(message_decoder);
+  Decoder message_decoder{payload};
+  const auto message = ReadMessage(message_decoder);
   if (!message.has_value() ||
-      message->first != kTransferSubscriptionsResponseBinaryEncodingId) {
+      message->first != kTransferSubscriptionsResponseEncodingId) {
     return std::nullopt;
   }
 
-  binary::BinaryDecoder decoder{message->second};
+  Decoder decoder{message->second};
   std::int64_t ignored_timestamp = 0;
   std::uint32_t ignored_request_handle = 0;
   std::uint32_t status = 0;
@@ -1689,12 +1689,12 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
-class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
+class ServiceDispatcherTest : public ::testing::Test {
  protected:
   void RunPeer(const std::shared_ptr<StreamPeerState>& peer,
-               OpcUaBinaryServiceDispatcher& dispatcher) {
+               ServiceDispatcher& dispatcher) {
     WaitAwaitable(executor_,
-                  OpcUaBinaryTcpConnection{
+                  TcpConnection{
                       {.transport = transport::any_transport{
                            ScriptedStreamTransport{any_executor_, peer}},
                        .limits = server_limits_,
@@ -1712,7 +1712,7 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
-  const OpcUaBinaryTransportLimits server_limits_{
+  const TransportLimits server_limits_{
       .protocol_version = 0,
       .receive_buffer_size = 8192,
       .send_buffer_size = 4096,
@@ -1725,7 +1725,7 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
   StrictMock<scada::MockMethodService> method_service_;
   StrictMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
-  OpcUaServerSessionManager session_manager_{{
+  ServerSessionManager session_manager_{{
       .authenticator = scada::MakeCoroutineAuthenticator(
           [this](scada::LocalizedText user_name,
                  scada::LocalizedText password)
@@ -1737,8 +1737,8 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
           }),
       .now = [this] { return now_; },
   }};
-  OpcUaBinaryConnectionState connection_;
-  OpcUaBinaryRuntime runtime_{{
+  ConnectionState connection_;
+  Runtime runtime_{{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
@@ -1751,9 +1751,9 @@ class OpcUaBinaryServiceDispatcherTest : public ::testing::Test {
   }};
 };
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        ActivateSessionWithUnknownAuthenticationTokenReturnsNoPayload) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -1765,9 +1765,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_FALSE(activated.has_value());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        CloseSessionWithUnknownAuthenticationTokenReturnsLoggedOff) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -1777,16 +1777,16 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
           EncodeCloseSessionRequestBody(1, NumericNode(999, 3))));
   ASSERT_TRUE(closed.has_value());
   const auto close_status =
-      DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
+      DecodeResponseStatus(*closed, kCloseSessionResponseEncodingId);
   ASSERT_TRUE(close_status.has_value());
   EXPECT_EQ(*close_status,
             scada::Status(scada::StatusCode::Bad_SessionIsLoggedOff)
                 .full_code());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
-       HandlesActivateAndCloseSessionOverBinaryPayload) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest,
+       HandlesActivateAndCloseSessionOverPayload) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -1802,7 +1802,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
           2, session->authentication_token, "operator", "secret")));
   ASSERT_TRUE(activated.has_value());
   const auto activate_status =
-      DecodeResponseStatus(*activated, kActivateSessionResponseBinaryEncodingId);
+      DecodeResponseStatus(*activated, kActivateSessionResponseEncodingId);
   ASSERT_TRUE(activate_status.has_value());
   EXPECT_EQ(*activate_status, 0u);
   ASSERT_TRUE(connection_.authentication_token.has_value());
@@ -1814,15 +1814,15 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
           EncodeCloseSessionRequestBody(3, session->authentication_token)));
   ASSERT_TRUE(closed.has_value());
   const auto close_status =
-      DecodeResponseStatus(*closed, kCloseSessionResponseBinaryEncodingId);
+      DecodeResponseStatus(*closed, kCloseSessionResponseEncodingId);
   ASSERT_TRUE(close_status.has_value());
   EXPECT_EQ(*close_status, 0u);
   EXPECT_FALSE(connection_.authentication_token.has_value());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesReadAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -1863,14 +1863,14 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_DOUBLE_EQ(*value, 42.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        BootstrapsAndReadsEndToEndOverTcpConnection) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
   auto peer = std::make_shared<StreamPeerState>();
-  const auto hello = EncodeBinaryHelloMessage(
+  const auto hello = EncodeHelloMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 16384,
        .send_buffer_size = 2048,
@@ -1879,11 +1879,11 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        .endpoint_url = "opc.tcp://localhost:4840"});
   const auto open = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -1892,33 +1892,33 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
        .body = EncodeOpenRequestBody(1)});
   const auto create = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureMessage,
+           {.message_type = MessageType::SecureMessage,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 1,
        .symmetric_security_header =
-           OpcUaBinarySymmetricSecurityHeader{.token_id = 1},
+           SymmetricSecurityHeader{.token_id = 1},
        .sequence_header = {.sequence_number = 2, .request_id = 10},
        .body = EncodeCreateSessionRequestBody(10, 45000)});
   const auto activate = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureMessage,
+           {.message_type = MessageType::SecureMessage,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 1,
        .symmetric_security_header =
-           OpcUaBinarySymmetricSecurityHeader{.token_id = 1},
+           SymmetricSecurityHeader{.token_id = 1},
        .sequence_header = {.sequence_number = 3, .request_id = 11},
        .body = EncodeUserNameActivateRequestBody(
            11, NumericNode(1, 3), "operator", "secret")});
   const auto read = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureMessage,
+           {.message_type = MessageType::SecureMessage,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 1,
        .symmetric_security_header =
-           OpcUaBinarySymmetricSecurityHeader{.token_id = 1},
+           SymmetricSecurityHeader{.token_id = 1},
        .sequence_header = {.sequence_number = 4, .request_id = 12},
        .body = EncodeReadRequestBody(
            12, NumericNode(1, 3),
@@ -1952,8 +1952,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_DOUBLE_EQ(*value, 12.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -1995,8 +1995,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2045,9 +2045,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
   EXPECT_EQ(reference->node_id, NumericNode(99));
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesBrowseNextAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2093,7 +2093,7 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
           3, session->authentication_token, browse_description, 1)));
   ASSERT_TRUE(browsed.has_value());
 
-  const auto browse_page = DecodeSingleBrowseResult(*browsed, kBrowseResponseBinaryEncodingId);
+  const auto browse_page = DecodeSingleBrowseResult(*browsed, kBrowseResponseEncodingId);
   ASSERT_TRUE(browse_page.has_value());
   const auto paged_reference = DecodeSingleBrowseReference(*browsed);
   ASSERT_TRUE(paged_reference.has_value());
@@ -2117,9 +2117,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_TRUE(result->continuation_point.empty());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesTranslateBrowsePathsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2168,9 +2168,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(target->remaining_path_index, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesHistoryReadRawAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2229,9 +2229,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_DOUBLE_EQ(decoded->values[0].value.get<scada::Double>(), 42.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        RejectsHistoryReadRawWithoutActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2251,9 +2251,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_TRUE(decoded->continuation_point.empty());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesHistoryReadEventsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2326,9 +2326,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(decoded->events[0][6].get<scada::UInt32>(), 700u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        RejectsHistoryReadEventsWithoutActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2346,9 +2346,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_TRUE(decoded->events.empty());
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesCreateSubscriptionAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2381,9 +2381,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(decoded->revised_max_keep_alive_count, 3u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesModifySubscriptionAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2428,9 +2428,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(decoded_modified->revised_max_keep_alive_count, 5u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesSetPublishingModeAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2469,9 +2469,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesDeleteSubscriptionsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2509,9 +2509,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesCreateMonitoredItemsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2565,9 +2565,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
                 .attribute_id = scada::AttributeId::Value}));
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        DecodesDataChangeFilterForCreateMonitoredItems) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2606,11 +2606,11 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
             .requested_parameters =
                 {.client_handle = 44,
                  .sampling_interval_ms = 0,
-                 .filter = OpcUaMonitoringFilter{
-                     OpcUaDataChangeFilter{
+                 .filter = MonitoringFilter{
+                     DataChangeFilter{
                          .trigger =
-                             OpcUaDataChangeTrigger::StatusValueTimestamp,
-                         .deadband_type = OpcUaDeadbandType::Absolute,
+                             DataChangeTrigger::StatusValueTimestamp,
+                         .deadband_type = DeadbandType::Absolute,
                          .deadband_value = 1.5}},
                  .queue_size = 1,
                  .discard_oldest = true}}})));
@@ -2626,9 +2626,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_DOUBLE_EQ(filter->deadband_value, 1.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesModifyMonitoredItemsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2699,8 +2699,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(*monitored_item_service_.created_parameters[1].queue_size, 3u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2763,9 +2763,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesPublishAfterActivatedSession) {
   EXPECT_DOUBLE_EQ(decoded->data_change_value, 12.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
-       HandlesEventPublishWithBinaryEventFilterAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest,
+       HandlesEventPublishWithEventFilterAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2804,8 +2804,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
             .requested_parameters =
                 {.client_handle = 55,
                  .sampling_interval_ms = 0,
-                 .filter = OpcUaMonitoringFilter{
-                     scada::opcua_endpoint::BuildEventFilter(
+                 .filter = MonitoringFilter{
+                     BuildEventFilter(
                          std::vector<std::vector<std::string>>{
                              {"Message"},
                              {"Severity"},
@@ -2845,9 +2845,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(decoded->event_fields[2].get<scada::UInt64>(), 77u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesPublishAcknowledgementsAndKeepAliveAfterDisablingPublishing) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -2932,8 +2932,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_THAT(decoded_keep_alive->acknowledgement_results, ElementsAre(0u));
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesRepublishAfterPublish) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesRepublishAfterPublish) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3003,9 +3003,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesRepublishAfterPublish) {
   EXPECT_DOUBLE_EQ(decoded_republish->data_change_value, 12.5);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesTransferSubscriptionsAcrossActivatedSessions) {
-  OpcUaBinaryServiceDispatcher source_dispatcher{
+  ServiceDispatcher source_dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3052,8 +3052,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   monitored_item_service_.items[0]->NotifyDataChange(
       scada::DataValue{scada::Variant{77.0}, {}, now_, now_});
 
-  OpcUaBinaryConnectionState target_connection;
-  OpcUaBinaryServiceDispatcher target_dispatcher{
+  ConnectionState target_connection;
+  ServiceDispatcher target_dispatcher{
       {.runtime = runtime_,
        .connection = target_connection}};
 
@@ -3094,9 +3094,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_DOUBLE_EQ(target_decoded->data_change_value, 77.0);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesSetMonitoringModeAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3146,18 +3146,18 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
       dispatcher.HandlePayload(EncodeSetMonitoringModeRequestBody(
           5, session->authentication_token,
           decoded_subscription->subscription_id,
-          OpcUaMonitoringMode::Sampling,
+          MonitoringMode::Sampling,
           {decoded_items->result.monitored_item_id})));
   ASSERT_TRUE(set_mode.has_value());
   const auto status = DecodeSingleResultStatus(
-      *set_mode, kSetMonitoringModeResponseBinaryEncodingId);
+      *set_mode, kSetMonitoringModeResponseEncodingId);
   ASSERT_TRUE(status.has_value());
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesDeleteMonitoredItemsAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3210,13 +3210,13 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
           {decoded_items->result.monitored_item_id})));
   ASSERT_TRUE(deleted.has_value());
   const auto status = DecodeSingleResultStatus(
-      *deleted, kDeleteMonitoredItemsResponseBinaryEncodingId);
+      *deleted, kDeleteMonitoredItemsResponseEncodingId);
   ASSERT_TRUE(status.has_value());
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesCallAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3258,8 +3258,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesCallAfterActivatedSession) {
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3298,8 +3298,8 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+TEST_F(ServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3346,9 +3346,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
   EXPECT_EQ(result->added_node_id, NumericNode(54));
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesDeleteReferencesAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3392,9 +3392,9 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
   EXPECT_EQ(*status, 0u);
 }
 
-TEST_F(OpcUaBinaryServiceDispatcherTest,
+TEST_F(ServiceDispatcherTest,
        HandlesAddReferencesAfterActivatedSession) {
-  OpcUaBinaryServiceDispatcher dispatcher{
+  ServiceDispatcher dispatcher{
       {.runtime = runtime_,
        .connection = connection_}};
 
@@ -3441,4 +3441,4 @@ TEST_F(OpcUaBinaryServiceDispatcherTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

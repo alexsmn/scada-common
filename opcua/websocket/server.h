@@ -1,21 +1,21 @@
 #pragma once
 
-#include "opcua/websocket/runtime.h"
+#include "opcua/server_runtime.h"
 
 #include <transport/any_transport.h>
 #include <transport/error.h>
 
 namespace opcua {
 
-struct OpcUaWsServerContext {
+struct WsServerContext {
   transport::any_transport acceptor;
-  OpcUaWsRuntime& runtime;
+  ServerRuntime& runtime;
   size_t max_message_size = 4 * 1024 * 1024;
 };
 
-class OpcUaWsServer : private OpcUaWsServerContext {
+class WsServer : private WsServerContext {
  public:
-  explicit OpcUaWsServer(OpcUaWsServerContext&& context);
+  explicit WsServer(WsServerContext&& context);
 
   [[nodiscard]] Awaitable<transport::error_code> Open();
   [[nodiscard]] Awaitable<transport::error_code> Close();

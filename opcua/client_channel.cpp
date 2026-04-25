@@ -4,35 +4,35 @@
 
 namespace opcua {
 
-OpcUaClientChannel::OpcUaClientChannel(Context context)
+ClientChannel::ClientChannel(Context context)
     : connection_{context.connection},
       authentication_token_{std::move(context.authentication_token)} {}
 
-std::uint32_t OpcUaClientChannel::NextRequestHandle() {
+std::uint32_t ClientChannel::NextRequestHandle() {
   return next_request_handle_++;
 }
 
-void OpcUaClientChannel::set_authentication_token(scada::NodeId token) {
+void ClientChannel::set_authentication_token(scada::NodeId token) {
   authentication_token_ = std::move(token);
 }
 
-Awaitable<scada::StatusOr<OpcUaResponseBody>>
-OpcUaClientChannel::Call(std::uint32_t request_handle,
-                         OpcUaRequestBody request) {
+Awaitable<scada::StatusOr<ResponseBody>>
+ClientChannel::Call(std::uint32_t request_handle,
+                         RequestBody request) {
   auto request_id = co_await Send(request_handle, std::move(request));
   if (!request_id.ok()) {
-    co_return scada::StatusOr<OpcUaResponseBody>{request_id.status()};
+    co_return scada::StatusOr<ResponseBody>{request_id.status()};
   }
   co_return co_await Receive(*request_id, request_handle);
 }
 
-Awaitable<scada::StatusOr<std::uint32_t>> OpcUaClientChannel::Send(
+Awaitable<scada::StatusOr<std::uint32_t>> ClientChannel::Send(
     std::uint32_t request_handle,
-    OpcUaRequestBody request) {
+    RequestBody request) {
   const std::uint32_t request_id = connection_.NextRequestId();
   const auto send_status = co_await connection_.SendRequest(
       request_id,
-      OpcUaRequestMessage{.request_handle = request_handle,
+      RequestMessage{.request_handle = request_handle,
                           .body = std::move(request)},
       authentication_token_);
   if (send_status.bad()) {
@@ -41,32 +41,32 @@ Awaitable<scada::StatusOr<std::uint32_t>> OpcUaClientChannel::Send(
   co_return scada::StatusOr<std::uint32_t>{request_id};
 }
 
-Awaitable<scada::StatusOr<OpcUaResponseBody>> OpcUaClientChannel::Receive(
+Awaitable<scada::StatusOr<ResponseBody>> ClientChannel::Receive(
     std::uint32_t request_id,
     std::uint32_t request_handle) {
   if (auto it = buffered_responses_.find(request_id);
       it != buffered_responses_.end()) {
     if (it->second.request_handle != request_handle) {
-      co_return scada::StatusOr<OpcUaResponseBody>{
+      co_return scada::StatusOr<ResponseBody>{
           scada::Status{scada::StatusCode::Bad}};
     }
     auto body = std::move(it->second.body);
     buffered_responses_.erase(it);
-    co_return scada::StatusOr<OpcUaResponseBody>{std::move(body)};
+    co_return scada::StatusOr<ResponseBody>{std::move(body)};
   }
 
   for (;;) {
     auto response_frame = co_await connection_.ReadResponse();
     if (!response_frame.ok()) {
-      co_return scada::StatusOr<OpcUaResponseBody>{response_frame.status()};
+      co_return scada::StatusOr<ResponseBody>{response_frame.status()};
     }
 
     if (response_frame->request_id == request_id) {
       if (response_frame->message.request_handle != request_handle) {
-        co_return scada::StatusOr<OpcUaResponseBody>{
+        co_return scada::StatusOr<ResponseBody>{
             scada::Status{scada::StatusCode::Bad}};
       }
-      co_return scada::StatusOr<OpcUaResponseBody>{
+      co_return scada::StatusOr<ResponseBody>{
           std::move(response_frame->message.body)};
     }
 

@@ -1,27 +1,23 @@
-#include "opcua/websocket/runtime.h"
+#include "opcua/server_runtime.h"
 
 #include "opcua/server_runtime_contract_test.h"
 
 #include <future>
 #include <gtest/gtest.h>
-#include <type_traits>
 
 namespace opcua {
 namespace {
 
-class OpcUaWsRuntimeTest
+class WsRuntimeTest
     : public testing::Test,
-      public opcua::test::OpcUaServerRuntimeContractTestBase {
+      public test::ServerRuntimeContractTestBase {
  public:
-  using ConnectionState = OpcUaWsConnectionState;
-
-  static_assert(std::is_same_v<opcua::OpcUaRequestBody, opcua::OpcUaRequestBody>);
-  static_assert(std::is_same_v<opcua::OpcUaResponseBody, opcua::OpcUaResponseBody>);
+  using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
                                                                  std::move(request)}));
     if (const auto* typed = std::get_if<Response>(&body))
       return *typed;
@@ -32,13 +28,13 @@ class OpcUaWsRuntimeTest
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       ConnectionState& connection) {
     const auto created =
-        HandleResponse<opcua::OpcUaCreateSessionResponse>(
-            connection, opcua::OpcUaCreateSessionRequest{});
+        HandleResponse<CreateSessionResponse>(
+            connection, CreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
-    const auto activated = HandleResponse<opcua::OpcUaActivateSessionResponse>(
+    const auto activated = HandleResponse<ActivateSessionResponse>(
         connection,
-        opcua::OpcUaActivateSessionRequest{
+        ActivateSessionRequest{
             .session_id = created.session_id,
             .authentication_token = created.authentication_token,
             .user_name = scada::LocalizedText{u"operator"},
@@ -53,11 +49,11 @@ class OpcUaWsRuntimeTest
 
   scada::StatusCode ReadStatus(ConnectionState& connection, ReadRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<ReadResponse>(&body))
       return response->status.code();
-    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
+    if (const auto* fault = std::get_if<ServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
@@ -65,11 +61,11 @@ class OpcUaWsRuntimeTest
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadRawResponse>(&body))
       return response->result.status.code();
-    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
+    if (const auto* fault = std::get_if<ServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
@@ -77,16 +73,16 @@ class OpcUaWsRuntimeTest
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
     const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, opcua::OpcUaRequestBody{
+        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
                                                                  std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadEventsResponse>(&body))
       return response->result.status.code();
-    if (const auto* fault = std::get_if<opcua::OpcUaServiceFault>(&body))
+    if (const auto* fault = std::get_if<ServiceFault>(&body))
       return fault->status.code();
     return scada::StatusCode::Bad;
   }
 
-  OpcUaWsRuntime runtime_{OpcUaWsRuntimeContext{
+  ServerRuntime runtime_{ServerRuntimeContext{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
@@ -103,87 +99,87 @@ class OpcUaWsRuntimeTest
   }};
 };
 
-TEST_F(OpcUaWsRuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
+TEST_F(WsRuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
+TEST_F(WsRuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
+TEST_F(WsRuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, PreservesLiveSubscriptionStateAcrossDetachAndResume) {
-  opcua::test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
+TEST_F(WsRuntimeTest, PreservesLiveSubscriptionStateAcrossDetachAndResume) {
+  test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, TransfersSubscriptionsAcrossSessions) {
-  opcua::test::ExpectTransfersSubscriptionsAcrossSessions(*this);
+TEST_F(WsRuntimeTest, TransfersSubscriptionsAcrossSessions) {
+  test::ExpectTransfersSubscriptionsAcrossSessions(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, CloseSessionClearsAttachedState) {
-  opcua::test::ExpectCloseSessionClearsAttachedState(*this);
+TEST_F(WsRuntimeTest, CloseSessionClearsAttachedState) {
+  test::ExpectCloseSessionClearsAttachedState(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, RejectsHistoryReadRawWithoutActivatedSession) {
-  opcua::test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
+TEST_F(WsRuntimeTest, RejectsHistoryReadRawWithoutActivatedSession) {
+  test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest,
+TEST_F(WsRuntimeTest,
        HistoryReadRawPreservesPayloadThroughActivatedSession) {
-  opcua::test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
+  test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
-  opcua::test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
+TEST_F(WsRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
+  test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest,
+TEST_F(WsRuntimeTest,
        HistoryReadEventsPreservesPayloadThroughActivatedSession) {
-  opcua::test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
+  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
       *this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
-  opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+TEST_F(WsRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+  test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, NodeManagementMutationsPreserveBatchResults) {
-  opcua::test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
+TEST_F(WsRuntimeTest, NodeManagementMutationsPreserveBatchResults) {
+  test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
-  opcua::test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
+TEST_F(WsRuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
+  test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
-  opcua::test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
+TEST_F(WsRuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
+  test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
 }
 
-TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
-  OpcUaWsConnectionState connection;
+TEST_F(WsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
+  ConnectionState connection;
   CreateAndActivate(connection);
 
   const auto created_subscription =
-      HandleResponse<opcua::OpcUaCreateSubscriptionResponse>(
+      HandleResponse<CreateSubscriptionResponse>(
           connection,
-          opcua::OpcUaCreateSubscriptionRequest{
+          CreateSubscriptionRequest{
               .parameters = {.publishing_interval_ms = 100,
                              .lifetime_count = 60,
                              .max_keep_alive_count = 3,
                              .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
-  promise<opcua::OpcUaResponseBody> publish_promise;
+  promise<ResponseBody> publish_promise;
   CoSpawn(MakeTestAnyExecutor(executor_),
           [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
             try {
               publish_promise.resolve(
                   co_await runtime_.Handle(connection,
-                                           opcua::OpcUaRequestBody{
-                                               opcua::OpcUaPublishRequest{}}));
+                                           RequestBody{
+                                               PublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
             }
@@ -204,7 +200,7 @@ TEST_F(OpcUaWsRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
 
   const auto publish_message = publish_promise.get();
   const auto* publish =
-      std::get_if<opcua::OpcUaPublishResponse>(&publish_message);
+      std::get_if<PublishResponse>(&publish_message);
   ASSERT_NE(publish, nullptr);
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(publish->notification_message.notification_data.empty());

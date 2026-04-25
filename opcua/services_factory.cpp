@@ -2,11 +2,13 @@
 #include "opcua/client_session.h"
 #include "scada/data_services_factory.h"
 
-bool CreateOpcUaServices(const DataServicesContext& context,
-                         DataServices& services) {
+namespace opcua {
+
+bool CreateServices(const DataServicesContext& context,
+                    DataServices& services) {
   try {
-    auto session = std::make_shared<opcua::OpcUaClientSession>(
-        context.executor, context.transport_factory);
+    auto session = std::make_shared<ClientSession>(context.executor,
+                                                  context.transport_factory);
     services = {.session_service_ = session,
                 .view_service_ = session,
                 .attribute_service_ = session,
@@ -18,3 +20,5 @@ bool CreateOpcUaServices(const DataServicesContext& context,
     return false;
   }
 }
+
+}  // namespace opcua

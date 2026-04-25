@@ -7,7 +7,7 @@ namespace opcua {
 
 transport::error_code ConfigureServerTlsContext(
     boost::asio::ssl::context& context,
-    const OpcUaWsTlsContextConfig& config) {
+    const WsTlsContextConfig& config) {
   boost::system::error_code ec;
 
   context.set_options(boost::asio::ssl::context::default_workarounds |

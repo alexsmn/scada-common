@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 std::vector<char> SubspanToVector(const std::vector<char>& bytes,
@@ -15,8 +15,8 @@ std::vector<char> SubspanToVector(const std::vector<char>& bytes,
 
 }  // namespace
 
-OpcUaBinaryClientTransport::OpcUaBinaryClientTransport(
-    OpcUaBinaryClientTransportContext&& context)
+ClientTransport::ClientTransport(
+    ClientTransportContext&& context)
     : transport_{std::move(context.transport)},
       endpoint_url_{std::move(context.endpoint_url)},
       limits_{context.limits},
@@ -24,13 +24,13 @@ OpcUaBinaryClientTransport::OpcUaBinaryClientTransport(
       max_frame_size_{context.max_frame_size},
       write_queue_{transport_} {}
 
-Awaitable<scada::Status> OpcUaBinaryClientTransport::Connect() {
+Awaitable<scada::Status> ClientTransport::Connect() {
   auto open_result = co_await transport_.open();
   if (open_result) {
     co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
 
-  const OpcUaBinaryHelloMessage hello{
+  const HelloMessage hello{
       .protocol_version = limits_.protocol_version,
       .receive_buffer_size = limits_.receive_buffer_size,
       .send_buffer_size = limits_.send_buffer_size,
@@ -38,7 +38,7 @@ Awaitable<scada::Status> OpcUaBinaryClientTransport::Connect() {
       .max_chunk_count = limits_.max_chunk_count,
       .endpoint_url = endpoint_url_,
   };
-  const auto hello_bytes = EncodeBinaryHelloMessage(hello);
+  const auto hello_bytes = EncodeHelloMessage(hello);
   auto write_result =
       co_await write_queue_.Write({hello_bytes.data(), hello_bytes.size()});
   if (!write_result.ok()) {
@@ -50,14 +50,14 @@ Awaitable<scada::Status> OpcUaBinaryClientTransport::Connect() {
     co_return first_frame.status();
   }
 
-  const auto frame_header = DecodeBinaryFrameHeader(*first_frame);
+  const auto frame_header = DecodeFrameHeader(*first_frame);
   if (!frame_header.has_value()) {
     co_return scada::Status{scada::StatusCode::Bad};
   }
 
   switch (frame_header->message_type) {
-    case OpcUaBinaryMessageType::Acknowledge: {
-      const auto ack = DecodeBinaryAcknowledgeMessage(*first_frame);
+    case MessageType::Acknowledge: {
+      const auto ack = DecodeAcknowledgeMessage(*first_frame);
       if (!ack.has_value()) {
         co_return scada::Status{scada::StatusCode::Bad};
       }
@@ -66,8 +66,8 @@ Awaitable<scada::Status> OpcUaBinaryClientTransport::Connect() {
       co_return scada::Status{scada::StatusCode::Good};
     }
 
-    case OpcUaBinaryMessageType::Error: {
-      const auto error = DecodeBinaryErrorMessage(*first_frame);
+    case MessageType::Error: {
+      const auto error = DecodeErrorMessage(*first_frame);
       if (error.has_value()) {
         co_return error->error;
       }
@@ -80,11 +80,11 @@ Awaitable<scada::Status> OpcUaBinaryClientTransport::Connect() {
 }
 
 Awaitable<scada::StatusOr<std::vector<char>>>
-OpcUaBinaryClientTransport::ReadFrame() {
+ClientTransport::ReadFrame() {
   std::vector<char> read_buffer(read_buffer_size_);
   for (;;) {
     if (pending_bytes_.size() >= 8) {
-      const auto header = DecodeBinaryFrameHeader(std::vector<char>{
+      const auto header = DecodeFrameHeader(std::vector<char>{
           pending_bytes_.begin(), pending_bytes_.begin() + 8});
       if (!header.has_value() || header->message_size < 8 ||
           header->message_size > max_frame_size_) {
@@ -112,7 +112,7 @@ OpcUaBinaryClientTransport::ReadFrame() {
   }
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientTransport::WriteFrame(
+Awaitable<scada::Status> ClientTransport::WriteFrame(
     const std::vector<char>& frame) {
   auto write_result =
       co_await write_queue_.Write({frame.data(), frame.size()});
@@ -122,10 +122,10 @@ Awaitable<scada::Status> OpcUaBinaryClientTransport::WriteFrame(
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<void> OpcUaBinaryClientTransport::Close() {
+Awaitable<void> ClientTransport::Close() {
   open_ = false;
   [[maybe_unused]] auto close_result = co_await transport_.close();
   co_return;
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

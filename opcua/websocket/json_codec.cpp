@@ -1085,7 +1085,7 @@ HistoryReadEventsRequest DecodeHistoryReadEventsRequest(const value& json) {
 
 value EncodeCallRequest(const CallRequest& request) {
   return object{{"MethodsToCall",
-                 EncodeList(request.methods, [](const OpcUaMethodCallRequest& method) {
+                 EncodeList(request.methods, [](const MethodCallRequest& method) {
                    return object{{"ObjectId", EncodeNodeId(method.object_id)},
                                  {"MethodId", EncodeNodeId(method.method_id)},
                                  {"InputArguments",
@@ -1100,7 +1100,7 @@ CallRequest DecodeCallRequest(const value& json) {
     methods = FindField(obj, "Methods");
   if (!methods)
     ThrowJsonError("Missing MethodsToCall");
-  return {.methods = DecodeList<OpcUaMethodCallRequest>(
+  return {.methods = DecodeList<MethodCallRequest>(
               *methods,
               [](const value& entry) {
                 const auto& obj = RequireObject(entry);
@@ -1109,7 +1109,7 @@ CallRequest DecodeCallRequest(const value& json) {
                   arguments = FindField(obj, "Arguments");
                 if (!arguments)
                   ThrowJsonError("Missing InputArguments");
-                return OpcUaMethodCallRequest{
+                return MethodCallRequest{
                     .object_id = DecodeNodeId(RequireField(obj, "ObjectId")),
                     .method_id = DecodeNodeId(RequireField(obj, "MethodId")),
                     .arguments = DecodeList<scada::Variant>(
@@ -1357,7 +1357,7 @@ HistoryReadEventsResponse DecodeHistoryReadEventsResponse(const value& json) {
 
 value EncodeCallResponse(const CallResponse& response) {
   return object{{"Results",
-                 EncodeList(response.results, [](const OpcUaMethodCallResult& result) {
+                 EncodeList(response.results, [](const MethodCallResult& result) {
                    return object{
                        {"StatusCode", EncodeStatus(result.status)},
                        {"InputArgumentResults",
@@ -1368,7 +1368,7 @@ value EncodeCallResponse(const CallResponse& response) {
 }
 
 CallResponse DecodeCallResponse(const value& json) {
-  return {.results = DecodeList<OpcUaMethodCallResult>(
+  return {.results = DecodeList<MethodCallResult>(
               RequireField(RequireObject(json), "Results"), [](const value& entry) {
                 const auto& obj = RequireObject(entry);
                 const auto* status = FindField(obj, "StatusCode");
@@ -1376,7 +1376,7 @@ CallResponse DecodeCallResponse(const value& json) {
                   status = FindField(obj, "Status");
                 if (!status)
                   ThrowJsonError("Missing StatusCode");
-                return OpcUaMethodCallResult{
+                return MethodCallResult{
                     .status = DecodeStatus(*status),
                     .input_argument_results =
                         DecodeList<scada::StatusCode>(
@@ -1484,7 +1484,7 @@ constexpr std::string_view RequestServiceName<DeleteReferencesRequest>() {
 
 }  // namespace
 
-boost::json::value EncodeJson(const opcua::OpcUaServiceRequest& request) {
+boost::json::value EncodeJson(const ServiceRequest& request) {
   return std::visit(
       [](const auto& typed_request) -> value {
         object json;
@@ -1530,7 +1530,7 @@ boost::json::value EncodeJson(const opcua::OpcUaServiceRequest& request) {
       request);
 }
 
-boost::json::value EncodeJson(const opcua::OpcUaServiceResponse& response) {
+boost::json::value EncodeJson(const ServiceResponse& response) {
   return std::visit(
       [](const auto& typed_response) -> value {
         object json;
@@ -1577,7 +1577,7 @@ boost::json::value EncodeJson(const opcua::OpcUaServiceResponse& response) {
       response);
 }
 
-opcua::OpcUaServiceRequest DecodeServiceRequest(const boost::json::value& json) {
+ServiceRequest DecodeServiceRequest(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));
@@ -1608,7 +1608,7 @@ opcua::OpcUaServiceRequest DecodeServiceRequest(const boost::json::value& json) 
   ThrowJsonError("Unknown service request");
 }
 
-opcua::OpcUaServiceResponse DecodeServiceResponse(const boost::json::value& json) {
+ServiceResponse DecodeServiceResponse(const boost::json::value& json) {
   const auto& obj = RequireObject(json);
   const auto& body = RequireField(obj, "body");
   auto service = RequireString(RequireField(obj, "service"));

@@ -57,7 +57,7 @@ mCzxKIlbzMnhGhGlzdKwqs5Uhw==
 -----END PRIVATE KEY-----
 )";
 
-TEST(OpcUaWsTlsContextTest, LoadsValidPemCertificateAndKey) {
+TEST(WsTlsContextTest, LoadsValidPemCertificateAndKey) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_EQ(
@@ -68,7 +68,7 @@ TEST(OpcUaWsTlsContextTest, LoadsValidPemCertificateAndKey) {
       transport::OK);
 }
 
-TEST(OpcUaWsTlsContextTest, RejectsInvalidCertificatePem) {
+TEST(WsTlsContextTest, RejectsInvalidCertificatePem) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_NE(
@@ -79,7 +79,7 @@ TEST(OpcUaWsTlsContextTest, RejectsInvalidCertificatePem) {
       transport::OK);
 }
 
-TEST(OpcUaWsTlsContextTest, RejectsInvalidPrivateKeyPem) {
+TEST(WsTlsContextTest, RejectsInvalidPrivateKeyPem) {
   boost::asio::ssl::context context{boost::asio::ssl::context::tls_server};
 
   EXPECT_NE(

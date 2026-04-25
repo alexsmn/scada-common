@@ -17,7 +17,7 @@
 
 namespace opcua {
 
-struct OpcUaServerSessionContext {
+struct ServerSessionContext {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ServiceContext service_context;
@@ -25,14 +25,14 @@ struct OpcUaServerSessionContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
-class OpcUaServerSession : private OpcUaServerSessionContext {
+class ServerSession : private ServerSessionContext {
  public:
   struct PublishPollResult {
-    std::optional<OpcUaPublishResponse> response;
+    std::optional<PublishResponse> response;
     std::optional<base::TimeDelta> wait_for;
   };
 
-  explicit OpcUaServerSession(OpcUaServerSessionContext&& context);
+  explicit ServerSession(ServerSessionContext&& context);
 
   const scada::NodeId& GetSessionId() const {
     return this->session_id;
@@ -44,41 +44,41 @@ class OpcUaServerSession : private OpcUaServerSessionContext {
     return this->service_context;
   }
 
-  OpcUaCreateSubscriptionResponse CreateSubscription(
-      const OpcUaCreateSubscriptionRequest& request);
-  OpcUaCreateSubscriptionResponse CreateSubscriptionWithId(
-      OpcUaSubscriptionId subscription_id,
-      const OpcUaCreateSubscriptionRequest& request);
-  OpcUaModifySubscriptionResponse ModifySubscription(
-      const OpcUaModifySubscriptionRequest& request);
-  OpcUaSetPublishingModeResponse SetPublishingMode(
-      const OpcUaSetPublishingModeRequest& request);
-  OpcUaDeleteSubscriptionsResponse DeleteSubscriptions(
-      const OpcUaDeleteSubscriptionsRequest& request);
-  OpcUaTransferSubscriptionsResponse TransferSubscriptionsFrom(
-      OpcUaServerSession& source,
-      const OpcUaTransferSubscriptionsRequest& request);
+  CreateSubscriptionResponse CreateSubscription(
+      const CreateSubscriptionRequest& request);
+  CreateSubscriptionResponse CreateSubscriptionWithId(
+      SubscriptionId subscription_id,
+      const CreateSubscriptionRequest& request);
+  ModifySubscriptionResponse ModifySubscription(
+      const ModifySubscriptionRequest& request);
+  SetPublishingModeResponse SetPublishingMode(
+      const SetPublishingModeRequest& request);
+  DeleteSubscriptionsResponse DeleteSubscriptions(
+      const DeleteSubscriptionsRequest& request);
+  TransferSubscriptionsResponse TransferSubscriptionsFrom(
+      ServerSession& source,
+      const TransferSubscriptionsRequest& request);
 
-  OpcUaCreateMonitoredItemsResponse CreateMonitoredItems(
-      const OpcUaCreateMonitoredItemsRequest& request);
-  OpcUaModifyMonitoredItemsResponse ModifyMonitoredItems(
-      const OpcUaModifyMonitoredItemsRequest& request);
-  OpcUaDeleteMonitoredItemsResponse DeleteMonitoredItems(
-      const OpcUaDeleteMonitoredItemsRequest& request);
-  OpcUaSetMonitoringModeResponse SetMonitoringMode(
-      const OpcUaSetMonitoringModeRequest& request);
+  CreateMonitoredItemsResponse CreateMonitoredItems(
+      const CreateMonitoredItemsRequest& request);
+  ModifyMonitoredItemsResponse ModifyMonitoredItems(
+      const ModifyMonitoredItemsRequest& request);
+  DeleteMonitoredItemsResponse DeleteMonitoredItems(
+      const DeleteMonitoredItemsRequest& request);
+  SetMonitoringModeResponse SetMonitoringMode(
+      const SetMonitoringModeRequest& request);
 
   std::vector<scada::StatusCode> AcknowledgePublishRequest(
-      const OpcUaPublishRequest& request);
+      const PublishRequest& request);
   PublishPollResult PollPublish();
-  OpcUaPublishResponse Publish(const OpcUaPublishRequest& request);
-  OpcUaRepublishResponse Republish(const OpcUaRepublishRequest& request) const;
+  PublishResponse Publish(const PublishRequest& request);
+  RepublishResponse Republish(const RepublishRequest& request) const;
   BrowseResponse StoreBrowseResults(
       BrowseResponse response,
       size_t requested_max_references_per_node);
   BrowseNextResponse BrowseNext(const BrowseNextRequest& request);
-  std::vector<OpcUaSubscriptionId> GetSubscriptionIds() const;
-  bool HasSubscription(OpcUaSubscriptionId subscription_id) const;
+  std::vector<SubscriptionId> GetSubscriptionIds() const;
+  bool HasSubscription(SubscriptionId subscription_id) const;
 
  private:
   struct ByteStringHash {
@@ -90,16 +90,16 @@ class OpcUaServerSession : private OpcUaServerSessionContext {
   };
 
   using SubscriptionMap =
-      std::unordered_map<OpcUaSubscriptionId,
-                         std::unique_ptr<OpcUaServerSubscription>>;
+      std::unordered_map<SubscriptionId,
+                         std::unique_ptr<ServerSubscription>>;
   using BrowseContinuationMap =
       std::unordered_map<scada::ByteString, BrowseContinuationState, ByteStringHash>;
 
   base::Time Now() const { return this->now(); }
-  OpcUaServerSubscription* FindSubscription(OpcUaSubscriptionId subscription_id);
-  const OpcUaServerSubscription* FindSubscription(
-      OpcUaSubscriptionId subscription_id) const;
-  void EraseSubscription(OpcUaSubscriptionId subscription_id);
+  ServerSubscription* FindSubscription(SubscriptionId subscription_id);
+  const ServerSubscription* FindSubscription(
+      SubscriptionId subscription_id) const;
+  void EraseSubscription(SubscriptionId subscription_id);
   void AdvancePublishCursorAfter(size_t index);
   size_t FindNextReadySubscription(base::Time now, bool require_pending) const;
   void RefreshNextSubscriptionId();
@@ -112,8 +112,8 @@ class OpcUaServerSession : private OpcUaServerSessionContext {
 
   SubscriptionMap subscriptions_;
   BrowseContinuationMap browse_continuations_;
-  std::vector<OpcUaSubscriptionId> publish_order_;
-  OpcUaSubscriptionId next_subscription_id_ = 1;
+  std::vector<SubscriptionId> publish_order_;
+  SubscriptionId next_subscription_id_ = 1;
   size_t next_publish_index_ = 0;
   scada::UInt32 next_browse_continuation_id_ = 1;
 };

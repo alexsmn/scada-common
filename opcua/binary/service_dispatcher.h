@@ -5,23 +5,23 @@
 #include "opcua/binary/runtime.h"
 #include "opcua/server_session_manager.h"
 
-namespace opcua {
+namespace opcua::binary {
 
-class OpcUaBinaryServiceDispatcher {
+class ServiceDispatcher {
  public:
   struct Context {
-    OpcUaBinaryRuntime& runtime;
-    OpcUaBinaryConnectionState& connection;
+    Runtime& runtime;
+    ConnectionState& connection;
   };
 
-  explicit OpcUaBinaryServiceDispatcher(Context context);
+  explicit ServiceDispatcher(Context context);
 
   [[nodiscard]] Awaitable<std::optional<std::vector<char>>> HandlePayload(
       std::vector<char> payload);
 
  private:
-  OpcUaBinaryRuntime& runtime_;
-  OpcUaBinaryConnectionState& connection_;
+  Runtime& runtime_;
+  ConnectionState& connection_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

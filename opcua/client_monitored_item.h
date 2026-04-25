@@ -9,24 +9,24 @@
 
 namespace opcua {
 
-class OpcUaClientSubscription;
+class ClientSubscription;
 
 // scada::MonitoredItem instance returned to the Qt client from
-// OpcUaClientSession::CreateMonitoredItem. Subscribe() binds a handler and
+// ClientSession::CreateMonitoredItem. Subscribe() binds a handler and
 // launches the server-side monitored item through the owning subscription;
 // the destructor unsubscribes.
-class OpcUaMonitoredItem final : public scada::MonitoredItem {
+class MonitoredItem final : public scada::MonitoredItem {
  public:
-  OpcUaMonitoredItem(std::shared_ptr<OpcUaClientSubscription> subscription,
+  MonitoredItem(std::shared_ptr<ClientSubscription> subscription,
                      std::uint32_t local_id,
                      scada::ReadValueId read_value_id,
                      scada::MonitoringParameters params);
-  ~OpcUaMonitoredItem() override;
+  ~MonitoredItem() override;
 
   void Subscribe(scada::MonitoredItemHandler handler) override;
 
  private:
-  const std::shared_ptr<OpcUaClientSubscription> subscription_;
+  const std::shared_ptr<ClientSubscription> subscription_;
   const std::uint32_t local_id_;
   const scada::ReadValueId read_value_id_;
   const scada::MonitoringParameters params_;

@@ -1,15 +1,15 @@
 #include "opcua/binary/runtime.h"
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 template <typename T>
-constexpr bool kIsBinarySessionRequest =
-    std::is_same_v<T, OpcUaCreateSessionRequest> ||
-    std::is_same_v<T, OpcUaActivateSessionRequest> ||
-    std::is_same_v<T, OpcUaCloseSessionRequest>;
+constexpr bool kIsSessionRequest =
+    std::is_same_v<T, CreateSessionRequest> ||
+    std::is_same_v<T, ActivateSessionRequest> ||
+    std::is_same_v<T, CloseSessionRequest>;
 
 template <typename Request>
-struct BinaryAuthenticatedRequestTraits;
+struct AuthenticatedRequestTraits;
 
 #define OPCUA_BINARY_AUTHENTICATED_REQUESTS(X)                                  \
   X(BrowseNextRequest, BrowseNextResponse)                                      \
@@ -24,40 +24,40 @@ struct BinaryAuthenticatedRequestTraits;
   X(AddNodesRequest, AddNodesResponse)                                          \
   X(DeleteReferencesRequest, DeleteReferencesResponse)                          \
   X(AddReferencesRequest, AddReferencesResponse)                                \
-  X(OpcUaCreateSubscriptionRequest, OpcUaCreateSubscriptionResponse)            \
-  X(OpcUaModifySubscriptionRequest, OpcUaModifySubscriptionResponse)            \
-  X(OpcUaSetPublishingModeRequest, OpcUaSetPublishingModeResponse)              \
-  X(OpcUaDeleteSubscriptionsRequest, OpcUaDeleteSubscriptionsResponse)          \
-  X(OpcUaCreateMonitoredItemsRequest, OpcUaCreateMonitoredItemsResponse)        \
-  X(OpcUaModifyMonitoredItemsRequest, OpcUaModifyMonitoredItemsResponse)        \
-  X(OpcUaPublishRequest, OpcUaPublishResponse)                                  \
-  X(OpcUaRepublishRequest, OpcUaRepublishResponse)                              \
-  X(OpcUaTransferSubscriptionsRequest, OpcUaTransferSubscriptionsResponse)      \
-  X(OpcUaDeleteMonitoredItemsRequest, OpcUaDeleteMonitoredItemsResponse)        \
-  X(OpcUaSetMonitoringModeRequest, OpcUaSetMonitoringModeResponse)
+  X(CreateSubscriptionRequest, CreateSubscriptionResponse)            \
+  X(ModifySubscriptionRequest, ModifySubscriptionResponse)            \
+  X(SetPublishingModeRequest, SetPublishingModeResponse)              \
+  X(DeleteSubscriptionsRequest, DeleteSubscriptionsResponse)          \
+  X(CreateMonitoredItemsRequest, CreateMonitoredItemsResponse)        \
+  X(ModifyMonitoredItemsRequest, ModifyMonitoredItemsResponse)        \
+  X(PublishRequest, PublishResponse)                                  \
+  X(RepublishRequest, RepublishResponse)                              \
+  X(TransferSubscriptionsRequest, TransferSubscriptionsResponse)      \
+  X(DeleteMonitoredItemsRequest, DeleteMonitoredItemsResponse)        \
+  X(SetMonitoringModeRequest, SetMonitoringModeResponse)
 
 #define OPCUA_BINARY_DECLARE_AUTH_TRAITS(Request, Response) \
   template <>                                               \
-  struct BinaryAuthenticatedRequestTraits<Request> {        \
+  struct AuthenticatedRequestTraits<Request> {        \
     using ResponseType = Response;                          \
   };
 OPCUA_BINARY_AUTHENTICATED_REQUESTS(OPCUA_BINARY_DECLARE_AUTH_TRAITS)
 #undef OPCUA_BINARY_DECLARE_AUTH_TRAITS
 
 template <typename Request>
-using BinaryAuthenticatedResponse =
-    typename BinaryAuthenticatedRequestTraits<Request>::ResponseType;
+using AuthenticatedResponse =
+    typename AuthenticatedRequestTraits<Request>::ResponseType;
 
 template <typename Request>
-concept BinaryAuthenticatedRequest =
-    requires { typename BinaryAuthenticatedResponse<Request>; };
+concept AuthenticatedRequest =
+    requires { typename AuthenticatedResponse<Request>; };
 
 #undef OPCUA_BINARY_AUTHENTICATED_REQUESTS
 }  // namespace
 
-OpcUaBinaryRuntime::OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context)
+Runtime::Runtime(RuntimeContext&& context)
     : session_manager_{context.session_manager},
-      runtime_{OpcUaServerRuntimeContext{
+      runtime_{ServerRuntimeContext{
           .executor = context.executor,
           .session_manager = context.session_manager,
           .monitored_item_service = context.monitored_item_service,
@@ -69,29 +69,29 @@ OpcUaBinaryRuntime::OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context)
           .now = std::move(context.now),
       }} {}
 
-Awaitable<OpcUaResponseBody> OpcUaBinaryRuntime::HandleBody(
-    OpcUaBinaryConnectionState& connection,
-    OpcUaRequestBody request) {
+Awaitable<ResponseBody> Runtime::HandleBody(
+    ConnectionState& connection,
+    RequestBody request) {
   co_return co_await runtime_.Handle(connection, std::move(request));
 }
 
-void OpcUaBinaryRuntime::Detach(OpcUaBinaryConnectionState& connection) {
+void Runtime::Detach(ConnectionState& connection) {
   runtime_.Detach(connection);
 }
 
-Awaitable<std::optional<OpcUaResponseBody>>
-OpcUaBinaryRuntime::HandleSessionRequest(
-    OpcUaBinaryConnectionState& connection,
-    OpcUaCreateSessionRequest request) {
-  co_return OpcUaResponseBody{
-      co_await Handle<OpcUaCreateSessionResponse>(connection, std::move(request))};
+Awaitable<std::optional<ResponseBody>>
+Runtime::HandleSessionRequest(
+    ConnectionState& connection,
+    CreateSessionRequest request) {
+  co_return ResponseBody{
+      co_await Handle<CreateSessionResponse>(connection, std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaResponseBody>>
-OpcUaBinaryRuntime::HandleSessionRequest(
-    OpcUaBinaryConnectionState& connection,
-    const OpcUaBinaryServiceRequestHeader& header,
-    OpcUaActivateSessionRequest request) {
+Awaitable<std::optional<ResponseBody>>
+Runtime::HandleSessionRequest(
+    ConnectionState& connection,
+    const ServiceRequestHeader& header,
+    ActivateSessionRequest request) {
   const auto session = session_manager_.FindSession(header.authentication_token);
   if (!session.has_value()) {
     co_return std::nullopt;
@@ -99,51 +99,51 @@ OpcUaBinaryRuntime::HandleSessionRequest(
 
   request.session_id = session->session_id;
   request.authentication_token = header.authentication_token;
-  co_return OpcUaResponseBody{
-      co_await Handle<OpcUaActivateSessionResponse>(connection,
+  co_return ResponseBody{
+      co_await Handle<ActivateSessionResponse>(connection,
                                                     std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaResponseBody>>
-OpcUaBinaryRuntime::HandleSessionRequest(
-    OpcUaBinaryConnectionState& connection,
-    const OpcUaBinaryServiceRequestHeader& header,
-    OpcUaCloseSessionRequest request) {
+Awaitable<std::optional<ResponseBody>>
+Runtime::HandleSessionRequest(
+    ConnectionState& connection,
+    const ServiceRequestHeader& header,
+    CloseSessionRequest request) {
   const auto session = session_manager_.FindSession(header.authentication_token);
   if (!session.has_value()) {
-    co_return OpcUaResponseBody{OpcUaCloseSessionResponse{
+    co_return ResponseBody{CloseSessionResponse{
         .status = scada::StatusCode::Bad_SessionIsLoggedOff}};
   }
 
   request.session_id = session->session_id;
   request.authentication_token = header.authentication_token;
-  co_return OpcUaResponseBody{
-      co_await Handle<OpcUaCloseSessionResponse>(connection, std::move(request))};
+  co_return ResponseBody{
+      co_await Handle<CloseSessionResponse>(connection, std::move(request))};
 }
 
-Awaitable<std::optional<OpcUaResponseBody>>
-OpcUaBinaryRuntime::HandleDecodedRequest(
-    OpcUaBinaryConnectionState& connection,
-    const OpcUaBinaryDecodedRequest& request) {
+Awaitable<std::optional<ResponseBody>>
+Runtime::HandleDecodedRequest(
+    ConnectionState& connection,
+    const DecodedRequest& request) {
   co_return co_await std::visit(
       [this, &connection, &request](auto typed_request)
-          -> Awaitable<std::optional<OpcUaResponseBody>> {
+          -> Awaitable<std::optional<ResponseBody>> {
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, OpcUaCreateSessionRequest>) {
+        if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           co_return co_await HandleSessionRequest(connection,
                                                   std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaActivateSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           co_return co_await HandleSessionRequest(connection, request.header,
                                                   std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaCloseSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, CloseSessionRequest>) {
           co_return co_await HandleSessionRequest(connection, request.header,
                                                   std::move(typed_request));
-        } else if constexpr (BinaryAuthenticatedRequest<T>) {
+        } else if constexpr (AuthenticatedRequest<T>) {
           co_return co_await HandleAuthenticatedRequest<
-              BinaryAuthenticatedResponse<T>>(connection, request,
+              AuthenticatedResponse<T>>(connection, request,
                                               std::move(typed_request));
         } else {
-          static_assert(!kIsBinarySessionRequest<T>,
+          static_assert(!kIsSessionRequest<T>,
                         "Session requests must be handled above");
           co_return std::nullopt;
         }
@@ -151,4 +151,4 @@ OpcUaBinaryRuntime::HandleDecodedRequest(
       request.body);
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

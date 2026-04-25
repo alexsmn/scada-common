@@ -13,25 +13,25 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 
-struct OpcUaBinaryClientTransportContext {
+struct ClientTransportContext {
   transport::any_transport transport;
   std::string endpoint_url;
-  OpcUaBinaryTransportLimits limits;
+  TransportLimits limits;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
 };
 
-// Client-side analogue of OpcUaBinaryTcpConnection. Owns a transport that the
+// Client-side analogue of TcpConnection. Owns a transport that the
 // caller has already constructed (typically through transport::TransportFactory
 // from an "opc.tcp://" URL), drives the OPC UA Part 6 HEL/ACK negotiation,
 // and then exposes a raw frame read/write API for the secure channel layer to
 // sit on top of. No SecureChannel logic lives here.
-class OpcUaBinaryClientTransport {
+class ClientTransport {
  public:
-  explicit OpcUaBinaryClientTransport(
-      OpcUaBinaryClientTransportContext&& context);
+  explicit ClientTransport(
+      ClientTransportContext&& context);
 
   [[nodiscard]] Awaitable<scada::Status> Connect();
 
@@ -41,7 +41,7 @@ class OpcUaBinaryClientTransport {
 
   [[nodiscard]] Awaitable<void> Close();
 
-  [[nodiscard]] const OpcUaBinaryAcknowledgeMessage& acknowledge() const {
+  [[nodiscard]] const AcknowledgeMessage& acknowledge() const {
     return acknowledge_;
   }
 
@@ -50,14 +50,14 @@ class OpcUaBinaryClientTransport {
  private:
   transport::any_transport transport_;
   const std::string endpoint_url_;
-  const OpcUaBinaryTransportLimits limits_;
+  const TransportLimits limits_;
   const std::size_t read_buffer_size_;
   const std::size_t max_frame_size_;
   transport::WriteQueue write_queue_;
 
   bool open_ = false;
-  OpcUaBinaryAcknowledgeMessage acknowledge_{};
+  AcknowledgeMessage acknowledge_{};
   std::vector<char> pending_bytes_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

@@ -5,10 +5,10 @@
 #include "opcua/message.h"
 #include "opcua/server_runtime.h"
 
-namespace opcua {
+namespace opcua::binary {
 
 template <typename Response>
-Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
+Response BuildRuntimeErrorResponse(scada::Status status) {
   if constexpr (requires(Response response) { response.status; }) {
     return Response{.status = std::move(status)};
   } else if constexpr (requires(Response response) { response.result.status; }) {
@@ -27,11 +27,11 @@ Response BuildBinaryRuntimeErrorResponse(scada::Status status) {
   }
 }
 
-using OpcUaBinaryConnectionState = OpcUaConnectionState;
+using ConnectionState = opcua::ConnectionState;
 
-struct OpcUaBinaryRuntimeContext {
+struct RuntimeContext {
   AnyExecutor executor;
-  OpcUaServerSessionManager& session_manager;
+  ServerSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
@@ -43,64 +43,64 @@ struct OpcUaBinaryRuntimeContext {
 
 // UA Binary reuses the canonical shared server-side session/subscription/
 // service runtime while keeping Binary-specific framing and codec logic local.
-class OpcUaBinaryRuntime {
+class Runtime {
  public:
-  explicit OpcUaBinaryRuntime(OpcUaBinaryRuntimeContext&& context);
+  explicit Runtime(RuntimeContext&& context);
 
   template <typename Response, typename Request>
-  [[nodiscard]] Awaitable<Response> Handle(OpcUaBinaryConnectionState& connection,
+  [[nodiscard]] Awaitable<Response> Handle(ConnectionState& connection,
                                            Request request) {
-    auto body = co_await HandleBody(connection, OpcUaRequestBody{
+    auto body = co_await HandleBody(connection, RequestBody{
                                                     std::move(request)});
     if (auto* typed = std::get_if<Response>(&body)) {
       co_return std::move(*typed);
     }
-    if (auto* fault = std::get_if<OpcUaServiceFault>(&body)) {
-      co_return BuildBinaryRuntimeErrorResponse<Response>(fault->status);
+    if (auto* fault = std::get_if<ServiceFault>(&body)) {
+      co_return BuildRuntimeErrorResponse<Response>(fault->status);
     }
-    co_return BuildBinaryRuntimeErrorResponse<Response>(scada::StatusCode::Bad);
+    co_return BuildRuntimeErrorResponse<Response>(scada::StatusCode::Bad);
   }
 
-  void Detach(OpcUaBinaryConnectionState& connection);
+  void Detach(ConnectionState& connection);
 
-  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
-  HandleDecodedRequest(OpcUaBinaryConnectionState& connection,
-                       const OpcUaBinaryDecodedRequest& request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
+  HandleDecodedRequest(ConnectionState& connection,
+                       const DecodedRequest& request);
 
  private:
-  [[nodiscard]] Awaitable<OpcUaResponseBody> HandleBody(
-      OpcUaBinaryConnectionState& connection,
-      OpcUaRequestBody request);
+  [[nodiscard]] Awaitable<ResponseBody> HandleBody(
+      ConnectionState& connection,
+      RequestBody request);
 
   template <typename Response, typename Request>
-  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
-  HandleAuthenticatedRequest(OpcUaBinaryConnectionState& connection,
-                             const OpcUaBinaryDecodedRequest& request,
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
+  HandleAuthenticatedRequest(ConnectionState& connection,
+                             const DecodedRequest& request,
                              Request typed_request) {
     if (!connection.authentication_token.has_value() ||
         *connection.authentication_token != request.header.authentication_token) {
-      co_return OpcUaResponseBody{BuildBinaryRuntimeErrorResponse<Response>(
+      co_return ResponseBody{BuildRuntimeErrorResponse<Response>(
           scada::StatusCode::Bad_SessionIsLoggedOff)};
     }
 
-    co_return OpcUaResponseBody{
+    co_return ResponseBody{
         co_await Handle<Response>(connection, std::move(typed_request))};
   }
 
-  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
-  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
-                       OpcUaCreateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
-  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
-                       const OpcUaBinaryServiceRequestHeader& header,
-                       OpcUaActivateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<OpcUaResponseBody>>
-  HandleSessionRequest(OpcUaBinaryConnectionState& connection,
-                       const OpcUaBinaryServiceRequestHeader& header,
-                       OpcUaCloseSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
+  HandleSessionRequest(ConnectionState& connection,
+                       CreateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
+  HandleSessionRequest(ConnectionState& connection,
+                       const ServiceRequestHeader& header,
+                       ActivateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
+  HandleSessionRequest(ConnectionState& connection,
+                       const ServiceRequestHeader& header,
+                       CloseSessionRequest request);
 
-  OpcUaServerSessionManager& session_manager_;
-  OpcUaServerRuntime runtime_;
+  ServerSessionManager& session_manager_;
+  ServerRuntime runtime_;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

@@ -5,20 +5,20 @@
 
 namespace opcua {
 
-OpcUaClientProtocolSession::OpcUaClientProtocolSession(Context context)
+ClientProtocolSession::ClientProtocolSession(Context context)
     : connection_{context.connection},
       channel_{context.channel} {}
 
 template <typename Response>
 Awaitable<scada::StatusOr<Response>>
-OpcUaClientProtocolSession::CallTyped(OpcUaRequestBody request) {
+ClientProtocolSession::CallTyped(RequestBody request) {
   const std::uint32_t request_handle = channel_.NextRequestHandle();
   auto result =
       co_await channel_.Call(request_handle, std::move(request));
   if (!result.ok()) {
     co_return scada::StatusOr<Response>{result.status()};
   }
-  if (auto* fault = std::get_if<OpcUaServiceFault>(&result.value())) {
+  if (auto* fault = std::get_if<ServiceFault>(&result.value())) {
     co_return scada::StatusOr<Response>{fault->status};
   }
   if (auto* typed = std::get_if<Response>(&result.value())) {
@@ -27,7 +27,7 @@ OpcUaClientProtocolSession::CallTyped(OpcUaRequestBody request) {
   co_return scada::StatusOr<Response>{scada::Status{scada::StatusCode::Bad}};
 }
 
-Awaitable<scada::Status> OpcUaClientProtocolSession::Create(
+Awaitable<scada::Status> ClientProtocolSession::Create(
     base::TimeDelta requested_timeout,
     Identity identity) {
   auto open_status = co_await connection_.Open();
@@ -37,9 +37,9 @@ Awaitable<scada::Status> OpcUaClientProtocolSession::Create(
 
   // CreateSession: pre-authentication, so channel's authentication_token is
   // empty (already the default).
-  auto create_result = co_await CallTyped<OpcUaCreateSessionResponse>(
-      OpcUaRequestBody{
-          OpcUaCreateSessionRequest{.requested_timeout = requested_timeout}});
+  auto create_result = co_await CallTyped<CreateSessionResponse>(
+      RequestBody{
+          CreateSessionRequest{.requested_timeout = requested_timeout}});
   if (!create_result.ok()) {
     co_return create_result.status();
   }
@@ -53,8 +53,8 @@ Awaitable<scada::Status> OpcUaClientProtocolSession::Create(
   // authentication token in the header.
   channel_.set_authentication_token(authentication_token_);
 
-  auto activate_result = co_await CallTyped<OpcUaActivateSessionResponse>(
-      OpcUaRequestBody{OpcUaActivateSessionRequest{
+  auto activate_result = co_await CallTyped<ActivateSessionResponse>(
+      RequestBody{ActivateSessionRequest{
           .session_id = session_id_,
           .authentication_token = authentication_token_,
           .user_name = identity.user_name,
@@ -73,10 +73,10 @@ Awaitable<scada::Status> OpcUaClientProtocolSession::Create(
   co_return scada::Status{scada::StatusCode::Good};
 }
 
-Awaitable<scada::Status> OpcUaClientProtocolSession::Close() {
+Awaitable<scada::Status> ClientProtocolSession::Close() {
   if (is_active_) {
-    auto close_result = co_await CallTyped<OpcUaCloseSessionResponse>(
-        OpcUaRequestBody{OpcUaCloseSessionRequest{
+    auto close_result = co_await CallTyped<CloseSessionResponse>(
+        RequestBody{CloseSessionRequest{
             .session_id = session_id_,
             .authentication_token = authentication_token_,
         }});
@@ -90,9 +90,9 @@ Awaitable<scada::Status> OpcUaClientProtocolSession::Close() {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-OpcUaClientProtocolSession::Read(std::vector<scada::ReadValueId> inputs) {
+ClientProtocolSession::Read(std::vector<scada::ReadValueId> inputs) {
   auto result = co_await CallTyped<ReadResponse>(
-      OpcUaRequestBody{ReadRequest{.inputs = std::move(inputs)}});
+      RequestBody{ReadRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
     co_return scada::StatusOr<std::vector<scada::DataValue>>{result.status()};
   }
@@ -104,9 +104,9 @@ OpcUaClientProtocolSession::Read(std::vector<scada::ReadValueId> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-OpcUaClientProtocolSession::Write(std::vector<scada::WriteValue> inputs) {
+ClientProtocolSession::Write(std::vector<scada::WriteValue> inputs) {
   auto result = co_await CallTyped<WriteResponse>(
-      OpcUaRequestBody{WriteRequest{.inputs = std::move(inputs)}});
+      RequestBody{WriteRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
     co_return scada::StatusOr<std::vector<scada::StatusCode>>{result.status()};
   }
@@ -118,8 +118,8 @@ OpcUaClientProtocolSession::Write(std::vector<scada::WriteValue> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-OpcUaClientProtocolSession::Browse(std::vector<scada::BrowseDescription> inputs) {
-  auto result = co_await CallTyped<BrowseResponse>(OpcUaRequestBody{
+ClientProtocolSession::Browse(std::vector<scada::BrowseDescription> inputs) {
+  auto result = co_await CallTyped<BrowseResponse>(RequestBody{
       BrowseRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
     co_return scada::StatusOr<std::vector<scada::BrowseResult>>{result.status()};
@@ -132,10 +132,10 @@ OpcUaClientProtocolSession::Browse(std::vector<scada::BrowseDescription> inputs)
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-OpcUaClientProtocolSession::BrowseNext(
+ClientProtocolSession::BrowseNext(
     std::vector<scada::ByteString> continuation_points,
     bool release_continuation_points) {
-  auto result = co_await CallTyped<BrowseNextResponse>(OpcUaRequestBody{
+  auto result = co_await CallTyped<BrowseNextResponse>(RequestBody{
       BrowseNextRequest{
           .release_continuation_points = release_continuation_points,
           .continuation_points = std::move(continuation_points),
@@ -151,10 +151,10 @@ OpcUaClientProtocolSession::BrowseNext(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-OpcUaClientProtocolSession::TranslateBrowsePathsToNodeIds(
+ClientProtocolSession::TranslateBrowsePathsToNodeIds(
     std::vector<scada::BrowsePath> inputs) {
   auto result = co_await CallTyped<TranslateBrowsePathsResponse>(
-      OpcUaRequestBody{
+      RequestBody{
           TranslateBrowsePathsRequest{.inputs = std::move(inputs)}});
   if (!result.ok()) {
     co_return scada::StatusOr<std::vector<scada::BrowsePathResult>>{
@@ -168,12 +168,12 @@ OpcUaClientProtocolSession::TranslateBrowsePathsToNodeIds(
       std::move(result->results)};
 }
 
-Awaitable<scada::StatusOr<OpcUaClientProtocolSession::CallResult>>
-OpcUaClientProtocolSession::Call(scada::NodeId object_id,
+Awaitable<scada::StatusOr<ClientProtocolSession::CallResult>>
+ClientProtocolSession::Call(scada::NodeId object_id,
                          scada::NodeId method_id,
                          std::vector<scada::Variant> arguments) {
   auto result = co_await CallTyped<CallResponse>(
-      OpcUaRequestBody{CallRequest{.methods = {OpcUaMethodCallRequest{
+      RequestBody{CallRequest{.methods = {MethodCallRequest{
                                        .object_id = std::move(object_id),
                                        .method_id = std::move(method_id),
                                        .arguments = std::move(arguments),

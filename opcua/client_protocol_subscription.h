@@ -24,19 +24,19 @@ namespace opcua {
 // Publish() keeps up to two PublishRequests outstanding, matching the common
 // OPC UA client convention and reducing notification latency while preserving
 // the existing "one response per await" API.
-class OpcUaClientProtocolSubscription {
+class ClientProtocolSubscription {
  public:
   using DataChangeHandler = std::function<void(scada::DataValue)>;
 
-  explicit OpcUaClientProtocolSubscription(OpcUaClientChannel& channel);
+  explicit ClientProtocolSubscription(ClientChannel& channel);
 
   // Creates the server-side subscription. Must be called before any
   // monitored item operations.
   [[nodiscard]] Awaitable<scada::Status> Create(
-      OpcUaSubscriptionParameters parameters = {});
+      SubscriptionParameters parameters = {});
 
   [[nodiscard]] bool is_created() const { return is_created_; }
-  [[nodiscard]] OpcUaSubscriptionId subscription_id() const {
+  [[nodiscard]] SubscriptionId subscription_id() const {
     return subscription_id_;
   }
 
@@ -44,17 +44,17 @@ class OpcUaClientProtocolSubscription {
   // handler is retained and invoked for every subsequent data-change
   // notification whose client_handle matches the one assigned here.
   struct CreateMonitoredItemResult {
-    OpcUaMonitoredItemId monitored_item_id = 0;
+    MonitoredItemId monitored_item_id = 0;
     scada::UInt32 client_handle = 0;
   };
   [[nodiscard]] Awaitable<scada::StatusOr<CreateMonitoredItemResult>>
   CreateMonitoredItem(scada::ReadValueId read_value_id,
-                      OpcUaMonitoringParameters params,
+                      MonitoringParameters params,
                       DataChangeHandler handler);
 
   // Deletes a monitored item and drops its handler.
   [[nodiscard]] Awaitable<scada::Status> DeleteMonitoredItem(
-      OpcUaMonitoredItemId monitored_item_id);
+      MonitoredItemId monitored_item_id);
 
   // Issues a single PublishRequest and dispatches every data-change
   // notification in the response to the registered handlers. The returned
@@ -74,16 +74,16 @@ class OpcUaClientProtocolSubscription {
   [[nodiscard]] Awaitable<scada::Status> FillPublishWindow();
   [[nodiscard]] Awaitable<scada::Status> SendPublishRequest();
   [[nodiscard]] scada::Status HandlePublishResponse(
-      OpcUaPublishResponse response);
+      PublishResponse response);
 
-  OpcUaClientChannel& channel_;
+  ClientChannel& channel_;
   bool is_created_ = false;
-  OpcUaSubscriptionId subscription_id_ = 0;
+  SubscriptionId subscription_id_ = 0;
   scada::UInt32 next_client_handle_ = 1;
   std::unordered_map<scada::UInt32, DataChangeHandler> handlers_;
-  std::unordered_map<OpcUaMonitoredItemId, scada::UInt32>
+  std::unordered_map<MonitoredItemId, scada::UInt32>
       client_handle_by_item_id_;
-  std::vector<OpcUaSubscriptionAcknowledgement> pending_acks_;
+  std::vector<SubscriptionAcknowledgement> pending_acks_;
   std::deque<OutstandingPublish> outstanding_publishes_;
 };
 

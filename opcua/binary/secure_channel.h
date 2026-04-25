@@ -9,117 +9,117 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 
-constexpr std::uint32_t kOpenSecureChannelRequestBinaryEncodingId = 446;
-constexpr std::uint32_t kOpenSecureChannelResponseBinaryEncodingId = 449;
-constexpr std::uint32_t kCloseSecureChannelRequestBinaryEncodingId = 452;
-constexpr std::uint32_t kCloseSecureChannelResponseBinaryEncodingId = 455;
+constexpr std::uint32_t kOpenSecureChannelRequestEncodingId = 446;
+constexpr std::uint32_t kOpenSecureChannelResponseEncodingId = 449;
+constexpr std::uint32_t kCloseSecureChannelRequestEncodingId = 452;
+constexpr std::uint32_t kCloseSecureChannelResponseEncodingId = 455;
 
 constexpr std::string_view kSecurityPolicyNone =
     "http://opcfoundation.org/UA/SecurityPolicy#None";
 
-enum class OpcUaBinarySecurityTokenRequestType : std::uint32_t {
+enum class SecurityTokenRequestType : std::uint32_t {
   Issue = 0,
   Renew = 1,
 };
 
-enum class OpcUaBinaryMessageSecurityMode : std::uint32_t {
+enum class MessageSecurityMode : std::uint32_t {
   Invalid = 0,
   None = 1,
   Sign = 2,
   SignAndEncrypt = 3,
 };
 
-struct OpcUaBinaryRequestHeader {
+struct RequestHeader {
   std::uint32_t request_handle = 0;
   std::uint32_t return_diagnostics = 0;
   std::string audit_entry_id;
   std::uint32_t timeout_hint = 0;
 };
 
-struct OpcUaBinaryResponseHeader {
+struct ResponseHeader {
   std::uint32_t request_handle = 0;
   scada::Status service_result = scada::StatusCode::Good;
 };
 
-struct OpcUaBinaryChannelSecurityToken {
+struct ChannelSecurityToken {
   std::uint32_t channel_id = 0;
   std::uint32_t token_id = 0;
   std::int64_t created_at = 0;
   std::uint32_t revised_lifetime = 0;
 };
 
-struct OpcUaBinaryAsymmetricSecurityHeader {
+struct AsymmetricSecurityHeader {
   std::string security_policy_uri;
   scada::ByteString sender_certificate;
   scada::ByteString receiver_certificate_thumbprint;
 };
 
-struct OpcUaBinarySymmetricSecurityHeader {
+struct SymmetricSecurityHeader {
   std::uint32_t token_id = 0;
 };
 
-struct OpcUaBinarySequenceHeader {
+struct SequenceHeader {
   std::uint32_t sequence_number = 0;
   std::uint32_t request_id = 0;
 };
 
-struct OpcUaBinarySecureConversationMessage {
-  OpcUaBinaryFrameHeader frame_header;
+struct SecureConversationMessage {
+  FrameHeader frame_header;
   std::uint32_t secure_channel_id = 0;
-  std::optional<OpcUaBinaryAsymmetricSecurityHeader> asymmetric_security_header;
-  std::optional<OpcUaBinarySymmetricSecurityHeader> symmetric_security_header;
-  OpcUaBinarySequenceHeader sequence_header;
+  std::optional<AsymmetricSecurityHeader> asymmetric_security_header;
+  std::optional<SymmetricSecurityHeader> symmetric_security_header;
+  SequenceHeader sequence_header;
   std::vector<char> body;
 };
 
-struct OpcUaBinaryOpenSecureChannelRequest {
-  OpcUaBinaryRequestHeader request_header;
+struct OpenSecureChannelRequest {
+  RequestHeader request_header;
   std::uint32_t client_protocol_version = 0;
-  OpcUaBinarySecurityTokenRequestType request_type =
-      OpcUaBinarySecurityTokenRequestType::Issue;
-  OpcUaBinaryMessageSecurityMode security_mode =
-      OpcUaBinaryMessageSecurityMode::None;
+  SecurityTokenRequestType request_type =
+      SecurityTokenRequestType::Issue;
+  MessageSecurityMode security_mode =
+      MessageSecurityMode::None;
   scada::ByteString client_nonce;
   std::uint32_t requested_lifetime = 0;
 };
 
-struct OpcUaBinaryOpenSecureChannelResponse {
-  OpcUaBinaryResponseHeader response_header;
+struct OpenSecureChannelResponse {
+  ResponseHeader response_header;
   std::uint32_t server_protocol_version = 0;
-  OpcUaBinaryChannelSecurityToken security_token;
+  ChannelSecurityToken security_token;
   scada::ByteString server_nonce;
 };
 
-struct OpcUaBinaryCloseSecureChannelRequest {
-  OpcUaBinaryRequestHeader request_header;
+struct CloseSecureChannelRequest {
+  RequestHeader request_header;
 };
 
-[[nodiscard]] std::optional<OpcUaBinarySecureConversationMessage>
+[[nodiscard]] std::optional<SecureConversationMessage>
 DecodeSecureConversationMessage(const std::vector<char>& frame);
 [[nodiscard]] std::vector<char> EncodeSecureConversationMessage(
-    const OpcUaBinarySecureConversationMessage& message);
+    const SecureConversationMessage& message);
 
-[[nodiscard]] std::optional<OpcUaBinaryOpenSecureChannelRequest>
+[[nodiscard]] std::optional<OpenSecureChannelRequest>
 DecodeOpenSecureChannelRequestBody(const std::vector<char>& body);
 [[nodiscard]] std::vector<char> EncodeOpenSecureChannelResponseBody(
-    const OpcUaBinaryOpenSecureChannelResponse& response);
-[[nodiscard]] std::optional<OpcUaBinaryCloseSecureChannelRequest>
+    const OpenSecureChannelResponse& response);
+[[nodiscard]] std::optional<CloseSecureChannelRequest>
 DecodeCloseSecureChannelRequestBody(const std::vector<char>& body);
 
 // Client-side inverses: these encode/decode the complementary direction of
 // the OPC UA Part 6 SecureChannel request/response pairs, so the new UA
 // Binary client under common/opcua/binary/ can talk to the existing
-// server-side OpcUaBinarySecureChannel using the same bytes on the wire.
+// server-side SecureChannel using the same bytes on the wire.
 [[nodiscard]] std::vector<char> EncodeOpenSecureChannelRequestBody(
-    const OpcUaBinaryOpenSecureChannelRequest& request);
-[[nodiscard]] std::optional<OpcUaBinaryOpenSecureChannelResponse>
+    const OpenSecureChannelRequest& request);
+[[nodiscard]] std::optional<OpenSecureChannelResponse>
 DecodeOpenSecureChannelResponseBody(const std::vector<char>& body);
 [[nodiscard]] std::vector<char> EncodeCloseSecureChannelRequestBody(
-    const OpcUaBinaryCloseSecureChannelRequest& request);
+    const CloseSecureChannelRequest& request);
 
-class OpcUaBinarySecureChannel {
+class SecureChannel {
  public:
   struct Result {
     std::optional<std::vector<char>> outbound_frame;
@@ -128,7 +128,7 @@ class OpcUaBinarySecureChannel {
     bool close_transport = false;
   };
 
-  explicit OpcUaBinarySecureChannel(std::uint32_t channel_id = 1);
+  explicit SecureChannel(std::uint32_t channel_id = 1);
 
   [[nodiscard]] Awaitable<Result> HandleFrame(std::vector<char> frame);
   [[nodiscard]] std::vector<char> BuildServiceResponse(
@@ -141,8 +141,8 @@ class OpcUaBinarySecureChannel {
 
  private:
   [[nodiscard]] std::vector<char> BuildOpenResponse(
-      const OpcUaBinarySecureConversationMessage& request_message,
-      const OpcUaBinaryOpenSecureChannelRequest& request,
+      const SecureConversationMessage& request_message,
+      const OpenSecureChannelRequest& request,
       scada::Status service_result);
 
   std::uint32_t channel_id_;
@@ -151,4 +151,4 @@ class OpcUaBinarySecureChannel {
   bool opened_ = false;
 };
 
-}  // namespace opcua
+}  // namespace opcua::binary

@@ -4,14 +4,14 @@
 
 #include <gtest/gtest.h>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
-class OpcUaBinaryRuntimeTest
+class RuntimeTest
     : public testing::Test,
-      public opcua::test::OpcUaServerRuntimeContractTestBase {
+      public test::ServerRuntimeContractTestBase {
  public:
-  using ConnectionState = OpcUaBinaryConnectionState;
+  using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
@@ -22,13 +22,13 @@ class OpcUaBinaryRuntimeTest
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       ConnectionState& connection) {
-    const auto created = HandleResponse<OpcUaCreateSessionResponse>(
-        connection, OpcUaCreateSessionRequest{});
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
-    const auto activated = HandleResponse<OpcUaActivateSessionResponse>(
+    const auto activated = HandleResponse<ActivateSessionResponse>(
         connection,
-        OpcUaActivateSessionRequest{
+        ActivateSessionRequest{
             .session_id = created.session_id,
             .authentication_token = created.authentication_token,
             .user_name = scada::LocalizedText{u"operator"},
@@ -60,7 +60,7 @@ class OpcUaBinaryRuntimeTest
         .result.status.code();
   }
 
-  OpcUaBinaryRuntime runtime_{OpcUaBinaryRuntimeContext{
+  Runtime runtime_{RuntimeContext{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
@@ -73,83 +73,83 @@ class OpcUaBinaryRuntimeTest
   }};
 };
 
-TEST_F(OpcUaBinaryRuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
+TEST_F(RuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
+TEST_F(RuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
-  opcua::test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
+TEST_F(RuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
+  test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        PreservesLiveSubscriptionStateAcrossDetachAndResume) {
-  opcua::test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
+  test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest, TransfersSubscriptionsAcrossSessions) {
-  opcua::test::ExpectTransfersSubscriptionsAcrossSessions(*this);
+TEST_F(RuntimeTest, TransfersSubscriptionsAcrossSessions) {
+  test::ExpectTransfersSubscriptionsAcrossSessions(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest, CloseSessionClearsAttachedState) {
-  opcua::test::ExpectCloseSessionClearsAttachedState(*this);
+TEST_F(RuntimeTest, CloseSessionClearsAttachedState) {
+  test::ExpectCloseSessionClearsAttachedState(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        RejectsHistoryReadRawWithoutActivatedSession) {
-  opcua::test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
+  test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        HistoryReadRawPreservesPayloadThroughActivatedSession) {
-  opcua::test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
+  test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        RejectsHistoryReadEventsWithoutActivatedSession) {
-  opcua::test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
+  test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        HistoryReadEventsPreservesPayloadThroughActivatedSession) {
-  opcua::test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
+  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
       *this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
-  opcua::test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
+  test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        NodeManagementMutationsPreserveBatchResults) {
-  opcua::test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
+  test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
-  opcua::test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
+  test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        RepublishReplaysNotificationUntilAcknowledged) {
-  opcua::test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
+  test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        HandleDecodedRequestRejectsActivateSessionForUnknownAuthenticationToken) {
   ConnectionState connection;
 
   const auto response = WaitAwaitable(
       executor_,
       runtime_.HandleDecodedRequest(
-          connection, OpcUaBinaryDecodedRequest{
+          connection, DecodedRequest{
                           .header = {.authentication_token = {999u, 3},
                                      .request_handle = 7},
-                          .body = OpcUaActivateSessionRequest{
+                          .body = ActivateSessionRequest{
                               .authentication_token = {999u, 3},
                               .user_name = scada::LocalizedText{u"operator"},
                               .password = scada::LocalizedText{u"secret"},
@@ -160,7 +160,7 @@ TEST_F(OpcUaBinaryRuntimeTest,
   EXPECT_FALSE(response.has_value());
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
+TEST_F(RuntimeTest,
        HandleDecodedRequestRejectsAuthenticatedRequestWhenTokenIsNotAttached) {
   ConnectionState connection;
   const auto activated = CreateAndActivate(connection);
@@ -171,7 +171,7 @@ TEST_F(OpcUaBinaryRuntimeTest,
   const auto response = WaitAwaitable(
       executor_,
       runtime_.HandleDecodedRequest(
-          connection, OpcUaBinaryDecodedRequest{
+          connection, DecodedRequest{
                           .header = {.authentication_token = {998u, 3},
                                      .request_handle = 8},
                           .body = ReadRequest{
@@ -187,8 +187,8 @@ TEST_F(OpcUaBinaryRuntimeTest,
   EXPECT_EQ(*connection.authentication_token, authentication_token);
 }
 
-TEST_F(OpcUaBinaryRuntimeTest,
-       AcceptsCanonicalRequestAndResponseTypesThroughBinaryAdapterSurface) {
+TEST_F(RuntimeTest,
+       AcceptsCanonicalRequestAndResponseTypesThroughAdapterSurface) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
@@ -216,4 +216,4 @@ TEST_F(OpcUaBinaryRuntimeTest,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

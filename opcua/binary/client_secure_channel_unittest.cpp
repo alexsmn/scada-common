@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 // Scripted scripted transport: reads drain a pre-queued deque, writes go into
@@ -96,7 +96,7 @@ std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
                                          std::uint32_t request_id,
                                          std::uint32_t request_handle,
                                          std::uint32_t revised_lifetime_ms) {
-  const OpcUaBinaryOpenSecureChannelResponse response{
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = request_handle,
                           .service_result = scada::StatusCode::Good},
       .server_protocol_version = 0,
@@ -106,12 +106,12 @@ std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
                          .revised_lifetime = revised_lifetime_ms},
       .server_nonce = {},
   };
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id,
-      .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+      .asymmetric_security_header = AsymmetricSecurityHeader{
           .security_policy_uri = std::string{kSecurityPolicyNone},
           .sender_certificate = {},
           .receiver_certificate_thumbprint = {},
@@ -128,26 +128,26 @@ std::vector<char> BuildSymmetricMessageFrame(std::uint32_t channel_id,
                                              std::uint32_t token_id,
                                              std::uint32_t request_id,
                                              std::vector<char> body) {
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureMessage,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureMessage,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id,
       .asymmetric_security_header = std::nullopt,
       .symmetric_security_header =
-          OpcUaBinarySymmetricSecurityHeader{.token_id = token_id},
+          SymmetricSecurityHeader{.token_id = token_id},
       .sequence_header = {.sequence_number = 2, .request_id = request_id},
       .body = std::move(body),
   };
   return EncodeSecureConversationMessage(message);
 }
 
-class OpcUaBinaryClientSecureChannelTest : public ::testing::Test {
+class ClientSecureChannelTest : public ::testing::Test {
  protected:
-  std::unique_ptr<OpcUaBinaryClientTransport> MakeClientTransport(
+  std::unique_ptr<ClientTransport> MakeClientTransport(
       const std::shared_ptr<ScriptedState>& state) {
-    return std::make_unique<OpcUaBinaryClientTransport>(
-        OpcUaBinaryClientTransportContext{
+    return std::make_unique<ClientTransport>(
+        ClientTransportContext{
             .transport = transport::any_transport{
                 ScriptedTransport{any_executor_, state}},
             .endpoint_url = "opc.tcp://localhost:4840",
@@ -157,7 +157,7 @@ class OpcUaBinaryClientSecureChannelTest : public ::testing::Test {
 
   // Primes the ACK frame the transport expects during its Connect() call.
   void PrimeAcknowledge(const std::shared_ptr<ScriptedState>& state) {
-    state->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage(
+    state->incoming.push_back(AsString(EncodeAcknowledgeMessage(
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
   }
 
@@ -166,7 +166,7 @@ class OpcUaBinaryClientSecureChannelTest : public ::testing::Test {
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
 };
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
+TEST_F(ClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
   constexpr std::uint32_t kChannelId = 123;
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
@@ -178,7 +178,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
 
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   const auto status = WaitAwaitable(executor_, client.Open());
   EXPECT_TRUE(status.good());
   EXPECT_TRUE(client.opened());
@@ -194,13 +194,13 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
   const auto decoded = DecodeSecureConversationMessage(opn_bytes);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureOpen);
+            MessageType::SecureOpen);
   ASSERT_TRUE(decoded->asymmetric_security_header.has_value());
   EXPECT_EQ(decoded->asymmetric_security_header->security_policy_uri,
             kSecurityPolicyNone);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, RenewRotatesSecurityToken) {
+TEST_F(ClientSecureChannelTest, RenewRotatesSecurityToken) {
   constexpr std::uint32_t kChannelId = 123;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
@@ -215,7 +215,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, RenewRotatesSecurityToken) {
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
 
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
   const auto status = WaitAwaitable(executor_, client.Renew());
   EXPECT_TRUE(status.good());
@@ -230,15 +230,15 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, RenewRotatesSecurityToken) {
   const auto decoded = DecodeSecureConversationMessage(renew_bytes);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureOpen);
+            MessageType::SecureOpen);
   EXPECT_EQ(decoded->secure_channel_id, kChannelId);
 
   const auto body = DecodeOpenSecureChannelRequestBody(decoded->body);
   ASSERT_TRUE(body.has_value());
-  EXPECT_EQ(body->request_type, OpcUaBinarySecurityTokenRequestType::Renew);
+  EXPECT_EQ(body->request_type, SecurityTokenRequestType::Renew);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest,
+TEST_F(ClientSecureChannelTest,
        SendServiceRequestRenewsExpiredTokenBeforeMessage) {
   constexpr std::uint32_t kChannelId = 123;
   auto state = std::make_shared<ScriptedState>();
@@ -254,7 +254,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
 
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const std::uint32_t request_id = client.NextRequestId();
@@ -272,7 +272,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
       DecodeOpenSecureChannelRequestBody(renew_message->body);
   ASSERT_TRUE(renew_body.has_value());
   EXPECT_EQ(renew_body->request_type,
-            OpcUaBinarySecurityTokenRequestType::Renew);
+            SecurityTokenRequestType::Renew);
 
   const auto msg_bytes = std::vector<char>{state->writes[3].begin(),
                                            state->writes[3].end()};
@@ -283,23 +283,23 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   EXPECT_EQ(msg->sequence_header.request_id, request_id);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, OpenPropagatesServerBadStatus) {
+TEST_F(ClientSecureChannelTest, OpenPropagatesServerBadStatus) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   // Server says bad — the client should surface that.
-  const OpcUaBinaryOpenSecureChannelResponse bad_response{
+  const OpenSecureChannelResponse bad_response{
       .response_header = {.request_handle = 1,
                           .service_result = scada::StatusCode::Bad},
       .server_protocol_version = 0,
       .security_token = {},
       .server_nonce = {},
   };
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = 0,
-      .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+      .asymmetric_security_header = AsymmetricSecurityHeader{
           .security_policy_uri = std::string{kSecurityPolicyNone},
           .sender_certificate = {},
           .receiver_certificate_thumbprint = {},
@@ -312,13 +312,13 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, OpenPropagatesServerBadStatus) {
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   const auto status = WaitAwaitable(executor_, client.Open());
   EXPECT_TRUE(status.bad());
   EXPECT_FALSE(client.opened());
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest,
+TEST_F(ClientSecureChannelTest,
        SendServiceRequestWritesSymmetricFrame) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
@@ -330,7 +330,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const std::vector<char> payload{'h', 'i'};
@@ -346,7 +346,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   const auto decoded = DecodeSecureConversationMessage(bytes);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureMessage);
+            MessageType::SecureMessage);
   EXPECT_EQ(decoded->secure_channel_id, kChannelId);
   ASSERT_TRUE(decoded->symmetric_security_header.has_value());
   EXPECT_EQ(decoded->symmetric_security_header->token_id, kTokenId);
@@ -354,7 +354,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   EXPECT_EQ(decoded->body, payload);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, ReadServiceResponseReturnsBody) {
+TEST_F(ClientSecureChannelTest, ReadServiceResponseReturnsBody) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
@@ -368,7 +368,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, ReadServiceResponseReturnsBody) {
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const auto response = WaitAwaitable(executor_, client.ReadServiceResponse());
@@ -377,7 +377,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, ReadServiceResponseReturnsBody) {
   EXPECT_EQ(response->body, expected_body);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest,
+TEST_F(ClientSecureChannelTest,
        ReadServiceResponseRejectsWrongTokenId) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
@@ -392,14 +392,14 @@ TEST_F(OpcUaBinaryClientSecureChannelTest,
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const auto response = WaitAwaitable(executor_, client.ReadServiceResponse());
   EXPECT_FALSE(response.ok());
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
+TEST_F(ClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
@@ -410,7 +410,7 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const auto close_status = WaitAwaitable(executor_, client.Close());
@@ -424,16 +424,16 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
   const auto decoded = DecodeSecureConversationMessage(bytes);
   ASSERT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureClose);
+            MessageType::SecureClose);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, CloseWithoutOpenIsNoOp) {
+TEST_F(ClientSecureChannelTest, CloseWithoutOpenIsNoOp) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
 
   const auto status = WaitAwaitable(executor_, client.Close());
   EXPECT_TRUE(status.good());
@@ -441,26 +441,26 @@ TEST_F(OpcUaBinaryClientSecureChannelTest, CloseWithoutOpenIsNoOp) {
   EXPECT_EQ(state->writes.size(), 1u);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, SendBeforeOpenReturnsBad) {
+TEST_F(ClientSecureChannelTest, SendBeforeOpenReturnsBad) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
 
   const auto status = WaitAwaitable(
       executor_, client.SendServiceRequest(1, std::vector<char>{'x'}));
   EXPECT_TRUE(status.bad());
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelTest, RequestIdsAreMonotonic) {
+TEST_F(ClientSecureChannelTest, RequestIdsAreMonotonic) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
   ASSERT_TRUE(
       WaitAwaitable(executor_, client_transport->Connect()).good());
-  OpcUaBinaryClientSecureChannel client{*client_transport};
+  ClientSecureChannel client{*client_transport};
 
   EXPECT_EQ(client.NextRequestId(), 1u);
   EXPECT_EQ(client.NextRequestId(), 2u);
@@ -521,12 +521,12 @@ PemKeypair GenerateSelfSignedRsa() {
 }
 
 // Build a Basic256Sha256 Security config by loading the given PEMs.
-OpcUaBinaryClientSecureChannel::Security BuildSecurity(
+ClientSecureChannel::Security BuildSecurity(
     const PemKeypair& client_pk, const std::string& server_cert_pem) {
-  OpcUaBinaryClientSecureChannel::Security s;
+  ClientSecureChannel::Security s;
   s.security_policy_uri =
       "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-  s.security_mode = OpcUaBinaryMessageSecurityMode::SignAndEncrypt;
+  s.security_mode = MessageSecurityMode::SignAndEncrypt;
   s.client_certificate =
       std::move(*crypto::LoadPemCertificate(client_pk.cert_pem));
   s.client_private_key =
@@ -541,12 +541,12 @@ OpcUaBinaryClientSecureChannel::Security BuildSecurity(
 
 }  // namespace
 
-class OpcUaBinaryClientSecureChannelBasic256Sha256Test : public ::testing::Test {
+class ClientSecureChannelBasic256Sha256Test : public ::testing::Test {
  protected:
-  std::unique_ptr<OpcUaBinaryClientTransport> MakeClientTransport(
+  std::unique_ptr<ClientTransport> MakeClientTransport(
       const std::shared_ptr<ScriptedState>& state) {
-    return std::make_unique<OpcUaBinaryClientTransport>(
-        OpcUaBinaryClientTransportContext{
+    return std::make_unique<ClientTransport>(
+        ClientTransportContext{
             .transport = transport::any_transport{
                 ScriptedTransport{any_executor_, state}},
             .endpoint_url = "opc.tcp://localhost:4840",
@@ -554,7 +554,7 @@ class OpcUaBinaryClientSecureChannelBasic256Sha256Test : public ::testing::Test 
         });
   }
   void PrimeAcknowledge(const std::shared_ptr<ScriptedState>& state) {
-    state->incoming.push_back(AsString(EncodeBinaryAcknowledgeMessage(
+    state->incoming.push_back(AsString(EncodeAcknowledgeMessage(
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
   }
 
@@ -563,7 +563,7 @@ class OpcUaBinaryClientSecureChannelBasic256Sha256Test : public ::testing::Test 
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
 };
 
-TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
+TEST_F(ClientSecureChannelBasic256Sha256Test,
        OpenFrameRoundTripsThroughOurOwnDecoder) {
   const auto client_pk = GenerateSelfSignedRsa();
   const auto server_pk = GenerateSelfSignedRsa();
@@ -579,7 +579,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
       WaitAwaitable(executor_, client_transport->Connect()).good());
 
   auto client_security = BuildSecurity(client_pk, server_pk.cert_pem);
-  OpcUaBinaryClientSecureChannel client{*client_transport,
+  ClientSecureChannel client{*client_transport,
                                         std::move(client_security)};
 
   // Drive Open far enough that the client writes its OPN frame into
@@ -598,7 +598,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
   const auto plaintext_msg = DecodeSecureConversationMessage(opn_bytes);
   ASSERT_TRUE(plaintext_msg.has_value());
   EXPECT_EQ(plaintext_msg->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureOpen);
+            MessageType::SecureOpen);
   ASSERT_TRUE(plaintext_msg->asymmetric_security_header.has_value());
   EXPECT_EQ(plaintext_msg->asymmetric_security_header->security_policy_uri,
             "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256");
@@ -610,7 +610,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
       20u);
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
+TEST_F(ClientSecureChannelBasic256Sha256Test,
        OpenRejectsInvalidInjectedClientNonce) {
   const auto client_pk = GenerateSelfSignedRsa();
   const auto server_pk = GenerateSelfSignedRsa();
@@ -625,7 +625,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
   client_security.client_nonce_generator = []() {
     return scada::StatusOr<scada::ByteString>{scada::ByteString(31, 0)};
   };
-  OpcUaBinaryClientSecureChannel client{*client_transport,
+  ClientSecureChannel client{*client_transport,
                                         std::move(client_security)};
 
   const auto status = WaitAwaitable(executor_, client.Open());
@@ -634,7 +634,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
   ASSERT_EQ(client_state->writes.size(), 1u);  // Hello only, no OPN.
 }
 
-TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
+TEST_F(ClientSecureChannelBasic256Sha256Test,
        SymmetricFrameRoundTripsEndToEnd) {
   // Round-trip a symmetric MSG frame between two channels configured with
   // the same derived keys. We fake the Open() by reaching into the
@@ -682,7 +682,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
 
   // Build an OpenSecureChannelResponse body with a fixed server_nonce.
   const scada::ByteString server_nonce(32, '\x7f');
-  const OpcUaBinaryOpenSecureChannelResponse response{
+  const OpenSecureChannelResponse response{
       .response_header = {.request_handle = 1,
                           .service_result = scada::StatusCode::Good},
       .server_protocol_version = 0,
@@ -704,7 +704,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
   // 8-byte frame header: "OPNF" + message_size (fix later)
   prefix.insert(prefix.end(), {'O', 'P', 'N', 'F', 0, 0, 0, 0});
   {
-    binary::BinaryEncoder enc{prefix};
+    Encoder enc{prefix};
     enc.Encode(std::uint32_t{99});  // channel_id
     enc.Encode(std::string{
         "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256"});
@@ -714,7 +714,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
 
   std::vector<char> to_encrypt;
   {
-    binary::BinaryEncoder enc{to_encrypt};
+    Encoder enc{to_encrypt};
     enc.Encode(std::uint32_t{1});  // sequence_number
     enc.Encode(std::uint32_t{1});  // request_id matches client's OPN
   }
@@ -732,7 +732,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
   to_encrypt.push_back(static_cast<char>(pad_count));
 
   // Pre-compute the final frame size so the signature covers the final
-  // message_size field (matching OpcUaBinaryClientSecureChannel's impl).
+  // message_size field (matching ClientSecureChannel's impl).
   const std::size_t total_plaintext_with_sig =
       to_encrypt.size() + server_sig_size;
   const std::size_t num_blocks = total_plaintext_with_sig / plain_block;
@@ -771,7 +771,7 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
       WaitAwaitable(executor_, client_transport->Connect()).good());
 
   auto client_security = BuildSecurity(client_pk, server_pk.cert_pem);
-  OpcUaBinaryClientSecureChannel client{*client_transport,
+  ClientSecureChannel client{*client_transport,
                                         std::move(client_security)};
 
   const auto open_status = WaitAwaitable(executor_, client.Open());
@@ -830,4 +830,4 @@ TEST_F(OpcUaBinaryClientSecureChannelBasic256Sha256Test,
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

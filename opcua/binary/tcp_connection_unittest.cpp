@@ -8,7 +8,7 @@
 
 #include <deque>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 struct StreamPeerState {
@@ -87,10 +87,10 @@ std::vector<char> Slice(const std::vector<char>& bytes,
 
 std::vector<char> EncodeOpenRequestBody(
     std::uint32_t request_handle,
-    OpcUaBinarySecurityTokenRequestType request_type =
-        OpcUaBinarySecurityTokenRequestType::Issue,
-    OpcUaBinaryMessageSecurityMode security_mode =
-        OpcUaBinaryMessageSecurityMode::None,
+    SecurityTokenRequestType request_type =
+        SecurityTokenRequestType::Issue,
+    MessageSecurityMode security_mode =
+        MessageSecurityMode::None,
     std::uint32_t requested_lifetime = 60000) {
   auto append_u8 = [](std::vector<char>& bytes, std::uint8_t value) {
     bytes.push_back(static_cast<char>(value));
@@ -157,19 +157,19 @@ std::vector<char> EncodeOpenRequestBody(
   append_u32(payload, requested_lifetime);
 
   std::vector<char> body;
-  append_extension(body, kOpenSecureChannelRequestBinaryEncodingId, payload);
+  append_extension(body, kOpenSecureChannelRequestEncodingId, payload);
   return body;
 }
 
-class OpcUaBinaryTcpConnectionTest : public ::testing::Test {
+class TcpConnectionTest : public ::testing::Test {
  protected:
   void RunPeer(const std::shared_ptr<StreamPeerState>& peer,
-               OpcUaBinarySecureFrameHandler handler =
+               SecureFrameHandler handler =
                    [](std::vector<char>) -> Awaitable<std::optional<std::vector<char>>> {
                  co_return std::nullopt;
                }) {
     WaitAwaitable(executor_,
-                  OpcUaBinaryTcpConnection{
+                  TcpConnection{
                       {.transport = transport::any_transport{
                            ScriptedStreamTransport{any_executor_, peer}},
                        .limits = server_limits_,
@@ -180,7 +180,7 @@ class OpcUaBinaryTcpConnectionTest : public ::testing::Test {
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
-  const OpcUaBinaryTransportLimits server_limits_{
+  const TransportLimits server_limits_{
       .protocol_version = 0,
       .receive_buffer_size = 8192,
       .send_buffer_size = 4096,
@@ -189,10 +189,10 @@ class OpcUaBinaryTcpConnectionTest : public ::testing::Test {
   };
 };
 
-TEST_F(OpcUaBinaryTcpConnectionTest,
+TEST_F(TcpConnectionTest,
        AcceptsHelloAndWritesAcknowledgeOverStreamTransport) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto hello = EncodeBinaryHelloMessage(
+  const auto hello = EncodeHelloMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 16384,
        .send_buffer_size = 2048,
@@ -207,7 +207,7 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
   ASSERT_EQ(peer->writes.size(), 1u);
   const auto encoded = std::vector<char>{peer->writes[0].begin(),
                                          peer->writes[0].end()};
-  const auto ack = DecodeBinaryAcknowledgeMessage(encoded);
+  const auto ack = DecodeAcknowledgeMessage(encoded);
   ASSERT_TRUE(ack.has_value());
   EXPECT_EQ(ack->protocol_version, 0u);
   EXPECT_EQ(ack->receive_buffer_size, 2048u);
@@ -215,9 +215,9 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
   EXPECT_TRUE(peer->closed);
 }
 
-TEST_F(OpcUaBinaryTcpConnectionTest, RejectsSecondHelloMessage) {
+TEST_F(TcpConnectionTest, RejectsSecondHelloMessage) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto hello = EncodeBinaryHelloMessage(
+  const auto hello = EncodeHelloMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 16384,
        .send_buffer_size = 2048,
@@ -230,16 +230,16 @@ TEST_F(OpcUaBinaryTcpConnectionTest, RejectsSecondHelloMessage) {
   RunPeer(peer);
 
   ASSERT_EQ(peer->writes.size(), 2u);
-  const auto error = DecodeBinaryErrorMessage(
+  const auto error = DecodeErrorMessage(
       std::vector<char>{peer->writes[1].begin(), peer->writes[1].end()});
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->error.bad());
 }
 
-TEST_F(OpcUaBinaryTcpConnectionTest,
+TEST_F(TcpConnectionTest,
        ForwardsSecureFramesAfterHelloToHandler) {
   auto peer = std::make_shared<StreamPeerState>();
-  const auto hello = EncodeBinaryHelloMessage(
+  const auto hello = EncodeHelloMessage(
       {.protocol_version = 0,
        .receive_buffer_size = 16384,
        .send_buffer_size = 2048,
@@ -248,11 +248,11 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
        .endpoint_url = "opc.tcp://localhost:4840"});
   const auto open = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureOpen,
+           {.message_type = MessageType::SecureOpen,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 0,
-       .asymmetric_security_header = OpcUaBinaryAsymmetricSecurityHeader{
+       .asymmetric_security_header = AsymmetricSecurityHeader{
            .security_policy_uri = std::string{kSecurityPolicyNone},
            .sender_certificate = {},
            .receiver_certificate_thumbprint = {},
@@ -262,12 +262,12 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
   const std::vector<char> payload{'a', 'b', 'c', 'd'};
   const auto secure = EncodeSecureConversationMessage(
       {.frame_header =
-           {.message_type = OpcUaBinaryMessageType::SecureMessage,
+           {.message_type = MessageType::SecureMessage,
             .chunk_type = 'F',
             .message_size = 0},
        .secure_channel_id = 1,
        .symmetric_security_header =
-           OpcUaBinarySymmetricSecurityHeader{.token_id = 1},
+           SymmetricSecurityHeader{.token_id = 1},
        .sequence_header = {.sequence_number = 2, .request_id = 9},
        .body = payload});
 
@@ -289,16 +289,16 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
       std::vector<char>{peer->writes[2].begin(), peer->writes[2].end()});
   ASSERT_TRUE(response.has_value());
   EXPECT_EQ(response->frame_header.message_type,
-            OpcUaBinaryMessageType::SecureMessage);
+            MessageType::SecureMessage);
   EXPECT_EQ(response->sequence_header.request_id, 9u);
   EXPECT_EQ(response->body, (std::vector<char>{'o', 'k'}));
 }
 
-TEST_F(OpcUaBinaryTcpConnectionTest,
+TEST_F(TcpConnectionTest,
        RejectsSecureFrameBeforeHelloHandshake) {
   auto peer = std::make_shared<StreamPeerState>();
-  auto secure = EncodeBinaryFrameHeader(
-      {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  auto secure = EncodeFrameHeader(
+      {.message_type = MessageType::SecureOpen,
        .chunk_type = 'F',
        .message_size = 8});
   peer->incoming.push_back(AsString(secure));
@@ -306,11 +306,11 @@ TEST_F(OpcUaBinaryTcpConnectionTest,
   RunPeer(peer);
 
   ASSERT_EQ(peer->writes.size(), 1u);
-  const auto error = DecodeBinaryErrorMessage(
+  const auto error = DecodeErrorMessage(
       std::vector<char>{peer->writes[0].begin(), peer->writes[0].end()});
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->error.bad());
 }
 
 }  // namespace
-}  // namespace opcua
+}  // namespace opcua::binary

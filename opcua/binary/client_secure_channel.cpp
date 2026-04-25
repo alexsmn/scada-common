@@ -9,7 +9,7 @@
 #include <cstring>
 #include <utility>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 constexpr std::size_t kRsaOaepSha1Overhead = 42;
@@ -30,38 +30,38 @@ void FixUpFrameSize(std::vector<char>& frame) {
 
 }  // namespace
 
-OpcUaBinaryClientSecureChannel::OpcUaBinaryClientSecureChannel(
-    OpcUaBinaryClientTransport& transport)
+ClientSecureChannel::ClientSecureChannel(
+    ClientTransport& transport)
     : transport_{transport} {}
 
-OpcUaBinaryClientSecureChannel::OpcUaBinaryClientSecureChannel(
-    OpcUaBinaryClientTransport& transport, Security security)
+ClientSecureChannel::ClientSecureChannel(
+    ClientTransport& transport, Security security)
     : transport_{transport}, security_{std::move(security)} {}
 
-bool OpcUaBinaryClientSecureChannel::UsesBasic256Sha256() const {
+bool ClientSecureChannel::UsesBasic256Sha256() const {
   return security_.security_policy_uri !=
              std::string{kSecurityPolicyNone} &&
          security_.security_mode !=
-             OpcUaBinaryMessageSecurityMode::None;
+             MessageSecurityMode::None;
 }
 
-bool OpcUaBinaryClientSecureChannel::UsesSignAndEncrypt() const {
+bool ClientSecureChannel::UsesSignAndEncrypt() const {
   return security_.security_mode ==
-         OpcUaBinaryMessageSecurityMode::SignAndEncrypt;
+         MessageSecurityMode::SignAndEncrypt;
 }
 
-std::uint32_t OpcUaBinaryClientSecureChannel::NextRequestId() {
+std::uint32_t ClientSecureChannel::NextRequestId() {
   return next_request_id_++;
 }
 
-std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
+std::vector<char> ClientSecureChannel::BuildPlaintextOpenFrame(
     std::uint32_t request_id,
     std::uint32_t request_handle,
-    OpcUaBinarySecurityTokenRequestType request_type,
+    SecurityTokenRequestType request_type,
     std::uint32_t secure_channel_id,
     const scada::ByteString& client_nonce,
     std::uint32_t requested_lifetime_ms) {
-  const OpcUaBinaryOpenSecureChannelRequest request{
+  const OpenSecureChannelRequest request{
       .request_header = {.request_handle = request_handle},
       .client_protocol_version = 0,
       .request_type = request_type,
@@ -71,7 +71,7 @@ std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
   };
   const auto body = EncodeOpenSecureChannelRequestBody(request);
 
-  OpcUaBinaryAsymmetricSecurityHeader asym_header{
+  AsymmetricSecurityHeader asym_header{
       .security_policy_uri = security_.security_policy_uri,
       .sender_certificate = {},
       .receiver_certificate_thumbprint = {},
@@ -87,8 +87,8 @@ std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
     }
   }
 
-  const OpcUaBinarySecureConversationMessage frame_message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureOpen,
+  const SecureConversationMessage frame_message{
+      .frame_header = {.message_type = MessageType::SecureOpen,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = secure_channel_id,
@@ -102,10 +102,10 @@ std::vector<char> OpcUaBinaryClientSecureChannel::BuildPlaintextOpenFrame(
 }
 
 scada::StatusOr<std::vector<char>>
-OpcUaBinaryClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
+ClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
     std::uint32_t request_id,
     std::uint32_t request_handle,
-    OpcUaBinarySecurityTokenRequestType request_type,
+    SecurityTokenRequestType request_type,
     std::uint32_t secure_channel_id,
     const scada::ByteString& client_nonce,
     std::uint32_t requested_lifetime_ms) {
@@ -123,11 +123,11 @@ OpcUaBinaryClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
   //    match the exact bytes EncodeSecureConversationMessage wrote.
   std::vector<char> plaintext_prefix;
   {
-    binary::BinaryEncoder enc{plaintext_prefix};
+    Encoder enc{plaintext_prefix};
     // Frame header is the first 8 bytes of `frame` as-is.
     plaintext_prefix.insert(plaintext_prefix.end(), frame.begin(),
                             frame.begin() + 8);
-    binary::BinaryEncoder tail_enc{plaintext_prefix};
+    Encoder tail_enc{plaintext_prefix};
     tail_enc.Encode(secure_channel_id);
     tail_enc.Encode(security_.security_policy_uri);
     auto sender_der = crypto::CertificateDer(security_.client_certificate);
@@ -224,17 +224,17 @@ OpcUaBinaryClientSecureChannel::BuildAsymmetricBasic256Sha256OpenFrame(
   return scada::StatusOr<std::vector<char>>{std::move(final_frame)};
 }
 
-scada::StatusOr<OpcUaBinaryClientSecureChannel::AsymmetricDecodedResponse>
-OpcUaBinaryClientSecureChannel::DecodeAsymmetricBasic256Sha256OpenFrame(
+scada::StatusOr<ClientSecureChannel::AsymmetricDecodedResponse>
+ClientSecureChannel::DecodeAsymmetricBasic256Sha256OpenFrame(
     const std::vector<char>& frame) {
   // 1. Parse the plaintext prefix: frame header + channel id + asym header.
   if (frame.size() < 8) {
     return scada::StatusOr<AsymmetricDecodedResponse>{
         scada::Status{scada::StatusCode::Bad}};
   }
-  binary::BinaryDecoder dec{std::span<const char>{frame}.subspan(8)};
+  Decoder dec{std::span<const char>{frame}.subspan(8)};
   std::uint32_t channel_id = 0;
-  OpcUaBinaryAsymmetricSecurityHeader asym_header;
+  AsymmetricSecurityHeader asym_header;
   if (!dec.Decode(channel_id) ||
       !dec.Decode(asym_header.security_policy_uri) ||
       !dec.Decode(asym_header.sender_certificate) ||
@@ -307,7 +307,7 @@ OpcUaBinaryClientSecureChannel::DecodeAsymmetricBasic256Sha256OpenFrame(
   }
   AsymmetricDecodedResponse result;
   result.security_header = std::move(asym_header);
-  binary::BinaryDecoder seq_dec{
+  Decoder seq_dec{
       std::span<const char>{plaintext->data(), 8}};
   if (!seq_dec.Decode(result.sequence_header.sequence_number) ||
       !seq_dec.Decode(result.sequence_header.request_id)) {
@@ -320,7 +320,7 @@ OpcUaBinaryClientSecureChannel::DecodeAsymmetricBasic256Sha256OpenFrame(
 }
 
 scada::StatusOr<scada::ByteString>
-OpcUaBinaryClientSecureChannel::GenerateClientNonce() {
+ClientSecureChannel::GenerateClientNonce() {
   if (security_.client_nonce_generator) {
     auto nonce = security_.client_nonce_generator();
     if (!nonce.ok()) {
@@ -342,11 +342,11 @@ OpcUaBinaryClientSecureChannel::GenerateClientNonce() {
   return scada::StatusOr<scada::ByteString>{std::move(nonce)};
 }
 
-bool OpcUaBinaryClientSecureChannel::ShouldRenew() const {
+bool ClientSecureChannel::ShouldRenew() const {
   return opened_ && std::chrono::steady_clock::now() >= renew_at_;
 }
 
-void OpcUaBinaryClientSecureChannel::ArmRenewalTimer(
+void ClientSecureChannel::ArmRenewalTimer(
     std::uint32_t revised_lifetime_ms) {
   revised_lifetime_ms_ = revised_lifetime_ms;
   if (revised_lifetime_ms_ == 0) {
@@ -361,35 +361,35 @@ void OpcUaBinaryClientSecureChannel::ArmRenewalTimer(
   renew_at_ = std::chrono::steady_clock::now() + renew_after;
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Open(
+Awaitable<scada::Status> ClientSecureChannel::Open(
     std::uint32_t requested_lifetime_ms) {
   co_return co_await OpenSecureChannel(
-      OpcUaBinarySecurityTokenRequestType::Issue, requested_lifetime_ms);
+      SecurityTokenRequestType::Issue, requested_lifetime_ms);
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Renew(
+Awaitable<scada::Status> ClientSecureChannel::Renew(
     std::uint32_t requested_lifetime_ms) {
   if (!opened_) {
     co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
   co_return co_await OpenSecureChannel(
-      OpcUaBinarySecurityTokenRequestType::Renew, requested_lifetime_ms);
+      SecurityTokenRequestType::Renew, requested_lifetime_ms);
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::RenewIfNeeded() {
+Awaitable<scada::Status> ClientSecureChannel::RenewIfNeeded() {
   if (!ShouldRenew()) {
     co_return scada::Status{scada::StatusCode::Good};
   }
   co_return co_await Renew(revised_lifetime_ms_);
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::OpenSecureChannel(
-    OpcUaBinarySecurityTokenRequestType request_type,
+Awaitable<scada::Status> ClientSecureChannel::OpenSecureChannel(
+    SecurityTokenRequestType request_type,
     std::uint32_t requested_lifetime_ms) {
   const std::uint32_t request_id = NextRequestId();
   const std::uint32_t request_handle = request_id;
   const std::uint32_t secure_channel_id =
-      request_type == OpcUaBinarySecurityTokenRequestType::Renew ? channel_id_
+      request_type == SecurityTokenRequestType::Renew ? channel_id_
                                                                  : 0;
 
   // For Basic256Sha256 we generate a 32-byte client nonce that's fed into
@@ -428,7 +428,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::OpenSecureChannel(
     co_return read_frame.status();
   }
 
-  OpcUaBinaryOpenSecureChannelResponse response;
+  OpenSecureChannelResponse response;
   if (UsesBasic256Sha256()) {
     auto decoded = DecodeAsymmetricBasic256Sha256OpenFrame(*read_frame);
     if (!decoded.ok()) {
@@ -443,7 +443,7 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::OpenSecureChannel(
     const auto message = DecodeSecureConversationMessage(*read_frame);
     if (!message.has_value() ||
         message->frame_header.message_type !=
-            OpcUaBinaryMessageType::SecureOpen ||
+            MessageType::SecureOpen ||
         !message->asymmetric_security_header.has_value() ||
         message->asymmetric_security_header->security_policy_uri !=
             kSecurityPolicyNone) {
@@ -479,8 +479,8 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::OpenSecureChannel(
 }
 
 scada::StatusOr<std::vector<char>>
-OpcUaBinaryClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
-    OpcUaBinaryMessageType type,
+ClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
+    MessageType type,
     std::uint32_t request_id,
     const std::vector<char>& body) {
   // 1. Assemble the plaintext prefix (frame header, channel_id, sym header)
@@ -491,7 +491,7 @@ OpcUaBinaryClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
   // where padding ensures (payload + 1 + 32 sig) % 16 == 0.
   std::vector<char> plaintext_payload;
   {
-    binary::BinaryEncoder enc{plaintext_payload};
+    Encoder enc{plaintext_payload};
     enc.Encode(next_sequence_number_++);
     enc.Encode(request_id);
   }
@@ -517,10 +517,10 @@ OpcUaBinaryClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
     // Frame header: 4-byte type tag + 4-byte message_size (fixed later).
     const char* type_tag = nullptr;
     switch (type) {
-      case OpcUaBinaryMessageType::SecureMessage:
+      case MessageType::SecureMessage:
         type_tag = "MSGF";
         break;
-      case OpcUaBinaryMessageType::SecureClose:
+      case MessageType::SecureClose:
         type_tag = "CLOF";
         break;
       default:
@@ -533,7 +533,7 @@ OpcUaBinaryClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
         header_portion.end(),
         reinterpret_cast<const char*>(&placeholder_size),
         reinterpret_cast<const char*>(&placeholder_size) + 4);
-    binary::BinaryEncoder enc{header_portion};
+    Encoder enc{header_portion};
     enc.Encode(channel_id_);
     enc.Encode(token_id_);
   }
@@ -583,8 +583,8 @@ OpcUaBinaryClientSecureChannel::BuildSymmetricBasic256Sha256Frame(
   return scada::StatusOr<std::vector<char>>{std::move(frame)};
 }
 
-scada::StatusOr<OpcUaBinaryClientSecureChannel::ServiceResponse>
-OpcUaBinaryClientSecureChannel::DecodeSymmetricBasic256Sha256Frame(
+scada::StatusOr<ClientSecureChannel::ServiceResponse>
+ClientSecureChannel::DecodeSymmetricBasic256Sha256Frame(
     const std::vector<char>& frame) {
   // Header: 4-byte type + 4-byte size + 4-byte channel_id + 4-byte token_id
   // = 16 bytes.
@@ -657,7 +657,7 @@ OpcUaBinaryClientSecureChannel::DecodeSymmetricBasic256Sha256Frame(
   return scada::StatusOr<ServiceResponse>{std::move(response)};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::SendServiceRequest(
+Awaitable<scada::Status> ClientSecureChannel::SendServiceRequest(
     std::uint32_t request_id,
     const std::vector<char>& body) {
   if (!opened_) {
@@ -669,20 +669,20 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::SendServiceRequest(
   }
   if (UsesSignAndEncrypt()) {
     auto framed = BuildSymmetricBasic256Sha256Frame(
-        OpcUaBinaryMessageType::SecureMessage, request_id, body);
+        MessageType::SecureMessage, request_id, body);
     if (!framed.ok()) {
       co_return framed.status();
     }
     co_return co_await transport_.WriteFrame(*framed);
   }
-  const OpcUaBinarySecureConversationMessage message{
-      .frame_header = {.message_type = OpcUaBinaryMessageType::SecureMessage,
+  const SecureConversationMessage message{
+      .frame_header = {.message_type = MessageType::SecureMessage,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id_,
       .asymmetric_security_header = std::nullopt,
       .symmetric_security_header =
-          OpcUaBinarySymmetricSecurityHeader{.token_id = token_id_},
+          SymmetricSecurityHeader{.token_id = token_id_},
       .sequence_header = {.sequence_number = next_sequence_number_++,
                           .request_id = request_id},
       .body = body,
@@ -691,8 +691,8 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::SendServiceRequest(
       EncodeSecureConversationMessage(message));
 }
 
-Awaitable<scada::StatusOr<OpcUaBinaryClientSecureChannel::ServiceResponse>>
-OpcUaBinaryClientSecureChannel::ReadServiceResponse() {
+Awaitable<scada::StatusOr<ClientSecureChannel::ServiceResponse>>
+ClientSecureChannel::ReadServiceResponse() {
   if (!opened_) {
     co_return scada::StatusOr<ServiceResponse>{
         scada::Status{scada::StatusCode::Bad_Disconnected}};
@@ -707,7 +707,7 @@ OpcUaBinaryClientSecureChannel::ReadServiceResponse() {
   const auto message = DecodeSecureConversationMessage(*frame);
   if (!message.has_value() ||
       message->frame_header.message_type !=
-          OpcUaBinaryMessageType::SecureMessage ||
+          MessageType::SecureMessage ||
       message->secure_channel_id != channel_id_ ||
       !message->symmetric_security_header.has_value() ||
       message->symmetric_security_header->token_id != token_id_) {
@@ -719,33 +719,33 @@ OpcUaBinaryClientSecureChannel::ReadServiceResponse() {
                       .body = std::move(message->body)}};
 }
 
-Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Close() {
+Awaitable<scada::Status> ClientSecureChannel::Close() {
   if (!opened_) {
     co_return scada::Status{scada::StatusCode::Good};
   }
   const std::uint32_t request_id = NextRequestId();
-  const OpcUaBinaryCloseSecureChannelRequest close_request{
+  const CloseSecureChannelRequest close_request{
       .request_header = {.request_handle = request_id}};
   const auto body = EncodeCloseSecureChannelRequestBody(close_request);
 
   scada::Status status{scada::StatusCode::Good};
   if (UsesSignAndEncrypt()) {
     auto framed = BuildSymmetricBasic256Sha256Frame(
-        OpcUaBinaryMessageType::SecureClose, request_id, body);
+        MessageType::SecureClose, request_id, body);
     if (framed.ok()) {
       status = co_await transport_.WriteFrame(*framed);
     } else {
       status = framed.status();
     }
   } else {
-    const OpcUaBinarySecureConversationMessage message{
-        .frame_header = {.message_type = OpcUaBinaryMessageType::SecureClose,
+    const SecureConversationMessage message{
+        .frame_header = {.message_type = MessageType::SecureClose,
                          .chunk_type = 'F',
                          .message_size = 0},
         .secure_channel_id = channel_id_,
         .asymmetric_security_header = std::nullopt,
         .symmetric_security_header =
-            OpcUaBinarySymmetricSecurityHeader{.token_id = token_id_},
+            SymmetricSecurityHeader{.token_id = token_id_},
         .sequence_header = {.sequence_number = next_sequence_number_++,
                             .request_id = request_id},
         .body = body,
@@ -757,4 +757,4 @@ Awaitable<scada::Status> OpcUaBinaryClientSecureChannel::Close() {
   co_return status;
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

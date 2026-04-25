@@ -18,7 +18,7 @@ namespace opcua {
 
 namespace {
 
-BoostLogger logger_{LOG_NAME("OpcUaWsServer")};
+BoostLogger logger_{LOG_NAME("WsServer")};
 std::atomic_uint64_t next_connection_id_{1};
 
 template <typename T>
@@ -34,16 +34,16 @@ struct ConnectionTaskState {
 
   transport::any_transport transport;
   transport::WriteQueue write_queue;
-  OpcUaWsConnectionState connection;
+  ConnectionState connection;
   uint64_t connection_id;
 };
 
 }  // namespace
 
-OpcUaWsServer::OpcUaWsServer(OpcUaWsServerContext&& context)
-    : OpcUaWsServerContext{std::move(context)} {}
+WsServer::WsServer(WsServerContext&& context)
+    : WsServerContext{std::move(context)} {}
 
-Awaitable<transport::error_code> OpcUaWsServer::Open() {
+Awaitable<transport::error_code> WsServer::Open() {
   if (opened_)
     co_return transport::OK;
 
@@ -57,7 +57,7 @@ Awaitable<transport::error_code> OpcUaWsServer::Open() {
   co_return transport::OK;
 }
 
-Awaitable<transport::error_code> OpcUaWsServer::Close() {
+Awaitable<transport::error_code> WsServer::Close() {
   if (!opened_)
     co_return transport::OK;
 
@@ -65,11 +65,11 @@ Awaitable<transport::error_code> OpcUaWsServer::Close() {
   co_return co_await acceptor.close();
 }
 
-Awaitable<void> OpcUaWsServer::ServeConnection(transport::any_transport transport) {
+Awaitable<void> WsServer::ServeConnection(transport::any_transport transport) {
   co_await RunConnection(std::move(transport));
 }
 
-Awaitable<void> OpcUaWsServer::AcceptLoop() {
+Awaitable<void> WsServer::AcceptLoop() {
   while (opened_) {
     auto accepted = co_await acceptor.accept();
     if (!accepted.ok())
@@ -84,7 +84,7 @@ Awaitable<void> OpcUaWsServer::AcceptLoop() {
   }
 }
 
-Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport) {
+Awaitable<void> WsServer::RunConnection(transport::any_transport transport) {
   auto state =
       std::make_shared<ConnectionTaskState>(std::move(transport));
   [[maybe_unused]] auto open_result = co_await state->transport.open();
@@ -98,20 +98,20 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
     if (!read_result.ok() || *read_result == 0)
       break;
 
-    std::optional<opcua::OpcUaRequestMessage> request;
+    std::optional<RequestMessage> request;
     bool parse_failed = false;
     try {
       const std::string_view payload{buffer.data(), *read_result};
-      request = opcua::DecodeRequestMessage(boost::json::parse(payload));
+      request = DecodeRequestMessage(boost::json::parse(payload));
     } catch (...) {
       parse_failed = true;
     }
 
     if (parse_failed) {
       auto encoded =
-          boost::json::serialize(opcua::EncodeJson(opcua::OpcUaResponseMessage{
+          boost::json::serialize(EncodeJson(ResponseMessage{
               .request_handle = 0,
-              .body = opcua::OpcUaServiceFault{
+              .body = ServiceFault{
                   .status = scada::StatusCode::Bad_CantParseString}}));
       if (encoded.size() > max_message_size)
         break;
@@ -128,9 +128,9 @@ Awaitable<void> OpcUaWsServer::RunConnection(transport::any_transport transport)
             -> Awaitable<void> {
           auto body =
               co_await runtime.Handle(state->connection, std::move(request.body));
-          auto response = opcua::OpcUaResponseMessage{
+          auto response = ResponseMessage{
               .request_handle = request.request_handle, .body = std::move(body)};
-          auto encoded = boost::json::serialize(opcua::EncodeJson(response));
+          auto encoded = boost::json::serialize(EncodeJson(response));
           if (encoded.size() > max_message_size)
             co_return;
 

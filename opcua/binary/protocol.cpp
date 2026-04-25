@@ -5,60 +5,60 @@
 #include <array>
 #include <cstring>
 
-namespace opcua {
+namespace opcua::binary {
 namespace {
 
 constexpr std::size_t kHeaderSize = 8;
 constexpr char kFinalChunkType = 'F';
 
-std::array<char, 3> EncodeMessageType(OpcUaBinaryMessageType message_type) {
+std::array<char, 3> EncodeMessageType(MessageType message_type) {
   switch (message_type) {
-    case OpcUaBinaryMessageType::Hello:
+    case MessageType::Hello:
       return {'H', 'E', 'L'};
-    case OpcUaBinaryMessageType::Acknowledge:
+    case MessageType::Acknowledge:
       return {'A', 'C', 'K'};
-    case OpcUaBinaryMessageType::Error:
+    case MessageType::Error:
       return {'E', 'R', 'R'};
-    case OpcUaBinaryMessageType::ReverseHello:
+    case MessageType::ReverseHello:
       return {'R', 'H', 'E'};
-    case OpcUaBinaryMessageType::SecureOpen:
+    case MessageType::SecureOpen:
       return {'O', 'P', 'N'};
-    case OpcUaBinaryMessageType::SecureMessage:
+    case MessageType::SecureMessage:
       return {'M', 'S', 'G'};
-    case OpcUaBinaryMessageType::SecureClose:
+    case MessageType::SecureClose:
       return {'C', 'L', 'O'};
   }
   return {'E', 'R', 'R'};
 }
 
-std::optional<OpcUaBinaryMessageType> DecodeMessageType(
+std::optional<MessageType> DecodeMessageType(
     std::string_view message_type) {
   if (message_type == "HEL") {
-    return OpcUaBinaryMessageType::Hello;
+    return MessageType::Hello;
   }
   if (message_type == "ACK") {
-    return OpcUaBinaryMessageType::Acknowledge;
+    return MessageType::Acknowledge;
   }
   if (message_type == "ERR") {
-    return OpcUaBinaryMessageType::Error;
+    return MessageType::Error;
   }
   if (message_type == "RHE") {
-    return OpcUaBinaryMessageType::ReverseHello;
+    return MessageType::ReverseHello;
   }
   if (message_type == "OPN") {
-    return OpcUaBinaryMessageType::SecureOpen;
+    return MessageType::SecureOpen;
   }
   if (message_type == "MSG") {
-    return OpcUaBinaryMessageType::SecureMessage;
+    return MessageType::SecureMessage;
   }
   if (message_type == "CLO") {
-    return OpcUaBinaryMessageType::SecureClose;
+    return MessageType::SecureClose;
   }
   return std::nullopt;
 }
 
 template <typename FillBody>
-std::vector<char> EncodeWithHeader(OpcUaBinaryMessageType message_type,
+std::vector<char> EncodeWithHeader(MessageType message_type,
                                    FillBody&& fill_body) {
   std::vector<char> bytes(kHeaderSize, '\0');
   fill_body(bytes);
@@ -75,7 +75,7 @@ std::vector<char> EncodeWithHeader(OpcUaBinaryMessageType message_type,
 
 }  // namespace
 
-std::optional<OpcUaBinaryFrameHeader> DecodeBinaryFrameHeader(
+std::optional<FrameHeader> DecodeFrameHeader(
     const std::vector<char>& bytes) {
   if (bytes.size() < kHeaderSize) {
     return std::nullopt;
@@ -87,7 +87,7 @@ std::optional<OpcUaBinaryFrameHeader> DecodeBinaryFrameHeader(
     return std::nullopt;
   }
 
-  OpcUaBinaryFrameHeader header{
+  FrameHeader header{
       .message_type = *message_type,
       .chunk_type = bytes[3],
   };
@@ -99,8 +99,8 @@ std::optional<OpcUaBinaryFrameHeader> DecodeBinaryFrameHeader(
   return header;
 }
 
-std::vector<char> EncodeBinaryFrameHeader(
-    const OpcUaBinaryFrameHeader& header) {
+std::vector<char> EncodeFrameHeader(
+    const FrameHeader& header) {
   std::vector<char> bytes(kHeaderSize, '\0');
   const auto message_type = EncodeMessageType(header.message_type);
   bytes[0] = message_type[0];
@@ -112,11 +112,11 @@ std::vector<char> EncodeBinaryFrameHeader(
   return bytes;
 }
 
-std::vector<char> EncodeBinaryHelloMessage(
-    const OpcUaBinaryHelloMessage& message) {
-  return EncodeWithHeader(OpcUaBinaryMessageType::Hello,
+std::vector<char> EncodeHelloMessage(
+    const HelloMessage& message) {
+  return EncodeWithHeader(MessageType::Hello,
                           [&](std::vector<char>& bytes) {
-                            binary::BinaryEncoder encoder{bytes};
+                            Encoder encoder{bytes};
                             encoder.Encode(message.protocol_version);
                             encoder.Encode(message.receive_buffer_size);
                             encoder.Encode(message.send_buffer_size);
@@ -126,16 +126,16 @@ std::vector<char> EncodeBinaryHelloMessage(
                           });
 }
 
-std::optional<OpcUaBinaryHelloMessage> DecodeBinaryHelloMessage(
+std::optional<HelloMessage> DecodeHelloMessage(
     const std::vector<char>& bytes) {
-  const auto header = DecodeBinaryFrameHeader(bytes);
-  if (!header || header->message_type != OpcUaBinaryMessageType::Hello ||
+  const auto header = DecodeFrameHeader(bytes);
+  if (!header || header->message_type != MessageType::Hello ||
       header->message_size != bytes.size()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryHelloMessage message;
-  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  HelloMessage message;
+  Decoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
   if (!decoder.Decode(message.protocol_version) ||
       !decoder.Decode(message.receive_buffer_size) ||
       !decoder.Decode(message.send_buffer_size) ||
@@ -150,11 +150,11 @@ std::optional<OpcUaBinaryHelloMessage> DecodeBinaryHelloMessage(
   return message;
 }
 
-std::vector<char> EncodeBinaryAcknowledgeMessage(
-    const OpcUaBinaryAcknowledgeMessage& message) {
-  return EncodeWithHeader(OpcUaBinaryMessageType::Acknowledge,
+std::vector<char> EncodeAcknowledgeMessage(
+    const AcknowledgeMessage& message) {
+  return EncodeWithHeader(MessageType::Acknowledge,
                           [&](std::vector<char>& bytes) {
-                            binary::BinaryEncoder encoder{bytes};
+                            Encoder encoder{bytes};
                             encoder.Encode(message.protocol_version);
                             encoder.Encode(message.receive_buffer_size);
                             encoder.Encode(message.send_buffer_size);
@@ -163,16 +163,16 @@ std::vector<char> EncodeBinaryAcknowledgeMessage(
                           });
 }
 
-std::optional<OpcUaBinaryAcknowledgeMessage> DecodeBinaryAcknowledgeMessage(
+std::optional<AcknowledgeMessage> DecodeAcknowledgeMessage(
     const std::vector<char>& bytes) {
-  const auto header = DecodeBinaryFrameHeader(bytes);
-  if (!header || header->message_type != OpcUaBinaryMessageType::Acknowledge ||
+  const auto header = DecodeFrameHeader(bytes);
+  if (!header || header->message_type != MessageType::Acknowledge ||
       header->message_size != bytes.size()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryAcknowledgeMessage message;
-  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  AcknowledgeMessage message;
+  Decoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
   if (!decoder.Decode(message.protocol_version) ||
       !decoder.Decode(message.receive_buffer_size) ||
       !decoder.Decode(message.send_buffer_size) ||
@@ -186,27 +186,27 @@ std::optional<OpcUaBinaryAcknowledgeMessage> DecodeBinaryAcknowledgeMessage(
   return message;
 }
 
-std::vector<char> EncodeBinaryErrorMessage(
-    const OpcUaBinaryErrorMessage& message) {
-  return EncodeWithHeader(OpcUaBinaryMessageType::Error,
+std::vector<char> EncodeErrorMessage(
+    const ErrorMessage& message) {
+  return EncodeWithHeader(MessageType::Error,
                           [&](std::vector<char>& bytes) {
-                            binary::BinaryEncoder encoder{bytes};
+                            Encoder encoder{bytes};
                             encoder.Encode(message.error.full_code());
                             encoder.Encode(message.reason);
                           });
 }
 
-std::optional<OpcUaBinaryErrorMessage> DecodeBinaryErrorMessage(
+std::optional<ErrorMessage> DecodeErrorMessage(
     const std::vector<char>& bytes) {
-  const auto header = DecodeBinaryFrameHeader(bytes);
-  if (!header || header->message_type != OpcUaBinaryMessageType::Error ||
+  const auto header = DecodeFrameHeader(bytes);
+  if (!header || header->message_type != MessageType::Error ||
       header->message_size != bytes.size()) {
     return std::nullopt;
   }
 
-  OpcUaBinaryErrorMessage message;
+  ErrorMessage message;
   std::uint32_t full_code = 0;
-  binary::BinaryDecoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
+  Decoder decoder{std::span<const char>{bytes}.subspan(kHeaderSize)};
   if (!decoder.Decode(full_code) ||
       !decoder.Decode(message.reason)) {
     return std::nullopt;
@@ -218,17 +218,17 @@ std::optional<OpcUaBinaryErrorMessage> DecodeBinaryErrorMessage(
   return message;
 }
 
-OpcUaBinaryNegotiationResult NegotiateBinaryHello(
-    const OpcUaBinaryHelloMessage& hello,
-    const OpcUaBinaryTransportLimits& server_limits) {
+NegotiationResult NegotiateHello(
+    const HelloMessage& hello,
+    const TransportLimits& server_limits) {
   if (hello.receive_buffer_size == 0 || hello.send_buffer_size == 0) {
-    return {.error = OpcUaBinaryErrorMessage{
+    return {.error = ErrorMessage{
                 .error = scada::StatusCode::Bad,
                 .reason = "Client transport buffers must be non-zero",
             }};
   }
 
-  OpcUaBinaryAcknowledgeMessage acknowledge;
+  AcknowledgeMessage acknowledge;
   acknowledge.protocol_version = std::min(hello.protocol_version,
                                           server_limits.protocol_version);
   acknowledge.receive_buffer_size =
@@ -241,4 +241,4 @@ OpcUaBinaryNegotiationResult NegotiateBinaryHello(
   return {.acknowledge = acknowledge};
 }
 
-}  // namespace opcua
+}  // namespace opcua::binary

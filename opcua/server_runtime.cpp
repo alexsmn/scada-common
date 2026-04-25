@@ -13,7 +13,7 @@ namespace opcua {
 
 namespace {
 
-BoostLogger logger_{LOG_NAME("OpcUaServerRuntime")};
+BoostLogger logger_{LOG_NAME("ServerRuntime")};
 
 template <typename Response>
 Response SessionMissingResponse() {
@@ -21,17 +21,17 @@ Response SessionMissingResponse() {
 }
 
 template <>
-OpcUaResponseBody SessionMissingResponse<OpcUaResponseBody>() {
-  return OpcUaServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
+ResponseBody SessionMissingResponse<ResponseBody>() {
+  return ServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
 }
 
 template <typename Request>
-Awaitable<OpcUaServiceResponse> HandleServiceRequest(
-    const OpcUaServerRuntimeContext& context,
-    const OpcUaServerSession& session,
+Awaitable<ServiceResponse> HandleServiceRequest(
+    const ServerRuntimeContext& context,
+    const ServerSession& session,
     Request request) {
   const auto user_id = session.GetServiceContext().user_id();
-  co_return co_await OpcUaServiceHandler{
+  co_return co_await ServiceHandler{
       {.executor = context.executor,
        .attribute_service = context.attribute_service,
        .view_service = context.view_service,
@@ -39,15 +39,15 @@ Awaitable<OpcUaServiceResponse> HandleServiceRequest(
        .method_service = context.method_service,
        .node_management_service = context.node_management_service,
        .user_id = user_id}}
-      .Handle(OpcUaServiceRequest{std::move(request)});
+      .Handle(ServiceRequest{std::move(request)});
 }
 
 }  // namespace
 
-OpcUaServerRuntime::OpcUaServerRuntime(OpcUaServerRuntimeContext&& context)
-    : OpcUaServerRuntimeContext{std::move(context)} {}
+ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
+    : ServerRuntimeContext{std::move(context)} {}
 
-void OpcUaServerRuntime::Detach(OpcUaConnectionState& connection) {
+void ServerRuntime::Detach(ConnectionState& connection) {
   if (!connection.authentication_token.has_value())
     return;
 
@@ -58,20 +58,20 @@ void OpcUaServerRuntime::Detach(OpcUaConnectionState& connection) {
   connection.authentication_token.reset();
 }
 
-OpcUaServerSession* OpcUaServerRuntime::FindSession(
+ServerSession* ServerRuntime::FindSession(
     const scada::NodeId& authentication_token) const {
   const auto it = sessions_.find(authentication_token);
   return it != sessions_.end() ? it->second.get() : nullptr;
 }
 
-OpcUaServerSession* OpcUaServerRuntime::FindAttachedSession(
-    const OpcUaConnectionState& connection) const {
+ServerSession* ServerRuntime::FindAttachedSession(
+    const ConnectionState& connection) const {
   if (!connection.authentication_token.has_value())
     return nullptr;
   return FindSession(*connection.authentication_token);
 }
 
-void OpcUaServerRuntime::ForgetSession(const scada::NodeId& authentication_token) {
+void ServerRuntime::ForgetSession(const scada::NodeId& authentication_token) {
   LOG_INFO(logger_) << "OPC UA runtime forgetting session state"
                     << LOG_TAG("AuthenticationToken",
                                authentication_token.ToString());
@@ -79,9 +79,9 @@ void OpcUaServerRuntime::ForgetSession(const scada::NodeId& authentication_token
   sessions_.erase(authentication_token);
 }
 
-void OpcUaServerRuntime::IndexSessionSubscriptions(
+void ServerRuntime::IndexSessionSubscriptions(
     const scada::NodeId& authentication_token,
-    const OpcUaServerSession& session) {
+    const ServerSession& session) {
   const auto subscription_ids = session.GetSubscriptionIds();
   for (const auto subscription_id : subscription_ids)
     subscription_owners_[subscription_id] = authentication_token;
@@ -94,7 +94,7 @@ void OpcUaServerRuntime::IndexSessionSubscriptions(
   }
 }
 
-void OpcUaServerRuntime::RemoveSessionSubscriptions(
+void ServerRuntime::RemoveSessionSubscriptions(
     const scada::NodeId& authentication_token) {
   std::erase_if(subscription_owners_,
                 [&](const auto& entry) {
@@ -102,7 +102,7 @@ void OpcUaServerRuntime::RemoveSessionSubscriptions(
                 });
 }
 
-Awaitable<void> OpcUaServerRuntime::Delay(base::TimeDelta delay) const {
+Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
   if (delay <= base::TimeDelta{})
     co_return;
 
@@ -121,115 +121,115 @@ Awaitable<void> OpcUaServerRuntime::Delay(base::TimeDelta delay) const {
       });
 }
 
-Awaitable<OpcUaResponseBody> OpcUaServerRuntime::Handle(
-    OpcUaConnectionState& connection,
-    OpcUaRequestBody request) {
+Awaitable<ResponseBody> ServerRuntime::Handle(
+    ConnectionState& connection,
+    RequestBody request) {
   auto body = co_await std::visit(
-      [this, &connection](auto&& typed_request) -> Awaitable<OpcUaResponseBody> {
+      [this, &connection](auto&& typed_request) -> Awaitable<ResponseBody> {
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, OpcUaCreateSessionRequest>) {
-          co_return OpcUaResponseBody{
+        if constexpr (std::is_same_v<T, CreateSessionRequest>) {
+          co_return ResponseBody{
               co_await this->session_manager.CreateSession(std::move(typed_request))};
-        } else if constexpr (std::is_same_v<T, OpcUaActivateSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           co_return co_await HandleActivateSession(connection,
                                                    std::move(typed_request));
-        } else if constexpr (std::is_same_v<T, OpcUaCloseSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, CloseSessionRequest>) {
           const auto response = this->session_manager.CloseSession(typed_request);
           if (response.status)
             ForgetSession(typed_request.authentication_token);
           if (connection.authentication_token == typed_request.authentication_token)
             connection.authentication_token.reset();
-          co_return OpcUaResponseBody{response};
-        } else if constexpr (std::is_same_v<T, OpcUaCreateSubscriptionRequest>) {
+          co_return ResponseBody{response};
+        } else if constexpr (std::is_same_v<T, CreateSubscriptionRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaCreateSubscriptionResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<CreateSubscriptionResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           const auto response = session->CreateSubscriptionWithId(
               next_subscription_id_++, typed_request);
           subscription_owners_[response.subscription_id] =
               *connection.authentication_token;
-          co_return OpcUaResponseBody{response};
-        } else if constexpr (std::is_same_v<T, OpcUaModifySubscriptionRequest>) {
+          co_return ResponseBody{response};
+        } else if constexpr (std::is_same_v<T, ModifySubscriptionRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaModifySubscriptionResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<ModifySubscriptionResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->ModifySubscription(typed_request)};
-        } else if constexpr (std::is_same_v<T, OpcUaSetPublishingModeRequest>) {
+          co_return ResponseBody{session->ModifySubscription(typed_request)};
+        } else if constexpr (std::is_same_v<T, SetPublishingModeRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaSetPublishingModeResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<SetPublishingModeResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->SetPublishingMode(typed_request)};
-        } else if constexpr (std::is_same_v<T, OpcUaDeleteSubscriptionsRequest>) {
+          co_return ResponseBody{session->SetPublishingMode(typed_request)};
+        } else if constexpr (std::is_same_v<T, DeleteSubscriptionsRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaDeleteSubscriptionsResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<DeleteSubscriptionsResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           const auto response = session->DeleteSubscriptions(typed_request);
           for (size_t i = 0; i < typed_request.subscription_ids.size(); ++i) {
             if (response.results[i] == scada::StatusCode::Good)
               subscription_owners_.erase(typed_request.subscription_ids[i]);
           }
-          co_return OpcUaResponseBody{response};
-        } else if constexpr (std::is_same_v<T, OpcUaPublishRequest>) {
+          co_return ResponseBody{response};
+        } else if constexpr (std::is_same_v<T, PublishRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaPublishResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<PublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           auto ack_results = session->AcknowledgePublishRequest(typed_request);
           for (;;) {
             if (connection.closed) {
-              co_return OpcUaResponseBody{
-                  SessionMissingResponse<OpcUaPublishResponse>()};
+              co_return ResponseBody{
+                  SessionMissingResponse<PublishResponse>()};
             }
 
             session = FindAttachedSession(connection);
             if (!session) {
-              co_return OpcUaResponseBody{
-                  SessionMissingResponse<OpcUaPublishResponse>()};
+              co_return ResponseBody{
+                  SessionMissingResponse<PublishResponse>()};
             }
 
             // cppcheck-suppress nullPointerRedundantCheck
             auto poll = session->PollPublish();
             if (poll.response.has_value()) {
               poll.response->results = std::move(ack_results);
-              co_return OpcUaResponseBody{std::move(*poll.response)};
+              co_return ResponseBody{std::move(*poll.response)};
             }
             if (!poll.wait_for.has_value()) {
-              co_return OpcUaResponseBody{
-                  OpcUaPublishResponse{.status = scada::StatusCode::Good,
+              co_return ResponseBody{
+                  PublishResponse{.status = scada::StatusCode::Good,
                                        .results = std::move(ack_results)}};
             }
             co_await Delay(*poll.wait_for);
           }
-        } else if constexpr (std::is_same_v<T, OpcUaRepublishRequest>) {
+        } else if constexpr (std::is_same_v<T, RepublishRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaRepublishResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<RepublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->Republish(typed_request)};
+          co_return ResponseBody{session->Republish(typed_request)};
         } else if constexpr (std::is_same_v<T,
-                                            OpcUaTransferSubscriptionsRequest>) {
+                                            TransferSubscriptionsRequest>) {
           auto* target_session = FindAttachedSession(connection);
           if (!target_session || !connection.authentication_token.has_value()) {
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaTransferSubscriptionsResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<TransferSubscriptionsResponse>()};
           }
 
-          OpcUaTransferSubscriptionsResponse response{
+          TransferSubscriptionsResponse response{
               .status = scada::StatusCode::Good};
           response.results.assign(typed_request.subscription_ids.size(),
                                   scada::StatusCode::Bad_WrongSubscriptionId);
           std::unordered_map<scada::NodeId,
-                             std::vector<std::pair<size_t, OpcUaSubscriptionId>>>
+                             std::vector<std::pair<size_t, SubscriptionId>>>
               groups;
 
           for (size_t i = 0; i < typed_request.subscription_ids.size(); ++i) {
@@ -255,7 +255,7 @@ Awaitable<OpcUaResponseBody> OpcUaServerRuntime::Handle(
               continue;
             }
 
-            OpcUaTransferSubscriptionsRequest grouped_request;
+            TransferSubscriptionsRequest grouped_request;
             grouped_request.send_initial_values = typed_request.send_initial_values;
             for (const auto& [index, subscription_id] : group)
               grouped_request.subscription_ids.push_back(subscription_id);
@@ -271,39 +271,39 @@ Awaitable<OpcUaResponseBody> OpcUaServerRuntime::Handle(
             }
           }
 
-          co_return OpcUaResponseBody{response};
-        } else if constexpr (std::is_same_v<T, OpcUaCreateMonitoredItemsRequest>) {
+          co_return ResponseBody{response};
+        } else if constexpr (std::is_same_v<T, CreateMonitoredItemsRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaCreateMonitoredItemsResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<CreateMonitoredItemsResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->CreateMonitoredItems(typed_request)};
-        } else if constexpr (std::is_same_v<T, OpcUaModifyMonitoredItemsRequest>) {
+          co_return ResponseBody{session->CreateMonitoredItems(typed_request)};
+        } else if constexpr (std::is_same_v<T, ModifyMonitoredItemsRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaModifyMonitoredItemsResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<ModifyMonitoredItemsResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->ModifyMonitoredItems(typed_request)};
-        } else if constexpr (std::is_same_v<T, OpcUaDeleteMonitoredItemsRequest>) {
+          co_return ResponseBody{session->ModifyMonitoredItems(typed_request)};
+        } else if constexpr (std::is_same_v<T, DeleteMonitoredItemsRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaDeleteMonitoredItemsResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<DeleteMonitoredItemsResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->DeleteMonitoredItems(typed_request)};
-        } else if constexpr (std::is_same_v<T, OpcUaSetMonitoringModeRequest>) {
+          co_return ResponseBody{session->DeleteMonitoredItems(typed_request)};
+        } else if constexpr (std::is_same_v<T, SetMonitoringModeRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return OpcUaResponseBody{
-                SessionMissingResponse<OpcUaSetMonitoringModeResponse>()};
+            co_return ResponseBody{
+                SessionMissingResponse<SetMonitoringModeResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->SetMonitoringMode(typed_request)};
+          co_return ResponseBody{session->SetMonitoringMode(typed_request)};
         } else if constexpr (std::is_same_v<T, BrowseRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return SessionMissingResponse<OpcUaResponseBody>();
+            co_return SessionMissingResponse<ResponseBody>();
           // cppcheck-suppress nullPointerRedundantCheck
           auto response = co_await HandleServiceRequest(*this, *session,
                                                         BrowseRequest{
@@ -311,28 +311,28 @@ Awaitable<OpcUaResponseBody> OpcUaServerRuntime::Handle(
                                                                 typed_request.inputs),
                                                         });
           if (!std::holds_alternative<BrowseResponse>(response))
-            co_return SessionMissingResponse<OpcUaResponseBody>();
+            co_return SessionMissingResponse<ResponseBody>();
           auto browse = std::get<BrowseResponse>(std::move(response));
           auto paged_response = session->StoreBrowseResults(
               std::move(browse), typed_request.requested_max_references_per_node);
-          co_return OpcUaResponseBody{std::move(paged_response)};
+          co_return ResponseBody{std::move(paged_response)};
         } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return SessionMissingResponse<OpcUaResponseBody>();
+            co_return SessionMissingResponse<ResponseBody>();
           // cppcheck-suppress nullPointerRedundantCheck
-          co_return OpcUaResponseBody{session->BrowseNext(typed_request)};
+          co_return ResponseBody{session->BrowseNext(typed_request)};
         } else {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return SessionMissingResponse<OpcUaResponseBody>();
+            co_return SessionMissingResponse<ResponseBody>();
           assert(session != nullptr);
           auto service_response =
               co_await HandleServiceRequest(*this, *session,
                                             std::move(typed_request));
           co_return std::visit(
-              [](auto&& typed_response) -> OpcUaResponseBody {
-                return OpcUaResponseBody{std::move(typed_response)};
+              [](auto&& typed_response) -> ResponseBody {
+                return ResponseBody{std::move(typed_response)};
               },
               std::move(service_response));
         }
@@ -341,24 +341,24 @@ Awaitable<OpcUaResponseBody> OpcUaServerRuntime::Handle(
   co_return body;
 }
 
-Awaitable<OpcUaResponseBody> OpcUaServerRuntime::HandleActivateSession(
-    OpcUaConnectionState& connection,
-    OpcUaActivateSessionRequest request) {
+Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(
+    ConnectionState& connection,
+    ActivateSessionRequest request) {
   const auto response = co_await this->session_manager.ActivateSession(request);
   if (!response.status)
-    co_return OpcUaResponseBody{response};
+    co_return ResponseBody{response};
 
-  std::shared_ptr<OpcUaServerSession> session;
+  std::shared_ptr<ServerSession> session;
   if (response.resumed) {
     auto* attached_session = FindSession(request.authentication_token);
     session = attached_session ? sessions_.at(request.authentication_token)
                                : nullptr;
     if (!session) {
-      co_return OpcUaResponseBody{OpcUaActivateSessionResponse{
+      co_return ResponseBody{ActivateSessionResponse{
           .status = scada::StatusCode::Bad_SessionIsLoggedOff}};
     }
   } else {
-    session = std::make_shared<OpcUaServerSession>(OpcUaServerSessionContext{
+    session = std::make_shared<ServerSession>(ServerSessionContext{
         .session_id = request.session_id,
         .authentication_token = request.authentication_token,
         .service_context = response.service_context,
@@ -369,7 +369,7 @@ Awaitable<OpcUaResponseBody> OpcUaServerRuntime::HandleActivateSession(
   }
 
   connection.authentication_token = request.authentication_token;
-  co_return OpcUaResponseBody{response};
+  co_return ResponseBody{response};
 }
 
 }  // namespace opcua

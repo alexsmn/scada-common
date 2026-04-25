@@ -8,7 +8,7 @@
 
 namespace opcua {
 
-struct OpcUaWsTlsContextConfig {
+struct WsTlsContextConfig {
   std::string certificate_chain_pem;
   std::string private_key_pem;
   std::string private_key_passphrase;
@@ -16,6 +16,6 @@ struct OpcUaWsTlsContextConfig {
 
 [[nodiscard]] transport::error_code ConfigureServerTlsContext(
     boost::asio::ssl::context& context,
-    const OpcUaWsTlsContextConfig& config);
+    const WsTlsContextConfig& config);
 
 }  // namespace opcua

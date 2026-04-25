@@ -12,14 +12,14 @@
 
 namespace opcua {
 
-struct OpcUaConnectionState {
+struct ConnectionState {
   std::optional<scada::NodeId> authentication_token;
   bool closed = false;
 };
 
-struct OpcUaServerRuntimeContext {
+struct ServerRuntimeContext {
   AnyExecutor executor;
-  OpcUaServerSessionManager& session_manager;
+  ServerSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
@@ -32,36 +32,36 @@ struct OpcUaServerRuntimeContext {
   std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
 };
 
-class OpcUaServerRuntime : private OpcUaServerRuntimeContext {
+class ServerRuntime : private ServerRuntimeContext {
  public:
-  explicit OpcUaServerRuntime(OpcUaServerRuntimeContext&& context);
+  explicit ServerRuntime(ServerRuntimeContext&& context);
 
-  [[nodiscard]] Awaitable<OpcUaResponseBody> Handle(
-      OpcUaConnectionState& connection,
-      OpcUaRequestBody request);
-  void Detach(OpcUaConnectionState& connection);
+  [[nodiscard]] Awaitable<ResponseBody> Handle(
+      ConnectionState& connection,
+      RequestBody request);
+  void Detach(ConnectionState& connection);
 
  private:
   using SessionMap =
-      std::unordered_map<scada::NodeId, std::shared_ptr<OpcUaServerSession>>;
+      std::unordered_map<scada::NodeId, std::shared_ptr<ServerSession>>;
 
-  [[nodiscard]] OpcUaServerSession* FindSession(
+  [[nodiscard]] ServerSession* FindSession(
       const scada::NodeId& authentication_token) const;
-  [[nodiscard]] OpcUaServerSession* FindAttachedSession(
-      const OpcUaConnectionState& connection) const;
+  [[nodiscard]] ServerSession* FindAttachedSession(
+      const ConnectionState& connection) const;
   void ForgetSession(const scada::NodeId& authentication_token);
   void IndexSessionSubscriptions(
       const scada::NodeId& authentication_token,
-      const OpcUaServerSession& session);
+      const ServerSession& session);
   void RemoveSessionSubscriptions(const scada::NodeId& authentication_token);
-  [[nodiscard]] Awaitable<OpcUaResponseBody> HandleActivateSession(
-      OpcUaConnectionState& connection,
-      OpcUaActivateSessionRequest request);
+  [[nodiscard]] Awaitable<ResponseBody> HandleActivateSession(
+      ConnectionState& connection,
+      ActivateSessionRequest request);
   [[nodiscard]] Awaitable<void> Delay(base::TimeDelta delay) const;
 
   SessionMap sessions_;
-  std::unordered_map<OpcUaSubscriptionId, scada::NodeId> subscription_owners_;
-  OpcUaSubscriptionId next_subscription_id_ = 1;
+  std::unordered_map<SubscriptionId, scada::NodeId> subscription_owners_;
+  SubscriptionId next_subscription_id_ = 1;
 };
 
 }  // namespace opcua
