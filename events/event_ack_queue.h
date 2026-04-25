@@ -2,6 +2,7 @@
 
 #include "base/awaitable.h"
 #include "base/any_executor_dispatch.h"
+#include "base/logger.h"
 #include "scada/event.h"
 #include "scada/method_service.h"
 #include "scada/service_awaitable.h"

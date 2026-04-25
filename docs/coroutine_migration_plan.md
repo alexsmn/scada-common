@@ -28,8 +28,9 @@ Do not add common-specific async primitives.
 ## Migration Slices
 
 - `common/node_service`: migrate service request dispatch inside
-  `NodeFetcherImpl` while preserving batching, request IDs, late-response
-  cancellation, and fetched-node notification behavior.
+  `NodeFetcherImpl` and `NodeChildrenFetcher` while preserving batching,
+  request IDs, late-response cancellation, queued-child cancellation, and
+  fetched-node notification behavior.
 - `common/timed_data`: migrate history-read gaps to coroutine helpers while
   preserving continuation-point cleanup.
 - `common/events`: migrate event history refresh and acknowledgement calls to
@@ -50,3 +51,17 @@ Build and run the focused common unit targets:
 Add targeted tests for synchronous service completion, late response
 cancelation, continuation-point cleanup, and event ack queue parallelism as
 each slice is touched.
+
+## Status
+
+- `NodeFetcherImpl` request completion handling now runs through coroutine
+  continuations while keeping the legacy upstream request timing observable to
+  callers and tests.
+- `NodeChildrenFetcher` now routes browse completion handling through a
+  coroutine continuation and has coverage for delayed completion, merge
+  behavior, and queued-child cancellation.
+- `TimedDataFetcher` history reads now use coroutine tasks while preserving
+  continuation-point ownership.
+- `EventFetcher` history refresh and `EventAckQueue` acknowledgement dispatch
+  now use coroutine tasks; `EventAckQueue` has coverage for dispatch,
+  duplicate suppression, and max-parallel scheduling.
