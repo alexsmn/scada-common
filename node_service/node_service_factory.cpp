@@ -9,3 +9,10 @@ std::shared_ptr<NodeService> CreateNodeService(
   return use_v2 ? v2::CreateNodeService(context)
                 : v1::CreateNodeService(context);
 }
+
+std::shared_ptr<NodeService> CreateNodeService(
+    const CoroutineNodeServiceContext& context,
+    bool use_v2) {
+  return use_v2 ? v2::CreateNodeService(context)
+                : v1::CreateNodeService(context);
+}

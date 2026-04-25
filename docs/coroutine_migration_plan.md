@@ -169,3 +169,7 @@ each slice is touched.
   contexts directly while retaining legacy callback contexts that own the
   compatibility adapters; runtime tests cover canonical and binary read
   dispatch through coroutine services without constructing callback adapters.
+- Node-service v1/v2 factories now expose a coroutine-native construction path
+  for attribute/view services while preserving the legacy callback-service
+  factory path; factory tests cover connected-session fetches through direct
+  coroutine services for both implementations.

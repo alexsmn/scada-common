@@ -313,19 +313,21 @@ transport-neutral semantic core:
 | `common/opcua/websocket/json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; consumes and produces the canonical `opcua::` request/response/envelope types, and reuses `common/opcua/conversion.{h,cpp}` for UA ↔ scada conversion |
 | `common/opcua/message.h` + `common/opcua/service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters, with Binary `Binary*Body` spellings retained as aliases at the adapter edge |
 | `common/opcua/websocket/message_codec.cpp` + `common/opcua/websocket/subscription_message_codec.cpp` + `common/opcua/websocket/publish_message_codec.cpp` | UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the subscription / publish / monitored-item payloads, implemented directly against the canonical `opcua::` message model |
-| `common/opcua/service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into existing `AttributeService`, `ViewService`, `HistoryService`, `MethodService`, and `NodeManagementService`, now routed through the shared `core/scada/service_awaitable.h` helpers rather than a second local callback-bridge layer |
+| `common/opcua/service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into `CoroutineAttributeService`, `CoroutineViewService`, `CoroutineHistoryService`, `CoroutineMethodService`, and `CoroutineNodeManagementService`; legacy callback-service contexts are adapted once at runtime construction boundaries |
 | `common/opcua/websocket/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/server_runtime_contract_test.h`; the envelope/runtime/server tests exercise the canonical `opcua::` message and session types directly |
 | `common/opcua/binary/*_unittest.cpp` | Binary adapter coverage for request decoding, response encoding, secure-channel/session integration, and the Binary execution of the shared runtime contract where applicable |
 | `server/opcua/opcua_module.{h,cpp}` | Config loader + lifecycle for both TCP and WS listeners |
 
-Both transport adapters reuse the same `ServerContext` service
-collaborators:
+Both transport adapters reuse the same coroutine service collaborators inside
+the shared runtime. Legacy callback-service contexts remain supported at
+construction boundaries and are adapted once:
 
-- `AttributeService` — Read, Write, HistoryRead
-- `ViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds
+- `CoroutineAttributeService` — Read, Write
+- `CoroutineViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds
+- `CoroutineHistoryService` — HistoryRead
 - `MonitoredItemService` — CreateMonitoredItems, subscription delivery
-- `MethodService` — Call
-- `NodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
+- `CoroutineMethodService` — Call
+- `CoroutineNodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
 
 No business logic is reimplemented in the adapter layers.
 

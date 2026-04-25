@@ -3,11 +3,15 @@
 #include <memory>
 
 class NodeService;
+struct CoroutineNodeServiceContext;
 struct NodeServiceContext;
 
 namespace v2 {
 
 std::shared_ptr<NodeService> CreateNodeService(
     const NodeServiceContext& context);
+
+std::shared_ptr<NodeService> CreateNodeService(
+    const CoroutineNodeServiceContext& context);
 
 }  // namespace v2
