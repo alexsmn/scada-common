@@ -178,3 +178,7 @@ each slice is touched.
   ownership at the callback-service boundary; events tests cover connected
   startup history refresh and acknowledgement dispatch through direct coroutine
   services.
+- `TimedDataService` factories now expose a coroutine-native construction path
+  for `CoroutineHistoryService` while the legacy factory keeps callback adapter
+  ownership at the service boundary; timed-data tests cover range history fetch
+  through direct coroutine services.

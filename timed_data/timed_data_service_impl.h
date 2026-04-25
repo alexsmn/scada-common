@@ -12,6 +12,7 @@ class TimedDataServiceImpl final : private TimedDataContext,
                                    public TimedDataService {
  public:
   explicit TimedDataServiceImpl(TimedDataContext&& context);
+  explicit TimedDataServiceImpl(CoroutineTimedDataContext&& context);
   virtual ~TimedDataServiceImpl();
 
   virtual std::shared_ptr<TimedData> GetFormulaTimedData(

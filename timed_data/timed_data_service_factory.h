@@ -7,3 +7,6 @@
 
 std::unique_ptr<TimedDataService> CreateTimedDataService(
     TimedDataContext&& context);
+
+std::unique_ptr<TimedDataService> CreateTimedDataService(
+    CoroutineTimedDataContext&& context);

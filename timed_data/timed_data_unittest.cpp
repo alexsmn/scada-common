@@ -17,6 +17,7 @@
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
 #include "timed_data/timed_data_service_impl.h"
+#include "timed_data/timed_data_service_factory.h"
 #include "timed_data/timed_data_spec.h"
 
 #include <gmock/gmock.h>
@@ -24,6 +25,35 @@
 #include "base/debug_util.h"
 
 using namespace testing;
+
+namespace {
+
+class TestCoroutineHistoryService final : public scada::CoroutineHistoryService {
+ public:
+  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override {
+    ++raw_read_count;
+    last_raw_details = std::move(details);
+    co_return raw_result;
+  }
+
+  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      base::Time from,
+      base::Time to,
+      scada::EventFilter filter) override {
+    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+  }
+
+  int raw_read_count = 0;
+  scada::HistoryReadRawDetails last_raw_details;
+  scada::HistoryReadRawResult raw_result{
+      .status = scada::StatusCode::Good,
+      .values = {},
+  };
+};
+
+}  // namespace
 
 class TimedDataTest : public Test {
  public:
@@ -180,6 +210,29 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
 
   Drain(executor_);
 
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
+TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
+  const auto from = base::Time::Now();
+  const auto to = from + base::TimeDelta::FromSeconds(10);
+  auto history_service = std::make_shared<TestCoroutineHistoryService>();
+  auto service = CreateTimedDataService(CoroutineTimedDataContext{
+      .executor_ = MakeTestAnyExecutor(executor_),
+      .alias_resolver_ = alias_resolver_.AsStdFunction(),
+      .node_service_ = node_service_,
+      .history_service_ = history_service,
+      .node_event_provider_ = node_event_provider_});
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_EQ(history_service->raw_read_count, 1);
+  EXPECT_EQ(history_service->last_raw_details.node_id, kDataItemId);
+  EXPECT_EQ(history_service->last_raw_details.from, from);
+  EXPECT_EQ(history_service->last_raw_details.to, to);
   EXPECT_TRUE(spec.range_ready({from, to}));
 }
 

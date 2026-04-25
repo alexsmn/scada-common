@@ -6,3 +6,8 @@ std::unique_ptr<TimedDataService> CreateTimedDataService(
     TimedDataContext&& context) {
   return std::make_unique<TimedDataServiceImpl>(std::move(context));
 }
+
+std::unique_ptr<TimedDataService> CreateTimedDataService(
+    CoroutineTimedDataContext&& context) {
+  return std::make_unique<TimedDataServiceImpl>(std::move(context));
+}

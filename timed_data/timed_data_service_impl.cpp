@@ -31,6 +31,15 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
   }
 }
 
+TimedDataServiceImpl::TimedDataServiceImpl(CoroutineTimedDataContext&& context)
+    : TimedDataServiceImpl{TimedDataContext{
+          .executor_ = std::move(context.executor_),
+          .alias_resolver_ = std::move(context.alias_resolver_),
+          .node_service_ = context.node_service_,
+          .services_ = {},
+          .history_service_ = std::move(context.history_service_),
+          .node_event_provider_ = context.node_event_provider_}} {}
+
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 
 std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(

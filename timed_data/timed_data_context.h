@@ -22,3 +22,11 @@ struct TimedDataContext {
   std::shared_ptr<scada::CoroutineHistoryService> history_service_;
   NodeEventProvider& node_event_provider_;
 };
+
+struct CoroutineTimedDataContext {
+  AnyExecutor executor_;
+  const AliasResolver alias_resolver_;
+  NodeService& node_service_;
+  std::shared_ptr<scada::CoroutineHistoryService> history_service_;
+  NodeEventProvider& node_event_provider_;
+};
