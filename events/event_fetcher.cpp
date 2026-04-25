@@ -1,6 +1,5 @@
 #include "events/event_fetcher.h"
 
-#include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
 #include "base/logger.h"
 #include "base/range_util.h"
@@ -32,18 +31,25 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 
   assert(monitored_item_);
 
-  monitored_item_->Subscribe(static_cast<scada::EventHandler>(BindExecutor(
-      executor_, [this](const scada::Status& status, const std::any& event) {
-        // TODO: Handle |status|
-        assert(status);
+  monitored_item_->Subscribe(static_cast<scada::EventHandler>(
+      [executor = executor_, cancelation = cancelation_.weak_ptr(),
+       this](scada::Status status, std::any event) mutable {
+        CoSpawn(executor, cancelation,
+                [this, status = std::move(status),
+                 event = std::move(event)]() mutable -> Awaitable<void> {
+                  // TODO: Handle |status|
+                  assert(status);
 
-        if (event.has_value()) {
-          assert(std::any_cast<scada::Event>(&event));
-          if (auto* system_event = std::any_cast<scada::Event>(&event)) {
-            OnSystemEvents({system_event, 1});
-          }
-        }
-      })));
+                  if (event.has_value()) {
+                    assert(std::any_cast<scada::Event>(&event));
+                    if (auto* system_event = std::any_cast<scada::Event>(
+                            &event)) {
+                      OnSystemEvents({system_event, 1});
+                    }
+                  }
+                  co_return;
+                });
+      }));
 }
 
 EventFetcher::~EventFetcher() {
