@@ -16,6 +16,11 @@ class CallbackToCoroutineHistoryServiceAdapter;
 class CallbackToCoroutineMethodServiceAdapter;
 class CallbackToCoroutineNodeManagementServiceAdapter;
 class CallbackToCoroutineViewServiceAdapter;
+class CoroutineAttributeService;
+class CoroutineHistoryService;
+class CoroutineMethodService;
+class CoroutineNodeManagementService;
+class CoroutineViewService;
 }  // namespace scada
 
 namespace opcua {
@@ -40,9 +45,25 @@ struct ServerRuntimeContext {
   std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
 };
 
-class ServerRuntime : private ServerRuntimeContext {
+struct CoroutineServerRuntimeContext {
+  AnyExecutor executor;
+  ServerSessionManager& session_manager;
+  scada::MonitoredItemService& monitored_item_service;
+  scada::CoroutineAttributeService& attribute_service;
+  scada::CoroutineViewService& view_service;
+  scada::CoroutineHistoryService& history_service;
+  scada::CoroutineMethodService& method_service;
+  scada::CoroutineNodeManagementService& node_management_service;
+  std::function<base::Time()> now = &base::Time::Now;
+  // Optional override for delayed task scheduling. Defaults to
+  // boost::asio::steady_timer-based posting when null.
+  std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
+};
+
+class ServerRuntime {
  public:
   explicit ServerRuntime(ServerRuntimeContext&& context);
+  explicit ServerRuntime(CoroutineServerRuntimeContext&& context);
   ~ServerRuntime();
 
   [[nodiscard]] Awaitable<ResponseBody> Handle(
@@ -85,6 +106,18 @@ class ServerRuntime : private ServerRuntimeContext {
       method_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
       node_management_service_adapter_;
+
+  AnyExecutor executor_;
+  ServerSessionManager& session_manager_;
+  scada::MonitoredItemService& monitored_item_service_;
+  scada::CoroutineAttributeService& attribute_service_;
+  scada::CoroutineViewService& view_service_;
+  scada::CoroutineHistoryService& history_service_;
+  scada::CoroutineMethodService& method_service_;
+  scada::CoroutineNodeManagementService& node_management_service_;
+  std::function<base::Time()> now_;
+  std::function<void(base::TimeDelta, std::function<void()>)>
+      post_delayed_task_;
 };
 
 }  // namespace opcua

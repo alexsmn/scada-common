@@ -215,5 +215,69 @@ TEST_F(RuntimeTest,
   EXPECT_EQ(response.results[0].value, scada::Variant{99.0});
 }
 
+class CoroutineRuntimeTest
+    : public testing::Test,
+      public test::ServerRuntimeContractTestBase {
+ public:
+  using ConnectionState = opcua::ConnectionState;
+
+  template <typename Response, typename Request>
+  Response HandleResponse(ConnectionState& connection, Request request) {
+    return WaitAwaitable(executor_,
+                         runtime_.Handle<Response>(connection,
+                                                   std::move(request)));
+  }
+
+  void CreateAndActivate(ConnectionState& connection) {
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
+    ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
+
+    const auto activated = HandleResponse<ActivateSessionResponse>(
+        connection,
+        ActivateSessionRequest{
+            .session_id = created.session_id,
+            .authentication_token = created.authentication_token,
+            .user_name = scada::LocalizedText{u"operator"},
+            .password = scada::LocalizedText{u"secret"},
+        });
+    ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
+  }
+
+  test::TestCoroutineServices coroutine_services_;
+  Runtime runtime_{CoroutineRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .monitored_item_service = monitored_item_service_,
+      .attribute_service = coroutine_services_,
+      .view_service = coroutine_services_,
+      .history_service = coroutine_services_,
+      .method_service = coroutine_services_,
+      .node_management_service = coroutine_services_,
+      .now = [this] { return now_; },
+  }};
+};
+
+TEST_F(CoroutineRuntimeTest,
+       RoutesReadThroughCoroutineServicesWithoutCallbackAdapters) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(902),
+                  .attribute_id = scada::AttributeId::Value}}};
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, coroutine_services_.read_value);
+  EXPECT_EQ(coroutine_services_.read_count, 1);
+  EXPECT_EQ(coroutine_services_.last_read_context.user_id(),
+            expected_user_id_);
+  EXPECT_THAT(coroutine_services_.last_read_inputs,
+              testing::ElementsAre(request.inputs[0]));
+}
+
 }  // namespace
 }  // namespace opcua::binary

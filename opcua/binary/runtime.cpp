@@ -69,6 +69,20 @@ Runtime::Runtime(RuntimeContext&& context)
           .now = std::move(context.now),
       }} {}
 
+Runtime::Runtime(CoroutineRuntimeContext&& context)
+    : session_manager_{context.session_manager},
+      runtime_{CoroutineServerRuntimeContext{
+          .executor = context.executor,
+          .session_manager = context.session_manager,
+          .monitored_item_service = context.monitored_item_service,
+          .attribute_service = context.attribute_service,
+          .view_service = context.view_service,
+          .history_service = context.history_service,
+          .method_service = context.method_service,
+          .node_management_service = context.node_management_service,
+          .now = std::move(context.now),
+      }} {}
+
 Awaitable<ResponseBody> Runtime::HandleBody(
     ConnectionState& connection,
     RequestBody request) {

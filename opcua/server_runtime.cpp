@@ -30,23 +30,44 @@ ResponseBody SessionMissingResponse<ResponseBody>() {
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
-    : ServerRuntimeContext{std::move(context)},
-      attribute_service_adapter_{
+    : attribute_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              executor, attribute_service)},
+              context.executor, context.attribute_service)},
       view_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              executor, view_service)},
+              context.executor, context.view_service)},
       history_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-              executor, history_service)},
+              context.executor, context.history_service)},
       method_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              executor, method_service)},
+              context.executor, context.method_service)},
       node_management_service_adapter_{
           std::make_unique<
               scada::CallbackToCoroutineNodeManagementServiceAdapter>(
-              executor, node_management_service)} {}
+              context.executor, context.node_management_service)},
+      executor_{std::move(context.executor)},
+      session_manager_{context.session_manager},
+      monitored_item_service_{context.monitored_item_service},
+      attribute_service_{*attribute_service_adapter_},
+      view_service_{*view_service_adapter_},
+      history_service_{*history_service_adapter_},
+      method_service_{*method_service_adapter_},
+      node_management_service_{*node_management_service_adapter_},
+      now_{std::move(context.now)},
+      post_delayed_task_{std::move(context.post_delayed_task)} {}
+
+ServerRuntime::ServerRuntime(CoroutineServerRuntimeContext&& context)
+    : executor_{std::move(context.executor)},
+      session_manager_{context.session_manager},
+      monitored_item_service_{context.monitored_item_service},
+      attribute_service_{context.attribute_service},
+      view_service_{context.view_service},
+      history_service_{context.history_service},
+      method_service_{context.method_service},
+      node_management_service_{context.node_management_service},
+      now_{std::move(context.now)},
+      post_delayed_task_{std::move(context.post_delayed_task)} {}
 
 ServerRuntime::~ServerRuntime() = default;
 
@@ -55,11 +76,11 @@ Awaitable<ServiceResponse> ServerRuntime::HandleServiceRequest(
     ServiceRequest request) const {
   const auto user_id = session.GetServiceContext().user_id();
   co_return co_await ServiceHandler{
-      {.attribute_service = *attribute_service_adapter_,
-       .view_service = *view_service_adapter_,
-       .history_service = *history_service_adapter_,
-       .method_service = *method_service_adapter_,
-       .node_management_service = *node_management_service_adapter_,
+      {.attribute_service = attribute_service_,
+       .view_service = view_service_,
+       .history_service = history_service_,
+       .method_service = method_service_,
+       .node_management_service = node_management_service_,
        .user_id = user_id}}
       .Handle(std::move(request));
 }
@@ -71,7 +92,7 @@ void ServerRuntime::Detach(ConnectionState& connection) {
   LOG_INFO(logger_) << "OPC UA runtime detaching connection session"
                     << LOG_TAG("AuthenticationToken",
                                connection.authentication_token->ToString());
-  this->session_manager.DetachSession(*connection.authentication_token);
+  session_manager_.DetachSession(*connection.authentication_token);
   connection.authentication_token.reset();
 }
 
@@ -125,14 +146,14 @@ Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
 
   promise<void> delayed;
   auto callback = [delayed]() mutable { delayed.resolve(); };
-  if (post_delayed_task) {
-    post_delayed_task(delay, std::move(callback));
+  if (post_delayed_task_) {
+    post_delayed_task_(delay, std::move(callback));
   } else {
-    PostDelayedTask(executor,
+    PostDelayedTask(executor_,
                     std::chrono::milliseconds{delay.InMilliseconds()},
                     std::move(callback));
   }
-  co_await AwaitPromise(executor, std::move(delayed));
+  co_await AwaitPromise(executor_, std::move(delayed));
 }
 
 Awaitable<ResponseBody> ServerRuntime::Handle(
@@ -143,12 +164,12 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
         using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           co_return ResponseBody{
-              co_await this->session_manager.CreateSession(std::move(typed_request))};
+              co_await session_manager_.CreateSession(std::move(typed_request))};
         } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           co_return co_await HandleActivateSession(connection,
                                                    std::move(typed_request));
         } else if constexpr (std::is_same_v<T, CloseSessionRequest>) {
-          const auto response = this->session_manager.CloseSession(typed_request);
+          const auto response = session_manager_.CloseSession(typed_request);
           if (response.status)
             ForgetSession(typed_request.authentication_token);
           if (connection.authentication_token == typed_request.authentication_token)
@@ -358,7 +379,7 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
 Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(
     ConnectionState& connection,
     ActivateSessionRequest request) {
-  const auto response = co_await this->session_manager.ActivateSession(request);
+  const auto response = co_await session_manager_.ActivateSession(request);
   if (!response.status)
     co_return ResponseBody{response};
 
@@ -376,8 +397,8 @@ Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(
         .session_id = request.session_id,
         .authentication_token = request.authentication_token,
         .service_context = response.service_context,
-        .monitored_item_service = this->monitored_item_service,
-        .now = this->now,
+        .monitored_item_service = monitored_item_service_,
+        .now = now_,
     });
     sessions_[request.authentication_token] = session;
   }

@@ -41,11 +41,24 @@ struct RuntimeContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
+struct CoroutineRuntimeContext {
+  AnyExecutor executor;
+  ServerSessionManager& session_manager;
+  scada::MonitoredItemService& monitored_item_service;
+  scada::CoroutineAttributeService& attribute_service;
+  scada::CoroutineViewService& view_service;
+  scada::CoroutineHistoryService& history_service;
+  scada::CoroutineMethodService& method_service;
+  scada::CoroutineNodeManagementService& node_management_service;
+  std::function<base::Time()> now = &base::Time::Now;
+};
+
 // UA Binary reuses the canonical shared server-side session/subscription/
 // service runtime while keeping Binary-specific framing and codec logic local.
 class Runtime {
  public:
   explicit Runtime(RuntimeContext&& context);
+  explicit Runtime(CoroutineRuntimeContext&& context);
 
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<Response> Handle(ConnectionState& connection,

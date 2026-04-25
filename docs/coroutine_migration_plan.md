@@ -165,3 +165,7 @@ each slice is touched.
   and transport dependencies needed by the public coroutine-facing header, and
   Vidicon service tests cover local read/browse plus unsupported write,
   history, method, and node-management coroutine paths.
+- OPC UA `ServerRuntime` and binary `Runtime` now accept coroutine service
+  contexts directly while retaining legacy callback contexts that own the
+  compatibility adapters; runtime tests cover canonical and binary read
+  dispatch through coroutine services without constructing callback adapters.

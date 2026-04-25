@@ -8,6 +8,7 @@
 #include "opcua/server_session_manager.h"
 #include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitoring_parameters.h"
@@ -46,6 +47,97 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
   std::vector<scada::ReadValueId> created_value_ids;
   std::vector<scada::MonitoringParameters> created_params;
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
+};
+
+class TestCoroutineServices final
+    : public scada::CoroutineAttributeService,
+      public scada::CoroutineViewService,
+      public scada::CoroutineHistoryService,
+      public scada::CoroutineMethodService,
+      public scada::CoroutineNodeManagementService {
+ public:
+  Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
+    ++read_count;
+    last_read_context = std::move(context);
+    last_read_inputs = *inputs;
+    co_return std::make_tuple(
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::DataValue>{scada::DataValue{
+            read_value, {}, timestamp, timestamp}});
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>> Write(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::StatusCode>{});
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>> Browse(
+      scada::ServiceContext context,
+      std::vector<scada::BrowseDescription> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::BrowseResult>{});
+  }
+
+  Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::BrowsePathResult>{});
+  }
+
+  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override {
+    co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      base::Time from,
+      base::Time to,
+      scada::EventFilter filter) override {
+    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::Status> Call(scada::NodeId node_id,
+                                scada::NodeId method_id,
+                                std::vector<scada::Variant> arguments,
+                                scada::NodeId user_id) override {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::AddNodesResult>{});
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::StatusCode>{});
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::StatusCode>{});
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
+    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                              std::vector<scada::StatusCode>{});
+  }
+
+  base::Time timestamp = ParseTime("2026-04-22 09:01:00");
+  scada::Variant read_value = 123.0;
+  int read_count = 0;
+  scada::ServiceContext last_read_context;
+  std::vector<scada::ReadValueId> last_read_inputs;
 };
 
 class ServerRuntimeContractTestBase {
