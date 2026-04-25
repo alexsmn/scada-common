@@ -173,6 +173,10 @@ each slice is touched.
   for attribute/view services while preserving the legacy callback-service
   factory path; factory tests cover connected-session fetches through direct
   coroutine services for both implementations.
+- Node-service v1/v2 coroutine factories now also consume
+  `CoroutineSessionService` directly, leaving `SessionService` adaptation only
+  on the legacy factory path; factory tests verify connected startup and node
+  fetches through direct coroutine session, attribute, and view services.
 - `EventFetcherBuilder` now has a coroutine-native construction path for
   session, history, and method services while the legacy builder keeps adapter
   ownership at the callback-service boundary; events tests cover connected

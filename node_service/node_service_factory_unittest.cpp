@@ -4,6 +4,7 @@
 #include "base/test/test_executor.h"
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
 #include "scada/session_service_mock.h"
@@ -16,10 +17,45 @@
 
 namespace {
 
-using testing::_;
-using testing::Invoke;
 using testing::NiceMock;
-using testing::Return;
+
+class TestCoroutineSessionService final : public scada::CoroutineSessionService {
+ public:
+  Awaitable<void> Connect(scada::SessionConnectParams params) override {
+    co_return;
+  }
+
+  Awaitable<void> Reconnect() override { co_return; }
+
+  Awaitable<void> Disconnect() override { co_return; }
+
+  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+    ++is_connected_count;
+    return connected;
+  }
+
+  scada::NodeId GetUserId() const override { return {}; }
+
+  bool HasPrivilege(scada::Privilege privilege) const override { return true; }
+
+  std::string GetHostName() const override { return {}; }
+
+  bool IsScada() const override { return true; }
+
+  boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override {
+    ++subscribe_count;
+    return session_state_changed.connect(callback);
+  }
+
+  scada::SessionDebugger* GetSessionDebugger() override { return nullptr; }
+
+  bool connected = true;
+  mutable int is_connected_count = 0;
+  int subscribe_count = 0;
+  boost::signals2::signal<void(bool, const scada::Status&)>
+      session_state_changed;
+};
 
 void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
   for (size_t i = 0; i < 100 && executor->GetTaskCount() != 0; ++i)
@@ -28,7 +64,7 @@ void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
 
 std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
     TestAddressSpace& address_space,
-    scada::SessionService& session_service,
+    scada::CoroutineSessionService& session_service,
     scada::MethodService& method_service,
     scada::MonitoredItemService& monitored_item_service,
     const std::shared_ptr<TestExecutor>& executor,
@@ -49,18 +85,9 @@ std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
 void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
   const auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
-  NiceMock<scada::MockSessionService> session_service;
+  TestCoroutineSessionService session_service;
   NiceMock<scada::MockMethodService> method_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-  boost::signals2::signal<void(bool, const scada::Status&)>
-      session_state_changed;
-
-  EXPECT_CALL(session_service, SubscribeSessionStateChanged(_))
-      .WillOnce(Invoke([&](const scada::SessionService::
-                               SessionStateChangedCallback& callback) {
-        return session_state_changed.connect(callback);
-      }));
-  EXPECT_CALL(session_service, IsConnected(_)).WillOnce(Return(true));
 
   const auto node_service = CreateCoroutineFactoryNodeService(
       address_space, session_service, method_service, monitored_item_service,
@@ -78,6 +105,8 @@ void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
   EXPECT_EQ(node.display_name(), u"TestNode2DisplayName");
   EXPECT_EQ(node.target(address_space.kTestReferenceTypeId).node_id(),
             address_space.kTestNode3Id);
+  EXPECT_EQ(session_service.subscribe_count, 1);
+  EXPECT_EQ(session_service.is_connected_count, 1);
 }
 
 TEST(NodeServiceFactory, V1CoroutineContextFetchesThroughCoroutineServices) {
