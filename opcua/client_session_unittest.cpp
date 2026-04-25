@@ -121,6 +121,18 @@ TEST_F(ClientSessionTest, LegacyCallbacksUseAwaitableServices) {
   Drain(executor_);
   EXPECT_TRUE(read_called);
 
+  bool write_called = false;
+  session->Write({}, std::make_shared<const std::vector<scada::WriteValue>>(),
+                 [&](scada::Status status,
+                     std::vector<scada::StatusCode> values) {
+                   write_called = true;
+                   EXPECT_EQ(status.code(),
+                             scada::StatusCode::Bad_Disconnected);
+                   EXPECT_TRUE(values.empty());
+                 });
+  Drain(executor_);
+  EXPECT_TRUE(write_called);
+
   bool browse_called = false;
   session->Browse({}, {}, [&](scada::Status status,
                               std::vector<scada::BrowseResult> values) {
@@ -131,6 +143,17 @@ TEST_F(ClientSessionTest, LegacyCallbacksUseAwaitableServices) {
   Drain(executor_);
   EXPECT_TRUE(browse_called);
 
+  bool translate_called = false;
+  session->TranslateBrowsePaths(
+      {}, [&](scada::Status status,
+              std::vector<scada::BrowsePathResult> values) {
+        translate_called = true;
+        EXPECT_EQ(status.code(), scada::StatusCode::Bad_Disconnected);
+        EXPECT_TRUE(values.empty());
+      });
+  Drain(executor_);
+  EXPECT_TRUE(translate_called);
+
   bool call_called = false;
   session->Call({}, {}, {}, {}, [&](scada::Status status) {
     call_called = true;
@@ -138,6 +161,46 @@ TEST_F(ClientSessionTest, LegacyCallbacksUseAwaitableServices) {
   });
   Drain(executor_);
   EXPECT_TRUE(call_called);
+}
+
+TEST_F(ClientSessionTest, LegacyCallbacksAreDroppedAfterSessionDestroy) {
+  auto session = std::make_shared<ClientSession>(executor_,
+                                                     transport_factory_);
+
+  bool read_called = false;
+  bool write_called = false;
+  bool browse_called = false;
+  bool translate_called = false;
+  bool call_called = false;
+
+  session->Read({}, std::make_shared<const std::vector<scada::ReadValueId>>(),
+                [&](scada::Status, std::vector<scada::DataValue>) {
+                  read_called = true;
+                });
+  session->Write({}, std::make_shared<const std::vector<scada::WriteValue>>(),
+                 [&](scada::Status, std::vector<scada::StatusCode>) {
+                   write_called = true;
+                 });
+  session->Browse({}, {}, [&](scada::Status,
+                              std::vector<scada::BrowseResult>) {
+    browse_called = true;
+  });
+  session->TranslateBrowsePaths(
+      {}, [&](scada::Status, std::vector<scada::BrowsePathResult>) {
+        translate_called = true;
+      });
+  session->Call({}, {}, {}, {}, [&](scada::Status) {
+    call_called = true;
+  });
+
+  session.reset();
+  Drain(executor_);
+
+  EXPECT_FALSE(read_called);
+  EXPECT_FALSE(write_called);
+  EXPECT_FALSE(browse_called);
+  EXPECT_FALSE(translate_called);
+  EXPECT_FALSE(call_called);
 }
 
 }  // namespace

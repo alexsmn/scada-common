@@ -22,6 +22,25 @@ constexpr std::size_t kOpcTcpPrefixLen = 9;  // "opc.tcp://"
 
 namespace opcua {
 
+namespace {
+
+template <typename Handler>
+void DispatchLegacyCallback(const AnyExecutor& executor,
+                            std::weak_ptr<ClientSession> weak_self,
+                            Handler handler) {
+  CoSpawn(executor,
+          [weak_self = std::move(weak_self),
+           handler = std::move(handler)]() mutable -> Awaitable<void> {
+            auto self = weak_self.lock();
+            if (!self) {
+              co_return;
+            }
+            co_await handler(*self);
+          });
+}
+
+}  // namespace
+
 // static
 ClientSession::ParsedEndpoint
 ClientSession::ParseEndpointUrl(const std::string& url) {
@@ -196,32 +215,27 @@ scada::SessionDebugger* ClientSession::GetSessionDebugger() {
 void ClientSession::Browse(const scada::ServiceContext& context,
                           const std::vector<scada::BrowseDescription>& nodes,
                           const scada::BrowseCallback& callback) {
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, context, inputs = nodes, callback,
-                          weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    auto [status, results] = co_await Browse(std::move(context),
-                                             std::move(inputs));
-    callback(std::move(status), std::move(results));
-  });
+  DispatchLegacyCallback(
+      any_executor_, weak_from_this(),
+      [context, inputs = nodes, callback](
+          ClientSession& self) mutable -> Awaitable<void> {
+        auto [status, results] = co_await self.Browse(std::move(context),
+                                                      std::move(inputs));
+        callback(std::move(status), std::move(results));
+      });
 }
 
 void ClientSession::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, inputs = browse_paths, callback,
-                          weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    auto [status, results] = co_await TranslateBrowsePaths(std::move(inputs));
-    callback(std::move(status), std::move(results));
-  });
+  DispatchLegacyCallback(
+      any_executor_, weak_from_this(),
+      [inputs = browse_paths, callback](
+          ClientSession& self) mutable -> Awaitable<void> {
+        auto [status, results] =
+            co_await self.TranslateBrowsePaths(std::move(inputs));
+        callback(std::move(status), std::move(results));
+      });
 }
 
 std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
@@ -235,32 +249,27 @@ void ClientSession::Read(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, context, inputs, callback,
-                          weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    auto [status, results] = co_await Read(std::move(context), inputs);
-    callback(std::move(status), std::move(results));
-  });
+  DispatchLegacyCallback(
+      any_executor_, weak_from_this(),
+      [context, inputs, callback](
+          ClientSession& self) mutable -> Awaitable<void> {
+        auto [status, results] = co_await self.Read(std::move(context), inputs);
+        callback(std::move(status), std::move(results));
+      });
 }
 
 void ClientSession::Write(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_, [this, context, inputs, callback,
-                          weak_self]() mutable -> Awaitable<void> {
-    auto self = weak_self.lock();
-    if (!self) {
-      co_return;
-    }
-    auto [status, results] = co_await Write(std::move(context), inputs);
-    callback(std::move(status), std::move(results));
-  });
+  DispatchLegacyCallback(
+      any_executor_, weak_from_this(),
+      [context, inputs, callback](
+          ClientSession& self) mutable -> Awaitable<void> {
+        auto [status, results] =
+            co_await self.Write(std::move(context), inputs);
+        callback(std::move(status), std::move(results));
+      });
 }
 
 void ClientSession::Call(const scada::NodeId& node_id,
@@ -268,19 +277,15 @@ void ClientSession::Call(const scada::NodeId& node_id,
                         const std::vector<scada::Variant>& arguments,
                         const scada::NodeId& user_id,
                         const scada::StatusCallback& callback) {
-  auto weak_self = weak_from_this();
-  CoSpawn(any_executor_,
-          [this, node_id, method_id, args = arguments, user_id, callback,
-           weak_self]() mutable -> Awaitable<void> {
-            auto self = weak_self.lock();
-            if (!self) {
-              co_return;
-            }
-            auto status = co_await Call(std::move(node_id),
-                                        std::move(method_id), std::move(args),
-                                        std::move(user_id));
-            callback(std::move(status));
-          });
+  DispatchLegacyCallback(
+      any_executor_, weak_from_this(),
+      [node_id, method_id, args = arguments, user_id, callback](
+          ClientSession& self) mutable -> Awaitable<void> {
+        auto status = co_await self.Call(std::move(node_id),
+                                         std::move(method_id), std::move(args),
+                                         std::move(user_id));
+        callback(std::move(status));
+      });
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>

@@ -38,7 +38,9 @@ Do not add common-specific async primitives.
   behavior.
 - `common/opcua`: keep existing binary/client coroutine code as the reference
   pattern and remove local bridges where shared service awaitable helpers
-  already cover the same boundary.
+  already cover the same boundary. Legacy callback entry points should only
+  schedule coroutine work through a weak-session dispatch point so queued
+  callbacks do not touch torn-down client state.
 
 ## Verification
 
@@ -65,3 +67,7 @@ each slice is touched.
 - `EventFetcher` history refresh and `EventAckQueue` acknowledgement dispatch
   now use coroutine tasks; `EventAckQueue` has coverage for dispatch,
   duplicate suppression, and max-parallel scheduling.
+- `ClientSession` legacy view, attribute, and method callbacks now share a
+  weak coroutine dispatch helper instead of capturing raw session state in each
+  wrapper; OPC UA tests cover all callback wrappers and destroyed-session
+  callback suppression.
