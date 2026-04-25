@@ -4,6 +4,7 @@
 
 #include <format>
 #include "scada/date_time.h"
+#include "scada/history_types.h"
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
 #include "scada/status_promise.h"
@@ -86,6 +87,19 @@ void VidiconSession::HistoryReadEvents(
   callback({scada::StatusCode::Bad});
 }
 
+Awaitable<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
+    scada::HistoryReadRawDetails details) {
+  co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
+}
+
+Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(
+    scada::NodeId node_id,
+    base::Time from,
+    base::Time to,
+    scada::EventFilter filter) {
+  co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+}
+
 std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
@@ -124,12 +138,36 @@ void VidiconSession::Write(
   callback(scada::StatusCode::Bad, {});
 }
 
+Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+VidiconSession::Read(
+    scada::ServiceContext context,
+    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+  co_return co_await attribute_service_.Read(std::move(context),
+                                             std::move(inputs));
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+VidiconSession::Write(
+    scada::ServiceContext context,
+    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                            std::vector<scada::StatusCode>{});
+}
+
 void VidiconSession::Call(const scada::NodeId& node_id,
                           const scada::NodeId& method_id,
                           const std::vector<scada::Variant>& arguments,
                           const scada::NodeId& user_id,
                           const scada::StatusCallback& callback) {
   callback(scada::StatusCode::Bad);
+}
+
+Awaitable<scada::Status> VidiconSession::Call(
+    scada::NodeId node_id,
+    scada::NodeId method_id,
+    std::vector<scada::Variant> arguments,
+    scada::NodeId user_id) {
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 void VidiconSession::AddNodes(const std::vector<scada::AddNodesItem>& inputs,
@@ -155,6 +193,32 @@ void VidiconSession::DeleteReferences(
   callback(scada::StatusCode::Bad, {});
 }
 
+Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+VidiconSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
+  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                            std::vector<scada::AddNodesResult>{});
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+VidiconSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
+  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                            std::vector<scada::StatusCode>{});
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+VidiconSession::AddReferences(
+    std::vector<scada::AddReferencesItem> inputs) {
+  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                            std::vector<scada::StatusCode>{});
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+VidiconSession::DeleteReferences(
+    std::vector<scada::DeleteReferencesItem> inputs) {
+  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
+                            std::vector<scada::StatusCode>{});
+}
+
 void VidiconSession::Browse(const scada::ServiceContext& context,
                             const std::vector<scada::BrowseDescription>& inputs,
                             const scada::BrowseCallback& callback) {
@@ -165,6 +229,18 @@ void VidiconSession::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
   view_service_.TranslateBrowsePaths(browse_paths, callback);
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+VidiconSession::Browse(scada::ServiceContext context,
+                       std::vector<scada::BrowseDescription> inputs) {
+  co_return co_await view_service_.Browse(std::move(context),
+                                          std::move(inputs));
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+VidiconSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
+  co_return co_await view_service_.TranslateBrowsePaths(std::move(inputs));
 }
 
 scada::SessionDebugger* VidiconSession::GetSessionDebugger() {

@@ -5,6 +5,7 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/history_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
@@ -25,7 +26,12 @@ class VidiconSession final : public scada::SessionService,
                              public scada::AttributeService,
                              public scada::MethodService,
                              public scada::NodeManagementService,
-                             public scada::ViewService {
+                             public scada::ViewService,
+                             public scada::CoroutineHistoryService,
+                             public scada::CoroutineAttributeService,
+                             public scada::CoroutineMethodService,
+                             public scada::CoroutineNodeManagementService,
+                             public scada::CoroutineViewService {
  public:
   VidiconSession();
   ~VidiconSession();
@@ -56,6 +62,15 @@ class VidiconSession final : public scada::SessionService,
       const scada::EventFilter& filter,
       const scada::HistoryReadEventsCallback& callback) override;
 
+  // scada::CoroutineHistoryService
+  virtual Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override;
+  virtual Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      base::Time from,
+      base::Time to,
+      scada::EventFilter filter) override;
+
   // scada::MonitoredItemService
   virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& read_value_id,
@@ -71,12 +86,29 @@ class VidiconSession final : public scada::SessionService,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
+  // scada::CoroutineAttributeService
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  Read(scada::ServiceContext context,
+       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Write(scada::ServiceContext context,
+        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+
   // scada::MethodService
   virtual void Call(const scada::NodeId& node_id,
                     const scada::NodeId& method_id,
                     const std::vector<scada::Variant>& arguments,
                     const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) override;
+
+  // scada::CoroutineMethodService
+  virtual Awaitable<scada::Status> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::NodeId user_id) override;
 
   // scada::NodeManagementService
   virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,
@@ -90,6 +122,20 @@ class VidiconSession final : public scada::SessionService,
       const std::vector<scada::DeleteReferencesItem>& inputs,
       const scada::DeleteReferencesCallback& callback) override;
 
+  // scada::CoroutineNodeManagementService
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
+
   // scada::ViewService
   virtual void Browse(
       const scada::ServiceContext& context,
@@ -98,6 +144,15 @@ class VidiconSession final : public scada::SessionService,
   virtual void TranslateBrowsePaths(
       const std::vector<scada::BrowsePath>& browse_paths,
       const scada::TranslateBrowsePathsCallback& callback) override;
+
+  // scada::CoroutineViewService
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext context,
+         std::vector<scada::BrowseDescription> inputs) override;
+  virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
  private:
   AddressSpaceImpl address_space_;
