@@ -110,7 +110,8 @@ each slice is touched.
   acknowledgement dispatch, duplicate suppression, and max-parallel scheduling.
 - `EventFetcher` monitored-item event delivery now posts through coroutine
   tasks guarded by the fetcher's cancellation token; tests cover executor
-  delivery and destroyed-fetcher suppression.
+  delivery, destroyed-fetcher suppression, and failed notification status
+  suppression before event storage is touched.
 - `ClientSession` legacy view, attribute, and method callbacks now share a
   weak coroutine dispatch helper instead of capturing raw session state in each
   wrapper; OPC UA tests cover all callback wrappers and destroyed-session

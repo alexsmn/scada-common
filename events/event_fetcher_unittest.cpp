@@ -134,3 +134,36 @@ TEST(EventFetcherTest, MonitoredItemEventsAreCanceledAfterDestroy) {
   EXPECT_FALSE(observer.events_called);
   EXPECT_TRUE(context.event_storage.events().empty());
 }
+
+TEST(EventFetcherTest, MonitoredItemEventWithBadStatusIsIgnored) {
+  TestContext context;
+  const scada::NodeId node_id{1, 100};
+  TestEventObserver observer;
+
+  EXPECT_CALL(*context.monitored_item_service.default_monitored_item,
+              Subscribe(VariantWith<scada::EventHandler>(_)))
+      .WillOnce([&](scada::MonitoredItemHandler handler) {
+        context.event_handler =
+            std::move(std::get<scada::EventHandler>(handler));
+      });
+  EXPECT_CALL(context.monitored_item_service, CreateMonitoredItem(_, _))
+      .WillOnce(testing::Return(
+          context.monitored_item_service.default_monitored_item));
+
+  context.fetcher.emplace(EventFetcherContext{
+      .executor_ = MakeTestAnyExecutor(context.executor),
+      .monitored_item_service_ = context.monitored_item_service,
+      .history_service_ = context.history_service_adapter,
+      .logger_ = NullLogger::GetInstance(),
+      .event_storage_ = context.event_storage,
+      .event_ack_queue_ = context.ack_queue});
+  context.fetcher->AddObserver(observer);
+
+  context.event_handler(scada::Status{scada::StatusCode::Bad},
+                        MakeEvent(42, node_id));
+  Drain(context.executor);
+
+  EXPECT_FALSE(observer.events_called);
+  EXPECT_TRUE(context.event_storage.events().empty());
+  EXPECT_FALSE(context.fetcher->IsAlerting(node_id));
+}

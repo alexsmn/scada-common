@@ -36,8 +36,8 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
         CoSpawn(executor, cancelation,
                 [this, status = std::move(status),
                  event = std::move(event)]() mutable -> Awaitable<void> {
-                  // TODO: Handle |status|
-                  assert(status);
+                  if (!status)
+                    co_return;
 
                   if (event.has_value()) {
                     assert(std::any_cast<scada::Event>(&event));
