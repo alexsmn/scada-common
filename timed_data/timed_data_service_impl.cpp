@@ -5,6 +5,7 @@
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"
+#include "scada/coroutine_services.h"
 #include "timed_data/alias_timed_data.h"
 #include "timed_data/error_timed_data.h"
 #include "timed_data/expression_timed_data.h"
@@ -22,7 +23,13 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
       node_id_cache_{executor_},
       alias_cache_{executor_},
       null_timed_data_{
-          std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {}
+          std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {
+  if (!history_service_ && services_.history_service) {
+    history_service_ =
+        std::make_shared<scada::CallbackToCoroutineHistoryServiceAdapter>(
+            executor_, *services_.history_service);
+  }
+}
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
 

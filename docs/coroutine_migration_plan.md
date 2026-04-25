@@ -138,3 +138,7 @@ each slice is touched.
 - Node-service v1 `AddressSpaceFetcherImpl` and v2 `NodeServiceImpl` now
   receive coroutine attribute/view services directly; their factories and tests
   own the callback-to-coroutine adapters at construction boundaries.
+- `TimedDataServiceImpl` now owns the history callback-to-coroutine adapter
+  and passes a shared `CoroutineHistoryService` dependency through
+  `TimedDataContext`; `TimedDataImpl` no longer creates per-instance history
+  adapters.

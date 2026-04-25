@@ -38,8 +38,6 @@ class TimedDataTest : public Test {
   StrictMock<scada::MockMethodService> method_service_;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
   StrictMock<scada::MockHistoryService> history_service_;
-  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter_{
-      MakeTestAnyExecutor(executor_), history_service_};
   NiceMock<MockNodeEventProvider> node_event_provider_;
 
   StaticNodeService node_service_{
@@ -161,6 +159,30 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
   EXPECT_TRUE(spec.current().qualifier.good());
 }
 
+TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
+  const auto from = base::Time::Now();
+  const auto to = from + base::TimeDelta::FromSeconds(10);
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
+                           const scada::HistoryReadRawCallback& callback) {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        callback(scada::HistoryReadRawResult{
+            .status = scada::StatusCode::Good,
+            .values = {},
+        });
+      }));
+
+  TimedDataSpec spec{service_, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
 TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
@@ -182,8 +204,10 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
         callback({});
       }));
 
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
+      MakeTestAnyExecutor(executor_), history_service_};
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_adapter_, details,
+      MakeTestAnyExecutor(executor_), history_service_adapter, details,
       continuation_point};
   scoped_continuation_point.reset();
 
@@ -201,8 +225,10 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
 
   EXPECT_CALL(history_service_, HistoryReadRaw(_, _)).Times(0);
 
+  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
+      MakeTestAnyExecutor(executor_), history_service_};
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_adapter_, details,
+      MakeTestAnyExecutor(executor_), history_service_adapter, details,
       continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();
