@@ -6,6 +6,7 @@
 #include "base/executor_conversions.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/node_class.h"
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
@@ -61,11 +62,15 @@ class NodeFetcherTest : public Test {
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space_;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+      MakeTestAnyExecutor(executor_), server_address_space_};
+  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+      MakeTestAnyExecutor(executor_), server_address_space_};
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          MakeTestAnyExecutor(executor_), server_address_space_,
-          server_address_space_,
+          MakeTestAnyExecutor(executor_), view_service_adapter_,
+          attribute_service_adapter_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction()})};
 
@@ -145,6 +150,7 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(0);
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   // Non-forced refetch doesn't trigger more upstream requests.
 
@@ -225,6 +231,7 @@ TEST_F(NodeFetcherTest, Cancel) {
       .WillOnce(SaveArg<2>(&browse_callback1));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   node_fetcher_->Cancel(node_id);
 
@@ -240,6 +247,7 @@ TEST_F(NodeFetcherTest, Cancel) {
       .WillOnce(SaveArg<2>(&browse_callback2));
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  DrainExecutor();
 
   // First network request finishes.
 

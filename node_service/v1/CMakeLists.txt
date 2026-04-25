@@ -10,4 +10,5 @@ target_link_libraries(node_service_v1 PUBLIC
 
 target_link_libraries(node_service_v1 PRIVATE
   address_space
+  transport
 )

@@ -6,6 +6,7 @@
 #include "node_service/node_util.h"
 #include "node_service/v2/node_model_impl.h"
 #include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
 
@@ -79,6 +80,12 @@ void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)),
+      view_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
+              executor_, view_service_)},
+      attribute_service_adapter_{
+          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+              executor_, attribute_service_)},
       node_fetcher_{NodeFetcherImpl::Create(MakeNodeFetcherImplContext())},
       node_children_fetcher_{
           NodeChildrenFetcher::Create(MakeNodeChildrenFetcherContext())},
@@ -229,8 +236,8 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
   };
 
   return NodeFetcherImplContext{executor_,
-                                view_service_,
-                                attribute_service_,
+                                *view_service_adapter_,
+                                *attribute_service_adapter_,
                                 std::move(fetch_completed_handler),
                                 std::move(node_validator),
                                 scada::ServiceContext{}};
@@ -243,7 +250,7 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
           node->OnChildrenFetched(std::move(result.references));
       };
 
-  return {executor_, scada::ServiceContext{}, view_service_,
+  return {executor_, scada::ServiceContext{}, *view_service_adapter_,
           reference_validator};
 }
 

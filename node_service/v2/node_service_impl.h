@@ -11,11 +11,14 @@
 #include "scada/view_service.h"
 
 #include <map>
+#include <memory>
 
 class NodeFetcher;
 
 namespace scada {
 class AttributeService;
+class CallbackToCoroutineAttributeServiceAdapter;
+class CallbackToCoroutineViewServiceAdapter;
 class MonitoredItemService;
 struct ModelChangeEvent;
 }  // namespace scada
@@ -110,6 +113,11 @@ class NodeServiceImpl : private NodeServiceImplContext,
   mutable base::ObserverList<NodeRefObserver> observers_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
+
+  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
+      view_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+      attribute_service_adapter_;
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_;
   const std::shared_ptr<NodeChildrenFetcher> node_children_fetcher_;

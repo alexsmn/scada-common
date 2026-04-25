@@ -2,6 +2,7 @@
 
 #include "base/test/awaitable_test.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 //#include "scada/test/test_address_space.h"
@@ -21,7 +22,7 @@ struct TestContext {
       : fetcher{NodeChildrenFetcher::Create(NodeChildrenFetcherContext{
             .executor_ = MakeTestAnyExecutor(executor),
             .service_context_ = {},
-            .view_service_ = view_service,
+            .view_service_ = view_service_adapter,
             .reference_validator_ =
                 [this](const scada::NodeId& node_id,
                        scada::BrowseResult&& result) {
@@ -32,6 +33,8 @@ struct TestContext {
 
   std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockViewService> view_service;
+  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+      MakeTestAnyExecutor(executor), view_service};
   std::map<scada::NodeId, scada::BrowseResult> validated_results;
   std::shared_ptr<NodeChildrenFetcher> fetcher;
 };
@@ -91,6 +94,7 @@ TEST(NodeChildrenFetcher, CompletesDelayedBrowseThroughCoroutineContinuation) {
       .WillOnce(SaveArg<2>(&browse_callback));
 
   context.fetcher->Fetch(node_id);
+  context.DrainExecutor();
   EXPECT_EQ(context.fetcher->GetPendingNodeCount(), 1u);
   ASSERT_TRUE(browse_callback);
 
@@ -148,6 +152,7 @@ TEST(NodeChildrenFetcher, CancelRemovesQueuedNodeBeforeRequestStarts) {
       .WillOnce(SaveArg<2>(&browse_callback));
 
   context.fetcher->Fetch(first_id);
+  context.DrainExecutor();
   context.fetcher->Fetch(second_id);
   context.fetcher->Cancel(second_id);
 

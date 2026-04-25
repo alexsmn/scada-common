@@ -1,16 +1,12 @@
 #include "node_service/node_children_fetcher.h"
 
-#include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
-#include "base/awaitable_promise.h"
-#include "base/promise.h"
 #include <format>
 #include "model/node_id_util.h"
 #include "node_service/node_fetcher.h"
-#include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
-#include "scada/view_service.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -20,9 +16,6 @@
 namespace {
 
 const size_t kMaxFetchChildCount = 100;
-
-using BrowseChildrenResult =
-    std::tuple<scada::Status, std::vector<scada::BrowseResult>>;
 
 std::string NodeIdsToString(
     const std::vector<scada::ReferenceDescription>& references) {
@@ -158,25 +151,15 @@ void NodeChildrenFetcher::FetchChildren(
                             scada::id::HasSubtype, true});
   }
 
-  promise<BrowseChildrenResult> browse_promise;
   CoSpawn(executor_, weak_from_this(),
-          [start_ticks, descriptions, browse_promise](
+          [start_ticks, descriptions](
               std::shared_ptr<NodeChildrenFetcher> self) mutable
               -> Awaitable<void> {
-            auto [status, results] =
-                co_await AwaitPromise(self->executor_, browse_promise);
+            auto [status, results] = co_await self->view_service_.Browse(
+                self->service_context_, descriptions);
             self->OnBrowseChildrenResult(start_ticks, std::move(status),
                                          descriptions, std::move(results));
           });
-  view_service_.Browse(
-      service_context_, descriptions,
-      BindExecutor(
-          executor_, [browse_promise](scada::Status status,
-                                      std::vector<scada::BrowseResult> results)
-                         mutable {
-            browse_promise.resolve(
-                BrowseChildrenResult{std::move(status), std::move(results)});
-          }));
 }
 
 void NodeChildrenFetcher::Cancel(const scada::NodeId& node_id) {

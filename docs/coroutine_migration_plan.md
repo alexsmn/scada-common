@@ -92,12 +92,14 @@ each slice is touched.
 
 ## Status
 
-- `NodeFetcherImpl` request completion handling now runs through coroutine
-  continuations while keeping the legacy upstream request timing observable to
-  callers and tests.
-- `NodeChildrenFetcher` now routes browse completion handling through a
-  coroutine continuation and has coverage for delayed completion, merge
-  behavior, and queued-child cancellation.
+- `NodeFetcherImpl` now consumes `CoroutineAttributeService` and
+  `CoroutineViewService` internally; v1/v2 node-service owners adapt legacy
+  callback services at construction boundaries, and tests cover synchronous and
+  delayed adapter-backed fetch completion.
+- `NodeChildrenFetcher` now consumes `CoroutineViewService` internally; v1/v2
+  owners adapt legacy callback view services at construction boundaries, and
+  tests cover delayed completion, merge behavior, and queued-child
+  cancellation.
 - `TimedDataFetcher` and `ScopedContinuationPoint` now consume
   `CoroutineHistoryService` internally, with callback history services adapted
   once at construction boundaries; timed-data tests cover cleanup dispatch,

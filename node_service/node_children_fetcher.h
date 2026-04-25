@@ -4,7 +4,6 @@
 #include "base/boost_log.h"
 #include "base/time/time.h"
 #include "scada/service_context.h"
-#include "scada/view_service.h"
 
 #include <deque>
 #include <functional>
@@ -14,10 +13,10 @@
 #include <vector>
 
 namespace scada {
+class CoroutineViewService;
 class NodeId;
 class ServiceContext;
 class Status;
-class ViewService;
 struct BrowseDescription;
 struct BrowseResult;
 }  // namespace scada
@@ -28,7 +27,7 @@ using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
 struct NodeChildrenFetcherContext {
   AnyExecutor executor_;
   scada::ServiceContext service_context_;
-  scada::ViewService& view_service_;
+  scada::CoroutineViewService& view_service_;
   ReferenceValidator reference_validator_;
 };
 
