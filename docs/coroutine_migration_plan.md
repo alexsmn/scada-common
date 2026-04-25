@@ -74,3 +74,6 @@ each slice is touched.
   weak coroutine dispatch helper instead of capturing raw session state in each
   wrapper; OPC UA tests cover all callback wrappers and destroyed-session
   callback suppression.
+- `ServerRuntime` publish-delay waiting now bridges delayed callbacks through
+  `AwaitPromise` instead of a local `CallbackToAwaitable` adapter; OPC UA tests
+  cover the injected scheduler callback path.

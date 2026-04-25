@@ -1,8 +1,9 @@
 #include "opcua/server_runtime.h"
 
+#include "base/awaitable_promise.h"
 #include "base/boost_log.h"
-#include "base/callback_awaitable.h"
 #include "base/executor_util.h"
+#include "base/promise.h"
 
 #include <algorithm>
 #include <cassert>
@@ -106,19 +107,16 @@ Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
   if (delay <= base::TimeDelta{})
     co_return;
 
-  co_await CallbackToAwaitable<>(
-      this->executor,
-      [executor = this->executor,
-       post_delayed_task = this->post_delayed_task,
-       delay](auto done) mutable {
-        auto ms = std::chrono::milliseconds{delay.InMilliseconds()};
-        auto callback = [done = std::move(done)]() mutable { done(); };
-        if (post_delayed_task) {
-          post_delayed_task(delay, std::move(callback));
-        } else {
-          PostDelayedTask(executor, ms, std::move(callback));
-        }
-      });
+  promise<void> delayed;
+  auto callback = [delayed]() mutable { delayed.resolve(); };
+  if (post_delayed_task) {
+    post_delayed_task(delay, std::move(callback));
+  } else {
+    PostDelayedTask(executor,
+                    std::chrono::milliseconds{delay.InMilliseconds()},
+                    std::move(callback));
+  }
+  co_await AwaitPromise(executor, std::move(delayed));
 }
 
 Awaitable<ResponseBody> ServerRuntime::Handle(
