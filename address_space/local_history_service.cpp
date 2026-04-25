@@ -74,6 +74,33 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
 void LocalHistoryService::HistoryReadRaw(
     const HistoryReadRawDetails& details,
     const HistoryReadRawCallback& callback) {
+  callback(ReadRaw(details));
+}
+
+void LocalHistoryService::HistoryReadEvents(
+    const NodeId& node_id,
+    base::Time from,
+    base::Time to,
+    const EventFilter& filter,
+    const HistoryReadEventsCallback& callback) {
+  callback(ReadEvents(node_id, from, to, filter));
+}
+
+Awaitable<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
+    HistoryReadRawDetails details) {
+  co_return ReadRaw(std::move(details));
+}
+
+Awaitable<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
+    NodeId node_id,
+    base::Time from,
+    base::Time to,
+    EventFilter filter) {
+  co_return ReadEvents(std::move(node_id), from, to, std::move(filter));
+}
+
+HistoryReadRawResult LocalHistoryService::ReadRaw(
+    HistoryReadRawDetails details) const {
   const auto now = base::Time::Now();
 
   double base_value = 100.0;
@@ -93,22 +120,21 @@ void LocalHistoryService::HistoryReadRaw(
     values.push_back(MakeValueAt(Variant{dist(rng)}, time));
   }
 
-  callback(HistoryReadRawResult{
+  return HistoryReadRawResult{
       .status = Status{StatusCode::Good},
       .values = std::move(values),
-  });
+  };
 }
 
-void LocalHistoryService::HistoryReadEvents(
-    const NodeId& /*node_id*/,
+HistoryReadEventsResult LocalHistoryService::ReadEvents(
+    NodeId /*node_id*/,
     base::Time /*from*/,
     base::Time /*to*/,
-    const EventFilter& /*filter*/,
-    const HistoryReadEventsCallback& callback) {
-  callback(HistoryReadEventsResult{
+    EventFilter /*filter*/) const {
+  return HistoryReadEventsResult{
       .status = Status{StatusCode::Good},
       .events = events_,
-  });
+  };
 }
 
 }  // namespace scada

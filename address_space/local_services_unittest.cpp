@@ -1,4 +1,5 @@
 #include "address_space/local_method_service.h"
+#include "address_space/local_history_service.h"
 #include "address_space/local_node_management_service.h"
 
 #include "base/test/awaitable_test.h"
@@ -80,6 +81,51 @@ TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
   EXPECT_EQ(status.code(), StatusCode::Bad);
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0], StatusCode::Bad);
+}
+
+TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
+  const auto executor = std::make_shared<TestExecutor>();
+  LocalHistoryService service;
+  const NodeId node_id{7, 2};
+  service.SetRawProfile(node_id, 42.0);
+
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                    .node_id = node_id,
+                    .from = base::Time::Now() - base::TimeDelta::FromHours(1),
+                    .to = base::Time::Now()}));
+
+  EXPECT_TRUE(result.status);
+  ASSERT_EQ(result.values.size(), 48u);
+  EXPECT_EQ(result.values.front().status_code, StatusCode::Good);
+  EXPECT_FALSE(result.values.front().value.is_null());
+}
+
+TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
+  const auto executor = std::make_shared<TestExecutor>();
+  LocalHistoryService service;
+  Event event;
+  event.event_id = EventId{17};
+  event.node_id = NodeId{3, 2};
+  event.time = base::Time::Now();
+  event.receive_time = event.time;
+  event.severity = kSeverityWarning;
+  event.message = LocalizedText{u"Warning"};
+  service.AddEvent(event);
+
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadEvents(event.node_id,
+                                          event.time -
+                                              base::TimeDelta::FromHours(1),
+                                          event.time +
+                                              base::TimeDelta::FromHours(1),
+                                          EventFilter{}));
+
+  EXPECT_TRUE(result.status);
+  ASSERT_EQ(result.events.size(), 1u);
+  EXPECT_EQ(result.events[0].event_id, event.event_id);
+  EXPECT_EQ(result.events[0].node_id, event.node_id);
+  EXPECT_EQ(result.events[0].severity, kSeverityWarning);
 }
 
 }  // namespace

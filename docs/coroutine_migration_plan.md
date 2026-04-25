@@ -153,3 +153,6 @@ each slice is touched.
   `CoroutineMethodService` and `CoroutineNodeManagementService` directly while
   preserving their callback APIs; coroutine tests cover the method call and all
   node-management mutation stubs.
+- Local address-space history service now exposes `CoroutineHistoryService`
+  directly while preserving the callback API; coroutine tests cover generated
+  raw profiles and stored event reads.

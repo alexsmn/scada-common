@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scada/coroutine_services.h"
 #include "scada/event.h"
 #include "scada/history_service.h"
 #include "scada/node_id.h"
@@ -20,7 +21,8 @@ namespace scada {
 //
 // Intended for tests, demos, and screenshot tooling that need a SCADA back-end
 // driven by static data rather than a real server.
-class LocalHistoryService : public HistoryService {
+class LocalHistoryService : public HistoryService,
+                            public CoroutineHistoryService {
  public:
   LocalHistoryService();
   ~LocalHistoryService() override;
@@ -46,8 +48,22 @@ class LocalHistoryService : public HistoryService {
                          const EventFilter& filter,
                          const HistoryReadEventsCallback& callback) override;
 
+  // CoroutineHistoryService
+  Awaitable<HistoryReadRawResult> HistoryReadRaw(
+      HistoryReadRawDetails details) override;
+  Awaitable<HistoryReadEventsResult> HistoryReadEvents(NodeId node_id,
+                                                       base::Time from,
+                                                       base::Time to,
+                                                       EventFilter filter)
+      override;
+
  private:
   static UInt32 ParseSeverity(std::string_view s);
+  HistoryReadRawResult ReadRaw(HistoryReadRawDetails details) const;
+  HistoryReadEventsResult ReadEvents(NodeId node_id,
+                                     base::Time from,
+                                     base::Time to,
+                                     EventFilter filter) const;
 
   std::unordered_map<NodeId, double> raw_profiles_;
   std::vector<Event> events_;
