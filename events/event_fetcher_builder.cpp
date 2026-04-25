@@ -18,10 +18,13 @@ struct EventFetcherHolder : EventFetcherBuilder {
 
   EventStorage event_storage_;
 
+  scada::CallbackToCoroutineMethodServiceAdapter method_service_{
+      executor_, *services_.method_service};
+
   EventAckQueue event_ack_queue_{
       EventAckQueueContext{.logger_ = nested_logger_,
                            .executor_ = executor_,
-                           .method_service_ = *services_.method_service}};
+                           .method_service_ = method_service_}};
 
   scada::CallbackToCoroutineHistoryServiceAdapter history_service_{
       executor_, *services_.history_service};

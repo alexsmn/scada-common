@@ -3,14 +3,10 @@
 #include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
 #include "scada/coroutine_services.h"
-#include "scada/method_service.h"
 #include "scada/standard_node_ids.h"
 
 EventAckQueue::EventAckQueue(EventAckQueueContext&& context)
-    : EventAckQueueContext{std::move(context)},
-      method_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              executor_, method_service_)} {}
+    : EventAckQueueContext{std::move(context)} {}
 
 EventAckQueue::~EventAckQueue() {
   cancelation_.Cancel();
@@ -58,7 +54,7 @@ void EventAckQueue::AckPendingEvents() {
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
              user_id = user_id_]() mutable -> Awaitable<void> {
-              co_await method_service_adapter_->Call(
+              co_await method_service_.Call(
                   scada::id::Server,
                   scada::id::AcknowledgeableConditionType_Acknowledge,
                   {event_ids, scada::DateTime::Now()}, user_id);

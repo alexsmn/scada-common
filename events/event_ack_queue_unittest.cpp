@@ -2,6 +2,7 @@
 
 #include "base/logger.h"
 #include "base/test/awaitable_test.h"
+#include "scada/coroutine_services.h"
 #include "scada/method_service_mock.h"
 #include "scada/standard_node_ids.h"
 
@@ -18,13 +19,15 @@ class EventAckQueueTest : public Test {
     return EventAckQueue{EventAckQueueContext{
         .logger_ = NullLogger::GetInstance(),
         .executor_ = MakeTestAnyExecutor(executor_),
-        .method_service_ = method_service_}};
+        .method_service_ = method_service_adapter_}};
   }
 
   void DrainExecutor() { Drain(executor_); }
 
   std::shared_ptr<TestExecutor> executor_ = std::make_shared<TestExecutor>();
   StrictMock<scada::MockMethodService> method_service_;
+  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter_{
+      MakeTestAnyExecutor(executor_), method_service_};
 };
 
 MATCHER_P(ArgumentsContainEventIds, event_ids, "") {

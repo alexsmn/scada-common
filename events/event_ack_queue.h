@@ -10,14 +10,13 @@
 #include <set>
 
 namespace scada {
-class CallbackToCoroutineMethodServiceAdapter;
-class MethodService;
+class CoroutineMethodService;
 }  // namespace scada
 
 struct EventAckQueueContext {
   const std::shared_ptr<const Logger> logger_;
   AnyExecutor executor_;
-  scada::MethodService& method_service_;
+  scada::CoroutineMethodService& method_service_;
 };
 
 class EventAckQueue : private EventAckQueueContext {
@@ -59,9 +58,6 @@ class EventAckQueue : private EventAckQueueContext {
   scada::NodeId user_id_;
 
   Cancelation cancelation_;
-
-  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
-      method_service_adapter_;
 
   static const size_t kMaxParallelAcks = 5;
 };

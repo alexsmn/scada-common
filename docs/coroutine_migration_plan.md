@@ -132,3 +132,6 @@ each slice is touched.
   `CoroutineSessionService`; their builders adapt the public `SessionService`
   boundary once with `PromiseToCoroutineSessionServiceAdapter`, and common
   tests cover connected-session startup plus later session-state callbacks.
+- `EventAckQueue` now consumes `CoroutineMethodService` directly; the event
+  fetcher builder and tests adapt callback method services at construction
+  boundaries, keeping acknowledgement scheduling coroutine-first.
