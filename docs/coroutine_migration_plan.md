@@ -201,6 +201,10 @@ each slice is touched.
   contexts directly while retaining legacy callback contexts that own the
   compatibility adapters; runtime tests cover canonical and binary read
   dispatch through coroutine services without constructing callback adapters.
+- OPC UA websocket `Server` tests now exercise `CoroutineServerRuntimeContext`
+  end to end, covering CreateSession/ActivateSession/Read over the websocket
+  transport loop through direct coroutine SCADA services without callback
+  service adapters.
 - Node-service v1/v2 factories now expose a coroutine-native construction path
   for attribute/view services while preserving the legacy callback-service
   factory path; factory tests cover connected-session fetches through direct

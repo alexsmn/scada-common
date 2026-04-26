@@ -2,6 +2,7 @@
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
+#include "opcua/server_runtime_contract_test.h"
 #include "opcua/websocket/json_codec.h"
 #include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
@@ -299,6 +300,57 @@ TEST_F(ServerTest, DisconnectDetachesSessionForResume) {
       DecodeResponse(second_peer->writes[0]).body);
   EXPECT_EQ(resumed.status.code(), scada::StatusCode::Good);
   EXPECT_TRUE(resumed.resumed);
+}
+
+TEST_F(ServerTest, ServeConnectionRoutesReadThroughCoroutineServices) {
+  test::TestCoroutineServices coroutine_services;
+  ServerRuntime coroutine_runtime{CoroutineServerRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .monitored_item_service = monitored_item_service_,
+      .attribute_service = coroutine_services,
+      .view_service = coroutine_services,
+      .history_service = coroutine_services,
+      .method_service = coroutine_services,
+      .node_management_service = coroutine_services,
+  }};
+  Server coroutine_server{ServerContext{
+      .acceptor = transport::any_transport{ScriptedAcceptorTransport{
+          any_executor_, std::make_shared<AcceptorState>()}},
+      .runtime = coroutine_runtime,
+      .max_message_size = 1024,
+  }};
+
+  auto peer = std::make_shared<MessagePeerState>();
+  peer->incoming.push_back(
+      Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
+  peer->incoming.push_back(Encode(
+      {.request_handle = 2,
+       .body = ActivateSessionRequest{
+           .session_id = NumericNode(1),
+           .authentication_token = NumericNode(1, 3),
+           .user_name = scada::LocalizedText{u"operator"},
+           .password = scada::LocalizedText{u"secret"}}}));
+  const ReadRequest read_request{
+      .inputs = {{.node_id = NumericNode(902),
+                  .attribute_id = scada::AttributeId::Value}}};
+  peer->incoming.push_back(Encode({.request_handle = 3,
+                                   .body = read_request}));
+
+  WaitAwaitable(executor_,
+                coroutine_server.ServeConnection(MakePeer(peer)));
+
+  ASSERT_EQ(peer->writes.size(), 3u);
+  const auto read_response =
+      std::get<ReadResponse>(DecodeResponse(peer->writes[2]).body);
+  EXPECT_EQ(read_response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(read_response.results.size(), 1u);
+  EXPECT_EQ(read_response.results[0].value, coroutine_services.read_value);
+  EXPECT_EQ(coroutine_services.read_count, 1);
+  EXPECT_EQ(coroutine_services.last_read_context.user_id(),
+            (scada::NodeId{55, 3}));
+  EXPECT_THAT(coroutine_services.last_read_inputs,
+              ElementsAre(read_request.inputs[0]));
 }
 
 TEST_F(ServerTest, OpenAndCloseDriveAcceptorLifecycle) {
