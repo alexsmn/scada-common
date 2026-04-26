@@ -22,6 +22,55 @@ using namespace std::chrono_literals;
 using testing::_;
 using testing::StrictMock;
 
+class TestCoroutineAuditServices final
+    : public scada::CoroutineAttributeService,
+      public scada::CoroutineViewService {
+ public:
+  Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
+    ++read_count;
+    last_read_inputs = *inputs;
+    co_return std::tuple{scada::Status{scada::StatusCode::Good}, read_results};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>> Write(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+    ++write_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::StatusCode>(inputs->size(),
+                                       scada::StatusCode::Good)};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext context,
+         std::vector<scada::BrowseDescription> inputs) override {
+    ++browse_count;
+    last_browse_inputs = std::move(inputs);
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         browse_results};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
+    ++translate_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::BrowsePathResult>(inputs.size())};
+  }
+
+  int read_count = 0;
+  int write_count = 0;
+  int browse_count = 0;
+  int translate_count = 0;
+  std::vector<scada::ReadValueId> last_read_inputs;
+  std::vector<scada::BrowseDescription> last_browse_inputs;
+  std::vector<scada::DataValue> read_results{{}};
+  std::vector<scada::BrowseResult> browse_results{{}};
+};
+
 class CapturingMetricService final : public MetricService {
  public:
   void RegisterProvider(const Provider& provider) override {
@@ -156,6 +205,59 @@ TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributeCallbacks) {
   Drain(executor);
 
   EXPECT_TRUE(read_called);
+}
+
+TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
+  auto executor = std::make_shared<TestExecutor>();
+  CapturingMetricService metric_service;
+  auto source_services = std::make_shared<TestCoroutineAuditServices>();
+
+  DataServices data_services;
+  data_services.coroutine_attribute_service_ = source_services;
+  data_services.coroutine_view_service_ = source_services;
+
+  auto audited_services =
+      AuditDataServices(std::move(data_services), metric_service,
+                        Tracer::None(), MakeTestAnyExecutor(executor));
+
+  ASSERT_NE(audited_services->attribute_service_, nullptr);
+  ASSERT_NE(audited_services->coroutine_attribute_service_, nullptr);
+  ASSERT_NE(audited_services->view_service_, nullptr);
+  ASSERT_NE(audited_services->coroutine_view_service_, nullptr);
+  EXPECT_NE(audited_services->coroutine_attribute_service_.get(),
+            source_services.get());
+  EXPECT_NE(audited_services->coroutine_view_service_.get(),
+            source_services.get());
+
+  bool read_called = false;
+  auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
+      std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{1}}});
+  audited_services->attribute_service_->Read(
+      {}, read_inputs,
+      [&](scada::Status status, std::vector<scada::DataValue> results) {
+        read_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results, source_services->read_results);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(read_called);
+  EXPECT_EQ(source_services->read_count, 1);
+  EXPECT_EQ(source_services->last_read_inputs, *read_inputs);
+  EXPECT_TRUE(HasMetric(metric_service.Collect(executor), "read_latency.count"));
+
+  auto [browse_status, browse_results] = WaitAwaitable(
+      executor, audited_services->coroutine_view_service_->Browse(
+                    {}, {{.node_id = scada::NodeId{2}}}));
+
+  EXPECT_TRUE(browse_status.good());
+  EXPECT_EQ(browse_results, source_services->browse_results);
+  EXPECT_EQ(source_services->browse_count, 1);
+  ASSERT_EQ(source_services->last_browse_inputs.size(), 1u);
+  EXPECT_EQ(source_services->last_browse_inputs[0].node_id,
+            (scada::NodeId{2}));
+  EXPECT_TRUE(
+      HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 }
 
 }  // namespace

@@ -250,3 +250,7 @@ each slice is touched.
   callback history adapters; timed-data tests cover range history fetch through
   the legacy timed-data factory context with only a direct coroutine history
   slot installed.
+- `Audit` now also accepts the coroutine-capable `DataServices` aggregate and
+  the new `AuditDataServices` helper preserves audited callback and coroutine
+  attribute/view slots; common tests cover audited callback read and coroutine
+  browse dispatch with only direct coroutine services installed.

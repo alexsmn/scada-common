@@ -23,8 +23,11 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
            Tracer& tracer,
            std::optional<AnyExecutor> executor)
         : services_{services},
-          audit_{Audit::Create(AuditContext{metric_service, *services_, tracer,
-                                            std::move(executor)})},
+          audit_{Audit::Create(AuditContext{
+              .metric_service_ = metric_service,
+              .services_ = *services_,
+              .tracer_ = tracer,
+              .executor_ = std::move(executor)})},
           audited_services_{*services_} {
       if (audited_services_.attribute_service) {
         audited_services_.attribute_service = audit_.get();
@@ -45,6 +48,46 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
   return std::shared_ptr<scada::services>{holder, &holder->audited_services_};
 }
 
+std::shared_ptr<DataServices> AuditDataServicesImpl(
+    DataServices services,
+    MetricService& metric_service,
+    Tracer& tracer,
+    AnyExecutor executor) {
+  struct Holder {
+    Holder(MetricService& metric_service,
+           DataServices services,
+           Tracer& tracer,
+           AnyExecutor executor)
+        : services_{std::move(services)} {
+      auto raw_services = services_.as_services();
+      audit_ = Audit::Create(AuditContext{.metric_service_ = metric_service,
+                                          .data_services_ = services_,
+                                          .services_ = raw_services,
+                                          .tracer_ = tracer,
+                                          .executor_ = std::move(executor)});
+      audited_services_ = services_;
+      if (audited_services_.attribute_service_ ||
+          audited_services_.coroutine_attribute_service_) {
+        audited_services_.attribute_service_ = audit_;
+        audited_services_.coroutine_attribute_service_ = audit_;
+      }
+      if (audited_services_.view_service_ ||
+          audited_services_.coroutine_view_service_) {
+        audited_services_.view_service_ = audit_;
+        audited_services_.coroutine_view_service_ = audit_;
+      }
+    }
+
+    DataServices services_;
+    std::shared_ptr<Audit> audit_;
+    DataServices audited_services_;
+  };
+
+  auto holder = std::make_shared<Holder>(metric_service, std::move(services),
+                                         tracer, std::move(executor));
+  return std::shared_ptr<DataServices>{holder, &holder->audited_services_};
+}
+
 }  // namespace
 
 std::shared_ptr<scada::services> AuditScadaServices(
@@ -61,6 +104,14 @@ std::shared_ptr<scada::services> AuditScadaServices(
     AnyExecutor executor) {
   return AuditScadaServicesImpl(services, metric_service, tracer,
                                 std::move(executor));
+}
+
+std::shared_ptr<DataServices> AuditDataServices(DataServices services,
+                                                MetricService& metric_service,
+                                                Tracer& tracer,
+                                                AnyExecutor executor) {
+  return AuditDataServicesImpl(std::move(services), metric_service, tracer,
+                               std::move(executor));
 }
 
 // Audit
@@ -93,7 +144,20 @@ std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
 }
 
 void Audit::RefreshCoroutineServices() {
-  if (services_.attribute_service) {
+  if (data_services_.coroutine_attribute_service_) {
+    coroutine_attribute_service_ =
+        data_services_.coroutine_attribute_service_.get();
+  } else if (data_services_.attribute_service_) {
+    coroutine_attribute_service_ =
+        dynamic_cast<scada::CoroutineAttributeService*>(
+            data_services_.attribute_service_.get());
+    if (!coroutine_attribute_service_ && executor_) {
+      attribute_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+              *executor_, *data_services_.attribute_service_);
+      coroutine_attribute_service_ = attribute_service_adapter_.get();
+    }
+  } else if (services_.attribute_service) {
     coroutine_attribute_service_ =
         dynamic_cast<scada::CoroutineAttributeService*>(
             services_.attribute_service);
@@ -105,7 +169,18 @@ void Audit::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.view_service) {
+  if (data_services_.coroutine_view_service_) {
+    coroutine_view_service_ = data_services_.coroutine_view_service_.get();
+  } else if (data_services_.view_service_) {
+    coroutine_view_service_ = dynamic_cast<scada::CoroutineViewService*>(
+        data_services_.view_service_.get());
+    if (!coroutine_view_service_ && executor_) {
+      view_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
+              *executor_, *data_services_.view_service_);
+      coroutine_view_service_ = view_service_adapter_.get();
+    }
+  } else if (services_.view_service) {
     coroutine_view_service_ =
         dynamic_cast<scada::CoroutineViewService*>(services_.view_service);
     if (!coroutine_view_service_ && executor_) {
