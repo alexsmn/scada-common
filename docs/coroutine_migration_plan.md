@@ -277,3 +277,8 @@ each slice is touched.
   the coroutine-capable `DataServices` aggregate at `Build()` before holder
   construction; event-builder tests cover connected startup and delayed history
   refresh through the normalized legacy callback path.
+- `Audit` now normalizes legacy callback `scada::services` into the
+  coroutine-capable `DataServices` aggregate before resolving attribute/view
+  dependencies; callback fallback paths use the aggregate boundary, and common
+  tests cover audited callback browse dispatch with only direct coroutine view
+  slots installed.

@@ -11,6 +11,15 @@
 
 namespace {
 
+bool HasAuditDataServices(const DataServices& services) {
+  return services.attribute_service_ || services.coroutine_attribute_service_ ||
+         services.view_service_ || services.coroutine_view_service_;
+}
+
+bool HasAuditLegacyServices(const scada::services& services) {
+  return services.attribute_service || services.view_service;
+}
+
 std::shared_ptr<scada::services> AuditScadaServicesImpl(
     const std::shared_ptr<const scada::services>& services,
     MetricService& metric_service,
@@ -25,6 +34,7 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
         : services_{services},
           audit_{Audit::Create(AuditContext{
               .metric_service_ = metric_service,
+              .data_services_ = DataServices::FromSharedServices(services_),
               .services_ = *services_,
               .tracer_ = tracer,
               .executor_ = std::move(executor)})},
@@ -120,6 +130,10 @@ Audit::Audit(AuditContext&& context)
     : AuditContext{std::move(context)},
       concurrent_read_count_{0},
       concurrent_browse_count_{0} {
+  if (!HasAuditDataServices(data_services_) &&
+      HasAuditLegacyServices(services_))
+    data_services_ = DataServices::FromUnownedServices(services_);
+
   RefreshCoroutineServices();
 }
 
@@ -157,16 +171,6 @@ void Audit::RefreshCoroutineServices() {
               *executor_, *data_services_.attribute_service_);
       coroutine_attribute_service_ = attribute_service_adapter_.get();
     }
-  } else if (services_.attribute_service) {
-    coroutine_attribute_service_ =
-        dynamic_cast<scada::CoroutineAttributeService*>(
-            services_.attribute_service);
-    if (!coroutine_attribute_service_ && executor_) {
-      attribute_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              *executor_, *services_.attribute_service);
-      coroutine_attribute_service_ = attribute_service_adapter_.get();
-    }
   }
 
   if (data_services_.coroutine_view_service_) {
@@ -178,15 +182,6 @@ void Audit::RefreshCoroutineServices() {
       view_service_adapter_ =
           std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
               *executor_, *data_services_.view_service_);
-      coroutine_view_service_ = view_service_adapter_.get();
-    }
-  } else if (services_.view_service) {
-    coroutine_view_service_ =
-        dynamic_cast<scada::CoroutineViewService*>(services_.view_service);
-    if (!coroutine_view_service_ && executor_) {
-      view_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              *executor_, *services_.view_service);
       coroutine_view_service_ = view_service_adapter_.get();
     }
   }
@@ -235,11 +230,11 @@ void Audit::Read(
   }
 
   // Audit must not be used for missing services.
-  assert(services_.attribute_service);
+  assert(data_services_.attribute_service_);
 
   StartRead();
 
-  services_.attribute_service->Read(
+  data_services_.attribute_service_->Read(
       context, inputs,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::DataValue>&& results) {
@@ -270,9 +265,9 @@ void Audit::Write(
   }
 
   // Audit must not be used for missing services.
-  assert(services_.attribute_service);
+  assert(data_services_.attribute_service_);
 
-  services_.attribute_service->Write(context, inputs, callback);
+  data_services_.attribute_service_->Write(context, inputs, callback);
 }
 
 void Audit::Browse(const scada::ServiceContext& context,
@@ -295,11 +290,11 @@ void Audit::Browse(const scada::ServiceContext& context,
   }
 
   // Audit must not be used for missing services.
-  assert(services_.view_service);
+  assert(data_services_.view_service_);
 
   StartBrowse();
 
-  services_.view_service->Browse(
+  data_services_.view_service_->Browse(
       context, descriptions,
       [this, ref = shared_from_this(), start_time = Clock::now(), callback](
           scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
@@ -331,9 +326,9 @@ void Audit::TranslateBrowsePaths(
   }
 
   // Audit must not be used for missing services.
-  assert(services_.view_service);
+  assert(data_services_.view_service_);
 
-  services_.view_service->TranslateBrowsePaths(browse_paths, callback);
+  data_services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
 }
 
 Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Audit::Read(
