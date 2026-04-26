@@ -44,12 +44,12 @@ flowchart LR
 
     subgraph Services["Server services"]
         direction TB
-        CTX["<b>ServerContext</b>"]
-        ATTR["AttributeService"]
-        VIEW["ViewService"]
-        HIST["HistoryService"]
-        METH["MethodService"]
-        NODE["NodeManagementService"]
+        CTX["<b>DataServices</b><br/>aggregate runtime boundary"]
+        ATTR["CoroutineAttributeService"]
+        VIEW["CoroutineViewService"]
+        HIST["CoroutineHistoryService"]
+        METH["CoroutineMethodService"]
+        NODE["CoroutineNodeManagementService"]
         MON["MonitoredItemService"]
     end
 

@@ -4,12 +4,26 @@
 
 #include <functional>
 #include <future>
+#include <memory>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 namespace opcua {
 namespace {
+
+DataServices MakeRuntimeDataServices(
+    std::shared_ptr<test::TestCoroutineServices> coroutine_services,
+    scada::MonitoredItemService& monitored_item_service) {
+  return {
+      .monitored_item_service_ = std::shared_ptr<scada::MonitoredItemService>{
+          &monitored_item_service, [](scada::MonitoredItemService*) {}},
+      .coroutine_view_service_ = coroutine_services,
+      .coroutine_node_management_service_ = coroutine_services,
+      .coroutine_history_service_ = coroutine_services,
+      .coroutine_attribute_service_ = coroutine_services,
+      .coroutine_method_service_ = coroutine_services};
+}
 
 class ServerRuntimeTest
     : public testing::Test,
@@ -330,6 +344,72 @@ TEST_F(CoroutineServerRuntimeTest,
   EXPECT_EQ(coroutine_services_.last_read_context.user_id(),
             expected_user_id_);
   EXPECT_THAT(coroutine_services_.last_read_inputs,
+              testing::ElementsAre(request.inputs[0]));
+}
+
+class DataServicesServerRuntimeTest
+    : public testing::Test,
+      public test::ServerRuntimeContractTestBase {
+ public:
+  using ConnectionState = opcua::ConnectionState;
+
+  template <typename Response, typename Request>
+  Response HandleResponse(ConnectionState& connection, Request request) {
+    const auto body =
+        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
+                                                                 std::move(request)}));
+    if (const auto* typed = std::get_if<Response>(&body))
+      return *typed;
+    ADD_FAILURE() << "unexpected response type";
+    return {};
+  }
+
+  void CreateAndActivate(ConnectionState& connection) {
+    const auto created =
+        HandleResponse<CreateSessionResponse>(connection,
+                                                   CreateSessionRequest{});
+    ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
+
+    const auto activated = HandleResponse<ActivateSessionResponse>(
+        connection,
+        ActivateSessionRequest{
+            .session_id = created.session_id,
+            .authentication_token = created.authentication_token,
+            .user_name = scada::LocalizedText{u"operator"},
+            .password = scada::LocalizedText{u"secret"},
+        });
+    ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
+  }
+
+  std::shared_ptr<test::TestCoroutineServices> coroutine_services_ =
+      std::make_shared<test::TestCoroutineServices>();
+  ServerRuntime runtime_{DataServicesServerRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .data_services =
+          MakeRuntimeDataServices(coroutine_services_, monitored_item_service_),
+      .now = [this] { return now_; },
+  }};
+};
+
+TEST_F(DataServicesServerRuntimeTest,
+       RoutesReadThroughAggregateCoroutineSlotsWithoutCallbackAdapters) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(903),
+                  .attribute_id = scada::AttributeId::Value}}};
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, coroutine_services_->read_value);
+  EXPECT_EQ(coroutine_services_->read_count, 1);
+  EXPECT_EQ(coroutine_services_->last_read_context.user_id(),
+            expected_user_id_);
+  EXPECT_THAT(coroutine_services_->last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
 }
 

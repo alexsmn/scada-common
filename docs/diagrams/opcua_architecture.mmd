@@ -47,7 +47,7 @@ flowchart LR
         direction TB
         RT["<b>opcua::ServerRuntime</b><br/>transport-neutral request-body routing"]
         HANDLER["<b>opcua::ServiceHandler</b><br/>coroutine dispatch into<br/>shared scada services"]
-        CTX["<b>ServerContext</b><br/>attribute / view /<br/>monitored-item / method /<br/>node-management services"]
+        CTX["<b>DataServices</b><br/>coroutine service slots +<br/>monitored-item service"]
         SVC["<b>scada services</b><br/>node manager, history,<br/>events, security"]
     end
 

@@ -2,10 +2,25 @@
 
 #include "opcua/server_runtime_contract_test.h"
 
+#include <memory>
+
 #include <gtest/gtest.h>
 
 namespace opcua::binary {
 namespace {
+
+DataServices MakeRuntimeDataServices(
+    std::shared_ptr<test::TestCoroutineServices> coroutine_services,
+    scada::MonitoredItemService& monitored_item_service) {
+  return {
+      .monitored_item_service_ = std::shared_ptr<scada::MonitoredItemService>{
+          &monitored_item_service, [](scada::MonitoredItemService*) {}},
+      .coroutine_view_service_ = coroutine_services,
+      .coroutine_node_management_service_ = coroutine_services,
+      .coroutine_history_service_ = coroutine_services,
+      .coroutine_attribute_service_ = coroutine_services,
+      .coroutine_method_service_ = coroutine_services};
+}
 
 class RuntimeTest
     : public testing::Test,
@@ -276,6 +291,67 @@ TEST_F(CoroutineRuntimeTest,
   EXPECT_EQ(coroutine_services_.last_read_context.user_id(),
             expected_user_id_);
   EXPECT_THAT(coroutine_services_.last_read_inputs,
+              testing::ElementsAre(request.inputs[0]));
+}
+
+class DataServicesRuntimeTest
+    : public testing::Test,
+      public test::ServerRuntimeContractTestBase {
+ public:
+  using ConnectionState = opcua::ConnectionState;
+
+  template <typename Response, typename Request>
+  Response HandleResponse(ConnectionState& connection, Request request) {
+    return WaitAwaitable(executor_,
+                         runtime_.Handle<Response>(connection,
+                                                   std::move(request)));
+  }
+
+  void CreateAndActivate(ConnectionState& connection) {
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
+    ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
+
+    const auto activated = HandleResponse<ActivateSessionResponse>(
+        connection,
+        ActivateSessionRequest{
+            .session_id = created.session_id,
+            .authentication_token = created.authentication_token,
+            .user_name = scada::LocalizedText{u"operator"},
+            .password = scada::LocalizedText{u"secret"},
+        });
+    ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
+  }
+
+  std::shared_ptr<test::TestCoroutineServices> coroutine_services_ =
+      std::make_shared<test::TestCoroutineServices>();
+  Runtime runtime_{DataServicesRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .data_services =
+          MakeRuntimeDataServices(coroutine_services_, monitored_item_service_),
+      .now = [this] { return now_; },
+  }};
+};
+
+TEST_F(DataServicesRuntimeTest,
+       RoutesReadThroughAggregateCoroutineSlotsWithoutCallbackAdapters) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(904),
+                  .attribute_id = scada::AttributeId::Value}}};
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, coroutine_services_->read_value);
+  EXPECT_EQ(coroutine_services_->read_count, 1);
+  EXPECT_EQ(coroutine_services_->last_read_context.user_id(),
+            expected_user_id_);
+  EXPECT_THAT(coroutine_services_->last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
 }
 

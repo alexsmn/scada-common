@@ -53,12 +53,20 @@ struct CoroutineRuntimeContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
+struct DataServicesRuntimeContext {
+  AnyExecutor executor;
+  ServerSessionManager& session_manager;
+  DataServices data_services;
+  std::function<base::Time()> now = &base::Time::Now;
+};
+
 // UA Binary reuses the canonical shared server-side session/subscription/
 // service runtime while keeping Binary-specific framing and codec logic local.
 class Runtime {
  public:
   explicit Runtime(RuntimeContext&& context);
   explicit Runtime(CoroutineRuntimeContext&& context);
+  explicit Runtime(DataServicesRuntimeContext&& context);
 
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<Response> Handle(ConnectionState& connection,

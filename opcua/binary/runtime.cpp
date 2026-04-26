@@ -83,6 +83,15 @@ Runtime::Runtime(CoroutineRuntimeContext&& context)
           .now = std::move(context.now),
       }} {}
 
+Runtime::Runtime(DataServicesRuntimeContext&& context)
+    : session_manager_{context.session_manager},
+      runtime_{DataServicesServerRuntimeContext{
+          .executor = context.executor,
+          .session_manager = context.session_manager,
+          .data_services = std::move(context.data_services),
+          .now = std::move(context.now),
+      }} {}
+
 Awaitable<ResponseBody> Runtime::HandleBody(
     ConnectionState& connection,
     RequestBody request) {

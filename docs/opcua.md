@@ -312,7 +312,7 @@ transport-neutral semantic core:
 | `third_party/net/transport/websocket_transport.{h,cpp}` | Concrete websocket boundary for WS/WSS server and client transports: validates HTTP upgrade policy through callbacks, supports TLS/WSS from in-memory PEM certificate/key buffers, enables `permessage-deflate`, exposes accepted websocket sessions as message-oriented transports, and reports the bound listener endpoint |
 | `common/opcua/websocket/server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport`: reads JSON frames, decodes canonical `opcua::RequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::ServerRuntime`, writes canonical `opcua::ResponseMessage` envelopes, and detaches sessions on disconnect |
 | `common/opcua/server_session.{h,cpp}` | Canonical transport-independent live session state owned by `opcua::ServerSession` |
-| `common/opcua/server_runtime.{h,cpp}` + `common/opcua/websocket/runtime.h` | Canonical shared runtime plus the remaining WS convenience wrapper: transport-neutral request-body routing, shared connection state, and session/subscription ownership tracking |
+| `common/opcua/server_runtime.{h,cpp}` + `common/opcua/websocket/runtime.h` | Canonical shared runtime plus the remaining WS convenience wrapper: transport-neutral request-body routing, shared connection state, session/subscription ownership tracking, and aggregate `DataServices` coroutine-slot construction |
 | `common/opcua/server_session_manager.{h,cpp}` | Canonical transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `common/opcua/server_subscription.{h,cpp}` | Canonical `opcua::ServerSubscription` publish queue, keep-alive timer, and data-change delivery |
 | `common/opcua/websocket/json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; consumes and produces the canonical `opcua::` request/response/envelope types, and reuses `common/opcua/conversion.{h,cpp}` for UA ↔ scada conversion |
@@ -325,8 +325,9 @@ transport-neutral semantic core:
 | `server/opcua/opcua_module.{h,cpp}` | Config loader + lifecycle for both TCP and WS listeners |
 
 Both transport adapters reuse the same coroutine service collaborators inside
-the shared runtime. Legacy callback-service contexts remain supported at
-construction boundaries and are adapted once:
+the shared runtime. New aggregate construction paths pass coroutine service
+slots through `DataServices`; legacy callback-service contexts remain supported
+at construction boundaries and are adapted once:
 
 - `CoroutineAttributeService` — Read, Write
 - `CoroutineViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds

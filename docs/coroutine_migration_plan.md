@@ -259,3 +259,7 @@ each slice is touched.
   view services before falling back to legacy callback adapters; factory tests
   cover connected startup and node fetches through aggregate coroutine slots for
   both implementations.
+- OPC UA canonical and binary runtimes now accept the coroutine-capable
+  `DataServices` aggregate directly, keeping legacy callback runtime contexts as
+  compatibility paths while direct aggregate coroutine slots drive runtime read
+  dispatch in focused tests.

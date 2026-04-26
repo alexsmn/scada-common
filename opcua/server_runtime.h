@@ -6,6 +6,7 @@
 #include "opcua/service_handler.h"
 #include "opcua/server_session.h"
 #include "opcua/server_session_manager.h"
+#include "scada/data_services.h"
 
 #include <optional>
 #include <unordered_map>
@@ -60,10 +61,21 @@ struct CoroutineServerRuntimeContext {
   std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
 };
 
+struct DataServicesServerRuntimeContext {
+  AnyExecutor executor;
+  ServerSessionManager& session_manager;
+  DataServices data_services;
+  std::function<base::Time()> now = &base::Time::Now;
+  // Optional override for delayed task scheduling. Defaults to
+  // boost::asio::steady_timer-based posting when null.
+  std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
+};
+
 class ServerRuntime {
  public:
   explicit ServerRuntime(ServerRuntimeContext&& context);
   explicit ServerRuntime(CoroutineServerRuntimeContext&& context);
+  explicit ServerRuntime(DataServicesServerRuntimeContext&& context);
   ~ServerRuntime();
 
   [[nodiscard]] Awaitable<ResponseBody> Handle(
@@ -107,6 +119,7 @@ class ServerRuntime {
   std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
       node_management_service_adapter_;
 
+  DataServices data_services_;
   AnyExecutor executor_;
   ServerSessionManager& session_manager_;
   scada::MonitoredItemService& monitored_item_service_;

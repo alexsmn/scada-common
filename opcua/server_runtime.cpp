@@ -27,6 +27,12 @@ ResponseBody SessionMissingResponse<ResponseBody>() {
   return ServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
 }
 
+template <typename T>
+T& RequireService(const std::shared_ptr<T>& service) {
+  assert(service);
+  return *service;
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
@@ -66,6 +72,23 @@ ServerRuntime::ServerRuntime(CoroutineServerRuntimeContext&& context)
       history_service_{context.history_service},
       method_service_{context.method_service},
       node_management_service_{context.node_management_service},
+      now_{std::move(context.now)},
+      post_delayed_task_{std::move(context.post_delayed_task)} {}
+
+ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
+    : data_services_{std::move(context.data_services)},
+      executor_{std::move(context.executor)},
+      session_manager_{context.session_manager},
+      monitored_item_service_{
+          RequireService(data_services_.monitored_item_service_)},
+      attribute_service_{
+          RequireService(data_services_.coroutine_attribute_service_)},
+      view_service_{RequireService(data_services_.coroutine_view_service_)},
+      history_service_{
+          RequireService(data_services_.coroutine_history_service_)},
+      method_service_{RequireService(data_services_.coroutine_method_service_)},
+      node_management_service_{
+          RequireService(data_services_.coroutine_node_management_service_)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 
