@@ -320,3 +320,7 @@ each slice is touched.
   common coroutine service resolver for aggregate service slots; audit keeps
   its self-retaining metric wrapper around callback entry points, while timed
   data preserves shared ownership for adapted history services.
+- OPC UA `ServerRuntime` legacy callback construction now normalizes through
+  `DataServicesServerRuntimeContext`, so callback and aggregate runtime paths
+  share the same coroutine service resolver and adapter ownership; runtime
+  tests cover delayed read completion through that legacy-normalized path.

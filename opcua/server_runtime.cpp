@@ -29,39 +29,26 @@ ResponseBody SessionMissingResponse<ResponseBody>() {
   return ServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
 }
 
+DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
+    ServerRuntimeContext&& context) {
+  return DataServicesServerRuntimeContext{
+      .executor = std::move(context.executor),
+      .session_manager = context.session_manager,
+      .data_services = DataServices::FromUnownedServices(scada::services{
+          .attribute_service = &context.attribute_service,
+          .monitored_item_service = &context.monitored_item_service,
+          .method_service = &context.method_service,
+          .history_service = &context.history_service,
+          .view_service = &context.view_service,
+          .node_management_service = &context.node_management_service}),
+      .now = std::move(context.now),
+      .post_delayed_task = std::move(context.post_delayed_task)};
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
-    : attribute_service_adapter_{std::make_unique<
-          scada::CallbackToCoroutineAttributeServiceAdapter>(
-          context.executor,
-          context.attribute_service)},
-      view_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              context.executor,
-              context.view_service)},
-      history_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-              context.executor,
-              context.history_service)},
-      method_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              context.executor,
-              context.method_service)},
-      node_management_service_adapter_{std::make_unique<
-          scada::CallbackToCoroutineNodeManagementServiceAdapter>(
-          context.executor,
-          context.node_management_service)},
-      executor_{std::move(context.executor)},
-      session_manager_{context.session_manager},
-      monitored_item_service_{context.monitored_item_service},
-      attribute_service_{*attribute_service_adapter_},
-      view_service_{*view_service_adapter_},
-      history_service_{*history_service_adapter_},
-      method_service_{*method_service_adapter_},
-      node_management_service_{*node_management_service_adapter_},
-      now_{std::move(context.now)},
-      post_delayed_task_{std::move(context.post_delayed_task)} {}
+    : ServerRuntime{MakeDataServicesServerRuntimeContext(std::move(context))} {}
 
 ServerRuntime::ServerRuntime(CoroutineServerRuntimeContext&& context)
     : executor_{std::move(context.executor)},
