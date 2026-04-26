@@ -344,3 +344,8 @@ each slice is touched.
   normalizes through `DataServices` aggregate contexts, using shared unowned
   service aliases so direct coroutine inputs and legacy callback inputs share
   the same required-service resolver path.
+- `CoroutineEventFetcherBuilder` now builds through the same
+  coroutine-capable `DataServices` aggregate path as the legacy
+  `EventFetcherBuilder`, removing the duplicate coroutine holder while keeping
+  connected-session and later session-open refresh behavior covered in events
+  tests.

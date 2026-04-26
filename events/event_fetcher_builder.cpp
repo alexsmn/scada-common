@@ -32,6 +32,18 @@ void NormalizeLegacyServices(EventFetcherBuilder& builder) {
       data_services::FromUnownedServices(builder.services_);
 }
 
+DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
+  return DataServices{
+      .monitored_item_service_ =
+          data_services::Unowned(builder.monitored_item_service_),
+      .coroutine_session_service_ =
+          data_services::Unowned(builder.session_service_),
+      .coroutine_history_service_ =
+          data_services::Unowned(builder.history_service_),
+      .coroutine_method_service_ =
+          data_services::Unowned(builder.method_service_)};
+}
+
 struct EventFetcherServices {
   EventFetcherServices(AnyExecutor executor, EventFetcherBuilder& builder)
       : data_services_{std::move(builder.data_services_)} {
@@ -87,37 +99,6 @@ struct EventFetcherHolder : EventFetcherHolderBase {
       event_fetcher_, *services_.session_service_};
 };
 
-struct CoroutineEventFetcherHolder : EventFetcherHolderBase {
-  explicit CoroutineEventFetcherHolder(CoroutineEventFetcherBuilder&& builder)
-      : EventFetcherHolderBase{std::move(builder.executor_),
-                               std::move(builder.logger_)},
-        monitored_item_service_{builder.monitored_item_service_},
-        history_service_{builder.history_service_},
-        method_service_{builder.method_service_},
-        session_service_{builder.session_service_} {}
-
-  scada::MonitoredItemService& monitored_item_service_;
-  scada::CoroutineHistoryService& history_service_;
-  scada::CoroutineMethodService& method_service_;
-  scada::CoroutineSessionService& session_service_;
-
-  EventAckQueue event_ack_queue_{
-      EventAckQueueContext{.logger_ = nested_logger_,
-                           .executor_ = executor_,
-                           .method_service_ = method_service_}};
-
-  EventFetcher event_fetcher_{
-      EventFetcherContext{.executor_ = executor_,
-                          .monitored_item_service_ = monitored_item_service_,
-                          .history_service_ = history_service_,
-                          .logger_ = nested_logger_,
-                          .event_storage_ = event_storage_,
-                          .event_ack_queue_ = event_ack_queue_}};
-
-  CoroutineSessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
-      event_fetcher_, session_service_};
-};
-
 }  // namespace internal
 
 std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
@@ -130,9 +111,8 @@ std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
 }
 
 std::shared_ptr<EventFetcher> CoroutineEventFetcherBuilder::Build() {
-  auto event_fetcher_holder =
-      std::make_shared<internal::CoroutineEventFetcherHolder>(std::move(*this));
-
-  return std::shared_ptr<EventFetcher>{event_fetcher_holder,
-                                       &event_fetcher_holder->event_fetcher_};
+  return EventFetcherBuilder{.executor_ = std::move(executor_),
+                             .logger_ = std::move(logger_),
+                             .data_services_ = internal::MakeDataServices(*this)}
+      .Build();
 }

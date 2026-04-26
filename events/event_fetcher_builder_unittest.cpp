@@ -150,6 +150,41 @@ TEST(CoroutineEventFetcherBuilder,
   EXPECT_TRUE(fetcher->IsAlerting(node_id));
 }
 
+TEST(CoroutineEventFetcherBuilder,
+     LaterSessionOpenRefreshesThroughUnifiedDataServicesPath) {
+  const auto executor = std::make_shared<TestExecutor>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  TestCoroutineHistoryService history_service;
+  TestCoroutineMethodService method_service;
+  TestCoroutineSessionService session_service;
+  const scada::NodeId node_id{46, 100};
+  session_service.connected = false;
+  history_service.result.events = {MakeEvent(16, node_id)};
+
+  EXPECT_CALL(*monitored_item_service.default_monitored_item,
+              Subscribe(VariantWith<scada::EventHandler>(_)));
+
+  auto fetcher =
+      CoroutineEventFetcherBuilder{
+          .executor_ = MakeTestAnyExecutor(executor),
+          .logger_ = NullLogger::GetInstance(),
+          .monitored_item_service_ = monitored_item_service,
+          .history_service_ = history_service,
+          .method_service_ = method_service,
+          .session_service_ = session_service}
+          .Build();
+  DrainExecutor(executor);
+
+  EXPECT_EQ(history_service.read_events_count, 0);
+
+  session_service.connected = true;
+  session_service.session_state_changed(true, scada::StatusCode::Good);
+  DrainExecutor(executor);
+
+  EXPECT_EQ(history_service.read_events_count, 1);
+  EXPECT_TRUE(fetcher->IsAlerting(node_id));
+}
+
 TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
   const auto executor = std::make_shared<TestExecutor>();
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
