@@ -50,10 +50,10 @@ class AttributeServiceImpl : public scada::AttributeService,
       const scada::WriteCallback& callback) override;
 
   // scada::CoroutineAttributeService
-  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 

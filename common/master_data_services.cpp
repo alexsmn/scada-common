@@ -546,7 +546,7 @@ Awaitable<void> MasterDataServices::ReconnectCoroutine() {
   co_await coroutine_session_service_->Reconnect();
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
   auto* service = coroutine_node_management_service_;
   if (service)
@@ -556,7 +556,7 @@ MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
                        std::vector<scada::AddNodesResult>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
   auto* service = coroutine_node_management_service_;
   if (service)
@@ -566,7 +566,7 @@ MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
                        std::vector<scada::StatusCode>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::AddReferences(
     std::vector<scada::AddReferencesItem> inputs) {
   auto* service = coroutine_node_management_service_;
@@ -577,7 +577,7 @@ MasterDataServices::AddReferences(
                        std::vector<scada::StatusCode>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::DeleteReferences(
     std::vector<scada::DeleteReferencesItem> inputs) {
   auto* service = coroutine_node_management_service_;
@@ -588,7 +588,7 @@ MasterDataServices::DeleteReferences(
                        std::vector<scada::StatusCode>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 MasterDataServices::Browse(scada::ServiceContext context,
                            std::vector<scada::BrowseDescription> inputs) {
   auto* service = coroutine_view_service_;
@@ -599,7 +599,7 @@ MasterDataServices::Browse(scada::ServiceContext context,
                        std::vector<scada::BrowseResult>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 MasterDataServices::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> inputs) {
   auto* service = coroutine_view_service_;
@@ -610,7 +610,7 @@ MasterDataServices::TranslateBrowsePaths(
                        std::vector<scada::BrowsePathResult>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 MasterDataServices::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
@@ -622,7 +622,7 @@ MasterDataServices::Read(
                        std::vector<scada::DataValue>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {

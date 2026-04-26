@@ -7,6 +7,7 @@
 
 #include "base/test/awaitable_test.h"
 #include "scada/standard_node_ids.h"
+#include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
 
@@ -60,62 +61,53 @@ TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {
   const auto executor = std::make_shared<TestExecutor>();
   LocalNodeManagementService service;
 
-  auto [status, results] =
-      WaitAwaitable(executor,
-                    service.AddNodes({AddNodesItem{
-                        .requested_id = NodeId{1, 2},
-                        .parent_id = id::ObjectsFolder,
-                        .node_class = NodeClass::Object,
-                        .type_definition_id = id::BaseObjectType}}));
+  auto result = WaitAwaitable(
+      executor, service.AddNodes({AddNodesItem{
+                    .requested_id = NodeId{1, 2},
+                    .parent_id = id::ObjectsFolder,
+                    .node_class = NodeClass::Object,
+                    .type_definition_id = id::BaseObjectType}}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad);
-  ASSERT_EQ(results.size(), 1u);
-  EXPECT_EQ(results[0].status_code, StatusCode::Bad);
+  EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
 
 TEST(LocalNodeManagementService, CoroutineDeleteNodesReturnsBadResults) {
   const auto executor = std::make_shared<TestExecutor>();
   LocalNodeManagementService service;
 
-  auto [status, results] = WaitAwaitable(
+  auto result = WaitAwaitable(
       executor,
       service.DeleteNodes({DeleteNodesItem{.node_id = NodeId{1, 2}}}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad);
-  ASSERT_EQ(results.size(), 1u);
-  EXPECT_EQ(results[0], StatusCode::Bad);
+  EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
 
 TEST(LocalNodeManagementService, CoroutineAddReferencesReturnsBadResults) {
   const auto executor = std::make_shared<TestExecutor>();
   LocalNodeManagementService service;
 
-  auto [status, results] =
+  auto result =
       WaitAwaitable(executor,
                     service.AddReferences({AddReferencesItem{
                         .source_node_id = id::ObjectsFolder,
                         .reference_type_id = id::Organizes,
                         .target_node_id = NodeId{1, 2}}}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad);
-  ASSERT_EQ(results.size(), 1u);
-  EXPECT_EQ(results[0], StatusCode::Bad);
+  EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
 
 TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
   const auto executor = std::make_shared<TestExecutor>();
   LocalNodeManagementService service;
 
-  auto [status, results] =
+  auto result =
       WaitAwaitable(executor,
                     service.DeleteReferences({DeleteReferencesItem{
                         .source_node_id = id::ObjectsFolder,
                         .reference_type_id = id::Organizes,
                         .target_node_id = NodeId{1, 2}}}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad);
-  ASSERT_EQ(results.size(), 1u);
-  EXPECT_EQ(results[0], StatusCode::Bad);
+  EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {

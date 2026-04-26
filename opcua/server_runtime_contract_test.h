@@ -56,7 +56,7 @@ class TestCoroutineServices final
       public scada::CoroutineMethodService,
       public scada::CoroutineNodeManagementService {
  public:
-  Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Read(
+  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
     ++read_count;
@@ -68,22 +68,21 @@ class TestCoroutineServices final
             read_value, {}, timestamp, timestamp}});
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>> Write(
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
       std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::StatusCode>{});
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>> Browse(
+  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::BrowseResult>{});
   }
 
-  Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::BrowsePathResult>{});
@@ -109,25 +108,25 @@ class TestCoroutineServices final
     co_return scada::Status{scada::StatusCode::Bad};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::AddNodesResult>{});
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::StatusCode>{});
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::StatusCode>{});
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
     co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                               std::vector<scada::StatusCode>{});
@@ -450,8 +449,7 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
       DeleteReferencesResponse>(connection, delete_references);
   EXPECT_EQ(delete_references_response.status.code(),
             scada::StatusCode::Bad_Disconnected);
-  EXPECT_THAT(delete_references_response.results,
-              testing::ElementsAre(scada::StatusCode::Bad_Disconnected));
+  EXPECT_TRUE(delete_references_response.results.empty());
 }
 
 template <typename Fixture>

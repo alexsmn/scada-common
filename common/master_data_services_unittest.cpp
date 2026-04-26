@@ -9,6 +9,7 @@
 #include "scada/coroutine_services.h"
 #include "scada/node_management_service_mock.h"
 #include "scada/session_service_mock.h"
+#include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -69,7 +70,7 @@ class TestCoroutineDataServices final
 
   scada::SessionDebugger* GetSessionDebugger() override { return nullptr; }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Read(
+  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
     ++read_count;
@@ -79,7 +80,7 @@ class TestCoroutineDataServices final
                          std::vector<scada::DataValue>{read_value}};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>> Write(
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext /*context*/,
       std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
     ++write_count;
@@ -89,7 +90,7 @@ class TestCoroutineDataServices final
                                        scada::StatusCode::Good)};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext /*context*/,
          std::vector<scada::BrowseDescription> inputs) override {
     ++browse_count;
@@ -99,7 +100,7 @@ class TestCoroutineDataServices final
         std::vector<scada::BrowseResult>{{.references = {browse_reference}}}};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
     co_return std::tuple{
@@ -138,7 +139,7 @@ class TestCoroutineDataServices final
         .status = scada::Status{scada::StatusCode::Good}};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override {
     ++add_nodes_count;
     last_add_nodes_inputs = std::move(inputs);
@@ -148,7 +149,7 @@ class TestCoroutineDataServices final
             {.added_node_id = scada::NodeId{700, 7}}}};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
     ++delete_nodes_count;
     co_return std::tuple{
@@ -157,7 +158,7 @@ class TestCoroutineDataServices final
                                        scada::StatusCode::Good)};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
     ++add_references_count;
     co_return std::tuple{
@@ -166,7 +167,7 @@ class TestCoroutineDataServices final
                                        scada::StatusCode::Good)};
   }
 
-  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
     ++delete_references_count;
     co_return std::tuple{
@@ -331,8 +332,7 @@ TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
 
   pending_read(scada::StatusCode::Good, {scada::DataValue{}});
 
-  auto [status, values] = WaitPromise(executor, std::move(result));
-  EXPECT_TRUE(status.good());
+  ASSERT_OK_AND_ASSIGN(auto values, WaitPromise(executor, std::move(result)));
   EXPECT_EQ(values.size(), 1u);
 }
 
@@ -403,8 +403,8 @@ TEST(MasterDataServicesTest,
   pending_add_nodes(scada::StatusCode::Good,
                     {scada::AddNodesResult{.added_node_id = scada::NodeId{1}}});
 
-  auto [status, results] = WaitPromise(executor, std::move(result));
-  EXPECT_TRUE(status.good());
+  ASSERT_OK_AND_ASSIGN(auto results,
+                       WaitPromise(executor, std::move(result)));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].added_node_id, scada::NodeId{1});
 }
@@ -692,10 +692,9 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->last_history_events_node_id,
             (scada::NodeId{107}));
 
-  auto [browse_status, browse_results] = WaitAwaitable(
+  ASSERT_OK_AND_ASSIGN(auto browse_results, WaitAwaitable(
       executor, static_cast<scada::CoroutineViewService&>(services).Browse(
-                    {}, {{.node_id = scada::NodeId{108}}}));
-  EXPECT_TRUE(browse_status.good());
+                    {}, {{.node_id = scada::NodeId{108}}})));
   ASSERT_EQ(browse_results.size(), 1u);
   ASSERT_EQ(browse_results[0].references.size(), 1u);
   EXPECT_EQ(browse_results[0].references[0].node_id, (scada::NodeId{900}));

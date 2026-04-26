@@ -50,10 +50,12 @@ Awaitable<ServiceResponse> ServiceHandler::Handle(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleRead(
     ReadRequest request) const {
-  auto [status, results] = co_await attribute_service.Read(
+  auto result = co_await attribute_service.Read(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::ReadValueId>>(
           std::move(request.inputs)));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   results = NormalizeReadResults(std::move(results));
   co_return ServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
@@ -61,18 +63,22 @@ Awaitable<ServiceResponse> ServiceHandler::HandleRead(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
     WriteRequest request) const {
-  auto [status, results] = co_await attribute_service.Write(
+  auto result = co_await attribute_service.Write(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::WriteValue>>(
           std::move(request.inputs)));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       WriteResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
     BrowseRequest request) const {
-  auto [status, results] = co_await view_service.Browse(
+  auto result = co_await view_service.Browse(
       MakeServiceContext(user_id), std::move(request.inputs));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
 }
@@ -80,8 +86,10 @@ Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
 Awaitable<ServiceResponse>
 ServiceHandler::HandleTranslateBrowsePaths(
     TranslateBrowsePathsRequest request) const {
-  auto [status, results] = co_await view_service.TranslateBrowsePaths(
+  auto result = co_await view_service.TranslateBrowsePaths(
       std::move(request.inputs));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       TranslateBrowsePathsResponse{std::move(status), std::move(results)}};
 }
@@ -118,35 +126,40 @@ Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadEvents(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleAddNodes(
     AddNodesRequest request) const {
-  auto [status, results] = co_await node_management_service.AddNodes(
+  auto result = co_await node_management_service.AddNodes(
       std::move(request.items));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       AddNodesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteNodes(
     DeleteNodesRequest request) const {
-  auto [status, results] =
-      co_await node_management_service.DeleteNodes(
-          std::move(request.items));
+  auto result =
+      co_await node_management_service.DeleteNodes(std::move(request.items));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       DeleteNodesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleAddReferences(
     AddReferencesRequest request) const {
-  auto [status, results] =
-      co_await node_management_service.AddReferences(
-          std::move(request.items));
+  auto result =
+      co_await node_management_service.AddReferences(std::move(request.items));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       AddReferencesResponse{std::move(status), std::move(results)}};
 }
 
 Awaitable<ServiceResponse> ServiceHandler::HandleDeleteReferences(
     DeleteReferencesRequest request) const {
-  auto [status, results] =
-      co_await node_management_service.DeleteReferences(
-          std::move(request.items));
+  auto result = co_await node_management_service.DeleteReferences(
+      std::move(request.items));
+  auto status = result.status();
+  auto results = std::move(result).value_or({});
   co_return ServiceResponse{
       DeleteReferencesResponse{std::move(status), std::move(results)}};
 }

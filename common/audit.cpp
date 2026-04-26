@@ -184,9 +184,9 @@ void Audit::Read(
             [self = shared_from_this(), context, inputs,
              callback]() mutable -> Awaitable<void> {
               try {
-                auto [status, results] =
-                    co_await self->Read(std::move(context), std::move(inputs));
-                callback(std::move(status), std::move(results));
+                scada::CompleteStatusOrCallback(
+                    callback,
+                    co_await self->Read(std::move(context), std::move(inputs)));
               } catch (...) {
                 callback(scada::GetExceptionStatus(std::current_exception()),
                          {});
@@ -219,9 +219,10 @@ void Audit::Write(
             [self = shared_from_this(), context, inputs,
              callback]() mutable -> Awaitable<void> {
               try {
-                auto [status, results] =
-                    co_await self->Write(std::move(context), std::move(inputs));
-                callback(std::move(status), std::move(results));
+                scada::CompleteStatusOrCallback(
+                    callback,
+                    co_await self->Write(std::move(context),
+                                         std::move(inputs)));
               } catch (...) {
                 callback(scada::GetExceptionStatus(std::current_exception()),
                          {});
@@ -244,9 +245,9 @@ void Audit::Browse(const scada::ServiceContext& context,
             [self = shared_from_this(), context, descriptions,
              callback]() mutable -> Awaitable<void> {
               try {
-                auto [status, results] =
-                    co_await self->Browse(std::move(context), descriptions);
-                callback(std::move(status), std::move(results));
+                scada::CompleteStatusOrCallback(
+                    callback,
+                    co_await self->Browse(std::move(context), descriptions));
               } catch (...) {
                 callback(scada::GetExceptionStatus(std::current_exception()),
                          {});
@@ -280,9 +281,9 @@ void Audit::TranslateBrowsePaths(
             [self = shared_from_this(), browse_paths,
              callback]() mutable -> Awaitable<void> {
               try {
-                auto [status, results] =
-                    co_await self->TranslateBrowsePaths(browse_paths);
-                callback(std::move(status), std::move(results));
+                scada::CompleteStatusOrCallback(
+                    callback,
+                    co_await self->TranslateBrowsePaths(browse_paths));
               } catch (...) {
                 callback(scada::GetExceptionStatus(std::current_exception()),
                          {});
@@ -297,7 +298,7 @@ void Audit::TranslateBrowsePaths(
   data_services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Audit::Read(
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
   auto* service = coroutine_attribute_service_;
@@ -319,7 +320,7 @@ Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Audit::Read(
                        std::vector<scada::DataValue>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 Audit::Write(scada::ServiceContext context,
              std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
   auto* service = coroutine_attribute_service_;
@@ -330,7 +331,7 @@ Audit::Write(scada::ServiceContext context,
                        std::vector<scada::StatusCode>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 Audit::Browse(scada::ServiceContext context,
               std::vector<scada::BrowseDescription> inputs) {
   auto* service = coroutine_view_service_;
@@ -353,7 +354,7 @@ Audit::Browse(scada::ServiceContext context,
                        std::vector<scada::BrowseResult>{}};
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 Audit::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   auto* service = coroutine_view_service_;
   if (service)

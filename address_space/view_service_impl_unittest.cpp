@@ -11,6 +11,7 @@
 #include "scada/attribute_service.h"
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
+#include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
 
@@ -170,15 +171,14 @@ TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
   TestAddressSpace address_space;
   const auto executor = std::make_shared<TestExecutor>();
 
-  auto [status, results] = WaitAwaitable(
-      executor, address_space.view_service_impl.Browse(
-                    scada::ServiceContext{},
-                    {{scada::id::RootFolder,
-                      scada::BrowseDirection::Forward,
-                      scada::id::HierarchicalReferences,
-                      true}}));
-
-  EXPECT_TRUE(status);
+  ASSERT_OK_AND_ASSIGN(auto results,
+                       WaitAwaitable(executor,
+                                     address_space.view_service_impl.Browse(
+                                         scada::ServiceContext{},
+                                         {{scada::id::RootFolder,
+                                           scada::BrowseDirection::Forward,
+                                           scada::id::HierarchicalReferences,
+                                           true}})));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   EXPECT_THAT(results[0].references,
@@ -191,7 +191,7 @@ TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
   TestAddressSpace address_space;
   const auto executor = std::make_shared<TestExecutor>();
 
-  auto [status, results] = WaitAwaitable(
+  ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, address_space.view_service_impl.TranslateBrowsePaths(
                     {{.node_id = scada::id::RootFolder,
                       .relative_path = {{.reference_type_id =
@@ -201,9 +201,7 @@ TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
                                              scada::QualifiedName{
                                                  "TestNode1",
                                                  TestAddressSpace::
-                                                     kNamespaceIndex}}}}}));
-
-  EXPECT_TRUE(status);
+                                                     kNamespaceIndex}}}}})));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   ASSERT_EQ(results[0].targets.size(), 1u);

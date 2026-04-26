@@ -22,13 +22,13 @@ class LocalNodeManagementService : public NodeManagementService,
   void DeleteReferences(const std::vector<DeleteReferencesItem>& inputs,
                         const DeleteReferencesCallback& callback) override;
 
-  Awaitable<std::tuple<Status, std::vector<AddNodesResult>>> AddNodes(
+  Awaitable<StatusOr<std::vector<AddNodesResult>>> AddNodes(
       std::vector<AddNodesItem> inputs) override;
-  Awaitable<std::tuple<Status, std::vector<StatusCode>>> DeleteNodes(
+  Awaitable<StatusOr<std::vector<StatusCode>>> DeleteNodes(
       std::vector<DeleteNodesItem> inputs) override;
-  Awaitable<std::tuple<Status, std::vector<StatusCode>>> AddReferences(
+  Awaitable<StatusOr<std::vector<StatusCode>>> AddReferences(
       std::vector<AddReferencesItem> inputs) override;
-  Awaitable<std::tuple<Status, std::vector<StatusCode>>> DeleteReferences(
+  Awaitable<StatusOr<std::vector<StatusCode>>> DeleteReferences(
       std::vector<DeleteReferencesItem> inputs) override;
 };
 

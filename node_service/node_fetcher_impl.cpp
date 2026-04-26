@@ -276,8 +276,10 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
           [request_id, start_ticks,
            read_ids](std::shared_ptr<NodeFetcherImpl> self)
               -> Awaitable<void> {
-            auto [status, results] = co_await self->attribute_service_.Read(
+            auto result = co_await self->attribute_service_.Read(
                 self->service_context_, read_ids);
+            auto status = result.status();
+            auto results = std::move(result).value_or({});
             self->OnReadResult(request_id, start_ticks, std::move(status),
                                *read_ids, std::move(results));
           });
@@ -303,8 +305,10 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
           [request_id, start_ticks, descriptions](
               std::shared_ptr<NodeFetcherImpl> self) mutable
               -> Awaitable<void> {
-            auto [status, results] = co_await self->view_service_.Browse(
+            auto result = co_await self->view_service_.Browse(
                 self->service_context_, descriptions);
+            auto status = result.status();
+            auto results = std::move(result).value_or({});
             self->OnBrowseResult(request_id, start_ticks, std::move(status),
                                  descriptions, std::move(results));
           });

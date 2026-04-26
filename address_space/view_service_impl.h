@@ -54,11 +54,10 @@ class ViewServiceImpl : public scada::ViewService,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::CoroutineViewService
-  virtual Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> descriptions) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> browse_paths) override;
 
  private:

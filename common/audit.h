@@ -55,22 +55,18 @@ class Audit final : private AuditContext,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::CoroutineAttributeService
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
   // scada::CoroutineViewService
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
  private:

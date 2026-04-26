@@ -199,7 +199,7 @@ void VidiconSession::Write(
   callback(scada::StatusCode::Bad, {});
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 VidiconSession::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
@@ -207,7 +207,7 @@ VidiconSession::Read(
                                              std::move(inputs));
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
@@ -254,26 +254,26 @@ void VidiconSession::DeleteReferences(
   callback(scada::StatusCode::Bad, {});
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 VidiconSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
   co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                             std::vector<scada::AddNodesResult>{});
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
   co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                             std::vector<scada::StatusCode>{});
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::AddReferences(
     std::vector<scada::AddReferencesItem> inputs) {
   co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
                             std::vector<scada::StatusCode>{});
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::DeleteReferences(
     std::vector<scada::DeleteReferencesItem> inputs) {
   co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
@@ -292,14 +292,14 @@ void VidiconSession::TranslateBrowsePaths(
   view_service_.TranslateBrowsePaths(browse_paths, callback);
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 VidiconSession::Browse(scada::ServiceContext context,
                        std::vector<scada::BrowseDescription> inputs) {
   co_return co_await view_service_.Browse(std::move(context),
                                           std::move(inputs));
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 VidiconSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   co_return co_await view_service_.TranslateBrowsePaths(std::move(inputs));
 }

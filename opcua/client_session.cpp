@@ -276,8 +276,10 @@ void ClientSession::Browse(const scada::ServiceContext& context,
       any_executor_, weak_from_this(),
       [context, inputs = nodes, callback](
           ClientSession& self) mutable -> Awaitable<void> {
-        auto [status, results] = co_await self.Browse(std::move(context),
-                                                      std::move(inputs));
+        auto result = co_await self.Browse(std::move(context),
+                                           std::move(inputs));
+        auto status = result.status();
+        auto results = std::move(result).value_or({});
         callback(std::move(status), std::move(results));
       });
 }
@@ -289,8 +291,9 @@ void ClientSession::TranslateBrowsePaths(
       any_executor_, weak_from_this(),
       [inputs = browse_paths, callback](
           ClientSession& self) mutable -> Awaitable<void> {
-        auto [status, results] =
-            co_await self.TranslateBrowsePaths(std::move(inputs));
+        auto result = co_await self.TranslateBrowsePaths(std::move(inputs));
+        auto status = result.status();
+        auto results = std::move(result).value_or({});
         callback(std::move(status), std::move(results));
       });
 }
@@ -310,7 +313,9 @@ void ClientSession::Read(
       any_executor_, weak_from_this(),
       [context, inputs, callback](
           ClientSession& self) mutable -> Awaitable<void> {
-        auto [status, results] = co_await self.Read(std::move(context), inputs);
+        auto result = co_await self.Read(std::move(context), inputs);
+        auto status = result.status();
+        auto results = std::move(result).value_or({});
         callback(std::move(status), std::move(results));
       });
 }
@@ -323,8 +328,9 @@ void ClientSession::Write(
       any_executor_, weak_from_this(),
       [context, inputs, callback](
           ClientSession& self) mutable -> Awaitable<void> {
-        auto [status, results] =
-            co_await self.Write(std::move(context), inputs);
+        auto result = co_await self.Write(std::move(context), inputs);
+        auto status = result.status();
+        auto results = std::move(result).value_or({});
         callback(std::move(status), std::move(results));
       });
 }
@@ -345,77 +351,68 @@ void ClientSession::Call(const scada::NodeId& node_id,
       });
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientSession::Browse(scada::ServiceContext /*context*/,
                      std::vector<scada::BrowseDescription> inputs) {
   if (!is_connected_) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                         std::vector<scada::BrowseResult>{}};
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
   assert(session_);
   auto* session = session_.get();
   auto result = co_await session->Browse(std::move(inputs));
   if (result.ok()) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::move(*result)};
+    co_return std::move(*result);
   }
-  co_return std::tuple{result.status(), std::vector<scada::BrowseResult>{}};
+  co_return result.status();
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 ClientSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   if (!is_connected_) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                         std::vector<scada::BrowsePathResult>{}};
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
   assert(session_);
   auto* session = session_.get();
   auto result =
       co_await session->TranslateBrowsePathsToNodeIds(std::move(inputs));
   if (result.ok()) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::move(*result)};
+    co_return std::move(*result);
   }
-  co_return std::tuple{result.status(),
-                       std::vector<scada::BrowsePathResult>{}};
+  co_return result.status();
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 ClientSession::Read(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
   if (!is_connected_) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                         std::vector<scada::DataValue>{}};
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
   assert(session_);
   auto* session = session_.get();
   auto copy = *inputs;
   auto result = co_await session->Read(std::move(copy));
   if (result.ok()) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::move(*result)};
+    co_return std::move(*result);
   }
-  co_return std::tuple{result.status(), std::vector<scada::DataValue>{}};
+  co_return result.status();
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientSession::Write(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
   if (!is_connected_) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                         std::vector<scada::StatusCode>{}};
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
   assert(session_);
   auto* session = session_.get();
   auto copy = *inputs;
   auto result = co_await session->Write(std::move(copy));
   if (result.ok()) {
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::move(*result)};
+    co_return std::move(*result);
   }
-  co_return std::tuple{result.status(), std::vector<scada::StatusCode>{}};
+  co_return result.status();
 }
 
 Awaitable<scada::Status> ClientSession::Call(

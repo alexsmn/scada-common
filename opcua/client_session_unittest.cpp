@@ -9,6 +9,7 @@
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/status_exception.h"
+#include "scada/test/status_matchers.h"
 #include "transport/transport_factory.h"
 
 #include <gtest/gtest.h>
@@ -340,35 +341,35 @@ TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{});
-  auto [read_status, read_values] =
+  auto read_result =
       WaitPromise(executor_,
                   ToPromise(NetExecutorAdapter{executor_},
                             session->Read({}, read_inputs)));
-  EXPECT_EQ(read_status.code(), scada::StatusCode::Bad_Disconnected);
-  EXPECT_TRUE(read_values.empty());
+  EXPECT_THAT(read_result,
+              scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{});
-  auto [write_status, write_values] =
+  auto write_result =
       WaitPromise(executor_,
                   ToPromise(NetExecutorAdapter{executor_},
                             session->Write({}, write_inputs)));
-  EXPECT_EQ(write_status.code(), scada::StatusCode::Bad_Disconnected);
-  EXPECT_TRUE(write_values.empty());
+  EXPECT_THAT(write_result,
+              scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
-  auto [browse_status, browse_values] =
+  auto browse_result =
       WaitPromise(executor_,
                   ToPromise(NetExecutorAdapter{executor_},
                             session->Browse({}, {})));
-  EXPECT_EQ(browse_status.code(), scada::StatusCode::Bad_Disconnected);
-  EXPECT_TRUE(browse_values.empty());
+  EXPECT_THAT(browse_result,
+              scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
-  auto [translate_status, translate_values] =
+  auto translate_result =
       WaitPromise(executor_,
                   ToPromise(NetExecutorAdapter{executor_},
                             session->TranslateBrowsePaths({})));
-  EXPECT_EQ(translate_status.code(), scada::StatusCode::Bad_Disconnected);
-  EXPECT_TRUE(translate_values.empty());
+  EXPECT_THAT(translate_result,
+              scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
   auto call_status =
       WaitPromise(executor_,

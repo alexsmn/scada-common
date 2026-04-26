@@ -106,35 +106,27 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::HistoryReadEventsCallback& callback) override;
 
   // scada::CoroutineNodeManagementService
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::CoroutineViewService
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
   // scada::CoroutineAttributeService
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  [[nodiscard]] virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 

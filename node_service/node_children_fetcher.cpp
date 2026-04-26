@@ -155,8 +155,10 @@ void NodeChildrenFetcher::FetchChildren(
           [start_ticks, descriptions](
               std::shared_ptr<NodeChildrenFetcher> self) mutable
               -> Awaitable<void> {
-            auto [status, results] = co_await self->view_service_.Browse(
+            auto result = co_await self->view_service_.Browse(
                 self->service_context_, descriptions);
+            auto status = result.status();
+            auto results = std::move(result).value_or({});
             self->OnBrowseChildrenResult(start_ticks, std::move(status),
                                          descriptions, std::move(results));
           });

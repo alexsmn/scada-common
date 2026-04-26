@@ -100,21 +100,17 @@ class ClientSession final
             const scada::StatusCallback& callback) override;
 
   // scada::CoroutineViewService
-  [[nodiscard]] Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  [[nodiscard]] Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
   // scada::CoroutineAttributeService
-  [[nodiscard]] Awaitable<
-      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  [[nodiscard]] Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 

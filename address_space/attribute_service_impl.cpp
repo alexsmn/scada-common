@@ -41,7 +41,7 @@ void AttributeServiceImpl::Write(
   callback(scada::StatusCode::Good, std::move(results));
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 AttributeServiceImpl::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
@@ -54,7 +54,7 @@ AttributeServiceImpl::Read(
                             std::move(results));
 }
 
-Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 AttributeServiceImpl::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {

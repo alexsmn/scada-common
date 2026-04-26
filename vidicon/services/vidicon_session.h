@@ -88,12 +88,10 @@ class VidiconSession final : public scada::SessionService,
       const scada::WriteCallback& callback) override;
 
   // scada::CoroutineAttributeService
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
@@ -124,17 +122,13 @@ class VidiconSession final : public scada::SessionService,
       const scada::DeleteReferencesCallback& callback) override;
 
   // scada::CoroutineNodeManagementService
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::ViewService
@@ -147,12 +141,10 @@ class VidiconSession final : public scada::SessionService,
       const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::CoroutineViewService
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  virtual Awaitable<
-      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
   [[nodiscard]] scada::CoroutineSessionService& coroutine_session_service();

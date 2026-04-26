@@ -4,6 +4,7 @@
 #include "base/test/awaitable_test.h"
 #include "scada/data_value.h"
 #include "scada/service_context.h"
+#include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
 
@@ -23,11 +24,11 @@ TEST(AttributeServiceImpl, CoroutineReadReturnsSyncResults) {
                                                      address_space.kTestProp1Id),
            .attribute_id = scada::AttributeId::Value}});
 
-  auto [status, results] = WaitAwaitable(
-      executor, address_space.attribute_service_impl.Read(scada::ServiceContext{},
-                                                          inputs));
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(executor, address_space.attribute_service_impl.Read(
+                                  scada::ServiceContext{}, inputs)));
 
-  EXPECT_TRUE(status);
   ASSERT_EQ(results.size(), 2u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   EXPECT_EQ(results[0].value,
@@ -46,11 +47,11 @@ TEST(AttributeServiceImpl, CoroutineWriteReturnsSyncResults) {
            .attribute_id = scada::AttributeId::Value,
            .value = scada::Variant{scada::Int32{42}}}});
 
-  auto [status, results] = WaitAwaitable(
-      executor, address_space.attribute_service_impl.Write(
-                    scada::ServiceContext{}, inputs));
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(executor, address_space.attribute_service_impl.Write(
+                                  scada::ServiceContext{}, inputs)));
 
-  EXPECT_TRUE(status);
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0], scada::StatusCode::Bad_WrongNodeId);
 }

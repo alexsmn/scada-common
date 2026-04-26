@@ -2,6 +2,7 @@
 
 #include "base/test/awaitable_test.h"
 #include "scada/standard_node_ids.h"
+#include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
 
@@ -40,11 +41,10 @@ TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
           {.node_id = scada::id::RootFolder,
            .attribute_id = scada::AttributeId::DisplayName}});
 
-  auto [status, results] = WaitAwaitable(
+  ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, static_cast<scada::CoroutineAttributeService&>(session).Read(
-                    scada::ServiceContext{}, inputs));
+                    scada::ServiceContext{}, inputs)));
 
-  EXPECT_TRUE(status);
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   EXPECT_FALSE(results[0].value.is_null());
@@ -54,15 +54,14 @@ TEST(VidiconSession, CoroutineBrowseUsesLocalAddressSpace) {
   VidiconSession session;
   const auto executor = std::make_shared<TestExecutor>();
 
-  auto [status, results] = WaitAwaitable(
+  ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, static_cast<scada::CoroutineViewService&>(session).Browse(
                     scada::ServiceContext{},
                     {{scada::id::RootFolder,
                       scada::BrowseDirection::Forward,
                       scada::id::HierarchicalReferences,
-                      true}}));
+                      true}})));
 
-  EXPECT_TRUE(status);
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   EXPECT_THAT(results[0].references, Not(testing::IsEmpty()));
@@ -93,7 +92,7 @@ TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
   auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{{.node_id = scada::id::RootFolder}});
 
-  auto [write_status, write_results] = WaitAwaitable(
+  const auto write_result = WaitAwaitable(
       executor, static_cast<scada::CoroutineAttributeService&>(session).Write(
                     scada::ServiceContext{}, inputs));
   const auto call_status = WaitAwaitable(
@@ -101,8 +100,7 @@ TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
                     scada::id::RootFolder, scada::NodeId{1, 2}, {},
                     scada::NodeId{}));
 
-  EXPECT_EQ(write_status.code(), scada::StatusCode::Bad);
-  EXPECT_TRUE(write_results.empty());
+  EXPECT_THAT(write_result, scada::test::StatusIs(scada::StatusCode::Bad));
   EXPECT_EQ(call_status.code(), scada::StatusCode::Bad);
 }
 
@@ -112,37 +110,36 @@ TEST(VidiconSession, CoroutineNodeManagementReturnsBad) {
   auto& service =
       static_cast<scada::CoroutineNodeManagementService&>(session);
 
-  auto [add_nodes_status, add_nodes_results] = WaitAwaitable(
+  const auto add_nodes_result = WaitAwaitable(
       executor,
       service.AddNodes({scada::AddNodesItem{
           .requested_id = scada::NodeId{1, 2},
           .parent_id = scada::id::RootFolder,
           .node_class = scada::NodeClass::Object,
           .type_definition_id = scada::id::BaseObjectType}}));
-  auto [delete_nodes_status, delete_nodes_results] = WaitAwaitable(
+  const auto delete_nodes_result = WaitAwaitable(
       executor, service.DeleteNodes(
                     {scada::DeleteNodesItem{.node_id = scada::NodeId{1, 2}}}));
-  auto [add_references_status, add_references_results] = WaitAwaitable(
+  const auto add_references_result = WaitAwaitable(
       executor,
       service.AddReferences({scada::AddReferencesItem{
           .source_node_id = scada::id::RootFolder,
           .reference_type_id = scada::id::Organizes,
           .target_node_id = scada::NodeId{1, 2}}}));
-  auto [delete_references_status, delete_references_results] = WaitAwaitable(
+  const auto delete_references_result = WaitAwaitable(
       executor,
       service.DeleteReferences({scada::DeleteReferencesItem{
           .source_node_id = scada::id::RootFolder,
           .reference_type_id = scada::id::Organizes,
           .target_node_id = scada::NodeId{1, 2}}}));
 
-  EXPECT_EQ(add_nodes_status.code(), scada::StatusCode::Bad);
-  EXPECT_TRUE(add_nodes_results.empty());
-  EXPECT_EQ(delete_nodes_status.code(), scada::StatusCode::Bad);
-  EXPECT_TRUE(delete_nodes_results.empty());
-  EXPECT_EQ(add_references_status.code(), scada::StatusCode::Bad);
-  EXPECT_TRUE(add_references_results.empty());
-  EXPECT_EQ(delete_references_status.code(), scada::StatusCode::Bad);
-  EXPECT_TRUE(delete_references_results.empty());
+  EXPECT_THAT(add_nodes_result, scada::test::StatusIs(scada::StatusCode::Bad));
+  EXPECT_THAT(delete_nodes_result,
+              scada::test::StatusIs(scada::StatusCode::Bad));
+  EXPECT_THAT(add_references_result,
+              scada::test::StatusIs(scada::StatusCode::Bad));
+  EXPECT_THAT(delete_references_result,
+              scada::test::StatusIs(scada::StatusCode::Bad));
 }
 
 }  // namespace
