@@ -1,8 +1,8 @@
 #include "node_service/v2/node_service_factory.h"
 
-#include "common/coroutine_session_proxy_notifier.h"
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
+#include "common/coroutine_session_proxy_notifier.h"
 #include "node_service/node_service_factory.h"
 #include "node_service/v2/node_service_impl.h"
 #include "scada/coroutine_services.h"
@@ -12,6 +12,23 @@
 namespace v2 {
 
 namespace {
+
+scada::services MakeLegacyServices(const NodeServiceContext& context) {
+  return {.attribute_service = &context.attribute_service_,
+          .monitored_item_service = &context.monitored_item_service_,
+          .method_service = &context.method_service_,
+          .view_service = &context.view_service_,
+          .session_service = &context.session_service_};
+}
+
+DataServicesNodeServiceContext MakeDataServicesNodeServiceContext(
+    const NodeServiceContext& context) {
+  return {.executor_ = context.executor_,
+          .service_context_ = context.service_context_,
+          .data_services_ =
+              DataServices::FromUnownedServices(MakeLegacyServices(context)),
+          .scada_client_ = context.scada_client_};
+}
 
 struct ResolvedNodeServices {
   ResolvedNodeServices(AnyExecutor executor, DataServices&& data_services)
@@ -37,9 +54,9 @@ struct ResolvedNodeServices {
               data_services_.attribute_service_.get())) {
         attribute_service = service;
       } else {
-        attribute_service_adapter = std::make_unique<
-            scada::CallbackToCoroutineAttributeServiceAdapter>(
-            executor, *data_services_.attribute_service_);
+        attribute_service_adapter =
+            std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+                executor, *data_services_.attribute_service_);
         attribute_service = attribute_service_adapter.get();
       }
     }
@@ -78,20 +95,8 @@ struct ResolvedNodeServices {
 
 struct NodeServiceHolder {
   explicit NodeServiceHolder(const NodeServiceContext& node_service_context)
-      : view_service_adapter{std::make_unique<
-            scada::CallbackToCoroutineViewServiceAdapter>(
-            node_service_context.executor_, node_service_context.view_service_)},
-        attribute_service_adapter{std::make_unique<
-            scada::CallbackToCoroutineAttributeServiceAdapter>(
-            node_service_context.executor_,
-            node_service_context.attribute_service_)},
-        session_service_adapter{
-            std::make_unique<scada::PromiseToCoroutineSessionServiceAdapter>(
-                node_service_context.executor_,
-                node_service_context.session_service_)},
-        session_service{*session_service_adapter},
-        node_service{MakeNodeServiceImplContext(node_service_context)},
-        node_service_notifier{node_service, session_service} {}
+      : NodeServiceHolder{
+            MakeDataServicesNodeServiceContext(node_service_context)} {}
 
   explicit NodeServiceHolder(
       const CoroutineNodeServiceContext& node_service_context)
@@ -99,27 +104,14 @@ struct NodeServiceHolder {
         node_service{MakeNodeServiceImplContext(node_service_context)},
         node_service_notifier{node_service, session_service} {}
 
-  explicit NodeServiceHolder(DataServicesNodeServiceContext&& node_service_context)
+  explicit NodeServiceHolder(
+      DataServicesNodeServiceContext&& node_service_context)
       : resolved_services{std::make_unique<ResolvedNodeServices>(
             node_service_context.executor_,
             std::move(node_service_context.data_services_))},
         session_service{*resolved_services->session_service},
         node_service{MakeNodeServiceImplContext(node_service_context)},
         node_service_notifier{node_service, session_service} {}
-
-  NodeServiceImplContext MakeNodeServiceImplContext(
-      const NodeServiceContext& node_service_context) {
-    auto view_events_provider =
-        MakeViewEventsProvider(node_service_context.monitored_item_service_);
-
-    return NodeServiceImplContext{
-        node_service_context.executor_,
-        *view_service_adapter,
-        *attribute_service_adapter,
-        node_service_context.monitored_item_service_,
-        view_events_provider,
-    };
-  }
 
   NodeServiceImplContext MakeNodeServiceImplContext(
       const CoroutineNodeServiceContext& node_service_context) {
@@ -150,12 +142,6 @@ struct NodeServiceHolder {
   }
 
   std::unique_ptr<ResolvedNodeServices> resolved_services;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter;
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter;
-  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
-      session_service_adapter;
   scada::CoroutineSessionService& session_service;
   NodeServiceImpl node_service;
   CoroutineSessionProxyNotifier<NodeServiceImpl> node_service_notifier;

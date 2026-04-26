@@ -282,3 +282,7 @@ each slice is touched.
   dependencies; callback fallback paths use the aggregate boundary, and common
   tests cover audited callback browse dispatch with only direct coroutine view
   slots installed.
+- Node-service v1/v2 legacy callback factory contexts now normalize to the
+  coroutine-capable `DataServices` aggregate and reuse the same resolver as the
+  aggregate construction path; factory tests cover node fetches through
+  callback-service adapters for both implementations.
