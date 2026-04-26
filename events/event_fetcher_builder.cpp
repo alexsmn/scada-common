@@ -1,10 +1,10 @@
 #include "events/event_fetcher_builder.h"
 
 #include "base/nested_logger.h"
+#include "common/coroutine_session_proxy_notifier.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
 #include "events/event_storage.h"
-#include "common/coroutine_session_proxy_notifier.h"
 #include "scada/coroutine_services.h"
 #include "scada/monitored_item_service.h"
 
@@ -14,38 +14,37 @@ struct EventFetcherHolderBase {
   EventFetcherHolderBase(AnyExecutor executor,
                          std::shared_ptr<const Logger> logger)
       : executor_{std::move(executor)},
-        nested_logger_{
-            std::make_shared<NestedLogger>(std::move(logger), "EventFetcher")} {
-  }
+        nested_logger_{std::make_shared<NestedLogger>(std::move(logger),
+                                                      "EventFetcher")} {}
 
   AnyExecutor executor_;
   std::shared_ptr<const Logger> nested_logger_;
   EventStorage event_storage_;
 };
 
-DataServices ResolveDataServices(EventFetcherBuilder& builder) {
-  if (builder.data_services_.session_service_ ||
-      builder.data_services_.view_service_ ||
-      builder.data_services_.node_management_service_ ||
-      builder.data_services_.history_service_ ||
-      builder.data_services_.attribute_service_ ||
-      builder.data_services_.method_service_ ||
-      builder.data_services_.monitored_item_service_ ||
-      builder.data_services_.coroutine_session_service_ ||
-      builder.data_services_.coroutine_view_service_ ||
-      builder.data_services_.coroutine_node_management_service_ ||
-      builder.data_services_.coroutine_history_service_ ||
-      builder.data_services_.coroutine_attribute_service_ ||
-      builder.data_services_.coroutine_method_service_) {
-    return std::move(builder.data_services_);
-  }
+bool HasDataServices(const DataServices& services) {
+  return services.session_service_ || services.view_service_ ||
+         services.node_management_service_ || services.history_service_ ||
+         services.attribute_service_ || services.method_service_ ||
+         services.monitored_item_service_ ||
+         services.coroutine_session_service_ ||
+         services.coroutine_view_service_ ||
+         services.coroutine_node_management_service_ ||
+         services.coroutine_history_service_ ||
+         services.coroutine_attribute_service_ ||
+         services.coroutine_method_service_;
+}
 
-  return DataServices::FromUnownedServices(builder.services_);
+void NormalizeLegacyServices(EventFetcherBuilder& builder) {
+  if (HasDataServices(builder.data_services_))
+    return;
+
+  builder.data_services_ = DataServices::FromUnownedServices(builder.services_);
 }
 
 struct EventFetcherServices {
   EventFetcherServices(AnyExecutor executor, EventFetcherBuilder& builder)
-      : data_services_{ResolveDataServices(builder)} {
+      : data_services_{std::move(builder.data_services_)} {
     monitored_item_service_ = data_services_.monitored_item_service_.get();
 
     history_service_ = data_services_.coroutine_history_service_.get();
@@ -150,13 +149,13 @@ struct CoroutineEventFetcherHolder : EventFetcherHolderBase {
                            .executor_ = executor_,
                            .method_service_ = method_service_}};
 
-  EventFetcher event_fetcher_{EventFetcherContext{
-      .executor_ = executor_,
-      .monitored_item_service_ = monitored_item_service_,
-      .history_service_ = history_service_,
-      .logger_ = nested_logger_,
-      .event_storage_ = event_storage_,
-      .event_ack_queue_ = event_ack_queue_}};
+  EventFetcher event_fetcher_{
+      EventFetcherContext{.executor_ = executor_,
+                          .monitored_item_service_ = monitored_item_service_,
+                          .history_service_ = history_service_,
+                          .logger_ = nested_logger_,
+                          .event_storage_ = event_storage_,
+                          .event_ack_queue_ = event_ack_queue_}};
 
   CoroutineSessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
       event_fetcher_, session_service_};
@@ -165,6 +164,7 @@ struct CoroutineEventFetcherHolder : EventFetcherHolderBase {
 }  // namespace internal
 
 std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
+  internal::NormalizeLegacyServices(*this);
   auto event_fetcher_holder =
       std::make_shared<internal::EventFetcherHolder>(std::move(*this));
 
@@ -174,8 +174,7 @@ std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
 
 std::shared_ptr<EventFetcher> CoroutineEventFetcherBuilder::Build() {
   auto event_fetcher_holder =
-      std::make_shared<internal::CoroutineEventFetcherHolder>(
-          std::move(*this));
+      std::make_shared<internal::CoroutineEventFetcherHolder>(std::move(*this));
 
   return std::shared_ptr<EventFetcher>{event_fetcher_holder,
                                        &event_fetcher_holder->event_fetcher_};

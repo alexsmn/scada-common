@@ -4,7 +4,10 @@
 #include "base/test/test_executor.h"
 #include "events/event_fetcher.h"
 #include "scada/coroutine_services.h"
+#include "scada/history_service_mock.h"
+#include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
+#include "scada/session_service_mock.h"
 #include "scada/status.h"
 #include "scada/status_exception.h"
 
@@ -17,6 +20,8 @@ namespace {
 
 using testing::_;
 using testing::NiceMock;
+using testing::Return;
+using testing::StrictMock;
 using testing::VariantWith;
 
 void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
@@ -68,7 +73,8 @@ class TestCoroutineMethodService final : public scada::CoroutineMethodService {
   scada::NodeId last_user_id;
 };
 
-class TestCoroutineSessionService final : public scada::CoroutineSessionService {
+class TestCoroutineSessionService final
+    : public scada::CoroutineSessionService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
     co_return;
@@ -126,14 +132,15 @@ TEST(CoroutineEventFetcherBuilder,
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
 
-  auto fetcher = CoroutineEventFetcherBuilder{
-      .executor_ = MakeTestAnyExecutor(executor),
-      .logger_ = NullLogger::GetInstance(),
-      .monitored_item_service_ = monitored_item_service,
-      .history_service_ = history_service,
-      .method_service_ = method_service,
-      .session_service_ = session_service}
-                     .Build();
+  auto fetcher =
+      CoroutineEventFetcherBuilder{
+          .executor_ = MakeTestAnyExecutor(executor),
+          .logger_ = NullLogger::GetInstance(),
+          .monitored_item_service_ = monitored_item_service,
+          .history_service_ = history_service,
+          .method_service_ = method_service,
+          .session_service_ = session_service}
+          .Build();
 
   DrainExecutor(executor);
 
@@ -155,8 +162,8 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
 
   DataServices data_services;
   data_services.monitored_item_service_ =
-      std::shared_ptr<scada::MonitoredItemService>{
-          std::shared_ptr<void>{}, &monitored_item_service};
+      std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
+                                                   &monitored_item_service};
   data_services.coroutine_history_service_ =
       std::shared_ptr<scada::CoroutineHistoryService>{std::shared_ptr<void>{},
                                                       &history_service};
@@ -167,15 +174,60 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
       std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
-  auto fetcher = EventFetcherBuilder{
-      .executor_ = MakeTestAnyExecutor(executor),
-      .logger_ = NullLogger::GetInstance(),
-      .data_services_ = std::move(data_services)}
+  auto fetcher = EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
+                                     .logger_ = NullLogger::GetInstance(),
+                                     .data_services_ = std::move(data_services)}
                      .Build();
 
   DrainExecutor(executor);
 
   EXPECT_EQ(history_service.read_events_count, 1);
+  EXPECT_TRUE(fetcher->IsAlerting(node_id));
+}
+
+TEST(EventFetcherBuilder, LegacyServicesNormalizeToDataServicesAdapters) {
+  const auto executor = std::make_shared<TestExecutor>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  StrictMock<scada::MockHistoryService> history_service;
+  StrictMock<scada::MockMethodService> method_service;
+  NiceMock<scada::MockSessionService> session_service;
+  const scada::NodeId user_id{701, 5};
+  const scada::NodeId node_id{45, 100};
+  scada::HistoryReadEventsCallback history_callback;
+
+  ON_CALL(session_service, IsConnected(_)).WillByDefault(Return(true));
+  ON_CALL(session_service, GetUserId()).WillByDefault(Return(user_id));
+
+  EXPECT_CALL(session_service, SubscribeSessionStateChanged(_));
+  EXPECT_CALL(session_service, IsConnected(_));
+  EXPECT_CALL(session_service, GetUserId());
+  EXPECT_CALL(*monitored_item_service.default_monitored_item,
+              Subscribe(VariantWith<scada::EventHandler>(_)));
+  EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _, _))
+      .WillOnce([&](const scada::NodeId& read_node_id, base::Time from,
+                    base::Time to, const scada::EventFilter& filter,
+                    const scada::HistoryReadEventsCallback& callback) {
+        history_callback = callback;
+      });
+
+  auto fetcher =
+      EventFetcherBuilder{
+          .executor_ = MakeTestAnyExecutor(executor),
+          .logger_ = NullLogger::GetInstance(),
+          .services_ = {.monitored_item_service = &monitored_item_service,
+                        .method_service = &method_service,
+                        .history_service = &history_service,
+                        .session_service = &session_service}}
+          .Build();
+
+  DrainExecutor(executor);
+  ASSERT_TRUE(history_callback);
+  executor->PostTask([history_callback, node_id] {
+    history_callback(scada::HistoryReadEventsResult{
+        .status = scada::StatusCode::Good, .events = {MakeEvent(15, node_id)}});
+  });
+  DrainExecutor(executor);
+
   EXPECT_TRUE(fetcher->IsAlerting(node_id));
 }
 
@@ -192,14 +244,15 @@ TEST(CoroutineEventFetcherBuilder,
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
 
-  auto fetcher = CoroutineEventFetcherBuilder{
-      .executor_ = MakeTestAnyExecutor(executor),
-      .logger_ = NullLogger::GetInstance(),
-      .monitored_item_service_ = monitored_item_service,
-      .history_service_ = history_service,
-      .method_service_ = method_service,
-      .session_service_ = session_service}
-                     .Build();
+  auto fetcher =
+      CoroutineEventFetcherBuilder{
+          .executor_ = MakeTestAnyExecutor(executor),
+          .logger_ = NullLogger::GetInstance(),
+          .monitored_item_service_ = monitored_item_service,
+          .history_service_ = history_service,
+          .method_service_ = method_service,
+          .session_service_ = session_service}
+          .Build();
   DrainExecutor(executor);
 
   fetcher->AcknowledgeEvent(13);

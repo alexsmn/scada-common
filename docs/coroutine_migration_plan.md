@@ -273,3 +273,7 @@ each slice is touched.
   `TimedDataServiceImpl` to resolve history only through `DataServices` or
   direct coroutine context; timed-data tests cover delayed history reads through
   the normalized legacy factory path.
+- `EventFetcherBuilder` now normalizes legacy callback `scada::services` into
+  the coroutine-capable `DataServices` aggregate at `Build()` before holder
+  construction; event-builder tests cover connected startup and delayed history
+  refresh through the normalized legacy callback path.
