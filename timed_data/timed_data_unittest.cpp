@@ -236,6 +236,33 @@ TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
   EXPECT_TRUE(spec.range_ready({from, to}));
 }
 
+TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
+  const auto from = base::Time::Now();
+  const auto to = from + base::TimeDelta::FromSeconds(10);
+  auto history_service = std::make_shared<TestCoroutineHistoryService>();
+
+  DataServices data_services;
+  data_services.coroutine_history_service_ = history_service;
+
+  auto service = CreateTimedDataService(TimedDataContext{
+      .executor_ = MakeTestAnyExecutor(executor_),
+      .alias_resolver_ = alias_resolver_.AsStdFunction(),
+      .node_service_ = node_service_,
+      .data_services_ = std::move(data_services),
+      .node_event_provider_ = node_event_provider_});
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_EQ(history_service->raw_read_count, 1);
+  EXPECT_EQ(history_service->last_raw_details.node_id, kDataItemId);
+  EXPECT_EQ(history_service->last_raw_details.from, from);
+  EXPECT_EQ(history_service->last_raw_details.to, to);
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
 TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,

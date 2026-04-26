@@ -2,6 +2,7 @@
 
 #include "base/any_executor.h"
 #include "common/aliases.h"
+#include "scada/data_services.h"
 #include "scada/node_id.h"
 #include "scada/services.h"
 
@@ -18,6 +19,7 @@ struct TimedDataContext {
   AnyExecutor executor_;
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
+  DataServices data_services_;
   const scada::services services_;
   std::shared_ptr<scada::CoroutineHistoryService> history_service_;
   NodeEventProvider& node_event_provider_;

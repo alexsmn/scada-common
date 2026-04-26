@@ -24,6 +24,22 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
       alias_cache_{executor_},
       null_timed_data_{
           std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {
+  if (!history_service_ && data_services_.coroutine_history_service_) {
+    history_service_ = data_services_.coroutine_history_service_;
+  }
+
+  if (!history_service_ && data_services_.history_service_) {
+    if (auto* service = dynamic_cast<scada::CoroutineHistoryService*>(
+            data_services_.history_service_.get())) {
+      history_service_ = std::shared_ptr<scada::CoroutineHistoryService>{
+          data_services_.history_service_, service};
+    } else {
+      history_service_ =
+          std::make_shared<scada::CallbackToCoroutineHistoryServiceAdapter>(
+              executor_, *data_services_.history_service_);
+    }
+  }
+
   if (!history_service_ && services_.history_service) {
     history_service_ =
         std::make_shared<scada::CallbackToCoroutineHistoryServiceAdapter>(
@@ -36,6 +52,7 @@ TimedDataServiceImpl::TimedDataServiceImpl(CoroutineTimedDataContext&& context)
           .executor_ = std::move(context.executor_),
           .alias_resolver_ = std::move(context.alias_resolver_),
           .node_service_ = context.node_service_,
+          .data_services_ = {},
           .services_ = {},
           .history_service_ = std::move(context.history_service_),
           .node_event_provider_ = context.node_event_provider_}} {}

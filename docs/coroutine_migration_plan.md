@@ -245,3 +245,8 @@ each slice is touched.
   field remains as a compatibility path. Events tests cover history refresh
   through the non-coroutine builder with only direct coroutine service slots
   installed.
+- `TimedDataServiceImpl` now also accepts the coroutine-capable `DataServices`
+  aggregate and resolves direct `CoroutineHistoryService` slots before
+  callback history adapters; timed-data tests cover range history fetch through
+  the legacy timed-data factory context with only a direct coroutine history
+  slot installed.
