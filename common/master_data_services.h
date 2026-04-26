@@ -154,8 +154,11 @@ class MasterDataServices final : public scada::AttributeService,
                     base::Time to,
                     scada::EventFilter filter) override;
 
+  [[nodiscard]] scada::CoroutineSessionService& coroutine_session_service();
+
  private:
   class MasterMonitoredItem;
+  class CoroutineSessionFacade;
 
   void ResetCoroutineAdapters();
   void RefreshCoroutineServices();
@@ -175,6 +178,7 @@ class MasterDataServices final : public scada::AttributeService,
   bool connected_ = false;
 
   std::optional<AnyExecutor> coroutine_executor_;
+  std::unique_ptr<CoroutineSessionFacade> coroutine_session_facade_;
 
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter_;

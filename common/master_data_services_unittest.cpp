@@ -119,4 +119,68 @@ TEST(MasterDataServicesTest, SessionConnectPromiseUsesCoroutineAdapter) {
   WaitPromise(executor, std::move(result));
 }
 
+TEST(MasterDataServicesTest, CoroutineSessionFacadeUsesPromiseAdapter) {
+  auto executor = std::make_shared<TestExecutor>();
+  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  auto session_service =
+      std::make_shared<StrictMock<scada::MockSessionService>>();
+
+  DataServices data_services;
+  data_services.session_service_ = session_service;
+  EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
+  services.SetServices(std::move(data_services));
+
+  promise<void> pending_connect;
+  EXPECT_CALL(*session_service, Connect(_))
+      .WillOnce([&](const scada::SessionConnectParams& params) {
+        EXPECT_EQ(params.host, "node-host");
+        return pending_connect;
+      });
+
+  auto result = ToPromise(
+      MakeTestAnyExecutor(executor),
+      services.coroutine_session_service().Connect({.host = "node-host"}));
+  Drain(executor);
+
+  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+
+  pending_connect.resolve();
+  WaitPromise(executor, std::move(result));
+}
+
+TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
+  auto executor = std::make_shared<TestExecutor>();
+  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  auto session_service =
+      std::make_shared<StrictMock<scada::MockSessionService>>();
+
+  DataServices data_services;
+  data_services.session_service_ = session_service;
+  EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
+  services.SetServices(std::move(data_services));
+
+  auto& coroutine_session = services.coroutine_session_service();
+  base::TimeDelta ping_delay;
+
+  EXPECT_CALL(*session_service, IsConnected(&ping_delay))
+      .WillOnce(testing::Return(true));
+  EXPECT_CALL(*session_service, HasPrivilege(scada::Privilege::Configure))
+      .WillOnce(testing::Return(true));
+  EXPECT_CALL(*session_service, GetUserId())
+      .WillOnce(testing::Return(scada::NodeId{1, 2}));
+  EXPECT_CALL(*session_service, GetHostName())
+      .WillOnce(testing::Return("master-host"));
+  EXPECT_CALL(*session_service, IsScada())
+      .WillOnce(testing::Return(true));
+  EXPECT_CALL(*session_service, GetSessionDebugger())
+      .WillOnce(testing::Return(nullptr));
+
+  EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
+  EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_EQ(coroutine_session.GetUserId(), (scada::NodeId{1, 2}));
+  EXPECT_EQ(coroutine_session.GetHostName(), "master-host");
+  EXPECT_TRUE(coroutine_session.IsScada());
+  EXPECT_EQ(coroutine_session.GetSessionDebugger(), nullptr);
+}
+
 }  // namespace

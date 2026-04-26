@@ -145,6 +145,11 @@ each slice is touched.
   their existing API while dispatching through the coroutine adapters when
   available, and common tests cover delayed adapter completion for callback,
   coroutine, and session-promise paths.
+- `MasterDataServices` now also exposes an owned `CoroutineSessionService`
+  facade over its aggregate session boundary, reusing the existing coroutine
+  session adapter when a legacy `SessionService` is installed; common tests
+  cover delayed promise-backed connect completion and session metadata
+  delegation through the facade.
 - `Audit` now exposes coroutine attribute/view services and can wrap audited
   `scada::services` with an executor so callback entry points dispatch through
   coroutine adapters while preserving read/browse metric accounting; common

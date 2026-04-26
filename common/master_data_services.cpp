@@ -94,10 +94,65 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
 // MasterDataServices
 
-MasterDataServices::MasterDataServices() {}
+class MasterDataServices::CoroutineSessionFacade final
+    : public scada::CoroutineSessionService {
+ public:
+  explicit CoroutineSessionFacade(MasterDataServices& owner)
+      : owner_{owner} {}
+
+  Awaitable<void> Connect(scada::SessionConnectParams params) override {
+    co_await owner_.ConnectCoroutine(std::move(params));
+  }
+
+  Awaitable<void> Reconnect() override {
+    co_await owner_.ReconnectCoroutine();
+  }
+
+  Awaitable<void> Disconnect() override {
+    co_await owner_.DisconnectCoroutine();
+  }
+
+  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+    return owner_.IsConnected(ping_delay);
+  }
+
+  scada::NodeId GetUserId() const override {
+    return owner_.GetUserId();
+  }
+
+  bool HasPrivilege(scada::Privilege privilege) const override {
+    return owner_.HasPrivilege(privilege);
+  }
+
+  std::string GetHostName() const override {
+    return owner_.GetHostName();
+  }
+
+  bool IsScada() const override {
+    return owner_.IsScada();
+  }
+
+  boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override {
+    return owner_.SubscribeSessionStateChanged(callback);
+  }
+
+  scada::SessionDebugger* GetSessionDebugger() override {
+    return owner_.GetSessionDebugger();
+  }
+
+ private:
+  MasterDataServices& owner_;
+};
+
+MasterDataServices::MasterDataServices()
+    : coroutine_session_facade_{std::make_unique<CoroutineSessionFacade>(
+          *this)} {}
 
 MasterDataServices::MasterDataServices(AnyExecutor executor)
-    : coroutine_executor_{std::move(executor)} {}
+    : coroutine_executor_{std::move(executor)},
+      coroutine_session_facade_{
+          std::make_unique<CoroutineSessionFacade>(*this)} {}
 
 MasterDataServices::~MasterDataServices() {
   for (auto* monitored_item : monitored_items_) {
@@ -593,6 +648,11 @@ scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
   return services_.session_service_
              ? services_.session_service_->GetSessionDebugger()
              : nullptr;
+}
+
+scada::CoroutineSessionService&
+MasterDataServices::coroutine_session_service() {
+  return *coroutine_session_facade_;
 }
 
 Awaitable<void> MasterDataServices::ConnectCoroutine(
