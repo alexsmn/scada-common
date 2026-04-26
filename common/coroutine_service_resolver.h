@@ -56,6 +56,26 @@ CoroutineService* ResolveCoroutineService(
   return adapter.get();
 }
 
+template <typename CoroutineService,
+          typename CallbackService,
+          typename CallbackToCoroutineAdapter,
+          typename CoroutineToCallbackAdapter>
+CoroutineService* ResolveCoroutineService(
+    const std::optional<AnyExecutor>& executor,
+    const std::shared_ptr<CoroutineService>& coroutine_service,
+    const std::shared_ptr<CallbackService>& callback_service,
+    std::unique_ptr<CallbackToCoroutineAdapter>& callback_to_coroutine_adapter,
+    std::unique_ptr<CoroutineToCallbackAdapter>& coroutine_to_callback_adapter) {
+  auto* service = ResolveCoroutineService(
+      executor, coroutine_service, callback_service,
+      callback_to_coroutine_adapter);
+  if (service && executor) {
+    coroutine_to_callback_adapter =
+        std::make_unique<CoroutineToCallbackAdapter>(*executor, *service);
+  }
+  return service;
+}
+
 template <typename CoroutineService, typename CallbackService, typename Adapter>
 std::shared_ptr<CoroutineService> ResolveCoroutineServiceShared(
     const AnyExecutor& executor,

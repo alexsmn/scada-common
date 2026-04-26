@@ -255,6 +255,38 @@ TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
   EXPECT_EQ(adapter, nullptr);
 }
 
+TEST(CoroutineServiceResolverTest, CreatesCallbackAdapterForResolvedService) {
+  auto executor = std::make_shared<TestExecutor>();
+  auto coroutine_services = std::make_shared<TestCoroutineDataServices>();
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+      callback_to_coroutine_adapter;
+  std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
+      coroutine_to_callback_adapter;
+
+  auto* resolved = scada::service_resolver::ResolveCoroutineService(
+      std::optional<AnyExecutor>{MakeTestAnyExecutor(executor)},
+      std::shared_ptr<scada::CoroutineAttributeService>{coroutine_services},
+      std::shared_ptr<scada::AttributeService>{},
+      callback_to_coroutine_adapter, coroutine_to_callback_adapter);
+
+  EXPECT_EQ(resolved, coroutine_services.get());
+  EXPECT_EQ(callback_to_coroutine_adapter, nullptr);
+  ASSERT_NE(coroutine_to_callback_adapter, nullptr);
+
+  bool read_called = false;
+  coroutine_to_callback_adapter->Read(
+      {}, std::make_shared<const std::vector<scada::ReadValueId>>(),
+      [&](scada::Status status, std::vector<scada::DataValue> values) {
+        read_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(values.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(read_called);
+  EXPECT_EQ(coroutine_services->read_count, 1);
+}
+
 TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
   auto executor = std::make_shared<TestExecutor>();
   auto attribute_service =

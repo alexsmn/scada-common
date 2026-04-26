@@ -332,3 +332,7 @@ each slice is touched.
   `common/data_services_util.h` helper across event, node-service, audit,
   static-node, and OPC UA runtime boundaries, keeping coroutine-capable
   aggregate detection and unowned `scada::services` conversion consistent.
+- The common coroutine service resolver now also owns the paired
+  coroutine-to-callback adapter creation used by aggregate services, and
+  `MasterDataServices` reuses that helper for attribute, view, method, history,
+  and node-management callback compatibility adapters.
