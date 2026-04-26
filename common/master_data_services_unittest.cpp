@@ -415,6 +415,53 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->read_count, 1);
   EXPECT_EQ(direct_services->last_read_inputs, *read_inputs);
 
+  bool write_called = false;
+  auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
+      std::vector<scada::WriteValue>{});
+  services.Write({}, write_inputs,
+                 [&](scada::Status status,
+                     std::vector<scada::StatusCode> results) {
+                   write_called = true;
+                   EXPECT_TRUE(status.good());
+                   EXPECT_TRUE(results.empty());
+                 });
+  Drain(executor);
+
+  EXPECT_TRUE(write_called);
+  EXPECT_EQ(direct_services->write_count, 1);
+
+  bool browse_called = false;
+  services.Browse(
+      {}, {{.node_id = scada::NodeId{106}}},
+      [&](scada::Status status, std::vector<scada::BrowseResult> results) {
+        browse_called = true;
+        EXPECT_TRUE(status.good());
+        ASSERT_EQ(results.size(), 1u);
+        ASSERT_EQ(results[0].references.size(), 1u);
+        EXPECT_EQ(results[0].references[0].node_id, (scada::NodeId{900}));
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(browse_called);
+  EXPECT_EQ(direct_services->browse_count, 1);
+  ASSERT_EQ(direct_services->last_browse_inputs.size(), 1u);
+  EXPECT_EQ(direct_services->last_browse_inputs[0].node_id,
+            (scada::NodeId{106}));
+
+  bool translate_called = false;
+  services.TranslateBrowsePaths(
+      {scada::BrowsePath{}},
+      [&](scada::Status status,
+          std::vector<scada::BrowsePathResult> results) {
+        translate_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(translate_called);
+  EXPECT_EQ(direct_services->translate_count, 1);
+
   bool add_nodes_called = false;
   services.AddNodes(
       {{.requested_id = scada::NodeId{101}}},
@@ -431,6 +478,45 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   ASSERT_EQ(direct_services->last_add_nodes_inputs.size(), 1u);
   EXPECT_EQ(direct_services->last_add_nodes_inputs[0].requested_id,
             (scada::NodeId{101}));
+
+  bool delete_nodes_called = false;
+  services.DeleteNodes(
+      {scada::DeleteNodesItem{}},
+      [&](scada::Status status, std::vector<scada::StatusCode> results) {
+        delete_nodes_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(delete_nodes_called);
+  EXPECT_EQ(direct_services->delete_nodes_count, 1);
+
+  bool add_references_called = false;
+  services.AddReferences(
+      {scada::AddReferencesItem{}},
+      [&](scada::Status status, std::vector<scada::StatusCode> results) {
+        add_references_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(add_references_called);
+  EXPECT_EQ(direct_services->add_references_count, 1);
+
+  bool delete_references_called = false;
+  services.DeleteReferences(
+      {scada::DeleteReferencesItem{}},
+      [&](scada::Status status, std::vector<scada::StatusCode> results) {
+        delete_references_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(delete_references_called);
+  EXPECT_EQ(direct_services->delete_references_count, 1);
 
   bool call_called = false;
   services.Call(scada::NodeId{102}, scada::NodeId{103}, {}, scada::NodeId{104},
@@ -466,17 +552,31 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->last_history_raw_details.max_count,
             history_details.max_count);
 
+  bool history_events_called = false;
+  services.HistoryReadEvents(
+      scada::NodeId{107}, base::Time{}, base::Time{}, scada::EventFilter{},
+      [&](scada::HistoryReadEventsResult result) {
+        history_events_called = true;
+        EXPECT_TRUE(result.status.good());
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(history_events_called);
+  EXPECT_EQ(direct_services->history_events_count, 1);
+  EXPECT_EQ(direct_services->last_history_events_node_id,
+            (scada::NodeId{107}));
+
   auto [browse_status, browse_results] = WaitAwaitable(
       executor, static_cast<scada::CoroutineViewService&>(services).Browse(
-                    {}, {{.node_id = scada::NodeId{106}}}));
+                    {}, {{.node_id = scada::NodeId{108}}}));
   EXPECT_TRUE(browse_status.good());
   ASSERT_EQ(browse_results.size(), 1u);
   ASSERT_EQ(browse_results[0].references.size(), 1u);
   EXPECT_EQ(browse_results[0].references[0].node_id, (scada::NodeId{900}));
-  EXPECT_EQ(direct_services->browse_count, 1);
+  EXPECT_EQ(direct_services->browse_count, 2);
   ASSERT_EQ(direct_services->last_browse_inputs.size(), 1u);
   EXPECT_EQ(direct_services->last_browse_inputs[0].node_id,
-            (scada::NodeId{106}));
+            (scada::NodeId{108}));
 }
 
 }  // namespace

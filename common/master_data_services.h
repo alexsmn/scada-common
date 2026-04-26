@@ -192,6 +192,16 @@ class MasterDataServices final : public scada::AttributeService,
       history_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
       node_management_service_adapter_;
+  std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
+      attribute_callback_adapter_;
+  std::unique_ptr<scada::CoroutineToCallbackViewServiceAdapter>
+      view_callback_adapter_;
+  std::unique_ptr<scada::CoroutineToCallbackMethodServiceAdapter>
+      method_callback_adapter_;
+  std::unique_ptr<scada::CoroutineToCallbackHistoryServiceAdapter>
+      history_callback_adapter_;
+  std::unique_ptr<scada::CoroutineToCallbackNodeManagementServiceAdapter>
+      node_management_callback_adapter_;
 
   scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
   scada::CoroutineViewService* coroutine_view_service_ = nullptr;

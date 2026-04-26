@@ -298,3 +298,8 @@ each slice is touched.
   legacy audit construction converts callback services to `DataServices` before
   creating `Audit`, and common tests construct audited callback adapters through
   the aggregate boundary.
+- `MasterDataServices` callback entry points now reuse the shared
+  coroutine-to-callback SCADA service adapters over the resolved coroutine
+  aggregate services instead of carrying local `CoSpawn` bridge code; common
+  tests cover callback dispatch for every aggregate service family through
+  direct coroutine slots.

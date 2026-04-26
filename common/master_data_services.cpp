@@ -178,6 +178,11 @@ void MasterDataServices::ResetCoroutineAdapters() {
   coroutine_history_service_ = nullptr;
   coroutine_node_management_service_ = nullptr;
 
+  attribute_callback_adapter_.reset();
+  view_callback_adapter_.reset();
+  method_callback_adapter_.reset();
+  history_callback_adapter_.reset();
+  node_management_callback_adapter_.reset();
   attribute_service_adapter_.reset();
   view_service_adapter_.reset();
   session_service_adapter_.reset();
@@ -202,6 +207,11 @@ void MasterDataServices::RefreshCoroutineServices() {
       coroutine_attribute_service_ = attribute_service_adapter_.get();
     }
   }
+  if (coroutine_attribute_service_ && coroutine_executor_) {
+    attribute_callback_adapter_ =
+        std::make_unique<scada::CoroutineToCallbackAttributeServiceAdapter>(
+            *coroutine_executor_, *coroutine_attribute_service_);
+  }
 
   if (services_.coroutine_view_service_) {
     coroutine_view_service_ = services_.coroutine_view_service_.get();
@@ -214,6 +224,11 @@ void MasterDataServices::RefreshCoroutineServices() {
               *coroutine_executor_, *services_.view_service_);
       coroutine_view_service_ = view_service_adapter_.get();
     }
+  }
+  if (coroutine_view_service_ && coroutine_executor_) {
+    view_callback_adapter_ =
+        std::make_unique<scada::CoroutineToCallbackViewServiceAdapter>(
+            *coroutine_executor_, *coroutine_view_service_);
   }
 
   if (services_.coroutine_session_service_) {
@@ -242,6 +257,11 @@ void MasterDataServices::RefreshCoroutineServices() {
       coroutine_method_service_ = method_service_adapter_.get();
     }
   }
+  if (coroutine_method_service_ && coroutine_executor_) {
+    method_callback_adapter_ =
+        std::make_unique<scada::CoroutineToCallbackMethodServiceAdapter>(
+            *coroutine_executor_, *coroutine_method_service_);
+  }
 
   if (services_.coroutine_history_service_) {
     coroutine_history_service_ = services_.coroutine_history_service_.get();
@@ -254,6 +274,11 @@ void MasterDataServices::RefreshCoroutineServices() {
               *coroutine_executor_, *services_.history_service_);
       coroutine_history_service_ = history_service_adapter_.get();
     }
+  }
+  if (coroutine_history_service_ && coroutine_executor_) {
+    history_callback_adapter_ =
+        std::make_unique<scada::CoroutineToCallbackHistoryServiceAdapter>(
+            *coroutine_executor_, *coroutine_history_service_);
   }
 
   if (services_.coroutine_node_management_service_) {
@@ -270,6 +295,11 @@ void MasterDataServices::RefreshCoroutineServices() {
       coroutine_node_management_service_ =
           node_management_service_adapter_.get();
     }
+  }
+  if (coroutine_node_management_service_ && coroutine_executor_) {
+    node_management_callback_adapter_ = std::make_unique<
+        scada::CoroutineToCallbackNodeManagementServiceAdapter>(
+        *coroutine_executor_, *coroutine_node_management_service_);
   }
 }
 
@@ -389,17 +419,8 @@ MasterDataServices::SubscribeSessionStateChanged(
 void MasterDataServices::AddNodes(
     const std::vector<scada::AddNodesItem>& inputs,
     const scada::AddNodesCallback& callback) {
-  if (coroutine_executor_ && coroutine_node_management_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] = co_await AddNodes(std::move(inputs));
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (node_management_callback_adapter_) {
+    node_management_callback_adapter_->AddNodes(inputs, callback);
     return;
   }
 
@@ -412,18 +433,8 @@ void MasterDataServices::AddNodes(
 void MasterDataServices::DeleteNodes(
     const std::vector<scada::DeleteNodesItem>& inputs,
     const scada::DeleteNodesCallback& callback) {
-  if (coroutine_executor_ && coroutine_node_management_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] =
-                    co_await DeleteNodes(std::move(inputs));
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (node_management_callback_adapter_) {
+    node_management_callback_adapter_->DeleteNodes(inputs, callback);
     return;
   }
 
@@ -436,18 +447,8 @@ void MasterDataServices::DeleteNodes(
 void MasterDataServices::AddReferences(
     const std::vector<scada::AddReferencesItem>& inputs,
     const scada::AddReferencesCallback& callback) {
-  if (coroutine_executor_ && coroutine_node_management_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] =
-                    co_await AddReferences(std::move(inputs));
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (node_management_callback_adapter_) {
+    node_management_callback_adapter_->AddReferences(inputs, callback);
     return;
   }
 
@@ -460,18 +461,8 @@ void MasterDataServices::AddReferences(
 void MasterDataServices::DeleteReferences(
     const std::vector<scada::DeleteReferencesItem>& inputs,
     const scada::DeleteReferencesCallback& callback) {
-  if (coroutine_executor_ && coroutine_node_management_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] =
-                    co_await DeleteReferences(std::move(inputs));
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (node_management_callback_adapter_) {
+    node_management_callback_adapter_->DeleteReferences(inputs, callback);
     return;
   }
 
@@ -485,17 +476,8 @@ void MasterDataServices::Browse(
     const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
-  if (coroutine_executor_ && coroutine_view_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, context, nodes, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] = co_await Browse(context, nodes);
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (view_callback_adapter_) {
+    view_callback_adapter_->Browse(context, nodes, callback);
     return;
   }
 
@@ -508,18 +490,8 @@ void MasterDataServices::Browse(
 void MasterDataServices::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
-  if (coroutine_executor_ && coroutine_view_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, browse_paths, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] =
-                    co_await TranslateBrowsePaths(browse_paths);
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (view_callback_adapter_) {
+    view_callback_adapter_->TranslateBrowsePaths(browse_paths, callback);
     return;
   }
 
@@ -539,17 +511,8 @@ void MasterDataServices::Write(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
-  if (coroutine_executor_ && coroutine_attribute_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, context, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] = co_await Write(context, inputs);
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (attribute_callback_adapter_) {
+    attribute_callback_adapter_->Write(context, inputs, callback);
     return;
   }
 
@@ -564,16 +527,9 @@ void MasterDataServices::Call(const scada::NodeId& node_id,
                               const std::vector<scada::Variant>& arguments,
                               const scada::NodeId& user_id,
                               const scada::StatusCallback& callback) {
-  if (coroutine_executor_ && coroutine_method_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, node_id, method_id, arguments, user_id,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                callback(co_await Call(node_id, method_id, arguments, user_id));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()));
-              }
-            });
+  if (method_callback_adapter_) {
+    method_callback_adapter_->Call(node_id, method_id, arguments, user_id,
+                                   callback);
     return;
   }
 
@@ -587,17 +543,8 @@ void MasterDataServices::Call(const scada::NodeId& node_id,
 void MasterDataServices::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
-  if (coroutine_executor_ && coroutine_history_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, details, callback]() mutable -> Awaitable<void> {
-              try {
-                callback(co_await HistoryReadRaw(details));
-              } catch (...) {
-                callback(scada::HistoryReadRawResult{
-                    .status =
-                        scada::GetExceptionStatus(std::current_exception())});
-              }
-            });
+  if (history_callback_adapter_) {
+    history_callback_adapter_->HistoryReadRaw(details, callback);
     return;
   }
 
@@ -613,18 +560,9 @@ void MasterDataServices::HistoryReadEvents(
     base::Time to,
     const scada::EventFilter& filter,
     const scada::HistoryReadEventsCallback& callback) {
-  if (coroutine_executor_ && coroutine_history_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, node_id, from, to, filter,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                callback(co_await HistoryReadEvents(node_id, from, to, filter));
-              } catch (...) {
-                callback(scada::HistoryReadEventsResult{
-                    .status =
-                        scada::GetExceptionStatus(std::current_exception())});
-              }
-            });
+  if (history_callback_adapter_) {
+    history_callback_adapter_->HistoryReadEvents(node_id, from, to, filter,
+                                                 callback);
     return;
   }
 
@@ -639,17 +577,8 @@ void MasterDataServices::Read(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
-  if (coroutine_executor_ && coroutine_attribute_service_) {
-    CoSpawn(*coroutine_executor_,
-            [this, context, inputs, callback]() mutable -> Awaitable<void> {
-              try {
-                auto [status, results] = co_await Read(context, inputs);
-                callback(std::move(status), std::move(results));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
+  if (attribute_callback_adapter_) {
+    attribute_callback_adapter_->Read(context, inputs, callback);
     return;
   }
 
