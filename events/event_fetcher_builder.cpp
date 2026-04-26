@@ -1,6 +1,7 @@
 #include "events/event_fetcher_builder.h"
 
 #include "base/nested_logger.h"
+#include "common/coroutine_service_resolver.h"
 #include "common/coroutine_session_proxy_notifier.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
@@ -47,44 +48,15 @@ struct EventFetcherServices {
       : data_services_{std::move(builder.data_services_)} {
     monitored_item_service_ = data_services_.monitored_item_service_.get();
 
-    history_service_ = data_services_.coroutine_history_service_.get();
-    if (!history_service_ && data_services_.history_service_) {
-      if (auto* service = dynamic_cast<scada::CoroutineHistoryService*>(
-              data_services_.history_service_.get())) {
-        history_service_ = service;
-      } else {
-        history_service_adapter_ =
-            std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-                executor, *data_services_.history_service_);
-        history_service_ = history_service_adapter_.get();
-      }
-    }
-
-    method_service_ = data_services_.coroutine_method_service_.get();
-    if (!method_service_ && data_services_.method_service_) {
-      if (auto* service = dynamic_cast<scada::CoroutineMethodService*>(
-              data_services_.method_service_.get())) {
-        method_service_ = service;
-      } else {
-        method_service_adapter_ =
-            std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-                executor, *data_services_.method_service_);
-        method_service_ = method_service_adapter_.get();
-      }
-    }
-
-    session_service_ = data_services_.coroutine_session_service_.get();
-    if (!session_service_ && data_services_.session_service_) {
-      if (auto* service = dynamic_cast<scada::CoroutineSessionService*>(
-              data_services_.session_service_.get())) {
-        session_service_ = service;
-      } else {
-        session_service_adapter_ =
-            std::make_unique<scada::PromiseToCoroutineSessionServiceAdapter>(
-                executor, *data_services_.session_service_);
-        session_service_ = session_service_adapter_.get();
-      }
-    }
+    history_service_ = scada::service_resolver::ResolveCoroutineService(
+        executor, data_services_.coroutine_history_service_,
+        data_services_.history_service_, history_service_adapter_);
+    method_service_ = scada::service_resolver::ResolveCoroutineService(
+        executor, data_services_.coroutine_method_service_,
+        data_services_.method_service_, method_service_adapter_);
+    session_service_ = scada::service_resolver::ResolveCoroutineService(
+        executor, data_services_.coroutine_session_service_,
+        data_services_.session_service_, session_service_adapter_);
 
     assert(monitored_item_service_);
     assert(history_service_);

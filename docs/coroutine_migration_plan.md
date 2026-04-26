@@ -311,3 +311,8 @@ each slice is touched.
 - Audit aggregate tests now cover audited callback read, write, browse, and
   browse-path dispatch through direct coroutine slots, while its callback bridge
   keeps the self-retaining metric wrapper required around posted work.
+- Node-service, event-fetcher, and OPC UA runtime construction now share the
+  common coroutine service resolver for direct coroutine slots,
+  coroutine-capable callback services, and callback-to-coroutine adapters;
+  focused node-service, events, and OPC UA tests cover the shared resolver
+  through their existing aggregate and legacy construction paths.

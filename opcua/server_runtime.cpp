@@ -4,6 +4,7 @@
 #include "base/boost_log.h"
 #include "base/executor_util.h"
 #include "base/promise.h"
+#include "common/coroutine_service_resolver.h"
 #include "scada/coroutine_services.h"
 
 #include <algorithm>
@@ -26,33 +27,6 @@ Response SessionMissingResponse() {
 template <>
 ResponseBody SessionMissingResponse<ResponseBody>() {
   return ServiceFault{scada::StatusCode::Bad_SessionIsLoggedOff};
-}
-
-template <typename T>
-T& RequireService(const std::shared_ptr<T>& service) {
-  if (!service)
-    throw std::invalid_argument{"missing service"};
-  return *service;
-}
-
-template <typename CoroutineService, typename CallbackService, typename Adapter>
-CoroutineService& ResolveCoroutineService(
-    const AnyExecutor& executor,
-    const std::shared_ptr<CoroutineService>& coroutine_service,
-    const std::shared_ptr<CallbackService>& callback_service,
-    std::unique_ptr<Adapter>& adapter) {
-  if (coroutine_service)
-    return *coroutine_service;
-
-  if (!callback_service)
-    throw std::invalid_argument{"missing service"};
-
-  if (auto* service = dynamic_cast<CoroutineService*>(callback_service.get())) {
-    return *service;
-  }
-
-  adapter = std::make_unique<Adapter>(executor, *callback_service);
-  return *adapter;
 }
 
 }  // namespace
@@ -106,31 +80,29 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
       executor_{std::move(context.executor)},
       session_manager_{context.session_manager},
       monitored_item_service_{
-          RequireService(data_services_.monitored_item_service_)},
+          scada::service_resolver::RequireSharedService(
+              data_services_.monitored_item_service_)},
       attribute_service_{
-          ResolveCoroutineService(executor_,
-                                  data_services_.coroutine_attribute_service_,
-                                  data_services_.attribute_service_,
-                                  attribute_service_adapter_)},
+          scada::service_resolver::RequireCoroutineService(
+              executor_, data_services_.coroutine_attribute_service_,
+              data_services_.attribute_service_, attribute_service_adapter_)},
       view_service_{
-          ResolveCoroutineService(executor_,
-                                  data_services_.coroutine_view_service_,
-                                  data_services_.view_service_,
-                                  view_service_adapter_)},
+          scada::service_resolver::RequireCoroutineService(
+              executor_, data_services_.coroutine_view_service_,
+              data_services_.view_service_, view_service_adapter_)},
       history_service_{
-          ResolveCoroutineService(executor_,
-                                  data_services_.coroutine_history_service_,
-                                  data_services_.history_service_,
-                                  history_service_adapter_)},
+          scada::service_resolver::RequireCoroutineService(
+              executor_, data_services_.coroutine_history_service_,
+              data_services_.history_service_, history_service_adapter_)},
       method_service_{
-          ResolveCoroutineService(executor_,
-                                  data_services_.coroutine_method_service_,
-                                  data_services_.method_service_,
-                                  method_service_adapter_)},
-      node_management_service_{ResolveCoroutineService(
-          executor_, data_services_.coroutine_node_management_service_,
-          data_services_.node_management_service_,
-          node_management_service_adapter_)},
+          scada::service_resolver::RequireCoroutineService(
+              executor_, data_services_.coroutine_method_service_,
+              data_services_.method_service_, method_service_adapter_)},
+      node_management_service_{
+          scada::service_resolver::RequireCoroutineService(
+              executor_, data_services_.coroutine_node_management_service_,
+              data_services_.node_management_service_,
+              node_management_service_adapter_)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 
