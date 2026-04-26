@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -29,29 +30,54 @@ ResponseBody SessionMissingResponse<ResponseBody>() {
 
 template <typename T>
 T& RequireService(const std::shared_ptr<T>& service) {
-  assert(service);
+  if (!service)
+    throw std::invalid_argument{"missing service"};
   return *service;
+}
+
+template <typename CoroutineService, typename CallbackService, typename Adapter>
+CoroutineService& ResolveCoroutineService(
+    const AnyExecutor& executor,
+    const std::shared_ptr<CoroutineService>& coroutine_service,
+    const std::shared_ptr<CallbackService>& callback_service,
+    std::unique_ptr<Adapter>& adapter) {
+  if (coroutine_service)
+    return *coroutine_service;
+
+  if (!callback_service)
+    throw std::invalid_argument{"missing service"};
+
+  if (auto* service = dynamic_cast<CoroutineService*>(callback_service.get())) {
+    return *service;
+  }
+
+  adapter = std::make_unique<Adapter>(executor, *callback_service);
+  return *adapter;
 }
 
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
-    : attribute_service_adapter_{
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              context.executor, context.attribute_service)},
+    : attribute_service_adapter_{std::make_unique<
+          scada::CallbackToCoroutineAttributeServiceAdapter>(
+          context.executor,
+          context.attribute_service)},
       view_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              context.executor, context.view_service)},
+              context.executor,
+              context.view_service)},
       history_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-              context.executor, context.history_service)},
+              context.executor,
+              context.history_service)},
       method_service_adapter_{
           std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              context.executor, context.method_service)},
-      node_management_service_adapter_{
-          std::make_unique<
-              scada::CallbackToCoroutineNodeManagementServiceAdapter>(
-              context.executor, context.node_management_service)},
+              context.executor,
+              context.method_service)},
+      node_management_service_adapter_{std::make_unique<
+          scada::CallbackToCoroutineNodeManagementServiceAdapter>(
+          context.executor,
+          context.node_management_service)},
       executor_{std::move(context.executor)},
       session_manager_{context.session_manager},
       monitored_item_service_{context.monitored_item_service},
@@ -82,13 +108,29 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
       monitored_item_service_{
           RequireService(data_services_.monitored_item_service_)},
       attribute_service_{
-          RequireService(data_services_.coroutine_attribute_service_)},
-      view_service_{RequireService(data_services_.coroutine_view_service_)},
+          ResolveCoroutineService(executor_,
+                                  data_services_.coroutine_attribute_service_,
+                                  data_services_.attribute_service_,
+                                  attribute_service_adapter_)},
+      view_service_{
+          ResolveCoroutineService(executor_,
+                                  data_services_.coroutine_view_service_,
+                                  data_services_.view_service_,
+                                  view_service_adapter_)},
       history_service_{
-          RequireService(data_services_.coroutine_history_service_)},
-      method_service_{RequireService(data_services_.coroutine_method_service_)},
-      node_management_service_{
-          RequireService(data_services_.coroutine_node_management_service_)},
+          ResolveCoroutineService(executor_,
+                                  data_services_.coroutine_history_service_,
+                                  data_services_.history_service_,
+                                  history_service_adapter_)},
+      method_service_{
+          ResolveCoroutineService(executor_,
+                                  data_services_.coroutine_method_service_,
+                                  data_services_.method_service_,
+                                  method_service_adapter_)},
+      node_management_service_{ResolveCoroutineService(
+          executor_, data_services_.coroutine_node_management_service_,
+          data_services_.node_management_service_,
+          node_management_service_adapter_)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 
@@ -147,20 +189,18 @@ void ServerRuntime::IndexSessionSubscriptions(
   for (const auto subscription_id : subscription_ids)
     subscription_owners_[subscription_id] = authentication_token;
   if (!subscription_ids.empty()) {
-    next_subscription_id_ =
-        std::max(next_subscription_id_,
-                 *std::max_element(subscription_ids.begin(),
-                                   subscription_ids.end()) +
-                     1);
+    next_subscription_id_ = std::max(
+        next_subscription_id_,
+        *std::max_element(subscription_ids.begin(), subscription_ids.end()) +
+            1);
   }
 }
 
 void ServerRuntime::RemoveSessionSubscriptions(
     const scada::NodeId& authentication_token) {
-  std::erase_if(subscription_owners_,
-                [&](const auto& entry) {
-                  return entry.second == authentication_token;
-                });
+  std::erase_if(subscription_owners_, [&](const auto& entry) {
+    return entry.second == authentication_token;
+  });
 }
 
 Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
@@ -179,15 +219,14 @@ Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
   co_await AwaitPromise(executor_, std::move(delayed));
 }
 
-Awaitable<ResponseBody> ServerRuntime::Handle(
-    ConnectionState& connection,
-    RequestBody request) {
+Awaitable<ResponseBody> ServerRuntime::Handle(ConnectionState& connection,
+                                              RequestBody request) {
   auto body = co_await std::visit(
       [this, &connection](auto&& typed_request) -> Awaitable<ResponseBody> {
         using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, CreateSessionRequest>) {
-          co_return ResponseBody{
-              co_await session_manager_.CreateSession(std::move(typed_request))};
+          co_return ResponseBody{co_await session_manager_.CreateSession(
+              std::move(typed_request))};
         } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           co_return co_await HandleActivateSession(connection,
                                                    std::move(typed_request));
@@ -195,7 +234,8 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
           const auto response = session_manager_.CloseSession(typed_request);
           if (response.status)
             ForgetSession(typed_request.authentication_token);
-          if (connection.authentication_token == typed_request.authentication_token)
+          if (connection.authentication_token ==
+              typed_request.authentication_token)
             connection.authentication_token.reset();
           co_return ResponseBody{response};
         } else if constexpr (std::is_same_v<T, CreateSubscriptionRequest>) {
@@ -238,20 +278,17 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
         } else if constexpr (std::is_same_v<T, PublishRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return ResponseBody{
-                SessionMissingResponse<PublishResponse>()};
+            co_return ResponseBody{SessionMissingResponse<PublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           auto ack_results = session->AcknowledgePublishRequest(typed_request);
           for (;;) {
             if (connection.closed) {
-              co_return ResponseBody{
-                  SessionMissingResponse<PublishResponse>()};
+              co_return ResponseBody{SessionMissingResponse<PublishResponse>()};
             }
 
             session = FindAttachedSession(connection);
             if (!session) {
-              co_return ResponseBody{
-                  SessionMissingResponse<PublishResponse>()};
+              co_return ResponseBody{SessionMissingResponse<PublishResponse>()};
             }
 
             // cppcheck-suppress nullPointerRedundantCheck
@@ -263,27 +300,25 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
             if (!poll.wait_for.has_value()) {
               co_return ResponseBody{
                   PublishResponse{.status = scada::StatusCode::Good,
-                                       .results = std::move(ack_results)}};
+                                  .results = std::move(ack_results)}};
             }
             co_await Delay(*poll.wait_for);
           }
         } else if constexpr (std::is_same_v<T, RepublishRequest>) {
           auto* session = FindAttachedSession(connection);
           if (!session)
-            co_return ResponseBody{
-                SessionMissingResponse<RepublishResponse>()};
+            co_return ResponseBody{SessionMissingResponse<RepublishResponse>()};
           // cppcheck-suppress nullPointerRedundantCheck
           co_return ResponseBody{session->Republish(typed_request)};
-        } else if constexpr (std::is_same_v<T,
-                                            TransferSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<T, TransferSubscriptionsRequest>) {
           auto* target_session = FindAttachedSession(connection);
           if (!target_session || !connection.authentication_token.has_value()) {
             co_return ResponseBody{
                 SessionMissingResponse<TransferSubscriptionsResponse>()};
           }
 
-          TransferSubscriptionsResponse response{
-              .status = scada::StatusCode::Good};
+          TransferSubscriptionsResponse response{.status =
+                                                     scada::StatusCode::Good};
           response.results.assign(typed_request.subscription_ids.size(),
                                   scada::StatusCode::Bad_WrongSubscriptionId);
           std::unordered_map<scada::NodeId,
@@ -314,7 +349,8 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
             }
 
             TransferSubscriptionsRequest grouped_request;
-            grouped_request.send_initial_values = typed_request.send_initial_values;
+            grouped_request.send_initial_values =
+                typed_request.send_initial_values;
             for (const auto& [index, subscription_id] : group)
               grouped_request.subscription_ids.push_back(subscription_id);
 
@@ -365,15 +401,15 @@ Awaitable<ResponseBody> ServerRuntime::Handle(
           // cppcheck-suppress nullPointerRedundantCheck
           auto& attached_session = *session;
           auto response = co_await HandleServiceRequest(
-              attached_session,
-              ServiceRequest{BrowseRequest{
-                  .inputs = std::move(typed_request.inputs),
-              }});
+              attached_session, ServiceRequest{BrowseRequest{
+                                    .inputs = std::move(typed_request.inputs),
+                                }});
           if (!std::holds_alternative<BrowseResponse>(response))
             co_return SessionMissingResponse<ResponseBody>();
           auto browse = std::get<BrowseResponse>(std::move(response));
           auto paged_response = session->StoreBrowseResults(
-              std::move(browse), typed_request.requested_max_references_per_node);
+              std::move(browse),
+              typed_request.requested_max_references_per_node);
           co_return ResponseBody{std::move(paged_response)};
         } else if constexpr (std::is_same_v<T, BrowseNextRequest>) {
           auto* session = FindAttachedSession(connection);
@@ -409,8 +445,8 @@ Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(
   std::shared_ptr<ServerSession> session;
   if (response.resumed) {
     auto* attached_session = FindSession(request.authentication_token);
-    session = attached_session ? sessions_.at(request.authentication_token)
-                               : nullptr;
+    session =
+        attached_session ? sessions_.at(request.authentication_token) : nullptr;
     if (!session) {
       co_return ResponseBody{ActivateSessionResponse{
           .status = scada::StatusCode::Bad_SessionIsLoggedOff}};

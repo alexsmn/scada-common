@@ -9,30 +9,46 @@
 namespace opcua::binary {
 namespace {
 
+template <typename T>
+std::shared_ptr<T> UnownedService(T& service) {
+  return std::shared_ptr<T>{&service, [](T*) {}};
+}
+
 DataServices MakeRuntimeDataServices(
     std::shared_ptr<test::TestCoroutineServices> coroutine_services,
     scada::MonitoredItemService& monitored_item_service) {
-  return {
-      .monitored_item_service_ = std::shared_ptr<scada::MonitoredItemService>{
-          &monitored_item_service, [](scada::MonitoredItemService*) {}},
-      .coroutine_view_service_ = coroutine_services,
-      .coroutine_node_management_service_ = coroutine_services,
-      .coroutine_history_service_ = coroutine_services,
-      .coroutine_attribute_service_ = coroutine_services,
-      .coroutine_method_service_ = coroutine_services};
+  return {.monitored_item_service_ = UnownedService(monitored_item_service),
+          .coroutine_view_service_ = coroutine_services,
+          .coroutine_node_management_service_ = coroutine_services,
+          .coroutine_history_service_ = coroutine_services,
+          .coroutine_attribute_service_ = coroutine_services,
+          .coroutine_method_service_ = coroutine_services};
 }
 
-class RuntimeTest
-    : public testing::Test,
-      public test::ServerRuntimeContractTestBase {
+DataServices MakeCallbackRuntimeDataServices(
+    scada::MonitoredItemService& monitored_item_service,
+    scada::AttributeService& attribute_service,
+    scada::ViewService& view_service,
+    scada::HistoryService& history_service,
+    scada::MethodService& method_service,
+    scada::NodeManagementService& node_management_service) {
+  return {.view_service_ = UnownedService(view_service),
+          .node_management_service_ = UnownedService(node_management_service),
+          .history_service_ = UnownedService(history_service),
+          .attribute_service_ = UnownedService(attribute_service),
+          .method_service_ = UnownedService(method_service),
+          .monitored_item_service_ = UnownedService(monitored_item_service)};
+}
+
+class RuntimeTest : public testing::Test,
+                    public test::ServerRuntimeContractTestBase {
  public:
   using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    return WaitAwaitable(executor_,
-                         runtime_.Handle<Response>(connection,
-                                                   std::move(request)));
+    return WaitAwaitable(
+        executor_, runtime_.Handle<Response>(connection, std::move(request)));
   }
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
@@ -42,13 +58,12 @@ class RuntimeTest
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     EXPECT_EQ(activated.status.code(), scada::StatusCode::Good);
     EXPECT_FALSE(activated.resumed);
     return {created.session_id, created.authentication_token};
@@ -56,22 +71,23 @@ class RuntimeTest
 
   void Detach(ConnectionState& connection) { runtime_.Detach(connection); }
 
-  scada::StatusCode ReadStatus(ConnectionState& connection, ReadRequest request) {
+  scada::StatusCode ReadStatus(ConnectionState& connection,
+                               ReadRequest request) {
     return HandleResponse<ReadResponse>(connection, std::move(request))
         .status.code();
   }
 
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
-    return HandleResponse<HistoryReadRawResponse>(
-               connection, std::move(request))
+    return HandleResponse<HistoryReadRawResponse>(connection,
+                                                  std::move(request))
         .result.status.code();
   }
 
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
-    return HandleResponse<HistoryReadEventsResponse>(
-               connection, std::move(request))
+    return HandleResponse<HistoryReadEventsResponse>(connection,
+                                                     std::move(request))
         .result.status.code();
   }
 
@@ -100,8 +116,7 @@ TEST_F(RuntimeTest, RoutesCallRequestsThroughActivatedSessionUser) {
   test::ExpectRoutesCallRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(RuntimeTest,
-       PreservesLiveSubscriptionStateAcrossDetachAndResume) {
+TEST_F(RuntimeTest, PreservesLiveSubscriptionStateAcrossDetachAndResume) {
   test::ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(*this);
 }
 
@@ -113,64 +128,57 @@ TEST_F(RuntimeTest, CloseSessionClearsAttachedState) {
   test::ExpectCloseSessionClearsAttachedState(*this);
 }
 
-TEST_F(RuntimeTest,
-       RejectsHistoryReadRawWithoutActivatedSession) {
+TEST_F(RuntimeTest, RejectsHistoryReadRawWithoutActivatedSession) {
   test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
 }
 
-TEST_F(RuntimeTest,
-       HistoryReadRawPreservesPayloadThroughActivatedSession) {
+TEST_F(RuntimeTest, HistoryReadRawPreservesPayloadThroughActivatedSession) {
   test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
 }
 
-TEST_F(RuntimeTest,
-       RejectsHistoryReadEventsWithoutActivatedSession) {
+TEST_F(RuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
   test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
 
-TEST_F(RuntimeTest,
-       HistoryReadEventsPreservesPayloadThroughActivatedSession) {
-  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
-      *this);
+TEST_F(RuntimeTest, HistoryReadEventsPreservesPayloadThroughActivatedSession) {
+  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(*this);
 }
 
-TEST_F(RuntimeTest,
-       BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+TEST_F(RuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
   test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
 }
 
-TEST_F(RuntimeTest,
-       NodeManagementMutationsPreserveBatchResults) {
+TEST_F(RuntimeTest, NodeManagementMutationsPreserveBatchResults) {
   test::ExpectNodeManagementMutationsPreserveBatchResults(*this);
 }
 
-TEST_F(RuntimeTest,
-       PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
+TEST_F(RuntimeTest, PublishReturnsKeepAliveWhenNoNotificationsAreQueued) {
   test::ExpectPublishReturnsKeepAliveWhenNoNotifications(*this);
 }
 
-TEST_F(RuntimeTest,
-       RepublishReplaysNotificationUntilAcknowledged) {
+TEST_F(RuntimeTest, RepublishReplaysNotificationUntilAcknowledged) {
   test::ExpectRepublishReplaysNotificationUntilAcknowledged(*this);
 }
 
-TEST_F(RuntimeTest,
-       HandleDecodedRequestRejectsActivateSessionForUnknownAuthenticationToken) {
+TEST_F(
+    RuntimeTest,
+    HandleDecodedRequestRejectsActivateSessionForUnknownAuthenticationToken) {
   ConnectionState connection;
 
   const auto response = WaitAwaitable(
-      executor_,
-      runtime_.HandleDecodedRequest(
-          connection, DecodedRequest{
-                          .header = {.authentication_token = {999u, 3},
-                                     .request_handle = 7},
-                          .body = ActivateSessionRequest{
-                              .authentication_token = {999u, 3},
-                              .user_name = scada::LocalizedText{u"operator"},
-                              .password = scada::LocalizedText{u"secret"},
-                              .allow_anonymous = false,
-                          },
-                      }));
+      executor_, runtime_.HandleDecodedRequest(
+                     connection,
+                     DecodedRequest{
+                         .header = {.authentication_token = {999u, 3},
+                                    .request_handle = 7},
+                         .body =
+                             ActivateSessionRequest{
+                                 .authentication_token = {999u, 3},
+                                 .user_name = scada::LocalizedText{u"operator"},
+                                 .password = scada::LocalizedText{u"secret"},
+                                 .allow_anonymous = false,
+                             },
+                     }));
 
   EXPECT_FALSE(response.has_value());
 }
@@ -186,14 +194,14 @@ TEST_F(RuntimeTest,
   const auto response = WaitAwaitable(
       executor_,
       runtime_.HandleDecodedRequest(
-          connection, DecodedRequest{
-                          .header = {.authentication_token = {998u, 3},
-                                     .request_handle = 8},
-                          .body = ReadRequest{
-                              .inputs = {{.node_id = test::NumericNode(9),
-                                          .attribute_id =
-                                              scada::AttributeId::Value}}},
-                      }));
+          connection,
+          DecodedRequest{
+              .header = {.authentication_token = {998u, 3},
+                         .request_handle = 8},
+              .body = ReadRequest{.inputs = {{.node_id = test::NumericNode(9),
+                                              .attribute_id =
+                                                  scada::AttributeId::Value}}},
+          }));
 
   ASSERT_TRUE(response.has_value());
   const auto* read = std::get_if<ReadResponse>(&*response);
@@ -210,7 +218,8 @@ TEST_F(RuntimeTest,
   EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
           [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
               const scada::ReadCallback& callback) {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             ASSERT_EQ(inputs->size(), 1u);
@@ -230,17 +239,15 @@ TEST_F(RuntimeTest,
   EXPECT_EQ(response.results[0].value, scada::Variant{99.0});
 }
 
-class CoroutineRuntimeTest
-    : public testing::Test,
-      public test::ServerRuntimeContractTestBase {
+class CoroutineRuntimeTest : public testing::Test,
+                             public test::ServerRuntimeContractTestBase {
  public:
   using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    return WaitAwaitable(executor_,
-                         runtime_.Handle<Response>(connection,
-                                                   std::move(request)));
+    return WaitAwaitable(
+        executor_, runtime_.Handle<Response>(connection, std::move(request)));
   }
 
   void CreateAndActivate(ConnectionState& connection) {
@@ -249,13 +256,12 @@ class CoroutineRuntimeTest
     ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
   }
 
@@ -288,23 +294,20 @@ TEST_F(CoroutineRuntimeTest,
   ASSERT_EQ(response.results.size(), 1u);
   EXPECT_EQ(response.results[0].value, coroutine_services_.read_value);
   EXPECT_EQ(coroutine_services_.read_count, 1);
-  EXPECT_EQ(coroutine_services_.last_read_context.user_id(),
-            expected_user_id_);
+  EXPECT_EQ(coroutine_services_.last_read_context.user_id(), expected_user_id_);
   EXPECT_THAT(coroutine_services_.last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
 }
 
-class DataServicesRuntimeTest
-    : public testing::Test,
-      public test::ServerRuntimeContractTestBase {
+class DataServicesRuntimeTest : public testing::Test,
+                                public test::ServerRuntimeContractTestBase {
  public:
   using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    return WaitAwaitable(executor_,
-                         runtime_.Handle<Response>(connection,
-                                                   std::move(request)));
+    return WaitAwaitable(
+        executor_, runtime_.Handle<Response>(connection, std::move(request)));
   }
 
   void CreateAndActivate(ConnectionState& connection) {
@@ -313,13 +316,12 @@ class DataServicesRuntimeTest
     ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
   }
 
@@ -353,6 +355,76 @@ TEST_F(DataServicesRuntimeTest,
             expected_user_id_);
   EXPECT_THAT(coroutine_services_->last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
+}
+
+class DataServicesCallbackRuntimeTest
+    : public testing::Test,
+      public test::ServerRuntimeContractTestBase {
+ public:
+  using ConnectionState = opcua::ConnectionState;
+
+  template <typename Response, typename Request>
+  Response HandleResponse(ConnectionState& connection, Request request) {
+    return WaitAwaitable(
+        executor_, runtime_.Handle<Response>(connection, std::move(request)));
+  }
+
+  void CreateAndActivate(ConnectionState& connection) {
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
+    ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
+
+    const auto activated = HandleResponse<ActivateSessionResponse>(
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
+    ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
+  }
+
+  Runtime runtime_{DataServicesRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .data_services =
+          MakeCallbackRuntimeDataServices(monitored_item_service_,
+                                          attribute_service_,
+                                          view_service_,
+                                          history_service_,
+                                          method_service_,
+                                          node_management_service_),
+      .now = [this] { return now_; },
+  }};
+};
+
+TEST_F(DataServicesCallbackRuntimeTest,
+       RoutesReadThroughAggregateCallbackSlotsWithOwnedAdapters) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(906),
+                  .attribute_id = scada::AttributeId::Value}}};
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
+              const scada::ReadCallback& callback) {
+            EXPECT_EQ(context.user_id(), expected_user_id_);
+            EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
+            executor_->PostTask([callback, now = now_] {
+              callback(scada::StatusCode::Good,
+                       {scada::DataValue{scada::Variant{906.0}, {}, now, now}});
+            });
+          }));
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, scada::Variant{906.0});
 }
 
 }  // namespace

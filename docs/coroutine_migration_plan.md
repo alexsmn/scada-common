@@ -263,3 +263,8 @@ each slice is touched.
   `DataServices` aggregate directly, keeping legacy callback runtime contexts as
   compatibility paths while direct aggregate coroutine slots drive runtime read
   dispatch in focused tests.
+- OPC UA aggregate runtime construction now mirrors the other migrated
+  boundaries by preferring direct coroutine slots, then coroutine-capable
+  callback slots, then owned callback-to-coroutine adapters; canonical and
+  binary runtime tests cover delayed read completion through aggregate callback
+  slots.

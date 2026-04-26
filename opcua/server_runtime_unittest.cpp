@@ -12,30 +12,47 @@
 namespace opcua {
 namespace {
 
+template <typename T>
+std::shared_ptr<T> UnownedService(T& service) {
+  return std::shared_ptr<T>{&service, [](T*) {}};
+}
+
 DataServices MakeRuntimeDataServices(
     std::shared_ptr<test::TestCoroutineServices> coroutine_services,
     scada::MonitoredItemService& monitored_item_service) {
-  return {
-      .monitored_item_service_ = std::shared_ptr<scada::MonitoredItemService>{
-          &monitored_item_service, [](scada::MonitoredItemService*) {}},
-      .coroutine_view_service_ = coroutine_services,
-      .coroutine_node_management_service_ = coroutine_services,
-      .coroutine_history_service_ = coroutine_services,
-      .coroutine_attribute_service_ = coroutine_services,
-      .coroutine_method_service_ = coroutine_services};
+  return {.monitored_item_service_ = UnownedService(monitored_item_service),
+          .coroutine_view_service_ = coroutine_services,
+          .coroutine_node_management_service_ = coroutine_services,
+          .coroutine_history_service_ = coroutine_services,
+          .coroutine_attribute_service_ = coroutine_services,
+          .coroutine_method_service_ = coroutine_services};
 }
 
-class ServerRuntimeTest
-    : public testing::Test,
-      public test::ServerRuntimeContractTestBase {
+DataServices MakeCallbackRuntimeDataServices(
+    scada::MonitoredItemService& monitored_item_service,
+    scada::AttributeService& attribute_service,
+    scada::ViewService& view_service,
+    scada::HistoryService& history_service,
+    scada::MethodService& method_service,
+    scada::NodeManagementService& node_management_service) {
+  return {.view_service_ = UnownedService(view_service),
+          .node_management_service_ = UnownedService(node_management_service),
+          .history_service_ = UnownedService(history_service),
+          .attribute_service_ = UnownedService(attribute_service),
+          .method_service_ = UnownedService(method_service),
+          .monitored_item_service_ = UnownedService(monitored_item_service)};
+}
+
+class ServerRuntimeTest : public testing::Test,
+                          public test::ServerRuntimeContractTestBase {
  public:
   using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* typed = std::get_if<Response>(&body))
       return *typed;
     ADD_FAILURE() << "unexpected response type";
@@ -44,19 +61,17 @@ class ServerRuntimeTest
 
   std::pair<scada::NodeId, scada::NodeId> CreateAndActivate(
       ConnectionState& connection) {
-    const auto created =
-        HandleResponse<CreateSessionResponse>(connection,
-                                                   CreateSessionRequest{});
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
     EXPECT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     EXPECT_EQ(activated.status.code(), scada::StatusCode::Good);
     EXPECT_FALSE(activated.resumed);
     return {created.session_id, created.authentication_token};
@@ -64,10 +79,11 @@ class ServerRuntimeTest
 
   void Detach(ConnectionState& connection) { runtime_.Detach(connection); }
 
-  scada::StatusCode ReadStatus(ConnectionState& connection, ReadRequest request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+  scada::StatusCode ReadStatus(ConnectionState& connection,
+                               ReadRequest request) {
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* response = std::get_if<ReadResponse>(&body))
       return response->status.code();
     if (const auto* fault = std::get_if<ServiceFault>(&body))
@@ -77,9 +93,9 @@ class ServerRuntimeTest
 
   scada::StatusCode HistoryReadRawStatus(ConnectionState& connection,
                                          HistoryReadRawRequest request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadRawResponse>(&body))
       return response->result.status.code();
     if (const auto* fault = std::get_if<ServiceFault>(&body))
@@ -89,9 +105,9 @@ class ServerRuntimeTest
 
   scada::StatusCode HistoryReadEventsStatus(ConnectionState& connection,
                                             HistoryReadEventsRequest request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* response = std::get_if<HistoryReadEventsResponse>(&body))
       return response->result.status.code();
     if (const auto* fault = std::get_if<ServiceFault>(&body))
@@ -100,8 +116,7 @@ class ServerRuntimeTest
   }
 
   bool capture_delayed_tasks_ = false;
-  std::vector<std::pair<base::TimeDelta, std::function<void()>>>
-      delayed_tasks_;
+  std::vector<std::pair<base::TimeDelta, std::function<void()>>> delayed_tasks_;
 
   ServerRuntime runtime_{ServerRuntimeContext{
       .executor = any_executor_,
@@ -113,14 +128,15 @@ class ServerRuntimeTest
       .method_service = method_service_,
       .node_management_service = node_management_service_,
       .now = [this] { return now_; },
-      .post_delayed_task = [this](base::TimeDelta d, std::function<void()> fn) {
-        if (capture_delayed_tasks_) {
-          delayed_tasks_.emplace_back(d, std::move(fn));
-          return;
-        }
-        executor_->PostDelayedTask(
-            std::chrono::milliseconds{d.InMilliseconds()}, std::move(fn));
-      },
+      .post_delayed_task =
+          [this](base::TimeDelta d, std::function<void()> fn) {
+            if (capture_delayed_tasks_) {
+              delayed_tasks_.emplace_back(d, std::move(fn));
+              return;
+            }
+            executor_->PostDelayedTask(
+                std::chrono::milliseconds{d.InMilliseconds()}, std::move(fn));
+          },
   }};
 };
 
@@ -152,7 +168,8 @@ TEST_F(ServerRuntimeTest, RejectsHistoryReadRawWithoutActivatedSession) {
   test::ExpectRejectsHistoryReadRawWithoutActivatedSession(*this);
 }
 
-TEST_F(ServerRuntimeTest, HistoryReadRawPreservesPayloadThroughActivatedSession) {
+TEST_F(ServerRuntimeTest,
+       HistoryReadRawPreservesPayloadThroughActivatedSession) {
   test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
 }
 
@@ -162,11 +179,11 @@ TEST_F(ServerRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
 
 TEST_F(ServerRuntimeTest,
        HistoryReadEventsPreservesPayloadThroughActivatedSession) {
-  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
-      *this);
+  test::ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(*this);
 }
 
-TEST_F(ServerRuntimeTest, BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
+TEST_F(ServerRuntimeTest,
+       BrowseAndBrowseNextUseSessionScopedContinuationPoints) {
   test::ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(*this);
 }
 
@@ -186,23 +203,20 @@ TEST_F(ServerRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
-  const auto created_subscription =
-      HandleResponse<CreateSubscriptionResponse>(
-          connection,
-          CreateSubscriptionRequest{
-              .parameters = {.publishing_interval_ms = 100,
-                             .lifetime_count = 60,
-                             .max_keep_alive_count = 3,
-                             .publishing_enabled = true}});
+  const auto created_subscription = HandleResponse<CreateSubscriptionResponse>(
+      connection,
+      CreateSubscriptionRequest{.parameters = {.publishing_interval_ms = 100,
+                                               .lifetime_count = 60,
+                                               .max_keep_alive_count = 3,
+                                               .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
   promise<ResponseBody> publish_promise;
   CoSpawn(MakeTestAnyExecutor(executor_),
           [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
             try {
-              publish_promise.resolve(
-                  co_await runtime_.Handle(connection,
-                                           RequestBody{PublishRequest{}}));
+              publish_promise.resolve(co_await runtime_.Handle(
+                  connection, RequestBody{PublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
             }
@@ -234,23 +248,20 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
-  const auto created_subscription =
-      HandleResponse<CreateSubscriptionResponse>(
-          connection,
-          CreateSubscriptionRequest{
-              .parameters = {.publishing_interval_ms = 100,
-                             .lifetime_count = 60,
-                             .max_keep_alive_count = 3,
-                             .publishing_enabled = true}});
+  const auto created_subscription = HandleResponse<CreateSubscriptionResponse>(
+      connection,
+      CreateSubscriptionRequest{.parameters = {.publishing_interval_ms = 100,
+                                               .lifetime_count = 60,
+                                               .max_keep_alive_count = 3,
+                                               .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
   promise<ResponseBody> publish_promise;
   CoSpawn(MakeTestAnyExecutor(executor_),
           [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
             try {
-              publish_promise.resolve(
-                  co_await runtime_.Handle(connection,
-                                           RequestBody{PublishRequest{}}));
+              publish_promise.resolve(co_await runtime_.Handle(
+                  connection, RequestBody{PublishRequest{}}));
             } catch (...) {
               publish_promise.reject(std::current_exception());
             }
@@ -278,17 +289,16 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
 }
 
-class CoroutineServerRuntimeTest
-    : public testing::Test,
-      public test::ServerRuntimeContractTestBase {
+class CoroutineServerRuntimeTest : public testing::Test,
+                                   public test::ServerRuntimeContractTestBase {
  public:
   using ConnectionState = opcua::ConnectionState;
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* typed = std::get_if<Response>(&body))
       return *typed;
     ADD_FAILURE() << "unexpected response type";
@@ -296,19 +306,17 @@ class CoroutineServerRuntimeTest
   }
 
   void CreateAndActivate(ConnectionState& connection) {
-    const auto created =
-        HandleResponse<CreateSessionResponse>(connection,
-                                                   CreateSessionRequest{});
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
     ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
   }
 
@@ -341,8 +349,7 @@ TEST_F(CoroutineServerRuntimeTest,
   ASSERT_EQ(response.results.size(), 1u);
   EXPECT_EQ(response.results[0].value, coroutine_services_.read_value);
   EXPECT_EQ(coroutine_services_.read_count, 1);
-  EXPECT_EQ(coroutine_services_.last_read_context.user_id(),
-            expected_user_id_);
+  EXPECT_EQ(coroutine_services_.last_read_context.user_id(), expected_user_id_);
   EXPECT_THAT(coroutine_services_.last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
 }
@@ -355,9 +362,9 @@ class DataServicesServerRuntimeTest
 
   template <typename Response, typename Request>
   Response HandleResponse(ConnectionState& connection, Request request) {
-    const auto body =
-        WaitAwaitable(executor_, runtime_.Handle(connection, RequestBody{
-                                                                 std::move(request)}));
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
     if (const auto* typed = std::get_if<Response>(&body))
       return *typed;
     ADD_FAILURE() << "unexpected response type";
@@ -365,19 +372,17 @@ class DataServicesServerRuntimeTest
   }
 
   void CreateAndActivate(ConnectionState& connection) {
-    const auto created =
-        HandleResponse<CreateSessionResponse>(connection,
-                                                   CreateSessionRequest{});
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
     ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
 
     const auto activated = HandleResponse<ActivateSessionResponse>(
-        connection,
-        ActivateSessionRequest{
-            .session_id = created.session_id,
-            .authentication_token = created.authentication_token,
-            .user_name = scada::LocalizedText{u"operator"},
-            .password = scada::LocalizedText{u"secret"},
-        });
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
     ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
   }
 
@@ -411,6 +416,81 @@ TEST_F(DataServicesServerRuntimeTest,
             expected_user_id_);
   EXPECT_THAT(coroutine_services_->last_read_inputs,
               testing::ElementsAre(request.inputs[0]));
+}
+
+class DataServicesCallbackServerRuntimeTest
+    : public testing::Test,
+      public test::ServerRuntimeContractTestBase {
+ public:
+  using ConnectionState = opcua::ConnectionState;
+
+  template <typename Response, typename Request>
+  Response HandleResponse(ConnectionState& connection, Request request) {
+    const auto body = WaitAwaitable(
+        executor_,
+        runtime_.Handle(connection, RequestBody{std::move(request)}));
+    if (const auto* typed = std::get_if<Response>(&body))
+      return *typed;
+    ADD_FAILURE() << "unexpected response type";
+    return {};
+  }
+
+  void CreateAndActivate(ConnectionState& connection) {
+    const auto created = HandleResponse<CreateSessionResponse>(
+        connection, CreateSessionRequest{});
+    ASSERT_EQ(created.status.code(), scada::StatusCode::Good);
+
+    const auto activated = HandleResponse<ActivateSessionResponse>(
+        connection, ActivateSessionRequest{
+                        .session_id = created.session_id,
+                        .authentication_token = created.authentication_token,
+                        .user_name = scada::LocalizedText{u"operator"},
+                        .password = scada::LocalizedText{u"secret"},
+                    });
+    ASSERT_EQ(activated.status.code(), scada::StatusCode::Good);
+  }
+
+  ServerRuntime runtime_{DataServicesServerRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .data_services =
+          MakeCallbackRuntimeDataServices(monitored_item_service_,
+                                          attribute_service_,
+                                          view_service_,
+                                          history_service_,
+                                          method_service_,
+                                          node_management_service_),
+      .now = [this] { return now_; },
+  }};
+};
+
+TEST_F(DataServicesCallbackServerRuntimeTest,
+       RoutesReadThroughAggregateCallbackSlotsWithOwnedAdapters) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(905),
+                  .attribute_id = scada::AttributeId::Value}}};
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
+              const scada::ReadCallback& callback) {
+            EXPECT_EQ(context.user_id(), expected_user_id_);
+            EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
+            executor_->PostTask([callback, now = now_] {
+              callback(scada::StatusCode::Good,
+                       {scada::DataValue{scada::Variant{905.0}, {}, now, now}});
+            });
+          }));
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, scada::Variant{905.0});
 }
 
 }  // namespace

@@ -326,8 +326,10 @@ transport-neutral semantic core:
 
 Both transport adapters reuse the same coroutine service collaborators inside
 the shared runtime. New aggregate construction paths pass coroutine service
-slots through `DataServices`; legacy callback-service contexts remain supported
-at construction boundaries and are adapted once:
+slots through `DataServices`; if an aggregate still carries callback service
+slots, the runtime owns the callback-to-coroutine adapters at that single
+boundary. Legacy callback-service contexts remain supported and are adapted
+once:
 
 - `CoroutineAttributeService` — Read, Write
 - `CoroutineViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds
