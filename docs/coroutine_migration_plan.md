@@ -197,6 +197,9 @@ each slice is touched.
   factory context; the direct coroutine path now carries only the services that
   node fetching actually uses, and factory tests no longer need callback
   method/session mocks for coroutine construction.
+- v1 `AddressSpaceMethodService` now exposes `CoroutineMethodService` directly
+  while preserving the legacy callback method API; node-service tests cover the
+  unsupported-method result through both callback and coroutine calls.
 - `EventFetcherBuilder` now has a coroutine-native construction path for
   session, history, and method services while the legacy builder keeps adapter
   ownership at the callback-service boundary; events tests cover connected

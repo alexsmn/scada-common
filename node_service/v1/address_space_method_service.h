@@ -1,14 +1,14 @@
 #pragma once
 
-#include "address_space/address_space_util.h"
-#include "address_space/node.h"
+#include "scada/coroutine_services.h"
 #include "scada/method_service.h"
 
 namespace scada {
 class AddressSpace;
 }  // namespace scada
 
-class AddressSpaceMethodService : public scada::MethodService {
+class AddressSpaceMethodService : public scada::MethodService,
+                                  public scada::CoroutineMethodService {
  public:
   explicit AddressSpaceMethodService(scada::AddressSpace& address_space)
       : address_space_{address_space} {}
@@ -20,24 +20,30 @@ class AddressSpaceMethodService : public scada::MethodService {
                     const scada::NodeId& user_id,
                     const scada::StatusCallback& callback) override;
 
+  // scada::CoroutineMethodService
+  virtual Awaitable<scada::Status> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::NodeId user_id) override;
+
  private:
-  scada::AddressSpace& address_space_;
+  [[maybe_unused]] scada::AddressSpace& address_space_;
 };
 
 inline void AddressSpaceMethodService::Call(
-    const scada::NodeId& node_id,
-    const scada::NodeId& method_id,
-    const std::vector<scada::Variant>& arguments,
-    const scada::NodeId& user_id,
+    const scada::NodeId& /*node_id*/,
+    const scada::NodeId& /*method_id*/,
+    const std::vector<scada::Variant>& /*arguments*/,
+    const scada::NodeId& /*user_id*/,
     const scada::StatusCallback& callback) {
-  std::string_view nested_name;
-  auto* node =  GetNestedNode(address_space_, node_id, nested_name);
-  if (!node)
-    return callback(scada::StatusCode::Bad_WrongNodeId);
+  callback(scada::StatusCode::Bad_WrongMethodId);
+}
 
-  auto* service = node->GetMethodService();
-  if (!service)
-    return callback(scada::StatusCode::Bad_WrongMethodId);
-
-  service->Call(node_id, method_id, arguments, user_id, callback);
+inline Awaitable<scada::Status> AddressSpaceMethodService::Call(
+    scada::NodeId /*node_id*/,
+    scada::NodeId /*method_id*/,
+    std::vector<scada::Variant> /*arguments*/,
+    scada::NodeId /*user_id*/) {
+  co_return scada::Status{scada::StatusCode::Bad_WrongMethodId};
 }

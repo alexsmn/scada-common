@@ -5,9 +5,11 @@
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
+#include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
+#include "node_service/v1/address_space_method_service.h"
 #include "scada/coroutine_services.h"
 #include "scada/monitored_item_service_mock.h"
 
@@ -16,6 +18,33 @@
 #include "base/debug_util.h"
 
 using namespace testing;
+
+TEST(AddressSpaceMethodServiceTest, CallbackCallReturnsWrongMethodId) {
+  TestAddressSpace address_space;
+  AddressSpaceMethodService service{address_space};
+
+  bool called = false;
+  service.Call(scada::NodeId{1, 2}, scada::NodeId{1, 3}, {}, {},
+               [&](scada::Status status) {
+                 called = true;
+                 EXPECT_EQ(status.code(),
+                           scada::StatusCode::Bad_WrongMethodId);
+               });
+
+  EXPECT_TRUE(called);
+}
+
+TEST(AddressSpaceMethodServiceTest, CoroutineCallReturnsWrongMethodId) {
+  const auto executor = std::make_shared<TestExecutor>();
+  TestAddressSpace address_space;
+  AddressSpaceMethodService service{address_space};
+
+  const auto status =
+      WaitAwaitable(executor, service.Call(scada::NodeId{1, 2},
+                                           scada::NodeId{1, 3}, {}, {}));
+
+  EXPECT_EQ(status.code(), scada::StatusCode::Bad_WrongMethodId);
+}
 
 struct BaseNodeServiceTestEnvironment {
   const std::shared_ptr<TestExecutor> executor;
