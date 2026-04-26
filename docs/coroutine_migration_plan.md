@@ -254,3 +254,8 @@ each slice is touched.
   the new `AuditDataServices` helper preserves audited callback and coroutine
   attribute/view slots; common tests cover audited callback read and coroutine
   browse dispatch with only direct coroutine services installed.
+- Node-service v1/v2 factories now also accept the coroutine-capable
+  `DataServices` aggregate, resolving direct coroutine session, attribute, and
+  view services before falling back to legacy callback adapters; factory tests
+  cover connected startup and node fetches through aggregate coroutine slots for
+  both implementations.

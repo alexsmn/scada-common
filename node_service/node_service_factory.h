@@ -2,6 +2,7 @@
 
 #include "base/any_executor.h"
 #include "scada/client.h"
+#include "scada/data_services.h"
 
 #include <memory>
 
@@ -42,10 +43,21 @@ struct CoroutineNodeServiceContext {
   scada::client scada_client_;
 };
 
+struct DataServicesNodeServiceContext {
+  AnyExecutor executor_;
+  const scada::ServiceContext service_context_;
+  DataServices data_services_;
+  scada::client scada_client_;
+};
+
 std::shared_ptr<NodeService> CreateNodeService(
     const NodeServiceContext& context,
     bool use_v2 = false);
 
 std::shared_ptr<NodeService> CreateNodeService(
     const CoroutineNodeServiceContext& context,
+    bool use_v2 = false);
+
+std::shared_ptr<NodeService> CreateNodeService(
+    DataServicesNodeServiceContext&& context,
     bool use_v2 = false);

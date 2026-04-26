@@ -78,6 +78,35 @@ std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
       use_v2);
 }
 
+std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
+    TestAddressSpace& address_space,
+    scada::CoroutineSessionService& session_service,
+    scada::MonitoredItemService& monitored_item_service,
+    const std::shared_ptr<TestExecutor>& executor,
+    bool use_v2) {
+  DataServices data_services;
+  data_services.coroutine_session_service_ =
+      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+                                                      &session_service};
+  data_services.coroutine_attribute_service_ =
+      std::shared_ptr<scada::CoroutineAttributeService>{
+          std::shared_ptr<void>{}, &address_space.attribute_service_impl};
+  data_services.coroutine_view_service_ =
+      std::shared_ptr<scada::CoroutineViewService>{
+          std::shared_ptr<void>{}, &address_space.view_service_impl};
+  data_services.monitored_item_service_ =
+      std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
+                                                   &monitored_item_service};
+
+  return CreateNodeService(
+      DataServicesNodeServiceContext{
+          .executor_ = MakeTestAnyExecutor(executor),
+          .service_context_ = scada::ServiceContext{},
+          .data_services_ = std::move(data_services),
+          .scada_client_ = {}},
+      use_v2);
+}
+
 void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
   const auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
@@ -103,12 +132,45 @@ void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
   EXPECT_EQ(session_service.is_connected_count, 1);
 }
 
+void ExpectDataServicesFactoryFetchesNode(bool use_v2) {
+  const auto executor = std::make_shared<TestExecutor>();
+  TestAddressSpace address_space;
+  TestCoroutineSessionService session_service;
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+
+  const auto node_service = CreateDataServicesFactoryNodeService(
+      address_space, session_service, monitored_item_service, executor, use_v2);
+  auto node = node_service->GetNode(address_space.kTestNode2Id);
+
+  node.Fetch(NodeFetchStatus::NodeAndChildren());
+  DrainExecutor(executor);
+
+  EXPECT_TRUE(node.fetched());
+  EXPECT_TRUE(node.children_fetched());
+  EXPECT_TRUE(node.status());
+  EXPECT_EQ(node.node_class(), scada::NodeClass::Object);
+  EXPECT_EQ(node.browse_name(), "TestNode2");
+  EXPECT_EQ(node.display_name(), u"TestNode2DisplayName");
+  EXPECT_EQ(node.target(address_space.kTestReferenceTypeId).node_id(),
+            address_space.kTestNode3Id);
+  EXPECT_EQ(session_service.subscribe_count, 1);
+  EXPECT_EQ(session_service.is_connected_count, 1);
+}
+
 TEST(NodeServiceFactory, V1CoroutineContextFetchesThroughCoroutineServices) {
   ExpectCoroutineFactoryFetchesNode(/*use_v2=*/false);
 }
 
 TEST(NodeServiceFactory, V2CoroutineContextFetchesThroughCoroutineServices) {
   ExpectCoroutineFactoryFetchesNode(/*use_v2=*/true);
+}
+
+TEST(NodeServiceFactory, V1DataServicesContextFetchesThroughCoroutineSlots) {
+  ExpectDataServicesFactoryFetchesNode(/*use_v2=*/false);
+}
+
+TEST(NodeServiceFactory, V2DataServicesContextFetchesThroughCoroutineSlots) {
+  ExpectDataServicesFactoryFetchesNode(/*use_v2=*/true);
 }
 
 }  // namespace
