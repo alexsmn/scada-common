@@ -303,3 +303,11 @@ each slice is touched.
   aggregate services instead of carrying local `CoSpawn` bridge code; common
   tests cover callback dispatch for every aggregate service family through
   direct coroutine slots.
+- Node-service v1/v2 factories now share one legacy-to-`DataServices`
+  normalization helper and one coroutine service resolver for session,
+  attribute, view, and monitored-item dependencies; existing factory tests cover
+  both implementations through direct coroutine slots and callback-service
+  adapters.
+- Audit aggregate tests now cover audited callback read, write, browse, and
+  browse-path dispatch through direct coroutine slots, while its callback bridge
+  keeps the self-retaining metric wrapper required around posted work.

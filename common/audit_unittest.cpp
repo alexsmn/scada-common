@@ -251,6 +251,22 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "read_latency.count"));
 
+  bool write_called = false;
+  auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
+      std::vector<scada::WriteValue>{{.node_id = scada::NodeId{4}}});
+  audited_services->attribute_service_->Write(
+      {}, write_inputs,
+      [&](scada::Status status, std::vector<scada::StatusCode> results) {
+        write_called = true;
+        EXPECT_TRUE(status.good());
+        ASSERT_EQ(results.size(), 1u);
+        EXPECT_EQ(results[0], scada::StatusCode::Good);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(write_called);
+  EXPECT_EQ(source_services->write_count, 1);
+
   auto [browse_status, browse_results] =
       WaitAwaitable(executor, audited_services->coroutine_view_service_->Browse(
                                   {}, {{.node_id = scada::NodeId{2}}}));
@@ -279,6 +295,20 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_EQ(source_services->last_browse_inputs[0].node_id, (scada::NodeId{3}));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "browse_latency.count"));
+
+  bool translate_called = false;
+  audited_services->view_service_->TranslateBrowsePaths(
+      {scada::BrowsePath{}},
+      [&](scada::Status status,
+          std::vector<scada::BrowsePathResult> results) {
+        translate_called = true;
+        EXPECT_TRUE(status.good());
+        EXPECT_EQ(results.size(), 1u);
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(translate_called);
+  EXPECT_EQ(source_services->translate_count, 1);
 }
 
 }  // namespace

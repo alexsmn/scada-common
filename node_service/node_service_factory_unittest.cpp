@@ -4,11 +4,14 @@
 #include "base/test/test_executor.h"
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
+#include "node_service/node_service_factory_services.h"
+#include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
 #include "scada/session_service_mock.h"
 #include "scada/standard_node_ids.h"
+#include "scada/view_service_mock.h"
 
 #include <boost/signals2/signal.hpp>
 
@@ -228,6 +231,33 @@ TEST(NodeServiceFactory, V1LegacyContextNormalizesToDataServicesAdapters) {
 
 TEST(NodeServiceFactory, V2LegacyContextNormalizesToDataServicesAdapters) {
   ExpectLegacyFactoryFetchesNodeThroughAdapters(/*use_v2=*/true);
+}
+
+TEST(NodeServiceFactory, LegacyContextHelperNormalizesToDataServices) {
+  const auto executor = std::make_shared<TestExecutor>();
+  StrictMock<scada::MockSessionService> session_service;
+  StrictMock<scada::MockAttributeService> attribute_service;
+  StrictMock<scada::MockViewService> view_service;
+  StrictMock<scada::MockMonitoredItemService> monitored_item_service;
+  StrictMock<scada::MockMethodService> method_service;
+
+  auto context = node_service::internal::MakeDataServicesNodeServiceContext(
+      NodeServiceContext{.executor_ = MakeTestAnyExecutor(executor),
+                         .service_context_ = scada::ServiceContext{},
+                         .session_service_ = session_service,
+                         .attribute_service_ = attribute_service,
+                         .view_service_ = view_service,
+                         .monitored_item_service_ = monitored_item_service,
+                         .method_service_ = method_service,
+                         .scada_client_ = {}});
+
+  EXPECT_EQ(context.data_services_.session_service_.get(), &session_service);
+  EXPECT_EQ(context.data_services_.attribute_service_.get(),
+            &attribute_service);
+  EXPECT_EQ(context.data_services_.view_service_.get(), &view_service);
+  EXPECT_EQ(context.data_services_.monitored_item_service_.get(),
+            &monitored_item_service);
+  EXPECT_EQ(context.data_services_.method_service_.get(), &method_service);
 }
 
 }  // namespace
