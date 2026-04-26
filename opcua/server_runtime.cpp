@@ -46,22 +46,35 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
       .post_delayed_task = std::move(context.post_delayed_task)};
 }
 
+DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
+    CoroutineServerRuntimeContext&& context) {
+  return DataServicesServerRuntimeContext{
+      .executor = std::move(context.executor),
+      .session_manager = context.session_manager,
+      .data_services =
+          {.monitored_item_service_ =
+               data_services::Unowned(context.monitored_item_service),
+           .coroutine_view_service_ =
+               data_services::Unowned(context.view_service),
+           .coroutine_node_management_service_ =
+               data_services::Unowned(context.node_management_service),
+           .coroutine_history_service_ =
+               data_services::Unowned(context.history_service),
+           .coroutine_attribute_service_ =
+               data_services::Unowned(context.attribute_service),
+           .coroutine_method_service_ =
+               data_services::Unowned(context.method_service)},
+      .now = std::move(context.now),
+      .post_delayed_task = std::move(context.post_delayed_task)};
+}
+
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
     : ServerRuntime{MakeDataServicesServerRuntimeContext(std::move(context))} {}
 
 ServerRuntime::ServerRuntime(CoroutineServerRuntimeContext&& context)
-    : executor_{std::move(context.executor)},
-      session_manager_{context.session_manager},
-      monitored_item_service_{context.monitored_item_service},
-      attribute_service_{context.attribute_service},
-      view_service_{context.view_service},
-      history_service_{context.history_service},
-      method_service_{context.method_service},
-      node_management_service_{context.node_management_service},
-      now_{std::move(context.now)},
-      post_delayed_task_{std::move(context.post_delayed_task)} {}
+    : ServerRuntime{MakeDataServicesServerRuntimeContext(std::move(context))} {}
 
 ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
     : data_services_{std::move(context.data_services)},

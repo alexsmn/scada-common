@@ -241,6 +241,16 @@ TEST(DataServicesUtilTest, FromUnownedServicesAliasesLegacySlots) {
   EXPECT_EQ(data_services.session_service_.get(), &session_service);
 }
 
+TEST(DataServicesUtilTest, UnownedAliasesServiceWithoutOwningIt) {
+  StrictMock<scada::MockAttributeService> attribute_service;
+
+  auto service = data_services::Unowned(attribute_service);
+
+  EXPECT_EQ(service.get(), &attribute_service);
+  EXPECT_FALSE(service.owner_before(std::shared_ptr<void>{}));
+  EXPECT_FALSE(std::shared_ptr<void>{}.owner_before(service));
+}
+
 TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();

@@ -69,6 +69,27 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
       .now = std::move(context.now)};
 }
 
+DataServicesRuntimeContext MakeDataServicesRuntimeContext(
+    CoroutineRuntimeContext&& context) {
+  return DataServicesRuntimeContext{
+      .executor = std::move(context.executor),
+      .session_manager = context.session_manager,
+      .data_services =
+          {.monitored_item_service_ =
+               data_services::Unowned(context.monitored_item_service),
+           .coroutine_view_service_ =
+               data_services::Unowned(context.view_service),
+           .coroutine_node_management_service_ =
+               data_services::Unowned(context.node_management_service),
+           .coroutine_history_service_ =
+               data_services::Unowned(context.history_service),
+           .coroutine_attribute_service_ =
+               data_services::Unowned(context.attribute_service),
+           .coroutine_method_service_ =
+               data_services::Unowned(context.method_service)},
+      .now = std::move(context.now)};
+}
+
 #undef OPCUA_BINARY_AUTHENTICATED_REQUESTS
 }  // namespace
 
@@ -76,18 +97,7 @@ Runtime::Runtime(RuntimeContext&& context)
     : Runtime{MakeDataServicesRuntimeContext(std::move(context))} {}
 
 Runtime::Runtime(CoroutineRuntimeContext&& context)
-    : session_manager_{context.session_manager},
-      runtime_{CoroutineServerRuntimeContext{
-          .executor = context.executor,
-          .session_manager = context.session_manager,
-          .monitored_item_service = context.monitored_item_service,
-          .attribute_service = context.attribute_service,
-          .view_service = context.view_service,
-          .history_service = context.history_service,
-          .method_service = context.method_service,
-          .node_management_service = context.node_management_service,
-          .now = std::move(context.now),
-      }} {}
+    : Runtime{MakeDataServicesRuntimeContext(std::move(context))} {}
 
 Runtime::Runtime(DataServicesRuntimeContext&& context)
     : session_manager_{context.session_manager},

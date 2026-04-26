@@ -340,3 +340,7 @@ each slice is touched.
   coroutine service dependencies through the shared resolver instead of
   relying on post-resolution assertions; focused tests cover incomplete
   `DataServices` aggregates failing explicitly.
+- OPC UA canonical and binary coroutine-native runtime construction now also
+  normalizes through `DataServices` aggregate contexts, using shared unowned
+  service aliases so direct coroutine inputs and legacy callback inputs share
+  the same required-service resolver path.

@@ -4,6 +4,11 @@
 
 namespace data_services {
 
+template <typename Service>
+std::shared_ptr<Service> Unowned(Service& service) {
+  return std::shared_ptr<Service>{std::shared_ptr<void>{}, &service};
+}
+
 inline bool HasServices(const DataServices& services) {
   return services.session_service_ || services.view_service_ ||
          services.node_management_service_ || services.history_service_ ||
