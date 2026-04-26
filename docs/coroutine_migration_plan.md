@@ -268,3 +268,8 @@ each slice is touched.
   callback slots, then owned callback-to-coroutine adapters; canonical and
   binary runtime tests cover delayed read completion through aggregate callback
   slots.
+- `TimedDataService` now normalizes legacy callback `scada::services` into the
+  coroutine-capable `DataServices` aggregate at the factory boundary, leaving
+  `TimedDataServiceImpl` to resolve history only through `DataServices` or
+  direct coroutine context; timed-data tests cover delayed history reads through
+  the normalized legacy factory path.

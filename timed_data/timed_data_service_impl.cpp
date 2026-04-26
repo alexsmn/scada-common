@@ -39,12 +39,6 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
               executor_, *data_services_.history_service_);
     }
   }
-
-  if (!history_service_ && services_.history_service) {
-    history_service_ =
-        std::make_shared<scada::CallbackToCoroutineHistoryServiceAdapter>(
-            executor_, *services_.history_service);
-  }
 }
 
 TimedDataServiceImpl::TimedDataServiceImpl(CoroutineTimedDataContext&& context)
@@ -53,7 +47,6 @@ TimedDataServiceImpl::TimedDataServiceImpl(CoroutineTimedDataContext&& context)
           .alias_resolver_ = std::move(context.alias_resolver_),
           .node_service_ = context.node_service_,
           .data_services_ = {},
-          .services_ = {},
           .history_service_ = std::move(context.history_service_),
           .node_event_provider_ = context.node_event_provider_}} {}
 
@@ -68,9 +61,8 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
   try {
     expression->Parse(std::string{formula}.c_str());
   } catch (const std::exception& e) {
-    return std::make_shared<ErrorTimedData>(
-        std::string{formula},
-        UtfConvert<char16_t>(e.what()));
+    return std::make_shared<ErrorTimedData>(std::string{formula},
+                                            UtfConvert<char16_t>(e.what()));
   }
 
   std::shared_ptr<TimedData> data;
@@ -132,20 +124,20 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
   std::weak_ptr<AliasTimedData> weak_timed_data = timed_data;
   alias_resolver_(
       alias_string,
-      cancelation_.Bind([this, weak_timed_data, alias_string, aggregation](
-                            const scada::Status& status,
-                            const scada::NodeId& node_id) {
-        auto timed_data = weak_timed_data.lock();
-        if (!timed_data)
-          return;
+      cancelation_.Bind(
+          [this, weak_timed_data, alias_string, aggregation](
+              const scada::Status& status, const scada::NodeId& node_id) {
+            auto timed_data = weak_timed_data.lock();
+            if (!timed_data)
+              return;
 
-        if (status) {
-          timed_data->SetForwarded(GetNodeTimedData(node_id, aggregation));
-        } else {
-          timed_data->SetForwarded(std::make_shared<ErrorTimedData>(
-              alias_string, ToString16(status)));
-        }
-      }));
+            if (status) {
+              timed_data->SetForwarded(GetNodeTimedData(node_id, aggregation));
+            } else {
+              timed_data->SetForwarded(std::make_shared<ErrorTimedData>(
+                  alias_string, ToString16(status)));
+            }
+          }));
 
   alias_cache_.Add(cache_key, timed_data);
   return timed_data;

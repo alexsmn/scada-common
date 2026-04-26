@@ -11,13 +11,13 @@
 #include "node_service/node_model_mock.h"
 #include "node_service/node_service_mock.h"
 #include "node_service/static/static_node_service.h"
-#include "scada/coroutine_services.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
-#include "timed_data/timed_data_service_impl.h"
 #include "timed_data/timed_data_service_factory.h"
+#include "timed_data/timed_data_service_impl.h"
 #include "timed_data/timed_data_spec.h"
 
 #include <gmock/gmock.h>
@@ -28,7 +28,17 @@ using namespace testing;
 
 namespace {
 
-class TestCoroutineHistoryService final : public scada::CoroutineHistoryService {
+template <typename T>
+std::shared_ptr<T> UnownedService(T& service) {
+  return std::shared_ptr<T>{&service, [](T*) {}};
+}
+
+DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
+  return {.history_service_ = UnownedService(history_service)};
+}
+
+class TestCoroutineHistoryService final
+    : public scada::CoroutineHistoryService {
  public:
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
@@ -77,6 +87,7 @@ class TimedDataTest : public Test {
       {.executor_ = MakeTestAnyExecutor(executor_),
        .alias_resolver_ = alias_resolver_.AsStdFunction(),
        .node_service_ = node_service_,
+       .data_services_ = MakeTimedDataServices(history_service_),
        .services_ = {.attribute_service = &attribute_service_,
                      .monitored_item_service = &monitored_item_service_,
                      .method_service = &method_service_,
@@ -213,6 +224,38 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   EXPECT_TRUE(spec.range_ready({from, to}));
 }
 
+TEST_F(TimedDataTest, LegacyFactoryServicesNormalizeToDataServicesAdapter) {
+  const auto from = base::Time::Now();
+  const auto to = from + base::TimeDelta::FromSeconds(10);
+  auto service = CreateTimedDataService(
+      TimedDataContext{.executor_ = MakeTestAnyExecutor(executor_),
+                       .alias_resolver_ = alias_resolver_.AsStdFunction(),
+                       .node_service_ = node_service_,
+                       .services_ = {.history_service = &history_service_},
+                       .node_event_provider_ = node_event_provider_});
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
+                           const scada::HistoryReadRawCallback& callback) {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        executor_->PostTask([callback] {
+          callback(scada::HistoryReadRawResult{
+              .status = scada::StatusCode::Good,
+              .values = {},
+          });
+        });
+      }));
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
 TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
@@ -244,12 +287,12 @@ TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
   DataServices data_services;
   data_services.coroutine_history_service_ = history_service;
 
-  auto service = CreateTimedDataService(TimedDataContext{
-      .executor_ = MakeTestAnyExecutor(executor_),
-      .alias_resolver_ = alias_resolver_.AsStdFunction(),
-      .node_service_ = node_service_,
-      .data_services_ = std::move(data_services),
-      .node_event_provider_ = node_event_provider_});
+  auto service = CreateTimedDataService(
+      TimedDataContext{.executor_ = MakeTestAnyExecutor(executor_),
+                       .alias_resolver_ = alias_resolver_.AsStdFunction(),
+                       .node_service_ = node_service_,
+                       .data_services_ = std::move(data_services),
+                       .node_event_provider_ = node_event_provider_});
 
   TimedDataSpec spec{*service, kDataItemId};
   spec.SetRange({from, to});
