@@ -286,3 +286,11 @@ each slice is touched.
   coroutine-capable `DataServices` aggregate and reuse the same resolver as the
   aggregate construction path; factory tests cover node fetches through
   callback-service adapters for both implementations.
+- `StaticNodeService` now stores the coroutine-capable `DataServices`
+  aggregate instead of raw `scada::services`, while preserving legacy callback
+  construction for `scada::node` compatibility; node-service tests cover
+  `GetScadaNode()` reads through the aggregate callback slot.
+- `TimedDataContext` no longer carries a parallel legacy `scada::services`
+  field; timed-data construction resolves history only through explicit
+  `DataServices` or direct coroutine history context, and tests cover callback
+  history adaptation from the aggregate boundary.

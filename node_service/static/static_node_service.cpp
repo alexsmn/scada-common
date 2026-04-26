@@ -31,6 +31,14 @@ void RelocateReferences(scada::NodeState& node_state) {
 
 }  // namespace
 
+StaticNodeService::StaticNodeService() = default;
+
+StaticNodeService::StaticNodeService(scada::services services)
+    : StaticNodeService{DataServices::FromUnownedServices(services)} {}
+
+StaticNodeService::StaticNodeService(DataServices data_services)
+    : data_services_{std::move(data_services)} {}
+
 void StaticNodeService::Add(scada::NodeState node_state) {
   assert(!node_state.node_id.is_null());
   assert(scada::IsInstance(node_state.node_class) ^

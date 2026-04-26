@@ -88,10 +88,6 @@ class TimedDataTest : public Test {
        .alias_resolver_ = alias_resolver_.AsStdFunction(),
        .node_service_ = node_service_,
        .data_services_ = MakeTimedDataServices(history_service_),
-       .services_ = {.attribute_service = &attribute_service_,
-                     .monitored_item_service = &monitored_item_service_,
-                     .method_service = &method_service_,
-                     .history_service = &history_service_},
        .node_event_provider_ = node_event_provider_}};
 
   const std::shared_ptr<scada::VariableHandle> node_value_variable_ =
@@ -224,15 +220,15 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   EXPECT_TRUE(spec.range_ready({from, to}));
 }
 
-TEST_F(TimedDataTest, LegacyFactoryServicesNormalizeToDataServicesAdapter) {
+TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
-  auto service = CreateTimedDataService(
-      TimedDataContext{.executor_ = MakeTestAnyExecutor(executor_),
-                       .alias_resolver_ = alias_resolver_.AsStdFunction(),
-                       .node_service_ = node_service_,
-                       .services_ = {.history_service = &history_service_},
-                       .node_event_provider_ = node_event_provider_});
+  auto service = CreateTimedDataService(TimedDataContext{
+      .executor_ = MakeTestAnyExecutor(executor_),
+      .alias_resolver_ = alias_resolver_.AsStdFunction(),
+      .node_service_ = node_service_,
+      .data_services_ = MakeTimedDataServices(history_service_),
+      .node_event_provider_ = node_event_provider_});
 
   EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
       .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,

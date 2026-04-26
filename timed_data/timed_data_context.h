@@ -4,7 +4,6 @@
 #include "common/aliases.h"
 #include "scada/data_services.h"
 #include "scada/node_id.h"
-#include "scada/services.h"
 
 #include <memory>
 
@@ -20,7 +19,6 @@ struct TimedDataContext {
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
   DataServices data_services_;
-  const scada::services services_;
   std::shared_ptr<scada::CoroutineHistoryService> history_service_;
   NodeEventProvider& node_event_provider_;
 };

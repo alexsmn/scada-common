@@ -10,6 +10,7 @@
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
 #include "node_service/v1/address_space_method_service.h"
+#include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/monitored_item_service_mock.h"
 
@@ -123,6 +124,39 @@ struct StaticNodeServiceTestContext {
 
   StaticNodeService node_service{};
 };
+
+TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
+  auto executor = std::make_shared<TestExecutor>();
+  StrictMock<scada::MockAttributeService> attribute_service;
+  DataServices data_services;
+  data_services.attribute_service_ = std::shared_ptr<scada::AttributeService>{
+      std::shared_ptr<void>{}, &attribute_service};
+  StaticNodeService node_service{std::move(data_services)};
+  const scada::NodeId node_id{1, 2};
+  const scada::Variant expected_value{scada::Int32{42}};
+
+  node_service.Add({.node_id = node_id,
+                    .node_class = scada::NodeClass::Variable,
+                    .type_definition_id = scada::id::BaseVariableType});
+
+  EXPECT_CALL(attribute_service, Read(_, _, _))
+      .WillOnce(
+          [&](const scada::ServiceContext&,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
+              const scada::ReadCallback& callback) {
+            ASSERT_EQ(inputs->size(), 1u);
+            EXPECT_EQ((*inputs)[0].node_id, node_id);
+            EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
+            callback(scada::StatusCode::Good,
+                     {scada::DataValue{expected_value, {}, {}, {}}});
+          });
+
+  auto result = WaitPromise(
+      executor, node_service.GetNode(node_id).scada_node().read_value());
+
+  EXPECT_EQ(result.value, expected_value);
+}
 
 template <class NodeServiceImpl>
 class NodeServiceTest : public Test {

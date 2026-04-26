@@ -100,7 +100,7 @@ scada::node StaticNodeModel::GetScadaNode() const {
   const auto node_id_attr = GetAttribute(scada::AttributeId::NodeId);
   const auto& node_id = node_id_attr.as_node_id();
   if (!node_id.is_null()) {
-    return scada::client{service_.services_}.node(node_id);
+    return scada::client{service_.data_services_.as_services()}.node(node_id);
   } else {
     return {};
   }

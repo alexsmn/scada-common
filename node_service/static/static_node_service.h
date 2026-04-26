@@ -2,6 +2,7 @@
 
 #include "common/node_state.h"
 #include "node_service/node_service.h"
+#include "scada/data_services.h"
 
 #include <set>
 
@@ -9,8 +10,9 @@ class StaticNodeModel;
 
 class StaticNodeService final : public NodeService {
  public:
-  explicit StaticNodeService(scada::services services = {})
-      : services_{std::move(services)} {}
+  StaticNodeService();
+  explicit StaticNodeService(scada::services services);
+  explicit StaticNodeService(DataServices data_services);
 
   void Add(scada::NodeState node_state);
   void AddAll(std::span<const scada::NodeState> node_states);
@@ -42,7 +44,7 @@ class StaticNodeService final : public NodeService {
   const std::set<scada::ReferenceDescription>& inverse_references(
       const scada::NodeId& node_id) const;
 
-  scada::services services_;
+  DataServices data_services_;
 
   std::unordered_map<scada::NodeId, std::shared_ptr<const StaticNodeModel>>
       nodes_;
