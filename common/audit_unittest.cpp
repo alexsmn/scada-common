@@ -89,17 +89,21 @@ bool HasMetric(const Metrics& metrics, const std::string& name) {
   return metrics.ToUnorderedMap().contains(name);
 }
 
+DataServices MakeAuditDataServices(const scada::services& services) {
+  return DataServices::FromUnownedServices(services);
+}
+
 TEST(AuditTest, CallbackReadUsesCoroutineAdapterAndRecordsMetric) {
   auto executor = std::make_shared<TestExecutor>();
   CapturingMetricService metric_service;
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();
   scada::services services{.attribute_service = attribute_service.get()};
-  auto audit =
-      Audit::Create(AuditContext{.metric_service_ = metric_service,
-                                 .services_ = services,
-                                 .tracer_ = Tracer::None(),
-                                 .executor_ = MakeTestAnyExecutor(executor)});
+  auto audit = Audit::Create(
+      AuditContext{.metric_service_ = metric_service,
+                   .data_services_ = MakeAuditDataServices(services),
+                   .tracer_ = Tracer::None(),
+                   .executor_ = MakeTestAnyExecutor(executor)});
 
   scada::ReadCallback pending_read;
   EXPECT_CALL(*attribute_service, Read(_, _, _))
@@ -135,11 +139,11 @@ TEST(AuditTest, CoroutineBrowseUsesCallbackAdapterAndRecordsMetric) {
   CapturingMetricService metric_service;
   auto view_service = std::make_shared<StrictMock<scada::MockViewService>>();
   scada::services services{.view_service = view_service.get()};
-  auto audit =
-      Audit::Create(AuditContext{.metric_service_ = metric_service,
-                                 .services_ = services,
-                                 .tracer_ = Tracer::None(),
-                                 .executor_ = MakeTestAnyExecutor(executor)});
+  auto audit = Audit::Create(
+      AuditContext{.metric_service_ = metric_service,
+                   .data_services_ = MakeAuditDataServices(services),
+                   .tracer_ = Tracer::None(),
+                   .executor_ = MakeTestAnyExecutor(executor)});
 
   scada::BrowseCallback pending_browse;
   EXPECT_CALL(*view_service, Browse(_, _, _))

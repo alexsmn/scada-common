@@ -11,15 +11,6 @@
 
 namespace {
 
-bool HasAuditDataServices(const DataServices& services) {
-  return services.attribute_service_ || services.coroutine_attribute_service_ ||
-         services.view_service_ || services.coroutine_view_service_;
-}
-
-bool HasAuditLegacyServices(const scada::services& services) {
-  return services.attribute_service || services.view_service;
-}
-
 std::shared_ptr<scada::services> AuditScadaServicesImpl(
     const std::shared_ptr<const scada::services>& services,
     MetricService& metric_service,
@@ -35,7 +26,6 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
           audit_{Audit::Create(AuditContext{
               .metric_service_ = metric_service,
               .data_services_ = DataServices::FromSharedServices(services_),
-              .services_ = *services_,
               .tracer_ = tracer,
               .executor_ = std::move(executor)})},
           audited_services_{*services_} {
@@ -69,10 +59,8 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
            Tracer& tracer,
            AnyExecutor executor)
         : services_{std::move(services)} {
-      auto raw_services = services_.as_services();
       audit_ = Audit::Create(AuditContext{.metric_service_ = metric_service,
                                           .data_services_ = services_,
-                                          .services_ = raw_services,
                                           .tracer_ = tracer,
                                           .executor_ = std::move(executor)});
       audited_services_ = services_;
@@ -130,10 +118,6 @@ Audit::Audit(AuditContext&& context)
     : AuditContext{std::move(context)},
       concurrent_read_count_{0},
       concurrent_browse_count_{0} {
-  if (!HasAuditDataServices(data_services_) &&
-      HasAuditLegacyServices(services_))
-    data_services_ = DataServices::FromUnownedServices(services_);
-
   RefreshCoroutineServices();
 }
 

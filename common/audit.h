@@ -2,9 +2,9 @@
 
 #include "base/any_executor.h"
 #include "metrics/aggregated_metric.h"
-#include "scada/data_services.h"
 #include "scada/attribute_service.h"
 #include "scada/coroutine_services.h"
+#include "scada/data_services.h"
 #include "scada/services.h"
 #include "scada/view_service.h"
 
@@ -23,7 +23,6 @@ class Tracer;
 struct AuditContext {
   MetricService& metric_service_;
   DataServices data_services_;
-  scada::services services_;
   Tracer& tracer_;
   std::optional<AnyExecutor> executor_;
 };
@@ -115,8 +114,7 @@ std::shared_ptr<scada::services> AuditScadaServices(
     Tracer& tracer,
     AnyExecutor executor);
 
-std::shared_ptr<DataServices> AuditDataServices(
-    DataServices services,
-    MetricService& metric_service,
-    Tracer& tracer,
-    AnyExecutor executor);
+std::shared_ptr<DataServices> AuditDataServices(DataServices services,
+                                                MetricService& metric_service,
+                                                Tracer& tracer,
+                                                AnyExecutor executor);

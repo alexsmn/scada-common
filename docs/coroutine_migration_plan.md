@@ -294,3 +294,7 @@ each slice is touched.
   field; timed-data construction resolves history only through explicit
   `DataServices` or direct coroutine history context, and tests cover callback
   history adaptation from the aggregate boundary.
+- `AuditContext` no longer carries a parallel legacy `scada::services` field;
+  legacy audit construction converts callback services to `DataServices` before
+  creating `Audit`, and common tests construct audited callback adapters through
+  the aggregate boundary.
