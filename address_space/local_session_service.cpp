@@ -51,4 +51,51 @@ SessionDebugger* LocalSessionService::GetSessionDebugger() {
   return nullptr;
 }
 
+LocalCoroutineSessionService::LocalCoroutineSessionService() = default;
+LocalCoroutineSessionService::~LocalCoroutineSessionService() = default;
+
+Awaitable<void> LocalCoroutineSessionService::Connect(
+    SessionConnectParams /*params*/) {
+  co_return;
+}
+
+Awaitable<void> LocalCoroutineSessionService::Reconnect() {
+  co_return;
+}
+
+Awaitable<void> LocalCoroutineSessionService::Disconnect() {
+  co_return;
+}
+
+bool LocalCoroutineSessionService::IsConnected(
+    base::TimeDelta* /*ping_delay*/) const {
+  return true;
+}
+
+NodeId LocalCoroutineSessionService::GetUserId() const {
+  return {};
+}
+
+bool LocalCoroutineSessionService::HasPrivilege(Privilege /*privilege*/) const {
+  return true;
+}
+
+std::string LocalCoroutineSessionService::GetHostName() const {
+  return "local";
+}
+
+bool LocalCoroutineSessionService::IsScada() const {
+  return true;
+}
+
+boost::signals2::scoped_connection
+LocalCoroutineSessionService::SubscribeSessionStateChanged(
+    const SessionStateChangedCallback& /*callback*/) {
+  return {};
+}
+
+SessionDebugger* LocalCoroutineSessionService::GetSessionDebugger() {
+  return nullptr;
+}
+
 }  // namespace scada

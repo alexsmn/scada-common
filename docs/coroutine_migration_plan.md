@@ -172,6 +172,10 @@ each slice is touched.
 - Local address-space history service now exposes `CoroutineHistoryService`
   directly while preserving the callback API; coroutine tests cover generated
   raw profiles and stored event reads.
+- Local address-space session fixtures now have a direct
+  `LocalCoroutineSessionService` implementation for connected in-memory
+  sessions; coroutine tests cover lifecycle completion and local session
+  metadata without routing through a promise adapter.
 - Address-space method service implementation now exposes
   `CoroutineMethodService` directly while preserving its callback helper;
   coroutine tests cover the built-in wrong-method-id result.

@@ -1,7 +1,8 @@
 #include "address_space/address_space_impl.h"
-#include "address_space/local_method_service.h"
 #include "address_space/local_history_service.h"
+#include "address_space/local_method_service.h"
 #include "address_space/local_node_management_service.h"
+#include "address_space/local_session_service.h"
 #include "address_space/method_service_impl.h"
 
 #include "base/test/awaitable_test.h"
@@ -11,6 +12,26 @@
 
 namespace scada {
 namespace {
+
+TEST(LocalCoroutineSessionService, LifecycleOperationsComplete) {
+  const auto executor = std::make_shared<TestExecutor>();
+  LocalCoroutineSessionService service;
+
+  EXPECT_NO_THROW(WaitAwaitable(executor, service.Connect({})));
+  EXPECT_NO_THROW(WaitAwaitable(executor, service.Reconnect()));
+  EXPECT_NO_THROW(WaitAwaitable(executor, service.Disconnect()));
+}
+
+TEST(LocalCoroutineSessionService, ReportsConnectedLocalSession) {
+  LocalCoroutineSessionService service;
+
+  EXPECT_TRUE(service.IsConnected());
+  EXPECT_TRUE(service.HasPrivilege(Privilege::Configure));
+  EXPECT_TRUE(service.IsScada());
+  EXPECT_EQ(service.GetUserId(), NodeId{});
+  EXPECT_EQ(service.GetHostName(), "local");
+  EXPECT_EQ(service.GetSessionDebugger(), nullptr);
+}
 
 TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
   const auto executor = std::make_shared<TestExecutor>();
