@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "scada/data_services.h"
 #include "scada/services.h"
 
 #include <memory>
@@ -19,6 +20,8 @@ struct EventFetcherBuilder {
 
   AnyExecutor executor_;
   std::shared_ptr<const Logger> logger_;
+
+  DataServices data_services_;
 
   // TODO: Switch to `scada::client`.
   scada::services services_;

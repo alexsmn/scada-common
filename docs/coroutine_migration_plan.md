@@ -239,3 +239,9 @@ each slice is touched.
   prefers those slots before callback dynamic-casts or adapters. Common tests
   cover callback and coroutine aggregate APIs with only direct coroutine slots
   installed.
+- `EventFetcherBuilder` now accepts the coroutine-capable `DataServices`
+  aggregate and resolves direct coroutine session/history/method services
+  before falling back to legacy callback adapters; the legacy `scada::services`
+  field remains as a compatibility path. Events tests cover history refresh
+  through the non-coroutine builder with only direct coroutine service slots
+  installed.

@@ -141,6 +141,44 @@ TEST(CoroutineEventFetcherBuilder,
   EXPECT_TRUE(fetcher->IsAlerting(node_id));
 }
 
+TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
+  const auto executor = std::make_shared<TestExecutor>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  TestCoroutineHistoryService history_service;
+  TestCoroutineMethodService method_service;
+  TestCoroutineSessionService session_service;
+  const scada::NodeId node_id{44, 100};
+  history_service.result.events = {MakeEvent(14, node_id)};
+
+  EXPECT_CALL(*monitored_item_service.default_monitored_item,
+              Subscribe(VariantWith<scada::EventHandler>(_)));
+
+  DataServices data_services;
+  data_services.monitored_item_service_ =
+      std::shared_ptr<scada::MonitoredItemService>{
+          std::shared_ptr<void>{}, &monitored_item_service};
+  data_services.coroutine_history_service_ =
+      std::shared_ptr<scada::CoroutineHistoryService>{std::shared_ptr<void>{},
+                                                      &history_service};
+  data_services.coroutine_method_service_ =
+      std::shared_ptr<scada::CoroutineMethodService>{std::shared_ptr<void>{},
+                                                     &method_service};
+  data_services.coroutine_session_service_ =
+      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+                                                      &session_service};
+
+  auto fetcher = EventFetcherBuilder{
+      .executor_ = MakeTestAnyExecutor(executor),
+      .logger_ = NullLogger::GetInstance(),
+      .data_services_ = std::move(data_services)}
+                     .Build();
+
+  DrainExecutor(executor);
+
+  EXPECT_EQ(history_service.read_events_count, 1);
+  EXPECT_TRUE(fetcher->IsAlerting(node_id));
+}
+
 TEST(CoroutineEventFetcherBuilder,
      AcknowledgeUsesCoroutineMethodServiceAndSessionUser) {
   const auto executor = std::make_shared<TestExecutor>();

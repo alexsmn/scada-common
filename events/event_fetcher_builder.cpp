@@ -6,6 +6,7 @@
 #include "events/event_storage.h"
 #include "common/coroutine_session_proxy_notifier.h"
 #include "scada/coroutine_services.h"
+#include "scada/monitored_item_service.h"
 
 namespace internal {
 
@@ -22,38 +23,112 @@ struct EventFetcherHolderBase {
   EventStorage event_storage_;
 };
 
+DataServices ResolveDataServices(EventFetcherBuilder& builder) {
+  if (builder.data_services_.session_service_ ||
+      builder.data_services_.view_service_ ||
+      builder.data_services_.node_management_service_ ||
+      builder.data_services_.history_service_ ||
+      builder.data_services_.attribute_service_ ||
+      builder.data_services_.method_service_ ||
+      builder.data_services_.monitored_item_service_ ||
+      builder.data_services_.coroutine_session_service_ ||
+      builder.data_services_.coroutine_view_service_ ||
+      builder.data_services_.coroutine_node_management_service_ ||
+      builder.data_services_.coroutine_history_service_ ||
+      builder.data_services_.coroutine_attribute_service_ ||
+      builder.data_services_.coroutine_method_service_) {
+    return std::move(builder.data_services_);
+  }
+
+  return DataServices::FromUnownedServices(builder.services_);
+}
+
+struct EventFetcherServices {
+  EventFetcherServices(AnyExecutor executor, EventFetcherBuilder& builder)
+      : data_services_{ResolveDataServices(builder)} {
+    monitored_item_service_ = data_services_.monitored_item_service_.get();
+
+    history_service_ = data_services_.coroutine_history_service_.get();
+    if (!history_service_ && data_services_.history_service_) {
+      if (auto* service = dynamic_cast<scada::CoroutineHistoryService*>(
+              data_services_.history_service_.get())) {
+        history_service_ = service;
+      } else {
+        history_service_adapter_ =
+            std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
+                executor, *data_services_.history_service_);
+        history_service_ = history_service_adapter_.get();
+      }
+    }
+
+    method_service_ = data_services_.coroutine_method_service_.get();
+    if (!method_service_ && data_services_.method_service_) {
+      if (auto* service = dynamic_cast<scada::CoroutineMethodService*>(
+              data_services_.method_service_.get())) {
+        method_service_ = service;
+      } else {
+        method_service_adapter_ =
+            std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
+                executor, *data_services_.method_service_);
+        method_service_ = method_service_adapter_.get();
+      }
+    }
+
+    session_service_ = data_services_.coroutine_session_service_.get();
+    if (!session_service_ && data_services_.session_service_) {
+      if (auto* service = dynamic_cast<scada::CoroutineSessionService*>(
+              data_services_.session_service_.get())) {
+        session_service_ = service;
+      } else {
+        session_service_adapter_ =
+            std::make_unique<scada::PromiseToCoroutineSessionServiceAdapter>(
+                executor, *data_services_.session_service_);
+        session_service_ = session_service_adapter_.get();
+      }
+    }
+
+    assert(monitored_item_service_);
+    assert(history_service_);
+    assert(method_service_);
+    assert(session_service_);
+  }
+
+  DataServices data_services_;
+  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
+      history_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
+      method_service_adapter_;
+  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
+      session_service_adapter_;
+  scada::MonitoredItemService* monitored_item_service_ = nullptr;
+  scada::CoroutineHistoryService* history_service_ = nullptr;
+  scada::CoroutineMethodService* method_service_ = nullptr;
+  scada::CoroutineSessionService* session_service_ = nullptr;
+};
+
 struct EventFetcherHolder : EventFetcherHolderBase {
   explicit EventFetcherHolder(EventFetcherBuilder&& builder)
       : EventFetcherHolderBase{std::move(builder.executor_),
                                std::move(builder.logger_)},
-        services_{builder.services_} {}
+        services_{executor_, builder} {}
 
-  scada::services services_;
-
-  scada::CallbackToCoroutineMethodServiceAdapter method_service_{
-      executor_, *services_.method_service};
+  EventFetcherServices services_;
 
   EventAckQueue event_ack_queue_{
       EventAckQueueContext{.logger_ = nested_logger_,
                            .executor_ = executor_,
-                           .method_service_ = method_service_}};
-
-  scada::CallbackToCoroutineHistoryServiceAdapter history_service_{
-      executor_, *services_.history_service};
-
-  scada::PromiseToCoroutineSessionServiceAdapter session_service_{
-      executor_, *services_.session_service};
+                           .method_service_ = *services_.method_service_}};
 
   EventFetcher event_fetcher_{EventFetcherContext{
       .executor_ = executor_,
-      .monitored_item_service_ = *services_.monitored_item_service,
-      .history_service_ = history_service_,
+      .monitored_item_service_ = *services_.monitored_item_service_,
+      .history_service_ = *services_.history_service_,
       .logger_ = nested_logger_,
       .event_storage_ = event_storage_,
       .event_ack_queue_ = event_ack_queue_}};
 
   CoroutineSessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
-      event_fetcher_, session_service_};
+      event_fetcher_, *services_.session_service_};
 };
 
 struct CoroutineEventFetcherHolder : EventFetcherHolderBase {
