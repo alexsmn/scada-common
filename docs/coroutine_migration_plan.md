@@ -116,6 +116,12 @@ each slice is touched.
   weak coroutine dispatch helper instead of capturing raw session state in each
   wrapper; OPC UA tests cover all callback wrappers and destroyed-session
   callback suppression.
+- `ClientSession` now exposes an owned `CoroutineSessionService` facade over
+  its coroutine lifecycle methods and session metadata, keeping legacy
+  `SessionService` inheritance separate from the conflicting coroutine
+  lifecycle method names; OPC UA tests cover invalid endpoint rejection,
+  disconnected metadata, session-state subscription, and successful connect
+  through the facade.
 - `ClientSubscription` lazy subscription and monitored-item operations now run
   through weak coroutine tasks that keep subscription state alive across awaits;
   pending monitored-item subscriptions are queued until server subscription

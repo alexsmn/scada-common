@@ -262,6 +262,78 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsLegacyPromiseWithStatus) {
   }
 }
 
+TEST_F(ClientSessionTest, CoroutineSessionServiceRejectsInvalidEndpoint) {
+  auto session = std::make_shared<ClientSession>(executor_,
+                                                     transport_factory_);
+  auto& coroutine_session = session->coroutine_session_service();
+
+  try {
+    WaitAwaitable(executor_, coroutine_session.Connect(
+                                 {.connection_string = "http://host"}));
+    FAIL() << "CoroutineSessionService Connect unexpectedly succeeded";
+  } catch (const scada::status_exception& e) {
+    EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
+  }
+}
+
+TEST_F(ClientSessionTest, CoroutineSessionServiceReportsDisconnectedMetadata) {
+  auto session = std::make_shared<ClientSession>(executor_,
+                                                     transport_factory_);
+  auto& coroutine_session = session->coroutine_session_service();
+
+  base::TimeDelta ping_delay;
+  EXPECT_FALSE(coroutine_session.IsConnected(&ping_delay));
+  EXPECT_TRUE(ping_delay.is_zero());
+  EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_FALSE(coroutine_session.IsScada());
+  EXPECT_EQ(coroutine_session.GetUserId(), scada::NodeId{});
+  EXPECT_EQ(coroutine_session.GetHostName(), "");
+  EXPECT_EQ(coroutine_session.GetSessionDebugger(), nullptr);
+
+  EXPECT_NO_THROW(WaitAwaitable(executor_, coroutine_session.Reconnect()));
+  EXPECT_NO_THROW(WaitAwaitable(executor_, coroutine_session.Disconnect()));
+}
+
+TEST_F(ClientSessionTest, CoroutineSessionServiceConnectsClientSession) {
+  auto state = std::make_shared<ScriptedState>();
+  PrimeConnectAndOpen(state);
+  PrimeSessionEstablishment(state);
+
+  ScriptedTransportFactory transport_factory{state};
+  auto session = std::make_shared<ClientSession>(executor_,
+                                                 transport_factory);
+  auto& coroutine_session = session->coroutine_session_service();
+
+  bool state_changed = false;
+  auto subscription = coroutine_session.SubscribeSessionStateChanged(
+      [&](bool connected, const scada::Status& status) {
+        state_changed = true;
+        EXPECT_TRUE(connected);
+        EXPECT_EQ(status.code(), scada::StatusCode::Good);
+      });
+
+  ASSERT_NO_THROW(WaitAwaitable(
+      executor_, coroutine_session.Connect({.host = "localhost:4840"})));
+
+  EXPECT_TRUE(state_changed);
+  EXPECT_TRUE(coroutine_session.IsConnected());
+  EXPECT_TRUE(session->IsConnected());
+
+  const auto requests = DecodeServiceRequests(state->writes);
+  EXPECT_NE(std::ranges::find_if(requests,
+                                 [](const opcua::RequestBody& body) {
+                                   return std::holds_alternative<
+                                       opcua::CreateSessionRequest>(body);
+                                 }),
+            requests.end());
+  EXPECT_NE(std::ranges::find_if(requests,
+                                 [](const opcua::RequestBody& body) {
+                                   return std::holds_alternative<
+                                       opcua::ActivateSessionRequest>(body);
+                                 }),
+            requests.end());
+}
+
 TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);

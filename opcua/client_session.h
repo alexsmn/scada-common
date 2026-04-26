@@ -67,6 +67,8 @@ class ClientSession final
   [[nodiscard]] Awaitable<void> DisconnectAsync();
   [[nodiscard]] Awaitable<void> ReconnectAsync();
 
+  [[nodiscard]] scada::CoroutineSessionService& coroutine_session_service();
+
   // scada::ViewService
   void Browse(const scada::ServiceContext& context,
               const std::vector<scada::BrowseDescription>& nodes,
@@ -129,6 +131,8 @@ class ClientSession final
   [[nodiscard]] bool is_connected() const { return is_connected_; }
 
  private:
+  class CoroutineSessionAdapter;
+
   // Internal teardown on error or Disconnect.
   void Reset();
 
@@ -165,6 +169,8 @@ class ClientSession final
 
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed_;
+
+  std::unique_ptr<CoroutineSessionAdapter> coroutine_session_service_;
 };
 
 }  // namespace opcua

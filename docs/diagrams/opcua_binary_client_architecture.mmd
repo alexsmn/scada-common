@@ -22,7 +22,7 @@
 flowchart TB
     subgraph Consumers["Outbound-client adapters"]
         direction TB
-        QT["<b>ClientSession</b><br/>scada::SessionService / ViewService /<br/>AttributeService / MonitoredItemService /<br/>MethodService"]
+        QT["<b>ClientSession</b><br/>scada::SessionService / ViewService /<br/>AttributeService / MonitoredItemService /<br/>MethodService<br/>CoroutineSessionService facade"]
         OTHER["<b>Other OPC UA callers</b><br/>future"]
     end
 

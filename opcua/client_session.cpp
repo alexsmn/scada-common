@@ -41,6 +41,57 @@ void DispatchLegacyCallback(const AnyExecutor& executor,
 
 }  // namespace
 
+class ClientSession::CoroutineSessionAdapter final
+    : public scada::CoroutineSessionService {
+ public:
+  explicit CoroutineSessionAdapter(ClientSession& session)
+      : session_{session} {}
+
+  Awaitable<void> Connect(scada::SessionConnectParams params) override {
+    co_await session_.ConnectAsync(std::move(params));
+  }
+
+  Awaitable<void> Reconnect() override {
+    co_await session_.ReconnectAsync();
+  }
+
+  Awaitable<void> Disconnect() override {
+    co_await session_.DisconnectAsync();
+  }
+
+  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+    return session_.IsConnected(ping_delay);
+  }
+
+  scada::NodeId GetUserId() const override {
+    return session_.GetUserId();
+  }
+
+  bool HasPrivilege(scada::Privilege privilege) const override {
+    return session_.HasPrivilege(privilege);
+  }
+
+  std::string GetHostName() const override {
+    return session_.GetHostName();
+  }
+
+  bool IsScada() const override {
+    return session_.IsScada();
+  }
+
+  boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override {
+    return session_.SubscribeSessionStateChanged(callback);
+  }
+
+  scada::SessionDebugger* GetSessionDebugger() override {
+    return session_.GetSessionDebugger();
+  }
+
+ private:
+  ClientSession& session_;
+};
+
 // static
 ClientSession::ParsedEndpoint
 ClientSession::ParseEndpointUrl(const std::string& url) {
@@ -87,7 +138,9 @@ ClientSession::ClientSession(
     transport::TransportFactory& transport_factory)
     : executor_{std::move(executor)},
       any_executor_{MakeAnyExecutor(executor_)},
-      transport_factory_{transport_factory} {}
+      transport_factory_{transport_factory} {
+  coroutine_session_service_ = std::make_unique<CoroutineSessionAdapter>(*this);
+}
 
 ClientSession::~ClientSession() = default;
 
@@ -181,6 +234,10 @@ Awaitable<void> ClientSession::DisconnectAsync() {
 
 Awaitable<void> ClientSession::ReconnectAsync() {
   co_return;
+}
+
+scada::CoroutineSessionService& ClientSession::coroutine_session_service() {
+  return *coroutine_session_service_;
 }
 
 bool ClientSession::IsConnected(base::TimeDelta* ping_delay) const {

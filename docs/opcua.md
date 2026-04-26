@@ -165,7 +165,11 @@ interfaces (`SessionService`, `ViewService`, `AttributeService`,
 `MonitoredItemService`, `MethodService`) on top of the native client stack
 above. Lifecycle and service-call internals are coroutine-native; the
 legacy promise/callback interfaces delegate into `Awaitable` methods at the
-compatibility boundary.
+compatibility boundary. Because `SessionService` and
+`CoroutineSessionService` both define no-argument `Disconnect` and
+`Reconnect` methods with different return types, `ClientSession` exposes its
+coroutine session surface through an owned `coroutine_session_service()`
+facade instead of inheriting both interfaces directly.
 
 Responsibilities:
 
@@ -175,8 +179,9 @@ Responsibilities:
   `ClientProtocolSession::Create()` (connection.Open → CreateSession →
   ActivateSession)
 - expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
-  `CoroutineViewService`, `CoroutineAttributeService`, and
-  `CoroutineMethodService` methods for awaitable-first callers
+  `CoroutineViewService`, `CoroutineAttributeService`,
+  `CoroutineMethodService`, and an owned `CoroutineSessionService` facade for
+  awaitable-first callers
 - keep legacy `SessionService` promises and callback services as thin
   wrappers over those awaitable bodies
 - fan `session_state_changed` transitions out through
