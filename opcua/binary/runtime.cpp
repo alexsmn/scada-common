@@ -52,22 +52,26 @@ template <typename Request>
 concept AuthenticatedRequest =
     requires { typename AuthenticatedResponse<Request>; };
 
+DataServicesRuntimeContext MakeDataServicesRuntimeContext(
+    RuntimeContext&& context) {
+  return DataServicesRuntimeContext{
+      .executor = std::move(context.executor),
+      .session_manager = context.session_manager,
+      .data_services = DataServices::FromUnownedServices(scada::services{
+          .attribute_service = &context.attribute_service,
+          .monitored_item_service = &context.monitored_item_service,
+          .method_service = &context.method_service,
+          .history_service = &context.history_service,
+          .view_service = &context.view_service,
+          .node_management_service = &context.node_management_service}),
+      .now = std::move(context.now)};
+}
+
 #undef OPCUA_BINARY_AUTHENTICATED_REQUESTS
 }  // namespace
 
 Runtime::Runtime(RuntimeContext&& context)
-    : session_manager_{context.session_manager},
-      runtime_{ServerRuntimeContext{
-          .executor = context.executor,
-          .session_manager = context.session_manager,
-          .monitored_item_service = context.monitored_item_service,
-          .attribute_service = context.attribute_service,
-          .view_service = context.view_service,
-          .history_service = context.history_service,
-          .method_service = context.method_service,
-          .node_management_service = context.node_management_service,
-          .now = std::move(context.now),
-      }} {}
+    : Runtime{MakeDataServicesRuntimeContext(std::move(context))} {}
 
 Runtime::Runtime(CoroutineRuntimeContext&& context)
     : session_manager_{context.session_manager},

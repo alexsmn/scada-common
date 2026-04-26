@@ -108,6 +108,35 @@ TEST_F(RuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
   test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
 }
 
+TEST_F(RuntimeTest,
+       LegacyCallbackContextRoutesDelayedReadThroughNormalizedDataServices) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  const ReadRequest request{
+      .inputs = {{.node_id = test::NumericNode(908),
+                  .attribute_id = scada::AttributeId::Value}}};
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+      .WillOnce(testing::Invoke(
+          [&](const scada::ServiceContext& context,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
+                  inputs,
+              const scada::ReadCallback& callback) {
+            EXPECT_EQ(context.user_id(), expected_user_id_);
+            EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
+            executor_->PostTask([callback, now = now_] {
+              callback(scada::StatusCode::Good,
+                       {scada::DataValue{scada::Variant{908.0}, {}, now, now}});
+            });
+          }));
+
+  const auto response = HandleResponse<ReadResponse>(connection, request);
+
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(response.results.size(), 1u);
+  EXPECT_EQ(response.results[0].value, scada::Variant{908.0});
+}
+
 TEST_F(RuntimeTest, RoutesWriteRequestsThroughActivatedSessionUser) {
   test::ExpectRoutesWriteRequestsThroughActivatedSessionUser(*this);
 }

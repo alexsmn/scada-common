@@ -324,3 +324,7 @@ each slice is touched.
   `DataServicesServerRuntimeContext`, so callback and aggregate runtime paths
   share the same coroutine service resolver and adapter ownership; runtime
   tests cover delayed read completion through that legacy-normalized path.
+- OPC UA binary `Runtime` legacy callback construction now normalizes through
+  `DataServicesRuntimeContext` before creating the shared server runtime,
+  keeping binary framing separate from service adapter ownership; binary
+  runtime tests cover delayed read completion through the normalized path.
