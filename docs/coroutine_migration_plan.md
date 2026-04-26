@@ -336,3 +336,7 @@ each slice is touched.
   coroutine-to-callback adapter creation used by aggregate services, and
   `MasterDataServices` reuses that helper for attribute, view, method, history,
   and node-management callback compatibility adapters.
+- Event-fetcher and node-service aggregate construction now require their
+  coroutine service dependencies through the shared resolver instead of
+  relying on post-resolution assertions; focused tests cover incomplete
+  `DataServices` aggregates failing explicitly.

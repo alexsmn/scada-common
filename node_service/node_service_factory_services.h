@@ -5,7 +5,6 @@
 #include "node_service/node_service_factory.h"
 #include "scada/coroutine_services.h"
 
-#include <cassert>
 #include <memory>
 
 namespace node_service::internal {
@@ -32,22 +31,18 @@ inline DataServicesNodeServiceContext MakeDataServicesNodeServiceContext(
 struct ResolvedNodeServices {
   ResolvedNodeServices(AnyExecutor executor, DataServices&& data_services)
       : data_services_{std::move(data_services)} {
-    monitored_item_service = data_services_.monitored_item_service_.get();
+    monitored_item_service = &scada::service_resolver::RequireSharedService(
+        data_services_.monitored_item_service_);
 
-    session_service = scada::service_resolver::ResolveCoroutineService(
+    session_service = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_session_service_,
         data_services_.session_service_, session_service_adapter);
-    attribute_service = scada::service_resolver::ResolveCoroutineService(
+    attribute_service = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_attribute_service_,
         data_services_.attribute_service_, attribute_service_adapter);
-    view_service = scada::service_resolver::ResolveCoroutineService(
+    view_service = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_view_service_,
         data_services_.view_service_, view_service_adapter);
-
-    assert(session_service);
-    assert(attribute_service);
-    assert(view_service);
-    assert(monitored_item_service);
   }
 
   DataServices data_services_;

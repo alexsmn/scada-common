@@ -15,6 +15,8 @@
 
 #include <boost/signals2/signal.hpp>
 
+#include <stdexcept>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -223,6 +225,37 @@ TEST(NodeServiceFactory, V1DataServicesContextFetchesThroughCoroutineSlots) {
 
 TEST(NodeServiceFactory, V2DataServicesContextFetchesThroughCoroutineSlots) {
   ExpectDataServicesFactoryFetchesNode(/*use_v2=*/true);
+}
+
+TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
+  const auto executor = std::make_shared<TestExecutor>();
+  TestAddressSpace address_space;
+  TestCoroutineSessionService session_service;
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+
+  DataServices data_services;
+  data_services.coroutine_session_service_ =
+      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+                                                      &session_service};
+  data_services.coroutine_view_service_ =
+      std::shared_ptr<scada::CoroutineViewService>{
+          std::shared_ptr<void>{}, &address_space.view_service_impl};
+  data_services.monitored_item_service_ =
+      std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
+                                                   &monitored_item_service};
+
+  auto make_context = [&] {
+    return DataServicesNodeServiceContext{
+        .executor_ = MakeTestAnyExecutor(executor),
+        .service_context_ = scada::ServiceContext{},
+        .data_services_ = data_services,
+        .scada_client_ = {}};
+  };
+
+  EXPECT_THROW(CreateNodeService(make_context(), /*use_v2=*/false),
+               std::invalid_argument);
+  EXPECT_THROW(CreateNodeService(make_context(), /*use_v2=*/true),
+               std::invalid_argument);
 }
 
 TEST(NodeServiceFactory, V1LegacyContextNormalizesToDataServicesAdapters) {

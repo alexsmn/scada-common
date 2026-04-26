@@ -13,6 +13,8 @@
 
 #include <boost/signals2/signal.hpp>
 
+#include <stdexcept>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -183,6 +185,30 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
 
   EXPECT_EQ(history_service.read_events_count, 1);
   EXPECT_TRUE(fetcher->IsAlerting(node_id));
+}
+
+TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
+  const auto executor = std::make_shared<TestExecutor>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  TestCoroutineHistoryService history_service;
+  TestCoroutineSessionService session_service;
+
+  DataServices data_services;
+  data_services.monitored_item_service_ =
+      std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
+                                                   &monitored_item_service};
+  data_services.coroutine_history_service_ =
+      std::shared_ptr<scada::CoroutineHistoryService>{std::shared_ptr<void>{},
+                                                      &history_service};
+  data_services.coroutine_session_service_ =
+      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+                                                      &session_service};
+
+  EXPECT_THROW((EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
+                                    .logger_ = NullLogger::GetInstance(),
+                                    .data_services_ = std::move(data_services)}
+                    .Build()),
+               std::invalid_argument);
 }
 
 TEST(EventFetcherBuilder, LegacyServicesNormalizeToDataServicesAdapters) {

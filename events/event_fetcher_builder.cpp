@@ -35,22 +35,18 @@ void NormalizeLegacyServices(EventFetcherBuilder& builder) {
 struct EventFetcherServices {
   EventFetcherServices(AnyExecutor executor, EventFetcherBuilder& builder)
       : data_services_{std::move(builder.data_services_)} {
-    monitored_item_service_ = data_services_.monitored_item_service_.get();
+    monitored_item_service_ = &scada::service_resolver::RequireSharedService(
+        data_services_.monitored_item_service_);
 
-    history_service_ = scada::service_resolver::ResolveCoroutineService(
+    history_service_ = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_history_service_,
         data_services_.history_service_, history_service_adapter_);
-    method_service_ = scada::service_resolver::ResolveCoroutineService(
+    method_service_ = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_method_service_,
         data_services_.method_service_, method_service_adapter_);
-    session_service_ = scada::service_resolver::ResolveCoroutineService(
+    session_service_ = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_session_service_,
         data_services_.session_service_, session_service_adapter_);
-
-    assert(monitored_item_service_);
-    assert(history_service_);
-    assert(method_service_);
-    assert(session_service_);
   }
 
   DataServices data_services_;
