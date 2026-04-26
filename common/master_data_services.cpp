@@ -1,6 +1,7 @@
 #include "master_data_services.h"
 
 #include "base/awaitable_promise.h"
+#include "common/coroutine_service_resolver.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
@@ -194,108 +195,53 @@ void MasterDataServices::ResetCoroutineAdapters() {
 void MasterDataServices::RefreshCoroutineServices() {
   ResetCoroutineAdapters();
 
-  if (services_.coroutine_attribute_service_) {
-    coroutine_attribute_service_ = services_.coroutine_attribute_service_.get();
-  } else if (services_.attribute_service_) {
-    coroutine_attribute_service_ =
-        dynamic_cast<scada::CoroutineAttributeService*>(
-            services_.attribute_service_.get());
-    if (!coroutine_attribute_service_ && coroutine_executor_) {
-      attribute_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              *coroutine_executor_, *services_.attribute_service_);
-      coroutine_attribute_service_ = attribute_service_adapter_.get();
-    }
-  }
+  coroutine_attribute_service_ =
+      scada::service_resolver::ResolveCoroutineService(
+          coroutine_executor_, services_.coroutine_attribute_service_,
+          services_.attribute_service_, attribute_service_adapter_);
   if (coroutine_attribute_service_ && coroutine_executor_) {
     attribute_callback_adapter_ =
         std::make_unique<scada::CoroutineToCallbackAttributeServiceAdapter>(
             *coroutine_executor_, *coroutine_attribute_service_);
   }
 
-  if (services_.coroutine_view_service_) {
-    coroutine_view_service_ = services_.coroutine_view_service_.get();
-  } else if (services_.view_service_) {
-    coroutine_view_service_ = dynamic_cast<scada::CoroutineViewService*>(
-        services_.view_service_.get());
-    if (!coroutine_view_service_ && coroutine_executor_) {
-      view_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              *coroutine_executor_, *services_.view_service_);
-      coroutine_view_service_ = view_service_adapter_.get();
-    }
-  }
+  coroutine_view_service_ = scada::service_resolver::ResolveCoroutineService(
+      coroutine_executor_, services_.coroutine_view_service_,
+      services_.view_service_, view_service_adapter_);
   if (coroutine_view_service_ && coroutine_executor_) {
     view_callback_adapter_ =
         std::make_unique<scada::CoroutineToCallbackViewServiceAdapter>(
             *coroutine_executor_, *coroutine_view_service_);
   }
 
-  if (services_.coroutine_session_service_) {
-    coroutine_session_service_ = services_.coroutine_session_service_.get();
-  } else if (services_.session_service_) {
-    coroutine_session_service_ =
-        dynamic_cast<scada::CoroutineSessionService*>(
-            services_.session_service_.get());
-    if (!coroutine_session_service_ && coroutine_executor_) {
-      session_service_adapter_ =
-          std::make_unique<scada::PromiseToCoroutineSessionServiceAdapter>(
-              *coroutine_executor_, *services_.session_service_);
-      coroutine_session_service_ = session_service_adapter_.get();
-    }
-  }
+  coroutine_session_service_ =
+      scada::service_resolver::ResolveCoroutineService(
+          coroutine_executor_, services_.coroutine_session_service_,
+          services_.session_service_, session_service_adapter_);
 
-  if (services_.coroutine_method_service_) {
-    coroutine_method_service_ = services_.coroutine_method_service_.get();
-  } else if (services_.method_service_) {
-    coroutine_method_service_ = dynamic_cast<scada::CoroutineMethodService*>(
-        services_.method_service_.get());
-    if (!coroutine_method_service_ && coroutine_executor_) {
-      method_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
-              *coroutine_executor_, *services_.method_service_);
-      coroutine_method_service_ = method_service_adapter_.get();
-    }
-  }
+  coroutine_method_service_ = scada::service_resolver::ResolveCoroutineService(
+      coroutine_executor_, services_.coroutine_method_service_,
+      services_.method_service_, method_service_adapter_);
   if (coroutine_method_service_ && coroutine_executor_) {
     method_callback_adapter_ =
         std::make_unique<scada::CoroutineToCallbackMethodServiceAdapter>(
             *coroutine_executor_, *coroutine_method_service_);
   }
 
-  if (services_.coroutine_history_service_) {
-    coroutine_history_service_ = services_.coroutine_history_service_.get();
-  } else if (services_.history_service_) {
-    coroutine_history_service_ = dynamic_cast<scada::CoroutineHistoryService*>(
-        services_.history_service_.get());
-    if (!coroutine_history_service_ && coroutine_executor_) {
-      history_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
-              *coroutine_executor_, *services_.history_service_);
-      coroutine_history_service_ = history_service_adapter_.get();
-    }
-  }
+  coroutine_history_service_ =
+      scada::service_resolver::ResolveCoroutineService(
+          coroutine_executor_, services_.coroutine_history_service_,
+          services_.history_service_, history_service_adapter_);
   if (coroutine_history_service_ && coroutine_executor_) {
     history_callback_adapter_ =
         std::make_unique<scada::CoroutineToCallbackHistoryServiceAdapter>(
             *coroutine_executor_, *coroutine_history_service_);
   }
 
-  if (services_.coroutine_node_management_service_) {
-    coroutine_node_management_service_ =
-        services_.coroutine_node_management_service_.get();
-  } else if (services_.node_management_service_) {
-    coroutine_node_management_service_ =
-        dynamic_cast<scada::CoroutineNodeManagementService*>(
-            services_.node_management_service_.get());
-    if (!coroutine_node_management_service_ && coroutine_executor_) {
-      node_management_service_adapter_ = std::make_unique<
-          scada::CallbackToCoroutineNodeManagementServiceAdapter>(
-          *coroutine_executor_, *services_.node_management_service_);
-      coroutine_node_management_service_ =
-          node_management_service_adapter_.get();
-    }
-  }
+  coroutine_node_management_service_ =
+      scada::service_resolver::ResolveCoroutineService(
+          coroutine_executor_, services_.coroutine_node_management_service_,
+          services_.node_management_service_, node_management_service_adapter_);
   if (coroutine_node_management_service_ && coroutine_executor_) {
     node_management_callback_adapter_ = std::make_unique<
         scada::CoroutineToCallbackNodeManagementServiceAdapter>(

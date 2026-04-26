@@ -2,6 +2,7 @@
 
 #include "base/awaitable_promise.h"
 #include "base/promise_executor.h"
+#include "common/coroutine_service_resolver.h"
 #include "metrics/metric_service.h"
 #include "metrics/metrics.h"
 #include "metrics/tracing.h"
@@ -142,33 +143,13 @@ std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
 }
 
 void Audit::RefreshCoroutineServices() {
-  if (data_services_.coroutine_attribute_service_) {
-    coroutine_attribute_service_ =
-        data_services_.coroutine_attribute_service_.get();
-  } else if (data_services_.attribute_service_) {
-    coroutine_attribute_service_ =
-        dynamic_cast<scada::CoroutineAttributeService*>(
-            data_services_.attribute_service_.get());
-    if (!coroutine_attribute_service_ && executor_) {
-      attribute_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
-              *executor_, *data_services_.attribute_service_);
-      coroutine_attribute_service_ = attribute_service_adapter_.get();
-    }
-  }
-
-  if (data_services_.coroutine_view_service_) {
-    coroutine_view_service_ = data_services_.coroutine_view_service_.get();
-  } else if (data_services_.view_service_) {
-    coroutine_view_service_ = dynamic_cast<scada::CoroutineViewService*>(
-        data_services_.view_service_.get());
-    if (!coroutine_view_service_ && executor_) {
-      view_service_adapter_ =
-          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
-              *executor_, *data_services_.view_service_);
-      coroutine_view_service_ = view_service_adapter_.get();
-    }
-  }
+  coroutine_attribute_service_ =
+      scada::service_resolver::ResolveCoroutineService(
+          executor_, data_services_.coroutine_attribute_service_,
+          data_services_.attribute_service_, attribute_service_adapter_);
+  coroutine_view_service_ = scada::service_resolver::ResolveCoroutineService(
+      executor_, data_services_.coroutine_view_service_,
+      data_services_.view_service_, view_service_adapter_);
 }
 
 void Audit::StartRead() {

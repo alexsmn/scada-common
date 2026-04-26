@@ -3,6 +3,7 @@
 #include "base/awaitable_promise.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
+#include "common/coroutine_service_resolver.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/node_management_service_mock.h"
@@ -209,6 +210,59 @@ class TestCoroutineDataServices final
   scada::NodeId last_history_events_node_id;
   std::vector<scada::AddNodesItem> last_add_nodes_inputs;
 };
+
+TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
+  auto attribute_service =
+      std::make_shared<StrictMock<scada::MockAttributeService>>();
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter> adapter;
+
+  auto* resolved = scada::service_resolver::ResolveCoroutineService(
+      std::optional<AnyExecutor>{},
+      std::shared_ptr<scada::CoroutineAttributeService>{}, attribute_service,
+      adapter);
+
+  EXPECT_EQ(resolved, nullptr);
+  EXPECT_EQ(adapter, nullptr);
+}
+
+TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
+  auto executor = std::make_shared<TestExecutor>();
+  auto attribute_service =
+      std::make_shared<StrictMock<scada::MockAttributeService>>();
+
+  auto resolved =
+      scada::service_resolver::ResolveCoroutineServiceShared<
+          scada::CoroutineAttributeService, scada::AttributeService,
+          scada::CallbackToCoroutineAttributeServiceAdapter>(
+          MakeTestAnyExecutor(executor),
+          std::shared_ptr<scada::CoroutineAttributeService>{},
+          attribute_service);
+
+  ASSERT_NE(resolved, nullptr);
+
+  scada::ReadCallback pending_read;
+  EXPECT_CALL(*attribute_service, Read(_, _, _))
+      .WillOnce(
+          [&](const scada::ServiceContext&,
+              const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
+              const scada::ReadCallback& callback) {
+            pending_read = callback;
+          });
+
+  auto result = ToPromise(
+      MakeTestAnyExecutor(executor),
+      resolved->Read({}, std::make_shared<const std::vector<scada::ReadValueId>>()));
+  Drain(executor);
+
+  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  ASSERT_TRUE(pending_read);
+
+  pending_read(scada::StatusCode::Good, {scada::DataValue{}});
+
+  auto [status, values] = WaitPromise(executor, std::move(result));
+  EXPECT_TRUE(status.good());
+  EXPECT_EQ(values.size(), 1u);
+}
 
 TEST(MasterDataServicesTest, CallbackReadDispatchesThroughCoroutineAdapter) {
   auto executor = std::make_shared<TestExecutor>();

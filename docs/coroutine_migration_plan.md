@@ -316,3 +316,7 @@ each slice is touched.
   coroutine-capable callback services, and callback-to-coroutine adapters;
   focused node-service, events, and OPC UA tests cover the shared resolver
   through their existing aggregate and legacy construction paths.
+- `MasterDataServices`, `Audit`, and `TimedDataServiceImpl` now also use the
+  common coroutine service resolver for aggregate service slots; audit keeps
+  its self-retaining metric wrapper around callback entry points, while timed
+  data preserves shared ownership for adapted history services.
