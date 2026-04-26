@@ -139,6 +139,11 @@ each slice is touched.
   their existing API while dispatching through the coroutine adapters when
   available, and common tests cover delayed adapter completion for callback,
   coroutine, and session-promise paths.
+- `Audit` now exposes coroutine attribute/view services and can wrap audited
+  `scada::services` with an executor so callback entry points dispatch through
+  coroutine adapters while preserving read/browse metric accounting; common
+  tests cover delayed callback completion, coroutine browse, and audited-service
+  wrapping.
 - `EventAckQueue` now consumes `CoroutineMethodService` directly; the event
   fetcher builder and tests adapt callback method services at construction
   boundaries, keeping acknowledgement scheduling coroutine-first.
