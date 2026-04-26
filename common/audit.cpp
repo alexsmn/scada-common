@@ -3,6 +3,7 @@
 #include "base/awaitable_promise.h"
 #include "base/promise_executor.h"
 #include "common/coroutine_service_resolver.h"
+#include "common/data_services_util.h"
 #include "metrics/metric_service.h"
 #include "metrics/metrics.h"
 #include "metrics/tracing.h"
@@ -26,7 +27,7 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
         : services_{services},
           audit_{Audit::Create(AuditContext{
               .metric_service_ = metric_service,
-              .data_services_ = DataServices::FromSharedServices(services_),
+              .data_services_ = data_services::FromUnownedServices(*services_),
               .tracer_ = tracer,
               .executor_ = std::move(executor)})},
           audited_services_{*services_} {

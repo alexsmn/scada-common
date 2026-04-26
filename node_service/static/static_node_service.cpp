@@ -1,6 +1,7 @@
 #include "node_service/static/static_node_service.h"
 
 #include "base/map_util.h"
+#include "common/data_services_util.h"
 #include "model/nested_node_ids.h"
 #include "node_service/static/static_node_model.h"
 
@@ -34,7 +35,7 @@ void RelocateReferences(scada::NodeState& node_state) {
 StaticNodeService::StaticNodeService() = default;
 
 StaticNodeService::StaticNodeService(scada::services services)
-    : StaticNodeService{DataServices::FromUnownedServices(services)} {}
+    : StaticNodeService{data_services::FromUnownedServices(services)} {}
 
 StaticNodeService::StaticNodeService(DataServices data_services)
     : data_services_{std::move(data_services)} {}

@@ -328,3 +328,7 @@ each slice is touched.
   `DataServicesRuntimeContext` before creating the shared server runtime,
   keeping binary framing separate from service adapter ownership; binary
   runtime tests cover delayed read completion through the normalized path.
+- Legacy callback-service normalization now uses a shared
+  `common/data_services_util.h` helper across event, node-service, audit,
+  static-node, and OPC UA runtime boundaries, keeping coroutine-capable
+  aggregate detection and unowned `scada::services` conversion consistent.

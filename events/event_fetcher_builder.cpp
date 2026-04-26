@@ -3,6 +3,7 @@
 #include "base/nested_logger.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/coroutine_session_proxy_notifier.h"
+#include "common/data_services_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
 #include "events/event_storage.h"
@@ -23,24 +24,12 @@ struct EventFetcherHolderBase {
   EventStorage event_storage_;
 };
 
-bool HasDataServices(const DataServices& services) {
-  return services.session_service_ || services.view_service_ ||
-         services.node_management_service_ || services.history_service_ ||
-         services.attribute_service_ || services.method_service_ ||
-         services.monitored_item_service_ ||
-         services.coroutine_session_service_ ||
-         services.coroutine_view_service_ ||
-         services.coroutine_node_management_service_ ||
-         services.coroutine_history_service_ ||
-         services.coroutine_attribute_service_ ||
-         services.coroutine_method_service_;
-}
-
 void NormalizeLegacyServices(EventFetcherBuilder& builder) {
-  if (HasDataServices(builder.data_services_))
+  if (data_services::HasServices(builder.data_services_))
     return;
 
-  builder.data_services_ = DataServices::FromUnownedServices(builder.services_);
+  builder.data_services_ =
+      data_services::FromUnownedServices(builder.services_);
 }
 
 struct EventFetcherServices {

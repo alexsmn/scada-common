@@ -4,6 +4,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "common/coroutine_service_resolver.h"
+#include "common/data_services_util.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/node_management_service_mock.h"
@@ -210,6 +211,35 @@ class TestCoroutineDataServices final
   scada::NodeId last_history_events_node_id;
   std::vector<scada::AddNodesItem> last_add_nodes_inputs;
 };
+
+TEST(DataServicesUtilTest, HasServicesDetectsCallbackAndCoroutineSlots) {
+  EXPECT_FALSE(data_services::HasServices(DataServices{}));
+
+  StrictMock<scada::MockAttributeService> attribute_service;
+  DataServices callback_services;
+  callback_services.attribute_service_ =
+      std::shared_ptr<scada::AttributeService>{&attribute_service,
+                                               [](scada::AttributeService*) {}};
+  EXPECT_TRUE(data_services::HasServices(callback_services));
+
+  DataServices coroutine_services;
+  coroutine_services.coroutine_method_service_ =
+      std::make_shared<TestCoroutineDataServices>();
+  EXPECT_TRUE(data_services::HasServices(coroutine_services));
+}
+
+TEST(DataServicesUtilTest, FromUnownedServicesAliasesLegacySlots) {
+  StrictMock<scada::MockAttributeService> attribute_service;
+  StrictMock<scada::MockSessionService> session_service;
+
+  auto data_services = data_services::FromUnownedServices(scada::services{
+      .attribute_service = &attribute_service,
+      .session_service = &session_service});
+
+  EXPECT_TRUE(data_services::HasServices(data_services));
+  EXPECT_EQ(data_services.attribute_service_.get(), &attribute_service);
+  EXPECT_EQ(data_services.session_service_.get(), &session_service);
+}
 
 TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
   auto attribute_service =

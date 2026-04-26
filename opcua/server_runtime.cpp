@@ -5,6 +5,7 @@
 #include "base/executor_util.h"
 #include "base/promise.h"
 #include "common/coroutine_service_resolver.h"
+#include "common/data_services_util.h"
 #include "scada/coroutine_services.h"
 
 #include <algorithm>
@@ -34,7 +35,7 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
   return DataServicesServerRuntimeContext{
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
-      .data_services = DataServices::FromUnownedServices(scada::services{
+      .data_services = data_services::FromUnownedServices(scada::services{
           .attribute_service = &context.attribute_service,
           .monitored_item_service = &context.monitored_item_service,
           .method_service = &context.method_service,

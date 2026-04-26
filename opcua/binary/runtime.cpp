@@ -1,5 +1,7 @@
 #include "opcua/binary/runtime.h"
 
+#include "common/data_services_util.h"
+
 namespace opcua::binary {
 namespace {
 template <typename T>
@@ -57,7 +59,7 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
   return DataServicesRuntimeContext{
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
-      .data_services = DataServices::FromUnownedServices(scada::services{
+      .data_services = data_services::FromUnownedServices(scada::services{
           .attribute_service = &context.attribute_service,
           .monitored_item_service = &context.monitored_item_service,
           .method_service = &context.method_service,
