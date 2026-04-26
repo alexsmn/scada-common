@@ -186,11 +186,12 @@ each slice is touched.
   `CoroutineMethodService` directly while preserving its callback helper;
   coroutine tests cover the built-in wrong-method-id result.
 - Vidicon session services now expose coroutine attribute, view, history,
-  method, and node-management interfaces directly while preserving their
-  callback APIs; the services target publishes the address-space, Vidicon IDL,
-  and transport dependencies needed by the public coroutine-facing header, and
-  Vidicon service tests cover local read/browse plus unsupported write,
-  history, method, and node-management coroutine paths.
+  method, and node-management interfaces directly plus an owned
+  `CoroutineSessionService` facade while preserving their callback APIs; the
+  services target publishes the address-space, Vidicon IDL, and transport
+  dependencies needed by the public coroutine-facing header, and Vidicon
+  service tests cover local session metadata, lifecycle, local read/browse,
+  and unsupported write, history, method, and node-management coroutine paths.
 - OPC UA `ServerRuntime` and binary `Runtime` now accept coroutine service
   contexts directly while retaining legacy callback contexts that own the
   compatibility adapters; runtime tests cover canonical and binary read

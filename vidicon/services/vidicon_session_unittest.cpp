@@ -9,6 +9,29 @@ namespace {
 
 using testing::Not;
 
+TEST(VidiconSession, CoroutineSessionServiceReportsLocalSessionMetadata) {
+  VidiconSession session;
+  auto& coroutine_session = session.coroutine_session_service();
+
+  base::TimeDelta ping_delay;
+  EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
+  EXPECT_TRUE(ping_delay.is_zero());
+  EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_FALSE(coroutine_session.IsScada());
+  EXPECT_EQ(coroutine_session.GetUserId(), scada::NodeId{});
+  EXPECT_EQ(coroutine_session.GetHostName(), "Vidicon");
+  EXPECT_EQ(coroutine_session.GetSessionDebugger(), nullptr);
+}
+
+TEST(VidiconSession, CoroutineSessionServiceLifecycleCompletes) {
+  VidiconSession session;
+  const auto executor = std::make_shared<TestExecutor>();
+  auto& coroutine_session = session.coroutine_session_service();
+
+  EXPECT_NO_THROW(WaitAwaitable(executor, coroutine_session.Reconnect()));
+  EXPECT_NO_THROW(WaitAwaitable(executor, coroutine_session.Disconnect()));
+}
+
 TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
   VidiconSession session;
   const auto executor = std::make_shared<TestExecutor>();
