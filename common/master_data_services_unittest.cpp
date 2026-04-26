@@ -4,6 +4,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/coroutine_services.h"
 #include "scada/node_management_service_mock.h"
 #include "scada/session_service_mock.h"
 
@@ -19,6 +20,195 @@ namespace {
 using namespace std::chrono_literals;
 using testing::_;
 using testing::StrictMock;
+
+class TestCoroutineDataServices final
+    : public scada::CoroutineSessionService,
+      public scada::CoroutineAttributeService,
+      public scada::CoroutineViewService,
+      public scada::CoroutineMethodService,
+      public scada::CoroutineHistoryService,
+      public scada::CoroutineNodeManagementService {
+ public:
+  Awaitable<void> Connect(scada::SessionConnectParams params) override {
+    ++connect_count;
+    last_host = std::move(params.host);
+    co_return;
+  }
+
+  Awaitable<void> Reconnect() override {
+    ++reconnect_count;
+    co_return;
+  }
+
+  Awaitable<void> Disconnect() override {
+    ++disconnect_count;
+    co_return;
+  }
+
+  bool IsConnected(base::TimeDelta* /*ping_delay*/ = nullptr) const override {
+    return connected;
+  }
+
+  scada::NodeId GetUserId() const override { return user_id; }
+
+  bool HasPrivilege(scada::Privilege privilege) const override {
+    return privilege == scada::Privilege::Configure;
+  }
+
+  std::string GetHostName() const override { return host_name; }
+
+  bool IsScada() const override { return is_scada; }
+
+  boost::signals2::scoped_connection SubscribeSessionStateChanged(
+      const SessionStateChangedCallback& callback) override {
+    ++session_subscription_count;
+    return session_state_changed.connect(callback);
+  }
+
+  scada::SessionDebugger* GetSessionDebugger() override { return nullptr; }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
+    ++read_count;
+    last_read_context = std::move(context);
+    last_read_inputs = *inputs;
+    co_return std::tuple{scada::Status{scada::StatusCode::Good},
+                         std::vector<scada::DataValue>{read_value}};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>> Write(
+      scada::ServiceContext /*context*/,
+      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+    ++write_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::StatusCode>(inputs->size(),
+                                       scada::StatusCode::Good)};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext /*context*/,
+         std::vector<scada::BrowseDescription> inputs) override {
+    ++browse_count;
+    last_browse_inputs = std::move(inputs);
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::BrowseResult>{{.references = {browse_reference}}}};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
+    ++translate_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::BrowsePathResult>(inputs.size())};
+  }
+
+  Awaitable<scada::Status> Call(scada::NodeId node_id,
+                                scada::NodeId method_id,
+                                std::vector<scada::Variant> /*arguments*/,
+                                scada::NodeId user_id) override {
+    ++call_count;
+    last_call_node_id = std::move(node_id);
+    last_call_method_id = std::move(method_id);
+    last_call_user_id = std::move(user_id);
+    co_return scada::Status{scada::StatusCode::Good};
+  }
+
+  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override {
+    ++history_raw_count;
+    last_history_raw_details = std::move(details);
+    co_return scada::HistoryReadRawResult{
+        .status = scada::Status{scada::StatusCode::Good},
+        .values = {read_value}};
+  }
+
+  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      base::Time /*from*/,
+      base::Time /*to*/,
+      scada::EventFilter /*filter*/) override {
+    ++history_events_count;
+    last_history_events_node_id = std::move(node_id);
+    co_return scada::HistoryReadEventsResult{
+        .status = scada::Status{scada::StatusCode::Good}};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs) override {
+    ++add_nodes_count;
+    last_add_nodes_inputs = std::move(inputs);
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::AddNodesResult>{
+            {.added_node_id = scada::NodeId{700, 7}}}};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
+    ++delete_nodes_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::StatusCode>(inputs.size(),
+                                       scada::StatusCode::Good)};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
+    ++add_references_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::StatusCode>(inputs.size(),
+                                       scada::StatusCode::Good)};
+  }
+
+  Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
+    ++delete_references_count;
+    co_return std::tuple{
+        scada::Status{scada::StatusCode::Good},
+        std::vector<scada::StatusCode>(inputs.size(),
+                                       scada::StatusCode::Good)};
+  }
+
+  bool connected = true;
+  bool is_scada = true;
+  std::string host_name = "direct-host";
+  scada::NodeId user_id{55, 5};
+  scada::DataValue read_value;
+  scada::ReferenceDescription browse_reference{.node_id = scada::NodeId{900}};
+  boost::signals2::signal<void(bool, const scada::Status&)>
+      session_state_changed;
+
+  int connect_count = 0;
+  int reconnect_count = 0;
+  int disconnect_count = 0;
+  int session_subscription_count = 0;
+  int read_count = 0;
+  int write_count = 0;
+  int browse_count = 0;
+  int translate_count = 0;
+  int call_count = 0;
+  int history_raw_count = 0;
+  int history_events_count = 0;
+  int add_nodes_count = 0;
+  int delete_nodes_count = 0;
+  int add_references_count = 0;
+  int delete_references_count = 0;
+
+  std::string last_host;
+  scada::ServiceContext last_read_context;
+  std::vector<scada::ReadValueId> last_read_inputs;
+  std::vector<scada::BrowseDescription> last_browse_inputs;
+  scada::NodeId last_call_node_id;
+  scada::NodeId last_call_method_id;
+  scada::NodeId last_call_user_id;
+  scada::HistoryReadRawDetails last_history_raw_details;
+  scada::NodeId last_history_events_node_id;
+  std::vector<scada::AddNodesItem> last_add_nodes_inputs;
+};
 
 TEST(MasterDataServicesTest, CallbackReadDispatchesThroughCoroutineAdapter) {
   auto executor = std::make_shared<TestExecutor>();
@@ -181,6 +371,112 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
   EXPECT_EQ(coroutine_session.GetHostName(), "master-host");
   EXPECT_TRUE(coroutine_session.IsScada());
   EXPECT_EQ(coroutine_session.GetSessionDebugger(), nullptr);
+}
+
+TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
+  auto executor = std::make_shared<TestExecutor>();
+  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  auto direct_services = std::make_shared<TestCoroutineDataServices>();
+
+  DataServices data_services;
+  data_services.coroutine_session_service_ = direct_services;
+  data_services.coroutine_attribute_service_ = direct_services;
+  data_services.coroutine_view_service_ = direct_services;
+  data_services.coroutine_method_service_ = direct_services;
+  data_services.coroutine_history_service_ = direct_services;
+  data_services.coroutine_node_management_service_ = direct_services;
+  services.SetServices(std::move(data_services));
+
+  EXPECT_EQ(direct_services->session_subscription_count, 1);
+  EXPECT_TRUE(services.IsConnected());
+  EXPECT_TRUE(services.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_EQ(services.GetUserId(), (scada::NodeId{55, 5}));
+  EXPECT_EQ(services.GetHostName(), "direct-host");
+  EXPECT_TRUE(services.IsScada());
+
+  WaitPromise(executor, services.Connect({.host = "direct-connect"}));
+  EXPECT_EQ(direct_services->connect_count, 1);
+  EXPECT_EQ(direct_services->last_host, "direct-connect");
+
+  bool read_called = false;
+  auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
+      std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{100}}});
+  services.Read({}, read_inputs,
+                [&](scada::Status status,
+                    std::vector<scada::DataValue> results) {
+                  read_called = true;
+                  EXPECT_TRUE(status.good());
+                  ASSERT_EQ(results.size(), 1u);
+                  EXPECT_EQ(results[0], direct_services->read_value);
+                });
+  Drain(executor);
+
+  EXPECT_TRUE(read_called);
+  EXPECT_EQ(direct_services->read_count, 1);
+  EXPECT_EQ(direct_services->last_read_inputs, *read_inputs);
+
+  bool add_nodes_called = false;
+  services.AddNodes(
+      {{.requested_id = scada::NodeId{101}}},
+      [&](scada::Status status, std::vector<scada::AddNodesResult> results) {
+        add_nodes_called = true;
+        EXPECT_TRUE(status.good());
+        ASSERT_EQ(results.size(), 1u);
+        EXPECT_EQ(results[0].added_node_id, (scada::NodeId{700, 7}));
+      });
+  Drain(executor);
+
+  EXPECT_TRUE(add_nodes_called);
+  EXPECT_EQ(direct_services->add_nodes_count, 1);
+  ASSERT_EQ(direct_services->last_add_nodes_inputs.size(), 1u);
+  EXPECT_EQ(direct_services->last_add_nodes_inputs[0].requested_id,
+            (scada::NodeId{101}));
+
+  bool call_called = false;
+  services.Call(scada::NodeId{102}, scada::NodeId{103}, {}, scada::NodeId{104},
+                [&](scada::Status status) {
+                  call_called = true;
+                  EXPECT_TRUE(status.good());
+                });
+  Drain(executor);
+
+  EXPECT_TRUE(call_called);
+  EXPECT_EQ(direct_services->call_count, 1);
+  EXPECT_EQ(direct_services->last_call_node_id, (scada::NodeId{102}));
+  EXPECT_EQ(direct_services->last_call_method_id, (scada::NodeId{103}));
+  EXPECT_EQ(direct_services->last_call_user_id, (scada::NodeId{104}));
+
+  bool history_called = false;
+  const scada::HistoryReadRawDetails history_details{
+      .node_id = scada::NodeId{105}, .max_count = 3};
+  services.HistoryReadRaw(history_details,
+                          [&](scada::HistoryReadRawResult result) {
+                            history_called = true;
+                            EXPECT_TRUE(result.status.good());
+                            ASSERT_EQ(result.values.size(), 1u);
+                            EXPECT_EQ(result.values[0],
+                                      direct_services->read_value);
+                          });
+  Drain(executor);
+
+  EXPECT_TRUE(history_called);
+  EXPECT_EQ(direct_services->history_raw_count, 1);
+  EXPECT_EQ(direct_services->last_history_raw_details.node_id,
+            history_details.node_id);
+  EXPECT_EQ(direct_services->last_history_raw_details.max_count,
+            history_details.max_count);
+
+  auto [browse_status, browse_results] = WaitAwaitable(
+      executor, static_cast<scada::CoroutineViewService&>(services).Browse(
+                    {}, {{.node_id = scada::NodeId{106}}}));
+  EXPECT_TRUE(browse_status.good());
+  ASSERT_EQ(browse_results.size(), 1u);
+  ASSERT_EQ(browse_results[0].references.size(), 1u);
+  EXPECT_EQ(browse_results[0].references[0].node_id, (scada::NodeId{900}));
+  EXPECT_EQ(direct_services->browse_count, 1);
+  ASSERT_EQ(direct_services->last_browse_inputs.size(), 1u);
+  EXPECT_EQ(direct_services->last_browse_inputs[0].node_id,
+            (scada::NodeId{106}));
 }
 
 }  // namespace

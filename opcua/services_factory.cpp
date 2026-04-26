@@ -13,7 +13,13 @@ bool CreateServices(const DataServicesContext& context,
                 .view_service_ = session,
                 .attribute_service_ = session,
                 .method_service_ = session,
-                .monitored_item_service_ = session};
+                .monitored_item_service_ = session,
+                .coroutine_session_service_ =
+                    std::shared_ptr<scada::CoroutineSessionService>{
+                        session, &session->coroutine_session_service()},
+                .coroutine_view_service_ = session,
+                .coroutine_attribute_service_ = session,
+                .coroutine_method_service_ = session};
     return true;
 
   } catch (const std::exception&) {

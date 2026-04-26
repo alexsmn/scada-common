@@ -233,3 +233,9 @@ each slice is touched.
   `endpoint_core`; service routing now lives only in coroutine
   `ServiceHandler`, while endpoint-core tests cover the remaining
   normalization, monitored-item, and event-field helpers.
+- The aggregate `DataServices` boundary now carries explicit coroutine SCADA
+  service slots in addition to the legacy callback slots; OPC UA and Vidicon
+  factories populate direct coroutine services, and `MasterDataServices`
+  prefers those slots before callback dynamic-casts or adapters. Common tests
+  cover callback and coroutine aggregate APIs with only direct coroutine slots
+  installed.

@@ -13,6 +13,15 @@ bool CreateVidiconServices(const DataServicesContext& context,
               .history_service_ = vidicon_session,
               .attribute_service_ = vidicon_session,
               .method_service_ = vidicon_session,
-              .monitored_item_service_ = vidicon_session};
+              .monitored_item_service_ = vidicon_session,
+              .coroutine_session_service_ =
+                  std::shared_ptr<scada::CoroutineSessionService>{
+                      vidicon_session,
+                      &vidicon_session->coroutine_session_service()},
+              .coroutine_view_service_ = vidicon_session,
+              .coroutine_node_management_service_ = vidicon_session,
+              .coroutine_history_service_ = vidicon_session,
+              .coroutine_attribute_service_ = vidicon_session,
+              .coroutine_method_service_ = vidicon_session};
   return true;
 }

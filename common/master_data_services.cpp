@@ -189,7 +189,9 @@ void MasterDataServices::ResetCoroutineAdapters() {
 void MasterDataServices::RefreshCoroutineServices() {
   ResetCoroutineAdapters();
 
-  if (services_.attribute_service_) {
+  if (services_.coroutine_attribute_service_) {
+    coroutine_attribute_service_ = services_.coroutine_attribute_service_.get();
+  } else if (services_.attribute_service_) {
     coroutine_attribute_service_ =
         dynamic_cast<scada::CoroutineAttributeService*>(
             services_.attribute_service_.get());
@@ -201,7 +203,9 @@ void MasterDataServices::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.view_service_) {
+  if (services_.coroutine_view_service_) {
+    coroutine_view_service_ = services_.coroutine_view_service_.get();
+  } else if (services_.view_service_) {
     coroutine_view_service_ = dynamic_cast<scada::CoroutineViewService*>(
         services_.view_service_.get());
     if (!coroutine_view_service_ && coroutine_executor_) {
@@ -212,7 +216,9 @@ void MasterDataServices::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.session_service_) {
+  if (services_.coroutine_session_service_) {
+    coroutine_session_service_ = services_.coroutine_session_service_.get();
+  } else if (services_.session_service_) {
     coroutine_session_service_ =
         dynamic_cast<scada::CoroutineSessionService*>(
             services_.session_service_.get());
@@ -224,7 +230,9 @@ void MasterDataServices::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.method_service_) {
+  if (services_.coroutine_method_service_) {
+    coroutine_method_service_ = services_.coroutine_method_service_.get();
+  } else if (services_.method_service_) {
     coroutine_method_service_ = dynamic_cast<scada::CoroutineMethodService*>(
         services_.method_service_.get());
     if (!coroutine_method_service_ && coroutine_executor_) {
@@ -235,7 +243,9 @@ void MasterDataServices::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.history_service_) {
+  if (services_.coroutine_history_service_) {
+    coroutine_history_service_ = services_.coroutine_history_service_.get();
+  } else if (services_.history_service_) {
     coroutine_history_service_ = dynamic_cast<scada::CoroutineHistoryService*>(
         services_.history_service_.get());
     if (!coroutine_history_service_ && coroutine_executor_) {
@@ -246,7 +256,10 @@ void MasterDataServices::RefreshCoroutineServices() {
     }
   }
 
-  if (services_.node_management_service_) {
+  if (services_.coroutine_node_management_service_) {
+    coroutine_node_management_service_ =
+        services_.coroutine_node_management_service_.get();
+  } else if (services_.node_management_service_) {
     coroutine_node_management_service_ =
         dynamic_cast<scada::CoroutineNodeManagementService*>(
             services_.node_management_service_.get());
@@ -277,12 +290,13 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
   services_ = std::move(services);
   RefreshCoroutineServices();
-  connected_ = services_.session_service_ != nullptr;
+  connected_ = services_.session_service_ != nullptr ||
+               coroutine_session_service_ != nullptr;
 
   if (connected_) {
-    if (services_.session_service_) {
+    if (coroutine_session_service_) {
       session_state_changed_connection_ =
-          services_.session_service_->SubscribeSessionStateChanged(
+          coroutine_session_service_->SubscribeSessionStateChanged(
               [this](bool connected, const scada::Status& status) {
                 session_state_changed_signal_(connected, status);
               });
@@ -334,35 +348,36 @@ bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
   if (!connected_)
     return false;
 
-  return services_.session_service_->IsConnected(ping_delay);
+  return coroutine_session_service_ &&
+         coroutine_session_service_->IsConnected(ping_delay);
 }
 
 bool MasterDataServices::HasPrivilege(scada::Privilege privilege) const {
-  if (!services_.session_service_)
+  if (!coroutine_session_service_)
     return false;
 
-  return services_.session_service_->HasPrivilege(privilege);
+  return coroutine_session_service_->HasPrivilege(privilege);
 }
 
 scada::NodeId MasterDataServices::GetUserId() const {
-  if (!services_.session_service_)
+  if (!coroutine_session_service_)
     return {};
 
-  return services_.session_service_->GetUserId();
+  return coroutine_session_service_->GetUserId();
 }
 
 std::string MasterDataServices::GetHostName() const {
-  if (!services_.session_service_)
+  if (!coroutine_session_service_)
     return {};
 
-  return services_.session_service_->GetHostName();
+  return coroutine_session_service_->GetHostName();
 }
 
 bool MasterDataServices::IsScada() const {
-  if (!services_.session_service_)
+  if (!coroutine_session_service_)
     return false;
 
-  return services_.session_service_->IsScada();
+  return coroutine_session_service_->IsScada();
 }
 
 boost::signals2::scoped_connection
@@ -645,8 +660,8 @@ void MasterDataServices::Read(
 }
 
 scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
-  return services_.session_service_
-             ? services_.session_service_->GetSessionDebugger()
+  return coroutine_session_service_
+             ? coroutine_session_service_->GetSessionDebugger()
              : nullptr;
 }
 
