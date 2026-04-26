@@ -1,6 +1,8 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "scada/attribute_service.h"
+#include "scada/coroutine_services.h"
 #include "scada/data_services.h"
 #include "scada/history_service.h"
 #include "scada/method_service.h"
@@ -11,15 +13,24 @@
 
 #include <boost/signals2/signal.hpp>
 
+#include <memory>
+#include <optional>
+
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
                                  public scada::SessionService,
                                  public scada::MonitoredItemService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
-                                 public scada::NodeManagementService {
+                                 public scada::NodeManagementService,
+                                 public scada::CoroutineAttributeService,
+                                 public scada::CoroutineViewService,
+                                 public scada::CoroutineMethodService,
+                                 public scada::CoroutineHistoryService,
+                                 public scada::CoroutineNodeManagementService {
  public:
   MasterDataServices();
+  explicit MasterDataServices(AnyExecutor executor);
   ~MasterDataServices();
 
   scada::services as_services();
@@ -94,8 +105,64 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::EventFilter& filter,
       const scada::HistoryReadEventsCallback& callback) override;
 
+  // scada::CoroutineNodeManagementService
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs) override;
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
+
+  // scada::CoroutineViewService
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+  Browse(scada::ServiceContext context,
+         std::vector<scada::BrowseDescription> inputs) override;
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+
+  // scada::CoroutineAttributeService
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::DataValue>>>
+  Read(scada::ServiceContext context,
+       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+  [[nodiscard]] virtual Awaitable<
+      std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+  Write(scada::ServiceContext context,
+        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+
+  // scada::CoroutineMethodService
+  [[nodiscard]] virtual Awaitable<scada::Status> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::NodeId user_id) override;
+
+  // scada::CoroutineHistoryService
+  [[nodiscard]] virtual Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override;
+  [[nodiscard]] virtual Awaitable<scada::HistoryReadEventsResult>
+  HistoryReadEvents(scada::NodeId node_id,
+                    base::Time from,
+                    base::Time to,
+                    scada::EventFilter filter) override;
+
  private:
   class MasterMonitoredItem;
+
+  void ResetCoroutineAdapters();
+  void RefreshCoroutineServices();
+  [[nodiscard]] Awaitable<void> ConnectCoroutine(
+      scada::SessionConnectParams params);
+  [[nodiscard]] Awaitable<void> DisconnectCoroutine();
+  [[nodiscard]] Awaitable<void> ReconnectCoroutine();
 
   std::vector<MasterMonitoredItem*> monitored_items_;
 
@@ -106,4 +173,27 @@ class MasterDataServices final : public scada::AttributeService,
 
   DataServices services_;
   bool connected_ = false;
+
+  std::optional<AnyExecutor> coroutine_executor_;
+
+  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+      attribute_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
+      view_service_adapter_;
+  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
+      session_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
+      method_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
+      history_service_adapter_;
+  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
+      node_management_service_adapter_;
+
+  scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
+  scada::CoroutineViewService* coroutine_view_service_ = nullptr;
+  scada::CoroutineSessionService* coroutine_session_service_ = nullptr;
+  scada::CoroutineMethodService* coroutine_method_service_ = nullptr;
+  scada::CoroutineHistoryService* coroutine_history_service_ = nullptr;
+  scada::CoroutineNodeManagementService* coroutine_node_management_service_ =
+      nullptr;
 };

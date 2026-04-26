@@ -1,8 +1,10 @@
 #include "master_data_services.h"
 
+#include "base/awaitable_promise.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
+#include "scada/status_exception.h"
 #include "scada/status_promise.h"
 
 // MasterDataServices::MasterMonitoredItem
@@ -94,6 +96,9 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
 MasterDataServices::MasterDataServices() {}
 
+MasterDataServices::MasterDataServices(AnyExecutor executor)
+    : coroutine_executor_{std::move(executor)} {}
+
 MasterDataServices::~MasterDataServices() {
   for (auto* monitored_item : monitored_items_) {
     monitored_item->DestroyOwner();
@@ -110,6 +115,96 @@ scada::services MasterDataServices::as_services() {
           .session_service = this};
 }
 
+void MasterDataServices::ResetCoroutineAdapters() {
+  coroutine_attribute_service_ = nullptr;
+  coroutine_view_service_ = nullptr;
+  coroutine_session_service_ = nullptr;
+  coroutine_method_service_ = nullptr;
+  coroutine_history_service_ = nullptr;
+  coroutine_node_management_service_ = nullptr;
+
+  attribute_service_adapter_.reset();
+  view_service_adapter_.reset();
+  session_service_adapter_.reset();
+  method_service_adapter_.reset();
+  history_service_adapter_.reset();
+  node_management_service_adapter_.reset();
+}
+
+void MasterDataServices::RefreshCoroutineServices() {
+  ResetCoroutineAdapters();
+
+  if (services_.attribute_service_) {
+    coroutine_attribute_service_ =
+        dynamic_cast<scada::CoroutineAttributeService*>(
+            services_.attribute_service_.get());
+    if (!coroutine_attribute_service_ && coroutine_executor_) {
+      attribute_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineAttributeServiceAdapter>(
+              *coroutine_executor_, *services_.attribute_service_);
+      coroutine_attribute_service_ = attribute_service_adapter_.get();
+    }
+  }
+
+  if (services_.view_service_) {
+    coroutine_view_service_ = dynamic_cast<scada::CoroutineViewService*>(
+        services_.view_service_.get());
+    if (!coroutine_view_service_ && coroutine_executor_) {
+      view_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineViewServiceAdapter>(
+              *coroutine_executor_, *services_.view_service_);
+      coroutine_view_service_ = view_service_adapter_.get();
+    }
+  }
+
+  if (services_.session_service_) {
+    coroutine_session_service_ =
+        dynamic_cast<scada::CoroutineSessionService*>(
+            services_.session_service_.get());
+    if (!coroutine_session_service_ && coroutine_executor_) {
+      session_service_adapter_ =
+          std::make_unique<scada::PromiseToCoroutineSessionServiceAdapter>(
+              *coroutine_executor_, *services_.session_service_);
+      coroutine_session_service_ = session_service_adapter_.get();
+    }
+  }
+
+  if (services_.method_service_) {
+    coroutine_method_service_ = dynamic_cast<scada::CoroutineMethodService*>(
+        services_.method_service_.get());
+    if (!coroutine_method_service_ && coroutine_executor_) {
+      method_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineMethodServiceAdapter>(
+              *coroutine_executor_, *services_.method_service_);
+      coroutine_method_service_ = method_service_adapter_.get();
+    }
+  }
+
+  if (services_.history_service_) {
+    coroutine_history_service_ = dynamic_cast<scada::CoroutineHistoryService*>(
+        services_.history_service_.get());
+    if (!coroutine_history_service_ && coroutine_executor_) {
+      history_service_adapter_ =
+          std::make_unique<scada::CallbackToCoroutineHistoryServiceAdapter>(
+              *coroutine_executor_, *services_.history_service_);
+      coroutine_history_service_ = history_service_adapter_.get();
+    }
+  }
+
+  if (services_.node_management_service_) {
+    coroutine_node_management_service_ =
+        dynamic_cast<scada::CoroutineNodeManagementService*>(
+            services_.node_management_service_.get());
+    if (!coroutine_node_management_service_ && coroutine_executor_) {
+      node_management_service_adapter_ = std::make_unique<
+          scada::CallbackToCoroutineNodeManagementServiceAdapter>(
+          *coroutine_executor_, *services_.node_management_service_);
+      coroutine_node_management_service_ =
+          node_management_service_adapter_.get();
+    }
+  }
+}
+
 void MasterDataServices::SetServices(DataServices&& services) {
   if (connected_) {
     for (auto* monitored_item : monitored_items_) {
@@ -118,6 +213,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
     connected_ = false;
     services_ = {};
+    ResetCoroutineAdapters();
 
     session_state_changed_connection_.disconnect();
 
@@ -125,6 +221,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 
   services_ = std::move(services);
+  RefreshCoroutineServices();
   connected_ = services_.session_service_ != nullptr;
 
   if (connected_) {
@@ -146,6 +243,11 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
 promise<void> MasterDataServices::Connect(
     const scada::SessionConnectParams& params) {
+  if (coroutine_executor_ && coroutine_session_service_) {
+    return ToPromise(*coroutine_executor_,
+                     ConnectCoroutine(scada::SessionConnectParams{params}));
+  }
+
   if (!services_.session_service_) {
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
   }
@@ -154,6 +256,9 @@ promise<void> MasterDataServices::Connect(
 }
 
 promise<void> MasterDataServices::Disconnect() {
+  if (coroutine_executor_ && coroutine_session_service_)
+    return ToPromise(*coroutine_executor_, DisconnectCoroutine());
+
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
@@ -161,6 +266,9 @@ promise<void> MasterDataServices::Disconnect() {
 }
 
 promise<void> MasterDataServices::Reconnect() {
+  if (coroutine_executor_ && coroutine_session_service_)
+    return ToPromise(*coroutine_executor_, ReconnectCoroutine());
+
   if (!services_.session_service_)
     return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
 
@@ -211,6 +319,20 @@ MasterDataServices::SubscribeSessionStateChanged(
 void MasterDataServices::AddNodes(
     const std::vector<scada::AddNodesItem>& inputs,
     const scada::AddNodesCallback& callback) {
+  if (coroutine_executor_ && coroutine_node_management_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] = co_await AddNodes(std::move(inputs));
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -220,6 +342,21 @@ void MasterDataServices::AddNodes(
 void MasterDataServices::DeleteNodes(
     const std::vector<scada::DeleteNodesItem>& inputs,
     const scada::DeleteNodesCallback& callback) {
+  if (coroutine_executor_ && coroutine_node_management_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] =
+                    co_await DeleteNodes(std::move(inputs));
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -229,6 +366,21 @@ void MasterDataServices::DeleteNodes(
 void MasterDataServices::AddReferences(
     const std::vector<scada::AddReferencesItem>& inputs,
     const scada::AddReferencesCallback& callback) {
+  if (coroutine_executor_ && coroutine_node_management_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] =
+                    co_await AddReferences(std::move(inputs));
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -238,6 +390,21 @@ void MasterDataServices::AddReferences(
 void MasterDataServices::DeleteReferences(
     const std::vector<scada::DeleteReferencesItem>& inputs,
     const scada::DeleteReferencesCallback& callback) {
+  if (coroutine_executor_ && coroutine_node_management_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] =
+                    co_await DeleteReferences(std::move(inputs));
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.node_management_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -248,6 +415,20 @@ void MasterDataServices::Browse(
     const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& nodes,
     const scada::BrowseCallback& callback) {
+  if (coroutine_executor_ && coroutine_view_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, context, nodes, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] = co_await Browse(context, nodes);
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -257,6 +438,21 @@ void MasterDataServices::Browse(
 void MasterDataServices::TranslateBrowsePaths(
     const std::vector<scada::BrowsePath>& browse_paths,
     const scada::TranslateBrowsePathsCallback& callback) {
+  if (coroutine_executor_ && coroutine_view_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, browse_paths, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] =
+                    co_await TranslateBrowsePaths(browse_paths);
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.view_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -273,6 +469,20 @@ void MasterDataServices::Write(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
     const scada::WriteCallback& callback) {
+  if (coroutine_executor_ && coroutine_attribute_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, context, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] = co_await Write(context, inputs);
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -284,6 +494,19 @@ void MasterDataServices::Call(const scada::NodeId& node_id,
                               const std::vector<scada::Variant>& arguments,
                               const scada::NodeId& user_id,
                               const scada::StatusCallback& callback) {
+  if (coroutine_executor_ && coroutine_method_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, node_id, method_id, arguments, user_id,
+             callback]() mutable -> Awaitable<void> {
+              try {
+                callback(co_await Call(node_id, method_id, arguments, user_id));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()));
+              }
+            });
+    return;
+  }
+
   if (!services_.method_service_)
     return callback(scada::StatusCode::Bad_Disconnected);
 
@@ -294,6 +517,20 @@ void MasterDataServices::Call(const scada::NodeId& node_id,
 void MasterDataServices::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
+  if (coroutine_executor_ && coroutine_history_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, details, callback]() mutable -> Awaitable<void> {
+              try {
+                callback(co_await HistoryReadRaw(details));
+              } catch (...) {
+                callback(scada::HistoryReadRawResult{
+                    .status =
+                        scada::GetExceptionStatus(std::current_exception())});
+              }
+            });
+    return;
+  }
+
   if (!services_.history_service_)
     return callback({scada::StatusCode::Bad_Disconnected});
 
@@ -306,6 +543,21 @@ void MasterDataServices::HistoryReadEvents(
     base::Time to,
     const scada::EventFilter& filter,
     const scada::HistoryReadEventsCallback& callback) {
+  if (coroutine_executor_ && coroutine_history_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, node_id, from, to, filter,
+             callback]() mutable -> Awaitable<void> {
+              try {
+                callback(co_await HistoryReadEvents(node_id, from, to, filter));
+              } catch (...) {
+                callback(scada::HistoryReadEventsResult{
+                    .status =
+                        scada::GetExceptionStatus(std::current_exception())});
+              }
+            });
+    return;
+  }
+
   if (!services_.history_service_)
     return callback({scada::StatusCode::Bad_Disconnected});
 
@@ -317,6 +569,20 @@ void MasterDataServices::Read(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
     const scada::ReadCallback& callback) {
+  if (coroutine_executor_ && coroutine_attribute_service_) {
+    CoSpawn(*coroutine_executor_,
+            [this, context, inputs, callback]() mutable -> Awaitable<void> {
+              try {
+                auto [status, results] = co_await Read(context, inputs);
+                callback(std::move(status), std::move(results));
+              } catch (...) {
+                callback(scada::GetExceptionStatus(std::current_exception()),
+                         {});
+              }
+            });
+    return;
+  }
+
   if (!services_.attribute_service_)
     return callback(scada::StatusCode::Bad_Disconnected, {});
 
@@ -327,4 +593,151 @@ scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
   return services_.session_service_
              ? services_.session_service_->GetSessionDebugger()
              : nullptr;
+}
+
+Awaitable<void> MasterDataServices::ConnectCoroutine(
+    scada::SessionConnectParams params) {
+  if (!coroutine_session_service_)
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+
+  co_await coroutine_session_service_->Connect(std::move(params));
+}
+
+Awaitable<void> MasterDataServices::DisconnectCoroutine() {
+  if (!coroutine_session_service_)
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+
+  co_await coroutine_session_service_->Disconnect();
+}
+
+Awaitable<void> MasterDataServices::ReconnectCoroutine() {
+  if (!coroutine_session_service_)
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+
+  co_await coroutine_session_service_->Reconnect();
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::AddNodesResult>>>
+MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
+  auto* service = coroutine_node_management_service_;
+  if (service)
+    co_return co_await service->AddNodes(std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::AddNodesResult>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
+  auto* service = coroutine_node_management_service_;
+  if (service)
+    co_return co_await service->DeleteNodes(std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::StatusCode>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+MasterDataServices::AddReferences(
+    std::vector<scada::AddReferencesItem> inputs) {
+  auto* service = coroutine_node_management_service_;
+  if (service)
+    co_return co_await service->AddReferences(std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::StatusCode>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+MasterDataServices::DeleteReferences(
+    std::vector<scada::DeleteReferencesItem> inputs) {
+  auto* service = coroutine_node_management_service_;
+  if (service)
+    co_return co_await service->DeleteReferences(std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::StatusCode>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowseResult>>>
+MasterDataServices::Browse(scada::ServiceContext context,
+                           std::vector<scada::BrowseDescription> inputs) {
+  auto* service = coroutine_view_service_;
+  if (service)
+    co_return co_await service->Browse(std::move(context), std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::BrowseResult>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::BrowsePathResult>>>
+MasterDataServices::TranslateBrowsePaths(
+    std::vector<scada::BrowsePath> inputs) {
+  auto* service = coroutine_view_service_;
+  if (service)
+    co_return co_await service->TranslateBrowsePaths(std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::BrowsePathResult>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::DataValue>>>
+MasterDataServices::Read(
+    scada::ServiceContext context,
+    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+  auto* service = coroutine_attribute_service_;
+  if (service)
+    co_return co_await service->Read(std::move(context), std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::DataValue>{}};
+}
+
+Awaitable<std::tuple<scada::Status, std::vector<scada::StatusCode>>>
+MasterDataServices::Write(
+    scada::ServiceContext context,
+    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+  auto* service = coroutine_attribute_service_;
+  if (service)
+    co_return co_await service->Write(std::move(context), std::move(inputs));
+
+  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
+                       std::vector<scada::StatusCode>{}};
+}
+
+Awaitable<scada::Status> MasterDataServices::Call(
+    scada::NodeId node_id,
+    scada::NodeId method_id,
+    std::vector<scada::Variant> arguments,
+    scada::NodeId user_id) {
+  auto* service = coroutine_method_service_;
+  if (service)
+    co_return co_await service->Call(std::move(node_id), std::move(method_id),
+                                     std::move(arguments), std::move(user_id));
+
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+}
+
+Awaitable<scada::HistoryReadRawResult> MasterDataServices::HistoryReadRaw(
+    scada::HistoryReadRawDetails details) {
+  auto* service = coroutine_history_service_;
+  if (service)
+    co_return co_await service->HistoryReadRaw(std::move(details));
+
+  co_return scada::HistoryReadRawResult{
+      .status = scada::StatusCode::Bad_Disconnected};
+}
+
+Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
+    scada::NodeId node_id,
+    base::Time from,
+    base::Time to,
+    scada::EventFilter filter) {
+  auto* service = coroutine_history_service_;
+  if (service)
+    co_return co_await service->HistoryReadEvents(
+        std::move(node_id), from, to, std::move(filter));
+
+  co_return scada::HistoryReadEventsResult{
+      .status = scada::StatusCode::Bad_Disconnected};
 }

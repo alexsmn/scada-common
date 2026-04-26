@@ -133,6 +133,12 @@ each slice is touched.
   `CoroutineSessionService`; their builders adapt the public `SessionService`
   boundary once with `PromiseToCoroutineSessionServiceAdapter`, and common
   tests cover connected-session startup plus later session-state callbacks.
+- `MasterDataServices` can now be constructed with an executor to expose
+  coroutine attribute, view, history, method, and node-management services over
+  its aggregate `DataServices` boundary; callback/promise public methods keep
+  their existing API while dispatching through the coroutine adapters when
+  available, and common tests cover delayed adapter completion for callback,
+  coroutine, and session-promise paths.
 - `EventAckQueue` now consumes `CoroutineMethodService` directly; the event
   fetcher builder and tests adapt callback method services at construction
   boundaries, keeping acknowledgement scheduling coroutine-first.
