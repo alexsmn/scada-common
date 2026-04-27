@@ -62,30 +62,25 @@ class TestCoroutineServices final
     ++read_count;
     last_read_context = std::move(context);
     last_read_inputs = *inputs;
-    co_return std::make_tuple(
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::DataValue>{scada::DataValue{
-            read_value, {}, timestamp, timestamp}});
+    co_return std::vector<scada::DataValue>{
+        scada::DataValue{read_value, {}, timestamp, timestamp}};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
       std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::StatusCode>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::BrowseResult>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::BrowsePathResult>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
@@ -110,26 +105,22 @@ class TestCoroutineServices final
 
   Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::AddNodesResult>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::StatusCode>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::StatusCode>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
-    co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                              std::vector<scada::StatusCode>{});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   base::Time timestamp = ParseTime("2026-04-22 09:01:00");

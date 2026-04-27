@@ -76,18 +76,15 @@ class TestCoroutineDataServices final
     ++read_count;
     last_read_context = std::move(context);
     last_read_inputs = *inputs;
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::vector<scada::DataValue>{read_value}};
+    co_return std::vector<scada::DataValue>{read_value};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext /*context*/,
       std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
     ++write_count;
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::StatusCode>(inputs->size(),
-                                       scada::StatusCode::Good)};
+    co_return std::vector<scada::StatusCode>(inputs->size(),
+                                             scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
@@ -95,17 +92,14 @@ class TestCoroutineDataServices final
          std::vector<scada::BrowseDescription> inputs) override {
     ++browse_count;
     last_browse_inputs = std::move(inputs);
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::BrowseResult>{{.references = {browse_reference}}}};
+    co_return std::vector<scada::BrowseResult>{
+        {.references = {browse_reference}}};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::BrowsePathResult>(inputs.size())};
+    co_return std::vector<scada::BrowsePathResult>(inputs.size());
   }
 
   Awaitable<scada::Status> Call(scada::NodeId node_id,
@@ -143,37 +137,29 @@ class TestCoroutineDataServices final
   AddNodes(std::vector<scada::AddNodesItem> inputs) override {
     ++add_nodes_count;
     last_add_nodes_inputs = std::move(inputs);
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::AddNodesResult>{
-            {.added_node_id = scada::NodeId{700, 7}}}};
+    co_return std::vector<scada::AddNodesResult>{
+        {.added_node_id = scada::NodeId{700, 7}}};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
     ++delete_nodes_count;
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::StatusCode>(inputs.size(),
-                                       scada::StatusCode::Good)};
+    co_return std::vector<scada::StatusCode>(inputs.size(),
+                                             scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
     ++add_references_count;
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::StatusCode>(inputs.size(),
-                                       scada::StatusCode::Good)};
+    co_return std::vector<scada::StatusCode>(inputs.size(),
+                                             scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
     ++delete_references_count;
-    co_return std::tuple{
-        scada::Status{scada::StatusCode::Good},
-        std::vector<scada::StatusCode>(inputs.size(),
-                                       scada::StatusCode::Good)};
+    co_return std::vector<scada::StatusCode>(inputs.size(),
+                                             scada::StatusCode::Good);
   }
 
   bool connected = true;

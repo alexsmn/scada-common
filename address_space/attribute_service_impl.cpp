@@ -50,8 +50,7 @@ AttributeServiceImpl::Read(
   auto results = sync_attribute_service_.Read(context, *inputs);
   assert(results.size() == inputs->size());
 
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Good},
-                            std::move(results));
+  co_return results;
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -61,8 +60,7 @@ AttributeServiceImpl::Write(
   assert(inputs);
 
   auto results = sync_attribute_service_.Write(context, *inputs);
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Good},
-                            std::move(results));
+  co_return results;
 }
 
 std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(

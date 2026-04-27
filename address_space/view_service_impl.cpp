@@ -191,14 +191,12 @@ ViewServiceImpl::Browse(
     scada::ServiceContext context,
     std::vector<scada::BrowseDescription> descriptions) {
   auto results = sync_view_service_.Browse(descriptions);
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Good},
-                            std::move(results));
+  co_return results;
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 ViewServiceImpl::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> browse_paths) {
   auto results = sync_view_service_.TranslateBrowsePaths(browse_paths);
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Good},
-                            std::move(results));
+  co_return results;
 }

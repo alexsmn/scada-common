@@ -316,8 +316,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
     }
   }
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::DataValue>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -327,8 +326,7 @@ Audit::Write(scada::ServiceContext context,
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::StatusCode>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
@@ -341,7 +339,7 @@ Audit::Browse(scada::ServiceContext context,
     try {
       auto result =
           co_await service->Browse(std::move(context), std::move(inputs));
-      assert(Validate(std::get<1>(result)));
+      assert(!result.ok() || Validate(result.value()));
       FinishBrowse(start_time);
       co_return result;
     } catch (...) {
@@ -350,8 +348,7 @@ Audit::Browse(scada::ServiceContext context,
     }
   }
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::BrowseResult>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
@@ -360,6 +357,5 @@ Audit::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   if (service)
     co_return co_await service->TranslateBrowsePaths(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::BrowsePathResult>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }

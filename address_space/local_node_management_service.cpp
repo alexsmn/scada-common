@@ -35,29 +35,24 @@ void LocalNodeManagementService::DeleteReferences(
 
 Awaitable<StatusOr<std::vector<AddNodesResult>>>
 LocalNodeManagementService::AddNodes(std::vector<AddNodesItem> inputs) {
-  std::vector<AddNodesResult> results(
-      inputs.size(), AddNodesResult{.status_code = StatusCode::Bad});
-  co_return std::make_tuple(Status{StatusCode::Bad}, std::move(results));
+  co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
 LocalNodeManagementService::DeleteNodes(std::vector<DeleteNodesItem> inputs) {
-  std::vector<StatusCode> results(inputs.size(), StatusCode::Bad);
-  co_return std::make_tuple(Status{StatusCode::Bad}, std::move(results));
+  co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
 LocalNodeManagementService::AddReferences(
     std::vector<AddReferencesItem> inputs) {
-  std::vector<StatusCode> results(inputs.size(), StatusCode::Bad);
-  co_return std::make_tuple(Status{StatusCode::Bad}, std::move(results));
+  co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
 LocalNodeManagementService::DeleteReferences(
     std::vector<DeleteReferencesItem> inputs) {
-  std::vector<StatusCode> results(inputs.size(), StatusCode::Bad);
-  co_return std::make_tuple(Status{StatusCode::Bad}, std::move(results));
+  co_return Status{StatusCode::Bad};
 }
 
 }  // namespace scada

@@ -552,8 +552,7 @@ MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
   if (service)
     co_return co_await service->AddNodes(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::AddNodesResult>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -562,8 +561,7 @@ MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
   if (service)
     co_return co_await service->DeleteNodes(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::StatusCode>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -573,8 +571,7 @@ MasterDataServices::AddReferences(
   if (service)
     co_return co_await service->AddReferences(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::StatusCode>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -584,8 +581,7 @@ MasterDataServices::DeleteReferences(
   if (service)
     co_return co_await service->DeleteReferences(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::StatusCode>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
@@ -595,8 +591,7 @@ MasterDataServices::Browse(scada::ServiceContext context,
   if (service)
     co_return co_await service->Browse(std::move(context), std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::BrowseResult>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
@@ -606,8 +601,7 @@ MasterDataServices::TranslateBrowsePaths(
   if (service)
     co_return co_await service->TranslateBrowsePaths(std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::BrowsePathResult>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
@@ -618,8 +612,7 @@ MasterDataServices::Read(
   if (service)
     co_return co_await service->Read(std::move(context), std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::DataValue>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -630,8 +623,7 @@ MasterDataServices::Write(
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
 
-  co_return std::tuple{scada::Status{scada::StatusCode::Bad_Disconnected},
-                       std::vector<scada::StatusCode>{}};
+  co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::Status> MasterDataServices::Call(

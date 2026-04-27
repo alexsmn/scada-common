@@ -32,16 +32,15 @@ class TestCoroutineAuditServices final
       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
     ++read_count;
     last_read_inputs = *inputs;
-    co_return std::tuple{scada::Status{scada::StatusCode::Good}, read_results};
+    co_return read_results;
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
       std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
     ++write_count;
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::vector<scada::StatusCode>(
-                             inputs->size(), scada::StatusCode::Good)};
+    co_return std::vector<scada::StatusCode>(inputs->size(),
+                                             scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
@@ -49,15 +48,13 @@ class TestCoroutineAuditServices final
       std::vector<scada::BrowseDescription> inputs) override {
     ++browse_count;
     last_browse_inputs = std::move(inputs);
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         browse_results};
+    co_return browse_results;
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
-    co_return std::tuple{scada::Status{scada::StatusCode::Good},
-                         std::vector<scada::BrowsePathResult>(inputs.size())};
+    co_return std::vector<scada::BrowsePathResult>(inputs.size());
   }
 
   int read_count = 0;

@@ -211,8 +211,7 @@ Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                            std::vector<scada::StatusCode>{});
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 void VidiconSession::Call(const scada::NodeId& node_id,
@@ -256,28 +255,24 @@ void VidiconSession::DeleteReferences(
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 VidiconSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                            std::vector<scada::AddNodesResult>{});
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                            std::vector<scada::StatusCode>{});
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::AddReferences(
     std::vector<scada::AddReferencesItem> inputs) {
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                            std::vector<scada::StatusCode>{});
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::DeleteReferences(
     std::vector<scada::DeleteReferencesItem> inputs) {
-  co_return std::make_tuple(scada::Status{scada::StatusCode::Bad},
-                            std::vector<scada::StatusCode>{});
+  co_return scada::Status{scada::StatusCode::Bad};
 }
 
 void VidiconSession::Browse(const scada::ServiceContext& context,
