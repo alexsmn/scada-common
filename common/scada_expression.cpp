@@ -1,11 +1,14 @@
 ﻿#include "common/scada_expression.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4702)
 #include "express/express.h"
 #include "express/function.h"
 #include "express/lexer.h"
 #include "express/lexer_delegate.h"
 #include "express/parser.h"
 #include "express/strings.h"
+#pragma warning(pop)
 
 #include <stdexcept>
 
