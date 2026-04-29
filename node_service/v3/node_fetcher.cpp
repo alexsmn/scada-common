@@ -2,13 +2,14 @@
 
 namespace v3 {
 
-promise<scada::NodeState> NodeFetcher::FetchNode(const scada::NodeId& node_id) {
-  return make_resolved_promise(scada::NodeState{});
+Awaitable<scada::NodeState> NodeFetcher::FetchNode(
+    const scada::NodeId& node_id) {
+  co_return scada::NodeState{};
 }
 
-promise<std::vector<scada::NodeId>> NodeFetcher::FetchChildren(
+Awaitable<std::vector<scada::NodeId>> NodeFetcher::FetchChildren(
     const scada::NodeId& node_id) {
-  return make_resolved_promise(std::vector<scada::NodeId>());
+  co_return std::vector<scada::NodeId>();
 }
 
 }  // namespace v3

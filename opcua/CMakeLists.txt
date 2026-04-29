@@ -19,6 +19,12 @@ target_link_libraries(scada_core_opcua PRIVATE
   OpenSSL::Crypto
 )
 
+if(MSVC)
+  target_compile_options(scada_core_opcua PRIVATE
+    /wd4702 # unreachable code in generated codec visitors
+  )
+endif()
+
 if(TARGET scada_core_opcua_unittests)
   # crypto_unittest.cpp generates its RSA test fixtures via
   # OpenSSL directly.

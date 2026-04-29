@@ -28,3 +28,9 @@ target_link_libraries(node_service_unittests PUBLIC
   node_service_v3
   node_service_proxy
 )
+
+if(MSVC)
+  target_link_options(node_service_unittests PRIVATE
+    $<$<CONFIG:Debug>:/INCREMENTAL:NO>
+  )
+endif()

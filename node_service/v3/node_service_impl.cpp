@@ -1,5 +1,6 @@
 #include "node_service/v3/node_service_impl.h"
 
+#include "base/awaitable.h"
 #include "scada/attribute_service.h"
 #include "scada/standard_node_ids.h"
 #include "node_service/node_observer.h"
@@ -90,10 +91,16 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
     return;
   }
 
-  if (requested_status.node_fetched)
-    node_fetcher_->FetchNode(node_id);
-  if (requested_status.children_fetched)
-    node_fetcher_->FetchChildren(node_id);
+  if (requested_status.node_fetched) {
+    CoSpawn(executor_, [fetcher = node_fetcher_, node_id]() mutable {
+      return fetcher->FetchNode(node_id);
+    });
+  }
+  if (requested_status.children_fetched) {
+    CoSpawn(executor_, [fetcher = node_fetcher_, node_id]() mutable {
+      return fetcher->FetchChildren(node_id);
+    });
+  }
 }
 
 void NodeServiceImpl::ProcessFetchedNodes(
@@ -127,10 +134,16 @@ void NodeServiceImpl::OnChannelOpened() {
   pending_fetch_nodes_.clear();
 
   for (auto& [node_id, requested_status] : pending_fetch_nodes) {
-    if (requested_status.node_fetched)
-      node_fetcher_->FetchNode(node_id);
-    if (requested_status.children_fetched)
-      node_fetcher_->FetchChildren(node_id);
+    if (requested_status.node_fetched) {
+      CoSpawn(executor_, [fetcher = node_fetcher_, node_id]() mutable {
+        return fetcher->FetchNode(node_id);
+      });
+    }
+    if (requested_status.children_fetched) {
+      CoSpawn(executor_, [fetcher = node_fetcher_, node_id]() mutable {
+        return fetcher->FetchChildren(node_id);
+      });
+    }
   }
 }
 

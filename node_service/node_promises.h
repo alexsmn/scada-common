@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/promise.h"
+#include "base/awaitable.h"
 
 namespace scada {
 class NodeId;
@@ -9,12 +9,12 @@ class NodeId;
 class NodeRef;
 class NodeService;
 
-promise<void> FetchNode(const NodeRef& node);
-promise<void> FetchChildren(const NodeRef& node);
-promise<void> WaitForPendingNodes(NodeService& node_service);
+Awaitable<void> FetchNode(const NodeRef& node);
+Awaitable<void> FetchChildren(const NodeRef& node);
+Awaitable<void> WaitForPendingNodes(NodeService& node_service);
 
 // TODO: Combine with `FetchTree`.
-promise<void> FetchRecursive(const NodeRef& node,
-                                           const scada::NodeId& ref_type_id);
+Awaitable<void> FetchRecursive(const NodeRef& node,
+                               const scada::NodeId& ref_type_id);
 
-promise<void> FetchTypeSystem(NodeService& node_service);
+Awaitable<void> FetchTypeSystem(NodeService& node_service);
