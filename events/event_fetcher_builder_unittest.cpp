@@ -75,8 +75,8 @@ class TestCoroutineMethodService final : public scada::CoroutineMethodService {
   scada::NodeId last_user_id;
 };
 
-class TestCoroutineSessionService final
-    : public scada::CoroutineSessionService {
+class TestSessionService final
+    : public scada::SessionService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
     co_return;
@@ -127,7 +127,7 @@ TEST(CoroutineEventFetcherBuilder,
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestCoroutineHistoryService history_service;
   TestCoroutineMethodService method_service;
-  TestCoroutineSessionService session_service;
+  TestSessionService session_service;
   const scada::NodeId node_id{42, 100};
   history_service.result.events = {MakeEvent(12, node_id)};
 
@@ -156,7 +156,7 @@ TEST(CoroutineEventFetcherBuilder,
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestCoroutineHistoryService history_service;
   TestCoroutineMethodService method_service;
-  TestCoroutineSessionService session_service;
+  TestSessionService session_service;
   const scada::NodeId node_id{46, 100};
   session_service.connected = false;
   history_service.result.events = {MakeEvent(16, node_id)};
@@ -190,7 +190,7 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestCoroutineHistoryService history_service;
   TestCoroutineMethodService method_service;
-  TestCoroutineSessionService session_service;
+  TestSessionService session_service;
   const scada::NodeId node_id{44, 100};
   history_service.result.events = {MakeEvent(14, node_id)};
 
@@ -207,8 +207,8 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
   data_services.coroutine_method_service_ =
       std::shared_ptr<scada::CoroutineMethodService>{std::shared_ptr<void>{},
                                                      &method_service};
-  data_services.coroutine_session_service_ =
-      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+  data_services.session_service_ =
+      std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
   auto fetcher = EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
@@ -226,7 +226,7 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
   const auto executor = std::make_shared<TestExecutor>();
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestCoroutineHistoryService history_service;
-  TestCoroutineSessionService session_service;
+  TestSessionService session_service;
 
   DataServices data_services;
   data_services.monitored_item_service_ =
@@ -235,8 +235,8 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
   data_services.coroutine_history_service_ =
       std::shared_ptr<scada::CoroutineHistoryService>{std::shared_ptr<void>{},
                                                       &history_service};
-  data_services.coroutine_session_service_ =
-      std::shared_ptr<scada::CoroutineSessionService>{std::shared_ptr<void>{},
+  data_services.session_service_ =
+      std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
   EXPECT_THROW((EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
@@ -298,7 +298,7 @@ TEST(CoroutineEventFetcherBuilder,
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestCoroutineHistoryService history_service;
   TestCoroutineMethodService method_service;
-  TestCoroutineSessionService session_service;
+  TestSessionService session_service;
   const scada::NodeId node_id{43, 100};
   history_service.result.events = {MakeEvent(13, node_id)};
 

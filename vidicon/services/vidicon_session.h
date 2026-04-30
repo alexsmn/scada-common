@@ -146,11 +146,7 @@ class VidiconSession final : public scada::SessionService,
   virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
-  [[nodiscard]] scada::CoroutineSessionService& coroutine_session_service();
-
  private:
-  class CoroutineSessionAdapter;
-
   AddressSpaceImpl address_space_;
   StandardAddressSpace standard_address_space_{address_space_};
   SyncAttributeServiceImpl sync_attribute_service_;
@@ -159,5 +155,4 @@ class VidiconSession final : public scada::SessionService,
   ViewServiceImpl view_service_{sync_view_service_};
 
   Microsoft::WRL::ComPtr<IClient> teleclient_;
-  std::unique_ptr<CoroutineSessionAdapter> coroutine_session_service_;
 };

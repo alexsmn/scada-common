@@ -1,6 +1,5 @@
-#include "common/coroutine_session_proxy_notifier.h"
+#include "common/session_proxy_notifier.h"
 
-#include "base/test/test_executor.h"
 #include "scada/session_service_mock.h"
 #include "scada/status.h"
 
@@ -39,12 +38,9 @@ class UserChannelProxy {
 
 }  // namespace
 
-TEST(CoroutineSessionProxyNotifierTest,
-     OpensImmediatelyWhenAdaptedSessionIsConnected) {
-  auto executor = std::make_shared<TestExecutor>();
+TEST(SessionProxyNotifierTest,
+     OpensImmediatelyWhenSessionIsConnected) {
   StrictMock<scada::MockSessionService> session_service;
-  scada::SessionToCoroutineSessionServiceAdapter session_service_adapter{
-      MakeTestAnyExecutor(executor), session_service};
   UserChannelProxy proxy;
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed;
@@ -58,19 +54,16 @@ TEST(CoroutineSessionProxyNotifierTest,
   EXPECT_CALL(session_service, GetUserId())
       .WillOnce(testing::Return(scada::NodeId{1, 100}));
 
-  CoroutineSessionProxyNotifier notifier{proxy, session_service_adapter};
+  SessionProxyNotifier notifier{proxy, session_service};
 
   EXPECT_EQ(proxy.opened, 1);
   EXPECT_EQ(proxy.closed, 0);
   EXPECT_EQ(proxy.last_user_id, scada::NodeId(1, 100));
 }
 
-TEST(CoroutineSessionProxyNotifierTest,
-     ForwardsSessionStateChangesThroughAdapter) {
-  auto executor = std::make_shared<TestExecutor>();
+TEST(SessionProxyNotifierTest,
+     ForwardsSessionStateChanges) {
   StrictMock<scada::MockSessionService> session_service;
-  scada::SessionToCoroutineSessionServiceAdapter session_service_adapter{
-      MakeTestAnyExecutor(executor), session_service};
   ChannelProxy proxy;
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed;
@@ -82,7 +75,7 @@ TEST(CoroutineSessionProxyNotifierTest,
       }));
   EXPECT_CALL(session_service, IsConnected(_)).WillOnce(testing::Return(false));
 
-  CoroutineSessionProxyNotifier notifier{proxy, session_service_adapter};
+  SessionProxyNotifier notifier{proxy, session_service};
 
   session_state_changed(true, scada::Status{scada::StatusCode::Good});
   EXPECT_EQ(proxy.opened, 1);

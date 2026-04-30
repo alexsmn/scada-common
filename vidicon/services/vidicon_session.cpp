@@ -26,69 +26,9 @@ Microsoft::WRL::ComPtr<IClient> CreateTeleClient() {
 
 }  // namespace
 
-class VidiconSession::CoroutineSessionAdapter final
-    : public scada::CoroutineSessionService {
- public:
-  explicit CoroutineSessionAdapter(VidiconSession& session)
-      : session_{session} {}
-
-  Awaitable<void> Connect(
-      scada::SessionConnectParams /*params*/) override {
-    session_.teleclient_ = CreateTeleClient();
-    if (!session_.teleclient_) {
-      throw scada::status_exception{scada::StatusCode::Bad};
-    }
-    co_return;
-  }
-
-  Awaitable<void> Reconnect() override {
-    co_return;
-  }
-
-  Awaitable<void> Disconnect() override {
-    session_.teleclient_.Reset();
-    co_return;
-  }
-
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
-    return session_.IsConnected(ping_delay);
-  }
-
-  scada::NodeId GetUserId() const override {
-    return session_.GetUserId();
-  }
-
-  bool HasPrivilege(scada::Privilege privilege) const override {
-    return session_.HasPrivilege(privilege);
-  }
-
-  std::string GetHostName() const override {
-    return session_.GetHostName();
-  }
-
-  bool IsScada() const override {
-    return session_.IsScada();
-  }
-
-  boost::signals2::scoped_connection SubscribeSessionStateChanged(
-      const SessionStateChangedCallback& callback) override {
-    return session_.SubscribeSessionStateChanged(callback);
-  }
-
-  scada::SessionDebugger* GetSessionDebugger() override {
-    return session_.GetSessionDebugger();
-  }
-
- private:
-  VidiconSession& session_;
-};
-
 VidiconSession::VidiconSession()
     : sync_attribute_service_{{address_space_}},
-      sync_view_service_{{address_space_}} {
-  coroutine_session_service_ =
-      std::make_unique<CoroutineSessionAdapter>(*this);
-}
+      sync_view_service_{{address_space_}} {}
 
 VidiconSession::~VidiconSession() {}
 
@@ -296,10 +236,6 @@ VidiconSession::Browse(scada::ServiceContext context,
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 VidiconSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   co_return co_await view_service_.TranslateBrowsePaths(std::move(inputs));
-}
-
-scada::CoroutineSessionService& VidiconSession::coroutine_session_service() {
-  return *coroutine_session_service_;
 }
 
 scada::SessionDebugger* VidiconSession::GetSessionDebugger() {

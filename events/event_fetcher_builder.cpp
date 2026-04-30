@@ -2,7 +2,7 @@
 
 #include "base/nested_logger.h"
 #include "common/coroutine_service_resolver.h"
-#include "common/coroutine_session_proxy_notifier.h"
+#include "common/session_proxy_notifier.h"
 #include "common/data_services_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
@@ -36,8 +36,7 @@ DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
   return DataServices{
       .monitored_item_service_ =
           data_services::Unowned(builder.monitored_item_service_),
-      .coroutine_session_service_ =
-          data_services::Unowned(builder.session_service_),
+      .session_service_ = data_services::Unowned(builder.session_service_),
       .coroutine_history_service_ =
           data_services::Unowned(builder.history_service_),
       .coroutine_method_service_ =
@@ -56,9 +55,8 @@ struct EventFetcherServices {
     method_service_ = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_method_service_,
         data_services_.method_service_, method_service_adapter_);
-    session_service_ = &scada::service_resolver::RequireCoroutineService(
-        executor, data_services_.coroutine_session_service_,
-        data_services_.session_service_, session_service_adapter_);
+    session_service_ = &scada::service_resolver::RequireSharedService(
+        data_services_.session_service_);
   }
 
   DataServices data_services_;
@@ -66,12 +64,10 @@ struct EventFetcherServices {
       history_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
       method_service_adapter_;
-  std::unique_ptr<scada::SessionToCoroutineSessionServiceAdapter>
-      session_service_adapter_;
   scada::MonitoredItemService* monitored_item_service_ = nullptr;
   scada::CoroutineHistoryService* history_service_ = nullptr;
   scada::CoroutineMethodService* method_service_ = nullptr;
-  scada::CoroutineSessionService* session_service_ = nullptr;
+  scada::SessionService* session_service_ = nullptr;
 };
 
 struct EventFetcherHolder : EventFetcherHolderBase {
@@ -95,7 +91,7 @@ struct EventFetcherHolder : EventFetcherHolderBase {
       .event_storage_ = event_storage_,
       .event_ack_queue_ = event_ack_queue_}};
 
-  CoroutineSessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
+  SessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
       event_fetcher_, *services_.session_service_};
 };
 

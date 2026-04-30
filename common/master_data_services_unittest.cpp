@@ -25,7 +25,7 @@ using testing::_;
 using testing::StrictMock;
 
 class TestCoroutineDataServices final
-    : public scada::CoroutineSessionService,
+    : public scada::SessionService,
       public scada::CoroutineAttributeService,
       public scada::CoroutineViewService,
       public scada::CoroutineMethodService,
@@ -441,7 +441,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
 
   auto result = StartAwaitable(
       executor,
-      services.coroutine_session_service().Connect({.host = "node-host"}));
+      services.Connect({.host = "node-host"}));
   Drain(executor);
 
   EXPECT_FALSE(result->done);
@@ -461,7 +461,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  auto& coroutine_session = services.coroutine_session_service();
+  auto& coroutine_session = services;
   base::TimeDelta ping_delay;
 
   EXPECT_CALL(*session_service, IsConnected(&ping_delay))
@@ -491,7 +491,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   auto direct_services = std::make_shared<TestCoroutineDataServices>();
 
   DataServices data_services;
-  data_services.coroutine_session_service_ = direct_services;
+  data_services.session_service_ = direct_services;
   data_services.coroutine_attribute_service_ = direct_services;
   data_services.coroutine_view_service_ = direct_services;
   data_services.coroutine_method_service_ = direct_services;

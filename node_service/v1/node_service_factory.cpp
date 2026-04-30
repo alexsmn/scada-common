@@ -2,7 +2,7 @@
 
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
-#include "common/coroutine_session_proxy_notifier.h"
+#include "common/session_proxy_notifier.h"
 #include "node_service/node_service_factory.h"
 #include "node_service/node_service_factory_services.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
@@ -105,9 +105,9 @@ struct NodeServiceHolder {
   GenericNodeFactory node_factory{address_space, false};
 
   std::unique_ptr<ResolvedNodeServices> resolved_services;
-  scada::CoroutineSessionService& session_service;
+  scada::SessionService& session_service;
   NodeServiceImpl node_service;
-  CoroutineSessionProxyNotifier<NodeServiceImpl> node_service_notifier;
+  SessionProxyNotifier<NodeServiceImpl> node_service_notifier;
 };
 
 }  // namespace

@@ -14,17 +14,17 @@
 namespace scada {
 namespace {
 
-TEST(LocalCoroutineSessionService, LifecycleOperationsComplete) {
+TEST(LocalSessionService, LifecycleOperationsComplete) {
   const auto executor = std::make_shared<TestExecutor>();
-  LocalCoroutineSessionService service;
+  LocalSessionService service;
 
   EXPECT_NO_THROW(WaitAwaitable(executor, service.Connect({})));
   EXPECT_NO_THROW(WaitAwaitable(executor, service.Reconnect()));
   EXPECT_NO_THROW(WaitAwaitable(executor, service.Disconnect()));
 }
 
-TEST(LocalCoroutineSessionService, ReportsConnectedLocalSession) {
-  LocalCoroutineSessionService service;
+TEST(LocalSessionService, ReportsConnectedLocalSession) {
+  LocalSessionService service;
 
   EXPECT_TRUE(service.IsConnected());
   EXPECT_TRUE(service.HasPrivilege(Privilege::Configure));

@@ -258,24 +258,24 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsConnectWithStatus) {
   }
 }
 
-TEST_F(ClientSessionTest, CoroutineSessionServiceRejectsInvalidEndpoint) {
+TEST_F(ClientSessionTest, SessionServiceRejectsInvalidEndpoint) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
-  auto& coroutine_session = session->coroutine_session_service();
+  auto& coroutine_session = *session;
 
   try {
     WaitAwaitable(executor_, coroutine_session.Connect(
                                  {.connection_string = "http://host"}));
-    FAIL() << "CoroutineSessionService Connect unexpectedly succeeded";
+    FAIL() << "SessionService Connect unexpectedly succeeded";
   } catch (const scada::status_exception& e) {
     EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
   }
 }
 
-TEST_F(ClientSessionTest, CoroutineSessionServiceReportsDisconnectedMetadata) {
+TEST_F(ClientSessionTest, SessionServiceReportsDisconnectedMetadata) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
-  auto& coroutine_session = session->coroutine_session_service();
+  auto& coroutine_session = *session;
 
   base::TimeDelta ping_delay;
   EXPECT_FALSE(coroutine_session.IsConnected(&ping_delay));
@@ -290,7 +290,7 @@ TEST_F(ClientSessionTest, CoroutineSessionServiceReportsDisconnectedMetadata) {
   EXPECT_NO_THROW(WaitAwaitable(executor_, coroutine_session.Disconnect()));
 }
 
-TEST_F(ClientSessionTest, CoroutineSessionServiceConnectsClientSession) {
+TEST_F(ClientSessionTest, SessionServiceConnectsClientSession) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
@@ -298,7 +298,7 @@ TEST_F(ClientSessionTest, CoroutineSessionServiceConnectsClientSession) {
   ScriptedTransportFactory transport_factory{state};
   auto session = std::make_shared<ClientSession>(executor_,
                                                  transport_factory);
-  auto& coroutine_session = session->coroutine_session_service();
+  auto& coroutine_session = *session;
 
   bool state_changed = false;
   auto subscription = coroutine_session.SubscribeSessionStateChanged(

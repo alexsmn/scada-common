@@ -10,9 +10,9 @@ namespace {
 
 using testing::Not;
 
-TEST(VidiconSession, CoroutineSessionServiceReportsLocalSessionMetadata) {
+TEST(VidiconSession, SessionServiceReportsLocalSessionMetadata) {
   VidiconSession session;
-  auto& coroutine_session = session.coroutine_session_service();
+  auto& coroutine_session = session;
 
   base::TimeDelta ping_delay;
   EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
@@ -24,10 +24,10 @@ TEST(VidiconSession, CoroutineSessionServiceReportsLocalSessionMetadata) {
   EXPECT_EQ(coroutine_session.GetSessionDebugger(), nullptr);
 }
 
-TEST(VidiconSession, CoroutineSessionServiceLifecycleCompletes) {
+TEST(VidiconSession, SessionServiceLifecycleCompletes) {
   VidiconSession session;
   const auto executor = std::make_shared<TestExecutor>();
-  auto& coroutine_session = session.coroutine_session_service();
+  auto& coroutine_session = session;
 
   EXPECT_NO_THROW(WaitAwaitable(executor, coroutine_session.Reconnect()));
   EXPECT_NO_THROW(WaitAwaitable(executor, coroutine_session.Disconnect()));

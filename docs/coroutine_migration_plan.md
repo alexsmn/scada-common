@@ -65,7 +65,7 @@ coroutine service interfaces in `core/scada/coroutine_services.h`.
 
 - Use `CoroutineAttributeService`, `CoroutineHistoryService`,
   `CoroutineViewService`, `CoroutineMethodService`,
-  `CoroutineNodeManagementService`, and `CoroutineSessionService` as internal
+  `CoroutineNodeManagementService`, and `SessionService` as internal
   dependencies for migrated code.
 - Use `CallbackToCoroutine*ServiceAdapter` to wrap existing callback services
   when a module has not yet been converted end to end.
@@ -116,7 +116,7 @@ each slice is touched.
   weak coroutine dispatch helper instead of capturing raw session state in each
   wrapper; OPC UA tests cover all callback wrappers and destroyed-session
   callback suppression.
-- `ClientSession` now exposes an owned `CoroutineSessionService` facade over
+- `ClientSession` now exposes an owned `SessionService` facade over
   its coroutine lifecycle methods and session metadata, keeping legacy
   `SessionService` inheritance separate from the conflicting coroutine
   lifecycle method names; OPC UA tests cover invalid endpoint rejection,
@@ -136,8 +136,8 @@ each slice is touched.
   service dependencies once at construction; OPC UA tests cover the canonical,
   websocket, server-runtime, and binary dispatch paths.
 - Event and node-service channel notifiers now consume
-  `CoroutineSessionService`; their builders adapt the public `SessionService`
-  boundary once with `PromiseToCoroutineSessionServiceAdapter`, and common
+  `SessionService`; their builders adapt the public `SessionService`
+  boundary once with `SessionService`, and common
   tests cover connected-session startup plus later session-state callbacks.
 - `MasterDataServices` can now be constructed with an executor to expose
   coroutine attribute, view, history, method, and node-management services over
@@ -145,7 +145,7 @@ each slice is touched.
   their existing API while dispatching through the coroutine adapters when
   available, and common tests cover delayed adapter completion for callback,
   coroutine, and session-promise paths.
-- `MasterDataServices` now also exposes an owned `CoroutineSessionService`
+- `MasterDataServices` now also exposes an owned `SessionService`
   facade over its aggregate session boundary, reusing the existing coroutine
   session adapter when a legacy `SessionService` is installed; common tests
   cover delayed promise-backed connect completion and session metadata
@@ -184,7 +184,7 @@ each slice is touched.
   directly while preserving the callback API; coroutine tests cover generated
   raw profiles and stored event reads.
 - Local address-space session fixtures now have a direct
-  `LocalCoroutineSessionService` implementation for connected in-memory
+  `LocalSessionService` implementation for connected in-memory
   sessions; coroutine tests cover lifecycle completion and local session
   metadata without routing through a promise adapter.
 - Address-space method service implementation now exposes
@@ -192,7 +192,7 @@ each slice is touched.
   coroutine tests cover the built-in wrong-method-id result.
 - Vidicon session services now expose coroutine attribute, view, history,
   method, and node-management interfaces directly plus an owned
-  `CoroutineSessionService` facade while preserving their callback APIs; the
+  `SessionService` facade while preserving their callback APIs; the
   services target publishes the address-space, Vidicon IDL, and transport
   dependencies needed by the public coroutine-facing header, and Vidicon
   service tests cover local session metadata, lifecycle, local read/browse,
@@ -210,7 +210,7 @@ each slice is touched.
   factory path; factory tests cover connected-session fetches through direct
   coroutine services for both implementations.
 - Node-service v1/v2 coroutine factories now also consume
-  `CoroutineSessionService` directly, leaving `SessionService` adaptation only
+  `SessionService` directly, leaving `SessionService` adaptation only
   on the legacy factory path; factory tests verify connected startup and node
   fetches through direct coroutine session, attribute, and view services.
 - Removed the stale `MethodService` dependency from the node-service coroutine

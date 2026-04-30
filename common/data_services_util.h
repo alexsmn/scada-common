@@ -14,7 +14,6 @@ inline bool HasServices(const DataServices& services) {
          services.node_management_service_ || services.history_service_ ||
          services.attribute_service_ || services.method_service_ ||
          services.monitored_item_service_ ||
-         services.coroutine_session_service_ ||
          services.coroutine_view_service_ ||
          services.coroutine_node_management_service_ ||
          services.coroutine_history_service_ ||

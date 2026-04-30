@@ -166,9 +166,9 @@ interfaces (`SessionService`, `ViewService`, `AttributeService`,
 above. Lifecycle and service-call internals are coroutine-native; the
 legacy promise/callback interfaces delegate into `Awaitable` methods at the
 compatibility boundary. Because `SessionService` and
-`CoroutineSessionService` both define no-argument `Disconnect` and
+`SessionService` both define no-argument `Disconnect` and
 `Reconnect` methods with different return types, `ClientSession` exposes its
-coroutine session surface through an owned `coroutine_session_service()`
+coroutine session surface through an owned ``
 facade instead of inheriting both interfaces directly.
 
 Responsibilities:
@@ -180,7 +180,7 @@ Responsibilities:
   ActivateSession)
 - expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
   `CoroutineViewService`, `CoroutineAttributeService`,
-  `CoroutineMethodService`, and an owned `CoroutineSessionService` facade for
+  `CoroutineMethodService`, and an owned `SessionService` facade for
   awaitable-first callers
 - keep legacy `SessionService` promises and callback services as thin
   wrappers over those awaitable bodies

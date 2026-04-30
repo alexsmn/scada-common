@@ -145,18 +145,11 @@ class MasterDataServices final : public scada::AttributeService,
                     base::Time to,
                     scada::EventFilter filter) override;
 
-  [[nodiscard]] scada::CoroutineSessionService& coroutine_session_service();
-
  private:
   class MasterMonitoredItem;
-  class CoroutineSessionFacade;
 
   void ResetCoroutineAdapters();
   void RefreshCoroutineServices();
-  [[nodiscard]] Awaitable<void> ConnectCoroutine(
-      scada::SessionConnectParams params);
-  [[nodiscard]] Awaitable<void> DisconnectCoroutine();
-  [[nodiscard]] Awaitable<void> ReconnectCoroutine();
 
   std::vector<MasterMonitoredItem*> monitored_items_;
 
@@ -169,14 +162,11 @@ class MasterDataServices final : public scada::AttributeService,
   bool connected_ = false;
 
   std::optional<AnyExecutor> coroutine_executor_;
-  std::unique_ptr<CoroutineSessionFacade> coroutine_session_facade_;
 
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::SessionToCoroutineSessionServiceAdapter>
-      session_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
       method_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
@@ -196,7 +186,7 @@ class MasterDataServices final : public scada::AttributeService,
 
   scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
   scada::CoroutineViewService* coroutine_view_service_ = nullptr;
-  scada::CoroutineSessionService* coroutine_session_service_ = nullptr;
+  scada::SessionService* session_service_ = nullptr;
   scada::CoroutineMethodService* coroutine_method_service_ = nullptr;
   scada::CoroutineHistoryService* coroutine_history_service_ = nullptr;
   scada::CoroutineNodeManagementService* coroutine_node_management_service_ =

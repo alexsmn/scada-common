@@ -93,65 +93,10 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
 // MasterDataServices
 
-class MasterDataServices::CoroutineSessionFacade final
-    : public scada::CoroutineSessionService {
- public:
-  explicit CoroutineSessionFacade(MasterDataServices& owner)
-      : owner_{owner} {}
-
-  Awaitable<void> Connect(scada::SessionConnectParams params) override {
-    co_await owner_.ConnectCoroutine(std::move(params));
-  }
-
-  Awaitable<void> Reconnect() override {
-    co_await owner_.ReconnectCoroutine();
-  }
-
-  Awaitable<void> Disconnect() override {
-    co_await owner_.DisconnectCoroutine();
-  }
-
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
-    return owner_.IsConnected(ping_delay);
-  }
-
-  scada::NodeId GetUserId() const override {
-    return owner_.GetUserId();
-  }
-
-  bool HasPrivilege(scada::Privilege privilege) const override {
-    return owner_.HasPrivilege(privilege);
-  }
-
-  std::string GetHostName() const override {
-    return owner_.GetHostName();
-  }
-
-  bool IsScada() const override {
-    return owner_.IsScada();
-  }
-
-  boost::signals2::scoped_connection SubscribeSessionStateChanged(
-      const SessionStateChangedCallback& callback) override {
-    return owner_.SubscribeSessionStateChanged(callback);
-  }
-
-  scada::SessionDebugger* GetSessionDebugger() override {
-    return owner_.GetSessionDebugger();
-  }
-
- private:
-  MasterDataServices& owner_;
-};
-
-MasterDataServices::MasterDataServices()
-    : coroutine_session_facade_{std::make_unique<CoroutineSessionFacade>(
-          *this)} {}
+MasterDataServices::MasterDataServices() = default;
 
 MasterDataServices::MasterDataServices(AnyExecutor executor)
-    : coroutine_executor_{std::move(executor)},
-      coroutine_session_facade_{
-          std::make_unique<CoroutineSessionFacade>(*this)} {}
+    : coroutine_executor_{std::move(executor)} {}
 
 MasterDataServices::~MasterDataServices() {
   for (auto* monitored_item : monitored_items_) {
@@ -172,7 +117,7 @@ scada::services MasterDataServices::as_services() {
 void MasterDataServices::ResetCoroutineAdapters() {
   coroutine_attribute_service_ = nullptr;
   coroutine_view_service_ = nullptr;
-  coroutine_session_service_ = nullptr;
+  session_service_ = nullptr;
   coroutine_method_service_ = nullptr;
   coroutine_history_service_ = nullptr;
   coroutine_node_management_service_ = nullptr;
@@ -184,7 +129,6 @@ void MasterDataServices::ResetCoroutineAdapters() {
   node_management_callback_adapter_.reset();
   attribute_service_adapter_.reset();
   view_service_adapter_.reset();
-  session_service_adapter_.reset();
   method_service_adapter_.reset();
   history_service_adapter_.reset();
   node_management_service_adapter_.reset();
@@ -203,10 +147,7 @@ void MasterDataServices::RefreshCoroutineServices() {
       coroutine_executor_, services_.coroutine_view_service_,
       services_.view_service_, view_service_adapter_, view_callback_adapter_);
 
-  coroutine_session_service_ =
-      scada::service_resolver::ResolveCoroutineService(
-          coroutine_executor_, services_.coroutine_session_service_,
-          services_.session_service_, session_service_adapter_);
+  session_service_ = services_.session_service_.get();
 
   coroutine_method_service_ = scada::service_resolver::ResolveCoroutineService(
       coroutine_executor_, services_.coroutine_method_service_,
@@ -243,13 +184,12 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
   services_ = std::move(services);
   RefreshCoroutineServices();
-  connected_ = services_.session_service_ != nullptr ||
-               coroutine_session_service_ != nullptr;
+  connected_ = session_service_ != nullptr;
 
   if (connected_) {
-    if (coroutine_session_service_) {
+    if (session_service_) {
       session_state_changed_connection_ =
-          coroutine_session_service_->SubscribeSessionStateChanged(
+          session_service_->SubscribeSessionStateChanged(
               [this](bool connected, const scada::Status& status) {
                 session_state_changed_signal_(connected, status);
               });
@@ -264,76 +204,60 @@ void MasterDataServices::SetServices(DataServices&& services) {
 }
 
 Awaitable<void> MasterDataServices::Connect(scada::SessionConnectParams params) {
-  if (coroutine_session_service_) {
-    co_await ConnectCoroutine(std::move(params));
-    co_return;
-  }
-
-  if (!services_.session_service_) {
+  if (!session_service_) {
     throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
   }
 
-  co_await services_.session_service_->Connect(std::move(params));
+  co_await session_service_->Connect(std::move(params));
 }
 
 Awaitable<void> MasterDataServices::Disconnect() {
-  if (coroutine_session_service_) {
-    co_await DisconnectCoroutine();
-    co_return;
-  }
-
-  if (!services_.session_service_)
+  if (!session_service_)
     throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
 
-  co_await services_.session_service_->Disconnect();
+  co_await session_service_->Disconnect();
 }
 
 Awaitable<void> MasterDataServices::Reconnect() {
-  if (coroutine_session_service_) {
-    co_await ReconnectCoroutine();
-    co_return;
-  }
-
-  if (!services_.session_service_)
+  if (!session_service_)
     throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
 
-  co_await services_.session_service_->Reconnect();
+  co_await session_service_->Reconnect();
 }
 
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
   if (!connected_)
     return false;
 
-  return coroutine_session_service_ &&
-         coroutine_session_service_->IsConnected(ping_delay);
+  return session_service_ && session_service_->IsConnected(ping_delay);
 }
 
 bool MasterDataServices::HasPrivilege(scada::Privilege privilege) const {
-  if (!coroutine_session_service_)
+  if (!session_service_)
     return false;
 
-  return coroutine_session_service_->HasPrivilege(privilege);
+  return session_service_->HasPrivilege(privilege);
 }
 
 scada::NodeId MasterDataServices::GetUserId() const {
-  if (!coroutine_session_service_)
+  if (!session_service_)
     return {};
 
-  return coroutine_session_service_->GetUserId();
+  return session_service_->GetUserId();
 }
 
 std::string MasterDataServices::GetHostName() const {
-  if (!coroutine_session_service_)
+  if (!session_service_)
     return {};
 
-  return coroutine_session_service_->GetHostName();
+  return session_service_->GetHostName();
 }
 
 bool MasterDataServices::IsScada() const {
-  if (!coroutine_session_service_)
+  if (!session_service_)
     return false;
 
-  return coroutine_session_service_->IsScada();
+  return session_service_->IsScada();
 }
 
 boost::signals2::scoped_connection
@@ -515,36 +439,9 @@ void MasterDataServices::Read(
 }
 
 scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
-  return coroutine_session_service_
-             ? coroutine_session_service_->GetSessionDebugger()
+  return session_service_
+             ? session_service_->GetSessionDebugger()
              : nullptr;
-}
-
-scada::CoroutineSessionService&
-MasterDataServices::coroutine_session_service() {
-  return *coroutine_session_facade_;
-}
-
-Awaitable<void> MasterDataServices::ConnectCoroutine(
-    scada::SessionConnectParams params) {
-  if (!coroutine_session_service_)
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
-
-  co_await coroutine_session_service_->Connect(std::move(params));
-}
-
-Awaitable<void> MasterDataServices::DisconnectCoroutine() {
-  if (!coroutine_session_service_)
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
-
-  co_await coroutine_session_service_->Disconnect();
-}
-
-Awaitable<void> MasterDataServices::ReconnectCoroutine() {
-  if (!coroutine_session_service_)
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
-
-  co_await coroutine_session_service_->Reconnect();
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
