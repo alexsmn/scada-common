@@ -1,6 +1,6 @@
 #include "common/master_data_services.h"
 
-#include "base/awaitable_promise.h"
+#include "base/async_completion.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "common/coroutine_service_resolver.h"
@@ -308,17 +308,18 @@ TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
             pending_read = callback;
           });
 
-  auto result = ToPromise(
-      MakeTestAnyExecutor(executor),
-      resolved->Read({}, std::make_shared<const std::vector<scada::ReadValueId>>()));
+  auto result = StartAwaitable(
+      executor,
+      resolved->Read(
+          {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
   Drain(executor);
 
-  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(result->done);
   ASSERT_TRUE(pending_read);
 
   pending_read(scada::StatusCode::Good, {scada::DataValue{}});
 
-  ASSERT_OK_AND_ASSIGN(auto values, WaitPromise(executor, std::move(result)));
+  ASSERT_OK_AND_ASSIGN(auto values, WaitResult(executor, result));
   EXPECT_EQ(values.size(), 1u);
 }
 
@@ -377,25 +378,24 @@ TEST(MasterDataServicesTest,
         pending_add_nodes = callback;
       });
 
-  auto result = ToPromise(
-      MakeTestAnyExecutor(executor),
+  auto result = StartAwaitable(
+      executor,
       static_cast<scada::CoroutineNodeManagementService&>(services).AddNodes(
           {scada::AddNodesItem{.requested_id = scada::NodeId{1}}}));
   Drain(executor);
 
-  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(result->done);
   ASSERT_TRUE(pending_add_nodes);
 
   pending_add_nodes(scada::StatusCode::Good,
                     {scada::AddNodesResult{.added_node_id = scada::NodeId{1}}});
 
-  ASSERT_OK_AND_ASSIGN(auto results,
-                       WaitPromise(executor, std::move(result)));
+  ASSERT_OK_AND_ASSIGN(auto results, WaitResult(executor, result));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].added_node_id, scada::NodeId{1});
 }
 
-TEST(MasterDataServicesTest, SessionConnectPromiseUsesCoroutineAdapter) {
+TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
   auto executor = std::make_shared<TestExecutor>();
   MasterDataServices services{MakeTestAnyExecutor(executor)};
   auto session_service =
@@ -406,22 +406,22 @@ TEST(MasterDataServicesTest, SessionConnectPromiseUsesCoroutineAdapter) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  promise<void> pending_connect;
+  base::AsyncCompletion pending_connect{MakeTestAnyExecutor(executor)};
   EXPECT_CALL(*session_service, Connect(_))
       .WillOnce([&](const scada::SessionConnectParams&) {
-        return pending_connect;
+        return pending_connect.Wait();
       });
 
-  auto result = services.Connect({});
+  auto result = StartAwaitable(executor, services.Connect({}));
   Drain(executor);
 
-  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(result->done);
 
-  pending_connect.resolve();
-  WaitPromise(executor, std::move(result));
+  pending_connect.Complete();
+  WaitResult(executor, result);
 }
 
-TEST(MasterDataServicesTest, CoroutineSessionFacadeUsesPromiseAdapter) {
+TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
   auto executor = std::make_shared<TestExecutor>();
   MasterDataServices services{MakeTestAnyExecutor(executor)};
   auto session_service =
@@ -432,22 +432,22 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeUsesPromiseAdapter) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  promise<void> pending_connect;
+  base::AsyncCompletion pending_connect{MakeTestAnyExecutor(executor)};
   EXPECT_CALL(*session_service, Connect(_))
       .WillOnce([&](const scada::SessionConnectParams& params) {
         EXPECT_EQ(params.host, "node-host");
-        return pending_connect;
+        return pending_connect.Wait();
       });
 
-  auto result = ToPromise(
-      MakeTestAnyExecutor(executor),
+  auto result = StartAwaitable(
+      executor,
       services.coroutine_session_service().Connect({.host = "node-host"}));
   Drain(executor);
 
-  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(result->done);
 
-  pending_connect.resolve();
-  WaitPromise(executor, std::move(result));
+  pending_connect.Complete();
+  WaitResult(executor, result);
 }
 
 TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
@@ -506,7 +506,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(services.GetHostName(), "direct-host");
   EXPECT_TRUE(services.IsScada());
 
-  WaitPromise(executor, services.Connect({.host = "direct-connect"}));
+  WaitAwaitable(executor, services.Connect({.host = "direct-connect"}));
   EXPECT_EQ(direct_services->connect_count, 1);
   EXPECT_EQ(direct_services->last_host, "direct-connect");
 

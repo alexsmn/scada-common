@@ -38,10 +38,9 @@ class MasterDataServices final : public scada::AttributeService,
   void SetServices(DataServices&& sevices);
 
   // scada::SessionService
-  virtual promise<void> Connect(
-      const scada::SessionConnectParams& params) override;
-  virtual promise<void> Disconnect() override;
-  virtual promise<void> Reconnect() override;
+  virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  virtual Awaitable<void> Disconnect() override;
+  virtual Awaitable<void> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
@@ -176,7 +175,7 @@ class MasterDataServices final : public scada::AttributeService,
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
+  std::unique_ptr<scada::SessionToCoroutineSessionServiceAdapter>
       session_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
       method_service_adapter_;

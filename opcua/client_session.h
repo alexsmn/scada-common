@@ -3,7 +3,6 @@
 #include "base/any_executor.h"
 #include "base/awaitable.h"
 #include "base/executor.h"
-#include "base/promise.h"
 #include "opcua/binary/client_connection.h"
 #include "opcua/binary/client_secure_channel.h"
 #include "opcua/binary/client_transport.h"
@@ -30,7 +29,7 @@ class ClientSubscription;
 
 // Qt client's adapter onto the in-repo OPC UA Binary client (see
 // common/opcua/binary/*). Implements the five scada::* service
-// interfaces and bridges their callback / promise calling conventions to
+// interfaces and bridges their callback calling conventions to
 // the coroutine-native client stack underneath.
 class ClientSession final
     : public std::enable_shared_from_this<ClientSession>,
@@ -48,10 +47,9 @@ class ClientSession final
   ~ClientSession() override;
 
   // scada::SessionService
-  promise<void> Connect(
-      const scada::SessionConnectParams& params) override;
-  promise<void> Disconnect() override;
-  promise<void> Reconnect() override;
+  Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  Awaitable<void> Disconnect() override;
+  Awaitable<void> Reconnect() override;
   bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   bool HasPrivilege(scada::Privilege privilege) const override;

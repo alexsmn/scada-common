@@ -1,23 +1,21 @@
 #include "address_space/local_session_service.h"
 
-#include "base/promise.h"
-
 namespace scada {
 
 LocalSessionService::LocalSessionService() = default;
 LocalSessionService::~LocalSessionService() = default;
 
-promise<void> LocalSessionService::Connect(
-    const SessionConnectParams& /*params*/) {
-  return make_resolved_promise();
+Awaitable<void> LocalSessionService::Connect(
+    SessionConnectParams /*params*/) {
+  co_return;
 }
 
-promise<void> LocalSessionService::Reconnect() {
-  return make_resolved_promise();
+Awaitable<void> LocalSessionService::Reconnect() {
+  co_return;
 }
 
-promise<void> LocalSessionService::Disconnect() {
-  return make_resolved_promise();
+Awaitable<void> LocalSessionService::Disconnect() {
+  co_return;
 }
 
 bool LocalSessionService::IsConnected(

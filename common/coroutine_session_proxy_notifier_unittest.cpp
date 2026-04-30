@@ -43,7 +43,7 @@ TEST(CoroutineSessionProxyNotifierTest,
      OpensImmediatelyWhenAdaptedSessionIsConnected) {
   auto executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockSessionService> session_service;
-  scada::PromiseToCoroutineSessionServiceAdapter session_service_adapter{
+  scada::SessionToCoroutineSessionServiceAdapter session_service_adapter{
       MakeTestAnyExecutor(executor), session_service};
   UserChannelProxy proxy;
   boost::signals2::signal<void(bool, const scada::Status&)>
@@ -69,7 +69,7 @@ TEST(CoroutineSessionProxyNotifierTest,
      ForwardsSessionStateChangesThroughAdapter) {
   auto executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockSessionService> session_service;
-  scada::PromiseToCoroutineSessionServiceAdapter session_service_adapter{
+  scada::SessionToCoroutineSessionServiceAdapter session_service_adapter{
       MakeTestAnyExecutor(executor), session_service};
   ChannelProxy proxy;
   boost::signals2::signal<void(bool, const scada::Status&)>

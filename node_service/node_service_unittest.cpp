@@ -152,7 +152,7 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
                      {scada::DataValue{expected_value, {}, {}, {}}});
           });
 
-  auto result = WaitPromise(
+  auto result = WaitAwaitable(
       executor, node_service.GetNode(node_id).scada_node().read_value());
 
   EXPECT_EQ(result.value, expected_value);

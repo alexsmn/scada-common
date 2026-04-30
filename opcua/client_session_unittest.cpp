@@ -1,9 +1,7 @@
 #include "opcua/client_session.h"
 
-#include "base/awaitable_promise.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
-#include "net/net_executor_adapter.h"
 #include "opcua/binary/secure_channel.h"
 #include "opcua/binary/service_codec.h"
 #include "scada/monitored_item.h"
@@ -240,23 +238,20 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
                                                      transport_factory_);
 
   try {
-    WaitPromise(executor_,
-                ToPromise(NetExecutorAdapter{executor_},
-                          session->ConnectAsync(
-                              {.connection_string = "http://host"})));
+    WaitAwaitable(executor_,
+                  session->ConnectAsync({.connection_string = "http://host"}));
     FAIL() << "ConnectAsync unexpectedly succeeded";
   } catch (const scada::status_exception& e) {
     EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
   }
 }
 
-TEST_F(ClientSessionTest, InvalidEndpointRejectsLegacyPromiseWithStatus) {
+TEST_F(ClientSessionTest, InvalidEndpointRejectsConnectWithStatus) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
   try {
-    WaitPromise(executor_,
-                session->Connect({.connection_string = "http://host"}));
+    WaitAwaitable(executor_, session->Connect({.connection_string = "http://host"}));
     FAIL() << "Connect unexpectedly succeeded";
   } catch (const scada::status_exception& e) {
     EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
@@ -341,40 +336,26 @@ TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{});
-  auto read_result =
-      WaitPromise(executor_,
-                  ToPromise(NetExecutorAdapter{executor_},
-                            session->Read({}, read_inputs)));
+  auto read_result = WaitAwaitable(executor_, session->Read({}, read_inputs));
   EXPECT_THAT(read_result,
               scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{});
-  auto write_result =
-      WaitPromise(executor_,
-                  ToPromise(NetExecutorAdapter{executor_},
-                            session->Write({}, write_inputs)));
+  auto write_result = WaitAwaitable(executor_, session->Write({}, write_inputs));
   EXPECT_THAT(write_result,
               scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
-  auto browse_result =
-      WaitPromise(executor_,
-                  ToPromise(NetExecutorAdapter{executor_},
-                            session->Browse({}, {})));
+  auto browse_result = WaitAwaitable(executor_, session->Browse({}, {}));
   EXPECT_THAT(browse_result,
               scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
   auto translate_result =
-      WaitPromise(executor_,
-                  ToPromise(NetExecutorAdapter{executor_},
-                            session->TranslateBrowsePaths({})));
+      WaitAwaitable(executor_, session->TranslateBrowsePaths({}));
   EXPECT_THAT(translate_result,
               scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
-  auto call_status =
-      WaitPromise(executor_,
-                  ToPromise(NetExecutorAdapter{executor_},
-                            session->Call({}, {}, {}, {})));
+  auto call_status = WaitAwaitable(executor_, session->Call({}, {}, {}, {}));
   EXPECT_EQ(call_status.code(), scada::StatusCode::Bad_Disconnected);
 }
 
@@ -487,7 +468,7 @@ TEST_F(ClientSessionTest, MonitoredItemUsesSubscriptionCoroutineTasks) {
                                                  transport_factory);
 
   ASSERT_NO_THROW(
-      WaitPromise(executor_, session->Connect({.host = "localhost:4840"})));
+      WaitAwaitable(executor_, session->Connect({.host = "localhost:4840"})));
 
   auto monitored_item = session->CreateMonitoredItem(
       scada::ReadValueId{.node_id = scada::NodeId{1},

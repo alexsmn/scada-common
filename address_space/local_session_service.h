@@ -6,7 +6,7 @@
 namespace scada {
 
 // Trivial in-memory SessionService. Reports `IsConnected() == true`, grants
-// every privilege, and resolves all lifecycle promises immediately.
+// every privilege, and completes all lifecycle coroutines immediately.
 //
 // Intended for tests, demos, and screenshot tooling where the session layer
 // is not under test.
@@ -15,9 +15,9 @@ class LocalSessionService : public SessionService {
   LocalSessionService();
   ~LocalSessionService() override;
 
-  promise<void> Connect(const SessionConnectParams& params) override;
-  promise<void> Reconnect() override;
-  promise<void> Disconnect() override;
+  Awaitable<void> Connect(SessionConnectParams params) override;
+  Awaitable<void> Reconnect() override;
+  Awaitable<void> Disconnect() override;
 
   bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override;
 
@@ -33,8 +33,8 @@ class LocalSessionService : public SessionService {
   SessionDebugger* GetSessionDebugger() override;
 };
 
-// Coroutine-native counterpart for tests, demos, and screenshot tooling that
-// want a local connected session without adapting the promise-based service.
+// Kept as a named counterpart for tests, demos, and screenshot tooling that
+// want a local connected session through the coroutine service interface.
 class LocalCoroutineSessionService final : public CoroutineSessionService {
  public:
   LocalCoroutineSessionService();

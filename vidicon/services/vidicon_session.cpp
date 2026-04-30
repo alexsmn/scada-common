@@ -92,24 +92,23 @@ VidiconSession::VidiconSession()
 
 VidiconSession::~VidiconSession() {}
 
-promise<void> VidiconSession::Connect(
-    const scada::SessionConnectParams& params) {
+Awaitable<void> VidiconSession::Connect(scada::SessionConnectParams params) {
   teleclient_ = CreateTeleClient();
   if (!teleclient_) {
-    return MakeRejectedStatusPromise(scada::StatusCode::Bad);
+    throw scada::status_exception{scada::StatusCode::Bad};
   }
 
-  return make_resolved_promise();
+  co_return;
 }
 
-promise<void> VidiconSession::Reconnect() {
-  return make_resolved_promise();
+Awaitable<void> VidiconSession::Reconnect() {
+  co_return;
 }
 
-promise<void> VidiconSession::Disconnect() {
+Awaitable<void> VidiconSession::Disconnect() {
   teleclient_.Reset();
 
-  return make_resolved_promise();
+  co_return;
 }
 
 bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {

@@ -1,12 +1,10 @@
 #include "master_data_services.h"
 
-#include "base/awaitable_promise.h"
 #include "common/coroutine_service_resolver.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
 #include "scada/status_exception.h"
-#include "scada/status_promise.h"
 
 // MasterDataServices::MasterMonitoredItem
 
@@ -265,38 +263,41 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-promise<void> MasterDataServices::Connect(
-    const scada::SessionConnectParams& params) {
-  if (coroutine_executor_ && coroutine_session_service_) {
-    return ToPromise(*coroutine_executor_,
-                     ConnectCoroutine(scada::SessionConnectParams{params}));
+Awaitable<void> MasterDataServices::Connect(scada::SessionConnectParams params) {
+  if (coroutine_session_service_) {
+    co_await ConnectCoroutine(std::move(params));
+    co_return;
   }
 
   if (!services_.session_service_) {
-    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
   }
 
-  return services_.session_service_->Connect(params);
+  co_await services_.session_service_->Connect(std::move(params));
 }
 
-promise<void> MasterDataServices::Disconnect() {
-  if (coroutine_executor_ && coroutine_session_service_)
-    return ToPromise(*coroutine_executor_, DisconnectCoroutine());
+Awaitable<void> MasterDataServices::Disconnect() {
+  if (coroutine_session_service_) {
+    co_await DisconnectCoroutine();
+    co_return;
+  }
 
   if (!services_.session_service_)
-    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
 
-  return services_.session_service_->Disconnect();
+  co_await services_.session_service_->Disconnect();
 }
 
-promise<void> MasterDataServices::Reconnect() {
-  if (coroutine_executor_ && coroutine_session_service_)
-    return ToPromise(*coroutine_executor_, ReconnectCoroutine());
+Awaitable<void> MasterDataServices::Reconnect() {
+  if (coroutine_session_service_) {
+    co_await ReconnectCoroutine();
+    co_return;
+  }
 
   if (!services_.session_service_)
-    return MakeRejectedStatusPromise(scada::StatusCode::Bad_Disconnected);
+    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
 
-  return services_.session_service_->Reconnect();
+  co_await services_.session_service_->Reconnect();
 }
 
 bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {

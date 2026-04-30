@@ -1,6 +1,5 @@
 #include "common/audit.h"
 
-#include "base/awaitable_promise.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "metrics/metric_service.h"
@@ -76,7 +75,7 @@ class CapturingMetricService final : public MetricService {
   void RegisterSink(const Sink& sink) override { sink_ = sink; }
 
   Metrics Collect(const std::shared_ptr<TestExecutor>& executor) {
-    return WaitPromise(executor, provider_());
+    return WaitAwaitable(executor, provider_());
   }
 
   Provider provider_;
@@ -151,18 +150,17 @@ TEST(AuditTest, CoroutineBrowseUsesCallbackAdapterAndRecordsMetric) {
         pending_browse = callback;
       });
 
-  auto result =
-      ToPromise(MakeTestAnyExecutor(executor),
-                static_cast<scada::CoroutineViewService&>(*audit).Browse(
+  auto result = StartAwaitable(
+      executor, static_cast<scada::CoroutineViewService&>(*audit).Browse(
                     {}, {scada::BrowseDescription{}}));
   Drain(executor);
 
-  EXPECT_EQ(result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(result->done);
   ASSERT_TRUE(pending_browse);
 
   pending_browse(scada::StatusCode::Good, {});
 
-  auto browse_result = WaitPromise(executor, std::move(result));
+  auto browse_result = WaitResult(executor, result);
   ASSERT_THAT(browse_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "browse_latency.count"));
@@ -333,18 +331,17 @@ TEST(AuditTest, AuditDataServicesWrapsCallbackSlotsForCoroutineUse) {
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{3}}});
-  auto read_result =
-      ToPromise(MakeTestAnyExecutor(executor),
-                audited_services->coroutine_attribute_service_->Read(
-                    {}, read_inputs));
+  auto read_result = StartAwaitable(
+      executor,
+      audited_services->coroutine_attribute_service_->Read({}, read_inputs));
   Drain(executor);
 
-  EXPECT_EQ(read_result.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(read_result->done);
   ASSERT_TRUE(pending_read);
 
   pending_read(scada::StatusCode::Good, {scada::DataValue{}});
 
-  auto values = WaitPromise(executor, std::move(read_result));
+  auto values = WaitResult(executor, read_result);
   ASSERT_THAT(values, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "read_latency.count"));

@@ -50,7 +50,7 @@ struct ResolvedNodeServices {
       view_service_adapter;
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter;
-  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
+  std::unique_ptr<scada::SessionToCoroutineSessionServiceAdapter>
       session_service_adapter;
   scada::CoroutineSessionService* session_service = nullptr;
   scada::CoroutineAttributeService* attribute_service = nullptr;

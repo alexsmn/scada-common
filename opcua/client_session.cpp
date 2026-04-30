@@ -144,17 +144,16 @@ ClientSession::ClientSession(
 
 ClientSession::~ClientSession() = default;
 
-promise<void> ClientSession::Connect(
-    const scada::SessionConnectParams& params) {
-  return ToPromise(NetExecutorAdapter{executor_}, ConnectAsync(params));
+Awaitable<void> ClientSession::Connect(scada::SessionConnectParams params) {
+  co_await ConnectAsync(std::move(params));
 }
 
-promise<void> ClientSession::Disconnect() {
-  return ToPromise(NetExecutorAdapter{executor_}, DisconnectAsync());
+Awaitable<void> ClientSession::Disconnect() {
+  co_await DisconnectAsync();
 }
 
-promise<void> ClientSession::Reconnect() {
-  return ToPromise(NetExecutorAdapter{executor_}, ReconnectAsync());
+Awaitable<void> ClientSession::Reconnect() {
+  co_await ReconnectAsync();
 }
 
 Awaitable<void> ClientSession::ConnectAsync(

@@ -1,7 +1,5 @@
 #include "common/audit.h"
 
-#include "base/awaitable_promise.h"
-#include "base/promise_executor.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "metrics/metric_service.h"
@@ -10,6 +8,8 @@
 #include "scada/services.h"
 #include "scada/status_exception.h"
 #include "scada/validation.h"
+
+#include <stdexcept>
 
 namespace {
 
@@ -125,15 +125,22 @@ Audit::Audit(AuditContext&& context)
 
 void Audit::Init() {
   metric_service_.RegisterProvider(
-      BindPromiseCancelation(weak_from_this(), [this] {
-        std::lock_guard lock{mutex_};
+      [weak = weak_from_this()]() -> Awaitable<Metrics> {
+        auto self = weak.lock();
+        if (!self) {
+          throw std::runtime_error{"audit provider expired"};
+        }
+
+        std::lock_guard lock{self->mutex_};
         Metrics metrics;
-        metrics.Set("read_latency", read_latency_metric_);
-        metrics.Set("browse_latency", browse_latency_metric_);
-        metrics.Set("concurrent_read_count", concurrent_read_count_.metric);
-        metrics.Set("concurrent_browse_count", concurrent_browse_count_.metric);
-        return make_resolved_promise(metrics);
-      }));
+        metrics.Set("read_latency", self->read_latency_metric_);
+        metrics.Set("browse_latency", self->browse_latency_metric_);
+        metrics.Set("concurrent_read_count",
+                    self->concurrent_read_count_.metric);
+        metrics.Set("concurrent_browse_count",
+                    self->concurrent_browse_count_.metric);
+        co_return metrics;
+      });
 }
 
 // static

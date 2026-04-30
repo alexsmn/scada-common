@@ -3,7 +3,6 @@
 #include "opcua/server_runtime_contract_test.h"
 
 #include <functional>
-#include <future>
 #include <memory>
 #include <vector>
 
@@ -240,16 +239,8 @@ TEST_F(ServerRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
                                                .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
-  promise<ResponseBody> publish_promise;
-  CoSpawn(MakeTestAnyExecutor(executor_),
-          [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
-            try {
-              publish_promise.resolve(co_await runtime_.Handle(
-                  connection, RequestBody{PublishRequest{}}));
-            } catch (...) {
-              publish_promise.reject(std::current_exception());
-            }
-          });
+  auto publish_result = StartAwaitable(
+      executor_, runtime_.Handle(connection, RequestBody{PublishRequest{}}));
 
   const auto drain_ready = [&] {
     for (size_t i = 0; i < 8; ++i)
@@ -257,14 +248,14 @@ TEST_F(ServerRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
   };
 
   drain_ready();
-  EXPECT_EQ(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(publish_result->done);
 
   now_ = now_ + base::TimeDelta::FromMilliseconds(300);
   executor_->Advance(300ms);
   drain_ready();
-  ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+  ASSERT_TRUE(publish_result->done);
 
-  const auto publish_message = publish_promise.get();
+  const auto publish_message = WaitResult(executor_, publish_result);
   const auto* publish = std::get_if<PublishResponse>(&publish_message);
   ASSERT_NE(publish, nullptr);
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);
@@ -285,16 +276,8 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
                                                .publishing_enabled = true}});
   EXPECT_EQ(created_subscription.status.code(), scada::StatusCode::Good);
 
-  promise<ResponseBody> publish_promise;
-  CoSpawn(MakeTestAnyExecutor(executor_),
-          [this, &connection, &publish_promise]() mutable -> Awaitable<void> {
-            try {
-              publish_promise.resolve(co_await runtime_.Handle(
-                  connection, RequestBody{PublishRequest{}}));
-            } catch (...) {
-              publish_promise.reject(std::current_exception());
-            }
-          });
+  auto publish_result = StartAwaitable(
+      executor_, runtime_.Handle(connection, RequestBody{PublishRequest{}}));
 
   for (size_t i = 0; i < 8; ++i)
     executor_->Poll();
@@ -302,7 +285,7 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
   ASSERT_EQ(delayed_tasks_.size(), 1u);
   EXPECT_EQ(delayed_tasks_.front().first,
             base::TimeDelta::FromMilliseconds(100));
-  EXPECT_EQ(publish_promise.wait_for(0ms), promise_wait_status::timeout);
+  EXPECT_FALSE(publish_result->done);
 
   now_ = now_ + base::TimeDelta::FromMilliseconds(300);
   auto delayed = std::move(delayed_tasks_.front().second);
@@ -311,8 +294,8 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
   for (size_t i = 0; i < 8; ++i)
     executor_->Poll();
 
-  ASSERT_NE(publish_promise.wait_for(0ms), promise_wait_status::timeout);
-  const auto publish_message = publish_promise.get();
+  ASSERT_TRUE(publish_result->done);
+  const auto publish_message = WaitResult(executor_, publish_result);
   const auto* publish = std::get_if<PublishResponse>(&publish_message);
   ASSERT_NE(publish, nullptr);
   EXPECT_EQ(publish->status.code(), scada::StatusCode::Good);

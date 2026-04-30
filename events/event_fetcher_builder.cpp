@@ -66,7 +66,7 @@ struct EventFetcherServices {
       history_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
       method_service_adapter_;
-  std::unique_ptr<scada::PromiseToCoroutineSessionServiceAdapter>
+  std::unique_ptr<scada::SessionToCoroutineSessionServiceAdapter>
       session_service_adapter_;
   scada::MonitoredItemService* monitored_item_service_ = nullptr;
   scada::CoroutineHistoryService* history_service_ = nullptr;

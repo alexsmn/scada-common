@@ -38,10 +38,9 @@ class VidiconSession final : public scada::SessionService,
   ~VidiconSession();
 
   // scada::SessionService
-  virtual promise<void> Connect(
-      const scada::SessionConnectParams& params) override;
-  virtual promise<void> Disconnect() override;
-  virtual promise<void> Reconnect() override;
+  virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  virtual Awaitable<void> Disconnect() override;
+  virtual Awaitable<void> Reconnect() override;
   virtual bool IsConnected(
       base::TimeDelta* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
