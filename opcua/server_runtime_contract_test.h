@@ -53,7 +53,7 @@ class TestCoroutineServices final
     : public scada::CoroutineAttributeService,
       public scada::CoroutineViewService,
       public scada::CoroutineHistoryService,
-      public scada::CoroutineMethodService,
+      public scada::MethodService,
       public scada::CoroutineNodeManagementService {
  public:
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
@@ -233,15 +233,13 @@ void ExpectRoutesCallRequestsThroughActivatedSessionUser(Fixture& fixture) {
                                  scada::Variant{std::string{"mode"}}}}}};
   EXPECT_CALL(fixture.method_service_,
               Call(request.methods[0].object_id, request.methods[0].method_id,
-                   request.methods[0].arguments, fixture.expected_user_id_,
-                   testing::_))
+                   request.methods[0].arguments, fixture.expected_user_id_))
       .WillOnce(testing::Invoke(
-          [](const scada::NodeId&,
-             const scada::NodeId&,
-             const std::vector<scada::Variant>&,
-             const scada::NodeId&,
-             const scada::StatusCallback& callback) {
-            callback(scada::StatusCode::Good);
+          [](scada::NodeId,
+             scada::NodeId,
+             std::vector<scada::Variant>,
+             scada::NodeId) {
+            return scada::MakeMethodCallResult(scada::StatusCode::Good);
           }));
 
   const auto response =

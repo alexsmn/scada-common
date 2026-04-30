@@ -28,7 +28,7 @@ class TestCoroutineDataServices final
     : public scada::SessionService,
       public scada::CoroutineAttributeService,
       public scada::CoroutineViewService,
-      public scada::CoroutineMethodService,
+      public scada::MethodService,
       public scada::CoroutineHistoryService,
       public scada::CoroutineNodeManagementService {
  public:
@@ -210,7 +210,7 @@ TEST(DataServicesUtilTest, HasServicesDetectsCallbackAndCoroutineSlots) {
   EXPECT_TRUE(data_services::HasServices(callback_services));
 
   DataServices coroutine_services;
-  coroutine_services.coroutine_method_service_ =
+  coroutine_services.method_service_ =
       std::make_shared<TestCoroutineDataServices>();
   EXPECT_TRUE(data_services::HasServices(coroutine_services));
 }
@@ -494,7 +494,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   data_services.session_service_ = direct_services;
   data_services.coroutine_attribute_service_ = direct_services;
   data_services.coroutine_view_service_ = direct_services;
-  data_services.coroutine_method_service_ = direct_services;
+  data_services.method_service_ = direct_services;
   data_services.coroutine_history_service_ = direct_services;
   data_services.coroutine_node_management_service_ = direct_services;
   services.SetServices(std::move(data_services));
@@ -630,15 +630,12 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_TRUE(delete_references_called);
   EXPECT_EQ(direct_services->delete_references_count, 1);
 
-  bool call_called = false;
-  services.Call(scada::NodeId{102}, scada::NodeId{103}, {}, scada::NodeId{104},
-                [&](scada::Status status) {
-                  call_called = true;
-                  EXPECT_TRUE(status.good());
-                });
-  Drain(executor);
+  auto call_status =
+      WaitAwaitable(executor, services.Call(scada::NodeId{102},
+                                            scada::NodeId{103}, {},
+                                            scada::NodeId{104}));
 
-  EXPECT_TRUE(call_called);
+  EXPECT_TRUE(call_status.good());
   EXPECT_EQ(direct_services->call_count, 1);
   EXPECT_EQ(direct_services->last_call_node_id, (scada::NodeId{102}));
   EXPECT_EQ(direct_services->last_call_method_id, (scada::NodeId{103}));

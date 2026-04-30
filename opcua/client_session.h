@@ -36,11 +36,10 @@ class ClientSession final
       public scada::SessionService,
       public scada::CoroutineViewService,
       public scada::CoroutineAttributeService,
-      public scada::CoroutineMethodService,
+      public scada::MethodService,
       public scada::ViewService,
       public scada::AttributeService,
-      public scada::MonitoredItemService,
-      public scada::MethodService {
+      public scada::MonitoredItemService {
  public:
   ClientSession(std::shared_ptr<Executor> executor,
                      transport::TransportFactory& transport_factory);
@@ -88,13 +87,6 @@ class ClientSession final
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
-  // scada::MethodService
-  void Call(const scada::NodeId& node_id,
-            const scada::NodeId& method_id,
-            const std::vector<scada::Variant>& arguments,
-            const scada::NodeId& user_id,
-            const scada::StatusCallback& callback) override;
-
   // scada::CoroutineViewService
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
@@ -110,7 +102,7 @@ class ClientSession final
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
-  // scada::CoroutineMethodService
+  // scada::MethodService
   [[nodiscard]] Awaitable<scada::Status> Call(
       scada::NodeId node_id,
       scada::NodeId method_id,

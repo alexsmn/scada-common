@@ -96,7 +96,7 @@ TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
       executor, static_cast<scada::CoroutineAttributeService&>(session).Write(
                     scada::ServiceContext{}, inputs));
   const auto call_status = WaitAwaitable(
-      executor, static_cast<scada::CoroutineMethodService&>(session).Call(
+      executor, static_cast<scada::MethodService&>(session).Call(
                     scada::id::RootFolder, scada::NodeId{1, 2}, {},
                     scada::NodeId{}));
 

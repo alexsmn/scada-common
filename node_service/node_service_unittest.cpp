@@ -20,21 +20,6 @@
 
 using namespace testing;
 
-TEST(AddressSpaceMethodServiceTest, CallbackCallReturnsWrongMethodId) {
-  TestAddressSpace address_space;
-  AddressSpaceMethodService service{address_space};
-
-  bool called = false;
-  service.Call(scada::NodeId{1, 2}, scada::NodeId{1, 3}, {}, {},
-               [&](scada::Status status) {
-                 called = true;
-                 EXPECT_EQ(status.code(),
-                           scada::StatusCode::Bad_WrongMethodId);
-               });
-
-  EXPECT_TRUE(called);
-}
-
 TEST(AddressSpaceMethodServiceTest, CoroutineCallReturnsWrongMethodId) {
   const auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;

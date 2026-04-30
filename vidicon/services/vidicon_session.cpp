@@ -153,14 +153,6 @@ VidiconSession::Write(
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-void VidiconSession::Call(const scada::NodeId& node_id,
-                          const scada::NodeId& method_id,
-                          const std::vector<scada::Variant>& arguments,
-                          const scada::NodeId& user_id,
-                          const scada::StatusCallback& callback) {
-  callback(scada::StatusCode::Bad);
-}
-
 Awaitable<scada::Status> VidiconSession::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,

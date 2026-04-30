@@ -277,22 +277,6 @@ void ClientSession::Write(
       });
 }
 
-void ClientSession::Call(const scada::NodeId& node_id,
-                        const scada::NodeId& method_id,
-                        const std::vector<scada::Variant>& arguments,
-                        const scada::NodeId& user_id,
-                        const scada::StatusCallback& callback) {
-  DispatchLegacyCallback(
-      any_executor_, weak_from_this(),
-      [node_id, method_id, args = arguments, user_id, callback](
-          ClientSession& self) mutable -> Awaitable<void> {
-        auto status = co_await self.Call(std::move(node_id),
-                                         std::move(method_id), std::move(args),
-                                         std::move(user_id));
-        callback(std::move(status));
-      });
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientSession::Browse(scada::ServiceContext /*context*/,
                      std::vector<scada::BrowseDescription> inputs) {

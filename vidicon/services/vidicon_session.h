@@ -30,7 +30,6 @@ class VidiconSession final : public scada::SessionService,
                              public scada::ViewService,
                              public scada::CoroutineHistoryService,
                              public scada::CoroutineAttributeService,
-                             public scada::CoroutineMethodService,
                              public scada::CoroutineNodeManagementService,
                              public scada::CoroutineViewService {
  public:
@@ -95,13 +94,6 @@ class VidiconSession final : public scada::SessionService,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
   // scada::MethodService
-  virtual void Call(const scada::NodeId& node_id,
-                    const scada::NodeId& method_id,
-                    const std::vector<scada::Variant>& arguments,
-                    const scada::NodeId& user_id,
-                    const scada::StatusCallback& callback) override;
-
-  // scada::CoroutineMethodService
   virtual Awaitable<scada::Status> Call(
       scada::NodeId node_id,
       scada::NodeId method_id,

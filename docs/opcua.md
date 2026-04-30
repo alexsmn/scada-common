@@ -180,7 +180,7 @@ Responsibilities:
   ActivateSession)
 - expose `ConnectAsync` / `DisconnectAsync` / `ReconnectAsync` and
   `CoroutineViewService`, `CoroutineAttributeService`,
-  `CoroutineMethodService`, and an owned `SessionService` facade for
+  `MethodService`, and an owned `SessionService` facade for
   awaitable-first callers
 - keep legacy `SessionService` promises and callback services as thin
   wrappers over those awaitable bodies
@@ -318,7 +318,7 @@ transport-neutral semantic core:
 | `common/opcua/websocket/json_codec.{h,cpp}` | UA-JSON encode/decode over `boost::json`; consumes and produces the canonical `opcua::` request/response/envelope types, and reuses `common/opcua/conversion.{h,cpp}` for UA ↔ scada conversion |
 | `common/opcua/message.h` + `common/opcua/service_message.h` | Canonical transport-neutral OPC UA request/response model used by both Binary and WS adapters, with Binary `Binary*Body` spellings retained as aliases at the adapter edge |
 | `common/opcua/websocket/message_codec.cpp` + `common/opcua/websocket/subscription_message_codec.cpp` + `common/opcua/websocket/publish_message_codec.cpp` | UA-JSON codec for the outer `requestHandle` / `service` / `body` envelope and the subscription / publish / monitored-item payloads, implemented directly against the canonical `opcua::` message model |
-| `common/opcua/service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into `CoroutineAttributeService`, `CoroutineViewService`, `CoroutineHistoryService`, `CoroutineMethodService`, and `CoroutineNodeManagementService`; legacy callback-service contexts are adapted once at runtime construction boundaries |
+| `common/opcua/service_handler.{h,cpp}` | Canonical coroutine-based dispatch from transport-neutral service requests into `CoroutineAttributeService`, `CoroutineViewService`, `CoroutineHistoryService`, `MethodService`, and `CoroutineNodeManagementService`; legacy callback-service contexts are adapted once at runtime construction boundaries |
 | `common/opcua/endpoint_core.h` | Shared endpoint helpers that remain below service dispatch: service-context creation, read-result normalization, monitored-item handler routing, and event-field/filter helpers. Callback-service dispatch helpers intentionally live in adapters/runtime boundaries, not here |
 | `common/opcua/websocket/*_unittest.cpp` | Codec golden fixtures, session lifecycle, subscription publish/ack, service-dispatch coverage, and the WS instantiation of the shared runtime contract suite from `common/opcua/server_runtime_contract_test.h`; the envelope/runtime/server tests exercise the canonical `opcua::` message and session types directly |
 | `common/opcua/binary/*_unittest.cpp` | Binary adapter coverage for request decoding, response encoding, secure-channel/session integration, and the Binary execution of the shared runtime contract where applicable |
@@ -335,7 +335,7 @@ once:
 - `CoroutineViewService` — Browse, BrowseNext, TranslateBrowsePathsToNodeIds
 - `CoroutineHistoryService` — HistoryRead
 - `MonitoredItemService` — CreateMonitoredItems, subscription delivery
-- `CoroutineMethodService` — Call
+- `MethodService` — Call
 - `CoroutineNodeManagementService` — AddNodes, DeleteNodes, AddReferences, DeleteReferences
 
 No business logic is reimplemented in the adapter layers.

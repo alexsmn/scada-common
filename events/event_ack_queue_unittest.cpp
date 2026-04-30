@@ -19,16 +19,19 @@ class EventAckQueueTest : public Test {
     return EventAckQueue{EventAckQueueContext{
         .logger_ = NullLogger::GetInstance(),
         .executor_ = MakeTestAnyExecutor(executor_),
-        .method_service_ = method_service_adapter_}};
+        .method_service_ = method_service_}};
   }
 
   void DrainExecutor() { Drain(executor_); }
 
   std::shared_ptr<TestExecutor> executor_ = std::make_shared<TestExecutor>();
   StrictMock<scada::MockMethodService> method_service_;
-  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter_{
-      MakeTestAnyExecutor(executor_), method_service_};
 };
+
+Awaitable<scada::Status> MakeStatusAwaitable(
+    scada::Status status = scada::StatusCode::Good) {
+  co_return std::move(status);
+}
 
 MATCHER_P(ArgumentsContainEventIds, event_ids, "") {
   std::vector<scada::EventId> actual;
@@ -48,28 +51,12 @@ TEST_F(EventAckQueueTest, AckDispatchesMethodCallFromCoroutineTask) {
                    scada::NodeId{
                        scada::id::AcknowledgeableConditionType_Acknowledge},
                    ArgumentsContainEventIds(std::vector<scada::EventId>{11}),
-                   scada::NodeId{scada::id::Server}, _));
+                   scada::NodeId{scada::id::Server}))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return MakeStatusAwaitable();
+      }));
 
   queue.Ack(11);
-  DrainExecutor();
-}
-
-TEST_F(EventAckQueueTest, AckAcceptsDelayedMethodCompletionThroughAdapter) {
-  auto queue = MakeQueue();
-  queue.OnChannelOpened(scada::id::Server);
-  scada::StatusCallback callback;
-
-  EXPECT_CALL(method_service_,
-              Call(_, _,
-                   ArgumentsContainEventIds(std::vector<scada::EventId>{11}),
-                   _, _))
-      .WillOnce(SaveArg<4>(&callback));
-
-  queue.Ack(11);
-  DrainExecutor();
-  ASSERT_TRUE(callback);
-
-  callback(scada::StatusCode::Good);
   DrainExecutor();
 }
 
@@ -80,7 +67,10 @@ TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
   EXPECT_CALL(method_service_,
               Call(_, _, ArgumentsContainEventIds(
                              std::vector<scada::EventId>{1, 2, 3, 4, 5}),
-                   _, _));
+                   _))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return MakeStatusAwaitable();
+      }));
 
   for (scada::EventId event_id = 1; event_id <= 6; ++event_id)
     queue.Ack(event_id);
@@ -91,7 +81,10 @@ TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
   EXPECT_CALL(method_service_,
               Call(_, _,
                    ArgumentsContainEventIds(std::vector<scada::EventId>{6}),
-                   _, _));
+                   _))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return MakeStatusAwaitable();
+      }));
 
   queue.OnAcked(1);
   DrainExecutor();
@@ -104,7 +97,10 @@ TEST_F(EventAckQueueTest, DuplicateAckIsIgnoredWhilePending) {
   EXPECT_CALL(method_service_,
               Call(_, _,
                    ArgumentsContainEventIds(std::vector<scada::EventId>{42}),
-                   _, _));
+                   _))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return MakeStatusAwaitable();
+      }));
 
   queue.Ack(42);
   queue.Ack(42);

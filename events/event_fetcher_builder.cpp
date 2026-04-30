@@ -39,7 +39,7 @@ DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
       .session_service_ = data_services::Unowned(builder.session_service_),
       .coroutine_history_service_ =
           data_services::Unowned(builder.history_service_),
-      .coroutine_method_service_ =
+      .method_service_ =
           data_services::Unowned(builder.method_service_)};
 }
 
@@ -52,9 +52,8 @@ struct EventFetcherServices {
     history_service_ = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_history_service_,
         data_services_.history_service_, history_service_adapter_);
-    method_service_ = &scada::service_resolver::RequireCoroutineService(
-        executor, data_services_.coroutine_method_service_,
-        data_services_.method_service_, method_service_adapter_);
+    method_service_ = &scada::service_resolver::RequireSharedService(
+        data_services_.method_service_);
     session_service_ = &scada::service_resolver::RequireSharedService(
         data_services_.session_service_);
   }
@@ -62,11 +61,9 @@ struct EventFetcherServices {
   DataServices data_services_;
   std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
       history_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineMethodServiceAdapter>
-      method_service_adapter_;
   scada::MonitoredItemService* monitored_item_service_ = nullptr;
   scada::CoroutineHistoryService* history_service_ = nullptr;
-  scada::CoroutineMethodService* method_service_ = nullptr;
+  scada::MethodService* method_service_ = nullptr;
   scada::SessionService* session_service_ = nullptr;
 };
 

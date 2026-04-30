@@ -18,7 +18,7 @@ inline bool HasServices(const DataServices& services) {
          services.coroutine_node_management_service_ ||
          services.coroutine_history_service_ ||
          services.coroutine_attribute_service_ ||
-         services.coroutine_method_service_;
+         services.method_service_;
 }
 
 inline DataServices FromUnownedServices(const scada::services& services) {

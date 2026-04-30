@@ -37,15 +37,13 @@ TEST(ServiceHandlerCanonicalTest,
       any_executor, view_service};
   scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
       any_executor, history_service};
-  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter{
-      any_executor, method_service};
   scada::CallbackToCoroutineNodeManagementServiceAdapter
       node_management_service_adapter{any_executor, node_management_service};
   const auto user_id = NumericNode(700, 5);
   ServiceHandler handler{{attribute_service_adapter,
                           view_service_adapter,
                           history_service_adapter,
-                          method_service_adapter,
+                          method_service,
                           node_management_service_adapter,
                           user_id}};
 

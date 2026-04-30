@@ -10,14 +10,8 @@ namespace scada {
 // Exists so fixtures can satisfy `v1::NodeServiceContext::method_service_`
 // (which is a non-null reference) without pulling in a full address-space-
 // backed implementation.
-class LocalMethodService : public MethodService, public CoroutineMethodService {
+class LocalMethodService : public MethodService {
  public:
-  void Call(const NodeId& node_id,
-            const NodeId& method_id,
-            const std::vector<Variant>& arguments,
-            const NodeId& user_id,
-            const StatusCallback& callback) override;
-
   Awaitable<Status> Call(NodeId node_id,
                          NodeId method_id,
                          std::vector<Variant> arguments,

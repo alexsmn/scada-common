@@ -39,7 +39,7 @@ struct TestContext {
       : ack_queue{EventAckQueueContext{
             .logger_ = NullLogger::GetInstance(),
             .executor_ = MakeTestAnyExecutor(executor),
-            .method_service_ = method_service_adapter}} {}
+            .method_service_ = method_service}} {}
 
   std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockMonitoredItemService> monitored_item_service;
@@ -47,8 +47,6 @@ struct TestContext {
   scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
       MakeTestAnyExecutor(executor), history_service};
   StrictMock<scada::MockMethodService> method_service;
-  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter{
-      MakeTestAnyExecutor(executor), method_service};
   EventStorage event_storage;
   EventAckQueue ack_queue;
   std::optional<EventFetcher> fetcher;

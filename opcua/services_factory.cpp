@@ -16,7 +16,7 @@ bool CreateServices(const DataServicesContext& context,
                 .monitored_item_service_ = session,
                 .coroutine_view_service_ = session,
                 .coroutine_attribute_service_ = session,
-                .coroutine_method_service_ = session};
+                .method_service_ = session};
     return true;
 
   } catch (const std::exception&) {

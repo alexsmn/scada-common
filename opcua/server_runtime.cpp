@@ -62,7 +62,7 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
                data_services::Unowned(context.history_service),
            .coroutine_attribute_service_ =
                data_services::Unowned(context.attribute_service),
-           .coroutine_method_service_ =
+           .method_service_ =
                data_services::Unowned(context.method_service)},
       .now = std::move(context.now),
       .post_delayed_task = std::move(context.post_delayed_task)};
@@ -96,9 +96,8 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
               executor_, data_services_.coroutine_history_service_,
               data_services_.history_service_, history_service_adapter_)},
       method_service_{
-          scada::service_resolver::RequireCoroutineService(
-              executor_, data_services_.coroutine_method_service_,
-              data_services_.method_service_, method_service_adapter_)},
+          scada::service_resolver::RequireSharedService(
+              data_services_.method_service_)},
       node_management_service_{
           scada::service_resolver::RequireCoroutineService(
               executor_, data_services_.coroutine_node_management_service_,

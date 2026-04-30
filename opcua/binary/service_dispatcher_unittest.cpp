@@ -3232,19 +3232,18 @@ TEST_F(ServiceDispatcherTest, HandlesCallAfterActivatedSession) {
           2, session->authentication_token, "operator", "secret")));
   ASSERT_TRUE(activated.has_value());
 
-  EXPECT_CALL(method_service_, Call(_, _, _, _, _))
-      .WillOnce(Invoke([this](const scada::NodeId& node_id,
-                              const scada::NodeId& method_id,
-                              const std::vector<scada::Variant>& arguments,
-                              const scada::NodeId& user_id,
-                              const scada::StatusCallback& callback) {
+  EXPECT_CALL(method_service_, Call(_, _, _, _))
+      .WillOnce(Invoke([this](scada::NodeId node_id,
+                              scada::NodeId method_id,
+                              std::vector<scada::Variant> arguments,
+                              scada::NodeId user_id) {
         EXPECT_EQ(node_id, NumericNode(12));
         EXPECT_EQ(method_id, NumericNode(77));
         ASSERT_EQ(arguments.size(), 2u);
         EXPECT_DOUBLE_EQ(arguments[0].get<scada::Double>(), 42.0);
         EXPECT_EQ(arguments[1].get<scada::String>(), "go");
         EXPECT_EQ(user_id, expected_user_id_);
-        callback(scada::StatusCode::Good);
+        return scada::MakeMethodCallResult(scada::StatusCode::Good);
       }));
 
   const auto called = WaitAwaitable(

@@ -41,8 +41,6 @@ class ServiceHandlerTest : public Test {
       any_executor_, view_service_};
   scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter_{
       any_executor_, history_service_};
-  scada::CallbackToCoroutineMethodServiceAdapter method_service_adapter_{
-      any_executor_, method_service_};
   scada::CallbackToCoroutineNodeManagementServiceAdapter
       node_management_service_adapter_{any_executor_, node_management_service_};
   const scada::NodeId user_id_ = NumericNode(700, 3);
@@ -50,7 +48,7 @@ class ServiceHandlerTest : public Test {
       {attribute_service_adapter_,
        view_service_adapter_,
        history_service_adapter_,
-       method_service_adapter_,
+       method_service_,
        node_management_service_adapter_,
        user_id_}};
 };
@@ -200,27 +198,24 @@ TEST_F(ServiceHandlerTest,
               Call(request.methods[0].object_id,
                    request.methods[0].method_id,
                    request.methods[0].arguments,
-                   user_id_,
-                   _))
-      .WillOnce(Invoke([](const scada::NodeId&,
-                          const scada::NodeId&,
-                          const std::vector<scada::Variant>&,
-                          const scada::NodeId&,
-                          const scada::StatusCallback& callback) {
-        callback(scada::StatusCode::Good);
+                   user_id_))
+      .WillOnce(Invoke([](scada::NodeId,
+                          scada::NodeId,
+                          std::vector<scada::Variant>,
+                          scada::NodeId) {
+        return scada::MakeMethodCallResult(scada::StatusCode::Good);
       }));
   EXPECT_CALL(method_service_,
               Call(request.methods[1].object_id,
                    request.methods[1].method_id,
                    request.methods[1].arguments,
-                   user_id_,
-                   _))
-      .WillOnce(Invoke([](const scada::NodeId&,
-                          const scada::NodeId&,
-                          const std::vector<scada::Variant>&,
-                          const scada::NodeId&,
-                          const scada::StatusCallback& callback) {
-        callback(scada::StatusCode::Bad_WrongCallArguments);
+                   user_id_))
+      .WillOnce(Invoke([](scada::NodeId,
+                          scada::NodeId,
+                          std::vector<scada::Variant>,
+                          scada::NodeId) {
+        return scada::MakeMethodCallResult(
+            scada::StatusCode::Bad_WrongCallArguments);
       }));
 
   auto response = WaitAwaitable(executor_, handler_.Handle(std::move(request)));

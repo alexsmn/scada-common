@@ -118,18 +118,16 @@ void MasterDataServices::ResetCoroutineAdapters() {
   coroutine_attribute_service_ = nullptr;
   coroutine_view_service_ = nullptr;
   session_service_ = nullptr;
-  coroutine_method_service_ = nullptr;
+  method_service_ = nullptr;
   coroutine_history_service_ = nullptr;
   coroutine_node_management_service_ = nullptr;
 
   attribute_callback_adapter_.reset();
   view_callback_adapter_.reset();
-  method_callback_adapter_.reset();
   history_callback_adapter_.reset();
   node_management_callback_adapter_.reset();
   attribute_service_adapter_.reset();
   view_service_adapter_.reset();
-  method_service_adapter_.reset();
   history_service_adapter_.reset();
   node_management_service_adapter_.reset();
 }
@@ -149,10 +147,7 @@ void MasterDataServices::RefreshCoroutineServices() {
 
   session_service_ = services_.session_service_.get();
 
-  coroutine_method_service_ = scada::service_resolver::ResolveCoroutineService(
-      coroutine_executor_, services_.coroutine_method_service_,
-      services_.method_service_, method_service_adapter_,
-      method_callback_adapter_);
+  method_service_ = services_.method_service_.get();
 
   coroutine_history_service_ =
       scada::service_resolver::ResolveCoroutineService(
@@ -372,24 +367,6 @@ void MasterDataServices::Write(
   services_.attribute_service_->Write(context, inputs, callback);
 }
 
-void MasterDataServices::Call(const scada::NodeId& node_id,
-                              const scada::NodeId& method_id,
-                              const std::vector<scada::Variant>& arguments,
-                              const scada::NodeId& user_id,
-                              const scada::StatusCallback& callback) {
-  if (method_callback_adapter_) {
-    method_callback_adapter_->Call(node_id, method_id, arguments, user_id,
-                                   callback);
-    return;
-  }
-
-  if (!services_.method_service_)
-    return callback(scada::StatusCode::Bad_Disconnected);
-
-  services_.method_service_->Call(node_id, method_id, arguments, user_id,
-                                  callback);
-}
-
 void MasterDataServices::HistoryReadRaw(
     const scada::HistoryReadRawDetails& details,
     const scada::HistoryReadRawCallback& callback) {
@@ -529,7 +506,7 @@ Awaitable<scada::Status> MasterDataServices::Call(
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
     scada::NodeId user_id) {
-  auto* service = coroutine_method_service_;
+  auto* service = method_service_;
   if (service)
     co_return co_await service->Call(std::move(node_id), std::move(method_id),
                                      std::move(arguments), std::move(user_id));

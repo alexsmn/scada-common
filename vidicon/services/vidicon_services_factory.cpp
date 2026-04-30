@@ -18,6 +18,6 @@ bool CreateVidiconServices(const DataServicesContext& context,
               .coroutine_node_management_service_ = vidicon_session,
               .coroutine_history_service_ = vidicon_session,
               .coroutine_attribute_service_ = vidicon_session,
-              .coroutine_method_service_ = vidicon_session};
+              .method_service_ = vidicon_session};
   return true;
 }

@@ -10,13 +10,13 @@
 #include <set>
 
 namespace scada {
-class CoroutineMethodService;
+class MethodService;
 }  // namespace scada
 
 struct EventAckQueueContext {
   const std::shared_ptr<const Logger> logger_;
   AnyExecutor executor_;
-  scada::CoroutineMethodService& method_service_;
+  scada::MethodService& method_service_;
 };
 
 class EventAckQueue : private EventAckQueueContext {

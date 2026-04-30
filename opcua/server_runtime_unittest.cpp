@@ -24,7 +24,7 @@ DataServices MakeRuntimeDataServices(
           .coroutine_node_management_service_ = coroutine_services,
           .coroutine_history_service_ = coroutine_services,
           .coroutine_attribute_service_ = coroutine_services,
-          .coroutine_method_service_ = coroutine_services};
+          .method_service_ = coroutine_services};
 }
 
 DataServices MakeCallbackRuntimeDataServices(

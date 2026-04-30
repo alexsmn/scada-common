@@ -48,7 +48,7 @@ struct CoroutineRuntimeContext {
   scada::CoroutineAttributeService& attribute_service;
   scada::CoroutineViewService& view_service;
   scada::CoroutineHistoryService& history_service;
-  scada::CoroutineMethodService& method_service;
+  scada::MethodService& method_service;
   scada::CoroutineNodeManagementService& node_management_service;
   std::function<base::Time()> now = &base::Time::Now;
 };

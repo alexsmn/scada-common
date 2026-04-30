@@ -408,13 +408,8 @@ TEST_F(ClientSessionTest, LegacyCallbacksUseAwaitableServices) {
   Drain(executor_);
   EXPECT_TRUE(translate_called);
 
-  bool call_called = false;
-  session->Call({}, {}, {}, {}, [&](scada::Status status) {
-    call_called = true;
-    EXPECT_EQ(status.code(), scada::StatusCode::Bad_Disconnected);
-  });
-  Drain(executor_);
-  EXPECT_TRUE(call_called);
+  auto call_status = WaitAwaitable(executor_, session->Call({}, {}, {}, {}));
+  EXPECT_EQ(call_status.code(), scada::StatusCode::Bad_Disconnected);
 }
 
 TEST_F(ClientSessionTest, LegacyCallbacksAreDroppedAfterSessionDestroy) {
@@ -425,7 +420,6 @@ TEST_F(ClientSessionTest, LegacyCallbacksAreDroppedAfterSessionDestroy) {
   bool write_called = false;
   bool browse_called = false;
   bool translate_called = false;
-  bool call_called = false;
 
   session->Read({}, std::make_shared<const std::vector<scada::ReadValueId>>(),
                 [&](scada::Status, std::vector<scada::DataValue>) {
@@ -443,9 +437,6 @@ TEST_F(ClientSessionTest, LegacyCallbacksAreDroppedAfterSessionDestroy) {
       {}, [&](scada::Status, std::vector<scada::BrowsePathResult>) {
         translate_called = true;
       });
-  session->Call({}, {}, {}, {}, [&](scada::Status) {
-    call_called = true;
-  });
 
   session.reset();
   Drain(executor_);
@@ -454,7 +445,6 @@ TEST_F(ClientSessionTest, LegacyCallbacksAreDroppedAfterSessionDestroy) {
   EXPECT_FALSE(write_called);
   EXPECT_FALSE(browse_called);
   EXPECT_FALSE(translate_called);
-  EXPECT_FALSE(call_called);
 }
 
 TEST_F(ClientSessionTest, MonitoredItemUsesSubscriptionCoroutineTasks) {

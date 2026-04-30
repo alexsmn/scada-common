@@ -85,7 +85,7 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
                data_services::Unowned(context.history_service),
            .coroutine_attribute_service_ =
                data_services::Unowned(context.attribute_service),
-           .coroutine_method_service_ =
+           .method_service_ =
                data_services::Unowned(context.method_service)},
       .now = std::move(context.now)};
 }
