@@ -15,7 +15,6 @@ bool CreateVidiconServices(const DataServicesContext& context,
               .method_service_ = vidicon_session,
               .monitored_item_service_ = vidicon_session,
               .coroutine_view_service_ = vidicon_session,
-              .coroutine_node_management_service_ = vidicon_session,
               .coroutine_attribute_service_ = vidicon_session};
   return true;
 }

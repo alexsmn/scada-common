@@ -26,10 +26,9 @@ class VidiconSession final : public scada::SessionService,
                              public scada::MonitoredItemService,
                              public scada::AttributeService,
                              public scada::MethodService,
-                             public scada::NodeManagementService,
                              public scada::ViewService,
                              public scada::CoroutineAttributeService,
-                             public scada::CoroutineNodeManagementService,
+                             public scada::NodeManagementService,
                              public scada::CoroutineViewService {
  public:
   VidiconSession();
@@ -89,18 +88,6 @@ class VidiconSession final : public scada::SessionService,
       scada::NodeId user_id) override;
 
   // scada::NodeManagementService
-  virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,
-                        const scada::AddNodesCallback& callback) override;
-  virtual void DeleteNodes(const std::vector<scada::DeleteNodesItem>& inputs,
-                           const scada::DeleteNodesCallback& callback) override;
-  virtual void AddReferences(
-      const std::vector<scada::AddReferencesItem>& inputs,
-      const scada::AddReferencesCallback& callback) override;
-  virtual void DeleteReferences(
-      const std::vector<scada::DeleteReferencesItem>& inputs,
-      const scada::DeleteReferencesCallback& callback) override;
-
-  // scada::CoroutineNodeManagementService
   virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
   virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>

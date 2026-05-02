@@ -51,14 +51,14 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
       .data_services =
-          {.history_service_ = data_services::Unowned(context.history_service),
+          {.node_management_service_ =
+               data_services::Unowned(context.node_management_service),
+           .history_service_ = data_services::Unowned(context.history_service),
            .method_service_ = data_services::Unowned(context.method_service),
            .monitored_item_service_ =
                data_services::Unowned(context.monitored_item_service),
            .coroutine_view_service_ =
                data_services::Unowned(context.view_service),
-           .coroutine_node_management_service_ =
-               data_services::Unowned(context.node_management_service),
            .coroutine_attribute_service_ =
                data_services::Unowned(context.attribute_service)},
       .now = std::move(context.now),
@@ -95,10 +95,8 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
           scada::service_resolver::RequireSharedService(
               data_services_.method_service_)},
       node_management_service_{
-          scada::service_resolver::RequireCoroutineService(
-              executor_, data_services_.coroutine_node_management_service_,
-              data_services_.node_management_service_,
-              node_management_service_adapter_)},
+          scada::service_resolver::RequireSharedService(
+              data_services_.node_management_service_)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 

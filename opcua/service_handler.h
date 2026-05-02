@@ -15,7 +15,7 @@ namespace scada {
 class CoroutineAttributeService;
 class HistoryService;
 class MethodService;
-class CoroutineNodeManagementService;
+class NodeManagementService;
 class CoroutineViewService;
 }  // namespace scada
 
@@ -26,7 +26,7 @@ struct ServiceHandlerContext {
   scada::CoroutineViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
-  scada::CoroutineNodeManagementService& node_management_service;
+  scada::NodeManagementService& node_management_service;
   scada::NodeId user_id;
 };
 

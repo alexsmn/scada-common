@@ -13,12 +13,11 @@
 
 namespace scada {
 class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineNodeManagementServiceAdapter;
 class CallbackToCoroutineViewServiceAdapter;
 class CoroutineAttributeService;
 class HistoryService;
 class MethodService;
-class CoroutineNodeManagementService;
+class NodeManagementService;
 class CoroutineViewService;
 }  // namespace scada
 
@@ -52,7 +51,7 @@ struct CoroutineServerRuntimeContext {
   scada::CoroutineViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
-  scada::CoroutineNodeManagementService& node_management_service;
+  scada::NodeManagementService& node_management_service;
   std::function<base::Time()> now = &base::Time::Now;
   // Optional override for delayed task scheduling. Defaults to
   // boost::asio::steady_timer-based posting when null.
@@ -110,9 +109,6 @@ class ServerRuntime {
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
-      node_management_service_adapter_;
-
   DataServices data_services_;
   AnyExecutor executor_;
   ServerSessionManager& session_manager_;
@@ -121,7 +117,7 @@ class ServerRuntime {
   scada::CoroutineViewService& view_service_;
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
-  scada::CoroutineNodeManagementService& node_management_service_;
+  scada::NodeManagementService& node_management_service_;
   std::function<base::Time()> now_;
   std::function<void(base::TimeDelta, std::function<void()>)>
       post_delayed_task_;

@@ -30,7 +30,7 @@ class TestCoroutineDataServices final
       public scada::CoroutineViewService,
       public scada::MethodService,
       public scada::HistoryService,
-      public scada::CoroutineNodeManagementService {
+      public scada::NodeManagementService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
     ++connect_count;
@@ -361,7 +361,7 @@ TEST(MasterDataServicesTest, CallbackReadDispatchesThroughCoroutineAdapter) {
 }
 
 TEST(MasterDataServicesTest,
-     CoroutineNodeManagementUsesCallbackAdapterWithDelayedCompletion) {
+     CoroutineNodeManagementForwardsDelayedCompletion) {
   auto executor = std::make_shared<TestExecutor>();
   MasterDataServices services{MakeTestAnyExecutor(executor)};
   auto node_management_service =
@@ -371,24 +371,25 @@ TEST(MasterDataServicesTest,
   data_services.node_management_service_ = node_management_service;
   services.SetServices(std::move(data_services));
 
-  scada::AddNodesCallback pending_add_nodes;
-  EXPECT_CALL(*node_management_service, AddNodes(_, _))
-      .WillOnce([&](const std::vector<scada::AddNodesItem>&,
-                    const scada::AddNodesCallback& callback) {
-        pending_add_nodes = callback;
+  base::AsyncCompletion pending_add_nodes{MakeTestAnyExecutor(executor)};
+  EXPECT_CALL(*node_management_service, AddNodes(_))
+      .WillOnce([&](std::vector<scada::AddNodesItem>)
+                    -> Awaitable<scada::StatusOr<
+                        std::vector<scada::AddNodesResult>>> {
+        co_await pending_add_nodes.Wait();
+        co_return std::vector{scada::AddNodesResult{
+            .added_node_id = scada::NodeId{1}}};
       });
 
   auto result = StartAwaitable(
       executor,
-      static_cast<scada::CoroutineNodeManagementService&>(services).AddNodes(
+      static_cast<scada::NodeManagementService&>(services).AddNodes(
           {scada::AddNodesItem{.requested_id = scada::NodeId{1}}}));
   Drain(executor);
 
   EXPECT_FALSE(result->done);
-  ASSERT_TRUE(pending_add_nodes);
-
-  pending_add_nodes(scada::StatusCode::Good,
-                    {scada::AddNodesResult{.added_node_id = scada::NodeId{1}}});
+  EXPECT_FALSE(pending_add_nodes.completed());
+  pending_add_nodes.Complete();
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitResult(executor, result));
   ASSERT_EQ(results.size(), 1u);
@@ -496,7 +497,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   data_services.coroutine_view_service_ = direct_services;
   data_services.method_service_ = direct_services;
   data_services.history_service_ = direct_services;
-  data_services.coroutine_node_management_service_ = direct_services;
+  data_services.node_management_service_ = direct_services;
   services.SetServices(std::move(data_services));
 
   EXPECT_EQ(direct_services->session_subscription_count, 1);

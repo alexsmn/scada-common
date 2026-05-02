@@ -54,7 +54,7 @@ class TestCoroutineServices final
       public scada::CoroutineViewService,
       public scada::HistoryService,
       public scada::MethodService,
-      public scada::CoroutineNodeManagementService {
+      public scada::NodeManagementService {
  public:
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
@@ -352,38 +352,37 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
                  .reference_type_id = NumericNode(509),
                  .target_node_id = scada::ExpandedNodeId{NumericNode(510)}}}};
 
-  EXPECT_CALL(fixture.node_management_service_, AddNodes(testing::_, testing::_))
+  EXPECT_CALL(fixture.node_management_service_, AddNodes(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const std::vector<scada::AddNodesItem>& items,
-              const scada::AddNodesCallback& callback) {
+          [&](std::vector<scada::AddNodesItem> items)
+              -> Awaitable<scada::StatusOr<
+                  std::vector<scada::AddNodesResult>>> {
             ASSERT_EQ(items.size(), 1u);
             EXPECT_EQ(items[0].requested_id, add_nodes.items[0].requested_id);
             EXPECT_EQ(items[0].parent_id, add_nodes.items[0].parent_id);
             EXPECT_EQ(items[0].type_definition_id,
                       add_nodes.items[0].type_definition_id);
-            callback(scada::StatusCode::Good,
-                     {scada::AddNodesResult{
-                         .status_code = scada::StatusCode::Good,
-                         .added_node_id = NumericNode(511),
-                     }});
+            co_return std::vector{scada::AddNodesResult{
+                .status_code = scada::StatusCode::Good,
+                .added_node_id = NumericNode(511),
+            }};
           }));
   EXPECT_CALL(fixture.node_management_service_,
-              DeleteNodes(testing::_, testing::_))
+              DeleteNodes(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const std::vector<scada::DeleteNodesItem>& items,
-              const scada::DeleteNodesCallback& callback) {
+          [&](std::vector<scada::DeleteNodesItem> items)
+              -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
             ASSERT_EQ(items.size(), 1u);
             EXPECT_EQ(items[0].node_id, delete_nodes.items[0].node_id);
             EXPECT_TRUE(items[0].delete_target_references);
-            callback(scada::StatusCode::Good,
-                     {scada::StatusCode::Good,
-                      scada::StatusCode::Bad_WrongNodeId});
+            co_return std::vector{scada::StatusCode::Good,
+                                  scada::StatusCode::Bad_WrongNodeId};
           }));
   EXPECT_CALL(fixture.node_management_service_,
-              AddReferences(testing::_, testing::_))
+              AddReferences(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const std::vector<scada::AddReferencesItem>& items,
-              const scada::AddReferencesCallback& callback) {
+          [&](std::vector<scada::AddReferencesItem> items)
+              -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
             ASSERT_EQ(items.size(), 1u);
             EXPECT_EQ(items[0].source_node_id,
                       add_references.items[0].source_node_id);
@@ -391,15 +390,14 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
                       add_references.items[0].reference_type_id);
             EXPECT_EQ(items[0].target_node_id,
                       add_references.items[0].target_node_id);
-            callback(scada::StatusCode::Good,
-                     {scada::StatusCode::Good,
-                      scada::StatusCode::Bad_WrongTargetId});
+            co_return std::vector{scada::StatusCode::Good,
+                                  scada::StatusCode::Bad_WrongTargetId};
           }));
   EXPECT_CALL(fixture.node_management_service_,
-              DeleteReferences(testing::_, testing::_))
+              DeleteReferences(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const std::vector<scada::DeleteReferencesItem>& items,
-              const scada::DeleteReferencesCallback& callback) {
+          [&](std::vector<scada::DeleteReferencesItem> items)
+              -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
             ASSERT_EQ(items.size(), 1u);
             EXPECT_EQ(items[0].source_node_id,
                       delete_references.items[0].source_node_id);
@@ -407,8 +405,7 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
                       delete_references.items[0].reference_type_id);
             EXPECT_EQ(items[0].target_node_id,
                       delete_references.items[0].target_node_id);
-            callback(scada::StatusCode::Bad_Disconnected,
-                     {scada::StatusCode::Bad_Disconnected});
+            co_return scada::Status{scada::StatusCode::Bad_Disconnected};
           }));
 
   const auto add_nodes_response =

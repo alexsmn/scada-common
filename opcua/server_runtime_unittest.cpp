@@ -23,7 +23,7 @@ DataServices MakeRuntimeDataServices(
           .method_service_ = coroutine_services,
           .monitored_item_service_ = UnownedService(monitored_item_service),
           .coroutine_view_service_ = coroutine_services,
-          .coroutine_node_management_service_ = coroutine_services,
+          .node_management_service_ = coroutine_services,
           .coroutine_attribute_service_ = coroutine_services};
 }
 

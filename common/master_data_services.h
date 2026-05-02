@@ -24,8 +24,7 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::HistoryService,
                                  public scada::NodeManagementService,
                                  public scada::CoroutineAttributeService,
-                                 public scada::CoroutineViewService,
-                                 public scada::CoroutineNodeManagementService {
+                                 public scada::CoroutineViewService {
  public:
   MasterDataServices();
   explicit MasterDataServices(AnyExecutor executor);
@@ -48,18 +47,6 @@ class MasterDataServices final : public scada::AttributeService,
   virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
   virtual scada::SessionDebugger* GetSessionDebugger() override;
-
-  // scada::NodeManagementService
-  virtual void AddNodes(const std::vector<scada::AddNodesItem>& inputs,
-                        const scada::AddNodesCallback& callback) override;
-  virtual void DeleteNodes(const std::vector<scada::DeleteNodesItem>& inputs,
-                           const scada::DeleteNodesCallback& callback) override;
-  virtual void AddReferences(
-      const std::vector<scada::AddReferencesItem>& inputs,
-      const scada::AddReferencesCallback& callback) override;
-  virtual void DeleteReferences(
-      const std::vector<scada::DeleteReferencesItem>& inputs,
-      const scada::DeleteReferencesCallback& callback) override;
 
   // scada::ViewService
   virtual void Browse(const scada::ServiceContext& context,
@@ -84,7 +71,7 @@ class MasterDataServices final : public scada::AttributeService,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
-  // scada::CoroutineNodeManagementService
+  // scada::NodeManagementService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -147,20 +134,15 @@ class MasterDataServices final : public scada::AttributeService,
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
-      node_management_service_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
       attribute_callback_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackViewServiceAdapter>
       view_callback_adapter_;
-  std::unique_ptr<scada::CoroutineToCallbackNodeManagementServiceAdapter>
-      node_management_callback_adapter_;
 
   scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
   scada::CoroutineViewService* coroutine_view_service_ = nullptr;
   scada::SessionService* session_service_ = nullptr;
   scada::MethodService* method_service_ = nullptr;
   scada::HistoryService* history_service_ = nullptr;
-  scada::CoroutineNodeManagementService* coroutine_node_management_service_ =
-      nullptr;
+  scada::NodeManagementService* node_management_service_ = nullptr;
 };

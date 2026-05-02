@@ -3280,14 +3280,15 @@ TEST_F(ServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
       .node_id = NumericNode(12),
       .delete_target_references = true,
   };
-  EXPECT_CALL(node_management_service_, DeleteNodes(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::DeleteNodesItem>& items,
-                           const scada::DeleteNodesCallback& callback) {
+  EXPECT_CALL(node_management_service_, DeleteNodes(_))
+      .WillOnce(Invoke([&](std::vector<scada::DeleteNodesItem> items)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::StatusCode>>> {
         ASSERT_EQ(items.size(), 1u);
         EXPECT_EQ(items[0].node_id, item.node_id);
         EXPECT_EQ(items[0].delete_target_references,
                   item.delete_target_references);
-        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+        co_return std::vector{scada::StatusCode::Good};
       }));
 
   const auto deleted = WaitAwaitable(
@@ -3326,15 +3327,15 @@ TEST_F(ServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
                         .set_display_name({u"Flow"})
                         .set_data_type(NumericNode(53)),
   };
-  EXPECT_CALL(node_management_service_, AddNodes(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::AddNodesItem>& items,
-                           const scada::AddNodesCallback& callback) {
+  EXPECT_CALL(node_management_service_, AddNodes(_))
+      .WillOnce(Invoke([&](std::vector<scada::AddNodesItem> items)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::AddNodesResult>>> {
         ASSERT_EQ(items.size(), 1u);
         EXPECT_EQ(items[0], item);
-        callback(scada::StatusCode::Good,
-                 {scada::AddNodesResult{
-                     .status_code = scada::StatusCode::Good,
-                     .added_node_id = NumericNode(54)}});        
+        co_return std::vector{scada::AddNodesResult{
+            .status_code = scada::StatusCode::Good,
+            .added_node_id = NumericNode(54)}};
       }));
 
   const auto added = WaitAwaitable(
@@ -3372,16 +3373,17 @@ TEST_F(ServiceDispatcherTest,
       .target_node_id = scada::ExpandedNodeId{NumericNode(62)},
       .delete_bidirectional = true,
   };
-  EXPECT_CALL(node_management_service_, DeleteReferences(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::DeleteReferencesItem>& items,
-                           const scada::DeleteReferencesCallback& callback) {
+  EXPECT_CALL(node_management_service_, DeleteReferences(_))
+      .WillOnce(Invoke([&](std::vector<scada::DeleteReferencesItem> items)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::StatusCode>>> {
         ASSERT_EQ(items.size(), 1u);
         EXPECT_EQ(items[0].source_node_id, item.source_node_id);
         EXPECT_EQ(items[0].reference_type_id, item.reference_type_id);
         EXPECT_EQ(items[0].forward, item.forward);
         EXPECT_EQ(items[0].target_node_id, item.target_node_id);
         EXPECT_EQ(items[0].delete_bidirectional, item.delete_bidirectional);
-        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+        co_return std::vector{scada::StatusCode::Good};
       }));
 
   const auto deleted = WaitAwaitable(
@@ -3419,9 +3421,10 @@ TEST_F(ServiceDispatcherTest,
       .target_node_id = scada::ExpandedNodeId{NumericNode(72)},
       .target_node_class = scada::NodeClass::Object,
   };
-  EXPECT_CALL(node_management_service_, AddReferences(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::AddReferencesItem>& items,
-                           const scada::AddReferencesCallback& callback) {
+  EXPECT_CALL(node_management_service_, AddReferences(_))
+      .WillOnce(Invoke([&](std::vector<scada::AddReferencesItem> items)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::StatusCode>>> {
         ASSERT_EQ(items.size(), 1u);
         EXPECT_EQ(items[0].source_node_id, item.source_node_id);
         EXPECT_EQ(items[0].reference_type_id, item.reference_type_id);
@@ -3429,7 +3432,7 @@ TEST_F(ServiceDispatcherTest,
         EXPECT_EQ(items[0].target_server_uri, item.target_server_uri);
         EXPECT_EQ(items[0].target_node_id, item.target_node_id);
         EXPECT_EQ(items[0].target_node_class, item.target_node_class);
-        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+        co_return std::vector{scada::StatusCode::Good};
       }));
 
   const auto added = WaitAwaitable(

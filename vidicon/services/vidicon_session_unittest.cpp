@@ -108,7 +108,7 @@ TEST(VidiconSession, CoroutineNodeManagementReturnsBad) {
   VidiconSession session;
   const auto executor = std::make_shared<TestExecutor>();
   auto& service =
-      static_cast<scada::CoroutineNodeManagementService&>(session);
+      static_cast<scada::NodeManagementService&>(session);
 
   const auto add_nodes_result = WaitAwaitable(
       executor,

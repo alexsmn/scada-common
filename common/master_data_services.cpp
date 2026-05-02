@@ -120,14 +120,12 @@ void MasterDataServices::ResetCoroutineAdapters() {
   session_service_ = nullptr;
   method_service_ = nullptr;
   history_service_ = nullptr;
-  coroutine_node_management_service_ = nullptr;
+  node_management_service_ = nullptr;
 
   attribute_callback_adapter_.reset();
   view_callback_adapter_.reset();
-  node_management_callback_adapter_.reset();
   attribute_service_adapter_.reset();
   view_service_adapter_.reset();
-  node_management_service_adapter_.reset();
 }
 
 void MasterDataServices::RefreshCoroutineServices() {
@@ -149,11 +147,7 @@ void MasterDataServices::RefreshCoroutineServices() {
 
   history_service_ = services_.history_service_.get();
 
-  coroutine_node_management_service_ =
-      scada::service_resolver::ResolveCoroutineService(
-          coroutine_executor_, services_.coroutine_node_management_service_,
-          services_.node_management_service_, node_management_service_adapter_,
-          node_management_callback_adapter_);
+  node_management_service_ = services_.node_management_service_.get();
 }
 
 void MasterDataServices::SetServices(DataServices&& services) {
@@ -255,62 +249,6 @@ MasterDataServices::SubscribeSessionStateChanged(
   return session_state_changed_signal_.connect(callback);
 }
 
-void MasterDataServices::AddNodes(
-    const std::vector<scada::AddNodesItem>& inputs,
-    const scada::AddNodesCallback& callback) {
-  if (node_management_callback_adapter_) {
-    node_management_callback_adapter_->AddNodes(inputs, callback);
-    return;
-  }
-
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.node_management_service_->AddNodes(inputs, callback);
-}
-
-void MasterDataServices::DeleteNodes(
-    const std::vector<scada::DeleteNodesItem>& inputs,
-    const scada::DeleteNodesCallback& callback) {
-  if (node_management_callback_adapter_) {
-    node_management_callback_adapter_->DeleteNodes(inputs, callback);
-    return;
-  }
-
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.node_management_service_->DeleteNodes(inputs, callback);
-}
-
-void MasterDataServices::AddReferences(
-    const std::vector<scada::AddReferencesItem>& inputs,
-    const scada::AddReferencesCallback& callback) {
-  if (node_management_callback_adapter_) {
-    node_management_callback_adapter_->AddReferences(inputs, callback);
-    return;
-  }
-
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.node_management_service_->AddReferences(inputs, callback);
-}
-
-void MasterDataServices::DeleteReferences(
-    const std::vector<scada::DeleteReferencesItem>& inputs,
-    const scada::DeleteReferencesCallback& callback) {
-  if (node_management_callback_adapter_) {
-    node_management_callback_adapter_->DeleteReferences(inputs, callback);
-    return;
-  }
-
-  if (!services_.node_management_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.node_management_service_->DeleteReferences(inputs, callback);
-}
-
 void MasterDataServices::Browse(
     const scada::ServiceContext& context,
     const std::vector<scada::BrowseDescription>& nodes,
@@ -384,7 +322,7 @@ scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
-  auto* service = coroutine_node_management_service_;
+  auto* service = node_management_service_;
   if (service)
     co_return co_await service->AddNodes(std::move(inputs));
 
@@ -393,7 +331,7 @@ MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
-  auto* service = coroutine_node_management_service_;
+  auto* service = node_management_service_;
   if (service)
     co_return co_await service->DeleteNodes(std::move(inputs));
 
@@ -403,7 +341,7 @@ MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::AddReferences(
     std::vector<scada::AddReferencesItem> inputs) {
-  auto* service = coroutine_node_management_service_;
+  auto* service = node_management_service_;
   if (service)
     co_return co_await service->AddReferences(std::move(inputs));
 
@@ -413,7 +351,7 @@ MasterDataServices::AddReferences(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::DeleteReferences(
     std::vector<scada::DeleteReferencesItem> inputs) {
-  auto* service = coroutine_node_management_service_;
+  auto* service = node_management_service_;
   if (service)
     co_return co_await service->DeleteReferences(std::move(inputs));
 

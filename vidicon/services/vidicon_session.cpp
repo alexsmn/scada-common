@@ -145,29 +145,6 @@ Awaitable<scada::Status> VidiconSession::Call(
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-void VidiconSession::AddNodes(const std::vector<scada::AddNodesItem>& inputs,
-                              const scada::AddNodesCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
-void VidiconSession::DeleteNodes(
-    const std::vector<scada::DeleteNodesItem>& inputs,
-    const scada::DeleteNodesCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
-void VidiconSession::AddReferences(
-    const std::vector<scada::AddReferencesItem>& inputs,
-    const scada::AddReferencesCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
-void VidiconSession::DeleteReferences(
-    const std::vector<scada::DeleteReferencesItem>& inputs,
-    const scada::DeleteReferencesCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 VidiconSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
