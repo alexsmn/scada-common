@@ -108,20 +108,6 @@ std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
   return nullptr;
 }
 
-void VidiconSession::Read(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-    const scada::ReadCallback& callback) {
-  attribute_service_.Read(context, inputs, callback);
-}
-
-void VidiconSession::Write(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-    const scada::WriteCallback& callback) {
-  callback(scada::StatusCode::Bad, {});
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 VidiconSession::Read(
     scada::ServiceContext context,

@@ -50,7 +50,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 };
 
 class TestCoroutineServices final
-    : public scada::CoroutineAttributeService,
+    : public scada::AttributeService,
       public scada::ViewService,
       public scada::HistoryService,
       public scada::MethodService,
@@ -166,16 +166,15 @@ void ExpectRoutesReadRequestsThroughActivatedSessionUser(Fixture& fixture) {
   ReadRequest request{
       .inputs = {{.node_id = NumericNode(1),
                   .attribute_id = scada::AttributeId::DisplayName}}};
-  EXPECT_CALL(fixture.attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(fixture.attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            callback(scada::StatusCode::Good,
-                     {scada::DataValue{scada::LocalizedText{u"Pump"}, {},
-                                       fixture.now_, fixture.now_}});
+            co_return std::vector{scada::DataValue{
+                scada::LocalizedText{u"Pump"}, {}, fixture.now_, fixture.now_}};
           }));
 
   const auto response =
@@ -197,20 +196,18 @@ void ExpectRoutesWriteRequestsThroughActivatedSessionUser(Fixture& fixture) {
       .attribute_id = scada::AttributeId::Value,
       .value = scada::Variant{17.5},
   });
-  EXPECT_CALL(fixture.attribute_service_,
-              Write(testing::_, testing::_, testing::_))
+  EXPECT_CALL(fixture.attribute_service_, Write(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-              const scada::WriteCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::WriteValue>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
             ASSERT_EQ(inputs->size(), 1u);
             EXPECT_EQ((*inputs)[0].node_id, request.inputs[0].node_id);
             EXPECT_EQ((*inputs)[0].attribute_id, request.inputs[0].attribute_id);
             EXPECT_EQ((*inputs)[0].value, request.inputs[0].value);
-            callback(scada::StatusCode::Good,
-                     std::vector<scada::StatusCode>{
-                         scada::StatusCode::Good_Manual});
+            co_return std::vector<scada::StatusCode>{
+                scada::StatusCode::Good_Manual};
           }));
 
   const auto response =

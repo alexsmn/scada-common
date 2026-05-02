@@ -23,7 +23,7 @@ using testing::_;
 using testing::StrictMock;
 
 class TestCoroutineAuditServices final
-    : public scada::CoroutineAttributeService,
+    : public scada::AttributeService,
       public scada::ViewService {
  public:
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
@@ -207,7 +207,7 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   auto source_services = std::make_shared<TestCoroutineAuditServices>();
 
   DataServices data_services;
-  data_services.coroutine_attribute_service_ = source_services;
+  data_services.attribute_service_ = source_services;
   data_services.view_service_ = source_services;
 
   auto audited_services =
@@ -215,10 +215,10 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
                         Tracer::None(), MakeTestAnyExecutor(executor));
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
-  ASSERT_NE(audited_services->coroutine_attribute_service_, nullptr);
+  ASSERT_NE(audited_services->attribute_service_, nullptr);
   ASSERT_NE(audited_services->view_service_, nullptr);
   ASSERT_NE(audited_services->view_service_, nullptr);
-  EXPECT_NE(audited_services->coroutine_attribute_service_.get(),
+  EXPECT_NE(audited_services->attribute_service_.get(),
             source_services.get());
   EXPECT_NE(audited_services->view_service_.get(),
             source_services.get());
@@ -312,7 +312,7 @@ TEST(AuditTest, AuditDataServicesWrapsCallbackSlotsForCoroutineUse) {
                         Tracer::None(), MakeTestAnyExecutor(executor));
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
-  ASSERT_NE(audited_services->coroutine_attribute_service_, nullptr);
+  ASSERT_NE(audited_services->attribute_service_, nullptr);
   EXPECT_NE(audited_services->attribute_service_.get(), &attribute_service);
 
   scada::ReadCallback pending_read;
@@ -328,7 +328,7 @@ TEST(AuditTest, AuditDataServicesWrapsCallbackSlotsForCoroutineUse) {
       std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{3}}});
   auto read_result = StartAwaitable(
       executor,
-      audited_services->coroutine_attribute_service_->Read({}, read_inputs));
+      audited_services->attribute_service_->Read({}, read_inputs));
   Drain(executor);
 
   EXPECT_FALSE(read_result->done);

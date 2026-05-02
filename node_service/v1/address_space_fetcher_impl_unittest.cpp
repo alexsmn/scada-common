@@ -43,7 +43,7 @@ class AddressSpaceFetcherImplTest : public Test {
   TestAddressSpace server_address_space_;
   scada::CallbackToViewServiceAdapter view_service_adapter_{
       MakeTestAnyExecutor(executor_), server_address_space_};
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
       MakeTestAnyExecutor(executor_), server_address_space_};
 
   AddressSpaceImpl client_address_space_;

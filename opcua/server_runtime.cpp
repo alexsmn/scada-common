@@ -56,11 +56,11 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
            .node_management_service_ =
                data_services::Unowned(context.node_management_service),
            .history_service_ = data_services::Unowned(context.history_service),
+           .attribute_service_ =
+               data_services::Unowned(context.attribute_service),
            .method_service_ = data_services::Unowned(context.method_service),
            .monitored_item_service_ =
-               data_services::Unowned(context.monitored_item_service),
-           .coroutine_attribute_service_ =
-               data_services::Unowned(context.attribute_service)},
+               data_services::Unowned(context.monitored_item_service)},
       .now = std::move(context.now),
       .post_delayed_task = std::move(context.post_delayed_task)};
 }
@@ -80,10 +80,8 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
       monitored_item_service_{
           scada::service_resolver::RequireSharedService(
               data_services_.monitored_item_service_)},
-      attribute_service_{
-          scada::service_resolver::RequireCoroutineService(
-              executor_, data_services_.coroutine_attribute_service_,
-              data_services_.attribute_service_, attribute_service_adapter_)},
+      attribute_service_{scada::service_resolver::RequireSharedService(
+          data_services_.attribute_service_)},
       view_service_{scada::service_resolver::RequireSharedService(
           data_services_.view_service_)},
       history_service_{

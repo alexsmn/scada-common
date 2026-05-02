@@ -31,7 +31,7 @@ TEST(ServiceHandlerCanonicalTest,
   StrictMock<scada::MockNodeManagementService> node_management_service;
   const auto executor = std::make_shared<TestExecutor>();
   const auto any_executor = MakeTestAnyExecutor(executor);
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
       any_executor, attribute_service};
   scada::CallbackToViewServiceAdapter view_service_adapter{
       any_executor, view_service};

@@ -80,11 +80,11 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
            .node_management_service_ =
                data_services::Unowned(context.node_management_service),
            .history_service_ = data_services::Unowned(context.history_service),
+           .attribute_service_ =
+               data_services::Unowned(context.attribute_service),
            .method_service_ = data_services::Unowned(context.method_service),
            .monitored_item_service_ =
-               data_services::Unowned(context.monitored_item_service),
-           .coroutine_attribute_service_ =
-               data_services::Unowned(context.attribute_service)},
+               data_services::Unowned(context.monitored_item_service)},
       .now = std::move(context.now)};
 }
 

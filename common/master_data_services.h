@@ -14,7 +14,6 @@
 #include <boost/signals2/signal.hpp>
 
 #include <memory>
-#include <optional>
 
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
@@ -22,8 +21,7 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::MonitoredItemService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
-                                 public scada::NodeManagementService,
-                                 public scada::CoroutineAttributeService {
+                                 public scada::NodeManagementService {
  public:
   MasterDataServices();
   explicit MasterDataServices(AnyExecutor executor);
@@ -52,16 +50,6 @@ class MasterDataServices final : public scada::AttributeService,
       const scada::ReadValueId& read_value_id,
       const scada::MonitoringParameters& params) override;
 
-  // scada::AttributeService
-  virtual void Read(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-      const scada::ReadCallback& callback) override;
-  virtual void Write(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-      const scada::WriteCallback& callback) override;
-
   // scada::NodeManagementService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
@@ -79,7 +67,7 @@ class MasterDataServices final : public scada::AttributeService,
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
-  // scada::CoroutineAttributeService
+  // scada::AttributeService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
@@ -119,14 +107,7 @@ class MasterDataServices final : public scada::AttributeService,
   DataServices services_;
   bool connected_ = false;
 
-  std::optional<AnyExecutor> coroutine_executor_;
-
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
-  std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
-      attribute_callback_adapter_;
-
-  scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
+  scada::AttributeService* attribute_service_ = nullptr;
   scada::ViewService* view_service_ = nullptr;
   scada::SessionService* session_service_ = nullptr;
   scada::MethodService* method_service_ = nullptr;

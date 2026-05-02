@@ -19,28 +19,6 @@ AttributeServiceImpl::AttributeServiceImpl(
     SyncAttributeService& sync_attribute_service)
     : sync_attribute_service_{sync_attribute_service} {}
 
-void AttributeServiceImpl::Read(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-    const scada::ReadCallback& callback) {
-  assert(inputs);
-
-  auto results = sync_attribute_service_.Read(context, *inputs);
-  assert(results.size() == inputs->size());
-
-  callback(scada::StatusCode::Good, std::move(results));
-}
-
-void AttributeServiceImpl::Write(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-    const scada::WriteCallback& callback) {
-  assert(inputs);
-
-  auto results = sync_attribute_service_.Write(context, *inputs);
-  callback(scada::StatusCode::Good, std::move(results));
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 AttributeServiceImpl::Read(
     scada::ServiceContext context,

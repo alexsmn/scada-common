@@ -24,7 +24,7 @@ DataServices MakeRuntimeDataServices(
           .monitored_item_service_ = UnownedService(monitored_item_service),
           .view_service_ = coroutine_services,
           .node_management_service_ = coroutine_services,
-          .coroutine_attribute_service_ = coroutine_services};
+          .attribute_service_ = coroutine_services};
 }
 
 DataServices MakeCallbackRuntimeDataServices(

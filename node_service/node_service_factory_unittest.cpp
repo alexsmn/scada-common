@@ -99,8 +99,8 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
   data_services.session_service_ =
       std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
-  data_services.coroutine_attribute_service_ =
-      std::shared_ptr<scada::CoroutineAttributeService>{
+  data_services.attribute_service_ =
+      std::shared_ptr<scada::AttributeService>{
           std::shared_ptr<void>{}, &address_space.attribute_service_impl};
   data_services.view_service_ =
       std::shared_ptr<scada::ViewService>{

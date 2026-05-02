@@ -1,12 +1,16 @@
 #pragma once
 
+#include "scada/attribute_service.h"
+
 namespace scada {
 
 class RemoteNode {
  public:
   virtual ~RemoteNode() {}
 
-  virtual void Read(const std::vector<ReadValueId>& value_ids, const ReadCallback& callback) = 0;
+  virtual Awaitable<StatusOr<std::vector<DataValue>>> Read(
+      ServiceContext context,
+      std::shared_ptr<const std::vector<ReadValueId>> value_ids) = 0;
 };
 
 } // namespace scada

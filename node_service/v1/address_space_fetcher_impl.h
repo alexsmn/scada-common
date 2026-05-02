@@ -12,7 +12,7 @@
 #include <memory>
 
 namespace scada {
-class CoroutineAttributeService;
+class AttributeService;
 class ViewService;
 class ServiceContext;
 }  // namespace scada
@@ -26,7 +26,7 @@ struct AddressSpaceFetcherImplContext {
   AnyExecutor executor_;
   const scada::ServiceContext service_context_;
   scada::ViewService& view_service_;
-  scada::CoroutineAttributeService& attribute_service_;
+  scada::AttributeService& attribute_service_;
   AddressSpaceImpl& address_space_;
   NodeFactory& node_factory_;
 

@@ -26,7 +26,7 @@ using testing::StrictMock;
 
 class TestCoroutineDataServices final
     : public scada::SessionService,
-      public scada::CoroutineAttributeService,
+      public scada::AttributeService,
       public scada::ViewService,
       public scada::MethodService,
       public scada::HistoryService,
@@ -241,11 +241,11 @@ TEST(DataServicesUtilTest, UnownedAliasesServiceWithoutOwningIt) {
 TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter> adapter;
+  std::unique_ptr<scada::CallbackToAttributeServiceAdapter> adapter;
 
   auto* resolved = scada::service_resolver::ResolveCoroutineService(
       std::optional<AnyExecutor>{},
-      std::shared_ptr<scada::CoroutineAttributeService>{}, attribute_service,
+      std::shared_ptr<scada::AttributeService>{}, attribute_service,
       adapter);
 
   EXPECT_EQ(resolved, nullptr);
@@ -255,14 +255,14 @@ TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
 TEST(CoroutineServiceResolverTest, CreatesCallbackAdapterForResolvedService) {
   auto executor = std::make_shared<TestExecutor>();
   auto coroutine_services = std::make_shared<TestCoroutineDataServices>();
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
+  std::unique_ptr<scada::CallbackToAttributeServiceAdapter>
       callback_to_coroutine_adapter;
   std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
       coroutine_to_callback_adapter;
 
   auto* resolved = scada::service_resolver::ResolveCoroutineService(
       std::optional<AnyExecutor>{MakeTestAnyExecutor(executor)},
-      std::shared_ptr<scada::CoroutineAttributeService>{coroutine_services},
+      std::shared_ptr<scada::AttributeService>{coroutine_services},
       std::shared_ptr<scada::AttributeService>{},
       callback_to_coroutine_adapter, coroutine_to_callback_adapter);
 
@@ -291,10 +291,10 @@ TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
 
   auto resolved =
       scada::service_resolver::ResolveCoroutineServiceShared<
-          scada::CoroutineAttributeService, scada::AttributeService,
-          scada::CallbackToCoroutineAttributeServiceAdapter>(
+          scada::AttributeService, scada::AttributeService,
+          scada::CallbackToAttributeServiceAdapter>(
           MakeTestAnyExecutor(executor),
-          std::shared_ptr<scada::CoroutineAttributeService>{},
+          std::shared_ptr<scada::AttributeService>{},
           attribute_service);
 
   ASSERT_NE(resolved, nullptr);
@@ -493,7 +493,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   DataServices data_services;
   data_services.session_service_ = direct_services;
-  data_services.coroutine_attribute_service_ = direct_services;
+  data_services.attribute_service_ = direct_services;
   data_services.view_service_ = direct_services;
   data_services.method_service_ = direct_services;
   data_services.history_service_ = direct_services;

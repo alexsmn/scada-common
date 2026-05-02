@@ -15,8 +15,7 @@ bool CreateServices(const DataServicesContext& context,
                 .history_service_ = nullptr,
                 .attribute_service_ = session,
                 .method_service_ = session,
-                .monitored_item_service_ = session,
-                .coroutine_attribute_service_ = session};
+                .monitored_item_service_ = session};
     return true;
 
   } catch (const std::exception&) {

@@ -28,16 +28,14 @@ namespace opcua {
 class ClientSubscription;
 
 // Qt client's adapter onto the in-repo OPC UA Binary client (see
-// common/opcua/binary/*). Implements the five scada::* service
-// interfaces and bridges their callback calling conventions to
-// the coroutine-native client stack underneath.
+// common/opcua/binary/*). Implements the scada::* service interfaces over the
+// coroutine-native client stack underneath.
 class ClientSession final
     : public std::enable_shared_from_this<ClientSession>,
       public scada::SessionService,
       public scada::ViewService,
-      public scada::CoroutineAttributeService,
-      public scada::MethodService,
       public scada::AttributeService,
+      public scada::MethodService,
       public scada::MonitoredItemService {
  public:
   ClientSession(std::shared_ptr<Executor> executor,
@@ -68,16 +66,6 @@ class ClientSession final
       const scada::ReadValueId& read_value_id,
       const scada::MonitoringParameters& params) override;
 
-  // scada::AttributeService
-  void Read(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-      const scada::ReadCallback& callback) override;
-  void Write(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-      const scada::WriteCallback& callback) override;
-
   // scada::ViewService
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
@@ -85,7 +73,7 @@ class ClientSession final
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
-  // scada::CoroutineAttributeService
+  // scada::AttributeService
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;

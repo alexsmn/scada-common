@@ -3,7 +3,6 @@
 #include "base/any_executor.h"
 #include "metrics/aggregated_metric.h"
 #include "scada/attribute_service.h"
-#include "scada/coroutine_services.h"
 #include "scada/data_services.h"
 #include "scada/services.h"
 #include "scada/view_service.h"
@@ -30,22 +29,11 @@ struct AuditContext {
 class Audit final : private AuditContext,
                     public scada::AttributeService,
                     public scada::ViewService,
-                    public scada::CoroutineAttributeService,
                     public std::enable_shared_from_this<Audit> {
  public:
   static std::shared_ptr<Audit> Create(AuditContext&& context);
 
   // scada::AttributeService
-  virtual void Read(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-      const scada::ReadCallback& callback) override;
-  virtual void Write(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-      const scada::WriteCallback& callback) override;
-
-  // scada::CoroutineAttributeService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
@@ -81,10 +69,7 @@ class Audit final : private AuditContext,
   AggregatedCounter<size_t> concurrent_read_count_;
   AggregatedCounter<size_t> concurrent_browse_count_;
 
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
-
-  scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
+  scada::AttributeService* attribute_service_ = nullptr;
   scada::ViewService* view_service_ = nullptr;
 };
 

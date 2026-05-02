@@ -217,36 +217,6 @@ std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
   return GetDefaultSubscription().CreateMonitoredItem(read_value_id, params);
 }
 
-void ClientSession::Read(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-    const scada::ReadCallback& callback) {
-  DispatchLegacyCallback(
-      any_executor_, weak_from_this(),
-      [context, inputs, callback](
-          ClientSession& self) mutable -> Awaitable<void> {
-        auto result = co_await self.Read(std::move(context), inputs);
-        auto status = result.status();
-        auto results = std::move(result).value_or({});
-        callback(std::move(status), std::move(results));
-      });
-}
-
-void ClientSession::Write(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-    const scada::WriteCallback& callback) {
-  DispatchLegacyCallback(
-      any_executor_, weak_from_this(),
-      [context, inputs, callback](
-          ClientSession& self) mutable -> Awaitable<void> {
-        auto result = co_await self.Write(std::move(context), inputs);
-        auto status = result.status();
-        auto results = std::move(result).value_or({});
-        callback(std::move(status), std::move(results));
-      });
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientSession::Browse(scada::ServiceContext /*context*/,
                      std::vector<scada::BrowseDescription> inputs) {

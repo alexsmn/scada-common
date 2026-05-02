@@ -13,8 +13,7 @@ inline bool HasServices(const DataServices& services) {
   return services.session_service_ || services.view_service_ ||
          services.node_management_service_ || services.history_service_ ||
          services.attribute_service_ || services.method_service_ ||
-         services.monitored_item_service_ ||
-         services.coroutine_attribute_service_;
+         services.monitored_item_service_;
 }
 
 inline DataServices FromUnownedServices(const scada::services& services) {

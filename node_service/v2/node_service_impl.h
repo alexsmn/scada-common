@@ -16,7 +16,7 @@
 class NodeFetcher;
 
 namespace scada {
-class CoroutineAttributeService;
+class AttributeService;
 class ViewService;
 class MonitoredItemService;
 struct ModelChangeEvent;
@@ -31,7 +31,7 @@ struct NodeModelImplReference;
 struct NodeServiceImplContext {
   AnyExecutor executor_;
   scada::ViewService& view_service_;
-  scada::CoroutineAttributeService& attribute_service_;
+  scada::AttributeService& attribute_service_;
   scada::MonitoredItemService& monitored_item_service_;
   const ViewEventsProvider view_events_provider_;
 };

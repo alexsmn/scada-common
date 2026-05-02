@@ -35,7 +35,7 @@ class ServiceHandlerTest : public Test {
   const std::shared_ptr<TestExecutor> executor_ =
       std::make_shared<TestExecutor>();
   const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
       any_executor_, attribute_service_};
   scada::CallbackToViewServiceAdapter view_service_adapter_{
       any_executor_, view_service_};

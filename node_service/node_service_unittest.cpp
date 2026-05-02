@@ -51,7 +51,7 @@ struct NodeServiceTestContext {
 
   scada::CallbackToViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
@@ -91,7 +91,7 @@ struct NodeServiceTestContext {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   scada::CallbackToViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
@@ -821,7 +821,7 @@ class V2NodeServiceRegressionTest : public Test {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
   scada::CallbackToViewServiceAdapter view_service_adapter_{
       MakeTestAnyExecutor(executor_), *server_address_space_};
-  scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
+  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
       MakeTestAnyExecutor(executor_), *server_address_space_};
   std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
       v2::NodeServiceImpl>(v2::NodeServiceImplContext{

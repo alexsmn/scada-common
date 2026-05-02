@@ -1,6 +1,5 @@
 #include "common/audit.h"
 
-#include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "metrics/metric_service.h"
 #include "metrics/metrics.h"
@@ -66,10 +65,8 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
                                           .tracer_ = tracer,
                                           .executor_ = std::move(executor)});
       audited_services_ = services_;
-      if (audited_services_.attribute_service_ ||
-          audited_services_.coroutine_attribute_service_) {
+      if (audited_services_.attribute_service_) {
         audited_services_.attribute_service_ = audit_;
-        audited_services_.coroutine_attribute_service_ = audit_;
       }
       if (audited_services_.view_service_) {
         audited_services_.view_service_ = audit_;
@@ -149,10 +146,7 @@ std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
 }
 
 void Audit::RefreshCoroutineServices() {
-  coroutine_attribute_service_ =
-      scada::service_resolver::ResolveCoroutineService(
-          executor_, data_services_.coroutine_attribute_service_,
-          data_services_.attribute_service_, attribute_service_adapter_);
+  attribute_service_ = data_services_.attribute_service_.get();
   view_service_ = data_services_.view_service_.get();
 }
 
@@ -178,72 +172,10 @@ void Audit::FinishBrowse(Clock::time_point start_time) {
   browse_latency_metric_(Clock::now() - start_time);
 }
 
-void Audit::Read(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-    const scada::ReadCallback& callback) {
-  if (executor_ && coroutine_attribute_service_) {
-    CoSpawn(*executor_,
-            [self = shared_from_this(), context, inputs,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                scada::CompleteStatusOrCallback(
-                    callback,
-                    co_await self->Read(std::move(context), std::move(inputs)));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
-    return;
-  }
-
-  // Audit must not be used for missing services.
-  assert(data_services_.attribute_service_);
-
-  StartRead();
-
-  data_services_.attribute_service_->Read(
-      context, inputs,
-      [this, ref = shared_from_this(), start_time = Clock::now(), callback](
-          scada::Status&& status, std::vector<scada::DataValue>&& results) {
-        FinishRead(start_time);
-
-        callback(std::move(status), std::move(results));
-      });
-}
-
-void Audit::Write(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-    const scada::WriteCallback& callback) {
-  if (executor_ && coroutine_attribute_service_) {
-    CoSpawn(*executor_,
-            [self = shared_from_this(), context, inputs,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                scada::CompleteStatusOrCallback(
-                    callback,
-                    co_await self->Write(std::move(context),
-                                         std::move(inputs)));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
-    return;
-  }
-
-  // Audit must not be used for missing services.
-  assert(data_services_.attribute_service_);
-
-  data_services_.attribute_service_->Write(context, inputs, callback);
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
-  auto* service = coroutine_attribute_service_;
+  auto* service = attribute_service_;
   if (service) {
     StartRead();
     const auto start_time = Clock::now();
@@ -264,7 +196,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 Audit::Write(scada::ServiceContext context,
              std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
-  auto* service = coroutine_attribute_service_;
+  auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
 

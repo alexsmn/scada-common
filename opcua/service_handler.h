@@ -12,7 +12,7 @@
 #include <memory>
 
 namespace scada {
-class CoroutineAttributeService;
+class AttributeService;
 class HistoryService;
 class MethodService;
 class NodeManagementService;
@@ -22,7 +22,7 @@ class ViewService;
 namespace opcua {
 
 struct ServiceHandlerContext {
-  scada::CoroutineAttributeService& attribute_service;
+  scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;

@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace scada {
-class CoroutineAttributeService;
+class AttributeService;
 class ViewService;
 class DataValue;
 class NodeId;
@@ -22,7 +22,7 @@ struct ReadValueId;
 struct NodeFetcherImplContext {
   AnyExecutor executor_;
   scada::ViewService& view_service_;
-  scada::CoroutineAttributeService& attribute_service_;
+  scada::AttributeService& attribute_service_;
   const FetchCompletedHandler fetch_completed_handler_;
   const NodeValidator node_validator_;
   const scada::ServiceContext service_context_;

@@ -42,7 +42,7 @@ TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
            .attribute_id = scada::AttributeId::DisplayName}});
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
-      executor, static_cast<scada::CoroutineAttributeService&>(session).Read(
+      executor, static_cast<scada::AttributeService&>(session).Read(
                     scada::ServiceContext{}, inputs)));
 
   ASSERT_EQ(results.size(), 1u);
@@ -93,7 +93,7 @@ TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
       std::vector<scada::WriteValue>{{.node_id = scada::id::RootFolder}});
 
   const auto write_result = WaitAwaitable(
-      executor, static_cast<scada::CoroutineAttributeService&>(session).Write(
+      executor, static_cast<scada::AttributeService&>(session).Write(
                     scada::ServiceContext{}, inputs));
   const auto call_status = WaitAwaitable(
       executor, static_cast<scada::MethodService&>(session).Call(

@@ -1,6 +1,5 @@
 #include "master_data_services.h"
 
-#include "common/coroutine_service_resolver.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
@@ -95,8 +94,9 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
 MasterDataServices::MasterDataServices() = default;
 
-MasterDataServices::MasterDataServices(AnyExecutor executor)
-    : coroutine_executor_{std::move(executor)} {}
+MasterDataServices::MasterDataServices(AnyExecutor executor) {
+  (void)executor;
+}
 
 MasterDataServices::~MasterDataServices() {
   for (auto* monitored_item : monitored_items_) {
@@ -115,25 +115,18 @@ scada::services MasterDataServices::as_services() {
 }
 
 void MasterDataServices::ResetCoroutineAdapters() {
-  coroutine_attribute_service_ = nullptr;
+  attribute_service_ = nullptr;
   view_service_ = nullptr;
   session_service_ = nullptr;
   method_service_ = nullptr;
   history_service_ = nullptr;
   node_management_service_ = nullptr;
-
-  attribute_callback_adapter_.reset();
-  attribute_service_adapter_.reset();
 }
 
 void MasterDataServices::RefreshCoroutineServices() {
   ResetCoroutineAdapters();
 
-  coroutine_attribute_service_ =
-      scada::service_resolver::ResolveCoroutineService(
-          coroutine_executor_, services_.coroutine_attribute_service_,
-          services_.attribute_service_, attribute_service_adapter_,
-          attribute_callback_adapter_);
+  attribute_service_ = services_.attribute_service_.get();
 
   view_service_ = services_.view_service_.get();
 
@@ -251,36 +244,6 @@ std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
   return std::make_shared<MasterMonitoredItem>(*this, read_value_id, params);
 }
 
-void MasterDataServices::Write(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-    const scada::WriteCallback& callback) {
-  if (attribute_callback_adapter_) {
-    attribute_callback_adapter_->Write(context, inputs, callback);
-    return;
-  }
-
-  if (!services_.attribute_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.attribute_service_->Write(context, inputs, callback);
-}
-
-void MasterDataServices::Read(
-    const scada::ServiceContext& context,
-    const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-    const scada::ReadCallback& callback) {
-  if (attribute_callback_adapter_) {
-    attribute_callback_adapter_->Read(context, inputs, callback);
-    return;
-  }
-
-  if (!services_.attribute_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.attribute_service_->Read(context, inputs, callback);
-}
-
 scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
   return session_service_
              ? session_service_->GetSessionDebugger()
@@ -349,7 +312,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 MasterDataServices::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
-  auto* service = coroutine_attribute_service_;
+  auto* service = attribute_service_;
   if (service)
     co_return co_await service->Read(std::move(context), std::move(inputs));
 
@@ -360,7 +323,7 @@ Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
-  auto* service = coroutine_attribute_service_;
+  auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
 

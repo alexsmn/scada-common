@@ -45,7 +45,7 @@ struct CoroutineRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
-  scada::CoroutineAttributeService& attribute_service;
+  scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;

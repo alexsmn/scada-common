@@ -12,8 +12,7 @@
 #include <unordered_map>
 
 namespace scada {
-class CallbackToCoroutineAttributeServiceAdapter;
-class CoroutineAttributeService;
+class AttributeService;
 class HistoryService;
 class MethodService;
 class NodeManagementService;
@@ -46,7 +45,7 @@ struct CoroutineServerRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
-  scada::CoroutineAttributeService& attribute_service;
+  scada::AttributeService& attribute_service;
   scada::ViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
@@ -104,13 +103,11 @@ class ServerRuntime {
   std::unordered_map<SubscriptionId, scada::NodeId> subscription_owners_;
   SubscriptionId next_subscription_id_ = 1;
 
-  std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
-      attribute_service_adapter_;
   DataServices data_services_;
   AnyExecutor executor_;
   ServerSessionManager& session_manager_;
   scada::MonitoredItemService& monitored_item_service_;
-  scada::CoroutineAttributeService& attribute_service_;
+  scada::AttributeService& attribute_service_;
   scada::ViewService& view_service_;
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
