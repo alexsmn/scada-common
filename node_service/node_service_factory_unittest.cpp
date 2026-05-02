@@ -184,7 +184,7 @@ void ExpectDataServicesFactoryFetchesNode(bool use_v2) {
   EXPECT_EQ(session_service.is_connected_count, 1);
 }
 
-void ExpectLegacyFactoryFetchesNodeThroughAdapters(bool use_v2) {
+void ExpectLegacyFactoryFetchesNode(bool use_v2) {
   const auto executor = std::make_shared<TestExecutor>();
   TestAddressSpace address_space;
   StrictMock<scada::MockSessionService> session_service;
@@ -192,11 +192,6 @@ void ExpectLegacyFactoryFetchesNodeThroughAdapters(bool use_v2) {
   NiceMock<scada::MockMethodService> method_service;
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed;
-  scada::CoroutineToCallbackAttributeServiceAdapter attribute_service{
-      MakeTestAnyExecutor(executor), address_space.attribute_service_impl};
-  scada::CoroutineToCallbackViewServiceAdapter view_service{
-      MakeTestAnyExecutor(executor), address_space.view_service_impl};
-
   EXPECT_CALL(session_service, SubscribeSessionStateChanged(_))
       .WillOnce([&](const scada::SessionService::SessionStateChangedCallback&
                         callback) {
@@ -205,8 +200,9 @@ void ExpectLegacyFactoryFetchesNodeThroughAdapters(bool use_v2) {
   EXPECT_CALL(session_service, IsConnected(_)).WillOnce(Return(true));
 
   const auto node_service = CreateLegacyFactoryNodeService(
-      session_service, attribute_service, view_service, monitored_item_service,
-      method_service, executor, use_v2);
+      session_service, address_space.attribute_service_impl,
+      address_space.view_service_impl, monitored_item_service, method_service,
+      executor, use_v2);
 
   ExpectFetchesNode(address_space, *node_service, executor);
 }
@@ -259,11 +255,11 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
 }
 
 TEST(NodeServiceFactory, V1LegacyContextNormalizesToDataServicesAdapters) {
-  ExpectLegacyFactoryFetchesNodeThroughAdapters(/*use_v2=*/false);
+  ExpectLegacyFactoryFetchesNode(/*use_v2=*/false);
 }
 
 TEST(NodeServiceFactory, V2LegacyContextNormalizesToDataServicesAdapters) {
-  ExpectLegacyFactoryFetchesNodeThroughAdapters(/*use_v2=*/true);
+  ExpectLegacyFactoryFetchesNode(/*use_v2=*/true);
 }
 
 TEST(NodeServiceFactory, LegacyContextHelperNormalizesToDataServices) {

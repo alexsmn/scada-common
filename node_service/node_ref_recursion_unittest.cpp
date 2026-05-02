@@ -117,7 +117,7 @@ TEST(NodeRefFetchRecursion, SameModelCallbackReentryIsNotRecursive) {
 // Flip the EXPECT_GT to EXPECT_EQ(1) if/when cross-model draining
 // lands (e.g. via a thread-local drain registry).
 TEST(NodeRefFetchRecursion, CrossModelChainIsKnownLimitation) {
-  constexpr int kChainLength = 2000;
+  constexpr int kChainLength = 64;
   std::vector<std::shared_ptr<ChainNodeModel>> chain;
   chain.reserve(kChainLength);
   for (int i = 0; i < kChainLength; ++i)

@@ -13,6 +13,8 @@ namespace v1 {
 
 class NodeModelImpl;
 
+// Bridge from an individual v1 node model back to the AddressSpace-backed
+// service that owns the local graph and fetch scheduler.
 class NodeModelDelegate {
  public:
   virtual ~NodeModelDelegate() {}
@@ -33,6 +35,11 @@ struct NodeModelImplContext {
   scada::node scada_node_;
 };
 
+// Node model for v1's AddressSpace mirror.
+//
+// The model reads attributes and references from a local scada::node and asks
+// NodeServiceImpl to fetch missing remote data. v2/v3 models store fetched
+// NodeState directly instead of reading through AddressSpace nodes.
 class NodeModelImpl final : private NodeModelImplContext,
                             public BaseNodeModel,
                             public std::enable_shared_from_this<NodeModelImpl> {

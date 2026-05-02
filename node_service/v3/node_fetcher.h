@@ -7,11 +7,19 @@ namespace v3 {
 
 struct NodeFetcherContext {};
 
+// Coroutine fetch facade used by v3::NodeServiceImpl.
+//
+// v3 depends on this small abstraction instead of constructing the concrete
+// NodeFetcherImpl/NodeChildrenFetcher pair used by v2, keeping remote loading
+// policy outside the service.
 class NodeFetcher : private NodeFetcherContext {
  public:
-  Awaitable<scada::NodeState> FetchNode(const scada::NodeId& node_id);
+  virtual ~NodeFetcher() = default;
 
-  Awaitable<std::vector<scada::NodeId>> FetchChildren(
+  virtual Awaitable<scada::NodeState> FetchNode(
+      const scada::NodeId& node_id);
+
+  virtual Awaitable<scada::ReferenceDescriptions> FetchChildren(
       const scada::NodeId& node_id);
 };
 

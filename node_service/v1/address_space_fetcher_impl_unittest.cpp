@@ -41,10 +41,6 @@ class AddressSpaceFetcherImplTest : public Test {
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space_;
-  scada::CallbackToViewServiceAdapter view_service_adapter_{
-      MakeTestAnyExecutor(executor_), server_address_space_};
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
-      MakeTestAnyExecutor(executor_), server_address_space_};
 
   AddressSpaceImpl client_address_space_;
 
@@ -55,8 +51,8 @@ class AddressSpaceFetcherImplTest : public Test {
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
       AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
           .executor_ = MakeTestAnyExecutor(executor_),
-          .view_service_ = view_service_adapter_,
-          .attribute_service_ = attribute_service_adapter_,
+          .view_service_ = server_address_space_,
+          .attribute_service_ = server_address_space_,
           .address_space_ = client_address_space_,
           .node_factory_ = node_factory,
           .view_events_provider_ =
@@ -74,8 +70,8 @@ class AddressSpaceFetcherImplTest : public Test {
 TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
   const auto node_id = server_address_space_.kTestNode1Id;
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
 
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
@@ -94,8 +90,8 @@ TEST_F(AddressSpaceFetcherImplTest,
 
   const auto node_id = server_address_space_.kTestNode1Id;
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
 
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_)).Times(AnyNumber());
   EXPECT_CALL(
@@ -103,33 +99,23 @@ TEST_F(AddressSpaceFetcherImplTest,
       Call(Contains(NodeFetchStatusChangedItem{
           node_id, scada::StatusCode::Good, NodeFetchStatus::ChildrenOnly()})));
 
-  std::function<void()> pending_read;
-  EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id))), _))
-      .WillOnce(Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
-            pending_read = [&, context, inputs, callback] {
-              server_address_space_.attribute_service_impl.Read(context, inputs,
-                                                                callback);
-            };
-          }))
+  EXPECT_CALL(server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id)))))
+      .WillOnce([&](scada::ServiceContext context,
+                    std::shared_ptr<const std::vector<scada::ReadValueId>>
+                        inputs) {
+        return server_address_space_.attribute_service_impl.Read(
+            std::move(context), std::move(inputs));
+      })
       .WillRepeatedly(DoDefault());
 
   address_space_fetcher_->FetchNode(node_id,
                                     NodeFetchStatus::NodeAndChildren());
   DrainExecutor();
 
-  ASSERT_TRUE(pending_read);
-
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeFetchStatusChangedItem{
                   node_id, scada::StatusCode::Good,
                   NodeFetchStatus::NodeAndChildren()})));
-
-  pending_read();
   DrainExecutor();
 }
 
@@ -221,8 +207,8 @@ TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   auto* node = server_address_space_.GetMutableNode(kNodeId);
   ASSERT_TRUE(node);
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AtLeast(1));
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AtLeast(1));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_));
 
   address_space_fetcher_->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());

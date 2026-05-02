@@ -22,7 +22,7 @@ struct TestContext {
       : fetcher{NodeChildrenFetcher::Create(NodeChildrenFetcherContext{
             .executor_ = MakeTestAnyExecutor(executor),
             .service_context_ = {},
-            .view_service_ = view_service_adapter,
+            .view_service_ = view_service,
             .reference_validator_ =
                 [this](const scada::NodeId& node_id,
                        scada::BrowseResult&& result) {
@@ -33,8 +33,6 @@ struct TestContext {
 
   std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockViewService> view_service;
-  scada::CallbackToViewServiceAdapter view_service_adapter{
-      MakeTestAnyExecutor(executor), view_service};
   std::map<scada::NodeId, scada::BrowseResult> validated_results;
   std::shared_ptr<NodeChildrenFetcher> fetcher;
 };
@@ -88,20 +86,18 @@ TEST(NodeChildrenFetcher, CompletesDelayedBrowseThroughCoroutineContinuation) {
   TestContext context;
   const scada::NodeId node_id{1, 100};
   const scada::NodeId child_id{1, 101};
-  scada::BrowseCallback browse_callback;
-
-  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2), _))
-      .WillOnce(SaveArg<2>(&browse_callback));
+  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
+      .WillOnce([child_id](scada::ServiceContext,
+                           std::vector<scada::BrowseDescription>)
+                    -> Awaitable<scada::StatusOr<
+                        std::vector<scada::BrowseResult>>> {
+        co_return std::vector{
+            scada::BrowseResult{
+                .references = {{scada::id::Organizes, true, child_id}}},
+            scada::BrowseResult{}};
+      });
 
   context.fetcher->Fetch(node_id);
-  context.DrainExecutor();
-  EXPECT_EQ(context.fetcher->GetPendingNodeCount(), 1u);
-  ASSERT_TRUE(browse_callback);
-
-  browse_callback(scada::StatusCode::Good,
-                  {scada::BrowseResult{
-                       .references = {{scada::id::Organizes, true, child_id}}},
-                   scada::BrowseResult{}});
   context.DrainExecutor();
 
   EXPECT_EQ(context.fetcher->GetPendingNodeCount(), 0u);
@@ -117,17 +113,17 @@ TEST(NodeChildrenFetcher, MergesMultipleBrowseResultsForNode) {
   const scada::NodeId child_id{1, 101};
   const scada::NodeId subtype_id{1, 102};
 
-  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2), _))
+  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
       .WillOnce([child_id, subtype_id](
-                    const scada::ServiceContext&,
-                    const std::vector<scada::BrowseDescription>&,
-                    const scada::BrowseCallback& callback) {
-        callback(scada::StatusCode::Good,
-                 {scada::BrowseResult{
-                      .references = {{scada::id::Organizes, true, child_id}}},
-                  scada::BrowseResult{
-                      .references = {{scada::id::HasSubtype, true,
-                                      subtype_id}}}});
+                    scada::ServiceContext,
+                    std::vector<scada::BrowseDescription>)
+                    -> Awaitable<scada::StatusOr<
+                        std::vector<scada::BrowseResult>>> {
+        co_return std::vector{
+            scada::BrowseResult{
+                .references = {{scada::id::Organizes, true, child_id}}},
+            scada::BrowseResult{
+                .references = {{scada::id::HasSubtype, true, subtype_id}}}};
       });
 
   context.fetcher->Fetch(node_id);
@@ -146,18 +142,17 @@ TEST(NodeChildrenFetcher, CancelRemovesQueuedNodeBeforeRequestStarts) {
   TestContext context;
   const scada::NodeId first_id{1, 100};
   const scada::NodeId second_id{1, 101};
-  scada::BrowseCallback browse_callback;
-
-  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2), _))
-      .WillOnce(SaveArg<2>(&browse_callback));
+  EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
+      .WillOnce([](scada::ServiceContext,
+                   std::vector<scada::BrowseDescription>)
+                    -> Awaitable<scada::StatusOr<
+                        std::vector<scada::BrowseResult>>> {
+        co_return std::vector{scada::BrowseResult{}, scada::BrowseResult{}};
+      });
 
   context.fetcher->Fetch(first_id);
-  context.DrainExecutor();
   context.fetcher->Fetch(second_id);
   context.fetcher->Cancel(second_id);
-
-  browse_callback(scada::StatusCode::Good,
-                  {scada::BrowseResult{}, scada::BrowseResult{}});
   context.DrainExecutor();
 
   EXPECT_TRUE(context.validated_results.contains(first_id));

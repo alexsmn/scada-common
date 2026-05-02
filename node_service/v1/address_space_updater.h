@@ -19,6 +19,8 @@ class NodeFactory;
 // Maps node id to scada::ModelChangeEvent::Verb.
 using ModelChangeVerbs = std::map<scada::NodeId, uint8_t>;
 
+// Applies fetched NodeState batches to v1's mutable AddressSpace mirror and
+// records the model/semantic changes that must be published afterward.
 class AddressSpaceUpdater {
  public:
   AddressSpaceUpdater(MutableAddressSpace& address_space,

@@ -6,6 +6,10 @@
 
 namespace v1 {
 
+// Fetch scheduler for v1's local AddressSpace mirror.
+//
+// It owns channel-open state, accepts fetch requests from NodeModelImpl, and
+// reports consolidated fetch status back to NodeServiceImpl.
 class AddressSpaceFetcher {
  public:
   virtual ~AddressSpaceFetcher() = default;

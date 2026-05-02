@@ -29,6 +29,9 @@ struct NodeFetchStatusTrackerContext {
   scada::AddressSpace& address_space_;
 };
 
+// Tracks which v1 AddressSpace nodes and child lists are fetched, pending, or
+// failed. This compensates for v1's graph mirror by deriving fetch state from
+// parent/child relationships in the local AddressSpace.
 class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
  public:
   explicit NodeFetchStatusTracker(NodeFetchStatusTrackerContext&& context);

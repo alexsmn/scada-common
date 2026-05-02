@@ -5,14 +5,17 @@
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
+#include "address_space/node_utils.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_impl.h"
 #include "node_service/v1/address_space_method_service.h"
+#include "node_service/v3/node_fetcher.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/monitored_item_service_mock.h"
+#include "scada/status_exception.h"
 
 #include <gmock/gmock.h>
 
@@ -49,11 +52,6 @@ struct NodeServiceTestContext {
 
   GenericNodeFactory node_factory{client_address_space};
 
-  scada::CallbackToViewServiceAdapter view_service_adapter{
-      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
-      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
-
   NodeServiceImpl node_service{NodeServiceImplContext{
       .address_space_fetcher_factory_ = MakeAddressSpaceFetcherFactory(),
       .address_space_ = *base_env.server_address_space,
@@ -68,8 +66,8 @@ NodeServiceTestContext::MakeAddressSpaceFetcherFactory() {
   return [this](AddressSpaceFetcherFactoryContext&& context) {
     return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
         .executor_ = MakeTestAnyExecutor(base_env.executor),
-        .view_service_ = view_service_adapter,
-        .attribute_service_ = attribute_service_adapter,
+        .view_service_ = *base_env.server_address_space,
+        .attribute_service_ = *base_env.server_address_space,
         .address_space_ = client_address_space,
         .node_factory_ = node_factory,
         .view_events_provider_ = base_env.view_events_provider,
@@ -89,20 +87,71 @@ struct NodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-  scada::CallbackToViewServiceAdapter view_service_adapter{
-      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
-      MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
       .executor_ = MakeTestAnyExecutor(base_env.executor),
-      .view_service_ = view_service_adapter,
-      .attribute_service_ = attribute_service_adapter,
+      .view_service_ = *base_env.server_address_space,
+      .attribute_service_ = *base_env.server_address_space,
       .monitored_item_service_ = monitored_item_service,
       .view_events_provider_ = base_env.view_events_provider}};
 };
 
 }  // namespace v2
+
+namespace v3 {
+
+class TestNodeFetcher final : public NodeFetcher {
+ public:
+  explicit TestNodeFetcher(TestAddressSpace& address_space)
+      : address_space_{address_space} {}
+
+  Awaitable<scada::NodeState> FetchNode(
+      const scada::NodeId& node_id) override {
+    const auto* node = address_space_.GetNode(node_id);
+    if (!node) {
+      throw scada::status_exception{scada::StatusCode::Bad_WrongNodeId};
+    }
+    co_return scada::MakeNodeState(*node);
+  }
+
+  Awaitable<scada::ReferenceDescriptions> FetchChildren(
+      const scada::NodeId& node_id) override {
+    const auto* node = address_space_.GetNode(node_id);
+    if (!node) {
+      throw scada::status_exception{scada::StatusCode::Bad_WrongNodeId};
+    }
+
+    scada::ReferenceDescriptions references;
+    for (const auto& reference : node->forward_references()) {
+      if (scada::IsSubtypeOf(*reference.type,
+                             scada::id::HierarchicalReferences)) {
+        references.push_back({.reference_type_id = reference.type->id(),
+                              .forward = true,
+                              .node_id = reference.node->id()});
+      }
+    }
+    co_return references;
+  }
+
+ private:
+  TestAddressSpace& address_space_;
+};
+
+struct NodeServiceTestContext {
+  BaseNodeServiceTestEnvironment& base_env;
+
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  std::shared_ptr<TestNodeFetcher> node_fetcher{
+      std::make_shared<TestNodeFetcher>(*base_env.server_address_space)};
+
+  NodeServiceImpl node_service{NodeServiceImplContext{
+      .executor_ = MakeTestAnyExecutor(base_env.executor),
+      .monitored_item_service_ = monitored_item_service,
+      .node_fetcher_ = node_fetcher,
+      .view_events_provider_ = base_env.view_events_provider}};
+};
+
+}  // namespace v3
 
 struct StaticNodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
@@ -124,17 +173,19 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
                     .node_class = scada::NodeClass::Variable,
                     .type_definition_id = scada::id::BaseVariableType});
 
-  EXPECT_CALL(attribute_service, Read(_, _, _))
-      .WillOnce(
-          [&](const scada::ServiceContext&,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
-            ASSERT_EQ(inputs->size(), 1u);
+  EXPECT_CALL(attribute_service, Read(_, _))
+      .WillOnce([&](scada::ServiceContext,
+                    std::shared_ptr<const std::vector<scada::ReadValueId>>
+                        inputs) -> Awaitable<scada::StatusOr<
+                                      std::vector<scada::DataValue>>> {
+            EXPECT_EQ(inputs->size(), 1u);
+            if (inputs->empty()) {
+              co_return scada::StatusCode::Bad;
+            }
             EXPECT_EQ((*inputs)[0].node_id, node_id);
             EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
-            callback(scada::StatusCode::Good,
-                     {scada::DataValue{expected_value, {}, {}, {}}});
+            co_return std::vector{
+                scada::DataValue{expected_value, {}, {}, {}}};
           });
 
   auto result = WaitAwaitable(
@@ -176,8 +227,15 @@ class NodeServiceTest : public Test {
 };
 
 using NodeServiceImpls =
-    Types<v1::NodeServiceImpl, v2::NodeServiceImpl /*, v3::NodeServiceImpl*/>;
+    Types<v1::NodeServiceImpl, v2::NodeServiceImpl>;
 TYPED_TEST_SUITE(NodeServiceTest, NodeServiceImpls);
+
+template <class NodeServiceImpl>
+class CommonNodeServiceTest : public NodeServiceTest<NodeServiceImpl> {};
+
+using CommonNodeServiceImpls =
+    Types<v1::NodeServiceImpl, v2::NodeServiceImpl, v3::NodeServiceImpl>;
+TYPED_TEST_SUITE(CommonNodeServiceTest, CommonNodeServiceImpls);
 
 template <class NodeServiceImpl>
 NodeServiceTest<NodeServiceImpl>::NodeServiceTest() {
@@ -201,6 +259,13 @@ std::shared_ptr<v2::NodeServiceImpl>
 NodeServiceTest<v2::NodeServiceImpl>::CreateNodeServiceImpl() {
   auto context = std::make_shared<v2::NodeServiceTestContext>(base_env_);
   return std::shared_ptr<v2::NodeServiceImpl>(context, &context->node_service);
+}
+
+template <>
+std::shared_ptr<v3::NodeServiceImpl>
+NodeServiceTest<v3::NodeServiceImpl>::CreateNodeServiceImpl() {
+  auto context = std::make_shared<v3::NodeServiceTestContext>(base_env_);
+  return std::shared_ptr<v3::NodeServiceImpl>(context, &context->node_service);
 }
 
 template <class NodeServiceImpl>
@@ -269,12 +334,11 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
   auto& server_address_space = *this->base_env_.server_address_space;
 
   EXPECT_CALL(server_address_space,
-              Read(_, Pointee(Each(NodeIs(unknown_node_id))), _))
+              Read(_, Pointee(Each(NodeIs(unknown_node_id)))))
       .Times(AtMost(1));
 
   EXPECT_CALL(server_address_space,
-              Browse(/*context=*/_, /*inputs=*/Each(NodeIs(unknown_node_id)),
-                     /*callback=*/_))
+              Browse(/*context=*/_, /*inputs=*/Each(NodeIs(unknown_node_id))))
       .Times(AtMost(2));
 
   EXPECT_CALL(this->node_service_observer_,
@@ -303,8 +367,8 @@ template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::ExpectAnyUpdates() {
   auto& server_address_space = *this->base_env_.server_address_space;
 
-  EXPECT_CALL(server_address_space, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnModelChanged(_)).Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnNodeSemanticChanged(_))
       .Times(AnyNumber());
@@ -368,6 +432,28 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   this->ValidateNodeFetched(node);
 
   node.Unsubscribe(node_observer);
+}
+
+TYPED_TEST(CommonNodeServiceTest, FetchNode_NodeOnly_FetchesCoreAttributes) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  auto node = this->node_service_->GetNode(node_id);
+
+  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
+  EXPECT_CALL(fetch_callback, Call(_));
+
+  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  this->DrainExecutor();
+
+  EXPECT_TRUE(node.fetched());
+  EXPECT_TRUE(node.status());
+  EXPECT_EQ(node.node_class(), scada::NodeClass::Object);
+  EXPECT_EQ(node.browse_name(), "TestNode2");
+  EXPECT_EQ(node.display_name(), u"TestNode2DisplayName");
 }
 
 TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
@@ -490,13 +576,12 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   // Fetches the node, its aggregates, and children.
   EXPECT_CALL(
       server_address_space,
-      Read(_, Pointee(Each(NodeIsOrIsNestedOf(new_node_state.node_id))), _));
+      Read(_, Pointee(Each(NodeIsOrIsNestedOf(new_node_state.node_id)))));
 
-  EXPECT_CALL(
-      server_address_space,
-      Browse(/*context=*/_,
-             /*inputs=*/Each(NodeIsOrIsNestedOf(new_node_state.node_id)),
-             /*callback=*/_));
+  EXPECT_CALL(server_address_space,
+              Browse(/*context=*/_,
+                     /*inputs=*/Each(NodeIsOrIsNestedOf(
+                         new_node_state.node_id))));
 
   EXPECT_CALL(this->node_service_observer_,
               OnModelChanged(scada::ModelChangeEvent{
@@ -638,13 +723,12 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
 
   EXPECT_CALL(server_address_space,
-              Read(_, Pointee(Each(NodeIsOrIsNestedOf(node_id))), _))
+              Read(_, Pointee(Each(NodeIsOrIsNestedOf(node_id)))))
       .Times(2);
 
-  EXPECT_CALL(
-      server_address_space,
-      Browse(/*context=*/_,
-             /*inputs=*/Each(NodeIsOrIsNestedOf(node_id)), /*callback=*/_))
+  EXPECT_CALL(server_address_space,
+              Browse(/*context=*/_,
+                     /*inputs=*/Each(NodeIsOrIsNestedOf(node_id))))
       .Times(1);
 
   this->view_events_->OnNodeSemanticsChanged(
@@ -711,11 +795,10 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(_))
       .Times(AnyNumber());
 
-  EXPECT_CALL(server_address_space, Read(_, Pointee(Each(NodeIs(node_id))), _));
+  EXPECT_CALL(server_address_space, Read(_, Pointee(Each(NodeIs(node_id)))));
 
-  EXPECT_CALL(
-      server_address_space,
-      Browse(/*context=*/_, /*inputs=*/Each(NodeIs(node_id)), /*callback=*/_))
+  EXPECT_CALL(server_address_space,
+              Browse(/*context=*/_, /*inputs=*/Each(NodeIs(node_id))))
       .Times(AtMost(2));
 
   EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)))
@@ -819,15 +902,11 @@ class V2NodeServiceRegressionTest : public Test {
       .view_events_provider = MakeViewEventsProvider()};
   NiceMock<MockNodeObserver> node_observer_;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
-  scada::CallbackToViewServiceAdapter view_service_adapter_{
-      MakeTestAnyExecutor(executor_), *server_address_space_};
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
-      MakeTestAnyExecutor(executor_), *server_address_space_};
   std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
       v2::NodeServiceImpl>(v2::NodeServiceImplContext{
       .executor_ = MakeTestAnyExecutor(executor_),
-      .view_service_ = view_service_adapter_,
-      .attribute_service_ = attribute_service_adapter_,
+      .view_service_ = *server_address_space_,
+      .attribute_service_ = *server_address_space_,
       .monitored_item_service_ = monitored_item_service_,
       .view_events_provider_ = base_env_.view_events_provider});
 };
@@ -838,19 +917,8 @@ TEST_F(V2NodeServiceRegressionTest,
 
   const auto node_id = server_address_space_->kTestNode2Id;
 
-  std::function<void()> pending_read;
-  EXPECT_CALL(*server_address_space_, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(*server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id))), _))
-      .WillOnce(Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-              const scada::ReadCallback& callback) {
-            pending_read = [&, context, inputs, callback] {
-              server_address_space_->attribute_service_impl.Read(context, inputs,
-                                                                 callback);
-            };
-          }));
-  EXPECT_CALL(*server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(*server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(*server_address_space_, Browse(_, _)).Times(AnyNumber());
 
   auto node = node_service_->GetNode(node_id);
 
@@ -862,10 +930,6 @@ TEST_F(V2NodeServiceRegressionTest,
 
   DrainExecutor();
 
-  ASSERT_TRUE(pending_read);
-  EXPECT_FALSE(node.fetched());
-
-  pending_read();
   DrainExecutor();
 
   EXPECT_TRUE(node.fetched());

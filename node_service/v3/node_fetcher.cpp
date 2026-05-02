@@ -7,9 +7,9 @@ Awaitable<scada::NodeState> NodeFetcher::FetchNode(
   co_return scada::NodeState{};
 }
 
-Awaitable<std::vector<scada::NodeId>> NodeFetcher::FetchChildren(
+Awaitable<scada::ReferenceDescriptions> NodeFetcher::FetchChildren(
     const scada::NodeId& node_id) {
-  co_return std::vector<scada::NodeId>();
+  co_return scada::ReferenceDescriptions{};
 }
 
 }  // namespace v3

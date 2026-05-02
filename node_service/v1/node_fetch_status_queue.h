@@ -12,6 +12,8 @@ namespace v1 {
 // Consolidates status notifications using locks.
 // Takes actual statuses from |NodeFetchStatusProvider| and reports consolidates
 // statuses to |NodeFetchStatusChangedHandler|.
+// Coalesces v1 fetch-status notifications while the AddressSpace mirror is
+// being updated, so observers see stable status transitions.
 class NodeFetchStatusQueue {
  public:
   using NodeStatus = std::pair<scada::Status, NodeFetchStatus>;
@@ -29,6 +31,8 @@ class NodeFetchStatusQueue {
 
   void CancelPendingStatus(const scada::NodeId& node_id);
 
+  // RAII lock used while a group of status changes should be reported as one
+  // consolidated notification batch.
   class ScopedStatusLock {
    public:
     explicit ScopedStatusLock(NodeFetchStatusQueue& queue);

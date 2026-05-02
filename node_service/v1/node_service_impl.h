@@ -26,6 +26,13 @@ struct NodeServiceImplContext {
   scada::client scada_client_;
 };
 
+// NodeService implementation backed by a mutable AddressSpace mirror.
+//
+// v1 keeps a local scada::AddressSpace up to date through AddressSpaceFetcher
+// and exposes NodeRef objects over that mirrored graph. Compared with v2/v3,
+// this version has the heaviest local model: fetched remote NodeState data is
+// materialized as address-space nodes before NodeModelImpl serves attributes
+// and references.
 class NodeServiceImpl final : private NodeServiceImplContext,
                               public NodeService,
                               private NodeModelDelegate,

@@ -29,6 +29,11 @@ using ReferenceMap =
              std::map<scada::NodeId /*target_id*/,
                       scada::NodeId /*child_reference_type_id*/>>;
 
+// Node model for v2's direct NodeState cache.
+//
+// Unlike v1, this model does not read from a local AddressSpace node. It stores
+// fetched attributes and references itself, including inverse references, and
+// asks NodeServiceImpl to fetch missing data.
 class NodeModelImpl final : public BaseNodeModel,
                             public std::enable_shared_from_this<NodeModelImpl> {
  public:

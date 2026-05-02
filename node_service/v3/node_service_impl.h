@@ -25,8 +25,15 @@ struct NodeServiceImplContext {
   AnyExecutor executor_;
   scada::MonitoredItemService& monitored_item_service_;
   const std::shared_ptr<NodeFetcher> node_fetcher_;
+  const ViewEventsProvider view_events_provider_;
 };
 
+// NodeService implementation using injected coroutine fetch logic.
+//
+// v3 keeps v2's direct per-node NodeState cache but moves fetch mechanics
+// behind NodeFetcher. This makes the service smaller and easier to adapt to
+// alternate data sources; unlike v2, it does not own NodeFetcherImpl or
+// NodeChildrenFetcher directly.
 class NodeServiceImpl : private NodeServiceImplContext,
                         private scada::ViewEvents,
                         public NodeService,
@@ -54,6 +61,9 @@ class NodeServiceImpl : private NodeServiceImplContext,
                    const NodeFetchStatus& requested_status);
 
   void ProcessFetchedNodes(std::vector<scada::NodeState>&& node_states);
+  void ProcessFetchedChildren(
+      const scada::NodeId& node_id,
+      scada::ReferenceDescriptions&& references);
   void ProcessFetchErrors(NodeFetchStatuses&& errors);
 
   // scada::ViewService
@@ -68,8 +78,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
   bool channel_opened_ = false;
   std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
 
-  ViewEventsSubscription view_events_subscription_{monitored_item_service_,
-                                                   *this};
+  std::unique_ptr<IViewEventsSubscription> view_events_subscription_;
 
   friend class NodeModelImpl;
 };

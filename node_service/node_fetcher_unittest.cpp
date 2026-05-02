@@ -18,6 +18,21 @@ using namespace testing;
 
 namespace {
 
+template <class T>
+class DeferredAwaitable {
+ public:
+  Awaitable<T> Wait() {
+    while (!result_)
+      co_await boost::asio::post(boost::asio::use_awaitable);
+    co_return std::move(*result_);
+  }
+
+  void Complete(T result) { result_.emplace(std::move(result)); }
+
+ private:
+  std::optional<T> result_;
+};
+
 class TestNodeValidator {
  public:
   const scada::NodeState* GetNodeState(const scada::NodeId& node_id) const {
@@ -62,15 +77,11 @@ class NodeFetcherTest : public Test {
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space_;
-  scada::CallbackToViewServiceAdapter view_service_adapter_{
-      MakeTestAnyExecutor(executor_), server_address_space_};
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter_{
-      MakeTestAnyExecutor(executor_), server_address_space_};
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          MakeTestAnyExecutor(executor_), view_service_adapter_,
-          attribute_service_adapter_,
+          MakeTestAnyExecutor(executor_), server_address_space_,
+          server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction()})};
 
@@ -114,18 +125,16 @@ void NodeFetcherTest::ValidateFetchedNode() {
 TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
 
   EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id))), _));
+              Read(_, Pointee(Contains(NodeIs(node_id)))));
 
-  EXPECT_CALL(server_address_space_,
-              Browse(/*context=*/_, /*inputs=*/_, /*callback=*/_))
+  EXPECT_CALL(server_address_space_, Browse(/*context=*/_, /*inputs=*/_))
       .Times(AnyNumber());
 
   EXPECT_CALL(server_address_space_,
-              Browse(/*context=*/_, /*inputs=*/Contains(NodeIs(node_id)),
-                     /*callback=*/_));
+              Browse(/*context=*/_, /*inputs=*/Contains(NodeIs(node_id))));
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
@@ -143,29 +152,27 @@ TEST_F(NodeFetcherTest, Fetch) {
 
 TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
-
-  // Don't let upstream requests to resolve.
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).WillOnce([] {});
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).WillOnce([] {});
-  EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(0);
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(AnyNumber());
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
   DrainExecutor();
+  ValidateFetchedNode();
+
+  Mock::VerifyAndClearExpectations(&server_address_space_);
 
   // Non-forced refetch doesn't trigger more upstream requests.
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(0);
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(0);
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(0);
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(0);
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
 
   // Forced refetch triggers another set of requests.
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id))), _));
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id)), _));
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
@@ -186,11 +193,11 @@ TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
   auto fetch_status =
       NodeFetchStatus::NodeOnly().with_non_hierarchical_inverse_references();
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id))), _));
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id)), _));
+              Read(_, Pointee(Contains(NodeIs(node_id)))));
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id))));
 
   EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
       .Times(AnyNumber());
@@ -211,53 +218,52 @@ TEST_F(NodeFetcherTest, UnknownNode) {
 }
 
 TEST_F(NodeFetcherTest, Cancel) {
-  // 1. Node fetch A is started.
-  // 2. Network request A is started and takes a long time.
-  // 2a. Browse request A finishes and is its references are stored in
-  // |NodeFetcher|. Read request is still pending, so fetch A does not finish.
-  // 3. Node fetch A canceled.
-  // 4. Node fetch B is started.
-  // 5. Network request B is started and takes a long time.
-  // 6. Network request A finishes and is dropped.
-  // 7. Network request B finished and is processed as a response for node fetch
+  EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
+  EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(AnyNumber());
 
-  scada::ReadCallback read_callback1;
-  scada::BrowseCallback browse_callback1;
+  DeferredAwaitable<scada::StatusOr<std::vector<scada::DataValue>>> read;
+  DeferredAwaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> browse;
+  size_t read_count = 0;
+  size_t browse_count = 0;
 
-  EXPECT_CALL(server_address_space_, Read(_, _, _))
-      .WillOnce(SaveArg<2>(&read_callback1));
+  EXPECT_CALL(server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id)))))
+      .WillOnce([&](scada::ServiceContext,
+                    std::shared_ptr<const std::vector<scada::ReadValueId>>
+                        inputs) {
+        read_count = inputs->size();
+        return read.Wait();
+      })
+      .WillRepeatedly([&](scada::ServiceContext context,
+                          std::shared_ptr<const std::vector<scada::ReadValueId>>
+                              inputs) {
+        return server_address_space_.attribute_service_impl.Read(
+            std::move(context), std::move(inputs));
+      });
 
-  EXPECT_CALL(server_address_space_, Browse(_, _, _))
-      .WillOnce(SaveArg<2>(&browse_callback1));
+  EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id))))
+      .WillOnce([&](scada::ServiceContext,
+                    std::vector<scada::BrowseDescription> inputs) {
+        browse_count = inputs.size();
+        return browse.Wait();
+      })
+      .WillRepeatedly([&](scada::ServiceContext context,
+                          std::vector<scada::BrowseDescription> inputs) {
+        return server_address_space_.view_service_impl.Browse(
+            std::move(context), std::move(inputs));
+      });
 
   node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
   DrainExecutor();
+
+  EXPECT_FALSE(node_validator_impl_.IsNodeValid(node_id));
 
   node_fetcher_->Cancel(node_id);
 
-  // Second fetch.
-
-  scada::ReadCallback read_callback2;
-  scada::BrowseCallback browse_callback2;
-
-  EXPECT_CALL(server_address_space_, Read(_, _, _))
-      .WillOnce(SaveArg<2>(&read_callback2));
-
-  EXPECT_CALL(server_address_space_, Browse(_, _, _))
-      .WillOnce(SaveArg<2>(&browse_callback2));
-
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  read.Complete(std::vector<scada::DataValue>(read_count));
+  browse.Complete(std::vector<scada::BrowseResult>(browse_count));
   DrainExecutor();
 
-  // First network request finishes.
-
-  read_callback1(scada::StatusCode::Bad, {});
-  DrainExecutor();
-
-  // Second network request finishes.
-
-  read_callback2(scada::StatusCode::Bad, {});
-  DrainExecutor();
+  EXPECT_FALSE(node_validator_impl_.IsNodeValid(node_id));
 }
 
 // Regression test for the fetcher-queue drain recursion observed in
@@ -284,8 +290,8 @@ TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryIsIterative) {
   };
 
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Read(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(server_address_space_, Browse(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
+  EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(AnyNumber());
 
   int depth = 0;

@@ -74,20 +74,34 @@ class TestAddressSpace : public AddressSpaceImpl,
 inline TestAddressSpace::TestAddressSpace() {
   using namespace testing;
 
-  ON_CALL(*this, Read(_, _, _))
-      .WillByDefault(
-          Invoke(&attribute_service_impl, &scada::AttributeService::Read));
+  ON_CALL(*this, Read(_, _))
+      .WillByDefault([this](
+                         scada::ServiceContext context,
+                         std::shared_ptr<const std::vector<scada::ReadValueId>>
+                             inputs) {
+        return attribute_service_impl.Read(std::move(context),
+                                           std::move(inputs));
+      });
 
-  ON_CALL(*this, Write(_, _, _))
-      .WillByDefault(
-          Invoke(&attribute_service_impl, &scada::AttributeService::Write));
+  ON_CALL(*this, Write(_, _))
+      .WillByDefault([this](
+                         scada::ServiceContext context,
+                         std::shared_ptr<const std::vector<scada::WriteValue>>
+                             inputs) {
+        return attribute_service_impl.Write(std::move(context),
+                                            std::move(inputs));
+      });
 
-  ON_CALL(*this, Browse(/*context=*/_, /*inputs=*/_, /*callback=*/_))
-      .WillByDefault(Invoke(&view_service_impl, &scada::ViewService::Browse));
+  ON_CALL(*this, Browse(/*context=*/_, /*inputs=*/_))
+      .WillByDefault([this](scada::ServiceContext context,
+                            std::vector<scada::BrowseDescription> inputs) {
+        return view_service_impl.Browse(std::move(context), std::move(inputs));
+      });
 
-  ON_CALL(*this, TranslateBrowsePaths(_, _))
-      .WillByDefault(Invoke(&view_service_impl,
-                            &scada::ViewService::TranslateBrowsePaths));
+  ON_CALL(*this, TranslateBrowsePaths(_))
+      .WillByDefault([this](std::vector<scada::BrowsePath> inputs) {
+        return view_service_impl.TranslateBrowsePaths(std::move(inputs));
+      });
 
   GenericNodeFactory node_factory{*this};
 

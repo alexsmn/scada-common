@@ -36,6 +36,8 @@ struct NodeServiceImplContext {
   const ViewEventsProvider view_events_provider_;
 };
 
+// Small RAII helper used by v2 to defer event delivery while model state is
+// updated in a batch.
 template <class Object>
 class ScopedLock {
  public:
@@ -46,6 +48,8 @@ class ScopedLock {
   Object& object_;
 };
 
+// Queues v2 model and semantic events while nodes are being fetched or updated,
+// then replays them after the service leaves the locked section.
 class PendingEvents {
  public:
   explicit PendingEvents(NodeServiceImpl& service);
@@ -67,6 +71,12 @@ class PendingEvents {
   int lock_count_ = 0;
 };
 
+// NodeService implementation backed by per-node NodeState caches.
+//
+// v2 removes v1's mutable AddressSpace mirror. NodeModelImpl stores fetched
+// attributes and references directly, while the service owns the standard
+// NodeFetcherImpl and NodeChildrenFetcher. v3 keeps the same direct-cache idea
+// but injects its fetcher and simplifies event/pending state handling.
 class NodeServiceImpl : private NodeServiceImplContext,
                         private scada::ViewEvents,
                         public NodeService,

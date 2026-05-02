@@ -28,6 +28,11 @@ using ReferenceMap =
              std::map<scada::NodeId /*target_id*/,
                       scada::NodeId /*child_reference_type_id*/>>;
 
+// Node model for v3's direct NodeState cache.
+//
+// It follows the v2 model shape but relies on the service's injected
+// NodeFetcher for loading. It tracks pending model/semantic notifications
+// locally instead of using v2's PendingEvents helper.
 class NodeModelImpl final : public BaseNodeModel,
                             public std::enable_shared_from_this<NodeModelImpl> {
  public:

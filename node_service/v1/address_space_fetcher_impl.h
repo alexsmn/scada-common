@@ -41,6 +41,8 @@ struct AddressSpaceFetcherImplContext {
       semantic_changed_handler_;
 };
 
+// Concrete v1 fetcher that reads remote nodes and children, writes them into
+// the local AddressSpace, and translates view events into AddressSpace updates.
 class AddressSpaceFetcherImpl
     : private AddressSpaceFetcherImplContext,
       private scada::ViewEvents,
