@@ -28,7 +28,6 @@ class VidiconSession final : public scada::SessionService,
                              public scada::MethodService,
                              public scada::NodeManagementService,
                              public scada::ViewService,
-                             public scada::CoroutineHistoryService,
                              public scada::CoroutineAttributeService,
                              public scada::CoroutineNodeManagementService,
                              public scada::CoroutineViewService {
@@ -51,17 +50,6 @@ class VidiconSession final : public scada::SessionService,
   virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::HistoryService
-  virtual void HistoryReadRaw(
-      const scada::HistoryReadRawDetails& details,
-      const scada::HistoryReadRawCallback& callback) override;
-  virtual void HistoryReadEvents(
-      const scada::NodeId& node_id,
-      base::Time from,
-      base::Time to,
-      const scada::EventFilter& filter,
-      const scada::HistoryReadEventsCallback& callback) override;
-
-  // scada::CoroutineHistoryService
   virtual Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
   virtual Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(

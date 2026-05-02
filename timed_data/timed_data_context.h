@@ -11,7 +11,7 @@ class NodeEventProvider;
 class NodeService;
 
 namespace scada {
-class CoroutineHistoryService;
+class HistoryService;
 }  // namespace scada
 
 struct TimedDataContext {
@@ -19,7 +19,7 @@ struct TimedDataContext {
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
   DataServices data_services_;
-  std::shared_ptr<scada::CoroutineHistoryService> history_service_;
+  std::shared_ptr<scada::HistoryService> history_service_;
   NodeEventProvider& node_event_provider_;
 };
 
@@ -27,6 +27,6 @@ struct CoroutineTimedDataContext {
   AnyExecutor executor_;
   const AliasResolver alias_resolver_;
   NodeService& node_service_;
-  std::shared_ptr<scada::CoroutineHistoryService> history_service_;
+  std::shared_ptr<scada::HistoryService> history_service_;
   NodeEventProvider& node_event_provider_;
 };

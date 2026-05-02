@@ -5,7 +5,7 @@
 #include "scada/coroutine_services.h"
 
 inline void CancelHistory(AnyExecutor executor,
-                          scada::CoroutineHistoryService& service,
+                          scada::HistoryService& service,
                           const scada::HistoryReadRawDetails& details,
                           scada::ByteString&& continuation_point) {
   assert(!continuation_point.empty());
@@ -28,7 +28,7 @@ class ScopedContinuationPoint {
   ScopedContinuationPoint() {}
 
   ScopedContinuationPoint(AnyExecutor executor,
-                          scada::CoroutineHistoryService& service,
+                          scada::HistoryService& service,
                           scada::HistoryReadRawDetails details,
                           scada::ByteString continuation_point)
       : executor_{std::move(executor)},
@@ -81,7 +81,7 @@ class ScopedContinuationPoint {
 
  private:
   AnyExecutor executor_;
-  scada::CoroutineHistoryService* service_ = nullptr;
+  scada::HistoryService* service_ = nullptr;
   scada::HistoryReadRawDetails details_;
   scada::ByteString continuation_point_;
 };

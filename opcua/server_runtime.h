@@ -13,11 +13,10 @@
 
 namespace scada {
 class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineHistoryServiceAdapter;
 class CallbackToCoroutineNodeManagementServiceAdapter;
 class CallbackToCoroutineViewServiceAdapter;
 class CoroutineAttributeService;
-class CoroutineHistoryService;
+class HistoryService;
 class MethodService;
 class CoroutineNodeManagementService;
 class CoroutineViewService;
@@ -51,7 +50,7 @@ struct CoroutineServerRuntimeContext {
   scada::MonitoredItemService& monitored_item_service;
   scada::CoroutineAttributeService& attribute_service;
   scada::CoroutineViewService& view_service;
-  scada::CoroutineHistoryService& history_service;
+  scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::CoroutineNodeManagementService& node_management_service;
   std::function<base::Time()> now = &base::Time::Now;
@@ -111,8 +110,6 @@ class ServerRuntime {
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
-      history_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
       node_management_service_adapter_;
 
@@ -122,7 +119,7 @@ class ServerRuntime {
   scada::MonitoredItemService& monitored_item_service_;
   scada::CoroutineAttributeService& attribute_service_;
   scada::CoroutineViewService& view_service_;
-  scada::CoroutineHistoryService& history_service_;
+  scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
   scada::CoroutineNodeManagementService& node_management_service_;
   std::function<base::Time()> now_;

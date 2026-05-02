@@ -71,21 +71,6 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   }
 }
 
-void LocalHistoryService::HistoryReadRaw(
-    const HistoryReadRawDetails& details,
-    const HistoryReadRawCallback& callback) {
-  callback(ReadRaw(details));
-}
-
-void LocalHistoryService::HistoryReadEvents(
-    const NodeId& node_id,
-    base::Time from,
-    base::Time to,
-    const EventFilter& filter,
-    const HistoryReadEventsCallback& callback) {
-  callback(ReadEvents(node_id, from, to, filter));
-}
-
 Awaitable<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
     HistoryReadRawDetails details) {
   co_return ReadRaw(std::move(details));

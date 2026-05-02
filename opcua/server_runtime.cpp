@@ -52,18 +52,16 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
       .data_services =
-          {.monitored_item_service_ =
+          {.history_service_ = data_services::Unowned(context.history_service),
+           .method_service_ = data_services::Unowned(context.method_service),
+           .monitored_item_service_ =
                data_services::Unowned(context.monitored_item_service),
            .coroutine_view_service_ =
                data_services::Unowned(context.view_service),
            .coroutine_node_management_service_ =
                data_services::Unowned(context.node_management_service),
-           .coroutine_history_service_ =
-               data_services::Unowned(context.history_service),
            .coroutine_attribute_service_ =
-               data_services::Unowned(context.attribute_service),
-           .method_service_ =
-               data_services::Unowned(context.method_service)},
+               data_services::Unowned(context.attribute_service)},
       .now = std::move(context.now),
       .post_delayed_task = std::move(context.post_delayed_task)};
 }
@@ -92,9 +90,8 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
               executor_, data_services_.coroutine_view_service_,
               data_services_.view_service_, view_service_adapter_)},
       history_service_{
-          scada::service_resolver::RequireCoroutineService(
-              executor_, data_services_.coroutine_history_service_,
-              data_services_.history_service_, history_service_adapter_)},
+          scada::service_resolver::RequireSharedService(
+              data_services_.history_service_)},
       method_service_{
           scada::service_resolver::RequireSharedService(
               data_services_.method_service_)},

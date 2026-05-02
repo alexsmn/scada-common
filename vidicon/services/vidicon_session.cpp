@@ -72,21 +72,6 @@ boost::signals2::scoped_connection VidiconSession::SubscribeSessionStateChanged(
   return boost::signals2::scoped_connection{};
 }
 
-void VidiconSession::HistoryReadRaw(
-    const scada::HistoryReadRawDetails& details,
-    const scada::HistoryReadRawCallback& callback) {
-  callback({scada::StatusCode::Bad});
-}
-
-void VidiconSession::HistoryReadEvents(
-    const scada::NodeId& node_id,
-    base::Time from,
-    base::Time to,
-    const scada::EventFilter& filter,
-    const scada::HistoryReadEventsCallback& callback) {
-  callback({scada::StatusCode::Bad});
-}
-
 Awaitable<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
     scada::HistoryReadRawDetails details) {
   co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};

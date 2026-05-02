@@ -39,15 +39,13 @@ class ServiceHandlerTest : public Test {
       any_executor_, attribute_service_};
   scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
       any_executor_, view_service_};
-  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter_{
-      any_executor_, history_service_};
   scada::CallbackToCoroutineNodeManagementServiceAdapter
       node_management_service_adapter_{any_executor_, node_management_service_};
   const scada::NodeId user_id_ = NumericNode(700, 3);
   ServiceHandler handler_{
       {attribute_service_adapter_,
        view_service_adapter_,
-       history_service_adapter_,
+       history_service_,
        method_service_,
        node_management_service_adapter_,
        user_id_}};
@@ -234,18 +232,18 @@ TEST_F(ServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
   HistoryReadRawRequest request{
       .details = {.node_id = node_id, .from = from, .to = to, .max_count = 25}};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
-                           const scada::HistoryReadRawCallback& callback) {
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+                           -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, node_id);
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
         EXPECT_EQ(details.max_count, 25u);
-        callback(scada::HistoryReadRawResult{
+        co_return scada::HistoryReadRawResult{
             .status = scada::StatusCode::Good,
             .values = {scada::DataValue{scada::Variant{12.5}, {}, to, to}},
             .continuation_point = {1, 2, 3},
-        });
+        };
       }));
 
   auto response = WaitAwaitable(executor_, handler_.Handle(std::move(request)));
@@ -267,12 +265,12 @@ TEST_F(ServiceHandlerTest,
       .filter = {},
   };
 
-  EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _, _))
+  EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _))
       .WillOnce(Invoke([&](const scada::NodeId& node_id,
                            base::Time from,
                            base::Time to,
-                           const scada::EventFilter&,
-                           const scada::HistoryReadEventsCallback& callback) {
+                           const scada::EventFilter&)
+                           -> Awaitable<scada::HistoryReadEventsResult> {
         EXPECT_EQ(node_id, details.node_id);
         EXPECT_EQ(from, details.from);
         EXPECT_EQ(to, details.to);
@@ -282,10 +280,10 @@ TEST_F(ServiceHandlerTest,
         event.receive_time = event.time;
         event.node_id = NumericNode(41);
         event.message = scada::LocalizedText{u"alarm"};
-        callback(scada::HistoryReadEventsResult{
+        co_return scada::HistoryReadEventsResult{
             .status = scada::StatusCode::Good,
             .events = {std::move(event)},
-        });
+        };
       }));
 
   auto response = WaitAwaitable(

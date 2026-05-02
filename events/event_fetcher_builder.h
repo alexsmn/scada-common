@@ -10,7 +10,7 @@ class EventFetcher;
 class Logger;
 
 namespace scada {
-class CoroutineHistoryService;
+class HistoryService;
 class MethodService;
 class SessionService;
 }  // namespace scada
@@ -35,7 +35,7 @@ struct CoroutineEventFetcherBuilder {
 
   // TODO: Switch to `scada::client`.
   scada::MonitoredItemService& monitored_item_service_;
-  scada::CoroutineHistoryService& history_service_;
+  scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
   scada::SessionService& session_service_;
 };

@@ -21,8 +21,7 @@ namespace scada {
 //
 // Intended for tests, demos, and screenshot tooling that need a SCADA back-end
 // driven by static data rather than a real server.
-class LocalHistoryService : public HistoryService,
-                            public CoroutineHistoryService {
+class LocalHistoryService : public HistoryService {
  public:
   LocalHistoryService();
   ~LocalHistoryService() override;
@@ -40,15 +39,6 @@ class LocalHistoryService : public HistoryService,
   void LoadFromJson(const boost::json::value& root);
 
   // HistoryService
-  void HistoryReadRaw(const HistoryReadRawDetails& details,
-                      const HistoryReadRawCallback& callback) override;
-  void HistoryReadEvents(const NodeId& node_id,
-                         base::Time from,
-                         base::Time to,
-                         const EventFilter& filter,
-                         const HistoryReadEventsCallback& callback) override;
-
-  // CoroutineHistoryService
   Awaitable<HistoryReadRawResult> HistoryReadRaw(
       HistoryReadRawDetails details) override;
   Awaitable<HistoryReadEventsResult> HistoryReadEvents(NodeId node_id,

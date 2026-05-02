@@ -52,7 +52,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 class TestCoroutineServices final
     : public scada::CoroutineAttributeService,
       public scada::CoroutineViewService,
-      public scada::CoroutineHistoryService,
+      public scada::HistoryService,
       public scada::MethodService,
       public scada::CoroutineNodeManagementService {
  public:
@@ -263,20 +263,20 @@ void ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(
                   .from = from,
                   .to = to,
                   .max_count = 3}};
-  EXPECT_CALL(fixture.history_service_, HistoryReadRaw(testing::_, testing::_))
+  EXPECT_CALL(fixture.history_service_, HistoryReadRaw(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::HistoryReadRawDetails& details,
-              const scada::HistoryReadRawCallback& callback) {
+          [&](const scada::HistoryReadRawDetails& details)
+              -> Awaitable<scada::HistoryReadRawResult> {
             EXPECT_EQ(details.node_id, request.details.node_id);
             EXPECT_EQ(details.from, from);
             EXPECT_EQ(details.to, to);
             EXPECT_EQ(details.max_count, 3u);
-            callback(scada::HistoryReadRawResult{
+            co_return scada::HistoryReadRawResult{
                 .status = scada::StatusCode::Good,
                 .values = {scada::DataValue{
                     scada::Variant{12.5}, {}, fixture.now_, fixture.now_}},
                 .continuation_point = {1, 2, 3},
-            });
+            };
           }));
 
   const auto response = fixture.template HandleResponse<HistoryReadRawResponse>(
@@ -301,14 +301,13 @@ void ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
                   .to = to,
                   .filter = {}}};
   EXPECT_CALL(fixture.history_service_,
-              HistoryReadEvents(testing::_, testing::_, testing::_, testing::_,
-                                testing::_))
+              HistoryReadEvents(testing::_, testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
           [&](const scada::NodeId& node_id,
               base::Time actual_from,
               base::Time actual_to,
-              const scada::EventFilter&,
-              const scada::HistoryReadEventsCallback& callback) {
+              const scada::EventFilter&)
+              -> Awaitable<scada::HistoryReadEventsResult> {
             EXPECT_EQ(node_id, request.details.node_id);
             EXPECT_EQ(actual_from, from);
             EXPECT_EQ(actual_to, to);
@@ -318,10 +317,10 @@ void ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
             event.receive_time = fixture.now_;
             event.node_id = NumericNode(403);
             event.message = scada::LocalizedText{u"alarm"};
-            callback(scada::HistoryReadEventsResult{
+            co_return scada::HistoryReadEventsResult{
                 .status = scada::StatusCode::Good,
                 .events = {std::move(event)},
-            });
+            };
           }));
 
   const auto response =

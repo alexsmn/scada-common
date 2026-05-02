@@ -29,7 +29,7 @@ class TestCoroutineDataServices final
       public scada::CoroutineAttributeService,
       public scada::CoroutineViewService,
       public scada::MethodService,
-      public scada::CoroutineHistoryService,
+      public scada::HistoryService,
       public scada::CoroutineNodeManagementService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
@@ -495,7 +495,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   data_services.coroutine_attribute_service_ = direct_services;
   data_services.coroutine_view_service_ = direct_services;
   data_services.method_service_ = direct_services;
-  data_services.coroutine_history_service_ = direct_services;
+  data_services.history_service_ = direct_services;
   data_services.coroutine_node_management_service_ = direct_services;
   services.SetServices(std::move(data_services));
 

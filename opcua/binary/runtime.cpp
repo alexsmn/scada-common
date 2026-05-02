@@ -75,18 +75,16 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
       .data_services =
-          {.monitored_item_service_ =
+          {.history_service_ = data_services::Unowned(context.history_service),
+           .method_service_ = data_services::Unowned(context.method_service),
+           .monitored_item_service_ =
                data_services::Unowned(context.monitored_item_service),
            .coroutine_view_service_ =
                data_services::Unowned(context.view_service),
            .coroutine_node_management_service_ =
                data_services::Unowned(context.node_management_service),
-           .coroutine_history_service_ =
-               data_services::Unowned(context.history_service),
            .coroutine_attribute_service_ =
-               data_services::Unowned(context.attribute_service),
-           .method_service_ =
-               data_services::Unowned(context.method_service)},
+               data_services::Unowned(context.attribute_service)},
       .now = std::move(context.now)};
 }
 

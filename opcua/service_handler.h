@@ -13,7 +13,7 @@
 
 namespace scada {
 class CoroutineAttributeService;
-class CoroutineHistoryService;
+class HistoryService;
 class MethodService;
 class CoroutineNodeManagementService;
 class CoroutineViewService;
@@ -24,7 +24,7 @@ namespace opcua {
 struct ServiceHandlerContext {
   scada::CoroutineAttributeService& attribute_service;
   scada::CoroutineViewService& view_service;
-  scada::CoroutineHistoryService& history_service;
+  scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::CoroutineNodeManagementService& node_management_service;
   scada::NodeId user_id;

@@ -2188,16 +2188,16 @@ TEST_F(ServiceDispatcherTest,
 
   const auto from = now_ - base::TimeDelta::FromMinutes(15);
   const auto to = now_;
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
-                           const scada::HistoryReadRawCallback& callback) {
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+                           -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, NumericNode(120));
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
         EXPECT_EQ(details.max_count, 25u);
         EXPECT_TRUE(details.release_continuation_point);
         EXPECT_EQ(details.continuation_point, (scada::ByteString{4, 5, 6}));
-        callback(scada::HistoryReadRawResult{
+        co_return scada::HistoryReadRawResult{
             .status = scada::StatusCode::Good,
             .values = {scada::DataValue{
                 scada::Variant{42.5},
@@ -2206,7 +2206,7 @@ TEST_F(ServiceDispatcherTest,
                 now_,
             }},
             .continuation_point = {7, 8, 9},
-        });
+        };
       }));
 
   const auto history_read = WaitAwaitable(
@@ -2275,12 +2275,12 @@ TEST_F(ServiceDispatcherTest,
       .of_type = {NumericNode(301)},
       .child_of = {NumericNode(302)},
   };
-  EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _, _))
+  EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _))
       .WillOnce(Invoke([&](const scada::NodeId& node_id,
                            base::Time actual_from,
                            base::Time actual_to,
-                           const scada::EventFilter& actual_filter,
-                           const scada::HistoryReadEventsCallback& callback) {
+                           const scada::EventFilter& actual_filter)
+                           -> Awaitable<scada::HistoryReadEventsResult> {
         EXPECT_EQ(node_id, NumericNode(300));
         EXPECT_EQ(actual_from, from);
         EXPECT_EQ(actual_to, to);
@@ -2294,10 +2294,10 @@ TEST_F(ServiceDispatcherTest,
         event.node_id = NumericNode(303);
         event.message = scada::LocalizedText{u"alarm"};
         event.severity = 700;
-        callback(scada::HistoryReadEventsResult{
+        co_return scada::HistoryReadEventsResult{
             .status = scada::StatusCode::Good,
             .events = {std::move(event)},
-        });
+        };
       }));
 
   const auto history_read = WaitAwaitable(

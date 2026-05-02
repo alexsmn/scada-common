@@ -25,7 +25,6 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::NodeManagementService,
                                  public scada::CoroutineAttributeService,
                                  public scada::CoroutineViewService,
-                                 public scada::CoroutineHistoryService,
                                  public scada::CoroutineNodeManagementService {
  public:
   MasterDataServices();
@@ -85,17 +84,6 @@ class MasterDataServices final : public scada::AttributeService,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
-  // scada::HistoryService
-  virtual void HistoryReadRaw(
-      const scada::HistoryReadRawDetails& details,
-      const scada::HistoryReadRawCallback& callback) override;
-  virtual void HistoryReadEvents(
-      const scada::NodeId& node_id,
-      base::Time from,
-      base::Time to,
-      const scada::EventFilter& filter,
-      const scada::HistoryReadEventsCallback& callback) override;
-
   // scada::CoroutineNodeManagementService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
@@ -128,7 +116,7 @@ class MasterDataServices final : public scada::AttributeService,
       std::vector<scada::Variant> arguments,
       scada::NodeId user_id) override;
 
-  // scada::CoroutineHistoryService
+  // scada::HistoryService
   [[nodiscard]] virtual Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
   [[nodiscard]] virtual Awaitable<scada::HistoryReadEventsResult>
@@ -159,16 +147,12 @@ class MasterDataServices final : public scada::AttributeService,
       attribute_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
       view_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineHistoryServiceAdapter>
-      history_service_adapter_;
   std::unique_ptr<scada::CallbackToCoroutineNodeManagementServiceAdapter>
       node_management_service_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
       attribute_callback_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackViewServiceAdapter>
       view_callback_adapter_;
-  std::unique_ptr<scada::CoroutineToCallbackHistoryServiceAdapter>
-      history_callback_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackNodeManagementServiceAdapter>
       node_management_callback_adapter_;
 
@@ -176,7 +160,7 @@ class MasterDataServices final : public scada::AttributeService,
   scada::CoroutineViewService* coroutine_view_service_ = nullptr;
   scada::SessionService* session_service_ = nullptr;
   scada::MethodService* method_service_ = nullptr;
-  scada::CoroutineHistoryService* coroutine_history_service_ = nullptr;
+  scada::HistoryService* history_service_ = nullptr;
   scada::CoroutineNodeManagementService* coroutine_node_management_service_ =
       nullptr;
 };

@@ -26,11 +26,7 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
       null_timed_data_{
           std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {
   if (!history_service_) {
-    history_service_ = scada::service_resolver::ResolveCoroutineServiceShared<
-        scada::CoroutineHistoryService, scada::HistoryService,
-        scada::CallbackToCoroutineHistoryServiceAdapter>(
-        executor_, data_services_.coroutine_history_service_,
-        data_services_.history_service_);
+    history_service_ = data_services_.history_service_;
   }
 }
 

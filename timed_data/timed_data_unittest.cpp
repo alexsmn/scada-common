@@ -37,8 +37,8 @@ DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
   return {.history_service_ = UnownedService(history_service)};
 }
 
-class TestCoroutineHistoryService final
-    : public scada::CoroutineHistoryService {
+class TestHistoryService final
+    : public scada::HistoryService {
  public:
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
@@ -200,16 +200,16 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
-                           const scada::HistoryReadRawCallback& callback) {
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+                           -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
-        callback(scada::HistoryReadRawResult{
+        co_return scada::HistoryReadRawResult{
             .status = scada::StatusCode::Good,
             .values = {},
-        });
+        };
       }));
 
   TimedDataSpec spec{service_, kDataItemId};
@@ -230,18 +230,16 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
       .data_services_ = MakeTimedDataServices(history_service_),
       .node_event_provider_ = node_event_provider_});
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details,
-                           const scada::HistoryReadRawCallback& callback) {
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+                           -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
-        executor_->PostTask([callback] {
-          callback(scada::HistoryReadRawResult{
-              .status = scada::StatusCode::Good,
-              .values = {},
-          });
-        });
+        co_return scada::HistoryReadRawResult{
+            .status = scada::StatusCode::Good,
+            .values = {},
+        };
       }));
 
   TimedDataSpec spec{*service, kDataItemId};
@@ -255,7 +253,7 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
 TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
-  auto history_service = std::make_shared<TestCoroutineHistoryService>();
+  auto history_service = std::make_shared<TestHistoryService>();
   auto service = CreateTimedDataService(CoroutineTimedDataContext{
       .executor_ = MakeTestAnyExecutor(executor_),
       .alias_resolver_ = alias_resolver_.AsStdFunction(),
@@ -278,10 +276,10 @@ TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
 TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
-  auto history_service = std::make_shared<TestCoroutineHistoryService>();
+  auto history_service = std::make_shared<TestHistoryService>();
 
   DataServices data_services;
-  data_services.coroutine_history_service_ = history_service;
+  data_services.history_service_ = history_service;
 
   auto service = CreateTimedDataService(
       TimedDataContext{.executor_ = MakeTestAnyExecutor(executor_),
@@ -311,22 +309,20 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   };
   const scada::ByteString continuation_point{'c', 'p'};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& cleanup,
-                           const scada::HistoryReadRawCallback& callback) {
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& cleanup)
+                           -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(cleanup.node_id, details.node_id);
         EXPECT_EQ(cleanup.from, details.from);
         EXPECT_EQ(cleanup.to, details.to);
         EXPECT_EQ(cleanup.max_count, details.max_count);
         EXPECT_TRUE(cleanup.release_continuation_point);
         EXPECT_EQ(cleanup.continuation_point, continuation_point);
-        callback({});
+        co_return scada::HistoryReadRawResult{};
       }));
 
-  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
-      MakeTestAnyExecutor(executor_), history_service_};
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_adapter, details,
+      MakeTestAnyExecutor(executor_), history_service_, details,
       continuation_point};
   scoped_continuation_point.reset();
 
@@ -342,12 +338,10 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   };
   const scada::ByteString continuation_point{'c', 'p'};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_, _)).Times(0);
+  EXPECT_CALL(history_service_, HistoryReadRaw(_)).Times(0);
 
-  scada::CallbackToCoroutineHistoryServiceAdapter history_service_adapter{
-      MakeTestAnyExecutor(executor_), history_service_};
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_adapter, details,
+      MakeTestAnyExecutor(executor_), history_service_, details,
       continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();

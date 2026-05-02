@@ -119,16 +119,14 @@ void MasterDataServices::ResetCoroutineAdapters() {
   coroutine_view_service_ = nullptr;
   session_service_ = nullptr;
   method_service_ = nullptr;
-  coroutine_history_service_ = nullptr;
+  history_service_ = nullptr;
   coroutine_node_management_service_ = nullptr;
 
   attribute_callback_adapter_.reset();
   view_callback_adapter_.reset();
-  history_callback_adapter_.reset();
   node_management_callback_adapter_.reset();
   attribute_service_adapter_.reset();
   view_service_adapter_.reset();
-  history_service_adapter_.reset();
   node_management_service_adapter_.reset();
 }
 
@@ -149,11 +147,7 @@ void MasterDataServices::RefreshCoroutineServices() {
 
   method_service_ = services_.method_service_.get();
 
-  coroutine_history_service_ =
-      scada::service_resolver::ResolveCoroutineService(
-          coroutine_executor_, services_.coroutine_history_service_,
-          services_.history_service_, history_service_adapter_,
-          history_callback_adapter_);
+  history_service_ = services_.history_service_.get();
 
   coroutine_node_management_service_ =
       scada::service_resolver::ResolveCoroutineService(
@@ -367,39 +361,6 @@ void MasterDataServices::Write(
   services_.attribute_service_->Write(context, inputs, callback);
 }
 
-void MasterDataServices::HistoryReadRaw(
-    const scada::HistoryReadRawDetails& details,
-    const scada::HistoryReadRawCallback& callback) {
-  if (history_callback_adapter_) {
-    history_callback_adapter_->HistoryReadRaw(details, callback);
-    return;
-  }
-
-  if (!services_.history_service_)
-    return callback({scada::StatusCode::Bad_Disconnected});
-
-  services_.history_service_->HistoryReadRaw(details, callback);
-}
-
-void MasterDataServices::HistoryReadEvents(
-    const scada::NodeId& node_id,
-    base::Time from,
-    base::Time to,
-    const scada::EventFilter& filter,
-    const scada::HistoryReadEventsCallback& callback) {
-  if (history_callback_adapter_) {
-    history_callback_adapter_->HistoryReadEvents(node_id, from, to, filter,
-                                                 callback);
-    return;
-  }
-
-  if (!services_.history_service_)
-    return callback({scada::StatusCode::Bad_Disconnected});
-
-  services_.history_service_->HistoryReadEvents(node_id, from, to, filter,
-                                                callback);
-}
-
 void MasterDataServices::Read(
     const scada::ServiceContext& context,
     const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
@@ -516,7 +477,7 @@ Awaitable<scada::Status> MasterDataServices::Call(
 
 Awaitable<scada::HistoryReadRawResult> MasterDataServices::HistoryReadRaw(
     scada::HistoryReadRawDetails details) {
-  auto* service = coroutine_history_service_;
+  auto* service = history_service_;
   if (service)
     co_return co_await service->HistoryReadRaw(std::move(details));
 
@@ -529,7 +490,7 @@ Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
     base::Time from,
     base::Time to,
     scada::EventFilter filter) {
-  auto* service = coroutine_history_service_;
+  auto* service = history_service_;
   if (service)
     co_return co_await service->HistoryReadEvents(
         std::move(node_id), from, to, std::move(filter));

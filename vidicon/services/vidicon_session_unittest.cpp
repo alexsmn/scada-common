@@ -73,11 +73,11 @@ TEST(VidiconSession, CoroutineHistoryReturnsBad) {
 
   const auto raw_result = WaitAwaitable(
       executor,
-      static_cast<scada::CoroutineHistoryService&>(session).HistoryReadRaw(
+      static_cast<scada::HistoryService&>(session).HistoryReadRaw(
           scada::HistoryReadRawDetails{.node_id = scada::id::RootFolder}));
   const auto events_result = WaitAwaitable(
       executor,
-      static_cast<scada::CoroutineHistoryService&>(session).HistoryReadEvents(
+      static_cast<scada::HistoryService&>(session).HistoryReadEvents(
           scada::id::Server, {}, {}, {}));
 
   EXPECT_EQ(raw_result.status.code(), scada::StatusCode::Bad);
