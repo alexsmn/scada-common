@@ -41,7 +41,7 @@ class AddressSpaceFetcherImplTest : public Test {
       std::make_shared<TestExecutor>();
 
   TestAddressSpace server_address_space_;
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+  scada::CallbackToViewServiceAdapter view_service_adapter_{
       MakeTestAnyExecutor(executor_), server_address_space_};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
       MakeTestAnyExecutor(executor_), server_address_space_};

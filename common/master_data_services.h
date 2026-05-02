@@ -23,8 +23,7 @@ class MasterDataServices final : public scada::AttributeService,
                                  public scada::MethodService,
                                  public scada::HistoryService,
                                  public scada::NodeManagementService,
-                                 public scada::CoroutineAttributeService,
-                                 public scada::CoroutineViewService {
+                                 public scada::CoroutineAttributeService {
  public:
   MasterDataServices();
   explicit MasterDataServices(AnyExecutor executor);
@@ -47,14 +46,6 @@ class MasterDataServices final : public scada::AttributeService,
   virtual boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override;
   virtual scada::SessionDebugger* GetSessionDebugger() override;
-
-  // scada::ViewService
-  virtual void Browse(const scada::ServiceContext& context,
-                      const std::vector<scada::BrowseDescription>& nodes,
-                      const scada::BrowseCallback& callback) override;
-  virtual void TranslateBrowsePaths(
-      const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathsCallback& callback) override;
 
   // scada::MonitoredItemService
   virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
@@ -81,7 +72,7 @@ class MasterDataServices final : public scada::AttributeService,
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
-  // scada::CoroutineViewService
+  // scada::ViewService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
@@ -132,15 +123,11 @@ class MasterDataServices final : public scada::AttributeService,
 
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
   std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
       attribute_callback_adapter_;
-  std::unique_ptr<scada::CoroutineToCallbackViewServiceAdapter>
-      view_callback_adapter_;
 
   scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
-  scada::CoroutineViewService* coroutine_view_service_ = nullptr;
+  scada::ViewService* view_service_ = nullptr;
   scada::SessionService* session_service_ = nullptr;
   scada::MethodService* method_service_ = nullptr;
   scada::HistoryService* history_service_ = nullptr;

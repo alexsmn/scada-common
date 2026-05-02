@@ -51,7 +51,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 
 class TestCoroutineServices final
     : public scada::CoroutineAttributeService,
-      public scada::CoroutineViewService,
+      public scada::ViewService,
       public scada::HistoryService,
       public scada::MethodService,
       public scada::NodeManagementService {
@@ -616,26 +616,24 @@ void ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(
   typename Fixture::ConnectionState connection;
   fixture.CreateAndActivate(connection);
 
-  EXPECT_CALL(fixture.view_service_, Browse(testing::_, testing::_, testing::_))
+  EXPECT_CALL(fixture.view_service_, Browse(testing::_, testing::_))
       .WillOnce(testing::Invoke(
           [&](const scada::ServiceContext& context,
-              const std::vector<scada::BrowseDescription>& inputs,
-              const scada::BrowseCallback& callback) {
+              std::vector<scada::BrowseDescription> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
             ASSERT_EQ(inputs.size(), 1u);
-            callback(scada::StatusCode::Good,
-                     {scada::BrowseResult{
-                         .status_code = scada::StatusCode::Good,
-                         .references = {
-                             {.reference_type_id = NumericNode(901),
-                              .forward = true,
-                              .node_id = NumericNode(902)},
-                             {.reference_type_id = NumericNode(903),
-                              .forward = false,
-                              .node_id = NumericNode(904)},
-                             {.reference_type_id = NumericNode(905),
-                              .forward = true,
-                              .node_id = NumericNode(906)}}}});
+            co_return std::vector<scada::BrowseResult>{scada::BrowseResult{
+                .status_code = scada::StatusCode::Good,
+                .references = {{.reference_type_id = NumericNode(901),
+                                .forward = true,
+                                .node_id = NumericNode(902)},
+                               {.reference_type_id = NumericNode(903),
+                                .forward = false,
+                                .node_id = NumericNode(904)},
+                               {.reference_type_id = NumericNode(905),
+                                .forward = true,
+                                .node_id = NumericNode(906)}}}};
           }));
 
   const auto browse = fixture.template HandleResponse<BrowseResponse>(

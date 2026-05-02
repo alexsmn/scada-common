@@ -167,18 +167,6 @@ VidiconSession::DeleteReferences(
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-void VidiconSession::Browse(const scada::ServiceContext& context,
-                            const std::vector<scada::BrowseDescription>& inputs,
-                            const scada::BrowseCallback& callback) {
-  view_service_.Browse(context, inputs, callback);
-}
-
-void VidiconSession::TranslateBrowsePaths(
-    const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  view_service_.TranslateBrowsePaths(browse_paths, callback);
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 VidiconSession::Browse(scada::ServiceContext context,
                        std::vector<scada::BrowseDescription> inputs) {

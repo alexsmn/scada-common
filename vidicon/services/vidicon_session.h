@@ -28,8 +28,7 @@ class VidiconSession final : public scada::SessionService,
                              public scada::MethodService,
                              public scada::ViewService,
                              public scada::CoroutineAttributeService,
-                             public scada::NodeManagementService,
-                             public scada::CoroutineViewService {
+                             public scada::NodeManagementService {
  public:
   VidiconSession();
   ~VidiconSession();
@@ -98,15 +97,6 @@ class VidiconSession final : public scada::SessionService,
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::ViewService
-  virtual void Browse(
-      const scada::ServiceContext& context,
-      const std::vector<scada::BrowseDescription>& nodes,
-      const scada::BrowseCallback& callback) override;
-  virtual void TranslateBrowsePaths(
-      const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathsCallback& callback) override;
-
-  // scada::CoroutineViewService
   virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;

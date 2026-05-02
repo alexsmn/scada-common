@@ -210,35 +210,6 @@ scada::SessionDebugger* ClientSession::GetSessionDebugger() {
   return nullptr;
 }
 
-void ClientSession::Browse(const scada::ServiceContext& context,
-                          const std::vector<scada::BrowseDescription>& nodes,
-                          const scada::BrowseCallback& callback) {
-  DispatchLegacyCallback(
-      any_executor_, weak_from_this(),
-      [context, inputs = nodes, callback](
-          ClientSession& self) mutable -> Awaitable<void> {
-        auto result = co_await self.Browse(std::move(context),
-                                           std::move(inputs));
-        auto status = result.status();
-        auto results = std::move(result).value_or({});
-        callback(std::move(status), std::move(results));
-      });
-}
-
-void ClientSession::TranslateBrowsePaths(
-    const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  DispatchLegacyCallback(
-      any_executor_, weak_from_this(),
-      [inputs = browse_paths, callback](
-          ClientSession& self) mutable -> Awaitable<void> {
-        auto result = co_await self.TranslateBrowsePaths(std::move(inputs));
-        auto status = result.status();
-        auto results = std::move(result).value_or({});
-        callback(std::move(status), std::move(results));
-      });
-}
-
 std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {

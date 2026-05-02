@@ -39,19 +39,16 @@ struct ResolvedNodeServices {
     attribute_service = &scada::service_resolver::RequireCoroutineService(
         executor, data_services_.coroutine_attribute_service_,
         data_services_.attribute_service_, attribute_service_adapter);
-    view_service = &scada::service_resolver::RequireCoroutineService(
-        executor, data_services_.coroutine_view_service_,
-        data_services_.view_service_, view_service_adapter);
+    view_service = &scada::service_resolver::RequireSharedService(
+        data_services_.view_service_);
   }
 
   DataServices data_services_;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter;
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter;
   scada::SessionService* session_service = nullptr;
   scada::CoroutineAttributeService* attribute_service = nullptr;
-  scada::CoroutineViewService* view_service = nullptr;
+  scada::ViewService* view_service = nullptr;
   scada::MonitoredItemService* monitored_item_service = nullptr;
 };
 

@@ -171,21 +171,6 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
   return result;
 }
 
-void ViewServiceImpl::Browse(
-    const scada::ServiceContext& context,
-    const std::vector<scada::BrowseDescription>& descriptions,
-    const scada::BrowseCallback& callback) {
-  auto results = sync_view_service_.Browse(descriptions);
-  callback(scada::StatusCode::Good, std::move(results));
-}
-
-void ViewServiceImpl::TranslateBrowsePaths(
-    const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  auto results = sync_view_service_.TranslateBrowsePaths(browse_paths);
-  callback(scada::StatusCode::Good, std::move(results));
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ViewServiceImpl::Browse(
     scada::ServiceContext context,

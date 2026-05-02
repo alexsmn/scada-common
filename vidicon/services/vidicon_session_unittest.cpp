@@ -55,7 +55,7 @@ TEST(VidiconSession, CoroutineBrowseUsesLocalAddressSpace) {
   const auto executor = std::make_shared<TestExecutor>();
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
-      executor, static_cast<scada::CoroutineViewService&>(session).Browse(
+      executor, static_cast<scada::ViewService&>(session).Browse(
                     scada::ServiceContext{},
                     {{scada::id::RootFolder,
                       scada::BrowseDirection::Forward,

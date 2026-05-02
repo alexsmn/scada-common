@@ -44,19 +44,18 @@ class VirtualObject : public scada::GenericObject,
     callback(scada::StatusCode::Bad, {});
   }
 
-  virtual void Browse(const scada::ServiceContext& context,
-                      const std::vector<scada::BrowseDescription>& descriptions,
-                      const scada::BrowseCallback& callback) override {
+  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+      scada::ServiceContext context,
+      std::vector<scada::BrowseDescription> descriptions) override {
     std::vector<scada::BrowseResult> results(descriptions.size());
     for (size_t i = 0; i < descriptions.size(); ++i)
       results[i] = Browse(descriptions[i]);
-    callback(scada::StatusCode::Good, std::move(results));
+    co_return results;
   }
 
-  virtual void TranslateBrowsePaths(
-      const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathsCallback& callback) override {
-    callback(scada::StatusCode::Bad, {});
+  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+  TranslateBrowsePaths(std::vector<scada::BrowsePath> browse_paths) override {
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   std::vector<std::string> items;

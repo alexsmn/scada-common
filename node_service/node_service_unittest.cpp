@@ -49,7 +49,7 @@ struct NodeServiceTestContext {
 
   GenericNodeFactory node_factory{client_address_space};
 
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+  scada::CallbackToViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
@@ -89,7 +89,7 @@ struct NodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+  scada::CallbackToViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
       MakeTestAnyExecutor(base_env.executor), *base_env.server_address_space};
@@ -819,7 +819,7 @@ class V2NodeServiceRegressionTest : public Test {
       .view_events_provider = MakeViewEventsProvider()};
   NiceMock<MockNodeObserver> node_observer_;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+  scada::CallbackToViewServiceAdapter view_service_adapter_{
       MakeTestAnyExecutor(executor_), *server_address_space_};
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
       MakeTestAnyExecutor(executor_), *server_address_space_};

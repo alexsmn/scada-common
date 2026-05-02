@@ -13,12 +13,11 @@
 
 namespace scada {
 class CallbackToCoroutineAttributeServiceAdapter;
-class CallbackToCoroutineViewServiceAdapter;
 class CoroutineAttributeService;
 class HistoryService;
 class MethodService;
 class NodeManagementService;
-class CoroutineViewService;
+class ViewService;
 }  // namespace scada
 
 namespace opcua {
@@ -48,7 +47,7 @@ struct CoroutineServerRuntimeContext {
   ServerSessionManager& session_manager;
   scada::MonitoredItemService& monitored_item_service;
   scada::CoroutineAttributeService& attribute_service;
-  scada::CoroutineViewService& view_service;
+  scada::ViewService& view_service;
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
@@ -107,14 +106,12 @@ class ServerRuntime {
 
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
   DataServices data_services_;
   AnyExecutor executor_;
   ServerSessionManager& session_manager_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::CoroutineAttributeService& attribute_service_;
-  scada::CoroutineViewService& view_service_;
+  scada::ViewService& view_service_;
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
   scada::NodeManagementService& node_management_service_;

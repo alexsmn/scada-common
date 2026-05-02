@@ -31,7 +31,6 @@ class Audit final : private AuditContext,
                     public scada::AttributeService,
                     public scada::ViewService,
                     public scada::CoroutineAttributeService,
-                    public scada::CoroutineViewService,
                     public std::enable_shared_from_this<Audit> {
  public:
   static std::shared_ptr<Audit> Create(AuditContext&& context);
@@ -46,14 +45,6 @@ class Audit final : private AuditContext,
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
-  // scada::ViewService
-  virtual void Browse(const scada::ServiceContext& context,
-                      const std::vector<scada::BrowseDescription>& descriptions,
-                      const scada::BrowseCallback& callback) override;
-  virtual void TranslateBrowsePaths(
-      const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathsCallback& callback) override;
-
   // scada::CoroutineAttributeService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
@@ -62,7 +53,7 @@ class Audit final : private AuditContext,
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
-  // scada::CoroutineViewService
+  // scada::ViewService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
@@ -92,11 +83,9 @@ class Audit final : private AuditContext,
 
   std::unique_ptr<scada::CallbackToCoroutineAttributeServiceAdapter>
       attribute_service_adapter_;
-  std::unique_ptr<scada::CallbackToCoroutineViewServiceAdapter>
-      view_service_adapter_;
 
   scada::CoroutineAttributeService* coroutine_attribute_service_ = nullptr;
-  scada::CoroutineViewService* coroutine_view_service_ = nullptr;
+  scada::ViewService* view_service_ = nullptr;
 };
 
 std::shared_ptr<scada::services> AuditScadaServices(

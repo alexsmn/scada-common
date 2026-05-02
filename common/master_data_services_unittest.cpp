@@ -27,7 +27,7 @@ using testing::StrictMock;
 class TestCoroutineDataServices final
     : public scada::SessionService,
       public scada::CoroutineAttributeService,
-      public scada::CoroutineViewService,
+      public scada::ViewService,
       public scada::MethodService,
       public scada::HistoryService,
       public scada::NodeManagementService {
@@ -494,7 +494,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   DataServices data_services;
   data_services.session_service_ = direct_services;
   data_services.coroutine_attribute_service_ = direct_services;
-  data_services.coroutine_view_service_ = direct_services;
+  data_services.view_service_ = direct_services;
   data_services.method_service_ = direct_services;
   data_services.history_service_ = direct_services;
   data_services.node_management_service_ = direct_services;
@@ -665,7 +665,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
             (scada::NodeId{107}));
 
   ASSERT_OK_AND_ASSIGN(auto browse_results, WaitAwaitable(
-      executor, static_cast<scada::CoroutineViewService&>(services).Browse(
+      executor, static_cast<scada::ViewService&>(services).Browse(
                     {}, {{.node_id = scada::NodeId{108}}})));
   ASSERT_EQ(browse_results.size(), 1u);
   ASSERT_EQ(browse_results[0].references.size(), 1u);

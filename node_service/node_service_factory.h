@@ -9,7 +9,7 @@
 namespace scada {
 class AttributeService;
 class CoroutineAttributeService;
-class CoroutineViewService;
+class ViewService;
 class MethodService;
 class MonitoredItemService;
 class ServiceContext;
@@ -37,7 +37,7 @@ struct CoroutineNodeServiceContext {
   // TODO: Remove services and keep `scada::client` only.
   scada::SessionService& session_service_;
   scada::CoroutineAttributeService& attribute_service_;
-  scada::CoroutineViewService& view_service_;
+  scada::ViewService& view_service_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::client scada_client_;
 };

@@ -71,10 +71,8 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
         audited_services_.attribute_service_ = audit_;
         audited_services_.coroutine_attribute_service_ = audit_;
       }
-      if (audited_services_.view_service_ ||
-          audited_services_.coroutine_view_service_) {
+      if (audited_services_.view_service_) {
         audited_services_.view_service_ = audit_;
-        audited_services_.coroutine_view_service_ = audit_;
       }
     }
 
@@ -155,9 +153,7 @@ void Audit::RefreshCoroutineServices() {
       scada::service_resolver::ResolveCoroutineService(
           executor_, data_services_.coroutine_attribute_service_,
           data_services_.attribute_service_, attribute_service_adapter_);
-  coroutine_view_service_ = scada::service_resolver::ResolveCoroutineService(
-      executor_, data_services_.coroutine_view_service_,
-      data_services_.view_service_, view_service_adapter_);
+  view_service_ = data_services_.view_service_.get();
 }
 
 void Audit::StartRead() {
@@ -244,67 +240,6 @@ void Audit::Write(
   data_services_.attribute_service_->Write(context, inputs, callback);
 }
 
-void Audit::Browse(const scada::ServiceContext& context,
-                   const std::vector<scada::BrowseDescription>& descriptions,
-                   const scada::BrowseCallback& callback) {
-  if (executor_ && coroutine_view_service_) {
-    CoSpawn(*executor_,
-            [self = shared_from_this(), context, descriptions,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                scada::CompleteStatusOrCallback(
-                    callback,
-                    co_await self->Browse(std::move(context), descriptions));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
-    return;
-  }
-
-  // Audit must not be used for missing services.
-  assert(data_services_.view_service_);
-
-  StartBrowse();
-
-  data_services_.view_service_->Browse(
-      context, descriptions,
-      [this, ref = shared_from_this(), start_time = Clock::now(), callback](
-          scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        assert(Validate(results));
-
-        FinishBrowse(start_time);
-
-        callback(std::move(status), std::move(results));
-      });
-}
-
-void Audit::TranslateBrowsePaths(
-    const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  if (executor_ && coroutine_view_service_) {
-    CoSpawn(*executor_,
-            [self = shared_from_this(), browse_paths,
-             callback]() mutable -> Awaitable<void> {
-              try {
-                scada::CompleteStatusOrCallback(
-                    callback,
-                    co_await self->TranslateBrowsePaths(browse_paths));
-              } catch (...) {
-                callback(scada::GetExceptionStatus(std::current_exception()),
-                         {});
-              }
-            });
-    return;
-  }
-
-  // Audit must not be used for missing services.
-  assert(data_services_.view_service_);
-
-  data_services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
-}
-
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
@@ -339,7 +274,7 @@ Audit::Write(scada::ServiceContext context,
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 Audit::Browse(scada::ServiceContext context,
               std::vector<scada::BrowseDescription> inputs) {
-  auto* service = coroutine_view_service_;
+  auto* service = view_service_;
   if (service) {
     StartBrowse();
     const auto start_time = Clock::now();
@@ -360,7 +295,7 @@ Audit::Browse(scada::ServiceContext context,
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 Audit::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
-  auto* service = coroutine_view_service_;
+  auto* service = view_service_;
   if (service)
     co_return co_await service->TranslateBrowsePaths(std::move(inputs));
 

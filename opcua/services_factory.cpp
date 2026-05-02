@@ -11,10 +11,11 @@ bool CreateServices(const DataServicesContext& context,
                                                   context.transport_factory);
     services = {.session_service_ = session,
                 .view_service_ = session,
+                .node_management_service_ = nullptr,
+                .history_service_ = nullptr,
                 .attribute_service_ = session,
                 .method_service_ = session,
                 .monitored_item_service_ = session,
-                .coroutine_view_service_ = session,
                 .coroutine_attribute_service_ = session};
     return true;
 

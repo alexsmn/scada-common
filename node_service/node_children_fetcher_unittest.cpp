@@ -33,7 +33,7 @@ struct TestContext {
 
   std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
   StrictMock<scada::MockViewService> view_service;
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+  scada::CallbackToViewServiceAdapter view_service_adapter{
       MakeTestAnyExecutor(executor), view_service};
   std::map<scada::NodeId, scada::BrowseResult> validated_results;
   std::shared_ptr<NodeChildrenFetcher> fetcher;

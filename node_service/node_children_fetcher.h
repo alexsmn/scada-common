@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace scada {
-class CoroutineViewService;
+class ViewService;
 class NodeId;
 class ServiceContext;
 class Status;
@@ -27,7 +27,7 @@ using ReferenceValidator = std::function<void(const scada::NodeId& node_id,
 struct NodeChildrenFetcherContext {
   AnyExecutor executor_;
   scada::ServiceContext service_context_;
-  scada::CoroutineViewService& view_service_;
+  scada::ViewService& view_service_;
   ReferenceValidator reference_validator_;
 };
 

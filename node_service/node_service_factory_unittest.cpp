@@ -102,8 +102,8 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
   data_services.coroutine_attribute_service_ =
       std::shared_ptr<scada::CoroutineAttributeService>{
           std::shared_ptr<void>{}, &address_space.attribute_service_impl};
-  data_services.coroutine_view_service_ =
-      std::shared_ptr<scada::CoroutineViewService>{
+  data_services.view_service_ =
+      std::shared_ptr<scada::ViewService>{
           std::shared_ptr<void>{}, &address_space.view_service_impl};
   data_services.monitored_item_service_ =
       std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
@@ -237,8 +237,8 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
   data_services.session_service_ =
       std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
-  data_services.coroutine_view_service_ =
-      std::shared_ptr<scada::CoroutineViewService>{
+  data_services.view_service_ =
+      std::shared_ptr<scada::ViewService>{
           std::shared_ptr<void>{}, &address_space.view_service_impl};
   data_services.monitored_item_service_ =
       std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},

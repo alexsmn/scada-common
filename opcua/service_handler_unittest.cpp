@@ -33,7 +33,7 @@ TEST(ServiceHandlerCanonicalTest,
   const auto any_executor = MakeTestAnyExecutor(executor);
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter{
       any_executor, attribute_service};
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter{
+  scada::CallbackToViewServiceAdapter view_service_adapter{
       any_executor, view_service};
   const auto user_id = NumericNode(700, 5);
   ServiceHandler handler{{attribute_service_adapter,

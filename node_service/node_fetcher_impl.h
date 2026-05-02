@@ -12,7 +12,7 @@
 
 namespace scada {
 class CoroutineAttributeService;
-class CoroutineViewService;
+class ViewService;
 class DataValue;
 class NodeId;
 class Status;
@@ -21,7 +21,7 @@ struct ReadValueId;
 
 struct NodeFetcherImplContext {
   AnyExecutor executor_;
-  scada::CoroutineViewService& view_service_;
+  scada::ViewService& view_service_;
   scada::CoroutineAttributeService& attribute_service_;
   const FetchCompletedHandler fetch_completed_handler_;
   const NodeValidator node_validator_;

@@ -37,7 +37,7 @@ class ServiceHandlerTest : public Test {
   const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
   scada::CallbackToCoroutineAttributeServiceAdapter attribute_service_adapter_{
       any_executor_, attribute_service_};
-  scada::CallbackToCoroutineViewServiceAdapter view_service_adapter_{
+  scada::CallbackToViewServiceAdapter view_service_adapter_{
       any_executor_, view_service_};
   const scada::NodeId user_id_ = NumericNode(700, 3);
   ServiceHandler handler_{

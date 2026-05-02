@@ -116,16 +116,14 @@ scada::services MasterDataServices::as_services() {
 
 void MasterDataServices::ResetCoroutineAdapters() {
   coroutine_attribute_service_ = nullptr;
-  coroutine_view_service_ = nullptr;
+  view_service_ = nullptr;
   session_service_ = nullptr;
   method_service_ = nullptr;
   history_service_ = nullptr;
   node_management_service_ = nullptr;
 
   attribute_callback_adapter_.reset();
-  view_callback_adapter_.reset();
   attribute_service_adapter_.reset();
-  view_service_adapter_.reset();
 }
 
 void MasterDataServices::RefreshCoroutineServices() {
@@ -137,9 +135,7 @@ void MasterDataServices::RefreshCoroutineServices() {
           services_.attribute_service_, attribute_service_adapter_,
           attribute_callback_adapter_);
 
-  coroutine_view_service_ = scada::service_resolver::ResolveCoroutineService(
-      coroutine_executor_, services_.coroutine_view_service_,
-      services_.view_service_, view_service_adapter_, view_callback_adapter_);
+  view_service_ = services_.view_service_.get();
 
   session_service_ = services_.session_service_.get();
 
@@ -249,35 +245,6 @@ MasterDataServices::SubscribeSessionStateChanged(
   return session_state_changed_signal_.connect(callback);
 }
 
-void MasterDataServices::Browse(
-    const scada::ServiceContext& context,
-    const std::vector<scada::BrowseDescription>& nodes,
-    const scada::BrowseCallback& callback) {
-  if (view_callback_adapter_) {
-    view_callback_adapter_->Browse(context, nodes, callback);
-    return;
-  }
-
-  if (!services_.view_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.view_service_->Browse(context, nodes, callback);
-}
-
-void MasterDataServices::TranslateBrowsePaths(
-    const std::vector<scada::BrowsePath>& browse_paths,
-    const scada::TranslateBrowsePathsCallback& callback) {
-  if (view_callback_adapter_) {
-    view_callback_adapter_->TranslateBrowsePaths(browse_paths, callback);
-    return;
-  }
-
-  if (!services_.view_service_)
-    return callback(scada::StatusCode::Bad_Disconnected, {});
-
-  services_.view_service_->TranslateBrowsePaths(browse_paths, callback);
-}
-
 std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
@@ -361,7 +328,7 @@ MasterDataServices::DeleteReferences(
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 MasterDataServices::Browse(scada::ServiceContext context,
                            std::vector<scada::BrowseDescription> inputs) {
-  auto* service = coroutine_view_service_;
+  auto* service = view_service_;
   if (service)
     co_return co_await service->Browse(std::move(context), std::move(inputs));
 
@@ -371,7 +338,7 @@ MasterDataServices::Browse(scada::ServiceContext context,
 Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
 MasterDataServices::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> inputs) {
-  auto* service = coroutine_view_service_;
+  auto* service = view_service_;
   if (service)
     co_return co_await service->TranslateBrowsePaths(std::move(inputs));
 

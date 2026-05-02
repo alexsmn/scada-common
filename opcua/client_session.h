@@ -34,10 +34,9 @@ class ClientSubscription;
 class ClientSession final
     : public std::enable_shared_from_this<ClientSession>,
       public scada::SessionService,
-      public scada::CoroutineViewService,
+      public scada::ViewService,
       public scada::CoroutineAttributeService,
       public scada::MethodService,
-      public scada::ViewService,
       public scada::AttributeService,
       public scada::MonitoredItemService {
  public:
@@ -64,14 +63,6 @@ class ClientSession final
   [[nodiscard]] Awaitable<void> DisconnectAsync();
   [[nodiscard]] Awaitable<void> ReconnectAsync();
 
-  // scada::ViewService
-  void Browse(const scada::ServiceContext& context,
-              const std::vector<scada::BrowseDescription>& nodes,
-              const scada::BrowseCallback& callback) override;
-  void TranslateBrowsePaths(
-      const std::vector<scada::BrowsePath>& browse_paths,
-      const scada::TranslateBrowsePathsCallback& callback) override;
-
   // scada::MonitoredItemService
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& read_value_id,
@@ -87,7 +78,7 @@ class ClientSession final
       const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
       const scada::WriteCallback& callback) override;
 
-  // scada::CoroutineViewService
+  // scada::ViewService
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
