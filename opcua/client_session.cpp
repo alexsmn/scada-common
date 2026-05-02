@@ -1,6 +1,5 @@
 #include "opcua/client_session.h"
 
-#include "base/awaitable_promise.h"
 #include "base/executor_conversions.h"
 #include "net/net_executor_adapter.h"
 #include "opcua/client_subscription.h"

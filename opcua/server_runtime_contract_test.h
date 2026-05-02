@@ -265,9 +265,9 @@ void ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(
                   .max_count = 3}};
   EXPECT_CALL(fixture.history_service_, HistoryReadRaw(testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::HistoryReadRawDetails& details)
+          [&](scada::HistoryReadRawDetails details)
               -> Awaitable<scada::HistoryReadRawResult> {
-            EXPECT_EQ(details.node_id, request.details.node_id);
+            EXPECT_TRUE(details.node_id == request.details.node_id);
             EXPECT_EQ(details.from, from);
             EXPECT_EQ(details.to, to);
             EXPECT_EQ(details.max_count, 3u);
@@ -303,10 +303,10 @@ void ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
   EXPECT_CALL(fixture.history_service_,
               HistoryReadEvents(testing::_, testing::_, testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::NodeId& node_id,
+          [&](scada::NodeId node_id,
               base::Time actual_from,
               base::Time actual_to,
-              const scada::EventFilter&)
+              scada::EventFilter)
               -> Awaitable<scada::HistoryReadEventsResult> {
             EXPECT_EQ(node_id, request.details.node_id);
             EXPECT_EQ(actual_from, from);
@@ -329,7 +329,7 @@ void ExpectHistoryReadEventsPreservesPayloadThroughActivatedSession(
   EXPECT_EQ(response.result.status.code(), scada::StatusCode::Good);
   ASSERT_EQ(response.result.events.size(), 1u);
   EXPECT_EQ(response.result.events[0].event_id, 99u);
-  EXPECT_EQ(response.result.events[0].node_id, NumericNode(403));
+  EXPECT_TRUE(response.result.events[0].node_id == NumericNode(403));
 }
 
 template <typename Fixture>

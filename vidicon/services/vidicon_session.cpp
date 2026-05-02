@@ -8,7 +8,6 @@
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
 #include "scada/status_exception.h"
-#include "scada/status_promise.h"
 #include "vidicon/services/vidicon_monitored_data_point.h"
 #include "vidicon/services/vidicon_monitored_events.h"
 

@@ -1,9 +1,8 @@
 #include "opcua/server_runtime.h"
 
-#include "base/awaitable_promise.h"
+#include "base/async_completion.h"
 #include "base/boost_log.h"
 #include "base/executor_util.h"
-#include "base/promise.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "scada/coroutine_services.h"
@@ -176,8 +175,8 @@ Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
   if (delay <= base::TimeDelta{})
     co_return;
 
-  promise<void> delayed;
-  auto callback = [delayed]() mutable { delayed.resolve(); };
+  base::AsyncCompletion delayed{executor_};
+  auto callback = [delayed]() mutable { delayed.Complete(); };
   if (post_delayed_task_) {
     post_delayed_task_(delay, std::move(callback));
   } else {
@@ -185,7 +184,7 @@ Awaitable<void> ServerRuntime::Delay(base::TimeDelta delay) const {
                     std::chrono::milliseconds{delay.InMilliseconds()},
                     std::move(callback));
   }
-  co_await AwaitPromise(executor_, std::move(delayed));
+  co_await delayed.Wait();
 }
 
 Awaitable<ResponseBody> ServerRuntime::Handle(ConnectionState& connection,

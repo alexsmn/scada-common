@@ -2189,9 +2189,9 @@ TEST_F(ServiceDispatcherTest,
   const auto from = now_ - base::TimeDelta::FromMinutes(15);
   const auto to = now_;
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
                            -> Awaitable<scada::HistoryReadRawResult> {
-        EXPECT_EQ(details.node_id, NumericNode(120));
+        EXPECT_TRUE(details.node_id == NumericNode(120));
         EXPECT_EQ(details.from, from);
         EXPECT_EQ(details.to, to);
         EXPECT_EQ(details.max_count, 25u);
@@ -2276,12 +2276,12 @@ TEST_F(ServiceDispatcherTest,
       .child_of = {NumericNode(302)},
   };
   EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _))
-      .WillOnce(Invoke([&](const scada::NodeId& node_id,
+      .WillOnce(Invoke([&](scada::NodeId node_id,
                            base::Time actual_from,
                            base::Time actual_to,
-                           const scada::EventFilter& actual_filter)
+                           scada::EventFilter actual_filter)
                            -> Awaitable<scada::HistoryReadEventsResult> {
-        EXPECT_EQ(node_id, NumericNode(300));
+        EXPECT_TRUE(node_id == NumericNode(300));
         EXPECT_EQ(actual_from, from);
         EXPECT_EQ(actual_to, to);
         EXPECT_EQ(actual_filter, filter);
@@ -3239,9 +3239,11 @@ TEST_F(ServiceDispatcherTest, HandlesCallAfterActivatedSession) {
                               scada::NodeId user_id) {
         EXPECT_EQ(node_id, NumericNode(12));
         EXPECT_EQ(method_id, NumericNode(77));
-        ASSERT_EQ(arguments.size(), 2u);
-        EXPECT_DOUBLE_EQ(arguments[0].get<scada::Double>(), 42.0);
-        EXPECT_EQ(arguments[1].get<scada::String>(), "go");
+        EXPECT_EQ(arguments.size(), 2u);
+        if (arguments.size() >= 2) {
+          EXPECT_DOUBLE_EQ(arguments[0].get<scada::Double>(), 42.0);
+          EXPECT_EQ(arguments[1].get<scada::String>(), "go");
+        }
         EXPECT_EQ(user_id, expected_user_id_);
         return scada::MakeMethodCallResult(scada::StatusCode::Good);
       }));

@@ -641,36 +641,24 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->last_call_method_id, (scada::NodeId{103}));
   EXPECT_EQ(direct_services->last_call_user_id, (scada::NodeId{104}));
 
-  bool history_called = false;
   const scada::HistoryReadRawDetails history_details{
       .node_id = scada::NodeId{105}, .max_count = 3};
-  services.HistoryReadRaw(history_details,
-                          [&](scada::HistoryReadRawResult result) {
-                            history_called = true;
-                            EXPECT_TRUE(result.status.good());
-                            ASSERT_EQ(result.values.size(), 1u);
-                            EXPECT_EQ(result.values[0],
-                                      direct_services->read_value);
-                          });
-  Drain(executor);
-
-  EXPECT_TRUE(history_called);
+  auto history_result =
+      WaitAwaitable(executor, services.HistoryReadRaw(history_details));
+  EXPECT_TRUE(history_result.status.good());
+  ASSERT_EQ(history_result.values.size(), 1u);
+  EXPECT_EQ(history_result.values[0], direct_services->read_value);
   EXPECT_EQ(direct_services->history_raw_count, 1);
   EXPECT_EQ(direct_services->last_history_raw_details.node_id,
             history_details.node_id);
   EXPECT_EQ(direct_services->last_history_raw_details.max_count,
             history_details.max_count);
 
-  bool history_events_called = false;
-  services.HistoryReadEvents(
-      scada::NodeId{107}, base::Time{}, base::Time{}, scada::EventFilter{},
-      [&](scada::HistoryReadEventsResult result) {
-        history_events_called = true;
-        EXPECT_TRUE(result.status.good());
-      });
-  Drain(executor);
-
-  EXPECT_TRUE(history_events_called);
+  auto history_events_result = WaitAwaitable(
+      executor,
+      services.HistoryReadEvents(scada::NodeId{107}, base::Time{},
+                                 base::Time{}, scada::EventFilter{}));
+  EXPECT_TRUE(history_events_result.status.good());
   EXPECT_EQ(direct_services->history_events_count, 1);
   EXPECT_EQ(direct_services->last_history_events_node_id,
             (scada::NodeId{107}));
