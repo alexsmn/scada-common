@@ -3,7 +3,7 @@
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
 #include "base/test/test_executor.h"
-#include "base/executor_conversions.h"
+#include "base/any_executor.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
@@ -61,8 +61,8 @@ class NodeFetcherTest : public Test {
 
  protected:
   void DrainExecutor() {
-    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
-      executor_->Poll();
+    for (size_t i = 0; i < 100 && executor_.GetTaskCount() != 0; ++i)
+      executor_.Poll();
   }
 
   void ValidateFetchedNode();
@@ -73,14 +73,13 @@ class NodeFetcherTest : public Test {
   TestNodeValidator node_validator_impl_;
   StrictMock<MockFunction<bool(const scada::NodeId& node_id)>> node_validator_;
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
 
   TestAddressSpace server_address_space_;
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          MakeTestAnyExecutor(executor_), server_address_space_,
+          executor_, server_address_space_,
           server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction()})};

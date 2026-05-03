@@ -38,10 +38,10 @@ struct TestContext {
   TestContext()
       : ack_queue{EventAckQueueContext{
             .logger_ = NullLogger::GetInstance(),
-            .executor_ = MakeTestAnyExecutor(executor),
+            .executor_ = executor,
             .method_service_ = method_service}} {}
 
-  std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   StrictMock<scada::MockMonitoredItemService> monitored_item_service;
   StrictMock<scada::MockHistoryService> history_service;
   StrictMock<scada::MockMethodService> method_service;
@@ -79,7 +79,7 @@ TEST(EventFetcherTest, MonitoredItemEventsAreDeliveredThroughCoroutineTask) {
           context.monitored_item_service.default_monitored_item));
 
   context.fetcher.emplace(EventFetcherContext{
-      .executor_ = MakeTestAnyExecutor(context.executor),
+      .executor_ = context.executor,
       .monitored_item_service_ = context.monitored_item_service,
       .history_service_ = context.history_service,
       .logger_ = NullLogger::GetInstance(),
@@ -114,7 +114,7 @@ TEST(EventFetcherTest, MonitoredItemEventsAreCanceledAfterDestroy) {
           context.monitored_item_service.default_monitored_item));
 
   context.fetcher.emplace(EventFetcherContext{
-      .executor_ = MakeTestAnyExecutor(context.executor),
+      .executor_ = context.executor,
       .monitored_item_service_ = context.monitored_item_service,
       .history_service_ = context.history_service,
       .logger_ = NullLogger::GetInstance(),
@@ -147,7 +147,7 @@ TEST(EventFetcherTest, MonitoredItemEventWithBadStatusIsIgnored) {
           context.monitored_item_service.default_monitored_item));
 
   context.fetcher.emplace(EventFetcherContext{
-      .executor_ = MakeTestAnyExecutor(context.executor),
+      .executor_ = context.executor,
       .monitored_item_service_ = context.monitored_item_service,
       .history_service_ = context.history_service,
       .logger_ = NullLogger::GetInstance(),

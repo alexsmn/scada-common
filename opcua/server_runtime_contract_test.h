@@ -134,9 +134,8 @@ class ServerRuntimeContractTestBase {
  public:
   base::Time now_ = ParseTime("2026-04-22 09:00:00");
   const scada::NodeId expected_user_id_ = NumericNode(700, 5);
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const AnyExecutor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const AnyExecutor any_executor_ = executor_;
   testing::StrictMock<scada::MockAttributeService> attribute_service_;
   testing::StrictMock<scada::MockViewService> view_service_;
   testing::StrictMock<scada::MockHistoryService> history_service_;
@@ -202,7 +201,10 @@ void ExpectRoutesWriteRequestsThroughActivatedSessionUser(Fixture& fixture) {
               std::shared_ptr<const std::vector<scada::WriteValue>> inputs)
               -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
-            ASSERT_EQ(inputs->size(), 1u);
+            EXPECT_EQ(inputs->size(), 1u);
+            if (inputs->size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ((*inputs)[0].node_id, request.inputs[0].node_id);
             EXPECT_EQ((*inputs)[0].attribute_id, request.inputs[0].attribute_id);
             EXPECT_EQ((*inputs)[0].value, request.inputs[0].value);
@@ -354,7 +356,10 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
           [&](std::vector<scada::AddNodesItem> items)
               -> Awaitable<scada::StatusOr<
                   std::vector<scada::AddNodesResult>>> {
-            ASSERT_EQ(items.size(), 1u);
+            EXPECT_EQ(items.size(), 1u);
+            if (items.size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ(items[0].requested_id, add_nodes.items[0].requested_id);
             EXPECT_EQ(items[0].parent_id, add_nodes.items[0].parent_id);
             EXPECT_EQ(items[0].type_definition_id,
@@ -369,7 +374,10 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
       .WillOnce(testing::Invoke(
           [&](std::vector<scada::DeleteNodesItem> items)
               -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
-            ASSERT_EQ(items.size(), 1u);
+            EXPECT_EQ(items.size(), 1u);
+            if (items.size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ(items[0].node_id, delete_nodes.items[0].node_id);
             EXPECT_TRUE(items[0].delete_target_references);
             co_return std::vector{scada::StatusCode::Good,
@@ -380,7 +388,10 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
       .WillOnce(testing::Invoke(
           [&](std::vector<scada::AddReferencesItem> items)
               -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
-            ASSERT_EQ(items.size(), 1u);
+            EXPECT_EQ(items.size(), 1u);
+            if (items.size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ(items[0].source_node_id,
                       add_references.items[0].source_node_id);
             EXPECT_EQ(items[0].reference_type_id,
@@ -395,7 +406,10 @@ void ExpectNodeManagementMutationsPreserveBatchResults(Fixture& fixture) {
       .WillOnce(testing::Invoke(
           [&](std::vector<scada::DeleteReferencesItem> items)
               -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
-            ASSERT_EQ(items.size(), 1u);
+            EXPECT_EQ(items.size(), 1u);
+            if (items.size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ(items[0].source_node_id,
                       delete_references.items[0].source_node_id);
             EXPECT_EQ(items[0].reference_type_id,
@@ -619,7 +633,10 @@ void ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(
               std::vector<scada::BrowseDescription> inputs)
               -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);
-            ASSERT_EQ(inputs.size(), 1u);
+            EXPECT_EQ(inputs.size(), 1u);
+            if (inputs.size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             co_return std::vector<scada::BrowseResult>{scada::BrowseResult{
                 .status_code = scada::StatusCode::Good,
                 .references = {{.reference_type_id = NumericNode(901),

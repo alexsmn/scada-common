@@ -2,7 +2,7 @@
 
 #include "base/async_completion.h"
 #include "base/boost_log.h"
-#include "base/executor_util.h"
+#include "base/any_executor.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "scada/coroutine_services.h"
@@ -34,22 +34,6 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
   return DataServicesServerRuntimeContext{
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
-      .data_services = data_services::FromUnownedServices(scada::services{
-          .attribute_service = &context.attribute_service,
-          .monitored_item_service = &context.monitored_item_service,
-          .method_service = &context.method_service,
-          .history_service = &context.history_service,
-          .view_service = &context.view_service,
-          .node_management_service = &context.node_management_service}),
-      .now = std::move(context.now),
-      .post_delayed_task = std::move(context.post_delayed_task)};
-}
-
-DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
-    CoroutineServerRuntimeContext&& context) {
-  return DataServicesServerRuntimeContext{
-      .executor = std::move(context.executor),
-      .session_manager = context.session_manager,
       .data_services =
           {.view_service_ =
                data_services::Unowned(context.view_service),
@@ -68,9 +52,6 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
 }  // namespace
 
 ServerRuntime::ServerRuntime(ServerRuntimeContext&& context)
-    : ServerRuntime{MakeDataServicesServerRuntimeContext(std::move(context))} {}
-
-ServerRuntime::ServerRuntime(CoroutineServerRuntimeContext&& context)
     : ServerRuntime{MakeDataServicesServerRuntimeContext(std::move(context))} {}
 
 ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)

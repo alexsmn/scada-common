@@ -1,6 +1,6 @@
 #include "opcua/client_session.h"
 
-#include "base/executor_conversions.h"
+#include "base/any_executor.h"
 #include "net/net_executor_adapter.h"
 #include "opcua/client_subscription.h"
 #include "scada/status_exception.h"
@@ -82,10 +82,10 @@ ClientSession::ParseEndpointUrl(const std::string& url) {
 }
 
 ClientSession::ClientSession(
-    std::shared_ptr<Executor> executor,
+    AnyExecutor executor,
     transport::TransportFactory& transport_factory)
     : executor_{std::move(executor)},
-      any_executor_{MakeAnyExecutor(executor_)},
+      any_executor_{executor_},
       transport_factory_{transport_factory} {}
 
 ClientSession::~ClientSession() = default;
@@ -119,7 +119,7 @@ Awaitable<void> ClientSession::ConnectAsync(
   ts.SetParam(transport::TransportString::kParamHost, parsed.host);
   ts.SetParam(transport::TransportString::kParamPort, parsed.port);
 
-  const transport::executor net_executor{NetExecutorAdapter{executor_}};
+  const transport::executor net_executor{executor_};
   auto transport_result = transport_factory_.CreateTransport(
       ts, net_executor, transport::log_source{});
   if (!transport_result.ok()) {

@@ -70,8 +70,7 @@ class TimedDataTest : public Test {
   TimedDataTest();
 
  protected:
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
 
   StrictMock<MockAliasResolver> alias_resolver_;
   StrictMock<scada::MockAttributeService> attribute_service_;
@@ -84,7 +83,7 @@ class TimedDataTest : public Test {
       {.monitored_item_service = &monitored_item_service_}};
 
   TimedDataServiceImpl service_{
-      {.executor_ = MakeTestAnyExecutor(executor_),
+      {.executor_ = executor_,
        .alias_resolver_ = alias_resolver_.AsStdFunction(),
        .node_service_ = node_service_,
        .data_services_ = MakeTimedDataServices(history_service_),
@@ -224,7 +223,7 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
   auto service = CreateTimedDataService(TimedDataContext{
-      .executor_ = MakeTestAnyExecutor(executor_),
+      .executor_ = executor_,
       .alias_resolver_ = alias_resolver_.AsStdFunction(),
       .node_service_ = node_service_,
       .data_services_ = MakeTimedDataServices(history_service_),
@@ -255,7 +254,7 @@ TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
   const auto to = from + base::TimeDelta::FromSeconds(10);
   auto history_service = std::make_shared<TestHistoryService>();
   auto service = CreateTimedDataService(CoroutineTimedDataContext{
-      .executor_ = MakeTestAnyExecutor(executor_),
+      .executor_ = executor_,
       .alias_resolver_ = alias_resolver_.AsStdFunction(),
       .node_service_ = node_service_,
       .history_service_ = history_service,
@@ -282,7 +281,7 @@ TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
   data_services.history_service_ = history_service;
 
   auto service = CreateTimedDataService(
-      TimedDataContext{.executor_ = MakeTestAnyExecutor(executor_),
+      TimedDataContext{.executor_ = executor_,
                        .alias_resolver_ = alias_resolver_.AsStdFunction(),
                        .node_service_ = node_service_,
                        .data_services_ = std::move(data_services),
@@ -322,7 +321,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
       }));
 
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_, details,
+      executor_, history_service_, details,
       continuation_point};
   scoped_continuation_point.reset();
 
@@ -341,7 +340,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   EXPECT_CALL(history_service_, HistoryReadRaw(_)).Times(0);
 
   ScopedContinuationPoint scoped_continuation_point{
-      MakeTestAnyExecutor(executor_), history_service_, details,
+      executor_, history_service_, details,
       continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();

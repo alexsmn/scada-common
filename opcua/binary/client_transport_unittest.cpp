@@ -96,9 +96,8 @@ class ClientTransportTest : public ::testing::Test {
         });
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
 };
 
 TEST_F(ClientTransportTest, SendsHelloAndCapturesAcknowledge) {

@@ -1709,9 +1709,8 @@ class ServiceDispatcherTest : public ::testing::Test {
 
   base::Time now_ = ParseTime("2026-04-21 11:00:00");
   const scada::NodeId expected_user_id_ = NumericNode(700, 5);
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
   const TransportLimits server_limits_{
       .protocol_version = 0,
       .receive_buffer_size = 8192,
@@ -1842,15 +1841,18 @@ TEST_F(ServiceDispatcherTest,
       .node_id = NumericNode(12),
       .attribute_id = scada::AttributeId::Value,
   };
-  EXPECT_CALL(attribute_service_, Read(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-                           const scada::ReadCallback& callback) {
+  EXPECT_CALL(attribute_service_, Read(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
         EXPECT_EQ(context.user_id(), expected_user_id_);
-        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ(inputs->size(), 1u);
+        if (inputs->size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ((*inputs)[0], read_value_id);
-        callback(scada::StatusCode::Good,
-                 {scada::DataValue{scada::Variant{42.5}, {}, now_, now_}});
+        co_return std::vector{
+            scada::DataValue{scada::Variant{42.5}, {}, now_, now_}};
       }));
 
   const auto read = WaitAwaitable(
@@ -1931,14 +1933,14 @@ TEST_F(ServiceDispatcherTest,
   peer->incoming.push_back(AsString(activate));
   peer->incoming.push_back(AsString(read));
 
-  EXPECT_CALL(attribute_service_, Read(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-                           const scada::ReadCallback& callback) {
+  EXPECT_CALL(attribute_service_, Read(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
         EXPECT_EQ(context.user_id(), expected_user_id_);
         EXPECT_EQ((*inputs)[0].node_id, NumericNode(99));
-        callback(scada::StatusCode::Good,
-                 {scada::DataValue{scada::Variant{12.5}, {}, now_, now_}});
+        co_return std::vector{
+            scada::DataValue{scada::Variant{12.5}, {}, now_, now_}};
       }));
 
   RunPeer(peer, dispatcher);
@@ -1969,17 +1971,20 @@ TEST_F(ServiceDispatcherTest, HandlesWriteAfterActivatedSession) {
           2, session->authentication_token, "operator", "secret")));
   ASSERT_TRUE(activated.has_value());
 
-  EXPECT_CALL(attribute_service_, Write(_, _, _))
-      .WillOnce(Invoke([this](const scada::ServiceContext& context,
-                              const std::shared_ptr<const std::vector<scada::WriteValue>>&
-                                  inputs,
-                              const scada::WriteCallback& callback) {
+  EXPECT_CALL(attribute_service_, Write(_, _))
+      .WillOnce(Invoke([this](scada::ServiceContext context,
+                              std::shared_ptr<const std::vector<scada::WriteValue>>
+                                  inputs)
+                              -> Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> {
         EXPECT_EQ(context.user_id(), expected_user_id_);
-        ASSERT_EQ(inputs->size(), 1u);
+        EXPECT_EQ(inputs->size(), 1u);
+        if (inputs->size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ((*inputs)[0].node_id, NumericNode(12));
         EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
         EXPECT_DOUBLE_EQ((*inputs)[0].value.get<scada::Double>(), 42.0);
-        callback(scada::StatusCode::Good, {scada::StatusCode::Good});
+        co_return std::vector{scada::StatusCode::Good};
       }));
 
   const auto written = WaitAwaitable(
@@ -2018,19 +2023,21 @@ TEST_F(ServiceDispatcherTest, HandlesBrowseAfterActivatedSession) {
       .reference_type_id = NumericNode(45),
       .include_subtypes = false,
   };
-  EXPECT_CALL(view_service_, Browse(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::vector<scada::BrowseDescription>& inputs,
-                           const scada::BrowseCallback& callback) {
+  EXPECT_CALL(view_service_, Browse(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::vector<scada::BrowseDescription> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
         EXPECT_EQ(context.user_id(), expected_user_id_);
-        ASSERT_EQ(inputs.size(), 1u);
+        EXPECT_EQ(inputs.size(), 1u);
+        if (inputs.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(inputs[0], browse_description);
-        callback(scada::StatusCode::Good,
-                 {scada::BrowseResult{
-                     .status_code = scada::StatusCode::Good,
-                     .references = {{.reference_type_id = NumericNode(46),
-                                     .forward = true,
-                                     .node_id = NumericNode(99)}}}});
+        co_return std::vector{scada::BrowseResult{
+            .status_code = scada::StatusCode::Good,
+            .references = {{.reference_type_id = NumericNode(46),
+                            .forward = true,
+                            .node_id = NumericNode(99)}}}};
       }));
 
   const auto browsed = WaitAwaitable(
@@ -2069,22 +2076,24 @@ TEST_F(ServiceDispatcherTest,
       .reference_type_id = NumericNode(45),
       .include_subtypes = false,
   };
-  EXPECT_CALL(view_service_, Browse(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::vector<scada::BrowseDescription>& inputs,
-                           const scada::BrowseCallback& callback) {
+  EXPECT_CALL(view_service_, Browse(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::vector<scada::BrowseDescription> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
         EXPECT_EQ(context.user_id(), expected_user_id_);
-        ASSERT_EQ(inputs.size(), 1u);
+        EXPECT_EQ(inputs.size(), 1u);
+        if (inputs.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(inputs[0], browse_description);
-        callback(scada::StatusCode::Good,
-                 {scada::BrowseResult{
-                     .status_code = scada::StatusCode::Good,
-                     .references = {{.reference_type_id = NumericNode(46),
-                                     .forward = true,
-                                     .node_id = NumericNode(99)},
-                                    {.reference_type_id = NumericNode(47),
-                                     .forward = true,
-                                     .node_id = NumericNode(100)}}}});
+        co_return std::vector{scada::BrowseResult{
+            .status_code = scada::StatusCode::Good,
+            .references = {{.reference_type_id = NumericNode(46),
+                            .forward = true,
+                            .node_id = NumericNode(99)},
+                           {.reference_type_id = NumericNode(47),
+                            .forward = true,
+                            .node_id = NumericNode(100)}}}};
       }));
 
   const auto browsed = WaitAwaitable(
@@ -2144,17 +2153,18 @@ TEST_F(ServiceDispatcherTest,
           .target_name = {"Temperature", 2},
       }},
   };
-  EXPECT_CALL(view_service_, TranslateBrowsePaths(_, _))
-      .WillOnce(Invoke([&](const std::vector<scada::BrowsePath>& inputs,
-                           const scada::TranslateBrowsePathsCallback& callback) {
-        ASSERT_EQ(inputs.size(), 1u);
+  EXPECT_CALL(view_service_, TranslateBrowsePaths(_))
+      .WillOnce(Invoke([&](std::vector<scada::BrowsePath> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>> {
+        EXPECT_EQ(inputs.size(), 1u);
+        if (inputs.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(inputs[0], browse_path);
-        callback(scada::StatusCode::Good,
-                 {scada::BrowsePathResult{
-                     .status_code = scada::StatusCode::Good,
-                     .targets = {{.target_id = scada::ExpandedNodeId{
-                                      NumericNode(77)},
-                                  .remaining_path_index = 0}}}});
+        co_return std::vector{scada::BrowsePathResult{
+            .status_code = scada::StatusCode::Good,
+            .targets = {{.target_id = scada::ExpandedNodeId{NumericNode(77)},
+                         .remaining_path_index = 0}}}};
       }));
 
   const auto translated = WaitAwaitable(
@@ -3284,7 +3294,10 @@ TEST_F(ServiceDispatcherTest, HandlesDeleteNodesAfterActivatedSession) {
       .WillOnce(Invoke([&](std::vector<scada::DeleteNodesItem> items)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::StatusCode>>> {
-        ASSERT_EQ(items.size(), 1u);
+        EXPECT_EQ(items.size(), 1u);
+        if (items.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(items[0].node_id, item.node_id);
         EXPECT_EQ(items[0].delete_target_references,
                   item.delete_target_references);
@@ -3331,7 +3344,10 @@ TEST_F(ServiceDispatcherTest, HandlesAddNodesAfterActivatedSession) {
       .WillOnce(Invoke([&](std::vector<scada::AddNodesItem> items)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::AddNodesResult>>> {
-        ASSERT_EQ(items.size(), 1u);
+        EXPECT_EQ(items.size(), 1u);
+        if (items.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(items[0], item);
         co_return std::vector{scada::AddNodesResult{
             .status_code = scada::StatusCode::Good,
@@ -3377,7 +3393,10 @@ TEST_F(ServiceDispatcherTest,
       .WillOnce(Invoke([&](std::vector<scada::DeleteReferencesItem> items)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::StatusCode>>> {
-        ASSERT_EQ(items.size(), 1u);
+        EXPECT_EQ(items.size(), 1u);
+        if (items.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(items[0].source_node_id, item.source_node_id);
         EXPECT_EQ(items[0].reference_type_id, item.reference_type_id);
         EXPECT_EQ(items[0].forward, item.forward);
@@ -3425,7 +3444,10 @@ TEST_F(ServiceDispatcherTest,
       .WillOnce(Invoke([&](std::vector<scada::AddReferencesItem> items)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::StatusCode>>> {
-        ASSERT_EQ(items.size(), 1u);
+        EXPECT_EQ(items.size(), 1u);
+        if (items.size() != 1u) {
+          co_return scada::Status{scada::StatusCode::Bad};
+        }
         EXPECT_EQ(items[0].source_node_id, item.source_node_id);
         EXPECT_EQ(items[0].reference_type_id, item.reference_type_id);
         EXPECT_EQ(items[0].forward, item.forward);

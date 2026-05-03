@@ -18,13 +18,13 @@ class EventAckQueueTest : public Test {
   EventAckQueue MakeQueue() {
     return EventAckQueue{EventAckQueueContext{
         .logger_ = NullLogger::GetInstance(),
-        .executor_ = MakeTestAnyExecutor(executor_),
+        .executor_ = executor_,
         .method_service_ = method_service_}};
   }
 
   void DrainExecutor() { Drain(executor_); }
 
-  std::shared_ptr<TestExecutor> executor_ = std::make_shared<TestExecutor>();
+  TestExecutor executor_;
   StrictMock<scada::MockMethodService> method_service_;
 };
 

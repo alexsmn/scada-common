@@ -177,9 +177,8 @@ class TcpConnectionTest : public ::testing::Test {
                       .Run());
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
   const TransportLimits server_limits_{
       .protocol_version = 0,
       .receive_buffer_size = 8192,

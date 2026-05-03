@@ -21,8 +21,8 @@ namespace v1 {
 class AddressSpaceFetcherImplTest : public Test {
  public:
   void DrainExecutor() {
-    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
-      executor_->Poll();
+    for (size_t i = 0; i < 100 && executor_.GetTaskCount() != 0; ++i)
+      executor_.Poll();
   }
 
   AddressSpaceFetcherImplTest() {
@@ -37,8 +37,7 @@ class AddressSpaceFetcherImplTest : public Test {
       MockFunction<void(std::span<const NodeFetchStatusChangedItem> items)>>
       node_fetch_status_changed_handler_;
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
 
   TestAddressSpace server_address_space_;
 
@@ -50,7 +49,7 @@ class AddressSpaceFetcherImplTest : public Test {
 
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_ =
       AddressSpaceFetcherImpl::Create({AddressSpaceFetcherImplContext{
-          .executor_ = MakeTestAnyExecutor(executor_),
+          .executor_ = executor_,
           .view_service_ = server_address_space_,
           .attribute_service_ = server_address_space_,
           .address_space_ = client_address_space_,

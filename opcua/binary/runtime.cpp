@@ -59,21 +59,6 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
   return DataServicesRuntimeContext{
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
-      .data_services = data_services::FromUnownedServices(scada::services{
-          .attribute_service = &context.attribute_service,
-          .monitored_item_service = &context.monitored_item_service,
-          .method_service = &context.method_service,
-          .history_service = &context.history_service,
-          .view_service = &context.view_service,
-          .node_management_service = &context.node_management_service}),
-      .now = std::move(context.now)};
-}
-
-DataServicesRuntimeContext MakeDataServicesRuntimeContext(
-    CoroutineRuntimeContext&& context) {
-  return DataServicesRuntimeContext{
-      .executor = std::move(context.executor),
-      .session_manager = context.session_manager,
       .data_services =
           {.view_service_ =
                data_services::Unowned(context.view_service),
@@ -92,9 +77,6 @@ DataServicesRuntimeContext MakeDataServicesRuntimeContext(
 }  // namespace
 
 Runtime::Runtime(RuntimeContext&& context)
-    : Runtime{MakeDataServicesRuntimeContext(std::move(context))} {}
-
-Runtime::Runtime(CoroutineRuntimeContext&& context)
     : Runtime{MakeDataServicesRuntimeContext(std::move(context))} {}
 
 Runtime::Runtime(DataServicesRuntimeContext&& context)

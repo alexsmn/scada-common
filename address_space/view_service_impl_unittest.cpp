@@ -26,22 +26,20 @@ class VirtualObject : public scada::GenericObject,
   virtual AttributeService* GetAttributeService() final { return this; }
   virtual ViewService* GetViewService() final { return this; }
 
-  virtual void Read(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-      const scada::ReadCallback& callback) override {
+  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
     std::vector<scada::DataValue> results(inputs->size());
     for (size_t i = 0; i < inputs->size(); ++i)
       results[i] = Read((*inputs)[i]);
-    callback(scada::StatusCode::Good, std::move(results));
+    co_return results;
   }
 
-  virtual void Write(
-      const scada::ServiceContext& context,
-      const std::shared_ptr<const std::vector<scada::WriteValue>>& inputs,
-      const scada::WriteCallback& callback) override {
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
     assert(false);
-    callback(scada::StatusCode::Bad, {});
+    co_return scada::Status{scada::StatusCode::Bad};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
@@ -146,29 +144,26 @@ context.kItems[0]), scada::AttributeId::BrowseName},
 
 TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
   TestContext context;
-  bool called = false;
-  context.view_service.Browse(
-      scada::ServiceContext{},
-      /*inputs=*/
-      {{context.kObjectId, scada::BrowseDirection::Forward,
-        scada::id::HierarchicalReferences, true}},
-      /*callback=*/
-      [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        called = true;
-        ASSERT_TRUE(status);
-        ASSERT_EQ(static_cast<size_t>(1), results.size());
-        auto& result = results.front();
-        ASSERT_TRUE(scada::Status{result.status_code});
-        auto& references = result.references;
-        // Child + Items
-        ASSERT_EQ(1 + context.kItems.size(), references.size());
-      });
-  EXPECT_TRUE(called);
+  TestExecutor executor;
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(
+          executor,
+          context.view_service.Browse(
+              scada::ServiceContext{},
+              {{context.kObjectId, scada::BrowseDirection::Forward,
+                scada::id::HierarchicalReferences, true}})));
+  ASSERT_EQ(static_cast<size_t>(1), results.size());
+  auto& result = results.front();
+  ASSERT_TRUE(scada::Status{result.status_code});
+  auto& references = result.references;
+  // Child + Items
+  ASSERT_EQ(1 + context.kItems.size(), references.size());
 }
 
 TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
   TestAddressSpace address_space;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   ASSERT_OK_AND_ASSIGN(auto results,
                        WaitAwaitable(executor,
@@ -188,7 +183,7 @@ TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
 
 TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
   TestAddressSpace address_space;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, address_space.view_service_impl.TranslateBrowsePaths(
@@ -210,26 +205,21 @@ TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
 
 TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
   TestContext context;
-  bool called = false;
-  context.view_service.Browse(
-      scada::ServiceContext{},
-      /*inputs=*/
-      {{MakeNestedNodeId(context.kObjectId, context.kItems[0]),
-        scada::BrowseDirection::Inverse, scada::id::HierarchicalReferences,
-        true}},
-      /*callback=*/
-      [&](scada::Status&& status, std::vector<scada::BrowseResult>&& results) {
-        called = true;
-        ASSERT_TRUE(status);
-        ASSERT_EQ(static_cast<size_t>(1), results.size());
-        auto& result = results.front();
-        ASSERT_TRUE(scada::Status{result.status_code});
-        auto& references = result.references;
-        // Parent
-        ASSERT_EQ(static_cast<size_t>(1), references.size());
-        auto& reference = references[0];
-        EXPECT_EQ(scada::NodeId{scada::id::Organizes},
-                  reference.reference_type_id);
-      });
-  EXPECT_TRUE(called);
+  TestExecutor executor;
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(executor,
+                    context.view_service.Browse(
+                        scada::ServiceContext{},
+                        {{MakeNestedNodeId(context.kObjectId, context.kItems[0]),
+                          scada::BrowseDirection::Inverse,
+                          scada::id::HierarchicalReferences, true}})));
+  ASSERT_EQ(static_cast<size_t>(1), results.size());
+  auto& result = results.front();
+  ASSERT_TRUE(scada::Status{result.status_code});
+  auto& references = result.references;
+  // Parent
+  ASSERT_EQ(static_cast<size_t>(1), references.size());
+  auto& reference = references[0];
+  EXPECT_EQ(scada::NodeId{scada::id::Organizes}, reference.reference_type_id);
 }

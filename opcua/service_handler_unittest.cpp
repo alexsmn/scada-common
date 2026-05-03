@@ -3,7 +3,6 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "scada/attribute_service_mock.h"
-#include "scada/coroutine_services.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
@@ -29,15 +28,10 @@ TEST(ServiceHandlerCanonicalTest,
   StrictMock<scada::MockHistoryService> history_service;
   StrictMock<scada::MockMethodService> method_service;
   StrictMock<scada::MockNodeManagementService> node_management_service;
-  const auto executor = std::make_shared<TestExecutor>();
-  const auto any_executor = MakeTestAnyExecutor(executor);
-  scada::CallbackToAttributeServiceAdapter attribute_service_adapter{
-      any_executor, attribute_service};
-  scada::CallbackToViewServiceAdapter view_service_adapter{
-      any_executor, view_service};
+  TestExecutor executor;
   const auto user_id = NumericNode(700, 5);
-  ServiceHandler handler{{attribute_service_adapter,
-                          view_service_adapter,
+  ServiceHandler handler{{attribute_service,
+                          view_service,
                           history_service,
                           method_service,
                           node_management_service,
@@ -46,17 +40,16 @@ TEST(ServiceHandlerCanonicalTest,
   ReadRequest request{
       .inputs = {{.node_id = NumericNode(1),
                   .attribute_id = scada::AttributeId::DisplayName}}};
-  EXPECT_CALL(attribute_service, Read(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-                           const scada::ReadCallback& callback) {
+  EXPECT_CALL(attribute_service, Read(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
         EXPECT_EQ(context.user_id(), user_id);
         EXPECT_THAT(*inputs, ElementsAre(request.inputs[0]));
-        callback(scada::StatusCode::Good,
-                 {scada::DataValue{scada::LocalizedText{u"Pump"},
-                                   {},
-                                   base::Time{},
-                                   base::Time{}}});
+        co_return std::vector{scada::DataValue{scada::LocalizedText{u"Pump"},
+                                               {},
+                                               base::Time{},
+                                               base::Time{}}};
       }));
 
   const auto response = WaitAwaitable(executor, handler.Handle(request));

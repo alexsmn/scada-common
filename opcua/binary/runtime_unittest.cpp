@@ -17,12 +17,12 @@ std::shared_ptr<T> UnownedService(T& service) {
 DataServices MakeRuntimeDataServices(
     std::shared_ptr<test::TestCoroutineServices> coroutine_services,
     scada::MonitoredItemService& monitored_item_service) {
-  return {.history_service_ = coroutine_services,
-          .method_service_ = coroutine_services,
-          .monitored_item_service_ = UnownedService(monitored_item_service),
-          .view_service_ = coroutine_services,
+  return {.view_service_ = coroutine_services,
           .node_management_service_ = coroutine_services,
-          .attribute_service_ = coroutine_services};
+          .history_service_ = coroutine_services,
+          .attribute_service_ = coroutine_services,
+          .method_service_ = coroutine_services,
+          .monitored_item_service_ = UnownedService(monitored_item_service)};
 }
 
 DataServices MakeCallbackRuntimeDataServices(
@@ -109,25 +109,22 @@ TEST_F(RuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
 }
 
 TEST_F(RuntimeTest,
-       LegacyCallbackContextRoutesDelayedReadThroughNormalizedDataServices) {
+       ContextRoutesReadThroughNormalizedDataServices) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
   const ReadRequest request{
       .inputs = {{.node_id = test::NumericNode(908),
                   .attribute_id = scada::AttributeId::Value}}};
-  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            executor_->PostTask([callback, now = now_] {
-              callback(scada::StatusCode::Good,
-                       {scada::DataValue{scada::Variant{908.0}, {}, now, now}});
-            });
+            co_return std::vector{scada::DataValue{
+                scada::Variant{908.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);
@@ -244,18 +241,20 @@ TEST_F(RuntimeTest,
   ConnectionState connection;
   CreateAndActivate(connection);
 
-  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
-            ASSERT_EQ(inputs->size(), 1u);
+            EXPECT_EQ(inputs->size(), 1u);
+            if (inputs->size() != 1u) {
+              co_return scada::Status{scada::StatusCode::Bad};
+            }
             EXPECT_EQ((*inputs)[0].node_id, test::NumericNode(10));
             EXPECT_EQ((*inputs)[0].attribute_id, scada::AttributeId::Value);
-            callback(scada::StatusCode::Good,
-                     {scada::DataValue{scada::Variant{99.0}, {}, now_, now_}});
+            co_return std::vector{
+                scada::DataValue{scada::Variant{99.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(
@@ -295,7 +294,7 @@ class CoroutineRuntimeTest : public testing::Test,
   }
 
   test::TestCoroutineServices coroutine_services_;
-  Runtime runtime_{CoroutineRuntimeContext{
+  Runtime runtime_{RuntimeContext{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
@@ -428,25 +427,22 @@ class DataServicesCallbackRuntimeTest
 };
 
 TEST_F(DataServicesCallbackRuntimeTest,
-       RoutesReadThroughAggregateCallbackSlotsWithOwnedAdapters) {
+       RoutesReadThroughAggregateUnownedSlots) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
   const ReadRequest request{
       .inputs = {{.node_id = test::NumericNode(906),
                   .attribute_id = scada::AttributeId::Value}}};
-  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            executor_->PostTask([callback, now = now_] {
-              callback(scada::StatusCode::Good,
-                       {scada::DataValue{scada::Variant{906.0}, {}, now, now}});
-            });
+            co_return std::vector{scada::DataValue{
+                scada::Variant{906.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);

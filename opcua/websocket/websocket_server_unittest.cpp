@@ -406,24 +406,26 @@ TEST_F(WebSocketServerTest,
        AcceptsValidHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer();
 
-  EXPECT_CALL(view_service_, Browse(_, _, _))
+  EXPECT_CALL(view_service_, Browse(_, _))
       .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::vector<scada::BrowseDescription>& inputs,
-                           const scada::BrowseCallback& callback) {
+                           std::vector<scada::BrowseDescription> inputs)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::BrowseResult>>> {
         EXPECT_EQ(context.user_id(), NumericNode(700, 5));
-        ASSERT_EQ(inputs.size(), 1u);
-        callback(scada::StatusCode::Good,
-                 {scada::BrowseResult{
-                     .status_code = scada::StatusCode::Good,
-                     .references = {{.reference_type_id = NumericNode(81),
-                                     .forward = true,
-                                     .node_id = NumericNode(82)},
-                                    {.reference_type_id = NumericNode(83),
-                                     .forward = true,
-                                     .node_id = NumericNode(84)},
-                                    {.reference_type_id = NumericNode(85),
-                                     .forward = false,
-                                     .node_id = NumericNode(86)}}}});
+        EXPECT_EQ(inputs.size(), 1u);
+        if (inputs.size() != 1u)
+          co_return scada::Status{scada::StatusCode::Bad};
+        co_return std::vector{scada::BrowseResult{
+            .status_code = scada::StatusCode::Good,
+            .references = {{.reference_type_id = NumericNode(81),
+                            .forward = true,
+                            .node_id = NumericNode(82)},
+                           {.reference_type_id = NumericNode(83),
+                            .forward = true,
+                            .node_id = NumericNode(84)},
+                           {.reference_type_id = NumericNode(85),
+                            .forward = false,
+                            .node_id = NumericNode(86)}}}};
       }));
 
   BeastClient client;
@@ -439,24 +441,26 @@ TEST_F(WebSocketServerTest,
       .private_key_pem = kTestPrivateKeyPem,
   });
 
-  EXPECT_CALL(view_service_, Browse(_, _, _))
+  EXPECT_CALL(view_service_, Browse(_, _))
       .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::vector<scada::BrowseDescription>& inputs,
-                           const scada::BrowseCallback& callback) {
+                           std::vector<scada::BrowseDescription> inputs)
+                           -> Awaitable<scada::StatusOr<
+                               std::vector<scada::BrowseResult>>> {
         EXPECT_EQ(context.user_id(), NumericNode(700, 5));
-        ASSERT_EQ(inputs.size(), 1u);
-        callback(scada::StatusCode::Good,
-                 {scada::BrowseResult{
-                     .status_code = scada::StatusCode::Good,
-                     .references = {{.reference_type_id = NumericNode(81),
-                                     .forward = true,
-                                     .node_id = NumericNode(82)},
-                                    {.reference_type_id = NumericNode(83),
-                                     .forward = true,
-                                     .node_id = NumericNode(84)},
-                                    {.reference_type_id = NumericNode(85),
-                                     .forward = false,
-                                     .node_id = NumericNode(86)}}}});
+        EXPECT_EQ(inputs.size(), 1u);
+        if (inputs.size() != 1u)
+          co_return scada::Status{scada::StatusCode::Bad};
+        co_return std::vector{scada::BrowseResult{
+            .status_code = scada::StatusCode::Good,
+            .references = {{.reference_type_id = NumericNode(81),
+                            .forward = true,
+                            .node_id = NumericNode(82)},
+                           {.reference_type_id = NumericNode(83),
+                            .forward = true,
+                            .node_id = NumericNode(84)},
+                           {.reference_type_id = NumericNode(85),
+                            .forward = false,
+                            .node_id = NumericNode(86)}}}};
       }));
 
   TlsBeastClient client;

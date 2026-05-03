@@ -14,7 +14,7 @@ namespace {
 
 TEST(AttributeServiceImpl, CoroutineReadReturnsSyncResults) {
   TestAddressSpace address_space;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   auto inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{
@@ -39,7 +39,7 @@ TEST(AttributeServiceImpl, CoroutineReadReturnsSyncResults) {
 
 TEST(AttributeServiceImpl, CoroutineWriteReturnsSyncResults) {
   TestAddressSpace address_space;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{

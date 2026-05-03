@@ -74,7 +74,7 @@ class CapturingMetricService final : public MetricService {
 
   void RegisterSink(const Sink& sink) override { sink_ = sink; }
 
-  Metrics Collect(const std::shared_ptr<TestExecutor>& executor) {
+  Metrics Collect(TestExecutor& executor) {
     return WaitAwaitable(executor, provider_());
   }
 
@@ -90,8 +90,8 @@ DataServices MakeAuditDataServices(const scada::services& services) {
   return DataServices::FromUnownedServices(services);
 }
 
-TEST(AuditTest, CallbackReadUsesCoroutineAdapterAndRecordsMetric) {
-  auto executor = std::make_shared<TestExecutor>();
+TEST(AuditTest, CoroutineReadRecordsMetric) {
+  TestExecutor executor;
   CapturingMetricService metric_service;
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();
@@ -100,39 +100,27 @@ TEST(AuditTest, CallbackReadUsesCoroutineAdapterAndRecordsMetric) {
       AuditContext{.metric_service_ = metric_service,
                    .data_services_ = MakeAuditDataServices(services),
                    .tracer_ = Tracer::None(),
-                   .executor_ = MakeTestAnyExecutor(executor)});
+                   .executor_ = executor});
 
-  scada::ReadCallback pending_read;
-  EXPECT_CALL(*attribute_service, Read(_, _, _))
-      .WillOnce(
-          [&](const scada::ServiceContext&,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
-              const scada::ReadCallback& callback) {
-            pending_read = callback;
-          });
+  EXPECT_CALL(*attribute_service, Read(_, _))
+      .WillOnce([](scada::ServiceContext,
+                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+                    -> Awaitable<
+                        scada::StatusOr<std::vector<scada::DataValue>>> {
+        co_return std::vector<scada::DataValue>{scada::DataValue{}};
+      });
 
-  bool read_called = false;
-  audit->Read({}, std::make_shared<const std::vector<scada::ReadValueId>>(),
-              [&](scada::Status status, std::vector<scada::DataValue> results) {
-                read_called = true;
-                EXPECT_TRUE(status.good());
-                EXPECT_EQ(results.size(), 1u);
-              });
-  Drain(executor);
+  auto read_result = WaitAwaitable(
+      executor, audit->Read(
+                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
 
-  EXPECT_FALSE(read_called);
-  ASSERT_TRUE(pending_read);
-
-  pending_read(scada::StatusCode::Good, {scada::DataValue{}});
-  Drain(executor);
-
-  EXPECT_TRUE(read_called);
+  ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "read_latency.count"));
 }
 
 TEST(AuditTest, CoroutineBrowseUsesViewServiceAndRecordsMetric) {
-  auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   CapturingMetricService metric_service;
   auto view_service = std::make_shared<StrictMock<scada::MockViewService>>();
   scada::services services{.view_service = view_service.get()};
@@ -140,7 +128,7 @@ TEST(AuditTest, CoroutineBrowseUsesViewServiceAndRecordsMetric) {
       AuditContext{.metric_service_ = metric_service,
                    .data_services_ = MakeAuditDataServices(services),
                    .tracer_ = Tracer::None(),
-                   .executor_ = MakeTestAnyExecutor(executor)});
+                   .executor_ = executor});
 
   EXPECT_CALL(*view_service, Browse(_, _))
       .WillOnce([](scada::ServiceContext,
@@ -161,48 +149,36 @@ TEST(AuditTest, CoroutineBrowseUsesViewServiceAndRecordsMetric) {
       HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 }
 
-TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributeCallbacks) {
-  auto executor = std::make_shared<TestExecutor>();
+TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributes) {
+  TestExecutor executor;
   CapturingMetricService metric_service;
   StrictMock<scada::MockAttributeService> attribute_service;
   auto source_services = std::make_shared<scada::services>(
       scada::services{.attribute_service = &attribute_service});
   auto audited_services =
       AuditScadaServices(source_services, metric_service, Tracer::None(),
-                         MakeTestAnyExecutor(executor));
+                         executor);
 
   ASSERT_NE(audited_services->attribute_service, nullptr);
   EXPECT_NE(audited_services->attribute_service, &attribute_service);
 
-  scada::ReadCallback pending_read;
-  EXPECT_CALL(attribute_service, Read(_, _, _))
-      .WillOnce(
-          [&](const scada::ServiceContext&,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
-              const scada::ReadCallback& callback) {
-            pending_read = callback;
-          });
-
-  bool read_called = false;
-  audited_services->attribute_service->Read(
-      {}, std::make_shared<const std::vector<scada::ReadValueId>>(),
-      [&](scada::Status status, std::vector<scada::DataValue>) {
-        read_called = true;
-        EXPECT_TRUE(status.good());
+  EXPECT_CALL(attribute_service, Read(_, _))
+      .WillOnce([](scada::ServiceContext,
+                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+                    -> Awaitable<
+                        scada::StatusOr<std::vector<scada::DataValue>>> {
+        co_return std::vector<scada::DataValue>{};
       });
-  Drain(executor);
 
-  EXPECT_FALSE(read_called);
-  ASSERT_TRUE(pending_read);
+  auto read_result = WaitAwaitable(
+      executor, audited_services->attribute_service->Read(
+                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
 
-  pending_read(scada::StatusCode::Good, {});
-  Drain(executor);
-
-  EXPECT_TRUE(read_called);
+  ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
 }
 
 TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
-  auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   CapturingMetricService metric_service;
   auto source_services = std::make_shared<TestCoroutineAuditServices>();
 
@@ -212,7 +188,7 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
 
   auto audited_services =
       AuditDataServices(std::move(data_services), metric_service,
-                        Tracer::None(), MakeTestAnyExecutor(executor));
+                        Tracer::None(), executor);
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
   ASSERT_NE(audited_services->attribute_service_, nullptr);
@@ -223,38 +199,25 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_NE(audited_services->view_service_.get(),
             source_services.get());
 
-  bool read_called = false;
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{1}}});
-  audited_services->attribute_service_->Read(
-      {}, read_inputs,
-      [&](scada::Status status, std::vector<scada::DataValue> results) {
-        read_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results, source_services->read_results);
-      });
-  Drain(executor);
+  auto read_result = WaitAwaitable(
+      executor, audited_services->attribute_service_->Read({}, read_inputs));
 
-  EXPECT_TRUE(read_called);
+  ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::Eq(
+                               source_services->read_results)));
   EXPECT_EQ(source_services->read_count, 1);
   EXPECT_EQ(source_services->last_read_inputs, *read_inputs);
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "read_latency.count"));
 
-  bool write_called = false;
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{{.node_id = scada::NodeId{4}}});
-  audited_services->attribute_service_->Write(
-      {}, write_inputs,
-      [&](scada::Status status, std::vector<scada::StatusCode> results) {
-        write_called = true;
-        EXPECT_TRUE(status.good());
-        ASSERT_EQ(results.size(), 1u);
-        EXPECT_EQ(results[0], scada::StatusCode::Good);
-      });
-  Drain(executor);
+  auto write_result = WaitAwaitable(
+      executor, audited_services->attribute_service_->Write({}, write_inputs));
 
-  EXPECT_TRUE(write_called);
+  ASSERT_THAT(write_result, scada::test::IsOkAndHolds(testing::ElementsAre(
+                                scada::StatusCode::Good)));
   EXPECT_EQ(source_services->write_count, 1);
 
   auto browse_result =
@@ -269,74 +232,53 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 
-  bool browse_called = false;
-  audited_services->view_service_->Browse(
-      {}, {{.node_id = scada::NodeId{3}}},
-      [&](scada::Status status, std::vector<scada::BrowseResult> results) {
-        browse_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results, source_services->browse_results);
-      });
-  Drain(executor);
+  browse_result =
+      WaitAwaitable(executor, audited_services->view_service_->Browse(
+                                  {}, {{.node_id = scada::NodeId{3}}}));
 
-  EXPECT_TRUE(browse_called);
+  ASSERT_THAT(browse_result, scada::test::IsOkAndHolds(testing::Eq(
+                                 source_services->browse_results)));
   EXPECT_EQ(source_services->browse_count, 2);
   ASSERT_EQ(source_services->last_browse_inputs.size(), 1u);
   EXPECT_EQ(source_services->last_browse_inputs[0].node_id, (scada::NodeId{3}));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 
-  bool translate_called = false;
-  audited_services->view_service_->TranslateBrowsePaths(
-      {scada::BrowsePath{}},
-      [&](scada::Status status,
-          std::vector<scada::BrowsePathResult> results) {
-        translate_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
-  Drain(executor);
+  auto translate_result = WaitAwaitable(
+      executor, audited_services->view_service_->TranslateBrowsePaths(
+                    {scada::BrowsePath{}}));
 
-  EXPECT_TRUE(translate_called);
+  ASSERT_THAT(translate_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(source_services->translate_count, 1);
 }
 
-TEST(AuditTest, AuditDataServicesWrapsCallbackSlotsForCoroutineUse) {
-  auto executor = std::make_shared<TestExecutor>();
+TEST(AuditTest, AuditDataServicesWrapsUnownedServicesForCoroutineUse) {
+  TestExecutor executor;
   CapturingMetricService metric_service;
   StrictMock<scada::MockAttributeService> attribute_service;
 
   scada::services source_services{.attribute_service = &attribute_service};
   auto audited_services =
       AuditDataServices(MakeAuditDataServices(source_services), metric_service,
-                        Tracer::None(), MakeTestAnyExecutor(executor));
+                        Tracer::None(), executor);
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
   ASSERT_NE(audited_services->attribute_service_, nullptr);
   EXPECT_NE(audited_services->attribute_service_.get(), &attribute_service);
 
-  scada::ReadCallback pending_read;
-  EXPECT_CALL(attribute_service, Read(_, _, _))
-      .WillOnce(
-          [&](const scada::ServiceContext&,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
-              const scada::ReadCallback& callback) {
-            pending_read = callback;
-          });
+  EXPECT_CALL(attribute_service, Read(_, _))
+      .WillOnce([](scada::ServiceContext,
+                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+                    -> Awaitable<
+                        scada::StatusOr<std::vector<scada::DataValue>>> {
+        co_return std::vector<scada::DataValue>{scada::DataValue{}};
+      });
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{3}}});
-  auto read_result = StartAwaitable(
-      executor,
-      audited_services->attribute_service_->Read({}, read_inputs));
-  Drain(executor);
-
-  EXPECT_FALSE(read_result->done);
-  ASSERT_TRUE(pending_read);
-
-  pending_read(scada::StatusCode::Good, {scada::DataValue{}});
-
-  auto values = WaitResult(executor, read_result);
+  auto values = WaitAwaitable(
+      executor, audited_services->attribute_service_->Read({}, read_inputs));
   ASSERT_THAT(values, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_TRUE(
       HasMetric(metric_service.Collect(executor), "read_latency.count"));

@@ -52,7 +52,7 @@ CoroutineService* ResolveCoroutineService(
   if (!executor)
     return nullptr;
 
-  adapter = std::make_unique<Adapter>(*executor, *callback_service);
+  adapter = std::make_unique<Adapter>(executor, *callback_service);
   return adapter.get();
 }
 
@@ -71,7 +71,7 @@ CoroutineService* ResolveCoroutineService(
       callback_to_coroutine_adapter);
   if (service && executor) {
     coroutine_to_callback_adapter =
-        std::make_unique<CoroutineToCallbackAdapter>(*executor, *service);
+        std::make_unique<CoroutineToCallbackAdapter>(executor, *service);
   }
   return service;
 }

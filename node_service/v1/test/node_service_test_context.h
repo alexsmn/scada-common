@@ -24,8 +24,7 @@ struct NodeServiceTestContext {
     client_address_space.Clear();
   }
 
-  const std::shared_ptr<TestExecutor> executor =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   TestAddressSpace server_address_space;
 

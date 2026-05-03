@@ -3,10 +3,8 @@
 #include "base/async_completion.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
-#include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "scada/attribute_service_mock.h"
-#include "scada/coroutine_services.h"
 #include "scada/node_management_service_mock.h"
 #include "scada/session_service_mock.h"
 #include "scada/test/status_matchers.h"
@@ -199,7 +197,7 @@ class TestCoroutineDataServices final
   std::vector<scada::AddNodesItem> last_add_nodes_inputs;
 };
 
-TEST(DataServicesUtilTest, HasServicesDetectsCallbackAndCoroutineSlots) {
+TEST(DataServicesUtilTest, HasServicesDetectsServiceSlots) {
   EXPECT_FALSE(data_services::HasServices(DataServices{}));
 
   StrictMock<scada::MockAttributeService> attribute_service;
@@ -215,7 +213,7 @@ TEST(DataServicesUtilTest, HasServicesDetectsCallbackAndCoroutineSlots) {
   EXPECT_TRUE(data_services::HasServices(coroutine_services));
 }
 
-TEST(DataServicesUtilTest, FromUnownedServicesAliasesLegacySlots) {
+TEST(DataServicesUtilTest, FromUnownedServicesAliasesSlots) {
   StrictMock<scada::MockAttributeService> attribute_service;
   StrictMock<scada::MockSessionService> session_service;
 
@@ -238,94 +236,9 @@ TEST(DataServicesUtilTest, UnownedAliasesServiceWithoutOwningIt) {
   EXPECT_FALSE(std::shared_ptr<void>{}.owner_before(service));
 }
 
-TEST(CoroutineServiceResolverTest, OptionalExecutorDoesNotCreateAdapter) {
-  auto attribute_service =
-      std::make_shared<StrictMock<scada::MockAttributeService>>();
-  std::unique_ptr<scada::CallbackToAttributeServiceAdapter> adapter;
-
-  auto* resolved = scada::service_resolver::ResolveCoroutineService(
-      std::optional<AnyExecutor>{},
-      std::shared_ptr<scada::AttributeService>{}, attribute_service,
-      adapter);
-
-  EXPECT_EQ(resolved, nullptr);
-  EXPECT_EQ(adapter, nullptr);
-}
-
-TEST(CoroutineServiceResolverTest, CreatesCallbackAdapterForResolvedService) {
-  auto executor = std::make_shared<TestExecutor>();
-  auto coroutine_services = std::make_shared<TestCoroutineDataServices>();
-  std::unique_ptr<scada::CallbackToAttributeServiceAdapter>
-      callback_to_coroutine_adapter;
-  std::unique_ptr<scada::CoroutineToCallbackAttributeServiceAdapter>
-      coroutine_to_callback_adapter;
-
-  auto* resolved = scada::service_resolver::ResolveCoroutineService(
-      std::optional<AnyExecutor>{MakeTestAnyExecutor(executor)},
-      std::shared_ptr<scada::AttributeService>{coroutine_services},
-      std::shared_ptr<scada::AttributeService>{},
-      callback_to_coroutine_adapter, coroutine_to_callback_adapter);
-
-  EXPECT_EQ(resolved, coroutine_services.get());
-  EXPECT_EQ(callback_to_coroutine_adapter, nullptr);
-  ASSERT_NE(coroutine_to_callback_adapter, nullptr);
-
-  bool read_called = false;
-  coroutine_to_callback_adapter->Read(
-      {}, std::make_shared<const std::vector<scada::ReadValueId>>(),
-      [&](scada::Status status, std::vector<scada::DataValue> values) {
-        read_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(values.size(), 1u);
-      });
-  Drain(executor);
-
-  EXPECT_TRUE(read_called);
-  EXPECT_EQ(coroutine_services->read_count, 1);
-}
-
-TEST(CoroutineServiceResolverTest, SharedResolverCreatesCallbackAdapter) {
-  auto executor = std::make_shared<TestExecutor>();
-  auto attribute_service =
-      std::make_shared<StrictMock<scada::MockAttributeService>>();
-
-  auto resolved =
-      scada::service_resolver::ResolveCoroutineServiceShared<
-          scada::AttributeService, scada::AttributeService,
-          scada::CallbackToAttributeServiceAdapter>(
-          MakeTestAnyExecutor(executor),
-          std::shared_ptr<scada::AttributeService>{},
-          attribute_service);
-
-  ASSERT_NE(resolved, nullptr);
-
-  scada::ReadCallback pending_read;
-  EXPECT_CALL(*attribute_service, Read(_, _, _))
-      .WillOnce(
-          [&](const scada::ServiceContext&,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
-              const scada::ReadCallback& callback) {
-            pending_read = callback;
-          });
-
-  auto result = StartAwaitable(
-      executor,
-      resolved->Read(
-          {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
-  Drain(executor);
-
-  EXPECT_FALSE(result->done);
-  ASSERT_TRUE(pending_read);
-
-  pending_read(scada::StatusCode::Good, {scada::DataValue{}});
-
-  ASSERT_OK_AND_ASSIGN(auto values, WaitResult(executor, result));
-  EXPECT_EQ(values.size(), 1u);
-}
-
-TEST(MasterDataServicesTest, CallbackReadDispatchesThroughCoroutineAdapter) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+TEST(MasterDataServicesTest, ReadDispatchesThroughCoroutineService) {
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();
 
@@ -333,37 +246,25 @@ TEST(MasterDataServicesTest, CallbackReadDispatchesThroughCoroutineAdapter) {
   data_services.attribute_service_ = attribute_service;
   services.SetServices(std::move(data_services));
 
-  scada::ReadCallback pending_read;
-  EXPECT_CALL(*attribute_service, Read(_, _, _))
-      .WillOnce([&](const scada::ServiceContext&,
-                    const std::shared_ptr<const std::vector<scada::ReadValueId>>&,
-                    const scada::ReadCallback& callback) {
-        pending_read = callback;
+  EXPECT_CALL(*attribute_service, Read(_, _))
+      .WillOnce([](scada::ServiceContext,
+                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+                    -> Awaitable<
+                        scada::StatusOr<std::vector<scada::DataValue>>> {
+        co_return std::vector<scada::DataValue>{scada::DataValue{}};
       });
 
-  bool read_called = false;
-  services.Read(
-      {}, std::make_shared<const std::vector<scada::ReadValueId>>(),
-      [&](scada::Status status, std::vector<scada::DataValue> results) {
-        read_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
+  auto result = WaitAwaitable(
+      executor, services.Read(
+                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
 
-  Drain(executor);
-  EXPECT_FALSE(read_called);
-  ASSERT_TRUE(pending_read);
-
-  pending_read(scada::StatusCode::Good, {scada::DataValue{}});
-  Drain(executor);
-
-  EXPECT_TRUE(read_called);
+  ASSERT_THAT(result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
 }
 
 TEST(MasterDataServicesTest,
      CoroutineNodeManagementForwardsDelayedCompletion) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto node_management_service =
       std::make_shared<StrictMock<scada::MockNodeManagementService>>();
 
@@ -371,7 +272,7 @@ TEST(MasterDataServicesTest,
   data_services.node_management_service_ = node_management_service;
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_add_nodes{MakeTestAnyExecutor(executor)};
+  base::AsyncCompletion pending_add_nodes{executor};
   EXPECT_CALL(*node_management_service, AddNodes(_))
       .WillOnce([&](std::vector<scada::AddNodesItem>)
                     -> Awaitable<scada::StatusOr<
@@ -397,8 +298,8 @@ TEST(MasterDataServicesTest,
 }
 
 TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto session_service =
       std::make_shared<StrictMock<scada::MockSessionService>>();
 
@@ -407,7 +308,7 @@ TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_connect{MakeTestAnyExecutor(executor)};
+  base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, Connect(_))
       .WillOnce([&](const scada::SessionConnectParams&) {
         return pending_connect.Wait();
@@ -423,8 +324,8 @@ TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
 }
 
 TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto session_service =
       std::make_shared<StrictMock<scada::MockSessionService>>();
 
@@ -433,7 +334,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_connect{MakeTestAnyExecutor(executor)};
+  base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, Connect(_))
       .WillOnce([&](const scada::SessionConnectParams& params) {
         EXPECT_EQ(params.host, "node-host");
@@ -452,8 +353,8 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
 }
 
 TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto session_service =
       std::make_shared<StrictMock<scada::MockSessionService>>();
 
@@ -487,8 +388,8 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
 }
 
 TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
-  auto executor = std::make_shared<TestExecutor>();
-  MasterDataServices services{MakeTestAnyExecutor(executor)};
+  TestExecutor executor;
+  MasterDataServices services{executor};
   auto direct_services = std::make_shared<TestCoroutineDataServices>();
 
   DataServices data_services;
@@ -511,124 +412,74 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->connect_count, 1);
   EXPECT_EQ(direct_services->last_host, "direct-connect");
 
-  bool read_called = false;
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{100}}});
-  services.Read({}, read_inputs,
-                [&](scada::Status status,
-                    std::vector<scada::DataValue> results) {
-                  read_called = true;
-                  EXPECT_TRUE(status.good());
-                  ASSERT_EQ(results.size(), 1u);
-                  EXPECT_EQ(results[0], direct_services->read_value);
-                });
-  Drain(executor);
+  auto read_result = WaitAwaitable(executor, services.Read({}, read_inputs));
 
-  EXPECT_TRUE(read_called);
+  ASSERT_THAT(read_result,
+              scada::test::IsOkAndHolds(testing::ElementsAre(
+                  direct_services->read_value)));
   EXPECT_EQ(direct_services->read_count, 1);
   EXPECT_EQ(direct_services->last_read_inputs, *read_inputs);
 
-  bool write_called = false;
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{});
-  services.Write({}, write_inputs,
-                 [&](scada::Status status,
-                     std::vector<scada::StatusCode> results) {
-                   write_called = true;
-                   EXPECT_TRUE(status.good());
-                   EXPECT_TRUE(results.empty());
-                 });
-  Drain(executor);
+  auto write_result = WaitAwaitable(executor, services.Write({}, write_inputs));
 
-  EXPECT_TRUE(write_called);
+  ASSERT_THAT(write_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
   EXPECT_EQ(direct_services->write_count, 1);
 
-  bool browse_called = false;
-  services.Browse(
-      {}, {{.node_id = scada::NodeId{106}}},
-      [&](scada::Status status, std::vector<scada::BrowseResult> results) {
-        browse_called = true;
-        EXPECT_TRUE(status.good());
-        ASSERT_EQ(results.size(), 1u);
-        ASSERT_EQ(results[0].references.size(), 1u);
-        EXPECT_EQ(results[0].references[0].node_id, (scada::NodeId{900}));
-      });
-  Drain(executor);
+  auto browse_result =
+      WaitAwaitable(executor, services.Browse(
+                                  {}, {{.node_id = scada::NodeId{106}}}));
 
-  EXPECT_TRUE(browse_called);
+  ASSERT_THAT(browse_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
+  ASSERT_EQ((*browse_result).size(), 1u);
+  ASSERT_EQ((*browse_result)[0].references.size(), 1u);
+  EXPECT_EQ((*browse_result)[0].references[0].node_id, (scada::NodeId{900}));
   EXPECT_EQ(direct_services->browse_count, 1);
   ASSERT_EQ(direct_services->last_browse_inputs.size(), 1u);
   EXPECT_EQ(direct_services->last_browse_inputs[0].node_id,
             (scada::NodeId{106}));
 
-  bool translate_called = false;
-  services.TranslateBrowsePaths(
-      {scada::BrowsePath{}},
-      [&](scada::Status status,
-          std::vector<scada::BrowsePathResult> results) {
-        translate_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
-  Drain(executor);
+  auto translate_result =
+      WaitAwaitable(executor, services.TranslateBrowsePaths(
+                                  {scada::BrowsePath{}}));
 
-  EXPECT_TRUE(translate_called);
+  ASSERT_THAT(translate_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->translate_count, 1);
 
-  bool add_nodes_called = false;
-  services.AddNodes(
-      {{.requested_id = scada::NodeId{101}}},
-      [&](scada::Status status, std::vector<scada::AddNodesResult> results) {
-        add_nodes_called = true;
-        EXPECT_TRUE(status.good());
-        ASSERT_EQ(results.size(), 1u);
-        EXPECT_EQ(results[0].added_node_id, (scada::NodeId{700, 7}));
-      });
-  Drain(executor);
+  auto add_nodes_result = WaitAwaitable(
+      executor, services.AddNodes({{.requested_id = scada::NodeId{101}}}));
 
-  EXPECT_TRUE(add_nodes_called);
+  ASSERT_THAT(add_nodes_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
+  EXPECT_EQ((*add_nodes_result)[0].added_node_id, (scada::NodeId{700, 7}));
   EXPECT_EQ(direct_services->add_nodes_count, 1);
   ASSERT_EQ(direct_services->last_add_nodes_inputs.size(), 1u);
   EXPECT_EQ(direct_services->last_add_nodes_inputs[0].requested_id,
             (scada::NodeId{101}));
 
-  bool delete_nodes_called = false;
-  services.DeleteNodes(
-      {scada::DeleteNodesItem{}},
-      [&](scada::Status status, std::vector<scada::StatusCode> results) {
-        delete_nodes_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
-  Drain(executor);
+  auto delete_nodes_result = WaitAwaitable(
+      executor, services.DeleteNodes({scada::DeleteNodesItem{}}));
 
-  EXPECT_TRUE(delete_nodes_called);
+  ASSERT_THAT(delete_nodes_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->delete_nodes_count, 1);
 
-  bool add_references_called = false;
-  services.AddReferences(
-      {scada::AddReferencesItem{}},
-      [&](scada::Status status, std::vector<scada::StatusCode> results) {
-        add_references_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
-  Drain(executor);
+  auto add_references_result = WaitAwaitable(
+      executor, services.AddReferences({scada::AddReferencesItem{}}));
 
-  EXPECT_TRUE(add_references_called);
+  ASSERT_THAT(add_references_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->add_references_count, 1);
 
-  bool delete_references_called = false;
-  services.DeleteReferences(
-      {scada::DeleteReferencesItem{}},
-      [&](scada::Status status, std::vector<scada::StatusCode> results) {
-        delete_references_called = true;
-        EXPECT_TRUE(status.good());
-        EXPECT_EQ(results.size(), 1u);
-      });
-  Drain(executor);
+  auto delete_references_result = WaitAwaitable(
+      executor, services.DeleteReferences({scada::DeleteReferencesItem{}}));
 
-  EXPECT_TRUE(delete_references_called);
+  ASSERT_THAT(delete_references_result,
+              scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->delete_references_count, 1);
 
   auto call_status =

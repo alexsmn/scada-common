@@ -12,8 +12,7 @@ namespace {
 class ServerSessionManagerTest : public testing::Test {
  protected:
   base::Time now_ = base::Time::Now();
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
 
   ServerSessionManager MakeManager() {
     return ServerSessionManager{{

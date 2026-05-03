@@ -26,7 +26,7 @@ TEST(VidiconSession, SessionServiceReportsLocalSessionMetadata) {
 
 TEST(VidiconSession, SessionServiceLifecycleCompletes) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   auto& coroutine_session = session;
 
   EXPECT_NO_THROW(WaitAwaitable(executor, coroutine_session.Reconnect()));
@@ -35,7 +35,7 @@ TEST(VidiconSession, SessionServiceLifecycleCompletes) {
 
 TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   auto inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{
           {.node_id = scada::id::RootFolder,
@@ -52,7 +52,7 @@ TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
 
 TEST(VidiconSession, CoroutineBrowseUsesLocalAddressSpace) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, static_cast<scada::ViewService&>(session).Browse(
@@ -69,7 +69,7 @@ TEST(VidiconSession, CoroutineBrowseUsesLocalAddressSpace) {
 
 TEST(VidiconSession, CoroutineHistoryReturnsBad) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
 
   const auto raw_result = WaitAwaitable(
       executor,
@@ -88,7 +88,7 @@ TEST(VidiconSession, CoroutineHistoryReturnsBad) {
 
 TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{{.node_id = scada::id::RootFolder}});
 
@@ -106,7 +106,7 @@ TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
 
 TEST(VidiconSession, CoroutineNodeManagementReturnsBad) {
   VidiconSession session;
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   auto& service =
       static_cast<scada::NodeManagementService&>(session);
 

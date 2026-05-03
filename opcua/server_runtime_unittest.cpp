@@ -19,12 +19,12 @@ std::shared_ptr<T> UnownedService(T& service) {
 DataServices MakeRuntimeDataServices(
     std::shared_ptr<test::TestCoroutineServices> coroutine_services,
     scada::MonitoredItemService& monitored_item_service) {
-  return {.history_service_ = coroutine_services,
-          .method_service_ = coroutine_services,
-          .monitored_item_service_ = UnownedService(monitored_item_service),
-          .view_service_ = coroutine_services,
+  return {.view_service_ = coroutine_services,
           .node_management_service_ = coroutine_services,
-          .attribute_service_ = coroutine_services};
+          .history_service_ = coroutine_services,
+          .attribute_service_ = coroutine_services,
+          .method_service_ = coroutine_services,
+          .monitored_item_service_ = UnownedService(monitored_item_service)};
 }
 
 DataServices MakeCallbackRuntimeDataServices(
@@ -133,7 +133,7 @@ class ServerRuntimeTest : public testing::Test,
               delayed_tasks_.emplace_back(d, std::move(fn));
               return;
             }
-            executor_->PostDelayedTask(
+            executor_.PostDelayedTask(
                 std::chrono::milliseconds{d.InMilliseconds()}, std::move(fn));
           },
   }};
@@ -144,25 +144,22 @@ TEST_F(ServerRuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
 }
 
 TEST_F(ServerRuntimeTest,
-       LegacyCallbackContextRoutesDelayedReadThroughNormalizedDataServices) {
+       ContextRoutesReadThroughNormalizedDataServices) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
   const ReadRequest request{
       .inputs = {{.node_id = test::NumericNode(907),
                   .attribute_id = scada::AttributeId::Value}}};
-  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            executor_->PostTask([callback, now = now_] {
-              callback(scada::StatusCode::Good,
-                       {scada::DataValue{scada::Variant{907.0}, {}, now, now}});
-            });
+            co_return std::vector{scada::DataValue{
+                scada::Variant{907.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);
@@ -244,14 +241,14 @@ TEST_F(ServerRuntimeTest, PublishRequestWaitsForKeepAliveDeadline) {
 
   const auto drain_ready = [&] {
     for (size_t i = 0; i < 8; ++i)
-      executor_->Poll();
+      executor_.Poll();
   };
 
   drain_ready();
   EXPECT_FALSE(publish_result->done);
 
   now_ = now_ + base::TimeDelta::FromMilliseconds(300);
-  executor_->Advance(300ms);
+  executor_.Advance(300ms);
   drain_ready();
   ASSERT_TRUE(publish_result->done);
 
@@ -280,7 +277,7 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
       executor_, runtime_.Handle(connection, RequestBody{PublishRequest{}}));
 
   for (size_t i = 0; i < 8; ++i)
-    executor_->Poll();
+    executor_.Poll();
 
   ASSERT_EQ(delayed_tasks_.size(), 1u);
   EXPECT_EQ(delayed_tasks_.front().first,
@@ -292,7 +289,7 @@ TEST_F(ServerRuntimeTest, PublishDelayUsesInjectedSchedulerCallback) {
   delayed_tasks_.clear();
   delayed();
   for (size_t i = 0; i < 8; ++i)
-    executor_->Poll();
+    executor_.Poll();
 
   ASSERT_TRUE(publish_result->done);
   const auto publish_message = WaitResult(executor_, publish_result);
@@ -333,7 +330,7 @@ class CoroutineServerRuntimeTest : public testing::Test,
   }
 
   test::TestCoroutineServices coroutine_services_;
-  ServerRuntime runtime_{CoroutineServerRuntimeContext{
+  ServerRuntime runtime_{ServerRuntimeContext{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,
@@ -477,25 +474,22 @@ class DataServicesCallbackServerRuntimeTest
 };
 
 TEST_F(DataServicesCallbackServerRuntimeTest,
-       RoutesReadThroughAggregateCallbackSlotsWithOwnedAdapters) {
+       RoutesReadThroughAggregateUnownedSlots) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
   const ReadRequest request{
       .inputs = {{.node_id = test::NumericNode(905),
                   .attribute_id = scada::AttributeId::Value}}};
-  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_, testing::_))
+  EXPECT_CALL(attribute_service_, Read(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
-              const std::shared_ptr<const std::vector<scada::ReadValueId>>&
-                  inputs,
-              const scada::ReadCallback& callback) {
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            executor_->PostTask([callback, now = now_] {
-              callback(scada::StatusCode::Good,
-                       {scada::DataValue{scada::Variant{905.0}, {}, now, now}});
-            });
+            co_return std::vector{scada::DataValue{
+                scada::Variant{905.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);

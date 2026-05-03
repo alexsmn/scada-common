@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/any_executor.h"
+
 #include "base/awaitable.h"
 #include "opcua/binary/service_codec.h"
 #include "opcua/message.h"
@@ -41,18 +43,6 @@ struct RuntimeContext {
   std::function<base::Time()> now = &base::Time::Now;
 };
 
-struct CoroutineRuntimeContext {
-  AnyExecutor executor;
-  ServerSessionManager& session_manager;
-  scada::MonitoredItemService& monitored_item_service;
-  scada::AttributeService& attribute_service;
-  scada::ViewService& view_service;
-  scada::HistoryService& history_service;
-  scada::MethodService& method_service;
-  scada::NodeManagementService& node_management_service;
-  std::function<base::Time()> now = &base::Time::Now;
-};
-
 struct DataServicesRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
@@ -65,7 +55,6 @@ struct DataServicesRuntimeContext {
 class Runtime {
  public:
   explicit Runtime(RuntimeContext&& context);
-  explicit Runtime(CoroutineRuntimeContext&& context);
   explicit Runtime(DataServicesRuntimeContext&& context);
 
   template <typename Response, typename Request>

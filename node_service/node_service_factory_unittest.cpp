@@ -66,20 +66,20 @@ class TestSessionService final
       session_state_changed;
 };
 
-void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
-  for (size_t i = 0; i < 100 && executor->GetTaskCount() != 0; ++i)
-    executor->Poll();
+void DrainExecutor(TestExecutor& executor) {
+  for (size_t i = 0; i < 100 && executor.GetTaskCount() != 0; ++i)
+    executor.Poll();
 }
 
 std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
     TestAddressSpace& address_space,
     scada::SessionService& session_service,
     scada::MonitoredItemService& monitored_item_service,
-    const std::shared_ptr<TestExecutor>& executor,
+    TestExecutor& executor,
     bool use_v2) {
   return CreateNodeService(
       CoroutineNodeServiceContext{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .service_context_ = scada::ServiceContext{},
           .session_service_ = session_service,
           .attribute_service_ = address_space.attribute_service_impl,
@@ -93,7 +93,7 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
     TestAddressSpace& address_space,
     scada::SessionService& session_service,
     scada::MonitoredItemService& monitored_item_service,
-    const std::shared_ptr<TestExecutor>& executor,
+    TestExecutor& executor,
     bool use_v2) {
   DataServices data_services;
   data_services.session_service_ =
@@ -111,7 +111,7 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
 
   return CreateNodeService(
       DataServicesNodeServiceContext{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .service_context_ = scada::ServiceContext{},
           .data_services_ = std::move(data_services),
           .scada_client_ = {}},
@@ -124,10 +124,10 @@ std::shared_ptr<NodeService> CreateLegacyFactoryNodeService(
     scada::ViewService& view_service,
     scada::MonitoredItemService& monitored_item_service,
     scada::MethodService& method_service,
-    const std::shared_ptr<TestExecutor>& executor,
+    TestExecutor& executor,
     bool use_v2) {
   return CreateNodeService(
-      NodeServiceContext{.executor_ = MakeTestAnyExecutor(executor),
+      NodeServiceContext{.executor_ = executor,
                          .service_context_ = scada::ServiceContext{},
                          .session_service_ = session_service,
                          .attribute_service_ = attribute_service,
@@ -140,7 +140,7 @@ std::shared_ptr<NodeService> CreateLegacyFactoryNodeService(
 
 void ExpectFetchesNode(TestAddressSpace& address_space,
                        NodeService& node_service,
-                       const std::shared_ptr<TestExecutor>& executor) {
+                       TestExecutor& executor) {
   auto node = node_service.GetNode(address_space.kTestNode2Id);
 
   node.Fetch(NodeFetchStatus::NodeAndChildren());
@@ -157,7 +157,7 @@ void ExpectFetchesNode(TestAddressSpace& address_space,
 }
 
 void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   TestAddressSpace address_space;
   TestSessionService session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
@@ -171,7 +171,7 @@ void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
 }
 
 void ExpectDataServicesFactoryFetchesNode(bool use_v2) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   TestAddressSpace address_space;
   TestSessionService session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
@@ -185,7 +185,7 @@ void ExpectDataServicesFactoryFetchesNode(bool use_v2) {
 }
 
 void ExpectLegacyFactoryFetchesNode(bool use_v2) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   TestAddressSpace address_space;
   StrictMock<scada::MockSessionService> session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
@@ -224,7 +224,7 @@ TEST(NodeServiceFactory, V2DataServicesContextFetchesThroughCoroutineSlots) {
 }
 
 TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   TestAddressSpace address_space;
   TestSessionService session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
@@ -242,7 +242,7 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
 
   auto make_context = [&] {
     return DataServicesNodeServiceContext{
-        .executor_ = MakeTestAnyExecutor(executor),
+        .executor_ = executor,
         .service_context_ = scada::ServiceContext{},
         .data_services_ = data_services,
         .scada_client_ = {}};
@@ -263,7 +263,7 @@ TEST(NodeServiceFactory, V2LegacyContextNormalizesToDataServicesAdapters) {
 }
 
 TEST(NodeServiceFactory, LegacyContextHelperNormalizesToDataServices) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   StrictMock<scada::MockSessionService> session_service;
   StrictMock<scada::MockAttributeService> attribute_service;
   StrictMock<scada::MockViewService> view_service;
@@ -271,7 +271,7 @@ TEST(NodeServiceFactory, LegacyContextHelperNormalizesToDataServices) {
   StrictMock<scada::MockMethodService> method_service;
 
   auto context = node_service::internal::MakeDataServicesNodeServiceContext(
-      NodeServiceContext{.executor_ = MakeTestAnyExecutor(executor),
+      NodeServiceContext{.executor_ = executor,
                          .service_context_ = scada::ServiceContext{},
                          .session_service_ = session_service,
                          .attribute_service_ = attribute_service,

@@ -20,7 +20,7 @@ namespace {
 struct TestContext {
   TestContext()
       : fetcher{NodeChildrenFetcher::Create(NodeChildrenFetcherContext{
-            .executor_ = MakeTestAnyExecutor(executor),
+            .executor_ = executor,
             .service_context_ = {},
             .view_service_ = view_service,
             .reference_validator_ =
@@ -31,7 +31,7 @@ struct TestContext {
 
   void DrainExecutor() { Drain(executor); }
 
-  std::shared_ptr<TestExecutor> executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   StrictMock<scada::MockViewService> view_service;
   std::map<scada::NodeId, scada::BrowseResult> validated_results;
   std::shared_ptr<NodeChildrenFetcher> fetcher;

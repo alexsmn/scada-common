@@ -2,7 +2,7 @@
 
 #include "base/any_executor.h"
 #include "base/awaitable.h"
-#include "base/executor.h"
+#include "base/any_executor_dispatch.h"
 #include "opcua/binary/client_connection.h"
 #include "opcua/binary/client_secure_channel.h"
 #include "opcua/binary/client_transport.h"
@@ -38,7 +38,7 @@ class ClientSession final
       public scada::MethodService,
       public scada::MonitoredItemService {
  public:
-  ClientSession(std::shared_ptr<Executor> executor,
+  ClientSession(AnyExecutor executor,
                      transport::TransportFactory& transport_factory);
   ~ClientSession() override;
 
@@ -110,7 +110,7 @@ class ClientSession final
 
   ClientSubscription& GetDefaultSubscription();
 
-  const std::shared_ptr<Executor> executor_;
+  const AnyExecutor executor_;
   const AnyExecutor any_executor_;
   transport::TransportFactory& transport_factory_;
 

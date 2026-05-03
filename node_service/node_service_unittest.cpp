@@ -24,7 +24,7 @@
 using namespace testing;
 
 TEST(AddressSpaceMethodServiceTest, CoroutineCallReturnsWrongMethodId) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   TestAddressSpace address_space;
   AddressSpaceMethodService service{address_space};
 
@@ -36,7 +36,7 @@ TEST(AddressSpaceMethodServiceTest, CoroutineCallReturnsWrongMethodId) {
 }
 
 struct BaseNodeServiceTestEnvironment {
-  const std::shared_ptr<TestExecutor> executor;
+  TestExecutor executor;
   const std::shared_ptr<TestAddressSpace> server_address_space;
   const ViewEventsProvider view_events_provider;
 };
@@ -65,7 +65,7 @@ AddressSpaceFetcherFactory
 NodeServiceTestContext::MakeAddressSpaceFetcherFactory() {
   return [this](AddressSpaceFetcherFactoryContext&& context) {
     return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
-        .executor_ = MakeTestAnyExecutor(base_env.executor),
+        .executor_ = base_env.executor,
         .view_service_ = *base_env.server_address_space,
         .attribute_service_ = *base_env.server_address_space,
         .address_space_ = client_address_space,
@@ -89,7 +89,7 @@ struct NodeServiceTestContext {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      .executor_ = MakeTestAnyExecutor(base_env.executor),
+      .executor_ = base_env.executor,
       .view_service_ = *base_env.server_address_space,
       .attribute_service_ = *base_env.server_address_space,
       .monitored_item_service_ = monitored_item_service,
@@ -145,7 +145,7 @@ struct NodeServiceTestContext {
       std::make_shared<TestNodeFetcher>(*base_env.server_address_space)};
 
   NodeServiceImpl node_service{NodeServiceImplContext{
-      .executor_ = MakeTestAnyExecutor(base_env.executor),
+      .executor_ = base_env.executor,
       .monitored_item_service_ = monitored_item_service,
       .node_fetcher_ = node_fetcher,
       .view_events_provider_ = base_env.view_events_provider}};
@@ -160,7 +160,7 @@ struct StaticNodeServiceTestContext {
 };
 
 TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
-  auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   StrictMock<scada::MockAttributeService> attribute_service;
   DataServices data_services;
   data_services.attribute_service_ = std::shared_ptr<scada::AttributeService>{
@@ -218,7 +218,7 @@ class NodeServiceTest : public Test {
   scada::ViewEvents* view_events_ = nullptr;
 
   BaseNodeServiceTestEnvironment base_env_{
-      .executor = std::make_shared<TestExecutor>(),
+      .executor = TestExecutor{},
       .server_address_space = std::make_shared<TestAddressSpace>(),
       .view_events_provider = MakeViewEventsProvider()};
 
@@ -286,8 +286,8 @@ void NodeServiceTest<NodeServiceImpl>::OpenChannel() {
 
 template <class NodeServiceImpl>
 void NodeServiceTest<NodeServiceImpl>::DrainExecutor() {
-  for (size_t i = 0; i < 100 && base_env_.executor->GetTaskCount() != 0; ++i)
-    base_env_.executor->Poll();
+  for (size_t i = 0; i < 100 && base_env_.executor.GetTaskCount() != 0; ++i)
+    base_env_.executor.Poll();
 }
 
 template <class NodeServiceImpl>
@@ -882,8 +882,8 @@ class V2NodeServiceRegressionTest : public Test {
   }
 
   void DrainExecutor() {
-    for (size_t i = 0; i < 100 && executor_->GetTaskCount() != 0; ++i)
-      executor_->Poll();
+    for (size_t i = 0; i < 100 && executor_.GetTaskCount() != 0; ++i)
+      executor_.Poll();
   }
 
   void OpenChannel() {
@@ -892,8 +892,7 @@ class V2NodeServiceRegressionTest : public Test {
   }
 
   scada::ViewEvents* view_events_ = nullptr;
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
   const std::shared_ptr<TestAddressSpace> server_address_space_ =
       std::make_shared<TestAddressSpace>();
   BaseNodeServiceTestEnvironment base_env_{
@@ -904,7 +903,7 @@ class V2NodeServiceRegressionTest : public Test {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
   std::shared_ptr<v2::NodeServiceImpl> node_service_ = std::make_shared<
       v2::NodeServiceImpl>(v2::NodeServiceImplContext{
-      .executor_ = MakeTestAnyExecutor(executor_),
+      .executor_ = executor_,
       .view_service_ = *server_address_space_,
       .attribute_service_ = *server_address_space_,
       .monitored_item_service_ = monitored_item_service_,

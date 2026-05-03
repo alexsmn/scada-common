@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/any_executor.h"
+
 #include "base/awaitable.h"
 #include "base/time/time.h"
 #include "opcua/message.h"
@@ -41,21 +43,6 @@ struct ServerRuntimeContext {
   std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
 };
 
-struct CoroutineServerRuntimeContext {
-  AnyExecutor executor;
-  ServerSessionManager& session_manager;
-  scada::MonitoredItemService& monitored_item_service;
-  scada::AttributeService& attribute_service;
-  scada::ViewService& view_service;
-  scada::HistoryService& history_service;
-  scada::MethodService& method_service;
-  scada::NodeManagementService& node_management_service;
-  std::function<base::Time()> now = &base::Time::Now;
-  // Optional override for delayed task scheduling. Defaults to
-  // boost::asio::steady_timer-based posting when null.
-  std::function<void(base::TimeDelta, std::function<void()>)> post_delayed_task;
-};
-
 struct DataServicesServerRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
@@ -69,7 +56,6 @@ struct DataServicesServerRuntimeContext {
 class ServerRuntime {
  public:
   explicit ServerRuntime(ServerRuntimeContext&& context);
-  explicit ServerRuntime(CoroutineServerRuntimeContext&& context);
   explicit ServerRuntime(DataServicesServerRuntimeContext&& context);
   ~ServerRuntime();
 

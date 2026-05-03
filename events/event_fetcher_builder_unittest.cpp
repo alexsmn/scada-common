@@ -26,9 +26,9 @@ using testing::Return;
 using testing::StrictMock;
 using testing::VariantWith;
 
-void DrainExecutor(const std::shared_ptr<TestExecutor>& executor) {
-  for (size_t i = 0; i < 100 && executor->GetTaskCount() != 0; ++i)
-    executor->Poll();
+void DrainExecutor(TestExecutor& executor) {
+  for (size_t i = 0; i < 100 && executor.GetTaskCount() != 0; ++i)
+    executor.Poll();
 }
 
 class TestHistoryService final
@@ -123,7 +123,7 @@ scada::Event MakeEvent(scada::EventId event_id, scada::NodeId node_id) {
 
 TEST(CoroutineEventFetcherBuilder,
      ConnectedSessionRefreshesHistoryThroughCoroutineServices) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestHistoryService history_service;
   TestMethodService method_service;
@@ -136,7 +136,7 @@ TEST(CoroutineEventFetcherBuilder,
 
   auto fetcher =
       CoroutineEventFetcherBuilder{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .logger_ = NullLogger::GetInstance(),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,
@@ -152,7 +152,7 @@ TEST(CoroutineEventFetcherBuilder,
 
 TEST(CoroutineEventFetcherBuilder,
      LaterSessionOpenRefreshesThroughUnifiedDataServicesPath) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestHistoryService history_service;
   TestMethodService method_service;
@@ -166,7 +166,7 @@ TEST(CoroutineEventFetcherBuilder,
 
   auto fetcher =
       CoroutineEventFetcherBuilder{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .logger_ = NullLogger::GetInstance(),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,
@@ -186,7 +186,7 @@ TEST(CoroutineEventFetcherBuilder,
 }
 
 TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestHistoryService history_service;
   TestMethodService method_service;
@@ -211,7 +211,7 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
       std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
-  auto fetcher = EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
+  auto fetcher = EventFetcherBuilder{.executor_ = executor,
                                      .logger_ = NullLogger::GetInstance(),
                                      .data_services_ = std::move(data_services)}
                      .Build();
@@ -223,7 +223,7 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
 }
 
 TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestHistoryService history_service;
   TestSessionService session_service;
@@ -239,7 +239,7 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
       std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
-  EXPECT_THROW((EventFetcherBuilder{.executor_ = MakeTestAnyExecutor(executor),
+  EXPECT_THROW((EventFetcherBuilder{.executor_ = executor,
                                     .logger_ = NullLogger::GetInstance(),
                                     .data_services_ = std::move(data_services)}
                     .Build()),
@@ -247,7 +247,7 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
 }
 
 TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   StrictMock<scada::MockHistoryService> history_service;
   StrictMock<scada::MockMethodService> method_service;
@@ -278,7 +278,7 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
 
   auto fetcher =
       EventFetcherBuilder{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .logger_ = NullLogger::GetInstance(),
           .services_ = {.monitored_item_service = &monitored_item_service,
                         .method_service = &method_service,
@@ -293,7 +293,7 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
 
 TEST(CoroutineEventFetcherBuilder,
      AcknowledgeUsesMethodServiceAndSessionUser) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   TestHistoryService history_service;
   TestMethodService method_service;
@@ -306,7 +306,7 @@ TEST(CoroutineEventFetcherBuilder,
 
   auto fetcher =
       CoroutineEventFetcherBuilder{
-          .executor_ = MakeTestAnyExecutor(executor),
+          .executor_ = executor,
           .logger_ = NullLogger::GetInstance(),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,

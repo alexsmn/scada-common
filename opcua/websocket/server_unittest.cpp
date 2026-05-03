@@ -173,9 +173,8 @@ class ServerTest : public Test {
         ScriptedMessageTransport{any_executor_, peer}};
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
   StrictMock<scada::MockAttributeService> attribute_service_;
   StrictMock<scada::MockViewService> view_service_;
   StrictMock<scada::MockHistoryService> history_service_;
@@ -227,18 +226,19 @@ TEST_F(ServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
               .body = ReadRequest{
                   .inputs = {{.node_id = NumericNode(7),
                               .attribute_id = scada::AttributeId::DisplayName}}}}));
-  EXPECT_CALL(attribute_service_, Read(_, _, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
-                           const std::shared_ptr<const std::vector<scada::ReadValueId>>& inputs,
-                           const scada::ReadCallback& callback) {
+  EXPECT_CALL(attribute_service_, Read(_, _))
+      .WillOnce(Invoke([&](scada::ServiceContext context,
+                           std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+                           -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
         EXPECT_EQ(context.user_id(), (scada::NodeId{55, 3}));
         EXPECT_THAT(*inputs,
                     ElementsAre(scada::ReadValueId{
                         .node_id = NumericNode(7),
                         .attribute_id = scada::AttributeId::DisplayName}));
-        callback(scada::StatusCode::Good,
-                 {scada::DataValue{scada::LocalizedText{u"Pump"}, {},
-                                   base::Time::Now(), base::Time::Now()}});
+        co_return std::vector{scada::DataValue{scada::LocalizedText{u"Pump"},
+                                               {},
+                                               base::Time::Now(),
+                                               base::Time::Now()}};
       }));
 
   ServePeer(peer);
@@ -304,7 +304,7 @@ TEST_F(ServerTest, DisconnectDetachesSessionForResume) {
 
 TEST_F(ServerTest, ServeConnectionRoutesReadThroughCoroutineServices) {
   test::TestCoroutineServices coroutine_services;
-  ServerRuntime coroutine_runtime{CoroutineServerRuntimeContext{
+  ServerRuntime coroutine_runtime{ServerRuntimeContext{
       .executor = any_executor_,
       .session_manager = session_manager_,
       .monitored_item_service = monitored_item_service_,

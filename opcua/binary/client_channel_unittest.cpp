@@ -1,7 +1,7 @@
 #include "opcua/client_channel.h"
 #include "opcua/binary/client_connection.h"
 
-#include "base/executor_conversions.h"
+#include "base/any_executor.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/binary/client_secure_channel.h"
@@ -165,9 +165,8 @@ class ClientChannelTest : public ::testing::Test {
     ASSERT_TRUE(WaitAwaitable(executor_, secure_channel.Open()).good());
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
 };
 
 TEST_F(ClientChannelTest, RequestHandlesAreMonotonic) {

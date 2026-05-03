@@ -19,8 +19,7 @@ class SessionManagerTest : public Test {
   }
 
   base::Time now_ = base::Time::Now();
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
+  TestExecutor executor_;
 
   auto MakeManager(std::shared_ptr<scada::CoroutineAuthenticator> authenticator,
                    base::TimeDelta default_timeout =

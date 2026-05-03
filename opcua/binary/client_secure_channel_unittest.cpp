@@ -1,6 +1,6 @@
 #include "opcua/binary/client_secure_channel.h"
 
-#include "base/executor_conversions.h"
+#include "base/any_executor.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/binary/client_transport.h"
@@ -161,9 +161,8 @@ class ClientSecureChannelTest : public ::testing::Test {
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
 };
 
 TEST_F(ClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
@@ -558,9 +557,8 @@ class ClientSecureChannelBasic256Sha256Test : public ::testing::Test {
         {.receive_buffer_size = 65535, .send_buffer_size = 65535})));
   }
 
-  const std::shared_ptr<TestExecutor> executor_ =
-      std::make_shared<TestExecutor>();
-  const transport::executor any_executor_ = MakeTestAnyExecutor(executor_);
+  TestExecutor executor_;
+  const transport::executor any_executor_ = executor_;
 };
 
 TEST_F(ClientSecureChannelBasic256Sha256Test,

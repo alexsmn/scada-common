@@ -8,7 +8,7 @@
 namespace opcua::binary {
 namespace {
 
-const std::shared_ptr<TestExecutor> executor_ = std::make_shared<TestExecutor>();
+TestExecutor executor_;
 
 std::vector<char> EncodeOpenRequestBody(
     std::uint32_t request_handle,

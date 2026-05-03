@@ -15,7 +15,7 @@ namespace scada {
 namespace {
 
 TEST(LocalSessionService, LifecycleOperationsComplete) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalSessionService service;
 
   EXPECT_NO_THROW(WaitAwaitable(executor, service.Connect({})));
@@ -35,7 +35,7 @@ TEST(LocalSessionService, ReportsConnectedLocalSession) {
 }
 
 TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalMethodService service;
 
   const auto status = WaitAwaitable(
@@ -46,7 +46,7 @@ TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
 }
 
 TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   AddressSpaceImpl address_space;
   MethodServiceImpl service{{address_space}};
 
@@ -58,7 +58,7 @@ TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
 }
 
 TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalNodeManagementService service;
 
   auto result = WaitAwaitable(
@@ -72,7 +72,7 @@ TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {
 }
 
 TEST(LocalNodeManagementService, CoroutineDeleteNodesReturnsBadResults) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalNodeManagementService service;
 
   auto result = WaitAwaitable(
@@ -83,7 +83,7 @@ TEST(LocalNodeManagementService, CoroutineDeleteNodesReturnsBadResults) {
 }
 
 TEST(LocalNodeManagementService, CoroutineAddReferencesReturnsBadResults) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalNodeManagementService service;
 
   auto result =
@@ -97,7 +97,7 @@ TEST(LocalNodeManagementService, CoroutineAddReferencesReturnsBadResults) {
 }
 
 TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalNodeManagementService service;
 
   auto result =
@@ -111,7 +111,7 @@ TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalHistoryService service;
   const NodeId node_id{7, 2};
   service.SetRawProfile(node_id, 42.0);
@@ -129,7 +129,7 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
-  const auto executor = std::make_shared<TestExecutor>();
+  TestExecutor executor;
   LocalHistoryService service;
   Event event;
   event.event_id = EventId{17};
