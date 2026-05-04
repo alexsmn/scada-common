@@ -436,9 +436,15 @@ scada::WriteValue DecodeWriteValue(const value& json) {
 }
 
 value EncodeReferenceDescription(const scada::ReferenceDescription& reference) {
+  // OPC UA Part 4, Browse Service Parameters, defines ResultMask bit 2 as
+  // NodeClass, and Part 4 ReferenceDescription defines nodeClass as the target
+  // Node's NodeClass:
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.29
   return object{{"ReferenceTypeId", EncodeNodeId(reference.reference_type_id)},
                 {"Forward", reference.forward},
-                {"NodeId", EncodeNodeId(reference.node_id)}};
+                {"NodeId", EncodeNodeId(reference.node_id)},
+                {"NodeClass", EncodeNodeClass(reference.node_class)}};
 }
 
 scada::ReferenceDescription DecodeReferenceDescription(const value& json) {
@@ -446,7 +452,10 @@ scada::ReferenceDescription DecodeReferenceDescription(const value& json) {
   return {.reference_type_id =
               DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
           .forward = RequireBool(RequireField(obj, "Forward")),
-          .node_id = DecodeNodeId(RequireField(obj, "NodeId"))};
+          .node_id = DecodeNodeId(RequireField(obj, "NodeId")),
+          .node_class = obj.contains("NodeClass")
+                            ? DecodeNodeClass(RequireField(obj, "NodeClass"))
+                            : scada::NodeClass::Unspecified};
 }
 
 value EncodeBrowseDescription(const scada::BrowseDescription& description) {

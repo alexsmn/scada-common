@@ -179,6 +179,13 @@ TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
               testing::Contains(testing::Field(
                   &scada::ReferenceDescription::node_id,
                   address_space.kTestNode1Id)));
+  EXPECT_THAT(
+      results[0].references,
+      testing::Contains(testing::AllOf(
+          testing::Field(&scada::ReferenceDescription::node_id,
+                         address_space.kTestNode1Id),
+          testing::Field(&scada::ReferenceDescription::node_class,
+                         scada::NodeClass::Object))));
 }
 
 TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {

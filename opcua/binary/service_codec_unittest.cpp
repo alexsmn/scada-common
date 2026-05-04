@@ -101,6 +101,7 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
                           .reference_type_id = scada::NodeId{35},
                           .forward = true,
                           .node_id = scada::NodeId{100},
+                          .node_class = scada::NodeClass::Variable,
                       }},
                   },
                   scada::BrowseResult{
@@ -118,6 +119,8 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
             scada::NodeId{35});
   EXPECT_TRUE(typed.results[0].references[0].forward);
   EXPECT_EQ(typed.results[0].references[0].node_id, scada::NodeId{100});
+  EXPECT_EQ(typed.results[0].references[0].node_class,
+            scada::NodeClass::Variable);
   EXPECT_EQ(typed.results[1].status_code, scada::StatusCode::Bad_NothingToDo);
   EXPECT_TRUE(typed.results[1].references.empty());
 }

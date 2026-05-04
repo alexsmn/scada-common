@@ -160,7 +160,11 @@ void AppendReferenceDescription(Encoder& encoder,
   encoder.Encode(scada::ExpandedNodeId{reference.node_id});
   encoder.Encode(scada::QualifiedName{});
   encoder.Encode(scada::LocalizedText{});
-  encoder.Encode(std::uint32_t{0});
+  // OPC UA Part 4 ReferenceDescription.nodeClass is the target Node's
+  // NodeClass. The binary field is present in the structure even when Browse
+  // callers do not use the optional JSON wrapper:
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.29
+  encoder.Encode(static_cast<std::uint32_t>(reference.node_class));
   encoder.Encode(scada::ExpandedNodeId{});
 }
 
@@ -900,18 +904,19 @@ bool ReadReferenceDescription(Decoder& decoder,
   scada::ExpandedNodeId expanded_node_id;
   scada::QualifiedName ignored_browse_name;
   scada::LocalizedText ignored_display_name;
-  std::uint32_t ignored_node_class = 0;
+  std::uint32_t node_class = 0;
   scada::ExpandedNodeId ignored_type_definition;
   if (!decoder.Decode(reference.reference_type_id) ||
       !decoder.Decode(reference.forward) ||
       !decoder.Decode(expanded_node_id) ||
       !decoder.Decode(ignored_browse_name) ||
       !decoder.Decode(ignored_display_name) ||
-      !decoder.Decode(ignored_node_class) ||
+      !decoder.Decode(node_class) ||
       !decoder.Decode(ignored_type_definition)) {
     return false;
   }
   reference.node_id = expanded_node_id.node_id();
+  reference.node_class = static_cast<scada::NodeClass>(node_class);
   return true;
 }
 

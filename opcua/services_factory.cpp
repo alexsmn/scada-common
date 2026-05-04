@@ -1,6 +1,52 @@
 #include "base/any_executor.h"
 #include "opcua/client_session.h"
 #include "scada/data_services_factory.h"
+#include "scada/history_service.h"
+#include "scada/node_management_service.h"
+
+namespace {
+
+class UnsupportedHistoryService : public scada::HistoryService {
+ public:
+  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override {
+    co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      base::Time from,
+      base::Time to,
+      scada::EventFilter filter) override {
+    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+  }
+};
+
+class UnsupportedNodeManagementService
+    : public scada::NodeManagementService {
+ public:
+  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
+      std::vector<scada::AddNodesItem> inputs) override {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteNodes(
+      std::vector<scada::DeleteNodesItem> inputs) override {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> AddReferences(
+      std::vector<scada::AddReferencesItem> inputs) override {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteReferences(
+      std::vector<scada::DeleteReferencesItem> inputs) override {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+};
+
+}  // namespace
 
 namespace opcua {
 
@@ -9,10 +55,13 @@ bool CreateServices(const DataServicesContext& context,
   try {
     auto session = std::make_shared<ClientSession>(context.executor,
                                                   context.transport_factory);
+    auto node_management_service =
+        std::make_shared<UnsupportedNodeManagementService>();
+    auto history_service = std::make_shared<UnsupportedHistoryService>();
     services = {.session_service_ = session,
                 .view_service_ = session,
-                .node_management_service_ = nullptr,
-                .history_service_ = nullptr,
+                .node_management_service_ = node_management_service,
+                .history_service_ = history_service,
                 .attribute_service_ = session,
                 .method_service_ = session,
                 .monitored_item_service_ = session};

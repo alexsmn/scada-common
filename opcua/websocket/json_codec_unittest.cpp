@@ -84,7 +84,9 @@ TEST(JsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
       .results = {{.status_code = scada::StatusCode::Good,
                    .references = {{.reference_type_id = NumericNode(301),
                                    .forward = false,
-                                   .node_id = NumericNode(302)}}}}};
+                                   .node_id = NumericNode(302),
+                                   .node_class =
+                                       scada::NodeClass::Variable}}}}};
 
   const auto encoded = EncodeJson(ServiceResponse{browse});
   const auto& result = encoded.as_object()
@@ -99,13 +101,20 @@ TEST(JsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
   EXPECT_EQ(reference.at("NodeId").as_string(), "ns=2;i=302");
   EXPECT_TRUE(reference.at("ReferenceTypeId").is_string());
   EXPECT_EQ(reference.at("ReferenceTypeId").as_string(), "ns=2;i=301");
+  // OPC UA Part 4 Browse resultMask bit 2 is NodeClass, and
+  // ReferenceDescription.nodeClass is the target Node's NodeClass:
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.29
+  EXPECT_EQ(reference.at("NodeClass").to_number<int>(), 2);
 
-  // Roundtrip preserves the Reference's NodeId and forward flag.
+  // Roundtrip preserves the Reference's NodeId, forward flag, and NodeClass.
   const auto decoded = std::get<BrowseResponse>(DecodeServiceResponse(encoded));
   ASSERT_EQ(decoded.results.size(), 1u);
   ASSERT_EQ(decoded.results[0].references.size(), 1u);
   EXPECT_EQ(decoded.results[0].references[0].node_id, NumericNode(302));
   EXPECT_FALSE(decoded.results[0].references[0].forward);
+  EXPECT_EQ(decoded.results[0].references[0].node_class,
+            scada::NodeClass::Variable);
 }
 
 TEST(JsonCodecTest, TranslateBrowsePathsWireShapeMatchesSpec) {

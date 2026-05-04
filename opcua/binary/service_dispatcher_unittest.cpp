@@ -729,7 +729,7 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
   scada::ExpandedNodeId target_id;
   scada::QualifiedName ignored_browse_name;
   scada::LocalizedText ignored_display_name;
-  std::uint32_t ignored_node_class = 0;
+  std::uint32_t node_class = 0;
   scada::ExpandedNodeId ignored_type_definition;
   if (!decoder.Decode(result_count) || result_count != 1 ||
       !decoder.Decode(result_status) ||
@@ -739,7 +739,7 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
       !decoder.Decode(forward) || !decoder.Decode(target_id) ||
       !decoder.Decode(ignored_browse_name) ||
       !decoder.Decode(ignored_display_name) ||
-      !decoder.Decode(ignored_node_class) ||
+      !decoder.Decode(node_class) ||
       !decoder.Decode(ignored_type_definition)) {
     return std::nullopt;
   }
@@ -748,6 +748,7 @@ std::optional<scada::ReferenceDescription> DecodeSingleBrowseReference(
       .reference_type_id = reference_type_id,
       .forward = forward,
       .node_id = target_id.node_id(),
+      .node_class = static_cast<scada::NodeClass>(node_class),
   };
 }
 

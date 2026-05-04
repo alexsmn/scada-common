@@ -112,7 +112,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
              description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
-      result.references.push_back({ref.type->id(), true, ref.node->id()});
+      result.references.push_back({ref.type->id(), true, ref.node->id(),
+                                   ref.node->GetNodeClass()});
     }
   }
 
@@ -123,7 +124,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
              description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
-      result.references.push_back({ref.type->id(), false, ref.node->id()});
+      result.references.push_back({ref.type->id(), false, ref.node->id(),
+                                   ref.node->GetNodeClass()});
     }
   }
 
@@ -157,7 +159,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
     if (scada::IsSubtypeOf(address_space_, scada::id::HasTypeDefinition,
                            description.reference_type_id))
       result.references.emplace_back(scada::id::HasTypeDefinition,
-                                     /*forward=*/true, scada::id::PropertyType);
+                                     /*forward=*/true, scada::id::PropertyType,
+                                     scada::NodeClass::VariableType);
   }
 
   if (description.direction == scada::BrowseDirection::Inverse ||
@@ -165,7 +168,7 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
     if (scada::IsSubtypeOf(address_space_, scada::id::HasProperty,
                            description.reference_type_id))
       result.references.emplace_back(scada::id::HasProperty, /*forward=*/false,
-                                     node.id());
+                                     node.id(), node.GetNodeClass());
   }
 
   return result;

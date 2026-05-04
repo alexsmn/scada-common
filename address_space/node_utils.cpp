@@ -431,7 +431,8 @@ NodeState MakeNodeState(const Node& node) {
       boost::adaptors::transformed([](const Reference& ref) {
         return ReferenceDescription{.reference_type_id = ref.type->id(),
                                     .forward = true,
-                                    .node_id = ref.node->id()};
+                                    .node_id = ref.node->id(),
+                                    .node_class = ref.node->GetNodeClass()};
       }) |
       to_vector;
 

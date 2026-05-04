@@ -77,6 +77,14 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
+  if (status && results.size() != descriptions.size()) {
+    LOG_ERROR(logger_) << "Browse children returned unexpected result count"
+                       << LOG_TAG("ExpectedCount", descriptions.size())
+                       << LOG_TAG("ActualCount", results.size());
+    status = scada::StatusCode::Bad;
+    results.clear();
+  }
+
   const auto duration = base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse children completed"
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
