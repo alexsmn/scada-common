@@ -94,6 +94,244 @@ constexpr std::uint32_t EncodeSpecifiedAttribute(scada::AttributeId attribute_id
   return 1u << static_cast<unsigned>(attribute_id);
 }
 
+std::size_t EstimateStringSize(std::string_view value) {
+  return sizeof(std::int32_t) + value.size();
+}
+
+std::size_t EstimateByteStringSize(const scada::ByteString& value) {
+  return sizeof(std::int32_t) + value.size();
+}
+
+std::size_t EstimateNodeIdSize(const scada::NodeId& node_id) {
+  if (node_id.is_null()) {
+    return 1;
+  }
+  if (node_id.is_numeric() && node_id.namespace_index() <= 0xff &&
+      node_id.numeric_id() <= 0xffff) {
+    return 1 + sizeof(std::uint8_t) + sizeof(std::uint16_t);
+  }
+  if (node_id.is_numeric()) {
+    return 1 + sizeof(std::uint16_t) + sizeof(std::uint32_t);
+  }
+  if (node_id.is_string()) {
+    return 1 + sizeof(std::uint16_t) + EstimateStringSize(node_id.string_id());
+  }
+  return 1 + sizeof(std::uint16_t) + EstimateByteStringSize(node_id.opaque_id());
+}
+
+std::size_t EstimateExpandedNodeIdSize(const scada::ExpandedNodeId& node_id) {
+  auto size = EstimateNodeIdSize(node_id.node_id());
+  if (!node_id.namespace_uri().empty()) {
+    size += EstimateStringSize(node_id.namespace_uri());
+  }
+  if (node_id.server_index() != 0) {
+    size += sizeof(std::uint32_t);
+  }
+  return size;
+}
+
+std::size_t EstimateQualifiedNameSize(const scada::QualifiedName& name) {
+  return sizeof(std::uint16_t) + EstimateStringSize(name.name());
+}
+
+std::size_t EstimateVariantSize(const scada::Variant& value);
+
+std::size_t EstimateDataValueSize(const scada::DataValue& value) {
+  std::size_t size = sizeof(std::uint8_t);
+  if (!value.value.is_null()) {
+    size += EstimateVariantSize(value.value);
+  }
+  if (!scada::IsGood(value.status_code)) {
+    size += sizeof(std::uint32_t);
+  }
+  if (!value.source_timestamp.is_null()) {
+    size += sizeof(std::int64_t);
+  }
+  if (!value.server_timestamp.is_null()) {
+    size += sizeof(std::int64_t);
+  }
+  return size;
+}
+
+template <class T>
+std::size_t EstimateFixedArrayVariantSize(const std::vector<T>& values,
+                                          std::size_t element_size) {
+  return sizeof(std::uint8_t) + sizeof(std::int32_t) +
+         values.size() * element_size;
+}
+
+std::size_t EstimateVariantSize(const scada::Variant& value) {
+  if (value.is_null()) {
+    return sizeof(std::uint8_t);
+  }
+
+  if (value.is_array()) {
+    switch (value.type()) {
+      case scada::Variant::EMPTY:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<std::monostate>>(), 0);
+      case scada::Variant::BOOL:
+        return EstimateFixedArrayVariantSize(value.get<std::vector<bool>>(), 1);
+      case scada::Variant::INT8:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::Int8>>(), 1);
+      case scada::Variant::UINT8:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::UInt8>>(), 1);
+      case scada::Variant::INT16:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::Int16>>(), sizeof(std::uint16_t));
+      case scada::Variant::UINT16:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::UInt16>>(), sizeof(std::uint16_t));
+      case scada::Variant::INT32:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::Int32>>(), sizeof(std::uint32_t));
+      case scada::Variant::UINT32:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::UInt32>>(), sizeof(std::uint32_t));
+      case scada::Variant::INT64:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::Int64>>(), sizeof(std::int64_t));
+      case scada::Variant::UINT64:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::UInt64>>(), sizeof(std::uint64_t));
+      case scada::Variant::DOUBLE:
+        return EstimateFixedArrayVariantSize(
+            value.get<std::vector<scada::Double>>(), sizeof(double));
+      case scada::Variant::BYTE_STRING: {
+        std::size_t size = sizeof(std::uint8_t) + sizeof(std::int32_t);
+        for (const auto& item : value.get<std::vector<scada::ByteString>>()) {
+          size += EstimateByteStringSize(item);
+        }
+        return size;
+      }
+      case scada::Variant::STRING: {
+        std::size_t size = sizeof(std::uint8_t) + sizeof(std::int32_t);
+        for (const auto& item : value.get<std::vector<scada::String>>()) {
+          size += EstimateStringSize(item);
+        }
+        return size;
+      }
+      case scada::Variant::QUALIFIED_NAME: {
+        std::size_t size = sizeof(std::uint8_t) + sizeof(std::int32_t);
+        for (const auto& item :
+             value.get<std::vector<scada::QualifiedName>>()) {
+          size += EstimateQualifiedNameSize(item);
+        }
+        return size;
+      }
+      case scada::Variant::NODE_ID: {
+        std::size_t size = sizeof(std::uint8_t) + sizeof(std::int32_t);
+        for (const auto& item : value.get<std::vector<scada::NodeId>>()) {
+          size += EstimateNodeIdSize(item);
+        }
+        return size;
+      }
+      case scada::Variant::EXPANDED_NODE_ID: {
+        std::size_t size = sizeof(std::uint8_t) + sizeof(std::int32_t);
+        for (const auto& item :
+             value.get<std::vector<scada::ExpandedNodeId>>()) {
+          size += EstimateExpandedNodeIdSize(item);
+        }
+        return size;
+      }
+      case scada::Variant::LOCALIZED_TEXT:
+      case scada::Variant::EXTENSION_OBJECT:
+      case scada::Variant::DATE_TIME:
+      case scada::Variant::COUNT:
+        return sizeof(std::uint8_t) + sizeof(std::int32_t);
+    }
+  }
+
+  switch (value.type()) {
+    case scada::Variant::BOOL:
+    case scada::Variant::INT8:
+    case scada::Variant::UINT8:
+      return sizeof(std::uint8_t) + 1;
+    case scada::Variant::INT16:
+    case scada::Variant::UINT16:
+      return sizeof(std::uint8_t) + sizeof(std::uint16_t);
+    case scada::Variant::INT32:
+    case scada::Variant::UINT32:
+      return sizeof(std::uint8_t) + sizeof(std::uint32_t);
+    case scada::Variant::INT64:
+    case scada::Variant::UINT64:
+    case scada::Variant::DOUBLE:
+    case scada::Variant::DATE_TIME:
+      return sizeof(std::uint8_t) + sizeof(std::uint64_t);
+    case scada::Variant::BYTE_STRING:
+      return sizeof(std::uint8_t) +
+             EstimateByteStringSize(value.get<scada::ByteString>());
+    case scada::Variant::STRING:
+      return sizeof(std::uint8_t) + EstimateStringSize(value.get<scada::String>());
+    case scada::Variant::QUALIFIED_NAME:
+      return sizeof(std::uint8_t) +
+             EstimateQualifiedNameSize(value.get<scada::QualifiedName>());
+    case scada::Variant::NODE_ID:
+      return sizeof(std::uint8_t) + EstimateNodeIdSize(value.get<scada::NodeId>());
+    case scada::Variant::EXPANDED_NODE_ID:
+      return sizeof(std::uint8_t) +
+             EstimateExpandedNodeIdSize(value.get<scada::ExpandedNodeId>());
+    case scada::Variant::LOCALIZED_TEXT:
+    case scada::Variant::EXTENSION_OBJECT:
+    case scada::Variant::EMPTY:
+    case scada::Variant::COUNT:
+      return sizeof(std::uint8_t);
+  }
+  return sizeof(std::uint8_t);
+}
+
+std::size_t EstimateReferenceDescriptionSize(
+    const scada::ReferenceDescription& reference) {
+  return EstimateNodeIdSize(reference.reference_type_id) + sizeof(bool) +
+         EstimateExpandedNodeIdSize(scada::ExpandedNodeId{reference.node_id}) +
+         EstimateQualifiedNameSize(scada::QualifiedName{}) + sizeof(std::uint8_t) +
+         sizeof(std::uint32_t) +
+         EstimateExpandedNodeIdSize(scada::ExpandedNodeId{});
+}
+
+std::size_t EstimateReadRequestPayloadSize(const ReadRequest& request) {
+  std::size_t size = 96;
+  for (const auto& input : request.inputs) {
+    size += EstimateNodeIdSize(input.node_id) + sizeof(std::uint32_t) +
+            EstimateStringSize({}) + EstimateQualifiedNameSize({});
+  }
+  return size;
+}
+
+std::size_t EstimateBrowseRequestPayloadSize(const BrowseRequest& request) {
+  std::size_t size = 112;
+  for (const auto& input : request.inputs) {
+    size += EstimateNodeIdSize(input.node_id) + sizeof(std::uint32_t) +
+            EstimateNodeIdSize(input.reference_type_id) + sizeof(bool) +
+            2 * sizeof(std::uint32_t);
+  }
+  return size;
+}
+
+std::size_t EstimateReadResponsePayloadSize(const ReadResponse& response) {
+  std::size_t size = 64;
+  for (const auto& result : response.results) {
+    size += EstimateDataValueSize(result);
+  }
+  return size;
+}
+
+std::size_t EstimateBrowseResponsePayloadSize(
+    const std::vector<scada::BrowseResult>& results) {
+  std::size_t size = 64;
+  for (const auto& result : results) {
+    size += sizeof(std::uint32_t) +
+            EstimateByteStringSize(result.continuation_point) +
+            sizeof(std::int32_t);
+    for (const auto& reference : result.references) {
+      size += EstimateReferenceDescriptionSize(reference);
+    }
+  }
+  return size;
+}
+
 void AppendRequestHeader(Encoder& encoder,
                          const ServiceRequestHeader& header) {
   encoder.Encode(header.authentication_token);
@@ -199,6 +437,7 @@ void AppendBrowsePathResult(Encoder& encoder,
 void AppendHistoryData(Encoder& encoder,
                        const scada::HistoryReadRawResult& result) {
   std::vector<char> body;
+  body.reserve(sizeof(std::int32_t) + result.values.size() * 32);
   Encoder body_encoder{body};
   body_encoder.Encode(static_cast<std::int32_t>(result.values.size()));
   for (const auto& value : result.values) {
@@ -213,6 +452,7 @@ void AppendHistoryData(Encoder& encoder,
 void AppendLiteralOperand(Encoder& encoder,
                           const scada::Variant& value) {
   std::vector<char> body;
+  body.reserve(EstimateVariantSize(value));
   Encoder body_encoder{body};
   body_encoder.Encode(value);
   encoder.Encode(EncodedExtensionObject{
@@ -225,6 +465,7 @@ void AppendSimpleAttributeOperand(
     Encoder& encoder,
     std::span<const std::string> browse_path) {
   std::vector<char> body;
+  body.reserve(16 + browse_path.size() * 24);
   Encoder body_encoder{body};
   body_encoder.Encode(scada::NodeId{scada::id::BaseEventType});
   body_encoder.Encode(static_cast<std::int32_t>(browse_path.size()));
@@ -243,6 +484,8 @@ void AppendEventFilter(Encoder& encoder,
                        std::span<const std::vector<std::string>> field_paths,
                        const scada::EventFilter& filter) {
   std::vector<char> body;
+  body.reserve(32 + field_paths.size() * 48 +
+               (filter.of_type.size() + filter.child_of.size()) * 32);
   Encoder body_encoder{body};
   body_encoder.Encode(static_cast<std::int32_t>(field_paths.size()));
   for (const auto& field_path : field_paths) {
@@ -277,6 +520,7 @@ void AppendHistoryEvent(Encoder& encoder,
       std::vector<std::vector<std::string>>(field_paths.begin(),
                                             field_paths.end()));
   std::vector<char> body;
+  body.reserve(16 + response.result.events.size() * paths.size() * 24);
   Encoder body_encoder{body};
   body_encoder.Encode(static_cast<std::int32_t>(response.result.events.size()));
   for (const auto& event : response.result.events) {
@@ -296,6 +540,7 @@ void AppendHistoryEvent(Encoder& encoder,
 void AppendDataChangeFilter(Encoder& encoder,
                             const DataChangeFilter& filter) {
   std::vector<char> body;
+  body.reserve(3 * sizeof(std::uint32_t));
   Encoder body_encoder{body};
   body_encoder.Encode(static_cast<std::uint32_t>(filter.trigger));
   body_encoder.Encode(static_cast<std::uint32_t>(filter.deadband_type));
@@ -387,6 +632,14 @@ void AppendNotificationData(Encoder& encoder,
       [&](const auto& typed) {
         using T = std::decay_t<decltype(typed)>;
         std::vector<char> body;
+        if constexpr (std::is_same_v<T, DataChangeNotification>) {
+          body.reserve(sizeof(std::int32_t) +
+                       typed.monitored_items.size() * 32);
+        } else if constexpr (std::is_same_v<T, EventNotificationList>) {
+          body.reserve(sizeof(std::int32_t) + typed.events.size() * 64);
+        } else if constexpr (std::is_same_v<T, StatusChangeNotification>) {
+          body.reserve(sizeof(std::uint32_t));
+        }
         Encoder body_encoder{body};
         std::uint32_t type_id = 0;
         if constexpr (std::is_same_v<T, DataChangeNotification>) {
@@ -402,6 +655,8 @@ void AppendNotificationData(Encoder& encoder,
           body_encoder.Encode(static_cast<std::int32_t>(typed.events.size()));
           for (const auto& event : typed.events) {
             std::vector<char> event_body;
+            event_body.reserve(2 * sizeof(std::uint32_t) +
+                               event.event_fields.size() * 24);
             Encoder event_encoder{event_body};
             event_encoder.Encode(event.client_handle);
             event_encoder.Encode(static_cast<std::int32_t>(event.event_fields.size()));
@@ -424,6 +679,7 @@ std::optional<EncodedExtensionObject> EncodeNodeAttributesExtension(
     scada::NodeClass node_class,
     const scada::NodeAttributes& attributes) {
   std::vector<char> body;
+  body.reserve(96);
   Encoder encoder{body};
   std::uint32_t specified_attributes = 0;
   if (!attributes.display_name.empty()) {
@@ -582,6 +838,35 @@ bool SkipStringArray(Decoder& decoder) {
   return true;
 }
 
+bool SkipString(Decoder& decoder) {
+  std::int32_t length = 0;
+  if (!decoder.Decode(length)) {
+    return false;
+  }
+  if (length < 0) {
+    return true;
+  }
+  return decoder.Skip(static_cast<std::size_t>(length));
+}
+
+bool DecodeStringEmpty(Decoder& decoder, bool& empty) {
+  std::int32_t length = 0;
+  if (!decoder.Decode(length)) {
+    return false;
+  }
+  if (length < 0) {
+    empty = true;
+    return true;
+  }
+  empty = length == 0;
+  return decoder.Skip(static_cast<std::size_t>(length));
+}
+
+bool SkipQualifiedName(Decoder& decoder) {
+  std::uint16_t ignored_namespace_index = 0;
+  return decoder.Decode(ignored_namespace_index) && SkipString(decoder);
+}
+
 bool SkipLocalizedText(Decoder& decoder) {
   std::uint8_t mask = 0;
   if (!decoder.Decode(mask)) {
@@ -646,8 +931,7 @@ bool ReadRequestHeader(Decoder& decoder,
   }
 
   std::uint32_t ignored_u32 = 0;
-  std::string ignored_string;
-  if (!decoder.Decode(ignored_u32) || !decoder.Decode(ignored_string) ||
+  if (!decoder.Decode(ignored_u32) || !SkipString(decoder) ||
       !decoder.Decode(ignored_u32)) {
     return false;
   }
@@ -694,10 +978,10 @@ std::optional<scada::Variant> DecodeDataValue(Decoder& decoder) {
 bool DecodeWriteValue(Decoder& decoder,
                       scada::WriteValue& value) {
   std::uint32_t attribute_id = 0;
-  std::string index_range;
+  bool index_range_empty = false;
   if (!decoder.Decode(value.node_id) ||
       !decoder.Decode(attribute_id) ||
-      !decoder.Decode(index_range)) {
+      !DecodeStringEmpty(decoder, index_range_empty)) {
     return false;
   }
 
@@ -708,22 +992,21 @@ bool DecodeWriteValue(Decoder& decoder,
 
   value.attribute_id = static_cast<scada::AttributeId>(attribute_id);
   value.value = std::move(*decoded);
-  return index_range.empty();
+  return index_range_empty;
 }
 
 bool DecodeReadValueId(Decoder& decoder,
                        scada::ReadValueId& value_id) {
   std::uint32_t attribute_id = 0;
-  std::string index_range;
-  scada::QualifiedName ignored_data_encoding;
+  bool index_range_empty = false;
   if (!decoder.Decode(value_id.node_id) ||
       !decoder.Decode(attribute_id) ||
-      !decoder.Decode(index_range) ||
-      !decoder.Decode(ignored_data_encoding)) {
+      !DecodeStringEmpty(decoder, index_range_empty) ||
+      !SkipQualifiedName(decoder)) {
     return false;
   }
   value_id.attribute_id = static_cast<scada::AttributeId>(attribute_id);
-  return index_range.empty();
+  return index_range_empty;
 }
 
 bool DecodeBrowseDescription(Decoder& decoder,
@@ -898,15 +1181,13 @@ bool ReadDataValue(Decoder& decoder, scada::DataValue& value) {
 bool ReadReferenceDescription(Decoder& decoder,
                               scada::ReferenceDescription& reference) {
   scada::ExpandedNodeId expanded_node_id;
-  scada::QualifiedName ignored_browse_name;
-  scada::LocalizedText ignored_display_name;
   std::uint32_t ignored_node_class = 0;
   scada::ExpandedNodeId ignored_type_definition;
   if (!decoder.Decode(reference.reference_type_id) ||
       !decoder.Decode(reference.forward) ||
       !decoder.Decode(expanded_node_id) ||
-      !decoder.Decode(ignored_browse_name) ||
-      !decoder.Decode(ignored_display_name) ||
+      !SkipQualifiedName(decoder) ||
+      !SkipLocalizedText(decoder) ||
       !decoder.Decode(ignored_node_class) ||
       !decoder.Decode(ignored_type_definition)) {
     return false;
@@ -2559,10 +2840,15 @@ std::optional<std::vector<char>> EncodeServiceRequest(
       [&](const auto& typed_request) -> std::optional<std::vector<char>> {
         std::vector<char> payload;
         std::vector<char> body;
+        using T = std::decay_t<decltype(typed_request)>;
+        if constexpr (std::is_same_v<T, ReadRequest>) {
+          payload.reserve(EstimateReadRequestPayloadSize(typed_request));
+        } else if constexpr (std::is_same_v<T, BrowseRequest>) {
+          payload.reserve(EstimateBrowseRequestPayloadSize(typed_request));
+        }
         Encoder payload_encoder{payload};
         Encoder body_encoder{body};
 
-        using T = std::decay_t<decltype(typed_request)>;
         if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           AppendRequestHeader(payload_encoder, header);
           payload_encoder.Encode(std::string_view{""});
@@ -3108,10 +3394,17 @@ std::optional<std::vector<char>> EncodeServiceResponse(
       [&](const auto& typed_response) -> std::optional<std::vector<char>> {
         std::vector<char> payload;
         std::vector<char> body;
+        using T = std::decay_t<decltype(typed_response)>;
+        if constexpr (std::is_same_v<T, ReadResponse>) {
+          payload.reserve(EstimateReadResponsePayloadSize(typed_response));
+        } else if constexpr (std::is_same_v<T, BrowseResponse> ||
+                             std::is_same_v<T, BrowseNextResponse>) {
+          payload.reserve(EstimateBrowseResponsePayloadSize(
+              typed_response.results));
+        }
         Encoder payload_encoder{payload};
         Encoder body_encoder{body};
 
-        using T = std::decay_t<decltype(typed_response)>;
         if constexpr (std::is_same_v<T, CreateSessionResponse>) {
           AppendResponseHeader(payload_encoder, request_handle,
                                typed_response.status);

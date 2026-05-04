@@ -1,13 +1,22 @@
 #include "opcua/service_handler.h"
 
+#include "base/boost_log.h"
+#include "base/time/time.h"
 #include "opcua/endpoint_core.h"
 
 #include "scada/coroutine_services.h"
+
+#include "base/debug_util.h"
 
 #include <type_traits>
 #include <utility>
 
 namespace opcua {
+namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaServiceHandler")};
+
+}  // namespace
 
 ServiceHandler::ServiceHandler(ServiceHandlerContext&& context)
     : ServiceHandlerContext{std::move(context)} {}
@@ -50,6 +59,8 @@ Awaitable<ServiceResponse> ServiceHandler::Handle(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleRead(
     ReadRequest request) const {
+  const auto input_count = request.inputs.size();
+  const auto start_ticks = base::TimeTicks::Now();
   auto result = co_await attribute_service.Read(
       MakeServiceContext(user_id),
       std::make_shared<const std::vector<scada::ReadValueId>>(
@@ -57,6 +68,12 @@ Awaitable<ServiceResponse> ServiceHandler::HandleRead(
   auto status = result.status();
   auto results = std::move(result).value_or({});
   results = NormalizeReadResults(std::move(results));
+  const auto duration = base::TimeTicks::Now() - start_ticks;
+  LOG_INFO(logger_) << "OPC UA Read completed"
+                    << LOG_TAG("InputCount", input_count)
+                    << LOG_TAG("ResultCount", results.size())
+                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("Status", ToString(status));
   co_return ServiceResponse{
       ReadResponse{std::move(status), std::move(results)}};
 }
@@ -75,10 +92,23 @@ Awaitable<ServiceResponse> ServiceHandler::HandleWrite(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
     BrowseRequest request) const {
+  const auto input_count = request.inputs.size();
+  const auto start_ticks = base::TimeTicks::Now();
   auto result = co_await view_service.Browse(
       MakeServiceContext(user_id), std::move(request.inputs));
   auto status = result.status();
   auto results = std::move(result).value_or({});
+  std::size_t reference_count = 0;
+  for (const auto& browse_result : results) {
+    reference_count += browse_result.references.size();
+  }
+  const auto duration = base::TimeTicks::Now() - start_ticks;
+  LOG_INFO(logger_) << "OPC UA Browse completed"
+                    << LOG_TAG("InputCount", input_count)
+                    << LOG_TAG("ResultCount", results.size())
+                    << LOG_TAG("ReferenceCount", reference_count)
+                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("Status", ToString(status));
   co_return ServiceResponse{
       BrowseResponse{std::move(status), std::move(results)}};
 }

@@ -77,6 +77,21 @@ TEST(CodecUtilsTest, HandlesStringsAndByteStrings) {
   EXPECT_TRUE(decoder.consumed());
 }
 
+TEST(CodecUtilsTest, EncodesEmptyLocalizedTextAsMaskOnly) {
+  std::vector<char> bytes;
+  Encoder encoder{bytes};
+  encoder.Encode(scada::LocalizedText{});
+
+  ASSERT_EQ(bytes.size(), 1u);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0u);
+
+  Decoder decoder{bytes};
+  scada::LocalizedText decoded;
+  EXPECT_TRUE(decoder.Decode(decoded));
+  EXPECT_TRUE(decoded.empty());
+  EXPECT_TRUE(decoder.consumed());
+}
+
 TEST(CodecUtilsTest, RoundTripsNumericNodeIds) {
   std::vector<char> bytes;
   Encoder encoder{bytes};

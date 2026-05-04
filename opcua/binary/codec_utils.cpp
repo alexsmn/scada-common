@@ -176,12 +176,13 @@ void Encoder::Encode(const scada::QualifiedName& value) {
 }
 
 void Encoder::Encode(const scada::LocalizedText& value) {
-  const auto utf8 = ToString(value);
-  const std::uint8_t mask = utf8.empty() ? 0 : 0x02;
-  Encode(mask);
-  if ((mask & 0x02) != 0) {
-    Encode(utf8);
+  if (value.empty()) {
+    Encode(std::uint8_t{0});
+    return;
   }
+  const auto utf8 = ToString(value);
+  Encode(std::uint8_t{0x02});
+  Encode(utf8);
 }
 
 void Encoder::Encode(scada::DateTime value) {
