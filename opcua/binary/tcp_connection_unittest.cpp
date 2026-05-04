@@ -2,6 +2,7 @@
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
+#include "base/async_completion.h"
 #include "transport/transport.h"
 
 #include <gtest/gtest.h>
@@ -291,6 +292,109 @@ TEST_F(TcpConnectionTest,
             MessageType::SecureMessage);
   EXPECT_EQ(response->sequence_header.request_id, 9u);
   EXPECT_EQ(response->body, (std::vector<char>{'o', 'k'}));
+}
+
+TEST_F(TcpConnectionTest,
+       DispatchesLaterSecureFramesWhileFirstServiceFrameWaits) {
+  auto peer = std::make_shared<StreamPeerState>();
+  const auto hello = EncodeHelloMessage(
+      {.protocol_version = 0,
+       .receive_buffer_size = 16384,
+       .send_buffer_size = 2048,
+       .max_message_size = 0,
+       .max_chunk_count = 0,
+       .endpoint_url = "opc.tcp://localhost:4840"});
+  const auto open = EncodeSecureConversationMessage(
+      {.frame_header =
+           {.message_type = MessageType::SecureOpen,
+            .chunk_type = 'F',
+            .message_size = 0},
+       .secure_channel_id = 0,
+       .asymmetric_security_header = AsymmetricSecurityHeader{
+           .security_policy_uri = std::string{kSecurityPolicyNone},
+           .sender_certificate = {},
+           .receiver_certificate_thumbprint = {},
+       },
+       .sequence_header = {.sequence_number = 1, .request_id = 1},
+       .body = EncodeOpenRequestBody(1)});
+  const std::vector<char> first_payload{'s', 'l', 'o', 'w'};
+  const auto first_secure = EncodeSecureConversationMessage(
+      {.frame_header =
+           {.message_type = MessageType::SecureMessage,
+            .chunk_type = 'F',
+            .message_size = 0},
+       .secure_channel_id = 1,
+       .symmetric_security_header =
+           SymmetricSecurityHeader{.token_id = 1},
+       .sequence_header = {.sequence_number = 2, .request_id = 10},
+       .body = first_payload});
+  const std::vector<char> second_payload{'f', 'a', 's', 't'};
+  const auto second_secure = EncodeSecureConversationMessage(
+      {.frame_header =
+           {.message_type = MessageType::SecureMessage,
+            .chunk_type = 'F',
+            .message_size = 0},
+       .secure_channel_id = 1,
+       .symmetric_security_header =
+           SymmetricSecurityHeader{.token_id = 1},
+       .sequence_header = {.sequence_number = 3, .request_id = 11},
+       .body = second_payload});
+
+  peer->incoming.push_back(AsString(hello));
+  peer->incoming.push_back(AsString(open));
+  peer->incoming.push_back(AsString(first_secure));
+  peer->incoming.push_back(AsString(second_secure));
+
+  base::AsyncCompletion release_first{any_executor_};
+  std::vector<std::vector<char>> received_payloads;
+  CoSpawn(any_executor_,
+          [this, peer, release_first, &received_payloads]() mutable
+              -> Awaitable<void> {
+    co_await TcpConnection{
+        {.transport = transport::any_transport{
+             ScriptedStreamTransport{any_executor_, peer}},
+         .limits = server_limits_,
+         .on_secure_frame =
+             [release_first, &received_payloads](
+                 std::vector<char> frame)
+                 mutable -> Awaitable<std::optional<std::vector<char>>> {
+           received_payloads.push_back(frame);
+           if (frame == (std::vector<char>{'s', 'l', 'o', 'w'})) {
+             co_await release_first.Wait();
+             co_return std::vector<char>{'s', 'l', 'o', 'w', '-', 'o', 'k'};
+           }
+           co_return std::vector<char>{'f', 'a', 's', 't', '-', 'o', 'k'};
+         }}}
+        .Run();
+  });
+
+  for (int i = 0; i < 10; ++i) {
+    executor_.Poll();
+  }
+
+  ASSERT_EQ(received_payloads.size(), 2u);
+  EXPECT_EQ(received_payloads[0], first_payload);
+  EXPECT_EQ(received_payloads[1], second_payload);
+  ASSERT_GE(peer->writes.size(), 3u);
+  const auto fast_response = DecodeSecureConversationMessage(
+      std::vector<char>{peer->writes.back().begin(), peer->writes.back().end()});
+  ASSERT_TRUE(fast_response.has_value());
+  EXPECT_EQ(fast_response->sequence_header.request_id, 11u);
+  EXPECT_EQ(fast_response->body,
+            (std::vector<char>{'f', 'a', 's', 't', '-', 'o', 'k'}));
+
+  release_first.Complete();
+  for (int i = 0; i < 10; ++i) {
+    executor_.Poll();
+  }
+
+  ASSERT_GE(peer->writes.size(), 4u);
+  const auto slow_response = DecodeSecureConversationMessage(
+      std::vector<char>{peer->writes.back().begin(), peer->writes.back().end()});
+  ASSERT_TRUE(slow_response.has_value());
+  EXPECT_EQ(slow_response->sequence_header.request_id, 10u);
+  EXPECT_EQ(slow_response->body,
+            (std::vector<char>{'s', 'l', 'o', 'w', '-', 'o', 'k'}));
 }
 
 TEST_F(TcpConnectionTest,

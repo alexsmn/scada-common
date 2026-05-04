@@ -1,9 +1,24 @@
 #include "opcua/client_protocol_session.h"
 
+#include "base/boost_log.h"
+#include "base/debug_util.h"
+
 #include <utility>
 #include <variant>
 
 namespace opcua {
+namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaClientProtocolSession")};
+
+std::size_t CountReferences(const std::vector<scada::BrowseResult>& results) {
+  std::size_t count = 0;
+  for (const auto& result : results)
+    count += result.references.size();
+  return count;
+}
+
+}  // namespace
 
 ClientProtocolSession::ClientProtocolSession(Context context)
     : connection_{context.connection},
@@ -92,14 +107,32 @@ Awaitable<scada::Status> ClientProtocolSession::Close() {
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 ClientProtocolSession::Read(std::vector<scada::ReadValueId> inputs) {
+  const auto input_count = inputs.size();
+  const auto start_ticks = base::TimeTicks::Now();
   auto result = co_await CallTyped<ReadResponse>(
       RequestBody{ReadRequest{.inputs = std::move(inputs)}});
+  const auto duration = base::TimeTicks::Now() - start_ticks;
   if (!result.ok()) {
+    LOG_INFO(logger_) << "OPC UA client Read completed"
+                      << LOG_TAG("InputCount", input_count)
+                      << LOG_TAG("ResultCount", 0)
+                      << LOG_TAG("DurationMs", duration.InMilliseconds())
+                      << LOG_TAG("Status", ToString(result.status()));
     co_return scada::StatusOr<std::vector<scada::DataValue>>{result.status()};
   }
   if (result->status.bad()) {
+    LOG_INFO(logger_) << "OPC UA client Read completed"
+                      << LOG_TAG("InputCount", input_count)
+                      << LOG_TAG("ResultCount", result->results.size())
+                      << LOG_TAG("DurationMs", duration.InMilliseconds())
+                      << LOG_TAG("Status", ToString(result->status));
     co_return scada::StatusOr<std::vector<scada::DataValue>>{result->status};
   }
+  LOG_INFO(logger_) << "OPC UA client Read completed"
+                    << LOG_TAG("InputCount", input_count)
+                    << LOG_TAG("ResultCount", result->results.size())
+                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("Status", ToString(result->status));
   co_return scada::StatusOr<std::vector<scada::DataValue>>{
       std::move(result->results)};
 }
@@ -120,14 +153,36 @@ ClientProtocolSession::Write(std::vector<scada::WriteValue> inputs) {
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientProtocolSession::Browse(std::vector<scada::BrowseDescription> inputs) {
+  const auto input_count = inputs.size();
+  const auto start_ticks = base::TimeTicks::Now();
   auto result = co_await CallTyped<BrowseResponse>(RequestBody{
       BrowseRequest{.inputs = std::move(inputs)}});
+  const auto duration = base::TimeTicks::Now() - start_ticks;
   if (!result.ok()) {
+    LOG_INFO(logger_) << "OPC UA client Browse completed"
+                      << LOG_TAG("InputCount", input_count)
+                      << LOG_TAG("ResultCount", 0)
+                      << LOG_TAG("ReferenceCount", 0)
+                      << LOG_TAG("DurationMs", duration.InMilliseconds())
+                      << LOG_TAG("Status", ToString(result.status()));
     co_return scada::StatusOr<std::vector<scada::BrowseResult>>{result.status()};
   }
   if (result->status.bad()) {
+    LOG_INFO(logger_) << "OPC UA client Browse completed"
+                      << LOG_TAG("InputCount", input_count)
+                      << LOG_TAG("ResultCount", result->results.size())
+                      << LOG_TAG("ReferenceCount",
+                                 CountReferences(result->results))
+                      << LOG_TAG("DurationMs", duration.InMilliseconds())
+                      << LOG_TAG("Status", ToString(result->status));
     co_return scada::StatusOr<std::vector<scada::BrowseResult>>{result->status};
   }
+  LOG_INFO(logger_) << "OPC UA client Browse completed"
+                    << LOG_TAG("InputCount", input_count)
+                    << LOG_TAG("ResultCount", result->results.size())
+                    << LOG_TAG("ReferenceCount", CountReferences(result->results))
+                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("Status", ToString(result->status));
   co_return scada::StatusOr<std::vector<scada::BrowseResult>>{
       std::move(result->results)};
 }
