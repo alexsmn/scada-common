@@ -1,6 +1,7 @@
 #include "opcua/client_channel.h"
 #include "opcua/binary/client_connection.h"
 
+#include "base/async_completion.h"
 #include "base/any_executor.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
@@ -131,6 +132,62 @@ std::vector<char> BuildServiceResponseFrame(std::uint32_t channel_id,
   return EncodeSecureConversationMessage(message);
 }
 
+class BlockingConnection final : public opcua::ClientConnection {
+ public:
+  explicit BlockingConnection(AnyExecutor executor)
+      : executor_{std::move(executor)},
+        first_send_released_{executor_} {}
+
+  Awaitable<scada::Status> Open() override {
+    co_return scada::Status{scada::StatusCode::Good};
+  }
+
+  Awaitable<scada::Status> Close() override {
+    co_return scada::Status{scada::StatusCode::Good};
+  }
+
+  std::uint32_t NextRequestId() override {
+    return next_request_id_++;
+  }
+
+  Awaitable<scada::Status> SendRequest(
+      std::uint32_t request_id,
+      const RequestMessage& message,
+      const scada::NodeId& authentication_token) override {
+    ++active_sends_;
+    max_active_sends_ = std::max(max_active_sends_, active_sends_);
+    request_ids.push_back(request_id);
+    request_handles.push_back(message.request_handle);
+
+    const auto send_index = send_count_++;
+    if (block_first_send_ && send_index == 0) {
+      co_await first_send_released_.Wait();
+    }
+
+    --active_sends_;
+    co_return scada::Status{scada::StatusCode::Good};
+  }
+
+  Awaitable<scada::StatusOr<ClientResponseFrame>> ReadResponse() override {
+    co_return scada::StatusOr<ClientResponseFrame>{
+        scada::Status{scada::StatusCode::Bad_Disconnected}};
+  }
+
+  void ReleaseFirstSend() { first_send_released_.Complete(); }
+
+  bool block_first_send_ = false;
+  int active_sends_ = 0;
+  int max_active_sends_ = 0;
+  int send_count_ = 0;
+  std::vector<std::uint32_t> request_ids;
+  std::vector<std::uint32_t> request_handles;
+
+ private:
+  AnyExecutor executor_;
+  base::AsyncCompletion first_send_released_;
+  std::uint32_t next_request_id_ = 1;
+};
+
 class ClientChannelTest : public ::testing::Test {
  protected:
   static constexpr std::uint32_t kChannelId = 42;
@@ -177,7 +234,7 @@ TEST_F(ClientChannelTest, RequestHandlesAreMonotonic) {
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   EXPECT_EQ(channel.NextRequestHandle(), 1u);
   EXPECT_EQ(channel.NextRequestHandle(), 2u);
 }
@@ -203,7 +260,7 @@ TEST_F(ClientChannelTest, CallReadReturnsTypedResponse) {
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
@@ -237,7 +294,7 @@ TEST_F(ClientChannelTest, CallWriteReturnsStatusCodes) {
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(request_handle,
@@ -267,7 +324,7 @@ TEST_F(ClientChannelTest, CallRejectsMismatchedRequestHandle) {
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(/*request_handle=*/7,
@@ -284,7 +341,7 @@ TEST_F(ClientChannelTest, CallReturnsBadOnConnectionClosed) {
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   const auto result = WaitAwaitable(
       executor_,
       channel.Call(
@@ -311,7 +368,7 @@ TEST_F(ClientChannelTest,
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   channel.set_authentication_token(scada::NodeId{0xABCDEF});
   EXPECT_EQ(channel.authentication_token(), scada::NodeId{0xABCDEF});
 
@@ -344,7 +401,7 @@ TEST_F(ClientChannelTest,
 
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
 
   const std::uint32_t first_handle = 21;
   const std::uint32_t second_handle = 22;
@@ -391,6 +448,103 @@ TEST_F(ClientChannelTest,
   ASSERT_NE(write, nullptr);
   ASSERT_EQ(write->results.size(), 1u);
   EXPECT_EQ(write->results[0], scada::StatusCode::Good);
+}
+
+TEST_F(ClientChannelTest,
+       ConcurrentReceivesCompleteOutOfOrderResponses) {
+  auto state = std::make_shared<ScriptedState>();
+  auto transport = MakeClientTransport(state);
+  ClientSecureChannel secure_channel{*transport};
+  OpenChannel(state, *transport, secure_channel);
+
+  ClientConnection connection{
+      {.transport = *transport, .secure_channel = secure_channel}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
+
+  const std::uint32_t first_handle = 41;
+  const std::uint32_t second_handle = 42;
+  auto first_request_id = WaitAwaitable(
+      executor_,
+      channel.Send(first_handle, RequestBody{ReadRequest{.inputs = {}}}));
+  auto second_request_id = WaitAwaitable(
+      executor_,
+      channel.Send(second_handle, RequestBody{WriteRequest{.inputs = {}}}));
+  ASSERT_TRUE(first_request_id.ok());
+  ASSERT_TRUE(second_request_id.ok());
+
+  const auto second_body = EncodeServiceResponse(
+      second_handle,
+      ResponseBody{WriteResponse{.status = scada::StatusCode::Good,
+                                  .results = {scada::StatusCode::Good}}});
+  const auto first_body = EncodeServiceResponse(
+      first_handle,
+      ResponseBody{ReadResponse{
+          .status = scada::StatusCode::Good,
+          .results = {scada::DataValue{scada::Variant{std::int32_t{8}}, {}, {},
+                                       {}}}}});
+  ASSERT_TRUE(second_body.has_value());
+  ASSERT_TRUE(first_body.has_value());
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      kChannelId, kTokenId, *second_request_id, *second_body)));
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      kChannelId, kTokenId, *first_request_id, *first_body)));
+
+  auto first = StartAwaitable(
+      executor_, channel.Receive(*first_request_id, first_handle));
+  auto second = StartAwaitable(
+      executor_, channel.Receive(*second_request_id, second_handle));
+  Drain(executor_);
+  ASSERT_TRUE(first->done);
+  ASSERT_TRUE(second->done);
+
+  const auto first_response = WaitResult(executor_, first);
+  const auto second_response = WaitResult(executor_, second);
+  ASSERT_TRUE(first_response.ok());
+  ASSERT_TRUE(second_response.ok());
+
+  const auto* read = std::get_if<ReadResponse>(&first_response.value());
+  ASSERT_NE(read, nullptr);
+  ASSERT_EQ(read->results.size(), 1u);
+  EXPECT_EQ(read->results[0].value, (scada::Variant{std::int32_t{8}}));
+
+  const auto* write = std::get_if<WriteResponse>(&second_response.value());
+  ASSERT_NE(write, nullptr);
+  ASSERT_EQ(write->results.size(), 1u);
+  EXPECT_EQ(write->results[0], scada::StatusCode::Good);
+}
+
+TEST_F(ClientChannelTest, ConcurrentSendsAreSerializedOnConnectionSend) {
+  BlockingConnection connection{any_executor_};
+  connection.block_first_send_ = true;
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
+
+  auto first = StartAwaitable(
+      executor_,
+      channel.Send(31, RequestBody{ReadRequest{.inputs = {}}}));
+  Drain(executor_);
+  ASSERT_FALSE(first->done);
+  ASSERT_EQ(connection.request_ids, (std::vector<std::uint32_t>{1}));
+
+  auto second = StartAwaitable(
+      executor_,
+      channel.Send(32, RequestBody{WriteRequest{.inputs = {}}}));
+  Drain(executor_);
+  ASSERT_FALSE(second->done);
+  EXPECT_EQ(connection.request_ids, (std::vector<std::uint32_t>{1}));
+  EXPECT_EQ(connection.max_active_sends_, 1);
+
+  connection.ReleaseFirstSend();
+  Drain(executor_);
+
+  const auto first_id = WaitResult(executor_, first);
+  const auto second_id = WaitResult(executor_, second);
+  ASSERT_TRUE(first_id.ok());
+  ASSERT_TRUE(second_id.ok());
+  EXPECT_EQ(*first_id, 1u);
+  EXPECT_EQ(*second_id, 2u);
+  EXPECT_EQ(connection.request_ids, (std::vector<std::uint32_t>{1, 2}));
+  EXPECT_EQ(connection.request_handles, (std::vector<std::uint32_t>{31, 32}));
+  EXPECT_EQ(connection.max_active_sends_, 1);
 }
 
 }  // namespace

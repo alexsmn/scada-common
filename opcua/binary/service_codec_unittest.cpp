@@ -92,6 +92,7 @@ TEST(ServiceCodecTest, WriteResponseRoundTrip) {
 }
 
 TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
+  const scada::ByteString opaque_id{'o', 'p', 'a', 'q', 'u', 'e'};
   BrowseResponse response{
       .status = scada::StatusCode::Good,
       .results = {scada::BrowseResult{
@@ -101,6 +102,16 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
                           .reference_type_id = scada::NodeId{35},
                           .forward = true,
                           .node_id = scada::NodeId{100},
+                      },
+                      scada::ReferenceDescription{
+                          .reference_type_id = scada::NodeId{35},
+                          .forward = true,
+                          .node_id = scada::NodeId{scada::String{"File.txt"}, 7},
+                      },
+                      scada::ReferenceDescription{
+                          .reference_type_id = scada::NodeId{35},
+                          .forward = true,
+                          .node_id = scada::NodeId{opaque_id, 8},
                       }},
                   },
                   scada::BrowseResult{
@@ -113,11 +124,15 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
   EXPECT_TRUE(scada::IsGood(typed.results[0].status_code));
   EXPECT_EQ(typed.results[0].continuation_point,
             response.results[0].continuation_point);
-  ASSERT_EQ(typed.results[0].references.size(), 1u);
+  ASSERT_EQ(typed.results[0].references.size(), 3u);
   EXPECT_EQ(typed.results[0].references[0].reference_type_id,
             scada::NodeId{35});
   EXPECT_TRUE(typed.results[0].references[0].forward);
   EXPECT_EQ(typed.results[0].references[0].node_id, scada::NodeId{100});
+  EXPECT_EQ(typed.results[0].references[1].node_id,
+            (scada::NodeId{scada::String{"File.txt"}, 7}));
+  EXPECT_EQ(typed.results[0].references[2].node_id,
+            (scada::NodeId{opaque_id, 8}));
   EXPECT_EQ(typed.results[1].status_code, scada::StatusCode::Bad_NothingToDo);
   EXPECT_TRUE(typed.results[1].references.empty());
 }

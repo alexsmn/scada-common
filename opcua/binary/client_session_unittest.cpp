@@ -192,7 +192,7 @@ TEST_F(ClientProtocolSessionTest, CreateRunsCreateAndActivate) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
 
@@ -220,7 +220,7 @@ TEST_F(ClientProtocolSessionTest, CreatePropagatesCreateSessionBadStatus) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
 
@@ -250,7 +250,7 @@ TEST_F(ClientProtocolSessionTest, ReadReturnsDataValuesOnSuccess) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
@@ -283,7 +283,7 @@ TEST_F(ClientProtocolSessionTest, WriteReturnsStatusCodes) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
@@ -323,7 +323,7 @@ TEST_F(ClientProtocolSessionTest, BrowseReturnsReferences) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
@@ -360,7 +360,7 @@ TEST_F(ClientProtocolSessionTest, CallRoundTripsArguments) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
@@ -393,7 +393,7 @@ TEST_F(ClientProtocolSessionTest, CloseRunsCloseSessionBestEffort) {
   ClientSecureChannel secure_channel{transport};
   ClientConnection connection{
       {.transport = transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   ClientProtocolSession session{
       {.connection = connection, .channel = channel}};
   ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());

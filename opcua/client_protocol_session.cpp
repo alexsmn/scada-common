@@ -70,6 +70,7 @@ Awaitable<scada::Status> ClientProtocolSession::Create(
   }
 
   is_active_ = true;
+  channel_.MarkLoginComplete();
   co_return scada::Status{scada::StatusCode::Good};
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/async_completion.h"
+#include "base/any_executor.h"
 #include "base/awaitable.h"
 #include "opcua/client_connection.h"
 #include "opcua/message.h"
@@ -7,7 +9,9 @@
 #include "scada/status_or.h"
 
 #include <cstdint>
+#include <deque>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 namespace opcua {
@@ -16,6 +20,7 @@ namespace opcua {
 class ClientChannel {
  public:
   struct Context {
+    AnyExecutor executor;
     ClientConnection& connection;
     // Authentication token from a successful CreateSession; empty node id
     // before session activation.
@@ -30,6 +35,7 @@ class ClientChannel {
   // Sets the session authentication token to attach to subsequent requests.
   // Called after a successful ActivateSession.
   void set_authentication_token(scada::NodeId token);
+  void MarkLoginComplete();
   [[nodiscard]] const scada::NodeId& authentication_token() const {
     return authentication_token_;
   }
@@ -57,10 +63,33 @@ class ClientChannel {
     ResponseBody body;
   };
 
+  struct PendingResponse {
+    explicit PendingResponse(AnyExecutor executor)
+        : ready{std::move(executor)} {}
+
+    std::uint32_t request_handle = 0;
+    base::AsyncCompletion ready;
+    std::optional<scada::StatusOr<ResponseBody>> response;
+  };
+
+  void EnsureReadLoop();
+  [[nodiscard]] Awaitable<void> RunReadLoop();
+  [[nodiscard]] Awaitable<void> WaitForSendTurn();
+  void ReleaseSendTurn();
+  void DeliverResponse(ClientResponseFrame frame);
+  void FailPendingResponses(scada::Status status);
+
+  AnyExecutor executor_;
   ClientConnection& connection_;
   scada::NodeId authentication_token_;
   std::uint32_t next_request_handle_ = 1;
   std::unordered_map<std::uint32_t, BufferedResponse> buffered_responses_;
+  std::unordered_map<std::uint32_t, std::shared_ptr<PendingResponse>>
+      pending_responses_;
+  bool read_loop_running_ = false;
+  bool login_complete_ = false;
+  bool send_in_progress_ = false;
+  std::deque<base::AsyncCompletion> send_waiters_;
 };
 
 }  // namespace opcua

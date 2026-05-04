@@ -198,19 +198,32 @@ void Encoder::Encode(const scada::ByteString& value) {
 }
 
 void Encoder::Encode(const scada::NodeId& node_id) {
-  if (node_id.is_null() || !node_id.is_numeric()) {
+  if (node_id.is_null()) {
     Encode(std::uint8_t{0x00});
     return;
   }
-  if (node_id.namespace_index() <= 0xff && node_id.numeric_id() <= 0xffff) {
+  if (node_id.is_numeric() && node_id.namespace_index() <= 0xff &&
+      node_id.numeric_id() <= 0xffff) {
     Encode(std::uint8_t{0x01});
     Encode(static_cast<std::uint8_t>(node_id.namespace_index()));
     Encode(static_cast<std::uint16_t>(node_id.numeric_id()));
     return;
   }
-  Encode(std::uint8_t{0x02});
+  if (node_id.is_numeric()) {
+    Encode(std::uint8_t{0x02});
+    Encode(node_id.namespace_index());
+    Encode(node_id.numeric_id());
+    return;
+  }
+  if (node_id.is_string()) {
+    Encode(std::uint8_t{0x03});
+    Encode(node_id.namespace_index());
+    Encode(node_id.string_id());
+    return;
+  }
+  Encode(std::uint8_t{0x05});
   Encode(node_id.namespace_index());
-  Encode(node_id.numeric_id());
+  Encode(node_id.opaque_id());
 }
 
 void Encoder::Encode(const scada::ExpandedNodeId& node_id) {
@@ -229,8 +242,12 @@ void Encoder::Encode(const scada::ExpandedNodeId& node_id) {
   } else if (numeric != nullptr && numeric->namespace_index() <= 0xff &&
              numeric->numeric_id() <= 0xffff) {
     encoding |= 0x01;
-  } else {
+  } else if (numeric != nullptr) {
     encoding |= 0x02;
+  } else if (node_id.node_id().is_string()) {
+    encoding |= 0x03;
+  } else {
+    encoding |= 0x05;
   }
 
   Encode(encoding);
@@ -240,6 +257,12 @@ void Encoder::Encode(const scada::ExpandedNodeId& node_id) {
   } else if ((encoding & 0x3f) == 0x02) {
     Encode(node_id.node_id().namespace_index());
     Encode(node_id.node_id().numeric_id());
+  } else if ((encoding & 0x3f) == 0x03) {
+    Encode(node_id.node_id().namespace_index());
+    Encode(node_id.node_id().string_id());
+  } else if ((encoding & 0x3f) == 0x05) {
+    Encode(node_id.node_id().namespace_index());
+    Encode(node_id.node_id().opaque_id());
   }
   if ((encoding & 0x80) != 0) {
     Encode(node_id.namespace_uri());
@@ -604,6 +627,24 @@ bool Decoder::Decode(scada::NodeId& id) {
     id = scada::NodeId{numeric_id, ns};
     return true;
   }
+  if (encoding == 0x03) {
+    std::uint16_t ns = 0;
+    scada::String string_id;
+    if (!Decode(ns) || !Decode(string_id)) {
+      return false;
+    }
+    id = scada::NodeId{std::move(string_id), ns};
+    return true;
+  }
+  if (encoding == 0x05) {
+    std::uint16_t ns = 0;
+    scada::ByteString opaque_id;
+    if (!Decode(ns) || !Decode(opaque_id)) {
+      return false;
+    }
+    id = scada::NodeId{std::move(opaque_id), ns};
+    return true;
+  }
   return false;
 }
 
@@ -634,6 +675,24 @@ bool Decoder::Decode(scada::ExpandedNodeId& id) {
         return false;
       }
       node_id = scada::NodeId{numeric_id, ns};
+      break;
+    }
+    case 0x03: {
+      std::uint16_t ns = 0;
+      scada::String string_id;
+      if (!Decode(ns) || !Decode(string_id)) {
+        return false;
+      }
+      node_id = scada::NodeId{std::move(string_id), ns};
+      break;
+    }
+    case 0x05: {
+      std::uint16_t ns = 0;
+      scada::ByteString opaque_id;
+      if (!Decode(ns) || !Decode(opaque_id)) {
+        return false;
+      }
+      node_id = scada::NodeId{std::move(opaque_id), ns};
       break;
     }
     default:

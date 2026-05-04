@@ -104,6 +104,41 @@ TEST(CodecUtilsTest, RoundTripsNumericNodeIds) {
   EXPECT_TRUE(decoder.consumed());
 }
 
+TEST(CodecUtilsTest, RoundTripsStringAndOpaqueNodeIds) {
+  const scada::ByteString opaque_id{'o', 'p', 'a', 'q', 'u', 'e'};
+
+  std::vector<char> bytes;
+  Encoder encoder{bytes};
+  encoder.Encode(scada::NodeId{scada::String{"StringNode"}, 4});
+  encoder.Encode(scada::NodeId{opaque_id, 5});
+  encoder.Encode(scada::ExpandedNodeId{
+      scada::NodeId{scada::String{"ExpandedStringNode"}, 6},
+      "urn:string", 8});
+  encoder.Encode(scada::ExpandedNodeId{
+      scada::NodeId{opaque_id, 7}, "urn:opaque", 9});
+
+  Decoder decoder{bytes};
+  scada::NodeId string_id;
+  scada::NodeId opaque_node_id;
+  scada::ExpandedNodeId expanded_string_id;
+  scada::ExpandedNodeId expanded_opaque_id;
+  EXPECT_TRUE(decoder.Decode(string_id));
+  EXPECT_TRUE(decoder.Decode(opaque_node_id));
+  EXPECT_TRUE(decoder.Decode(expanded_string_id));
+  EXPECT_TRUE(decoder.Decode(expanded_opaque_id));
+
+  EXPECT_EQ(string_id, (scada::NodeId{scada::String{"StringNode"}, 4}));
+  EXPECT_EQ(opaque_node_id, (scada::NodeId{opaque_id, 5}));
+  EXPECT_EQ(expanded_string_id,
+            (scada::ExpandedNodeId{
+                scada::NodeId{scada::String{"ExpandedStringNode"}, 6},
+                "urn:string", 8}));
+  EXPECT_EQ(expanded_opaque_id,
+            (scada::ExpandedNodeId{
+                scada::NodeId{opaque_id, 7}, "urn:opaque", 9}));
+  EXPECT_TRUE(decoder.consumed());
+}
+
 TEST(CodecUtilsTest, RoundTripsExtensionObjectsAndMessages) {
   const std::vector<char> body{'x', 'y', 'z'};
 
