@@ -19,6 +19,17 @@ const char16_t kDefaultOpenLabel[] = u"Откл";
 const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
 const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
 
+char16_t ToLowerAscii(char16_t ch) {
+  return ch >= u'A' && ch <= u'Z' ? static_cast<char16_t>(ch - u'A' + u'a')
+                                  : ch;
+}
+
+bool IEqualsAscii(std::u16string_view left, std::u16string_view right) {
+  return boost::algorithm::equals(left, right, [](char16_t l, char16_t r) {
+    return ToLowerAscii(l) == ToLowerAscii(r);
+  });
+}
+
 void EscapeColoredString(std::u16string& str) {
   static const char16_t amp[] = u"&";
   ReplaceSubstringsAfterOffset(&str, 0, amp, amp);
@@ -155,10 +166,10 @@ bool StringToValue(std::u16string_view str,
                    scada::Variant::Type data_type,
                    scada::Variant& value) {
   if (data_type == scada::Variant::Type::BOOL) {
-    if (boost::algorithm::iequals(str, scada::Variant::kFalseString)) {
+    if (IEqualsAscii(str, scada::Variant::kFalseString)) {
       value = false;
       return true;
-    } else if (boost::algorithm::iequals(str, scada::Variant::kTrueString)) {
+    } else if (IEqualsAscii(str, scada::Variant::kTrueString)) {
       value = true;
       return true;
     }

@@ -101,7 +101,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
         size_t count = 0;
         return [interval, count](std::span<const DataValue> values) mutable {
           count += values.size();
-          return DataValue{count, {}, interval.first, interval.second};
+          return DataValue{static_cast<UInt64>(count), {}, interval.first,
+                           interval.second};
         };
       });
 

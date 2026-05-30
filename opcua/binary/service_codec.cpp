@@ -3085,7 +3085,8 @@ std::optional<std::vector<char>> EncodeServiceRequest(
           payload_encoder.Encode(std::int64_t{0});
           payload_encoder.Encode(std::uint32_t{0});
           payload_encoder.Encode(
-              typed_request.requested_max_references_per_node);
+              static_cast<std::uint32_t>(
+                  typed_request.requested_max_references_per_node));
           payload_encoder.Encode(
               static_cast<std::int32_t>(typed_request.inputs.size()));
           for (const auto& input : typed_request.inputs) {

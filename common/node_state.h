@@ -106,7 +106,7 @@ using NodeStatePtr = std::shared_ptr<const NodeState>;
     const NodeId& reference_type_id,
     bool forward);
 
-inline [[nodiscard]] const NodeId* FindReferenceTarget(
+[[nodiscard]] inline const NodeId* FindReferenceTarget(
     const std::vector<ReferenceDescription>& references,
     const NodeId& reference_type_id,
     bool forward) {
@@ -117,13 +117,13 @@ inline [[nodiscard]] const NodeId* FindReferenceTarget(
 [[nodiscard]] Variant* FindProperty(NodeProperties& properties,
                                     const NodeId& prop_decl_id);
 
-inline [[nodiscard]] const Variant* FindProperty(
+[[nodiscard]] inline const Variant* FindProperty(
     const NodeProperties& properties,
     const NodeId& prop_decl_id) {
   return FindProperty(const_cast<NodeProperties&>(properties), prop_decl_id);
 }
 
-inline [[nodiscard]] Variant GetProperty(const NodeProperties& properties,
+[[nodiscard]] inline Variant GetProperty(const NodeProperties& properties,
                                          const NodeId& prop_decl_id) {
   auto* p = FindProperty(properties, prop_decl_id);
   return p ? *p : Variant{};
