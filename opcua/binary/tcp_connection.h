@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "base/async_completion.h"
 #include "opcua/binary/protocol.h"
 #include "opcua/binary/secure_channel.h"
 
@@ -39,6 +40,11 @@ class TcpConnection : private TcpConnectionContext {
       std::vector<char>& pending_bytes);
   [[nodiscard]] Awaitable<bool> ProcessFrame(transport::WriteQueue& write_queue,
                                             const std::vector<char>& frame);
+  void StartServiceFrame(transport::WriteQueue write_queue,
+                         std::vector<char> payload,
+                         std::uint32_t request_id);
+  [[nodiscard]] Awaitable<void> WaitForServiceFrames();
+  void FinishServiceFrame();
   [[nodiscard]] Awaitable<bool> WriteErrorAndClose(
       transport::WriteQueue& write_queue,
       scada::Status error,
@@ -46,6 +52,8 @@ class TcpConnection : private TcpConnectionContext {
 
   bool hello_received_ = false;
   SecureChannel secure_channel_;
+  std::size_t pending_service_frames_ = 0;
+  std::optional<base::AsyncCompletion> service_frames_drained_;
 };
 
 }  // namespace opcua::binary

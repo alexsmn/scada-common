@@ -1,9 +1,14 @@
 #include "opcua/binary/tcp_connection.h"
 
+#include "base/boost_log.h"
+
 #include <algorithm>
+#include <exception>
 
 namespace opcua::binary {
 namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaBinaryTcpConnection")};
 
 std::vector<char> SubspanToVector(const std::vector<char>& bytes,
                                   std::size_t offset,
@@ -38,6 +43,7 @@ Awaitable<void> TcpConnection::Run() {
     }
   }
 
+  co_await WaitForServiceFrames();
   [[maybe_unused]] auto close_result = co_await transport.close();
 }
 
@@ -130,16 +136,9 @@ Awaitable<bool> TcpConnection::ProcessFrame(
       if (result.close_transport) {
         co_return false;
       }
-      if (result.service_payload.has_value()) {
-        auto outbound_payload =
-            co_await on_secure_frame(std::move(*result.service_payload));
-        if (outbound_payload.has_value() && !outbound_payload->empty() &&
-            result.request_id.has_value()) {
-          auto outbound_frame = secure_channel_.BuildServiceResponse(
-              *result.request_id, std::move(*outbound_payload));
-          [[maybe_unused]] auto write_result = co_await write_queue.Write(
-              {outbound_frame.data(), outbound_frame.size()});
-        }
+      if (result.service_payload.has_value() && result.request_id.has_value()) {
+        StartServiceFrame(write_queue, std::move(*result.service_payload),
+                          *result.request_id);
       }
       co_return true;
     }
@@ -153,6 +152,54 @@ Awaitable<bool> TcpConnection::ProcessFrame(
   }
 
   co_return false;
+}
+
+void TcpConnection::StartServiceFrame(transport::WriteQueue write_queue,
+                                      std::vector<char> payload,
+                                      std::uint32_t request_id) {
+  if (pending_service_frames_++ == 0) {
+    service_frames_drained_.emplace(transport.get_executor());
+  }
+
+  CoSpawn(transport.get_executor(),
+          [this, write_queue = std::move(write_queue),
+           payload = std::move(payload), request_id]() mutable -> Awaitable<void> {
+    try {
+      auto outbound_payload = co_await on_secure_frame(std::move(payload));
+      if (outbound_payload.has_value() && !outbound_payload->empty()) {
+        auto outbound_frame = secure_channel_.BuildServiceResponse(
+            request_id, std::move(*outbound_payload));
+        [[maybe_unused]] auto write_result = co_await write_queue.Write(
+            {outbound_frame.data(), outbound_frame.size()});
+      }
+    } catch (const std::exception& e) {
+      LOG_WARNING(logger_) << "OPC UA service frame handling failed"
+                           << LOG_TAG("RequestId", request_id)
+                           << LOG_TAG("Error", e.what());
+    } catch (...) {
+      LOG_WARNING(logger_) << "OPC UA service frame handling failed"
+                           << LOG_TAG("RequestId", request_id);
+    }
+    FinishServiceFrame();
+  });
+}
+
+Awaitable<void> TcpConnection::WaitForServiceFrames() {
+  if (pending_service_frames_ == 0 || !service_frames_drained_.has_value()) {
+    co_return;
+  }
+  co_await service_frames_drained_->Wait();
+}
+
+void TcpConnection::FinishServiceFrame() {
+  if (pending_service_frames_ == 0) {
+    return;
+  }
+
+  --pending_service_frames_;
+  if (pending_service_frames_ == 0 && service_frames_drained_.has_value()) {
+    service_frames_drained_->Complete();
+  }
 }
 
 Awaitable<bool> TcpConnection::WriteErrorAndClose(

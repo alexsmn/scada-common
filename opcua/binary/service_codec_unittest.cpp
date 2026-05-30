@@ -1,8 +1,11 @@
 #include "opcua/binary/service_codec.h"
 
+#include "opcua/binary/codec_utils.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -10,6 +13,10 @@
 
 namespace opcua::binary {
 namespace {
+
+constexpr std::uint32_t kReadRequestEncodingIdForTest = 629;
+constexpr std::uint32_t kWriteRequestEncodingIdForTest = 671;
+constexpr std::uint32_t kBrowseResponseEncodingIdForTest = 528;
 
 // Every test below encodes a server-side response via the existing
 // EncodeServiceResponse, then feeds the bytes through the new
@@ -26,6 +33,113 @@ DecodedResponse RoundTrip(std::uint32_t request_handle, Body body) {
   EXPECT_TRUE(decoded.has_value());
   EXPECT_EQ(decoded->request_handle, request_handle);
   return *decoded;
+}
+
+void AppendRequestHeaderForTest(Encoder& encoder,
+                                const scada::NodeId& authentication_token,
+                                std::uint32_t request_handle,
+                                std::string_view audit_entry_id) {
+  encoder.Encode(authentication_token);
+  encoder.Encode(std::int64_t{0});
+  encoder.Encode(request_handle);
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(audit_entry_id);
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(scada::NodeId{});
+  encoder.Encode(std::uint8_t{0x00});
+}
+
+void AppendResponseHeaderForTest(Encoder& encoder,
+                                 std::uint32_t request_handle) {
+  encoder.Encode(std::int64_t{0});
+  encoder.Encode(request_handle);
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(std::uint8_t{0});
+  encoder.Encode(std::int32_t{0});
+  encoder.Encode(scada::NodeId{});
+  encoder.Encode(std::uint8_t{0x00});
+}
+
+std::vector<char> WrapMessageForTest(std::uint32_t encoding_id,
+                                     std::span<const char> payload) {
+  std::vector<char> body;
+  Encoder body_encoder{body};
+  AppendMessage(body_encoder, encoding_id, payload);
+  return body;
+}
+
+TEST(ServiceCodecTest, DecodeReadRequestSkipsIgnoredStringsAndDataEncoding) {
+  std::vector<char> payload;
+  Encoder encoder{payload};
+  AppendRequestHeaderForTest(encoder, scada::NodeId{77, 3}, 41,
+                             "audit-entry");
+  encoder.Encode(0.0);
+  encoder.Encode(std::uint32_t{2});
+  encoder.Encode(std::int32_t{1});
+  encoder.Encode(scada::NodeId{123, 4});
+  encoder.Encode(static_cast<std::uint32_t>(scada::AttributeId::Value));
+  encoder.Encode(std::string_view{});
+  encoder.Encode(scada::QualifiedName{"Default Binary", 0});
+
+  const auto decoded =
+      DecodeServiceRequest(WrapMessageForTest(kReadRequestEncodingIdForTest,
+                                              payload));
+
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->header.authentication_token, (scada::NodeId{77, 3}));
+  EXPECT_EQ(decoded->header.request_handle, 41u);
+  const auto& request = std::get<ReadRequest>(decoded->body);
+  ASSERT_EQ(request.inputs.size(), 1u);
+  EXPECT_EQ(request.inputs[0].node_id, (scada::NodeId{123, 4}));
+  EXPECT_EQ(request.inputs[0].attribute_id, scada::AttributeId::Value);
+}
+
+TEST(ServiceCodecTest, DecodeWriteRequestRejectsNonEmptyIndexRange) {
+  std::vector<char> payload;
+  Encoder encoder{payload};
+  AppendRequestHeaderForTest(encoder, scada::NodeId{77, 3}, 42,
+                             "audit-entry");
+  encoder.Encode(std::int32_t{1});
+  encoder.Encode(scada::NodeId{123, 4});
+  encoder.Encode(static_cast<std::uint32_t>(scada::AttributeId::Value));
+  encoder.Encode(std::string_view{"0:1"});
+  encoder.Encode(std::uint8_t{0x01});
+  encoder.Encode(scada::Variant{std::int32_t{7}});
+
+  EXPECT_FALSE(DecodeServiceRequest(WrapMessageForTest(
+      kWriteRequestEncodingIdForTest, payload)));
+}
+
+TEST(ServiceCodecTest, DecodeBrowseResponseSkipsBrowseNameAndDisplayName) {
+  std::vector<char> payload;
+  Encoder encoder{payload};
+  AppendResponseHeaderForTest(encoder, 43);
+  encoder.Encode(std::int32_t{1});
+  encoder.Encode(std::uint32_t{0});
+  encoder.Encode(scada::ByteString{});
+  encoder.Encode(std::int32_t{1});
+  encoder.Encode(scada::NodeId{35});
+  encoder.Encode(true);
+  encoder.Encode(scada::ExpandedNodeId{scada::NodeId{456, 4}});
+  encoder.Encode(scada::QualifiedName{"Pump", 4});
+  encoder.Encode(scada::LocalizedText{u"Pump display"});
+  encoder.Encode(std::uint32_t{1});
+  encoder.Encode(scada::ExpandedNodeId{});
+  encoder.Encode(std::int32_t{-1});
+
+  const auto decoded = DecodeServiceResponse(
+      WrapMessageForTest(kBrowseResponseEncodingIdForTest, payload));
+
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->request_handle, 43u);
+  const auto& response = std::get<BrowseResponse>(decoded->body);
+  ASSERT_EQ(response.results.size(), 1u);
+  ASSERT_EQ(response.results[0].references.size(), 1u);
+  EXPECT_EQ(response.results[0].references[0].reference_type_id,
+            scada::NodeId{35});
+  EXPECT_TRUE(response.results[0].references[0].forward);
+  EXPECT_EQ(response.results[0].references[0].node_id,
+            (scada::NodeId{456, 4}));
 }
 
 TEST(ServiceCodecTest, CreateSessionResponseRoundTrip) {
@@ -92,6 +206,7 @@ TEST(ServiceCodecTest, WriteResponseRoundTrip) {
 }
 
 TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
+  const scada::ByteString opaque_id{'o', 'p', 'a', 'q', 'u', 'e'};
   BrowseResponse response{
       .status = scada::StatusCode::Good,
       .results = {scada::BrowseResult{
@@ -102,6 +217,16 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
                           .forward = true,
                           .node_id = scada::NodeId{100},
                           .node_class = scada::NodeClass::Variable,
+                      },
+                      scada::ReferenceDescription{
+                          .reference_type_id = scada::NodeId{35},
+                          .forward = true,
+                          .node_id = scada::NodeId{scada::String{"File.txt"}, 7},
+                      },
+                      scada::ReferenceDescription{
+                          .reference_type_id = scada::NodeId{35},
+                          .forward = true,
+                          .node_id = scada::NodeId{opaque_id, 8},
                       }},
                   },
                   scada::BrowseResult{
@@ -114,13 +239,17 @@ TEST(ServiceCodecTest, BrowseResponseRoundTrip) {
   EXPECT_TRUE(scada::IsGood(typed.results[0].status_code));
   EXPECT_EQ(typed.results[0].continuation_point,
             response.results[0].continuation_point);
-  ASSERT_EQ(typed.results[0].references.size(), 1u);
+  ASSERT_EQ(typed.results[0].references.size(), 3u);
   EXPECT_EQ(typed.results[0].references[0].reference_type_id,
             scada::NodeId{35});
   EXPECT_TRUE(typed.results[0].references[0].forward);
   EXPECT_EQ(typed.results[0].references[0].node_id, scada::NodeId{100});
   EXPECT_EQ(typed.results[0].references[0].node_class,
             scada::NodeClass::Variable);
+  EXPECT_EQ(typed.results[0].references[1].node_id,
+            (scada::NodeId{scada::String{"File.txt"}, 7}));
+  EXPECT_EQ(typed.results[0].references[2].node_id,
+            (scada::NodeId{opaque_id, 8}));
   EXPECT_EQ(typed.results[1].status_code, scada::StatusCode::Bad_NothingToDo);
   EXPECT_TRUE(typed.results[1].references.empty());
 }

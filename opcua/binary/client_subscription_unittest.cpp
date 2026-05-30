@@ -179,7 +179,7 @@ TEST_F(ClientProtocolSubscriptionTest, CreateCapturesSubscriptionId) {
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -211,7 +211,7 @@ TEST_F(ClientProtocolSubscriptionTest,
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -268,7 +268,7 @@ TEST_F(ClientProtocolSubscriptionTest,
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -337,7 +337,7 @@ TEST_F(ClientProtocolSubscriptionTest, PublishAcksPriorSequenceNumber) {
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -405,7 +405,7 @@ TEST_F(ClientProtocolSubscriptionTest, DeleteMonitoredItemDropsHandler) {
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -443,7 +443,7 @@ TEST_F(ClientProtocolSubscriptionTest, DeleteClearsServerSubscription) {
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};
@@ -459,7 +459,7 @@ TEST_F(ClientProtocolSubscriptionTest,
   ClientSecureChannel secure_channel{*transport};
   ClientConnection connection{
       {.transport = *transport, .secure_channel = secure_channel}};
-  ClientChannel channel{{.connection = connection}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
   OpenChannel(state, *transport, secure_channel);
 
   ClientProtocolSubscription subscription{channel};

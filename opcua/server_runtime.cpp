@@ -83,14 +83,14 @@ Awaitable<ServiceResponse> ServerRuntime::HandleServiceRequest(
     const ServerSession& session,
     ServiceRequest request) const {
   const auto user_id = session.GetServiceContext().user_id();
-  co_return co_await ServiceHandler{
-      {.attribute_service = attribute_service_,
-       .view_service = view_service_,
-       .history_service = history_service_,
-       .method_service = method_service_,
-       .node_management_service = node_management_service_,
-       .user_id = user_id}}
-      .Handle(std::move(request));
+  ServiceHandler handler{ServiceHandlerContext{
+      .attribute_service = attribute_service_,
+      .view_service = view_service_,
+      .history_service = history_service_,
+      .method_service = method_service_,
+      .node_management_service = node_management_service_,
+      .user_id = user_id}};
+  co_return co_await handler.Handle(std::move(request));
 }
 
 void ServerRuntime::Detach(ConnectionState& connection) {

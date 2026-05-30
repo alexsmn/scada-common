@@ -1,12 +1,16 @@
 #include "opcua/binary/server.h"
 
+#include "base/boost_log.h"
 #include "opcua/binary/service_dispatcher.h"
 #include "opcua/binary/tcp_connection.h"
 
+#include <exception>
 #include <memory>
 
 namespace opcua::binary {
 namespace {
+
+BoostLogger logger_{LOG_NAME("OpcUaBinaryServer")};
 
 struct ConnectionTaskState {
   explicit ConnectionTaskState(transport::any_transport transport)
@@ -72,16 +76,23 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
   ServiceDispatcher dispatcher{
       {.runtime = runtime,
        .connection = state->connection}};
-  co_await TcpConnection{
-      {.transport = std::move(state->transport),
-       .read_buffer_size = this->read_buffer_size,
-       .max_frame_size = max_frame_size,
-       .on_secure_frame =
-           [&dispatcher](std::vector<char> payload)
-               -> Awaitable<std::optional<std::vector<char>>> {
-         co_return co_await dispatcher.HandlePayload(std::move(payload));
-       }}}
-      .Run();
+  try {
+    co_await TcpConnection{
+        {.transport = std::move(state->transport),
+         .read_buffer_size = this->read_buffer_size,
+         .max_frame_size = max_frame_size,
+         .on_secure_frame =
+             [&dispatcher](std::vector<char> payload)
+                 -> Awaitable<std::optional<std::vector<char>>> {
+           co_return co_await dispatcher.HandlePayload(std::move(payload));
+         }}}
+        .Run();
+  } catch (const std::exception& e) {
+    LOG_WARNING(logger_) << "OPC UA binary connection failed"
+                         << LOG_TAG("Error", e.what());
+  } catch (...) {
+    LOG_WARNING(logger_) << "OPC UA binary connection failed";
+  }
   state->connection.closed = true;
   runtime.Detach(state->connection);
 }

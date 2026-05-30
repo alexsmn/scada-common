@@ -143,6 +143,7 @@ Awaitable<void> ClientSession::ConnectAsync(
       });
   channel_ = std::make_unique<ClientChannel>(
       ClientChannel::Context{
+          .executor = any_executor_,
           .connection = *connection_,
       });
   session_ = std::make_unique<ClientProtocolSession>(
