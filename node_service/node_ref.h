@@ -19,8 +19,8 @@ class NodeRef {
   constexpr NodeRef() noexcept {}
   constexpr NodeRef(std::nullptr_t) noexcept {}
   template <class T>
-  constexpr NodeRef(std::shared_ptr<T> model) noexcept
-      : model_{std::move(model)} {}
+  NodeRef(std::shared_ptr<T> model) noexcept
+      : model_{std::static_pointer_cast<const NodeModel>(std::move(model))} {}
 
   scada::Status status() const;
 

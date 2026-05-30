@@ -11,24 +11,12 @@
 #include "scada/variant.h"
 
 #include <algorithm>
-#include <boost/algorithm/string/predicate.hpp>
 
 const char16_t kDefaultCloseLabel[] = u"Вкл";
 const char16_t kDefaultOpenLabel[] = u"Откл";
 
 const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
 const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
-
-char16_t ToLowerAscii(char16_t ch) {
-  return ch >= u'A' && ch <= u'Z' ? static_cast<char16_t>(ch - u'A' + u'a')
-                                  : ch;
-}
-
-bool IEqualsAscii(std::u16string_view left, std::u16string_view right) {
-  return boost::algorithm::equals(left, right, [](char16_t l, char16_t r) {
-    return ToLowerAscii(l) == ToLowerAscii(r);
-  });
-}
 
 void EscapeColoredString(std::u16string& str) {
   static const char16_t amp[] = u"&";
