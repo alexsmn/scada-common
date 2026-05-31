@@ -103,6 +103,13 @@ Awaitable<void> FetchNode(const NodeRef& node) {
   ThrowIfBad(node.status());
 }
 
+Awaitable<scada::Status> FetchNodeStatus(const NodeRef& node) {
+  if (!node.fetched()) {
+    co_await node.Fetch(NodeFetchStatus::NodeOnly());
+  }
+  co_return node.status();
+}
+
 Awaitable<void> FetchChildren(const NodeRef& node) {
   if (node.children_fetched()) {
     co_return;
@@ -113,6 +120,16 @@ Awaitable<void> FetchChildren(const NodeRef& node) {
   assert(node.type_definition().fetched());
   assert(node.children_fetched());
   ThrowIfBad(node.status());
+}
+
+Awaitable<scada::Status> FetchChildrenStatus(const NodeRef& node) {
+  if (!node.children_fetched()) {
+    co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
+    assert(node.fetched());
+    assert(node.type_definition().fetched());
+    assert(node.children_fetched());
+  }
+  co_return node.status();
 }
 
 Awaitable<void> WaitForPendingNodes(NodeService& node_service) {
@@ -127,7 +144,29 @@ Awaitable<void> FetchRecursive(const NodeRef& node,
   }
 }
 
+Awaitable<scada::Status> FetchRecursiveStatus(
+    const NodeRef& node,
+    const scada::NodeId& ref_type_id) {
+  auto status = co_await FetchChildrenStatus(node);
+  if (!status) {
+    co_return status;
+  }
+  for (const auto& target : node.targets(ref_type_id)) {
+    status = co_await FetchRecursiveStatus(target, ref_type_id);
+    if (!status) {
+      co_return status;
+    }
+  }
+  co_return scada::StatusCode::Good;
+}
+
 Awaitable<void> FetchTypeSystem(NodeService& node_service) {
   co_await FetchRecursive(node_service.GetNode(scada::id::TypesFolder),
                           scada::id::HierarchicalReferences);
+}
+
+Awaitable<scada::Status> FetchTypeSystemStatus(NodeService& node_service) {
+  co_return co_await FetchRecursiveStatus(
+      node_service.GetNode(scada::id::TypesFolder),
+      scada::id::HierarchicalReferences);
 }
