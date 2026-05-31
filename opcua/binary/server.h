@@ -1,10 +1,13 @@
 #pragma once
 
+#include "base/async_completion.h"
 #include "base/awaitable.h"
 #include "opcua/binary/runtime.h"
 
 #include <transport/any_transport.h>
 #include <transport/error.h>
+
+#include <optional>
 
 namespace opcua::binary {
 
@@ -27,8 +30,13 @@ class Server : private ServerContext {
  private:
   [[nodiscard]] Awaitable<void> AcceptLoop();
   [[nodiscard]] Awaitable<void> RunConnection(transport::any_transport transport);
+  void TaskStarted();
+  void TaskFinished();
 
   bool opened_ = false;
+  bool closing_ = false;
+  std::size_t active_tasks_ = 0;
+  std::optional<base::AsyncCompletion> tasks_closed_;
 };
 
 }  // namespace opcua::binary

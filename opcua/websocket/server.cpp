@@ -52,8 +52,15 @@ Awaitable<transport::error_code> Server::Open() {
     co_return error;
 
   opened_ = true;
+  closing_ = false;
+  active_tasks_ = 0;
+  tasks_closed_.emplace(acceptor.get_executor());
+  TaskStarted();
   CoSpawn(acceptor.get_executor(),
-          [this]() -> Awaitable<void> { co_await AcceptLoop(); });
+          [this]() -> Awaitable<void> {
+            co_await AcceptLoop();
+            TaskFinished();
+          });
   co_return transport::OK;
 }
 
@@ -62,7 +69,12 @@ Awaitable<transport::error_code> Server::Close() {
     co_return transport::OK;
 
   opened_ = false;
-  co_return co_await acceptor.close();
+  closing_ = true;
+  auto error = co_await acceptor.close();
+  if (active_tasks_ != 0 && tasks_closed_) {
+    co_await tasks_closed_->Wait();
+  }
+  co_return error;
 }
 
 Awaitable<void> Server::ServeConnection(transport::any_transport transport) {
@@ -77,21 +89,38 @@ Awaitable<void> Server::AcceptLoop() {
 
     auto transport = std::move(accepted.value());
     auto executor = transport.get_executor();
+    TaskStarted();
     CoSpawn(executor,
             [this, transport = std::move(transport)]() mutable -> Awaitable<void> {
               co_await ServeConnection(std::move(transport));
+              TaskFinished();
             });
   }
 }
 
+void Server::TaskStarted() {
+  ++active_tasks_;
+}
+
+void Server::TaskFinished() {
+  assert(active_tasks_ != 0);
+  --active_tasks_;
+  if (closing_ && active_tasks_ == 0 && tasks_closed_ &&
+      !tasks_closed_->completed()) {
+    tasks_closed_->Complete();
+  }
+}
+
 Awaitable<void> Server::RunConnection(transport::any_transport transport) {
+  auto* runtime_ptr = &runtime;
+  const auto max_message_size_value = max_message_size;
   auto state =
       std::make_shared<ConnectionTaskState>(std::move(transport));
   [[maybe_unused]] auto open_result = co_await state->transport.open();
   LOG_INFO(logger_) << "OPC UA WS connection opened"
                     << LOG_TAG("ConnectionId", state->connection_id)
                     << LOG_TAG("Transport", state->transport.name());
-  std::vector<char> buffer(max_message_size);
+  std::vector<char> buffer(max_message_size_value);
 
   for (;;) {
     auto read_result = co_await state->transport.read(buffer);
@@ -113,7 +142,7 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
               .request_handle = 0,
               .body = ServiceFault{
                   .status = scada::StatusCode::Bad_CantParseString}}));
-      if (encoded.size() > max_message_size)
+      if (encoded.size() > max_message_size_value)
         break;
 
       auto write_result = co_await state->write_queue.Write(AsCharSpan(encoded));
@@ -124,14 +153,16 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
 
     CoSpawn(
         state->transport.get_executor(),
-        [this, state, request = std::move(*request)]() mutable
+        [runtime_ptr, max_message_size_value, state,
+         request = std::move(*request)]() mutable
             -> Awaitable<void> {
           auto body =
-              co_await runtime.Handle(state->connection, std::move(request.body));
+              co_await runtime_ptr->Handle(state->connection,
+                                          std::move(request.body));
           auto response = ResponseMessage{
               .request_handle = request.request_handle, .body = std::move(body)};
           auto encoded = boost::json::serialize(EncodeJson(response));
-          if (encoded.size() > max_message_size)
+          if (encoded.size() > max_message_size_value)
             co_return;
 
           [[maybe_unused]] auto write_result =
@@ -151,7 +182,7 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
                       << LOG_TAG("ConnectionId", state->connection_id)
                       << LOG_TAG("Transport", state->transport.name());
   }
-  runtime.Detach(state->connection);
+  runtime_ptr->Detach(state->connection);
   [[maybe_unused]] auto close_result = co_await state->transport.close();
 }
 

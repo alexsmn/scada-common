@@ -36,8 +36,15 @@ Awaitable<transport::error_code> Server::Open() {
   }
 
   opened_ = true;
+  closing_ = false;
+  active_tasks_ = 0;
+  tasks_closed_.emplace(acceptor.get_executor());
+  TaskStarted();
   CoSpawn(acceptor.get_executor(),
-          [this]() -> Awaitable<void> { co_await AcceptLoop(); });
+          [this]() -> Awaitable<void> {
+            co_await AcceptLoop();
+            TaskFinished();
+          });
   co_return transport::OK;
 }
 
@@ -47,7 +54,12 @@ Awaitable<transport::error_code> Server::Close() {
   }
 
   opened_ = false;
-  co_return co_await acceptor.close();
+  closing_ = true;
+  auto error = co_await acceptor.close();
+  if (active_tasks_ != 0 && tasks_closed_) {
+    co_await tasks_closed_->Wait();
+  }
+  co_return error;
 }
 
 Awaitable<void> Server::ServeConnection(
@@ -64,23 +76,41 @@ Awaitable<void> Server::AcceptLoop() {
 
     auto transport = std::move(accepted.value());
     auto executor = transport.get_executor();
+    TaskStarted();
     CoSpawn(executor,
             [this, transport = std::move(transport)]() mutable -> Awaitable<void> {
               co_await ServeConnection(std::move(transport));
+              TaskFinished();
             });
   }
 }
 
+void Server::TaskStarted() {
+  ++active_tasks_;
+}
+
+void Server::TaskFinished() {
+  assert(active_tasks_ != 0);
+  --active_tasks_;
+  if (closing_ && active_tasks_ == 0 && tasks_closed_ &&
+      !tasks_closed_->completed()) {
+    tasks_closed_->Complete();
+  }
+}
+
 Awaitable<void> Server::RunConnection(transport::any_transport transport) {
+  auto* runtime_ptr = &runtime;
+  const auto read_buffer_size_value = read_buffer_size;
+  const auto max_frame_size_value = max_frame_size;
   auto state = std::make_shared<ConnectionTaskState>(std::move(transport));
   ServiceDispatcher dispatcher{
-      {.runtime = runtime,
+      {.runtime = *runtime_ptr,
        .connection = state->connection}};
   try {
     co_await TcpConnection{
         {.transport = std::move(state->transport),
-         .read_buffer_size = this->read_buffer_size,
-         .max_frame_size = max_frame_size,
+         .read_buffer_size = read_buffer_size_value,
+         .max_frame_size = max_frame_size_value,
          .on_secure_frame =
              [&dispatcher](std::vector<char> payload)
                  -> Awaitable<std::optional<std::vector<char>>> {
@@ -94,7 +124,7 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
     LOG_WARNING(logger_) << "OPC UA binary connection failed";
   }
   state->connection.closed = true;
-  runtime.Detach(state->connection);
+  runtime_ptr->Detach(state->connection);
 }
 
 }  // namespace opcua::binary
