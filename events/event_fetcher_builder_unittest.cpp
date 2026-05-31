@@ -9,7 +9,6 @@
 #include "scada/monitored_item_service_mock.h"
 #include "scada/session_service_mock.h"
 #include "scada/status.h"
-#include "scada/status_exception.h"
 
 #include <boost/signals2/signal.hpp>
 
@@ -239,11 +238,11 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
       std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
                                                       &session_service};
 
-  EXPECT_THROW((EventFetcherBuilder{.executor_ = executor,
-                                    .logger_ = NullLogger::GetInstance(),
-                                    .data_services_ = std::move(data_services)}
-                    .Build()),
-               std::invalid_argument);
+  EXPECT_EQ(nullptr,
+            (EventFetcherBuilder{.executor_ = executor,
+                                 .logger_ = NullLogger::GetInstance(),
+                                 .data_services_ = std::move(data_services)}
+                 .Build()));
 }
 
 TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
@@ -264,13 +263,14 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
   EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce([&](const scada::NodeId& read_node_id, base::Time from,
+      .WillOnce([&](scada::NodeId read_node_id, base::Time from,
                     base::Time to,
-                    const scada::EventFilter& filter)
+                    scada::EventFilter filter)
                     -> Awaitable<scada::HistoryReadEventsResult> {
-        EXPECT_TRUE(read_node_id.is_null());
+        EXPECT_EQ(read_node_id, scada::id::Server);
         EXPECT_LE(from, to);
-        EXPECT_EQ(filter, scada::EventFilter{});
+        EXPECT_EQ(filter,
+                  scada::EventFilter{scada::EventFilter::UNACKED});
         co_return scada::HistoryReadEventsResult{
             .status = scada::StatusCode::Good,
             .events = {MakeEvent(15, node_id)}};

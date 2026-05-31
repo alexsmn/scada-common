@@ -117,10 +117,10 @@ Audit::Audit(AuditContext&& context)
 
 void Audit::Init() {
   metric_service_.RegisterProvider(
-      [weak = weak_from_this()]() -> Awaitable<Metrics> {
+      [weak = weak_from_this()]() -> Awaitable<scada::StatusOr<Metrics>> {
         auto self = weak.lock();
         if (!self) {
-          co_return Metrics{};
+          co_return scada::StatusCode::Bad;
         }
 
         std::lock_guard lock{self->mutex_};

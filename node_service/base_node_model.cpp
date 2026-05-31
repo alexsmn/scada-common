@@ -114,17 +114,16 @@ void BaseNodeModel::NotifyCallbacks() {
 
   while (true) {
     std::vector<FetchCallback> callbacks;
-    size_t p = 0;
-    for (size_t i = 0; i < fetch_callbacks_.size(); ++i) {
-      auto& c = fetch_callbacks_[i];
-      assert(c.second);
-      if (c.first.all_less_or_equal(fetch_status_))
-        callbacks.emplace_back(std::move(c.second));
-      else
-        fetch_callbacks_[p++] = std::move(c);
+    for (auto it = fetch_callbacks_.begin(); it != fetch_callbacks_.end();) {
+      if (!it->second) {
+        it = fetch_callbacks_.erase(it);
+      } else if (it->first.all_less_or_equal(fetch_status_)) {
+        callbacks.emplace_back(std::move(it->second));
+        it = fetch_callbacks_.erase(it);
+      } else {
+        ++it;
+      }
     }
-    fetch_callbacks_.erase(fetch_callbacks_.begin() + p,
-                           fetch_callbacks_.end());
 
     if (fetch_callbacks_.empty())
       fetch_callbacks_.shrink_to_fit();

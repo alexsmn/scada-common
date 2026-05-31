@@ -309,9 +309,10 @@ TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
   services.SetServices(std::move(data_services));
 
   base::AsyncCompletion pending_connect{executor};
-  EXPECT_CALL(*session_service, Connect(_))
-      .WillOnce([&](const scada::SessionConnectParams&) {
-        return pending_connect.Wait();
+  EXPECT_CALL(*session_service, ConnectStatus(_))
+      .WillOnce([&](scada::SessionConnectParams) -> Awaitable<scada::Status> {
+        co_await pending_connect.Wait();
+        co_return scada::StatusCode::Good;
       });
 
   auto result = StartAwaitable(executor, services.Connect({}));
@@ -335,10 +336,12 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
   services.SetServices(std::move(data_services));
 
   base::AsyncCompletion pending_connect{executor};
-  EXPECT_CALL(*session_service, Connect(_))
-      .WillOnce([&](const scada::SessionConnectParams& params) {
+  EXPECT_CALL(*session_service, ConnectStatus(_))
+      .WillOnce([&](scada::SessionConnectParams params)
+                    -> Awaitable<scada::Status> {
         EXPECT_EQ(params.host, "node-host");
-        return pending_connect.Wait();
+        co_await pending_connect.Wait();
+        co_return scada::StatusCode::Good;
       });
 
   auto result = StartAwaitable(

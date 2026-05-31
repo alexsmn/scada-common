@@ -30,6 +30,12 @@ inline DataServicesNodeServiceContext MakeDataServicesNodeServiceContext(
       .scada_client_ = context.scada_client_};
 }
 
+inline bool HasRequiredNodeServices(const DataServices& data_services) {
+  return data_services.monitored_item_service_ &&
+         data_services.session_service_ && data_services.attribute_service_ &&
+         data_services.view_service_;
+}
+
 struct ResolvedNodeServices {
   ResolvedNodeServices(AnyExecutor executor, DataServices&& data_services)
       : data_services_{std::move(data_services)} {

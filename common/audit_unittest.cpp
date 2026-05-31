@@ -75,7 +75,9 @@ class CapturingMetricService final : public MetricService {
   void RegisterSink(const Sink& sink) override { sink_ = sink; }
 
   Metrics Collect(TestExecutor& executor) {
-    return WaitAwaitable(executor, provider_());
+    auto metrics = WaitAwaitable(executor, provider_());
+    EXPECT_TRUE(metrics.ok()) << metrics.status();
+    return metrics.ok() ? std::move(*metrics) : Metrics{};
   }
 
   Provider provider_;

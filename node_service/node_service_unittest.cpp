@@ -15,7 +15,6 @@
 #include "scada/attribute_service_mock.h"
 #include "scada/coroutine_services.h"
 #include "scada/monitored_item_service_mock.h"
-#include "scada/status_exception.h"
 
 #include <gmock/gmock.h>
 

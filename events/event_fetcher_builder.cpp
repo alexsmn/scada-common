@@ -32,6 +32,11 @@ void NormalizeLegacyServices(EventFetcherBuilder& builder) {
       data_services::FromUnownedServices(builder.services_);
 }
 
+bool HasRequiredServices(const DataServices& data_services) {
+  return data_services.monitored_item_service_ && data_services.history_service_ &&
+         data_services.method_service_ && data_services.session_service_;
+}
+
 DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
   return DataServices{
       .session_service_ = data_services::Unowned(builder.session_service_),
@@ -93,6 +98,9 @@ struct EventFetcherHolder : EventFetcherHolderBase {
 
 std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
   internal::NormalizeLegacyServices(*this);
+  if (!internal::HasRequiredServices(data_services_))
+    return nullptr;
+
   auto event_fetcher_holder =
       std::make_shared<internal::EventFetcherHolder>(std::move(*this));
 

@@ -629,7 +629,7 @@ void ExpectBrowseAndBrowseNextUseSessionScopedContinuationPoints(
 
   EXPECT_CALL(fixture.view_service_, Browse(testing::_, testing::_))
       .WillOnce(testing::Invoke(
-          [&](const scada::ServiceContext& context,
+          [&](scada::ServiceContext context,
               std::vector<scada::BrowseDescription> inputs)
               -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
             EXPECT_EQ(context.user_id(), fixture.expected_user_id_);

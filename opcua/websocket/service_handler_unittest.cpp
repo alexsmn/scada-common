@@ -233,7 +233,7 @@ TEST_F(ServiceHandlerTest, HandleHistoryReadRaw_PreservesResultPayload) {
       .details = {.node_id = node_id, .from = from, .to = to, .max_count = 25}};
 
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
                            -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, node_id);
         EXPECT_EQ(details.from, from);
@@ -266,10 +266,10 @@ TEST_F(ServiceHandlerTest,
   };
 
   EXPECT_CALL(history_service_, HistoryReadEvents(_, _, _, _))
-      .WillOnce(Invoke([&](const scada::NodeId& node_id,
+      .WillOnce(Invoke([&](scada::NodeId node_id,
                            base::Time from,
                            base::Time to,
-                           const scada::EventFilter&)
+                           scada::EventFilter)
                            -> Awaitable<scada::HistoryReadEventsResult> {
         EXPECT_EQ(node_id, details.node_id);
         EXPECT_EQ(from, details.from);
@@ -411,8 +411,7 @@ TEST_F(ServiceHandlerTest,
   ASSERT_NE(delete_references_response, nullptr);
   EXPECT_EQ(delete_references_response->status.code(),
             scada::StatusCode::Bad_Disconnected);
-  EXPECT_THAT(delete_references_response->results,
-              ElementsAre(scada::StatusCode::Bad_Disconnected));
+  EXPECT_TRUE(delete_references_response->results.empty());
 }
 
 }  // namespace

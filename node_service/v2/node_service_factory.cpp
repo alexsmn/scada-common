@@ -13,6 +13,7 @@ namespace v2 {
 
 namespace {
 using node_service::internal::MakeDataServicesNodeServiceContext;
+using node_service::internal::HasRequiredNodeServices;
 using node_service::internal::ResolvedNodeServices;
 
 struct NodeServiceHolder {
@@ -85,6 +86,9 @@ std::shared_ptr<NodeService> CreateNodeService(
 
 std::shared_ptr<NodeService> CreateNodeService(
     DataServicesNodeServiceContext&& node_service_context) {
+  if (!HasRequiredNodeServices(node_service_context.data_services_))
+    return nullptr;
+
   auto context =
       std::make_shared<NodeServiceHolder>(std::move(node_service_context));
   return std::shared_ptr<NodeService>{context, &context->node_service};

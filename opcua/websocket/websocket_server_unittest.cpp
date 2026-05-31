@@ -407,7 +407,7 @@ TEST_F(WebSocketServerTest,
   StartServer();
 
   EXPECT_CALL(view_service_, Browse(_, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+      .WillOnce(Invoke([&](scada::ServiceContext context,
                            std::vector<scada::BrowseDescription> inputs)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::BrowseResult>>> {
@@ -442,7 +442,7 @@ TEST_F(WebSocketServerTest,
   });
 
   EXPECT_CALL(view_service_, Browse(_, _))
-      .WillOnce(Invoke([&](const scada::ServiceContext& context,
+      .WillOnce(Invoke([&](scada::ServiceContext context,
                            std::vector<scada::BrowseDescription> inputs)
                            -> Awaitable<scada::StatusOr<
                                std::vector<scada::BrowseResult>>> {

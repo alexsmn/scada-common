@@ -248,10 +248,8 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
         .scada_client_ = {}};
   };
 
-  EXPECT_THROW(CreateNodeService(make_context(), /*use_v2=*/false),
-               std::invalid_argument);
-  EXPECT_THROW(CreateNodeService(make_context(), /*use_v2=*/true),
-               std::invalid_argument);
+  EXPECT_EQ(nullptr, CreateNodeService(make_context(), /*use_v2=*/false));
+  EXPECT_EQ(nullptr, CreateNodeService(make_context(), /*use_v2=*/true));
 }
 
 TEST(NodeServiceFactory, V1LegacyContextNormalizesToDataServicesAdapters) {

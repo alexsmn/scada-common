@@ -83,6 +83,7 @@ TEST(NodeModelImpl, Fetch) {
 
   node.SetFetchStatus(&root_folder, scada::StatusCode::Good,
                       NodeFetchStatus::NodeAndChildren());
+  io_context.restart();
   io_context.run();
   EXPECT_TRUE(fetched);
   EXPECT_TRUE(children_fetched);

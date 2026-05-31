@@ -6,7 +6,6 @@
 #include "opcua/binary/service_codec.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
-#include "scada/status_exception.h"
 #include "scada/test/status_matchers.h"
 #include "transport/transport_factory.h"
 

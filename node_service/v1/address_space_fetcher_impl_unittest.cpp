@@ -97,6 +97,10 @@ TEST_F(AddressSpaceFetcherImplTest,
       node_fetch_status_changed_handler_,
       Call(Contains(NodeFetchStatusChangedItem{
           node_id, scada::StatusCode::Good, NodeFetchStatus::ChildrenOnly()})));
+  EXPECT_CALL(node_fetch_status_changed_handler_,
+              Call(Contains(NodeFetchStatusChangedItem{
+                  node_id, scada::StatusCode::Good,
+                  NodeFetchStatus::NodeAndChildren()})));
 
   EXPECT_CALL(server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id)))))
       .WillOnce([&](scada::ServiceContext context,
@@ -109,12 +113,6 @@ TEST_F(AddressSpaceFetcherImplTest,
 
   address_space_fetcher_->FetchNode(node_id,
                                     NodeFetchStatus::NodeAndChildren());
-  DrainExecutor();
-
-  EXPECT_CALL(node_fetch_status_changed_handler_,
-              Call(Contains(NodeFetchStatusChangedItem{
-                  node_id, scada::StatusCode::Good,
-                  NodeFetchStatus::NodeAndChildren()})));
   DrainExecutor();
 }
 
