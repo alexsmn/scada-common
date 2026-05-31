@@ -1,0 +1,109 @@
+// Файл параметров Telecontrol SCADA Server.
+// Допустимые переменные:
+//   DIR_APP_DATA        - Папка Application Data в профиле пользователя.
+//   DIR_LOCAL_APP_DATA  - Папка "Local Settings\Application Data" в профиле пользователя.
+//   DIR_COMMON_APP_DATA - W2K, XP, W2K3: "C:\Documents and Settings\All Users\Application Data".
+//                         Vista, W2K8 и выше: "C:\ProgramData".
+//   DIR_EXE             - Папка, содержащая исполняемый файл сервера.
+//   DIR_CURRENT         - Рабочая папка.
+//   DIR_TEMP            - Временная папка.
+//   DIR_PARAM           - Папка этого файла.
+
+{
+    // Конфигурационная база данных.
+    "configuration": {
+        // Драйвер конфигурационной базы данных: "SQLite" или "PostgreSQL".
+        "driver": "SQLite",
+
+        // Папка конфигурационной базы данных.
+        // Если значение не задано или пустое, используется "${DIR_EXE}".
+        "dir": "${DIR_PARAM}/Configuration"
+    },
+
+    // Архивы.
+    "history": {
+        // Архивная папка, содержащая все конфигурационные базы данных.
+        // Если значение не задано или пустое, используется "${DIR_EXE}/historical-db".
+        "dir": "${DIR_PARAM}/History"
+    },
+
+    // Клиентские сессии.
+    "sessions": [
+        // Локальный хост и порт для приема клиентских подключений через TCP/IP. "0.0.0.0" для приема
+        // на всех локальных сетевых интерфейсах.
+        "tcp;passive;host=0.0.0.0;port=2000",
+    ],
+
+    // Классический OPC.
+    "opc": {
+        // Клиент OPC.
+        "client": {
+            // Разрешить подключения к OPC-тегам и отображать структуру OPC в дереве узлов.
+            "enabled": false
+        }
+    },
+
+    // Сервер OPC UA.
+    "opcua": {
+        // Разрешить подключения OPC UA.
+        "enabled": false,
+
+        // Адрес сервера OPC UA.
+        // Допускается строка с одним endpoint или список endpoint-адресов.
+        "url": [
+            "opc.tcp://localhost:4840",
+            "opc.wss://0.0.0.0:4843"
+        ],
+
+        // Закрытый ключ OPC UA.
+        "server_private_key": "${DIR_PARAM}/Certificates/ServerPrivateKey.pem",
+
+        // Сертификат OPC UA.
+        "server_certificate": "${DIR_PARAM}/Certificates/ServerCertificate.pem",
+
+        // Разрешенные Origin для браузерных подключений.
+        "allowed_origins": ["http://localhost:5173"],
+
+        // Подпротокол WebSocket.
+        "subprotocol": "opcua+uajson",
+
+        // Максимальный размер сообщения.
+        "max_message_size": 4194304,
+
+        // Разрешить permessage-deflate.
+        "compression": true,
+
+        // Диагностика: "error", "warning", "system", "info", "debug", "content", "all", "none".
+        "trace": "warning"
+    },
+
+    // Статические данные.
+    "filesystem": {
+      // Разрешить статические данные.
+      "enabled": true,
+
+      // Папка статических данных.
+      "dir": "${DIR_PARAM}/FileSystem",
+    },
+
+    // Интеграция с ОИК Видикон.
+    "vidicon": {
+      "enabled": false,
+    },
+
+    // Логи.
+    "log": {
+        // Папка логов.
+        // Если значение не задано или пустое, используется "${DIR_EXE}/logs".
+        "dir": "${DIR_PARAM}/Logs",
+
+        // Максимальный размер файла в мегабайтах для создания нового файла.
+        "max_file_size": 10,
+
+        // Максимальный размер всех файлов в мегабайтах для удаления устаревших файлов.
+        "max_total_size": 100,
+
+        // Максимальное количество файлов.
+        "max_count": 1000,
+    }
+}

@@ -1,0 +1,56 @@
+{
+  "_description": "server.json template consumed by client/server e2e tests. Runtime-only listener ports are patched by the test harness before launching server.exe. All dirs are rooted at ${DIR_PARAM}, the generated server.json directory.",
+  "configuration": {
+    "driver": "SQLite",
+    "dir": "${DIR_PARAM}/Configuration"
+  },
+  "security": {
+    "useConfigurationAuthenticator": true
+  },
+  "history": {
+    "dir": "${DIR_PARAM}/History"
+  },
+  "dataItems": {},
+  "sessions": {
+    "enabled": false
+  },
+  "iec60870": {
+    "enabled": true
+  },
+  "modbus": {
+    "enabled": true
+  },
+  "iec61850": {
+    "enabled": true
+  },
+  "opc": {
+    "enabled": false
+  },
+  "opcua": {
+    "enabled": true,
+    "url": [
+      "opc.tcp://127.0.0.1:4840",
+      "opc.ws://0.0.0.0:48480"
+    ],
+    "server_private_key": "${DIR_PARAM}/Certificates/ServerPrivateKey.pem",
+    "server_certificate": "${DIR_PARAM}/Certificates/ServerCertificate.pem",
+    "trace": "warning",
+    "allowed_origins": ["http://127.0.0.1:4173"],
+    "subprotocol": "opcua+uajson",
+    "max_message_size": 4194304,
+    "compression": true
+  },
+  "filesystem": {
+    "enabled": true,
+    "dir": "${DIR_PARAM}/FileSystem"
+  },
+  "vidicon": {
+    "enabled": false
+  },
+  "log": {
+    "dir": "${DIR_PARAM}/Logs",
+    "max_file_size": 10,
+    "max_total_size": 100,
+    "max_count": 1000
+  }
+}
