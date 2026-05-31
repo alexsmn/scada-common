@@ -615,10 +615,10 @@ void NodeFetcherImpl::AddFetchedReference(
     FetchingNode& node,
     const scada::BrowseDescription& description,
     scada::ReferenceDescription&& reference) {
-  if (reference.reference_type_id.is_null())
-    throw std::exception{};
-  if (reference.node_id.is_null())
-    throw std::exception{};
+  if (reference.reference_type_id.is_null() || reference.node_id.is_null()) {
+    node.status = scada::Status{scada::StatusCode::Bad};
+    return;
+  }
 
   ValidateDependency(node, reference.reference_type_id);
 

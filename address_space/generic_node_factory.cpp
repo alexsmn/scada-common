@@ -118,8 +118,12 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     scada::AddReference(address_space_, scada::id::HasTypeDefinition, node_ref,
                         *type_definition);
 
-    if (create_properties_)
-      CreateMissingProperties(*this, node_ref.id(), *type_definition);
+    if (create_properties_) {
+      auto status =
+          CreateMissingProperties(*this, node_ref.id(), *type_definition);
+      if (!status)
+        return {std::move(status), nullptr};
+    }
   }
 
   if (!parent_id.is_null()) {

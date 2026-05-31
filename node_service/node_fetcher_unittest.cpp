@@ -106,10 +106,12 @@ void NodeFetcherTest::ValidateFetchedNode() {
     ASSERT_TRUE(node_state);
     EXPECT_EQ(node_state->parent_id, scada::id::RootFolder);
     EXPECT_EQ(node_state->reference_type_id, scada::id::Organizes);
-    EXPECT_THAT(node_state->references,
-                UnorderedElementsAre(scada::ReferenceDescription{
-                    server_address_space_.kTestReferenceTypeId, true,
-                    server_address_space_.kTestNode3Id}));
+    ASSERT_EQ(node_state->references.size(), 1u);
+    EXPECT_EQ(node_state->references[0].reference_type_id,
+              server_address_space_.kTestReferenceTypeId);
+    EXPECT_TRUE(node_state->references[0].forward);
+    EXPECT_EQ(node_state->references[0].node_id,
+              server_address_space_.kTestNode3Id);
   }
 
   {

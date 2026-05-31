@@ -2,7 +2,6 @@
 
 #include "node_service/node_observer.h"
 #include "node_service/node_service.h"
-#include "scada/status_exception.h"
 
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/use_awaitable.hpp>
@@ -13,12 +12,6 @@
 #include <utility>
 
 namespace {
-
-void ThrowIfBad(scada::Status status) {
-  if (status.bad()) {
-    throw scada::status_exception{std::move(status)};
-  }
-}
 
 class PendingNodesWaiter final : private NodeRefObserver,
                                  public std::enable_shared_from_this<
@@ -94,13 +87,7 @@ auto AwaitPendingNodes(NodeService& node_service, CompletionToken&& token = {}) 
 }  // namespace
 
 Awaitable<void> FetchNode(const NodeRef& node) {
-  if (node.fetched()) {
-    ThrowIfBad(node.status());
-    co_return;
-  }
-
-  co_await node.Fetch(NodeFetchStatus::NodeOnly());
-  ThrowIfBad(node.status());
+  (void)co_await FetchNodeStatus(node);
 }
 
 Awaitable<scada::Status> FetchNodeStatus(const NodeRef& node) {
@@ -111,15 +98,7 @@ Awaitable<scada::Status> FetchNodeStatus(const NodeRef& node) {
 }
 
 Awaitable<void> FetchChildren(const NodeRef& node) {
-  if (node.children_fetched()) {
-    co_return;
-  }
-
-  co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
-  assert(node.fetched());
-  assert(node.type_definition().fetched());
-  assert(node.children_fetched());
-  ThrowIfBad(node.status());
+  (void)co_await FetchChildrenStatus(node);
 }
 
 Awaitable<scada::Status> FetchChildrenStatus(const NodeRef& node) {
@@ -138,10 +117,7 @@ Awaitable<void> WaitForPendingNodes(NodeService& node_service) {
 
 Awaitable<void> FetchRecursive(const NodeRef& node,
                                const scada::NodeId& ref_type_id) {
-  co_await FetchChildren(node);
-  for (const auto& target : node.targets(ref_type_id)) {
-    co_await FetchRecursive(target, ref_type_id);
-  }
+  (void)co_await FetchRecursiveStatus(node, ref_type_id);
 }
 
 Awaitable<scada::Status> FetchRecursiveStatus(
@@ -161,8 +137,7 @@ Awaitable<scada::Status> FetchRecursiveStatus(
 }
 
 Awaitable<void> FetchTypeSystem(NodeService& node_service) {
-  co_await FetchRecursive(node_service.GetNode(scada::id::TypesFolder),
-                          scada::id::HierarchicalReferences);
+  (void)co_await FetchTypeSystemStatus(node_service);
 }
 
 Awaitable<scada::Status> FetchTypeSystemStatus(NodeService& node_service) {

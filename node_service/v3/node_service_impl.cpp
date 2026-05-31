@@ -7,7 +7,6 @@
 #include "node_service/node_util.h"
 #include "node_service/v3/node_model_impl.h"
 #include "node_service/v3/node_fetcher.h"
-#include "scada/status_exception.h"
 
 namespace v3 {
 
@@ -111,24 +110,22 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
   if (requested_status.node_fetched) {
     CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
                          -> Awaitable<void> {
-      try {
-        auto node_state = co_await fetcher->FetchNode(node_id);
-        ProcessFetchedNodes({std::move(node_state)});
-      } catch (...) {
-        ProcessFetchErrors(
-            {{node_id, scada::GetExceptionStatus(std::current_exception())}});
+      auto node_state = co_await fetcher->FetchNode(node_id);
+      if (node_state.ok()) {
+        ProcessFetchedNodes({std::move(*node_state)});
+      } else {
+        ProcessFetchErrors({{node_id, node_state.status()}});
       }
     });
   }
   if (requested_status.children_fetched) {
     CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
                          -> Awaitable<void> {
-      try {
-        auto references = co_await fetcher->FetchChildren(node_id);
-        ProcessFetchedChildren(node_id, std::move(references));
-      } catch (...) {
-        ProcessFetchErrors(
-            {{node_id, scada::GetExceptionStatus(std::current_exception())}});
+      auto references = co_await fetcher->FetchChildren(node_id);
+      if (references.ok()) {
+        ProcessFetchedChildren(node_id, std::move(*references));
+      } else {
+        ProcessFetchErrors({{node_id, references.status()}});
       }
     });
   }
@@ -175,24 +172,22 @@ void NodeServiceImpl::OnChannelOpened() {
     if (requested_status.node_fetched) {
       CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
                            -> Awaitable<void> {
-        try {
-          auto node_state = co_await fetcher->FetchNode(node_id);
-          ProcessFetchedNodes({std::move(node_state)});
-        } catch (...) {
-          ProcessFetchErrors({{node_id, scada::GetExceptionStatus(
-                                           std::current_exception())}});
+        auto node_state = co_await fetcher->FetchNode(node_id);
+        if (node_state.ok()) {
+          ProcessFetchedNodes({std::move(*node_state)});
+        } else {
+          ProcessFetchErrors({{node_id, node_state.status()}});
         }
       });
     }
     if (requested_status.children_fetched) {
       CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
                            -> Awaitable<void> {
-        try {
-          auto references = co_await fetcher->FetchChildren(node_id);
-          ProcessFetchedChildren(node_id, std::move(references));
-        } catch (...) {
-          ProcessFetchErrors({{node_id, scada::GetExceptionStatus(
-                                           std::current_exception())}});
+        auto references = co_await fetcher->FetchChildren(node_id);
+        if (references.ok()) {
+          ProcessFetchedChildren(node_id, std::move(*references));
+        } else {
+          ProcessFetchErrors({{node_id, references.status()}});
         }
       });
     }

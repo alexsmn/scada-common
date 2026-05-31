@@ -236,25 +236,18 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
-  try {
-    WaitAwaitable(executor_,
-                  session->ConnectAsync({.connection_string = "http://host"}));
-    FAIL() << "ConnectAsync unexpectedly succeeded";
-  } catch (const scada::status_exception& e) {
-    EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
-  }
+  auto status = WaitAwaitable(
+      executor_, session->ConnectAsync({.connection_string = "http://host"}));
+  EXPECT_EQ(status.code(), scada::StatusCode::Bad);
 }
 
 TEST_F(ClientSessionTest, InvalidEndpointRejectsConnectWithStatus) {
   auto session = std::make_shared<ClientSession>(executor_,
                                                      transport_factory_);
 
-  try {
-    WaitAwaitable(executor_, session->Connect({.connection_string = "http://host"}));
-    FAIL() << "Connect unexpectedly succeeded";
-  } catch (const scada::status_exception& e) {
-    EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
-  }
+  auto status = WaitAwaitable(
+      executor_, session->ConnectStatus({.connection_string = "http://host"}));
+  EXPECT_EQ(status.code(), scada::StatusCode::Bad);
 }
 
 TEST_F(ClientSessionTest, SessionServiceRejectsInvalidEndpoint) {
@@ -262,13 +255,10 @@ TEST_F(ClientSessionTest, SessionServiceRejectsInvalidEndpoint) {
                                                      transport_factory_);
   auto& coroutine_session = *session;
 
-  try {
-    WaitAwaitable(executor_, coroutine_session.Connect(
-                                 {.connection_string = "http://host"}));
-    FAIL() << "SessionService Connect unexpectedly succeeded";
-  } catch (const scada::status_exception& e) {
-    EXPECT_EQ(e.status().code(), scada::StatusCode::Bad);
-  }
+  auto status = WaitAwaitable(
+      executor_, coroutine_session.ConnectStatus(
+                     {.connection_string = "http://host"}));
+  EXPECT_EQ(status.code(), scada::StatusCode::Bad);
 }
 
 TEST_F(ClientSessionTest, SessionServiceReportsDisconnectedMetadata) {

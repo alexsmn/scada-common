@@ -52,24 +52,19 @@ namespace opcua {
 
 bool CreateServices(const DataServicesContext& context,
                     DataServices& services) {
-  try {
-    auto session = std::make_shared<ClientSession>(context.executor,
-                                                  context.transport_factory);
-    auto node_management_service =
-        std::make_shared<UnsupportedNodeManagementService>();
-    auto history_service = std::make_shared<UnsupportedHistoryService>();
-    services = {.session_service_ = session,
-                .view_service_ = session,
-                .node_management_service_ = node_management_service,
-                .history_service_ = history_service,
-                .attribute_service_ = session,
-                .method_service_ = session,
-                .monitored_item_service_ = session};
-    return true;
-
-  } catch (const std::exception&) {
-    return false;
-  }
+  auto session = std::make_shared<ClientSession>(context.executor,
+                                                context.transport_factory);
+  auto node_management_service =
+      std::make_shared<UnsupportedNodeManagementService>();
+  auto history_service = std::make_shared<UnsupportedHistoryService>();
+  services = {.session_service_ = session,
+              .view_service_ = session,
+              .node_management_service_ = node_management_service,
+              .history_service_ = history_service,
+              .attribute_service_ = session,
+              .method_service_ = session,
+              .monitored_item_service_ = session};
+  return true;
 }
 
 }  // namespace opcua

@@ -16,10 +16,10 @@ ComponentObject::ComponentObject(NodeBuilder& builder,
     : instance_declaration_{
           AsObject(builder.GetMutableNode(instance_declaration_id))} {
   auto* type = instance_declaration_.type_definition();
-  if (!type)
-    throw std::runtime_error("Instance delaration has no type definition");
+  assert(type);
 
-  builder.AddReference(id::HasTypeDefinition, *this, *type);
+  if (type)
+    builder.AddReference(id::HasTypeDefinition, *this, *type);
 }
 
 }  // namespace scada

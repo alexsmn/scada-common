@@ -49,7 +49,8 @@ TEST(CodecUtilsTest, HandlesStringsAndByteStrings) {
   Encoder encoder{bytes};
   encoder.Encode(std::string_view{"opc.tcp://localhost:4840"});
   encoder.Encode(scada::QualifiedName{"BrowseName", 2});
-  encoder.Encode(scada::ToLocalizedText(u"DisplayName"));
+  encoder.Encode(scada::ToLocalizedText(
+      std::u16string_view{u"DisplayName"}));
   encoder.Encode(scada::ByteString{'a', 'b', 'c'});
   encoder.Encode(std::int32_t{-1});
   encoder.Encode(std::int32_t{-1});
@@ -70,7 +71,8 @@ TEST(CodecUtilsTest, HandlesStringsAndByteStrings) {
 
   EXPECT_EQ(string_value, "opc.tcp://localhost:4840");
   EXPECT_EQ(qualified_name, (scada::QualifiedName{"BrowseName", 2}));
-  EXPECT_EQ(localized_text, scada::ToLocalizedText(u"DisplayName"));
+  EXPECT_EQ(localized_text,
+            scada::ToLocalizedText(std::u16string_view{u"DisplayName"}));
   EXPECT_EQ(byte_string, (scada::ByteString{'a', 'b', 'c'}));
   EXPECT_TRUE(null_string.empty());
   EXPECT_TRUE(null_bytes.empty());
@@ -205,7 +207,8 @@ TEST(CodecUtilsTest, RoundTripsVariants) {
   encoder.Encode(scada::Variant{scada::ByteString{'a', 'b'}});
   encoder.Encode(scada::Variant{scada::String{"abc"}});
   encoder.Encode(scada::Variant{scada::QualifiedName{"BrowseName", 2}});
-  encoder.Encode(scada::Variant{scada::ToLocalizedText(u"DisplayName")});
+  encoder.Encode(scada::Variant{scada::ToLocalizedText(
+      std::u16string_view{u"DisplayName"})});
   encoder.Encode(scada::Variant{scada::NodeId{42, 2}});
   encoder.Encode(
       scada::Variant{scada::ExpandedNodeId{scada::NodeId{43, 2}, "urn:test", 4}});
@@ -229,7 +232,8 @@ TEST(CodecUtilsTest, RoundTripsVariants) {
   encoder.Encode(scada::Variant{
       std::vector<scada::QualifiedName>{{"Name1", 1}, {"Name2", 2}}});
   encoder.Encode(scada::Variant{std::vector<scada::LocalizedText>{
-      scada::ToLocalizedText(u"One"), scada::ToLocalizedText(u"Two")}});
+      scada::ToLocalizedText(std::u16string_view{u"One"}),
+      scada::ToLocalizedText(std::u16string_view{u"Two"})}});
   encoder.Encode(scada::Variant{
       std::vector<scada::NodeId>{{21, 2}, {22, 3}}});
   encoder.Encode(scada::Variant{std::vector<scada::ExpandedNodeId>{
@@ -260,7 +264,7 @@ TEST(CodecUtilsTest, RoundTripsVariants) {
   EXPECT_EQ(decoded[13].get<scada::QualifiedName>(),
             (scada::QualifiedName{"BrowseName", 2}));
   EXPECT_EQ(decoded[14].get<scada::LocalizedText>(),
-            scada::ToLocalizedText(u"DisplayName"));
+            scada::ToLocalizedText(std::u16string_view{u"DisplayName"}));
   EXPECT_EQ(decoded[15].get<scada::NodeId>(), (scada::NodeId{42, 2}));
   EXPECT_EQ(decoded[16].get<scada::ExpandedNodeId>(),
             (scada::ExpandedNodeId{scada::NodeId{43, 2}, "urn:test", 4}));
@@ -298,8 +302,8 @@ TEST(CodecUtilsTest, RoundTripsVariants) {
             (std::vector<scada::QualifiedName>{{"Name1", 1}, {"Name2", 2}}));
   EXPECT_EQ(decoded[33].get<std::vector<scada::LocalizedText>>(),
             (std::vector<scada::LocalizedText>{
-                scada::ToLocalizedText(u"One"),
-                scada::ToLocalizedText(u"Two")}));
+                scada::ToLocalizedText(std::u16string_view{u"One"}),
+                scada::ToLocalizedText(std::u16string_view{u"Two"})}));
   EXPECT_EQ(decoded[34].get<std::vector<scada::NodeId>>(),
             (std::vector<scada::NodeId>{{21, 2}, {22, 3}}));
   EXPECT_EQ(decoded[35].get<std::vector<scada::ExpandedNodeId>>(),

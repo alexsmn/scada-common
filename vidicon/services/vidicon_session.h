@@ -34,6 +34,8 @@ class VidiconSession final : public scada::SessionService,
 
   // scada::SessionService
   virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  virtual Awaitable<scada::Status> ConnectStatus(
+      scada::SessionConnectParams params) override;
   virtual Awaitable<void> Disconnect() override;
   virtual Awaitable<void> Reconnect() override;
   virtual bool IsConnected(

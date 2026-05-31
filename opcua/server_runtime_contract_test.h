@@ -506,7 +506,7 @@ void ExpectPreservesLiveSubscriptionStateAcrossDetachAndResume(
   const auto* data = std::get_if<DataChangeNotification>(
       &publish.notification_message.notification_data[0]);
   ASSERT_NE(data, nullptr);
-  EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 12.5);
+  EXPECT_EQ(data->monitored_items[0].value.value.template get<double>(), 12.5);
 }
 
 template <typename Fixture>
@@ -567,7 +567,7 @@ void ExpectTransfersSubscriptionsAcrossSessions(Fixture& fixture) {
   const auto* data = std::get_if<DataChangeNotification>(
       &target_publish.notification_message.notification_data[0]);
   ASSERT_NE(data, nullptr);
-  EXPECT_EQ(data->monitored_items[0].value.value.get<double>(), 77.0);
+  EXPECT_EQ(data->monitored_items[0].value.value.template get<double>(), 77.0);
 }
 
 template <typename Fixture>
@@ -765,7 +765,9 @@ void ExpectRepublishReplaysNotificationUntilAcknowledged(Fixture& fixture) {
   ASSERT_NE(published_data, nullptr);
   ASSERT_EQ(published_data->monitored_items.size(), 1u);
   EXPECT_EQ(published_data->monitored_items[0].client_handle, 88u);
-  EXPECT_EQ(published_data->monitored_items[0].value.value.get<double>(), 42.5);
+  EXPECT_EQ(published_data->monitored_items[0]
+                .value.value.template get<double>(),
+            42.5);
 
   const auto republish = fixture.template HandleResponse<RepublishResponse>(
       connection,

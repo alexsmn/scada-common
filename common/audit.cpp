@@ -5,10 +5,7 @@
 #include "metrics/metrics.h"
 #include "metrics/tracing.h"
 #include "scada/services.h"
-#include "scada/status_exception.h"
 #include "scada/validation.h"
-
-#include <stdexcept>
 
 namespace {
 
@@ -123,7 +120,7 @@ void Audit::Init() {
       [weak = weak_from_this()]() -> Awaitable<Metrics> {
         auto self = weak.lock();
         if (!self) {
-          throw std::runtime_error{"audit provider expired"};
+          co_return Metrics{};
         }
 
         std::lock_guard lock{self->mutex_};
@@ -179,15 +176,9 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
   if (service) {
     StartRead();
     const auto start_time = Clock::now();
-    try {
-      auto result =
-          co_await service->Read(std::move(context), std::move(inputs));
-      FinishRead(start_time);
-      co_return result;
-    } catch (...) {
-      FinishRead(start_time);
-      throw;
-    }
+    auto result = co_await service->Read(std::move(context), std::move(inputs));
+    FinishRead(start_time);
+    co_return result;
   }
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
@@ -210,16 +201,11 @@ Audit::Browse(scada::ServiceContext context,
   if (service) {
     StartBrowse();
     const auto start_time = Clock::now();
-    try {
-      auto result =
-          co_await service->Browse(std::move(context), std::move(inputs));
-      assert(!result.ok() || Validate(result.value()));
-      FinishBrowse(start_time);
-      co_return result;
-    } catch (...) {
-      FinishBrowse(start_time);
-      throw;
-    }
+    auto result =
+        co_await service->Browse(std::move(context), std::move(inputs));
+    assert(!result.ok() || Validate(result.value()));
+    FinishBrowse(start_time);
+    co_return result;
   }
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};

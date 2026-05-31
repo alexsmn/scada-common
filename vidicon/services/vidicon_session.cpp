@@ -7,7 +7,6 @@
 #include "scada/history_types.h"
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
-#include "scada/status_exception.h"
 #include "vidicon/services/vidicon_monitored_data_point.h"
 #include "vidicon/services/vidicon_monitored_events.h"
 
@@ -32,12 +31,17 @@ VidiconSession::VidiconSession()
 VidiconSession::~VidiconSession() {}
 
 Awaitable<void> VidiconSession::Connect(scada::SessionConnectParams params) {
+  (void)co_await ConnectStatus(std::move(params));
+}
+
+Awaitable<scada::Status> VidiconSession::ConnectStatus(
+    scada::SessionConnectParams params) {
   teleclient_ = CreateTeleClient();
   if (!teleclient_) {
-    throw scada::status_exception{scada::StatusCode::Bad};
+    co_return scada::StatusCode::Bad;
   }
 
-  co_return;
+  co_return scada::StatusCode::Good;
 }
 
 Awaitable<void> VidiconSession::Reconnect() {

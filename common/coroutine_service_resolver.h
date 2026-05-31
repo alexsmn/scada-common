@@ -2,16 +2,15 @@
 
 #include "base/any_executor.h"
 
+#include <cassert>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 
 namespace scada::service_resolver {
 
 template <typename Service>
 Service& RequireSharedService(const std::shared_ptr<Service>& service) {
-  if (!service)
-    throw std::invalid_argument{"missing service"};
+  assert(service);
   return *service;
 }
 
@@ -102,8 +101,7 @@ CoroutineService& RequireCoroutineService(
     std::unique_ptr<Adapter>& adapter) {
   auto* service = ResolveCoroutineService(executor, coroutine_service,
                                           callback_service, adapter);
-  if (!service)
-    throw std::invalid_argument{"missing service"};
+  assert(service);
   return *service;
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "scada/status.h"
+
 namespace scada {
 class NodeId;
 class TypeDefinition;
@@ -8,11 +10,12 @@ class TypeDefinition;
 class NodeFactory;
 
 // WARNING: This method generates artificial IDs for property nodes.
-// Throws an exception on error.
-void CreateMissingProperties(NodeFactory& node_factory,
-                             const scada::NodeId& node_id,
-                             const scada::TypeDefinition& type_definition);
+scada::Status CreateMissingProperties(
+    NodeFactory& node_factory,
+    const scada::NodeId& node_id,
+    const scada::TypeDefinition& type_definition);
 
-void CreateDataVariables(NodeFactory& node_factory,
-                         const scada::NodeId& node_id,
-                         const scada::TypeDefinition& type_definition);
+scada::Status CreateDataVariables(
+    NodeFactory& node_factory,
+    const scada::NodeId& node_id,
+    const scada::TypeDefinition& type_definition);

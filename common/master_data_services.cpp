@@ -3,7 +3,6 @@
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
-#include "scada/status_exception.h"
 
 // MasterDataServices::MasterMonitoredItem
 
@@ -176,23 +175,28 @@ void MasterDataServices::SetServices(DataServices&& services) {
 }
 
 Awaitable<void> MasterDataServices::Connect(scada::SessionConnectParams params) {
+  (void)co_await ConnectStatus(std::move(params));
+}
+
+Awaitable<scada::Status> MasterDataServices::ConnectStatus(
+    scada::SessionConnectParams params) {
   if (!session_service_) {
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+    co_return scada::StatusCode::Bad_Disconnected;
   }
 
-  co_await session_service_->Connect(std::move(params));
+  co_return co_await session_service_->ConnectStatus(std::move(params));
 }
 
 Awaitable<void> MasterDataServices::Disconnect() {
   if (!session_service_)
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+    co_return;
 
   co_await session_service_->Disconnect();
 }
 
 Awaitable<void> MasterDataServices::Reconnect() {
   if (!session_service_)
-    throw scada::status_exception{scada::StatusCode::Bad_Disconnected};
+    co_return;
 
   co_await session_service_->Reconnect();
 }

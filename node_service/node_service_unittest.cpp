@@ -105,20 +105,20 @@ class TestNodeFetcher final : public NodeFetcher {
   explicit TestNodeFetcher(TestAddressSpace& address_space)
       : address_space_{address_space} {}
 
-  Awaitable<scada::NodeState> FetchNode(
+  Awaitable<scada::StatusOr<scada::NodeState>> FetchNode(
       const scada::NodeId& node_id) override {
     const auto* node = address_space_.GetNode(node_id);
     if (!node) {
-      throw scada::status_exception{scada::StatusCode::Bad_WrongNodeId};
+      co_return scada::StatusCode::Bad_WrongNodeId;
     }
     co_return scada::MakeNodeState(*node);
   }
 
-  Awaitable<scada::ReferenceDescriptions> FetchChildren(
+  Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> FetchChildren(
       const scada::NodeId& node_id) override {
     const auto* node = address_space_.GetNode(node_id);
     if (!node) {
-      throw scada::status_exception{scada::StatusCode::Bad_WrongNodeId};
+      co_return scada::StatusCode::Bad_WrongNodeId;
     }
 
     scada::ReferenceDescriptions references;
@@ -191,7 +191,7 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
   auto result = WaitAwaitable(
       executor, node_service.GetNode(node_id).scada_node().read_value());
 
-  EXPECT_EQ(result.value, expected_value);
+  EXPECT_EQ(result.value().value, expected_value);
 }
 
 template <class NodeServiceImpl>

@@ -2,12 +2,12 @@
 
 namespace v3 {
 
-Awaitable<scada::NodeState> NodeFetcher::FetchNode(
+Awaitable<scada::StatusOr<scada::NodeState>> NodeFetcher::FetchNode(
     const scada::NodeId& node_id) {
   co_return scada::NodeState{};
 }
 
-Awaitable<scada::ReferenceDescriptions> NodeFetcher::FetchChildren(
+Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> NodeFetcher::FetchChildren(
     const scada::NodeId& node_id) {
   co_return scada::ReferenceDescriptions{};
 }

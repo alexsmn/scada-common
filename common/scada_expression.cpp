@@ -10,7 +10,7 @@
 #include "express/strings.h"
 #pragma warning(pop)
 
-#include <stdexcept>
+#include <cassert>
 
 static const expression::LexemType LEX_TRUE = 't';
 static const expression::LexemType LEX_FALSE = 'f';
@@ -75,7 +75,7 @@ std::optional<expression::Lexem> ScadaLexerDelegate::ReadLexem(
     while (*buffer.buf && *buffer.buf != '}')
       ++buffer.buf;
     if (*buffer.buf != '}')
-      throw std::runtime_error("no ending bracket");
+      return std::nullopt;
 
     ++buffer.buf;
 
@@ -177,7 +177,8 @@ struct ParserDelegate
       }
 
       default:
-        throw std::runtime_error{"Unexpected lexem"};
+        assert(false);
+        return {};
     }
   }
   ScadaExpression& expression;
@@ -245,17 +246,13 @@ bool ScadaExpression::IsSingleName(std::string_view formula,
   const auto& buf = std::string{formula};
   ScadaLexerDelegate delegate;
   expression::Lexer lexer{buf.c_str(), delegate, 0};
-  try {
-    const auto& lexem1 = lexer.ReadLexem();
-    if (lexem1.lexem != expression::LEX_NAME)
-      return false;
-    const auto& lexem2 = lexer.ReadLexem();
-    if (lexem2.lexem != expression::LEX_END)
-      return false;
-    item_name = lexem1._string;
-  } catch (const std::runtime_error&) {
+  const auto& lexem1 = lexer.ReadLexem();
+  if (lexem1.lexem != expression::LEX_NAME)
     return false;
-  }
+  const auto& lexem2 = lexer.ReadLexem();
+  if (lexem2.lexem != expression::LEX_END)
+    return false;
+  item_name = lexem1._string;
   return true;
 }
 

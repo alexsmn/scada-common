@@ -2,6 +2,7 @@
 
 #include "base/awaitable.h"
 #include "common/node_state.h"
+#include "scada/status_or.h"
 
 namespace v3 {
 
@@ -16,10 +17,10 @@ class NodeFetcher : private NodeFetcherContext {
  public:
   virtual ~NodeFetcher() = default;
 
-  virtual Awaitable<scada::NodeState> FetchNode(
+  virtual Awaitable<scada::StatusOr<scada::NodeState>> FetchNode(
       const scada::NodeId& node_id);
 
-  virtual Awaitable<scada::ReferenceDescriptions> FetchChildren(
+  virtual Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> FetchChildren(
       const scada::NodeId& node_id);
 };
 

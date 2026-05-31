@@ -44,6 +44,8 @@ class ClientSession final
 
   // scada::SessionService
   Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  Awaitable<scada::Status> ConnectStatus(
+      scada::SessionConnectParams params) override;
   Awaitable<void> Disconnect() override;
   Awaitable<void> Reconnect() override;
   bool IsConnected(
@@ -56,7 +58,7 @@ class ClientSession final
       const SessionStateChangedCallback& callback) override;
   scada::SessionDebugger* GetSessionDebugger() override;
 
-  [[nodiscard]] Awaitable<void> ConnectAsync(
+  [[nodiscard]] Awaitable<scada::Status> ConnectAsync(
       scada::SessionConnectParams params);
   [[nodiscard]] Awaitable<void> DisconnectAsync();
   [[nodiscard]] Awaitable<void> ReconnectAsync();

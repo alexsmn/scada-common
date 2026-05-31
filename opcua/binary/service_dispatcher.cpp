@@ -117,27 +117,17 @@ Awaitable<std::optional<std::vector<char>>> ServiceDispatcher::HandlePayload(
     co_return std::nullopt;
   }
 
-  try {
-    auto encoded = EncodeResponse(request->header.request_handle,
-                                  request->history_event_field_paths,
-                                  *response);
-    if (!encoded.has_value()) {
-      const auto request_name = RequestName(request->body);
-      LOG_WARNING(logger_) << "OPC UA binary response encode failed: "
-                           << request_name
-                           << LOG_TAG("RequestHandle",
-                                      request->header.request_handle);
-    }
-    co_return encoded;
-  } catch (const std::exception& e) {
+  auto encoded = EncodeResponse(request->header.request_handle,
+                                request->history_event_field_paths,
+                                *response);
+  if (!encoded.has_value()) {
     const auto request_name = RequestName(request->body);
-    LOG_WARNING(logger_) << "OPC UA binary response encode threw: "
+    LOG_WARNING(logger_) << "OPC UA binary response encode failed: "
                          << request_name
                          << LOG_TAG("RequestHandle",
-                                    request->header.request_handle)
-                         << LOG_TAG("Error", e.what());
-    throw;
+                                    request->header.request_handle);
   }
+  co_return encoded;
 }
 
 }  // namespace opcua::binary

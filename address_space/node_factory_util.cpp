@@ -6,9 +6,10 @@
 #include "common/node_state.h"
 #include "model/node_id_util.h"
 
-void CreateMissingProperties(NodeFactory& node_factory,
-                             const scada::NodeId& node_id,
-                             const scada::TypeDefinition& type_definition) {
+scada::Status CreateMissingProperties(
+    NodeFactory& node_factory,
+    const scada::NodeId& node_id,
+    const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto& prop_node : scada::GetProperties(*type)) {
       auto& prop_decl = scada::AsVariable(prop_node);
@@ -24,15 +25,17 @@ void CreateMissingProperties(NodeFactory& node_factory,
                 .set_data_type(prop_decl.GetDataType().id())
                 .set_value(prop_decl.GetValue().value)});
         if (!status)
-          throw status;
+          return status;
       }
     }
   }
+  return scada::StatusCode::Good;
 }
 
-void CreateDataVariables(NodeFactory& node_factory,
-                         const scada::NodeId& node_id,
-                         const scada::TypeDefinition& type_definition) {
+scada::Status CreateDataVariables(
+    NodeFactory& node_factory,
+    const scada::NodeId& node_id,
+    const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto* data_variable_node : scada::GetComponents(*type)) {
       auto& data_variable_decl = scada::AsVariable(*data_variable_node);
@@ -49,7 +52,8 @@ void CreateDataVariables(NodeFactory& node_factory,
               .set_data_type(data_variable_decl.GetDataType().id())
               .set_value(data_variable_decl.GetValue().value)});
       if (!status)
-        throw status;
+        return status;
     }
   }
+  return scada::StatusCode::Good;
 }

@@ -60,14 +60,13 @@ inline Property<ValueType>::Property(NodeBuilder& builder,
 
   auto* type_definition = instance_declaration_.type_definition();
   assert(type_definition);
-  if (!type_definition)
-    throw std::runtime_error("Instance declaration has no type definition");
 
   auto default_value = instance_declaration_.GetValue();
-  if (!detail::Convert(default_value.value, value_))
-    throw std::runtime_error("Wrong data type of default value");
+  assert(detail::Convert(default_value.value, value_));
+  (void)detail::Convert(default_value.value, value_);
 
-  builder.AddReference(id::HasTypeDefinition, *this, *type_definition);
+  if (type_definition)
+    builder.AddReference(id::HasTypeDefinition, *this, *type_definition);
   builder.AddReference(scada::id::HasProperty, parent, *this);
 }
 

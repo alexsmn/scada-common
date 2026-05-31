@@ -53,12 +53,11 @@ inline DataVariable<ValueType>::DataVariable(
           AsVariable(builder.GetMutableNode(instance_declaration_id))} {
   auto* type_definition = instance_declaration_.type_definition();
   assert(type_definition);
-  if (!type_definition)
-    throw std::runtime_error("Instance declaration has no type definition");
 
   value_ = instance_declaration_.GetValue();
 
-  builder.AddReference(id::HasTypeDefinition, *this, *type_definition);
+  if (type_definition)
+    builder.AddReference(id::HasTypeDefinition, *this, *type_definition);
   builder.AddReference(scada::id::HasComponent, parent, *this);
 }
 

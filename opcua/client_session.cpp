@@ -3,7 +3,6 @@
 #include "base/any_executor.h"
 #include "net/net_executor_adapter.h"
 #include "opcua/client_subscription.h"
-#include "scada/status_exception.h"
 #include "transport/transport_factory.h"
 #include "transport/transport_string.h"
 
@@ -91,7 +90,12 @@ ClientSession::ClientSession(
 ClientSession::~ClientSession() = default;
 
 Awaitable<void> ClientSession::Connect(scada::SessionConnectParams params) {
-  co_await ConnectAsync(std::move(params));
+  (void)co_await ConnectStatus(std::move(params));
+}
+
+Awaitable<scada::Status> ClientSession::ConnectStatus(
+    scada::SessionConnectParams params) {
+  co_return co_await ConnectAsync(std::move(params));
 }
 
 Awaitable<void> ClientSession::Disconnect() {
@@ -102,7 +106,7 @@ Awaitable<void> ClientSession::Reconnect() {
   co_await ReconnectAsync();
 }
 
-Awaitable<void> ClientSession::ConnectAsync(
+Awaitable<scada::Status> ClientSession::ConnectAsync(
     scada::SessionConnectParams params) {
   // Use `connection_string` when populated, otherwise compose from `host`.
   std::string endpoint = params.connection_string.empty()
@@ -110,7 +114,7 @@ Awaitable<void> ClientSession::ConnectAsync(
                              : params.connection_string;
   const auto parsed = ParseEndpointUrl(endpoint);
   if (!parsed.valid) {
-    throw scada::status_exception{scada::StatusCode::Bad};
+    co_return scada::StatusCode::Bad;
   }
 
   transport::TransportString ts;
@@ -123,8 +127,7 @@ Awaitable<void> ClientSession::ConnectAsync(
   auto transport_result = transport_factory_.CreateTransport(
       ts, net_executor, transport::log_source{});
   if (!transport_result.ok()) {
-    throw scada::status_exception{
-        scada::Status{scada::StatusCode::Bad_Disconnected}};
+    co_return scada::StatusCode::Bad_Disconnected;
   }
 
   endpoint_url_ = std::move(endpoint);
@@ -163,10 +166,11 @@ Awaitable<void> ClientSession::ConnectAsync(
   if (status.bad()) {
     Reset();
     NotifyStateChanged(false, status);
-    throw scada::status_exception{status};
+    co_return status;
   }
   is_connected_ = true;
   NotifyStateChanged(true, scada::Status{scada::StatusCode::Good});
+  co_return scada::StatusCode::Good;
 }
 
 Awaitable<void> ClientSession::DisconnectAsync() {
