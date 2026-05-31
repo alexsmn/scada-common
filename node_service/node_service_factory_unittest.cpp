@@ -143,7 +143,7 @@ void ExpectFetchesNode(TestAddressSpace& address_space,
                        TestExecutor& executor) {
   auto node = node_service.GetNode(address_space.kTestNode2Id);
 
-  node.Fetch(NodeFetchStatus::NodeAndChildren());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren());
   DrainExecutor(executor);
 
   EXPECT_TRUE(node.fetched());

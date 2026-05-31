@@ -12,8 +12,13 @@ NodeFetchStatus ProxyNodeModel::GetFetchStatus() const {
   return {};
 }
 
-void ProxyNodeModel::Fetch(const NodeFetchStatus& requested_status,
-                           const FetchCallback& callback) const {}
+Awaitable<void> ProxyNodeModel::Fetch(
+    const NodeFetchStatus& requested_status) const {
+  co_return;
+}
+
+void ProxyNodeModel::StartFetch(
+    const NodeFetchStatus& requested_status) const {}
 
 scada::Variant ProxyNodeModel::GetAttribute(
     scada::AttributeId attribute_id) const {

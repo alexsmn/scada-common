@@ -352,10 +352,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
 
   auto node = this->node_service_->GetNode(unknown_node_id);
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -395,12 +392,9 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   StrictMock<MockNodeObserver> node_observer;
   node.Subscribe(node_observer);
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
 
   this->ExpectAnyUpdates();
-
-  EXPECT_CALL(fetch_callback, Call(_));
 
   EXPECT_CALL(node_observer,
               OnNodeFetched(FieldsAre(node_id, NodeFetchStatus::None())));
@@ -443,10 +437,7 @@ TYPED_TEST(CommonNodeServiceTest, FetchNode_NodeOnly_FetchesCoreAttributes) {
 
   auto node = this->node_service_->GetNode(node_id);
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -482,10 +473,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
 
   this->ValidateNodeFetched(node);
 
@@ -518,11 +506,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeAndChildren(),
-             fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren());
 
   this->ValidateNodeFetched(node);
 
@@ -612,10 +596,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 
   auto node = this->node_service_->GetNode(new_node_state.node_id);
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -647,10 +628,7 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
 
   this->ExpectNoUpdates();
 
@@ -706,10 +684,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
 
   this->ExpectNoUpdates();
 
@@ -773,10 +748,7 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   // TODO: Triggered only by v2.
   EXPECT_CALL(node_observer, OnModelChanged(_)).Times(AtMost(1));
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeOnly(), fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   this->DrainExecutor();
 
   ASSERT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
@@ -845,7 +817,7 @@ TYPED_TEST(NodeServiceTest,
   auto& server_address_space = *this->base_env_.server_address_space;
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
-  node.Fetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   this->DrainExecutor();
 
   auto target = node.target(server_address_space.kTestReferenceTypeId);
@@ -861,7 +833,7 @@ TYPED_TEST(NodeServiceTest, TsFormat) {
   auto& server_address_space = *this->base_env_.server_address_space;
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
-  node.Fetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly());
   this->DrainExecutor();
 }
 
@@ -921,11 +893,7 @@ TEST_F(V2NodeServiceRegressionTest,
 
   auto node = node_service_->GetNode(node_id);
 
-  StrictMock<MockFunction<void(const NodeRef& node)>> fetch_callback;
-  EXPECT_CALL(fetch_callback, Call(_));
-
-  node.Fetch(NodeFetchStatus::NodeAndChildren(),
-             fetch_callback.AsStdFunction());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren());
 
   DrainExecutor();
 

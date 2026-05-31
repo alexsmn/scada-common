@@ -1,8 +1,8 @@
 #pragma once
 
+#include "base/awaitable.h"
 #include "node_service/node_ref.h"
 
-#include <memory>
 #include <queue>
 
 class NodeService;
@@ -18,40 +18,18 @@ std::u16string GetFullDisplayName(const NodeRef& node);
 scada::LocalizedText GetDisplayName(NodeService& node_service,
                                     const scada::NodeId& node_id);
 
-template <class Callback>
-struct TreeFetcher
-    : public std::enable_shared_from_this<TreeFetcher<Callback>> {
-  explicit TreeFetcher(Callback&& callback) : callback{std::move(callback)} {}
+// TODO: Combine with `FetchRecursive`.
+inline Awaitable<void> FetchTree(const NodeRef& root) {
+  std::queue<NodeRef> queue;
+  queue.emplace(root);
 
-  void Start(const NodeRef& root) {
-    queue.emplace(root);
-    Run();
-  }
-
-  void Run() {
-    if (queue.empty()) {
-      callback();
-      return;
-    }
-
+  while (!queue.empty()) {
     auto node = std::move(queue.front());
     queue.pop();
 
-    node.Fetch(NodeFetchStatus::NodeAndChildren(),
-               [this, ref = this->shared_from_this()](const NodeRef& node) {
-                 for (const auto& child : node.targets(scada::id::Organizes)) {
-                   queue.emplace(child);
-                 }
-                 Run();
-               });
+    node = co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
+    for (const auto& child : node.targets(scada::id::Organizes)) {
+      queue.emplace(child);
+    }
   }
-
-  const Callback callback;
-  std::queue<NodeRef> queue;
-};
-
-// TODO: Combine with `FetchRecursive`.
-template <class Callback>
-void FetchTree(const NodeRef& root, Callback&& callback) {
-  std::make_shared<TreeFetcher<Callback>>(std::move(callback))->Start(root);
 }

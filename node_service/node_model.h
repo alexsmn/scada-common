@@ -1,9 +1,9 @@
 #pragma once
 
+#include "base/awaitable.h"
 #include "scada/client.h"
 #include "node_service/node_ref.h"
 
-#include <functional>
 #include <vector>
 
 class NodeRefObserver;
@@ -16,9 +16,9 @@ class NodeModel {
 
   virtual NodeFetchStatus GetFetchStatus() const = 0;
 
-  using FetchCallback = std::function<void()>;
-  virtual void Fetch(const NodeFetchStatus& requested_status,
-                     const FetchCallback& callback) const = 0;
+  virtual Awaitable<void> Fetch(
+      const NodeFetchStatus& requested_status) const = 0;
+  virtual void StartFetch(const NodeFetchStatus& requested_status) const = 0;
 
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const = 0;

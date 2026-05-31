@@ -10,10 +10,13 @@ class MockNodeModel : public NodeModel {
 
   MOCK_METHOD(NodeFetchStatus, GetFetchStatus, (), (const));
 
-  MOCK_METHOD(void,
+  MOCK_METHOD(Awaitable<void>,
               Fetch,
-              (const NodeFetchStatus& requested_status,
-               const FetchCallback& callback),
+              (const NodeFetchStatus& requested_status),
+              (const));
+  MOCK_METHOD(void,
+              StartFetch,
+              (const NodeFetchStatus& requested_status),
               (const));
 
   MOCK_METHOD(scada::Variant,

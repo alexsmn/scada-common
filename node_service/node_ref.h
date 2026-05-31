@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/awaitable.h"
 #include "node_service/node_fetch_status.h"
 #include "scada/attribute_ids.h"
 #include "scada/data_value.h"
@@ -7,7 +8,6 @@
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 
-#include <functional>
 #include <memory>
 #include <optional>
 
@@ -28,12 +28,10 @@ class NodeRef {
   bool children_fetched() const;
 
   // On error: OnNodeFetched + OnNodeSemanticsChanged.
-  void Fetch(const NodeFetchStatus& requested_status =
-                 NodeFetchStatus::NodeOnly()) const;
-
-  using FetchCallback = std::function<void(const NodeRef& node)>;
-  void Fetch(const NodeFetchStatus& requested_status,
-             const FetchCallback& callback) const;
+  Awaitable<NodeRef> Fetch(const NodeFetchStatus& requested_status =
+                               NodeFetchStatus::NodeOnly()) const;
+  void StartFetch(const NodeFetchStatus& requested_status =
+                      NodeFetchStatus::NodeOnly()) const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 

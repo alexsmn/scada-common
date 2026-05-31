@@ -37,7 +37,7 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   if (!node)
     return nullptr;
 
-  node->Fetch(NodeFetchStatus::NodeOnly(), {});
+  node->StartFetch(NodeFetchStatus::NodeOnly());
   return node;
 }
 

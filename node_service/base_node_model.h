@@ -3,13 +3,17 @@
 #include "base/observer_list.h"
 #include "node_service/node_model.h"
 
+#include <functional>
+
 class BaseNodeModel : public NodeModel {
  public:
   virtual void OnNodeDeleted();
 
   // NodeModel
-  virtual void Fetch(const NodeFetchStatus& requested_status,
-                     const FetchCallback& callback) const override;
+  virtual Awaitable<void> Fetch(
+      const NodeFetchStatus& requested_status) const override;
+  virtual void StartFetch(
+      const NodeFetchStatus& requested_status) const override;
   virtual NodeFetchStatus GetFetchStatus() const override;
   virtual scada::Status GetStatus() const override;
   virtual void Subscribe(NodeRefObserver& observer) const override;
@@ -33,6 +37,10 @@ class BaseNodeModel : public NodeModel {
   virtual void OnFetchRequested(const NodeFetchStatus& requested_status);
 
   virtual void OnFetchStatusChanged() {}
+
+  using FetchCallback = std::function<void()>;
+  void StartFetch(const NodeFetchStatus& requested_status,
+                  FetchCallback callback) const;
 
   scada::Status status_{scada::StatusCode::Good};
 

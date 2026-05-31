@@ -20,24 +20,6 @@ void ThrowIfBad(scada::Status status) {
   }
 }
 
-template <class CompletionToken = boost::asio::use_awaitable_t<>>
-auto AwaitFetch(const NodeRef& node,
-                const NodeFetchStatus& fetch_status,
-                CompletionToken&& token = {}) {
-  auto initiate = [node, fetch_status]<typename Handler>(
-                      Handler&& handler) mutable {
-    auto completion =
-        std::make_shared<std::decay_t<Handler>>(std::forward<Handler>(handler));
-
-    node.Fetch(fetch_status, [completion](const NodeRef& node) mutable {
-      (*completion)(node.status());
-    });
-  };
-
-  return boost::asio::async_initiate<CompletionToken, void(scada::Status)>(
-      initiate, token);
-}
-
 class PendingNodesWaiter final : private NodeRefObserver,
                                  public std::enable_shared_from_this<
                                      PendingNodesWaiter> {
@@ -117,7 +99,8 @@ Awaitable<void> FetchNode(const NodeRef& node) {
     co_return;
   }
 
-  ThrowIfBad(co_await AwaitFetch(node, NodeFetchStatus::NodeOnly()));
+  co_await node.Fetch(NodeFetchStatus::NodeOnly());
+  ThrowIfBad(node.status());
 }
 
 Awaitable<void> FetchChildren(const NodeRef& node) {
@@ -125,11 +108,11 @@ Awaitable<void> FetchChildren(const NodeRef& node) {
     co_return;
   }
 
-  auto status = co_await AwaitFetch(node, NodeFetchStatus::NodeAndChildren());
+  co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
   assert(node.fetched());
   assert(node.type_definition().fetched());
   assert(node.children_fetched());
-  ThrowIfBad(std::move(status));
+  ThrowIfBad(node.status());
 }
 
 Awaitable<void> WaitForPendingNodes(NodeService& node_service) {

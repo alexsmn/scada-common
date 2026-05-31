@@ -11,8 +11,10 @@ class ProxyNodeModel : public NodeModel {
   // NodeModel
   virtual scada::Status GetStatus() const override;
   virtual NodeFetchStatus GetFetchStatus() const override;
-  virtual void Fetch(const NodeFetchStatus& requested_status,
-                     const FetchCallback& callback) const override;
+  virtual Awaitable<void> Fetch(
+      const NodeFetchStatus& requested_status) const override;
+  virtual void StartFetch(
+      const NodeFetchStatus& requested_status) const override;
   virtual scada::Variant GetAttribute(
       scada::AttributeId attribute_id) const override;
   virtual NodeRef GetDataType() const override;

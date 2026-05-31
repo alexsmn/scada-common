@@ -5,47 +5,19 @@
 #include "node_service/node_util.h"
 #include "node_service/v3/node_service_impl.h"
 
+#include "base/awaitable.h"
+
 namespace v3 {
 
 namespace {
 
-template <class Callback>
-struct JoinedRequest {
-  explicit JoinedRequest(Callback&& callback)
-      : callback{std::forward<Callback>(callback)} {}
-
-  void CountDown() { Update(-1); }
-  void Wait(int count) { Update(count); }
-
-  void Update(int delta) {
-    int left_count = expected_count += delta;
-    if (left_count == 0)
-      callback();
-  }
-
-  const Callback callback;
-  std::atomic<int> expected_count = 0;
-};
-
-template <class Callback>
-void FetchReferences(NodeService& service,
-                     const scada::ReferenceDescriptions& references,
-                     Callback&& callback) {
-  auto request = std::make_shared<JoinedRequest<Callback>>(
-      std::forward<Callback>(callback));
-
-  int count = 0;
+Awaitable<void> FetchReferences(NodeService& service,
+                                const scada::ReferenceDescriptions& references) {
   for (auto& ref : references) {
-    service.GetNode(ref.node_id)
-        .Fetch(NodeFetchStatus::NodeOnly(),
-               [request](const NodeRef& node) { request->CountDown(); });
-    service.GetNode(ref.reference_type_id)
-        .Fetch(NodeFetchStatus::NodeOnly(),
-               [request](const NodeRef& node) { request->CountDown(); });
-    count += 2;
+    co_await service.GetNode(ref.node_id).Fetch(NodeFetchStatus::NodeOnly());
+    co_await service.GetNode(ref.reference_type_id)
+        .Fetch(NodeFetchStatus::NodeOnly());
   }
-
-  request->Wait(count);
 }
 
 }  // namespace
@@ -123,10 +95,12 @@ void NodeModelImpl::OnChildrenFetched(
 
   reference_request_ = std::make_shared<bool>(false);
   std::weak_ptr<bool> reference_request = reference_request_;
-  FetchReferences(service_, *shared_references,
-                  [reference_request, this, shared_references] {
+  CoSpawn(service_.executor_,
+          [reference_request, this, shared_references]() -> Awaitable<void> {
+            co_await FetchReferences(service_, *shared_references);
+
                     if (!reference_request.lock())
-                      return;
+                      co_return;
 
                     child_references_ = *shared_references;
 

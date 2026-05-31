@@ -33,8 +33,14 @@ class TestNodeModel final : public NodeModel {
     return NodeFetchStatus::Max();
   }
 
-  virtual void Fetch(const NodeFetchStatus& requested_status,
-                     const FetchCallback& callback) const override {
+  virtual Awaitable<void> Fetch(
+      const NodeFetchStatus& requested_status) const override {
+    assert(false);
+    co_return;
+  }
+
+  virtual void StartFetch(
+      const NodeFetchStatus& requested_status) const override {
     assert(false);
   }
 

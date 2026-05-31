@@ -123,29 +123,22 @@ NodeRef NodeRef::operator[](const scada::QualifiedName& child_name) const {
   return model_ ? model_->GetChild(child_name) : NodeRef{};
 }
 
-void NodeRef::Fetch(const NodeFetchStatus& requested_status) const {
-  assert(!requested_status.empty());
-
-  if (model_)
-    model_->Fetch(requested_status, {});
-}
-
-void NodeRef::Fetch(const NodeFetchStatus& requested_status,
-                    const FetchCallback& callback) const {
+Awaitable<NodeRef> NodeRef::Fetch(
+    const NodeFetchStatus& requested_status) const {
   assert(!requested_status.empty());
 
   if (model_) {
-    if (callback) {
-      model_->Fetch(requested_status,
-                    [copy = *this, callback] { callback(copy); });
-    } else {
-      model_->Fetch(requested_status, nullptr);
-    }
-
-  } else {
-    if (callback)
-      callback(*this);
+    co_await model_->Fetch(requested_status);
   }
+
+  co_return *this;
+}
+
+void NodeRef::StartFetch(const NodeFetchStatus& requested_status) const {
+  assert(!requested_status.empty());
+
+  if (model_)
+    model_->StartFetch(requested_status);
 }
 
 scada::Status NodeRef::status() const {

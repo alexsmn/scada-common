@@ -3,6 +3,9 @@
 #include "base/auto_reset.h"
 #include "node_service/node_observer.h"
 
+#include <boost/asio/async_result.hpp>
+#include <boost/asio/use_awaitable.hpp>
+
 BaseNodeModel::ScopedCallbackLock::ScopedCallbackLock(BaseNodeModel& model)
     : model_{model} {
   ++model_.callback_lock_count_;
@@ -14,8 +17,8 @@ BaseNodeModel::ScopedCallbackLock::~ScopedCallbackLock() {
     model_.NotifyCallbacks();
 }
 
-void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
-                          const FetchCallback& callback) const {
+void BaseNodeModel::StartFetch(const NodeFetchStatus& requested_status,
+                               FetchCallback callback) const {
   if (requested_status.all_less_or_equal(fetch_status_)) {
     if (!callback)
       return;
@@ -35,6 +38,27 @@ void BaseNodeModel::Fetch(const NodeFetchStatus& requested_status,
     const_cast<BaseNodeModel*>(this)->OnFetchRequested(
         combined_requested_status);
   }
+}
+
+Awaitable<void> BaseNodeModel::Fetch(
+    const NodeFetchStatus& requested_status) const {
+  auto initiate = [this, requested_status]<typename Handler>(
+                      Handler&& handler) mutable {
+    auto completion =
+        std::make_shared<std::decay_t<Handler>>(std::forward<Handler>(handler));
+    StartFetch(requested_status, [completion = std::move(completion)]() mutable {
+      (*completion)();
+    });
+  };
+
+  auto token = boost::asio::use_awaitable;
+  co_await boost::asio::async_initiate<decltype(token), void()>(initiate,
+                                                                token);
+}
+
+void BaseNodeModel::StartFetch(
+    const NodeFetchStatus& requested_status) const {
+  StartFetch(requested_status, nullptr);
 }
 
 scada::Status BaseNodeModel::GetStatus() const {
