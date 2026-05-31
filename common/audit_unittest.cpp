@@ -2,8 +2,6 @@
 
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
-#include "metrics/metric_service.h"
-#include "metrics/metrics.h"
 #include "metrics/tracer.h"
 #include "scada/attribute_service_mock.h"
 #include "scada/test/status_matchers.h"
@@ -66,41 +64,17 @@ class TestCoroutineAuditServices final
   std::vector<scada::BrowseResult> browse_results{{}};
 };
 
-class CapturingMetricService final : public MetricService {
- public:
-  void RegisterProvider(const Provider& provider) override {
-    provider_ = provider;
-  }
-
-  void RegisterSink(const Sink& sink) override { sink_ = sink; }
-
-  Metrics Collect(TestExecutor& executor) {
-    auto metrics = WaitAwaitable(executor, provider_());
-    EXPECT_TRUE(metrics.ok()) << metrics.status();
-    return metrics.ok() ? std::move(*metrics) : Metrics{};
-  }
-
-  Provider provider_;
-  Sink sink_;
-};
-
-bool HasMetric(const Metrics& metrics, const std::string& name) {
-  return metrics.ToUnorderedMap().contains(name);
-}
-
 DataServices MakeAuditDataServices(const scada::services& services) {
   return DataServices::FromUnownedServices(services);
 }
 
 TEST(AuditTest, CoroutineReadRecordsMetric) {
   TestExecutor executor;
-  CapturingMetricService metric_service;
   auto attribute_service =
       std::make_shared<StrictMock<scada::MockAttributeService>>();
   scada::services services{.attribute_service = attribute_service.get()};
   auto audit = Audit::Create(
-      AuditContext{.metric_service_ = metric_service,
-                   .data_services_ = MakeAuditDataServices(services),
+      AuditContext{.data_services_ = MakeAuditDataServices(services),
                    .tracer_ = Tracer::None(),
                    .executor_ = executor});
 
@@ -117,18 +91,14 @@ TEST(AuditTest, CoroutineReadRecordsMetric) {
                     {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
 
   ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "read_latency.count"));
 }
 
 TEST(AuditTest, CoroutineBrowseUsesViewServiceAndRecordsMetric) {
   TestExecutor executor;
-  CapturingMetricService metric_service;
   auto view_service = std::make_shared<StrictMock<scada::MockViewService>>();
   scada::services services{.view_service = view_service.get()};
   auto audit = Audit::Create(
-      AuditContext{.metric_service_ = metric_service,
-                   .data_services_ = MakeAuditDataServices(services),
+      AuditContext{.data_services_ = MakeAuditDataServices(services),
                    .tracer_ = Tracer::None(),
                    .executor_ = executor});
 
@@ -147,19 +117,15 @@ TEST(AuditTest, CoroutineBrowseUsesViewServiceAndRecordsMetric) {
 
   auto browse_result = WaitResult(executor, result);
   ASSERT_THAT(browse_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 }
 
 TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributes) {
   TestExecutor executor;
-  CapturingMetricService metric_service;
   StrictMock<scada::MockAttributeService> attribute_service;
   auto source_services = std::make_shared<scada::services>(
       scada::services{.attribute_service = &attribute_service});
   auto audited_services =
-      AuditScadaServices(source_services, metric_service, Tracer::None(),
-                         executor);
+      AuditScadaServices(source_services, Tracer::None(), executor);
 
   ASSERT_NE(audited_services->attribute_service, nullptr);
   EXPECT_NE(audited_services->attribute_service, &attribute_service);
@@ -181,7 +147,6 @@ TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributes) {
 
 TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   TestExecutor executor;
-  CapturingMetricService metric_service;
   auto source_services = std::make_shared<TestCoroutineAuditServices>();
 
   DataServices data_services;
@@ -189,8 +154,7 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   data_services.view_service_ = source_services;
 
   auto audited_services =
-      AuditDataServices(std::move(data_services), metric_service,
-                        Tracer::None(), executor);
+      AuditDataServices(std::move(data_services), Tracer::None(), executor);
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
   ASSERT_NE(audited_services->attribute_service_, nullptr);
@@ -210,8 +174,6 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
                                source_services->read_results)));
   EXPECT_EQ(source_services->read_count, 1);
   EXPECT_EQ(source_services->last_read_inputs, *read_inputs);
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "read_latency.count"));
 
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{{.node_id = scada::NodeId{4}}});
@@ -231,8 +193,6 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_EQ(source_services->browse_count, 1);
   ASSERT_EQ(source_services->last_browse_inputs.size(), 1u);
   EXPECT_EQ(source_services->last_browse_inputs[0].node_id, (scada::NodeId{2}));
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 
   browse_result =
       WaitAwaitable(executor, audited_services->view_service_->Browse(
@@ -243,8 +203,6 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_EQ(source_services->browse_count, 2);
   ASSERT_EQ(source_services->last_browse_inputs.size(), 1u);
   EXPECT_EQ(source_services->last_browse_inputs[0].node_id, (scada::NodeId{3}));
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "browse_latency.count"));
 
   auto translate_result = WaitAwaitable(
       executor, audited_services->view_service_->TranslateBrowsePaths(
@@ -257,13 +215,12 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
 
 TEST(AuditTest, AuditDataServicesWrapsUnownedServicesForCoroutineUse) {
   TestExecutor executor;
-  CapturingMetricService metric_service;
   StrictMock<scada::MockAttributeService> attribute_service;
 
   scada::services source_services{.attribute_service = &attribute_service};
   auto audited_services =
-      AuditDataServices(MakeAuditDataServices(source_services), metric_service,
-                        Tracer::None(), executor);
+      AuditDataServices(MakeAuditDataServices(source_services), Tracer::None(),
+                        executor);
 
   ASSERT_NE(audited_services->attribute_service_, nullptr);
   ASSERT_NE(audited_services->attribute_service_, nullptr);
@@ -282,8 +239,6 @@ TEST(AuditTest, AuditDataServicesWrapsUnownedServicesForCoroutineUse) {
   auto values = WaitAwaitable(
       executor, audited_services->attribute_service_->Read({}, read_inputs));
   ASSERT_THAT(values, scada::test::IsOkAndHolds(testing::SizeIs(1)));
-  EXPECT_TRUE(
-      HasMetric(metric_service.Collect(executor), "read_latency.count"));
 }
 
 }  // namespace

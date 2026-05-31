@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base/any_executor.h"
-#include "metrics/aggregated_metric.h"
+#include "metrics/otel_metrics.h"
 #include "scada/attribute_service.h"
 #include "scada/data_services.h"
 #include "scada/services.h"
@@ -9,18 +9,15 @@
 
 #include <chrono>
 #include <memory>
-#include <mutex>
 #include <optional>
 
 namespace scada {
 struct services;
 }
 
-class MetricService;
 class Tracer;
 
 struct AuditContext {
-  MetricService& metric_service_;
   DataServices data_services_;
   Tracer& tracer_;
   std::optional<AnyExecutor> executor_;
@@ -54,20 +51,13 @@ class Audit final : private AuditContext,
   using Clock = std::chrono::steady_clock;
   using Duration = Clock::duration;
 
-  void Init();
   void RefreshCoroutineServices();
   void StartRead();
   void FinishRead(Clock::time_point start_time);
   void StartBrowse();
   void FinishBrowse(Clock::time_point start_time);
 
-  mutable std::mutex mutex_;
-
-  AggregatedMetric<Duration> read_latency_metric_;
-  AggregatedMetric<Duration> browse_latency_metric_;
-
-  AggregatedCounter<size_t> concurrent_read_count_;
-  AggregatedCounter<size_t> concurrent_browse_count_;
+  metrics::Meter metrics_{"scada.audit"};
 
   scada::AttributeService* attribute_service_ = nullptr;
   scada::ViewService* view_service_ = nullptr;
@@ -75,16 +65,13 @@ class Audit final : private AuditContext,
 
 std::shared_ptr<scada::services> AuditScadaServices(
     const std::shared_ptr<const scada::services>& services,
-    MetricService& metric_service,
     Tracer& tracer);
 
 std::shared_ptr<scada::services> AuditScadaServices(
     const std::shared_ptr<const scada::services>& services,
-    MetricService& metric_service,
     Tracer& tracer,
     AnyExecutor executor);
 
 std::shared_ptr<DataServices> AuditDataServices(DataServices services,
-                                                MetricService& metric_service,
                                                 Tracer& tracer,
                                                 AnyExecutor executor);

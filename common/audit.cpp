@@ -1,8 +1,6 @@
 #include "common/audit.h"
 
 #include "common/data_services_util.h"
-#include "metrics/metric_service.h"
-#include "metrics/metrics.h"
 #include "metrics/tracing.h"
 #include "scada/services.h"
 #include "scada/validation.h"
@@ -11,18 +9,15 @@ namespace {
 
 std::shared_ptr<scada::services> AuditScadaServicesImpl(
     const std::shared_ptr<const scada::services>& services,
-    MetricService& metric_service,
     Tracer& tracer,
     std::optional<AnyExecutor> executor) {
   // |Audit| doesn't own underlying services.
   struct Holder {
-    Holder(MetricService& metric_service,
-           const std::shared_ptr<const scada::services>& services,
+    Holder(const std::shared_ptr<const scada::services>& services,
            Tracer& tracer,
            std::optional<AnyExecutor> executor)
         : services_{services},
           audit_{Audit::Create(AuditContext{
-              .metric_service_ = metric_service,
               .data_services_ = data_services::FromUnownedServices(*services_),
               .tracer_ = tracer,
               .executor_ = std::move(executor)})},
@@ -41,24 +36,21 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
     scada::services audited_services_;
   };
 
-  auto holder = std::make_shared<Holder>(metric_service, services, tracer,
-                                         std::move(executor));
+  auto holder =
+      std::make_shared<Holder>(services, tracer, std::move(executor));
   return std::shared_ptr<scada::services>{holder, &holder->audited_services_};
 }
 
 std::shared_ptr<DataServices> AuditDataServicesImpl(
     DataServices services,
-    MetricService& metric_service,
     Tracer& tracer,
     AnyExecutor executor) {
   struct Holder {
-    Holder(MetricService& metric_service,
-           DataServices services,
+    Holder(DataServices services,
            Tracer& tracer,
            AnyExecutor executor)
         : services_{std::move(services)} {
-      audit_ = Audit::Create(AuditContext{.metric_service_ = metric_service,
-                                          .data_services_ = services_,
+      audit_ = Audit::Create(AuditContext{.data_services_ = services_,
                                           .tracer_ = tracer,
                                           .executor_ = std::move(executor)});
       audited_services_ = services_;
@@ -75,8 +67,8 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
     DataServices audited_services_;
   };
 
-  auto holder = std::make_shared<Holder>(metric_service, std::move(services),
-                                         tracer, std::move(executor));
+  auto holder =
+      std::make_shared<Holder>(std::move(services), tracer, std::move(executor));
   return std::shared_ptr<DataServices>{holder, &holder->audited_services_};
 }
 
@@ -84,62 +76,33 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
 
 std::shared_ptr<scada::services> AuditScadaServices(
     const std::shared_ptr<const scada::services>& services,
-    MetricService& metric_service,
     Tracer& tracer) {
-  return AuditScadaServicesImpl(services, metric_service, tracer, std::nullopt);
+  return AuditScadaServicesImpl(services, tracer, std::nullopt);
 }
 
 std::shared_ptr<scada::services> AuditScadaServices(
     const std::shared_ptr<const scada::services>& services,
-    MetricService& metric_service,
     Tracer& tracer,
     AnyExecutor executor) {
-  return AuditScadaServicesImpl(services, metric_service, tracer,
-                                std::move(executor));
+  return AuditScadaServicesImpl(services, tracer, std::move(executor));
 }
 
 std::shared_ptr<DataServices> AuditDataServices(DataServices services,
-                                                MetricService& metric_service,
                                                 Tracer& tracer,
                                                 AnyExecutor executor) {
-  return AuditDataServicesImpl(std::move(services), metric_service, tracer,
-                               std::move(executor));
+  return AuditDataServicesImpl(std::move(services), tracer, std::move(executor));
 }
 
 // Audit
 
 Audit::Audit(AuditContext&& context)
-    : AuditContext{std::move(context)},
-      concurrent_read_count_{0},
-      concurrent_browse_count_{0} {
+    : AuditContext{std::move(context)} {
   RefreshCoroutineServices();
-}
-
-void Audit::Init() {
-  metric_service_.RegisterProvider(
-      [weak = weak_from_this()]() -> Awaitable<scada::StatusOr<Metrics>> {
-        auto self = weak.lock();
-        if (!self) {
-          co_return scada::StatusCode::Bad;
-        }
-
-        std::lock_guard lock{self->mutex_};
-        Metrics metrics;
-        metrics.Set("read_latency", self->read_latency_metric_);
-        metrics.Set("browse_latency", self->browse_latency_metric_);
-        metrics.Set("concurrent_read_count",
-                    self->concurrent_read_count_.metric);
-        metrics.Set("concurrent_browse_count",
-                    self->concurrent_browse_count_.metric);
-        co_return metrics;
-      });
 }
 
 // static
 std::shared_ptr<Audit> Audit::Create(AuditContext&& context) {
-  auto audit = std::shared_ptr<Audit>(new Audit{std::move(context)});
-  audit->Init();
-  return audit;
+  return std::shared_ptr<Audit>(new Audit{std::move(context)});
 }
 
 void Audit::RefreshCoroutineServices() {
@@ -148,25 +111,27 @@ void Audit::RefreshCoroutineServices() {
 }
 
 void Audit::StartRead() {
-  std::lock_guard lock{mutex_};
-  ++concurrent_read_count_;
+  metrics_.AddUpDownCounter("scada.audit.concurrent_read_count", 1);
 }
 
 void Audit::FinishRead(Clock::time_point start_time) {
-  std::lock_guard lock{mutex_};
-  --concurrent_read_count_;
-  read_latency_metric_(Clock::now() - start_time);
+  metrics_.AddUpDownCounter("scada.audit.concurrent_read_count", -1);
+  metrics_.RecordHistogram(
+      "scada.audit.read_latency_ms",
+      std::chrono::duration<double, std::milli>{Clock::now() - start_time}
+          .count());
 }
 
 void Audit::StartBrowse() {
-  std::lock_guard lock{mutex_};
-  ++concurrent_browse_count_;
+  metrics_.AddUpDownCounter("scada.audit.concurrent_browse_count", 1);
 }
 
 void Audit::FinishBrowse(Clock::time_point start_time) {
-  std::lock_guard lock{mutex_};
-  --concurrent_browse_count_;
-  browse_latency_metric_(Clock::now() - start_time);
+  metrics_.AddUpDownCounter("scada.audit.concurrent_browse_count", -1);
+  metrics_.RecordHistogram(
+      "scada.audit.browse_latency_ms",
+      std::chrono::duration<double, std::milli>{Clock::now() - start_time}
+          .count());
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
