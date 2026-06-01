@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/any_executor.h"
-#include "base/awaitable.h"
 #include "base/any_executor_dispatch.h"
+#include "base/awaitable.h"
 #include "opcua/binary/client_connection.h"
 #include "opcua/binary/client_secure_channel.h"
 #include "opcua/binary/client_transport.h"
@@ -12,6 +12,7 @@
 #include "scada/coroutine_services.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
+#include "scada/node_management_service.h"
 #include "scada/session_service.h"
 #include "scada/view_service.h"
 
@@ -30,16 +31,16 @@ class ClientSubscription;
 // Qt client's adapter onto the in-repo OPC UA Binary client (see
 // common/opcua/binary/*). Implements the scada::* service interfaces over the
 // coroutine-native client stack underneath.
-class ClientSession final
-    : public std::enable_shared_from_this<ClientSession>,
-      public scada::SessionService,
-      public scada::ViewService,
-      public scada::AttributeService,
-      public scada::MethodService,
-      public scada::MonitoredItemService {
+class ClientSession final : public std::enable_shared_from_this<ClientSession>,
+                            public scada::SessionService,
+                            public scada::ViewService,
+                            public scada::AttributeService,
+                            public scada::MethodService,
+                            public scada::NodeManagementService,
+                            public scada::MonitoredItemService {
  public:
   ClientSession(AnyExecutor executor,
-                     transport::TransportFactory& transport_factory);
+                transport::TransportFactory& transport_factory);
   ~ClientSession() override;
 
   // scada::SessionService
@@ -48,8 +49,7 @@ class ClientSession final
       scada::SessionConnectParams params) override;
   Awaitable<void> Disconnect() override;
   Awaitable<void> Reconnect() override;
-  bool IsConnected(
-      base::TimeDelta* ping_delay = nullptr) const override;
+  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override;
   bool HasPrivilege(scada::Privilege privilege) const override;
   bool IsScada() const override { return false; }
   scada::NodeId GetUserId() const override;
@@ -76,9 +76,9 @@ class ClientSession final
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
   // scada::AttributeService
-  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-  Read(scada::ServiceContext context,
-       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
@@ -90,9 +90,21 @@ class ClientSession final
       std::vector<scada::Variant> arguments,
       scada::NodeId user_id) override;
 
+  // scada::NodeManagementService
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs) override;
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
+
   // Access for ClientSubscription / MonitoredItem.
   [[nodiscard]] ClientChannel& channel() { return *channel_; }
-  [[nodiscard]] const AnyExecutor& any_executor() const { return any_executor_; }
+  [[nodiscard]] const AnyExecutor& any_executor() const {
+    return any_executor_;
+  }
   [[nodiscard]] bool is_connected() const { return is_connected_; }
 
  private:
@@ -132,7 +144,6 @@ class ClientSession final
 
   boost::signals2::signal<void(bool, const scada::Status&)>
       session_state_changed_;
-
 };
 
 }  // namespace opcua

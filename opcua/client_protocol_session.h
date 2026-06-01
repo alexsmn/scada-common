@@ -8,6 +8,7 @@
 #include "scada/attribute_service.h"
 #include "scada/localized_text.h"
 #include "scada/method_service.h"
+#include "scada/node_management_service.h"
 #include "scada/status.h"
 #include "scada/status_or.h"
 #include "scada/variant.h"
@@ -63,25 +64,20 @@ class ClientProtocolSession {
   // channel_.Call, then narrows the response variant. A bad Status is
   // returned if any step fails or the response type doesn't match.
 
-  [[nodiscard]] Awaitable<
-      scada::StatusOr<std::vector<scada::DataValue>>>
-  Read(std::vector<scada::ReadValueId> inputs);
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+      std::vector<scada::ReadValueId> inputs);
 
-  [[nodiscard]] Awaitable<
-      scada::StatusOr<std::vector<scada::StatusCode>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(std::vector<scada::WriteValue> inputs);
 
-  [[nodiscard]] Awaitable<
-      scada::StatusOr<std::vector<scada::BrowseResult>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(std::vector<scada::BrowseDescription> inputs);
 
-  [[nodiscard]] Awaitable<
-      scada::StatusOr<std::vector<scada::BrowseResult>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
   BrowseNext(std::vector<scada::ByteString> continuation_points,
              bool release_continuation_points = false);
 
-  [[nodiscard]] Awaitable<
-      scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePathsToNodeIds(std::vector<scada::BrowsePath> inputs);
 
   struct CallResult {
@@ -94,13 +90,25 @@ class ClientProtocolSession {
       scada::NodeId method_id,
       std::vector<scada::Variant> arguments);
 
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+  AddNodes(std::vector<scada::AddNodesItem> inputs);
+
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs);
+
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  AddReferences(std::vector<scada::AddReferencesItem> inputs);
+
+  [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs);
+
  private:
   // Helper that sends a typed request and extracts the typed response. On a
   // variant mismatch, decode error, or transport error it yields a bad
   // Status. On ServiceFault the fault status is propagated.
   template <typename Response>
-  [[nodiscard]] Awaitable<scada::StatusOr<Response>>
-  CallTyped(RequestBody request);
+  [[nodiscard]] Awaitable<scada::StatusOr<Response>> CallTyped(
+      RequestBody request);
 
   ClientConnection& connection_;
   ClientChannel& channel_;

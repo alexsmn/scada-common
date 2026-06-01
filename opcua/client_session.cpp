@@ -40,8 +40,8 @@ void DispatchLegacyCallback(const AnyExecutor& executor,
 }  // namespace
 
 // static
-ClientSession::ParsedEndpoint
-ClientSession::ParseEndpointUrl(const std::string& url) {
+ClientSession::ParsedEndpoint ClientSession::ParseEndpointUrl(
+    const std::string& url) {
   ParsedEndpoint result;
   // "opc.tcp://host[:port][/path]". Any /path suffix is discarded (the
   // server endpoint name is tracked separately by CreateSession's
@@ -53,10 +53,9 @@ ClientSession::ParseEndpointUrl(const std::string& url) {
   const auto authority_start = kOpcTcpPrefixLen;
   const auto path_pos = url.find('/', authority_start);
   const std::string authority =
-      url.substr(authority_start,
-                 path_pos == std::string::npos
-                     ? std::string::npos
-                     : path_pos - authority_start);
+      url.substr(authority_start, path_pos == std::string::npos
+                                      ? std::string::npos
+                                      : path_pos - authority_start);
   const auto colon_pos = authority.rfind(':');
   if (colon_pos == std::string::npos) {
     result.host = authority;
@@ -80,9 +79,8 @@ ClientSession::ParseEndpointUrl(const std::string& url) {
   return result;
 }
 
-ClientSession::ClientSession(
-    AnyExecutor executor,
-    transport::TransportFactory& transport_factory)
+ClientSession::ClientSession(AnyExecutor executor,
+                             transport::TransportFactory& transport_factory)
     : executor_{std::move(executor)},
       any_executor_{executor_},
       transport_factory_{transport_factory} {}
@@ -131,26 +129,24 @@ Awaitable<scada::Status> ClientSession::ConnectAsync(
   }
 
   endpoint_url_ = std::move(endpoint);
-  transport_ = std::make_unique<binary::ClientTransport>(
-      binary::ClientTransportContext{
+  transport_ =
+      std::make_unique<binary::ClientTransport>(binary::ClientTransportContext{
           .transport = std::move(*transport_result),
           .endpoint_url = endpoint_url_,
           .limits = {},
       });
-  secure_channel_ =
-      std::make_unique<binary::ClientSecureChannel>(*transport_);
+  secure_channel_ = std::make_unique<binary::ClientSecureChannel>(*transport_);
   connection_ = std::make_unique<binary::ClientConnection>(
       binary::ClientConnection::Context{
           .transport = *transport_,
           .secure_channel = *secure_channel_,
       });
-  channel_ = std::make_unique<ClientChannel>(
-      ClientChannel::Context{
-          .executor = any_executor_,
-          .connection = *connection_,
-      });
-  session_ = std::make_unique<ClientProtocolSession>(
-      ClientProtocolSession::Context{
+  channel_ = std::make_unique<ClientChannel>(ClientChannel::Context{
+      .executor = any_executor_,
+      .connection = *connection_,
+  });
+  session_ =
+      std::make_unique<ClientProtocolSession>(ClientProtocolSession::Context{
           .connection = *connection_,
           .channel = *channel_,
       });
@@ -224,7 +220,7 @@ std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientSession::Browse(scada::ServiceContext /*context*/,
-                     std::vector<scada::BrowseDescription> inputs) {
+                      std::vector<scada::BrowseDescription> inputs) {
   if (!is_connected_) {
     co_return scada::Status{scada::StatusCode::Bad_Disconnected};
   }
@@ -252,8 +248,7 @@ ClientSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   co_return result.status();
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-ClientSession::Read(
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> ClientSession::Read(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
   if (!is_connected_) {
@@ -269,8 +264,7 @@ ClientSession::Read(
   co_return result.status();
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-ClientSession::Write(
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> ClientSession::Write(
     scada::ServiceContext /*context*/,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
   if (!is_connected_) {
@@ -296,11 +290,67 @@ Awaitable<scada::Status> ClientSession::Call(
   }
   assert(session_);
   auto* session = session_.get();
-  auto result = co_await session->Call(std::move(node_id),
-                                       std::move(method_id),
+  auto result = co_await session->Call(std::move(node_id), std::move(method_id),
                                        std::move(arguments));
   if (result.ok()) {
     co_return result->status;
+  }
+  co_return result.status();
+}
+
+Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+ClientSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
+  if (!is_connected_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->AddNodes(std::move(inputs));
+  if (result.ok()) {
+    co_return std::move(*result);
+  }
+  co_return result.status();
+}
+
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+ClientSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
+  if (!is_connected_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->DeleteNodes(std::move(inputs));
+  if (result.ok()) {
+    co_return std::move(*result);
+  }
+  co_return result.status();
+}
+
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+ClientSession::AddReferences(std::vector<scada::AddReferencesItem> inputs) {
+  if (!is_connected_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->AddReferences(std::move(inputs));
+  if (result.ok()) {
+    co_return std::move(*result);
+  }
+  co_return result.status();
+}
+
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+ClientSession::DeleteReferences(
+    std::vector<scada::DeleteReferencesItem> inputs) {
+  if (!is_connected_) {
+    co_return scada::Status{scada::StatusCode::Bad_Disconnected};
+  }
+  assert(session_);
+  auto* session = session_.get();
+  auto result = co_await session->DeleteReferences(std::move(inputs));
+  if (result.ok()) {
+    co_return std::move(*result);
   }
   co_return result.status();
 }
@@ -322,8 +372,7 @@ void ClientSession::Reset() {
   is_connected_ = false;
 }
 
-void ClientSession::NotifyStateChanged(bool connected,
-                                            scada::Status status) {
+void ClientSession::NotifyStateChanged(bool connected, scada::Status status) {
   session_state_changed_(connected, status);
 }
 
