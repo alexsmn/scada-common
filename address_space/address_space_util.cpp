@@ -113,7 +113,7 @@ std::u16string GetFullDisplayName(const Node& node) {
   if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
       IsInstanceOf(parent, devices::id::DeviceType))
     return u16format(L"{} : {}", GetFullDisplayName(*parent),
-                      ToString16(node.GetDisplayName()));
+                     ToString16(node.GetDisplayName()));
   else
     return ToString16(node.GetDisplayName());
 }
@@ -146,7 +146,8 @@ Node* GetMutableNestedNode(AddressSpace& address_space,
       break;
 
     node = child;
-    nested_name = nested_name.substr(p + 1);
+    nested_name = p == nested_name.size() ? std::string_view{}
+                                          : nested_name.substr(p + 1);
   }
 
   return node;

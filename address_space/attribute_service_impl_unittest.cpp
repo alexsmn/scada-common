@@ -20,8 +20,8 @@ TEST(AttributeServiceImpl, CoroutineReadReturnsSyncResults) {
       std::vector<scada::ReadValueId>{
           {.node_id = address_space.kTestNode1Id,
            .attribute_id = scada::AttributeId::DisplayName},
-          {.node_id = address_space.MakeNestedNodeId(address_space.kTestNode1Id,
-                                                     address_space.kTestProp1Id),
+          {.node_id = address_space.MakeNestedNodeId(
+               address_space.kTestNode1Id, address_space.kTestProp1Id),
            .attribute_id = scada::AttributeId::Value}});
 
   ASSERT_OK_AND_ASSIGN(
@@ -54,6 +54,22 @@ TEST(AttributeServiceImpl, CoroutineWriteReturnsSyncResults) {
 
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0], scada::StatusCode::Bad_WrongNodeId);
+}
+
+TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {
+  TestAddressSpace address_space;
+
+  std::vector<scada::ReadValueId> inputs{
+      {.node_id = address_space.MakeNestedNodeId(address_space.kTestNode1Id,
+                                                 address_space.kTestProp1Id),
+       .attribute_id = scada::AttributeId::Value}};
+
+  auto results = address_space.sync_attribute_service_impl.Read(
+      scada::ServiceContext{}, inputs);
+
+  ASSERT_EQ(results.size(), 1u);
+  EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
+  EXPECT_EQ(results[0].value, scada::Variant{"TestNode1.TestProp1.Value"});
 }
 
 }  // namespace
