@@ -7,6 +7,7 @@
 
 #include <boost/json.hpp>
 
+#include <format>
 #include <limits>
 #include <stdexcept>
 #include <string_view>
@@ -52,8 +53,8 @@ std::int64_t RequireInt64(const value& json) {
   if (json.is_int64())
     return json.as_int64();
   if (json.is_uint64() &&
-      json.as_uint64() <=
-          static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+      json.as_uint64() <= static_cast<std::uint64_t>(
+                              std::numeric_limits<std::int64_t>::max())) {
     return static_cast<std::int64_t>(json.as_uint64());
   }
   ThrowJsonError("Expected JSON integer");
@@ -188,8 +189,15 @@ scada::LocalizedText DecodeLocalizedText(const value& json) {
 
 value EncodeDateTime(scada::DateTime time) {
   if (time.is_null())
-    return nullptr;
-  return string(SerializeToString(time));
+    return string("0001-01-01T00:00:00Z");
+  base::Time::Exploded e = {};
+  time.UTCExplode(&e);
+  auto text = std::format("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", e.year,
+                          e.month, e.day_of_month, e.hour, e.minute, e.second);
+  if (e.millisecond != 0)
+    text += std::format(".{:03}", e.millisecond);
+  text += 'Z';
+  return string(std::move(text));
 }
 
 scada::DateTime DecodeDateTime(const value& json) {
@@ -205,7 +213,8 @@ value EncodeByteString(const scada::ByteString& bytes) {
   array result;
   result.reserve(bytes.size());
   for (char byte : bytes)
-    result.emplace_back(static_cast<std::uint64_t>(static_cast<unsigned char>(byte)));
+    result.emplace_back(
+        static_cast<std::uint64_t>(static_cast<unsigned char>(byte)));
   return result;
 }
 
@@ -221,11 +230,13 @@ scada::ByteString DecodeByteString(const value& json) {
 }
 
 value EncodeExtensionObject(const scada::ExtensionObject& extension_object) {
-  const auto* payload = std::any_cast<boost::json::value>(&extension_object.value());
+  const auto* payload =
+      std::any_cast<boost::json::value>(&extension_object.value());
   if (!payload)
     ThrowJsonError("Unsupported ExtensionObject payload");
-  return object{{"TypeId", EncodeExpandedNodeId(extension_object.data_type_id())},
-                {"Body", *payload}};
+  return object{
+      {"TypeId", EncodeExpandedNodeId(extension_object.data_type_id())},
+      {"Body", *payload}};
 }
 
 scada::ExtensionObject DecodeExtensionObject(const value& json) {
@@ -244,8 +255,8 @@ scada::Status DecodeStatus(const value& json) {
         static_cast<unsigned>(RequireUInt64(json)));
   }
   const auto& obj = RequireObject(json);
-  return scada::Status::FromFullCode(static_cast<unsigned>(
-      RequireUInt64(RequireField(obj, "fullCode"))));
+  return scada::Status::FromFullCode(
+      static_cast<unsigned>(RequireUInt64(RequireField(obj, "fullCode"))));
 }
 
 value EncodeStatusCode(scada::StatusCode status_code) {
@@ -319,7 +330,8 @@ value EncodeEventFilter(const scada::EventFilter& filter) {
 scada::EventFilter DecodeEventFilter(const value& json) {
   const auto& obj = RequireObject(json);
   scada::EventFilter filter;
-  filter.types = static_cast<unsigned>(RequireUInt64(RequireField(obj, "Types")));
+  filter.types =
+      static_cast<unsigned>(RequireUInt64(RequireField(obj, "Types")));
   for (const auto& entry : RequireArray(RequireField(obj, "OfType")))
     filter.of_type.push_back(DecodeNodeId(entry));
   for (const auto& entry : RequireArray(RequireField(obj, "ChildOf")))
@@ -424,8 +436,8 @@ value EncodeWriteValue(const scada::WriteValue& write_value) {
 scada::WriteValue DecodeWriteValue(const value& json) {
   const auto& obj = RequireObject(json);
   const auto& encoded_value = RequireField(obj, "Value");
-  const auto* value_field =
-      encoded_value.is_object() ? FindField(encoded_value.as_object(), "Value")
+  const auto* value_field = encoded_value.is_object()
+                                ? FindField(encoded_value.as_object(), "Value")
                                 : nullptr;
   return {.node_id = DecodeNodeId(RequireField(obj, "NodeId")),
           .attribute_id = DecodeAttributeId(RequireField(obj, "AttributeId")),
@@ -449,31 +461,30 @@ value EncodeReferenceDescription(const scada::ReferenceDescription& reference) {
 
 scada::ReferenceDescription DecodeReferenceDescription(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.reference_type_id =
-              DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
-          .forward = RequireBool(RequireField(obj, "Forward")),
-          .node_id = DecodeNodeId(RequireField(obj, "NodeId")),
-          .node_class = obj.contains("NodeClass")
-                            ? DecodeNodeClass(RequireField(obj, "NodeClass"))
-                            : scada::NodeClass::Unspecified};
+  return {
+      .reference_type_id = DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
+      .forward = RequireBool(RequireField(obj, "Forward")),
+      .node_id = DecodeNodeId(RequireField(obj, "NodeId")),
+      .node_class = obj.contains("NodeClass")
+                        ? DecodeNodeClass(RequireField(obj, "NodeClass"))
+                        : scada::NodeClass::Unspecified};
 }
 
 value EncodeBrowseDescription(const scada::BrowseDescription& description) {
-  return object{{"NodeId", EncodeNodeId(description.node_id)},
-                {"Direction", EncodeBrowseDirection(description.direction)},
-                {"ReferenceTypeId",
-                 EncodeNodeId(description.reference_type_id)},
-                {"IncludeSubtypes", description.include_subtypes}};
+  return object{
+      {"NodeId", EncodeNodeId(description.node_id)},
+      {"Direction", EncodeBrowseDirection(description.direction)},
+      {"ReferenceTypeId", EncodeNodeId(description.reference_type_id)},
+      {"IncludeSubtypes", description.include_subtypes}};
 }
 
 scada::BrowseDescription DecodeBrowseDescription(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.node_id = DecodeNodeId(RequireField(obj, "NodeId")),
-          .direction = DecodeBrowseDirection(RequireField(obj, "Direction")),
-          .reference_type_id =
-              DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
-          .include_subtypes =
-              RequireBool(RequireField(obj, "IncludeSubtypes"))};
+  return {
+      .node_id = DecodeNodeId(RequireField(obj, "NodeId")),
+      .direction = DecodeBrowseDirection(RequireField(obj, "Direction")),
+      .reference_type_id = DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
+      .include_subtypes = RequireBool(RequireField(obj, "IncludeSubtypes"))};
 }
 
 value EncodeBrowseResult(const scada::BrowseResult& result) {
@@ -499,21 +510,20 @@ scada::BrowseResult DecodeBrowseResult(const value& json) {
 
 value EncodeRelativePathElement(
     const scada::RelativePathElement& path_element) {
-  return object{{"ReferenceTypeId",
-                 EncodeNodeId(path_element.reference_type_id)},
-                {"Inverse", path_element.inverse},
-                {"IncludeSubtypes", path_element.include_subtypes},
-                {"TargetName", EncodeQualifiedName(path_element.target_name)}};
+  return object{
+      {"ReferenceTypeId", EncodeNodeId(path_element.reference_type_id)},
+      {"Inverse", path_element.inverse},
+      {"IncludeSubtypes", path_element.include_subtypes},
+      {"TargetName", EncodeQualifiedName(path_element.target_name)}};
 }
 
 scada::RelativePathElement DecodeRelativePathElement(const value& json) {
   const auto& obj = RequireObject(json);
-  return {.reference_type_id =
-              DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
-          .inverse = RequireBool(RequireField(obj, "Inverse")),
-          .include_subtypes =
-              RequireBool(RequireField(obj, "IncludeSubtypes")),
-          .target_name = DecodeQualifiedName(RequireField(obj, "TargetName"))};
+  return {
+      .reference_type_id = DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
+      .inverse = RequireBool(RequireField(obj, "Inverse")),
+      .include_subtypes = RequireBool(RequireField(obj, "IncludeSubtypes")),
+      .target_name = DecodeQualifiedName(RequireField(obj, "TargetName"))};
 }
 
 value EncodeBrowsePath(const scada::BrowsePath& path) {
@@ -542,8 +552,9 @@ scada::BrowsePathTarget DecodeBrowsePathTarget(const value& json) {
 }
 
 value EncodeBrowsePathResult(const scada::BrowsePathResult& result) {
-  return object{{"StatusCode", EncodeStatusCode(result.status_code)},
-                {"Targets", EncodeList(result.targets, EncodeBrowsePathTarget)}};
+  return object{
+      {"StatusCode", EncodeStatusCode(result.status_code)},
+      {"Targets", EncodeList(result.targets, EncodeBrowsePathTarget)}};
 }
 
 scada::BrowsePathResult DecodeBrowsePathResult(const value& json) {
@@ -579,8 +590,8 @@ scada::Event DecodeEvent(const value& json) {
   event.event_id = RequireUInt64(RequireField(obj, "EventId"));
   event.time = DecodeDateTime(RequireField(obj, "Time"));
   event.receive_time = DecodeDateTime(RequireField(obj, "ReceiveTime"));
-  event.change_mask =
-      static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "ChangeMask")));
+  event.change_mask = static_cast<scada::UInt32>(
+      RequireUInt64(RequireField(obj, "ChangeMask")));
   event.severity =
       static_cast<scada::UInt32>(RequireUInt64(RequireField(obj, "Severity")));
   event.node_id = DecodeNodeId(RequireField(obj, "NodeId"));
@@ -590,8 +601,10 @@ scada::Event DecodeEvent(const value& json) {
       static_cast<unsigned>(RequireUInt64(RequireField(obj, "Qualifier")))};
   event.message = DecodeLocalizedText(RequireField(obj, "Message"));
   event.acked = RequireBool(RequireField(obj, "Acked"));
-  event.acknowledged_time = DecodeDateTime(RequireField(obj, "AcknowledgedTime"));
-  event.acknowledged_user_id = DecodeNodeId(RequireField(obj, "AcknowledgedUserId"));
+  event.acknowledged_time =
+      DecodeDateTime(RequireField(obj, "AcknowledgedTime"));
+  event.acknowledged_user_id =
+      DecodeNodeId(RequireField(obj, "AcknowledgedUserId"));
   return event;
 }
 
@@ -651,52 +664,92 @@ std::vector<T> DecodeUIntList(const value& json) {
 namespace {
 unsigned BuiltInTypeId(scada::Variant::Type type) {
   switch (type) {
-    case scada::Variant::EMPTY: return 0;
-    case scada::Variant::BOOL: return 1;
-    case scada::Variant::INT8: return 2;
-    case scada::Variant::UINT8: return 3;
-    case scada::Variant::INT16: return 4;
-    case scada::Variant::UINT16: return 5;
-    case scada::Variant::INT32: return 6;
-    case scada::Variant::UINT32: return 7;
-    case scada::Variant::INT64: return 8;
-    case scada::Variant::UINT64: return 9;
-    case scada::Variant::DOUBLE: return 11;
-    case scada::Variant::STRING: return 12;
-    case scada::Variant::DATE_TIME: return 13;
-    case scada::Variant::BYTE_STRING: return 15;
-    case scada::Variant::NODE_ID: return 17;
-    case scada::Variant::EXPANDED_NODE_ID: return 18;
-    case scada::Variant::QUALIFIED_NAME: return 20;
-    case scada::Variant::LOCALIZED_TEXT: return 21;
-    case scada::Variant::EXTENSION_OBJECT: return 22;
-    case scada::Variant::COUNT: return 0;
+    case scada::Variant::EMPTY:
+      return 0;
+    case scada::Variant::BOOL:
+      return 1;
+    case scada::Variant::INT8:
+      return 2;
+    case scada::Variant::UINT8:
+      return 3;
+    case scada::Variant::INT16:
+      return 4;
+    case scada::Variant::UINT16:
+      return 5;
+    case scada::Variant::INT32:
+      return 6;
+    case scada::Variant::UINT32:
+      return 7;
+    case scada::Variant::INT64:
+      return 8;
+    case scada::Variant::UINT64:
+      return 9;
+    case scada::Variant::DOUBLE:
+      return 11;
+    case scada::Variant::STRING:
+      return 12;
+    case scada::Variant::DATE_TIME:
+      return 13;
+    case scada::Variant::BYTE_STRING:
+      return 15;
+    case scada::Variant::NODE_ID:
+      return 17;
+    case scada::Variant::EXPANDED_NODE_ID:
+      return 18;
+    case scada::Variant::QUALIFIED_NAME:
+      return 20;
+    case scada::Variant::LOCALIZED_TEXT:
+      return 21;
+    case scada::Variant::EXTENSION_OBJECT:
+      return 22;
+    case scada::Variant::COUNT:
+      return 0;
   }
   return 0;
 }
 
 scada::Variant::Type FromBuiltInTypeId(unsigned id) {
   switch (id) {
-    case 0: return scada::Variant::EMPTY;
-    case 1: return scada::Variant::BOOL;
-    case 2: return scada::Variant::INT8;
-    case 3: return scada::Variant::UINT8;
-    case 4: return scada::Variant::INT16;
-    case 5: return scada::Variant::UINT16;
-    case 6: return scada::Variant::INT32;
-    case 7: return scada::Variant::UINT32;
-    case 8: return scada::Variant::INT64;
-    case 9: return scada::Variant::UINT64;
-    case 11: return scada::Variant::DOUBLE;
-    case 12: return scada::Variant::STRING;
-    case 13: return scada::Variant::DATE_TIME;
-    case 15: return scada::Variant::BYTE_STRING;
-    case 17: return scada::Variant::NODE_ID;
-    case 18: return scada::Variant::EXPANDED_NODE_ID;
-    case 20: return scada::Variant::QUALIFIED_NAME;
-    case 21: return scada::Variant::LOCALIZED_TEXT;
-    case 22: return scada::Variant::EXTENSION_OBJECT;
-    default: return scada::Variant::COUNT;
+    case 0:
+      return scada::Variant::EMPTY;
+    case 1:
+      return scada::Variant::BOOL;
+    case 2:
+      return scada::Variant::INT8;
+    case 3:
+      return scada::Variant::UINT8;
+    case 4:
+      return scada::Variant::INT16;
+    case 5:
+      return scada::Variant::UINT16;
+    case 6:
+      return scada::Variant::INT32;
+    case 7:
+      return scada::Variant::UINT32;
+    case 8:
+      return scada::Variant::INT64;
+    case 9:
+      return scada::Variant::UINT64;
+    case 11:
+      return scada::Variant::DOUBLE;
+    case 12:
+      return scada::Variant::STRING;
+    case 13:
+      return scada::Variant::DATE_TIME;
+    case 15:
+      return scada::Variant::BYTE_STRING;
+    case 17:
+      return scada::Variant::NODE_ID;
+    case 18:
+      return scada::Variant::EXPANDED_NODE_ID;
+    case 20:
+      return scada::Variant::QUALIFIED_NAME;
+    case 21:
+      return scada::Variant::LOCALIZED_TEXT;
+    case 22:
+      return scada::Variant::EXTENSION_OBJECT;
+    default:
+      return scada::Variant::COUNT;
   }
 }
 }  // namespace
@@ -780,28 +833,36 @@ value EncodeVariant(const scada::Variant& variant) {
         json["Body"] = EncodeScalarList(variant.get<std::vector<bool>>());
         break;
       case scada::Variant::INT8:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::Int8>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::Int8>>());
         break;
       case scada::Variant::UINT8:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::UInt8>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::UInt8>>());
         break;
       case scada::Variant::INT16:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::Int16>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::Int16>>());
         break;
       case scada::Variant::UINT16:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::UInt16>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::UInt16>>());
         break;
       case scada::Variant::INT32:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::Int32>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::Int32>>());
         break;
       case scada::Variant::UINT32:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::UInt32>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::UInt32>>());
         break;
       case scada::Variant::INT64:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::Int64>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::Int64>>());
         break;
       case scada::Variant::UINT64:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::UInt64>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::UInt64>>());
         break;
       case scada::Variant::DOUBLE:
         json["Body"] = EncodeScalarList(variant.get<std::vector<double>>());
@@ -811,33 +872,34 @@ value EncodeVariant(const scada::Variant& variant) {
                                   EncodeByteString);
         break;
       case scada::Variant::STRING:
-        json["Body"] = EncodeScalarList(variant.get<std::vector<scada::String>>());
+        json["Body"] =
+            EncodeScalarList(variant.get<std::vector<scada::String>>());
         break;
       case scada::Variant::QUALIFIED_NAME:
-        json["Body"] = EncodeList(
-            variant.get<std::vector<scada::QualifiedName>>(),
-            EncodeQualifiedName);
+        json["Body"] =
+            EncodeList(variant.get<std::vector<scada::QualifiedName>>(),
+                       EncodeQualifiedName);
         break;
       case scada::Variant::LOCALIZED_TEXT:
-        json["Body"] = EncodeList(
-            variant.get<std::vector<scada::LocalizedText>>(),
-            EncodeLocalizedText);
+        json["Body"] =
+            EncodeList(variant.get<std::vector<scada::LocalizedText>>(),
+                       EncodeLocalizedText);
         break;
       case scada::Variant::NODE_ID:
         json["Body"] =
             EncodeList(variant.get<std::vector<scada::NodeId>>(), EncodeNodeId);
         break;
       case scada::Variant::EXPANDED_NODE_ID:
-        json["Body"] = EncodeList(
-            variant.get<std::vector<scada::ExpandedNodeId>>(),
-            EncodeExpandedNodeId);
+        json["Body"] =
+            EncodeList(variant.get<std::vector<scada::ExpandedNodeId>>(),
+                       EncodeExpandedNodeId);
         break;
       case scada::Variant::DATE_TIME:
         ThrowJsonError("DateTime array codec not implemented");
       case scada::Variant::EXTENSION_OBJECT:
-        json["Body"] = EncodeList(
-            variant.get<std::vector<scada::ExtensionObject>>(),
-            EncodeExtensionObject);
+        json["Body"] =
+            EncodeList(variant.get<std::vector<scada::ExtensionObject>>(),
+                       EncodeExtensionObject);
         break;
       case scada::Variant::COUNT:
         ThrowJsonError("Unexpected array variant type");
@@ -875,19 +937,23 @@ scada::Variant DecodeVariant(const value& json) {
       case scada::Variant::INT8:
         return scada::Variant{static_cast<scada::Int8>(RequireInt64(payload))};
       case scada::Variant::UINT8:
-        return scada::Variant{static_cast<scada::UInt8>(RequireUInt64(payload))};
+        return scada::Variant{
+            static_cast<scada::UInt8>(RequireUInt64(payload))};
       case scada::Variant::INT16:
         return scada::Variant{static_cast<scada::Int16>(RequireInt64(payload))};
       case scada::Variant::UINT16:
-        return scada::Variant{static_cast<scada::UInt16>(RequireUInt64(payload))};
+        return scada::Variant{
+            static_cast<scada::UInt16>(RequireUInt64(payload))};
       case scada::Variant::INT32:
         return scada::Variant{static_cast<scada::Int32>(RequireInt64(payload))};
       case scada::Variant::UINT32:
-        return scada::Variant{static_cast<scada::UInt32>(RequireUInt64(payload))};
+        return scada::Variant{
+            static_cast<scada::UInt32>(RequireUInt64(payload))};
       case scada::Variant::INT64:
         return scada::Variant{static_cast<scada::Int64>(RequireInt64(payload))};
       case scada::Variant::UINT64:
-        return scada::Variant{static_cast<scada::UInt64>(RequireUInt64(payload))};
+        return scada::Variant{
+            static_cast<scada::UInt64>(RequireUInt64(payload))};
       case scada::Variant::DOUBLE:
         return scada::Variant{RequireDouble(payload)};
       case scada::Variant::BYTE_STRING:
@@ -913,9 +979,8 @@ scada::Variant DecodeVariant(const value& json) {
 
   switch (type) {
     case scada::Variant::EMPTY:
-      return scada::Variant{DecodeList<std::monostate>(payload, [](const value&) {
-        return std::monostate{};
-      })};
+      return scada::Variant{DecodeList<std::monostate>(
+          payload, [](const value&) { return std::monostate{}; })};
     case scada::Variant::BOOL:
       return scada::Variant{DecodeList<bool>(payload, RequireBool)};
     case scada::Variant::INT8:
@@ -940,9 +1005,9 @@ scada::Variant DecodeVariant(const value& json) {
       return scada::Variant{
           DecodeList<scada::ByteString>(payload, DecodeByteString)};
     case scada::Variant::STRING:
-      return scada::Variant{DecodeList<scada::String>(payload, [](const value& v) {
-        return std::string{RequireString(v)};
-      })};
+      return scada::Variant{DecodeList<scada::String>(
+          payload,
+          [](const value& v) { return std::string{RequireString(v)}; })};
     case scada::Variant::QUALIFIED_NAME:
       return scada::Variant{
           DecodeList<scada::QualifiedName>(payload, DecodeQualifiedName)};
@@ -967,8 +1032,7 @@ scada::Variant DecodeVariant(const value& json) {
 }
 
 value EncodeReadRequest(const ReadRequest& request) {
-  return object{
-      {"NodesToRead", EncodeList(request.inputs, EncodeReadValueId)}};
+  return object{{"NodesToRead", EncodeList(request.inputs, EncodeReadValueId)}};
 }
 
 ReadRequest DecodeReadRequest(const value& json) {
@@ -982,8 +1046,7 @@ ReadRequest DecodeReadRequest(const value& json) {
 }
 
 value EncodeWriteRequest(const WriteRequest& request) {
-  return object{
-      {"NodesToWrite", EncodeList(request.inputs, EncodeWriteValue)}};
+  return object{{"NodesToWrite", EncodeList(request.inputs, EncodeWriteValue)}};
 }
 
 WriteRequest DecodeWriteRequest(const value& json) {
@@ -998,7 +1061,8 @@ WriteRequest DecodeWriteRequest(const value& json) {
 
 value EncodeBrowseRequest(const BrowseRequest& request) {
   return object{
-      {"RequestedMaxReferencesPerNode", request.requested_max_references_per_node},
+      {"RequestedMaxReferencesPerNode",
+       request.requested_max_references_per_node},
       {"NodesToBrowse", EncodeList(request.inputs, EncodeBrowseDescription)}};
 }
 
@@ -1009,10 +1073,11 @@ BrowseRequest DecodeBrowseRequest(const value& json) {
     field = FindField(obj, "Inputs");
   if (!field)
     ThrowJsonError("Missing NodesToBrowse");
-  return {.requested_max_references_per_node = static_cast<size_t>(
-              RequireUInt64(RequireField(obj, "RequestedMaxReferencesPerNode"))),
-          .inputs = DecodeList<scada::BrowseDescription>(
-              *field, DecodeBrowseDescription)};
+  return {
+      .requested_max_references_per_node = static_cast<size_t>(
+          RequireUInt64(RequireField(obj, "RequestedMaxReferencesPerNode"))),
+      .inputs = DecodeList<scada::BrowseDescription>(*field,
+                                                     DecodeBrowseDescription)};
 }
 
 value EncodeBrowseNextRequest(const BrowseNextRequest& request) {
@@ -1035,7 +1100,8 @@ value EncodeTranslateBrowsePathsRequest(
   return object{{"BrowsePaths", EncodeList(request.inputs, EncodeBrowsePath)}};
 }
 
-TranslateBrowsePathsRequest DecodeTranslateBrowsePathsRequest(const value& json) {
+TranslateBrowsePathsRequest DecodeTranslateBrowsePathsRequest(
+    const value& json) {
   const auto& obj = RequireObject(json);
   const auto* field = FindField(obj, "BrowsePaths");
   if (!field)
@@ -1046,60 +1112,64 @@ TranslateBrowsePathsRequest DecodeTranslateBrowsePathsRequest(const value& json)
 }
 
 value EncodeHistoryReadRawRequest(const HistoryReadRawRequest& request) {
-  return object{{"Details",
-                 object{{"NodeId", EncodeNodeId(request.details.node_id)},
-                        {"From", EncodeDateTime(request.details.from)},
-                        {"To", EncodeDateTime(request.details.to)},
-                        {"MaxCount", request.details.max_count},
-                        {"Aggregation",
-                         EncodeAggregateFilter(request.details.aggregation)},
-                        {"ReleaseContinuationPoint",
-                         request.details.release_continuation_point},
-                        {"ContinuationPoint",
-                         EncodeByteString(request.details.continuation_point)}}}};
+  return object{
+      {"Details",
+       object{
+           {"NodeId", EncodeNodeId(request.details.node_id)},
+           {"From", EncodeDateTime(request.details.from)},
+           {"To", EncodeDateTime(request.details.to)},
+           {"MaxCount", request.details.max_count},
+           {"Aggregation", EncodeAggregateFilter(request.details.aggregation)},
+           {"ReleaseContinuationPoint",
+            request.details.release_continuation_point},
+           {"ContinuationPoint",
+            EncodeByteString(request.details.continuation_point)}}}};
 }
 
 HistoryReadRawRequest DecodeHistoryReadRawRequest(const value& json) {
-  const auto& details = RequireObject(RequireField(RequireObject(json), "Details"));
-  return {.details =
-              {.node_id = DecodeNodeId(RequireField(details, "NodeId")),
-               .from = DecodeDateTime(RequireField(details, "From")),
-               .to = DecodeDateTime(RequireField(details, "To")),
-               .max_count = static_cast<size_t>(
-                   RequireUInt64(RequireField(details, "MaxCount"))),
-               .aggregation =
-                   DecodeAggregateFilter(RequireField(details, "Aggregation")),
-               .release_continuation_point =
-                   RequireBool(RequireField(details, "ReleaseContinuationPoint")),
-               .continuation_point =
-                   DecodeByteString(RequireField(details, "ContinuationPoint"))}};
+  const auto& details =
+      RequireObject(RequireField(RequireObject(json), "Details"));
+  return {.details = {.node_id = DecodeNodeId(RequireField(details, "NodeId")),
+                      .from = DecodeDateTime(RequireField(details, "From")),
+                      .to = DecodeDateTime(RequireField(details, "To")),
+                      .max_count = static_cast<size_t>(
+                          RequireUInt64(RequireField(details, "MaxCount"))),
+                      .aggregation = DecodeAggregateFilter(
+                          RequireField(details, "Aggregation")),
+                      .release_continuation_point = RequireBool(
+                          RequireField(details, "ReleaseContinuationPoint")),
+                      .continuation_point = DecodeByteString(
+                          RequireField(details, "ContinuationPoint"))}};
 }
 
 value EncodeHistoryReadEventsRequest(const HistoryReadEventsRequest& request) {
-  return object{{"Details",
-                 object{{"NodeId", EncodeNodeId(request.details.node_id)},
-                        {"From", EncodeDateTime(request.details.from)},
-                        {"To", EncodeDateTime(request.details.to)},
-                        {"Filter", EncodeEventFilter(request.details.filter)}}}};
+  return object{
+      {"Details",
+       object{{"NodeId", EncodeNodeId(request.details.node_id)},
+              {"From", EncodeDateTime(request.details.from)},
+              {"To", EncodeDateTime(request.details.to)},
+              {"Filter", EncodeEventFilter(request.details.filter)}}}};
 }
 
 HistoryReadEventsRequest DecodeHistoryReadEventsRequest(const value& json) {
-  const auto& details = RequireObject(RequireField(RequireObject(json), "Details"));
-  return {.details =
-              {.node_id = DecodeNodeId(RequireField(details, "NodeId")),
-               .from = DecodeDateTime(RequireField(details, "From")),
-               .to = DecodeDateTime(RequireField(details, "To")),
-               .filter = DecodeEventFilter(RequireField(details, "Filter"))}};
+  const auto& details =
+      RequireObject(RequireField(RequireObject(json), "Details"));
+  return {.details = {
+              .node_id = DecodeNodeId(RequireField(details, "NodeId")),
+              .from = DecodeDateTime(RequireField(details, "From")),
+              .to = DecodeDateTime(RequireField(details, "To")),
+              .filter = DecodeEventFilter(RequireField(details, "Filter"))}};
 }
 
 value EncodeCallRequest(const CallRequest& request) {
-  return object{{"MethodsToCall",
-                 EncodeList(request.methods, [](const MethodCallRequest& method) {
-                   return object{{"ObjectId", EncodeNodeId(method.object_id)},
-                                 {"MethodId", EncodeNodeId(method.method_id)},
-                                 {"InputArguments",
-                                  EncodeList(method.arguments, EncodeVariant)}};
-                 })}};
+  return object{
+      {"MethodsToCall",
+       EncodeList(request.methods, [](const MethodCallRequest& method) {
+         return object{
+             {"ObjectId", EncodeNodeId(method.object_id)},
+             {"MethodId", EncodeNodeId(method.method_id)},
+             {"InputArguments", EncodeList(method.arguments, EncodeVariant)}};
+       })}};
 }
 
 CallRequest DecodeCallRequest(const value& json) {
@@ -1109,9 +1179,8 @@ CallRequest DecodeCallRequest(const value& json) {
     methods = FindField(obj, "Methods");
   if (!methods)
     ThrowJsonError("Missing MethodsToCall");
-  return {.methods = DecodeList<MethodCallRequest>(
-              *methods,
-              [](const value& entry) {
+  return {.methods =
+              DecodeList<MethodCallRequest>(*methods, [](const value& entry) {
                 const auto& obj = RequireObject(entry);
                 const auto* arguments = FindField(obj, "InputArguments");
                 if (!arguments)
@@ -1121,21 +1190,22 @@ CallRequest DecodeCallRequest(const value& json) {
                 return MethodCallRequest{
                     .object_id = DecodeNodeId(RequireField(obj, "ObjectId")),
                     .method_id = DecodeNodeId(RequireField(obj, "MethodId")),
-                    .arguments = DecodeList<scada::Variant>(
-                        *arguments, DecodeVariant)};
+                    .arguments =
+                        DecodeList<scada::Variant>(*arguments, DecodeVariant)};
               })};
 }
 
 value EncodeAddNodesRequest(const AddNodesRequest& request) {
-  return object{{"NodesToAdd",
-                 EncodeList(request.items, [](const scada::AddNodesItem& item) {
-                   return object{{"RequestedId", EncodeNodeId(item.requested_id)},
-                                 {"ParentId", EncodeNodeId(item.parent_id)},
-                                 {"NodeClass", EncodeNodeClass(item.node_class)},
-                                 {"TypeDefinitionId",
-                                  EncodeNodeId(item.type_definition_id)},
-                                 {"Attributes", EncodeNodeAttributes(item.attributes)}};
-                 })}};
+  return object{
+      {"NodesToAdd",
+       EncodeList(request.items, [](const scada::AddNodesItem& item) {
+         return object{
+             {"RequestedId", EncodeNodeId(item.requested_id)},
+             {"ParentId", EncodeNodeId(item.parent_id)},
+             {"NodeClass", EncodeNodeClass(item.node_class)},
+             {"TypeDefinitionId", EncodeNodeId(item.type_definition_id)},
+             {"Attributes", EncodeNodeAttributes(item.attributes)}};
+       })}};
 }
 
 AddNodesRequest DecodeAddNodesRequest(const value& json) {
@@ -1145,29 +1215,28 @@ AddNodesRequest DecodeAddNodesRequest(const value& json) {
     field = FindField(obj, "Items");
   if (!field)
     ThrowJsonError("Missing NodesToAdd");
-  return {.items = DecodeList<scada::AddNodesItem>(
-              *field, [](const value& entry) {
-                const auto& obj = RequireObject(entry);
-                return scada::AddNodesItem{
-                    .requested_id = DecodeNodeId(RequireField(obj, "RequestedId")),
-                    .parent_id = DecodeNodeId(RequireField(obj, "ParentId")),
-                    .node_class = DecodeNodeClass(RequireField(obj, "NodeClass")),
-                    .type_definition_id =
-                        DecodeNodeId(RequireField(obj, "TypeDefinitionId")),
-                    .attributes =
-                        DecodeNodeAttributes(RequireField(obj, "Attributes"))};
-              })};
+  return {
+      .items = DecodeList<scada::AddNodesItem>(*field, [](const value& entry) {
+        const auto& obj = RequireObject(entry);
+        return scada::AddNodesItem{
+            .requested_id = DecodeNodeId(RequireField(obj, "RequestedId")),
+            .parent_id = DecodeNodeId(RequireField(obj, "ParentId")),
+            .node_class = DecodeNodeClass(RequireField(obj, "NodeClass")),
+            .type_definition_id =
+                DecodeNodeId(RequireField(obj, "TypeDefinitionId")),
+            .attributes =
+                DecodeNodeAttributes(RequireField(obj, "Attributes"))};
+      })};
 }
 
 value EncodeDeleteNodesRequest(const DeleteNodesRequest& request) {
-  return object{{"NodesToDelete",
-                 EncodeList(request.items,
-                            [](const scada::DeleteNodesItem& item) {
-                              return object{
-                                  {"NodeId", EncodeNodeId(item.node_id)},
-                                  {"DeleteTargetReferences",
-                                   item.delete_target_references}};
-                            })}};
+  return object{
+      {"NodesToDelete",
+       EncodeList(request.items, [](const scada::DeleteNodesItem& item) {
+         return object{
+             {"NodeId", EncodeNodeId(item.node_id)},
+             {"DeleteTargetReferences", item.delete_target_references}};
+       })}};
 }
 
 DeleteNodesRequest DecodeDeleteNodesRequest(const value& json) {
@@ -1182,27 +1251,23 @@ DeleteNodesRequest DecodeDeleteNodesRequest(const value& json) {
                 const auto& obj = RequireObject(entry);
                 return scada::DeleteNodesItem{
                     .node_id = DecodeNodeId(RequireField(obj, "NodeId")),
-                    .delete_target_references =
-                        RequireBool(RequireField(obj, "DeleteTargetReferences"))};
+                    .delete_target_references = RequireBool(
+                        RequireField(obj, "DeleteTargetReferences"))};
               })};
 }
 
 value EncodeAddReferencesRequest(const AddReferencesRequest& request) {
-  return object{{"ReferencesToAdd",
-                 EncodeList(request.items,
-                            [](const scada::AddReferencesItem& item) {
-                              return object{{"SourceNodeId",
-                                             EncodeNodeId(item.source_node_id)},
-                                            {"ReferenceTypeId",
-                                             EncodeNodeId(item.reference_type_id)},
-                                            {"IsForward", item.forward},
-                                            {"TargetServerUri",
-                                             item.target_server_uri},
-                                            {"TargetNodeId",
-                                             EncodeExpandedNodeId(item.target_node_id)},
-                                            {"TargetNodeClass",
-                                             EncodeNodeClass(item.target_node_class)}};
-                            })}};
+  return object{
+      {"ReferencesToAdd",
+       EncodeList(request.items, [](const scada::AddReferencesItem& item) {
+         return object{
+             {"SourceNodeId", EncodeNodeId(item.source_node_id)},
+             {"ReferenceTypeId", EncodeNodeId(item.reference_type_id)},
+             {"IsForward", item.forward},
+             {"TargetServerUri", item.target_server_uri},
+             {"TargetNodeId", EncodeExpandedNodeId(item.target_node_id)},
+             {"TargetNodeClass", EncodeNodeClass(item.target_node_class)}};
+       })}};
 }
 
 AddReferencesRequest DecodeAddReferencesRequest(const value& json) {
@@ -1226,8 +1291,8 @@ AddReferencesRequest DecodeAddReferencesRequest(const value& json) {
                     .reference_type_id =
                         DecodeNodeId(RequireField(obj, "ReferenceTypeId")),
                     .forward = RequireBool(*is_forward),
-                    .target_server_uri =
-                        std::string{RequireString(RequireField(obj, "TargetServerUri"))},
+                    .target_server_uri = std::string{RequireString(
+                        RequireField(obj, "TargetServerUri"))},
                     .target_node_id =
                         DecodeExpandedNodeId(RequireField(obj, "TargetNodeId")),
                     .target_node_class =
@@ -1236,19 +1301,16 @@ AddReferencesRequest DecodeAddReferencesRequest(const value& json) {
 }
 
 value EncodeDeleteReferencesRequest(const DeleteReferencesRequest& request) {
-  return object{{"ReferencesToDelete",
-                 EncodeList(request.items,
-                            [](const scada::DeleteReferencesItem& item) {
-                              return object{{"SourceNodeId",
-                                             EncodeNodeId(item.source_node_id)},
-                                            {"ReferenceTypeId",
-                                             EncodeNodeId(item.reference_type_id)},
-                                            {"IsForward", item.forward},
-                                            {"TargetNodeId",
-                                             EncodeExpandedNodeId(item.target_node_id)},
-                                            {"DeleteBidirectional",
-                                             item.delete_bidirectional}};
-                            })}};
+  return object{
+      {"ReferencesToDelete",
+       EncodeList(request.items, [](const scada::DeleteReferencesItem& item) {
+         return object{
+             {"SourceNodeId", EncodeNodeId(item.source_node_id)},
+             {"ReferenceTypeId", EncodeNodeId(item.reference_type_id)},
+             {"IsForward", item.forward},
+             {"TargetNodeId", EncodeExpandedNodeId(item.target_node_id)},
+             {"DeleteBidirectional", item.delete_bidirectional}};
+       })}};
 }
 
 DeleteReferencesRequest DecodeDeleteReferencesRequest(const value& json) {
@@ -1289,8 +1351,8 @@ template <class Response>
 Response DecodeDataValueResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
-          .results = DecodeList<scada::DataValue>(
-              RequireField(obj, "Results"), DecodeDataValue)};
+          .results = DecodeList<scada::DataValue>(RequireField(obj, "Results"),
+                                                  DecodeDataValue)};
 }
 
 value EncodeBrowseResponse(const BrowseResponse& response) {
@@ -1319,9 +1381,9 @@ BrowseNextResponse DecodeBrowseNextResponse(const value& json) {
 
 value EncodeTranslateBrowsePathsResponse(
     const TranslateBrowsePathsResponse& response) {
-  return object{{"Status", EncodeStatus(response.status)},
-                {"Results",
-                 EncodeList(response.results, EncodeBrowsePathResult)}};
+  return object{
+      {"Status", EncodeStatus(response.status)},
+      {"Results", EncodeList(response.results, EncodeBrowsePathResult)}};
 }
 
 TranslateBrowsePathsResponse DecodeTranslateBrowsePathsResponse(
@@ -1333,84 +1395,86 @@ TranslateBrowsePathsResponse DecodeTranslateBrowsePathsResponse(
 }
 
 value EncodeHistoryReadRawResponse(const HistoryReadRawResponse& response) {
-  return object{{"Result",
-                 object{{"Status", EncodeStatus(response.result.status)},
-                        {"Values", EncodeList(response.result.values, EncodeDataValue)},
-                        {"ContinuationPoint",
-                         EncodeByteString(response.result.continuation_point)}}}};
+  return object{
+      {"Result",
+       object{{"Status", EncodeStatus(response.result.status)},
+              {"Values", EncodeList(response.result.values, EncodeDataValue)},
+              {"ContinuationPoint",
+               EncodeByteString(response.result.continuation_point)}}}};
 }
 
 HistoryReadRawResponse DecodeHistoryReadRawResponse(const value& json) {
-  const auto& result = RequireObject(RequireField(RequireObject(json), "Result"));
-  return {.result =
-              {.status = DecodeStatus(RequireField(result, "Status")),
-               .values = DecodeList<scada::DataValue>(
-                   RequireField(result, "Values"), DecodeDataValue),
-               .continuation_point =
-                   DecodeByteString(RequireField(result, "ContinuationPoint"))}};
+  const auto& result =
+      RequireObject(RequireField(RequireObject(json), "Result"));
+  return {.result = {.status = DecodeStatus(RequireField(result, "Status")),
+                     .values = DecodeList<scada::DataValue>(
+                         RequireField(result, "Values"), DecodeDataValue),
+                     .continuation_point = DecodeByteString(
+                         RequireField(result, "ContinuationPoint"))}};
 }
 
-value EncodeHistoryReadEventsResponse(const HistoryReadEventsResponse& response) {
-  return object{{"Result",
-                 object{{"Status", EncodeStatus(response.result.status)},
-                        {"Events", EncodeList(response.result.events, EncodeEvent)}}}};
+value EncodeHistoryReadEventsResponse(
+    const HistoryReadEventsResponse& response) {
+  return object{
+      {"Result",
+       object{{"Status", EncodeStatus(response.result.status)},
+              {"Events", EncodeList(response.result.events, EncodeEvent)}}}};
 }
 
 HistoryReadEventsResponse DecodeHistoryReadEventsResponse(const value& json) {
-  const auto& result = RequireObject(RequireField(RequireObject(json), "Result"));
-  return {.result =
-              {.status = DecodeStatus(RequireField(result, "Status")),
-               .events = DecodeList<scada::Event>(
-                   RequireField(result, "Events"), DecodeEvent)}};
+  const auto& result =
+      RequireObject(RequireField(RequireObject(json), "Result"));
+  return {.result = {.status = DecodeStatus(RequireField(result, "Status")),
+                     .events = DecodeList<scada::Event>(
+                         RequireField(result, "Events"), DecodeEvent)}};
 }
 
 value EncodeCallResponse(const CallResponse& response) {
-  return object{{"Results",
-                 EncodeList(response.results, [](const MethodCallResult& result) {
-                   return object{
-                       {"StatusCode", EncodeStatus(result.status)},
-                       {"InputArgumentResults",
-                        EncodeList(result.input_argument_results, EncodeStatusCode)},
-                       {"OutputArguments",
-                        EncodeList(result.output_arguments, EncodeVariant)}};
-                 })}};
+  return object{
+      {"Results",
+       EncodeList(response.results, [](const MethodCallResult& result) {
+         return object{
+             {"StatusCode", EncodeStatus(result.status)},
+             {"InputArgumentResults",
+              EncodeList(result.input_argument_results, EncodeStatusCode)},
+             {"OutputArguments",
+              EncodeList(result.output_arguments, EncodeVariant)}};
+       })}};
 }
 
 CallResponse DecodeCallResponse(const value& json) {
-  return {.results = DecodeList<MethodCallResult>(
-              RequireField(RequireObject(json), "Results"), [](const value& entry) {
-                const auto& obj = RequireObject(entry);
-                const auto* status = FindField(obj, "StatusCode");
-                if (!status)
-                  status = FindField(obj, "Status");
-                if (!status)
-                  ThrowJsonError("Missing StatusCode");
-                return MethodCallResult{
-                    .status = DecodeStatus(*status),
-                    .input_argument_results =
-                        DecodeList<scada::StatusCode>(
-                            FindField(obj, "InputArgumentResults")
-                                ? *FindField(obj, "InputArgumentResults")
-                                : value{array{}},
-                            DecodeStatusCode),
-                    .output_arguments = DecodeList<scada::Variant>(
-                        FindField(obj, "OutputArguments")
-                            ? *FindField(obj, "OutputArguments")
-                            : value{array{}},
-                        DecodeVariant)};
-              })};
+  return {
+      .results = DecodeList<MethodCallResult>(
+          RequireField(RequireObject(json), "Results"), [](const value& entry) {
+            const auto& obj = RequireObject(entry);
+            const auto* status = FindField(obj, "StatusCode");
+            if (!status)
+              status = FindField(obj, "Status");
+            if (!status)
+              ThrowJsonError("Missing StatusCode");
+            return MethodCallResult{
+                .status = DecodeStatus(*status),
+                .input_argument_results = DecodeList<scada::StatusCode>(
+                    FindField(obj, "InputArgumentResults")
+                        ? *FindField(obj, "InputArgumentResults")
+                        : value{array{}},
+                    DecodeStatusCode),
+                .output_arguments = DecodeList<scada::Variant>(
+                    FindField(obj, "OutputArguments")
+                        ? *FindField(obj, "OutputArguments")
+                        : value{array{}},
+                    DecodeVariant)};
+          })};
 }
 
 value EncodeAddNodesResponse(const AddNodesResponse& response) {
-  return object{{"Status", EncodeStatus(response.status)},
-                {"Results",
-                 EncodeList(response.results,
-                            [](const scada::AddNodesResult& result) {
-                              return object{{"StatusCode",
-                                             EncodeStatusCode(result.status_code)},
-                                            {"AddedNodeId",
-                                             EncodeNodeId(result.added_node_id)}};
-                            })}};
+  return object{
+      {"Status", EncodeStatus(response.status)},
+      {"Results",
+       EncodeList(response.results, [](const scada::AddNodesResult& result) {
+         return object{{"StatusCode", EncodeStatusCode(result.status_code)},
+                       {"AddedNodeId", EncodeNodeId(result.added_node_id)}};
+       })}};
 }
 
 AddNodesResponse DecodeAddNodesResponse(const value& json) {
@@ -1420,8 +1484,10 @@ AddNodesResponse DecodeAddNodesResponse(const value& json) {
               RequireField(obj, "Results"), [](const value& entry) {
                 const auto& result = RequireObject(entry);
                 return scada::AddNodesResult{
-                    .status_code = DecodeStatusCode(RequireField(result, "StatusCode")),
-                    .added_node_id = DecodeNodeId(RequireField(result, "AddedNodeId"))};
+                    .status_code =
+                        DecodeStatusCode(RequireField(result, "StatusCode")),
+                    .added_node_id =
+                        DecodeNodeId(RequireField(result, "AddedNodeId"))};
               })};
 }
 
@@ -1435,8 +1501,8 @@ template <class Response>
 Response DecodeMultiStatusResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
-          .results = DecodeList<scada::StatusCode>(
-              RequireField(obj, "Results"), DecodeStatusCode)};
+          .results = DecodeList<scada::StatusCode>(RequireField(obj, "Results"),
+                                                   DecodeStatusCode)};
 }
 
 template <class T>
@@ -1497,39 +1563,50 @@ boost::json::value EncodeJson(const ServiceRequest& request) {
   return std::visit(
       [](const auto& typed_request) -> value {
         object json;
-        json["service"] = RequestServiceName<std::decay_t<decltype(typed_request)>>();
+        json["service"] =
+            RequestServiceName<std::decay_t<decltype(typed_request)>>();
         if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
                                      ReadRequest>) {
           json["body"] = EncodeReadRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            WriteRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 WriteRequest>) {
           json["body"] = EncodeWriteRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            BrowseRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 BrowseRequest>) {
           json["body"] = EncodeBrowseRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            BrowseNextRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 BrowseNextRequest>) {
           json["body"] = EncodeBrowseNextRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            TranslateBrowsePathsRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 TranslateBrowsePathsRequest>) {
           json["body"] = EncodeTranslateBrowsePathsRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                     CallRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 CallRequest>) {
           json["body"] = EncodeCallRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            HistoryReadRawRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 HistoryReadRawRequest>) {
           json["body"] = EncodeHistoryReadRawRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            HistoryReadEventsRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 HistoryReadEventsRequest>) {
           json["body"] = EncodeHistoryReadEventsRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            AddNodesRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 AddNodesRequest>) {
           json["body"] = EncodeAddNodesRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            DeleteNodesRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 DeleteNodesRequest>) {
           json["body"] = EncodeDeleteNodesRequest(typed_request);
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(typed_request)>,
-                                            AddReferencesRequest>) {
+        } else if constexpr (std::is_same_v<
+                                 std::decay_t<decltype(typed_request)>,
+                                 AddReferencesRequest>) {
           json["body"] = EncodeAddReferencesRequest(typed_request);
         } else {
           json["body"] = EncodeDeleteReferencesRequest(typed_request);

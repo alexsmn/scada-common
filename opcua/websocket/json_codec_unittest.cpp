@@ -32,11 +32,10 @@ base::Time ParseTime(std::string_view value) {
 TEST(JsonCodecTest, ReadResponseWireShapeMatchesSpec) {
   ReadResponse read{
       .status = scada::StatusCode::Good,
-      .results = {
-          scada::DataValue{scada::Variant{scada::Int32{42}},
-                           scada::Qualifier{scada::Qualifier::MANUAL},
-                           ParseTime("2026-04-19 10:00:00"),
-                           ParseTime("2026-04-19 10:00:01")}}};
+      .results = {scada::DataValue{scada::Variant{scada::Int32{42}},
+                                   scada::Qualifier{scada::Qualifier::MANUAL},
+                                   ParseTime("2026-04-19 10:00:00"),
+                                   ParseTime("2026-04-19 10:00:01")}}};
   // Force a non-default status_code so it lands on the wire.
   read.results[0].status_code = scada::StatusCode::Bad_Disconnected;
 
@@ -56,6 +55,8 @@ TEST(JsonCodecTest, ReadResponseWireShapeMatchesSpec) {
   EXPECT_FALSE(dv.contains("Qualifier"));
   EXPECT_TRUE(dv.contains("SourceTimestamp"));
   EXPECT_TRUE(dv.contains("ServerTimestamp"));
+  EXPECT_EQ(dv.at("SourceTimestamp").as_string(), "2026-04-19T10:00:00Z");
+  EXPECT_EQ(dv.at("ServerTimestamp").as_string(), "2026-04-19T10:00:01Z");
 
   // §5.4.2.16: Variant carries numeric Type id (Int32 == 6) and Body — no
   // IsArray flag.
@@ -81,19 +82,22 @@ TEST(JsonCodecTest, ReadResponseWireShapeMatchesSpec) {
 TEST(JsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
   BrowseResponse browse{
       .status = scada::StatusCode::Good,
-      .results = {{.status_code = scada::StatusCode::Good,
-                   .references = {{.reference_type_id = NumericNode(301),
-                                   .forward = false,
-                                   .node_id = NumericNode(302),
-                                   .node_class =
-                                       scada::NodeClass::Variable}}}}};
+      .results = {
+          {.status_code = scada::StatusCode::Good,
+           .references = {{.reference_type_id = NumericNode(301),
+                           .forward = false,
+                           .node_id = NumericNode(302),
+                           .node_class = scada::NodeClass::Variable}}}}};
 
   const auto encoded = EncodeJson(ServiceResponse{browse});
   const auto& result = encoded.as_object()
-                           .at("body").as_object()
-                           .at("Results").as_array().at(0).as_object();
-  const auto& reference =
-      result.at("References").as_array().at(0).as_object();
+                           .at("body")
+                           .as_object()
+                           .at("Results")
+                           .as_array()
+                           .at(0)
+                           .as_object();
+  const auto& reference = result.at("References").as_array().at(0).as_object();
   EXPECT_FALSE(result.contains("ContinuationPoint"));
 
   // §5.4.2.10: NodeId / ReferenceTypeId on a Reference are JSON strings.
@@ -120,31 +124,38 @@ TEST(JsonCodecTest, BrowseResponseWireShapeMatchesSpec) {
 TEST(JsonCodecTest, TranslateBrowsePathsWireShapeMatchesSpec) {
   TranslateBrowsePathsResponse translate{
       .status = scada::StatusCode::Good,
-      .results = {{.status_code = scada::StatusCode::Good,
-                   .targets = {{.target_id =
-                                    scada::ExpandedNodeId{NumericNode(303),
-                                                          "urn:test", 2},
-                                .remaining_path_index = 1}}}}};
+      .results = {
+          {.status_code = scada::StatusCode::Good,
+           .targets = {{.target_id = scada::ExpandedNodeId{NumericNode(303),
+                                                           "urn:test", 2},
+                        .remaining_path_index = 1}}}}};
 
   const auto encoded = EncodeJson(ServiceResponse{translate});
   const auto& target = encoded.as_object()
-                           .at("body").as_object()
-                           .at("Results").as_array().at(0).as_object()
-                           .at("Targets").as_array().at(0).as_object();
+                           .at("body")
+                           .as_object()
+                           .at("Results")
+                           .as_array()
+                           .at(0)
+                           .as_object()
+                           .at("Targets")
+                           .as_array()
+                           .at(0)
+                           .as_object();
 
   // §5.4.2.11: ExpandedNodeId is a JSON string with optional `svr=` and
   // `nsu=` prefixes followed by the NodeId text.
   EXPECT_TRUE(target.at("TargetId").is_string());
-  EXPECT_EQ(target.at("TargetId").as_string(),
-            "svr=2;nsu=urn:test;ns=2;i=303");
+  EXPECT_EQ(target.at("TargetId").as_string(), "svr=2;nsu=urn:test;ns=2;i=303");
 
-  const auto decoded = std::get<TranslateBrowsePathsResponse>(
-      DecodeServiceResponse(encoded));
+  const auto decoded =
+      std::get<TranslateBrowsePathsResponse>(DecodeServiceResponse(encoded));
   ASSERT_EQ(decoded.results.size(), 1u);
   ASSERT_EQ(decoded.results[0].targets.size(), 1u);
   EXPECT_EQ(decoded.results[0].targets[0].target_id.node_id(),
             NumericNode(303));
-  EXPECT_EQ(decoded.results[0].targets[0].target_id.namespace_uri(), "urn:test");
+  EXPECT_EQ(decoded.results[0].targets[0].target_id.namespace_uri(),
+            "urn:test");
   EXPECT_EQ(decoded.results[0].targets[0].target_id.server_index(), 2u);
 }
 
@@ -157,8 +168,12 @@ TEST(JsonCodecTest, EmptyVariantSerialisesAsJsonNull) {
                     .results = {scada::DataValue{}}};
   const auto encoded = EncodeJson(ServiceResponse{read});
   const auto& dv = encoded.as_object()
-                       .at("body").as_object()
-                       .at("Results").as_array().at(0).as_object();
+                       .at("body")
+                       .as_object()
+                       .at("Results")
+                       .as_array()
+                       .at(0)
+                       .as_object();
   // No Value, no Status (Good is default), no timestamps — all elided.
   EXPECT_TRUE(dv.empty());
 }
@@ -172,12 +187,11 @@ TEST(JsonCodecTest, RoundTripsPhase0Requests) {
                   .attribute_id = scada::AttributeId::Value,
                   .value = scada::Variant{std::vector<scada::UInt32>{4, 5}},
                   .flags = scada::WriteFlags{}.set_select().set_param()}}};
-  BrowseRequest browse{
-      .requested_max_references_per_node = 7,
-      .inputs = {{.node_id = NumericNode(3),
-                  .direction = scada::BrowseDirection::Inverse,
-                  .reference_type_id = NumericNode(31),
-                  .include_subtypes = false}}};
+  BrowseRequest browse{.requested_max_references_per_node = 7,
+                       .inputs = {{.node_id = NumericNode(3),
+                                   .direction = scada::BrowseDirection::Inverse,
+                                   .reference_type_id = NumericNode(31),
+                                   .include_subtypes = false}}};
   BrowseNextRequest browse_next{
       .release_continuation_points = true,
       .continuation_points = {{'a', 'b'}, {'x', 'y', 'z'}}};
@@ -228,40 +242,37 @@ TEST(JsonCodecTest, RoundTripsCanonicalEnvelopeTypes) {
   const auto* decoded_read = std::get_if<ReadRequest>(&decoded_request.body);
   ASSERT_NE(decoded_read, nullptr);
   ASSERT_EQ(decoded_read->inputs.size(), 1u);
-  EXPECT_EQ(decoded_read->inputs[0], std::get<ReadRequest>(request.body).inputs[0]);
+  EXPECT_EQ(decoded_read->inputs[0],
+            std::get<ReadRequest>(request.body).inputs[0]);
 
   const ResponseMessage response{
       .request_handle = 92,
-      .body = ServiceFault{
-          .status = scada::StatusCode::Bad_CantParseString}};
+      .body = ServiceFault{.status = scada::StatusCode::Bad_CantParseString}};
   const auto decoded_response = DecodeResponseMessage(EncodeJson(response));
   EXPECT_EQ(decoded_response.request_handle, response.request_handle);
-  const auto* decoded_fault =
-      std::get_if<ServiceFault>(&decoded_response.body);
+  const auto* decoded_fault = std::get_if<ServiceFault>(&decoded_response.body);
   ASSERT_NE(decoded_fault, nullptr);
   EXPECT_EQ(decoded_fault->status.code(),
             scada::StatusCode::Bad_CantParseString);
 }
 
 TEST(JsonCodecTest, RequestWireShapeUsesSpecFieldNames) {
-  const auto read_json =
-      EncodeJson(ServiceRequest{ReadRequest{
-          .inputs = {{.node_id = NumericNode(1),
-                      .attribute_id = scada::AttributeId::Value}}}});
-  const auto write_json =
-      EncodeJson(ServiceRequest{WriteRequest{
-          .inputs = {{.node_id = NumericNode(2),
-                      .attribute_id = scada::AttributeId::Value,
-                      .value = scada::Variant{scada::Int32{7}},
-                      .flags = {}}}}});
-  const auto browse_json = EncodeJson(ServiceRequest{BrowseRequest{
-      .requested_max_references_per_node = 5,
-      .inputs = {{.node_id = NumericNode(3),
-                  .direction = scada::BrowseDirection::Forward,
-                  .reference_type_id = NumericNode(31),
-                  .include_subtypes = true}}}});
-  const auto translate_json = EncodeJson(
-      ServiceRequest{TranslateBrowsePathsRequest{
+  const auto read_json = EncodeJson(ServiceRequest{
+      ReadRequest{.inputs = {{.node_id = NumericNode(1),
+                              .attribute_id = scada::AttributeId::Value}}}});
+  const auto write_json = EncodeJson(ServiceRequest{
+      WriteRequest{.inputs = {{.node_id = NumericNode(2),
+                               .attribute_id = scada::AttributeId::Value,
+                               .value = scada::Variant{scada::Int32{7}},
+                               .flags = {}}}}});
+  const auto browse_json = EncodeJson(ServiceRequest{
+      BrowseRequest{.requested_max_references_per_node = 5,
+                    .inputs = {{.node_id = NumericNode(3),
+                                .direction = scada::BrowseDirection::Forward,
+                                .reference_type_id = NumericNode(31),
+                                .include_subtypes = true}}}});
+  const auto translate_json =
+      EncodeJson(ServiceRequest{TranslateBrowsePathsRequest{
           .inputs = {{.node_id = NumericNode(4),
                       .relative_path = {{.reference_type_id = NumericNode(41),
                                          .inverse = false,
@@ -311,7 +322,8 @@ TEST(JsonCodecTest, DecodeWriteRequestAcceptsLegacyDataValueWrapper) {
   const auto* write = std::get_if<WriteRequest>(&request);
   ASSERT_NE(write, nullptr);
   ASSERT_EQ(write->inputs.size(), 1u);
-  EXPECT_EQ(write->inputs[0].node_id, scada::NodeId::FromString("ns=2;s=UserProfile"));
+  EXPECT_EQ(write->inputs[0].node_id,
+            scada::NodeId::FromString("ns=2;s=UserProfile"));
   EXPECT_EQ(write->inputs[0].attribute_id, scada::AttributeId::Value);
   EXPECT_EQ(write->inputs[0].value,
             scada::Variant{scada::String{
@@ -321,31 +333,28 @@ TEST(JsonCodecTest, DecodeWriteRequestAcceptsLegacyDataValueWrapper) {
 TEST(JsonCodecTest, RoundTripsSessionRequestMessages) {
   RequestMessage create{
       .request_handle = 11,
-      .body = CreateSessionRequest{
-          .requested_timeout = base::TimeDelta::FromSeconds(45)}};
-  RequestMessage activate{
-      .request_handle = 12,
-      .body = ActivateSessionRequest{
-          .session_id = NumericNode(20),
-          .authentication_token = NumericNode(21, 3),
-          .user_name = scada::LocalizedText{u"operator"},
-          .password = scada::LocalizedText{u"secret"},
-          .delete_existing = true,
-          .allow_anonymous = false,
-      }};
+      .body = CreateSessionRequest{.requested_timeout =
+                                       base::TimeDelta::FromSeconds(45)}};
+  RequestMessage activate{.request_handle = 12,
+                          .body = ActivateSessionRequest{
+                              .session_id = NumericNode(20),
+                              .authentication_token = NumericNode(21, 3),
+                              .user_name = scada::LocalizedText{u"operator"},
+                              .password = scada::LocalizedText{u"secret"},
+                              .delete_existing = true,
+                              .allow_anonymous = false,
+                          }};
   RequestMessage close{
       .request_handle = 13,
-      .body = CloseSessionRequest{
-          .session_id = NumericNode(22),
-          .authentication_token = NumericNode(23, 3)}};
+      .body = CloseSessionRequest{.session_id = NumericNode(22),
+                                  .authentication_token = NumericNode(23, 3)}};
 
   const auto decoded_create = DecodeRequestMessage(EncodeJson(create));
   EXPECT_EQ(decoded_create.request_handle, create.request_handle);
   const auto* create_body =
       std::get_if<CreateSessionRequest>(&decoded_create.body);
   ASSERT_NE(create_body, nullptr);
-  EXPECT_EQ(create_body->requested_timeout,
-            base::TimeDelta::FromSeconds(45));
+  EXPECT_EQ(create_body->requested_timeout, base::TimeDelta::FromSeconds(45));
 
   const auto decoded_activate = DecodeRequestMessage(EncodeJson(activate));
   EXPECT_EQ(decoded_activate.request_handle, activate.request_handle);
@@ -373,8 +382,8 @@ TEST(JsonCodecTest, RoundTripsSessionRequestMessages) {
 TEST(JsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
   const auto create_json = EncodeJson(RequestMessage{
       .request_handle = 11,
-      .body = CreateSessionRequest{
-          .requested_timeout = base::TimeDelta::FromSeconds(45)}});
+      .body = CreateSessionRequest{.requested_timeout =
+                                       base::TimeDelta::FromSeconds(45)}});
   const auto create_text = boost::json::serialize(create_json);
   EXPECT_NE(create_text.find("\"RequestedSessionTimeout\""), std::string::npos);
   EXPECT_EQ(create_text.find("\"requestedTimeoutMs\""), std::string::npos);
@@ -386,16 +395,16 @@ TEST(JsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
   ASSERT_NE(create_body, nullptr);
   EXPECT_EQ(create_body->requested_timeout, base::TimeDelta::FromSeconds(45));
 
-  const auto activate_json = EncodeJson(RequestMessage{
-      .request_handle = 12,
-      .body = ActivateSessionRequest{
-          .session_id = NumericNode(20),
-          .authentication_token = NumericNode(21, 3),
-          .user_name = scada::LocalizedText{u"operator"},
-          .password = scada::LocalizedText{u"secret"},
-          .delete_existing = true,
-          .allow_anonymous = false,
-      }});
+  const auto activate_json = EncodeJson(
+      RequestMessage{.request_handle = 12,
+                     .body = ActivateSessionRequest{
+                         .session_id = NumericNode(20),
+                         .authentication_token = NumericNode(21, 3),
+                         .user_name = scada::LocalizedText{u"operator"},
+                         .password = scada::LocalizedText{u"secret"},
+                         .delete_existing = true,
+                         .allow_anonymous = false,
+                     }});
   const auto activate_text = boost::json::serialize(activate_json);
   EXPECT_NE(activate_text.find("\"SessionId\""), std::string::npos);
   EXPECT_NE(activate_text.find("\"AuthenticationToken\""), std::string::npos);
@@ -407,16 +416,16 @@ TEST(JsonCodecTest, EncodesAndDecodesPascalCaseSessionMessageFields) {
 
 TEST(JsonCodecTest, RoundTripsHistoryReadRawRequest) {
   HistoryReadRawRequest request{
-      .details =
-          {.node_id = NumericNode(1),
-           .from = ParseTime("2026-04-19 10:00:00"),
-           .to = ParseTime("2026-04-19 12:00:00"),
-           .max_count = 123,
-           .aggregation = {.start_time = ParseTime("2026-04-19 09:30:00"),
-                           .interval = base::TimeDelta::FromMinutes(15),
-                           .aggregate_type = NumericNode(44)},
-           .release_continuation_point = true,
-           .continuation_point = {'a', 'b', 'c'}}};
+      .details = {
+          .node_id = NumericNode(1),
+          .from = ParseTime("2026-04-19 10:00:00"),
+          .to = ParseTime("2026-04-19 12:00:00"),
+          .max_count = 123,
+          .aggregation = {.start_time = ParseTime("2026-04-19 09:30:00"),
+                          .interval = base::TimeDelta::FromMinutes(15),
+                          .aggregate_type = NumericNode(44)},
+          .release_continuation_point = true,
+          .continuation_point = {'a', 'b', 'c'}}};
 
   auto json = EncodeJson(ServiceRequest{request});
   auto decoded = DecodeServiceRequest(json);
@@ -431,19 +440,18 @@ TEST(JsonCodecTest, RoundTripsHistoryReadRawRequest) {
   EXPECT_EQ(typed->details.aggregation, request.details.aggregation);
   EXPECT_EQ(typed->details.release_continuation_point,
             request.details.release_continuation_point);
-  EXPECT_EQ(typed->details.continuation_point, request.details.continuation_point);
+  EXPECT_EQ(typed->details.continuation_point,
+            request.details.continuation_point);
 }
 
 TEST(JsonCodecTest, RoundTripsHistoryReadEventsRequest) {
   HistoryReadEventsRequest request{
-      .details =
-          {.node_id = NumericNode(2),
-           .from = ParseTime("2026-04-19 08:00:00"),
-           .to = ParseTime("2026-04-19 09:00:00"),
-           .filter =
-               {.types = scada::EventFilter::UNACKED,
-                .of_type = {NumericNode(77), NumericNode(78)},
-                .child_of = {NumericNode(79)}}}};
+      .details = {.node_id = NumericNode(2),
+                  .from = ParseTime("2026-04-19 08:00:00"),
+                  .to = ParseTime("2026-04-19 09:00:00"),
+                  .filter = {.types = scada::EventFilter::UNACKED,
+                             .of_type = {NumericNode(77), NumericNode(78)},
+                             .child_of = {NumericNode(79)}}}};
 
   auto decoded = DecodeServiceRequest(EncodeJson(ServiceRequest{request}));
   const auto* typed = std::get_if<HistoryReadEventsRequest>(&decoded);
@@ -456,13 +464,13 @@ TEST(JsonCodecTest, RoundTripsHistoryReadEventsRequest) {
 
 TEST(JsonCodecTest, RoundTripsCallRequestWithScalarAndArrayVariants) {
   CallRequest request{
-      .methods = {{.object_id = NumericNode(10),
-                   .method_id = NumericNode(11),
-                   .arguments =
-                       {scada::Variant{true},
-                        scada::Variant{std::vector<scada::Int32>{1, 2, 3}},
-                        scada::Variant{scada::LocalizedText{u"hello"}},
-                        scada::Variant{NumericNode(12)}}}}};
+      .methods = {
+          {.object_id = NumericNode(10),
+           .method_id = NumericNode(11),
+           .arguments = {scada::Variant{true},
+                         scada::Variant{std::vector<scada::Int32>{1, 2, 3}},
+                         scada::Variant{scada::LocalizedText{u"hello"}},
+                         scada::Variant{NumericNode(12)}}}}};
 
   auto decoded = DecodeServiceRequest(EncodeJson(ServiceRequest{request}));
   const auto* typed = std::get_if<CallRequest>(&decoded);
@@ -493,22 +501,24 @@ TEST(JsonCodecTest, RoundTripsOpaqueExtensionObjectVariants) {
       R"({"Kind":"AlarmFilter","Severity":500,"Fields":["Message","SourceName"]})");
   const boost::json::value array_payload_1 =
       boost::json::parse(R"({"Kind":"Operand","NodeId":"ns=2;i=5001"})");
-  const boost::json::value array_payload_2 =
-      boost::json::parse(R"({"Kind":"Operand","BrowsePath":["Objects","Motor1"]})");
+  const boost::json::value array_payload_2 = boost::json::parse(
+      R"({"Kind":"Operand","BrowsePath":["Objects","Motor1"]})");
 
   CallRequest request{
-      .methods = {{.object_id = NumericNode(120),
-                   .method_id = NumericNode(121),
-                   .arguments =
-                       {scada::Variant{scada::ExtensionObject{
-                            scada::ExpandedNodeId{NumericNode(122), "urn:test", 3},
-                            scalar_payload}},
-                        scada::Variant{std::vector<scada::ExtensionObject>{
-                            {scada::ExpandedNodeId{NumericNode(123)}, array_payload_1},
-                            {scada::ExpandedNodeId{NumericNode(124), "urn:test", 4},
-                             array_payload_2}}}}}}};
+      .methods = {
+          {.object_id = NumericNode(120),
+           .method_id = NumericNode(121),
+           .arguments = {
+               scada::Variant{scada::ExtensionObject{
+                   scada::ExpandedNodeId{NumericNode(122), "urn:test", 3},
+                   scalar_payload}},
+               scada::Variant{std::vector<scada::ExtensionObject>{
+                   {scada::ExpandedNodeId{NumericNode(123)}, array_payload_1},
+                   {scada::ExpandedNodeId{NumericNode(124), "urn:test", 4},
+                    array_payload_2}}}}}}};
 
-  const auto decoded = DecodeServiceRequest(EncodeJson(ServiceRequest{request}));
+  const auto decoded =
+      DecodeServiceRequest(EncodeJson(ServiceRequest{request}));
   const auto* typed = std::get_if<CallRequest>(&decoded);
   ASSERT_NE(typed, nullptr);
   ASSERT_EQ(typed->methods.size(), 1u);
@@ -546,14 +556,14 @@ TEST(JsonCodecTest, RoundTripsNodeManagementRequests) {
                  .parent_id = NumericNode(101),
                  .node_class = scada::NodeClass::Variable,
                  .type_definition_id = NumericNode(102),
-                 .attributes =
-                     scada::NodeAttributes{}
-                         .set_browse_name({"Pressure", 3})
-                         .set_display_name(u"Pressure")
-                         .set_data_type(NumericNode(103))
-                         .set_value(scada::Variant{42.5})}}};
+                 .attributes = scada::NodeAttributes{}
+                                   .set_browse_name({"Pressure", 3})
+                                   .set_display_name(u"Pressure")
+                                   .set_data_type(NumericNode(103))
+                                   .set_value(scada::Variant{42.5})}}};
   DeleteNodesRequest delete_nodes{
-      .items = {{.node_id = NumericNode(104), .delete_target_references = true}}};
+      .items = {
+          {.node_id = NumericNode(104), .delete_target_references = true}}};
   AddReferencesRequest add_refs{
       .items = {{.source_node_id = NumericNode(105),
                  .reference_type_id = NumericNode(106),
@@ -577,7 +587,8 @@ TEST(JsonCodecTest, RoundTripsNodeManagementRequests) {
   const auto decoded_delete_nodes = std::get<DeleteNodesRequest>(
       DecodeServiceRequest(EncodeJson(ServiceRequest{delete_nodes})));
   ASSERT_EQ(decoded_delete_nodes.items.size(), 1u);
-  EXPECT_EQ(decoded_delete_nodes.items[0].node_id, delete_nodes.items[0].node_id);
+  EXPECT_EQ(decoded_delete_nodes.items[0].node_id,
+            delete_nodes.items[0].node_id);
   EXPECT_EQ(decoded_delete_nodes.items[0].delete_target_references,
             delete_nodes.items[0].delete_target_references);
 
@@ -611,14 +622,14 @@ TEST(JsonCodecTest, RoundTripsNodeManagementRequests) {
 }
 
 TEST(JsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
-  const auto add_nodes = EncodeJson(ServiceRequest{AddNodesRequest{
-      .items = {{.requested_id = NumericNode(100),
-                 .parent_id = NumericNode(101),
-                 .node_class = scada::NodeClass::Variable,
-                 .type_definition_id = NumericNode(102)}}}});
-  const auto delete_nodes = EncodeJson(
-      ServiceRequest{DeleteNodesRequest{
-          .items = {{.node_id = NumericNode(104), .delete_target_references = true}}}});
+  const auto add_nodes = EncodeJson(ServiceRequest{
+      AddNodesRequest{.items = {{.requested_id = NumericNode(100),
+                                 .parent_id = NumericNode(101),
+                                 .node_class = scada::NodeClass::Variable,
+                                 .type_definition_id = NumericNode(102)}}}});
+  const auto delete_nodes = EncodeJson(ServiceRequest{
+      DeleteNodesRequest{.items = {{.node_id = NumericNode(104),
+                                    .delete_target_references = true}}}});
   const auto add_refs = EncodeJson(ServiceRequest{AddReferencesRequest{
       .items = {{.source_node_id = NumericNode(105),
                  .reference_type_id = NumericNode(106),
@@ -627,13 +638,12 @@ TEST(JsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
                  .target_node_id =
                      scada::ExpandedNodeId{NumericNode(107), "urn:test", 2},
                  .target_node_class = scada::NodeClass::Object}}}});
-  const auto delete_refs = EncodeJson(
-      ServiceRequest{DeleteReferencesRequest{
-          .items = {{.source_node_id = NumericNode(108),
-                     .reference_type_id = NumericNode(109),
-                     .forward = true,
-                     .target_node_id = scada::ExpandedNodeId{NumericNode(110)},
-                     .delete_bidirectional = false}}}});
+  const auto delete_refs = EncodeJson(ServiceRequest{DeleteReferencesRequest{
+      .items = {{.source_node_id = NumericNode(108),
+                 .reference_type_id = NumericNode(109),
+                 .forward = true,
+                 .target_node_id = scada::ExpandedNodeId{NumericNode(110)},
+                 .delete_bidirectional = false}}}});
 
   const auto& add_nodes_body = add_nodes.as_object().at("body").as_object();
   EXPECT_TRUE(add_nodes_body.contains("NodesToAdd"));
@@ -647,11 +657,13 @@ TEST(JsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
   const auto& add_refs_body = add_refs.as_object().at("body").as_object();
   EXPECT_TRUE(add_refs_body.contains("ReferencesToAdd"));
   EXPECT_FALSE(add_refs_body.contains("Items"));
-  EXPECT_TRUE(add_refs_body.at("ReferencesToAdd").as_array().at(0).as_object().contains(
-      "IsForward"));
+  EXPECT_TRUE(add_refs_body.at("ReferencesToAdd")
+                  .as_array()
+                  .at(0)
+                  .as_object()
+                  .contains("IsForward"));
 
-  const auto& delete_refs_body =
-      delete_refs.as_object().at("body").as_object();
+  const auto& delete_refs_body = delete_refs.as_object().at("body").as_object();
   EXPECT_TRUE(delete_refs_body.contains("ReferencesToDelete"));
   EXPECT_FALSE(delete_refs_body.contains("Items"));
   EXPECT_TRUE(delete_refs_body.at("ReferencesToDelete")
@@ -663,13 +675,13 @@ TEST(JsonCodecTest, NodeManagementWireShapeUsesSpecFieldNames) {
 
 TEST(JsonCodecTest, RoundTripsHistoryReadResponses) {
   HistoryReadRawResponse raw{
-      .result =
-          {.status = scada::Status::FromFullCode(0x80030002u),
-           .values = {scada::DataValue{scada::Variant{12.5},
-                                       scada::Qualifier{scada::Qualifier::MANUAL},
-                                       ParseTime("2026-04-19 12:00:00"),
-                                       ParseTime("2026-04-19 12:00:01")}},
-           .continuation_point = {'x', 'y'}}};
+      .result = {
+          .status = scada::Status::FromFullCode(0x80030002u),
+          .values = {scada::DataValue{
+              scada::Variant{12.5}, scada::Qualifier{scada::Qualifier::MANUAL},
+              ParseTime("2026-04-19 12:00:00"),
+              ParseTime("2026-04-19 12:00:01")}},
+          .continuation_point = {'x', 'y'}}};
 
   scada::Event event;
   event.event_type_id = NumericNode(200);
@@ -695,7 +707,8 @@ TEST(JsonCodecTest, RoundTripsHistoryReadResponses) {
   // print-loop on Qualifier diffs through GTest's Variant printer).
   const auto decoded_raw = std::get<HistoryReadRawResponse>(
       DecodeServiceResponse(EncodeJson(ServiceResponse{raw})));
-  EXPECT_EQ(decoded_raw.result.status.full_code(), raw.result.status.full_code());
+  EXPECT_EQ(decoded_raw.result.status.full_code(),
+            raw.result.status.full_code());
   ASSERT_EQ(decoded_raw.result.values.size(), raw.result.values.size());
   EXPECT_TRUE(decoded_raw.result.values[0].value == raw.result.values[0].value);
   EXPECT_EQ(decoded_raw.result.values[0].status_code,
@@ -704,8 +717,8 @@ TEST(JsonCodecTest, RoundTripsHistoryReadResponses) {
             raw.result.values[0].source_timestamp);
   EXPECT_EQ(decoded_raw.result.values[0].server_timestamp,
             raw.result.values[0].server_timestamp);
-  EXPECT_EQ(std::get<HistoryReadEventsResponse>(DecodeServiceResponse(
-                EncodeJson(ServiceResponse{events})))
+  EXPECT_EQ(std::get<HistoryReadEventsResponse>(
+                DecodeServiceResponse(EncodeJson(ServiceResponse{events})))
                 .result.events,
             events.result.events);
 }
@@ -713,13 +726,12 @@ TEST(JsonCodecTest, RoundTripsHistoryReadResponses) {
 TEST(JsonCodecTest, RoundTripsPhase0Responses) {
   ReadResponse read{
       .status = scada::StatusCode::Good,
-      .results = {scada::DataValue{scada::Variant{scada::LocalizedText{u"Pump"}},
-                                   scada::Qualifier{scada::Qualifier::MANUAL},
-                                   ParseTime("2026-04-19 10:10:00"),
-                                   ParseTime("2026-04-19 10:10:01")}}};
-  WriteResponse write{
-      .status = scada::StatusCode::Bad_Disconnected,
-      .results = {scada::StatusCode::Bad_Disconnected}};
+      .results = {scada::DataValue{
+          scada::Variant{scada::LocalizedText{u"Pump"}},
+          scada::Qualifier{scada::Qualifier::MANUAL},
+          ParseTime("2026-04-19 10:10:00"), ParseTime("2026-04-19 10:10:01")}}};
+  WriteResponse write{.status = scada::StatusCode::Bad_Disconnected,
+                      .results = {scada::StatusCode::Bad_Disconnected}};
   BrowseResponse browse{
       .status = scada::StatusCode::Good,
       .results = {{.status_code = scada::StatusCode::Good,
@@ -736,11 +748,11 @@ TEST(JsonCodecTest, RoundTripsPhase0Responses) {
                                    .node_id = NumericNode(305)}}}}};
   TranslateBrowsePathsResponse translate{
       .status = scada::StatusCode::Good,
-      .results = {{.status_code = scada::StatusCode::Good,
-                   .targets = {{.target_id =
-                                    scada::ExpandedNodeId{NumericNode(303),
-                                                          "urn:test", 2},
-                                .remaining_path_index = 1}}}}};
+      .results = {
+          {.status_code = scada::StatusCode::Good,
+           .targets = {{.target_id = scada::ExpandedNodeId{NumericNode(303),
+                                                           "urn:test", 2},
+                        .remaining_path_index = 1}}}}};
 
   // Per OPC UA Part 6 §5.4.2.17, DataValue carries Value, Status,
   // Source/ServerTimestamp, and Source/ServerPicoseconds — no Qualifier.
@@ -751,8 +763,10 @@ TEST(JsonCodecTest, RoundTripsPhase0Responses) {
   EXPECT_EQ(decoded_read.status, read.status);
   ASSERT_EQ(decoded_read.results.size(), 1u);
   EXPECT_TRUE(decoded_read.results[0].value == read.results[0].value);
-  EXPECT_EQ(decoded_read.results[0].source_timestamp, read.results[0].source_timestamp);
-  EXPECT_EQ(decoded_read.results[0].server_timestamp, read.results[0].server_timestamp);
+  EXPECT_EQ(decoded_read.results[0].source_timestamp,
+            read.results[0].source_timestamp);
+  EXPECT_EQ(decoded_read.results[0].server_timestamp,
+            read.results[0].server_timestamp);
   EXPECT_EQ(decoded_read.results[0].status_code, read.results[0].status_code);
 
   const auto decoded_write = std::get<WriteResponse>(
@@ -764,7 +778,8 @@ TEST(JsonCodecTest, RoundTripsPhase0Responses) {
       DecodeServiceResponse(EncodeJson(ServiceResponse{browse})));
   EXPECT_EQ(decoded_browse.status, browse.status);
   ASSERT_EQ(decoded_browse.results.size(), 1u);
-  EXPECT_EQ(decoded_browse.results[0].status_code, browse.results[0].status_code);
+  EXPECT_EQ(decoded_browse.results[0].status_code,
+            browse.results[0].status_code);
   EXPECT_EQ(decoded_browse.results[0].continuation_point,
             browse.results[0].continuation_point);
   EXPECT_EQ(decoded_browse.results[0].references, browse.results[0].references);
@@ -788,11 +803,11 @@ TEST(JsonCodecTest, RoundTripsPhase0Responses) {
 }
 
 TEST(JsonCodecTest, CallResponseWireShapeUsesSpecFields) {
-  CallResponse response{.results = {{.status = scada::StatusCode::Good,
-                                     .input_argument_results =
-                                         {scada::StatusCode::Bad_WrongTypeId},
-                                     .output_arguments =
-                                         {scada::Variant{scada::Int32{9}}}}}};
+  CallResponse response{
+      .results = {
+          {.status = scada::StatusCode::Good,
+           .input_argument_results = {scada::StatusCode::Bad_WrongTypeId},
+           .output_arguments = {scada::Variant{scada::Int32{9}}}}}};
 
   const auto encoded = EncodeJson(ServiceResponse{response});
   const auto& result = encoded.as_object()
@@ -807,26 +822,25 @@ TEST(JsonCodecTest, CallResponseWireShapeUsesSpecFields) {
   EXPECT_TRUE(result.contains("InputArgumentResults"));
   EXPECT_TRUE(result.contains("OutputArguments"));
 
-  const auto decoded =
-      std::get<CallResponse>(DecodeServiceResponse(encoded));
+  const auto decoded = std::get<CallResponse>(DecodeServiceResponse(encoded));
   ASSERT_EQ(decoded.results.size(), 1u);
   EXPECT_EQ(decoded.results[0].status.code(), scada::StatusCode::Good);
-  EXPECT_EQ(decoded.results[0].input_argument_results,
-            (std::vector<scada::StatusCode>{scada::StatusCode::Bad_WrongTypeId}));
+  EXPECT_EQ(
+      decoded.results[0].input_argument_results,
+      (std::vector<scada::StatusCode>{scada::StatusCode::Bad_WrongTypeId}));
   EXPECT_EQ(decoded.results[0].output_arguments,
             (std::vector<scada::Variant>{scada::Variant{scada::Int32{9}}}));
 }
 
 TEST(JsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
-  ResponseMessage create{
-      .request_handle = 21,
-      .body = CreateSessionResponse{
-          .status = scada::StatusCode::Good,
-          .session_id = NumericNode(30),
-          .authentication_token = NumericNode(31, 3),
-          .server_nonce = {1, 2, 3, 4},
-          .revised_timeout = base::TimeDelta::FromMinutes(5),
-      }};
+  ResponseMessage create{.request_handle = 21,
+                         .body = CreateSessionResponse{
+                             .status = scada::StatusCode::Good,
+                             .session_id = NumericNode(30),
+                             .authentication_token = NumericNode(31, 3),
+                             .server_nonce = {1, 2, 3, 4},
+                             .revised_timeout = base::TimeDelta::FromMinutes(5),
+                         }};
   ResponseMessage activate{
       .request_handle = 22,
       .body = ActivateSessionResponse{
@@ -835,12 +849,10 @@ TEST(JsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
       }};
   ResponseMessage close{
       .request_handle = 23,
-      .body = CloseSessionResponse{
-          .status = scada::StatusCode::Good}};
+      .body = CloseSessionResponse{.status = scada::StatusCode::Good}};
   ResponseMessage fault{
       .request_handle = 24,
-      .body = ServiceFault{
-          .status = scada::StatusCode::Bad_Disconnected}};
+      .body = ServiceFault{.status = scada::StatusCode::Bad_Disconnected}};
 
   const auto decoded_create = DecodeResponseMessage(EncodeJson(create));
   EXPECT_EQ(decoded_create.request_handle, create.request_handle);
@@ -871,8 +883,7 @@ TEST(JsonCodecTest, RoundTripsSessionResponseMessagesAndFault) {
 
   const auto decoded_fault = DecodeResponseMessage(EncodeJson(fault));
   EXPECT_EQ(decoded_fault.request_handle, fault.request_handle);
-  const auto* fault_body =
-      std::get_if<ServiceFault>(&decoded_fault.body);
+  const auto* fault_body = std::get_if<ServiceFault>(&decoded_fault.body);
   ASSERT_NE(fault_body, nullptr);
   EXPECT_EQ(fault_body->status.code(), scada::StatusCode::Bad_Disconnected);
 }
@@ -907,11 +918,13 @@ TEST(JsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
 
   const auto decoded_response = DecodeResponseMessage(EncodeJson(response));
   EXPECT_EQ(decoded_response.request_handle, response.request_handle);
-  const auto* response_body = std::get_if<BrowseResponse>(&decoded_response.body);
+  const auto* response_body =
+      std::get_if<BrowseResponse>(&decoded_response.body);
   ASSERT_NE(response_body, nullptr);
   EXPECT_EQ(response_body->status.code(), scada::StatusCode::Good);
   ASSERT_EQ(response_body->results.size(), 1u);
-  EXPECT_EQ(response_body->results[0].continuation_point, (scada::ByteString{'q'}));
+  EXPECT_EQ(response_body->results[0].continuation_point,
+            (scada::ByteString{'q'}));
   ASSERT_EQ(response_body->results[0].references.size(), 1u);
   EXPECT_EQ(response_body->results[0].references[0].node_id, NumericNode(43));
 }
@@ -919,9 +932,8 @@ TEST(JsonCodecTest, RoundTripsServiceMessagesWithEnvelope) {
 TEST(JsonCodecTest, RoundTripsBrowseNextMessagesWithEnvelope) {
   RequestMessage request{
       .request_handle = 32,
-      .body = BrowseNextRequest{
-          .release_continuation_points = false,
-          .continuation_points = {{'a', 'b', 'c'}}}};
+      .body = BrowseNextRequest{.release_continuation_points = false,
+                                .continuation_points = {{'a', 'b', 'c'}}}};
   ResponseMessage response{
       .request_handle = 32,
       .body = BrowseNextResponse{
@@ -932,7 +944,8 @@ TEST(JsonCodecTest, RoundTripsBrowseNextMessagesWithEnvelope) {
                                        .node_id = NumericNode(53)}}}}}};
 
   const auto decoded_request = DecodeRequestMessage(EncodeJson(request));
-  const auto* request_body = std::get_if<BrowseNextRequest>(&decoded_request.body);
+  const auto* request_body =
+      std::get_if<BrowseNextRequest>(&decoded_request.body);
   ASSERT_NE(request_body, nullptr);
   EXPECT_FALSE(request_body->release_continuation_points);
   EXPECT_EQ(request_body->continuation_points,
@@ -951,29 +964,26 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
   RequestMessage create_subscription{
       .request_handle = 41,
       .body = CreateSubscriptionRequest{
-          .parameters =
-              {.publishing_interval_ms = 1000,
-               .lifetime_count = 60,
-               .max_keep_alive_count = 10,
-               .max_notifications_per_publish = 0,
-               .publishing_enabled = true,
-               .priority = 1}}};
+          .parameters = {.publishing_interval_ms = 1000,
+                         .lifetime_count = 60,
+                         .max_keep_alive_count = 10,
+                         .max_notifications_per_publish = 0,
+                         .publishing_enabled = true,
+                         .priority = 1}}};
   RequestMessage modify_subscription{
       .request_handle = 42,
       .body = ModifySubscriptionRequest{
           .subscription_id = 17,
-          .parameters =
-              {.publishing_interval_ms = 250,
-               .lifetime_count = 30,
-               .max_keep_alive_count = 5,
-               .max_notifications_per_publish = 100,
-               .publishing_enabled = true,
-               .priority = 2}}};
+          .parameters = {.publishing_interval_ms = 250,
+                         .lifetime_count = 30,
+                         .max_keep_alive_count = 5,
+                         .max_notifications_per_publish = 100,
+                         .publishing_enabled = true,
+                         .priority = 2}}};
   RequestMessage set_publishing_mode{
       .request_handle = 43,
-      .body = SetPublishingModeRequest{
-          .publishing_enabled = false,
-          .subscription_ids = {17, 18}}};
+      .body = SetPublishingModeRequest{.publishing_enabled = false,
+                                       .subscription_ids = {17, 18}}};
   RequestMessage delete_subscriptions{
       .request_handle = 44,
       .body = DeleteSubscriptionsRequest{.subscription_ids = {19}}};
@@ -987,9 +997,9 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleRequestMessages) {
 
   const auto modify_decoded =
       DecodeRequestMessage(EncodeJson(modify_subscription));
-  EXPECT_EQ(std::get<ModifySubscriptionRequest>(modify_decoded.body)
-                .subscription_id,
-            17u);
+  EXPECT_EQ(
+      std::get<ModifySubscriptionRequest>(modify_decoded.body).subscription_id,
+      17u);
 
   const auto set_mode_decoded =
       DecodeRequestMessage(EncodeJson(set_publishing_mode));
@@ -1014,57 +1024,51 @@ TEST(JsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
       .body = CreateMonitoredItemsRequest{
           .subscription_id = 17,
           .timestamps_to_return = TimestampsToReturn::Both,
-          .items_to_create =
-              {{.item_to_monitor =
-                    {.node_id = NumericNode(70),
-                     .attribute_id = scada::AttributeId::Value},
-                .monitoring_mode = MonitoringMode::Reporting,
-                .requested_parameters =
-                    {.client_handle = 1,
-                     .sampling_interval_ms = 250,
-                     .filter = MonitoringFilter{
-                         DataChangeFilter{
-                             .trigger =
-                                 DataChangeTrigger::StatusValue,
-                             .deadband_type =
-                                 DeadbandType::Absolute,
-                             .deadband_value = 0.5}},
-                     .queue_size = 4,
-                     .discard_oldest = true}},
-               {.item_to_monitor =
-                    {.node_id = NumericNode(71),
-                     .attribute_id = scada::AttributeId::EventNotifier},
-                .index_range = "0:10",
-                .monitoring_mode = MonitoringMode::Sampling,
-                .requested_parameters =
-                    {.client_handle = 2,
-                     .sampling_interval_ms = 1000,
-                     .filter = MonitoringFilter{raw_event_filter},
-                     .queue_size = 1,
-                     .discard_oldest = false}}}}};
+          .items_to_create = {
+              {.item_to_monitor = {.node_id = NumericNode(70),
+                                   .attribute_id = scada::AttributeId::Value},
+               .monitoring_mode = MonitoringMode::Reporting,
+               .requested_parameters =
+                   {.client_handle = 1,
+                    .sampling_interval_ms = 250,
+                    .filter = MonitoringFilter{DataChangeFilter{
+                        .trigger = DataChangeTrigger::StatusValue,
+                        .deadband_type = DeadbandType::Absolute,
+                        .deadband_value = 0.5}},
+                    .queue_size = 4,
+                    .discard_oldest = true}},
+              {.item_to_monitor = {.node_id = NumericNode(71),
+                                   .attribute_id =
+                                       scada::AttributeId::EventNotifier},
+               .index_range = "0:10",
+               .monitoring_mode = MonitoringMode::Sampling,
+               .requested_parameters = {
+                   .client_handle = 2,
+                   .sampling_interval_ms = 1000,
+                   .filter = MonitoringFilter{raw_event_filter},
+                   .queue_size = 1,
+                   .discard_oldest = false}}}}};
   RequestMessage modify_items{
       .request_handle = 52,
       .body = ModifyMonitoredItemsRequest{
           .subscription_id = 17,
           .timestamps_to_return = TimestampsToReturn::Source,
-          .items_to_modify =
-              {{.monitored_item_id = 42,
-                .requested_parameters =
-                    {.client_handle = 1,
-                     .sampling_interval_ms = 1000,
-                     .queue_size = 8,
-                     .discard_oldest = false}}}}};
+          .items_to_modify = {
+              {.monitored_item_id = 42,
+               .requested_parameters = {.client_handle = 1,
+                                        .sampling_interval_ms = 1000,
+                                        .queue_size = 8,
+                                        .discard_oldest = false}}}}};
   RequestMessage delete_items{
       .request_handle = 53,
-      .body = DeleteMonitoredItemsRequest{
-          .subscription_id = 17,
-          .monitored_item_ids = {42, 43}}};
+      .body = DeleteMonitoredItemsRequest{.subscription_id = 17,
+                                          .monitored_item_ids = {42, 43}}};
   RequestMessage set_monitoring_mode{
       .request_handle = 54,
-      .body = SetMonitoringModeRequest{
-          .subscription_id = 17,
-          .monitoring_mode = MonitoringMode::Disabled,
-          .monitored_item_ids = {42}}};
+      .body =
+          SetMonitoringModeRequest{.subscription_id = 17,
+                                   .monitoring_mode = MonitoringMode::Disabled,
+                                   .monitored_item_ids = {42}}};
 
   const auto create_decoded = DecodeRequestMessage(EncodeJson(create_items));
   const auto& create_body =
@@ -1072,12 +1076,14 @@ TEST(JsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
   EXPECT_EQ(create_body.subscription_id, 17u);
   ASSERT_EQ(create_body.items_to_create.size(), 2u);
   EXPECT_EQ(create_body.items_to_create[0].requested_parameters.queue_size, 4u);
-  ASSERT_TRUE(create_body.items_to_create[0].requested_parameters.filter.has_value());
+  ASSERT_TRUE(
+      create_body.items_to_create[0].requested_parameters.filter.has_value());
   const auto* first_filter = std::get_if<DataChangeFilter>(
       &*create_body.items_to_create[0].requested_parameters.filter);
   ASSERT_NE(first_filter, nullptr);
   EXPECT_EQ(first_filter->deadband_value, 0.5);
-  ASSERT_TRUE(create_body.items_to_create[1].requested_parameters.filter.has_value());
+  ASSERT_TRUE(
+      create_body.items_to_create[1].requested_parameters.filter.has_value());
   const auto* second_filter = std::get_if<boost::json::value>(
       &*create_body.items_to_create[1].requested_parameters.filter);
   ASSERT_NE(second_filter, nullptr);
@@ -1096,9 +1102,9 @@ TEST(JsonCodecTest, RoundTripsMonitoredItemLifecycleMessages) {
 
   const auto set_mode_decoded =
       DecodeRequestMessage(EncodeJson(set_monitoring_mode));
-  EXPECT_EQ(std::get<SetMonitoringModeRequest>(set_mode_decoded.body)
-                .monitoring_mode,
-            MonitoringMode::Disabled);
+  EXPECT_EQ(
+      std::get<SetMonitoringModeRequest>(set_mode_decoded.body).monitoring_mode,
+      MonitoringMode::Disabled);
 }
 
 TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
@@ -1106,19 +1112,17 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
       boost::json::parse(R"({"Kind":"event","SelectClauseResults":[0]})");
   ResponseMessage create_subscription{
       .request_handle = 61,
-      .body = CreateSubscriptionResponse{
-          .status = scada::StatusCode::Good,
-          .subscription_id = 17,
-          .revised_publishing_interval_ms = 1000,
-          .revised_lifetime_count = 60,
-          .revised_max_keep_alive_count = 10}};
+      .body = CreateSubscriptionResponse{.status = scada::StatusCode::Good,
+                                         .subscription_id = 17,
+                                         .revised_publishing_interval_ms = 1000,
+                                         .revised_lifetime_count = 60,
+                                         .revised_max_keep_alive_count = 10}};
   ResponseMessage modify_subscription{
       .request_handle = 62,
-      .body = ModifySubscriptionResponse{
-          .status = scada::StatusCode::Good,
-          .revised_publishing_interval_ms = 250,
-          .revised_lifetime_count = 30,
-          .revised_max_keep_alive_count = 5}};
+      .body = ModifySubscriptionResponse{.status = scada::StatusCode::Good,
+                                         .revised_publishing_interval_ms = 250,
+                                         .revised_lifetime_count = 30,
+                                         .revised_max_keep_alive_count = 5}};
   ResponseMessage set_publishing_mode{
       .request_handle = 63,
       .body = SetPublishingModeResponse{
@@ -1129,16 +1133,15 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
       .request_handle = 64,
       .body = CreateMonitoredItemsResponse{
           .status = scada::StatusCode::Good,
-          .results =
-              {{.status = scada::StatusCode::Good,
-                .monitored_item_id = 42,
-                .revised_sampling_interval_ms = 250,
-                .revised_queue_size = 1},
-               {.status = scada::StatusCode::Bad_WrongNodeId,
-                .monitored_item_id = 0,
-                .revised_sampling_interval_ms = 1000,
-                .revised_queue_size = 4,
-                .filter_result = filter_result}}}};
+          .results = {{.status = scada::StatusCode::Good,
+                       .monitored_item_id = 42,
+                       .revised_sampling_interval_ms = 250,
+                       .revised_queue_size = 1},
+                      {.status = scada::StatusCode::Bad_WrongNodeId,
+                       .monitored_item_id = 0,
+                       .revised_sampling_interval_ms = 1000,
+                       .revised_queue_size = 4,
+                       .filter_result = filter_result}}}};
   ResponseMessage modify_items{
       .request_handle = 65,
       .body = ModifyMonitoredItemsResponse{
@@ -1146,11 +1149,10 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
           .results = {{.status = scada::StatusCode::Good,
                        .revised_sampling_interval_ms = 500,
                        .revised_queue_size = 8}}}};
-  ResponseMessage delete_items{
-      .request_handle = 66,
-      .body = DeleteMonitoredItemsResponse{
-          .status = scada::StatusCode::Good,
-          .results = {scada::StatusCode::Good}}};
+  ResponseMessage delete_items{.request_handle = 66,
+                               .body = DeleteMonitoredItemsResponse{
+                                   .status = scada::StatusCode::Good,
+                                   .results = {scada::StatusCode::Good}}};
   ResponseMessage set_monitoring_mode{
       .request_handle = 67,
       .body = SetMonitoringModeResponse{
@@ -1169,8 +1171,9 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   EXPECT_EQ(std::get<SetPublishingModeResponse>(
                 DecodeResponseMessage(EncodeJson(set_publishing_mode)).body)
                 .results,
-            (std::vector<scada::StatusCode>{scada::StatusCode::Good,
-                                            scada::StatusCode::Bad_WrongSubscriptionId}));
+            (std::vector<scada::StatusCode>{
+                scada::StatusCode::Good,
+                scada::StatusCode::Bad_WrongSubscriptionId}));
 
   const auto encoded_create_items = EncodeJson(create_items);
   const auto& encoded_create_items_body =
@@ -1185,10 +1188,10 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   const auto decoded_create_items =
       DecodeResponseMessage(EncodeJson(create_items));
   const auto& create_items_body =
-      std::get<CreateMonitoredItemsResponse>(
-          decoded_create_items.body);
+      std::get<CreateMonitoredItemsResponse>(decoded_create_items.body);
   ASSERT_EQ(create_items_body.results.size(), 2u);
-  EXPECT_EQ(create_items_body.results[0].status.code(), scada::StatusCode::Good);
+  EXPECT_EQ(create_items_body.results[0].status.code(),
+            scada::StatusCode::Good);
   EXPECT_EQ(create_items_body.results[1].status.code(),
             scada::StatusCode::Bad_WrongNodeId);
   ASSERT_TRUE(create_items_body.results[1].filter_result.has_value());
@@ -1206,25 +1209,26 @@ TEST(JsonCodecTest, RoundTripsSubscriptionLifecycleResponses) {
   EXPECT_EQ(std::get<SetMonitoringModeResponse>(
                 DecodeResponseMessage(EncodeJson(set_monitoring_mode)).body)
                 .results,
-            (std::vector<scada::StatusCode>{scada::StatusCode::Good,
-                                            scada::StatusCode::Bad_WrongSubscriptionId}));
+            (std::vector<scada::StatusCode>{
+                scada::StatusCode::Good,
+                scada::StatusCode::Bad_WrongSubscriptionId}));
 }
 
 TEST(JsonCodecTest, RoundTripsPublishAndRecoveryRequestMessages) {
   RequestMessage publish{
       .request_handle = 71,
-      .body = PublishRequest{
-          .subscription_acknowledgements =
-              {{.subscription_id = 17, .sequence_number = 3},
-               {.subscription_id = 18, .sequence_number = 7}}}};
+      .body =
+          PublishRequest{.subscription_acknowledgements = {
+                             {.subscription_id = 17, .sequence_number = 3},
+                             {.subscription_id = 18, .sequence_number = 7}}}};
   RequestMessage republish{
       .request_handle = 72,
-      .body = RepublishRequest{
-          .subscription_id = 17, .retransmit_sequence_number = 5}};
+      .body = RepublishRequest{.subscription_id = 17,
+                               .retransmit_sequence_number = 5}};
   RequestMessage transfer{
       .request_handle = 73,
-      .body = TransferSubscriptionsRequest{
-          .subscription_ids = {17, 18}, .send_initial_values = true}};
+      .body = TransferSubscriptionsRequest{.subscription_ids = {17, 18},
+                                           .send_initial_values = true}};
   const std::vector<SubscriptionAcknowledgement> expected_acks{
       {.subscription_id = 17, .sequence_number = 3},
       {.subscription_id = 18, .sequence_number = 7}};
@@ -1255,41 +1259,40 @@ TEST(JsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   NotificationMessage publish_message{
       .sequence_number = 3,
       .publish_time = publish_time,
-      .notification_data =
-          {DataChangeNotification{
-               .monitored_items =
-                   {{.client_handle = 1,
-                     .value = scada::DataValue{
-                         scada::Variant{42.5},
-                         scada::Qualifier{scada::Qualifier::MANUAL},
-                         ParseTime("2026-04-19 00:00:05"),
-                         ParseTime("2026-04-19 00:00:06")}}}},
-           EventNotificationList{
-               .events = {{.client_handle = 2,
-                           .event_fields =
-                               {scada::Variant{std::string{"AlarmRaised"}},
-                                scada::Variant{scada::UInt32{500}}}}}},
-           StatusChangeNotification{
-               .status = scada::StatusCode::Bad_Timeout}}};
+      .notification_data = {
+          DataChangeNotification{
+              .monitored_items = {{.client_handle = 1,
+                                   .value =
+                                       scada::DataValue{
+                                           scada::Variant{42.5},
+                                           scada::Qualifier{
+                                               scada::Qualifier::MANUAL},
+                                           ParseTime("2026-04-19 00:00:05"),
+                                           ParseTime("2026-04-19 00:00:06")}}}},
+          EventNotificationList{
+              .events =
+                  {{.client_handle = 2,
+                    .event_fields = {scada::Variant{std::string{"AlarmRaised"}},
+                                     scada::Variant{scada::UInt32{500}}}}}},
+          StatusChangeNotification{.status = scada::StatusCode::Bad_Timeout}}};
   ResponseMessage publish{
       .request_handle = 81,
-      .body = PublishResponse{
-          .status = scada::StatusCode::Good,
-          .subscription_id = 17,
-          .results = {scada::StatusCode::Good},
-          .more_notifications = true,
-          .notification_message = publish_message,
-          .available_sequence_numbers = {3, 4}}};
+      .body = PublishResponse{.status = scada::StatusCode::Good,
+                              .subscription_id = 17,
+                              .results = {scada::StatusCode::Good},
+                              .more_notifications = true,
+                              .notification_message = publish_message,
+                              .available_sequence_numbers = {3, 4}}};
   ResponseMessage republish{
       .request_handle = 82,
       .body = RepublishResponse{
           .status = scada::StatusCode::Good,
-          .notification_message =
-              {.sequence_number = 5,
-               .publish_time = ParseTime("2026-04-19 00:00:07"),
-               .notification_data = {DataChangeNotification{
-                   .monitored_items = {{.client_handle = 9,
-                                        .value = republish_value}}}}}}};
+          .notification_message = {
+              .sequence_number = 5,
+              .publish_time = ParseTime("2026-04-19 00:00:07"),
+              .notification_data = {DataChangeNotification{
+                  .monitored_items = {
+                      {.client_handle = 9, .value = republish_value}}}}}}};
   ResponseMessage transfer{
       .request_handle = 83,
       .body = TransferSubscriptionsResponse{
@@ -1299,11 +1302,18 @@ TEST(JsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
 
   std::optional<boost::json::value> publish_json;
   ASSERT_NO_THROW(publish_json.emplace(EncodeJson(publish)));
+  const auto& notification_json = publish_json->as_object()
+                                      .at("body")
+                                      .as_object()
+                                      .at("NotificationMessage")
+                                      .as_object();
+  EXPECT_EQ(notification_json.at("PublishTime").as_string(),
+            "2026-04-19T00:00:05Z");
   std::optional<ResponseMessage> decoded_publish;
-  ASSERT_NO_THROW(decoded_publish.emplace(DecodeResponseMessage(*publish_json)));
+  ASSERT_NO_THROW(
+      decoded_publish.emplace(DecodeResponseMessage(*publish_json)));
   EXPECT_EQ(decoded_publish->request_handle, 81u);
-  const auto& publish_body =
-      std::get<PublishResponse>(decoded_publish->body);
+  const auto& publish_body = std::get<PublishResponse>(decoded_publish->body);
   EXPECT_EQ(publish_body.subscription_id, 17u);
   EXPECT_EQ(publish_body.available_sequence_numbers,
             (std::vector<scada::UInt32>{3u, 4u}));
@@ -1333,7 +1343,8 @@ TEST(JsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   std::optional<boost::json::value> republish_json;
   ASSERT_NO_THROW(republish_json.emplace(EncodeJson(republish)));
   std::optional<ResponseMessage> decoded_republish;
-  ASSERT_NO_THROW(decoded_republish.emplace(DecodeResponseMessage(*republish_json)));
+  ASSERT_NO_THROW(
+      decoded_republish.emplace(DecodeResponseMessage(*republish_json)));
   EXPECT_EQ(std::get<RepublishResponse>(decoded_republish->body)
                 .notification_message.sequence_number,
             5u);
@@ -1341,18 +1352,19 @@ TEST(JsonCodecTest, RoundTripsPublishAndRecoveryResponses) {
   std::optional<boost::json::value> transfer_json;
   ASSERT_NO_THROW(transfer_json.emplace(EncodeJson(transfer)));
   std::optional<ResponseMessage> decoded_transfer;
-  ASSERT_NO_THROW(decoded_transfer.emplace(DecodeResponseMessage(*transfer_json)));
-  EXPECT_EQ(std::get<TransferSubscriptionsResponse>(
-                decoded_transfer->body)
-                .results,
-            (std::vector<scada::StatusCode>{
-                scada::StatusCode::Good,
-                scada::StatusCode::Bad_WrongSubscriptionId}));
+  ASSERT_NO_THROW(
+      decoded_transfer.emplace(DecodeResponseMessage(*transfer_json)));
+  EXPECT_EQ(
+      std::get<TransferSubscriptionsResponse>(decoded_transfer->body).results,
+      (std::vector<scada::StatusCode>{
+          scada::StatusCode::Good,
+          scada::StatusCode::Bad_WrongSubscriptionId}));
 }
 
 TEST(JsonCodecTest, RoundTripsCallAndMutationResponses) {
-  CallResponse call{.results = {{.status = scada::StatusCode::Good},
-                                {.status = scada::StatusCode::Bad_WrongCallArguments}}};
+  CallResponse call{
+      .results = {{.status = scada::StatusCode::Good},
+                  {.status = scada::StatusCode::Bad_WrongCallArguments}}};
   AddNodesResponse add_nodes{
       .status = scada::StatusCode::Good,
       .results = {{.status_code = scada::StatusCode::Good,
@@ -1362,16 +1374,18 @@ TEST(JsonCodecTest, RoundTripsCallAndMutationResponses) {
       .results = {scada::StatusCode::Bad_Disconnected}};
   AddReferencesResponse add_refs{
       .status = scada::StatusCode::Good,
-      .results = {scada::StatusCode::Good, scada::StatusCode::Bad_WrongTargetId}};
-  DeleteReferencesResponse delete_refs{
-      .status = scada::StatusCode::Good,
-      .results = {scada::StatusCode::Good}};
+      .results = {scada::StatusCode::Good,
+                  scada::StatusCode::Bad_WrongTargetId}};
+  DeleteReferencesResponse delete_refs{.status = scada::StatusCode::Good,
+                                       .results = {scada::StatusCode::Good}};
 
   const auto decoded_call = std::get<CallResponse>(
       DecodeServiceResponse(EncodeJson(ServiceResponse{call})));
   ASSERT_EQ(decoded_call.results.size(), call.results.size());
-  EXPECT_EQ(decoded_call.results[0].status.code(), call.results[0].status.code());
-  EXPECT_EQ(decoded_call.results[1].status.code(), call.results[1].status.code());
+  EXPECT_EQ(decoded_call.results[0].status.code(),
+            call.results[0].status.code());
+  EXPECT_EQ(decoded_call.results[1].status.code(),
+            call.results[1].status.code());
   const auto decoded_add_nodes = std::get<AddNodesResponse>(
       DecodeServiceResponse(EncodeJson(ServiceResponse{add_nodes})));
   EXPECT_EQ(decoded_add_nodes.status, add_nodes.status);
@@ -1380,23 +1394,23 @@ TEST(JsonCodecTest, RoundTripsCallAndMutationResponses) {
             add_nodes.results[0].status_code);
   EXPECT_EQ(decoded_add_nodes.results[0].added_node_id,
             add_nodes.results[0].added_node_id);
-  EXPECT_EQ(std::get<DeleteNodesResponse>(DecodeServiceResponse(
-                EncodeJson(ServiceResponse{delete_nodes})))
+  EXPECT_EQ(std::get<DeleteNodesResponse>(DecodeServiceResponse(EncodeJson(
+                                              ServiceResponse{delete_nodes})))
                 .results,
             delete_nodes.results);
-  EXPECT_EQ(std::get<AddReferencesResponse>(DecodeServiceResponse(
-                EncodeJson(ServiceResponse{add_refs})))
+  EXPECT_EQ(std::get<AddReferencesResponse>(
+                DecodeServiceResponse(EncodeJson(ServiceResponse{add_refs})))
                 .results,
             add_refs.results);
-  EXPECT_EQ(std::get<DeleteReferencesResponse>(DecodeServiceResponse(
-                EncodeJson(ServiceResponse{delete_refs})))
+  EXPECT_EQ(std::get<DeleteReferencesResponse>(
+                DecodeServiceResponse(EncodeJson(ServiceResponse{delete_refs})))
                 .results,
             delete_refs.results);
 }
 
 TEST(JsonCodecTest, RejectsUnknownService) {
-  boost::json::value json = boost::json::object{{"service", "Unknown"},
-                                                {"body", boost::json::object{}}};
+  boost::json::value json = boost::json::object{
+      {"service", "Unknown"}, {"body", boost::json::object{}}};
   EXPECT_THROW((void)DecodeServiceRequest(json), std::runtime_error);
   EXPECT_THROW((void)DecodeServiceResponse(json), std::runtime_error);
 }
