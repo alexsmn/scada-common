@@ -11,6 +11,7 @@
 #include "scada/variant.h"
 
 #include <algorithm>
+#include <cstring>
 
 const char16_t kDefaultCloseLabel[] = u"Вкл";
 const char16_t kDefaultOpenLabel[] = u"Откл";

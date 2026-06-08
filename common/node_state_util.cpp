@@ -55,6 +55,9 @@ struct NodeStateGraph {
 
 void SortNodesHierarchically(std::vector<NodeState>& nodes) {
   struct SortVisitor {
+    explicit SortVisitor(NodeStateGraph& graph)
+        : graph{graph}, visited(graph.vertex_count(), false) {}
+
     void Traverse() {
       sorted_indexes.reserve(graph.vertex_count());
 
@@ -89,7 +92,7 @@ void SortNodesHierarchically(std::vector<NodeState>& nodes) {
 
     NodeStateGraph& graph;
 
-    std::vector<bool> visited = std::vector<bool>(nodes.size(), false);
+    std::vector<bool> visited;
     std::vector<size_t /*indexes*/> sorted_indexes;
   };
 
