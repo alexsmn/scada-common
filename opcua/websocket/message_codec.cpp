@@ -346,8 +346,12 @@ ActivateSessionRequest DecodeActivateSessionRequest(
 
 value EncodeActivateSessionResponse(
     const ActivateSessionResponse& response) {
-  return object{{"Status", EncodeStatus(response.status)},
-                {"Resumed", response.resumed}};
+  object json{{"Status", EncodeStatus(response.status)},
+              {"Resumed", response.resumed}};
+  if (!response.service_context.user_id().is_null()) {
+    json["UserId"] = EncodeNodeId(response.service_context.user_id());
+  }
+  return json;
 }
 
 ActivateSessionResponse DecodeActivateSessionResponse(

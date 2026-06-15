@@ -1,6 +1,7 @@
 ﻿#include "address_space/scada_address_space.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/method.h"
 #include "address_space/node_builder_impl.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
@@ -8,7 +9,6 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "common/node_state.h"
-#include "scada/privileges.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/filesystem_node_ids.h"
@@ -16,6 +16,7 @@
 #include "model/opc_node_ids.h"
 #include "model/scada_node_ids.h"
 #include "model/security_node_ids.h"
+#include "scada/privileges.h"
 
 ScadaAddressSpaceBuilder::ScadaAddressSpaceBuilder(
     AddressSpaceImpl& address_space,
@@ -327,6 +328,20 @@ void ScadaAddressSpaceBuilder::CreateSecurityAddressSpace() {
     AddProperty(security::id::UserType, security::id::UserType_MultiSessions,
                 {}, "MultiSessions", u"Множество сессий", scada::id::Boolean,
                 false);
+    AddProperty(security::id::UserType, security::id::UserType_ProfileJson, {},
+                "ProfileJson", u"Профиль", scada::id::String, "");
+    AddProperty(security::id::UserType, security::id::UserType_ProfileRevision,
+                {}, "ProfileRevision", u"Версия профиля", scada::id::UInt64,
+                scada::UInt64{0});
+
+    auto method = std::make_unique<scada::GenericMethod>(
+        security::id::UserType_SaveProfile, "SaveProfile",
+        u"Сохранить профиль");
+    auto& method_node = address_space_.AddStaticNode(std::move(method));
+    AddReference(address_space_, scada::id::HasComponent,
+                 security::id::UserType, method_node.id());
+    AddReference(address_space_, scada::id::HasModellingRule, method_node.id(),
+                 scada::id::ModellingRule_Mandatory);
   }
 }
 
