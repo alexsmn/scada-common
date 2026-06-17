@@ -10,6 +10,68 @@
 #include <variant>
 
 namespace opcua {
+namespace {
+
+std::optional<scada::NodeId> ParseFilterNodeId(const boost::json::value& json) {
+  if (!json.is_string())
+    return std::nullopt;
+
+  const std::string text{json.as_string().c_str()};
+  auto node_id = scada::NodeId::FromString(text);
+  if (node_id.is_null() && text != "i=0")
+    return std::nullopt;
+  return node_id;
+}
+
+void AppendFilterNodeIds(const boost::json::object& obj,
+                         std::string_view key,
+                         std::vector<scada::NodeId>& output) {
+  const auto* value = obj.if_contains(key);
+  if (!value || !value->is_array())
+    return;
+
+  for (const auto& item : value->as_array()) {
+    if (auto node_id = ParseFilterNodeId(item))
+      output.push_back(std::move(*node_id));
+  }
+}
+
+void ApplyEventFilterObject(const boost::json::object& obj,
+                            scada::EventFilter& filter) {
+  if (const auto* types = obj.if_contains("Types")) {
+    if (types->is_uint64()) {
+      filter.types = static_cast<unsigned>(types->as_uint64());
+    } else if (types->is_int64() && types->as_int64() >= 0) {
+      filter.types = static_cast<unsigned>(types->as_int64());
+    }
+  }
+
+  AppendFilterNodeIds(obj, "OfType", filter.of_type);
+  AppendFilterNodeIds(obj, "ChildOf", filter.child_of);
+}
+
+scada::EventFilter ParseEventRoutingFilter(
+    const std::optional<MonitoringFilter>& filter) {
+  scada::EventFilter result;
+  const auto* raw_filter =
+      filter ? std::get_if<boost::json::value>(&*filter) : nullptr;
+  if (!raw_filter || !raw_filter->is_object())
+    return result;
+
+  const auto& obj = raw_filter->as_object();
+  ApplyEventFilterObject(obj, result);
+
+  // Some clients place EventFilter routing constraints beside SelectClauses
+  // inside Body. Accept both shapes while keeping SelectClauses parsing in
+  // ParseEventFilterFieldPaths.
+  const auto* body = obj.if_contains("Body");
+  if (body && body->is_object())
+    ApplyEventFilterObject(body->as_object(), result);
+
+  return result;
+}
+
+}  // namespace
 
 ServerSubscription::ServerSubscription(
     SubscriptionId subscription_id,
@@ -29,8 +91,7 @@ ModifySubscriptionResponse ServerSubscription::Modify(
 
   parameters_ = request.parameters;
   return {.status = scada::StatusCode::Good,
-          .revised_publishing_interval_ms =
-              parameters_.publishing_interval_ms,
+          .revised_publishing_interval_ms = parameters_.publishing_interval_ms,
           .revised_lifetime_count = parameters_.lifetime_count,
           .revised_max_keep_alive_count = parameters_.max_keep_alive_count};
 }
@@ -90,8 +151,7 @@ CreateMonitoredItemsResponse ServerSubscription::CreateMonitoredItems(
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  CreateMonitoredItemsResponse response{
-      .status = scada::StatusCode::Good};
+  CreateMonitoredItemsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.items_to_create.size());
 
   for (const auto& source_item : request.items_to_create) {
@@ -109,9 +169,11 @@ CreateMonitoredItemsResponse ServerSubscription::CreateMonitoredItems(
 
     response.results.push_back(
         {.status = item->monitored_item_status,
-         .monitored_item_id = item->monitored_item ? item->monitored_item_id : 0,
+         .monitored_item_id =
+             item->monitored_item ? item->monitored_item_id : 0,
          .revised_sampling_interval_ms = item->parameters.sampling_interval_ms,
-         .revised_queue_size = std::max<scada::UInt32>(1, item->parameters.queue_size)});
+         .revised_queue_size =
+             std::max<scada::UInt32>(1, item->parameters.queue_size)});
     if (!item->monitored_item)
       items_.erase(item->monitored_item_id);
   }
@@ -125,8 +187,7 @@ ModifyMonitoredItemsResponse ServerSubscription::ModifyMonitoredItems(
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  ModifyMonitoredItemsResponse response{
-      .status = scada::StatusCode::Good};
+  ModifyMonitoredItemsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.items_to_modify.size());
 
   for (const auto& source_item : request.items_to_modify) {
@@ -146,7 +207,8 @@ ModifyMonitoredItemsResponse ServerSubscription::ModifyMonitoredItems(
     response.results.push_back(
         {.status = item.monitored_item_status,
          .revised_sampling_interval_ms = item.parameters.sampling_interval_ms,
-         .revised_queue_size = std::max<scada::UInt32>(1, item.parameters.queue_size)});
+         .revised_queue_size =
+             std::max<scada::UInt32>(1, item.parameters.queue_size)});
   }
 
   return response;
@@ -158,8 +220,7 @@ DeleteMonitoredItemsResponse ServerSubscription::DeleteMonitoredItems(
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  DeleteMonitoredItemsResponse response{
-      .status = scada::StatusCode::Good};
+  DeleteMonitoredItemsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.monitored_item_ids.size());
 
   for (auto monitored_item_id : request.monitored_item_ids) {
@@ -170,15 +231,14 @@ DeleteMonitoredItemsResponse ServerSubscription::DeleteMonitoredItems(
   }
 
   pending_notifications_.erase(
-      std::remove_if(
-          pending_notifications_.begin(),
-          pending_notifications_.end(),
-          [&](const auto& queued) {
-            return std::find(request.monitored_item_ids.begin(),
-                             request.monitored_item_ids.end(),
-                             queued.source_item_id) !=
-                   request.monitored_item_ids.end();
-          }),
+      std::remove_if(pending_notifications_.begin(),
+                     pending_notifications_.end(),
+                     [&](const auto& queued) {
+                       return std::find(request.monitored_item_ids.begin(),
+                                        request.monitored_item_ids.end(),
+                                        queued.source_item_id) !=
+                              request.monitored_item_ids.end();
+                     }),
       pending_notifications_.end());
 
   return response;
@@ -190,8 +250,7 @@ SetMonitoringModeResponse ServerSubscription::SetMonitoringMode(
     return {.status = scada::StatusCode::Bad_WrongSubscriptionId};
   }
 
-  SetMonitoringModeResponse response{
-      .status = scada::StatusCode::Good};
+  SetMonitoringModeResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.monitored_item_ids.size());
 
   for (auto monitored_item_id : request.monitored_item_ids) {
@@ -217,8 +276,7 @@ std::vector<scada::StatusCode> ServerSubscription::Acknowledge(
   return results;
 }
 
-std::optional<PublishResponse> ServerSubscription::TryPublish(
-    base::Time now) {
+std::optional<PublishResponse> ServerSubscription::TryPublish(base::Time now) {
   PrimePublishCycle(now);
   const bool has_publishable_notifications =
       parameters_.publishing_enabled && !pending_notifications_.empty();
@@ -278,20 +336,17 @@ scada::MonitoringParameters ServerSubscription::ToMonitoringParameters(
     const Item& item,
     const MonitoringParameters& parameters) {
   scada::MonitoringParameters result;
-  result.sampling_interval =
-      base::TimeDelta::FromMilliseconds(
-          static_cast<int64_t>(parameters.sampling_interval_ms));
+  result.sampling_interval = base::TimeDelta::FromMilliseconds(
+      static_cast<int64_t>(parameters.sampling_interval_ms));
   result.queue_size = std::max<size_t>(1, parameters.queue_size);
 
-  if (const auto* filter = parameters.filter
-                               ? std::get_if<DataChangeFilter>(
-                                     &*parameters.filter)
-                               : nullptr) {
-    result.filter = scada::DataChangeFilter{
-        .deadband_value = filter->deadband_value};
-  } else if (IsAttributeEventNotifier(
-                 item.item_to_monitor.attribute_id)) {
-    result.filter = scada::EventFilter{};
+  if (const auto* filter =
+          parameters.filter ? std::get_if<DataChangeFilter>(&*parameters.filter)
+                            : nullptr) {
+    result.filter =
+        scada::DataChangeFilter{.deadband_value = filter->deadband_value};
+  } else if (IsAttributeEventNotifier(item.item_to_monitor.attribute_id)) {
+    result.filter = ParseEventRoutingFilter(parameters.filter);
   }
 
   return result;
@@ -310,7 +365,8 @@ scada::StatusCode ServerSubscription::Acknowledge(
   return scada::StatusCode::Good;
 }
 
-std::vector<scada::UInt32> ServerSubscription::AvailableSequenceNumbers() const {
+std::vector<scada::UInt32> ServerSubscription::AvailableSequenceNumbers()
+    const {
   std::vector<scada::UInt32> result;
   result.reserve(retransmit_queue_.size());
   for (const auto& notification_message : retransmit_queue_)
@@ -327,8 +383,8 @@ base::TimeDelta ServerSubscription::PublishingInterval() const {
 base::TimeDelta ServerSubscription::KeepAliveInterval() const {
   const auto interval_ms =
       static_cast<int64_t>(PublishingInterval().InMilliseconds()) *
-      static_cast<int64_t>(std::max<scada::UInt32>(
-          1, parameters_.max_keep_alive_count));
+      static_cast<int64_t>(
+          std::max<scada::UInt32>(1, parameters_.max_keep_alive_count));
   return base::TimeDelta::FromMilliseconds(interval_ms);
 }
 
@@ -341,9 +397,9 @@ bool ServerSubscription::IsKeepAliveDue(base::Time now) const {
 
 void ServerSubscription::RebindItem(Item& item) {
   ++item.binding_generation;
-  auto created = CreateMonitoredItem(
-      monitored_item_service_, item.item_to_monitor,
-      ToMonitoringParameters(item, item.parameters));
+  auto created =
+      CreateMonitoredItem(monitored_item_service_, item.item_to_monitor,
+                          ToMonitoringParameters(item, item.parameters));
   item.monitored_item = std::move(created.monitored_item);
   item.monitored_item_status = created.status;
   if (!item.monitored_item)
@@ -355,7 +411,8 @@ void ServerSubscription::RebindItem(Item& item) {
   const auto binding_generation = item.binding_generation;
   item.monitored_item->Subscribe(MakeMonitoredItemHandler(
       item.item_to_monitor,
-      [this, weak_item, binding_generation](const scada::DataValue& data_value) {
+      [this, weak_item,
+       binding_generation](const scada::DataValue& data_value) {
         const auto item = weak_item.lock();
         if (!item || item->binding_generation != binding_generation)
           return;
@@ -370,47 +427,43 @@ void ServerSubscription::RebindItem(Item& item) {
       }));
 }
 
-void ServerSubscription::QueueDataChange(
-    Item& item,
-    const scada::DataValue& data_value) {
+void ServerSubscription::QueueDataChange(Item& item,
+                                         const scada::DataValue& data_value) {
   if (item.monitoring_mode != MonitoringMode::Reporting)
     return;
   QueueNotification(
       item,
-      DataChangeNotification{.monitored_items = {{.client_handle =
-                                                           item.parameters.client_handle,
-                                                       .value = data_value}}});
+      DataChangeNotification{
+          .monitored_items = {{.client_handle = item.parameters.client_handle,
+                               .value = data_value}}});
 }
 
 void ServerSubscription::QueueEvent(Item& item,
-                                   const scada::Status& status,
-                                   const std::any& event) {
+                                    const scada::Status& status,
+                                    const std::any& event) {
   if (!status) {
-    QueueNotification(
-        item, StatusChangeNotification{.status = status.code()});
+    QueueNotification(item, StatusChangeNotification{.status = status.code()});
     return;
   }
   if (item.monitoring_mode != MonitoringMode::Reporting)
     return;
   QueueNotification(
-      item,
-      EventNotificationList{
-          .events = {{.client_handle = item.parameters.client_handle,
-                      .event_fields =
-                          BuildEventFields(item.event_field_paths, event)}}});
+      item, EventNotificationList{
+                .events = {{.client_handle = item.parameters.client_handle,
+                            .event_fields = BuildEventFields(
+                                item.event_field_paths, event)}}});
 }
 
-void ServerSubscription::QueueNotification(
-    Item& item,
-    NotificationData notification) {
-  pending_notifications_.push_back(
-      {.source_item_id = item.monitored_item_id,
-       .notification = std::move(notification)});
+void ServerSubscription::QueueNotification(Item& item,
+                                           NotificationData notification) {
+  pending_notifications_.push_back({.source_item_id = item.monitored_item_id,
+                                    .notification = std::move(notification)});
   EnforceQueueLimit(item);
 }
 
 void ServerSubscription::EnforceQueueLimit(const Item& item) {
-  const auto queue_size = std::max<scada::UInt32>(1, item.parameters.queue_size);
+  const auto queue_size =
+      std::max<scada::UInt32>(1, item.parameters.queue_size);
   std::vector<size_t> indices;
   for (size_t i = 0; i < pending_notifications_.size(); ++i) {
     if (pending_notifications_[i].source_item_id == item.monitored_item_id)
@@ -420,20 +473,19 @@ void ServerSubscription::EnforceQueueLimit(const Item& item) {
     return;
 
   if (!item.parameters.discard_oldest) {
-    pending_notifications_.erase(
-        pending_notifications_.begin() + static_cast<std::ptrdiff_t>(indices.back()));
+    pending_notifications_.erase(pending_notifications_.begin() +
+                                 static_cast<std::ptrdiff_t>(indices.back()));
     return;
   }
 
-  pending_notifications_.erase(
-      pending_notifications_.begin() + static_cast<std::ptrdiff_t>(indices.front()));
+  pending_notifications_.erase(pending_notifications_.begin() +
+                               static_cast<std::ptrdiff_t>(indices.front()));
 }
 
-std::vector<std::vector<std::string>>
-ServerSubscription::ParseEventFieldPaths(
+std::vector<std::vector<std::string>> ServerSubscription::ParseEventFieldPaths(
     const std::optional<MonitoringFilter>& filter) {
-  const auto* raw_filter = filter ? std::get_if<boost::json::value>(&*filter)
-                                  : nullptr;
+  const auto* raw_filter =
+      filter ? std::get_if<boost::json::value>(&*filter) : nullptr;
   if (!raw_filter)
     return DefaultEventFieldPaths();
   return ParseEventFilterFieldPaths(*raw_filter);
@@ -446,4 +498,3 @@ std::vector<scada::Variant> ServerSubscription::BuildEventFields(
 }
 
 }  // namespace opcua
-
