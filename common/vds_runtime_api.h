@@ -68,20 +68,18 @@ struct TcVdsRuntimeApi {
       TcVdsRuntimeDocumentInfo* info,
       TcVdsRuntimeError* error);
 
-  int32_t(TC_VDS_RUNTIME_CALL* render_bgra)(
-      TcVdsRuntimeDocument document,
-      uint8_t* pixels,
-      int32_t width,
-      int32_t height,
-      int32_t stride,
-      TcVdsRuntimeError* error);
+  int32_t(TC_VDS_RUNTIME_CALL* render_bgra)(TcVdsRuntimeDocument document,
+                                            uint8_t* pixels,
+                                            int32_t width,
+                                            int32_t height,
+                                            int32_t stride,
+                                            TcVdsRuntimeError* error);
 
-  int32_t(TC_VDS_RUNTIME_CALL* hit_test)(
-      TcVdsRuntimeDocument document,
-      double page_x,
-      double page_y,
-      TcVdsRuntimeShapeInfo* info,
-      TcVdsRuntimeError* error);
+  int32_t(TC_VDS_RUNTIME_CALL* hit_test)(TcVdsRuntimeDocument document,
+                                         double page_x,
+                                         double page_y,
+                                         TcVdsRuntimeShapeInfo* info,
+                                         TcVdsRuntimeError* error);
 
   int32_t(TC_VDS_RUNTIME_CALL* invalidate_data_source)(
       TcVdsRuntimeDocument document,
