@@ -578,23 +578,34 @@ Status ReadNodeState(pugi::xml_node node, NodeState& node_state) {
   return OkStatus();
 }
 
-Status LoadAddressSpaceXmlDocument(const pugi::xml_document& document,
-                                   MutableAddressSpace& address_space,
-                                   NodeFactory& node_factory) {
+// Reads every <Node> element from a parsed document, appending the decoded
+// NodeStates to `out`. Multiple documents can be parsed into a single vector so
+// they are materialized together (see ApplyNodeStates / LoadStaticAddressSpace).
+Status ParseNodeStates(const pugi::xml_document& document,
+                       std::vector<NodeState>& out) {
   auto root = document.child(kRootTag);
   if (!root) {
     return StatusCode::Bad_CantParseString;
   }
 
-  std::vector<NodeState> node_states;
   for (auto node : root.children(kNodeTag)) {
-    auto& node_state = node_states.emplace_back();
+    auto& node_state = out.emplace_back();
     auto status = ReadNodeState(node, node_state);
     if (!status) {
       return status;
     }
   }
+  return OkStatus();
+}
 
+// Materializes parsed NodeStates into the address space: first creates every
+// node, then resolves supertype and reference links. Resolution runs only after
+// all nodes exist, so references may target nodes parsed from any input file —
+// this lets a static address space be split across multiple files without
+// regard to inter-file ordering.
+Status ApplyNodeStates(std::vector<NodeState> node_states,
+                       MutableAddressSpace& address_space,
+                       NodeFactory& node_factory) {
   SortNodesHierarchically(node_states);
 
   for (const auto& node_state : node_states) {
@@ -643,6 +654,16 @@ Status LoadAddressSpaceXmlDocument(const pugi::xml_document& document,
   return OkStatus();
 }
 
+Status LoadAddressSpaceXmlDocument(const pugi::xml_document& document,
+                                   MutableAddressSpace& address_space,
+                                   NodeFactory& node_factory) {
+  std::vector<NodeState> node_states;
+  if (auto status = ParseNodeStates(document, node_states); !status) {
+    return status;
+  }
+  return ApplyNodeStates(std::move(node_states), address_space, node_factory);
+}
+
 }  // namespace
 
 Status LoadAddressSpaceXml(const std::filesystem::path& path,
@@ -661,13 +682,21 @@ Status LoadAddressSpaceXml(const std::filesystem::path& path,
 Status LoadStaticAddressSpace(std::span<const std::filesystem::path> paths,
                               MutableAddressSpace& address_space,
                               NodeFactory& node_factory) {
+  // Parse every file into one NodeState set, then materialize it once so
+  // references that cross file boundaries (e.g. a protocol type whose supertype
+  // lives in another partition) resolve regardless of load order.
+  std::vector<NodeState> node_states;
   for (const auto& path : paths) {
-    auto status = LoadAddressSpaceXml(path, address_space, node_factory);
-    if (!status) {
+    pugi::xml_document document;
+    const auto path_string = path.string();
+    if (!document.load_file(path_string.c_str())) {
+      return StatusCode::Bad_CantParseString;
+    }
+    if (auto status = ParseNodeStates(document, node_states); !status) {
       return status;
     }
   }
-  return OkStatus();
+  return ApplyNodeStates(std::move(node_states), address_space, node_factory);
 }
 
 Status SaveAddressSpaceXml(const std::filesystem::path& path,
@@ -708,11 +737,6 @@ Status SaveAddressSpaceXml(const std::filesystem::path& path,
     return StatusCode::Bad;
   }
   return OkStatus();
-}
-
-std::filesystem::path GetScadaStaticAddressSpaceXmlPath() {
-  return std::filesystem::path{__FILE__}.parent_path() / "nodesets" /
-         "scada_static.xml";
 }
 
 }  // namespace scada

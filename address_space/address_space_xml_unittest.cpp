@@ -1,22 +1,18 @@
 #include "address_space/address_space_xml.h"
 
 #include "address_space/address_space_impl2.h"
+#include "address_space/address_space_impl3.h"
 #include "address_space/address_space_util.h"
 #include "address_space/generic_node_factory.h"
-#include "address_space/scada_address_space.h"
 #include "common/test/node_state_matcher.h"
 #include "model/node_id_util.h"
+#include "model/static_nodesets.h"
 
 #include <gmock/gmock.h>
 
-#include <cstdlib>
+#include <filesystem>
 
 namespace {
-
-void BuildScadaAddressSpace(AddressSpaceImpl2& address_space) {
-  GenericNodeFactory node_factory{address_space};
-  ScadaAddressSpaceBuilder{address_space, node_factory}.BuildAll();
-}
 
 std::vector<scada::NodeState> SortedNodeStates(
     const scada::AddressSpace& address_space) {
@@ -29,16 +25,15 @@ std::vector<scada::NodeState> SortedNodeStates(
 
 }  // namespace
 
-TEST(AddressSpaceXml, RoundTripsScadaAddressSpace) {
-  AddressSpaceImpl2 source_address_space;
-  BuildScadaAddressSpace(source_address_space);
+// Loads the partitioned static nodesets, serializes them back out, reloads the
+// serialized form, and verifies the round trip preserves every node. This keeps
+// the XML codec covered now that the static address space is sourced from
+// committed files rather than a programmatic builder.
+TEST(AddressSpaceXml, RoundTripsStaticNodesets) {
+  AddressSpaceImpl3 source_address_space;
 
-  const auto* export_path = std::getenv("SCADA_WRITE_STATIC_ADDRESS_SPACE_XML");
   const auto path =
-      export_path && *export_path
-          ? std::filesystem::path{export_path}
-          : std::filesystem::temp_directory_path() / "scada_static.xml";
-
+      std::filesystem::temp_directory_path() / "scada_static_roundtrip.xml";
   ASSERT_TRUE(scada::SaveAddressSpaceXml(path, source_address_space));
 
   AddressSpaceImpl2 loaded_address_space;
@@ -49,4 +44,14 @@ TEST(AddressSpaceXml, RoundTripsScadaAddressSpace) {
   EXPECT_THAT(SortedNodeStates(loaded_address_space),
               testing::UnorderedPointwise(
                   NodeStateEq(), SortedNodeStates(source_address_space)));
+}
+
+// Loading the multi-file static set must succeed: LoadStaticAddressSpace fails
+// with a Bad status if any supertype/parent/reference target is missing, so a
+// successful load is a referential-integrity check across all partition files.
+TEST(AddressSpaceXml, StaticNodesetsResolveAcrossFiles) {
+  AddressSpaceImpl2 address_space;
+  GenericNodeFactory node_factory{address_space};
+  EXPECT_TRUE(scada::LoadStaticAddressSpace(
+      scada::GetScadaStaticNodesetSourcePaths(), address_space, node_factory));
 }

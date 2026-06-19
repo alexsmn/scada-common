@@ -28,6 +28,4 @@ Status LoadStaticAddressSpace(std::span<const std::filesystem::path> paths,
 Status SaveAddressSpaceXml(const std::filesystem::path& path,
                            const AddressSpace& address_space);
 
-std::filesystem::path GetScadaStaticAddressSpaceXmlPath();
-
 }  // namespace scada
