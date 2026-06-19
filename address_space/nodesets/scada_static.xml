@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="NS0.1" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Bool" displayName="Bool" />
+  <Node id="NS0.11" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Double" displayName="Double" />
+  <Node id="NS0.12" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="String" displayName="String" />
+  <Node id="NS0.13" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="DateTime" displayName="DateTime" />
+  <Node id="NS0.15" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="ByteString" displayName="ByteString" />
+  <Node id="NS0.17" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="NodeId" displayName="NodeId" />
+  <Node id="NS0.2" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int8" displayName="Int8" />
+  <Node id="NS0.21" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="LocalizedText" displayName="LocalizedText" />
+  <Node id="NS0.2130" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SystemEventType" displayName="SystemEventType" />
+  <Node id="NS0.2133" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="GeneralModelChangeEventType" displayName="GeneralModelChangeEventType" />
+  <Node id="NS0.2253" class="Object" typeDefinition="NS0.58" parent="NS0.85" parentReference="NS0.35" browseName="Server" displayName="Сервер">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.24" class="DataType" parent="NS0.86" parentReference="NS0.35" browseName="BaseDataType" displayName="BaseDataType" />
+  <Node id="NS0.2738" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SemanticChangeEventType" displayName="SemanticChangeEventType" />
+  <Node id="NS0.29" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Enumeration" displayName="Enumeration" />
+  <Node id="NS0.3" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt8" displayName="UInt8" />
+  <Node id="NS0.31" class="ReferenceType" parent="NS0.86" parentReference="NS0.35" browseName="References" displayName="References" />
+  <Node id="NS0.32" class="ReferenceType" parent="NS0.31" parentReference="NS0.45" supertype="NS0.31" browseName="NonHierarchicalReference" displayName="NonHierarchicalReference" />
+  <Node id="NS0.33" class="ReferenceType" parent="NS0.31" parentReference="NS0.45" supertype="NS0.31" browseName="HierarchicalReference" displayName="HierarchicalReference" />
+  <Node id="NS0.35" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Organizes" displayName="Organizes" />
+  <Node id="NS0.36" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="HasEventSource" displayName="HasEventSource" />
+  <Node id="NS0.37" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasModellingRule" displayName="HasModellingRule" />
+  <Node id="NS0.4" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int16" displayName="Int16" />
+  <Node id="NS0.40" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasTypeDefinition" displayName="HasTypeDefinition" />
+  <Node id="NS0.44" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Aggregates" displayName="Aggregates" />
+  <Node id="NS0.45" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="HasSubtype" displayName="HasSubtype" />
+  <Node id="NS0.46" class="ReferenceType" parent="NS0.44" parentReference="NS0.45" supertype="NS0.44" browseName="HasProperty" displayName="HasProperty" />
+  <Node id="NS0.47" class="ReferenceType" parent="NS0.44" parentReference="NS0.45" supertype="NS0.44" browseName="HasComponent" displayName="HasComponent" />
+  <Node id="NS0.48" class="ReferenceType" parent="NS0.36" parentReference="NS0.45" supertype="NS0.36" browseName="HasNotifier" displayName="HasNotifier" />
+  <Node id="NS0.5" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt16" displayName="UInt16" />
+  <Node id="NS0.58" class="ObjectType" parent="NS0.86" parentReference="NS0.35" browseName="BaseObjectType" displayName="BaseObjectType" />
+  <Node id="NS0.6" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int32" displayName="Int32" />
+  <Node id="NS0.61" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="FolderType" displayName="FolderType" />
+  <Node id="NS0.62" class="VariableType" parent="NS0.86" parentReference="NS0.35" browseName="BaseVariableType" displayName="BaseVariableType" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="NS0.68" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="PropertyType" displayName="PropertyType" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="NS0.7" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt32" displayName="UInt32" />
+  <Node id="NS0.78" class="Object" typeDefinition="NS0.58" parent="NS0.87" parentReference="NS0.35" browseName="Mandatory" displayName="Mandatory">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.8" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int64" displayName="Int64" />
+  <Node id="NS0.84" class="Object" typeDefinition="NS0.61" browseName="RootFolder" displayName="Корневая папка">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.85" class="Object" typeDefinition="NS0.61" parent="NS0.84" parentReference="NS0.35" browseName="ObjectsFolder" displayName="Объекты">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.86" class="Object" typeDefinition="NS0.61" parent="NS0.84" parentReference="NS0.35" browseName="TypesFolder" displayName="Типы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.87" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="ModellingRules" displayName="ModellingRules">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.9" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt64" displayName="UInt64" />
+  <Node id="NS0.9111" class="Method" browseName="Acknowledge" displayName="Acknowledge" />
+  <Node id="SCADA.108" class="ObjectType" parent="SCADA.116" parentReference="NS0.45" supertype="SCADA.116" browseName="ModbusLinkType" displayName="Направление MODBUS">
+    <Property id="SCADA.167" type="Int32">0</Property>
+    <Property id="SCADA.330" type="Int32">0</Property>
+    <Property id="SCADA.299" type="Int32">0</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.118" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.115" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="DeviceType" displayName="Устройство">
+    <Property id="SCADA.141" type="Bool">true</Property>
+    <Reference type="SCADA.335" forward="true" target="SCADA.20" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.116" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="LinkType" displayName="Направление">
+    <Property id="SCADA.142" type="String"></Property>
+  </Node>
+  <Node id="SCADA.118" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="ModbusDeviceType" displayName="Устройство MODBUS">
+    <Property id="SCADA.168" type="Int32">1</Property>
+    <Property id="SCADA.169" type="Int32">3</Property>
+    <Property id="SCADA.298" type="Int32">1000</Property>
+    <Property id="SCADA.349" type="Int32">30000</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.342" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.12" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="HistoricalDatabases" displayName="Базы данных">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.20" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.124" class="ObjectType" parent="SCADA.116" parentReference="NS0.45" supertype="SCADA.116" browseName="Iec60870LinkType" displayName="Направление МЭК-60870">
+    <Property id="SCADA.176" type="Int32">0</Property>
+    <Property id="SCADA.177" type="Int32">0</Property>
+    <Property id="SCADA.178" type="Int32">12</Property>
+    <Property id="SCADA.179" type="Int32">8</Property>
+    <Property id="SCADA.180" type="Int32">30</Property>
+    <Property id="SCADA.181" type="Int32">5</Property>
+    <Property id="SCADA.182" type="Int32">20</Property>
+    <Property id="SCADA.183" type="Int32">2</Property>
+    <Property id="SCADA.184" type="Int32">2</Property>
+    <Property id="SCADA.185" type="Int32">3</Property>
+    <Property id="SCADA.186" type="Bool">true</Property>
+    <Property id="SCADA.187" type="Int32">0</Property>
+    <Property id="SCADA.188" type="Bool">false</Property>
+    <Property id="SCADA.189" type="Int32">15</Property>
+    <Property id="SCADA.190" type="Int32">10</Property>
+    <Property id="SCADA.191" type="Int32">20</Property>
+    <Property id="SCADA.192" type="Bool">false</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.331" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.130" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="ModbusLinkProtocol" displayName="Тип протокола MODBUS">
+    <Property id="SCADA.303" type="LocalizedText" array="true">
+      <Value>RTU</Value>
+      <Value>ASCII</Value>
+      <Value>TCP</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.140" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Alias" displayName="Алиас" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.141" class="Variable" typeDefinition="NS0.68" parent="SCADA.115" parentReference="NS0.46" browseName="Disabled" displayName="Отключено" dataType="NS0.1">
+    <AttributeValue type="Bool">true</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.142" class="Variable" typeDefinition="NS0.68" parent="SCADA.116" parentReference="NS0.46" browseName="TransportString" displayName="Транспорт" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.143" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Simulated" displayName="Эмуляция" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.318" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.144" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Severity" displayName="Важность" dataType="NS0.6">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.145" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Input1" displayName="Основной ввод" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.146" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Input2" displayName="Резервный ввод" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.147" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Output" displayName="Вывод" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.148" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="OutputCondition" displayName="Условие управления" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.149" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="StalePeriod" displayName="Устаревание, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.150" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasSimulationSignal" displayName="Эмулируемый сигнал">
+    <Reference type="SCADA.311" forward="true" target="SCADA.318" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.151" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="Locked" displayName="Блокировка" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.15132" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="DeviceWatchEventType" displayName="DeviceWatchEventType" />
+  <Node id="SCADA.152" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasHistoricalDatabase" displayName="Архив значений">
+    <Reference type="SCADA.311" forward="true" target="SCADA.317" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.153" class="Variable" typeDefinition="NS0.68" parent="SCADA.72" parentReference="NS0.46" browseName="Inverted" displayName="Инверсия" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.154" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasTsFormat" displayName="Параметры">
+    <Reference type="SCADA.311" forward="true" target="SCADA.316" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.155" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="DisplayFormat" displayName="Формат" dataType="NS0.12">
+    <AttributeValue type="String">0.####</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.316" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.156" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="Conversion" displayName="Преобразование" dataType="SCADA.320">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.157" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="Clamping" displayName="Ограничение диапазона" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.315" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.158" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="EuLo" displayName="Логический минимимум" dataType="NS0.11">
+    <AttributeValue type="Double">-100</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.159" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="EuHi" displayName="Логический максимум" dataType="NS0.11">
+    <AttributeValue type="Double">100</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.16" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="UserType" displayName="Пользователь">
+    <Property id="SCADA.170" type="Int32">0</Property>
+    <Property id="SCADA.345" type="Bool">false</Property>
+    <Property id="SCADA.346" type="String"></Property>
+    <Property id="SCADA.347" type="UInt64">0</Property>
+  </Node>
+  <Node id="SCADA.160" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="IrLo" displayName="Физический минимимум" dataType="NS0.11">
+    <AttributeValue type="Double">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.161" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="IrHi" displayName="Физический максимум" dataType="NS0.11">
+    <AttributeValue type="Double">65535</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.314" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.162" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="LimitLo" displayName="Уставка нижняя предаварийная" dataType="NS0.11">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.319" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.163" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="LimitHi" displayName="Уставка верхняя предаварийная" dataType="NS0.11">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.319" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.164" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="LimitLoLo" displayName="Уставка нижняя аварийная" dataType="NS0.11">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.319" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.165" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="LimitHiHi" displayName="Уставка верхняя аварийная" dataType="NS0.11">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.319" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.166" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="EngineeringUnits" displayName="Единицы измерения" dataType="NS0.21">
+    <AttributeValue type="LocalizedText"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.316" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.167" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="Protocol" displayName="Протокол" dataType="SCADA.130">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.168" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="Address" displayName="Адрес" dataType="NS0.3">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.169" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="RepeatCount" displayName="Попыток повторов передачи" dataType="NS0.6">
+    <AttributeValue type="Int32">3</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.170" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="AccessRights" displayName="Права" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.171" class="Variable" typeDefinition="NS0.68" parent="SCADA.20" parentReference="NS0.46" browseName="Depth" displayName="Глубина, дн" dataType="NS0.6">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.172" class="Variable" typeDefinition="NS0.68" parent="SCADA.67" parentReference="NS0.46" browseName="Type" displayName="Тип" dataType="SCADA.326">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.173" class="Variable" typeDefinition="NS0.68" parent="SCADA.67" parentReference="NS0.46" browseName="Period" displayName="Период, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">60000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.174" class="Variable" typeDefinition="NS0.68" parent="SCADA.67" parentReference="NS0.46" browseName="Phase" displayName="Фаза, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.175" class="Variable" typeDefinition="NS0.68" parent="SCADA.67" parentReference="NS0.46" browseName="UpdateInterval" displayName="Обновление, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">1000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.176" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="Protocol" displayName="Протокол" dataType="SCADA.322">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.177" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="Mode" displayName="Режим" dataType="SCADA.324">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.178" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="SendQueueSize" displayName="Очередь передачи (K)" dataType="NS0.6">
+    <AttributeValue type="Int32">12</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.179" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="ReceiveQueueSize" displayName="Очередь приема (W)" dataType="NS0.6">
+    <AttributeValue type="Int32">8</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.180" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="ConnectTimeout" displayName="Таймаут связи (T0), с" dataType="NS0.6">
+    <AttributeValue type="Int32">30</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.181" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="ConfirmationTimeout" displayName="Таймаут подтверждения, с" dataType="NS0.6">
+    <AttributeValue type="Int32">5</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.182" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="TerminationTimeout" displayName="Таймаут операции, с" dataType="NS0.6">
+    <AttributeValue type="Int32">20</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.183" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="DeviceAddressSize" displayName="Размер адреса устройства" dataType="NS0.3">
+    <AttributeValue type="Int32">2</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.184" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="CotSize" displayName="Размер причины передачи" dataType="NS0.3">
+    <AttributeValue type="Int32">2</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.185" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="InfoAddressSize" displayName="Размер адреса объекта" dataType="NS0.3">
+    <AttributeValue type="Int32">3</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.186" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="CollectData" displayName="Сбор данных" dataType="NS0.1">
+    <AttributeValue type="Bool">true</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.187" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="SendRetries" displayName="Попыток повторов передачи" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.188" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="CrcProtection" displayName="Защита CRC" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.189" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="SendTimeout" displayName="Таймаут передачи (T1), с" dataType="NS0.6">
+    <AttributeValue type="Int32">15</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.190" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="ReceiveTimeout" displayName="Таймаут приема (T2), с" dataType="NS0.6">
+    <AttributeValue type="Int32">10</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.191" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="IdleTimeout" displayName="Таймаут простоя (T3), с" dataType="NS0.6">
+    <AttributeValue type="Int32">20</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.192" class="Variable" typeDefinition="NS0.68" parent="SCADA.124" parentReference="NS0.46" browseName="AnonymousMode" displayName="Анонимный режим" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.193" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Address" displayName="Адрес" dataType="NS0.5">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.194" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="LinkAddress" displayName="Адрес коммутатора" dataType="NS0.5">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.195" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="InterrogateOnStart" displayName="Полный опрос при запуске" dataType="NS0.1">
+    <AttributeValue type="Bool">true</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.196" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="InterrogationPeriod" displayName="Период полного опроса, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.197" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="SynchronizeClockOnStart" displayName="Синхронизация часов при запуске" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.198" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="ClockSynchronizationPeriod" displayName="Период синхронизации часов, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.20" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="HistoricalDatabaseType" displayName="База данных">
+    <Property id="SCADA.171" type="Int32">1</Property>
+  </Node>
+  <Node id="SCADA.200" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group1PollPeriod" displayName="Период опроса группы 1, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.201" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group2PollPeriod" displayName="Период опроса группы 2, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.202" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group3PollPeriod" displayName="Период опроса группы 3, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.203" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group4PollPeriod" displayName="Период опроса группы 4, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.204" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group5PollPeriod" displayName="Период опроса группы 5, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.205" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group6PollPeriod" displayName="Период опроса группы 6, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.206" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group7PollPeriod" displayName="Период опроса группы 7, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.207" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group8PollPeriod" displayName="Период опроса группы 8, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.208" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group9PollPeriod" displayName="Период опроса группы 9, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.209" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group10PollPeriod" displayName="Период опроса группы 10, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.210" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group11PollPeriod" displayName="Период опроса группы 11, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.211" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group12PollPeriod" displayName="Период опроса группы 12, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.212" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group13PollPeriod" displayName="Период опроса группы 13, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.213" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group14PollPeriod" displayName="Период опроса группы 14, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.214" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group15PollPeriod" displayName="Период опроса группы 15, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.215" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="Group16PollPeriod" displayName="Период опроса группы 16, с" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.216" class="Variable" typeDefinition="NS0.68" parent="SCADA.80" parentReference="NS0.46" browseName="OpenLabel" displayName="Подпись 0" dataType="NS0.21">
+    <AttributeValue type="LocalizedText"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.217" class="Variable" typeDefinition="NS0.68" parent="SCADA.80" parentReference="NS0.46" browseName="CloseLabel" displayName="Подпись 1" dataType="NS0.21">
+    <AttributeValue type="LocalizedText"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.218" class="Variable" typeDefinition="NS0.68" parent="SCADA.80" parentReference="NS0.46" browseName="OpenColor" displayName="Цвет 0" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.219" class="Variable" typeDefinition="NS0.68" parent="SCADA.80" parentReference="NS0.46" browseName="CloseColor" displayName="Цвет 1" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.221" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="IecTransmitSource" displayName="Объект источник" />
+  <Node id="SCADA.225" class="Variable" typeDefinition="NS0.68" parent="SCADA.34" parentReference="NS0.46" browseName="InfoAddress" displayName="Адрес объекта приемника" dataType="NS0.6">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.239" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="DataItemType" displayName="Объект" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.140" type="String"></Property>
+    <Property id="SCADA.144" type="Int32">1</Property>
+    <Property id="SCADA.145" type="String"></Property>
+    <Property id="SCADA.146" type="String"></Property>
+    <Property id="SCADA.151" type="Bool">false</Property>
+    <Property id="SCADA.149" type="Int32">0</Property>
+    <Property id="SCADA.147" type="String"></Property>
+    <Property id="SCADA.309" type="Bool">true</Property>
+    <Property id="SCADA.148" type="String"></Property>
+    <Property id="SCADA.143" type="Bool">false</Property>
+    <Reference type="SCADA.150" forward="true" target="SCADA.67" targetClass="VariableType" />
+    <Reference type="SCADA.152" forward="true" target="SCADA.20" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.24" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="DataItems" displayName="Все объекты">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.62" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.240" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="WriteValueDuration" displayName="Задержка записи измерений, мкс" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.241" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="PendingTaskCount" displayName="Очередь записи измерений" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.242" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="EventCleanupDuration" displayName="Продолжительность очистки событий, мкс" dataType="NS0.6">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.243" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="ValueCleanupDuration" displayName="Продолжительность очистки измерений, мкс" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.248" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="Online" displayName="Связь" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.249" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="Enabled" displayName="Включено" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.250" class="Variable" typeDefinition="NS0.62" parent="SCADA.116" parentReference="NS0.47" browseName="ConnectCount" displayName="ConnectCount" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.251" class="Variable" typeDefinition="NS0.62" parent="SCADA.116" parentReference="NS0.47" browseName="ActiveConnections" displayName="ActiveConnections" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.252" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="MessagesIn" displayName="Принято сообщений" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.253" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="MessagesOut" displayName="Отправлено сообщений" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.254" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="BytesIn" displayName="Принято байт" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.255" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="BytesOut" displayName="Отправлено байт" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.27" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="TsFormats" displayName="Форматы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.80" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.277" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="Iec61850DeviceType" displayName="Устройство МЭК-61850">
+    <Property id="SCADA.278" type="String"></Property>
+    <Property id="SCADA.279" type="Int32">102</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.281" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.344" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.278" class="Variable" typeDefinition="NS0.68" parent="SCADA.277" parentReference="NS0.46" browseName="Host" displayName="Хост" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.279" class="Variable" typeDefinition="NS0.68" parent="SCADA.277" parentReference="NS0.46" browseName="Port" displayName="Порт" dataType="NS0.6">
+    <AttributeValue type="Int32">102</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.28" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="SimulationSignals" displayName="Эмулируемые сигналы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.67" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.281" class="ObjectType" parent="SCADA.285" parentReference="NS0.45" supertype="SCADA.285" browseName="RCB" displayName="RCB МЭК-61850" />
+  <Node id="SCADA.283" class="Variable" typeDefinition="NS0.68" parent="SCADA.285" parentReference="NS0.46" browseName="Address" displayName="Адрес" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.285" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="ConfigurableObject" displayName="Параметр МЭК-61850">
+    <Property id="SCADA.283" type="String"></Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.285" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.288" class="Object" typeDefinition="SCADA.289" parent="SCADA.277" parentReference="NS0.47" browseName="Model" displayName="Модель">
+    <Reference type="NS0.40" forward="true" target="SCADA.289" targetClass="ObjectType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.289" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="Iec61850LogicalNodeType" displayName="Логический узел МЭК-61850" />
+  <Node id="SCADA.29" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="Users" displayName="Пользователи">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.16" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.291" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="Iec61850DataVariableType" displayName="Объект данных МЭК-61850" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="SCADA.292" class="Variable" typeDefinition="NS0.68" parent="SCADA.62" parentReference="NS0.46" browseName="Simulated" displayName="Эмуляция" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.318" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.293" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="Iec61850ControlObjectType" displayName="Объект управления МЭК-61850" />
+  <Node id="SCADA.294" class="Variable" typeDefinition="NS0.68" parent="SCADA.331" parentReference="NS0.46" browseName="UtcTime" displayName="Время UTC" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.295" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="Aperture" displayName="Апертура" dataType="NS0.11">
+    <AttributeValue type="Double">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.315" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.296" class="Variable" typeDefinition="NS0.68" parent="SCADA.76" parentReference="NS0.46" browseName="Deadband" displayName="Мертвая зона" dataType="NS0.11">
+    <AttributeValue type="Double">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.315" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.297" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="Creates" displayName="Можно создать" />
+  <Node id="SCADA.298" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="ResponseTimeout" displayName="Таймаут ответа, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">1000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.299" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="RequestDelay" displayName="Задержка запроса, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.30" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="Devices" displayName="Все оборудование">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.116" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.277" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.300" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="Aliases" displayName="Алиасы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.301" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="AliasType" displayName="Алиас" />
+  <Node id="SCADA.302" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="AliasOf" displayName="AliasOf" />
+  <Node id="SCADA.303" class="Variable" typeDefinition="NS0.68" parent="SCADA.130" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>RTU</Value>
+      <Value>ASCII</Value>
+      <Value>TCP</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.304" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="FileSystem" displayName="Файлы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.305" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.306" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.305" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="FileDirectoryType" displayName="Папка">
+    <Reference type="SCADA.297" forward="true" target="SCADA.305" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.306" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.306" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="FileType" displayName="Файл" dataType="NS0.15">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.307" type="DateTime">0</Property>
+    <Property id="SCADA.308" type="UInt64">0</Property>
+  </Node>
+  <Node id="SCADA.307" class="Variable" typeDefinition="NS0.68" parent="SCADA.306" parentReference="NS0.46" browseName="LastUpdateTime" displayName="Время изменения" dataType="NS0.13">
+    <AttributeValue type="DateTime">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.308" class="Variable" typeDefinition="NS0.68" parent="SCADA.306" parentReference="NS0.46" browseName="Size" displayName="Размер, байт" dataType="NS0.9">
+    <AttributeValue type="UInt64">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.309" class="Variable" typeDefinition="NS0.68" parent="SCADA.239" parentReference="NS0.46" browseName="OutputTwoStaged" displayName="Двухэтапное управление" dataType="NS0.1">
+    <AttributeValue type="Bool">true</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.310" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="PropertyCategories" displayName="Категории свойств">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.311" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasPropertyCategory" displayName="Категория свойства" />
+  <Node id="SCADA.312" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="General" displayName="Общие">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.313" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Channels" displayName="Каналы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.314" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Conversion" displayName="Преобразование">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.315" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Filtering" displayName="Фильтрация">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.316" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Display" displayName="Отображение">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.317" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="History" displayName="Архивирование">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.318" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Simulation" displayName="Эмуляция">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.319" class="Object" typeDefinition="NS0.61" parent="SCADA.310" parentReference="NS0.35" browseName="Limits" displayName="Уставки">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.320" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="AnalogConversionDataType" displayName="Преобразование">
+    <Property id="SCADA.321" type="LocalizedText" array="true">
+      <Value>Нет</Value>
+      <Value>Линейное</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.321" class="Variable" typeDefinition="NS0.68" parent="SCADA.320" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>Нет</Value>
+      <Value>Линейное</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.322" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="Iec60870ProtocolType" displayName="Тип протокола МЭК-60870">
+    <Property id="SCADA.323" type="LocalizedText" array="true">
+      <Value>МЭК-60870-104</Value>
+      <Value>МЭК-60870-101</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.323" class="Variable" typeDefinition="NS0.68" parent="SCADA.322" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>МЭК-60870-104</Value>
+      <Value>МЭК-60870-101</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.324" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="Iec60870ModeType" displayName="Режим МЭК-60870">
+    <Property id="SCADA.325" type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+      <Value>Listening</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.325" class="Variable" typeDefinition="NS0.68" parent="SCADA.324" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+      <Value>Listening</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.326" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="SimulationSignalTypeEnum" displayName="Тип эмуляции">
+    <Property id="SCADA.327" type="LocalizedText" array="true">
+      <Value>Случайный</Value>
+      <Value>Пилообразный</Value>
+      <Value>Скачкообразный</Value>
+      <Value>Синус</Value>
+      <Value>Косинус</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.327" class="Variable" typeDefinition="NS0.68" parent="SCADA.326" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>Случайный</Value>
+      <Value>Пилообразный</Value>
+      <Value>Скачкообразный</Value>
+      <Value>Синус</Value>
+      <Value>Косинус</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.328" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasDevice" displayName="Устройство">
+    <Reference type="SCADA.311" forward="true" target="SCADA.313" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.329" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="OPC" displayName="OPC">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.330" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="Mode" displayName="Режим" dataType="SCADA.332">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.331" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="Iec60870DeviceType" displayName="Устройство МЭК-60870">
+    <Property id="SCADA.193" type="Int32">1</Property>
+    <Property id="SCADA.194" type="Int32">1</Property>
+    <Property id="SCADA.195" type="Bool">true</Property>
+    <Property id="SCADA.196" type="Int32">0</Property>
+    <Property id="SCADA.197" type="Bool">false</Property>
+    <Property id="SCADA.198" type="Int32">0</Property>
+    <Property id="SCADA.294" type="Bool">false</Property>
+    <Property id="SCADA.200" type="Int32">0</Property>
+    <Property id="SCADA.201" type="Int32">0</Property>
+    <Property id="SCADA.202" type="Int32">0</Property>
+    <Property id="SCADA.203" type="Int32">0</Property>
+    <Property id="SCADA.204" type="Int32">0</Property>
+    <Property id="SCADA.205" type="Int32">0</Property>
+    <Property id="SCADA.206" type="Int32">0</Property>
+    <Property id="SCADA.207" type="Int32">0</Property>
+    <Property id="SCADA.208" type="Int32">0</Property>
+    <Property id="SCADA.209" type="Int32">0</Property>
+    <Property id="SCADA.210" type="Int32">0</Property>
+    <Property id="SCADA.211" type="Int32">0</Property>
+    <Property id="SCADA.212" type="Int32">0</Property>
+    <Property id="SCADA.213" type="Int32">0</Property>
+    <Property id="SCADA.214" type="Int32">0</Property>
+    <Property id="SCADA.215" type="Int32">0</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.343" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.332" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="ModbusModeDataType" displayName="Режим MODBUS">
+    <Property id="SCADA.333" type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.333" class="Variable" typeDefinition="NS0.68" parent="SCADA.332" parentReference="NS0.46" browseName="EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.335" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasEventDatabase" displayName="Архив событий">
+    <Reference type="SCADA.311" forward="true" target="SCADA.317" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.336" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="MetricType" displayName="Метрика" dataType="NS0.8">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.337" type="Empty" />
+    <Property id="SCADA.338" type="Empty" />
+  </Node>
+  <Node id="SCADA.337" class="Variable" typeDefinition="NS0.68" parent="SCADA.336" parentReference="NS0.46" browseName="AggregateFunction" displayName="Функция" dataType="NS0.17">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.338" class="Variable" typeDefinition="NS0.68" parent="SCADA.336" parentReference="NS0.46" browseName="AggregateInterval" displayName="Период, с" dataType="NS0.6">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.34" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="TransmissionItemType" displayName="Ретрансляция">
+    <Property id="SCADA.225" type="Int32">1</Property>
+    <Reference type="SCADA.221" forward="true" target="NS0.62" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.342" class="ObjectType" parent="SCADA.34" parentReference="NS0.45" supertype="SCADA.34" browseName="ModbusTransmissionItemType" displayName="Ретрансляция MODBUS" />
+  <Node id="SCADA.343" class="ObjectType" parent="SCADA.34" parentReference="NS0.45" supertype="SCADA.34" browseName="Iec60870TransmissionItemType" displayName="Ретрансляция МЭК-60870" />
+  <Node id="SCADA.344" class="ObjectType" parent="SCADA.34" parentReference="NS0.45" supertype="SCADA.34" browseName="Iec61850TransmissionItemType" displayName="Ретрансляция МЭК-61850" />
+  <Node id="SCADA.345" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="MultiSessions" displayName="Множество сессий" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.346" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="ProfileJson" displayName="Профиль" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.347" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="ProfileRevision" displayName="Версия профиля" dataType="NS0.9">
+    <AttributeValue type="UInt64">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.348" class="Method" parent="SCADA.16" parentReference="NS0.47" browseName="SaveProfile" displayName="Сохранить профиль">
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.349" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="SuspendDuration" displayName="Длительность приостановки, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">30000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.350" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="SyncClockCount" displayName="Число синхронизаций времени" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.351" class="Variable" typeDefinition="NS0.62" parent="SCADA.115" parentReference="NS0.47" browseName="InterrogateCount" displayName="Число полных опросов" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.62" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="DataGroupType" displayName="Группа">
+    <Property id="SCADA.292" type="Bool">false</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.62" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.239" targetClass="VariableType" />
+    <Reference type="SCADA.328" forward="true" target="SCADA.115" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.67" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="SimulationSignalType" displayName="Эмулируемый сигнал" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.172" type="Int32">0</Property>
+    <Property id="SCADA.173" type="Int32">60000</Property>
+    <Property id="SCADA.174" type="Int32">0</Property>
+    <Property id="SCADA.175" type="Int32">1000</Property>
+  </Node>
+  <Node id="SCADA.72" class="VariableType" parent="SCADA.239" parentReference="NS0.45" supertype="SCADA.239" browseName="DiscreteItemType" displayName="Объект ТС" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.153" type="Bool">false</Property>
+    <Reference type="SCADA.154" forward="true" target="SCADA.80" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.76" class="VariableType" parent="SCADA.239" parentReference="NS0.45" supertype="SCADA.239" browseName="AnalogItemType" displayName="Объект ТИТ" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.155" type="String">0.####</Property>
+    <Property id="SCADA.156" type="Int32">0</Property>
+    <Property id="SCADA.157" type="Bool">false</Property>
+    <Property id="SCADA.158" type="Double">-100</Property>
+    <Property id="SCADA.159" type="Double">100</Property>
+    <Property id="SCADA.160" type="Double">0</Property>
+    <Property id="SCADA.161" type="Double">65535</Property>
+    <Property id="SCADA.162" type="Empty" />
+    <Property id="SCADA.163" type="Empty" />
+    <Property id="SCADA.164" type="Empty" />
+    <Property id="SCADA.165" type="Empty" />
+    <Property id="SCADA.166" type="LocalizedText"></Property>
+    <Property id="SCADA.295" type="Double">0</Property>
+    <Property id="SCADA.296" type="Double">0</Property>
+  </Node>
+  <Node id="SCADA.80" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="TsFormatType" displayName="Формат">
+    <Property id="SCADA.216" type="LocalizedText"></Property>
+    <Property id="SCADA.217" type="LocalizedText"></Property>
+    <Property id="SCADA.218" type="Int32">0</Property>
+    <Property id="SCADA.219" type="Int32">0</Property>
+  </Node>
+</AddressSpace>

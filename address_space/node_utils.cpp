@@ -403,6 +403,26 @@ NodeId GetSupertypeId(const Node& node) {
   return GetNodeId(supertype);
 }
 
+NodeId GetDataTypeId(const Node& node) {
+  if (auto* variable = AsVariable(&node)) {
+    return variable->GetDataType().id();
+  }
+  if (auto* variable_type = AsVariableType(&node)) {
+    return variable_type->data_type().id();
+  }
+  return {};
+}
+
+std::optional<Variant> GetValue(const Node& node) {
+  if (auto* variable = AsVariable(&node)) {
+    return variable->GetValue().value;
+  }
+  if (auto* variable_type = AsVariableType(&node)) {
+    return variable_type->default_value();
+  }
+  return std::nullopt;
+}
+
 const Node* FindComponentDeclaration(const Node& component) {
   auto* instance = GetParent(component);
   if (!instance) {
@@ -410,6 +430,13 @@ const Node* FindComponentDeclaration(const Node& component) {
   }
 
   auto* type = instance->type_definition();
+  if (!type && IsTypeDefinition(instance->GetNodeClass())) {
+    return &component;
+  }
+  if (!type) {
+    return {};
+  }
+
   const auto& component_name = component.GetBrowseName();
   return FindComponentDeclaration(*type, component_name.name());
 }
@@ -426,6 +453,9 @@ NodeState MakeNodeState(const Node& node) {
   auto references =
       node.forward_references() |
       boost::adaptors::filtered([](const Reference& ref) {
+        if (!ref.type || !ref.node) {
+          return false;
+        }
         return IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
       }) |
       boost::adaptors::transformed([](const Reference& ref) {
@@ -444,7 +474,9 @@ NodeState MakeNodeState(const Node& node) {
           .parent_id = GetNodeId(parent_ref.node),
           .reference_type_id = GetNodeId(parent_ref.type),
           .attributes = {.browse_name = node.GetBrowseName(),
-                         .display_name = node.GetDisplayName()},
+                         .display_name = node.GetDisplayName(),
+                         .data_type = GetDataTypeId(node),
+                         .value = GetValue(node)},
           .properties = std::move(properties),
           .references = std::move(references),
           .supertype_id = GetSupertypeId(node)};

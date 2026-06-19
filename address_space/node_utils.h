@@ -139,6 +139,9 @@ inline auto GetForwardReferenceNodes(const Node& node,
 inline auto GetProperties(const Node& node) {
   return node.forward_references() |
          boost::adaptors::filtered([](const auto& ref) {
+           if (!ref.type || !ref.node) {
+             return false;
+           }
            return IsSubtypeOf(AsTypeDefinition(*ref.type), id::HasProperty) &&
                   scada::AsVariable(ref.node) != nullptr;
          }) |

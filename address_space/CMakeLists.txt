@@ -9,9 +9,12 @@ target_link_libraries(address_space PUBLIC
   transport
 )
 
+find_package(pugixml REQUIRED)
+
 target_link_libraries(address_space PRIVATE
   scada_common
   scada_model
+  pugixml::pugixml
 )
 
 # Subdirectories.
