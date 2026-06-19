@@ -92,6 +92,28 @@ TEST_F(AddressSpaceUpdaterTest, UpdateNodes_UpdateObject) {
                                               scada::id::RootFolder}));
 }
 
+TEST_F(AddressSpaceUpdaterTest, UpdateNodes_UpdateMethod) {
+  const auto node_state =
+      scada::NodeState{}
+          .set_node_id({1, 1})
+          .set_node_class(scada::NodeClass::Method)
+          .set_parent(scada::id::HasComponent, scada::id::RootFolder);
+
+  EXPECT_CALL(node_factory_, CreateNode(_));
+
+  address_space_updater_.UpdateNodes({node_state});
+
+  auto* node = address_space_.GetNode(node_state.node_id);
+
+  ASSERT_TRUE(node);
+  EXPECT_EQ(node->GetNodeClass(), node_state.node_class);
+  EXPECT_FALSE(node->type_definition());
+
+  EXPECT_THAT(CollectReferenceDescriptions(*node),
+              UnorderedElementsAre(scada::ReferenceDescription{
+                  scada::id::HasComponent, false, scada::id::RootFolder}));
+}
+
 TEST_F(AddressSpaceUpdaterTest, UpdateNodes_UpdateReferenceType) {
   const auto node_state =
       scada::NodeState{}

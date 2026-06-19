@@ -1,6 +1,7 @@
 #include "address_space/generic_node_factory.h"
 
 #include "address_space/address_space_util.h"
+#include "address_space/method.h"
 #include "address_space/mutable_address_space.h"
 #include "address_space/node_factory_util.h"
 #include "address_space/object.h"
@@ -84,6 +85,13 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     assert(!type_definition);
 
     node = std::make_unique<scada::DataType>();
+
+  } else if (node_state.node_class == scada::NodeClass::Method) {
+    assert(!type_definition);
+
+    node = std::make_unique<scada::GenericMethod>(
+        node_state.node_id, node_state.attributes.browse_name,
+        node_state.attributes.display_name);
 
   } else {
     assert(false);
