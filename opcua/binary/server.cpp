@@ -114,8 +114,12 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
          .max_frame_size = max_frame_size_value,
          .secure_channel_config = std::move(secure_channel_config_value),
          .on_secure_frame =
-             [&dispatcher](std::vector<char> payload)
+             [&dispatcher, connection = &state->connection](
+                 std::vector<char> payload, SecureFrameContext secure_context)
                  -> Awaitable<std::optional<std::vector<char>>> {
+           connection->secure_channel = secure_context.secure;
+           connection->client_certificate =
+               std::move(secure_context.client_certificate);
            co_return co_await dispatcher.HandlePayload(std::move(payload));
          }}}
         .Run();

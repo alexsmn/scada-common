@@ -89,6 +89,11 @@ class PrivateKey {
 [[nodiscard]] scada::StatusOr<scada::ByteString> CertificateThumbprint(
     const Certificate& cert);
 
+// True if the certificate's validity period (notBefore..notAfter) contains the
+// current time. Used by the trust store to reject expired/not-yet-valid client
+// certificates (OPC UA Part 4 §6.1.3).
+[[nodiscard]] bool CertificateTimeValid(const Certificate& cert);
+
 // Returns the RSA public key of the certificate's subject, ready to hand
 // to RsaOaepEncrypt / RsaPkcs1Sha256Verify below. The returned PrivateKey
 // contains only the public parameters.

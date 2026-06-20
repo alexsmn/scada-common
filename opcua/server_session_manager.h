@@ -20,6 +20,13 @@ struct CreateSessionRequest {
   // §5.6.2).
   scada::ByteString client_certificate;
   scada::ByteString client_nonce;
+  // SecureChannel binding, filled by the runtime from the connection (not on
+  // the wire). When `channel_secure` is set the server requires the body's
+  // `client_certificate` to match `channel_certificate` (the certificate the
+  // SecureChannel already validated), guarding against a client presenting a
+  // different certificate at the session layer than at the channel layer.
+  bool channel_secure = false;
+  scada::ByteString channel_certificate;
 };
 
 struct CreateSessionResponse {
@@ -74,6 +81,10 @@ struct ServerSessionLookupResult {
 
 struct ServerSessionManagerContext {
   std::shared_ptr<scada::CoroutineAuthenticator> authenticator;
+  // Server application instance certificate (DER). When non-empty, the client
+  // signs (server_certificate || server_nonce) and the manager verifies that
+  // clientSignature in ActivateSession. Empty under SecurityPolicy=None.
+  scada::ByteString server_certificate;
   std::function<base::Time()> now = &base::Time::Now;
   base::TimeDelta default_timeout = base::TimeDelta::FromMinutes(10);
   base::TimeDelta min_timeout = base::TimeDelta::FromSeconds(30);
@@ -103,6 +114,10 @@ class ServerSessionManager : private ServerSessionManagerContext {
     scada::NodeId session_id;
     scada::NodeId authentication_token;
     scada::ByteString server_nonce;
+    // Client application instance certificate (DER) captured at CreateSession.
+    // Non-empty marks a secured session whose ActivateSession clientSignature
+    // must verify.
+    scada::ByteString client_certificate;
     base::TimeDelta revised_timeout;
     base::Time expires_at;
     scada::ServiceContext service_context;

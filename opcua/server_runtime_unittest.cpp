@@ -427,6 +427,47 @@ TEST_F(DataServicesServerRuntimeTest,
               testing::ElementsAre(request.inputs[0]));
 }
 
+TEST_F(DataServicesServerRuntimeTest, GetEndpointsRebasesMatchingSchemeOnly) {
+  std::vector<EndpointDescription> endpoints = {
+      {.endpoint_url = "opc.tcp://0.0.0.0:4840",
+       .transport_profile_uri =
+           "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary"},
+      {.endpoint_url = "opc.wss://0.0.0.0:4843",
+       .transport_profile_uri =
+           "http://opcfoundation.org/UA-Profile/Transport/wss-uajson"},
+  };
+  ServerRuntime runtime{DataServicesServerRuntimeContext{
+      .executor = any_executor_,
+      .session_manager = session_manager_,
+      .data_services = MakeRuntimeDataServices(coroutine_services_,
+                                               monitored_item_service_),
+      .endpoints = endpoints,
+      .now = [this] { return now_; },
+  }};
+
+  ConnectionState connection;
+  const auto body = WaitAwaitable(
+      executor_,
+      runtime.Handle(connection, RequestBody{GetEndpointsRequest{
+                                     .endpoint_url = "opc.tcp://gateway:4840"}}));
+  const auto* response = std::get_if<GetEndpointsResponse>(&body);
+  ASSERT_TRUE(response);
+  ASSERT_EQ(response->endpoints.size(), 2u);
+
+  std::string tcp_url;
+  std::string wss_url;
+  for (const auto& endpoint : response->endpoints) {
+    if (endpoint.endpoint_url.starts_with("opc.tcp"))
+      tcp_url = endpoint.endpoint_url;
+    else
+      wss_url = endpoint.endpoint_url;
+  }
+  // The TCP endpoint is rebased onto the client-reachable host; the WS endpoint
+  // (different scheme) keeps its configured URL.
+  EXPECT_EQ(tcp_url, "opc.tcp://gateway:4840");
+  EXPECT_EQ(wss_url, "opc.wss://0.0.0.0:4843");
+}
+
 class DataServicesCallbackServerRuntimeTest
     : public testing::Test,
       public test::ServerRuntimeContractTestBase {

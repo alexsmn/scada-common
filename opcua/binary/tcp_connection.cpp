@@ -162,11 +162,18 @@ void TcpConnection::StartServiceFrame(transport::WriteQueue write_queue,
     service_frames_drained_.emplace(transport.get_executor());
   }
 
+  SecureFrameContext secure_context{
+      .secure = secure_channel_.secure(),
+      .client_certificate = secure_channel_.client_certificate(),
+  };
   CoSpawn(transport.get_executor(),
           [this, write_queue = std::move(write_queue),
-           payload = std::move(payload), request_id]() mutable -> Awaitable<void> {
+           payload = std::move(payload), request_id,
+           secure_context = std::move(secure_context)]() mutable
+          -> Awaitable<void> {
     try {
-      auto outbound_payload = co_await on_secure_frame(std::move(payload));
+      auto outbound_payload = co_await on_secure_frame(
+          std::move(payload), std::move(secure_context));
       if (outbound_payload.has_value() && !outbound_payload->empty()) {
         auto outbound_frame = secure_channel_.BuildServiceResponse(
             request_id, std::move(*outbound_payload));

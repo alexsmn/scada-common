@@ -2007,10 +2007,16 @@ std::optional<DecodedRequest> DecodeActivateSessionRequest(
     std::span<const char> body) {
   Decoder decoder{body};
   ServiceRequestHeader header;
+  std::string client_signature_algorithm;
+  scada::ByteString client_signature;
   if (!ReadRequestHeader(decoder, header) ||
       !header.authentication_token.is_numeric() ||
-      !SkipSignatureData(decoder) || !SkipSignedSoftwareCertificates(decoder) ||
-      !SkipStringArray(decoder)) {
+      // clientSignature (SignatureData): signature over
+      // (serverCertificate || serverNonce). Captured so the server can verify
+      // it (OPC UA Part 4 §5.6.3); empty under SecurityPolicy=None.
+      !decoder.Decode(client_signature_algorithm) ||
+      !decoder.Decode(client_signature) ||
+      !SkipSignedSoftwareCertificates(decoder) || !SkipStringArray(decoder)) {
     return std::nullopt;
   }
 
@@ -2022,6 +2028,8 @@ std::optional<DecodedRequest> DecodeActivateSessionRequest(
 
   ActivateSessionRequest request{
       .authentication_token = header.authentication_token,
+      .client_signature_algorithm = std::move(client_signature_algorithm),
+      .client_signature = std::move(client_signature),
   };
 
   Decoder body_decoder{user_identity.body};

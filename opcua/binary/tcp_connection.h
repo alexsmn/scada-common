@@ -15,8 +15,18 @@
 
 namespace opcua::binary {
 
+// SecureChannel binding handed to the service handler with each decoded
+// service frame: whether the channel is secured and, if so, the client
+// application instance certificate (DER) it presented.
+struct SecureFrameContext {
+  bool secure = false;
+  scada::ByteString client_certificate;
+};
+
 using SecureFrameHandler =
-    std::function<Awaitable<std::optional<std::vector<char>>>(std::vector<char>)>;
+    std::function<Awaitable<std::optional<std::vector<char>>>(
+        std::vector<char>,
+        SecureFrameContext)>;
 
 struct TcpConnectionContext {
   transport::any_transport transport;
@@ -26,7 +36,8 @@ struct TcpConnectionContext {
   // Shared SecureChannel configuration. Null offers SecurityPolicy=None only.
   std::shared_ptr<const SecureChannelServerConfig> secure_channel_config;
   SecureFrameHandler on_secure_frame =
-      [](std::vector<char>) -> Awaitable<std::optional<std::vector<char>>> {
+      [](std::vector<char>,
+         SecureFrameContext) -> Awaitable<std::optional<std::vector<char>>> {
     co_return std::nullopt;
   };
 };

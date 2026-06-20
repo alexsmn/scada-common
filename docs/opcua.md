@@ -159,6 +159,14 @@ implement the Basic256Sha256 asymmetric `OpenSecureChannel` handshake
 implemented. The server channel is end-to-end tested against the client
 channel in `common/opcua/binary/secure_channel_server_unittest.cpp`.
 
+On top of the channel, the server verifies the ActivateSession
+`clientSignature` over (serverCertificate || serverNonce) against the
+client application instance certificate and binds that certificate to the
+one the SecureChannel validated (`common/opcua/server_session_manager.cpp`).
+Client certificates are checked against a file-backed
+`binary::CertificateTrustStore` (validity period + trusted-thumbprint
+membership, with a rejected-certificate store). Session nonces are CSPRNG.
+
 ### `ClientSession`
 
 Files:

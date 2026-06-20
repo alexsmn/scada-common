@@ -5,6 +5,7 @@
 #include "scada/status_or.h"
 
 #include <algorithm>
+#include <span>
 #include <utility>
 
 namespace opcua {
@@ -17,6 +18,34 @@ scada::Status SessionMissingStatus() {
   return scada::StatusCode::Bad_SessionIsLoggedOff;
 }
 
+std::span<const std::uint8_t> ByteSpan(const scada::ByteString& v) {
+  return {reinterpret_cast<const std::uint8_t*>(v.data()), v.size()};
+}
+
+// Verifies the ActivateSession clientSignature: an RSA-PKCS#1-SHA256 signature
+// over (serverCertificate || serverNonce) made with the private key of the
+// client application instance certificate (OPC UA Part 4 §5.6.3).
+bool VerifyApplicationSignature(const scada::ByteString& client_certificate_der,
+                                const scada::ByteString& server_certificate,
+                                const scada::ByteString& server_nonce,
+                                const scada::ByteString& signature) {
+  auto certificate =
+      binary::crypto::LoadDerCertificate(ByteSpan(client_certificate_der));
+  if (!certificate.ok()) {
+    return false;
+  }
+  auto public_key = binary::crypto::CertificatePublicKey(*certificate);
+  if (!public_key.ok()) {
+    return false;
+  }
+  scada::ByteString data;
+  data.reserve(server_certificate.size() + server_nonce.size());
+  data.insert(data.end(), server_certificate.begin(), server_certificate.end());
+  data.insert(data.end(), server_nonce.begin(), server_nonce.end());
+  return binary::crypto::RsaPkcs1Sha256Verify(*public_key, ByteSpan(data),
+                                              ByteSpan(signature));
+}
+
 }  // namespace
 
 ServerSessionManager::ServerSessionManager(
@@ -27,6 +56,19 @@ Awaitable<CreateSessionResponse> ServerSessionManager::CreateSession(
     CreateSessionRequest request) {
   PruneExpiredSessions();
 
+  // SecureChannel binding: a secured session must present, at the session
+  // layer, the same client application instance certificate the SecureChannel
+  // already validated (OPC UA Part 4 §5.6.2).
+  if (request.channel_secure) {
+    if (request.client_certificate.empty() ||
+        request.client_certificate != request.channel_certificate) {
+      LOG_WARNING(logger_) << "OPC UA session creation rejected"
+                           << LOG_TAG("Reason", "ClientCertificateMismatch");
+      co_return CreateSessionResponse{
+          .status = scada::StatusCode::Bad_ApplicationSignatureInvalid};
+    }
+  }
+
   const auto revised_timeout = ReviseTimeout(request.requested_timeout);
   const auto session_id = MakeSessionId();
   const auto authentication_token = MakeAuthenticationToken();
@@ -35,6 +77,7 @@ Awaitable<CreateSessionResponse> ServerSessionManager::CreateSession(
       .session_id = session_id,
       .authentication_token = authentication_token,
       .server_nonce = MakeServerNonce(),
+      .client_certificate = request.client_certificate,
       .revised_timeout = revised_timeout,
       .expires_at = Now() + revised_timeout,
   };
@@ -56,6 +99,7 @@ Awaitable<CreateSessionResponse> ServerSessionManager::CreateSession(
       .session_id = session_id,
       .authentication_token = authentication_token,
       .server_nonce = std::move(server_nonce),
+      .server_certificate = server_certificate,
       .revised_timeout = revised_timeout,
   };
 }
@@ -76,6 +120,22 @@ Awaitable<ActivateSessionResponse> ServerSessionManager::ActivateSession(
                          << LOG_TAG("AuthenticationToken",
                                     request.authentication_token.ToString());
     co_return ActivateSessionResponse{SessionMissingStatus()};
+  }
+
+  // Verify the client application signature for a secured session before any
+  // user authentication or session resume (OPC UA Part 4 §5.6.3).
+  if (!session.client_certificate.empty()) {
+    if (request.client_signature.empty() ||
+        !VerifyApplicationSignature(session.client_certificate,
+                                    server_certificate, session.server_nonce,
+                                    request.client_signature)) {
+      LOG_WARNING(logger_) << "OPC UA session activation failed"
+                           << LOG_TAG("Reason", "ApplicationSignatureInvalid")
+                           << LOG_TAG("SessionId",
+                                      request.session_id.ToString());
+      co_return ActivateSessionResponse{
+          scada::StatusCode::Bad_ApplicationSignatureInvalid};
+    }
   }
 
   if (session.activated) {

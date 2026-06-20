@@ -174,6 +174,8 @@ Awaitable<ResponseBody> ServerRuntime::Handle(ConnectionState& connection,
         } else if constexpr (std::is_same_v<T, GetEndpointsRequest>) {
           co_return HandleGetEndpoints(typed_request);
         } else if constexpr (std::is_same_v<T, CreateSessionRequest>) {
+          typed_request.channel_secure = connection.secure_channel;
+          typed_request.channel_certificate = connection.client_certificate;
           co_return ResponseBody{co_await session_manager_.CreateSession(
               std::move(typed_request))};
         } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
@@ -403,6 +405,17 @@ ResponseBody ServerRuntime::HandleFindServers(
   return ResponseBody{std::move(response)};
 }
 
+namespace {
+
+// Scheme prefix of an OPC UA URL (e.g. "opc.tcp" from "opc.tcp://host:4840").
+std::string_view UrlScheme(std::string_view url) {
+  const auto pos = url.find("://");
+  return pos == std::string_view::npos ? std::string_view{}
+                                       : url.substr(0, pos);
+}
+
+}  // namespace
+
 ResponseBody ServerRuntime::HandleGetEndpoints(
     const GetEndpointsRequest& request) const {
   GetEndpointsResponse response;
@@ -411,8 +424,14 @@ ResponseBody ServerRuntime::HandleGetEndpoints(
                              request.profile_uris)) {
       continue;
     }
-    if (!request.endpoint_url.empty())
+    // Return URLs reachable by the client: echo the URL the client used, but
+    // only for endpoints served over the same transport scheme so a TCP
+    // GetEndpoints does not clobber the advertised WS endpoint URLs (and vice
+    // versa). OPC UA Part 4 §5.4.4 / Part 6 host normalization.
+    if (!request.endpoint_url.empty() &&
+        UrlScheme(endpoint.endpoint_url) == UrlScheme(request.endpoint_url)) {
       endpoint.endpoint_url = request.endpoint_url;
+    }
     response.endpoints.push_back(std::move(endpoint));
   }
   return ResponseBody{std::move(response)};

@@ -1706,7 +1706,8 @@ class ServiceDispatcherTest : public ::testing::Test {
             {.transport = transport::any_transport{ScriptedStreamTransport{
                  any_executor_, peer}},
              .limits = server_limits_,
-             .on_secure_frame = [&dispatcher](std::vector<char> payload)
+             .on_secure_frame = [&dispatcher](std::vector<char> payload,
+                                              SecureFrameContext)
                  -> Awaitable<std::optional<std::vector<char>>> {
                co_return co_await dispatcher.HandlePayload(std::move(payload));
              }}}

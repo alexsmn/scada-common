@@ -162,6 +162,21 @@ scada::StatusOr<scada::ByteString> CertificateThumbprint(
   return scada::StatusOr<scada::ByteString>{std::move(thumbprint)};
 }
 
+bool CertificateTimeValid(const Certificate& cert) {
+  if (cert.empty()) {
+    return false;
+  }
+  const ASN1_TIME* not_before = X509_get0_notBefore(cert.raw());
+  const ASN1_TIME* not_after = X509_get0_notAfter(cert.raw());
+  if (!not_before || !not_after) {
+    return false;
+  }
+  // X509_cmp_current_time returns <0 when the time is in the past, >0 in the
+  // future. notBefore must be in the past and notAfter in the future.
+  return X509_cmp_current_time(not_before) < 0 &&
+         X509_cmp_current_time(not_after) > 0;
+}
+
 scada::StatusOr<PrivateKey> CertificatePublicKey(const Certificate& cert) {
   if (cert.empty()) {
     return scada::StatusOr<PrivateKey>{BadCrypto()};

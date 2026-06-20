@@ -26,6 +26,13 @@ namespace opcua {
 struct ConnectionState {
   std::optional<scada::NodeId> authentication_token;
   bool closed = false;
+  // SecureChannel binding for this connection. Set by the binary transport
+  // when the channel negotiated a secure policy: `secure_channel` is true and
+  // `client_certificate` holds the client application instance certificate
+  // (DER) presented during OpenSecureChannel. Both stay default under
+  // SecurityPolicy=None and for the WS/TLS transport.
+  bool secure_channel = false;
+  scada::ByteString client_certificate;
 };
 
 struct ServerRuntimeContext {

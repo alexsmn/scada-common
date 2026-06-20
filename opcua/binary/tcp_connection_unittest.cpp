@@ -166,7 +166,8 @@ class TcpConnectionTest : public ::testing::Test {
  protected:
   void RunPeer(const std::shared_ptr<StreamPeerState>& peer,
                SecureFrameHandler handler =
-                   [](std::vector<char>) -> Awaitable<std::optional<std::vector<char>>> {
+                   [](std::vector<char>, SecureFrameContext)
+                   -> Awaitable<std::optional<std::vector<char>>> {
                  co_return std::nullopt;
                }) {
     WaitAwaitable(executor_,
@@ -276,7 +277,7 @@ TEST_F(TcpConnectionTest,
   peer->incoming.push_back(AsString(secure));
 
   std::vector<std::vector<char>> received_payloads;
-  RunPeer(peer, [&](std::vector<char> frame)
+  RunPeer(peer, [&](std::vector<char> frame, SecureFrameContext)
               -> Awaitable<std::optional<std::vector<char>>> {
     received_payloads.push_back(frame);
     co_return std::vector<char>{'o', 'k'};
@@ -356,7 +357,7 @@ TEST_F(TcpConnectionTest,
          .limits = server_limits_,
          .on_secure_frame =
              [release_first, &received_payloads](
-                 std::vector<char> frame)
+                 std::vector<char> frame, SecureFrameContext)
                  mutable -> Awaitable<std::optional<std::vector<char>>> {
            received_payloads.push_back(frame);
            if (frame == (std::vector<char>{'s', 'l', 'o', 'w'})) {
