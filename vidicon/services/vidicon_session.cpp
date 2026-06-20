@@ -2,13 +2,14 @@
 
 #include "base/win/scoped_bstr.h"
 
-#include <format>
 #include "scada/date_time.h"
 #include "scada/history_types.h"
+#include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
 #include "vidicon/services/vidicon_monitored_data_point.h"
 #include "vidicon/services/vidicon_monitored_events.h"
+#include <format>
 
 #include <string_view>
 #include <wrl/client.h>
@@ -88,32 +89,38 @@ Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(
   co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
 }
 
-std::shared_ptr<scada::MonitoredItem> VidiconSession::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id,
-    const scada::MonitoringParameters& params) {
-  if (read_value_id.attribute_id == scada::AttributeId::Value) {
-    if (read_value_id.node_id.type() != scada::NodeIdType::Numeric)
-      return nullptr;
-    auto address =
-        std::format(L"CF:{}", read_value_id.node_id.numeric_id());
-    Microsoft::WRL::ComPtr<IDataPoint> point;
-    teleclient_->RequestPoint(base::win::ScopedBstr(address),
-                              point.GetAddressOf());
-    if (!point)
-      return nullptr;
-    return std::make_shared<VidiconMonitoredDataPoint>(std::move(point));
-  }
+scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+VidiconSession::CreateSubscription(
+    scada::ServiceContext /*context*/,
+    scada::MonitoredItemSubscriptionOptions options) {
+  return scada::MakeItemFactorySubscription(
+      [this](const scada::ReadValueId& read_value_id,
+             const scada::MonitoringParameters& params)
+          -> std::shared_ptr<scada::MonitoredItem> {
+        if (read_value_id.attribute_id == scada::AttributeId::Value) {
+          if (read_value_id.node_id.type() != scada::NodeIdType::Numeric)
+            return nullptr;
+          auto address =
+              std::format(L"CF:{}", read_value_id.node_id.numeric_id());
+          Microsoft::WRL::ComPtr<IDataPoint> point;
+          teleclient_->RequestPoint(base::win::ScopedBstr(address),
+                                    point.GetAddressOf());
+          if (!point)
+            return nullptr;
+          return std::make_shared<VidiconMonitoredDataPoint>(std::move(point));
+        }
 
-  if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
-    assert(read_value_id.node_id == scada::id::Server);
-    return std::make_shared<VidiconMonitoredEvents>();
-  }
+        if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
+          assert(read_value_id.node_id == scada::id::Server);
+          return std::make_shared<VidiconMonitoredEvents>();
+        }
 
-  return nullptr;
+        return nullptr;
+      },
+      options);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-VidiconSession::Read(
+Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> VidiconSession::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
   co_return co_await attribute_service_.Read(std::move(context),
@@ -146,8 +153,7 @@ VidiconSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::AddReferences(
-    std::vector<scada::AddReferencesItem> inputs) {
+VidiconSession::AddReferences(std::vector<scada::AddReferencesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 

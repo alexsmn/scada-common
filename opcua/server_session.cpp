@@ -30,17 +30,19 @@ CreateSubscriptionResponse ServerSession::CreateSubscriptionWithId(
     const CreateSubscriptionRequest& request) {
   next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
   auto subscription = std::make_unique<ServerSubscription>(
-      subscription_id, request.parameters, this->monitored_item_service,
-      Now());
+      subscription_id, request.parameters, this->executor,
+      this->monitored_item_service, Now());
 
   subscriptions_.emplace(subscription_id, std::move(subscription));
   publish_order_.push_back(subscription_id);
 
-  return {.status = scada::StatusCode::Good,
-          .subscription_id = subscription_id,
-          .revised_publishing_interval_ms = request.parameters.publishing_interval_ms,
-          .revised_lifetime_count = request.parameters.lifetime_count,
-          .revised_max_keep_alive_count = request.parameters.max_keep_alive_count};
+  return {
+      .status = scada::StatusCode::Good,
+      .subscription_id = subscription_id,
+      .revised_publishing_interval_ms =
+          request.parameters.publishing_interval_ms,
+      .revised_lifetime_count = request.parameters.lifetime_count,
+      .revised_max_keep_alive_count = request.parameters.max_keep_alive_count};
 }
 
 ModifySubscriptionResponse ServerSession::ModifySubscription(
@@ -89,8 +91,7 @@ DeleteSubscriptionsResponse ServerSession::DeleteSubscriptions(
 TransferSubscriptionsResponse ServerSession::TransferSubscriptionsFrom(
     ServerSession& source,
     const TransferSubscriptionsRequest& request) {
-  TransferSubscriptionsResponse response{
-      .status = scada::StatusCode::Good};
+  TransferSubscriptionsResponse response{.status = scada::StatusCode::Good};
   response.results.reserve(request.subscription_ids.size());
 
   for (const auto subscription_id : request.subscription_ids) {
@@ -186,8 +187,8 @@ std::vector<scada::StatusCode> ServerSession::AcknowledgePublishRequest(
 ServerSession::PublishPollResult ServerSession::PollPublish() {
   const auto now_time = Now();
   const auto pending_index = FindNextReadySubscription(now_time, true);
-  const auto publish_index =
-      pending_index != kNotFound ? pending_index
+  const auto publish_index = pending_index != kNotFound
+                                 ? pending_index
                                  : FindNextReadySubscription(now_time, false);
   if (publish_index == kNotFound) {
     if (subscriptions_.empty()) {
@@ -217,8 +218,7 @@ ServerSession::PublishPollResult ServerSession::PollPublish() {
     }
 
     if (!earliest_deadline.has_value()) {
-      return {.response = PublishResponse{
-                  .status = scada::StatusCode::Good}};
+      return {.response = PublishResponse{.status = scada::StatusCode::Good}};
     }
 
     auto wait_for = std::max(base::TimeDelta{}, *earliest_deadline - now_time);
@@ -243,13 +243,13 @@ ServerSession::PublishPollResult ServerSession::PollPublish() {
   return {.response = std::move(published)};
 }
 
-PublishResponse ServerSession::Publish(
-    const PublishRequest& request) {
+PublishResponse ServerSession::Publish(const PublishRequest& request) {
   auto ack_results = AcknowledgePublishRequest(request);
   auto poll = PollPublish();
   if (!poll.response.has_value()) {
-    return {.status = subscriptions_.empty() ? scada::StatusCode::Bad_NothingToDo
-                                             : scada::StatusCode::Good,
+    return {.status = subscriptions_.empty()
+                          ? scada::StatusCode::Bad_NothingToDo
+                          : scada::StatusCode::Good,
             .results = std::move(ack_results)};
   }
   poll.response->results = std::move(ack_results);
@@ -271,7 +271,8 @@ BrowseResponse ServerSession::StoreBrowseResults(
     return response;
 
   for (auto& result : response.results) {
-    result = PageBrowseResult(std::move(result), requested_max_references_per_node);
+    result =
+        PageBrowseResult(std::move(result), requested_max_references_per_node);
   }
   return response;
 }
@@ -328,12 +329,13 @@ const ServerSubscription* ServerSession::FindSubscription(
 
 void ServerSession::EraseSubscription(SubscriptionId subscription_id) {
   subscriptions_.erase(subscription_id);
-  const auto it = std::find(publish_order_.begin(), publish_order_.end(),
-                            subscription_id);
+  const auto it =
+      std::find(publish_order_.begin(), publish_order_.end(), subscription_id);
   if (it == publish_order_.end())
     return;
 
-  const auto index = static_cast<size_t>(std::distance(publish_order_.begin(), it));
+  const auto index =
+      static_cast<size_t>(std::distance(publish_order_.begin(), it));
   publish_order_.erase(it);
   if (publish_order_.empty()) {
     next_publish_index_ = 0;
@@ -354,7 +356,7 @@ void ServerSession::AdvancePublishCursorAfter(size_t index) {
 }
 
 size_t ServerSession::FindNextReadySubscription(base::Time now,
-                                               bool require_pending) const {
+                                                bool require_pending) const {
   if (publish_order_.empty())
     return kNotFound;
 
@@ -375,7 +377,8 @@ size_t ServerSession::FindNextReadySubscription(base::Time now,
 
 void ServerSession::RefreshNextSubscriptionId() {
   for (const auto& [subscription_id, subscription] : subscriptions_)
-    next_subscription_id_ = std::max(next_subscription_id_, subscription_id + 1);
+    next_subscription_id_ =
+        std::max(next_subscription_id_, subscription_id + 1);
 }
 
 scada::ByteString ServerSession::MakeBrowseContinuationPoint() {
@@ -422,4 +425,3 @@ scada::BrowseResult ServerSession::ResumeBrowseResult(
 }
 
 }  // namespace opcua
-

@@ -4,8 +4,9 @@
 #include "scada/attribute_service.h"
 #include "scada/event.h"
 #include "scada/event_util.h"
-#include "scada/monitored_item_service.h"
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item.h"
+#include "scada/monitored_item_service.h"
 #include "scada/service_context.h"
 
 #include <boost/json/value.hpp>
@@ -64,19 +65,18 @@ struct CreateMonitoredItemResult {
 };
 
 inline CreateMonitoredItemResult CreateMonitoredItem(
-    scada::MonitoredItemService& monitored_item_service,
+    scada::LegacyMonitoredItemAdapter& monitored_item_adapter,
     const scada::ReadValueId& item_to_monitor,
     const scada::MonitoringParameters& parameters) {
   if (!IsSupportedMonitoredAttribute(item_to_monitor.attribute_id)) {
     return {.status = scada::StatusCode::Bad_WrongAttributeId};
   }
   auto monitored_item =
-      monitored_item_service.CreateMonitoredItem(item_to_monitor, parameters);
+      monitored_item_adapter.CreateMonitoredItem(item_to_monitor, parameters);
   const auto status =
       monitored_item ? scada::StatusCode::Good
                      : TranslateCreateMonitoredItemFailure(item_to_monitor);
-  return {.monitored_item = std::move(monitored_item),
-          .status = status};
+  return {.monitored_item = std::move(monitored_item), .status = status};
 }
 
 template <class DataChangeCallback, class EventCallback>
@@ -88,9 +88,8 @@ inline scada::MonitoredItemHandler MakeMonitoredItemHandler(
     return scada::MonitoredItemHandler{
         scada::EventHandler(std::forward<EventCallback>(event_callback))};
   }
-  return scada::MonitoredItemHandler{
-      scada::DataChangeHandler(std::forward<DataChangeCallback>(
-          data_change_callback))};
+  return scada::MonitoredItemHandler{scada::DataChangeHandler(
+      std::forward<DataChangeCallback>(data_change_callback))};
 }
 
 template <class DataChangeCallback, class EventCallback>
@@ -140,14 +139,14 @@ inline bool DispatchEventNotification(
 }
 
 inline const std::vector<std::vector<std::string>>& DefaultEventFieldPaths() {
-  static const base::NoDestructor<std::vector<std::vector<std::string>>> kFields(
-      std::vector<std::vector<std::string>>{{"EventId"},
-                                            {"EventType"},
-                                            {"SourceNode"},
-                                            {"SourceName"},
-                                            {"Time"},
-                                            {"Message"},
-                                            {"Severity"}});
+  static const base::NoDestructor<std::vector<std::vector<std::string>>>
+      kFields(std::vector<std::vector<std::string>>{{"EventId"},
+                                                    {"EventType"},
+                                                    {"SourceNode"},
+                                                    {"SourceName"},
+                                                    {"Time"},
+                                                    {"Message"},
+                                                    {"Severity"}});
   return *kFields;
 }
 
@@ -156,7 +155,8 @@ inline std::vector<std::vector<std::string>> NormalizeEventFieldPaths(
   if (!field_paths.empty())
     return field_paths;
   const auto& defaults = DefaultEventFieldPaths();
-  return std::vector<std::vector<std::string>>(defaults.begin(), defaults.end());
+  return std::vector<std::vector<std::string>>(defaults.begin(),
+                                               defaults.end());
 }
 
 inline std::vector<std::vector<std::string>> ParseEventFilterFieldPaths(
@@ -214,9 +214,9 @@ inline std::vector<std::vector<std::string>> ParseEventFilterFieldPaths(
 inline boost::json::value BuildEventFilter(
     std::span<const std::vector<std::string>> field_paths) {
   boost::json::array select_clauses;
-  const auto normalized_field_paths = NormalizeEventFieldPaths(
-      std::vector<std::vector<std::string>>(field_paths.begin(),
-                                            field_paths.end()));
+  const auto normalized_field_paths =
+      NormalizeEventFieldPaths(std::vector<std::vector<std::string>>(
+          field_paths.begin(), field_paths.end()));
   for (const auto& field_path : normalized_field_paths) {
     boost::json::array browse_path;
     for (const auto& segment : field_path) {

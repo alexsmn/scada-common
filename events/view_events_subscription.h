@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/any_executor.h"
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
 #include "scada/monitoring_parameters.h"
@@ -20,8 +22,8 @@ using ViewEventsProvider =
 
 inline std::shared_ptr<scada::MonitoredItem>
 CreateModelChangeEventsMonitoredItem(
-    scada::MonitoredItemService& monitored_item_service) {
-  return monitored_item_service.CreateMonitoredItem(
+    scada::LegacyMonitoredItemAdapter& adapter) {
+  return adapter.CreateMonitoredItem(
       scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
       scada::MonitoringParameters{
           .filter = scada::EventFilter{
@@ -30,8 +32,8 @@ CreateModelChangeEventsMonitoredItem(
 
 inline std::shared_ptr<scada::MonitoredItem>
 CreateModelAndSemanticChangeEventsMonitoredItem(
-    scada::MonitoredItemService& monitored_item_service) {
-  return monitored_item_service.CreateMonitoredItem(
+    scada::LegacyMonitoredItemAdapter& adapter) {
+  return adapter.CreateMonitoredItem(
       scada::ReadValueId{scada::id::Server, scada::AttributeId::EventNotifier},
       scada::MonitoringParameters{
           .filter = scada::EventFilter{
@@ -42,6 +44,7 @@ CreateModelAndSemanticChangeEventsMonitoredItem(
 class ViewEventsSubscription : public IViewEventsSubscription {
  public:
   explicit ViewEventsSubscription(
+      AnyExecutor executor,
       scada::MonitoredItemService& monitored_item_service,
       scada::ViewEvents& events);
 
@@ -49,15 +52,20 @@ class ViewEventsSubscription : public IViewEventsSubscription {
   void OnEvent(const std::any& event);
 
   scada::ViewEvents& events_;
+  // Declared before |monitored_item_| so it is constructed first; the adapter
+  // owns the subscription that backs the legacy monitored item.
+  scada::LegacyMonitoredItemAdapter monitored_item_adapter_;
   const std::shared_ptr<scada::MonitoredItem> monitored_item_;
 };
 
 inline ViewEventsSubscription::ViewEventsSubscription(
+    AnyExecutor executor,
     scada::MonitoredItemService& monitored_item_service,
     scada::ViewEvents& events)
     : events_{events},
+      monitored_item_adapter_{executor, monitored_item_service},
       monitored_item_{CreateModelAndSemanticChangeEventsMonitoredItem(
-          monitored_item_service)} {
+          monitored_item_adapter_)} {
   assert(monitored_item_);
   // FIXME: Capturing |this|.
   monitored_item_->Subscribe(
@@ -82,9 +90,10 @@ inline void ViewEventsSubscription::OnEvent(const std::any& event) {
 }
 
 inline ViewEventsProvider MakeViewEventsProvider(
+    AnyExecutor executor,
     scada::MonitoredItemService& monitored_item_service) {
-  return [&monitored_item_service](scada::ViewEvents& events) {
-    return std::make_unique<ViewEventsSubscription>(monitored_item_service,
-                                                    events);
+  return [executor, &monitored_item_service](scada::ViewEvents& events) {
+    return std::make_unique<ViewEventsSubscription>(
+        executor, monitored_item_service, events);
   };
 }

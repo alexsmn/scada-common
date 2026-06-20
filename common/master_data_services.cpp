@@ -1,5 +1,6 @@
 #include "master_data_services.h"
 
+#include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
@@ -57,8 +58,10 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     assert(owner_->services_.monitored_item_service_);
 
     underlying_item_ =
-        owner_->services_.monitored_item_service_->CreateMonitoredItem(
-            read_value_id_, params_);
+        owner_->underlying_item_adapter_
+            ? owner_->underlying_item_adapter_->CreateMonitoredItem(
+                  read_value_id_, params_)
+            : nullptr;
 
     if (!underlying_item_) {
       if (const auto* data_change_handler =
@@ -93,9 +96,8 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
 
 MasterDataServices::MasterDataServices() = default;
 
-MasterDataServices::MasterDataServices(AnyExecutor executor) {
-  (void)executor;
-}
+MasterDataServices::MasterDataServices(AnyExecutor executor)
+    : executor_{std::move(executor)} {}
 
 MasterDataServices::~MasterDataServices() {
   for (auto* monitored_item : monitored_items_) {
@@ -110,7 +112,8 @@ scada::services MasterDataServices::as_services() {
           .history_service = this,
           .view_service = this,
           .node_management_service = this,
-          .session_service = this};
+          .session_service = this,
+          .monitored_item_executor = executor_};
 }
 
 void MasterDataServices::ResetCoroutineAdapters() {
@@ -146,6 +149,7 @@ void MasterDataServices::SetServices(DataServices&& services) {
 
     connected_ = false;
     services_ = {};
+    underlying_item_adapter_.reset();
     ResetCoroutineAdapters();
 
     session_state_changed_connection_.disconnect();
@@ -156,6 +160,12 @@ void MasterDataServices::SetServices(DataServices&& services) {
   services_ = std::move(services);
   RefreshCoroutineServices();
   connected_ = session_service_ != nullptr;
+
+  if (connected_ && services_.monitored_item_service_) {
+    underlying_item_adapter_ =
+        std::make_unique<scada::LegacyMonitoredItemAdapter>(
+            executor_, *services_.monitored_item_service_);
+  }
 
   if (connected_) {
     if (session_service_) {
@@ -174,7 +184,8 @@ void MasterDataServices::SetServices(DataServices&& services) {
   }
 }
 
-Awaitable<void> MasterDataServices::Connect(scada::SessionConnectParams params) {
+Awaitable<void> MasterDataServices::Connect(
+    scada::SessionConnectParams params) {
   (void)co_await ConnectStatus(std::move(params));
 }
 
@@ -242,16 +253,26 @@ MasterDataServices::SubscribeSessionStateChanged(
   return session_state_changed_signal_.connect(callback);
 }
 
-std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateMonitoredItem(
+scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+MasterDataServices::CreateSubscription(
+    scada::ServiceContext /*context*/,
+    scada::MonitoredItemSubscriptionOptions options) {
+  return scada::MakeItemFactorySubscription(
+      [this](const scada::ReadValueId& read_value_id,
+             const scada::MonitoringParameters& params) {
+        return CreateItem(read_value_id, params);
+      },
+      options);
+}
+
+std::shared_ptr<scada::MonitoredItem> MasterDataServices::CreateItem(
     const scada::ReadValueId& read_value_id,
     const scada::MonitoringParameters& params) {
   return std::make_shared<MasterMonitoredItem>(*this, read_value_id, params);
 }
 
 scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
-  return session_service_
-             ? session_service_->GetSessionDebugger()
-             : nullptr;
+  return session_service_ ? session_service_->GetSessionDebugger() : nullptr;
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
@@ -364,8 +385,8 @@ Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
     scada::EventFilter filter) {
   auto* service = history_service_;
   if (service)
-    co_return co_await service->HistoryReadEvents(
-        std::move(node_id), from, to, std::move(filter));
+    co_return co_await service->HistoryReadEvents(std::move(node_id), from, to,
+                                                  std::move(filter));
 
   co_return scada::HistoryReadEventsResult{
       .status = scada::StatusCode::Bad_Disconnected};

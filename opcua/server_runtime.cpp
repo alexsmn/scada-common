@@ -1,8 +1,8 @@
 #include "opcua/server_runtime.h"
 
+#include "base/any_executor.h"
 #include "base/async_completion.h"
 #include "base/boost_log.h"
-#include "base/any_executor.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "scada/coroutine_services.h"
@@ -35,8 +35,7 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
       .executor = std::move(context.executor),
       .session_manager = context.session_manager,
       .data_services =
-          {.view_service_ =
-               data_services::Unowned(context.view_service),
+          {.view_service_ = data_services::Unowned(context.view_service),
            .node_management_service_ =
                data_services::Unowned(context.node_management_service),
            .history_service_ = data_services::Unowned(context.history_service),
@@ -58,22 +57,18 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
     : data_services_{std::move(context.data_services)},
       executor_{std::move(context.executor)},
       session_manager_{context.session_manager},
-      monitored_item_service_{
-          scada::service_resolver::RequireSharedService(
-              data_services_.monitored_item_service_)},
+      monitored_item_service_{scada::service_resolver::RequireSharedService(
+          data_services_.monitored_item_service_)},
       attribute_service_{scada::service_resolver::RequireSharedService(
           data_services_.attribute_service_)},
       view_service_{scada::service_resolver::RequireSharedService(
           data_services_.view_service_)},
-      history_service_{
-          scada::service_resolver::RequireSharedService(
-              data_services_.history_service_)},
-      method_service_{
-          scada::service_resolver::RequireSharedService(
-              data_services_.method_service_)},
-      node_management_service_{
-          scada::service_resolver::RequireSharedService(
-              data_services_.node_management_service_)},
+      history_service_{scada::service_resolver::RequireSharedService(
+          data_services_.history_service_)},
+      method_service_{scada::service_resolver::RequireSharedService(
+          data_services_.method_service_)},
+      node_management_service_{scada::service_resolver::RequireSharedService(
+          data_services_.node_management_service_)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 
@@ -83,13 +78,13 @@ Awaitable<ServiceResponse> ServerRuntime::HandleServiceRequest(
     const ServerSession& session,
     ServiceRequest request) const {
   const auto user_id = session.GetServiceContext().user_id();
-  ServiceHandler handler{ServiceHandlerContext{
-      .attribute_service = attribute_service_,
-      .view_service = view_service_,
-      .history_service = history_service_,
-      .method_service = method_service_,
-      .node_management_service = node_management_service_,
-      .user_id = user_id}};
+  ServiceHandler handler{
+      ServiceHandlerContext{.attribute_service = attribute_service_,
+                            .view_service = view_service_,
+                            .history_service = history_service_,
+                            .method_service = method_service_,
+                            .node_management_service = node_management_service_,
+                            .user_id = user_id}};
   co_return co_await handler.Handle(std::move(request));
 }
 
@@ -399,6 +394,7 @@ Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(
         .session_id = request.session_id,
         .authentication_token = request.authentication_token,
         .service_context = response.service_context,
+        .executor = executor_,
         .monitored_item_service = monitored_item_service_,
         .now = now_,
     });

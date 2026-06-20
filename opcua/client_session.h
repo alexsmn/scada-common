@@ -64,9 +64,9 @@ class ClientSession final : public std::enable_shared_from_this<ClientSession>,
   [[nodiscard]] Awaitable<void> ReconnectAsync();
 
   // scada::MonitoredItemService
-  std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::ReadValueId& read_value_id,
-      const scada::MonitoringParameters& params) override;
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext context,
+                     scada::MonitoredItemSubscriptionOptions options) override;
 
   // scada::ViewService
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>

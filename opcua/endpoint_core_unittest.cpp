@@ -1,5 +1,7 @@
 #include "opcua/endpoint_core.h"
 
+#include "base/test/test_executor.h"
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item_service_mock.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/test/test_monitored_item.h"
@@ -20,6 +22,9 @@ class EndpointCoreTest : public Test {
   }
 
   StrictMock<scada::MockMonitoredItemService> monitored_item_service_;
+  TestExecutor executor_;
+  scada::LegacyMonitoredItemAdapter monitored_item_adapter_{
+      executor_, monitored_item_service_};
 };
 
 TEST_F(EndpointCoreTest, MakeServiceContext_SetsRequestedUserId) {
@@ -40,73 +45,93 @@ TEST_F(EndpointCoreTest, NormalizeReadResults_RewritesWrongNodeId) {
 
 TEST_F(EndpointCoreTest, CreateMonitoredItem_ForwardsInputsAndReturnsItem) {
   const auto read_value_id = scada::ReadValueId{
-      .node_id = NumericNode(50, 9),
-      .attribute_id = scada::AttributeId::Value};
+      .node_id = NumericNode(50, 9), .attribute_id = scada::AttributeId::Value};
   scada::MonitoringParameters parameters;
   parameters.sampling_interval = base::TimeDelta::FromMilliseconds(250);
   parameters.queue_size = 3u;
-  auto monitored_item =
-      std::make_shared<StrictMock<scada::MockMonitoredItem>>();
+  auto backing_item = std::make_shared<scada::TestMonitoredItem>();
 
+  // The LegacyMonitoredItemAdapter creates the backing item lazily: the
+  // service's CreateMonitoredItem is only invoked once the returned item is
+  // subscribed and the executor is pumped.
+  scada::ReadValueId forwarded_read_value_id;
+  scada::MonitoringParameters forwarded_parameters;
   EXPECT_CALL(monitored_item_service_, CreateMonitoredItem(_, _))
       .WillOnce(Invoke([&](const scada::ReadValueId& actual_read_value_id,
                            const scada::MonitoringParameters& actual_parameters)
-                            -> std::shared_ptr<scada::MonitoredItem> {
-        EXPECT_EQ(actual_read_value_id, read_value_id);
-        EXPECT_TRUE(actual_parameters.sampling_interval.has_value());
-        EXPECT_TRUE(actual_parameters.queue_size.has_value());
-        if (actual_parameters.sampling_interval.has_value()) {
-          EXPECT_EQ(*actual_parameters.sampling_interval,
-                    base::TimeDelta::FromMilliseconds(250));
-        }
-        if (actual_parameters.queue_size.has_value()) {
-          EXPECT_EQ(*actual_parameters.queue_size, 3u);
-        }
-        return monitored_item;
+                           -> std::shared_ptr<scada::MonitoredItem> {
+        forwarded_read_value_id = actual_read_value_id;
+        forwarded_parameters = actual_parameters;
+        return backing_item;
       }));
 
   auto created =
-      CreateMonitoredItem(monitored_item_service_, read_value_id, parameters);
+      CreateMonitoredItem(monitored_item_adapter_, read_value_id, parameters);
 
+  // The helper accepts a supported attribute synchronously and returns a
+  // (placeholder) item immediately.
   EXPECT_EQ(created.status, scada::StatusCode::Good);
-  EXPECT_EQ(created.monitored_item, monitored_item);
+  ASSERT_TRUE(created.monitored_item);
+
+  std::optional<scada::DataValue> delivered;
+  created.monitored_item->Subscribe(scada::DataChangeHandler{
+      [&](const scada::DataValue& value) { delivered = value; }});
+
+  // Drive the adapter's asynchronous subscription creation.
+  executor_.Poll();
+
+  EXPECT_EQ(forwarded_read_value_id, read_value_id);
+  ASSERT_TRUE(forwarded_parameters.sampling_interval.has_value());
+  EXPECT_EQ(*forwarded_parameters.sampling_interval,
+            base::TimeDelta::FromMilliseconds(250));
+  ASSERT_TRUE(forwarded_parameters.queue_size.has_value());
+  EXPECT_EQ(*forwarded_parameters.queue_size, 3u);
+
+  const scada::DataValue value{scada::Variant{scada::Int32{17}},
+                               {},
+                               scada::DateTime::Now(),
+                               scada::DateTime::Now()};
+  backing_item->NotifyDataChange(value);
+  executor_.Poll();
+
+  ASSERT_TRUE(delivered.has_value());
+  EXPECT_EQ(*delivered, value);
 }
 
 TEST_F(EndpointCoreTest,
-       CreateMonitoredItem_TranslatesBadAttributeAndUnknownNodeFailures) {
-  const auto bad_attribute = scada::ReadValueId{
-      .node_id = NumericNode(60, 9),
-      .attribute_id = scada::AttributeId::DisplayName};
-  const auto unknown_node = scada::ReadValueId{
-      .node_id = NumericNode(61, 9),
-      .attribute_id = scada::AttributeId::EventNotifier};
+       CreateMonitoredItem_TranslatesBadAttributeSynchronously) {
+  const auto bad_attribute =
+      scada::ReadValueId{.node_id = NumericNode(60, 9),
+                         .attribute_id = scada::AttributeId::DisplayName};
+  const auto unknown_node =
+      scada::ReadValueId{.node_id = NumericNode(61, 9),
+                         .attribute_id = scada::AttributeId::EventNotifier};
   const scada::MonitoringParameters parameters;
 
-  EXPECT_CALL(monitored_item_service_, CreateMonitoredItem(_, _))
-      .WillOnce(Invoke([&](const scada::ReadValueId& actual_read_value_id,
-                           const scada::MonitoringParameters&) {
-        EXPECT_EQ(actual_read_value_id, unknown_node);
-        return std::shared_ptr<scada::MonitoredItem>{};
-      }));
-
+  // An unsupported attribute is rejected synchronously, before the adapter is
+  // ever asked to create an item.
   auto bad_attribute_result =
-      CreateMonitoredItem(monitored_item_service_, bad_attribute, parameters);
-  auto unknown_node_result =
-      CreateMonitoredItem(monitored_item_service_, unknown_node, parameters);
-
+      CreateMonitoredItem(monitored_item_adapter_, bad_attribute, parameters);
   EXPECT_EQ(bad_attribute_result.status,
             scada::StatusCode::Bad_WrongAttributeId);
-  EXPECT_EQ(unknown_node_result.status, scada::StatusCode::Bad_WrongNodeId);
   EXPECT_FALSE(bad_attribute_result.monitored_item);
-  EXPECT_FALSE(unknown_node_result.monitored_item);
+
+  // A supported attribute (even on an unknown node) is now accepted
+  // synchronously: the LegacyMonitoredItemAdapter returns a placeholder item
+  // immediately and only discovers an unknown node asynchronously while
+  // creating the backing subscription, so CreateMonitoredItem can no longer
+  // surface Bad_WrongNodeId here.
+  auto unknown_node_result =
+      CreateMonitoredItem(monitored_item_adapter_, unknown_node, parameters);
+  EXPECT_EQ(unknown_node_result.status, scada::StatusCode::Good);
+  EXPECT_TRUE(unknown_node_result.monitored_item);
 }
 
 TEST_F(EndpointCoreTest,
        SubscribeMonitoredItemNotifications_UsesDataChangeHandlerForValueItems) {
   auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
   const auto read_value_id = scada::ReadValueId{
-      .node_id = NumericNode(70, 9),
-      .attribute_id = scada::AttributeId::Value};
+      .node_id = NumericNode(70, 9), .attribute_id = scada::AttributeId::Value};
   std::optional<scada::DataValue> delivered;
 
   SubscribeMonitoredItemNotifications(
@@ -114,8 +139,10 @@ TEST_F(EndpointCoreTest,
       [&](const scada::DataValue& value) { delivered = value; },
       [&](const scada::Status&, const std::any&) { FAIL(); });
 
-  const scada::DataValue value{scada::Variant{scada::Int32{17}}, {},
-                               scada::DateTime::Now(), scada::DateTime::Now()};
+  const scada::DataValue value{scada::Variant{scada::Int32{17}},
+                               {},
+                               scada::DateTime::Now(),
+                               scada::DateTime::Now()};
   monitored_item->NotifyDataChange(value);
 
   ASSERT_TRUE(delivered.has_value());
@@ -125,15 +152,14 @@ TEST_F(EndpointCoreTest,
 TEST_F(EndpointCoreTest,
        SubscribeMonitoredItemNotifications_UsesEventHandlerForEventItems) {
   auto monitored_item = std::make_shared<scada::TestMonitoredItem>();
-  const auto read_value_id = scada::ReadValueId{
-      .node_id = NumericNode(71, 9),
-      .attribute_id = scada::AttributeId::EventNotifier};
+  const auto read_value_id =
+      scada::ReadValueId{.node_id = NumericNode(71, 9),
+                         .attribute_id = scada::AttributeId::EventNotifier};
   std::optional<scada::Status> delivered_status;
   std::optional<int> delivered_event_id;
 
   SubscribeMonitoredItemNotifications(
-      read_value_id, monitored_item,
-      [&](const scada::DataValue&) { FAIL(); },
+      read_value_id, monitored_item, [&](const scada::DataValue&) { FAIL(); },
       [&](const scada::Status& status, const std::any& event) {
         delivered_status = status;
         delivered_event_id = std::any_cast<int>(event);
@@ -150,28 +176,30 @@ TEST_F(EndpointCoreTest,
 TEST_F(EndpointCoreTest,
        DispatchMonitoredItemNotifications_ForwardsMatchingHandlerKinds) {
   const auto value_item = scada::ReadValueId{
-      .node_id = NumericNode(72, 9),
-      .attribute_id = scada::AttributeId::Value};
-  const auto event_item = scada::ReadValueId{
-      .node_id = NumericNode(73, 9),
-      .attribute_id = scada::AttributeId::EventNotifier};
-  const scada::DataValue value{scada::Variant{scada::Int32{23}}, {},
-                               scada::DateTime::Now(), scada::DateTime::Now()};
+      .node_id = NumericNode(72, 9), .attribute_id = scada::AttributeId::Value};
+  const auto event_item =
+      scada::ReadValueId{.node_id = NumericNode(73, 9),
+                         .attribute_id = scada::AttributeId::EventNotifier};
+  const scada::DataValue value{scada::Variant{scada::Int32{23}},
+                               {},
+                               scada::DateTime::Now(),
+                               scada::DateTime::Now()};
   std::optional<scada::DataValue> delivered_value;
   std::optional<scada::Status> delivered_status;
   std::optional<int> delivered_event_id;
 
   const std::optional<scada::MonitoredItemHandler> data_handler =
-      scada::DataChangeHandler{
-          [&](const scada::DataValue& data_value) { delivered_value = data_value; }};
-  const std::optional<scada::MonitoredItemHandler> event_handler =
-      scada::EventHandler{[&](const scada::Status& status, const std::any& event) {
-        delivered_status = status;
-        delivered_event_id = std::any_cast<int>(event);
+      scada::DataChangeHandler{[&](const scada::DataValue& data_value) {
+        delivered_value = data_value;
       }};
+  const std::optional<scada::MonitoredItemHandler> event_handler =
+      scada::EventHandler{
+          [&](const scada::Status& status, const std::any& event) {
+            delivered_status = status;
+            delivered_event_id = std::any_cast<int>(event);
+          }};
 
-  EXPECT_TRUE(
-      DispatchDataChangeNotification(value_item, data_handler, value));
+  EXPECT_TRUE(DispatchDataChangeNotification(value_item, data_handler, value));
   EXPECT_TRUE(DispatchEventNotification(event_item, event_handler,
                                         scada::StatusCode::Good, 91));
   EXPECT_FALSE(
@@ -208,8 +236,7 @@ TEST_F(EndpointCoreTest,
   EXPECT_TRUE(fields[3].is_null());
 }
 
-TEST_F(EndpointCoreTest,
-       NormalizeEventFieldPaths_UsesDefaultsOnlyWhenEmpty) {
+TEST_F(EndpointCoreTest, NormalizeEventFieldPaths_UsesDefaultsOnlyWhenEmpty) {
   const auto defaults = NormalizeEventFieldPaths({});
   EXPECT_EQ(defaults, DefaultEventFieldPaths());
 
@@ -226,34 +253,34 @@ TEST_F(EndpointCoreTest, ParseAndBuildEventFilter_RoundTripsFieldPaths) {
       {"Message"},
   });
   EXPECT_EQ(ParseEventFilterFieldPaths(filter),
-            (std::vector<std::vector<std::string>>{{"Severity"},
-                                                   {"Message"}}));
+            (std::vector<std::vector<std::string>>{{"Severity"}, {"Message"}}));
 }
 
 TEST_F(EndpointCoreTest,
        DispatchEventFieldNotification_AssemblesAndForwardsModelChangeEvents) {
-  const auto event_item = scada::ReadValueId{
-      .node_id = NumericNode(74, 9),
-      .attribute_id = scada::AttributeId::EventNotifier};
+  const auto event_item =
+      scada::ReadValueId{.node_id = NumericNode(74, 9),
+                         .attribute_id = scada::AttributeId::EventNotifier};
   std::optional<scada::Status> delivered_status;
   std::optional<scada::ModelChangeEvent> delivered_event;
 
   const std::optional<scada::MonitoredItemHandler> event_handler =
-      scada::EventHandler{[&](const scada::Status& status, const std::any& event) {
-        delivered_status = status;
-        delivered_event = std::any_cast<scada::ModelChangeEvent>(event);
-      }};
+      scada::EventHandler{
+          [&](const scada::Status& status, const std::any& event) {
+            delivered_status = status;
+            delivered_event = std::any_cast<scada::ModelChangeEvent>(event);
+          }};
 
   const auto fields = std::vector<scada::Variant>{
       scada::NodeId{scada::id::GeneralModelChangeEventType},
       NumericNode(500, 2),
       NumericNode(600, 3),
-      static_cast<scada::UInt32>(
-          scada::ModelChangeEvent::NodeAdded |
-          scada::ModelChangeEvent::ReferenceAdded),
+      static_cast<scada::UInt32>(scada::ModelChangeEvent::NodeAdded |
+                                 scada::ModelChangeEvent::ReferenceAdded),
   };
 
-  EXPECT_TRUE(DispatchEventFieldNotification(event_item, event_handler, fields));
+  EXPECT_TRUE(
+      DispatchEventFieldNotification(event_item, event_handler, fields));
 
   ASSERT_TRUE(delivered_status.has_value());
   ASSERT_TRUE(delivered_event.has_value());

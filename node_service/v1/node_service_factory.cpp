@@ -13,8 +13,8 @@
 namespace v1 {
 
 namespace {
-using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::HasRequiredNodeServices;
+using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::ResolvedNodeServices;
 
 struct NodeServiceHolder {
@@ -60,7 +60,8 @@ struct NodeServiceHolder {
     return [this,
             node_service_context](AddressSpaceFetcherFactoryContext&& context) {
       auto view_events_provider =
-          MakeViewEventsProvider(node_service_context.monitored_item_service_);
+          MakeViewEventsProvider(node_service_context.executor_,
+                                 node_service_context.monitored_item_service_);
 
       return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
           node_service_context.executor_,
@@ -82,7 +83,8 @@ struct NodeServiceHolder {
     return [this,
             node_service_context](AddressSpaceFetcherFactoryContext&& context) {
       auto view_events_provider =
-          MakeViewEventsProvider(*resolved_services->monitored_item_service);
+          MakeViewEventsProvider(node_service_context.executor_,
+                                 *resolved_services->monitored_item_service);
 
       return AddressSpaceFetcherImpl::Create(AddressSpaceFetcherImplContext{
           node_service_context.executor_,

@@ -5,6 +5,7 @@
 #include "base/any_executor.h"
 #include "base/cancelation.h"
 #include "events/node_event_provider.h"
+#include "scada/legacy_monitored_item_adapter.h"
 
 namespace scada {
 class HistoryService;
@@ -65,6 +66,11 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void OnHistoryReadEventsComplete(scada::HistoryReadEventsResult&& result);
 
   bool connected_ = false;
+
+  // Bridges the service's subscription API to the single-item API used for the
+  // system-events monitored item below.
+  scada::LegacyMonitoredItemAdapter monitored_item_adapter_{
+      executor_, monitored_item_service_};
 
   std::shared_ptr<scada::MonitoredItem> monitored_item_;
 

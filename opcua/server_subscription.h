@@ -1,7 +1,9 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "opcua/message.h"
 
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item_service.h"
 
 #include <deque>
@@ -14,9 +16,10 @@ namespace opcua {
 class ServerSubscription {
  public:
   ServerSubscription(SubscriptionId subscription_id,
-                          SubscriptionParameters parameters,
-                          scada::MonitoredItemService& monitored_item_service,
-                          base::Time publish_cycle_start_time);
+                     SubscriptionParameters parameters,
+                     AnyExecutor executor,
+                     scada::MonitoredItemService& monitored_item_service,
+                     base::Time publish_cycle_start_time);
 
   ServerSubscription(const ServerSubscription&) = delete;
   ServerSubscription& operator=(const ServerSubscription&) = delete;
@@ -31,8 +34,7 @@ class ServerSubscription {
   void PrimePublishCycle(base::Time now);
   std::optional<base::Time> NextPublishDeadline() const;
 
-  ModifySubscriptionResponse Modify(
-      const ModifySubscriptionRequest& request);
+  ModifySubscriptionResponse Modify(const ModifySubscriptionRequest& request);
   void SetPublishingEnabled(bool publishing_enabled);
 
   CreateMonitoredItemsResponse CreateMonitoredItems(
@@ -78,7 +80,9 @@ class ServerSubscription {
 
   void RebindItem(Item& item);
   void QueueDataChange(Item& item, const scada::DataValue& data_value);
-  void QueueEvent(Item& item, const scada::Status& status, const std::any& event);
+  void QueueEvent(Item& item,
+                  const scada::Status& status,
+                  const std::any& event);
   void QueueNotification(Item& item, NotificationData notification);
   void EnforceQueueLimit(const Item& item);
 
@@ -90,7 +94,10 @@ class ServerSubscription {
 
   SubscriptionId subscription_id_;
   SubscriptionParameters parameters_;
-  scada::MonitoredItemService& monitored_item_service_;
+  // Bridges the service's subscription API to the single-item API used when
+  // (re)binding monitored items. Declared before `items_` so it outlives the
+  // `scada::MonitoredItem`s it creates (members destruct in reverse order).
+  scada::LegacyMonitoredItemAdapter monitored_item_adapter_;
 
   scada::UInt32 next_monitored_item_id_ = 1;
   scada::UInt32 next_sequence_number_ = 1;

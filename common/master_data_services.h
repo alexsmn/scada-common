@@ -5,6 +5,7 @@
 #include "scada/coroutine_services.h"
 #include "scada/data_services.h"
 #include "scada/history_service.h"
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/node_management_service.h"
@@ -48,32 +49,40 @@ class MasterDataServices final : public scada::AttributeService,
   virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::MonitoredItemService
-  virtual std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
-      const scada::ReadValueId& read_value_id,
-      const scada::MonitoringParameters& params) override;
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext context,
+                     scada::MonitoredItemSubscriptionOptions options) override;
 
   // scada::NodeManagementService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::AddNodesResult>>>
   AddNodes(std::vector<scada::AddNodesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::StatusCode>>>
   AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::ViewService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::BrowseResult>>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::BrowsePathResult>>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
   // scada::AttributeService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
        std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
         std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
 
@@ -96,8 +105,19 @@ class MasterDataServices final : public scada::AttributeService,
  private:
   class MasterMonitoredItem;
 
+  std::shared_ptr<scada::MonitoredItem> CreateItem(
+      const scada::ReadValueId& read_value_id,
+      const scada::MonitoringParameters& params);
+
   void ResetCoroutineAdapters();
   void RefreshCoroutineServices();
+
+  const AnyExecutor executor_;
+
+  // Bridges the underlying service's subscription API to the single-item API
+  // each `MasterMonitoredItem` consumes. Recreated whenever the underlying
+  // services change.
+  std::unique_ptr<scada::LegacyMonitoredItemAdapter> underlying_item_adapter_;
 
   std::vector<MasterMonitoredItem*> monitored_items_;
 

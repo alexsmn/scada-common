@@ -15,9 +15,13 @@ class LocalMonitoredItemService : public MonitoredItemService {
   LocalMonitoredItemService();
   ~LocalMonitoredItemService() override;
 
-  std::shared_ptr<MonitoredItem> CreateMonitoredItem(
-      const ReadValueId& value_id,
-      const MonitoringParameters& params) override;
+  StatusOr<std::unique_ptr<MonitoredItemSubscription>> CreateSubscription(
+      ServiceContext context,
+      MonitoredItemSubscriptionOptions options) override;
+
+ private:
+  std::shared_ptr<MonitoredItem> CreateItem(const ReadValueId& value_id,
+                                            const MonitoringParameters& params);
 };
 
 }  // namespace scada

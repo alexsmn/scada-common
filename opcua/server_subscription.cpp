@@ -76,11 +76,12 @@ scada::EventFilter ParseEventRoutingFilter(
 ServerSubscription::ServerSubscription(
     SubscriptionId subscription_id,
     SubscriptionParameters parameters,
+    AnyExecutor executor,
     scada::MonitoredItemService& monitored_item_service,
     base::Time publish_cycle_start_time)
     : subscription_id_{subscription_id},
       parameters_{std::move(parameters)},
-      monitored_item_service_{monitored_item_service},
+      monitored_item_adapter_{std::move(executor), monitored_item_service},
       last_publish_time_{publish_cycle_start_time} {}
 
 ModifySubscriptionResponse ServerSubscription::Modify(
@@ -398,7 +399,7 @@ bool ServerSubscription::IsKeepAliveDue(base::Time now) const {
 void ServerSubscription::RebindItem(Item& item) {
   ++item.binding_generation;
   auto created =
-      CreateMonitoredItem(monitored_item_service_, item.item_to_monitor,
+      CreateMonitoredItem(monitored_item_adapter_, item.item_to_monitor,
                           ToMonitoringParameters(item, item.parameters));
   item.monitored_item = std::move(created.monitored_item);
   item.monitored_item_status = created.status;

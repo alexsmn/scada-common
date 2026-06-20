@@ -21,33 +21,32 @@
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)},
-      monitored_item_{monitored_item_service_.CreateMonitoredItem(
+      monitored_item_{monitored_item_adapter_.CreateMonitoredItem(
           scada::ReadValueId{scada::id::Server,
                              scada::AttributeId::EventNotifier},
           scada::MonitoringParameters{
               .filter = scada::EventFilter{
                   .of_type = {scada::id::SystemEventType}}})} {
-
   assert(monitored_item_);
 
   monitored_item_->Subscribe(static_cast<scada::EventHandler>(
-      [executor = executor_, cancelation = cancelation_.weak_ptr(),
-       this](scada::Status status, std::any event) mutable {
-        CoSpawn(executor, cancelation,
-                [this, status = std::move(status),
-                 event = std::move(event)]() mutable -> Awaitable<void> {
-                  if (!status)
-                    co_return;
+      [executor = executor_, cancelation = cancelation_.weak_ptr(), this](
+          scada::Status status, std::any event) mutable {
+        CoSpawn(
+            executor, cancelation,
+            [this, status = std::move(status),
+             event = std::move(event)]() mutable -> Awaitable<void> {
+              if (!status)
+                co_return;
 
-                  if (event.has_value()) {
-                    assert(std::any_cast<scada::Event>(&event));
-                    if (auto* system_event = std::any_cast<scada::Event>(
-                            &event)) {
-                      OnSystemEvents({system_event, 1});
-                    }
-                  }
-                  co_return;
-                });
+              if (event.has_value()) {
+                assert(std::any_cast<scada::Event>(&event));
+                if (auto* system_event = std::any_cast<scada::Event>(&event)) {
+                  OnSystemEvents({system_event, 1});
+                }
+              }
+              co_return;
+            });
       }));
 }
 
@@ -148,16 +147,16 @@ void EventFetcher::AcknowledgeAllEvents() {
 }
 
 void EventFetcher::Update() {
-  CoSpawn(executor_, cancelation_,
-          [this, cancelation = cancelation_.ref()]() mutable
-              -> Awaitable<void> {
-            auto result = co_await history_service_.HistoryReadEvents(
-                scada::id::Server, {}, {},
-                scada::EventFilter{scada::EventFilter::UNACKED});
-            if (cancelation.canceled())
-              co_return;
-            OnHistoryReadEventsComplete(std::move(result));
-          });
+  CoSpawn(
+      executor_, cancelation_,
+      [this, cancelation = cancelation_.ref()]() mutable -> Awaitable<void> {
+        auto result = co_await history_service_.HistoryReadEvents(
+            scada::id::Server, {}, {},
+            scada::EventFilter{scada::EventFilter::UNACKED});
+        if (cancelation.canceled())
+          co_return;
+        OnHistoryReadEventsComplete(std::move(result));
+      });
 }
 
 void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {

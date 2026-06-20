@@ -2,9 +2,10 @@
 #include "opcua/websocket/server.h"
 
 #include "base/any_executor.h"
-#include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/authentication_adapters.h"
 #include "scada/history_service_mock.h"
+#include "scada/item_factory_subscription.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
 #include "scada/test/test_monitored_item.h"
@@ -18,8 +19,8 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/use_future.hpp>
 #include <boost/beast/core.hpp>
-#include <boost/beast/http/field.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/http/field.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/json/parse.hpp>
@@ -93,9 +94,11 @@ scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
 }
 
 std::string Trim(std::string_view value) {
-  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
+  while (!value.empty() &&
+         std::isspace(static_cast<unsigned char>(value.front())))
     value.remove_prefix(1);
-  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
+  while (!value.empty() &&
+         std::isspace(static_cast<unsigned char>(value.back())))
     value.remove_suffix(1);
   return std::string{value};
 }
@@ -103,8 +106,8 @@ std::string Trim(std::string_view value) {
 bool HeaderContainsToken(std::string_view header, std::string_view token) {
   while (!header.empty()) {
     const auto comma = header.find(',');
-    const auto part = comma == std::string_view::npos ? header
-                                                      : header.substr(0, comma);
+    const auto part =
+        comma == std::string_view::npos ? header : header.substr(0, comma);
     if (Trim(part) == token)
       return true;
     if (comma == std::string_view::npos)
@@ -118,8 +121,19 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
  public:
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId&,
-      const scada::MonitoringParameters&) override {
+      const scada::MonitoringParameters&) {
     return std::make_shared<scada::TestMonitoredItem>();
+  }
+
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext /*context*/,
+                     scada::MonitoredItemSubscriptionOptions options) override {
+    return scada::MakeItemFactorySubscription(
+        [this](const scada::ReadValueId& value_id,
+               const scada::MonitoringParameters& params) {
+          return CreateMonitoredItem(value_id, params);
+        },
+        options);
   }
 };
 
@@ -149,7 +163,8 @@ class BeastClient {
     websocket_.write(boost::asio::buffer(payload));
   }
 
-  std::string Read(std::chrono::milliseconds timeout = std::chrono::seconds{30}) {
+  std::string Read(std::chrono::milliseconds timeout = std::chrono::seconds{
+                       30}) {
     boost::beast::get_lowest_layer(websocket_).expires_after(timeout);
     boost::beast::flat_buffer buffer;
     websocket_.read(buffer);
@@ -232,39 +247,37 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   ASSERT_NE(created, nullptr);
   EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
 
-  const auto activate_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 2,
-       .body =
-           ActivateSessionRequest{
-               .session_id = created->session_id,
-               .authentication_token = created->authentication_token,
-               .user_name = scada::LocalizedText{u"operator"},
-               .password = scada::LocalizedText{u"secret"}}})));
+  const auto activate_response = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 2,
+                      .body = ActivateSessionRequest{
+                          .session_id = created->session_id,
+                          .authentication_token = created->authentication_token,
+                          .user_name = scada::LocalizedText{u"operator"},
+                          .password = scada::LocalizedText{u"secret"}}})));
   const auto* activated =
       std::get_if<ActivateSessionResponse>(&activate_response.body);
   ASSERT_NE(activated, nullptr);
   EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
 
-  const auto browse_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 3,
-       .body =
-           BrowseRequest{
-               .requested_max_references_per_node = 2,
-               .inputs = {{.node_id = NumericNode(80),
-                           .direction = scada::BrowseDirection::Both,
-                           .reference_type_id = NumericNode(88),
-                           .include_subtypes = true}}}})));
+  const auto browse_response = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 3,
+                      .body = BrowseRequest{
+                          .requested_max_references_per_node = 2,
+                          .inputs = {{.node_id = NumericNode(80),
+                                      .direction = scada::BrowseDirection::Both,
+                                      .reference_type_id = NumericNode(88),
+                                      .include_subtypes = true}}}})));
   const auto* browse = std::get_if<BrowseResponse>(&browse_response.body);
   ASSERT_NE(browse, nullptr);
   ASSERT_EQ(browse->results.size(), 1u);
   ASSERT_EQ(browse->results[0].references.size(), 2u);
   ASSERT_FALSE(browse->results[0].continuation_point.empty());
 
-  const auto browse_next_response = DecodeResponseMessage(boost::json::parse(client.Request(
-      {.request_handle = 4,
-       .body =
-           BrowseNextRequest{
-               .continuation_points = {browse->results[0].continuation_point}}})));
+  const auto browse_next_response = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 4,
+                      .body = BrowseNextRequest{
+                          .continuation_points = {
+                              browse->results[0].continuation_point}}})));
   const auto* browse_next =
       std::get_if<BrowseNextResponse>(&browse_next_response.body);
   ASSERT_NE(browse_next, nullptr);
@@ -282,8 +295,8 @@ class WebSocketServerTest : public Test {
 
   void TearDown() override {
     if (server_) {
-      auto close_future = boost::asio::co_spawn(
-          io_context_, server_->Close(), boost::asio::use_future);
+      auto close_future = boost::asio::co_spawn(io_context_, server_->Close(),
+                                                boost::asio::use_future);
       EXPECT_EQ(close_future.get().value(), 0);
       server_.reset();
       acceptor_ = nullptr;
@@ -310,16 +323,13 @@ class WebSocketServerTest : public Test {
         .node_management_service = node_management_service_,
     });
     auto acceptor = std::make_unique<transport::WebSocketTransport>(
-        io_context_.get_executor(),
-        transport::log_source{},
-        "127.0.0.1",
-        "0",
+        io_context_.get_executor(), transport::log_source{}, "127.0.0.1", "0",
         /*active=*/false,
         transport::WebSocketServerOptions{
             .tls = std::move(tls),
             .handshake_callback =
                 [](const transport::WebSocketServerRequest& request)
-                    -> std::optional<transport::WebSocketServerReject> {
+                -> std::optional<transport::WebSocketServerReject> {
               if (request.target() != "/ua") {
                 return transport::WebSocketServerReject{
                     .status = http::status::not_found,
@@ -358,10 +368,10 @@ class WebSocketServerTest : public Test {
             .enable_permessage_deflate = true,
             .response_callback =
                 [](boost::beast::websocket::response_type& response) {
-              response.set(http::field::server, "scada-opcua-ws");
-              response.set(http::field::sec_websocket_protocol,
-                           "opcua+uajson");
-            },
+                  response.set(http::field::server, "scada-opcua-ws");
+                  response.set(http::field::sec_websocket_protocol,
+                               "opcua+uajson");
+                },
         });
     acceptor_ = acceptor.get();
     server_.emplace(ServerContext{
@@ -369,16 +379,16 @@ class WebSocketServerTest : public Test {
         .runtime = *runtime_,
         .max_message_size = 4 * 1024 * 1024,
     });
-    auto open_future =
-        boost::asio::co_spawn(io_context_, server_->Open(), boost::asio::use_future);
+    auto open_future = boost::asio::co_spawn(io_context_, server_->Open(),
+                                             boost::asio::use_future);
     EXPECT_EQ(open_future.get(), transport::OK);
   }
 
   unsigned short port() const { return acceptor_->local_endpoint().port(); }
 
   boost::asio::io_context io_context_;
-  std::optional<boost::asio::executor_work_guard<
-      boost::asio::io_context::executor_type>>
+  std::optional<
+      boost::asio::executor_work_guard<boost::asio::io_context::executor_type>>
       work_;
   std::optional<std::jthread> thread_;
 
@@ -389,14 +399,13 @@ class WebSocketServerTest : public Test {
   NiceMock<scada::MockNodeManagementService> node_management_service_;
   TestMonitoredItemService monitored_item_service_;
   AnyExecutor callback_executor_;
-  ServerSessionManager session_manager_{{
-      .authenticator = scada::MakeCoroutineAuthenticator(
-          [](scada::LocalizedText,
-             scada::LocalizedText)
-              -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
-            co_return scada::AuthenticationResult{
-                .user_id = NumericNode(700, 5), .multi_sessions = true};
-          })}};
+  ServerSessionManager session_manager_{
+      {.authenticator = scada::MakeCoroutineAuthenticator(
+           [](scada::LocalizedText, scada::LocalizedText)
+               -> Awaitable<scada::StatusOr<scada::AuthenticationResult>> {
+             co_return scada::AuthenticationResult{
+                 .user_id = NumericNode(700, 5), .multi_sessions = true};
+           })}};
   std::optional<ServerRuntime> runtime_;
   transport::WebSocketTransport* acceptor_ = nullptr;
   std::optional<Server> server_;
@@ -407,26 +416,26 @@ TEST_F(WebSocketServerTest,
   StartServer();
 
   EXPECT_CALL(view_service_, Browse(_, _))
-      .WillOnce(Invoke([&](scada::ServiceContext context,
-                           std::vector<scada::BrowseDescription> inputs)
-                           -> Awaitable<scada::StatusOr<
-                               std::vector<scada::BrowseResult>>> {
-        EXPECT_EQ(context.user_id(), NumericNode(700, 5));
-        EXPECT_EQ(inputs.size(), 1u);
-        if (inputs.size() != 1u)
-          co_return scada::Status{scada::StatusCode::Bad};
-        co_return std::vector{scada::BrowseResult{
-            .status_code = scada::StatusCode::Good,
-            .references = {{.reference_type_id = NumericNode(81),
-                            .forward = true,
-                            .node_id = NumericNode(82)},
-                           {.reference_type_id = NumericNode(83),
-                            .forward = true,
-                            .node_id = NumericNode(84)},
-                           {.reference_type_id = NumericNode(85),
-                            .forward = false,
-                            .node_id = NumericNode(86)}}}};
-      }));
+      .WillOnce(Invoke(
+          [&](scada::ServiceContext context,
+              std::vector<scada::BrowseDescription> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
+            EXPECT_EQ(context.user_id(), NumericNode(700, 5));
+            EXPECT_EQ(inputs.size(), 1u);
+            if (inputs.size() != 1u)
+              co_return scada::Status{scada::StatusCode::Bad};
+            co_return std::vector{scada::BrowseResult{
+                .status_code = scada::StatusCode::Good,
+                .references = {{.reference_type_id = NumericNode(81),
+                                .forward = true,
+                                .node_id = NumericNode(82)},
+                               {.reference_type_id = NumericNode(83),
+                                .forward = true,
+                                .node_id = NumericNode(84)},
+                               {.reference_type_id = NumericNode(85),
+                                .forward = false,
+                                .node_id = NumericNode(86)}}}};
+          }));
 
   BeastClient client;
   client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
@@ -434,34 +443,33 @@ TEST_F(WebSocketServerTest,
   client.Close();
 }
 
-TEST_F(WebSocketServerTest,
-       AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
+TEST_F(WebSocketServerTest, AcceptsTlsHandshakeAndRoutesBrowsePagingEndToEnd) {
   StartServer(transport::WebSocketServerTlsConfig{
       .certificate_chain_pem = kTestCertificatePem,
       .private_key_pem = kTestPrivateKeyPem,
   });
 
   EXPECT_CALL(view_service_, Browse(_, _))
-      .WillOnce(Invoke([&](scada::ServiceContext context,
-                           std::vector<scada::BrowseDescription> inputs)
-                           -> Awaitable<scada::StatusOr<
-                               std::vector<scada::BrowseResult>>> {
-        EXPECT_EQ(context.user_id(), NumericNode(700, 5));
-        EXPECT_EQ(inputs.size(), 1u);
-        if (inputs.size() != 1u)
-          co_return scada::Status{scada::StatusCode::Bad};
-        co_return std::vector{scada::BrowseResult{
-            .status_code = scada::StatusCode::Good,
-            .references = {{.reference_type_id = NumericNode(81),
-                            .forward = true,
-                            .node_id = NumericNode(82)},
-                           {.reference_type_id = NumericNode(83),
-                            .forward = true,
-                            .node_id = NumericNode(84)},
-                           {.reference_type_id = NumericNode(85),
-                            .forward = false,
-                            .node_id = NumericNode(86)}}}};
-      }));
+      .WillOnce(Invoke(
+          [&](scada::ServiceContext context,
+              std::vector<scada::BrowseDescription> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
+            EXPECT_EQ(context.user_id(), NumericNode(700, 5));
+            EXPECT_EQ(inputs.size(), 1u);
+            if (inputs.size() != 1u)
+              co_return scada::Status{scada::StatusCode::Bad};
+            co_return std::vector{scada::BrowseResult{
+                .status_code = scada::StatusCode::Good,
+                .references = {{.reference_type_id = NumericNode(81),
+                                .forward = true,
+                                .node_id = NumericNode(82)},
+                               {.reference_type_id = NumericNode(83),
+                                .forward = true,
+                                .node_id = NumericNode(84)},
+                               {.reference_type_id = NumericNode(85),
+                                .forward = false,
+                                .node_id = NumericNode(86)}}}};
+          }));
 
   TlsBeastClient client;
   client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
@@ -505,11 +513,9 @@ TEST_F(WebSocketServerTest,
   BeastClient client;
   client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
 
-  const auto create_session = DecodeResponseMessage(
-      boost::json::parse(client.Request(
-          {.request_handle = 1, .body = CreateSessionRequest{}})));
-  const auto created =
-      std::get<CreateSessionResponse>(create_session.body);
+  const auto create_session = DecodeResponseMessage(boost::json::parse(
+      client.Request({.request_handle = 1, .body = CreateSessionRequest{}})));
+  const auto created = std::get<CreateSessionResponse>(create_session.body);
 
   const auto activate_session = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 2,
@@ -518,9 +524,9 @@ TEST_F(WebSocketServerTest,
                           .authentication_token = created.authentication_token,
                           .user_name = scada::LocalizedText{u"operator"},
                           .password = scada::LocalizedText{u"secret"}}})));
-  EXPECT_EQ(std::get<ActivateSessionResponse>(activate_session.body)
-                .status.code(),
-            scada::StatusCode::Good);
+  EXPECT_EQ(
+      std::get<ActivateSessionResponse>(activate_session.body).status.code(),
+      scada::StatusCode::Good);
 
   const auto create_subscription = DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 3,
@@ -533,25 +539,24 @@ TEST_F(WebSocketServerTest,
       std::get<CreateSubscriptionResponse>(create_subscription.body);
 
   client.Send({.request_handle = 4, .body = PublishRequest{}});
-  client.Send({.request_handle = 5,
-               .body = CreateMonitoredItemsRequest{
-                   .subscription_id = subscription.subscription_id,
-                   .items_to_create = {{.item_to_monitor =
-                                            {.node_id = NumericNode(11),
-                                             .attribute_id =
-                                                 scada::AttributeId::Value},
-                                        .requested_parameters =
-                                            {.client_handle = 44,
-                                             .sampling_interval_ms = 0,
-                                             .queue_size = 1,
-                                             .discard_oldest = true}}}}});
+  client.Send(
+      {.request_handle = 5,
+       .body = CreateMonitoredItemsRequest{
+           .subscription_id = subscription.subscription_id,
+           .items_to_create = {
+               {.item_to_monitor = {.node_id = NumericNode(11),
+                                    .attribute_id = scada::AttributeId::Value},
+                .requested_parameters = {.client_handle = 44,
+                                         .sampling_interval_ms = 0,
+                                         .queue_size = 1,
+                                         .discard_oldest = true}}}}});
 
   const auto create_items = DecodeResponseMessage(
       boost::json::parse(client.Read(std::chrono::milliseconds{200})));
   EXPECT_EQ(create_items.request_handle, 5u);
-  EXPECT_EQ(std::get<CreateMonitoredItemsResponse>(create_items.body)
-                .status.code(),
-            scada::StatusCode::Good);
+  EXPECT_EQ(
+      std::get<CreateMonitoredItemsResponse>(create_items.body).status.code(),
+      scada::StatusCode::Good);
 
   client.Close();
 }

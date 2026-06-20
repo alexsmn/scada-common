@@ -1,16 +1,32 @@
 #include "opcua/server_subscription.h"
 
+#include "base/test/awaitable_test.h"
+#include "base/test/test_executor.h"
 #include "base/time_utils.h"
+#include "scada/item_factory_subscription.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
 #include "scada/test/test_monitored_item.h"
 
 #include <boost/json/parse.hpp>
 #include <gtest/gtest.h>
+#include <thread>
 #include <type_traits>
 
 namespace opcua::ws {
 namespace {
+
+// The monitored-item subscription pump parks its read loop on an asio
+// steady_timer; resuming it after a notification is pushed (or after an item is
+// first wired up) needs the timer service to settle, which a single `Drain`
+// does not guarantee. Spin the executor so async notification delivery
+// completes before assertions.
+inline void DrainPump(TestExecutor& executor) {
+  for (int i = 0; i < 200; ++i) {
+    Drain(executor);
+    std::this_thread::yield();
+  }
+}
 
 scada::NodeId NumericNode(scada::NumericId id, scada::NamespaceIndex ns = 2) {
   return {id, ns};
@@ -26,7 +42,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
  public:
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& value_id,
-      const scada::MonitoringParameters& params) override {
+      const scada::MonitoringParameters& params) {
     created_value_ids.push_back(value_id);
     created_params.push_back(params);
     if (return_null_for_all_requests) {
@@ -37,6 +53,17 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
     return item;
   }
 
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext /*context*/,
+                     scada::MonitoredItemSubscriptionOptions options) override {
+    return scada::MakeItemFactorySubscription(
+        [this](const scada::ReadValueId& value_id,
+               const scada::MonitoringParameters& params) {
+          return CreateMonitoredItem(value_id, params);
+        },
+        options);
+  }
+
   bool return_null_for_all_requests = false;
   std::vector<scada::ReadValueId> created_value_ids;
   std::vector<scada::MonitoringParameters> created_params;
@@ -45,6 +72,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
 
 TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 10:00:00");
   ServerSubscription subscription{17,
                                   {.publishing_interval_ms = 100,
@@ -53,6 +81,7 @@ TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -67,10 +96,13 @@ TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
   EXPECT_EQ(create.results[0].status.code(), scada::StatusCode::Good);
+  // The backing item is created asynchronously on the executor.
+  DrainPump(executor);
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
 
   monitored_item_service.items[0]->NotifyDataChange(scada::DataValue{
       scada::Variant{12.5}, {}, start, ParseTime("2026-04-20 10:00:01")});
+  DrainPump(executor);
   EXPECT_FALSE(
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(99))
           .has_value());
@@ -93,6 +125,7 @@ TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
                        {},
                        start + base::TimeDelta::FromMilliseconds(300),
                        ParseTime("2026-04-20 10:00:04")});
+  DrainPump(executor);
   EXPECT_EQ(subscription.Acknowledge(std::vector<scada::UInt32>{1}),
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
   const auto second_publish =
@@ -113,6 +146,7 @@ TEST(SubscriptionTest, PublishesDataChangesAcknowledgesAndRepublishes) {
 TEST(SubscriptionTest,
      ReportsSpecStatusesForUnknownMonitoredItemsAndUnknownSequenceNumbers) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 15:00:00");
   ServerSubscription subscription{33,
                                   {.publishing_interval_ms = 100,
@@ -121,6 +155,7 @@ TEST(SubscriptionTest,
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -159,6 +194,7 @@ TEST(SubscriptionTest,
 
 TEST(SubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 11:00:00");
   ServerSubscription subscription{19,
                                   {.publishing_interval_ms = 100,
@@ -167,6 +203,7 @@ TEST(SubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -187,12 +224,14 @@ TEST(SubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
                                      .queue_size = 1,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
+  DrainPump(executor);
   subscription.SetPublishingEnabled(false);
   monitored_item_service.items[0]->NotifyDataChange(
       scada::DataValue{scada::Variant{77.0},
                        {},
                        start + base::TimeDelta::FromSeconds(1),
                        start + base::TimeDelta::FromSeconds(1)});
+  DrainPump(executor);
   const auto disabled_keep_alive =
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(1050));
   ASSERT_TRUE(disabled_keep_alive.has_value());
@@ -215,6 +254,7 @@ TEST(SubscriptionTest, GeneratesKeepAliveAndQueuesWhilePublishingDisabled) {
 
 TEST(SubscriptionTest, WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 11:30:00");
   ServerSubscription subscription{37,
                                   {.publishing_interval_ms = 100,
@@ -223,6 +263,7 @@ TEST(SubscriptionTest, WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -236,12 +277,14 @@ TEST(SubscriptionTest, WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
                                      .queue_size = 1,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
+  DrainPump(executor);
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
 
   EXPECT_FALSE(subscription.TryPublish(start).has_value());
 
   monitored_item_service.items[0]->NotifyDataChange(
       scada::DataValue{scada::Variant{37.0}, {}, start, start});
+  DrainPump(executor);
   EXPECT_FALSE(
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(99))
           .has_value());
@@ -267,6 +310,7 @@ TEST(SubscriptionTest, WaitsForPublishingIntervalBeforeSendingDataOrKeepAlive) {
 TEST(SubscriptionTest,
      ProjectsDefaultEventFieldsAndDropsOldQueuedEventsByQueueSize) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 12:00:00");
   ServerSubscription subscription{23,
                                   {.publishing_interval_ms = 100,
@@ -275,6 +319,7 @@ TEST(SubscriptionTest,
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -298,6 +343,7 @@ TEST(SubscriptionTest,
                                      .queue_size = 1,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
+  DrainPump(executor);
 
   scada::Event first_event;
   first_event.event_id = 11;
@@ -315,6 +361,7 @@ TEST(SubscriptionTest,
 
   monitored_item_service.items[0]->NotifyEvent(first_event);
   monitored_item_service.items[0]->NotifyEvent(second_event);
+  DrainPump(executor);
 
   const auto publish =
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
@@ -333,6 +380,7 @@ TEST(SubscriptionTest,
 
 TEST(SubscriptionTest, PassesRawEventFilterRestrictionsToMonitoredItemService) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 12:30:00");
   ServerSubscription subscription{41,
                                   {.publishing_interval_ms = 100,
@@ -341,6 +389,7 @@ TEST(SubscriptionTest, PassesRawEventFilterRestrictionsToMonitoredItemService) {
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -367,6 +416,7 @@ TEST(SubscriptionTest, PassesRawEventFilterRestrictionsToMonitoredItemService) {
                                      .queue_size = 1,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
+  executor.Poll();
   ASSERT_EQ(monitored_item_service.created_params.size(), 1u);
 
   const auto* filter = std::get_if<scada::EventFilter>(
@@ -382,6 +432,7 @@ TEST(SubscriptionTest, PassesRawEventFilterRestrictionsToMonitoredItemService) {
 TEST(SubscriptionTest,
      RebindsModifiedItemsAndIgnoresLateCallbacksFromPreviousBinding) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   const auto start = ParseTime("2026-04-20 13:00:00");
   ServerSubscription subscription{29,
                                   {.publishing_interval_ms = 100,
@@ -390,6 +441,7 @@ TEST(SubscriptionTest,
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -403,6 +455,7 @@ TEST(SubscriptionTest,
                                      .queue_size = 2,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(create.results.size(), 1u);
+  DrainPump(executor);
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
   const auto old_item = monitored_item_service.items[0];
 
@@ -415,11 +468,13 @@ TEST(SubscriptionTest,
                                      .queue_size = 2,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(modify.results.size(), 1u);
+  DrainPump(executor);
   ASSERT_EQ(monitored_item_service.items.size(), 2u);
   const auto new_item = monitored_item_service.items[1];
 
   old_item->NotifyDataChange(
       scada::DataValue{scada::Variant{1.0}, {}, start, start});
+  DrainPump(executor);
   EXPECT_FALSE(
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(50))
           .has_value());
@@ -429,6 +484,7 @@ TEST(SubscriptionTest,
                        {},
                        start + base::TimeDelta::FromMilliseconds(200),
                        start + base::TimeDelta::FromMilliseconds(200)});
+  DrainPump(executor);
   const auto publish =
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(100));
   ASSERT_TRUE(publish.has_value());
@@ -447,6 +503,7 @@ TEST(SubscriptionTest,
                        {},
                        start + base::TimeDelta::FromMilliseconds(400),
                        start + base::TimeDelta::FromMilliseconds(400)});
+  DrainPump(executor);
   EXPECT_FALSE(
       subscription.TryPublish(start + base::TimeDelta::FromMilliseconds(200))
           .has_value());
@@ -455,6 +512,7 @@ TEST(SubscriptionTest,
 TEST(SubscriptionTest,
      CreateMonitoredItemsReportsPreciseStatusForUnknownNodeAndBadAttribute) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   monitored_item_service.return_null_for_all_requests = true;
   const auto start = ParseTime("2026-04-20 14:00:00");
 
@@ -465,6 +523,7 @@ TEST(SubscriptionTest,
                                    .max_notifications_per_publish = 0,
                                    .publishing_enabled = true,
                                    .priority = 0},
+                                  executor,
                                   monitored_item_service,
                                   start};
 
@@ -478,8 +537,12 @@ TEST(SubscriptionTest,
                                      .queue_size = 1,
                                      .discard_oldest = true}}}});
   ASSERT_EQ(unknown_node.results.size(), 1u);
-  EXPECT_EQ(unknown_node.results[0].status.code(),
-            scada::StatusCode::Bad_WrongNodeId);
+  // A supported attribute on an unknown node is now accepted synchronously: the
+  // LegacyMonitoredItemAdapter returns a placeholder item immediately and only
+  // discovers the unknown node asynchronously while creating the backing
+  // subscription, so Bad_WrongNodeId can no longer be surfaced here.
+  EXPECT_EQ(unknown_node.results[0].status.code(), scada::StatusCode::Good);
+  executor.Poll();
 
   const auto bad_attribute = subscription.CreateMonitoredItems(
       {.subscription_id = 31,

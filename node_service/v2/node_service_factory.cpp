@@ -12,8 +12,8 @@
 namespace v2 {
 
 namespace {
-using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::HasRequiredNodeServices;
+using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::ResolvedNodeServices;
 
 struct NodeServiceHolder {
@@ -39,7 +39,8 @@ struct NodeServiceHolder {
   NodeServiceImplContext MakeNodeServiceImplContext(
       const CoroutineNodeServiceContext& node_service_context) {
     auto view_events_provider =
-        MakeViewEventsProvider(node_service_context.monitored_item_service_);
+        MakeViewEventsProvider(node_service_context.executor_,
+                               node_service_context.monitored_item_service_);
 
     return NodeServiceImplContext{
         node_service_context.executor_,
@@ -53,7 +54,8 @@ struct NodeServiceHolder {
   NodeServiceImplContext MakeNodeServiceImplContext(
       const DataServicesNodeServiceContext& node_service_context) {
     auto view_events_provider =
-        MakeViewEventsProvider(*resolved_services->monitored_item_service);
+        MakeViewEventsProvider(node_service_context.executor_,
+                               *resolved_services->monitored_item_service);
 
     return NodeServiceImplContext{
         node_service_context.executor_,

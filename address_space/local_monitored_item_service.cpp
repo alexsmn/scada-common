@@ -2,6 +2,7 @@
 
 #include "base/time/time.h"
 #include "scada/data_value.h"
+#include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
@@ -32,7 +33,18 @@ class LocalMonitoredItem : public MonitoredItem {
 LocalMonitoredItemService::LocalMonitoredItemService() = default;
 LocalMonitoredItemService::~LocalMonitoredItemService() = default;
 
-std::shared_ptr<MonitoredItem> LocalMonitoredItemService::CreateMonitoredItem(
+StatusOr<std::unique_ptr<MonitoredItemSubscription>>
+LocalMonitoredItemService::CreateSubscription(
+    ServiceContext /*context*/,
+    MonitoredItemSubscriptionOptions options) {
+  return MakeItemFactorySubscription(
+      [this](const ReadValueId& value_id, const MonitoringParameters& params) {
+        return CreateItem(value_id, params);
+      },
+      options);
+}
+
+std::shared_ptr<MonitoredItem> LocalMonitoredItemService::CreateItem(
     const ReadValueId& /*value_id*/,
     const MonitoringParameters& /*params*/) {
   return std::make_shared<LocalMonitoredItem>();

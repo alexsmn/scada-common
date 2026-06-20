@@ -1,9 +1,10 @@
 #pragma once
 
+#include "base/any_executor.h"
 #include "base/time/time.h"
 #include "opcua/message.h"
-#include "opcua/service_message.h"
 #include "opcua/server_subscription.h"
+#include "opcua/service_message.h"
 
 #include "scada/monitored_item_service.h"
 #include "scada/service_context.h"
@@ -21,6 +22,9 @@ struct ServerSessionContext {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ServiceContext service_context;
+  // Executor backing the LegacyMonitoredItemAdapter that each subscription
+  // uses to create monitored items from the subscription-based service.
+  AnyExecutor executor;
   scada::MonitoredItemService& monitored_item_service;
   std::function<base::Time()> now = &base::Time::Now;
 };
@@ -34,9 +38,7 @@ class ServerSession : private ServerSessionContext {
 
   explicit ServerSession(ServerSessionContext&& context);
 
-  const scada::NodeId& GetSessionId() const {
-    return this->session_id;
-  }
+  const scada::NodeId& GetSessionId() const { return this->session_id; }
   const scada::NodeId& GetAuthenticationToken() const {
     return this->authentication_token;
   }
@@ -73,9 +75,8 @@ class ServerSession : private ServerSessionContext {
   PublishPollResult PollPublish();
   PublishResponse Publish(const PublishRequest& request);
   RepublishResponse Republish(const RepublishRequest& request) const;
-  BrowseResponse StoreBrowseResults(
-      BrowseResponse response,
-      size_t requested_max_references_per_node);
+  BrowseResponse StoreBrowseResults(BrowseResponse response,
+                                    size_t requested_max_references_per_node);
   BrowseNextResponse BrowseNext(const BrowseNextRequest& request);
   std::vector<SubscriptionId> GetSubscriptionIds() const;
   bool HasSubscription(SubscriptionId subscription_id) const;
@@ -90,10 +91,9 @@ class ServerSession : private ServerSessionContext {
   };
 
   using SubscriptionMap =
-      std::unordered_map<SubscriptionId,
-                         std::unique_ptr<ServerSubscription>>;
-  using BrowseContinuationMap =
-      std::unordered_map<scada::ByteString, BrowseContinuationState, ByteStringHash>;
+      std::unordered_map<SubscriptionId, std::unique_ptr<ServerSubscription>>;
+  using BrowseContinuationMap = std::
+      unordered_map<scada::ByteString, BrowseContinuationState, ByteStringHash>;
 
   base::Time Now() const { return this->now(); }
   ServerSubscription* FindSubscription(SubscriptionId subscription_id);

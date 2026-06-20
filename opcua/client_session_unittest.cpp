@@ -4,6 +4,7 @@
 #include "base/test/test_executor.h"
 #include "opcua/binary/secure_channel.h"
 #include "opcua/binary/service_codec.h"
+#include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/test/status_matchers.h"
@@ -134,11 +135,13 @@ std::vector<char> BuildOpenResponseFrame() {
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = kChannelId,
-      .asymmetric_security_header = opcua::binary::AsymmetricSecurityHeader{
-          .security_policy_uri = std::string{opcua::binary::kSecurityPolicyNone},
-          .sender_certificate = {},
-          .receiver_certificate_thumbprint = {},
-      },
+      .asymmetric_security_header =
+          opcua::binary::AsymmetricSecurityHeader{
+              .security_policy_uri =
+                  std::string{opcua::binary::kSecurityPolicyNone},
+              .sender_certificate = {},
+              .receiver_certificate_thumbprint = {},
+          },
       .sequence_header = {.sequence_number = 1, .request_id = 1},
       .body = opcua::binary::EncodeOpenSecureChannelResponseBody(response),
   };
@@ -151,7 +154,8 @@ std::vector<char> BuildServiceResponseFrame(std::uint32_t request_id,
   const auto encoded =
       opcua::binary::EncodeServiceResponse(request_handle, std::move(body));
   const opcua::binary::SecureConversationMessage message{
-      .frame_header = {.message_type = opcua::binary::MessageType::SecureMessage,
+      .frame_header = {.message_type =
+                           opcua::binary::MessageType::SecureMessage,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = kChannelId,
@@ -183,8 +187,8 @@ void PrimeSessionEstablishment(const std::shared_ptr<ScriptedState>& state) {
       }})));
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/3, /*request_handle=*/2,
-      opcua::ResponseBody{opcua::ActivateSessionResponse{
-          .status = scada::StatusCode::Good}})));
+      opcua::ResponseBody{
+          opcua::ActivateSessionResponse{.status = scada::StatusCode::Good}})));
 }
 
 void PrimeSubscriptionCreation(const std::shared_ptr<ScriptedState>& state) {
@@ -232,8 +236,7 @@ class ClientSessionTest : public ::testing::Test {
 };
 
 TEST_F(ClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                     transport_factory_);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
 
   auto status = WaitAwaitable(
       executor_, session->ConnectAsync({.connection_string = "http://host"}));
@@ -241,8 +244,7 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsAwaitableWithStatus) {
 }
 
 TEST_F(ClientSessionTest, InvalidEndpointRejectsConnectWithStatus) {
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                     transport_factory_);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
 
   auto status = WaitAwaitable(
       executor_, session->ConnectStatus({.connection_string = "http://host"}));
@@ -250,19 +252,17 @@ TEST_F(ClientSessionTest, InvalidEndpointRejectsConnectWithStatus) {
 }
 
 TEST_F(ClientSessionTest, SessionServiceRejectsInvalidEndpoint) {
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                     transport_factory_);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
   auto& coroutine_session = *session;
 
   auto status = WaitAwaitable(
-      executor_, coroutine_session.ConnectStatus(
-                     {.connection_string = "http://host"}));
+      executor_,
+      coroutine_session.ConnectStatus({.connection_string = "http://host"}));
   EXPECT_EQ(status.code(), scada::StatusCode::Bad);
 }
 
 TEST_F(ClientSessionTest, SessionServiceReportsDisconnectedMetadata) {
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                     transport_factory_);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
   auto& coroutine_session = *session;
 
   base::TimeDelta ping_delay;
@@ -284,8 +284,7 @@ TEST_F(ClientSessionTest, SessionServiceConnectsClientSession) {
   PrimeSessionEstablishment(state);
 
   ScriptedTransportFactory transport_factory{state};
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                 transport_factory);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory);
   auto& coroutine_session = *session;
 
   bool state_changed = false;
@@ -304,23 +303,24 @@ TEST_F(ClientSessionTest, SessionServiceConnectsClientSession) {
   EXPECT_TRUE(session->IsConnected());
 
   const auto requests = DecodeServiceRequests(state->writes);
-  EXPECT_NE(std::ranges::find_if(requests,
-                                 [](const opcua::RequestBody& body) {
-                                   return std::holds_alternative<
-                                       opcua::CreateSessionRequest>(body);
-                                 }),
-            requests.end());
-  EXPECT_NE(std::ranges::find_if(requests,
-                                 [](const opcua::RequestBody& body) {
-                                   return std::holds_alternative<
-                                       opcua::ActivateSessionRequest>(body);
-                                 }),
-            requests.end());
+  EXPECT_NE(
+      std::ranges::find_if(
+          requests,
+          [](const opcua::RequestBody& body) {
+            return std::holds_alternative<opcua::CreateSessionRequest>(body);
+          }),
+      requests.end());
+  EXPECT_NE(
+      std::ranges::find_if(
+          requests,
+          [](const opcua::RequestBody& body) {
+            return std::holds_alternative<opcua::ActivateSessionRequest>(body);
+          }),
+      requests.end());
 }
 
 TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                     transport_factory_);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
 
   auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       std::vector<scada::ReadValueId>{});
@@ -330,7 +330,8 @@ TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
 
   auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       std::vector<scada::WriteValue>{});
-  auto write_result = WaitAwaitable(executor_, session->Write({}, write_inputs));
+  auto write_result =
+      WaitAwaitable(executor_, session->Write({}, write_inputs));
   EXPECT_THAT(write_result,
               scada::test::StatusIs(scada::StatusCode::Bad_Disconnected));
 
@@ -354,44 +355,50 @@ TEST_F(ClientSessionTest, MonitoredItemUsesSubscriptionCoroutineTasks) {
   PrimeSubscriptionCreation(state);
 
   ScriptedTransportFactory transport_factory{state};
-  auto session = std::make_shared<ClientSession>(executor_,
-                                                 transport_factory);
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory);
 
   ASSERT_NO_THROW(
       WaitAwaitable(executor_, session->Connect({.host = "localhost:4840"})));
 
-  auto monitored_item = session->CreateMonitoredItem(
+  scada::LegacyMonitoredItemAdapter monitored_item_adapter{executor_, *session};
+  auto monitored_item = monitored_item_adapter.CreateMonitoredItem(
       scada::ReadValueId{.node_id = scada::NodeId{1},
                          .attribute_id = scada::AttributeId::Value},
       scada::MonitoringParameters{
           .sampling_interval = base::TimeDelta::FromMilliseconds(250),
           .queue_size = 1});
-  monitored_item->Subscribe(static_cast<scada::DataChangeHandler>(
-      [](scada::DataValue) {}));
+  monitored_item->Subscribe(
+      static_cast<scada::DataChangeHandler>([](scada::DataValue) {}));
   Drain(executor_);
 
   monitored_item.reset();
   Drain(executor_);
 
   const auto requests = DecodeServiceRequests(state->writes);
-  EXPECT_NE(std::ranges::find_if(requests,
-                                 [](const opcua::RequestBody& body) {
-                                   return std::holds_alternative<
-                                       opcua::CreateSubscriptionRequest>(body);
-                                 }),
-            requests.end());
-  EXPECT_NE(std::ranges::find_if(requests,
-                                 [](const opcua::RequestBody& body) {
-                                   return std::holds_alternative<
-                                       opcua::CreateMonitoredItemsRequest>(body);
-                                 }),
-            requests.end());
-  EXPECT_NE(std::ranges::find_if(requests,
-                                 [](const opcua::RequestBody& body) {
-                                   return std::holds_alternative<
-                                       opcua::DeleteMonitoredItemsRequest>(body);
-                                 }),
-            requests.end());
+  EXPECT_NE(
+      std::ranges::find_if(
+          requests,
+          [](const opcua::RequestBody& body) {
+            return std::holds_alternative<opcua::CreateSubscriptionRequest>(
+                body);
+          }),
+      requests.end());
+  EXPECT_NE(
+      std::ranges::find_if(
+          requests,
+          [](const opcua::RequestBody& body) {
+            return std::holds_alternative<opcua::CreateMonitoredItemsRequest>(
+                body);
+          }),
+      requests.end());
+  EXPECT_NE(
+      std::ranges::find_if(
+          requests,
+          [](const opcua::RequestBody& body) {
+            return std::holds_alternative<opcua::DeleteMonitoredItemsRequest>(
+                body);
+          }),
+      requests.end());
 }
 
 }  // namespace

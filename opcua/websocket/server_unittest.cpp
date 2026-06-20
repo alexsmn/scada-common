@@ -4,8 +4,8 @@
 #include "base/test/test_executor.h"
 #include "opcua/server_runtime_contract_test.h"
 #include "opcua/websocket/json_codec.h"
-#include "scada/authentication_adapters.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/authentication_adapters.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/node_management_service_mock.h"
@@ -105,7 +105,8 @@ class ScriptedAcceptorTransport {
   ScriptedAcceptorTransport(ScriptedAcceptorTransport&&) = default;
   ScriptedAcceptorTransport& operator=(ScriptedAcceptorTransport&&) = default;
   ScriptedAcceptorTransport(const ScriptedAcceptorTransport&) = delete;
-  ScriptedAcceptorTransport& operator=(const ScriptedAcceptorTransport&) = delete;
+  ScriptedAcceptorTransport& operator=(const ScriptedAcceptorTransport&) =
+      delete;
 
   transport::awaitable<transport::error_code> open() {
     state_->opened = true;
@@ -149,8 +150,19 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
  public:
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId&,
-      const scada::MonitoringParameters&) override {
+      const scada::MonitoringParameters&) {
     return std::make_shared<scada::TestMonitoredItem>();
+  }
+
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext /*context*/,
+                     scada::MonitoredItemSubscriptionOptions options) override {
+    return scada::MakeItemFactorySubscription(
+        [this](const scada::ReadValueId& value_id,
+               const scada::MonitoringParameters& params) {
+          return CreateMonitoredItem(value_id, params);
+        },
+        options);
   }
 };
 
@@ -168,7 +180,8 @@ class ServerTest : public Test {
     WaitAwaitable(executor_, server_->ServeConnection(MakePeer(peer)));
   }
 
-  transport::any_transport MakePeer(const std::shared_ptr<MessagePeerState>& peer) {
+  transport::any_transport MakePeer(
+      const std::shared_ptr<MessagePeerState>& peer) {
     return transport::any_transport{
         ScriptedMessageTransport{any_executor_, peer}};
   }
@@ -201,56 +214,56 @@ class ServerTest : public Test {
   }};
   std::shared_ptr<AcceptorState> acceptor_state_ =
       std::make_shared<AcceptorState>();
-  std::unique_ptr<Server> server_ = std::make_unique<Server>(
-      ServerContext{
-          .acceptor = transport::any_transport{ScriptedAcceptorTransport{
-              any_executor_, acceptor_state_}},
-          .runtime = runtime_,
-          .max_message_size = 1024,
-      });
+  std::unique_ptr<Server> server_ = std::make_unique<Server>(ServerContext{
+      .acceptor = transport::any_transport{ScriptedAcceptorTransport{
+          any_executor_, acceptor_state_}},
+      .runtime = runtime_,
+      .max_message_size = 1024,
+  });
 };
 
 TEST_F(ServerTest, ServeConnectionProcessesRequestFramesEndToEnd) {
   auto peer = std::make_shared<MessagePeerState>();
   peer->incoming.push_back(
       Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
-  peer->incoming.push_back(Encode(
-      {.request_handle = 2,
-       .body = ActivateSessionRequest{
-           .session_id = NumericNode(1),
-           .authentication_token = NumericNode(1, 3),
-           .user_name = scada::LocalizedText{u"operator"},
-           .password = scada::LocalizedText{u"secret"}}}));
   peer->incoming.push_back(
-      Encode({.request_handle = 3,
-              .body = ReadRequest{
-                  .inputs = {{.node_id = NumericNode(7),
-                              .attribute_id = scada::AttributeId::DisplayName}}}}));
+      Encode({.request_handle = 2,
+              .body = ActivateSessionRequest{
+                  .session_id = NumericNode(1),
+                  .authentication_token = NumericNode(1, 3),
+                  .user_name = scada::LocalizedText{u"operator"},
+                  .password = scada::LocalizedText{u"secret"}}}));
+  peer->incoming.push_back(Encode(
+      {.request_handle = 3,
+       .body = ReadRequest{
+           .inputs = {{.node_id = NumericNode(7),
+                       .attribute_id = scada::AttributeId::DisplayName}}}}));
   EXPECT_CALL(attribute_service_, Read(_, _))
-      .WillOnce(Invoke([&](scada::ServiceContext context,
-                           std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
-                           -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
-        EXPECT_EQ(context.user_id(), (scada::NodeId{55, 3}));
-        EXPECT_THAT(*inputs,
-                    ElementsAre(scada::ReadValueId{
-                        .node_id = NumericNode(7),
-                        .attribute_id = scada::AttributeId::DisplayName}));
-        co_return std::vector{scada::DataValue{scada::LocalizedText{u"Pump"},
-                                               {},
-                                               base::Time::Now(),
-                                               base::Time::Now()}};
-      }));
+      .WillOnce(Invoke(
+          [&](scada::ServiceContext context,
+              std::shared_ptr<const std::vector<scada::ReadValueId>> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
+            EXPECT_EQ(context.user_id(), (scada::NodeId{55, 3}));
+            EXPECT_THAT(*inputs,
+                        ElementsAre(scada::ReadValueId{
+                            .node_id = NumericNode(7),
+                            .attribute_id = scada::AttributeId::DisplayName}));
+            co_return std::vector{
+                scada::DataValue{scada::LocalizedText{u"Pump"},
+                                 {},
+                                 base::Time::Now(),
+                                 base::Time::Now()}};
+          }));
 
   ServePeer(peer);
 
   ASSERT_EQ(peer->writes.size(), 3u);
   const auto create_response =
-      std::get<CreateSessionResponse>(
-          DecodeResponse(peer->writes[0]).body);
+      std::get<CreateSessionResponse>(DecodeResponse(peer->writes[0]).body);
   EXPECT_EQ(create_response.status.code(), scada::StatusCode::Good);
 
-  const auto activate_response = std::get<ActivateSessionResponse>(
-      DecodeResponse(peer->writes[1]).body);
+  const auto activate_response =
+      std::get<ActivateSessionResponse>(DecodeResponse(peer->writes[1]).body);
   EXPECT_EQ(activate_response.status.code(), scada::StatusCode::Good);
 
   const auto read_response =
@@ -277,22 +290,22 @@ TEST_F(ServerTest, DisconnectDetachesSessionForResume) {
   auto first_peer = std::make_shared<MessagePeerState>();
   first_peer->incoming.push_back(
       Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
-  first_peer->incoming.push_back(Encode(
-      {.request_handle = 2,
-       .body = ActivateSessionRequest{
-           .session_id = NumericNode(1),
-           .authentication_token = NumericNode(1, 3),
-           .user_name = scada::LocalizedText{u"operator"},
-           .password = scada::LocalizedText{u"secret"}}}));
+  first_peer->incoming.push_back(
+      Encode({.request_handle = 2,
+              .body = ActivateSessionRequest{
+                  .session_id = NumericNode(1),
+                  .authentication_token = NumericNode(1, 3),
+                  .user_name = scada::LocalizedText{u"operator"},
+                  .password = scada::LocalizedText{u"secret"}}}));
 
   ServePeer(first_peer);
 
   auto second_peer = std::make_shared<MessagePeerState>();
-  second_peer->incoming.push_back(Encode(
-      {.request_handle = 3,
-       .body = ActivateSessionRequest{
-           .session_id = NumericNode(1),
-           .authentication_token = NumericNode(1, 3)}}));
+  second_peer->incoming.push_back(
+      Encode({.request_handle = 3,
+              .body = ActivateSessionRequest{
+                  .session_id = NumericNode(1),
+                  .authentication_token = NumericNode(1, 3)}}));
   ServePeer(second_peer);
 
   ASSERT_EQ(second_peer->writes.size(), 1u);
@@ -324,21 +337,19 @@ TEST_F(ServerTest, ServeConnectionRoutesReadThroughCoroutineServices) {
   auto peer = std::make_shared<MessagePeerState>();
   peer->incoming.push_back(
       Encode({.request_handle = 1, .body = CreateSessionRequest{}}));
-  peer->incoming.push_back(Encode(
-      {.request_handle = 2,
-       .body = ActivateSessionRequest{
-           .session_id = NumericNode(1),
-           .authentication_token = NumericNode(1, 3),
-           .user_name = scada::LocalizedText{u"operator"},
-           .password = scada::LocalizedText{u"secret"}}}));
+  peer->incoming.push_back(
+      Encode({.request_handle = 2,
+              .body = ActivateSessionRequest{
+                  .session_id = NumericNode(1),
+                  .authentication_token = NumericNode(1, 3),
+                  .user_name = scada::LocalizedText{u"operator"},
+                  .password = scada::LocalizedText{u"secret"}}}));
   const ReadRequest read_request{
       .inputs = {{.node_id = NumericNode(902),
                   .attribute_id = scada::AttributeId::Value}}};
-  peer->incoming.push_back(Encode({.request_handle = 3,
-                                   .body = read_request}));
+  peer->incoming.push_back(Encode({.request_handle = 3, .body = read_request}));
 
-  WaitAwaitable(executor_,
-                coroutine_server.ServeConnection(MakePeer(peer)));
+  WaitAwaitable(executor_, coroutine_server.ServeConnection(MakePeer(peer)));
 
   ASSERT_EQ(peer->writes.size(), 3u);
   const auto read_response =

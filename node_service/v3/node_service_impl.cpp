@@ -1,33 +1,37 @@
 #include "node_service/v3/node_service_impl.h"
 
 #include "base/awaitable.h"
-#include "scada/attribute_service.h"
-#include "scada/standard_node_ids.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
-#include "node_service/v3/node_model_impl.h"
 #include "node_service/v3/node_fetcher.h"
+#include "node_service/v3/node_model_impl.h"
+#include "scada/attribute_service.h"
+#include "scada/standard_node_ids.h"
 
 namespace v3 {
 
 namespace {
 
 std::unique_ptr<IViewEventsSubscription> MakeViewEventsSubscription(
+    AnyExecutor executor,
     scada::MonitoredItemService& monitored_item_service,
     scada::ViewEvents& events,
     const ViewEventsProvider& provider) {
   if (provider)
     return provider(events);
-  return std::make_unique<ViewEventsSubscription>(monitored_item_service,
-                                                  events);
+  return std::make_unique<ViewEventsSubscription>(
+      executor, monitored_item_service, events);
 }
 
 }  // namespace
 
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext(std::move(context)),
-      view_events_subscription_{MakeViewEventsSubscription(
-          monitored_item_service_, *this, view_events_provider_)} {}
+      view_events_subscription_{
+          MakeViewEventsSubscription(executor_,
+                                     monitored_item_service_,
+                                     *this,
+                                     view_events_provider_)} {}
 
 NodeServiceImpl::~NodeServiceImpl() {}
 
@@ -108,26 +112,28 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
   }
 
   if (requested_status.node_fetched) {
-    CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
-                         -> Awaitable<void> {
-      auto node_state = co_await fetcher->FetchNode(node_id);
-      if (node_state.ok()) {
-        ProcessFetchedNodes({std::move(*node_state)});
-      } else {
-        ProcessFetchErrors({{node_id, node_state.status()}});
-      }
-    });
+    CoSpawn(
+        executor_,
+        [this, fetcher = node_fetcher_, node_id]() mutable -> Awaitable<void> {
+          auto node_state = co_await fetcher->FetchNode(node_id);
+          if (node_state.ok()) {
+            ProcessFetchedNodes({std::move(*node_state)});
+          } else {
+            ProcessFetchErrors({{node_id, node_state.status()}});
+          }
+        });
   }
   if (requested_status.children_fetched) {
-    CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
-                         -> Awaitable<void> {
-      auto references = co_await fetcher->FetchChildren(node_id);
-      if (references.ok()) {
-        ProcessFetchedChildren(node_id, std::move(*references));
-      } else {
-        ProcessFetchErrors({{node_id, references.status()}});
-      }
-    });
+    CoSpawn(
+        executor_,
+        [this, fetcher = node_fetcher_, node_id]() mutable -> Awaitable<void> {
+          auto references = co_await fetcher->FetchChildren(node_id);
+          if (references.ok()) {
+            ProcessFetchedChildren(node_id, std::move(*references));
+          } else {
+            ProcessFetchErrors({{node_id, references.status()}});
+          }
+        });
   }
 }
 
@@ -170,26 +176,28 @@ void NodeServiceImpl::OnChannelOpened() {
 
   for (auto& [node_id, requested_status] : pending_fetch_nodes) {
     if (requested_status.node_fetched) {
-      CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
-                           -> Awaitable<void> {
-        auto node_state = co_await fetcher->FetchNode(node_id);
-        if (node_state.ok()) {
-          ProcessFetchedNodes({std::move(*node_state)});
-        } else {
-          ProcessFetchErrors({{node_id, node_state.status()}});
-        }
-      });
+      CoSpawn(executor_,
+              [this, fetcher = node_fetcher_,
+               node_id]() mutable -> Awaitable<void> {
+                auto node_state = co_await fetcher->FetchNode(node_id);
+                if (node_state.ok()) {
+                  ProcessFetchedNodes({std::move(*node_state)});
+                } else {
+                  ProcessFetchErrors({{node_id, node_state.status()}});
+                }
+              });
     }
     if (requested_status.children_fetched) {
-      CoSpawn(executor_, [this, fetcher = node_fetcher_, node_id]() mutable
-                           -> Awaitable<void> {
-        auto references = co_await fetcher->FetchChildren(node_id);
-        if (references.ok()) {
-          ProcessFetchedChildren(node_id, std::move(*references));
-        } else {
-          ProcessFetchErrors({{node_id, references.status()}});
-        }
-      });
+      CoSpawn(executor_,
+              [this, fetcher = node_fetcher_,
+               node_id]() mutable -> Awaitable<void> {
+                auto references = co_await fetcher->FetchChildren(node_id);
+                if (references.ok()) {
+                  ProcessFetchedChildren(node_id, std::move(*references));
+                } else {
+                  ProcessFetchErrors({{node_id, references.status()}});
+                }
+              });
     }
   }
 }

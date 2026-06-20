@@ -3,6 +3,7 @@
 #include "base/any_executor.h"
 #include "net/net_executor_adapter.h"
 #include "opcua/client_subscription.h"
+#include "scada/item_factory_subscription.h"
 #include "transport/transport_factory.h"
 #include "transport/transport_string.h"
 
@@ -211,11 +212,18 @@ scada::SessionDebugger* ClientSession::GetSessionDebugger() {
   return nullptr;
 }
 
-std::shared_ptr<scada::MonitoredItem> ClientSession::CreateMonitoredItem(
-    const scada::ReadValueId& read_value_id,
-    const scada::MonitoringParameters& params) {
-  assert(!read_value_id.node_id.is_null());
-  return GetDefaultSubscription().CreateMonitoredItem(read_value_id, params);
+scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+ClientSession::CreateSubscription(
+    scada::ServiceContext /*context*/,
+    scada::MonitoredItemSubscriptionOptions options) {
+  return scada::MakeItemFactorySubscription(
+      [this](const scada::ReadValueId& read_value_id,
+             const scada::MonitoringParameters& params) {
+        assert(!read_value_id.node_id.is_null());
+        return GetDefaultSubscription().CreateMonitoredItem(read_value_id,
+                                                            params);
+      },
+      options);
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>

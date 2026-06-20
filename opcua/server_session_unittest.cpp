@@ -1,6 +1,8 @@
 #include "opcua/server_session.h"
 
+#include "base/test/test_executor.h"
 #include "base/time_utils.h"
+#include "scada/item_factory_subscription.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/test/test_monitored_item.h"
 
@@ -23,7 +25,7 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
  public:
   std::shared_ptr<scada::MonitoredItem> CreateMonitoredItem(
       const scada::ReadValueId& value_id,
-      const scada::MonitoringParameters& params) override {
+      const scada::MonitoringParameters& params) {
     (void)value_id;
     (void)params;
     auto item = std::make_shared<scada::TestMonitoredItem>();
@@ -31,32 +33,48 @@ class TestMonitoredItemService : public scada::MonitoredItemService {
     return item;
   }
 
+  scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
+  CreateSubscription(scada::ServiceContext /*context*/,
+                     scada::MonitoredItemSubscriptionOptions options) override {
+    return scada::MakeItemFactorySubscription(
+        [this](const scada::ReadValueId& value_id,
+               const scada::MonitoringParameters& params) {
+          return CreateMonitoredItem(value_id, params);
+        },
+        options);
+  }
+
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
 };
 
 TEST(ServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   auto now = ParseTime("2026-04-20 17:00:00");
   ServerSession source{{
       .session_id = NumericNode(1001),
       .authentication_token = NumericNode(2001, 3),
-      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
+      .service_context =
+          scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
+      .executor = executor,
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
   ServerSession target{{
       .session_id = NumericNode(1002),
       .authentication_token = NumericNode(2002, 3),
-      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
+      .service_context =
+          scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
+      .executor = executor,
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
 
-  const auto created = source.CreateSubscription(
-      {.parameters = {.publishing_interval_ms = 100,
-                      .lifetime_count = 60,
-                      .max_keep_alive_count = 3,
-                      .publishing_enabled = true}});
+  const auto created =
+      source.CreateSubscription({.parameters = {.publishing_interval_ms = 100,
+                                                .lifetime_count = 60,
+                                                .max_keep_alive_count = 3,
+                                                .publishing_enabled = true}});
   EXPECT_TRUE(source.HasSubscription(created.subscription_id));
 
   auto paged = source.StoreBrowseResults(
@@ -80,8 +98,8 @@ TEST(ServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) {
   EXPECT_EQ(next.results[0].references[0].node_id, NumericNode(602));
 
   const auto transferred = target.TransferSubscriptionsFrom(
-      source,
-      {.subscription_ids = {created.subscription_id}, .send_initial_values = true});
+      source, {.subscription_ids = {created.subscription_id},
+               .send_initial_values = true});
   EXPECT_EQ(transferred.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
   EXPECT_FALSE(source.HasSubscription(created.subscription_id));
@@ -91,45 +109,50 @@ TEST(ServerSessionTest, StoresContinuationPointsAndTransfersSubscriptions) {
 TEST(ServerSessionTest,
      TransfersSubscriptionsAcrossSessionsAndPublishesQueuedData) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   auto now = ParseTime("2026-04-20 18:00:00");
   ServerSession source{{
       .session_id = NumericNode(1101),
       .authentication_token = NumericNode(2101, 3),
-      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
+      .service_context =
+          scada::ServiceContext{}.with_user_id(NumericNode(77, 4)),
+      .executor = executor,
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
   ServerSession target{{
       .session_id = NumericNode(1102),
       .authentication_token = NumericNode(2102, 3),
-      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
+      .service_context =
+          scada::ServiceContext{}.with_user_id(NumericNode(78, 4)),
+      .executor = executor,
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
 
-  const auto created_subscription = source.CreateSubscription(
-      {.parameters = {.publishing_interval_ms = 100,
-                      .lifetime_count = 60,
-                      .max_keep_alive_count = 3,
-                      .publishing_enabled = true}});
+  const auto created_subscription =
+      source.CreateSubscription({.parameters = {.publishing_interval_ms = 100,
+                                                .lifetime_count = 60,
+                                                .max_keep_alive_count = 3,
+                                                .publishing_enabled = true}});
   const auto created_items = source.CreateMonitoredItems(
       {.subscription_id = created_subscription.subscription_id,
-       .items_to_create = {{.item_to_monitor =
-                                {.node_id = NumericNode(301),
-                                 .attribute_id = scada::AttributeId::Value},
-                            .requested_parameters =
-                                {.client_handle = 44,
-                                 .sampling_interval_ms = 0,
-                                 .queue_size = 1,
-                                 .discard_oldest = true}}}});
+       .items_to_create = {
+           {.item_to_monitor = {.node_id = NumericNode(301),
+                                .attribute_id = scada::AttributeId::Value},
+            .requested_parameters = {.client_handle = 44,
+                                     .sampling_interval_ms = 0,
+                                     .queue_size = 1,
+                                     .discard_oldest = true}}}});
   ASSERT_EQ(created_items.results.size(), 1u);
   ASSERT_EQ(created_items.results[0].status.code(), scada::StatusCode::Good);
+  // The backing monitored item is created asynchronously on the executor.
+  executor.Poll();
   ASSERT_EQ(monitored_item_service.items.size(), 1u);
 
   const auto transferred = target.TransferSubscriptionsFrom(
-      source,
-      {.subscription_ids = {created_subscription.subscription_id},
-       .send_initial_values = true});
+      source, {.subscription_ids = {created_subscription.subscription_id},
+               .send_initial_values = true});
   EXPECT_EQ(transferred.results,
             (std::vector<scada::StatusCode>{scada::StatusCode::Good}));
   EXPECT_FALSE(source.HasSubscription(created_subscription.subscription_id));
@@ -137,6 +160,9 @@ TEST(ServerSessionTest,
 
   monitored_item_service.items[0]->NotifyDataChange(
       scada::DataValue{scada::Double{77.0}, {}, now, now});
+  // The notification flows through the subscription pump's async read loop, so
+  // pump pending work before publishing to ensure the value reaches the queue.
+  executor.Poll();
   now = now + base::TimeDelta::FromMilliseconds(100);
 
   const auto published = target.Publish({});
@@ -151,23 +177,25 @@ TEST(ServerSessionTest,
   EXPECT_EQ(data_change->monitored_items[0].value.value.get<double>(), 77.0);
 }
 
-TEST(ServerSessionTest,
-     ModifiesSubscriptionsAndRoutesMonitoredItemOperations) {
+TEST(ServerSessionTest, ModifiesSubscriptionsAndRoutesMonitoredItemOperations) {
   TestMonitoredItemService monitored_item_service;
+  TestExecutor executor;
   auto now = ParseTime("2026-04-20 19:00:00");
   ServerSession session{{
       .session_id = NumericNode(1201),
       .authentication_token = NumericNode(2201, 3),
-      .service_context = scada::ServiceContext{}.with_user_id(NumericNode(79, 4)),
+      .service_context =
+          scada::ServiceContext{}.with_user_id(NumericNode(79, 4)),
+      .executor = executor,
       .monitored_item_service = monitored_item_service,
       .now = [&] { return now; },
   }};
 
-  const auto created_subscription = session.CreateSubscription(
-      {.parameters = {.publishing_interval_ms = 100,
-                      .lifetime_count = 60,
-                      .max_keep_alive_count = 3,
-                      .publishing_enabled = true}});
+  const auto created_subscription =
+      session.CreateSubscription({.parameters = {.publishing_interval_ms = 100,
+                                                 .lifetime_count = 60,
+                                                 .max_keep_alive_count = 3,
+                                                 .publishing_enabled = true}});
   const auto modified_subscription = session.ModifySubscription(
       {.subscription_id = created_subscription.subscription_id,
        .parameters = {.publishing_interval_ms = 250,
@@ -181,26 +209,25 @@ TEST(ServerSessionTest,
 
   const auto created_items = session.CreateMonitoredItems(
       {.subscription_id = created_subscription.subscription_id,
-       .items_to_create = {{.item_to_monitor =
-                                {.node_id = NumericNode(401),
-                                 .attribute_id = scada::AttributeId::Value},
-                            .requested_parameters =
-                                {.client_handle = 7,
-                                 .sampling_interval_ms = 0,
-                                 .queue_size = 1,
-                                 .discard_oldest = true}}}});
+       .items_to_create = {
+           {.item_to_monitor = {.node_id = NumericNode(401),
+                                .attribute_id = scada::AttributeId::Value},
+            .requested_parameters = {.client_handle = 7,
+                                     .sampling_interval_ms = 0,
+                                     .queue_size = 1,
+                                     .discard_oldest = true}}}});
   ASSERT_EQ(created_items.results.size(), 1u);
   ASSERT_EQ(created_items.results[0].status.code(), scada::StatusCode::Good);
   const auto monitored_item_id = created_items.results[0].monitored_item_id;
 
   const auto modified_items = session.ModifyMonitoredItems(
       {.subscription_id = created_subscription.subscription_id,
-       .items_to_modify = {{.monitored_item_id = monitored_item_id,
-                            .requested_parameters =
-                                {.client_handle = 8,
-                                 .sampling_interval_ms = 50,
-                                 .queue_size = 2,
-                                 .discard_oldest = true}}}});
+       .items_to_modify = {
+           {.monitored_item_id = monitored_item_id,
+            .requested_parameters = {.client_handle = 8,
+                                     .sampling_interval_ms = 50,
+                                     .queue_size = 2,
+                                     .discard_oldest = true}}}});
   ASSERT_EQ(modified_items.results.size(), 1u);
   EXPECT_EQ(modified_items.results[0].status.code(), scada::StatusCode::Good);
 
