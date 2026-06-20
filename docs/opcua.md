@@ -148,10 +148,16 @@ without copying service-level behavior. Coroutine-native throughout
 layer). See `common/docs/diagrams/client_architecture.svg` for
 the component graph.
 
-Security support in this revision: `SecurityPolicy=None` /
-`SecurityMode=None`. `Basic256Sha256` sign-and-encrypt is tracked as a
-follow-up and will plug into `binary::ClientSecureChannel` without
-changing the surface above it.
+Security support: `SecurityPolicy=None` / `SecurityMode=None` and
+`Basic256Sha256` / `SignAndEncrypt`. Both the client
+(`binary::ClientSecureChannel`) and the server
+(`binary::SecureChannel` + `binary::SecureChannelServerConfig`)
+implement the Basic256Sha256 asymmetric `OpenSecureChannel` handshake
+(RSA-OAEP-SHA1 + RSA-PKCS#1-SHA256) and the symmetric `MSG`/`CLO` path
+(AES-256-CBC + HMAC-SHA256) with keys derived from the nonce exchange
+(OPC UA Part 6 §6.7). `Sign`-only and the other policy families are not
+implemented. The server channel is end-to-end tested against the client
+channel in `common/opcua/binary/secure_channel_server_unittest.cpp`.
 
 ### `ClientSession`
 
@@ -516,8 +522,11 @@ Notes:
 - `allowed_origins` defaults to an empty list — that is, deny by default in
   prod. Explicit `"*"` is accepted for lab setups but logs a warning at
   startup.
-- TLS cert paths intentionally match the transport OPC UA endpoint config even
-  though SecureChannel policy handling is still pending.
+- TLS cert paths intentionally match the transport OPC UA endpoint config. The
+  same `server_private_key` / `server_certificate` now also feed the
+  `opc.tcp://` SecureChannel: when both are set the binary endpoint additionally
+  advertises and accepts `Basic256Sha256` / `SignAndEncrypt` (see
+  `server/docs/opcua_module.md`).
 - `max_message_size` bounds both directions; over-large messages close the
   socket with status 1009.
 

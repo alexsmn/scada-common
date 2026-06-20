@@ -3,10 +3,12 @@
 #include "base/async_completion.h"
 #include "base/awaitable.h"
 #include "opcua/binary/runtime.h"
+#include "opcua/binary/secure_channel.h"
 
 #include <transport/any_transport.h>
 #include <transport/error.h>
 
+#include <memory>
 #include <optional>
 
 namespace opcua::binary {
@@ -17,6 +19,8 @@ struct ServerContext {
   ServerSessionManager& session_manager;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
+  // Shared SecureChannel configuration. Null offers SecurityPolicy=None only.
+  std::shared_ptr<const SecureChannelServerConfig> secure_channel_config;
 };
 
 class Server : private ServerContext {

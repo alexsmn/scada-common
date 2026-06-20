@@ -115,7 +115,7 @@ class ServerSessionManager : private ServerSessionManagerContext {
   [[nodiscard]] base::TimeDelta ReviseTimeout(base::TimeDelta requested) const;
   [[nodiscard]] scada::NodeId MakeSessionId();
   [[nodiscard]] scada::NodeId MakeAuthenticationToken();
-  [[nodiscard]] scada::ByteString MakeServerNonce(scada::UInt32 seed) const;
+  [[nodiscard]] scada::ByteString MakeServerNonce() const;
   [[nodiscard]] SessionState* FindSessionState(
       const scada::NodeId& authentication_token);
   [[nodiscard]] const SessionState* FindSessionState(

@@ -1,6 +1,7 @@
 #include "opcua/server_session_manager.h"
 
 #include "base/boost_log.h"
+#include "opcua/binary/crypto.h"
 #include "scada/status_or.h"
 
 #include <algorithm>
@@ -29,12 +30,11 @@ Awaitable<CreateSessionResponse> ServerSessionManager::CreateSession(
   const auto revised_timeout = ReviseTimeout(request.requested_timeout);
   const auto session_id = MakeSessionId();
   const auto authentication_token = MakeAuthenticationToken();
-  const auto nonce_seed = next_token_id_ - 1;
 
   SessionState session{
       .session_id = session_id,
       .authentication_token = authentication_token,
-      .server_nonce = MakeServerNonce(nonce_seed),
+      .server_nonce = MakeServerNonce(),
       .revised_timeout = revised_timeout,
       .expires_at = Now() + revised_timeout,
   };
@@ -268,18 +268,19 @@ scada::NodeId ServerSessionManager::MakeAuthenticationToken() {
   return {next_token_id_++, token_namespace_index};
 }
 
-scada::ByteString ServerSessionManager::MakeServerNonce(
-    scada::UInt32 seed) const {
-  return scada::ByteString{
-      static_cast<char>(seed & 0xff),
-      static_cast<char>((seed >> 8) & 0xff),
-      static_cast<char>((seed >> 16) & 0xff),
-      static_cast<char>((seed >> 24) & 0xff),
-      static_cast<char>(0xa5),
-      static_cast<char>(0x5a),
-      static_cast<char>(session_namespace_index & 0xff),
-      static_cast<char>(token_namespace_index & 0xff),
-  };
+scada::ByteString ServerSessionManager::MakeServerNonce() const {
+  // OPC UA Part 4 §5.6.2 requires the server nonce to be a cryptographically
+  // random value of at least the active SecurityPolicy's nonce length (32
+  // bytes for Basic256Sha256). The client signs (serverCertificate ||
+  // serverNonce) in ActivateSession, so a predictable nonce would let an
+  // attacker forge that signature.
+  constexpr std::size_t kServerNonceLength = 32;
+  auto nonce = binary::crypto::GenerateNonce(kServerNonceLength);
+  if (!nonce.ok()) {
+    LOG_WARNING(logger_) << "OPC UA server nonce generation failed";
+    return scada::ByteString(kServerNonceLength, 0);
+  }
+  return std::move(*nonce);
 }
 
 ServerSessionManager::SessionState* ServerSessionManager::FindSessionState(

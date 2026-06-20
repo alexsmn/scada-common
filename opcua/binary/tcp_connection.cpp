@@ -21,7 +21,8 @@ std::vector<char> SubspanToVector(const std::vector<char>& bytes,
 
 TcpConnection::TcpConnection(
     TcpConnectionContext&& context)
-    : TcpConnectionContext{std::move(context)}, secure_channel_{} {}
+    : TcpConnectionContext{std::move(context)},
+      secure_channel_{secure_channel_config} {}
 
 Awaitable<void> TcpConnection::Run() {
   [[maybe_unused]] auto open_result = co_await transport.open();

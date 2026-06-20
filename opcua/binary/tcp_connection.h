@@ -9,6 +9,7 @@
 #include <transport/write_queue.h>
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -22,6 +23,8 @@ struct TcpConnectionContext {
   TransportLimits limits;
   std::size_t read_buffer_size = 64 * 1024;
   std::size_t max_frame_size = 16 * 1024 * 1024;
+  // Shared SecureChannel configuration. Null offers SecurityPolicy=None only.
+  std::shared_ptr<const SecureChannelServerConfig> secure_channel_config;
   SecureFrameHandler on_secure_frame =
       [](std::vector<char>) -> Awaitable<std::optional<std::vector<char>>> {
     co_return std::nullopt;

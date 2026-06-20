@@ -102,6 +102,7 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
   auto* runtime_ptr = &runtime;
   const auto read_buffer_size_value = read_buffer_size;
   const auto max_frame_size_value = max_frame_size;
+  auto secure_channel_config_value = secure_channel_config;
   auto state = std::make_shared<ConnectionTaskState>(std::move(transport));
   ServiceDispatcher dispatcher{
       {.runtime = *runtime_ptr,
@@ -111,6 +112,7 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
         {.transport = std::move(state->transport),
          .read_buffer_size = read_buffer_size_value,
          .max_frame_size = max_frame_size_value,
+         .secure_channel_config = std::move(secure_channel_config_value),
          .on_secure_frame =
              [&dispatcher](std::vector<char> payload)
                  -> Awaitable<std::optional<std::vector<char>>> {
