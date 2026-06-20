@@ -163,9 +163,11 @@ On top of the channel, the server verifies the ActivateSession
 `clientSignature` over (serverCertificate || serverNonce) against the
 client application instance certificate and binds that certificate to the
 one the SecureChannel validated (`common/opcua/server_session_manager.cpp`).
-Client certificates are checked against a file-backed
-`binary::CertificateTrustStore` (validity period + trusted-thumbprint
-membership, with a rejected-certificate store). Session nonces are CSPRNG.
+An encrypted (RSA-OAEP) UserNameIdentityToken password is decrypted with the
+server key and its embedded server nonce verified. Client certificates are
+checked against a file-backed `binary::CertificateTrustStore` (validity period,
+explicit trusted-leaf thumbprint, issuer-chain trust and CRL revocation, with a
+rejected-certificate store). Session nonces are CSPRNG.
 
 ### `ClientSession`
 
