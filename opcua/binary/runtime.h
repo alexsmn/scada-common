@@ -13,7 +13,9 @@ template <typename Response>
 Response BuildRuntimeErrorResponse(scada::Status status) {
   if constexpr (requires(Response response) { response.status; }) {
     return Response{.status = std::move(status)};
-  } else if constexpr (requires(Response response) { response.result.status; }) {
+  } else if constexpr (requires(Response response) {
+                         response.result.status;
+                       }) {
     auto response = Response{};
     response.result.status = std::move(status);
     return response;
@@ -40,6 +42,7 @@ struct RuntimeContext {
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
+  std::vector<EndpointDescription> endpoints;
   std::function<base::Time()> now = &base::Time::Now;
 };
 
@@ -47,6 +50,7 @@ struct DataServicesRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
   DataServices data_services;
+  std::vector<EndpointDescription> endpoints;
   std::function<base::Time()> now = &base::Time::Now;
 };
 
@@ -60,8 +64,8 @@ class Runtime {
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<Response> Handle(ConnectionState& connection,
                                            Request request) {
-    auto body = co_await HandleBody(connection, RequestBody{
-                                                    std::move(request)});
+    auto body =
+        co_await HandleBody(connection, RequestBody{std::move(request)});
     if (auto* typed = std::get_if<Response>(&body)) {
       co_return std::move(*typed);
     }
@@ -73,14 +77,13 @@ class Runtime {
 
   void Detach(ConnectionState& connection);
 
-  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
-  HandleDecodedRequest(ConnectionState& connection,
-                       const DecodedRequest& request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>> HandleDecodedRequest(
+      ConnectionState& connection,
+      const DecodedRequest& request);
 
  private:
-  [[nodiscard]] Awaitable<ResponseBody> HandleBody(
-      ConnectionState& connection,
-      RequestBody request);
+  [[nodiscard]] Awaitable<ResponseBody> HandleBody(ConnectionState& connection,
+                                                   RequestBody request);
 
   template <typename Response, typename Request>
   [[nodiscard]] Awaitable<std::optional<ResponseBody>>
@@ -88,7 +91,8 @@ class Runtime {
                              const DecodedRequest& request,
                              Request typed_request) {
     if (!connection.authentication_token.has_value() ||
-        *connection.authentication_token != request.header.authentication_token) {
+        *connection.authentication_token !=
+            request.header.authentication_token) {
       co_return ResponseBody{BuildRuntimeErrorResponse<Response>(
           scada::StatusCode::Bad_SessionIsLoggedOff)};
     }
@@ -97,17 +101,17 @@ class Runtime {
         co_await Handle<Response>(connection, std::move(typed_request))};
   }
 
-  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
-  HandleSessionRequest(ConnectionState& connection,
-                       CreateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
-  HandleSessionRequest(ConnectionState& connection,
-                       const ServiceRequestHeader& header,
-                       ActivateSessionRequest request);
-  [[nodiscard]] Awaitable<std::optional<ResponseBody>>
-  HandleSessionRequest(ConnectionState& connection,
-                       const ServiceRequestHeader& header,
-                       CloseSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>> HandleSessionRequest(
+      ConnectionState& connection,
+      CreateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>> HandleSessionRequest(
+      ConnectionState& connection,
+      const ServiceRequestHeader& header,
+      ActivateSessionRequest request);
+  [[nodiscard]] Awaitable<std::optional<ResponseBody>> HandleSessionRequest(
+      ConnectionState& connection,
+      const ServiceRequestHeader& header,
+      CloseSessionRequest request);
 
   ServerSessionManager& session_manager_;
   ServerRuntime runtime_;

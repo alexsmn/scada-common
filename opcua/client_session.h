@@ -8,6 +8,7 @@
 #include "opcua/binary/client_transport.h"
 #include "opcua/client_channel.h"
 #include "opcua/client_protocol_session.h"
+#include "opcua/message.h"
 #include "scada/attribute_service.h"
 #include "scada/coroutine_services.h"
 #include "scada/method_service.h"
@@ -23,6 +24,10 @@
 namespace transport {
 class TransportFactory;
 }  // namespace transport
+
+namespace scada {
+struct SessionSecuritySettings;
+}  // namespace scada
 
 namespace opcua {
 
@@ -119,6 +124,21 @@ class ClientSession final : public std::enable_shared_from_this<ClientSession>,
     bool valid = false;
   };
   static ParsedEndpoint ParseEndpointUrl(const std::string& url);
+
+  // Runs GetEndpoints discovery against `endpoint_url` over a transient
+  // SecurityPolicy=None channel and selects the endpoint that best matches
+  // `settings` and this client's capabilities. Used only when the caller
+  // requests a non-default (discovery-driven) security mode.
+  [[nodiscard]] Awaitable<scada::StatusOr<EndpointDescription>>
+  DiscoverAndSelectEndpoint(const std::string& endpoint_url,
+                            const scada::SessionSecuritySettings& settings);
+
+  // Builds the secure-channel Security for a chosen endpoint: a None Security
+  // for SecurityPolicy=None, otherwise the client certificate/key from
+  // `settings` plus the server certificate carried by the endpoint.
+  [[nodiscard]] static scada::StatusOr<binary::ClientSecureChannel::Security>
+  BuildChannelSecurity(const EndpointDescription& endpoint,
+                       const scada::SessionSecuritySettings& settings);
 
   void NotifyStateChanged(bool connected, scada::Status status);
 

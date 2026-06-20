@@ -2,26 +2,65 @@
 
 #include "base/any_executor.h"
 #include "net/net_executor_adapter.h"
+#include "opcua/binary/crypto.h"
 #include "opcua/client_subscription.h"
+#include "opcua/discovery_client.h"
+#include "opcua/endpoint_selection.h"
+#include "opcua/endpoint_url.h"
 #include "scada/item_factory_subscription.h"
+#include "scada/session_service.h"
 #include "transport/transport_factory.h"
 #include "transport/transport_string.h"
 
-#include <cctype>
-#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <ios>
+#include <iterator>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <utility>
-
-namespace {
-
-constexpr std::size_t kOpcTcpPrefixLen = 10;  // "opc.tcp://"
-
-}  // namespace
 
 namespace opcua {
 
 namespace {
+
+// Reads an entire file into a string. Returns nullopt if the file cannot be
+// opened (e.g. a missing certificate path).
+std::optional<std::string> ReadFile(const std::string& path) {
+  if (path.empty()) {
+    return std::nullopt;
+  }
+  std::ifstream stream{path, std::ios::binary};
+  if (!stream) {
+    return std::nullopt;
+  }
+  return std::string{std::istreambuf_iterator<char>{stream},
+                     std::istreambuf_iterator<char>{}};
+}
+
+// Maps the transport-neutral SessionSecuritySettings onto the OPC UA endpoint
+// SecurityPreference used by SelectEndpoint.
+SecurityPreference ToSecurityPreference(
+    const scada::SessionSecuritySettings& settings) {
+  SecurityPreference preference;
+  switch (settings.mode) {
+    case scada::SessionSecuritySettings::Mode::None:
+      preference.mode = SecurityPreference::Mode::None;
+      break;
+    case scada::SessionSecuritySettings::Mode::Auto:
+      preference.mode = SecurityPreference::Mode::Auto;
+      break;
+    case scada::SessionSecuritySettings::Mode::SignAndEncrypt:
+      preference.mode = SecurityPreference::Mode::SignAndEncrypt;
+      break;
+  }
+  if (!settings.required_policy_uri.empty()) {
+    preference.required_policy_uri = settings.required_policy_uri;
+  }
+  return preference;
+}
 
 template <typename Handler>
 void DispatchLegacyCallback(const AnyExecutor& executor,
@@ -43,41 +82,11 @@ void DispatchLegacyCallback(const AnyExecutor& executor,
 // static
 ClientSession::ParsedEndpoint ClientSession::ParseEndpointUrl(
     const std::string& url) {
-  ParsedEndpoint result;
-  // "opc.tcp://host[:port][/path]". Any /path suffix is discarded (the
-  // server endpoint name is tracked separately by CreateSession's
-  // ClientDescription.ApplicationUri).
-  if (url.size() <= kOpcTcpPrefixLen ||
-      url.compare(0, kOpcTcpPrefixLen, "opc.tcp://") != 0) {
-    return result;
-  }
-  const auto authority_start = kOpcTcpPrefixLen;
-  const auto path_pos = url.find('/', authority_start);
-  const std::string authority =
-      url.substr(authority_start, path_pos == std::string::npos
-                                      ? std::string::npos
-                                      : path_pos - authority_start);
-  const auto colon_pos = authority.rfind(':');
-  if (colon_pos == std::string::npos) {
-    result.host = authority;
-    result.valid = !result.host.empty();
-    return result;
-  }
-  result.host = authority.substr(0, colon_pos);
-  const auto port_str = authority.substr(colon_pos + 1);
-  if (result.host.empty() || port_str.empty()) {
-    return result;
-  }
-  int port = 0;
-  for (char c : port_str) {
-    if (!std::isdigit(static_cast<unsigned char>(c))) {
-      return result;
-    }
-    port = port * 10 + (c - '0');
-  }
-  result.port = port;
-  result.valid = true;
-  return result;
+  // Delegates to the shared parser so the session and DiscoveryClient agree on
+  // how an "opc.tcp://" URL maps to a transport target.
+  const ParsedEndpointUrl parsed = ParseOpcTcpUrl(url);
+  return ParsedEndpoint{
+      .host = parsed.host, .port = parsed.port, .valid = parsed.valid};
 }
 
 ClientSession::ClientSession(AnyExecutor executor,
@@ -116,6 +125,25 @@ Awaitable<scada::Status> ClientSession::ConnectAsync(
     co_return scada::StatusCode::Bad;
   }
 
+  // Optionally run GetEndpoints discovery to choose the endpoint security
+  // before opening the working channel. With the default (Mode::None) this is
+  // skipped entirely and the connection uses SecurityPolicy=None, preserving
+  // the legacy behaviour and leaving non-secure callers unaffected.
+  std::optional<binary::ClientSecureChannel::Security> security;
+  if (params.security.mode != scada::SessionSecuritySettings::Mode::None) {
+    auto chosen = co_await DiscoverAndSelectEndpoint(endpoint, params.security);
+    if (!chosen.ok()) {
+      NotifyStateChanged(false, chosen.status());
+      co_return chosen.status();
+    }
+    auto built = BuildChannelSecurity(*chosen, params.security);
+    if (!built.ok()) {
+      NotifyStateChanged(false, built.status());
+      co_return built.status();
+    }
+    security = std::move(*built);
+  }
+
   transport::TransportString ts;
   ts.SetProtocol(transport::TransportString::TCP);
   ts.SetActive(true);
@@ -136,7 +164,10 @@ Awaitable<scada::Status> ClientSession::ConnectAsync(
           .endpoint_url = endpoint_url_,
           .limits = {},
       });
-  secure_channel_ = std::make_unique<binary::ClientSecureChannel>(*transport_);
+  secure_channel_ =
+      security ? std::make_unique<binary::ClientSecureChannel>(
+                     *transport_, std::move(*security))
+               : std::make_unique<binary::ClientSecureChannel>(*transport_);
   connection_ = std::make_unique<binary::ClientConnection>(
       binary::ClientConnection::Context{
           .transport = *transport_,
@@ -168,6 +199,70 @@ Awaitable<scada::Status> ClientSession::ConnectAsync(
   is_connected_ = true;
   NotifyStateChanged(true, scada::Status{scada::StatusCode::Good});
   co_return scada::StatusCode::Good;
+}
+
+Awaitable<scada::StatusOr<EndpointDescription>>
+ClientSession::DiscoverAndSelectEndpoint(
+    const std::string& endpoint_url,
+    const scada::SessionSecuritySettings& settings) {
+  DiscoveryClient discovery{executor_, transport_factory_};
+  auto endpoints = co_await discovery.GetEndpoints(endpoint_url);
+  if (!endpoints.ok()) {
+    co_return scada::StatusOr<EndpointDescription>{endpoints.status()};
+  }
+  co_return SelectEndpoint(*endpoints, ToSecurityPreference(settings),
+                           ClientCapabilities::Default());
+}
+
+// static
+scada::StatusOr<binary::ClientSecureChannel::Security>
+ClientSession::BuildChannelSecurity(
+    const EndpointDescription& endpoint,
+    const scada::SessionSecuritySettings& settings) {
+  using Security = binary::ClientSecureChannel::Security;
+
+  // An unsecured endpoint needs no certificates; the default Security
+  // (SecurityPolicy=None) is what the single-argument channel uses anyway.
+  if (endpoint.security_mode == MessageSecurityMode::None) {
+    Security security;
+    return scada::StatusOr<Security>{std::move(security)};
+  }
+
+  // A secured endpoint requires the client's certificate/key (to sign and to
+  // identify itself) and the server's certificate (to encrypt the OPN request
+  // and verify the response). The server certificate comes from the discovered
+  // endpoint as DER; the client material is loaded from the configured PEMs.
+  auto client_cert_pem = ReadFile(settings.client_certificate_path);
+  auto client_key_pem = ReadFile(settings.client_private_key_path);
+  if (!client_cert_pem || !client_key_pem) {
+    return scada::StatusOr<Security>{scada::Status{scada::StatusCode::Bad}};
+  }
+  auto client_certificate =
+      binary::crypto::LoadPemCertificate(*client_cert_pem);
+  if (!client_certificate.ok()) {
+    return scada::StatusOr<Security>{client_certificate.status()};
+  }
+  auto client_private_key = binary::crypto::LoadPemPrivateKey(*client_key_pem);
+  if (!client_private_key.ok()) {
+    return scada::StatusOr<Security>{client_private_key.status()};
+  }
+  const auto& server_der = endpoint.server_certificate;
+  auto server_certificate =
+      binary::crypto::LoadDerCertificate(std::span<const std::uint8_t>{
+          reinterpret_cast<const std::uint8_t*>(server_der.data()),
+          server_der.size()});
+  if (!server_certificate.ok()) {
+    return scada::StatusOr<Security>{server_certificate.status()};
+  }
+
+  Security security;
+  security.security_policy_uri = endpoint.security_policy_uri;
+  security.security_mode = static_cast<binary::MessageSecurityMode>(
+      static_cast<scada::UInt32>(endpoint.security_mode));
+  security.client_certificate = std::move(*client_certificate);
+  security.client_private_key = std::move(*client_private_key);
+  security.server_certificate = std::move(*server_certificate);
+  return scada::StatusOr<Security>{std::move(security)};
 }
 
 Awaitable<void> ClientSession::DisconnectAsync() {

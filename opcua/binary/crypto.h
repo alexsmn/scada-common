@@ -61,6 +61,12 @@ class PrivateKey {
 [[nodiscard]] scada::StatusOr<Certificate> LoadPemCertificate(
     std::string_view pem);
 
+// Parse a DER-encoded X.509 certificate. The OPC UA wire format carries
+// certificates (e.g. EndpointDescription.serverCertificate) as DER ByteStrings,
+// so this is the loader used for certificates obtained via discovery.
+[[nodiscard]] scada::StatusOr<Certificate> LoadDerCertificate(
+    std::span<const std::uint8_t> der);
+
 // Parse a PEM-encoded PKCS#8 or PKCS#1 RSA private key. Optional
 // `passphrase` unlocks encrypted keys; pass an empty string_view when the
 // key is not encrypted.

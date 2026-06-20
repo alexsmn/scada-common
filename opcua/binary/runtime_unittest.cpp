@@ -40,6 +40,32 @@ DataServices MakeCallbackRuntimeDataServices(
           .monitored_item_service_ = UnownedService(monitored_item_service)};
 }
 
+std::vector<EndpointDescription> MakeTestEndpoints() {
+  return {EndpointDescription{
+      .endpoint_url = "opc.tcp://localhost:4840",
+      .server =
+          ApplicationDescription{
+              .application_uri = "urn:test:server",
+              .product_uri = "urn:test:product",
+              .application_name = scada::LocalizedText{u"Test Server"},
+              .application_type = ApplicationType::Server,
+              .discovery_urls = {"opc.tcp://localhost:4840"},
+          },
+      .security_mode = MessageSecurityMode::None,
+      .security_policy_uri = "http://opcfoundation.org/UA/SecurityPolicy#None",
+      .user_identity_tokens =
+          {UserTokenPolicy{.policy_id = "anonymous",
+                           .token_type = UserTokenType::Anonymous},
+           UserTokenPolicy{
+               .policy_id = "username",
+               .token_type = UserTokenType::UserName,
+               .security_policy_uri =
+                   "http://opcfoundation.org/UA/SecurityPolicy#None"}},
+      .transport_profile_uri =
+          "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary",
+  }};
+}
+
 class RuntimeTest : public testing::Test,
                     public test::ServerRuntimeContractTestBase {
  public:
@@ -100,16 +126,34 @@ class RuntimeTest : public testing::Test,
       .history_service = history_service_,
       .method_service = method_service_,
       .node_management_service = node_management_service_,
+      .endpoints = MakeTestEndpoints(),
       .now = [this] { return now_; },
   }};
 };
+
+TEST_F(RuntimeTest, DiscoveryRequestsDoNotRequireActivatedSession) {
+  ConnectionState connection;
+
+  const auto endpoints = HandleResponse<GetEndpointsResponse>(
+      connection, GetEndpointsRequest{.endpoint_url = "opc.tcp://client:4840"});
+  ASSERT_EQ(endpoints.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(endpoints.endpoints.size(), 1u);
+  EXPECT_EQ(endpoints.endpoints[0].endpoint_url, "opc.tcp://client:4840");
+  EXPECT_EQ(endpoints.endpoints[0].security_mode, MessageSecurityMode::None);
+  EXPECT_EQ(endpoints.endpoints[0].server.application_uri, "urn:test:server");
+
+  const auto servers =
+      HandleResponse<FindServersResponse>(connection, FindServersRequest{});
+  ASSERT_EQ(servers.status.code(), scada::StatusCode::Good);
+  ASSERT_EQ(servers.servers.size(), 1u);
+  EXPECT_EQ(servers.servers[0].application_uri, "urn:test:server");
+}
 
 TEST_F(RuntimeTest, RoutesReadRequestsThroughActivatedSessionUser) {
   test::ExpectRoutesReadRequestsThroughActivatedSessionUser(*this);
 }
 
-TEST_F(RuntimeTest,
-       ContextRoutesReadThroughNormalizedDataServices) {
+TEST_F(RuntimeTest, ContextRoutesReadThroughNormalizedDataServices) {
   ConnectionState connection;
   CreateAndActivate(connection);
 
@@ -123,8 +167,8 @@ TEST_F(RuntimeTest,
               -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            co_return std::vector{scada::DataValue{
-                scada::Variant{908.0}, {}, now_, now_}};
+            co_return std::vector{
+                scada::DataValue{scada::Variant{908.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);
@@ -441,8 +485,8 @@ TEST_F(DataServicesCallbackRuntimeTest,
               -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
             EXPECT_EQ(context.user_id(), expected_user_id_);
             EXPECT_THAT(*inputs, testing::ElementsAre(request.inputs[0]));
-            co_return std::vector{scada::DataValue{
-                scada::Variant{906.0}, {}, now_, now_}};
+            co_return std::vector{
+                scada::DataValue{scada::Variant{906.0}, {}, now_, now_}};
           }));
 
   const auto response = HandleResponse<ReadResponse>(connection, request);

@@ -10,8 +10,10 @@ namespace {
 
 BoostLogger logger_{LOG_NAME("ClientChannel")};
 
-bool IsLoginRequest(const RequestBody& request) {
-  return std::holds_alternative<CreateSessionRequest>(request) ||
+bool IsPreLoginRequest(const RequestBody& request) {
+  return std::holds_alternative<FindServersRequest>(request) ||
+         std::holds_alternative<GetEndpointsRequest>(request) ||
+         std::holds_alternative<CreateSessionRequest>(request) ||
          std::holds_alternative<ActivateSessionRequest>(request);
 }
 
@@ -19,33 +21,46 @@ const char* RequestName(const RequestBody& request) {
   return std::visit(
       [](const auto& typed_request) -> const char* {
         using Request = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<Request, CreateSessionRequest>) {
+        if constexpr (std::is_same_v<Request, FindServersRequest>) {
+          return "FindServers";
+        } else if constexpr (std::is_same_v<Request, GetEndpointsRequest>) {
+          return "GetEndpoints";
+        } else if constexpr (std::is_same_v<Request, CreateSessionRequest>) {
           return "CreateSession";
         } else if constexpr (std::is_same_v<Request, ActivateSessionRequest>) {
           return "ActivateSession";
         } else if constexpr (std::is_same_v<Request, CloseSessionRequest>) {
           return "CloseSession";
-        } else if constexpr (std::is_same_v<Request, CreateSubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            CreateSubscriptionRequest>) {
           return "CreateSubscription";
-        } else if constexpr (std::is_same_v<Request, ModifySubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            ModifySubscriptionRequest>) {
           return "ModifySubscription";
-        } else if constexpr (std::is_same_v<Request, SetPublishingModeRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            SetPublishingModeRequest>) {
           return "SetPublishingMode";
-        } else if constexpr (std::is_same_v<Request, DeleteSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            DeleteSubscriptionsRequest>) {
           return "DeleteSubscriptions";
         } else if constexpr (std::is_same_v<Request, PublishRequest>) {
           return "Publish";
         } else if constexpr (std::is_same_v<Request, RepublishRequest>) {
           return "Republish";
-        } else if constexpr (std::is_same_v<Request, TransferSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            TransferSubscriptionsRequest>) {
           return "TransferSubscriptions";
-        } else if constexpr (std::is_same_v<Request, CreateMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            CreateMonitoredItemsRequest>) {
           return "CreateMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, ModifyMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            ModifyMonitoredItemsRequest>) {
           return "ModifyMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, DeleteMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            DeleteMonitoredItemsRequest>) {
           return "DeleteMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, SetMonitoringModeRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            SetMonitoringModeRequest>) {
           return "SetMonitoringMode";
         } else if constexpr (std::is_same_v<Request, ReadRequest>) {
           return "Read";
@@ -55,13 +70,15 @@ const char* RequestName(const RequestBody& request) {
           return "Browse";
         } else if constexpr (std::is_same_v<Request, BrowseNextRequest>) {
           return "BrowseNext";
-        } else if constexpr (std::is_same_v<Request, TranslateBrowsePathsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            TranslateBrowsePathsRequest>) {
           return "TranslateBrowsePaths";
         } else if constexpr (std::is_same_v<Request, CallRequest>) {
           return "Call";
         } else if constexpr (std::is_same_v<Request, HistoryReadRawRequest>) {
           return "HistoryReadRaw";
-        } else if constexpr (std::is_same_v<Request, HistoryReadEventsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            HistoryReadEventsRequest>) {
           return "HistoryReadEvents";
         } else if constexpr (std::is_same_v<Request, AddNodesRequest>) {
           return "AddNodes";
@@ -95,9 +112,9 @@ void ClientChannel::MarkLoginComplete() {
   login_complete_ = true;
 }
 
-Awaitable<scada::StatusOr<ResponseBody>>
-ClientChannel::Call(std::uint32_t request_handle,
-                         RequestBody request) {
+Awaitable<scada::StatusOr<ResponseBody>> ClientChannel::Call(
+    std::uint32_t request_handle,
+    RequestBody request) {
   auto request_id = co_await Send(request_handle, std::move(request));
   if (!request_id.ok()) {
     co_return scada::StatusOr<ResponseBody>{request_id.status()};
@@ -108,12 +125,12 @@ ClientChannel::Call(std::uint32_t request_handle,
 Awaitable<scada::StatusOr<std::uint32_t>> ClientChannel::Send(
     std::uint32_t request_handle,
     RequestBody request) {
-  if (!login_complete_ && !IsLoginRequest(request)) {
-    LOG_WARNING(logger_)
-        << "OPC UA request sent before login completed: "
-        << RequestName(request)
-        << LOG_TAG("RequestHandle", request_handle)
-        << LOG_TAG("AuthenticationToken", authentication_token_.ToString());
+  if (!login_complete_ && !IsPreLoginRequest(request)) {
+    LOG_WARNING(logger_) << "OPC UA request sent before login completed: "
+                         << RequestName(request)
+                         << LOG_TAG("RequestHandle", request_handle)
+                         << LOG_TAG("AuthenticationToken",
+                                    authentication_token_.ToString());
   }
 
   const auto request_name = RequestName(request);
@@ -122,15 +139,14 @@ Awaitable<scada::StatusOr<std::uint32_t>> ClientChannel::Send(
   const auto send_status = co_await connection_.SendRequest(
       request_id,
       RequestMessage{.request_handle = request_handle,
-                          .body = std::move(request)},
+                     .body = std::move(request)},
       authentication_token_);
   ReleaseSendTurn();
   if (send_status.bad()) {
-    LOG_WARNING(logger_)
-        << "OPC UA request send failed: " << request_name
-        << LOG_TAG("RequestId", request_id)
-        << LOG_TAG("RequestHandle", request_handle)
-        << LOG_TAG("Status", send_status);
+    LOG_WARNING(logger_) << "OPC UA request send failed: " << request_name
+                         << LOG_TAG("RequestId", request_id)
+                         << LOG_TAG("RequestHandle", request_handle)
+                         << LOG_TAG("Status", send_status);
     co_return scada::StatusOr<std::uint32_t>{send_status};
   }
   co_return scada::StatusOr<std::uint32_t>{request_id};
@@ -175,19 +191,17 @@ void ClientChannel::EnsureReadLoop() {
   }
 
   read_loop_running_ = true;
-  CoSpawn(executor_, [this]() -> Awaitable<void> {
-    co_await RunReadLoop();
-  });
+  CoSpawn(executor_, [this]() -> Awaitable<void> { co_await RunReadLoop(); });
 }
 
 Awaitable<void> ClientChannel::RunReadLoop() {
   while (!pending_responses_.empty()) {
     auto response_frame = co_await connection_.ReadResponse();
     if (!response_frame.ok()) {
-      LOG_WARNING(logger_)
-          << "OPC UA response read failed"
-          << LOG_TAG("Status", response_frame.status())
-          << LOG_TAG("PendingCount", pending_responses_.size());
+      LOG_WARNING(logger_) << "OPC UA response read failed"
+                           << LOG_TAG("Status", response_frame.status())
+                           << LOG_TAG("PendingCount",
+                                      pending_responses_.size());
       FailPendingResponses(response_frame.status());
       break;
     }
@@ -233,16 +247,17 @@ void ClientChannel::DeliverResponse(ClientResponseFrame frame) {
     auto pending = std::move(it->second);
     pending_responses_.erase(it);
     if (frame.message.request_handle != pending->request_handle) {
-      LOG_WARNING(logger_)
-          << "OPC UA response request handle mismatch"
-          << LOG_TAG("RequestId", request_id)
-          << LOG_TAG("ExpectedRequestHandle", pending->request_handle)
-          << LOG_TAG("ActualRequestHandle", frame.message.request_handle);
+      LOG_WARNING(logger_) << "OPC UA response request handle mismatch"
+                           << LOG_TAG("RequestId", request_id)
+                           << LOG_TAG("ExpectedRequestHandle",
+                                      pending->request_handle)
+                           << LOG_TAG("ActualRequestHandle",
+                                      frame.message.request_handle);
       pending->response =
           scada::StatusOr<ResponseBody>{scada::Status{scada::StatusCode::Bad}};
     } else {
-      pending->response = scada::StatusOr<ResponseBody>{
-          std::move(frame.message.body)};
+      pending->response =
+          scada::StatusOr<ResponseBody>{std::move(frame.message.body)};
     }
     pending->ready.Complete();
     return;

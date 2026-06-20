@@ -2,6 +2,7 @@
 
 #include "opcua/binary/codec_utils.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -136,6 +137,76 @@ TEST(ServiceCodecTest, DecodeBrowseResponseSkipsBrowseNameAndDisplayName) {
             scada::NodeId{35});
   EXPECT_TRUE(response.results[0].references[0].forward);
   EXPECT_EQ(response.results[0].references[0].node_id, (scada::NodeId{456, 4}));
+}
+
+TEST(ServiceCodecTest, FindServersResponseRoundTrip) {
+  FindServersResponse response{
+      .servers = {ApplicationDescription{
+          .application_uri = "urn:test:server",
+          .product_uri = "urn:test:product",
+          .application_name = scada::LocalizedText{u"Test Server"},
+          .application_type = ApplicationType::Server,
+          .discovery_urls = {"opc.tcp://localhost:4840"},
+      }}};
+
+  const auto decoded = RoundTrip(44, std::move(response));
+
+  const auto& typed = std::get<FindServersResponse>(decoded.body);
+  ASSERT_EQ(typed.servers.size(), 1u);
+  EXPECT_EQ(typed.servers[0].application_uri, "urn:test:server");
+  EXPECT_EQ(typed.servers[0].product_uri, "urn:test:product");
+  EXPECT_EQ(typed.servers[0].application_name,
+            scada::LocalizedText{u"Test Server"});
+  EXPECT_EQ(typed.servers[0].application_type, ApplicationType::Server);
+  EXPECT_THAT(typed.servers[0].discovery_urls,
+              testing::ElementsAre("opc.tcp://localhost:4840"));
+}
+
+TEST(ServiceCodecTest, GetEndpointsResponseRoundTrip) {
+  GetEndpointsResponse response{
+      .endpoints = {EndpointDescription{
+          .endpoint_url = "opc.tcp://localhost:4840",
+          .server =
+              ApplicationDescription{
+                  .application_uri = "urn:test:server",
+                  .product_uri = "urn:test:product",
+                  .application_name = scada::LocalizedText{u"Test Server"},
+                  .application_type = ApplicationType::Server,
+                  .discovery_urls = {"opc.tcp://localhost:4840"},
+              },
+          .security_mode = MessageSecurityMode::None,
+          .security_policy_uri =
+              "http://opcfoundation.org/UA/SecurityPolicy#None",
+          .user_identity_tokens =
+              {UserTokenPolicy{.policy_id = "anonymous",
+                               .token_type = UserTokenType::Anonymous},
+               UserTokenPolicy{
+                   .policy_id = "username",
+                   .token_type = UserTokenType::UserName,
+                   .security_policy_uri =
+                       "http://opcfoundation.org/UA/SecurityPolicy#None"}},
+          .transport_profile_uri =
+              "http://opcfoundation.org/UA-Profile/Transport/"
+              "uatcp-uasc-uabinary",
+      }}};
+
+  const auto decoded = RoundTrip(45, std::move(response));
+
+  const auto& typed = std::get<GetEndpointsResponse>(decoded.body);
+  ASSERT_EQ(typed.endpoints.size(), 1u);
+  const auto& endpoint = typed.endpoints[0];
+  EXPECT_EQ(endpoint.endpoint_url, "opc.tcp://localhost:4840");
+  EXPECT_EQ(endpoint.security_mode, MessageSecurityMode::None);
+  EXPECT_EQ(endpoint.security_policy_uri,
+            "http://opcfoundation.org/UA/SecurityPolicy#None");
+  EXPECT_THAT(endpoint.user_identity_tokens,
+              testing::ElementsAre(testing::Field(&UserTokenPolicy::token_type,
+                                                  UserTokenType::Anonymous),
+                                   testing::Field(&UserTokenPolicy::token_type,
+                                                  UserTokenType::UserName)));
+  EXPECT_EQ(endpoint.transport_profile_uri,
+            "http://opcfoundation.org/UA-Profile/Transport/"
+            "uatcp-uasc-uabinary");
 }
 
 TEST(ServiceCodecTest, CreateSessionResponseRoundTrip) {

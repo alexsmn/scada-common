@@ -32,6 +32,78 @@ enum class TimestampsToReturn : scada::UInt32 {
   Neither = 3,
 };
 
+enum class ApplicationType : scada::UInt32 {
+  Server = 0,
+  Client = 1,
+  ClientAndServer = 2,
+  DiscoveryServer = 3,
+};
+
+enum class UserTokenType : scada::UInt32 {
+  Anonymous = 0,
+  UserName = 1,
+  Certificate = 2,
+  IssuedToken = 3,
+};
+
+enum class MessageSecurityMode : scada::UInt32 {
+  Invalid = 0,
+  None = 1,
+  Sign = 2,
+  SignAndEncrypt = 3,
+};
+
+struct ApplicationDescription {
+  std::string application_uri;
+  std::string product_uri;
+  scada::LocalizedText application_name;
+  ApplicationType application_type = ApplicationType::Server;
+  std::string gateway_server_uri;
+  std::string discovery_profile_uri;
+  std::vector<std::string> discovery_urls;
+};
+
+struct UserTokenPolicy {
+  std::string policy_id;
+  UserTokenType token_type = UserTokenType::Anonymous;
+  std::string issued_token_type;
+  std::string issuer_endpoint_url;
+  std::string security_policy_uri;
+};
+
+struct EndpointDescription {
+  std::string endpoint_url;
+  ApplicationDescription server;
+  scada::ByteString server_certificate;
+  MessageSecurityMode security_mode = MessageSecurityMode::None;
+  std::string security_policy_uri;
+  std::vector<UserTokenPolicy> user_identity_tokens;
+  std::string transport_profile_uri;
+  scada::UInt8 security_level = 0;
+};
+
+struct FindServersRequest {
+  std::string endpoint_url;
+  std::vector<std::string> locale_ids;
+  std::vector<std::string> server_uris;
+};
+
+struct FindServersResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<ApplicationDescription> servers;
+};
+
+struct GetEndpointsRequest {
+  std::string endpoint_url;
+  std::vector<std::string> locale_ids;
+  std::vector<std::string> profile_uris;
+};
+
+struct GetEndpointsResponse {
+  scada::Status status{scada::StatusCode::Good};
+  std::vector<EndpointDescription> endpoints;
+};
+
 enum class DeadbandType : scada::UInt32 {
   None = 0,
   Absolute = 1,
@@ -52,8 +124,7 @@ struct DataChangeFilter {
   double deadband_value = 0;
 };
 
-using MonitoringFilter =
-    std::variant<DataChangeFilter, boost::json::value>;
+using MonitoringFilter = std::variant<DataChangeFilter, boost::json::value>;
 
 struct MonitoringParameters {
   bool operator==(const MonitoringParameters&) const = default;
@@ -156,8 +227,7 @@ struct DeleteSubscriptionsResponse {
 
 struct CreateMonitoredItemsRequest {
   SubscriptionId subscription_id = 0;
-  TimestampsToReturn timestamps_to_return =
-      TimestampsToReturn::Both;
+  TimestampsToReturn timestamps_to_return = TimestampsToReturn::Both;
   std::vector<MonitoredItemCreateRequest> items_to_create;
 };
 
@@ -168,8 +238,7 @@ struct CreateMonitoredItemsResponse {
 
 struct ModifyMonitoredItemsRequest {
   SubscriptionId subscription_id = 0;
-  TimestampsToReturn timestamps_to_return =
-      TimestampsToReturn::Both;
+  TimestampsToReturn timestamps_to_return = TimestampsToReturn::Both;
   std::vector<MonitoredItemModifyRequest> items_to_modify;
 };
 
@@ -238,10 +307,9 @@ struct StatusChangeNotification {
   scada::StatusCode status = scada::StatusCode::Good;
 };
 
-using NotificationData =
-    std::variant<DataChangeNotification,
-                 EventNotificationList,
-                 StatusChangeNotification>;
+using NotificationData = std::variant<DataChangeNotification,
+                                      EventNotificationList,
+                                      StatusChangeNotification>;
 
 struct NotificationMessage {
   bool operator==(const NotificationMessage&) const = default;
@@ -284,62 +352,64 @@ struct TransferSubscriptionsResponse {
   std::vector<scada::StatusCode> results;
 };
 
-using RequestBody =
-    std::variant<CreateSessionRequest,
-                 ActivateSessionRequest,
-                 CloseSessionRequest,
-                 CreateSubscriptionRequest,
-                 ModifySubscriptionRequest,
-                 SetPublishingModeRequest,
-                 DeleteSubscriptionsRequest,
-                 PublishRequest,
-                 RepublishRequest,
-                 TransferSubscriptionsRequest,
-                 CreateMonitoredItemsRequest,
-                 ModifyMonitoredItemsRequest,
-                 DeleteMonitoredItemsRequest,
-                 SetMonitoringModeRequest,
-                 ReadRequest,
-                 WriteRequest,
-                 BrowseRequest,
-                 BrowseNextRequest,
-                 TranslateBrowsePathsRequest,
-                 CallRequest,
-                 HistoryReadRawRequest,
-                 HistoryReadEventsRequest,
-                 AddNodesRequest,
-                 DeleteNodesRequest,
-                 AddReferencesRequest,
-                 DeleteReferencesRequest>;
+using RequestBody = std::variant<FindServersRequest,
+                                 GetEndpointsRequest,
+                                 CreateSessionRequest,
+                                 ActivateSessionRequest,
+                                 CloseSessionRequest,
+                                 CreateSubscriptionRequest,
+                                 ModifySubscriptionRequest,
+                                 SetPublishingModeRequest,
+                                 DeleteSubscriptionsRequest,
+                                 PublishRequest,
+                                 RepublishRequest,
+                                 TransferSubscriptionsRequest,
+                                 CreateMonitoredItemsRequest,
+                                 ModifyMonitoredItemsRequest,
+                                 DeleteMonitoredItemsRequest,
+                                 SetMonitoringModeRequest,
+                                 ReadRequest,
+                                 WriteRequest,
+                                 BrowseRequest,
+                                 BrowseNextRequest,
+                                 TranslateBrowsePathsRequest,
+                                 CallRequest,
+                                 HistoryReadRawRequest,
+                                 HistoryReadEventsRequest,
+                                 AddNodesRequest,
+                                 DeleteNodesRequest,
+                                 AddReferencesRequest,
+                                 DeleteReferencesRequest>;
 
-using ResponseBody =
-    std::variant<CreateSessionResponse,
-                 ActivateSessionResponse,
-                 CloseSessionResponse,
-                 CreateSubscriptionResponse,
-                 ModifySubscriptionResponse,
-                 SetPublishingModeResponse,
-                 DeleteSubscriptionsResponse,
-                 PublishResponse,
-                 RepublishResponse,
-                 TransferSubscriptionsResponse,
-                 CreateMonitoredItemsResponse,
-                 ModifyMonitoredItemsResponse,
-                 DeleteMonitoredItemsResponse,
-                 SetMonitoringModeResponse,
-                 ServiceFault,
-                 ReadResponse,
-                 WriteResponse,
-                 BrowseResponse,
-                 BrowseNextResponse,
-                 TranslateBrowsePathsResponse,
-                 CallResponse,
-                 HistoryReadRawResponse,
-                 HistoryReadEventsResponse,
-                 AddNodesResponse,
-                 DeleteNodesResponse,
-                 AddReferencesResponse,
-                 DeleteReferencesResponse>;
+using ResponseBody = std::variant<FindServersResponse,
+                                  GetEndpointsResponse,
+                                  CreateSessionResponse,
+                                  ActivateSessionResponse,
+                                  CloseSessionResponse,
+                                  CreateSubscriptionResponse,
+                                  ModifySubscriptionResponse,
+                                  SetPublishingModeResponse,
+                                  DeleteSubscriptionsResponse,
+                                  PublishResponse,
+                                  RepublishResponse,
+                                  TransferSubscriptionsResponse,
+                                  CreateMonitoredItemsResponse,
+                                  ModifyMonitoredItemsResponse,
+                                  DeleteMonitoredItemsResponse,
+                                  SetMonitoringModeResponse,
+                                  ServiceFault,
+                                  ReadResponse,
+                                  WriteResponse,
+                                  BrowseResponse,
+                                  BrowseNextResponse,
+                                  TranslateBrowsePathsResponse,
+                                  CallResponse,
+                                  HistoryReadRawResponse,
+                                  HistoryReadEventsResponse,
+                                  AddNodesResponse,
+                                  DeleteNodesResponse,
+                                  AddReferencesResponse,
+                                  DeleteReferencesResponse>;
 
 struct RequestMessage {
   scada::UInt32 request_handle = 0;

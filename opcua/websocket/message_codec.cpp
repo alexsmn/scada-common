@@ -46,18 +46,12 @@ DeleteSubscriptionsResponse DecodeDeleteSubscriptionsResponse(
     const boost::json::value& json);
 boost::json::value EncodePublishRequest(const PublishRequest& request);
 PublishRequest DecodePublishRequest(const boost::json::value& json);
-boost::json::value EncodePublishResponse(
-    const PublishResponse& response);
-PublishResponse DecodePublishResponse(
-    const boost::json::value& json);
-boost::json::value EncodeRepublishRequest(
-    const RepublishRequest& request);
-RepublishRequest DecodeRepublishRequest(
-    const boost::json::value& json);
-boost::json::value EncodeRepublishResponse(
-    const RepublishResponse& response);
-RepublishResponse DecodeRepublishResponse(
-    const boost::json::value& json);
+boost::json::value EncodePublishResponse(const PublishResponse& response);
+PublishResponse DecodePublishResponse(const boost::json::value& json);
+boost::json::value EncodeRepublishRequest(const RepublishRequest& request);
+RepublishRequest DecodeRepublishRequest(const boost::json::value& json);
+boost::json::value EncodeRepublishResponse(const RepublishResponse& response);
+RepublishResponse DecodeRepublishResponse(const boost::json::value& json);
 boost::json::value EncodeTransferSubscriptionsRequest(
     const TransferSubscriptionsRequest& request);
 TransferSubscriptionsRequest DecodeTransferSubscriptionsRequest(
@@ -157,8 +151,8 @@ std::int64_t RequireInt64(const value& json) {
   if (json.is_int64())
     return json.as_int64();
   if (json.is_uint64() &&
-      json.as_uint64() <=
-          static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+      json.as_uint64() <= static_cast<std::uint64_t>(
+                              std::numeric_limits<std::int64_t>::max())) {
     return static_cast<std::int64_t>(json.as_uint64());
   }
   ThrowJsonError("Expected JSON integer");
@@ -207,8 +201,8 @@ value EncodeByteString(const scada::ByteString& bytes) {
   array result;
   result.reserve(bytes.size());
   for (char byte : bytes)
-    result.emplace_back(static_cast<std::uint64_t>(
-        static_cast<unsigned char>(byte)));
+    result.emplace_back(
+        static_cast<std::uint64_t>(static_cast<unsigned char>(byte)));
   return result;
 }
 
@@ -218,8 +212,7 @@ scada::ByteString DecodeByteString(const value& json) {
     const auto raw = RequireUInt64(entry);
     if (raw > std::numeric_limits<unsigned char>::max())
       ThrowJsonError("ByteString element out of range");
-    bytes.push_back(
-        static_cast<char>(static_cast<unsigned char>(raw)));
+    bytes.push_back(static_cast<char>(static_cast<unsigned char>(raw)));
   }
   return bytes;
 }
@@ -234,8 +227,8 @@ scada::Status DecodeStatus(const value& json) {
         static_cast<unsigned>(RequireUInt64(json)));
   }
   const auto& obj = RequireObject(json);
-  return scada::Status::FromFullCode(static_cast<unsigned>(
-      RequireUInt64(RequireField(obj, "fullCode"))));
+  return scada::Status::FromFullCode(
+      static_cast<unsigned>(RequireUInt64(RequireField(obj, "fullCode"))));
 }
 
 value EncodeStatusCode(scada::StatusCode status_code) {
@@ -279,24 +272,20 @@ value EncodeCreateSessionRequest(const CreateSessionRequest& request) {
 }
 
 CreateSessionRequest DecodeCreateSessionRequest(const value& json) {
-  return {.requested_timeout = base::TimeDelta::FromMilliseconds(
-              RequireInt64(
-                  RequireField(RequireObject(json), "RequestedSessionTimeout")))};
+  return {.requested_timeout = base::TimeDelta::FromMilliseconds(RequireInt64(
+              RequireField(RequireObject(json), "RequestedSessionTimeout")))};
 }
 
-value EncodeCreateSessionResponse(
-    const CreateSessionResponse& response) {
-  return object{{"Status", EncodeStatus(response.status)},
-                {"SessionId", EncodeNodeId(response.session_id)},
-                {"AuthenticationToken",
-                 EncodeNodeId(response.authentication_token)},
-                {"ServerNonce", EncodeByteString(response.server_nonce)},
-                {"RevisedSessionTimeout",
-                 response.revised_timeout.InMilliseconds()}};
+value EncodeCreateSessionResponse(const CreateSessionResponse& response) {
+  return object{
+      {"Status", EncodeStatus(response.status)},
+      {"SessionId", EncodeNodeId(response.session_id)},
+      {"AuthenticationToken", EncodeNodeId(response.authentication_token)},
+      {"ServerNonce", EncodeByteString(response.server_nonce)},
+      {"RevisedSessionTimeout", response.revised_timeout.InMilliseconds()}};
 }
 
-CreateSessionResponse DecodeCreateSessionResponse(
-    const value& json) {
+CreateSessionResponse DecodeCreateSessionResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
@@ -307,13 +296,12 @@ CreateSessionResponse DecodeCreateSessionResponse(
               RequireInt64(RequireField(obj, "RevisedSessionTimeout")))};
 }
 
-value EncodeActivateSessionRequest(
-    const ActivateSessionRequest& request) {
-  object json{{"SessionId", EncodeNodeId(request.session_id)},
-              {"AuthenticationToken",
-               EncodeNodeId(request.authentication_token)},
-              {"DeleteExisting", request.delete_existing},
-              {"AllowAnonymous", request.allow_anonymous}};
+value EncodeActivateSessionRequest(const ActivateSessionRequest& request) {
+  object json{
+      {"SessionId", EncodeNodeId(request.session_id)},
+      {"AuthenticationToken", EncodeNodeId(request.authentication_token)},
+      {"DeleteExisting", request.delete_existing},
+      {"AllowAnonymous", request.allow_anonymous}};
   // UserName / Password are plain strings on the wire — they map onto the
   // UserNameIdentityToken (Part 4 §7.36.4) which types both as String /
   // ByteString, not LocalizedText. The internal storage stays as
@@ -325,8 +313,7 @@ value EncodeActivateSessionRequest(
   return json;
 }
 
-ActivateSessionRequest DecodeActivateSessionRequest(
-    const value& json) {
+ActivateSessionRequest DecodeActivateSessionRequest(const value& json) {
   const auto& obj = RequireObject(json);
   ActivateSessionRequest request{
       .session_id = DecodeNodeId(RequireField(obj, "SessionId")),
@@ -339,13 +326,11 @@ ActivateSessionRequest DecodeActivateSessionRequest(
     request.user_name =
         UtfConvert<char16_t>(std::string{RequireString(*field)});
   if (const auto* field = FindField(obj, "Password"))
-    request.password =
-        UtfConvert<char16_t>(std::string{RequireString(*field)});
+    request.password = UtfConvert<char16_t>(std::string{RequireString(*field)});
   return request;
 }
 
-value EncodeActivateSessionResponse(
-    const ActivateSessionResponse& response) {
+value EncodeActivateSessionResponse(const ActivateSessionResponse& response) {
   object json{{"Status", EncodeStatus(response.status)},
               {"Resumed", response.resumed}};
   if (!response.service_context.user_id().is_null()) {
@@ -354,17 +339,16 @@ value EncodeActivateSessionResponse(
   return json;
 }
 
-ActivateSessionResponse DecodeActivateSessionResponse(
-    const value& json) {
+ActivateSessionResponse DecodeActivateSessionResponse(const value& json) {
   const auto& obj = RequireObject(json);
   return {.status = DecodeStatus(RequireField(obj, "Status")),
           .resumed = RequireBool(RequireField(obj, "Resumed"))};
 }
 
 value EncodeCloseSessionRequest(const CloseSessionRequest& request) {
-  return object{{"SessionId", EncodeNodeId(request.session_id)},
-                {"AuthenticationToken",
-                 EncodeNodeId(request.authentication_token)}};
+  return object{
+      {"SessionId", EncodeNodeId(request.session_id)},
+      {"AuthenticationToken", EncodeNodeId(request.authentication_token)}};
 }
 
 CloseSessionRequest DecodeCloseSessionRequest(const value& json) {
@@ -374,8 +358,7 @@ CloseSessionRequest DecodeCloseSessionRequest(const value& json) {
               DecodeNodeId(RequireField(obj, "AuthenticationToken"))};
 }
 
-value EncodeCloseSessionResponse(
-    const CloseSessionResponse& response) {
+value EncodeCloseSessionResponse(const CloseSessionResponse& response) {
   return object{{"Status", EncodeStatus(response.status)}};
 }
 
@@ -391,6 +374,167 @@ ServiceFault DecodeServiceFault(const value& json) {
   return {.status = DecodeStatus(RequireField(RequireObject(json), "Status"))};
 }
 
+value EncodeStringArray(const std::vector<std::string>& values) {
+  array json;
+  for (const auto& value : values)
+    json.emplace_back(value);
+  return json;
+}
+
+std::vector<std::string> DecodeStringArray(const value& json) {
+  std::vector<std::string> values;
+  for (const auto& entry : json.as_array())
+    values.emplace_back(RequireString(entry));
+  return values;
+}
+
+value EncodeApplicationDescription(const ApplicationDescription& description) {
+  return object{
+      {"ApplicationUri", description.application_uri},
+      {"ProductUri", description.product_uri},
+      {"ApplicationName", EncodeLocalizedText(description.application_name)},
+      {"ApplicationType",
+       static_cast<std::uint64_t>(description.application_type)},
+      {"GatewayServerUri", description.gateway_server_uri},
+      {"DiscoveryProfileUri", description.discovery_profile_uri},
+      {"DiscoveryUrls", EncodeStringArray(description.discovery_urls)}};
+}
+
+ApplicationDescription DecodeApplicationDescription(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {
+      .application_uri =
+          std::string{RequireString(RequireField(obj, "ApplicationUri"))},
+      .product_uri =
+          std::string{RequireString(RequireField(obj, "ProductUri"))},
+      .application_name =
+          DecodeLocalizedText(RequireField(obj, "ApplicationName")),
+      .application_type = static_cast<ApplicationType>(
+          RequireUInt64(RequireField(obj, "ApplicationType"))),
+      .gateway_server_uri =
+          std::string{RequireString(RequireField(obj, "GatewayServerUri"))},
+      .discovery_profile_uri =
+          std::string{RequireString(RequireField(obj, "DiscoveryProfileUri"))},
+      .discovery_urls = DecodeStringArray(RequireField(obj, "DiscoveryUrls"))};
+}
+
+value EncodeUserTokenPolicy(const UserTokenPolicy& policy) {
+  return object{{"PolicyId", policy.policy_id},
+                {"TokenType", static_cast<std::uint64_t>(policy.token_type)},
+                {"IssuedTokenType", policy.issued_token_type},
+                {"IssuerEndpointUrl", policy.issuer_endpoint_url},
+                {"SecurityPolicyUri", policy.security_policy_uri}};
+}
+
+UserTokenPolicy DecodeUserTokenPolicy(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {
+      .policy_id = std::string{RequireString(RequireField(obj, "PolicyId"))},
+      .token_type = static_cast<UserTokenType>(
+          RequireUInt64(RequireField(obj, "TokenType"))),
+      .issued_token_type =
+          std::string{RequireString(RequireField(obj, "IssuedTokenType"))},
+      .issuer_endpoint_url =
+          std::string{RequireString(RequireField(obj, "IssuerEndpointUrl"))},
+      .security_policy_uri =
+          std::string{RequireString(RequireField(obj, "SecurityPolicyUri"))}};
+}
+
+value EncodeEndpointDescription(const EndpointDescription& endpoint) {
+  array tokens;
+  for (const auto& token : endpoint.user_identity_tokens)
+    tokens.emplace_back(EncodeUserTokenPolicy(token));
+  return object{
+      {"EndpointUrl", endpoint.endpoint_url},
+      {"Server", EncodeApplicationDescription(endpoint.server)},
+      {"SecurityMode", static_cast<std::uint64_t>(endpoint.security_mode)},
+      {"SecurityPolicyUri", endpoint.security_policy_uri},
+      {"UserIdentityTokens", std::move(tokens)},
+      {"TransportProfileUri", endpoint.transport_profile_uri},
+      {"SecurityLevel", endpoint.security_level}};
+}
+
+EndpointDescription DecodeEndpointDescription(const value& json) {
+  const auto& obj = RequireObject(json);
+  EndpointDescription endpoint{
+      .endpoint_url =
+          std::string{RequireString(RequireField(obj, "EndpointUrl"))},
+      .server = DecodeApplicationDescription(RequireField(obj, "Server")),
+      .security_mode = static_cast<MessageSecurityMode>(
+          RequireUInt64(RequireField(obj, "SecurityMode"))),
+      .security_policy_uri =
+          std::string{RequireString(RequireField(obj, "SecurityPolicyUri"))},
+      .transport_profile_uri =
+          std::string{RequireString(RequireField(obj, "TransportProfileUri"))},
+      .security_level = static_cast<scada::UInt8>(
+          RequireUInt64(RequireField(obj, "SecurityLevel")))};
+  for (const auto& token : RequireField(obj, "UserIdentityTokens").as_array())
+    endpoint.user_identity_tokens.push_back(DecodeUserTokenPolicy(token));
+  return endpoint;
+}
+
+value EncodeFindServersRequest(const FindServersRequest& request) {
+  return object{{"EndpointUrl", request.endpoint_url},
+                {"LocaleIds", EncodeStringArray(request.locale_ids)},
+                {"ServerUris", EncodeStringArray(request.server_uris)}};
+}
+
+FindServersRequest DecodeFindServersRequest(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.endpoint_url =
+              std::string{RequireString(RequireField(obj, "EndpointUrl"))},
+          .locale_ids = DecodeStringArray(RequireField(obj, "LocaleIds")),
+          .server_uris = DecodeStringArray(RequireField(obj, "ServerUris"))};
+}
+
+value EncodeGetEndpointsRequest(const GetEndpointsRequest& request) {
+  return object{{"EndpointUrl", request.endpoint_url},
+                {"LocaleIds", EncodeStringArray(request.locale_ids)},
+                {"ProfileUris", EncodeStringArray(request.profile_uris)}};
+}
+
+GetEndpointsRequest DecodeGetEndpointsRequest(const value& json) {
+  const auto& obj = RequireObject(json);
+  return {.endpoint_url =
+              std::string{RequireString(RequireField(obj, "EndpointUrl"))},
+          .locale_ids = DecodeStringArray(RequireField(obj, "LocaleIds")),
+          .profile_uris = DecodeStringArray(RequireField(obj, "ProfileUris"))};
+}
+
+value EncodeFindServersResponse(const FindServersResponse& response) {
+  array servers;
+  for (const auto& server : response.servers)
+    servers.emplace_back(EncodeApplicationDescription(server));
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Servers", std::move(servers)}};
+}
+
+FindServersResponse DecodeFindServersResponse(const value& json) {
+  const auto& obj = RequireObject(json);
+  FindServersResponse response{.status =
+                                   DecodeStatus(RequireField(obj, "Status"))};
+  for (const auto& server : RequireField(obj, "Servers").as_array())
+    response.servers.push_back(DecodeApplicationDescription(server));
+  return response;
+}
+
+value EncodeGetEndpointsResponse(const GetEndpointsResponse& response) {
+  array endpoints;
+  for (const auto& endpoint : response.endpoints)
+    endpoints.emplace_back(EncodeEndpointDescription(endpoint));
+  return object{{"Status", EncodeStatus(response.status)},
+                {"Endpoints", std::move(endpoints)}};
+}
+
+GetEndpointsResponse DecodeGetEndpointsResponse(const value& json) {
+  const auto& obj = RequireObject(json);
+  GetEndpointsResponse response{.status =
+                                    DecodeStatus(RequireField(obj, "Status"))};
+  for (const auto& endpoint : RequireField(obj, "Endpoints").as_array())
+    response.endpoints.push_back(DecodeEndpointDescription(endpoint));
+  return response;
+}
+
 }  // namespace
 
 boost::json::value EncodeJson(const RequestMessage& request) {
@@ -399,11 +543,16 @@ boost::json::value EncodeJson(const RequestMessage& request) {
         object json;
         json["requestHandle"] = request.request_handle;
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, CreateSessionRequest>) {
+        if constexpr (std::is_same_v<T, FindServersRequest>) {
+          json["service"] = "FindServers";
+          json["body"] = EncodeFindServersRequest(typed_request);
+        } else if constexpr (std::is_same_v<T, GetEndpointsRequest>) {
+          json["service"] = "GetEndpoints";
+          json["body"] = EncodeGetEndpointsRequest(typed_request);
+        } else if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           json["service"] = "CreateSession";
           json["body"] = EncodeCreateSessionRequest(typed_request);
-        } else if constexpr (std::is_same_v<T,
-                                            ActivateSessionRequest>) {
+        } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           json["service"] = "ActivateSession";
           json["body"] = EncodeActivateSessionRequest(typed_request);
         } else if constexpr (std::is_same_v<T, CloseSessionRequest>) {
@@ -420,7 +569,8 @@ boost::json::value EncodeJson(const RequestMessage& request) {
           json["body"] = detail::EncodeSetPublishingModeRequest(typed_request);
         } else if constexpr (std::is_same_v<T, DeleteSubscriptionsRequest>) {
           json["service"] = "DeleteSubscriptions";
-          json["body"] = detail::EncodeDeleteSubscriptionsRequest(typed_request);
+          json["body"] =
+              detail::EncodeDeleteSubscriptionsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, PublishRequest>) {
           json["service"] = "Publish";
           json["body"] = detail::EncodePublishRequest(typed_request);
@@ -429,22 +579,26 @@ boost::json::value EncodeJson(const RequestMessage& request) {
           json["body"] = detail::EncodeRepublishRequest(typed_request);
         } else if constexpr (std::is_same_v<T, TransferSubscriptionsRequest>) {
           json["service"] = "TransferSubscriptions";
-          json["body"] = detail::EncodeTransferSubscriptionsRequest(typed_request);
+          json["body"] =
+              detail::EncodeTransferSubscriptionsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, CreateMonitoredItemsRequest>) {
           json["service"] = "CreateMonitoredItems";
-          json["body"] = detail::EncodeCreateMonitoredItemsRequest(typed_request);
+          json["body"] =
+              detail::EncodeCreateMonitoredItemsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, ModifyMonitoredItemsRequest>) {
           json["service"] = "ModifyMonitoredItems";
-          json["body"] = detail::EncodeModifyMonitoredItemsRequest(typed_request);
+          json["body"] =
+              detail::EncodeModifyMonitoredItemsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, DeleteMonitoredItemsRequest>) {
           json["service"] = "DeleteMonitoredItems";
-          json["body"] = detail::EncodeDeleteMonitoredItemsRequest(typed_request);
+          json["body"] =
+              detail::EncodeDeleteMonitoredItemsRequest(typed_request);
         } else if constexpr (std::is_same_v<T, SetMonitoringModeRequest>) {
           json["service"] = "SetMonitoringMode";
           json["body"] = detail::EncodeSetMonitoringModeRequest(typed_request);
         } else {
-          const auto service_json =
-              RequireObject(EncodeJson(ServiceRequest{typed_request}));
+          const auto service_value = EncodeJson(ServiceRequest{typed_request});
+          const auto& service_json = RequireObject(service_value);
           json["service"] = service_json.at("service");
           json["body"] = service_json.at("body");
         }
@@ -459,11 +613,16 @@ boost::json::value EncodeJson(const ResponseMessage& response) {
         object json;
         json["requestHandle"] = response.request_handle;
         using T = std::decay_t<decltype(typed_response)>;
-        if constexpr (std::is_same_v<T, CreateSessionResponse>) {
+        if constexpr (std::is_same_v<T, FindServersResponse>) {
+          json["service"] = "FindServers";
+          json["body"] = EncodeFindServersResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, GetEndpointsResponse>) {
+          json["service"] = "GetEndpoints";
+          json["body"] = EncodeGetEndpointsResponse(typed_response);
+        } else if constexpr (std::is_same_v<T, CreateSessionResponse>) {
           json["service"] = "CreateSession";
           json["body"] = EncodeCreateSessionResponse(typed_response);
-        } else if constexpr (std::is_same_v<T,
-                                            ActivateSessionResponse>) {
+        } else if constexpr (std::is_same_v<T, ActivateSessionResponse>) {
           json["service"] = "ActivateSession";
           json["body"] = EncodeActivateSessionResponse(typed_response);
         } else if constexpr (std::is_same_v<T, CloseSessionResponse>) {
@@ -471,16 +630,20 @@ boost::json::value EncodeJson(const ResponseMessage& response) {
           json["body"] = EncodeCloseSessionResponse(typed_response);
         } else if constexpr (std::is_same_v<T, CreateSubscriptionResponse>) {
           json["service"] = "CreateSubscription";
-          json["body"] = detail::EncodeCreateSubscriptionResponse(typed_response);
+          json["body"] =
+              detail::EncodeCreateSubscriptionResponse(typed_response);
         } else if constexpr (std::is_same_v<T, ModifySubscriptionResponse>) {
           json["service"] = "ModifySubscription";
-          json["body"] = detail::EncodeModifySubscriptionResponse(typed_response);
+          json["body"] =
+              detail::EncodeModifySubscriptionResponse(typed_response);
         } else if constexpr (std::is_same_v<T, SetPublishingModeResponse>) {
           json["service"] = "SetPublishingMode";
-          json["body"] = detail::EncodeSetPublishingModeResponse(typed_response);
+          json["body"] =
+              detail::EncodeSetPublishingModeResponse(typed_response);
         } else if constexpr (std::is_same_v<T, DeleteSubscriptionsResponse>) {
           json["service"] = "DeleteSubscriptions";
-          json["body"] = detail::EncodeDeleteSubscriptionsResponse(typed_response);
+          json["body"] =
+              detail::EncodeDeleteSubscriptionsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, PublishResponse>) {
           json["service"] = "Publish";
           json["body"] = detail::EncodePublishResponse(typed_response);
@@ -489,25 +652,31 @@ boost::json::value EncodeJson(const ResponseMessage& response) {
           json["body"] = detail::EncodeRepublishResponse(typed_response);
         } else if constexpr (std::is_same_v<T, TransferSubscriptionsResponse>) {
           json["service"] = "TransferSubscriptions";
-          json["body"] = detail::EncodeTransferSubscriptionsResponse(typed_response);
+          json["body"] =
+              detail::EncodeTransferSubscriptionsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, CreateMonitoredItemsResponse>) {
           json["service"] = "CreateMonitoredItems";
-          json["body"] = detail::EncodeCreateMonitoredItemsResponse(typed_response);
+          json["body"] =
+              detail::EncodeCreateMonitoredItemsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, ModifyMonitoredItemsResponse>) {
           json["service"] = "ModifyMonitoredItems";
-          json["body"] = detail::EncodeModifyMonitoredItemsResponse(typed_response);
+          json["body"] =
+              detail::EncodeModifyMonitoredItemsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, DeleteMonitoredItemsResponse>) {
           json["service"] = "DeleteMonitoredItems";
-          json["body"] = detail::EncodeDeleteMonitoredItemsResponse(typed_response);
+          json["body"] =
+              detail::EncodeDeleteMonitoredItemsResponse(typed_response);
         } else if constexpr (std::is_same_v<T, SetMonitoringModeResponse>) {
           json["service"] = "SetMonitoringMode";
-          json["body"] = detail::EncodeSetMonitoringModeResponse(typed_response);
+          json["body"] =
+              detail::EncodeSetMonitoringModeResponse(typed_response);
         } else if constexpr (std::is_same_v<T, ServiceFault>) {
           json["service"] = "ServiceFault";
           json["body"] = EncodeServiceFault(typed_response);
         } else {
-          const auto service_json =
-              RequireObject(EncodeJson(ServiceResponse{typed_response}));
+          const auto service_value =
+              EncodeJson(ServiceResponse{typed_response});
+          const auto& service_json = RequireObject(service_value);
           json["service"] = service_json.at("service");
           json["body"] = service_json.at("body");
         }
@@ -525,7 +694,11 @@ RequestMessage DecodeRequestMessage(const boost::json::value& json) {
           RequireUInt64(RequireField(obj, "requestHandle"))),
       .body = CloseSessionRequest{},
   };
-  if (service == "CreateSession") {
+  if (service == "FindServers") {
+    message.body = DecodeFindServersRequest(body);
+  } else if (service == "GetEndpoints") {
+    message.body = DecodeGetEndpointsRequest(body);
+  } else if (service == "CreateSession") {
     message.body = DecodeCreateSessionRequest(body);
   } else if (service == "ActivateSession") {
     message.body = DecodeActivateSessionRequest(body);
@@ -554,11 +727,12 @@ RequestMessage DecodeRequestMessage(const boost::json::value& json) {
   } else if (service == "SetMonitoringMode") {
     message.body = detail::DecodeSetMonitoringModeRequest(body);
   } else {
+    const object service_json{{"service", service}, {"body", body}};
     message.body = std::visit(
         [](auto&& typed_request) -> RequestBody {
           return std::forward<decltype(typed_request)>(typed_request);
         },
-        DecodeServiceRequest(json));
+        DecodeServiceRequest(service_json));
   }
   return message;
 }
@@ -572,7 +746,11 @@ ResponseMessage DecodeResponseMessage(const boost::json::value& json) {
           RequireUInt64(RequireField(obj, "requestHandle"))),
       .body = CloseSessionResponse{},
   };
-  if (service == "CreateSession") {
+  if (service == "FindServers") {
+    message.body = DecodeFindServersResponse(body);
+  } else if (service == "GetEndpoints") {
+    message.body = DecodeGetEndpointsResponse(body);
+  } else if (service == "CreateSession") {
     message.body = DecodeCreateSessionResponse(body);
   } else if (service == "ActivateSession") {
     message.body = DecodeActivateSessionResponse(body);
@@ -603,11 +781,12 @@ ResponseMessage DecodeResponseMessage(const boost::json::value& json) {
   } else if (service == "ServiceFault") {
     message.body = DecodeServiceFault(body);
   } else {
+    const object service_json{{"service", service}, {"body", body}};
     message.body = std::visit(
         [](auto&& typed_response) -> ResponseBody {
           return std::forward<decltype(typed_response)>(typed_response);
         },
-        DecodeServiceResponse(json));
+        DecodeServiceResponse(service_json));
   }
   return message;
 }

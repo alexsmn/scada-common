@@ -189,7 +189,7 @@ scada::LocalizedText DecodeLocalizedText(const value& json) {
 
 value EncodeDateTime(scada::DateTime time) {
   if (time.is_null())
-    return string("0001-01-01T00:00:00Z");
+    return nullptr;
   base::Time::Exploded e = {};
   time.UTCExplode(&e);
   auto text = std::format("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", e.year,
@@ -202,6 +202,8 @@ value EncodeDateTime(scada::DateTime time) {
 
 scada::DateTime DecodeDateTime(const value& json) {
   if (json.is_null())
+    return {};
+  if (RequireString(json) == "0001-01-01T00:00:00Z")
     return {};
   scada::DateTime time;
   if (!Deserialize(RequireString(json), time))

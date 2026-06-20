@@ -12,33 +12,46 @@ const char* RequestName(const RequestBody& request) {
   return std::visit(
       [](const auto& typed_request) -> const char* {
         using Request = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<Request, CreateSessionRequest>) {
+        if constexpr (std::is_same_v<Request, FindServersRequest>) {
+          return "FindServers";
+        } else if constexpr (std::is_same_v<Request, GetEndpointsRequest>) {
+          return "GetEndpoints";
+        } else if constexpr (std::is_same_v<Request, CreateSessionRequest>) {
           return "CreateSession";
         } else if constexpr (std::is_same_v<Request, ActivateSessionRequest>) {
           return "ActivateSession";
         } else if constexpr (std::is_same_v<Request, CloseSessionRequest>) {
           return "CloseSession";
-        } else if constexpr (std::is_same_v<Request, CreateSubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            CreateSubscriptionRequest>) {
           return "CreateSubscription";
-        } else if constexpr (std::is_same_v<Request, ModifySubscriptionRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            ModifySubscriptionRequest>) {
           return "ModifySubscription";
-        } else if constexpr (std::is_same_v<Request, SetPublishingModeRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            SetPublishingModeRequest>) {
           return "SetPublishingMode";
-        } else if constexpr (std::is_same_v<Request, DeleteSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            DeleteSubscriptionsRequest>) {
           return "DeleteSubscriptions";
         } else if constexpr (std::is_same_v<Request, PublishRequest>) {
           return "Publish";
         } else if constexpr (std::is_same_v<Request, RepublishRequest>) {
           return "Republish";
-        } else if constexpr (std::is_same_v<Request, TransferSubscriptionsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            TransferSubscriptionsRequest>) {
           return "TransferSubscriptions";
-        } else if constexpr (std::is_same_v<Request, CreateMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            CreateMonitoredItemsRequest>) {
           return "CreateMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, ModifyMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            ModifyMonitoredItemsRequest>) {
           return "ModifyMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, DeleteMonitoredItemsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            DeleteMonitoredItemsRequest>) {
           return "DeleteMonitoredItems";
-        } else if constexpr (std::is_same_v<Request, SetMonitoringModeRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            SetMonitoringModeRequest>) {
           return "SetMonitoringMode";
         } else if constexpr (std::is_same_v<Request, ReadRequest>) {
           return "Read";
@@ -48,13 +61,15 @@ const char* RequestName(const RequestBody& request) {
           return "Browse";
         } else if constexpr (std::is_same_v<Request, BrowseNextRequest>) {
           return "BrowseNext";
-        } else if constexpr (std::is_same_v<Request, TranslateBrowsePathsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            TranslateBrowsePathsRequest>) {
           return "TranslateBrowsePaths";
         } else if constexpr (std::is_same_v<Request, CallRequest>) {
           return "Call";
         } else if constexpr (std::is_same_v<Request, HistoryReadRawRequest>) {
           return "HistoryReadRaw";
-        } else if constexpr (std::is_same_v<Request, HistoryReadEventsRequest>) {
+        } else if constexpr (std::is_same_v<Request,
+                                            HistoryReadEventsRequest>) {
           return "HistoryReadEvents";
         } else if constexpr (std::is_same_v<Request, AddNodesRequest>) {
           return "AddNodes";
@@ -69,9 +84,8 @@ const char* RequestName(const RequestBody& request) {
       request);
 }
 
-std::optional<std::vector<char>> EncodeResponse(
-    scada::UInt32 request_handle,
-    const ResponseBody& response) {
+std::optional<std::vector<char>> EncodeResponse(scada::UInt32 request_handle,
+                                                const ResponseBody& response) {
   return EncodeServiceResponse(request_handle, response);
 }
 
@@ -84,11 +98,10 @@ std::optional<std::vector<char>> EncodeResponse(
           const auto& typed_response) -> std::optional<std::vector<char>> {
         using T = std::decay_t<decltype(typed_response)>;
         if constexpr (std::is_same_v<T, HistoryReadEventsResponse>) {
-          return EncodeHistoryReadEventsResponse(
-              request_handle, typed_response, history_event_field_paths);
+          return EncodeHistoryReadEventsResponse(request_handle, typed_response,
+                                                 history_event_field_paths);
         } else {
-          return EncodeResponse(request_handle,
-                                      ResponseBody{typed_response});
+          return EncodeResponse(request_handle, ResponseBody{typed_response});
         }
       },
       response);
@@ -96,8 +109,7 @@ std::optional<std::vector<char>> EncodeResponse(
 }  // namespace
 
 ServiceDispatcher::ServiceDispatcher(Context context)
-    : runtime_{context.runtime},
-      connection_{context.connection} {}
+    : runtime_{context.runtime}, connection_{context.connection} {}
 
 Awaitable<std::optional<std::vector<char>>> ServiceDispatcher::HandlePayload(
     std::vector<char> payload) {
@@ -118,8 +130,7 @@ Awaitable<std::optional<std::vector<char>>> ServiceDispatcher::HandlePayload(
   }
 
   auto encoded = EncodeResponse(request->header.request_handle,
-                                request->history_event_field_paths,
-                                *response);
+                                request->history_event_field_paths, *response);
   if (!encoded.has_value()) {
     const auto request_name = RequestName(request->body);
     LOG_WARNING(logger_) << "OPC UA binary response encode failed: "

@@ -5,9 +5,9 @@
 #include "base/awaitable.h"
 #include "base/time/time.h"
 #include "opcua/message.h"
-#include "opcua/service_handler.h"
 #include "opcua/server_session.h"
 #include "opcua/server_session_manager.h"
+#include "opcua/service_handler.h"
 #include "scada/data_services.h"
 
 #include <optional>
@@ -37,6 +37,7 @@ struct ServerRuntimeContext {
   scada::HistoryService& history_service;
   scada::MethodService& method_service;
   scada::NodeManagementService& node_management_service;
+  std::vector<EndpointDescription> endpoints;
   std::function<base::Time()> now = &base::Time::Now;
   // Optional override for delayed task scheduling. Defaults to
   // boost::asio::steady_timer-based posting when null.
@@ -47,6 +48,7 @@ struct DataServicesServerRuntimeContext {
   AnyExecutor executor;
   ServerSessionManager& session_manager;
   DataServices data_services;
+  std::vector<EndpointDescription> endpoints;
   std::function<base::Time()> now = &base::Time::Now;
   // Optional override for delayed task scheduling. Defaults to
   // boost::asio::steady_timer-based posting when null.
@@ -59,9 +61,8 @@ class ServerRuntime {
   explicit ServerRuntime(DataServicesServerRuntimeContext&& context);
   ~ServerRuntime();
 
-  [[nodiscard]] Awaitable<ResponseBody> Handle(
-      ConnectionState& connection,
-      RequestBody request);
+  [[nodiscard]] Awaitable<ResponseBody> Handle(ConnectionState& connection,
+                                               RequestBody request);
   void Detach(ConnectionState& connection);
 
  private:
@@ -73,13 +74,16 @@ class ServerRuntime {
   [[nodiscard]] ServerSession* FindAttachedSession(
       const ConnectionState& connection) const;
   void ForgetSession(const scada::NodeId& authentication_token);
-  void IndexSessionSubscriptions(
-      const scada::NodeId& authentication_token,
-      const ServerSession& session);
+  void IndexSessionSubscriptions(const scada::NodeId& authentication_token,
+                                 const ServerSession& session);
   void RemoveSessionSubscriptions(const scada::NodeId& authentication_token);
   [[nodiscard]] Awaitable<ResponseBody> HandleActivateSession(
       ConnectionState& connection,
       ActivateSessionRequest request);
+  [[nodiscard]] ResponseBody HandleFindServers(
+      const FindServersRequest& request) const;
+  [[nodiscard]] ResponseBody HandleGetEndpoints(
+      const GetEndpointsRequest& request) const;
   [[nodiscard]] Awaitable<ServiceResponse> HandleServiceRequest(
       const ServerSession& session,
       ServiceRequest request) const;
@@ -98,6 +102,7 @@ class ServerRuntime {
   scada::HistoryService& history_service_;
   scada::MethodService& method_service_;
   scada::NodeManagementService& node_management_service_;
+  std::vector<EndpointDescription> endpoints_;
   std::function<base::Time()> now_;
   std::function<void(base::TimeDelta, std::function<void()>)>
       post_delayed_task_;

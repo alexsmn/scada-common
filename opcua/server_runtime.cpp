@@ -44,8 +44,14 @@ DataServicesServerRuntimeContext MakeDataServicesServerRuntimeContext(
            .method_service_ = data_services::Unowned(context.method_service),
            .monitored_item_service_ =
                data_services::Unowned(context.monitored_item_service)},
+      .endpoints = std::move(context.endpoints),
       .now = std::move(context.now),
       .post_delayed_task = std::move(context.post_delayed_task)};
+}
+
+bool MatchesStringFilter(std::string_view value,
+                         const std::vector<std::string>& filter) {
+  return filter.empty() || std::ranges::find(filter, value) != filter.end();
 }
 
 }  // namespace
@@ -69,6 +75,7 @@ ServerRuntime::ServerRuntime(DataServicesServerRuntimeContext&& context)
           data_services_.method_service_)},
       node_management_service_{scada::service_resolver::RequireSharedService(
           data_services_.node_management_service_)},
+      endpoints_{std::move(context.endpoints)},
       now_{std::move(context.now)},
       post_delayed_task_{std::move(context.post_delayed_task)} {}
 
@@ -162,7 +169,11 @@ Awaitable<ResponseBody> ServerRuntime::Handle(ConnectionState& connection,
   auto body = co_await std::visit(
       [this, &connection](auto&& typed_request) -> Awaitable<ResponseBody> {
         using T = std::decay_t<decltype(typed_request)>;
-        if constexpr (std::is_same_v<T, CreateSessionRequest>) {
+        if constexpr (std::is_same_v<T, FindServersRequest>) {
+          co_return HandleFindServers(typed_request);
+        } else if constexpr (std::is_same_v<T, GetEndpointsRequest>) {
+          co_return HandleGetEndpoints(typed_request);
+        } else if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           co_return ResponseBody{co_await session_manager_.CreateSession(
               std::move(typed_request))};
         } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
@@ -371,6 +382,40 @@ Awaitable<ResponseBody> ServerRuntime::Handle(ConnectionState& connection,
       },
       std::move(request));
   co_return body;
+}
+
+ResponseBody ServerRuntime::HandleFindServers(
+    const FindServersRequest& request) const {
+  FindServersResponse response;
+  for (const auto& endpoint : endpoints_) {
+    const auto& server = endpoint.server;
+    if (!MatchesStringFilter(server.application_uri, request.server_uris) &&
+        !MatchesStringFilter(server.product_uri, request.server_uris)) {
+      continue;
+    }
+    const auto duplicate =
+        std::ranges::find_if(response.servers, [&](const auto& existing) {
+          return existing.application_uri == server.application_uri;
+        }) != response.servers.end();
+    if (!duplicate)
+      response.servers.push_back(server);
+  }
+  return ResponseBody{std::move(response)};
+}
+
+ResponseBody ServerRuntime::HandleGetEndpoints(
+    const GetEndpointsRequest& request) const {
+  GetEndpointsResponse response;
+  for (auto endpoint : endpoints_) {
+    if (!MatchesStringFilter(endpoint.transport_profile_uri,
+                             request.profile_uris)) {
+      continue;
+    }
+    if (!request.endpoint_url.empty())
+      endpoint.endpoint_url = request.endpoint_url;
+    response.endpoints.push_back(std::move(endpoint));
+  }
+  return ResponseBody{std::move(response)};
 }
 
 Awaitable<ResponseBody> ServerRuntime::HandleActivateSession(

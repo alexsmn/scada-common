@@ -30,7 +30,8 @@ struct ConnectionTaskState {
   explicit ConnectionTaskState(transport::any_transport transport)
       : transport{std::move(transport)},
         write_queue{this->transport},
-        connection_id{next_connection_id_.fetch_add(1, std::memory_order_relaxed)} {}
+        connection_id{
+            next_connection_id_.fetch_add(1, std::memory_order_relaxed)} {}
 
   transport::any_transport transport;
   transport::WriteQueue write_queue;
@@ -40,8 +41,7 @@ struct ConnectionTaskState {
 
 }  // namespace
 
-Server::Server(ServerContext&& context)
-    : ServerContext{std::move(context)} {}
+Server::Server(ServerContext&& context) : ServerContext{std::move(context)} {}
 
 Awaitable<transport::error_code> Server::Open() {
   if (opened_)
@@ -56,11 +56,10 @@ Awaitable<transport::error_code> Server::Open() {
   active_tasks_ = 0;
   tasks_closed_.emplace(acceptor.get_executor());
   TaskStarted();
-  CoSpawn(acceptor.get_executor(),
-          [this]() -> Awaitable<void> {
-            co_await AcceptLoop();
-            TaskFinished();
-          });
+  CoSpawn(acceptor.get_executor(), [this]() -> Awaitable<void> {
+    co_await AcceptLoop();
+    TaskFinished();
+  });
   co_return transport::OK;
 }
 
@@ -90,11 +89,12 @@ Awaitable<void> Server::AcceptLoop() {
     auto transport = std::move(accepted.value());
     auto executor = transport.get_executor();
     TaskStarted();
-    CoSpawn(executor,
-            [this, transport = std::move(transport)]() mutable -> Awaitable<void> {
-              co_await ServeConnection(std::move(transport));
-              TaskFinished();
-            });
+    CoSpawn(
+        executor,
+        [this, transport = std::move(transport)]() mutable -> Awaitable<void> {
+          co_await ServeConnection(std::move(transport));
+          TaskFinished();
+        });
   }
 }
 
@@ -114,8 +114,7 @@ void Server::TaskFinished() {
 Awaitable<void> Server::RunConnection(transport::any_transport transport) {
   auto* runtime_ptr = &runtime;
   const auto max_message_size_value = max_message_size;
-  auto state =
-      std::make_shared<ConnectionTaskState>(std::move(transport));
+  auto state = std::make_shared<ConnectionTaskState>(std::move(transport));
   [[maybe_unused]] auto open_result = co_await state->transport.open();
   LOG_INFO(logger_) << "OPC UA WS connection opened"
                     << LOG_TAG("ConnectionId", state->connection_id)
@@ -132,51 +131,55 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
     try {
       const std::string_view payload{buffer.data(), *read_result};
       request = DecodeRequestMessage(boost::json::parse(payload));
+    } catch (const std::exception& e) {
+      LOG_WARNING(logger_) << "OPC UA WS request parse failed"
+                           << LOG_TAG("Reason", e.what());
+      parse_failed = true;
     } catch (...) {
+      LOG_WARNING(logger_) << "OPC UA WS request parse failed";
       parse_failed = true;
     }
 
     if (parse_failed) {
-      auto encoded =
-          boost::json::serialize(EncodeJson(ResponseMessage{
-              .request_handle = 0,
-              .body = ServiceFault{
-                  .status = scada::StatusCode::Bad_CantParseString}}));
+      auto encoded = boost::json::serialize(EncodeJson(ResponseMessage{
+          .request_handle = 0,
+          .body =
+              ServiceFault{.status = scada::StatusCode::Bad_CantParseString}}));
       if (encoded.size() > max_message_size_value)
         break;
 
-      auto write_result = co_await state->write_queue.Write(AsCharSpan(encoded));
+      auto write_result =
+          co_await state->write_queue.Write(AsCharSpan(encoded));
       if (!write_result.ok())
         break;
       continue;
     }
 
-    CoSpawn(
-        state->transport.get_executor(),
-        [runtime_ptr, max_message_size_value, state,
-         request = std::move(*request)]() mutable
-            -> Awaitable<void> {
-          auto body =
-              co_await runtime_ptr->Handle(state->connection,
-                                          std::move(request.body));
-          auto response = ResponseMessage{
-              .request_handle = request.request_handle, .body = std::move(body)};
-          auto encoded = boost::json::serialize(EncodeJson(response));
-          if (encoded.size() > max_message_size_value)
-            co_return;
+    CoSpawn(state->transport.get_executor(),
+            [runtime_ptr, max_message_size_value, state,
+             request = std::move(*request)]() mutable -> Awaitable<void> {
+              auto body = co_await runtime_ptr->Handle(state->connection,
+                                                       std::move(request.body));
+              auto response =
+                  ResponseMessage{.request_handle = request.request_handle,
+                                  .body = std::move(body)};
+              auto encoded = boost::json::serialize(EncodeJson(response));
+              if (encoded.size() > max_message_size_value)
+                co_return;
 
-          [[maybe_unused]] auto write_result =
-              co_await state->write_queue.Write(AsCharSpan(encoded));
-        });
+              [[maybe_unused]] auto write_result =
+                  co_await state->write_queue.Write(AsCharSpan(encoded));
+            });
   }
 
   state->connection.closed = true;
   if (state->connection.authentication_token.has_value()) {
-    LOG_INFO(logger_) << "OPC UA WS connection closed"
-                      << LOG_TAG("ConnectionId", state->connection_id)
-                      << LOG_TAG("Transport", state->transport.name())
-                      << LOG_TAG("AuthenticationToken",
-                                 state->connection.authentication_token->ToString());
+    LOG_INFO(logger_)
+        << "OPC UA WS connection closed"
+        << LOG_TAG("ConnectionId", state->connection_id)
+        << LOG_TAG("Transport", state->transport.name())
+        << LOG_TAG("AuthenticationToken",
+                   state->connection.authentication_token->ToString());
   } else {
     LOG_INFO(logger_) << "OPC UA WS connection closed"
                       << LOG_TAG("ConnectionId", state->connection_id)

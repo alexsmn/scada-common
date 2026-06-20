@@ -14,6 +14,10 @@ namespace {
 constexpr std::uint32_t kFilterOperatorOfType = 11;
 constexpr std::uint32_t kFilterOperatorRelatedTo = 15;
 
+constexpr std::uint32_t kFindServersRequestEncodingId = 422;
+constexpr std::uint32_t kFindServersResponseEncodingId = 425;
+constexpr std::uint32_t kGetEndpointsRequestEncodingId = 428;
+constexpr std::uint32_t kGetEndpointsResponseEncodingId = 431;
 constexpr std::uint32_t kCreateSessionRequestEncodingId = 461;
 constexpr std::uint32_t kCreateSessionResponseEncodingId = 464;
 constexpr std::uint32_t kActivateSessionRequestEncodingId = 467;
@@ -357,6 +361,128 @@ void AppendResponseHeader(Encoder& encoder,
   encoder.Encode(std::int32_t{0});
   encoder.Encode(scada::NodeId{});
   encoder.Encode(std::uint8_t{0x00});
+}
+
+void AppendStringArray(Encoder& encoder,
+                       const std::vector<std::string>& values) {
+  encoder.Encode(static_cast<std::int32_t>(values.size()));
+  for (const auto& value : values)
+    encoder.Encode(value);
+}
+
+bool ReadStringArray(Decoder& decoder, std::vector<std::string>& values) {
+  std::int32_t count = 0;
+  if (!decoder.Decode(count) || count < -1)
+    return false;
+  values.clear();
+  if (count < 0)
+    return true;
+  values.reserve(static_cast<std::size_t>(count));
+  for (std::int32_t i = 0; i < count; ++i) {
+    std::string value;
+    if (!decoder.Decode(value))
+      return false;
+    values.push_back(std::move(value));
+  }
+  return true;
+}
+
+void AppendApplicationDescription(Encoder& encoder,
+                                  const ApplicationDescription& description) {
+  encoder.Encode(description.application_uri);
+  encoder.Encode(description.product_uri);
+  encoder.Encode(description.application_name);
+  encoder.Encode(static_cast<std::uint32_t>(description.application_type));
+  encoder.Encode(description.gateway_server_uri);
+  encoder.Encode(description.discovery_profile_uri);
+  AppendStringArray(encoder, description.discovery_urls);
+}
+
+bool ReadApplicationDescription(Decoder& decoder,
+                                ApplicationDescription& description) {
+  std::uint32_t application_type = 0;
+  if (!decoder.Decode(description.application_uri) ||
+      !decoder.Decode(description.product_uri) ||
+      !decoder.Decode(description.application_name) ||
+      !decoder.Decode(application_type) ||
+      !decoder.Decode(description.gateway_server_uri) ||
+      !decoder.Decode(description.discovery_profile_uri) ||
+      !ReadStringArray(decoder, description.discovery_urls)) {
+    return false;
+  }
+  description.application_type = static_cast<ApplicationType>(application_type);
+  return description.application_type == ApplicationType::Server ||
+         description.application_type == ApplicationType::Client ||
+         description.application_type == ApplicationType::ClientAndServer ||
+         description.application_type == ApplicationType::DiscoveryServer;
+}
+
+void AppendUserTokenPolicy(Encoder& encoder, const UserTokenPolicy& policy) {
+  encoder.Encode(policy.policy_id);
+  encoder.Encode(static_cast<std::uint32_t>(policy.token_type));
+  encoder.Encode(policy.issued_token_type);
+  encoder.Encode(policy.issuer_endpoint_url);
+  encoder.Encode(policy.security_policy_uri);
+}
+
+bool ReadUserTokenPolicy(Decoder& decoder, UserTokenPolicy& policy) {
+  std::uint32_t token_type = 0;
+  if (!decoder.Decode(policy.policy_id) || !decoder.Decode(token_type) ||
+      !decoder.Decode(policy.issued_token_type) ||
+      !decoder.Decode(policy.issuer_endpoint_url) ||
+      !decoder.Decode(policy.security_policy_uri)) {
+    return false;
+  }
+  policy.token_type = static_cast<UserTokenType>(token_type);
+  return policy.token_type == UserTokenType::Anonymous ||
+         policy.token_type == UserTokenType::UserName ||
+         policy.token_type == UserTokenType::Certificate ||
+         policy.token_type == UserTokenType::IssuedToken;
+}
+
+void AppendEndpointDescription(Encoder& encoder,
+                               const EndpointDescription& endpoint) {
+  encoder.Encode(endpoint.endpoint_url);
+  AppendApplicationDescription(encoder, endpoint.server);
+  encoder.Encode(endpoint.server_certificate);
+  encoder.Encode(static_cast<std::uint32_t>(endpoint.security_mode));
+  encoder.Encode(endpoint.security_policy_uri);
+  encoder.Encode(
+      static_cast<std::int32_t>(endpoint.user_identity_tokens.size()));
+  for (const auto& policy : endpoint.user_identity_tokens)
+    AppendUserTokenPolicy(encoder, policy);
+  encoder.Encode(endpoint.transport_profile_uri);
+  encoder.Encode(endpoint.security_level);
+}
+
+bool ReadEndpointDescription(Decoder& decoder, EndpointDescription& endpoint) {
+  std::uint32_t security_mode = 0;
+  std::int32_t token_count = 0;
+  if (!decoder.Decode(endpoint.endpoint_url) ||
+      !ReadApplicationDescription(decoder, endpoint.server) ||
+      !decoder.Decode(endpoint.server_certificate) ||
+      !decoder.Decode(security_mode) ||
+      !decoder.Decode(endpoint.security_policy_uri) ||
+      !decoder.Decode(token_count) || token_count < -1) {
+    return false;
+  }
+  endpoint.security_mode = static_cast<MessageSecurityMode>(security_mode);
+  if (endpoint.security_mode != MessageSecurityMode::Invalid &&
+      endpoint.security_mode != MessageSecurityMode::None &&
+      endpoint.security_mode != MessageSecurityMode::Sign &&
+      endpoint.security_mode != MessageSecurityMode::SignAndEncrypt) {
+    return false;
+  }
+  endpoint.user_identity_tokens.clear();
+  if (token_count >= 0) {
+    endpoint.user_identity_tokens.resize(static_cast<std::size_t>(token_count));
+    for (auto& policy : endpoint.user_identity_tokens) {
+      if (!ReadUserTokenPolicy(decoder, policy))
+        return false;
+    }
+  }
+  return decoder.Decode(endpoint.transport_profile_uri) &&
+         decoder.Decode(endpoint.security_level);
 }
 
 std::uint32_t EncodeStatusCode(scada::StatusCode status_code) {
@@ -1353,6 +1479,50 @@ bool ReadNotificationMessage(Decoder& decoder, NotificationMessage& message) {
 // on the payload inside the ExtensionObject wrapper (the caller strips the
 // wrapper via ReadMessage).
 
+std::optional<DecodedResponse> DecodeFindServersResponse(
+    std::span<const char> body) {
+  Decoder decoder{body};
+  DecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count) ||
+      count < -1) {
+    return std::nullopt;
+  }
+
+  FindServersResponse response{.status = header.service_result};
+  if (count >= 0) {
+    response.servers.resize(static_cast<std::size_t>(count));
+    for (auto& server : response.servers) {
+      if (!ReadApplicationDescription(decoder, server))
+        return std::nullopt;
+    }
+  }
+  return DecodedResponse{.request_handle = header.request_handle,
+                         .body = std::move(response)};
+}
+
+std::optional<DecodedResponse> DecodeGetEndpointsResponse(
+    std::span<const char> body) {
+  Decoder decoder{body};
+  DecodedResponseHeader header;
+  std::int32_t count = 0;
+  if (!ReadResponseHeader(decoder, header) || !decoder.Decode(count) ||
+      count < -1) {
+    return std::nullopt;
+  }
+
+  GetEndpointsResponse response{.status = header.service_result};
+  if (count >= 0) {
+    response.endpoints.resize(static_cast<std::size_t>(count));
+    for (auto& endpoint : response.endpoints) {
+      if (!ReadEndpointDescription(decoder, endpoint))
+        return std::nullopt;
+    }
+  }
+  return DecodedResponse{.request_handle = header.request_handle,
+                         .body = std::move(response)};
+}
+
 std::optional<DecodedResponse> DecodeCreateSessionResponse(
     std::span<const char> body) {
   Decoder decoder{body};
@@ -1802,6 +1972,36 @@ std::optional<DecodedRequest> DecodeCreateSessionRequest(
                                        base::TimeDelta::FromMillisecondsD(
                                            requested_timeout_ms)},
   };
+}
+
+std::optional<DecodedRequest> DecodeFindServersRequest(
+    std::span<const char> body) {
+  Decoder decoder{body};
+  ServiceRequestHeader header;
+  FindServersRequest request;
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.Decode(request.endpoint_url) ||
+      !ReadStringArray(decoder, request.locale_ids) ||
+      !ReadStringArray(decoder, request.server_uris) || !decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return DecodedRequest{.header = header, .body = std::move(request)};
+}
+
+std::optional<DecodedRequest> DecodeGetEndpointsRequest(
+    std::span<const char> body) {
+  Decoder decoder{body};
+  ServiceRequestHeader header;
+  GetEndpointsRequest request;
+  if (!ReadRequestHeader(decoder, header) ||
+      !decoder.Decode(request.endpoint_url) ||
+      !ReadStringArray(decoder, request.locale_ids) ||
+      !ReadStringArray(decoder, request.profile_uris) || !decoder.consumed()) {
+    return std::nullopt;
+  }
+
+  return DecodedRequest{.header = header, .body = std::move(request)};
 }
 
 std::optional<DecodedRequest> DecodeActivateSessionRequest(
@@ -2823,7 +3023,19 @@ std::optional<std::vector<char>> EncodeServiceRequest(
         Encoder payload_encoder{payload};
         Encoder body_encoder{body};
 
-        if constexpr (std::is_same_v<T, CreateSessionRequest>) {
+        if constexpr (std::is_same_v<T, FindServersRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(typed_request.endpoint_url);
+          AppendStringArray(payload_encoder, typed_request.locale_ids);
+          AppendStringArray(payload_encoder, typed_request.server_uris);
+          AppendMessage(body_encoder, kFindServersRequestEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, GetEndpointsRequest>) {
+          AppendRequestHeader(payload_encoder, header);
+          payload_encoder.Encode(typed_request.endpoint_url);
+          AppendStringArray(payload_encoder, typed_request.locale_ids);
+          AppendStringArray(payload_encoder, typed_request.profile_uris);
+          AppendMessage(body_encoder, kGetEndpointsRequestEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, CreateSessionRequest>) {
           AppendRequestHeader(payload_encoder, header);
           payload_encoder.Encode(std::string_view{""});
           payload_encoder.Encode(std::string_view{""});
@@ -3206,6 +3418,10 @@ std::optional<DecodedRequest> DecodeServiceRequest(
   }
 
   switch (message->first) {
+    case kFindServersRequestEncodingId:
+      return DecodeFindServersRequest(message->second);
+    case kGetEndpointsRequestEncodingId:
+      return DecodeGetEndpointsRequest(message->second);
     case kCreateSessionRequestEncodingId:
       return DecodeCreateSessionRequest(message->second);
     case kActivateSessionRequestEncodingId:
@@ -3273,6 +3489,10 @@ std::optional<DecodedResponse> DecodeServiceResponse(
   }
 
   switch (message->first) {
+    case kFindServersResponseEncodingId:
+      return DecodeFindServersResponse(message->second);
+    case kGetEndpointsResponseEncodingId:
+      return DecodeGetEndpointsResponse(message->second);
     case kCreateSessionResponseEncodingId:
       return DecodeCreateSessionResponse(message->second);
     case kActivateSessionResponseEncodingId:
@@ -3352,7 +3572,23 @@ std::optional<std::vector<char>> EncodeServiceResponse(
         Encoder payload_encoder{payload};
         Encoder body_encoder{body};
 
-        if constexpr (std::is_same_v<T, CreateSessionResponse>) {
+        if constexpr (std::is_same_v<T, FindServersResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.servers.size()));
+          for (const auto& server : typed_response.servers)
+            AppendApplicationDescription(payload_encoder, server);
+          AppendMessage(body_encoder, kFindServersResponseEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, GetEndpointsResponse>) {
+          AppendResponseHeader(payload_encoder, request_handle,
+                               typed_response.status);
+          payload_encoder.Encode(
+              static_cast<std::int32_t>(typed_response.endpoints.size()));
+          for (const auto& endpoint : typed_response.endpoints)
+            AppendEndpointDescription(payload_encoder, endpoint);
+          AppendMessage(body_encoder, kGetEndpointsResponseEncodingId, payload);
+        } else if constexpr (std::is_same_v<T, CreateSessionResponse>) {
           AppendResponseHeader(payload_encoder, request_handle,
                                typed_response.status);
           payload_encoder.Encode(typed_response.session_id);

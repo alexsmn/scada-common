@@ -94,6 +94,19 @@ scada::StatusOr<Certificate> LoadPemCertificate(std::string_view pem) {
   return scada::StatusOr<Certificate>{Certificate{cert}};
 }
 
+scada::StatusOr<Certificate> LoadDerCertificate(
+    std::span<const std::uint8_t> der) {
+  if (der.empty()) {
+    return scada::StatusOr<Certificate>{BadCrypto()};
+  }
+  const unsigned char* cursor = der.data();
+  X509* cert = d2i_X509(nullptr, &cursor, static_cast<long>(der.size()));
+  if (!cert) {
+    return scada::StatusOr<Certificate>{BadCrypto()};
+  }
+  return scada::StatusOr<Certificate>{Certificate{cert}};
+}
+
 scada::StatusOr<PrivateKey> LoadPemPrivateKey(std::string_view pem,
                                               std::string_view passphrase) {
   BIO* bio = BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size()));

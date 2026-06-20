@@ -444,6 +444,20 @@ TEST(JsonCodecTest, RoundTripsHistoryReadRawRequest) {
             request.details.continuation_point);
 }
 
+TEST(JsonCodecTest, RoundTripsHistoryReadRawRequestMessage) {
+  RequestMessage request{.request_handle = 8,
+                         .body = HistoryReadRawRequest{
+                             .details = {.node_id = NumericNode(101, 1)}}};
+
+  const auto encoded = boost::json::serialize(EncodeJson(request));
+  const auto decoded = DecodeRequestMessage(boost::json::parse(encoded));
+
+  EXPECT_EQ(decoded.request_handle, request.request_handle);
+  const auto* typed = std::get_if<HistoryReadRawRequest>(&decoded.body);
+  ASSERT_NE(typed, nullptr);
+  EXPECT_EQ(typed->details.node_id, NumericNode(101, 1));
+}
+
 TEST(JsonCodecTest, RoundTripsHistoryReadEventsRequest) {
   HistoryReadEventsRequest request{
       .details = {.node_id = NumericNode(2),
