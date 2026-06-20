@@ -517,6 +517,19 @@ TEST_F(DataServicesServerRuntimeTest, RejectsRequestsExceedingOperationLimits) {
   ASSERT_TRUE(call_response);
   EXPECT_EQ(call_response->status.code(),
             scada::StatusCode::Bad_TooManyOperations);
+
+  // An empty operation array is Bad_NothingToDo (OPC UA Part 4 §5.10).
+  const auto empty_read_body = WaitAwaitable(
+      executor_, limited.Handle(connection, RequestBody{ReadRequest{}}));
+  const auto* empty_read = std::get_if<ReadResponse>(&empty_read_body);
+  ASSERT_TRUE(empty_read);
+  EXPECT_EQ(empty_read->status.code(), scada::StatusCode::Bad_NothingToDo);
+
+  const auto empty_call_body = WaitAwaitable(
+      executor_, limited.Handle(connection, RequestBody{CallRequest{}}));
+  const auto* empty_call = std::get_if<CallResponse>(&empty_call_body);
+  ASSERT_TRUE(empty_call);
+  EXPECT_EQ(empty_call->status.code(), scada::StatusCode::Bad_NothingToDo);
 }
 
 class DataServicesCallbackServerRuntimeTest
