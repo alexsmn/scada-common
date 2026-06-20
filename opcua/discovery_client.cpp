@@ -39,7 +39,8 @@ Awaitable<DiscoveryResult> DiscoveryClient::GetEndpoints(
   auto transport_result = transport_factory_.CreateTransport(
       transport_string, net_executor, transport::log_source{});
   if (!transport_result.ok()) {
-    co_return DiscoveryResult{scada::Status{scada::StatusCode::Bad_Disconnected}};
+    co_return DiscoveryResult{
+        scada::Status{scada::StatusCode::Bad_Disconnected}};
   }
 
   // The whole stack lives on this coroutine frame and is torn down on return.

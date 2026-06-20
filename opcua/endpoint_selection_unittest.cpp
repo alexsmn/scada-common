@@ -87,9 +87,9 @@ TEST(SelectEndpointTest, NoneModeRejectsWhenOnlySecuredOffered) {
 TEST(SelectEndpointTest, SignAndEncryptModeRejectsWhenOnlyNoneOffered) {
   const std::vector<EndpointDescription> endpoints = {NoneEndpoint()};
 
-  auto chosen = SelectEndpoint(
-      endpoints, Pref(SecurityPreference::Mode::SignAndEncrypt),
-      ClientCapabilities::Default());
+  auto chosen =
+      SelectEndpoint(endpoints, Pref(SecurityPreference::Mode::SignAndEncrypt),
+                     ClientCapabilities::Default());
 
   EXPECT_FALSE(chosen.ok());
 }

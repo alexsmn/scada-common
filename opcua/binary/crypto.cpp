@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <openssl/x509.h>
@@ -107,6 +108,15 @@ scada::StatusOr<Certificate> LoadDerCertificate(
   return scada::StatusOr<Certificate>{Certificate{cert}};
 }
 
+scada::StatusOr<scada::ByteString> GenerateNonce(std::size_t length) {
+  scada::ByteString nonce(length);
+  if (length > 0 && RAND_bytes(reinterpret_cast<unsigned char*>(nonce.data()),
+                               static_cast<int>(length)) != 1) {
+    return scada::StatusOr<scada::ByteString>{BadCrypto()};
+  }
+  return scada::StatusOr<scada::ByteString>{std::move(nonce)};
+}
+
 scada::StatusOr<PrivateKey> LoadPemPrivateKey(std::string_view pem,
                                               std::string_view passphrase) {
   BIO* bio = BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size()));
@@ -116,9 +126,8 @@ scada::StatusOr<PrivateKey> LoadPemPrivateKey(std::string_view pem,
   // OpenSSL PEM_read_bio_PrivateKey's password parameter is a non-const
   // void* even though the underlying impl treats it as read-only.
   std::string pass_copy{passphrase};
-  void* pass = pass_copy.empty()
-                   ? nullptr
-                   : static_cast<void*>(pass_copy.data());
+  void* pass =
+      pass_copy.empty() ? nullptr : static_cast<void*>(pass_copy.data());
   EVP_PKEY* key = PEM_read_bio_PrivateKey(bio, nullptr, nullptr, pass);
   BIO_free(bio);
   if (!key) {
@@ -171,7 +180,8 @@ scada::StatusOr<PrivateKey> CertificatePublicKey(const Certificate& cert) {
 // (KeySizeBytes - 42) bytes; each ciphertext block is KeySizeBytes bytes.
 
 scada::StatusOr<scada::ByteString> RsaOaepEncrypt(
-    const PrivateKey& public_key, std::span<const std::uint8_t> plaintext) {
+    const PrivateKey& public_key,
+    std::span<const std::uint8_t> plaintext) {
   if (public_key.empty()) {
     return scada::StatusOr<scada::ByteString>{BadCrypto()};
   }
@@ -256,7 +266,8 @@ scada::StatusOr<scada::ByteString> RsaOaepDecrypt(
 // RSA-PKCS#1-v1_5 with SHA-256
 
 scada::StatusOr<scada::ByteString> RsaPkcs1Sha256Sign(
-    const PrivateKey& private_key, std::span<const std::uint8_t> data) {
+    const PrivateKey& private_key,
+    std::span<const std::uint8_t> data) {
   if (private_key.empty()) {
     return scada::StatusOr<scada::ByteString>{BadCrypto()};
   }
@@ -301,8 +312,8 @@ bool RsaPkcs1Sha256Verify(const PrivateKey& public_key,
   if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr,
                            public_key.raw()) > 0 &&
       EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) > 0) {
-    const int result = EVP_DigestVerifyFinal(ctx, signature.data(),
-                                             signature.size());
+    const int result =
+        EVP_DigestVerifyFinal(ctx, signature.data(), signature.size());
     ok = result == 1;
   }
   EVP_MD_CTX_free(ctx);
@@ -316,9 +327,8 @@ scada::ByteString HmacSha256(std::span<const std::uint8_t> key,
                              std::span<const std::uint8_t> data) {
   scada::ByteString out(kSha256DigestSize);
   unsigned int out_len = kSha256DigestSize;
-  HMAC(EVP_sha256(), key.data(), static_cast<int>(key.size()),
-       data.data(), data.size(),
-       reinterpret_cast<unsigned char*>(out.data()), &out_len);
+  HMAC(EVP_sha256(), key.data(), static_cast<int>(key.size()), data.data(),
+       data.size(), reinterpret_cast<unsigned char*>(out.data()), &out_len);
   out.resize(out_len);
   return out;
 }
@@ -341,18 +351,16 @@ scada::StatusOr<scada::ByteString> AesCbcEncrypt(
   scada::ByteString out(plaintext.size());
   int out_len = 0;
   int total = 0;
-  bool ok =
-      EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(),
-                         iv.data()) == 1 &&
-      EVP_CIPHER_CTX_set_padding(ctx, 0) == 1 &&
-      EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(out.data()),
-                        &out_len, plaintext.data(),
-                        static_cast<int>(plaintext.size())) == 1;
+  bool ok = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(),
+                               iv.data()) == 1 &&
+            EVP_CIPHER_CTX_set_padding(ctx, 0) == 1 &&
+            EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(out.data()),
+                              &out_len, plaintext.data(),
+                              static_cast<int>(plaintext.size())) == 1;
   if (ok) {
     total += out_len;
     ok = EVP_EncryptFinal_ex(
-             ctx,
-             reinterpret_cast<unsigned char*>(out.data()) + total,
+             ctx, reinterpret_cast<unsigned char*>(out.data()) + total,
              &out_len) == 1;
     total += out_len;
   }
@@ -379,18 +387,16 @@ scada::StatusOr<scada::ByteString> AesCbcDecrypt(
   scada::ByteString out(ciphertext.size());
   int out_len = 0;
   int total = 0;
-  bool ok =
-      EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(),
-                         iv.data()) == 1 &&
-      EVP_CIPHER_CTX_set_padding(ctx, 0) == 1 &&
-      EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(out.data()),
-                        &out_len, ciphertext.data(),
-                        static_cast<int>(ciphertext.size())) == 1;
+  bool ok = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(),
+                               iv.data()) == 1 &&
+            EVP_CIPHER_CTX_set_padding(ctx, 0) == 1 &&
+            EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(out.data()),
+                              &out_len, ciphertext.data(),
+                              static_cast<int>(ciphertext.size())) == 1;
   if (ok) {
     total += out_len;
     ok = EVP_DecryptFinal_ex(
-             ctx,
-             reinterpret_cast<unsigned char*>(out.data()) + total,
+             ctx, reinterpret_cast<unsigned char*>(out.data()) + total,
              &out_len) == 1;
     total += out_len;
   }
@@ -441,11 +447,10 @@ DerivedKeys DeriveBasic256Sha256Keys(std::span<const std::uint8_t> secret,
   auto material =
       PSha256(secret, seed, kSigningKeyLen + kEncryptingKeyLen + kIvLen);
   DerivedKeys keys;
-  keys.signing_key.assign(material.begin(),
-                          material.begin() + kSigningKeyLen);
-  keys.encrypting_key.assign(material.begin() + kSigningKeyLen,
-                             material.begin() + kSigningKeyLen +
-                                 kEncryptingKeyLen);
+  keys.signing_key.assign(material.begin(), material.begin() + kSigningKeyLen);
+  keys.encrypting_key.assign(
+      material.begin() + kSigningKeyLen,
+      material.begin() + kSigningKeyLen + kEncryptingKeyLen);
   keys.initialization_vector.assign(
       material.begin() + kSigningKeyLen + kEncryptingKeyLen,
       material.begin() + kSigningKeyLen + kEncryptingKeyLen + kIvLen);

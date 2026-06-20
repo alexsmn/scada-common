@@ -42,22 +42,35 @@ Awaitable<scada::StatusOr<Response>> ClientProtocolSession::CallTyped(
 
 Awaitable<scada::Status> ClientProtocolSession::Create(
     base::TimeDelta requested_timeout,
-    Identity identity) {
+    Identity identity,
+    ClientCredentials credentials) {
   auto open_status = co_await connection_.Open();
   if (open_status.bad()) {
     co_return open_status;
   }
 
   // CreateSession: pre-authentication, so channel's authentication_token is
-  // empty (already the default).
+  // empty (already the default). The client certificate/nonce are sent so the
+  // server can verify the ActivateSession signature; both are empty under None.
   auto create_result = co_await CallTyped<CreateSessionResponse>(RequestBody{
-      CreateSessionRequest{.requested_timeout = requested_timeout}});
+      CreateSessionRequest{.requested_timeout = requested_timeout,
+                           .client_certificate = credentials.certificate,
+                           .client_nonce = credentials.nonce}});
   if (!create_result.ok()) {
     co_return create_result.status();
   }
   if (create_result->status.bad()) {
     co_return create_result->status;
   }
+  // Verify the server returned the same certificate the client selected during
+  // discovery (OPC UA Part 4 §5.6.2). A mismatch means the secured channel is
+  // not talking to the endpoint we vetted, so reject before activating.
+  if (!credentials.expected_server_certificate.empty() &&
+      credentials.expected_server_certificate !=
+          create_result->server_certificate) {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+
   session_id_ = create_result->session_id;
   authentication_token_ = create_result->authentication_token;
 
@@ -65,15 +78,30 @@ Awaitable<scada::Status> ClientProtocolSession::Create(
   // authentication token in the header.
   channel_.set_authentication_token(authentication_token_);
 
+  ActivateSessionRequest activate_request{
+      .session_id = session_id_,
+      .authentication_token = authentication_token_,
+      .user_name = identity.user_name,
+      .password = identity.password,
+      .delete_existing = false,
+      .allow_anonymous = !identity.user_name.has_value(),
+  };
+  // Sign (serverCertificate || serverNonce) when a secured channel provided a
+  // signer (OPC UA Part 4 §5.6.3). Under None the signer is null and the
+  // signature stays empty.
+  if (credentials.signer) {
+    auto signature = credentials.signer(create_result->server_certificate,
+                                        create_result->server_nonce);
+    if (!signature.ok()) {
+      co_return signature.status();
+    }
+    activate_request.client_signature_algorithm =
+        std::move(signature->algorithm);
+    activate_request.client_signature = std::move(signature->signature);
+  }
+
   auto activate_result = co_await CallTyped<ActivateSessionResponse>(
-      RequestBody{ActivateSessionRequest{
-          .session_id = session_id_,
-          .authentication_token = authentication_token_,
-          .user_name = identity.user_name,
-          .password = identity.password,
-          .delete_existing = false,
-          .allow_anonymous = !identity.user_name.has_value(),
-      }});
+      RequestBody{std::move(activate_request)});
   if (!activate_result.ok()) {
     co_return activate_result.status();
   }

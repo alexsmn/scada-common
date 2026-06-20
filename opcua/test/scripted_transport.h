@@ -106,9 +106,11 @@ class ScriptedTransportFactory final : public transport::TransportFactory {
       const transport::TransportString& /*transport_string*/,
       const transport::executor& executor,
       const transport::log_source& /*log*/) override {
-    const std::size_t index = next_ < states_.size() ? next_ : states_.size() - 1;
+    const std::size_t index =
+        next_ < states_.size() ? next_ : states_.size() - 1;
     ++next_;
-    return transport::any_transport{ScriptedTransport{executor, states_[index]}};
+    return transport::any_transport{
+        ScriptedTransport{executor, states_[index]}};
   }
 
  private:
@@ -123,8 +125,8 @@ inline std::string AsString(const std::vector<char>& bytes) {
 inline constexpr std::uint32_t kScriptedChannelId = 42;
 inline constexpr std::uint32_t kScriptedTokenId = 1;
 
-// A SecurityPolicy=None OpenSecureChannel response granting kScriptedChannelId /
-// kScriptedTokenId.
+// A SecurityPolicy=None OpenSecureChannel response granting kScriptedChannelId
+// / kScriptedTokenId.
 inline std::vector<char> BuildOpenResponseFrame() {
   const opcua::binary::OpenSecureChannelResponse response{
       .response_header = {.request_handle = 1,

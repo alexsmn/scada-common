@@ -67,11 +67,17 @@ class PrivateKey {
 [[nodiscard]] scada::StatusOr<Certificate> LoadDerCertificate(
     std::span<const std::uint8_t> der);
 
+// Generates `length` cryptographically-random bytes from the platform CSPRNG,
+// e.g. the client nonce sent in CreateSessionRequest.
+[[nodiscard]] scada::StatusOr<scada::ByteString> GenerateNonce(
+    std::size_t length);
+
 // Parse a PEM-encoded PKCS#8 or PKCS#1 RSA private key. Optional
 // `passphrase` unlocks encrypted keys; pass an empty string_view when the
 // key is not encrypted.
 [[nodiscard]] scada::StatusOr<PrivateKey> LoadPemPrivateKey(
-    std::string_view pem, std::string_view passphrase = {});
+    std::string_view pem,
+    std::string_view passphrase = {});
 
 // DER encoding of the certificate (for the SenderCertificate field of the
 // OPC UA asymmetric security header).
@@ -99,12 +105,15 @@ class PrivateKey {
 // (see PrivateKey::KeySizeBytes). RsaOaepEncrypt / Decrypt chunk the
 // payload in (KeySizeBytes - 42) / KeySizeBytes blocks respectively.
 [[nodiscard]] scada::StatusOr<scada::ByteString> RsaOaepEncrypt(
-    const PrivateKey& public_key, std::span<const std::uint8_t> plaintext);
+    const PrivateKey& public_key,
+    std::span<const std::uint8_t> plaintext);
 [[nodiscard]] scada::StatusOr<scada::ByteString> RsaOaepDecrypt(
-    const PrivateKey& private_key, std::span<const std::uint8_t> ciphertext);
+    const PrivateKey& private_key,
+    std::span<const std::uint8_t> ciphertext);
 
 [[nodiscard]] scada::StatusOr<scada::ByteString> RsaPkcs1Sha256Sign(
-    const PrivateKey& private_key, std::span<const std::uint8_t> data);
+    const PrivateKey& private_key,
+    std::span<const std::uint8_t> data);
 [[nodiscard]] bool RsaPkcs1Sha256Verify(
     const PrivateKey& public_key,
     std::span<const std::uint8_t> data,
@@ -113,9 +122,8 @@ class PrivateKey {
 // ---- Symmetric primitives (Basic256Sha256) ---------------------------------
 
 // HMAC-SHA256 of `data` keyed by `key`. Always returns a 32-byte tag.
-[[nodiscard]] scada::ByteString HmacSha256(
-    std::span<const std::uint8_t> key,
-    std::span<const std::uint8_t> data);
+[[nodiscard]] scada::ByteString HmacSha256(std::span<const std::uint8_t> key,
+                                           std::span<const std::uint8_t> data);
 
 // AES-256-CBC. The key must be 32 bytes; the IV must be 16 bytes.
 // Plaintext must already be padded to a multiple of 16 bytes: OPC UA
@@ -132,18 +140,17 @@ class PrivateKey {
 
 // P_SHA256 PRF (RFC 5246 §5) used by OPC UA key derivation. Expands
 // (secret, seed) into `out_len` bytes.
-[[nodiscard]] scada::ByteString PSha256(
-    std::span<const std::uint8_t> secret,
-    std::span<const std::uint8_t> seed,
-    std::size_t out_len);
+[[nodiscard]] scada::ByteString PSha256(std::span<const std::uint8_t> secret,
+                                        std::span<const std::uint8_t> seed,
+                                        std::size_t out_len);
 
 // OPC UA Part 6 §6.7.5 key derivation: given the peer's nonce and our own
 // nonce (server and client for derivation of our side, or swapped for the
 // peer side), derive 32-byte signing key, 32-byte encrypting key, and
 // 16-byte IV.
 struct DerivedKeys {
-  scada::ByteString signing_key;     // 32 bytes
-  scada::ByteString encrypting_key;  // 32 bytes
+  scada::ByteString signing_key;            // 32 bytes
+  scada::ByteString encrypting_key;         // 32 bytes
   scada::ByteString initialization_vector;  // 16 bytes
 };
 [[nodiscard]] DerivedKeys DeriveBasic256Sha256Keys(

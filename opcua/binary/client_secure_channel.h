@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -34,8 +35,7 @@ class ClientSecureChannel {
   // Security configuration for a single channel. Empty for None mode.
   struct Security {
     std::string security_policy_uri = std::string{kSecurityPolicyNone};
-    MessageSecurityMode security_mode =
-        MessageSecurityMode::None;
+    MessageSecurityMode security_mode = MessageSecurityMode::None;
     // All three are only read when policy != None.
     crypto::Certificate client_certificate;
     crypto::PrivateKey client_private_key;
@@ -46,12 +46,10 @@ class ClientSecureChannel {
   };
 
   explicit ClientSecureChannel(ClientTransport& transport);
-  ClientSecureChannel(ClientTransport& transport,
-                                  Security security);
+  ClientSecureChannel(ClientTransport& transport, Security security);
 
   ClientSecureChannel(const ClientSecureChannel&) = delete;
-  ClientSecureChannel& operator=(
-      const ClientSecureChannel&) = delete;
+  ClientSecureChannel& operator=(const ClientSecureChannel&) = delete;
 
   // Sends the OpenSecureChannel request, waits for the response, and stores
   // the negotiated channel_id / token_id. For Basic256Sha256 SignAndEncrypt
@@ -92,6 +90,22 @@ class ClientSecureChannel {
 
   [[nodiscard]] std::uint32_t NextRequestId();
 
+  // SignatureData computed with the client's private key: the asymmetric
+  // signature algorithm URI of the channel's SecurityPolicy plus the signature
+  // bytes. Empty (both fields) when the channel is unsecured.
+  struct ClientSignature {
+    std::string algorithm;
+    scada::ByteString signature;
+  };
+
+  // Signs `data` with the client private key using the channel's asymmetric
+  // signature algorithm (RSA-PKCS#1-SHA256 for Basic256Sha256). Used to produce
+  // the ActivateSession clientSignature over (serverCertificate ||
+  // serverNonce). Returns an empty ClientSignature under SecurityPolicy=None; a
+  // bad Status if a secured channel has no usable client key.
+  [[nodiscard]] scada::StatusOr<ClientSignature> SignClientData(
+      std::span<const std::uint8_t> data) const;
+
  private:
   [[nodiscard]] bool UsesBasic256Sha256() const;
   [[nodiscard]] bool UsesSignAndEncrypt() const;
@@ -117,11 +131,11 @@ class ClientSecureChannel {
   // Basic256Sha256 SignAndEncrypt: assemble plaintext, pad, sign, encrypt.
   [[nodiscard]] scada::StatusOr<std::vector<char>>
   BuildAsymmetricBasic256Sha256OpenFrame(std::uint32_t request_id,
-                                          std::uint32_t request_handle,
-                                          SecurityTokenRequestType request_type,
-                                          std::uint32_t secure_channel_id,
-                                          const scada::ByteString& client_nonce,
-                                          std::uint32_t requested_lifetime_ms);
+                                         std::uint32_t request_handle,
+                                         SecurityTokenRequestType request_type,
+                                         std::uint32_t secure_channel_id,
+                                         const scada::ByteString& client_nonce,
+                                         std::uint32_t requested_lifetime_ms);
 
   // Parses the bytes of an OPN response under Basic256Sha256
   // SignAndEncrypt: split on the asymmetric header, RSA-OAEP decrypt,
@@ -137,10 +151,16 @@ class ClientSecureChannel {
   // Symmetric SignAndEncrypt (MSG / CLO) framing helpers.
   [[nodiscard]] scada::StatusOr<std::vector<char>>
   BuildSymmetricBasic256Sha256Frame(MessageType type,
-                                     std::uint32_t request_id,
-                                     const std::vector<char>& body);
+                                    std::uint32_t request_id,
+                                    const std::vector<char>& body);
   [[nodiscard]] scada::StatusOr<ServiceResponse>
   DecodeSymmetricBasic256Sha256Frame(const std::vector<char>& frame);
+
+  // Decodes a single MessageChunk into its request_id and (decrypted) body,
+  // dispatching to the symmetric decoder under Basic256Sha256 or the plaintext
+  // decoder under None. Used by ReadServiceResponse to reassemble chunks.
+  [[nodiscard]] scada::StatusOr<ServiceResponse> DecodeServiceMessageChunk(
+      const std::vector<char>& frame);
 
   ClientTransport& transport_;
   Security security_;

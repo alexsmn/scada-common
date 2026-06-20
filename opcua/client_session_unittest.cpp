@@ -4,10 +4,12 @@
 #include "base/test/test_executor.h"
 #include "opcua/binary/secure_channel.h"
 #include "opcua/binary/service_codec.h"
+#include "scada/data_value.h"
 #include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/test/status_matchers.h"
+#include "scada/variant.h"
 #include "transport/transport_factory.h"
 
 #include <gtest/gtest.h>
@@ -191,9 +193,23 @@ void PrimeSessionEstablishment(const std::shared_ptr<ScriptedState>& state) {
           opcua::ActivateSessionResponse{.status = scada::StatusCode::Good}})));
 }
 
-void PrimeSubscriptionCreation(const std::shared_ptr<ScriptedState>& state) {
+// After ActivateSession (request_id 3) the session reads Server_NamespaceArray;
+// this is request_id 4 / request_handle 3.
+void PrimeNamespaceArray(const std::shared_ptr<ScriptedState>& state) {
+  scada::DataValue value;
+  value.value = scada::Variant{std::vector<std::string>{
+      "http://opcfoundation.org/UA/", "http://telecontrol.ru/opcua/scada"}};
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
       /*request_id=*/4, /*request_handle=*/3,
+      opcua::ResponseBody{opcua::ReadResponse{
+          .status = scada::StatusCode::Good, .results = {std::move(value)}}})));
+}
+
+// Subscription creation follows the namespace-array read, so its requests are
+// request_id 5 / 6 (request_handle 4 / 5).
+void PrimeSubscriptionCreation(const std::shared_ptr<ScriptedState>& state) {
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      /*request_id=*/5, /*request_handle=*/4,
       opcua::ResponseBody{opcua::CreateSubscriptionResponse{
           .status = scada::StatusCode::Good,
           .subscription_id = 77,
@@ -201,7 +217,7 @@ void PrimeSubscriptionCreation(const std::shared_ptr<ScriptedState>& state) {
           .revised_lifetime_count = 1200,
           .revised_max_keep_alive_count = 20}})));
   state->incoming.push_back(AsString(BuildServiceResponseFrame(
-      /*request_id=*/5, /*request_handle=*/4,
+      /*request_id=*/6, /*request_handle=*/5,
       opcua::ResponseBody{opcua::CreateMonitoredItemsResponse{
           .status = scada::StatusCode::Good,
           .results = {opcua::MonitoredItemCreateResult{
@@ -282,6 +298,7 @@ TEST_F(ClientSessionTest, SessionServiceConnectsClientSession) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
+  PrimeNamespaceArray(state);
 
   ScriptedTransportFactory transport_factory{state};
   auto session = std::make_shared<ClientSession>(executor_, transport_factory);
@@ -319,6 +336,24 @@ TEST_F(ClientSessionTest, SessionServiceConnectsClientSession) {
       requests.end());
 }
 
+TEST_F(ClientSessionTest, ConnectReadsServerNamespaceArray) {
+  auto state = std::make_shared<ScriptedState>();
+  PrimeConnectAndOpen(state);
+  PrimeSessionEstablishment(state);
+  PrimeNamespaceArray(state);
+
+  ScriptedTransportFactory transport_factory{state};
+  auto session = std::make_shared<ClientSession>(executor_, transport_factory);
+
+  ASSERT_NO_THROW(
+      WaitAwaitable(executor_, session->Connect({.host = "localhost:4840"})));
+
+  const auto& table = session->namespace_table();
+  ASSERT_EQ(table.size(), 2u);
+  EXPECT_EQ(table.UriForIndex(0), "http://opcfoundation.org/UA/");
+  EXPECT_EQ(table.IndexForUri("http://telecontrol.ru/opcua/scada"), 1);
+}
+
 TEST_F(ClientSessionTest, AwaitableServicesReportDisconnected) {
   auto session = std::make_shared<ClientSession>(executor_, transport_factory_);
 
@@ -352,6 +387,7 @@ TEST_F(ClientSessionTest, MonitoredItemUsesSubscriptionCoroutineTasks) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
   PrimeSessionEstablishment(state);
+  PrimeNamespaceArray(state);
   PrimeSubscriptionCreation(state);
 
   ScriptedTransportFactory transport_factory{state};

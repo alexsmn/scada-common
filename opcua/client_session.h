@@ -9,6 +9,7 @@
 #include "opcua/client_channel.h"
 #include "opcua/client_protocol_session.h"
 #include "opcua/message.h"
+#include "opcua/namespace_table.h"
 #include "scada/attribute_service.h"
 #include "scada/coroutine_services.h"
 #include "scada/method_service.h"
@@ -105,6 +106,14 @@ class ClientSession final : public std::enable_shared_from_this<ClientSession>,
   [[nodiscard]] Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
   DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
 
+  // The server's namespace table, read from Server_NamespaceArray after the
+  // session is activated. Empty until a successful connect (and if the server
+  // does not publish it). Lets callers translate namespace URIs to the indices
+  // this server assigns.
+  [[nodiscard]] const NamespaceTable& namespace_table() const {
+    return namespace_table_;
+  }
+
   // Access for ClientSubscription / MonitoredItem.
   [[nodiscard]] ClientChannel& channel() { return *channel_; }
   [[nodiscard]] const AnyExecutor& any_executor() const {
@@ -140,6 +149,10 @@ class ClientSession final : public std::enable_shared_from_this<ClientSession>,
   BuildChannelSecurity(const EndpointDescription& endpoint,
                        const scada::SessionSecuritySettings& settings);
 
+  // Reads Server_NamespaceArray into `namespace_table_`. Best-effort: a failure
+  // is logged and leaves the table empty without aborting the connection.
+  [[nodiscard]] Awaitable<void> ReadNamespaceArray();
+
   void NotifyStateChanged(bool connected, scada::Status status);
 
   ClientSubscription& GetDefaultSubscription();
@@ -158,6 +171,7 @@ class ClientSession final : public std::enable_shared_from_this<ClientSession>,
 
   bool is_connected_ = false;
   std::string endpoint_url_;
+  NamespaceTable namespace_table_;
 
   // Lazily created on first CreateMonitoredItem.
   std::shared_ptr<ClientSubscription> default_subscription_;

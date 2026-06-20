@@ -6,6 +6,7 @@
 #include "opcua/client_connection.h"
 #include "opcua/message.h"
 #include "scada/attribute_service.h"
+#include "scada/basic_types.h"
 #include "scada/localized_text.h"
 #include "scada/method_service.h"
 #include "scada/node_management_service.h"
@@ -14,6 +15,7 @@
 #include "scada/variant.h"
 #include "scada/view_service.h"
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -47,9 +49,37 @@ class ClientProtocolSession {
     std::optional<scada::LocalizedText> user_name;
     std::optional<scada::LocalizedText> password;
   };
+
+  // Signature returned by a ClientSigner for ActivateSession.
+  struct ClientSignatureData {
+    std::string algorithm;
+    scada::ByteString signature;
+  };
+  // Produces the ActivateSession clientSignature over
+  // (server_certificate || server_nonce). Returns an empty signature for an
+  // unsecured session.
+  using ClientSigner = std::function<scada::StatusOr<ClientSignatureData>(
+      const scada::ByteString& server_certificate,
+      const scada::ByteString& server_nonce)>;
+  // Client credentials sent during a secured CreateSession / ActivateSession.
+  // Default-constructed (empty cert/nonce, null signer) for
+  // SecurityPolicy=None.
+  struct ClientCredentials {
+    scada::ByteString certificate;  // client application instance cert (DER)
+    scada::ByteString nonce;        // client nonce
+    ClientSigner signer;
+    // The server certificate (DER) the client expects, taken from the endpoint
+    // selected during discovery. When non-empty, CreateSession is rejected if
+    // the certificate the server returns does not match it (OPC UA Part 4
+    // §5.6.2 — guards against a MITM swapping certificates between discovery
+    // and session). Empty under SecurityPolicy=None.
+    scada::ByteString expected_server_certificate;
+  };
+
   [[nodiscard]] Awaitable<scada::Status> Create(
       base::TimeDelta requested_timeout = base::TimeDelta::FromMinutes(10),
-      Identity identity = {});
+      Identity identity = {},
+      ClientCredentials credentials = {});
 
   // CloseSession + connection.Close(), best-effort.
   [[nodiscard]] Awaitable<scada::Status> Close();

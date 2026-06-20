@@ -1532,7 +1532,6 @@ std::optional<DecodedResponse> DecodeCreateSessionResponse(
   }
 
   CreateSessionResponse response{.status = header.service_result};
-  scada::ByteString ignored_bytes;
   std::int32_t ignored_endpoints = 0;
   std::int32_t ignored_policies = 0;
   std::string ignored_server_signature_algorithm;
@@ -1543,8 +1542,8 @@ std::optional<DecodedResponse> DecodeCreateSessionResponse(
       !decoder.Decode(response.authentication_token) ||
       !decoder.Decode(revised_timeout_ms) ||
       !decoder.Decode(response.server_nonce) ||
-      !decoder.Decode(ignored_bytes) || !decoder.Decode(ignored_endpoints) ||
-      !decoder.Decode(ignored_policies) ||
+      !decoder.Decode(response.server_certificate) ||
+      !decoder.Decode(ignored_endpoints) || !decoder.Decode(ignored_policies) ||
       !decoder.Decode(ignored_server_signature_algorithm) ||
       !decoder.Decode(ignored_server_signature) ||
       !decoder.Decode(ignored_max_request_size)) {
@@ -3047,16 +3046,20 @@ std::optional<std::vector<char>> EncodeServiceRequest(
           payload_encoder.Encode(std::string_view{""});
           payload_encoder.Encode(std::string_view{"opc.tcp://localhost:4840"});
           payload_encoder.Encode(std::string_view{"binary-session"});
-          payload_encoder.Encode(scada::ByteString{});
-          payload_encoder.Encode(scada::ByteString{});
+          // clientNonce, clientCertificate. Populated for a secured session so
+          // the server can verify the ActivateSession signature.
+          payload_encoder.Encode(typed_request.client_nonce);
+          payload_encoder.Encode(typed_request.client_certificate);
           payload_encoder.Encode(
               typed_request.requested_timeout.InMillisecondsF());
           payload_encoder.Encode(std::uint32_t{0});
           AppendMessage(body_encoder, kCreateSessionRequestEncodingId, payload);
         } else if constexpr (std::is_same_v<T, ActivateSessionRequest>) {
           AppendRequestHeader(payload_encoder, header);
-          payload_encoder.Encode(std::string_view{""});
-          payload_encoder.Encode(scada::ByteString{});
+          // clientSignature (SignatureData): algorithm + signature over
+          // (serverCertificate || serverNonce). Empty under None.
+          payload_encoder.Encode(typed_request.client_signature_algorithm);
+          payload_encoder.Encode(typed_request.client_signature);
           payload_encoder.Encode(std::int32_t{-1});
           payload_encoder.Encode(std::int32_t{-1});
           if (typed_request.allow_anonymous) {
@@ -3596,7 +3599,9 @@ std::optional<std::vector<char>> EncodeServiceResponse(
           payload_encoder.Encode(
               typed_response.revised_timeout.InMillisecondsF());
           payload_encoder.Encode(typed_response.server_nonce);
-          payload_encoder.Encode(scada::ByteString{});
+          // serverCertificate: empty for the in-repo server today, but encoded
+          // from the struct so the field round-trips (the client validates it).
+          payload_encoder.Encode(typed_response.server_certificate);
           payload_encoder.Encode(std::int32_t{-1});
           payload_encoder.Encode(std::int32_t{-1});
           payload_encoder.Encode(std::string_view{""});

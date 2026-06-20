@@ -4,8 +4,8 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "opcua/binary/client_transport.h"
-#include "opcua/binary/crypto.h"
 #include "opcua/binary/codec_utils.h"
+#include "opcua/binary/crypto.h"
 #include "opcua/binary/secure_channel.h"
 #include "transport/transport.h"
 
@@ -111,11 +111,12 @@ std::vector<char> BuildOpenResponseFrame(std::uint32_t channel_id,
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = channel_id,
-      .asymmetric_security_header = AsymmetricSecurityHeader{
-          .security_policy_uri = std::string{kSecurityPolicyNone},
-          .sender_certificate = {},
-          .receiver_certificate_thumbprint = {},
-      },
+      .asymmetric_security_header =
+          AsymmetricSecurityHeader{
+              .security_policy_uri = std::string{kSecurityPolicyNone},
+              .sender_certificate = {},
+              .receiver_certificate_thumbprint = {},
+          },
       .sequence_header = {.sequence_number = 1, .request_id = request_id},
       .body = EncodeOpenSecureChannelResponseBody(response),
   };
@@ -146,13 +147,12 @@ class ClientSecureChannelTest : public ::testing::Test {
  protected:
   std::unique_ptr<ClientTransport> MakeClientTransport(
       const std::shared_ptr<ScriptedState>& state) {
-    return std::make_unique<ClientTransport>(
-        ClientTransportContext{
-            .transport = transport::any_transport{
-                ScriptedTransport{any_executor_, state}},
-            .endpoint_url = "opc.tcp://localhost:4840",
-            .limits = {},
-        });
+    return std::make_unique<ClientTransport>(ClientTransportContext{
+        .transport =
+            transport::any_transport{ScriptedTransport{any_executor_, state}},
+        .endpoint_url = "opc.tcp://localhost:4840",
+        .limits = {},
+    });
   }
 
   // Primes the ACK frame the transport expects during its Connect() call.
@@ -174,8 +174,7 @@ TEST_F(ClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
       kChannelId, kTokenId, /*request_id=*/1, /*request_handle=*/1, 60000)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   ClientSecureChannel client{*client_transport};
   const auto status = WaitAwaitable(executor_, client.Open());
@@ -188,12 +187,11 @@ TEST_F(ClientSecureChannelTest, OpenCapturesServerTokenAndChannel) {
   // The client wrote exactly one OPN frame to the transport. Decode it and
   // confirm the wire bytes match the OPC UA Part 6 shape.
   ASSERT_EQ(state->writes.size(), 2u);  // 0: Hello, 1: OPN
-  const auto opn_bytes = std::vector<char>{state->writes[1].begin(),
-                                           state->writes[1].end()};
+  const auto opn_bytes =
+      std::vector<char>{state->writes[1].begin(), state->writes[1].end()};
   const auto decoded = DecodeSecureConversationMessage(opn_bytes);
   ASSERT_TRUE(decoded.has_value());
-  EXPECT_EQ(decoded->frame_header.message_type,
-            MessageType::SecureOpen);
+  EXPECT_EQ(decoded->frame_header.message_type, MessageType::SecureOpen);
   ASSERT_TRUE(decoded->asymmetric_security_header.has_value());
   EXPECT_EQ(decoded->asymmetric_security_header->security_policy_uri,
             kSecurityPolicyNone);
@@ -203,16 +201,15 @@ TEST_F(ClientSecureChannelTest, RenewRotatesSecurityToken) {
   constexpr std::uint32_t kChannelId = 123;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, /*token_id=*/1, /*request_id=*/1, /*request_handle=*/1,
-      60000)));
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, /*token_id=*/2, /*request_id=*/2, /*request_handle=*/2,
-      45000)));
+  state->incoming.push_back(AsString(
+      BuildOpenResponseFrame(kChannelId, /*token_id=*/1, /*request_id=*/1,
+                             /*request_handle=*/1, 60000)));
+  state->incoming.push_back(AsString(
+      BuildOpenResponseFrame(kChannelId, /*token_id=*/2, /*request_id=*/2,
+                             /*request_handle=*/2, 45000)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
@@ -224,12 +221,11 @@ TEST_F(ClientSecureChannelTest, RenewRotatesSecurityToken) {
   EXPECT_EQ(client.revised_lifetime_ms(), 45000u);
 
   ASSERT_EQ(state->writes.size(), 3u);  // Hello, Issue OPN, Renew OPN.
-  const auto renew_bytes = std::vector<char>{state->writes[2].begin(),
-                                             state->writes[2].end()};
+  const auto renew_bytes =
+      std::vector<char>{state->writes[2].begin(), state->writes[2].end()};
   const auto decoded = DecodeSecureConversationMessage(renew_bytes);
   ASSERT_TRUE(decoded.has_value());
-  EXPECT_EQ(decoded->frame_header.message_type,
-            MessageType::SecureOpen);
+  EXPECT_EQ(decoded->frame_header.message_type, MessageType::SecureOpen);
   EXPECT_EQ(decoded->secure_channel_id, kChannelId);
 
   const auto body = DecodeOpenSecureChannelRequestBody(decoded->body);
@@ -243,38 +239,35 @@ TEST_F(ClientSecureChannelTest,
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, /*token_id=*/1, /*request_id=*/1, /*request_handle=*/1,
-      0)));
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, /*token_id=*/2, /*request_id=*/3, /*request_handle=*/3,
-      60000)));
+      kChannelId, /*token_id=*/1, /*request_id=*/1, /*request_handle=*/1, 0)));
+  state->incoming.push_back(AsString(
+      BuildOpenResponseFrame(kChannelId, /*token_id=*/2, /*request_id=*/3,
+                             /*request_handle=*/3, 60000)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const std::uint32_t request_id = client.NextRequestId();
-  const auto send_status = WaitAwaitable(
-      executor_, client.SendServiceRequest(request_id, {'p'}));
+  const auto send_status =
+      WaitAwaitable(executor_, client.SendServiceRequest(request_id, {'p'}));
   EXPECT_TRUE(send_status.good());
   EXPECT_EQ(client.token_id(), 2u);
 
   ASSERT_EQ(state->writes.size(), 4u);  // Hello, Issue OPN, Renew OPN, MSG.
-  const auto renew_bytes = std::vector<char>{state->writes[2].begin(),
-                                             state->writes[2].end()};
+  const auto renew_bytes =
+      std::vector<char>{state->writes[2].begin(), state->writes[2].end()};
   const auto renew_message = DecodeSecureConversationMessage(renew_bytes);
   ASSERT_TRUE(renew_message.has_value());
   const auto renew_body =
       DecodeOpenSecureChannelRequestBody(renew_message->body);
   ASSERT_TRUE(renew_body.has_value());
-  EXPECT_EQ(renew_body->request_type,
-            SecurityTokenRequestType::Renew);
+  EXPECT_EQ(renew_body->request_type, SecurityTokenRequestType::Renew);
 
-  const auto msg_bytes = std::vector<char>{state->writes[3].begin(),
-                                           state->writes[3].end()};
+  const auto msg_bytes =
+      std::vector<char>{state->writes[3].begin(), state->writes[3].end()};
   const auto msg = DecodeSecureConversationMessage(msg_bytes);
   ASSERT_TRUE(msg.has_value());
   ASSERT_TRUE(msg->symmetric_security_header.has_value());
@@ -298,44 +291,42 @@ TEST_F(ClientSecureChannelTest, OpenPropagatesServerBadStatus) {
                        .chunk_type = 'F',
                        .message_size = 0},
       .secure_channel_id = 0,
-      .asymmetric_security_header = AsymmetricSecurityHeader{
-          .security_policy_uri = std::string{kSecurityPolicyNone},
-          .sender_certificate = {},
-          .receiver_certificate_thumbprint = {},
-      },
+      .asymmetric_security_header =
+          AsymmetricSecurityHeader{
+              .security_policy_uri = std::string{kSecurityPolicyNone},
+              .sender_certificate = {},
+              .receiver_certificate_thumbprint = {},
+          },
       .sequence_header = {.sequence_number = 1, .request_id = 1},
       .body = EncodeOpenSecureChannelResponseBody(bad_response),
   };
   state->incoming.push_back(AsString(EncodeSecureConversationMessage(message)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
   const auto status = WaitAwaitable(executor_, client.Open());
   EXPECT_TRUE(status.bad());
   EXPECT_FALSE(client.opened());
 }
 
-TEST_F(ClientSecureChannelTest,
-       SendServiceRequestWritesSymmetricFrame) {
+TEST_F(ClientSecureChannelTest, SendServiceRequestWritesSymmetricFrame) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, kTokenId, 1, 1, 60000)));
+  state->incoming.push_back(
+      AsString(BuildOpenResponseFrame(kChannelId, kTokenId, 1, 1, 60000)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
   const std::vector<char> payload{'h', 'i'};
   const std::uint32_t request_id = client.NextRequestId();
-  const auto send_status = WaitAwaitable(
-      executor_, client.SendServiceRequest(request_id, payload));
+  const auto send_status =
+      WaitAwaitable(executor_, client.SendServiceRequest(request_id, payload));
   EXPECT_TRUE(send_status.good());
 
   // writes: [0]=Hello, [1]=OPN, [2]=SecureMessage with payload.
@@ -344,8 +335,7 @@ TEST_F(ClientSecureChannelTest,
       std::vector<char>{state->writes[2].begin(), state->writes[2].end()};
   const auto decoded = DecodeSecureConversationMessage(bytes);
   ASSERT_TRUE(decoded.has_value());
-  EXPECT_EQ(decoded->frame_header.message_type,
-            MessageType::SecureMessage);
+  EXPECT_EQ(decoded->frame_header.message_type, MessageType::SecureMessage);
   EXPECT_EQ(decoded->secure_channel_id, kChannelId);
   ASSERT_TRUE(decoded->symmetric_security_header.has_value());
   EXPECT_EQ(decoded->symmetric_security_header->token_id, kTokenId);
@@ -358,15 +348,14 @@ TEST_F(ClientSecureChannelTest, ReadServiceResponseReturnsBody) {
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, kTokenId, 1, 1, 60000)));
+  state->incoming.push_back(
+      AsString(BuildOpenResponseFrame(kChannelId, kTokenId, 1, 1, 60000)));
   const std::vector<char> expected_body{'p', 'a', 'y', '!'};
   state->incoming.push_back(AsString(BuildSymmetricMessageFrame(
       kChannelId, kTokenId, /*request_id=*/42, expected_body)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
@@ -376,21 +365,19 @@ TEST_F(ClientSecureChannelTest, ReadServiceResponseReturnsBody) {
   EXPECT_EQ(response->body, expected_body);
 }
 
-TEST_F(ClientSecureChannelTest,
-       ReadServiceResponseRejectsWrongTokenId) {
+TEST_F(ClientSecureChannelTest, ReadServiceResponseRejectsWrongTokenId) {
   constexpr std::uint32_t kChannelId = 77;
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, kTokenId, 1, 1, 60000)));
+  state->incoming.push_back(
+      AsString(BuildOpenResponseFrame(kChannelId, kTokenId, 1, 1, 60000)));
   // Symmetric frame on a different token_id — client must reject.
   state->incoming.push_back(AsString(BuildSymmetricMessageFrame(
       kChannelId, /*token_id=*/99, 1, std::vector<char>{'x'})));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
@@ -403,12 +390,11 @@ TEST_F(ClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
   constexpr std::uint32_t kTokenId = 1;
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
-  state->incoming.push_back(AsString(BuildOpenResponseFrame(
-      kChannelId, kTokenId, 1, 1, 60000)));
+  state->incoming.push_back(
+      AsString(BuildOpenResponseFrame(kChannelId, kTokenId, 1, 1, 60000)));
 
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
   ASSERT_TRUE(WaitAwaitable(executor_, client.Open()).good());
 
@@ -422,16 +408,14 @@ TEST_F(ClientSecureChannelTest, CloseWritesCloseSecureChannelFrame) {
       std::vector<char>{state->writes[2].begin(), state->writes[2].end()};
   const auto decoded = DecodeSecureConversationMessage(bytes);
   ASSERT_TRUE(decoded.has_value());
-  EXPECT_EQ(decoded->frame_header.message_type,
-            MessageType::SecureClose);
+  EXPECT_EQ(decoded->frame_header.message_type, MessageType::SecureClose);
 }
 
 TEST_F(ClientSecureChannelTest, CloseWithoutOpenIsNoOp) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
 
   const auto status = WaitAwaitable(executor_, client.Close());
@@ -444,8 +428,7 @@ TEST_F(ClientSecureChannelTest, SendBeforeOpenReturnsBad) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
 
   const auto status = WaitAwaitable(
@@ -457,8 +440,7 @@ TEST_F(ClientSecureChannelTest, RequestIdsAreMonotonic) {
   auto state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(state);
   auto client_transport = MakeClientTransport(state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
   ClientSecureChannel client{*client_transport};
 
   EXPECT_EQ(client.NextRequestId(), 1u);
@@ -521,7 +503,8 @@ PemKeypair GenerateSelfSignedRsa() {
 
 // Build a Basic256Sha256 Security config by loading the given PEMs.
 ClientSecureChannel::Security BuildSecurity(
-    const PemKeypair& client_pk, const std::string& server_cert_pem) {
+    const PemKeypair& client_pk,
+    const std::string& server_cert_pem) {
   ClientSecureChannel::Security s;
   s.security_policy_uri =
       "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
@@ -544,13 +527,12 @@ class ClientSecureChannelBasic256Sha256Test : public ::testing::Test {
  protected:
   std::unique_ptr<ClientTransport> MakeClientTransport(
       const std::shared_ptr<ScriptedState>& state) {
-    return std::make_unique<ClientTransport>(
-        ClientTransportContext{
-            .transport = transport::any_transport{
-                ScriptedTransport{any_executor_, state}},
-            .endpoint_url = "opc.tcp://localhost:4840",
-            .limits = {},
-        });
+    return std::make_unique<ClientTransport>(ClientTransportContext{
+        .transport =
+            transport::any_transport{ScriptedTransport{any_executor_, state}},
+        .endpoint_url = "opc.tcp://localhost:4840",
+        .limits = {},
+    });
   }
   void PrimeAcknowledge(const std::shared_ptr<ScriptedState>& state) {
     state->incoming.push_back(AsString(EncodeAcknowledgeMessage(
@@ -560,6 +542,46 @@ class ClientSecureChannelBasic256Sha256Test : public ::testing::Test {
   TestExecutor executor_;
   const transport::executor any_executor_ = executor_;
 };
+
+TEST_F(ClientSecureChannelBasic256Sha256Test,
+       SignClientDataProducesVerifiableSignature) {
+  const auto client_pk = GenerateSelfSignedRsa();
+  const auto server_pk = GenerateSelfSignedRsa();
+  auto state = std::make_shared<ScriptedState>();
+  auto transport = MakeClientTransport(state);
+  ClientSecureChannel channel{*transport,
+                              BuildSecurity(client_pk, server_pk.cert_pem)};
+
+  const std::vector<std::uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8};
+  auto signature = channel.SignClientData(data);
+  ASSERT_TRUE(signature.ok());
+  EXPECT_EQ(signature->algorithm,
+            "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
+  ASSERT_FALSE(signature->signature.empty());
+
+  // The signature must verify against the client certificate's public key.
+  auto client_cert = crypto::LoadPemCertificate(client_pk.cert_pem);
+  ASSERT_TRUE(client_cert.ok());
+  auto public_key = crypto::CertificatePublicKey(*client_cert);
+  ASSERT_TRUE(public_key.ok());
+  const std::span<const std::uint8_t> sig_bytes{
+      reinterpret_cast<const std::uint8_t*>(signature->signature.data()),
+      signature->signature.size()};
+  EXPECT_TRUE(crypto::RsaPkcs1Sha256Verify(*public_key, data, sig_bytes));
+}
+
+TEST_F(ClientSecureChannelBasic256Sha256Test,
+       SignClientDataEmptyForNoneChannel) {
+  auto state = std::make_shared<ScriptedState>();
+  auto transport = MakeClientTransport(state);
+  ClientSecureChannel channel{*transport};  // SecurityPolicy=None
+
+  const std::vector<std::uint8_t> data = {1, 2, 3};
+  auto signature = channel.SignClientData(data);
+  ASSERT_TRUE(signature.ok());
+  EXPECT_TRUE(signature->algorithm.empty());
+  EXPECT_TRUE(signature->signature.empty());
+}
 
 TEST_F(ClientSecureChannelBasic256Sha256Test,
        OpenFrameRoundTripsThroughOurOwnDecoder) {
@@ -573,12 +595,10 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   auto client_state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(client_state);
   auto client_transport = MakeClientTransport(client_state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   auto client_security = BuildSecurity(client_pk, server_pk.cert_pem);
-  ClientSecureChannel client{*client_transport,
-                                        std::move(client_security)};
+  ClientSecureChannel client{*client_transport, std::move(client_security)};
 
   // Drive Open far enough that the client writes its OPN frame into
   // client_state->writes, then stop (no ACK response queued so Open
@@ -587,25 +607,22 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
 
   // writes: [0]=Hello, [1]=asymmetric-encrypted OPN.
   ASSERT_EQ(client_state->writes.size(), 2u);
-  const auto opn_bytes =
-      std::vector<char>{client_state->writes[1].begin(),
-                        client_state->writes[1].end()};
+  const auto opn_bytes = std::vector<char>{client_state->writes[1].begin(),
+                                           client_state->writes[1].end()};
 
   // Confirm the cleartext prefix matches the expected asymmetric header:
   // frame header says SecureOpen, security_policy_uri is Basic256Sha256.
   const auto plaintext_msg = DecodeSecureConversationMessage(opn_bytes);
   ASSERT_TRUE(plaintext_msg.has_value());
-  EXPECT_EQ(plaintext_msg->frame_header.message_type,
-            MessageType::SecureOpen);
+  EXPECT_EQ(plaintext_msg->frame_header.message_type, MessageType::SecureOpen);
   ASSERT_TRUE(plaintext_msg->asymmetric_security_header.has_value());
   EXPECT_EQ(plaintext_msg->asymmetric_security_header->security_policy_uri,
             "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256");
   EXPECT_FALSE(
       plaintext_msg->asymmetric_security_header->sender_certificate.empty());
-  EXPECT_EQ(
-      plaintext_msg->asymmetric_security_header->receiver_certificate_thumbprint
-          .size(),
-      20u);
+  EXPECT_EQ(plaintext_msg->asymmetric_security_header
+                ->receiver_certificate_thumbprint.size(),
+            20u);
 }
 
 TEST_F(ClientSecureChannelBasic256Sha256Test,
@@ -616,15 +633,13 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   auto client_state = std::make_shared<ScriptedState>();
   PrimeAcknowledge(client_state);
   auto client_transport = MakeClientTransport(client_state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   auto client_security = BuildSecurity(client_pk, server_pk.cert_pem);
   client_security.client_nonce_generator = []() {
     return scada::StatusOr<scada::ByteString>{scada::ByteString(31, 0)};
   };
-  ClientSecureChannel client{*client_transport,
-                                        std::move(client_security)};
+  ClientSecureChannel client{*client_transport, std::move(client_security)};
 
   const auto status = WaitAwaitable(executor_, client.Open());
   EXPECT_TRUE(status.bad());
@@ -725,8 +740,7 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   const std::size_t unpadded = to_encrypt.size() + 1 + server_sig_size;
   const std::size_t pad_count =
       (plain_block - unpadded % plain_block) % plain_block;
-  to_encrypt.insert(to_encrypt.end(), pad_count,
-                    static_cast<char>(pad_count));
+  to_encrypt.insert(to_encrypt.end(), pad_count, static_cast<char>(pad_count));
   to_encrypt.push_back(static_cast<char>(pad_count));
 
   // Pre-compute the final frame size so the signature covers the final
@@ -746,8 +760,7 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   to_sign.insert(to_sign.end(), to_encrypt.begin(), to_encrypt.end());
   auto sig = *crypto::RsaPkcs1Sha256Sign(
       server_priv,
-      {reinterpret_cast<const std::uint8_t*>(to_sign.data()),
-       to_sign.size()});
+      {reinterpret_cast<const std::uint8_t*>(to_sign.data()), to_sign.size()});
   to_encrypt.insert(to_encrypt.end(), sig.begin(), sig.end());
   // Encrypt with client's pub key
   auto cipher = *crypto::RsaOaepEncrypt(
@@ -758,19 +771,16 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   final_frame.insert(final_frame.end(), prefix.begin(), prefix.end());
   final_frame.insert(final_frame.end(), cipher.begin(), cipher.end());
   // Fix up size
-  const std::uint32_t msg_size =
-      static_cast<std::uint32_t>(final_frame.size());
+  const std::uint32_t msg_size = static_cast<std::uint32_t>(final_frame.size());
   std::memcpy(final_frame.data() + 4, &msg_size, sizeof(msg_size));
 
   client_state->incoming.push_back(AsString(final_frame));
 
   auto client_transport = MakeClientTransport(client_state);
-  ASSERT_TRUE(
-      WaitAwaitable(executor_, client_transport->Connect()).good());
+  ASSERT_TRUE(WaitAwaitable(executor_, client_transport->Connect()).good());
 
   auto client_security = BuildSecurity(client_pk, server_pk.cert_pem);
-  ClientSecureChannel client{*client_transport,
-                                        std::move(client_security)};
+  ClientSecureChannel client{*client_transport, std::move(client_security)};
 
   const auto open_status = WaitAwaitable(executor_, client.Open());
   EXPECT_TRUE(open_status.good());
@@ -782,8 +792,8 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   // payload through the build + decode helpers by sending and then
   // decoding from the test side using the matching server keys.
   const std::vector<char> payload{'h', 'e', 'l', 'l', 'o'};
-  const auto send_status = WaitAwaitable(
-      executor_, client.SendServiceRequest(42, payload));
+  const auto send_status =
+      WaitAwaitable(executor_, client.SendServiceRequest(42, payload));
   EXPECT_TRUE(send_status.good());
 
   // The client wrote a MSGF frame; decode it with the server-side
@@ -815,8 +825,7 @@ TEST_F(ClientSecureChannelBasic256Sha256Test,
   // Last 32 bytes = HMAC; strip padding before them.
   ASSERT_GE(decrypted->size(), 32u);
   const auto sig_begin = decrypted->size() - 32;
-  const auto pad_size =
-      static_cast<std::uint8_t>((*decrypted)[sig_begin - 1]);
+  const auto pad_size = static_cast<std::uint8_t>((*decrypted)[sig_begin - 1]);
   const auto body_end = sig_begin - 1 - pad_size;
   // First 8 bytes are seq_header (seq_num + request_id).
   std::uint32_t decoded_request_id = 0;

@@ -137,6 +137,38 @@ std::vector<char> BuildServiceResponseFrame(std::uint32_t request_id,
   return EncodeSecureConversationMessage(message);
 }
 
+// Encodes one service response and splits it across two MessageChunks: an
+// intermediate 'C' chunk and a final 'F' chunk (same request_id), mirroring how
+// a server fragments a response larger than the negotiated chunk size.
+std::pair<std::vector<char>, std::vector<char>>
+BuildChunkedServiceResponseFrames(std::uint32_t request_id,
+                                  std::uint32_t request_handle,
+                                  ResponseBody body) {
+  const auto encoded =
+      EncodeServiceResponse(request_handle, std::move(body)).value();
+  const std::size_t split = encoded.size() / 2;
+  const auto make_frame = [&](char chunk_type, std::uint32_t sequence_number,
+                              std::size_t from, std::size_t to) {
+    const SecureConversationMessage message{
+        .frame_header = {.message_type = MessageType::SecureMessage,
+                         .chunk_type = chunk_type,
+                         .message_size = 0},
+        .secure_channel_id = kChannelId,
+        .asymmetric_security_header = std::nullopt,
+        .symmetric_security_header =
+            SymmetricSecurityHeader{.token_id = kTokenId},
+        .sequence_header = {.sequence_number = sequence_number,
+                            .request_id = request_id},
+        .body = std::vector<char>(
+            encoded.begin() + static_cast<std::ptrdiff_t>(from),
+            encoded.begin() + static_cast<std::ptrdiff_t>(to)),
+    };
+    return EncodeSecureConversationMessage(message);
+  };
+  return {make_frame('C', request_id + 1, 0, split),
+          make_frame('F', request_id + 2, split, encoded.size())};
+}
+
 class ClientProtocolSessionTest : public ::testing::Test {
  protected:
   // Every client call advances the secure channel's request_id by 1. The
@@ -202,6 +234,83 @@ TEST_F(ClientProtocolSessionTest, CreateRunsCreateAndActivate) {
   EXPECT_EQ(session.authentication_token(), auth_token);
 }
 
+TEST_F(ClientProtocolSessionTest, CreateRejectsServerCertificateMismatch) {
+  auto state = std::make_shared<ScriptedState>();
+  PrimeConnectAndOpen(state);
+  // CreateSession returns a certificate that differs from what the client
+  // selected during discovery. No ActivateSession is primed: the session must
+  // fail before reaching it.
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      /*request_id=*/2, /*request_handle=*/1,
+      ResponseBody{CreateSessionResponse{
+          .status = scada::StatusCode::Good,
+          .session_id = scada::NodeId{111},
+          .authentication_token = scada::NodeId{0xABCDEF},
+          .server_nonce = scada::ByteString{},
+          .server_certificate = scada::ByteString{'a', 'c', 't', 'u', 'a', 'l'},
+          .revised_timeout = base::TimeDelta::FromSeconds(60),
+      }})));
+
+  ClientTransport transport{ClientTransportContext{
+      .transport =
+          transport::any_transport{ScriptedTransport{any_executor_, state}},
+      .endpoint_url = "opc.tcp://localhost:4840",
+      .limits = {},
+  }};
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
+      {.transport = transport, .secure_channel = secure_channel}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
+  ClientProtocolSession session{{.connection = connection, .channel = channel}};
+
+  ClientProtocolSession::ClientCredentials credentials;
+  credentials.expected_server_certificate =
+      scada::ByteString{'e', 'x', 'p', 'e', 'c', 't', 'e', 'd'};
+  const auto status =
+      WaitAwaitable(executor_, session.Create({}, {}, std::move(credentials)));
+  EXPECT_TRUE(status.bad());
+  EXPECT_FALSE(session.is_active());
+}
+
+TEST_F(ClientProtocolSessionTest, CreateAcceptsMatchingServerCertificate) {
+  const scada::ByteString server_certificate{'s', 'e', 'r', 'v', 'e', 'r'};
+  auto state = std::make_shared<ScriptedState>();
+  PrimeConnectAndOpen(state);
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      /*request_id=*/2, /*request_handle=*/1,
+      ResponseBody{CreateSessionResponse{
+          .status = scada::StatusCode::Good,
+          .session_id = scada::NodeId{111},
+          .authentication_token = scada::NodeId{0xABCDEF},
+          .server_nonce = scada::ByteString{},
+          .server_certificate = server_certificate,
+          .revised_timeout = base::TimeDelta::FromSeconds(60),
+      }})));
+  state->incoming.push_back(AsString(BuildServiceResponseFrame(
+      /*request_id=*/3, /*request_handle=*/2,
+      ResponseBody{
+          ActivateSessionResponse{.status = scada::StatusCode::Good}})));
+
+  ClientTransport transport{ClientTransportContext{
+      .transport =
+          transport::any_transport{ScriptedTransport{any_executor_, state}},
+      .endpoint_url = "opc.tcp://localhost:4840",
+      .limits = {},
+  }};
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
+      {.transport = transport, .secure_channel = secure_channel}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
+  ClientProtocolSession session{{.connection = connection, .channel = channel}};
+
+  ClientProtocolSession::ClientCredentials credentials;
+  credentials.expected_server_certificate = server_certificate;
+  const auto status =
+      WaitAwaitable(executor_, session.Create({}, {}, std::move(credentials)));
+  EXPECT_TRUE(status.good());
+  EXPECT_TRUE(session.is_active());
+}
+
 TEST_F(ClientProtocolSessionTest, CreatePropagatesCreateSessionBadStatus) {
   auto state = std::make_shared<ScriptedState>();
   PrimeConnectAndOpen(state);
@@ -260,6 +369,46 @@ TEST_F(ClientProtocolSessionTest, ReadReturnsDataValuesOnSuccess) {
   ASSERT_TRUE(read.ok());
   ASSERT_EQ(read->size(), 1u);
   EXPECT_EQ((*read)[0].value, (scada::Variant{std::int32_t{7}}));
+}
+
+TEST_F(ClientProtocolSessionTest, ReadReassemblesMultiChunkResponse) {
+  auto state = std::make_shared<ScriptedState>();
+  PrimeConnectAndOpen(state);
+  PrimeSessionEstablishment(state);
+  // The Read response (two values, so it is large enough to split) arrives as a
+  // 'C' chunk followed by an 'F' chunk; the channel must reassemble them.
+  auto chunks = BuildChunkedServiceResponseFrames(
+      /*request_id=*/4, /*request_handle=*/3,
+      ResponseBody{ReadResponse{
+          .status = scada::StatusCode::Good,
+          .results =
+              {scada::DataValue{scada::Variant{std::int32_t{7}}, {}, {}, {}},
+               scada::DataValue{scada::Variant{std::int32_t{42}}, {}, {}, {}}},
+      }});
+  state->incoming.push_back(AsString(chunks.first));
+  state->incoming.push_back(AsString(chunks.second));
+
+  ClientTransport transport{ClientTransportContext{
+      .transport =
+          transport::any_transport{ScriptedTransport{any_executor_, state}},
+      .endpoint_url = "opc.tcp://localhost:4840",
+      .limits = {},
+  }};
+  ClientSecureChannel secure_channel{transport};
+  ClientConnection connection{
+      {.transport = transport, .secure_channel = secure_channel}};
+  ClientChannel channel{{.executor = any_executor_, .connection = connection}};
+  ClientProtocolSession session{{.connection = connection, .channel = channel}};
+  ASSERT_TRUE(WaitAwaitable(executor_, session.Create()).good());
+
+  const auto read = WaitAwaitable(
+      executor_, session.Read(std::vector<scada::ReadValueId>{
+                     {.node_id = scada::NodeId{1},
+                      .attribute_id = scada::AttributeId::Value}}));
+  ASSERT_TRUE(read.ok());
+  ASSERT_EQ(read->size(), 2u);
+  EXPECT_EQ((*read)[0].value, (scada::Variant{std::int32_t{7}}));
+  EXPECT_EQ((*read)[1].value, (scada::Variant{std::int32_t{42}}));
 }
 
 TEST_F(ClientProtocolSessionTest, WriteReturnsStatusCodes) {

@@ -14,6 +14,12 @@ namespace opcua {
 
 struct CreateSessionRequest {
   base::TimeDelta requested_timeout = base::TimeDelta::FromMinutes(10);
+  // Client application instance certificate (DER) and a fresh client nonce.
+  // Empty under SecurityPolicy=None; populated for a secured session so the
+  // server can verify the ActivateSession clientSignature (OPC UA Part 4
+  // §5.6.2).
+  scada::ByteString client_certificate;
+  scada::ByteString client_nonce;
 };
 
 struct CreateSessionResponse {
@@ -21,6 +27,9 @@ struct CreateSessionResponse {
   scada::NodeId session_id;
   scada::NodeId authentication_token;
   scada::ByteString server_nonce;
+  // Server application instance certificate (DER). The client signs
+  // (server_certificate || server_nonce) in ActivateSession.
+  scada::ByteString server_certificate;
   base::TimeDelta revised_timeout;
 };
 
@@ -31,6 +40,11 @@ struct ActivateSessionRequest {
   std::optional<scada::LocalizedText> password;
   bool delete_existing = false;
   bool allow_anonymous = false;
+  // clientSignature (SignatureData): the client's signature over
+  // (server_certificate || server_nonce) using the SecureChannel's asymmetric
+  // signature algorithm. Empty under SecurityPolicy=None.
+  std::string client_signature_algorithm;
+  scada::ByteString client_signature;
 };
 
 struct ActivateSessionResponse {
@@ -76,8 +90,7 @@ class ServerSessionManager : private ServerSessionManagerContext {
       CreateSessionRequest request = {});
   [[nodiscard]] Awaitable<ActivateSessionResponse> ActivateSession(
       ActivateSessionRequest request);
-  [[nodiscard]] CloseSessionResponse CloseSession(
-      CloseSessionRequest request);
+  [[nodiscard]] CloseSessionResponse CloseSession(CloseSessionRequest request);
 
   void DetachSession(const scada::NodeId& authentication_token);
   void PruneExpiredSessions();

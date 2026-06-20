@@ -226,6 +226,44 @@ TEST(ServiceCodecTest, CreateSessionResponseRoundTrip) {
   EXPECT_EQ(typed.server_nonce, response.server_nonce);
 }
 
+// The client now sends a non-empty client certificate and nonce in
+// CreateSession; the server-side decoder must still parse the message (it skips
+// those fields). This pins the wire framing so a secured request stays
+// decodable.
+TEST(ServiceCodecTest,
+     CreateSessionRequestWithClientCredentialsStaysDecodable) {
+  CreateSessionRequest request{
+      .requested_timeout = base::TimeDelta::FromSeconds(120),
+      .client_certificate = scada::ByteString{'c', 'e', 'r', 't'},
+      .client_nonce = scada::ByteString{'n', 'o', 'n', 'c', 'e'},
+  };
+  const auto encoded = EncodeServiceRequest({}, RequestBody{request});
+  ASSERT_TRUE(encoded.has_value());
+  const auto decoded = DecodeServiceRequest(*encoded);
+  ASSERT_TRUE(decoded.has_value());
+  const auto* typed = std::get_if<CreateSessionRequest>(&decoded->body);
+  ASSERT_NE(typed, nullptr);
+  EXPECT_EQ(typed->requested_timeout.InMilliseconds(), 120000);
+}
+
+// Likewise, a non-empty ActivateSession clientSignature must keep the request
+// decodable (the server skips the SignatureData).
+TEST(ServiceCodecTest, ActivateSessionRequestWithSignatureStaysDecodable) {
+  ActivateSessionRequest request{
+      .session_id = scada::NodeId{7},
+      .authentication_token = scada::NodeId{8},
+      .allow_anonymous = true,
+      .client_signature_algorithm =
+          "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+      .client_signature = scada::ByteString{1, 2, 3, 4},
+  };
+  const auto encoded = EncodeServiceRequest({}, RequestBody{request});
+  ASSERT_TRUE(encoded.has_value());
+  const auto decoded = DecodeServiceRequest(*encoded);
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_TRUE(std::holds_alternative<ActivateSessionRequest>(decoded->body));
+}
+
 TEST(ServiceCodecTest, AddNodesResponseRoundTrip) {
   AddNodesResponse response{
       .status = scada::StatusCode::Good,
