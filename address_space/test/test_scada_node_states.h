@@ -1,7 +1,9 @@
 #pragma once
 
-#include "address_space/address_space_impl3.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/node.h"
+#include "address_space/standard_address_space.h"
+#include "address_space/test/scada_test_address_space.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 
@@ -53,5 +55,6 @@ inline std::vector<scada::NodeState> GetNodeStates(
 }
 
 inline std::vector<scada::NodeState> GetScadaNodeStates() {
-  return GetNodeStates(AddressSpaceImpl3{});
+  scada_test::ScadaTestAddressSpace address_space;
+  return GetNodeStates(address_space);
 }

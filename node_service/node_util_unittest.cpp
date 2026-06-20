@@ -1,9 +1,11 @@
 #include "node_service/node_util.h"
 
-#include "address_space/address_space_impl3.h"
+#include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
+#include "address_space/standard_address_space.h"
+#include "address_space/test/scada_test_address_space.h"
 #include "model/devices_node_ids.h"
 #include "model/namespaces.h"
 #include "node_service/node_model_mock.h"
@@ -16,7 +18,7 @@
 using namespace testing;
 
 TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
-  AddressSpaceImpl3 address_space;
+  scada_test::ScadaTestAddressSpace address_space;
 
   const scada::NodeId model_id{"1!Model", NamespaceIndexes::IEC61850_DEVICE};
   const scada::NodeId device_id{1, NamespaceIndexes::IEC61850_DEVICE};
