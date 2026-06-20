@@ -380,11 +380,14 @@ std::optional<Variant> ReadScalarVariant(Variant::Type type,
     case Variant::UINT64:
       return ParseIntegerVariant<UInt64>(text);
     case Variant::DOUBLE: {
-      try {
-        return Variant{std::stod(std::string{text})};
-      } catch (...) {
-        return std::nullopt;
+      double value = 0;
+      const auto* begin = text.data();
+      const auto* end = begin + text.size();
+      const auto result = std::from_chars(begin, end, value);
+      if (result.ec == std::errc{} && result.ptr == end) {
+        return Variant{value};
       }
+      return std::nullopt;
     }
     case Variant::BYTE_STRING:
       if (auto value = HexDecode(text)) {
@@ -580,7 +583,8 @@ Status ReadNodeState(pugi::xml_node node, NodeState& node_state) {
 
 // Reads every <Node> element from a parsed document, appending the decoded
 // NodeStates to `out`. Multiple documents can be parsed into a single vector so
-// they are materialized together (see ApplyNodeStates / LoadStaticAddressSpace).
+// they are materialized together (see ApplyNodeStates /
+// LoadStaticAddressSpace).
 Status ParseNodeStates(const pugi::xml_document& document,
                        std::vector<NodeState>& out) {
   auto root = document.child(kRootTag);

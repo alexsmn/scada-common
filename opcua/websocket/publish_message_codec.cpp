@@ -140,7 +140,7 @@ scada::Variant DecodeVariant(const value& json) {
   object body;
   body["MethodsToCall"] = array{std::move(method)};
   const object wrapper{{"service", "Call"}, {"body", std::move(body)}};
-  const auto request = std::get<CallRequest>(DecodeServiceRequest(wrapper));
+  const auto request = std::get<CallRequest>(*DecodeServiceRequest(wrapper));
   return request.methods.front().arguments.front();
 }
 
@@ -157,7 +157,7 @@ scada::DataValue DecodeDataValue(const value& json) {
   const object wrapper{
       {"service", "Read"},
       {"body", object{{"Status", 0u}, {"Results", array{json}}}}};
-  const auto response = std::get<ReadResponse>(DecodeServiceResponse(wrapper));
+  const auto response = std::get<ReadResponse>(*DecodeServiceResponse(wrapper));
   return response.results.front();
 }
 

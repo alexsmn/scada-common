@@ -1,7 +1,10 @@
 #pragma once
 
 #include "scada/data_value.h"
+#include "scada/status.h"
+#include "scada/status_or.h"
 
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -26,8 +29,10 @@ class ScadaExpression {
   static bool IsSingleName(std::string_view formula, std::string& item_name);
 
   void Parse(const char* buf);
+  scada::Status ParseStatus(std::string_view formula);
 
   scada::Variant Calculate() const;
+  scada::StatusOr<scada::Variant> CalculateStatus() const;
 
   std::string Format(bool aliases = false) const;
 

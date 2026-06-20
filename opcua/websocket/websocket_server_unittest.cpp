@@ -240,14 +240,14 @@ class TlsBeastClient {
 
 template <typename TClient>
 void ExpectBrowsePagingRoundTrip(TClient& client) {
-  const auto create_response = DecodeResponseMessage(boost::json::parse(
+  const auto create_response = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 1, .body = CreateSessionRequest{}})));
   const auto* created =
       std::get_if<CreateSessionResponse>(&create_response.body);
   ASSERT_NE(created, nullptr);
   EXPECT_EQ(created->status.code(), scada::StatusCode::Good);
 
-  const auto activate_response = DecodeResponseMessage(boost::json::parse(
+  const auto activate_response = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 2,
                       .body = ActivateSessionRequest{
                           .session_id = created->session_id,
@@ -259,7 +259,7 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   ASSERT_NE(activated, nullptr);
   EXPECT_EQ(activated->status.code(), scada::StatusCode::Good);
 
-  const auto browse_response = DecodeResponseMessage(boost::json::parse(
+  const auto browse_response = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 3,
                       .body = BrowseRequest{
                           .requested_max_references_per_node = 2,
@@ -273,7 +273,7 @@ void ExpectBrowsePagingRoundTrip(TClient& client) {
   ASSERT_EQ(browse->results[0].references.size(), 2u);
   ASSERT_FALSE(browse->results[0].continuation_point.empty());
 
-  const auto browse_next_response = DecodeResponseMessage(boost::json::parse(
+  const auto browse_next_response = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 4,
                       .body = BrowseNextRequest{
                           .continuation_points = {
@@ -513,11 +513,11 @@ TEST_F(WebSocketServerTest,
   BeastClient client;
   client.Connect("127.0.0.1", port(), "https://scada.local", "opcua+uajson");
 
-  const auto create_session = DecodeResponseMessage(boost::json::parse(
+  const auto create_session = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 1, .body = CreateSessionRequest{}})));
   const auto created = std::get<CreateSessionResponse>(create_session.body);
 
-  const auto activate_session = DecodeResponseMessage(boost::json::parse(
+  const auto activate_session = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 2,
                       .body = ActivateSessionRequest{
                           .session_id = created.session_id,
@@ -528,7 +528,7 @@ TEST_F(WebSocketServerTest,
       std::get<ActivateSessionResponse>(activate_session.body).status.code(),
       scada::StatusCode::Good);
 
-  const auto create_subscription = DecodeResponseMessage(boost::json::parse(
+  const auto create_subscription = *DecodeResponseMessage(boost::json::parse(
       client.Request({.request_handle = 3,
                       .body = CreateSubscriptionRequest{
                           .parameters = {.publishing_interval_ms = 500,
@@ -551,7 +551,7 @@ TEST_F(WebSocketServerTest,
                                          .queue_size = 1,
                                          .discard_oldest = true}}}}});
 
-  const auto create_items = DecodeResponseMessage(
+  const auto create_items = *DecodeResponseMessage(
       boost::json::parse(client.Read(std::chrono::milliseconds{200})));
   EXPECT_EQ(create_items.request_handle, 5u);
   EXPECT_EQ(

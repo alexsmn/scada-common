@@ -126,21 +126,19 @@ Awaitable<void> Server::RunConnection(transport::any_transport transport) {
     if (!read_result.ok() || *read_result == 0)
       break;
 
-    std::optional<RequestMessage> request;
-    bool parse_failed = false;
+    scada::StatusOr<RequestMessage> request{
+        scada::StatusCode::Bad_CantParseString};
     try {
       const std::string_view payload{buffer.data(), *read_result};
       request = DecodeRequestMessage(boost::json::parse(payload));
     } catch (const std::exception& e) {
       LOG_WARNING(logger_) << "OPC UA WS request parse failed"
                            << LOG_TAG("Reason", e.what());
-      parse_failed = true;
     } catch (...) {
       LOG_WARNING(logger_) << "OPC UA WS request parse failed";
-      parse_failed = true;
     }
 
-    if (parse_failed) {
+    if (!request.ok()) {
       auto encoded = boost::json::serialize(EncodeJson(ResponseMessage{
           .request_handle = 0,
           .body =

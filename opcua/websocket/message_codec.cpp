@@ -685,110 +685,126 @@ boost::json::value EncodeJson(const ResponseMessage& response) {
       response.body);
 }
 
-RequestMessage DecodeRequestMessage(const boost::json::value& json) {
-  const auto& obj = RequireObject(json);
-  const auto& body = RequireField(obj, "body");
-  const auto service = RequireString(RequireField(obj, "service"));
-  RequestMessage message{
-      .request_handle = static_cast<scada::UInt32>(
-          RequireUInt64(RequireField(obj, "requestHandle"))),
-      .body = CloseSessionRequest{},
-  };
-  if (service == "FindServers") {
-    message.body = DecodeFindServersRequest(body);
-  } else if (service == "GetEndpoints") {
-    message.body = DecodeGetEndpointsRequest(body);
-  } else if (service == "CreateSession") {
-    message.body = DecodeCreateSessionRequest(body);
-  } else if (service == "ActivateSession") {
-    message.body = DecodeActivateSessionRequest(body);
-  } else if (service == "CloseSession") {
-    message.body = DecodeCloseSessionRequest(body);
-  } else if (service == "CreateSubscription") {
-    message.body = detail::DecodeCreateSubscriptionRequest(body);
-  } else if (service == "ModifySubscription") {
-    message.body = detail::DecodeModifySubscriptionRequest(body);
-  } else if (service == "SetPublishingMode") {
-    message.body = detail::DecodeSetPublishingModeRequest(body);
-  } else if (service == "DeleteSubscriptions") {
-    message.body = detail::DecodeDeleteSubscriptionsRequest(body);
-  } else if (service == "Publish") {
-    message.body = detail::DecodePublishRequest(body);
-  } else if (service == "Republish") {
-    message.body = detail::DecodeRepublishRequest(body);
-  } else if (service == "TransferSubscriptions") {
-    message.body = detail::DecodeTransferSubscriptionsRequest(body);
-  } else if (service == "CreateMonitoredItems") {
-    message.body = detail::DecodeCreateMonitoredItemsRequest(body);
-  } else if (service == "ModifyMonitoredItems") {
-    message.body = detail::DecodeModifyMonitoredItemsRequest(body);
-  } else if (service == "DeleteMonitoredItems") {
-    message.body = detail::DecodeDeleteMonitoredItemsRequest(body);
-  } else if (service == "SetMonitoringMode") {
-    message.body = detail::DecodeSetMonitoringModeRequest(body);
-  } else {
-    const object service_json{{"service", service}, {"body", body}};
-    message.body = std::visit(
-        [](auto&& typed_request) -> RequestBody {
-          return std::forward<decltype(typed_request)>(typed_request);
-        },
-        DecodeServiceRequest(service_json));
+scada::StatusOr<RequestMessage> DecodeRequestMessage(
+    const boost::json::value& json) {
+  try {
+    const auto& obj = RequireObject(json);
+    const auto& body = RequireField(obj, "body");
+    const auto service = RequireString(RequireField(obj, "service"));
+    RequestMessage message{
+        .request_handle = static_cast<scada::UInt32>(
+            RequireUInt64(RequireField(obj, "requestHandle"))),
+        .body = CloseSessionRequest{},
+    };
+    if (service == "FindServers") {
+      message.body = DecodeFindServersRequest(body);
+    } else if (service == "GetEndpoints") {
+      message.body = DecodeGetEndpointsRequest(body);
+    } else if (service == "CreateSession") {
+      message.body = DecodeCreateSessionRequest(body);
+    } else if (service == "ActivateSession") {
+      message.body = DecodeActivateSessionRequest(body);
+    } else if (service == "CloseSession") {
+      message.body = DecodeCloseSessionRequest(body);
+    } else if (service == "CreateSubscription") {
+      message.body = detail::DecodeCreateSubscriptionRequest(body);
+    } else if (service == "ModifySubscription") {
+      message.body = detail::DecodeModifySubscriptionRequest(body);
+    } else if (service == "SetPublishingMode") {
+      message.body = detail::DecodeSetPublishingModeRequest(body);
+    } else if (service == "DeleteSubscriptions") {
+      message.body = detail::DecodeDeleteSubscriptionsRequest(body);
+    } else if (service == "Publish") {
+      message.body = detail::DecodePublishRequest(body);
+    } else if (service == "Republish") {
+      message.body = detail::DecodeRepublishRequest(body);
+    } else if (service == "TransferSubscriptions") {
+      message.body = detail::DecodeTransferSubscriptionsRequest(body);
+    } else if (service == "CreateMonitoredItems") {
+      message.body = detail::DecodeCreateMonitoredItemsRequest(body);
+    } else if (service == "ModifyMonitoredItems") {
+      message.body = detail::DecodeModifyMonitoredItemsRequest(body);
+    } else if (service == "DeleteMonitoredItems") {
+      message.body = detail::DecodeDeleteMonitoredItemsRequest(body);
+    } else if (service == "SetMonitoringMode") {
+      message.body = detail::DecodeSetMonitoringModeRequest(body);
+    } else {
+      const object service_json{{"service", service}, {"body", body}};
+      auto decoded = DecodeServiceRequest(service_json);
+      if (!decoded.ok())
+        return decoded.status();
+      message.body = std::visit(
+          [](auto&& typed_request) -> RequestBody {
+            return std::forward<decltype(typed_request)>(typed_request);
+          },
+          *decoded);
+    }
+    return message;
+  } catch (...) {
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
   }
-  return message;
 }
 
-ResponseMessage DecodeResponseMessage(const boost::json::value& json) {
-  const auto& obj = RequireObject(json);
-  const auto& body = RequireField(obj, "body");
-  const auto service = RequireString(RequireField(obj, "service"));
-  ResponseMessage message{
-      .request_handle = static_cast<scada::UInt32>(
-          RequireUInt64(RequireField(obj, "requestHandle"))),
-      .body = CloseSessionResponse{},
-  };
-  if (service == "FindServers") {
-    message.body = DecodeFindServersResponse(body);
-  } else if (service == "GetEndpoints") {
-    message.body = DecodeGetEndpointsResponse(body);
-  } else if (service == "CreateSession") {
-    message.body = DecodeCreateSessionResponse(body);
-  } else if (service == "ActivateSession") {
-    message.body = DecodeActivateSessionResponse(body);
-  } else if (service == "CloseSession") {
-    message.body = DecodeCloseSessionResponse(body);
-  } else if (service == "CreateSubscription") {
-    message.body = detail::DecodeCreateSubscriptionResponse(body);
-  } else if (service == "ModifySubscription") {
-    message.body = detail::DecodeModifySubscriptionResponse(body);
-  } else if (service == "SetPublishingMode") {
-    message.body = detail::DecodeSetPublishingModeResponse(body);
-  } else if (service == "DeleteSubscriptions") {
-    message.body = detail::DecodeDeleteSubscriptionsResponse(body);
-  } else if (service == "Publish") {
-    message.body = detail::DecodePublishResponse(body);
-  } else if (service == "Republish") {
-    message.body = detail::DecodeRepublishResponse(body);
-  } else if (service == "TransferSubscriptions") {
-    message.body = detail::DecodeTransferSubscriptionsResponse(body);
-  } else if (service == "CreateMonitoredItems") {
-    message.body = detail::DecodeCreateMonitoredItemsResponse(body);
-  } else if (service == "ModifyMonitoredItems") {
-    message.body = detail::DecodeModifyMonitoredItemsResponse(body);
-  } else if (service == "DeleteMonitoredItems") {
-    message.body = detail::DecodeDeleteMonitoredItemsResponse(body);
-  } else if (service == "SetMonitoringMode") {
-    message.body = detail::DecodeSetMonitoringModeResponse(body);
-  } else if (service == "ServiceFault") {
-    message.body = DecodeServiceFault(body);
-  } else {
-    const object service_json{{"service", service}, {"body", body}};
-    message.body = std::visit(
-        [](auto&& typed_response) -> ResponseBody {
-          return std::forward<decltype(typed_response)>(typed_response);
-        },
-        DecodeServiceResponse(service_json));
+scada::StatusOr<ResponseMessage> DecodeResponseMessage(
+    const boost::json::value& json) {
+  try {
+    const auto& obj = RequireObject(json);
+    const auto& body = RequireField(obj, "body");
+    const auto service = RequireString(RequireField(obj, "service"));
+    ResponseMessage message{
+        .request_handle = static_cast<scada::UInt32>(
+            RequireUInt64(RequireField(obj, "requestHandle"))),
+        .body = CloseSessionResponse{},
+    };
+    if (service == "FindServers") {
+      message.body = DecodeFindServersResponse(body);
+    } else if (service == "GetEndpoints") {
+      message.body = DecodeGetEndpointsResponse(body);
+    } else if (service == "CreateSession") {
+      message.body = DecodeCreateSessionResponse(body);
+    } else if (service == "ActivateSession") {
+      message.body = DecodeActivateSessionResponse(body);
+    } else if (service == "CloseSession") {
+      message.body = DecodeCloseSessionResponse(body);
+    } else if (service == "CreateSubscription") {
+      message.body = detail::DecodeCreateSubscriptionResponse(body);
+    } else if (service == "ModifySubscription") {
+      message.body = detail::DecodeModifySubscriptionResponse(body);
+    } else if (service == "SetPublishingMode") {
+      message.body = detail::DecodeSetPublishingModeResponse(body);
+    } else if (service == "DeleteSubscriptions") {
+      message.body = detail::DecodeDeleteSubscriptionsResponse(body);
+    } else if (service == "Publish") {
+      message.body = detail::DecodePublishResponse(body);
+    } else if (service == "Republish") {
+      message.body = detail::DecodeRepublishResponse(body);
+    } else if (service == "TransferSubscriptions") {
+      message.body = detail::DecodeTransferSubscriptionsResponse(body);
+    } else if (service == "CreateMonitoredItems") {
+      message.body = detail::DecodeCreateMonitoredItemsResponse(body);
+    } else if (service == "ModifyMonitoredItems") {
+      message.body = detail::DecodeModifyMonitoredItemsResponse(body);
+    } else if (service == "DeleteMonitoredItems") {
+      message.body = detail::DecodeDeleteMonitoredItemsResponse(body);
+    } else if (service == "SetMonitoringMode") {
+      message.body = detail::DecodeSetMonitoringModeResponse(body);
+    } else if (service == "ServiceFault") {
+      message.body = DecodeServiceFault(body);
+    } else {
+      const object service_json{{"service", service}, {"body", body}};
+      auto decoded = DecodeServiceResponse(service_json);
+      if (!decoded.ok())
+        return decoded.status();
+      message.body = std::visit(
+          [](auto&& typed_response) -> ResponseBody {
+            return std::forward<decltype(typed_response)>(typed_response);
+          },
+          *decoded);
+    }
+    return message;
+  } catch (...) {
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
   }
-  return message;
 }
 
 }  // namespace opcua::ws

@@ -3,6 +3,7 @@
 #include "base/time_utils.h"
 #include "base/utf_convert.h"
 #include "scada/standard_node_ids.h"
+#include "scada/status.h"
 #include "scada/variant.h"
 
 #include <boost/json.hpp>
@@ -1665,66 +1666,79 @@ boost::json::value EncodeJson(const ServiceResponse& response) {
       response);
 }
 
-ServiceRequest DecodeServiceRequest(const boost::json::value& json) {
-  const auto& obj = RequireObject(json);
-  const auto& body = RequireField(obj, "body");
-  auto service = RequireString(RequireField(obj, "service"));
-  if (service == "Read")
-    return DecodeReadRequest(body);
-  if (service == "Write")
-    return DecodeWriteRequest(body);
-  if (service == "Browse")
-    return DecodeBrowseRequest(body);
-  if (service == "BrowseNext")
-    return DecodeBrowseNextRequest(body);
-  if (service == "TranslateBrowsePathsToNodeIds")
-    return DecodeTranslateBrowsePathsRequest(body);
-  if (service == "Call")
-    return DecodeCallRequest(body);
-  if (service == "HistoryReadRaw")
-    return DecodeHistoryReadRawRequest(body);
-  if (service == "HistoryReadEvents")
-    return DecodeHistoryReadEventsRequest(body);
-  if (service == "AddNodes")
-    return DecodeAddNodesRequest(body);
-  if (service == "DeleteNodes")
-    return DecodeDeleteNodesRequest(body);
-  if (service == "AddReferences")
-    return DecodeAddReferencesRequest(body);
-  if (service == "DeleteReferences")
-    return DecodeDeleteReferencesRequest(body);
-  ThrowJsonError("Unknown service request");
+scada::StatusOr<ServiceRequest> DecodeServiceRequest(
+    const boost::json::value& json) {
+  try {
+    const auto& obj = RequireObject(json);
+    const auto& body = RequireField(obj, "body");
+    auto service = RequireString(RequireField(obj, "service"));
+    if (service == "Read")
+      return ServiceRequest{DecodeReadRequest(body)};
+    if (service == "Write")
+      return ServiceRequest{DecodeWriteRequest(body)};
+    if (service == "Browse")
+      return ServiceRequest{DecodeBrowseRequest(body)};
+    if (service == "BrowseNext")
+      return ServiceRequest{DecodeBrowseNextRequest(body)};
+    if (service == "TranslateBrowsePathsToNodeIds")
+      return ServiceRequest{DecodeTranslateBrowsePathsRequest(body)};
+    if (service == "Call")
+      return ServiceRequest{DecodeCallRequest(body)};
+    if (service == "HistoryReadRaw")
+      return ServiceRequest{DecodeHistoryReadRawRequest(body)};
+    if (service == "HistoryReadEvents")
+      return ServiceRequest{DecodeHistoryReadEventsRequest(body)};
+    if (service == "AddNodes")
+      return ServiceRequest{DecodeAddNodesRequest(body)};
+    if (service == "DeleteNodes")
+      return ServiceRequest{DecodeDeleteNodesRequest(body)};
+    if (service == "AddReferences")
+      return ServiceRequest{DecodeAddReferencesRequest(body)};
+    if (service == "DeleteReferences")
+      return ServiceRequest{DecodeDeleteReferencesRequest(body)};
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  } catch (...) {
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  }
 }
 
-ServiceResponse DecodeServiceResponse(const boost::json::value& json) {
-  const auto& obj = RequireObject(json);
-  const auto& body = RequireField(obj, "body");
-  auto service = RequireString(RequireField(obj, "service"));
-  if (service == "Read")
-    return DecodeDataValueResponse<ReadResponse>(body);
-  if (service == "Write")
-    return DecodeMultiStatusResponse<WriteResponse>(body);
-  if (service == "Browse")
-    return DecodeBrowseResponse(body);
-  if (service == "BrowseNext")
-    return DecodeBrowseNextResponse(body);
-  if (service == "TranslateBrowsePathsToNodeIds")
-    return DecodeTranslateBrowsePathsResponse(body);
-  if (service == "Call")
-    return DecodeCallResponse(body);
-  if (service == "HistoryReadRaw")
-    return DecodeHistoryReadRawResponse(body);
-  if (service == "HistoryReadEvents")
-    return DecodeHistoryReadEventsResponse(body);
-  if (service == "AddNodes")
-    return DecodeAddNodesResponse(body);
-  if (service == "DeleteNodes")
-    return DecodeMultiStatusResponse<DeleteNodesResponse>(body);
-  if (service == "AddReferences")
-    return DecodeMultiStatusResponse<AddReferencesResponse>(body);
-  if (service == "DeleteReferences")
-    return DecodeMultiStatusResponse<DeleteReferencesResponse>(body);
-  ThrowJsonError("Unknown service response");
+scada::StatusOr<ServiceResponse> DecodeServiceResponse(
+    const boost::json::value& json) {
+  try {
+    const auto& obj = RequireObject(json);
+    const auto& body = RequireField(obj, "body");
+    auto service = RequireString(RequireField(obj, "service"));
+    if (service == "Read")
+      return ServiceResponse{DecodeDataValueResponse<ReadResponse>(body)};
+    if (service == "Write")
+      return ServiceResponse{DecodeMultiStatusResponse<WriteResponse>(body)};
+    if (service == "Browse")
+      return ServiceResponse{DecodeBrowseResponse(body)};
+    if (service == "BrowseNext")
+      return ServiceResponse{DecodeBrowseNextResponse(body)};
+    if (service == "TranslateBrowsePathsToNodeIds")
+      return ServiceResponse{DecodeTranslateBrowsePathsResponse(body)};
+    if (service == "Call")
+      return ServiceResponse{DecodeCallResponse(body)};
+    if (service == "HistoryReadRaw")
+      return ServiceResponse{DecodeHistoryReadRawResponse(body)};
+    if (service == "HistoryReadEvents")
+      return ServiceResponse{DecodeHistoryReadEventsResponse(body)};
+    if (service == "AddNodes")
+      return ServiceResponse{DecodeAddNodesResponse(body)};
+    if (service == "DeleteNodes")
+      return ServiceResponse{
+          DecodeMultiStatusResponse<DeleteNodesResponse>(body)};
+    if (service == "AddReferences")
+      return ServiceResponse{
+          DecodeMultiStatusResponse<AddReferencesResponse>(body)};
+    if (service == "DeleteReferences")
+      return ServiceResponse{
+          DecodeMultiStatusResponse<DeleteReferencesResponse>(body)};
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  } catch (...) {
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  }
 }
 
 }  // namespace opcua::ws

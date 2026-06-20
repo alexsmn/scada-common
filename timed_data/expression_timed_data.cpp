@@ -213,9 +213,8 @@ bool ExpressionTimedData::CalculateCurrent() {
   }
 
   scada::Variant total_value;
-  try {
-    total_value = expression_->Calculate();
-  } catch (const std::exception&) {
+  if (auto calculated = expression_->CalculateStatus(); calculated.ok()) {
+    total_value = std::move(*calculated);
   }
 
   auto now = base::Time::Now();

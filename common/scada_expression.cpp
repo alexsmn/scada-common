@@ -11,6 +11,8 @@
 #pragma warning(pop)
 
 #include <cassert>
+#include <exception>
+#include <string>
 
 static const expression::LexemType LEX_TRUE = 't';
 static const expression::LexemType LEX_FALSE = 'f';
@@ -155,8 +157,8 @@ class ItemToken : public expression::Token {
 struct ParserDelegate
     : public expression::BasicParserDelegate<expression::PolymorphicToken> {
   ParserDelegate(expression::Allocator& allocator, ScadaExpression& expression)
-      : expression::BasicParserDelegate<
-            expression::PolymorphicToken>{allocator},
+      : expression::BasicParserDelegate<expression::PolymorphicToken>{
+            allocator},
         expression{expression} {}
 
   template <class Parser>
@@ -218,6 +220,19 @@ void ScadaExpression::Parse(const char* buf) {
   expression_->Parse(parser, allocator);
 }
 
+scada::Status ScadaExpression::ParseStatus(std::string_view formula) {
+  try {
+    Parse(std::string{formula}.c_str());
+    return scada::OkStatus();
+  } catch (const std::exception&) {
+    Clear();
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  } catch (...) {
+    Clear();
+    return scada::Status{scada::StatusCode::Bad_CantParseString};
+  }
+}
+
 void ScadaExpression::Clear() {
   items.clear();
   expression_->Clear();
@@ -262,6 +277,16 @@ scada::Variant ScadaExpression::Calculate() const {
       return scada::Variant();
 
   return static_cast<double>(expression_->Calculate());
+}
+
+scada::StatusOr<scada::Variant> ScadaExpression::CalculateStatus() const {
+  try {
+    return Calculate();
+  } catch (const std::exception&) {
+    return scada::Status{scada::StatusCode::Bad};
+  } catch (...) {
+    return scada::Status{scada::StatusCode::Bad};
+  }
 }
 
 std::string ScadaExpression::Format(bool aliases) const {

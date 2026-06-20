@@ -1,8 +1,7 @@
 #include "timed_data/timed_data_service_impl.h"
 
-#include "base/utf_convert.h"
-#include "common/format.h"
 #include "common/coroutine_service_resolver.h"
+#include "common/format.h"
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"
@@ -46,12 +45,10 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     const scada::AggregateFilter& aggregation) {
   auto expression = std::make_unique<ScadaExpression>();
 
-  // May throw std::exception.
-  try {
-    expression->Parse(std::string{formula}.c_str());
-  } catch (const std::exception& e) {
+  const auto parse_status = expression->ParseStatus(formula);
+  if (!parse_status) {
     return std::make_shared<ErrorTimedData>(std::string{formula},
-                                            UtfConvert<char16_t>(e.what()));
+                                            ToString16(parse_status));
   }
 
   std::shared_ptr<TimedData> data;

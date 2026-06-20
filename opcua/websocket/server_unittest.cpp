@@ -173,7 +173,7 @@ class ServerTest : public Test {
   }
 
   ResponseMessage DecodeResponse(const std::string& response) {
-    return DecodeResponseMessage(boost::json::parse(response));
+    return *DecodeResponseMessage(boost::json::parse(response));
   }
 
   void ServePeer(const std::shared_ptr<MessagePeerState>& peer) {
