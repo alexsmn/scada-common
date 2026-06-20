@@ -185,9 +185,12 @@ TEST(SubscriptionTest,
             (std::vector<scada::StatusCode>{
                 scada::StatusCode::Bad_MonitoredItemIdInvalid}));
 
+  // Acknowledging an unknown sequence number is Bad_SequenceNumberUnknown per
+  // OPC UA Part 4 v1.05 5.14.5 (Publish, Table 91); Republish of an
+  // unavailable message is Bad_MessageNotAvailable per 5.14.6.
   EXPECT_EQ(subscription.Acknowledge(std::vector<scada::UInt32>{77u}),
             (std::vector<scada::StatusCode>{
-                scada::StatusCode::Bad_MessageNotAvailable}));
+                scada::StatusCode::Bad_SequenceNumberUnknown}));
   EXPECT_EQ(subscription.Republish(77u).status.code(),
             scada::StatusCode::Bad_MessageNotAvailable);
 }
