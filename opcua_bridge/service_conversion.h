@@ -41,44 +41,44 @@
 namespace opcua_bridge {
 
 // --- enums (identical underlying values) --------------------------------
-inline opcua::scada::AttributeId ToOpcua(scada::AttributeId v) {
-  return static_cast<opcua::scada::AttributeId>(v);
+inline opcua::AttributeId ToOpcua(scada::AttributeId v) {
+  return static_cast<opcua::AttributeId>(v);
 }
-inline scada::AttributeId ToScada(opcua::scada::AttributeId v) {
+inline scada::AttributeId ToScada(opcua::AttributeId v) {
   return static_cast<scada::AttributeId>(v);
 }
-inline opcua::scada::NodeClass ToOpcua(scada::NodeClass v) {
-  return static_cast<opcua::scada::NodeClass>(v);
+inline opcua::NodeClass ToOpcua(scada::NodeClass v) {
+  return static_cast<opcua::NodeClass>(v);
 }
-inline scada::NodeClass ToScada(opcua::scada::NodeClass v) {
+inline scada::NodeClass ToScada(opcua::NodeClass v) {
   return static_cast<scada::NodeClass>(v);
 }
-inline opcua::scada::BrowseDirection ToOpcua(scada::BrowseDirection v) {
-  return static_cast<opcua::scada::BrowseDirection>(v);
+inline opcua::BrowseDirection ToOpcua(scada::BrowseDirection v) {
+  return static_cast<opcua::BrowseDirection>(v);
 }
-inline scada::BrowseDirection ToScada(opcua::scada::BrowseDirection v) {
+inline scada::BrowseDirection ToScada(opcua::BrowseDirection v) {
   return static_cast<scada::BrowseDirection>(v);
 }
-inline opcua::scada::Privilege ToOpcua(scada::Privilege v) {
-  return static_cast<opcua::scada::Privilege>(v);
+inline opcua::Privilege ToOpcua(scada::Privilege v) {
+  return static_cast<opcua::Privilege>(v);
 }
-inline scada::Privilege ToScada(opcua::scada::Privilege v) {
+inline scada::Privilege ToScada(opcua::Privilege v) {
   return static_cast<scada::Privilege>(v);
 }
 
 // --- Duration (base::TimeDelta vs opcua::base::TimeDelta) ----------------
-inline opcua::scada::Duration ToOpcua(scada::Duration d) {
+inline opcua::Duration ToOpcua(scada::Duration d) {
   return opcua::base::TimeDelta::FromInternalValue(d.ToInternalValue());
 }
-inline scada::Duration ToScada(opcua::scada::Duration d) {
+inline scada::Duration ToScada(opcua::Duration d) {
   return base::TimeDelta::FromInternalValue(d.ToInternalValue());
 }
 
 // --- WriteFlags ---------------------------------------------------------
-inline opcua::scada::WriteFlags ToOpcua(scada::WriteFlags v) {
-  return opcua::scada::WriteFlags{v.raw()};
+inline opcua::WriteFlags ToOpcua(scada::WriteFlags v) {
+  return opcua::WriteFlags{v.raw()};
 }
-inline scada::WriteFlags ToScada(opcua::scada::WriteFlags v) {
+inline scada::WriteFlags ToScada(opcua::WriteFlags v) {
   return scada::WriteFlags{v.raw()};
 }
 
@@ -99,68 +99,68 @@ auto ToScada(const std::optional<T>& v)
 }
 
 // --- service structs ----------------------------------------------------
-opcua::scada::ServiceContext ToOpcua(const scada::ServiceContext&);
-scada::ServiceContext ToScada(const opcua::scada::ServiceContext&);
+opcua::ServiceContext ToOpcua(const scada::ServiceContext&);
+scada::ServiceContext ToScada(const opcua::ServiceContext&);
 
-opcua::scada::ReadValueId ToOpcua(const scada::ReadValueId&);
-scada::ReadValueId ToScada(const opcua::scada::ReadValueId&);
+opcua::ReadValueId ToOpcua(const scada::ReadValueId&);
+scada::ReadValueId ToScada(const opcua::ReadValueId&);
 
-opcua::scada::WriteValue ToOpcua(const scada::WriteValue&);
-scada::WriteValue ToScada(const opcua::scada::WriteValue&);
+opcua::WriteValue ToOpcua(const scada::WriteValue&);
+scada::WriteValue ToScada(const opcua::WriteValue&);
 
-opcua::scada::BrowseDescription ToOpcua(const scada::BrowseDescription&);
-scada::BrowseDescription ToScada(const opcua::scada::BrowseDescription&);
+opcua::BrowseDescription ToOpcua(const scada::BrowseDescription&);
+scada::BrowseDescription ToScada(const opcua::BrowseDescription&);
 
-opcua::scada::ReferenceDescription ToOpcua(const scada::ReferenceDescription&);
-scada::ReferenceDescription ToScada(const opcua::scada::ReferenceDescription&);
+opcua::ReferenceDescription ToOpcua(const scada::ReferenceDescription&);
+scada::ReferenceDescription ToScada(const opcua::ReferenceDescription&);
 
-opcua::scada::BrowseResult ToOpcua(const scada::BrowseResult&);
-scada::BrowseResult ToScada(const opcua::scada::BrowseResult&);
+opcua::BrowseResult ToOpcua(const scada::BrowseResult&);
+scada::BrowseResult ToScada(const opcua::BrowseResult&);
 
-opcua::scada::RelativePathElement ToOpcua(const scada::RelativePathElement&);
-scada::RelativePathElement ToScada(const opcua::scada::RelativePathElement&);
+opcua::RelativePathElement ToOpcua(const scada::RelativePathElement&);
+scada::RelativePathElement ToScada(const opcua::RelativePathElement&);
 
-opcua::scada::BrowsePath ToOpcua(const scada::BrowsePath&);
-scada::BrowsePath ToScada(const opcua::scada::BrowsePath&);
+opcua::BrowsePath ToOpcua(const scada::BrowsePath&);
+scada::BrowsePath ToScada(const opcua::BrowsePath&);
 
-opcua::scada::BrowsePathTarget ToOpcua(const scada::BrowsePathTarget&);
-scada::BrowsePathTarget ToScada(const opcua::scada::BrowsePathTarget&);
+opcua::BrowsePathTarget ToOpcua(const scada::BrowsePathTarget&);
+scada::BrowsePathTarget ToScada(const opcua::BrowsePathTarget&);
 
-opcua::scada::BrowsePathResult ToOpcua(const scada::BrowsePathResult&);
-scada::BrowsePathResult ToScada(const opcua::scada::BrowsePathResult&);
+opcua::BrowsePathResult ToOpcua(const scada::BrowsePathResult&);
+scada::BrowsePathResult ToScada(const opcua::BrowsePathResult&);
 
-opcua::scada::NodeAttributes ToOpcua(const scada::NodeAttributes&);
-scada::NodeAttributes ToScada(const opcua::scada::NodeAttributes&);
+opcua::NodeAttributes ToOpcua(const scada::NodeAttributes&);
+scada::NodeAttributes ToScada(const opcua::NodeAttributes&);
 
-opcua::scada::AddNodesItem ToOpcua(const scada::AddNodesItem&);
-scada::AddNodesItem ToScada(const opcua::scada::AddNodesItem&);
+opcua::AddNodesItem ToOpcua(const scada::AddNodesItem&);
+scada::AddNodesItem ToScada(const opcua::AddNodesItem&);
 
-opcua::scada::AddNodesResult ToOpcua(const scada::AddNodesResult&);
-scada::AddNodesResult ToScada(const opcua::scada::AddNodesResult&);
+opcua::AddNodesResult ToOpcua(const scada::AddNodesResult&);
+scada::AddNodesResult ToScada(const opcua::AddNodesResult&);
 
-opcua::scada::DeleteNodesItem ToOpcua(const scada::DeleteNodesItem&);
-scada::DeleteNodesItem ToScada(const opcua::scada::DeleteNodesItem&);
+opcua::DeleteNodesItem ToOpcua(const scada::DeleteNodesItem&);
+scada::DeleteNodesItem ToScada(const opcua::DeleteNodesItem&);
 
-opcua::scada::AddReferencesItem ToOpcua(const scada::AddReferencesItem&);
-scada::AddReferencesItem ToScada(const opcua::scada::AddReferencesItem&);
+opcua::AddReferencesItem ToOpcua(const scada::AddReferencesItem&);
+scada::AddReferencesItem ToScada(const opcua::AddReferencesItem&);
 
-opcua::scada::DeleteReferencesItem ToOpcua(const scada::DeleteReferencesItem&);
-scada::DeleteReferencesItem ToScada(const opcua::scada::DeleteReferencesItem&);
+opcua::DeleteReferencesItem ToOpcua(const scada::DeleteReferencesItem&);
+scada::DeleteReferencesItem ToScada(const opcua::DeleteReferencesItem&);
 
 opcua::scada::DataChangeFilter ToOpcua(const scada::DataChangeFilter&);
 scada::DataChangeFilter ToScada(const opcua::scada::DataChangeFilter&);
 
-opcua::scada::AggregateFilter ToOpcua(const scada::AggregateFilter&);
-scada::AggregateFilter ToScada(const opcua::scada::AggregateFilter&);
+opcua::AggregateFilter ToOpcua(const scada::AggregateFilter&);
+scada::AggregateFilter ToScada(const opcua::AggregateFilter&);
 
-opcua::scada::EventFilter ToOpcua(const scada::EventFilter&);
-scada::EventFilter ToScada(const opcua::scada::EventFilter&);
+opcua::EventFilter ToOpcua(const scada::EventFilter&);
+scada::EventFilter ToScada(const opcua::EventFilter&);
 
 opcua::scada::MonitoringParameters ToOpcua(const scada::MonitoringParameters&);
 scada::MonitoringParameters ToScada(const opcua::scada::MonitoringParameters&);
 
-opcua::scada::Event ToOpcua(const scada::Event&);
-scada::Event ToScada(const opcua::scada::Event&);
+opcua::Event ToOpcua(const scada::Event&);
+scada::Event ToScada(const opcua::Event&);
 
 // --- monitored item -----------------------------------------------------
 opcua::scada::MonitoredItemSubscriptionOptions ToOpcua(
@@ -183,40 +183,40 @@ opcua::scada::MonitoredItemNotification ToOpcua(
 scada::MonitoredItemNotification ToScada(
     const opcua::scada::MonitoredItemNotification&);
 
-opcua::scada::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
-scada::HistoryReadRawDetails ToScada(const opcua::scada::HistoryReadRawDetails&);
+opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
+scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails&);
 
-opcua::scada::HistoryReadEventsDetails ToOpcua(
+opcua::HistoryReadEventsDetails ToOpcua(
     const scada::HistoryReadEventsDetails&);
 scada::HistoryReadEventsDetails ToScada(
-    const opcua::scada::HistoryReadEventsDetails&);
+    const opcua::HistoryReadEventsDetails&);
 
-opcua::scada::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult&);
-scada::HistoryReadRawResult ToScada(const opcua::scada::HistoryReadRawResult&);
+opcua::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult&);
+scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult&);
 
-opcua::scada::HistoryReadEventsResult ToOpcua(
+opcua::HistoryReadEventsResult ToOpcua(
     const scada::HistoryReadEventsResult&);
 scada::HistoryReadEventsResult ToScada(
-    const opcua::scada::HistoryReadEventsResult&);
+    const opcua::HistoryReadEventsResult&);
 
 // --- session ------------------------------------------------------------
-opcua::scada::SessionSecuritySettings ToOpcua(
+opcua::SessionSecuritySettings ToOpcua(
     const scada::SessionSecuritySettings&);
 scada::SessionSecuritySettings ToScada(
-    const opcua::scada::SessionSecuritySettings&);
+    const opcua::SessionSecuritySettings&);
 
-opcua::scada::SessionConnectParams ToOpcua(const scada::SessionConnectParams&);
-scada::SessionConnectParams ToScada(const opcua::scada::SessionConnectParams&);
+opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams&);
+scada::SessionConnectParams ToScada(const opcua::SessionConnectParams&);
 
 // --- authentication -----------------------------------------------------
-inline opcua::scada::AuthenticationResult ToOpcua(
+inline opcua::AuthenticationResult ToOpcua(
     const scada::AuthenticationResult& v) {
   return {.user_id = ToOpcua(v.user_id),
           .user_rights = v.user_rights,
           .multi_sessions = v.multi_sessions};
 }
 inline scada::AuthenticationResult ToScada(
-    const opcua::scada::AuthenticationResult& v) {
+    const opcua::AuthenticationResult& v) {
   return {.user_id = ToScada(v.user_id),
           .user_rights = v.user_rights,
           .multi_sessions = v.multi_sessions};

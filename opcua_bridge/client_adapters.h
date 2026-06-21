@@ -56,7 +56,7 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   boost::signals2::scoped_connection SubscribeSessionStateChanged(
       const SessionStateChangedCallback& callback) override {
     return session_->SubscribeSessionStateChanged(
-        [callback](bool connected, const opcua::scada::Status& status) {
+        [callback](bool connected, const opcua::Status& status) {
           callback(connected, ToScada(status));
         });
   }

@@ -35,14 +35,14 @@ auto ToScadaVector(const std::vector<T>& in) {
 // success. (Covers every StatusOr the service interfaces return.)
 template <class T>
 auto ToOpcua(const scada::StatusOr<std::vector<T>>& s)
-    -> opcua::scada::StatusOr<
+    -> opcua::StatusOr<
         std::vector<std::decay_t<decltype(ToOpcua(std::declval<T>()))>>> {
   if (!s.ok())
     return ToOpcua(s.status());
   return ToOpcuaVector(*s);
 }
 template <class T>
-auto ToScada(const opcua::scada::StatusOr<std::vector<T>>& s)
+auto ToScada(const opcua::StatusOr<std::vector<T>>& s)
     -> scada::StatusOr<
         std::vector<std::decay_t<decltype(ToScada(std::declval<T>()))>>> {
   if (!s.ok())

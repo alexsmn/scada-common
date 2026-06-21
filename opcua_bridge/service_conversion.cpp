@@ -6,40 +6,40 @@
 
 namespace opcua_bridge {
 
-opcua::scada::ServiceContext ToOpcua(const scada::ServiceContext& c) {
-  return opcua::scada::ServiceContext{}
+opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
+  return opcua::ServiceContext{}
       .with_user_id(ToOpcua(c.user_id()))
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id());
 }
-scada::ServiceContext ToScada(const opcua::scada::ServiceContext& c) {
+scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
   return scada::ServiceContext{}
       .with_user_id(ToScada(c.user_id()))
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id());
 }
 
-opcua::scada::ReadValueId ToOpcua(const scada::ReadValueId& v) {
+opcua::ReadValueId ToOpcua(const scada::ReadValueId& v) {
   return {.node_id = ToOpcua(v.node_id), .attribute_id = ToOpcua(v.attribute_id)};
 }
-scada::ReadValueId ToScada(const opcua::scada::ReadValueId& v) {
+scada::ReadValueId ToScada(const opcua::ReadValueId& v) {
   return {.node_id = ToScada(v.node_id), .attribute_id = ToScada(v.attribute_id)};
 }
 
-opcua::scada::WriteValue ToOpcua(const scada::WriteValue& v) {
+opcua::WriteValue ToOpcua(const scada::WriteValue& v) {
   return {.node_id = ToOpcua(v.node_id),
           .attribute_id = ToOpcua(v.attribute_id),
           .value = ToOpcua(v.value),
           .flags = ToOpcua(v.flags)};
 }
-scada::WriteValue ToScada(const opcua::scada::WriteValue& v) {
+scada::WriteValue ToScada(const opcua::WriteValue& v) {
   return {.node_id = ToScada(v.node_id),
           .attribute_id = ToScada(v.attribute_id),
           .value = ToScada(v.value),
           .flags = ToScada(v.flags)};
 }
 
-opcua::scada::BrowseDescription ToOpcua(const scada::BrowseDescription& v) {
+opcua::BrowseDescription ToOpcua(const scada::BrowseDescription& v) {
   return {.node_id = ToOpcua(v.node_id),
           .direction = ToOpcua(v.direction),
           .reference_type_id = ToOpcua(v.reference_type_id),
@@ -47,7 +47,7 @@ opcua::scada::BrowseDescription ToOpcua(const scada::BrowseDescription& v) {
           .node_class_mask = v.node_class_mask,
           .result_mask = v.result_mask};
 }
-scada::BrowseDescription ToScada(const opcua::scada::BrowseDescription& v) {
+scada::BrowseDescription ToScada(const opcua::BrowseDescription& v) {
   return {.node_id = ToScada(v.node_id),
           .direction = ToScada(v.direction),
           .reference_type_id = ToScada(v.reference_type_id),
@@ -56,7 +56,7 @@ scada::BrowseDescription ToScada(const opcua::scada::BrowseDescription& v) {
           .result_mask = v.result_mask};
 }
 
-opcua::scada::ReferenceDescription ToOpcua(const scada::ReferenceDescription& v) {
+opcua::ReferenceDescription ToOpcua(const scada::ReferenceDescription& v) {
   return {.reference_type_id = ToOpcua(v.reference_type_id),
           .forward = v.forward,
           .node_id = ToOpcua(v.node_id),
@@ -65,7 +65,7 @@ opcua::scada::ReferenceDescription ToOpcua(const scada::ReferenceDescription& v)
           .display_name = v.display_name,  // LocalizedText is std::u16string
           .type_definition = ToOpcua(v.type_definition)};
 }
-scada::ReferenceDescription ToScada(const opcua::scada::ReferenceDescription& v) {
+scada::ReferenceDescription ToScada(const opcua::ReferenceDescription& v) {
   return {.reference_type_id = ToScada(v.reference_type_id),
           .forward = v.forward,
           .node_id = ToScada(v.node_id),
@@ -75,66 +75,66 @@ scada::ReferenceDescription ToScada(const opcua::scada::ReferenceDescription& v)
           .type_definition = ToScada(v.type_definition)};
 }
 
-opcua::scada::BrowseResult ToOpcua(const scada::BrowseResult& v) {
+opcua::BrowseResult ToOpcua(const scada::BrowseResult& v) {
   return {.status_code = ToOpcua(v.status_code),
           .continuation_point = v.continuation_point,
           .references = ToOpcuaVector(v.references)};
 }
-scada::BrowseResult ToScada(const opcua::scada::BrowseResult& v) {
+scada::BrowseResult ToScada(const opcua::BrowseResult& v) {
   return {.status_code = ToScada(v.status_code),
           .continuation_point = v.continuation_point,
           .references = ToScadaVector(v.references)};
 }
 
-opcua::scada::RelativePathElement ToOpcua(const scada::RelativePathElement& v) {
+opcua::RelativePathElement ToOpcua(const scada::RelativePathElement& v) {
   return {.reference_type_id = ToOpcua(v.reference_type_id),
           .inverse = v.inverse,
           .include_subtypes = v.include_subtypes,
           .target_name = ToOpcua(v.target_name)};
 }
-scada::RelativePathElement ToScada(const opcua::scada::RelativePathElement& v) {
+scada::RelativePathElement ToScada(const opcua::RelativePathElement& v) {
   return {.reference_type_id = ToScada(v.reference_type_id),
           .inverse = v.inverse,
           .include_subtypes = v.include_subtypes,
           .target_name = ToScada(v.target_name)};
 }
 
-opcua::scada::BrowsePath ToOpcua(const scada::BrowsePath& v) {
+opcua::BrowsePath ToOpcua(const scada::BrowsePath& v) {
   return {.node_id = ToOpcua(v.node_id),
           .relative_path = ToOpcuaVector(v.relative_path)};
 }
-scada::BrowsePath ToScada(const opcua::scada::BrowsePath& v) {
+scada::BrowsePath ToScada(const opcua::BrowsePath& v) {
   return {.node_id = ToScada(v.node_id),
           .relative_path = ToScadaVector(v.relative_path)};
 }
 
-opcua::scada::BrowsePathTarget ToOpcua(const scada::BrowsePathTarget& v) {
+opcua::BrowsePathTarget ToOpcua(const scada::BrowsePathTarget& v) {
   return {.target_id = ToOpcua(v.target_id),
           .remaining_path_index = v.remaining_path_index};
 }
-scada::BrowsePathTarget ToScada(const opcua::scada::BrowsePathTarget& v) {
+scada::BrowsePathTarget ToScada(const opcua::BrowsePathTarget& v) {
   return {.target_id = ToScada(v.target_id),
           .remaining_path_index = v.remaining_path_index};
 }
 
-opcua::scada::BrowsePathResult ToOpcua(const scada::BrowsePathResult& v) {
+opcua::BrowsePathResult ToOpcua(const scada::BrowsePathResult& v) {
   return {.status_code = ToOpcua(v.status_code),
           .targets = ToOpcuaVector(v.targets)};
 }
-scada::BrowsePathResult ToScada(const opcua::scada::BrowsePathResult& v) {
+scada::BrowsePathResult ToScada(const opcua::BrowsePathResult& v) {
   return {.status_code = ToScada(v.status_code),
           .targets = ToScadaVector(v.targets)};
 }
 
-opcua::scada::NodeAttributes ToOpcua(const scada::NodeAttributes& v) {
-  opcua::scada::NodeAttributes out;
+opcua::NodeAttributes ToOpcua(const scada::NodeAttributes& v) {
+  opcua::NodeAttributes out;
   out.browse_name = ToOpcua(v.browse_name);
   out.display_name = v.display_name;  // LocalizedText is std::u16string
   out.data_type = ToOpcua(v.data_type);
   out.value = ToOpcua(v.value);
   return out;
 }
-scada::NodeAttributes ToScada(const opcua::scada::NodeAttributes& v) {
+scada::NodeAttributes ToScada(const opcua::NodeAttributes& v) {
   scada::NodeAttributes out;
   out.browse_name = ToScada(v.browse_name);
   out.display_name = v.display_name;
@@ -143,14 +143,14 @@ scada::NodeAttributes ToScada(const opcua::scada::NodeAttributes& v) {
   return out;
 }
 
-opcua::scada::AddNodesItem ToOpcua(const scada::AddNodesItem& v) {
+opcua::AddNodesItem ToOpcua(const scada::AddNodesItem& v) {
   return {.requested_id = ToOpcua(v.requested_id),
           .parent_id = ToOpcua(v.parent_id),
           .node_class = ToOpcua(v.node_class),
           .type_definition_id = ToOpcua(v.type_definition_id),
           .attributes = ToOpcua(v.attributes)};
 }
-scada::AddNodesItem ToScada(const opcua::scada::AddNodesItem& v) {
+scada::AddNodesItem ToScada(const opcua::AddNodesItem& v) {
   return {.requested_id = ToScada(v.requested_id),
           .parent_id = ToScada(v.parent_id),
           .node_class = ToScada(v.node_class),
@@ -158,25 +158,25 @@ scada::AddNodesItem ToScada(const opcua::scada::AddNodesItem& v) {
           .attributes = ToScada(v.attributes)};
 }
 
-opcua::scada::AddNodesResult ToOpcua(const scada::AddNodesResult& v) {
+opcua::AddNodesResult ToOpcua(const scada::AddNodesResult& v) {
   return {.status_code = ToOpcua(v.status_code),
           .added_node_id = ToOpcua(v.added_node_id)};
 }
-scada::AddNodesResult ToScada(const opcua::scada::AddNodesResult& v) {
+scada::AddNodesResult ToScada(const opcua::AddNodesResult& v) {
   return {.status_code = ToScada(v.status_code),
           .added_node_id = ToScada(v.added_node_id)};
 }
 
-opcua::scada::DeleteNodesItem ToOpcua(const scada::DeleteNodesItem& v) {
+opcua::DeleteNodesItem ToOpcua(const scada::DeleteNodesItem& v) {
   return {.node_id = ToOpcua(v.node_id),
           .delete_target_references = v.delete_target_references};
 }
-scada::DeleteNodesItem ToScada(const opcua::scada::DeleteNodesItem& v) {
+scada::DeleteNodesItem ToScada(const opcua::DeleteNodesItem& v) {
   return {.node_id = ToScada(v.node_id),
           .delete_target_references = v.delete_target_references};
 }
 
-opcua::scada::AddReferencesItem ToOpcua(const scada::AddReferencesItem& v) {
+opcua::AddReferencesItem ToOpcua(const scada::AddReferencesItem& v) {
   return {.source_node_id = ToOpcua(v.source_node_id),
           .reference_type_id = ToOpcua(v.reference_type_id),
           .forward = v.forward,
@@ -184,7 +184,7 @@ opcua::scada::AddReferencesItem ToOpcua(const scada::AddReferencesItem& v) {
           .target_node_id = ToOpcua(v.target_node_id),
           .target_node_class = ToOpcua(v.target_node_class)};
 }
-scada::AddReferencesItem ToScada(const opcua::scada::AddReferencesItem& v) {
+scada::AddReferencesItem ToScada(const opcua::AddReferencesItem& v) {
   return {.source_node_id = ToScada(v.source_node_id),
           .reference_type_id = ToScada(v.reference_type_id),
           .forward = v.forward,
@@ -193,14 +193,14 @@ scada::AddReferencesItem ToScada(const opcua::scada::AddReferencesItem& v) {
           .target_node_class = ToScada(v.target_node_class)};
 }
 
-opcua::scada::DeleteReferencesItem ToOpcua(const scada::DeleteReferencesItem& v) {
+opcua::DeleteReferencesItem ToOpcua(const scada::DeleteReferencesItem& v) {
   return {.source_node_id = ToOpcua(v.source_node_id),
           .reference_type_id = ToOpcua(v.reference_type_id),
           .forward = v.forward,
           .target_node_id = ToOpcua(v.target_node_id),
           .delete_bidirectional = v.delete_bidirectional};
 }
-scada::DeleteReferencesItem ToScada(const opcua::scada::DeleteReferencesItem& v) {
+scada::DeleteReferencesItem ToScada(const opcua::DeleteReferencesItem& v) {
   return {.source_node_id = ToScada(v.source_node_id),
           .reference_type_id = ToScada(v.reference_type_id),
           .forward = v.forward,
@@ -215,25 +215,25 @@ scada::DataChangeFilter ToScada(const opcua::scada::DataChangeFilter& v) {
   return {.deadband_value = v.deadband_value};
 }
 
-opcua::scada::AggregateFilter ToOpcua(const scada::AggregateFilter& v) {
+opcua::AggregateFilter ToOpcua(const scada::AggregateFilter& v) {
   return {.start_time = ToOpcua(v.start_time),
           .interval = ToOpcua(v.interval),
           .aggregate_type = ToOpcua(v.aggregate_type)};
 }
-scada::AggregateFilter ToScada(const opcua::scada::AggregateFilter& v) {
+scada::AggregateFilter ToScada(const opcua::AggregateFilter& v) {
   return {.start_time = ToScada(v.start_time),
           .interval = ToScada(v.interval),
           .aggregate_type = ToScada(v.aggregate_type)};
 }
 
-opcua::scada::EventFilter ToOpcua(const scada::EventFilter& v) {
-  opcua::scada::EventFilter out;
+opcua::EventFilter ToOpcua(const scada::EventFilter& v) {
+  opcua::EventFilter out;
   out.types = v.types;
   out.of_type = ToOpcuaVector(v.of_type);
   out.child_of = ToOpcuaVector(v.child_of);
   return out;
 }
-scada::EventFilter ToScada(const opcua::scada::EventFilter& v) {
+scada::EventFilter ToScada(const opcua::EventFilter& v) {
   scada::EventFilter out;
   out.types = v.types;
   out.of_type = ToScadaVector(v.of_type);
@@ -281,8 +281,8 @@ scada::MonitoringParameters ToScada(const opcua::scada::MonitoringParameters& v)
   return out;
 }
 
-opcua::scada::Event ToOpcua(const scada::Event& v) {
-  opcua::scada::Event out;
+opcua::Event ToOpcua(const scada::Event& v) {
+  opcua::Event out;
   out.event_type_id = ToOpcua(v.event_type_id);
   out.event_id = v.event_id;
   out.time = ToOpcua(v.time);
@@ -299,7 +299,7 @@ opcua::scada::Event ToOpcua(const scada::Event& v) {
   out.acknowledged_user_id = ToOpcua(v.acknowledged_user_id);
   return out;
 }
-scada::Event ToScada(const opcua::scada::Event& v) {
+scada::Event ToScada(const opcua::Event& v) {
   scada::Event out;
   out.event_type_id = ToScada(v.event_type_id);
   out.event_id = v.event_id;
@@ -318,7 +318,7 @@ scada::Event ToScada(const opcua::scada::Event& v) {
   return out;
 }
 
-opcua::scada::HistoryReadRawDetails ToOpcua(
+opcua::HistoryReadRawDetails ToOpcua(
     const scada::HistoryReadRawDetails& v) {
   return {.node_id = ToOpcua(v.node_id),
           .from = ToOpcua(v.from),
@@ -329,7 +329,7 @@ opcua::scada::HistoryReadRawDetails ToOpcua(
           .continuation_point = v.continuation_point};
 }
 scada::HistoryReadRawDetails ToScada(
-    const opcua::scada::HistoryReadRawDetails& v) {
+    const opcua::HistoryReadRawDetails& v) {
   return {.node_id = ToScada(v.node_id),
           .from = ToScada(v.from),
           .to = ToScada(v.to),
@@ -339,7 +339,7 @@ scada::HistoryReadRawDetails ToScada(
           .continuation_point = v.continuation_point};
 }
 
-opcua::scada::HistoryReadEventsDetails ToOpcua(
+opcua::HistoryReadEventsDetails ToOpcua(
     const scada::HistoryReadEventsDetails& v) {
   return {.node_id = ToOpcua(v.node_id),
           .from = ToOpcua(v.from),
@@ -347,32 +347,32 @@ opcua::scada::HistoryReadEventsDetails ToOpcua(
           .filter = ToOpcua(v.filter)};
 }
 scada::HistoryReadEventsDetails ToScada(
-    const opcua::scada::HistoryReadEventsDetails& v) {
+    const opcua::HistoryReadEventsDetails& v) {
   return {.node_id = ToScada(v.node_id),
           .from = ToScada(v.from),
           .to = ToScada(v.to),
           .filter = ToScada(v.filter)};
 }
 
-opcua::scada::HistoryReadRawResult ToOpcua(
+opcua::HistoryReadRawResult ToOpcua(
     const scada::HistoryReadRawResult& v) {
   return {.status = ToOpcua(v.status),
           .values = ToOpcuaVector(v.values),
           .continuation_point = v.continuation_point};
 }
 scada::HistoryReadRawResult ToScada(
-    const opcua::scada::HistoryReadRawResult& v) {
+    const opcua::HistoryReadRawResult& v) {
   return {.status = ToScada(v.status),
           .values = ToScadaVector(v.values),
           .continuation_point = v.continuation_point};
 }
 
-opcua::scada::HistoryReadEventsResult ToOpcua(
+opcua::HistoryReadEventsResult ToOpcua(
     const scada::HistoryReadEventsResult& v) {
   return {.status = ToOpcua(v.status), .events = ToOpcuaVector(v.events)};
 }
 scada::HistoryReadEventsResult ToScada(
-    const opcua::scada::HistoryReadEventsResult& v) {
+    const opcua::HistoryReadEventsResult& v) {
   return {.status = ToScada(v.status), .events = ToScadaVector(v.events)};
 }
 
@@ -464,22 +464,22 @@ scada::MonitoredItemNotification ToScada(
       n);
 }
 
-opcua::scada::SessionSecuritySettings ToOpcua(
+opcua::SessionSecuritySettings ToOpcua(
     const scada::SessionSecuritySettings& v) {
-  return {.mode = static_cast<opcua::scada::SessionSecuritySettings::Mode>(v.mode),
+  return {.mode = static_cast<opcua::SessionSecuritySettings::Mode>(v.mode),
           .required_policy_uri = v.required_policy_uri,
           .client_certificate_path = v.client_certificate_path,
           .client_private_key_path = v.client_private_key_path};
 }
 scada::SessionSecuritySettings ToScada(
-    const opcua::scada::SessionSecuritySettings& v) {
+    const opcua::SessionSecuritySettings& v) {
   return {.mode = static_cast<scada::SessionSecuritySettings::Mode>(v.mode),
           .required_policy_uri = v.required_policy_uri,
           .client_certificate_path = v.client_certificate_path,
           .client_private_key_path = v.client_private_key_path};
 }
 
-opcua::scada::SessionConnectParams ToOpcua(
+opcua::SessionConnectParams ToOpcua(
     const scada::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
@@ -489,7 +489,7 @@ opcua::scada::SessionConnectParams ToOpcua(
           .security = ToOpcua(v.security)};
 }
 scada::SessionConnectParams ToScada(
-    const opcua::scada::SessionConnectParams& v) {
+    const opcua::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
           .user_name = v.user_name,

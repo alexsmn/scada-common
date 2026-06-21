@@ -36,11 +36,11 @@ namespace opcua_bridge {
 // StatusCode values that go on the wire. The two enums share enumerator names,
 // so the boundary maps the codes whose values differ (all others still share a
 // value and fall through to a direct cast).
-inline opcua::scada::StatusCode ToOpcua(scada::StatusCode c) {
+inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
 #define MAP(name) \
   case scada::StatusCode::name:                \
-    return opcua::scada::StatusCode::name;
+    return opcua::StatusCode::name;
     MAP(Bad_WrongLoginCredentials)
     MAP(Bad_WrongNodeId)
     MAP(Bad_Timeout)
@@ -70,13 +70,13 @@ inline opcua::scada::StatusCode ToOpcua(scada::StatusCode c) {
     MAP(Bad_ServerWasShutDown)
 #undef MAP
     default:
-      return static_cast<opcua::scada::StatusCode>(c);
+      return static_cast<opcua::StatusCode>(c);
   }
 }
-inline scada::StatusCode ToScada(opcua::scada::StatusCode c) {
+inline scada::StatusCode ToScada(opcua::StatusCode c) {
   switch (c) {
 #define MAP(name) \
-  case opcua::scada::StatusCode::name:         \
+  case opcua::StatusCode::name:         \
     return scada::StatusCode::name;
     MAP(Bad_WrongLoginCredentials)
     MAP(Bad_WrongNodeId)
@@ -114,52 +114,52 @@ inline scada::StatusCode ToScada(opcua::scada::StatusCode c) {
 // --- Status -------------------------------------------------------------
 // Preserve only the severity/subcode (mapped) and the limit info bits, which is
 // all the codebase models.
-inline opcua::scada::Status ToOpcua(scada::Status s) {
-  opcua::scada::Status result{ToOpcua(s.code())};
+inline opcua::Status ToOpcua(scada::Status s) {
+  opcua::Status result{ToOpcua(s.code())};
   result.set_limit(
-      static_cast<opcua::scada::StatusLimit>(static_cast<int>(s.limit())));
+      static_cast<opcua::StatusLimit>(static_cast<int>(s.limit())));
   return result;
 }
-inline scada::Status ToScada(opcua::scada::Status s) {
+inline scada::Status ToScada(opcua::Status s) {
   scada::Status result{ToScada(s.code())};
   result.set_limit(static_cast<scada::StatusLimit>(static_cast<int>(s.limit())));
   return result;
 }
 
 // --- DateTime (base::Time vs opcua::base::Time) -------------------------
-inline opcua::scada::DateTime ToOpcua(scada::DateTime t) {
+inline opcua::DateTime ToOpcua(scada::DateTime t) {
   return opcua::base::Time::FromInternalValue(t.ToInternalValue());
 }
-inline scada::DateTime ToScada(opcua::scada::DateTime t) {
+inline scada::DateTime ToScada(opcua::DateTime t) {
   return base::Time::FromInternalValue(t.ToInternalValue());
 }
 
 // --- Qualifier ----------------------------------------------------------
-inline opcua::scada::Qualifier ToOpcua(scada::Qualifier q) {
-  return opcua::scada::Qualifier{q.raw()};
+inline opcua::Qualifier ToOpcua(scada::Qualifier q) {
+  return opcua::Qualifier{q.raw()};
 }
-inline scada::Qualifier ToScada(opcua::scada::Qualifier q) {
+inline scada::Qualifier ToScada(opcua::Qualifier q) {
   return scada::Qualifier{q.raw()};
 }
 
 // --- class types --------------------------------------------------------
-opcua::scada::NodeId ToOpcua(const scada::NodeId&);
-scada::NodeId ToScada(const opcua::scada::NodeId&);
+opcua::NodeId ToOpcua(const scada::NodeId&);
+scada::NodeId ToScada(const opcua::NodeId&);
 
-opcua::scada::ExpandedNodeId ToOpcua(const scada::ExpandedNodeId&);
-scada::ExpandedNodeId ToScada(const opcua::scada::ExpandedNodeId&);
+opcua::ExpandedNodeId ToOpcua(const scada::ExpandedNodeId&);
+scada::ExpandedNodeId ToScada(const opcua::ExpandedNodeId&);
 
-opcua::scada::QualifiedName ToOpcua(const scada::QualifiedName&);
-scada::QualifiedName ToScada(const opcua::scada::QualifiedName&);
+opcua::QualifiedName ToOpcua(const scada::QualifiedName&);
+scada::QualifiedName ToScada(const opcua::QualifiedName&);
 
-opcua::scada::ExtensionObject ToOpcua(const scada::ExtensionObject&);
-scada::ExtensionObject ToScada(const opcua::scada::ExtensionObject&);
+opcua::ExtensionObject ToOpcua(const scada::ExtensionObject&);
+scada::ExtensionObject ToScada(const opcua::ExtensionObject&);
 
-opcua::scada::Variant ToOpcua(const scada::Variant&);
-scada::Variant ToScada(const opcua::scada::Variant&);
+opcua::Variant ToOpcua(const scada::Variant&);
+scada::Variant ToScada(const opcua::Variant&);
 
-opcua::scada::DataValue ToOpcua(const scada::DataValue&);
-scada::DataValue ToScada(const opcua::scada::DataValue&);
+opcua::DataValue ToOpcua(const scada::DataValue&);
+scada::DataValue ToScada(const opcua::DataValue&);
 
 // The element-wise vector helpers (ToOpcuaVector / ToScadaVector) live in
 // vector_conversion.h, which both .cpp files include AFTER all ToOpcua/ToScada

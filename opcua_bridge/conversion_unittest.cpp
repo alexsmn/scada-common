@@ -42,7 +42,7 @@ TEST(ConversionTest, StatusAndCode) {
 // StatusCode values that opcuapp puts on the wire (Opc.Ua.StatusCodes.csv).
 TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
   const auto wire = [](scada::StatusCode code) {
-    return opcua::scada::Status{ToOpcua(code)}.full_code();
+    return opcua::Status{ToOpcua(code)}.full_code();
   };
   EXPECT_EQ(wire(scada::StatusCode::Bad_NothingToDo), 0x800F0000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_TooManyOperations), 0x80100000u);

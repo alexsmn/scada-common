@@ -31,93 +31,93 @@
 
 namespace opcua_bridge {
 
-class AttributeServiceAdapter : public opcua::scada::AttributeService {
+class AttributeServiceAdapter : public opcua::AttributeService {
  public:
   explicit AttributeServiceAdapter(scada::AttributeService& inner)
       : inner_{inner} {}
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::DataValue>>>
-  Read(opcua::scada::ServiceContext context,
-       std::shared_ptr<const std::vector<opcua::scada::ReadValueId>> inputs)
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
+  Read(opcua::ServiceContext context,
+       std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs)
       override;
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
-  Write(opcua::scada::ServiceContext context,
-        std::shared_ptr<const std::vector<opcua::scada::WriteValue>> inputs)
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+  Write(opcua::ServiceContext context,
+        std::shared_ptr<const std::vector<opcua::WriteValue>> inputs)
       override;
 
  private:
   scada::AttributeService& inner_;
 };
 
-class ViewServiceAdapter : public opcua::scada::ViewService {
+class ViewServiceAdapter : public opcua::ViewService {
  public:
   explicit ViewServiceAdapter(scada::ViewService& inner) : inner_{inner} {}
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::BrowseResult>>>
-  Browse(opcua::scada::ServiceContext context,
-         std::vector<opcua::scada::BrowseDescription> inputs) override;
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
+  Browse(opcua::ServiceContext context,
+         std::vector<opcua::BrowseDescription> inputs) override;
 
   opcua::Awaitable<
-      opcua::scada::StatusOr<std::vector<opcua::scada::BrowsePathResult>>>
+      opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
   TranslateBrowsePaths(
-      std::vector<opcua::scada::BrowsePath> inputs) override;
+      std::vector<opcua::BrowsePath> inputs) override;
 
  private:
   scada::ViewService& inner_;
 };
 
-class MethodServiceAdapter : public opcua::scada::MethodService {
+class MethodServiceAdapter : public opcua::MethodService {
  public:
   explicit MethodServiceAdapter(scada::MethodService& inner) : inner_{inner} {}
 
-  opcua::Awaitable<opcua::scada::Status> Call(
-      opcua::scada::NodeId node_id,
-      opcua::scada::NodeId method_id,
-      std::vector<opcua::scada::Variant> arguments,
-      opcua::scada::NodeId user_id) override;
+  opcua::Awaitable<opcua::Status> Call(
+      opcua::NodeId node_id,
+      opcua::NodeId method_id,
+      std::vector<opcua::Variant> arguments,
+      opcua::NodeId user_id) override;
 
  private:
   scada::MethodService& inner_;
 };
 
 class NodeManagementServiceAdapter
-    : public opcua::scada::NodeManagementService {
+    : public opcua::NodeManagementService {
  public:
   explicit NodeManagementServiceAdapter(scada::NodeManagementService& inner)
       : inner_{inner} {}
 
   opcua::Awaitable<
-      opcua::scada::StatusOr<std::vector<opcua::scada::AddNodesResult>>>
-  AddNodes(std::vector<opcua::scada::AddNodesItem> inputs) override;
+      opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
+  AddNodes(std::vector<opcua::AddNodesItem> inputs) override;
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
-  DeleteNodes(std::vector<opcua::scada::DeleteNodesItem> inputs) override;
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+  DeleteNodes(std::vector<opcua::DeleteNodesItem> inputs) override;
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
-  AddReferences(std::vector<opcua::scada::AddReferencesItem> inputs) override;
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+  AddReferences(std::vector<opcua::AddReferencesItem> inputs) override;
 
-  opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
   DeleteReferences(
-      std::vector<opcua::scada::DeleteReferencesItem> inputs) override;
+      std::vector<opcua::DeleteReferencesItem> inputs) override;
 
  private:
   scada::NodeManagementService& inner_;
 };
 
-class HistoryServiceAdapter : public opcua::scada::HistoryService {
+class HistoryServiceAdapter : public opcua::HistoryService {
  public:
   explicit HistoryServiceAdapter(scada::HistoryService& inner)
       : inner_{inner} {}
 
-  opcua::Awaitable<opcua::scada::HistoryReadRawResult> HistoryReadRaw(
-      opcua::scada::HistoryReadRawDetails details) override;
+  opcua::Awaitable<opcua::HistoryReadRawResult> HistoryReadRaw(
+      opcua::HistoryReadRawDetails details) override;
 
-  opcua::Awaitable<opcua::scada::HistoryReadEventsResult> HistoryReadEvents(
-      opcua::scada::NodeId node_id,
+  opcua::Awaitable<opcua::HistoryReadEventsResult> HistoryReadEvents(
+      opcua::NodeId node_id,
       opcua::base::Time from,
       opcua::base::Time to,
-      opcua::scada::EventFilter filter) override;
+      opcua::EventFilter filter) override;
 
  private:
   scada::HistoryService& inner_;
@@ -134,14 +134,14 @@ class MonitoredItemSubscriptionAdapter
   opcua::Awaitable<std::vector<opcua::scada::MonitoredItemCreateResult>> AddItems(
       std::vector<opcua::scada::MonitoredItemCreateRequest> requests) override;
 
-  opcua::Awaitable<std::vector<opcua::scada::Status>> RemoveItems(
+  opcua::Awaitable<std::vector<opcua::Status>> RemoveItems(
       std::span<const opcua::scada::MonitoredItemId> item_ids) override;
 
   opcua::Awaitable<
-      opcua::scada::StatusOr<std::vector<opcua::scada::MonitoredItemNotification>>>
+      opcua::StatusOr<std::vector<opcua::scada::MonitoredItemNotification>>>
   ReadNext(std::size_t max_count) override;
 
-  void Close(opcua::scada::Status status) override;
+  void Close(opcua::Status status) override;
 
  private:
   std::unique_ptr<scada::MonitoredItemSubscription> inner_;
@@ -152,9 +152,9 @@ class MonitoredItemServiceAdapter : public opcua::scada::MonitoredItemService {
   explicit MonitoredItemServiceAdapter(scada::MonitoredItemService& inner)
       : inner_{inner} {}
 
-  opcua::scada::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
+  opcua::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
   CreateSubscription(
-      opcua::scada::ServiceContext context,
+      opcua::ServiceContext context,
       opcua::scada::MonitoredItemSubscriptionOptions options) override;
 
  private:
@@ -163,15 +163,15 @@ class MonitoredItemServiceAdapter : public opcua::scada::MonitoredItemService {
 
 // Presents a core authenticator as the opcua interface the server session
 // manager consumes.
-class AuthenticatorAdapter : public opcua::scada::CoroutineAuthenticator {
+class AuthenticatorAdapter : public opcua::CoroutineAuthenticator {
  public:
   explicit AuthenticatorAdapter(
       std::shared_ptr<scada::CoroutineAuthenticator> inner)
       : inner_{std::move(inner)} {}
 
-  opcua::Awaitable<opcua::scada::StatusOr<opcua::scada::AuthenticationResult>>
-  Authenticate(opcua::scada::LocalizedText user_name,
-               opcua::scada::LocalizedText password) override;
+  opcua::Awaitable<opcua::StatusOr<opcua::AuthenticationResult>>
+  Authenticate(opcua::LocalizedText user_name,
+               opcua::LocalizedText password) override;
 
  private:
   std::shared_ptr<scada::CoroutineAuthenticator> inner_;

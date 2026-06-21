@@ -5,20 +5,20 @@
 namespace opcua_bridge {
 
 // --- AttributeService ---------------------------------------------------
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::DataValue>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
 AttributeServiceAdapter::Read(
-    opcua::scada::ServiceContext context,
-    std::shared_ptr<const std::vector<opcua::scada::ReadValueId>> inputs) {
+    opcua::ServiceContext context,
+    std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
   auto scada_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
       ToScadaVector(*inputs));
   auto result = co_await inner_.Read(ToScada(context), std::move(scada_inputs));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 AttributeServiceAdapter::Write(
-    opcua::scada::ServiceContext context,
-    std::shared_ptr<const std::vector<opcua::scada::WriteValue>> inputs) {
+    opcua::ServiceContext context,
+    std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
   auto scada_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       ToScadaVector(*inputs));
   auto result = co_await inner_.Write(ToScada(context), std::move(scada_inputs));
@@ -26,29 +26,29 @@ AttributeServiceAdapter::Write(
 }
 
 // --- ViewService --------------------------------------------------------
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::BrowseResult>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
 ViewServiceAdapter::Browse(
-    opcua::scada::ServiceContext context,
-    std::vector<opcua::scada::BrowseDescription> inputs) {
+    opcua::ServiceContext context,
+    std::vector<opcua::BrowseDescription> inputs) {
   auto result =
       co_await inner_.Browse(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 opcua::Awaitable<
-    opcua::scada::StatusOr<std::vector<opcua::scada::BrowsePathResult>>>
+    opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
 ViewServiceAdapter::TranslateBrowsePaths(
-    std::vector<opcua::scada::BrowsePath> inputs) {
+    std::vector<opcua::BrowsePath> inputs) {
   auto result = co_await inner_.TranslateBrowsePaths(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 // --- MethodService ------------------------------------------------------
-opcua::Awaitable<opcua::scada::Status> MethodServiceAdapter::Call(
-    opcua::scada::NodeId node_id,
-    opcua::scada::NodeId method_id,
-    std::vector<opcua::scada::Variant> arguments,
-    opcua::scada::NodeId user_id) {
+opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
+    opcua::NodeId node_id,
+    opcua::NodeId method_id,
+    std::vector<opcua::Variant> arguments,
+    opcua::NodeId user_id) {
   auto status = co_await inner_.Call(ToScada(node_id), ToScada(method_id),
                                      ToScadaVector(arguments), ToScada(user_id));
   co_return ToOpcua(status);
@@ -56,47 +56,47 @@ opcua::Awaitable<opcua::scada::Status> MethodServiceAdapter::Call(
 
 // --- NodeManagementService ---------------------------------------------
 opcua::Awaitable<
-    opcua::scada::StatusOr<std::vector<opcua::scada::AddNodesResult>>>
+    opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
 NodeManagementServiceAdapter::AddNodes(
-    std::vector<opcua::scada::AddNodesItem> inputs) {
+    std::vector<opcua::AddNodesItem> inputs) {
   auto result = co_await inner_.AddNodes(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteNodes(
-    std::vector<opcua::scada::DeleteNodesItem> inputs) {
+    std::vector<opcua::DeleteNodesItem> inputs) {
   auto result = co_await inner_.DeleteNodes(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::AddReferences(
-    std::vector<opcua::scada::AddReferencesItem> inputs) {
+    std::vector<opcua::AddReferencesItem> inputs) {
   auto result = co_await inner_.AddReferences(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::scada::StatusOr<std::vector<opcua::scada::StatusCode>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteReferences(
-    std::vector<opcua::scada::DeleteReferencesItem> inputs) {
+    std::vector<opcua::DeleteReferencesItem> inputs) {
   auto result = co_await inner_.DeleteReferences(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 // --- HistoryService -----------------------------------------------------
-opcua::Awaitable<opcua::scada::HistoryReadRawResult>
+opcua::Awaitable<opcua::HistoryReadRawResult>
 HistoryServiceAdapter::HistoryReadRaw(
-    opcua::scada::HistoryReadRawDetails details) {
+    opcua::HistoryReadRawDetails details) {
   auto result = co_await inner_.HistoryReadRaw(ToScada(details));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::scada::HistoryReadEventsResult>
-HistoryServiceAdapter::HistoryReadEvents(opcua::scada::NodeId node_id,
+opcua::Awaitable<opcua::HistoryReadEventsResult>
+HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
                                          opcua::base::Time from,
                                          opcua::base::Time to,
-                                         opcua::scada::EventFilter filter) {
+                                         opcua::EventFilter filter) {
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
   co_return ToOpcua(result);
@@ -110,7 +110,7 @@ MonitoredItemSubscriptionAdapter::AddItems(
   co_return ToOpcuaVector(results);
 }
 
-opcua::Awaitable<std::vector<opcua::scada::Status>>
+opcua::Awaitable<std::vector<opcua::Status>>
 MonitoredItemSubscriptionAdapter::RemoveItems(
     std::span<const opcua::scada::MonitoredItemId> item_ids) {
   // MonitoredItemId is std::uint32_t on both sides.
@@ -119,20 +119,20 @@ MonitoredItemSubscriptionAdapter::RemoveItems(
 }
 
 opcua::Awaitable<
-    opcua::scada::StatusOr<std::vector<opcua::scada::MonitoredItemNotification>>>
+    opcua::StatusOr<std::vector<opcua::scada::MonitoredItemNotification>>>
 MonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
   co_return ToOpcua(result);
 }
 
-void MonitoredItemSubscriptionAdapter::Close(opcua::scada::Status status) {
+void MonitoredItemSubscriptionAdapter::Close(opcua::Status status) {
   inner_->Close(ToScada(status));
 }
 
 // --- MonitoredItemService ----------------------------------------------
-opcua::scada::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
+opcua::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
 MonitoredItemServiceAdapter::CreateSubscription(
-    opcua::scada::ServiceContext context,
+    opcua::ServiceContext context,
     opcua::scada::MonitoredItemSubscriptionOptions options) {
   auto result =
       inner_.CreateSubscription(ToScada(context), ToScada(options));
@@ -143,9 +143,9 @@ MonitoredItemServiceAdapter::CreateSubscription(
 }
 
 // --- Authenticator ------------------------------------------------------
-opcua::Awaitable<opcua::scada::StatusOr<opcua::scada::AuthenticationResult>>
-AuthenticatorAdapter::Authenticate(opcua::scada::LocalizedText user_name,
-                                   opcua::scada::LocalizedText password) {
+opcua::Awaitable<opcua::StatusOr<opcua::AuthenticationResult>>
+AuthenticatorAdapter::Authenticate(opcua::LocalizedText user_name,
+                                   opcua::LocalizedText password) {
   // LocalizedText is std::u16string on both sides.
   auto result = co_await inner_->Authenticate(user_name, password);
   if (!result.ok())

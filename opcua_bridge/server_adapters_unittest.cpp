@@ -39,19 +39,19 @@ TEST(ServerAdapterTest, ViewServiceBrowseDelegatesAndConverts) {
   ViewServiceAdapter adapter{fake};
 
   boost::asio::io_context io;
-  std::optional<opcua::scada::StatusOr<std::vector<opcua::scada::BrowseResult>>>
+  std::optional<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
       result;
 
   // Call the adapter through its opcua interface with opcua-typed input.
-  std::vector<opcua::scada::BrowseDescription> inputs;
-  inputs.push_back(opcua::scada::BrowseDescription{
-      .node_id = opcua::scada::NodeId{84u},
-      .direction = opcua::scada::BrowseDirection::Forward});
+  std::vector<opcua::BrowseDescription> inputs;
+  inputs.push_back(opcua::BrowseDescription{
+      .node_id = opcua::NodeId{84u},
+      .direction = opcua::BrowseDirection::Forward});
 
   boost::asio::co_spawn(
       io,
       [&]() -> opcua::Awaitable<void> {
-        result = co_await adapter.Browse(opcua::scada::ServiceContext{}, inputs);
+        result = co_await adapter.Browse(opcua::ServiceContext{}, inputs);
       },
       boost::asio::detached);
   io.run();
@@ -66,9 +66,9 @@ TEST(ServerAdapterTest, ViewServiceBrowseDelegatesAndConverts) {
   ASSERT_TRUE(result->ok());
   ASSERT_EQ((*result)->size(), 1u);
   const auto& browse_result = (**result)[0];
-  EXPECT_EQ(browse_result.status_code, opcua::scada::StatusCode::Good);
+  EXPECT_EQ(browse_result.status_code, opcua::StatusCode::Good);
   ASSERT_EQ(browse_result.references.size(), 1u);
-  EXPECT_EQ(browse_result.references[0].node_id, opcua::scada::NodeId{2253u});
+  EXPECT_EQ(browse_result.references[0].node_id, opcua::NodeId{2253u});
 }
 
 }  // namespace
