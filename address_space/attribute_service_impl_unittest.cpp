@@ -56,6 +56,34 @@ TEST(AttributeServiceImpl, CoroutineWriteReturnsSyncResults) {
   EXPECT_EQ(results[0], scada::StatusCode::Bad_WrongNodeId);
 }
 
+TEST(AttributeServiceImpl, ReadsMandatoryVariableAttributes) {
+  TestAddressSpace address_space;
+
+  const std::vector<scada::ReadValueId> inputs{
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::ValueRank},
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::AccessLevel},
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::UserAccessLevel},
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::Historizing},
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::MinimumSamplingInterval}};
+
+  const auto results = address_space.sync_attribute_service_impl.Read(
+      scada::ServiceContext{}, inputs);
+
+  ASSERT_EQ(results.size(), 5u);
+  for (const auto& result : results)
+    EXPECT_EQ(result.status_code, scada::StatusCode::Good);
+  EXPECT_EQ(results[0].value, scada::Variant{scada::Int32{-1}});
+  EXPECT_EQ(results[1].value, scada::Variant{scada::UInt8{0x01}});
+  EXPECT_EQ(results[2].value, scada::Variant{scada::UInt8{0x01}});
+  EXPECT_EQ(results[3].value, scada::Variant{false});
+  EXPECT_EQ(results[4].value, scada::Variant{0.0});
+}
+
 TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {
   TestAddressSpace address_space;
 

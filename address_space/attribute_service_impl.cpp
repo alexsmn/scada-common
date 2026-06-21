@@ -91,6 +91,21 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
         return scada::MakeReadResult(variable->GetDataType().id());
       case scada::AttributeId::Value:
         return variable->GetValue();
+      // Mandatory VariableNode attributes (OPC UA Part 3 §5.6.2,
+      // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.6.2). The
+      // node model does not carry these, so return conformant defaults: a
+      // scalar ValueRank, current-read access (OPC UA Write is not supported),
+      // no historizing, and no minimum sampling interval. Clients (and the CTT)
+      // require these to be readable rather than Bad_AttributeIdInvalid.
+      case scada::AttributeId::ValueRank:
+        return scada::MakeReadResult(scada::Int32{-1});  // Scalar
+      case scada::AttributeId::AccessLevel:
+      case scada::AttributeId::UserAccessLevel:
+        return scada::MakeReadResult(scada::UInt8{0x01});  // CurrentRead
+      case scada::AttributeId::Historizing:
+        return scada::MakeReadResult(false);
+      case scada::AttributeId::MinimumSamplingInterval:
+        return scada::MakeReadResult(0.0);
     }
   }
 
