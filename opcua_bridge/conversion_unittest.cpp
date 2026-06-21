@@ -38,6 +38,32 @@ TEST(ConversionTest, StatusAndCode) {
   ExpectRoundTrip(scada::Status{scada::StatusCode::Bad_WrongLoginCredentials});
 }
 
+// The boundary translates SCADA-internal status codes to the standard OPC UA
+// StatusCode values that opcuapp puts on the wire (Opc.Ua.StatusCodes.csv).
+TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
+  const auto wire = [](scada::StatusCode code) {
+    return opcua::scada::Status{ToOpcua(code)}.full_code();
+  };
+  EXPECT_EQ(wire(scada::StatusCode::Bad_NothingToDo), 0x800F0000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TooManyOperations), 0x80100000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongNodeId), 0x80340000u);  // NodeIdUnknown
+  EXPECT_EQ(wire(scada::StatusCode::Bad_ViewIdUnknown), 0x806B0000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TimestampsToReturnInvalid), 0x802B0000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_NoSubscription), 0x80790000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_HistoryOperationInvalid), 0x80710000u);
+  // Good is unchanged.
+  EXPECT_EQ(wire(scada::StatusCode::Good), 0x00000000u);
+
+  // Every mapped code round-trips back to the original core code.
+  for (const auto code : {scada::StatusCode::Bad_NothingToDo,
+                          scada::StatusCode::Bad_ViewIdUnknown,
+                          scada::StatusCode::Bad_NoSubscription,
+                          scada::StatusCode::Bad_WrongSubscriptionId,
+                          scada::StatusCode::Bad_Disconnected}) {
+    EXPECT_EQ(ToScada(ToOpcua(code)), code);
+  }
+}
+
 TEST(ConversionTest, DateTime) {
   ExpectRoundTrip(base::Time::FromInternalValue(123456789));
   ExpectRoundTrip(base::Time{});

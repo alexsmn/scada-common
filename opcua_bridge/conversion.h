@@ -31,20 +31,97 @@
 
 namespace opcua_bridge {
 
-// --- enums (identical underlying values) --------------------------------
+// --- enums --------------------------------------------------------------
+// Core uses SCADA-internal StatusCode values; opcuapp uses the standard OPC UA
+// StatusCode values that go on the wire. The two enums share enumerator names,
+// so the boundary maps the codes whose values differ (all others still share a
+// value and fall through to a direct cast).
 inline opcua::scada::StatusCode ToOpcua(scada::StatusCode c) {
-  return static_cast<opcua::scada::StatusCode>(c);
+  switch (c) {
+#define MAP(name) \
+  case scada::StatusCode::name:                \
+    return opcua::scada::StatusCode::name;
+    MAP(Bad_WrongLoginCredentials)
+    MAP(Bad_WrongNodeId)
+    MAP(Bad_Timeout)
+    MAP(Bad_CantDeleteDependentNode)
+    MAP(Bad_WrongMethodId)
+    MAP(Bad_UnsupportedFileVersion)
+    MAP(Bad_WrongTypeId)
+    MAP(Bad_SessionIsLoggedOff)
+    MAP(Bad_WrongSubscriptionId)
+    MAP(Bad_WrongIndex)
+    MAP(Bad_WrongCallArguments)
+    MAP(Bad_WrongNodeClass)
+    MAP(Bad_WrongAttributeId)
+    MAP(Bad_NothingToDo)
+    MAP(Bad_BrowseNameInvalid)
+    MAP(Bad_MonitoredItemIdInvalid)
+    MAP(Bad_MessageNotAvailable)
+    MAP(Bad_ApplicationSignatureInvalid)
+    MAP(Bad_TooManyOperations)
+    MAP(Bad_TooManyMonitoredItems)
+    MAP(Bad_SequenceNumberUnknown)
+    MAP(Bad_NoContinuationPoints)
+    MAP(Bad_TimestampsToReturnInvalid)
+    MAP(Bad_ViewIdUnknown)
+    MAP(Bad_HistoryOperationInvalid)
+    MAP(Bad_NoSubscription)
+#undef MAP
+    default:
+      return static_cast<opcua::scada::StatusCode>(c);
+  }
 }
 inline scada::StatusCode ToScada(opcua::scada::StatusCode c) {
-  return static_cast<scada::StatusCode>(c);
+  switch (c) {
+#define MAP(name) \
+  case opcua::scada::StatusCode::name:         \
+    return scada::StatusCode::name;
+    MAP(Bad_WrongLoginCredentials)
+    MAP(Bad_WrongNodeId)
+    MAP(Bad_Timeout)
+    MAP(Bad_CantDeleteDependentNode)
+    MAP(Bad_WrongMethodId)
+    MAP(Bad_UnsupportedFileVersion)
+    MAP(Bad_WrongTypeId)
+    MAP(Bad_SessionIsLoggedOff)
+    MAP(Bad_WrongSubscriptionId)
+    MAP(Bad_WrongIndex)
+    MAP(Bad_WrongCallArguments)
+    MAP(Bad_WrongNodeClass)
+    MAP(Bad_WrongAttributeId)
+    MAP(Bad_NothingToDo)
+    MAP(Bad_BrowseNameInvalid)
+    MAP(Bad_MonitoredItemIdInvalid)
+    MAP(Bad_MessageNotAvailable)
+    MAP(Bad_ApplicationSignatureInvalid)
+    MAP(Bad_TooManyOperations)
+    MAP(Bad_TooManyMonitoredItems)
+    MAP(Bad_SequenceNumberUnknown)
+    MAP(Bad_NoContinuationPoints)
+    MAP(Bad_TimestampsToReturnInvalid)
+    MAP(Bad_ViewIdUnknown)
+    MAP(Bad_HistoryOperationInvalid)
+    MAP(Bad_NoSubscription)
+#undef MAP
+    default:
+      return static_cast<scada::StatusCode>(c);
+  }
 }
 
 // --- Status -------------------------------------------------------------
+// Preserve only the severity/subcode (mapped) and the limit info bits, which is
+// all the codebase models.
 inline opcua::scada::Status ToOpcua(scada::Status s) {
-  return opcua::scada::Status::FromFullCode(s.full_code());
+  opcua::scada::Status result{ToOpcua(s.code())};
+  result.set_limit(
+      static_cast<opcua::scada::StatusLimit>(static_cast<int>(s.limit())));
+  return result;
 }
 inline scada::Status ToScada(opcua::scada::Status s) {
-  return scada::Status::FromFullCode(s.full_code());
+  scada::Status result{ToScada(s.code())};
+  result.set_limit(static_cast<scada::StatusLimit>(static_cast<int>(s.limit())));
+  return result;
 }
 
 // --- DateTime (base::Time vs opcua::base::Time) -------------------------
