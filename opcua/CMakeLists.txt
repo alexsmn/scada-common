@@ -1,43 +1,22 @@
-find_package(OpenSSL REQUIRED)
+# The in-tree OPC UA native stack has been extracted to the standalone opcuapp
+# repo (third_party/opcuapp). `scada_core_opcua` and `scada_common_opcua_ws` are
+# now thin shims that expose opcuapp plus the scada<->opcua boundary adapter
+# (scada_opcua_bridge), so existing consumers keep linking the same target names.
+find_package(opcuapp REQUIRED)
 
-scada_module(scada_core_opcua)
-add_subdirectory(binary)
-
-target_precompile_headers(scada_core_opcua REUSE_FROM scada_base)
-
-target_include_directories(scada_core_opcua PUBLIC "..")
-
-target_link_libraries(scada_core_opcua PUBLIC
-  scada_core
-  transport
+add_library(scada_core_opcua INTERFACE)
+# opcuapp's include directory must precede everything so `#include "opcua/..."`
+# resolves to opcuapp (this directory no longer ships those headers).
+target_include_directories(scada_core_opcua BEFORE INTERFACE
+  $<TARGET_PROPERTY:opcuapp,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(scada_core_opcua INTERFACE
+  opcuapp::opcuapp
+  scada_opcua_bridge
 )
 
-# The Basic256Sha256 crypto helper under binary/ is the only
-# consumer of OpenSSL in this module; keep the link private.
-target_link_libraries(scada_core_opcua PRIVATE
-  OpenSSL::SSL
-  OpenSSL::Crypto
-)
-
-if(MSVC)
-  target_compile_options(scada_core_opcua PRIVATE
-    /wd4702 # unreachable code in generated codec visitors
-  )
-endif()
-
-if(TARGET scada_core_opcua_unittests)
-  # crypto_unittest.cpp generates its RSA test fixtures via
-  # OpenSSL directly.
-  target_link_libraries(scada_core_opcua_unittests PRIVATE
-    OpenSSL::SSL
-    OpenSSL::Crypto
-  )
-endif()
-
-# scada_core_opcua_client is retained as an alias for backwards compatibility
-# with downstream CMakeLists that still target it directly. It now forwards
-# to scada_core_opcua (which already ships the outbound-client session /
-# subscription / monitored-item / factory translation units) and no longer
-# pulls in the external opcuapp dependency.
+# Backwards-compatible aliases for downstream targets that linked the old names.
 add_library(scada_core_opcua_client INTERFACE)
 target_link_libraries(scada_core_opcua_client INTERFACE scada_core_opcua)
+
+add_library(scada_common_opcua_ws INTERFACE)
+target_link_libraries(scada_common_opcua_ws INTERFACE scada_core_opcua)

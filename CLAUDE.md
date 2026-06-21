@@ -50,7 +50,8 @@ address_space  scada_common ◄──────┘
 | `node_service/v2/` | `node_service_v2` | Alternative implementation |
 | `node_service/v3/` | `node_service_v3` | Alternative implementation |
 | `node_service/proxy/` | `node_service_proxy` | Proxy/forwarding pattern |
-| `opcua/` | `scada_core_opcua` | OPC UA type conversions, server/session/subscription wrappers (requires OPCUAPP) |
+| `opcua/` | `scada_core_opcua` | Shim: INTERFACE target linking `opcuapp::opcuapp` + `scada_opcua_bridge` (the native OPC UA stack now lives in `third_party/opcuapp`; requires `find_package(opcuapp)`) |
+| `opcua_bridge/` | `scada_opcua_bridge` | Boundary adapter converting between core `scada::` types and opcuapp's `opcua::scada::` types (server + client service adapters) |
 | `timed_data/` | `timed_data` | Time-series data with views, aliases, and computed expressions |
 | `opc/` | `scada_common_opc` | Classic COM-based OPC conversions (Windows only) |
 | `vidicon/` | `scada_common_vidicon` | Vidicon telemetry integration (Windows only) |
