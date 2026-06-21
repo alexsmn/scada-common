@@ -2,6 +2,11 @@
 
 #include "opcua_bridge/vector_conversion.h"
 
+#include "scada/event_util.h"
+
+#include "opcua/scada/event_util.h"
+
+#include <any>
 #include <variant>
 
 namespace opcua_bridge {
@@ -497,53 +502,37 @@ scada::MonitoredItemCreateResult ToScada(
   return {.item_id = v.monitored_item_id, .status = ToScada(v.status)};
 }
 
-opcua::scada::MonitoredItemNotification ToOpcua(
-    const scada::MonitoredItemNotification& n) {
-  return std::visit(
-      [](const auto& x) -> opcua::scada::MonitoredItemNotification {
-        using T = std::decay_t<decltype(x)>;
-        if constexpr (std::is_same_v<T, scada::DataChangeNotification>)
-          return opcua::scada::DataChangeNotification{
-              .item_id = x.item_id,
-              .client_handle = x.client_handle,
-              .value = ToOpcua(x.value)};
-        else if constexpr (std::is_same_v<T, scada::EventNotification>)
-          // The event payload is a std::any that cannot cross the boundary by
-          // value; the field is left empty (see ExtensionObject note).
-          return opcua::scada::EventNotification{.item_id = x.item_id,
-                                                 .client_handle = x.client_handle,
-                                                 .status = ToOpcua(x.status),
-                                                 .event = {}};
-        else if constexpr (std::is_same_v<T, scada::ItemStatusNotification>)
-          return opcua::scada::ItemStatusNotification{
-              .item_id = x.item_id,
-              .client_handle = x.client_handle,
-              .status = ToOpcua(x.status)};
-        else
-          return opcua::scada::OverflowNotification{.status = ToOpcua(x.status)};
-      },
-      n);
-}
 scada::MonitoredItemNotification ToScada(
-    const opcua::scada::MonitoredItemNotification& n) {
+    const opcua::scada::ItemNotification& n) {
+  // The wire notification is one of two standard types. A MonitoredItemNotification
+  // (client_handle + DataValue) maps to a core DataChangeNotification. An
+  // EventFieldList (client_handle + projected event fields) maps to a core
+  // EventNotification; the std::any payload is reassembled from the event fields
+  // via the core AssembleEvent. Consumers correlate by client_handle.
   return std::visit(
       [](const auto& x) -> scada::MonitoredItemNotification {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (std::is_same_v<T, opcua::scada::DataChangeNotification>)
-          return scada::DataChangeNotification{.item_id = x.item_id,
+        if constexpr (std::is_same_v<T, opcua::scada::MonitoredItemNotification>) {
+          return scada::DataChangeNotification{.item_id = 0,
                                                .client_handle = x.client_handle,
                                                .value = ToScada(x.value)};
-        else if constexpr (std::is_same_v<T, opcua::scada::EventNotification>)
-          return scada::EventNotification{.item_id = x.item_id,
+        } else {  // opcua::scada::EventFieldList
+          // Reassemble the core event std::any from the wire event fields.
+          // AssembleEvent expects the full DisassembleEvent field layout
+          // (event_type_id at index 0, 13 fields); only reassemble when the
+          // wire carries that full layout. Projected select-clause subsets
+          // (e.g. the 7 default fields) cannot be losslessly reassembled, so the
+          // payload is left empty and only the client_handle/status survive.
+          constexpr std::size_t kFullEventFieldCount = 13;
+          std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
+          std::any event = fields.size() >= kFullEventFieldCount
+                               ? scada::AssembleEvent(fields)
+                               : std::any{};
+          return scada::EventNotification{.item_id = 0,
                                           .client_handle = x.client_handle,
-                                          .status = ToScada(x.status),
-                                          .event = {}};
-        else if constexpr (std::is_same_v<T, opcua::scada::ItemStatusNotification>)
-          return scada::ItemStatusNotification{.item_id = x.item_id,
-                                               .client_handle = x.client_handle,
-                                               .status = ToScada(x.status)};
-        else
-          return scada::OverflowNotification{.status = ToScada(x.status)};
+                                          .status = scada::StatusCode::Good,
+                                          .event = std::move(event)};
+        }
       },
       n);
 }

@@ -25,8 +25,11 @@
 #include "opcua/scada/node_management_service.h"
 #include "opcua/scada/view_service.h"
 
+#include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace opcua_bridge {
@@ -123,7 +126,11 @@ class HistoryServiceAdapter : public opcua::HistoryService {
   scada::HistoryService& inner_;
 };
 
-// Wraps an inner core MonitoredItemSubscription as the opcua interface.
+// Wraps an inner core MonitoredItemSubscription as the opcua interface. Event
+// notifications cross the boundary as the standard wire `EventFieldList`; this
+// adapter projects each core event onto the monitored item's EventFilter select
+// clauses, so it stores the parsed field paths per client_handle as items are
+// added.
 class MonitoredItemSubscriptionAdapter
     : public opcua::scada::MonitoredItemSubscription {
  public:
@@ -138,13 +145,24 @@ class MonitoredItemSubscriptionAdapter
       std::span<const opcua::scada::MonitoredItemId> item_ids) override;
 
   opcua::Awaitable<
-      opcua::StatusOr<std::vector<opcua::scada::MonitoredItemNotification>>>
+      opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
   ReadNext(std::size_t max_count) override;
 
   void Close(opcua::Status status) override;
 
  private:
+  // Converts a single core notification to its standard wire form, projecting
+  // core events onto the per-item EventFilter select clauses stored in
+  // `field_paths_by_handle_`.
+  opcua::scada::ItemNotification ToItemNotification(
+      const scada::MonitoredItemNotification& notification) const;
+
   std::unique_ptr<scada::MonitoredItemSubscription> inner_;
+  // Event-field select-clause paths parsed from each item's wire filter, keyed
+  // by client_handle. Populated in AddItems; consumed in ReadNext to project
+  // events into EventFieldList.
+  std::unordered_map<std::uint32_t, std::vector<std::vector<std::string>>>
+      field_paths_by_handle_;
 };
 
 class MonitoredItemServiceAdapter : public opcua::scada::MonitoredItemService {

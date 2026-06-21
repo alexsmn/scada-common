@@ -178,10 +178,13 @@ opcua::MonitoredItemCreateResult ToOpcua(
 scada::MonitoredItemCreateResult ToScada(
     const opcua::MonitoredItemCreateResult&);
 
-opcua::scada::MonitoredItemNotification ToOpcua(
-    const scada::MonitoredItemNotification&);
+// Maps a wire notification (data-change or projected event) back to a core
+// notification. A wire MonitoredItemNotification becomes a core
+// DataChangeNotification; a wire EventFieldList becomes a core EventNotification
+// whose std::any payload is reassembled from the event fields. Consumers
+// correlate by client_handle.
 scada::MonitoredItemNotification ToScada(
-    const opcua::scada::MonitoredItemNotification&);
+    const opcua::scada::ItemNotification&);
 
 opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
 scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails&);
