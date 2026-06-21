@@ -119,6 +119,10 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
     for (const auto& ref : scada::FilterReferences(
              node.forward_references(), description.reference_type_id,
              description.include_subtypes)) {
+      // Skip references to targets not present in the address space rather than
+      // dereferencing a null node.
+      if (!ref.node)
+        continue;
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
       if (!matches_node_class(ref.node->GetNodeClass()))
@@ -133,6 +137,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
     for (const auto& ref : scada::FilterReferences(
              node.inverse_references(), description.reference_type_id,
              description.include_subtypes)) {
+      if (!ref.node)
+        continue;
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
       if (!matches_node_class(ref.node->GetNodeClass()))

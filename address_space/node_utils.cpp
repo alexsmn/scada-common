@@ -243,6 +243,12 @@ Reference FindReference(const Node& node,
 }
 
 bool IsRefSubtypeOf::operator()(const Reference& ref) const {
+  // A reference whose type node is not present in the address space cannot be
+  // classified, so it never matches a reference-type filter. Guarding here keeps
+  // Browse from dereferencing a null type node on a partially populated address
+  // space rather than crashing.
+  if (!ref.type)
+    return false;
   if (include_subtypes_)
     return IsSubtypeOf(*ref.type, reference_type_id_);
   else
@@ -250,6 +256,8 @@ bool IsRefSubtypeOf::operator()(const Reference& ref) const {
 }
 
 bool IsNonPropReference::operator()(const Reference& ref) const {
+  if (!ref.type)
+    return false;
   return !IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
 }
 

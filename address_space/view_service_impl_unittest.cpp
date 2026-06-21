@@ -1,9 +1,11 @@
 #include "view_service_impl.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/address_space_type_system.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
+#include "address_space/standard_address_space.h"
 #include "address_space/test/test_address_space.h"
 #include "base/test/awaitable_test.h"
 #include "model/namespaces.h"
@@ -99,19 +101,35 @@ struct TestContext {
         address_space.AddStaticNode(std::make_unique<VirtualObject>(kObjectId));
     object.SetBrowseName(NodeIdToScadaString(kObjectId));
     object.items = kItems;
+    object_ = &object;
     scada::AddReference(address_space, scada::id::HasTypeDefinition, kObjectId,
                         scada::id::BaseObjectType);
 
     auto& child =
         address_space.AddStaticNode(std::make_unique<VirtualObject>(kChildId));
     child.SetBrowseName(NodeIdToScadaString(kChildId));
+    child_ = &child;
     scada::AddReference(address_space, scada::id::HasTypeDefinition, kChildId,
                         scada::id::BaseObjectType);
     scada::AddReference(address_space, scada::id::HasComponent, kObjectId,
                         kChildId);
   }
 
+  ~TestContext() {
+    // AddressSpaceImpl::Clear() only tears down dynamically created nodes, not
+    // AddStaticNode'd ones, so the static nodes' references must be removed here
+    // — while StandardAddressSpace's reference-type / base-type nodes are still
+    // alive — to avoid dangling pointers during member destruction.
+    scada::DeleteAllReferences(address_space, *child_);
+    scada::DeleteAllReferences(address_space, *object_);
+  }
+
   AddressSpaceImpl address_space;
+  // Populate the standard reference-type / base-type hierarchy so reference
+  // subtype filtering during Browse resolves (a bare address space would have
+  // unresolved reference types).
+  StandardAddressSpace standard_address_space{address_space};
+  AddressSpaceTypeSystem type_system{address_space};
   SyncViewServiceImpl sync_view_service{{address_space}};
   ViewServiceImpl view_service{sync_view_service};
 
@@ -120,6 +138,9 @@ struct TestContext {
   const scada::NodeId kChildId{43, NamespaceIndexes::TS};
 
   const std::vector<std::string> kItems{"Item1", "Item2", "Item3"};
+
+  VirtualObject* object_ = nullptr;
+  VirtualObject* child_ = nullptr;
 };
 
 }  // namespace
@@ -142,7 +163,7 @@ context.kItems[0]), scada::AttributeId::BrowseName},
   EXPECT_TRUE(called);
 }*/
 
-TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
+TEST(ViewServiceImpl, BrowseParentChildren) {
   TestContext context;
   TestExecutor executor;
   ASSERT_OK_AND_ASSIGN(
@@ -156,9 +177,13 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
   ASSERT_EQ(static_cast<size_t>(1), results.size());
   auto& result = results.front();
   ASSERT_TRUE(scada::Status{result.status_code});
-  auto& references = result.references;
-  // Child + Items
-  ASSERT_EQ(1 + context.kItems.size(), references.size());
+  // The hierarchical (HasComponent) child is returned; the non-hierarchical
+  // HasTypeDefinition reference is excluded by the reference-type filter.
+  ASSERT_EQ(result.references.size(), 1u);
+  EXPECT_EQ(result.references[0].node_id, context.kChildId);
+  EXPECT_TRUE(result.references[0].forward);
+  EXPECT_EQ(result.references[0].reference_type_id,
+            scada::NodeId{scada::id::HasComponent});
 }
 
 TEST(ViewServiceImpl, BrowseAppliesNodeClassMask) {
@@ -255,7 +280,7 @@ TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
             address_space.kTestNode1Id);
 }
 
-TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
+TEST(ViewServiceImpl, BrowseChildParent) {
   TestContext context;
   TestExecutor executor;
   ASSERT_OK_AND_ASSIGN(
@@ -263,15 +288,16 @@ TEST(ViewServiceImpl, DISABLED_BrowseChildParent) {
       WaitAwaitable(executor,
                     context.view_service.Browse(
                         scada::ServiceContext{},
-                        {{MakeNestedNodeId(context.kObjectId, context.kItems[0]),
-                          scada::BrowseDirection::Inverse,
+                        {{context.kChildId, scada::BrowseDirection::Inverse,
                           scada::id::HierarchicalReferences, true}})));
   ASSERT_EQ(static_cast<size_t>(1), results.size());
   auto& result = results.front();
   ASSERT_TRUE(scada::Status{result.status_code});
-  auto& references = result.references;
-  // Parent
-  ASSERT_EQ(static_cast<size_t>(1), references.size());
-  auto& reference = references[0];
-  EXPECT_EQ(scada::NodeId{scada::id::Organizes}, reference.reference_type_id);
+  // The inverse HasComponent reference points back to the parent.
+  ASSERT_EQ(result.references.size(), 1u);
+  auto& reference = result.references[0];
+  EXPECT_EQ(reference.node_id, context.kObjectId);
+  EXPECT_FALSE(reference.forward);
+  EXPECT_EQ(reference.reference_type_id,
+            scada::NodeId{scada::id::HasComponent});
 }
