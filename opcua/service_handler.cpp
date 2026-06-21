@@ -213,6 +213,16 @@ Awaitable<ServiceResponse> ServiceHandler::HandleCall(
 
 Awaitable<ServiceResponse> ServiceHandler::HandleHistoryReadRaw(
     HistoryReadRawRequest request) const {
+  // OPC UA Part 11 §6.4.3 ReadRawModifiedDetails: a raw read must bound the data
+  // by a time range or continue an existing read; with neither a start nor end
+  // time and no continuation point the details are invalid.
+  // https://reference.opcfoundation.org/Core/Part11/v105/docs/6.4.3
+  if (request.details.from.is_null() && request.details.to.is_null() &&
+      request.details.continuation_point.empty() &&
+      !request.details.release_continuation_point) {
+    co_return ServiceResponse{HistoryReadRawResponse{scada::HistoryReadRawResult{
+        .status = scada::StatusCode::Bad_HistoryOperationInvalid}}};
+  }
   auto result = co_await history_service.HistoryReadRaw(
       std::move(request.details));
   co_return ServiceResponse{HistoryReadRawResponse{std::move(result)}};

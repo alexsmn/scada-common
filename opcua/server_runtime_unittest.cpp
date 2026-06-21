@@ -198,6 +198,10 @@ TEST_F(ServerRuntimeTest,
   test::ExpectHistoryReadRawPreservesPayloadThroughActivatedSession(*this);
 }
 
+TEST_F(ServerRuntimeTest, HistoryReadRawRejectsInvalidTimeRange) {
+  test::ExpectHistoryReadRawRejectsInvalidTimeRange(*this);
+}
+
 TEST_F(ServerRuntimeTest, RejectsHistoryReadEventsWithoutActivatedSession) {
   test::ExpectRejectsHistoryReadEventsWithoutActivatedSession(*this);
 }
