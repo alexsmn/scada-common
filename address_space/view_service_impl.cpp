@@ -105,6 +105,15 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
   scada::BrowseResult result;
   result.status_code = scada::StatusCode::Good;
 
+  // OPC UA Part 4 §7.3: nodeClassMask filters returned references by the target
+  // node's NodeClass (0 = any).
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.3
+  const auto matches_node_class = [&](scada::NodeClass node_class) {
+    return description.node_class_mask == 0 ||
+           (description.node_class_mask &
+            static_cast<scada::UInt32>(node_class)) != 0;
+  };
+
   if (description.direction == scada::BrowseDirection::Forward ||
       description.direction == scada::BrowseDirection::Both) {
     for (const auto& ref : scada::FilterReferences(
@@ -112,6 +121,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
              description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
+      if (!matches_node_class(ref.node->GetNodeClass()))
+        continue;
       result.references.push_back({ref.type->id(), true, ref.node->id(),
                                    ref.node->GetNodeClass()});
     }
@@ -124,6 +135,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
              description.include_subtypes)) {
       assert(!ref.type->id().is_null());
       assert(!ref.node->id().is_null());
+      if (!matches_node_class(ref.node->GetNodeClass()))
+        continue;
       result.references.push_back({ref.type->id(), false, ref.node->id(),
                                    ref.node->GetNodeClass()});
     }

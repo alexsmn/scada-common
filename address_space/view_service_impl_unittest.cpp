@@ -161,6 +161,51 @@ TEST(ViewServiceImpl, DISABLED_BrowseParentChildren) {
   ASSERT_EQ(1 + context.kItems.size(), references.size());
 }
 
+TEST(ViewServiceImpl, BrowseAppliesNodeClassMask) {
+  TestAddressSpace address_space;
+  TestExecutor executor;
+
+  const auto browse = [&](scada::UInt32 node_class_mask) {
+    return WaitAwaitable(
+        executor,
+        address_space.view_service_impl.Browse(
+            scada::ServiceContext{},
+            {{.node_id = scada::id::RootFolder,
+              .direction = scada::BrowseDirection::Forward,
+              .reference_type_id = scada::id::HierarchicalReferences,
+              .include_subtypes = true,
+              .node_class_mask = node_class_mask}}));
+  };
+
+  // No mask: the Object node TestNode1 is among the children.
+  ASSERT_OK_AND_ASSIGN(const auto all, browse(0));
+  ASSERT_EQ(all.size(), 1u);
+  EXPECT_THAT(all[0].references,
+              testing::Contains(testing::Field(
+                  &scada::ReferenceDescription::node_id,
+                  address_space.kTestNode1Id)));
+
+  // Object mask keeps the Object node.
+  ASSERT_OK_AND_ASSIGN(
+      const auto objects,
+      browse(static_cast<scada::UInt32>(scada::NodeClass::Object)));
+  ASSERT_EQ(objects.size(), 1u);
+  EXPECT_THAT(objects[0].references,
+              testing::Contains(testing::Field(
+                  &scada::ReferenceDescription::node_id,
+                  address_space.kTestNode1Id)));
+
+  // Variable mask filters out the (Object-class) children.
+  ASSERT_OK_AND_ASSIGN(
+      const auto variables,
+      browse(static_cast<scada::UInt32>(scada::NodeClass::Variable)));
+  ASSERT_EQ(variables.size(), 1u);
+  EXPECT_THAT(variables[0].references,
+              testing::Not(testing::Contains(testing::Field(
+                  &scada::ReferenceDescription::node_id,
+                  address_space.kTestNode1Id))));
+}
+
 TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
   TestAddressSpace address_space;
   TestExecutor executor;
