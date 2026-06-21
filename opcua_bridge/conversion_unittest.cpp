@@ -119,5 +119,35 @@ TEST(ConversionTest, DataValue) {
   ExpectRoundTrip(dv);
 }
 
+// The wire MonitoringFilter has no typed event/aggregate slot, so the bridge
+// serializes core event/aggregate filters to a self-describing json blob and
+// back. These round-trips guard that path (the typed filter must survive).
+TEST(ConversionTest, MonitoringFilterEventRoundTrip) {
+  scada::EventFilter ef;
+  ef.types = scada::EventFilter::ACKED | scada::EventFilter::UNACKED;
+  ef.of_type = {scada::NodeId{2041u},
+                scada::NodeId{scada::String{"AlarmType"}, 1}};
+  ef.child_of = {scada::NodeId{85u}};
+  scada::MonitoringParameters params;
+  params.filter = ef;
+
+  const scada::MonitoringFilter round = ToScada(ToOpcua(params)).filter;
+  ASSERT_TRUE(std::holds_alternative<scada::EventFilter>(round));
+  EXPECT_EQ(std::get<scada::EventFilter>(round), ef);
+}
+
+TEST(ConversionTest, MonitoringFilterAggregateRoundTrip) {
+  scada::AggregateFilter af;
+  af.start_time = base::Time::FromInternalValue(123456789);
+  af.interval = base::TimeDelta::FromMilliseconds(500);
+  af.aggregate_type = scada::NodeId{2342u};
+  scada::MonitoringParameters params;
+  params.filter = af;
+
+  const scada::MonitoringFilter round = ToScada(ToOpcua(params)).filter;
+  ASSERT_TRUE(std::holds_alternative<scada::AggregateFilter>(round));
+  EXPECT_EQ(std::get<scada::AggregateFilter>(round), af);
+}
+
 }  // namespace
 }  // namespace opcua_bridge

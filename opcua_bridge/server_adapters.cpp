@@ -103,9 +103,9 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
 }
 
 // --- MonitoredItemSubscription -----------------------------------------
-opcua::Awaitable<std::vector<opcua::scada::MonitoredItemCreateResult>>
+opcua::Awaitable<std::vector<opcua::MonitoredItemCreateResult>>
 MonitoredItemSubscriptionAdapter::AddItems(
-    std::vector<opcua::scada::MonitoredItemCreateRequest> requests) {
+    std::vector<opcua::MonitoredItemCreateRequest> requests) {
   auto results = co_await inner_->AddItems(ToScadaVector(requests));
   co_return ToOpcuaVector(results);
 }

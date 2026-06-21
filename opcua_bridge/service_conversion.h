@@ -27,8 +27,8 @@
 #include "opcua/scada/authentication.h"
 #include "opcua/scada/event.h"
 #include "opcua/scada/history_types.h"
+#include "opcua/message.h"
 #include "opcua/scada/monitored_item.h"
-#include "opcua/scada/monitoring_parameters.h"
 #include "opcua/scada/node_attributes.h"
 #include "opcua/scada/node_management_service.h"
 #include "opcua/scada/privileges.h"
@@ -147,8 +147,8 @@ scada::AddReferencesItem ToScada(const opcua::AddReferencesItem&);
 opcua::DeleteReferencesItem ToOpcua(const scada::DeleteReferencesItem&);
 scada::DeleteReferencesItem ToScada(const opcua::DeleteReferencesItem&);
 
-opcua::scada::DataChangeFilter ToOpcua(const scada::DataChangeFilter&);
-scada::DataChangeFilter ToScada(const opcua::scada::DataChangeFilter&);
+opcua::DataChangeFilter ToOpcua(const scada::DataChangeFilter&);
+scada::DataChangeFilter ToScada(const opcua::DataChangeFilter&);
 
 opcua::AggregateFilter ToOpcua(const scada::AggregateFilter&);
 scada::AggregateFilter ToScada(const opcua::AggregateFilter&);
@@ -156,8 +156,8 @@ scada::AggregateFilter ToScada(const opcua::AggregateFilter&);
 opcua::EventFilter ToOpcua(const scada::EventFilter&);
 scada::EventFilter ToScada(const opcua::EventFilter&);
 
-opcua::scada::MonitoringParameters ToOpcua(const scada::MonitoringParameters&);
-scada::MonitoringParameters ToScada(const opcua::scada::MonitoringParameters&);
+opcua::MonitoringParameters ToOpcua(const scada::MonitoringParameters&);
+scada::MonitoringParameters ToScada(const opcua::MonitoringParameters&);
 
 opcua::Event ToOpcua(const scada::Event&);
 scada::Event ToScada(const opcua::Event&);
@@ -168,15 +168,15 @@ opcua::scada::MonitoredItemSubscriptionOptions ToOpcua(
 scada::MonitoredItemSubscriptionOptions ToScada(
     const opcua::scada::MonitoredItemSubscriptionOptions&);
 
-opcua::scada::MonitoredItemCreateRequest ToOpcua(
+opcua::MonitoredItemCreateRequest ToOpcua(
     const scada::MonitoredItemCreateRequest&);
 scada::MonitoredItemCreateRequest ToScada(
-    const opcua::scada::MonitoredItemCreateRequest&);
+    const opcua::MonitoredItemCreateRequest&);
 
-opcua::scada::MonitoredItemCreateResult ToOpcua(
+opcua::MonitoredItemCreateResult ToOpcua(
     const scada::MonitoredItemCreateResult&);
 scada::MonitoredItemCreateResult ToScada(
-    const opcua::scada::MonitoredItemCreateResult&);
+    const opcua::MonitoredItemCreateResult&);
 
 opcua::scada::MonitoredItemNotification ToOpcua(
     const scada::MonitoredItemNotification&);

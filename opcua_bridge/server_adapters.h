@@ -131,8 +131,8 @@ class MonitoredItemSubscriptionAdapter
       std::unique_ptr<scada::MonitoredItemSubscription> inner)
       : inner_{std::move(inner)} {}
 
-  opcua::Awaitable<std::vector<opcua::scada::MonitoredItemCreateResult>> AddItems(
-      std::vector<opcua::scada::MonitoredItemCreateRequest> requests) override;
+  opcua::Awaitable<std::vector<opcua::MonitoredItemCreateResult>> AddItems(
+      std::vector<opcua::MonitoredItemCreateRequest> requests) override;
 
   opcua::Awaitable<std::vector<opcua::Status>> RemoveItems(
       std::span<const opcua::scada::MonitoredItemId> item_ids) override;

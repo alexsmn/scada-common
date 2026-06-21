@@ -208,10 +208,18 @@ scada::DeleteReferencesItem ToScada(const opcua::DeleteReferencesItem& v) {
           .delete_bidirectional = v.delete_bidirectional};
 }
 
-opcua::scada::DataChangeFilter ToOpcua(const scada::DataChangeFilter& v) {
-  return {.deadband_value = v.deadband_value};
+opcua::DataChangeFilter ToOpcua(const scada::DataChangeFilter& v) {
+  // Core's DataChangeFilter only carries the deadband magnitude. The wire type
+  // additionally encodes the trigger and deadband type; a non-zero deadband
+  // implies an absolute deadband, which is what the server-side deadband logic
+  // (DataChangeFilter §7.22.2) checks for.
+  return {.trigger = opcua::DataChangeTrigger::StatusValue,
+          .deadband_type = v.deadband_value > 0
+                               ? opcua::DeadbandType::Absolute
+                               : opcua::DeadbandType::None,
+          .deadband_value = v.deadband_value};
 }
-scada::DataChangeFilter ToScada(const opcua::scada::DataChangeFilter& v) {
+scada::DataChangeFilter ToScada(const opcua::DataChangeFilter& v) {
   return {.deadband_value = v.deadband_value};
 }
 
@@ -242,42 +250,116 @@ scada::EventFilter ToScada(const opcua::EventFilter& v) {
 }
 
 namespace {
-opcua::scada::MonitoringFilter ToOpcuaFilter(const scada::MonitoringFilter& f) {
+
+// Maps a core MonitoringFilter to/from the wire filter. The wire
+// MonitoringFilter is variant<DataChangeFilter, boost::json::value>. A core
+// DataChangeFilter maps to the wire DataChangeFilter. Core event/aggregate
+// filters use SCADA's own model (event-type/node selection; aggregate
+// type/interval) rather than the OPC UA SelectClauses shape, so the bridge
+// serializes them into a self-describing json object tagged with "_scada". Both
+// ends of the SCADA path are the bridge, and opcuapp transports the json
+// opaquely (ParseEventFilterFieldPaths finds no SelectClauses and yields no
+// field projection, which matches SCADA event semantics). An absent (monostate)
+// core filter maps to a missing wire filter.
+
+boost::json::value EventFilterToJson(const scada::EventFilter& v) {
+  boost::json::array of_type;
+  for (const auto& id : v.of_type)
+    of_type.emplace_back(id.ToString());
+  boost::json::array child_of;
+  for (const auto& id : v.child_of)
+    child_of.emplace_back(id.ToString());
+  return boost::json::object{{"_scada", "event"},
+                             {"types", v.types},
+                             {"of_type", std::move(of_type)},
+                             {"child_of", std::move(child_of)}};
+}
+
+scada::EventFilter EventFilterFromJson(const boost::json::object& obj) {
+  scada::EventFilter out;
+  out.types = static_cast<unsigned>(obj.at("types").to_number<std::uint64_t>());
+  for (const auto& id : obj.at("of_type").as_array())
+    out.of_type.push_back(scada::NodeId::FromString(id.as_string().c_str()));
+  for (const auto& id : obj.at("child_of").as_array())
+    out.child_of.push_back(scada::NodeId::FromString(id.as_string().c_str()));
+  return out;
+}
+
+boost::json::value AggregateFilterToJson(const scada::AggregateFilter& v) {
+  return boost::json::object{
+      {"_scada", "aggregate"},
+      {"start_time_us",
+       v.start_time.ToDeltaSinceWindowsEpoch().InMicroseconds()},
+      {"interval_us", v.interval.InMicroseconds()},
+      {"aggregate_type", v.aggregate_type.ToString()}};
+}
+
+scada::AggregateFilter AggregateFilterFromJson(const boost::json::object& obj) {
+  scada::AggregateFilter out;
+  out.start_time =
+      base::Time::FromDeltaSinceWindowsEpoch(base::TimeDelta::FromMicroseconds(
+          obj.at("start_time_us").to_number<std::int64_t>()));
+  out.interval = base::TimeDelta::FromMicroseconds(
+      obj.at("interval_us").to_number<std::int64_t>());
+  out.aggregate_type =
+      scada::NodeId::FromString(obj.at("aggregate_type").as_string().c_str());
+  return out;
+}
+
+std::optional<opcua::MonitoringFilter> ToOpcuaFilter(
+    const scada::MonitoringFilter& f) {
   return std::visit(
-      [](const auto& x) -> opcua::scada::MonitoringFilter {
+      [](const auto& x) -> std::optional<opcua::MonitoringFilter> {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same_v<T, std::monostate>)
-          return std::monostate{};
-        else
-          return ToOpcua(x);
+          return std::nullopt;
+        else if constexpr (std::is_same_v<T, scada::DataChangeFilter>)
+          return opcua::MonitoringFilter{ToOpcua(x)};
+        else if constexpr (std::is_same_v<T, scada::EventFilter>)
+          return opcua::MonitoringFilter{EventFilterToJson(x)};
+        else  // scada::AggregateFilter
+          return opcua::MonitoringFilter{AggregateFilterToJson(x)};
       },
       f);
 }
-scada::MonitoringFilter ToScadaFilter(const opcua::scada::MonitoringFilter& f) {
-  return std::visit(
-      [](const auto& x) -> scada::MonitoringFilter {
-        using T = std::decay_t<decltype(x)>;
-        if constexpr (std::is_same_v<T, std::monostate>)
-          return std::monostate{};
-        else
-          return ToScada(x);
-      },
-      f);
+scada::MonitoringFilter ToScadaFilter(
+    const std::optional<opcua::MonitoringFilter>& f) {
+  if (!f.has_value())
+    return std::monostate{};
+  if (const auto* data_change = std::get_if<opcua::DataChangeFilter>(&*f))
+    return ToScada(*data_change);
+  const auto& json = std::get<boost::json::value>(*f);
+  if (json.is_object()) {
+    const auto& obj = json.as_object();
+    if (const auto* tag = obj.if_contains("_scada");
+        tag != nullptr && tag->is_string()) {
+      if (tag->as_string() == "event")
+        return EventFilterFromJson(obj);
+      if (tag->as_string() == "aggregate")
+        return AggregateFilterFromJson(obj);
+    }
+  }
+  // Opaque/standard json filter (e.g. OPC UA SelectClauses) we do not map back
+  // to a typed core filter.
+  return std::monostate{};
 }
 }  // namespace
 
-opcua::scada::MonitoringParameters ToOpcua(const scada::MonitoringParameters& v) {
-  opcua::scada::MonitoringParameters out;
-  out.sampling_interval = ToOpcua(v.sampling_interval);
+opcua::MonitoringParameters ToOpcua(const scada::MonitoringParameters& v) {
+  opcua::MonitoringParameters out;
+  out.sampling_interval_ms =
+      v.sampling_interval.has_value() ? v.sampling_interval->InMillisecondsF()
+                                      : 0.0;
   out.filter = ToOpcuaFilter(v.filter);
-  out.queue_size = v.queue_size;
+  out.queue_size = static_cast<opcua::UInt32>(v.queue_size.value_or(1));
   return out;
 }
-scada::MonitoringParameters ToScada(const opcua::scada::MonitoringParameters& v) {
+scada::MonitoringParameters ToScada(const opcua::MonitoringParameters& v) {
   scada::MonitoringParameters out;
-  out.sampling_interval = ToScada(v.sampling_interval);
+  out.sampling_interval =
+      base::TimeDelta::FromMillisecondsD(v.sampling_interval_ms);
   out.filter = ToScadaFilter(v.filter);
-  out.queue_size = v.queue_size;
+  out.queue_size = static_cast<size_t>(v.queue_size);
   return out;
 }
 
@@ -387,30 +469,32 @@ scada::MonitoredItemSubscriptionOptions ToScada(
           .max_batch_size = v.max_batch_size};
 }
 
-opcua::scada::MonitoredItemCreateRequest ToOpcua(
+opcua::MonitoredItemCreateRequest ToOpcua(
     const scada::MonitoredItemCreateRequest& v) {
+  // The wire request carries the per-item client_handle inside its
+  // requested_parameters.
+  opcua::MonitoringParameters parameters = ToOpcua(v.parameters);
+  parameters.client_handle = v.client_handle;
   return {.item_to_monitor = ToOpcua(v.item_to_monitor),
-          .parameters = ToOpcua(v.parameters),
-          .client_handle = v.client_handle};
+          .monitoring_mode = opcua::MonitoringMode::Reporting,
+          .requested_parameters = std::move(parameters)};
 }
 scada::MonitoredItemCreateRequest ToScada(
-    const opcua::scada::MonitoredItemCreateRequest& v) {
+    const opcua::MonitoredItemCreateRequest& v) {
   return {.item_to_monitor = ToScada(v.item_to_monitor),
-          .parameters = ToScada(v.parameters),
-          .client_handle = v.client_handle};
+          .parameters = ToScada(v.requested_parameters),
+          .client_handle = v.requested_parameters.client_handle};
 }
 
-opcua::scada::MonitoredItemCreateResult ToOpcua(
+opcua::MonitoredItemCreateResult ToOpcua(
     const scada::MonitoredItemCreateResult& v) {
-  return {.item_id = v.item_id,
-          .client_handle = v.client_handle,
-          .status = ToOpcua(v.status)};
+  // The wire result has no client_handle field; it is correlated by request
+  // order on the caller side.
+  return {.status = ToOpcua(v.status), .monitored_item_id = v.item_id};
 }
 scada::MonitoredItemCreateResult ToScada(
-    const opcua::scada::MonitoredItemCreateResult& v) {
-  return {.item_id = v.item_id,
-          .client_handle = v.client_handle,
-          .status = ToScada(v.status)};
+    const opcua::MonitoredItemCreateResult& v) {
+  return {.item_id = v.monitored_item_id, .status = ToScada(v.status)};
 }
 
 opcua::scada::MonitoredItemNotification ToOpcua(
