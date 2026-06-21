@@ -27,6 +27,12 @@ class ClientSessionServiceAdapter : public scada::SessionService {
       : session_{std::move(s)} {}
 
   Awaitable<void> Connect(scada::SessionConnectParams params) override;
+  // Forward to opcuapp's ClientSession::ConnectStatus so connect/activation
+  // failures (e.g. Bad_WrongLoginCredentials) surface to the client. Without
+  // this override the core SessionService default runs Connect() and
+  // unconditionally reports Good, swallowing every connect failure.
+  Awaitable<scada::Status> ConnectStatus(
+      scada::SessionConnectParams params) override;
   Awaitable<void> Reconnect() override;
   Awaitable<void> Disconnect() override;
 

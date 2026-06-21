@@ -9,6 +9,10 @@ Awaitable<void> ClientSessionServiceAdapter::Connect(
     scada::SessionConnectParams params) {
   co_await session_->Connect(ToOpcua(params));
 }
+Awaitable<scada::Status> ClientSessionServiceAdapter::ConnectStatus(
+    scada::SessionConnectParams params) {
+  co_return ToScada(co_await session_->ConnectStatus(ToOpcua(params)));
+}
 Awaitable<void> ClientSessionServiceAdapter::Reconnect() {
   co_await session_->Reconnect();
 }
