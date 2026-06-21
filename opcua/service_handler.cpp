@@ -149,6 +149,13 @@ Awaitable<ServiceResponse> ServiceHandler::HandleBrowse(
           request.inputs.size(), operation_limits.max_nodes_per_browse)) {
     co_return ServiceResponse{BrowseResponse{.status = *status}};
   }
+  // The server exposes no Views, so any non-null view id is unknown. OPC UA
+  // Part 4 §5.8.2 Browse,
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.8.2
+  if (!request.view_id.is_null()) {
+    co_return ServiceResponse{
+        BrowseResponse{.status = scada::StatusCode::Bad_ViewIdUnknown}};
+  }
   const auto input_count = request.inputs.size();
   const auto start_ticks = base::TimeTicks::Now();
   auto result = co_await view_service.Browse(

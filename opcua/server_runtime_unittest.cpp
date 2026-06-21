@@ -470,6 +470,20 @@ TEST_F(DataServicesServerRuntimeTest, ReadAppliesTimestampsToReturn) {
   }
 }
 
+TEST_F(DataServicesServerRuntimeTest, BrowseRejectsUnknownView) {
+  ConnectionState connection;
+  CreateAndActivate(connection);
+
+  // A non-null view id is unknown (the server exposes no Views).
+  const BrowseRequest request{
+      .inputs = {{.node_id = test::NumericNode(85),
+                  .direction = scada::BrowseDirection::Forward}},
+      .view_id = test::NumericNode(8)};
+
+  const auto response = HandleResponse<BrowseResponse>(connection, request);
+  EXPECT_EQ(response.status.code(), scada::StatusCode::Bad_ViewIdUnknown);
+}
+
 TEST_F(DataServicesServerRuntimeTest, GetEndpointsRebasesMatchingSchemeOnly) {
   std::vector<EndpointDescription> endpoints = {
       {.endpoint_url = "opc.tcp://0.0.0.0:4840",
