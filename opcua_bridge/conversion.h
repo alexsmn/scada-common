@@ -67,6 +67,7 @@ inline opcua::scada::StatusCode ToOpcua(scada::StatusCode c) {
     MAP(Bad_ViewIdUnknown)
     MAP(Bad_HistoryOperationInvalid)
     MAP(Bad_NoSubscription)
+    MAP(Bad_ServerWasShutDown)
 #undef MAP
     default:
       return static_cast<opcua::scada::StatusCode>(c);
@@ -103,6 +104,7 @@ inline scada::StatusCode ToScada(opcua::scada::StatusCode c) {
     MAP(Bad_ViewIdUnknown)
     MAP(Bad_HistoryOperationInvalid)
     MAP(Bad_NoSubscription)
+    MAP(Bad_ServerWasShutDown)
 #undef MAP
     default:
       return static_cast<scada::StatusCode>(c);
