@@ -32,7 +32,26 @@ add_subdirectory(common)
 add_subdirectory(events)
 add_subdirectory(address_space)
 add_subdirectory(opcua_bridge)
-add_subdirectory(opcua)
+
+# The in-tree OPC UA native stack has been extracted to the standalone opcuapp
+# repo (third_party/opcuapp). Keep the old target names as INTERFACE shims so
+# existing consumers continue to link through the same CMake targets.
+find_package(opcuapp REQUIRED)
+
+add_library(scada_core_opcua INTERFACE)
+target_include_directories(scada_core_opcua BEFORE INTERFACE
+  $<TARGET_PROPERTY:opcuapp,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(scada_core_opcua INTERFACE
+  opcuapp::opcuapp
+  scada_opcua_bridge
+)
+
+add_library(scada_core_opcua_client INTERFACE)
+target_link_libraries(scada_core_opcua_client INTERFACE scada_core_opcua)
+
+add_library(scada_common_opcua_ws INTERFACE)
+target_link_libraries(scada_common_opcua_ws INTERFACE scada_core_opcua)
+
 add_subdirectory(timed_data)
 add_subdirectory(node_service)
 
