@@ -114,6 +114,28 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
             static_cast<scada::UInt32>(node_class)) != 0;
   };
 
+  // OPC UA Part 4 §7.3: resultMask selects which ReferenceDescription fields to
+  // populate; unrequested fields stay at their defaults.
+  const auto mask = description.result_mask;
+  const auto make_reference = [&](const auto& ref, bool forward) {
+    scada::ReferenceDescription desc;
+    if (mask & scada::kBrowseResultReferenceType)
+      desc.reference_type_id = ref.type->id();
+    desc.forward = (mask & scada::kBrowseResultIsForward) ? forward : false;
+    desc.node_id = ref.node->id();
+    if (mask & scada::kBrowseResultNodeClass)
+      desc.node_class = ref.node->GetNodeClass();
+    if (mask & scada::kBrowseResultBrowseName)
+      desc.browse_name = ref.node->GetBrowseName();
+    if (mask & scada::kBrowseResultDisplayName)
+      desc.display_name = ref.node->GetDisplayName();
+    if ((mask & scada::kBrowseResultTypeDefinition) &&
+        ref.node->type_definition()) {
+      desc.type_definition = ref.node->type_definition()->id();
+    }
+    return desc;
+  };
+
   if (description.direction == scada::BrowseDirection::Forward ||
       description.direction == scada::BrowseDirection::Both) {
     for (const auto& ref : scada::FilterReferences(
@@ -123,12 +145,9 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
       // dereferencing a null node.
       if (!ref.node)
         continue;
-      assert(!ref.type->id().is_null());
-      assert(!ref.node->id().is_null());
       if (!matches_node_class(ref.node->GetNodeClass()))
         continue;
-      result.references.push_back({ref.type->id(), true, ref.node->id(),
-                                   ref.node->GetNodeClass()});
+      result.references.push_back(make_reference(ref, true));
     }
   }
 
@@ -139,12 +158,9 @@ scada::BrowseResult SyncViewServiceImpl::BrowseNode(
              description.include_subtypes)) {
       if (!ref.node)
         continue;
-      assert(!ref.type->id().is_null());
-      assert(!ref.node->id().is_null());
       if (!matches_node_class(ref.node->GetNodeClass()))
         continue;
-      result.references.push_back({ref.type->id(), false, ref.node->id(),
-                                   ref.node->GetNodeClass()});
+      result.references.push_back(make_reference(ref, false));
     }
   }
 

@@ -186,6 +186,46 @@ TEST(ViewServiceImpl, BrowseParentChildren) {
             scada::NodeId{scada::id::HasComponent});
 }
 
+TEST(ViewServiceImpl, BrowsePopulatesNamesAndHonorsResultMask) {
+  TestAddressSpace address_space;
+  TestExecutor executor;
+
+  const auto browse_test_node1 = [&](scada::UInt32 result_mask) {
+    auto results = WaitAwaitable(
+        executor,
+        address_space.view_service_impl.Browse(
+            scada::ServiceContext{},
+            {{.node_id = scada::id::RootFolder,
+              .direction = scada::BrowseDirection::Forward,
+              .reference_type_id = scada::id::HierarchicalReferences,
+              .include_subtypes = true,
+              .result_mask = result_mask}}));
+    EXPECT_TRUE(results.ok());
+    std::optional<scada::ReferenceDescription> match;
+    if (results.ok() && results->size() == 1u) {
+      for (const auto& reference : (*results)[0].references) {
+        if (reference.node_id == address_space.kTestNode1Id)
+          match = reference;
+      }
+    }
+    return match;
+  };
+
+  // Full result mask: BrowseName / DisplayName / NodeClass are populated.
+  const auto full = browse_test_node1(0x3F);
+  ASSERT_TRUE(full.has_value());
+  EXPECT_EQ(full->browse_name.name(), "TestNode1");
+  EXPECT_FALSE(full->display_name.empty());
+  EXPECT_EQ(full->node_class, scada::NodeClass::Object);
+
+  // NodeClass-only mask: name fields are left empty, NodeClass still set.
+  const auto class_only = browse_test_node1(scada::kBrowseResultNodeClass);
+  ASSERT_TRUE(class_only.has_value());
+  EXPECT_TRUE(class_only->browse_name.empty());
+  EXPECT_TRUE(class_only->display_name.empty());
+  EXPECT_EQ(class_only->node_class, scada::NodeClass::Object);
+}
+
 TEST(ViewServiceImpl, BrowseAppliesNodeClassMask) {
   TestAddressSpace address_space;
   TestExecutor executor;
