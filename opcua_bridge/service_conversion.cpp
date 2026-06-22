@@ -460,6 +460,21 @@ scada::HistoryReadEventsResult ToScada(
   return {.status = ToScada(v.status), .events = ToScadaVector(v.events)};
 }
 
+opcua::UpdateDataDetails ToOpcua(const scada::UpdateDataDetails& v) {
+  // PerformUpdateType is the OPC UA Part 11 §6.8.3 enumeration on both sides
+  // with identical wire values, so the cast is value-preserving.
+  return {.node_id = ToOpcua(v.node_id),
+          .perform_insert_replace =
+              static_cast<opcua::PerformUpdateType>(v.perform_insert_replace),
+          .values = ToOpcuaVector(v.values)};
+}
+scada::UpdateDataDetails ToScada(const opcua::UpdateDataDetails& v) {
+  return {.node_id = ToScada(v.node_id),
+          .perform_insert_replace =
+              static_cast<scada::PerformUpdateType>(v.perform_insert_replace),
+          .values = ToScadaVector(v.values)};
+}
+
 opcua::scada::MonitoredItemSubscriptionOptions ToOpcua(
     const scada::MonitoredItemSubscriptionOptions& v) {
   return {.max_pending_notifications = v.max_pending_notifications,

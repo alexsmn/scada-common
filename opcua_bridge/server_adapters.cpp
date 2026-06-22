@@ -62,6 +62,10 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
             return history.HistoryReadEvents(std::move(node_id), from, to,
                                              std::move(filter));
           },
+      .history_update =
+          [this](opcua::UpdateDataDetails details) {
+            return history_update.HistoryUpdateData(std::move(details));
+          },
       .add_nodes =
           [this](std::vector<opcua::AddNodesItem> inputs) {
             return node_management.AddNodes(std::move(inputs));
@@ -180,6 +184,20 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
   co_return ToOpcua(result);
+}
+
+// --- HistoryUpdateService ----------------------------------------------
+opcua::Awaitable<opcua::HistoryUpdateResult>
+HistoryUpdateServiceAdapter::HistoryUpdateData(
+    opcua::UpdateDataDetails details) {
+  // The core service returns a per-value StatusCode vector or an
+  // operation-level failure; map both onto the wire HistoryUpdateResult.
+  auto result = co_await inner_.HistoryUpdateData(ToScada(details));
+  if (!result.ok()) {
+    co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
+  }
+  co_return opcua::HistoryUpdateResult{.operation_results =
+                                           ToOpcuaVector(*result)};
 }
 
 // --- MonitoredItemSubscription -----------------------------------------

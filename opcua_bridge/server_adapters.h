@@ -12,6 +12,7 @@
 #include "scada/attribute_service.h"
 #include "scada/authentication.h"
 #include "scada/history_service.h"
+#include "scada/history_update_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/node_management_service.h"
@@ -124,6 +125,22 @@ class HistoryServiceAdapter {
   scada::HistoryService& inner_;
 };
 
+// Adapts a core scada::HistoryUpdateService to the opcua HistoryUpdate wire
+// result, converting the StatusOr<per-value StatusCodes> into the wire
+// HistoryUpdateResult. OPC UA Part 4 §5.10.5 HistoryUpdate.
+class HistoryUpdateServiceAdapter {
+ public:
+  explicit HistoryUpdateServiceAdapter(
+      scada::HistoryUpdateService& inner SCADA_LIFETIME_BOUND)
+      : inner_{inner} {}
+
+  opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateData(
+      opcua::UpdateDataDetails details);
+
+ private:
+  scada::HistoryUpdateService& inner_;
+};
+
 // Wraps an inner core MonitoredItemSubscription as the opcua interface. Event
 // notifications cross the boundary as the standard wire `EventFieldList`; this
 // adapter projects each core event onto the monitored item's EventFilter select
@@ -192,7 +209,7 @@ class AuthenticatorAdapter : public opcua::CoroutineAuthenticator {
   std::shared_ptr<scada::CoroutineAuthenticator> inner_;
 };
 
-// Owns the six adapters wrapping a set of core services for opcuapp's server
+// Owns the adapters wrapping a set of core services for opcuapp's server
 // runtime. The returned callback bundle captures this object and must not
 // outlive it.
 struct ServerServiceAdapters {
@@ -202,12 +219,14 @@ struct ServerServiceAdapters {
       scada::MethodService& method SCADA_LIFETIME_BOUND,
       scada::NodeManagementService& node_management SCADA_LIFETIME_BOUND,
       scada::HistoryService& history SCADA_LIFETIME_BOUND,
+      scada::HistoryUpdateService& history_update SCADA_LIFETIME_BOUND,
       scada::MonitoredItemService& monitored_item SCADA_LIFETIME_BOUND)
       : attribute{attribute},
         view{view},
         method{method},
         node_management{node_management},
         history{history},
+        history_update{history_update},
         monitored_item{monitored_item},
         callbacks_{MakeCallbacks()} {}
 
@@ -220,6 +239,7 @@ struct ServerServiceAdapters {
   MethodServiceAdapter method;
   NodeManagementServiceAdapter node_management;
   HistoryServiceAdapter history;
+  HistoryUpdateServiceAdapter history_update;
   MonitoredItemServiceAdapter monitored_item;
 
  private:

@@ -197,6 +197,9 @@ scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult&);
 opcua::HistoryReadEventsResult ToOpcua(const scada::HistoryReadEventsResult&);
 scada::HistoryReadEventsResult ToScada(const opcua::HistoryReadEventsResult&);
 
+opcua::UpdateDataDetails ToOpcua(const scada::UpdateDataDetails&);
+scada::UpdateDataDetails ToScada(const opcua::UpdateDataDetails&);
+
 // --- session ------------------------------------------------------------
 opcua::SessionSecuritySettings ToOpcua(const scada::SessionSecuritySettings&);
 scada::SessionSecuritySettings ToScada(const opcua::SessionSecuritySettings&);
