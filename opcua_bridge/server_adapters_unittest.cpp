@@ -1,6 +1,6 @@
 #include "opcua_bridge/server_adapters.h"
 
-#include "opcua/server/endpoint_core.h"
+#include "opcua/events/event_filter.h"
 
 #include <gtest/gtest.h>
 
@@ -134,7 +134,7 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
           {"Message"}, {"Severity"}, {"EventId"}})};
 
   boost::asio::io_context io;
-  std::optional<opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
       read_result;
   boost::asio::co_spawn(
       io,
@@ -151,7 +151,7 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   ASSERT_TRUE(read_result->ok());
   ASSERT_EQ((*read_result)->size(), 1u);
   const auto* event_fields =
-      std::get_if<opcua::scada::EventFieldList>(&(**read_result)[0]);
+      std::get_if<opcua::EventFieldList>(&(**read_result)[0]);
   ASSERT_NE(event_fields, nullptr);
   EXPECT_EQ(event_fields->client_handle, 55u);
   ASSERT_EQ(event_fields->event_fields.size(), 3u);

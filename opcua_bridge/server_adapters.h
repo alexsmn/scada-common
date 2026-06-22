@@ -147,7 +147,7 @@ class HistoryUpdateServiceAdapter {
 // clauses, so it stores the parsed field paths per client_handle as items are
 // added.
 class MonitoredItemSubscriptionAdapter
-    : public opcua::scada::MonitoredItemSubscription {
+    : public opcua::MonitoredItemSubscription {
  public:
   explicit MonitoredItemSubscriptionAdapter(
       std::unique_ptr<scada::MonitoredItemSubscription> inner)
@@ -157,9 +157,9 @@ class MonitoredItemSubscriptionAdapter
       std::vector<opcua::MonitoredItemCreateRequest> requests) override;
 
   opcua::Awaitable<std::vector<opcua::Status>> RemoveItems(
-      std::span<const opcua::scada::MonitoredItemId> item_ids) override;
+      std::span<const opcua::MonitoredItemId> item_ids) override;
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
   ReadNext(std::size_t max_count) override;
 
   void Close(opcua::Status status) override;
@@ -168,7 +168,7 @@ class MonitoredItemSubscriptionAdapter
   // Converts a single core notification to its standard wire form, projecting
   // core events onto the per-item EventFilter select clauses stored in
   // `field_paths_by_handle_`.
-  opcua::scada::ItemNotification ToItemNotification(
+  opcua::ItemNotification ToItemNotification(
       const scada::MonitoredItemNotification& notification) const;
 
   std::unique_ptr<scada::MonitoredItemSubscription> inner_;
@@ -185,9 +185,9 @@ class MonitoredItemServiceAdapter {
       scada::MonitoredItemService& inner SCADA_LIFETIME_BOUND)
       : inner_{inner} {}
 
-  opcua::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
+  opcua::StatusOr<std::unique_ptr<opcua::MonitoredItemSubscription>>
   CreateSubscription(opcua::ServiceContext context,
-                     opcua::scada::MonitoredItemSubscriptionOptions options);
+                     opcua::MonitoredItemSubscriptionOptions options);
 
  private:
   scada::MonitoredItemService& inner_;

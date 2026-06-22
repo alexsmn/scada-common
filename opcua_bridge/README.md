@@ -1,7 +1,7 @@
 # opcua_bridge
 
 The boundary adapter between the SCADA `core` types (`scada::`) and the
-extracted **opcuapp** types (`opcua::scada::`). It lets the SCADA monorepo
+extracted **opcuapp** types (`opcua::`). It lets the SCADA monorepo
 consume opcuapp (which is namespaced apart so both type universes coexist in one
 translation unit) without changing core.
 
@@ -12,7 +12,7 @@ translation unit) without changing core.
 | `conversion.{h,cpp}` | Foundational converters: NodeId, ExpandedNodeId, QualifiedName, Status/StatusCode, DateTime, Qualifier, Variant (scalars + arrays + ExtensionObject), DataValue. |
 | `service_conversion.{h,cpp}` | Service-interface structs: ReadValueId, WriteValue, Browse*, RelativePath, BrowsePath*, AddNodes/Delete/References, NodeAttributes, MonitoringParameters (+ filters), Event, history, monitored-item types, ServiceContext, SessionConnectParams, AuthenticationResult, and the enums. |
 | `vector_conversion.h` | `ToOpcuaVector`/`ToScadaVector` + `StatusOr<vector<T>>` helpers; included after all converters so lookup sees them. |
-| `server_adapters.{h,cpp}` | Wrap core `scada::*Service` impls as the `opcua::scada::*Service` opcuapp's server runtime consumes (Attribute, View, Method, NodeManagement, History, MonitoredItem + subscription, Authenticator). `ServerServiceAdapters` bundles them. |
+| `server_adapters.{h,cpp}` | Wrap core `scada::*Service` impls as the `opcua::*Service` opcuapp's server runtime consumes (Attribute, View, Method, NodeManagement, History, MonitoredItem + subscription, Authenticator). `ServerServiceAdapters` bundles them. |
 | `client_adapters.{h,cpp}` | Inverse: wrap opcuapp's `opcua::ClientSession` as core services, assembled into a `::DataServices` by `CreateClientDataServices()`. |
 | `*_unittest.cpp` | Round-trip conversion tests + a runtime adapter test (drives a coroutine through an adapter against a fake core service). |
 

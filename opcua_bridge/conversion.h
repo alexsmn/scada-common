@@ -1,7 +1,7 @@
 #pragma once
 
 // Bidirectional converters between the SCADA `core` types (`scada::`) and the
-// extracted opcuapp types (`opcua::scada::`). The two type universes are
+// extracted opcuapp types (`opcua::`). The two type universes are
 // structurally identical mirrors, so most conversions are mechanical field
 // copies. Notably, the std-alias types — `String` (std::string),
 // `LocalizedText` (std::u16string), `ByteString` (std::vector<char>) and the

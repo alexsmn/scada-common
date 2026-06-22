@@ -3,7 +3,7 @@
 // Element-wise std::vector converters. Included LAST (after all ToOpcua/ToScada
 // overloads are declared) so the ordinary unqualified lookup inside these
 // templates sees every element converter — the element types live in scada::
-// and opcua::scada::, not opcua_bridge::, so ADL alone would not find them.
+// and opcua::, not opcua_bridge::, so ADL alone would not find them.
 
 #include "opcua/types/status_or.h"
 #include "scada/status_or.h"

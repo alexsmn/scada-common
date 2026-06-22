@@ -2,7 +2,7 @@
 
 #include "opcua_bridge/vector_conversion.h"
 
-#include "opcua/server/endpoint_core.h"
+#include "opcua/events/event_filter.h"
 
 #include <any>
 #include <variant>
@@ -84,7 +84,7 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
           },
       .create_subscription =
           [this](opcua::ServiceContext context,
-                 opcua::scada::MonitoredItemSubscriptionOptions options) {
+                 opcua::MonitoredItemSubscriptionOptions options) {
             return monitored_item.CreateSubscription(std::move(context),
                                                      std::move(options));
           },
@@ -214,14 +214,13 @@ MonitoredItemSubscriptionAdapter::AddItems(
   co_return ToOpcuaVector(results);
 }
 
-opcua::scada::ItemNotification
-MonitoredItemSubscriptionAdapter::ToItemNotification(
+opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
     const scada::MonitoredItemNotification& notification) const {
   return std::visit(
-      [this](const auto& x) -> opcua::scada::ItemNotification {
+      [this](const auto& x) -> opcua::ItemNotification {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same_v<T, scada::DataChangeNotification>) {
-          return opcua::scada::MonitoredItemNotification{
+          return opcua::MonitoredItemNotification{
               .client_handle = x.client_handle, .value = ToOpcua(x.value)};
         } else if constexpr (std::is_same_v<T, scada::EventNotification>) {
           // Project the core event onto this item's EventFilter select clauses,
@@ -242,24 +241,23 @@ MonitoredItemSubscriptionAdapter::ToItemNotification(
           } else {
             event_fields = opcua::ProjectEventFields(field_paths, std::any{});
           }
-          return opcua::scada::EventFieldList{
-              .client_handle = x.client_handle,
-              .event_fields = std::move(event_fields)};
+          return opcua::EventFieldList{.client_handle = x.client_handle,
+                                       .event_fields = std::move(event_fields)};
         } else if constexpr (std::is_same_v<T, scada::OverflowNotification>) {
           // Overflow has no client_handle; surface as a status-only data-change
           // notification with handle 0 so the dropped-notifications signal
           // survives by status.
           opcua::DataValue value;
           value.status_code = ToOpcua(x.status).code();
-          return opcua::scada::MonitoredItemNotification{.client_handle = 0,
-                                                         .value = value};
+          return opcua::MonitoredItemNotification{.client_handle = 0,
+                                                  .value = value};
         } else {
           // ItemStatusNotification: no value or event payload. Surface as a
           // status-only data-change notification so the correlation/status
           // signal still reaches the consumer.
           opcua::DataValue value;
           value.status_code = ToOpcua(x.status).code();
-          return opcua::scada::MonitoredItemNotification{
+          return opcua::MonitoredItemNotification{
               .client_handle = x.client_handle, .value = value};
         }
       },
@@ -268,18 +266,18 @@ MonitoredItemSubscriptionAdapter::ToItemNotification(
 
 opcua::Awaitable<std::vector<opcua::Status>>
 MonitoredItemSubscriptionAdapter::RemoveItems(
-    std::span<const opcua::scada::MonitoredItemId> item_ids) {
+    std::span<const opcua::MonitoredItemId> item_ids) {
   // MonitoredItemId is std::uint32_t on both sides.
   auto results = co_await inner_->RemoveItems(item_ids);
   co_return ToOpcuaVector(results);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
 MonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
   if (!result.ok())
     co_return ToOpcua(result.status());
-  std::vector<opcua::scada::ItemNotification> notifications;
+  std::vector<opcua::ItemNotification> notifications;
   notifications.reserve(result->size());
   for (const auto& notification : *result)
     notifications.push_back(ToItemNotification(notification));
@@ -291,14 +289,14 @@ void MonitoredItemSubscriptionAdapter::Close(opcua::Status status) {
 }
 
 // --- MonitoredItemService ----------------------------------------------
-opcua::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
+opcua::StatusOr<std::unique_ptr<opcua::MonitoredItemSubscription>>
 MonitoredItemServiceAdapter::CreateSubscription(
     opcua::ServiceContext context,
-    opcua::scada::MonitoredItemSubscriptionOptions options) {
+    opcua::MonitoredItemSubscriptionOptions options) {
   auto result = inner_.CreateSubscription(ToScada(context), ToScada(options));
   if (!result.ok())
     return ToOpcua(result.status());
-  return std::unique_ptr<opcua::scada::MonitoredItemSubscription>{
+  return std::unique_ptr<opcua::MonitoredItemSubscription>{
       std::make_unique<MonitoredItemSubscriptionAdapter>(std::move(*result))};
 }
 

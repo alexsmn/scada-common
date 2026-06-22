@@ -137,7 +137,7 @@ class ClientMonitoredItemSubscriptionAdapter
     : public scada::MonitoredItemSubscription {
  public:
   explicit ClientMonitoredItemSubscriptionAdapter(
-      std::unique_ptr<opcua::scada::MonitoredItemSubscription> inner)
+      std::unique_ptr<opcua::MonitoredItemSubscription> inner)
       : inner_{std::move(inner)} {}
 
   Awaitable<std::vector<scada::MonitoredItemCreateResult>> AddItems(
@@ -149,7 +149,7 @@ class ClientMonitoredItemSubscriptionAdapter
   void Close(scada::Status status) override;
 
  private:
-  std::unique_ptr<opcua::scada::MonitoredItemSubscription> inner_;
+  std::unique_ptr<opcua::MonitoredItemSubscription> inner_;
 };
 
 class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {

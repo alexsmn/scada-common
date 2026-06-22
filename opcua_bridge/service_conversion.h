@@ -163,10 +163,10 @@ opcua::Event ToOpcua(const scada::Event&);
 scada::Event ToScada(const opcua::Event&);
 
 // --- monitored item -----------------------------------------------------
-opcua::scada::MonitoredItemSubscriptionOptions ToOpcua(
+opcua::MonitoredItemSubscriptionOptions ToOpcua(
     const scada::MonitoredItemSubscriptionOptions&);
 scada::MonitoredItemSubscriptionOptions ToScada(
-    const opcua::scada::MonitoredItemSubscriptionOptions&);
+    const opcua::MonitoredItemSubscriptionOptions&);
 
 opcua::MonitoredItemCreateRequest ToOpcua(
     const scada::MonitoredItemCreateRequest&);
@@ -183,7 +183,7 @@ scada::MonitoredItemCreateResult ToScada(
 // DataChangeNotification; a wire EventFieldList becomes a core
 // EventNotification whose std::any payload is reassembled from the event
 // fields. Consumers correlate by client_handle.
-scada::MonitoredItemNotification ToScada(const opcua::scada::ItemNotification&);
+scada::MonitoredItemNotification ToScada(const opcua::ItemNotification&);
 
 opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
 scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails&);

@@ -475,13 +475,13 @@ scada::UpdateDataDetails ToScada(const opcua::UpdateDataDetails& v) {
           .values = ToScadaVector(v.values)};
 }
 
-opcua::scada::MonitoredItemSubscriptionOptions ToOpcua(
+opcua::MonitoredItemSubscriptionOptions ToOpcua(
     const scada::MonitoredItemSubscriptionOptions& v) {
   return {.max_pending_notifications = v.max_pending_notifications,
           .max_batch_size = v.max_batch_size};
 }
 scada::MonitoredItemSubscriptionOptions ToScada(
-    const opcua::scada::MonitoredItemSubscriptionOptions& v) {
+    const opcua::MonitoredItemSubscriptionOptions& v) {
   return {.max_pending_notifications = v.max_pending_notifications,
           .max_batch_size = v.max_batch_size};
 }
@@ -515,7 +515,7 @@ scada::MonitoredItemCreateResult ToScada(
 }
 
 scada::MonitoredItemNotification ToScada(
-    const opcua::scada::ItemNotification& n) {
+    const opcua::ItemNotification& n) {
   // The wire notification is one of two standard types. A
   // MonitoredItemNotification (client_handle + DataValue) maps to a core
   // DataChangeNotification. An EventFieldList (client_handle + projected event
@@ -526,11 +526,11 @@ scada::MonitoredItemNotification ToScada(
       [](const auto& x) -> scada::MonitoredItemNotification {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same_v<T,
-                                     opcua::scada::MonitoredItemNotification>) {
+                                     opcua::MonitoredItemNotification>) {
           return scada::DataChangeNotification{.item_id = 0,
                                                .client_handle = x.client_handle,
                                                .value = ToScada(x.value)};
-        } else {  // opcua::scada::EventFieldList
+        } else {  // opcua::EventFieldList
           // Reassemble the core event std::any from the wire event fields.
           // AssembleEvent expects the full DisassembleEvent field layout
           // (event_type_id at index 0, 13 fields); only reassemble when the
