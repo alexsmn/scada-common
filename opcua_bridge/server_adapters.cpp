@@ -11,7 +11,8 @@ namespace opcua_bridge {
 namespace {
 
 // Parses the EventFilter select-clause browse paths from a wire monitoring
-// filter, falling back to the default BaseEventType fields when none is present.
+// filter, falling back to the default BaseEventType fields when none is
+// present.
 std::vector<std::vector<std::string>> ParseWireEventFieldPaths(
     const std::optional<opcua::MonitoringFilter>& filter) {
   const auto* raw_filter =
@@ -22,6 +23,69 @@ std::vector<std::vector<std::string>> ParseWireEventFieldPaths(
 }
 
 }  // namespace
+
+opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
+  return {
+      .read =
+          [this](
+              opcua::ServiceContext context,
+              std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
+            return attribute.Read(std::move(context), std::move(inputs));
+          },
+      .write =
+          [this](opcua::ServiceContext context,
+                 std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
+            return attribute.Write(std::move(context), std::move(inputs));
+          },
+      .browse =
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::BrowseDescription> inputs) {
+            return view.Browse(std::move(context), std::move(inputs));
+          },
+      .translate_browse_paths =
+          [this](std::vector<opcua::BrowsePath> inputs) {
+            return view.TranslateBrowsePaths(std::move(inputs));
+          },
+      .call =
+          [this](opcua::NodeId node_id, opcua::NodeId method_id,
+                 std::vector<opcua::Variant> arguments, opcua::NodeId user_id) {
+            return method.Call(std::move(node_id), std::move(method_id),
+                               std::move(arguments), std::move(user_id));
+          },
+      .history_read_raw =
+          [this](opcua::HistoryReadRawDetails details) {
+            return history.HistoryReadRaw(std::move(details));
+          },
+      .history_read_events =
+          [this](opcua::NodeId node_id, opcua::base::Time from,
+                 opcua::base::Time to, opcua::EventFilter filter) {
+            return history.HistoryReadEvents(std::move(node_id), from, to,
+                                             std::move(filter));
+          },
+      .add_nodes =
+          [this](std::vector<opcua::AddNodesItem> inputs) {
+            return node_management.AddNodes(std::move(inputs));
+          },
+      .delete_nodes =
+          [this](std::vector<opcua::DeleteNodesItem> inputs) {
+            return node_management.DeleteNodes(std::move(inputs));
+          },
+      .add_references =
+          [this](std::vector<opcua::AddReferencesItem> inputs) {
+            return node_management.AddReferences(std::move(inputs));
+          },
+      .delete_references =
+          [this](std::vector<opcua::DeleteReferencesItem> inputs) {
+            return node_management.DeleteReferences(std::move(inputs));
+          },
+      .create_subscription =
+          [this](opcua::ServiceContext context,
+                 opcua::scada::MonitoredItemSubscriptionOptions options) {
+            return monitored_item.CreateSubscription(std::move(context),
+                                                     std::move(options));
+          },
+  };
+}
 
 // --- AttributeService ---------------------------------------------------
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
@@ -40,22 +104,20 @@ AttributeServiceAdapter::Write(
     std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
   auto scada_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
       ToScadaVector(*inputs));
-  auto result = co_await inner_.Write(ToScada(context), std::move(scada_inputs));
+  auto result =
+      co_await inner_.Write(ToScada(context), std::move(scada_inputs));
   co_return ToOpcua(result);
 }
 
 // --- ViewService --------------------------------------------------------
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
-ViewServiceAdapter::Browse(
-    opcua::ServiceContext context,
-    std::vector<opcua::BrowseDescription> inputs) {
-  auto result =
-      co_await inner_.Browse(ToScada(context), ToScadaVector(inputs));
+ViewServiceAdapter::Browse(opcua::ServiceContext context,
+                           std::vector<opcua::BrowseDescription> inputs) {
+  auto result = co_await inner_.Browse(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<
-    opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
 ViewServiceAdapter::TranslateBrowsePaths(
     std::vector<opcua::BrowsePath> inputs) {
   auto result = co_await inner_.TranslateBrowsePaths(ToScadaVector(inputs));
@@ -68,14 +130,14 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
     opcua::NodeId method_id,
     std::vector<opcua::Variant> arguments,
     opcua::NodeId user_id) {
-  auto status = co_await inner_.Call(ToScada(node_id), ToScada(method_id),
-                                     ToScadaVector(arguments), ToScada(user_id));
+  auto status =
+      co_await inner_.Call(ToScada(node_id), ToScada(method_id),
+                           ToScadaVector(arguments), ToScada(user_id));
   co_return ToOpcua(status);
 }
 
 // --- NodeManagementService ---------------------------------------------
-opcua::Awaitable<
-    opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
 NodeManagementServiceAdapter::AddNodes(
     std::vector<opcua::AddNodesItem> inputs) {
   auto result = co_await inner_.AddNodes(ToScadaVector(inputs));
@@ -105,8 +167,7 @@ NodeManagementServiceAdapter::DeleteReferences(
 
 // --- HistoryService -----------------------------------------------------
 opcua::Awaitable<opcua::HistoryReadRawResult>
-HistoryServiceAdapter::HistoryReadRaw(
-    opcua::HistoryReadRawDetails details) {
+HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   auto result = co_await inner_.HistoryReadRaw(ToScada(details));
   co_return ToOpcua(result);
 }
@@ -147,8 +208,8 @@ MonitoredItemSubscriptionAdapter::ToItemNotification(
         } else if constexpr (std::is_same_v<T, scada::EventNotification>) {
           // Project the core event onto this item's EventFilter select clauses,
           // producing a standard wire EventFieldList. The core event payload is
-          // a std::any carrying a scada::Event; convert it to opcua::Event, then
-          // project by field path.
+          // a std::any carrying a scada::Event; convert it to opcua::Event,
+          // then project by field path.
           std::vector<std::vector<std::string>> field_paths;
           if (const auto it = field_paths_by_handle_.find(x.client_handle);
               it != field_paths_by_handle_.end()) {
@@ -161,8 +222,7 @@ MonitoredItemSubscriptionAdapter::ToItemNotification(
             event_fields = opcua::ProjectEventFields(
                 field_paths, std::any{ToOpcua(*scada_event)});
           } else {
-            event_fields =
-                opcua::ProjectEventFields(field_paths, std::any{});
+            event_fields = opcua::ProjectEventFields(field_paths, std::any{});
           }
           return opcua::scada::EventFieldList{
               .client_handle = x.client_handle,
@@ -196,8 +256,7 @@ MonitoredItemSubscriptionAdapter::RemoveItems(
   co_return ToOpcuaVector(results);
 }
 
-opcua::Awaitable<
-    opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>
 MonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
   if (!result.ok())
@@ -218,8 +277,7 @@ opcua::StatusOr<std::unique_ptr<opcua::scada::MonitoredItemSubscription>>
 MonitoredItemServiceAdapter::CreateSubscription(
     opcua::ServiceContext context,
     opcua::scada::MonitoredItemSubscriptionOptions options) {
-  auto result =
-      inner_.CreateSubscription(ToScada(context), ToScada(options));
+  auto result = inner_.CreateSubscription(ToScada(context), ToScada(options));
   if (!result.ok())
     return ToOpcua(result.status());
   return std::unique_ptr<opcua::scada::MonitoredItemSubscription>{

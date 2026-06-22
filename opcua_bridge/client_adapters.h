@@ -1,10 +1,10 @@
 #pragma once
 
-// Client-side inverse adapters: present opcuapp's ClientSession (which
-// implements the opcua::scada::*Service interfaces) as the SCADA `core`
-// services (scada::*Service), assembled into a ::DataServices the client
-// consumes. Each method converts its arguments opcua<-core, calls the session,
-// and converts the result core<-opcua — the mirror of server_adapters.h.
+// Client-side inverse adapters: present opcuapp's concrete ClientSession as the
+// SCADA `core` services (scada::*Service), assembled into a ::DataServices the
+// client consumes. Each method converts its arguments opcua<-core, calls the
+// session, and converts the result core<-opcua -- the mirror of
+// server_adapters.h.
 
 #include "opcua_bridge/service_conversion.h"
 
@@ -84,7 +84,8 @@ class ClientViewServiceAdapter : public scada::ViewService {
 
 class ClientAttributeServiceAdapter : public scada::AttributeService {
  public:
-  explicit ClientAttributeServiceAdapter(std::shared_ptr<opcua::ClientSession> s)
+  explicit ClientAttributeServiceAdapter(
+      std::shared_ptr<opcua::ClientSession> s)
       : session_{std::move(s)} {}
 
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
@@ -112,8 +113,7 @@ class ClientMethodServiceAdapter : public scada::MethodService {
   std::shared_ptr<opcua::ClientSession> session_;
 };
 
-class ClientNodeManagementServiceAdapter
-    : public scada::NodeManagementService {
+class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
  public:
   explicit ClientNodeManagementServiceAdapter(
       std::shared_ptr<opcua::ClientSession> s)
@@ -159,9 +159,8 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
       : session_{std::move(s)} {}
 
   scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
-  CreateSubscription(
-      scada::ServiceContext context,
-      scada::MonitoredItemSubscriptionOptions options) override;
+  CreateSubscription(scada::ServiceContext context,
+                     scada::MonitoredItemSubscriptionOptions options) override;
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
