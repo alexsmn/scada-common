@@ -23,20 +23,20 @@
 #include "scada/view_service.h"
 #include "scada/write_flags.h"
 
-#include "opcua/scada/attribute_service.h"
-#include "opcua/scada/authentication.h"
-#include "opcua/scada/event.h"
-#include "opcua/scada/history_types.h"
+#include "opcua/events/event.h"
 #include "opcua/message.h"
-#include "opcua/scada/monitored_item.h"
-#include "opcua/scada/node_attributes.h"
-#include "opcua/scada/node_management_service.h"
-#include "opcua/scada/privileges.h"
-#include "opcua/scada/read_value_id.h"
-#include "opcua/scada/service_context.h"
-#include "opcua/scada/session_service.h"
-#include "opcua/scada/view_service.h"
-#include "opcua/scada/write_flags.h"
+#include "opcua/monitored/monitored_item.h"
+#include "opcua/services/attribute_types.h"
+#include "opcua/services/history_types.h"
+#include "opcua/services/node_management_types.h"
+#include "opcua/services/service_context.h"
+#include "opcua/services/view_types.h"
+#include "opcua/session/authentication.h"
+#include "opcua/session/session_types.h"
+#include "opcua/types/node_attributes.h"
+#include "opcua/types/privileges.h"
+#include "opcua/types/read_value_id.h"
+#include "opcua/types/write_flags.h"
 
 namespace opcua_bridge {
 
@@ -180,33 +180,26 @@ scada::MonitoredItemCreateResult ToScada(
 
 // Maps a wire notification (data-change or projected event) back to a core
 // notification. A wire MonitoredItemNotification becomes a core
-// DataChangeNotification; a wire EventFieldList becomes a core EventNotification
-// whose std::any payload is reassembled from the event fields. Consumers
-// correlate by client_handle.
-scada::MonitoredItemNotification ToScada(
-    const opcua::scada::ItemNotification&);
+// DataChangeNotification; a wire EventFieldList becomes a core
+// EventNotification whose std::any payload is reassembled from the event
+// fields. Consumers correlate by client_handle.
+scada::MonitoredItemNotification ToScada(const opcua::scada::ItemNotification&);
 
 opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
 scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails&);
 
-opcua::HistoryReadEventsDetails ToOpcua(
-    const scada::HistoryReadEventsDetails&);
-scada::HistoryReadEventsDetails ToScada(
-    const opcua::HistoryReadEventsDetails&);
+opcua::HistoryReadEventsDetails ToOpcua(const scada::HistoryReadEventsDetails&);
+scada::HistoryReadEventsDetails ToScada(const opcua::HistoryReadEventsDetails&);
 
 opcua::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult&);
 scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult&);
 
-opcua::HistoryReadEventsResult ToOpcua(
-    const scada::HistoryReadEventsResult&);
-scada::HistoryReadEventsResult ToScada(
-    const opcua::HistoryReadEventsResult&);
+opcua::HistoryReadEventsResult ToOpcua(const scada::HistoryReadEventsResult&);
+scada::HistoryReadEventsResult ToScada(const opcua::HistoryReadEventsResult&);
 
 // --- session ------------------------------------------------------------
-opcua::SessionSecuritySettings ToOpcua(
-    const scada::SessionSecuritySettings&);
-scada::SessionSecuritySettings ToScada(
-    const opcua::SessionSecuritySettings&);
+opcua::SessionSecuritySettings ToOpcua(const scada::SessionSecuritySettings&);
+scada::SessionSecuritySettings ToScada(const opcua::SessionSecuritySettings&);
 
 opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams&);
 scada::SessionConnectParams ToScada(const opcua::SessionConnectParams&);

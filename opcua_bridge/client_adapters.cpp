@@ -22,9 +22,8 @@ Awaitable<void> ClientSessionServiceAdapter::Disconnect() {
 
 // --- ViewService --------------------------------------------------------
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-ClientViewServiceAdapter::Browse(
-    scada::ServiceContext context,
-    std::vector<scada::BrowseDescription> inputs) {
+ClientViewServiceAdapter::Browse(scada::ServiceContext context,
+                                 std::vector<scada::BrowseDescription> inputs) {
   auto result =
       co_await session_->Browse(ToOpcua(context), ToOpcuaVector(inputs));
   co_return ToScada(result);
@@ -42,9 +41,8 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 ClientAttributeServiceAdapter::Read(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
-  auto opcua_inputs =
-      std::make_shared<const std::vector<opcua::ReadValueId>>(
-          ToOpcuaVector(*inputs));
+  auto opcua_inputs = std::make_shared<const std::vector<opcua::ReadValueId>>(
+      ToOpcuaVector(*inputs));
   auto result =
       co_await session_->Read(ToOpcua(context), std::move(opcua_inputs));
   co_return ToScada(result);
@@ -54,9 +52,8 @@ Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientAttributeServiceAdapter::Write(
     scada::ServiceContext context,
     std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
-  auto opcua_inputs =
-      std::make_shared<const std::vector<opcua::WriteValue>>(
-          ToOpcuaVector(*inputs));
+  auto opcua_inputs = std::make_shared<const std::vector<opcua::WriteValue>>(
+      ToOpcuaVector(*inputs));
   auto result =
       co_await session_->Write(ToOpcua(context), std::move(opcua_inputs));
   co_return ToScada(result);
@@ -68,9 +65,9 @@ Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
     scada::NodeId user_id) {
-  auto status = co_await session_->Call(ToOpcua(node_id), ToOpcua(method_id),
-                                        ToOpcuaVector(arguments),
-                                        ToOpcua(user_id));
+  auto status =
+      co_await session_->Call(ToOpcua(node_id), ToOpcua(method_id),
+                              ToOpcuaVector(arguments), ToOpcua(user_id));
   co_return ToScada(status);
 }
 
@@ -143,8 +140,7 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
   ::DataServices services;
   services.session_service_ =
       std::make_shared<ClientSessionServiceAdapter>(session);
-  services.view_service_ =
-      std::make_shared<ClientViewServiceAdapter>(session);
+  services.view_service_ = std::make_shared<ClientViewServiceAdapter>(session);
   services.attribute_service_ =
       std::make_shared<ClientAttributeServiceAdapter>(session);
   services.method_service_ =

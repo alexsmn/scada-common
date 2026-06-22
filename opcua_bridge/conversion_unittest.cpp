@@ -46,9 +46,11 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
   };
   EXPECT_EQ(wire(scada::StatusCode::Bad_NothingToDo), 0x800F0000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_TooManyOperations), 0x80100000u);
-  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongNodeId), 0x80340000u);  // NodeIdUnknown
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongNodeId),
+            0x80340000u);  // NodeIdUnknown
   EXPECT_EQ(wire(scada::StatusCode::Bad_ViewIdUnknown), 0x806B0000u);
-  EXPECT_EQ(wire(scada::StatusCode::Bad_TimestampsToReturnInvalid), 0x802B0000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TimestampsToReturnInvalid),
+            0x802B0000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_NoSubscription), 0x80790000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_HistoryOperationInvalid), 0x80710000u);
   // Good is unchanged.
@@ -83,8 +85,8 @@ TEST(ConversionTest, VariantScalars) {
 TEST(ConversionTest, VariantArrays) {
   ExpectRoundTrip(scada::Variant{std::vector<scada::Int32>{1, 2, 3}});
   ExpectRoundTrip(scada::Variant{std::vector<scada::String>{"a", "b"}});
-  ExpectRoundTrip(
-      scada::Variant{std::vector<scada::NodeId>{scada::NodeId{1u}, scada::NodeId{2u}}});
+  ExpectRoundTrip(scada::Variant{
+      std::vector<scada::NodeId>{scada::NodeId{1u}, scada::NodeId{2u}}});
 }
 
 TEST(ConversionTest, ReadValueId) {
@@ -94,19 +96,19 @@ TEST(ConversionTest, ReadValueId) {
 }
 
 TEST(ConversionTest, BrowseDescriptionAndResult) {
-  ExpectRoundTrip(scada::BrowseDescription{
-      .node_id = scada::NodeId{84u},
-      .direction = scada::BrowseDirection::Forward,
-      .reference_type_id = scada::NodeId{33u},
-      .include_subtypes = true});
+  ExpectRoundTrip(
+      scada::BrowseDescription{.node_id = scada::NodeId{84u},
+                               .direction = scada::BrowseDirection::Forward,
+                               .reference_type_id = scada::NodeId{33u},
+                               .include_subtypes = true});
 
   scada::BrowseResult br;
   br.status_code = scada::StatusCode::Good;
-  br.references.push_back(scada::ReferenceDescription{
-      .reference_type_id = scada::NodeId{35u},
-      .forward = true,
-      .node_id = scada::NodeId{2253u},
-      .node_class = scada::NodeClass::Object});
+  br.references.push_back(
+      scada::ReferenceDescription{.reference_type_id = scada::NodeId{35u},
+                                  .forward = true,
+                                  .node_id = scada::NodeId{2253u},
+                                  .node_class = scada::NodeClass::Object});
   ExpectRoundTrip(br);
 }
 

@@ -18,14 +18,14 @@
 #include "scada/status.h"
 #include "scada/variant.h"
 
-#include "opcua/scada/data_value.h"
-#include "opcua/scada/expanded_node_id.h"
-#include "opcua/scada/extension_object.h"
-#include "opcua/scada/node_id.h"
-#include "opcua/scada/qualified_name.h"
-#include "opcua/scada/qualifier.h"
-#include "opcua/scada/status.h"
-#include "opcua/scada/variant.h"
+#include "opcua/types/data_value.h"
+#include "opcua/types/expanded_node_id.h"
+#include "opcua/types/extension_object.h"
+#include "opcua/types/node_id.h"
+#include "opcua/types/qualified_name.h"
+#include "opcua/types/qualifier.h"
+#include "opcua/types/status.h"
+#include "opcua/types/variant.h"
 
 #include <vector>
 
@@ -38,8 +38,8 @@ namespace opcua_bridge {
 // value and fall through to a direct cast).
 inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
-#define MAP(name) \
-  case scada::StatusCode::name:                \
+#define MAP(name)               \
+  case scada::StatusCode::name: \
     return opcua::StatusCode::name;
     MAP(Bad_WrongLoginCredentials)
     MAP(Bad_WrongNodeId)
@@ -75,8 +75,8 @@ inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
 }
 inline scada::StatusCode ToScada(opcua::StatusCode c) {
   switch (c) {
-#define MAP(name) \
-  case opcua::StatusCode::name:         \
+#define MAP(name)               \
+  case opcua::StatusCode::name: \
     return scada::StatusCode::name;
     MAP(Bad_WrongLoginCredentials)
     MAP(Bad_WrongNodeId)
@@ -122,7 +122,8 @@ inline opcua::Status ToOpcua(scada::Status s) {
 }
 inline scada::Status ToScada(opcua::Status s) {
   scada::Status result{ToScada(s.code())};
-  result.set_limit(static_cast<scada::StatusLimit>(static_cast<int>(s.limit())));
+  result.set_limit(
+      static_cast<scada::StatusLimit>(static_cast<int>(s.limit())));
   return result;
 }
 

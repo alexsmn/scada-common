@@ -2,7 +2,7 @@
 
 #include "opcua_bridge/vector_conversion.h"
 
-#include "opcua/endpoint_core.h"
+#include "opcua/server/endpoint_core.h"
 
 #include <any>
 #include <variant>

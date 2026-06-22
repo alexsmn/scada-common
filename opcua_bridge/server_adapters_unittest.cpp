@@ -1,6 +1,6 @@
 #include "opcua_bridge/server_adapters.h"
 
-#include "opcua/endpoint_core.h"
+#include "opcua/server/endpoint_core.h"
 
 #include <gtest/gtest.h>
 
@@ -43,14 +43,13 @@ TEST(ServerAdapterTest, ViewServiceBrowseDelegatesAndConverts) {
   ViewServiceAdapter adapter{fake};
 
   boost::asio::io_context io;
-  std::optional<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
-      result;
+  std::optional<opcua::StatusOr<std::vector<opcua::BrowseResult>>> result;
 
   // Call the adapter through its opcua interface with opcua-typed input.
   std::vector<opcua::BrowseDescription> inputs;
-  inputs.push_back(opcua::BrowseDescription{
-      .node_id = opcua::NodeId{84u},
-      .direction = opcua::BrowseDirection::Forward});
+  inputs.push_back(
+      opcua::BrowseDescription{.node_id = opcua::NodeId{84u},
+                               .direction = opcua::BrowseDirection::Forward});
 
   boost::asio::co_spawn(
       io,
@@ -105,8 +104,8 @@ class FakeMonitoredItemSubscription : public scada::MonitoredItemSubscription {
 };
 
 // A populated core EventNotification routed through the bridge as a wire
-// EventFieldList must carry the real field values projected onto the EventFilter
-// select clauses ({Message},{Severity},{EventId}).
+// EventFieldList must carry the real field values projected onto the
+// EventFilter select clauses ({Message},{Severity},{EventId}).
 TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   auto fake = std::make_unique<FakeMonitoredItemSubscription>();
   auto* fake_ptr = fake.get();
@@ -130,10 +129,9 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   request.item_to_monitor = {.node_id = opcua::NodeId{2253u},
                              .attribute_id = opcua::AttributeId::EventNotifier};
   request.requested_parameters.client_handle = 55;
-  request.requested_parameters.filter =
-      opcua::MonitoringFilter{opcua::BuildEventFilter(
-          std::vector<std::vector<std::string>>{
-              {"Message"}, {"Severity"}, {"EventId"}})};
+  request.requested_parameters.filter = opcua::MonitoringFilter{
+      opcua::BuildEventFilter(std::vector<std::vector<std::string>>{
+          {"Message"}, {"Severity"}, {"EventId"}})};
 
   boost::asio::io_context io;
   std::optional<opcua::StatusOr<std::vector<opcua::scada::ItemNotification>>>

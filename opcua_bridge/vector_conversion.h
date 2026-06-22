@@ -5,8 +5,8 @@
 // templates sees every element converter — the element types live in scada::
 // and opcua::scada::, not opcua_bridge::, so ADL alone would not find them.
 
+#include "opcua/types/status_or.h"
 #include "scada/status_or.h"
-#include "opcua/scada/status_or.h"
 
 #include <type_traits>
 #include <vector>
@@ -34,17 +34,15 @@ auto ToScadaVector(const std::vector<T>& in) {
 // StatusOr<vector<T>> — propagate the status on failure, convert the vector on
 // success. (Covers every StatusOr the service interfaces return.)
 template <class T>
-auto ToOpcua(const scada::StatusOr<std::vector<T>>& s)
-    -> opcua::StatusOr<
-        std::vector<std::decay_t<decltype(ToOpcua(std::declval<T>()))>>> {
+auto ToOpcua(const scada::StatusOr<std::vector<T>>& s) -> opcua::StatusOr<
+    std::vector<std::decay_t<decltype(ToOpcua(std::declval<T>()))>>> {
   if (!s.ok())
     return ToOpcua(s.status());
   return ToOpcuaVector(*s);
 }
 template <class T>
-auto ToScada(const opcua::StatusOr<std::vector<T>>& s)
-    -> scada::StatusOr<
-        std::vector<std::decay_t<decltype(ToScada(std::declval<T>()))>>> {
+auto ToScada(const opcua::StatusOr<std::vector<T>>& s) -> scada::StatusOr<
+    std::vector<std::decay_t<decltype(ToScada(std::declval<T>()))>>> {
   if (!s.ok())
     return ToScada(s.status());
   return ToScadaVector(*s);

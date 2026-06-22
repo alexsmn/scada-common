@@ -4,7 +4,7 @@
 
 #include "scada/event_util.h"
 
-#include "opcua/scada/event_util.h"
+#include "opcua/events/event_util.h"
 
 #include <any>
 #include <variant>
@@ -25,10 +25,12 @@ scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
 }
 
 opcua::ReadValueId ToOpcua(const scada::ReadValueId& v) {
-  return {.node_id = ToOpcua(v.node_id), .attribute_id = ToOpcua(v.attribute_id)};
+  return {.node_id = ToOpcua(v.node_id),
+          .attribute_id = ToOpcua(v.attribute_id)};
 }
 scada::ReadValueId ToScada(const opcua::ReadValueId& v) {
-  return {.node_id = ToScada(v.node_id), .attribute_id = ToScada(v.attribute_id)};
+  return {.node_id = ToScada(v.node_id),
+          .attribute_id = ToScada(v.attribute_id)};
 }
 
 opcua::WriteValue ToOpcua(const scada::WriteValue& v) {
@@ -219,9 +221,8 @@ opcua::DataChangeFilter ToOpcua(const scada::DataChangeFilter& v) {
   // implies an absolute deadband, which is what the server-side deadband logic
   // (DataChangeFilter §7.22.2) checks for.
   return {.trigger = opcua::DataChangeTrigger::StatusValue,
-          .deadband_type = v.deadband_value > 0
-                               ? opcua::DeadbandType::Absolute
-                               : opcua::DeadbandType::None,
+          .deadband_type = v.deadband_value > 0 ? opcua::DeadbandType::Absolute
+                                                : opcua::DeadbandType::None,
           .deadband_value = v.deadband_value};
 }
 scada::DataChangeFilter ToScada(const opcua::DataChangeFilter& v) {
@@ -352,9 +353,9 @@ scada::MonitoringFilter ToScadaFilter(
 
 opcua::MonitoringParameters ToOpcua(const scada::MonitoringParameters& v) {
   opcua::MonitoringParameters out;
-  out.sampling_interval_ms =
-      v.sampling_interval.has_value() ? v.sampling_interval->InMillisecondsF()
-                                      : 0.0;
+  out.sampling_interval_ms = v.sampling_interval.has_value()
+                                 ? v.sampling_interval->InMillisecondsF()
+                                 : 0.0;
   out.filter = ToOpcuaFilter(v.filter);
   out.queue_size = static_cast<opcua::UInt32>(v.queue_size.value_or(1));
   return out;
@@ -405,8 +406,7 @@ scada::Event ToScada(const opcua::Event& v) {
   return out;
 }
 
-opcua::HistoryReadRawDetails ToOpcua(
-    const scada::HistoryReadRawDetails& v) {
+opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails& v) {
   return {.node_id = ToOpcua(v.node_id),
           .from = ToOpcua(v.from),
           .to = ToOpcua(v.to),
@@ -415,8 +415,7 @@ opcua::HistoryReadRawDetails ToOpcua(
           .release_continuation_point = v.release_continuation_point,
           .continuation_point = v.continuation_point};
 }
-scada::HistoryReadRawDetails ToScada(
-    const opcua::HistoryReadRawDetails& v) {
+scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails& v) {
   return {.node_id = ToScada(v.node_id),
           .from = ToScada(v.from),
           .to = ToScada(v.to),
@@ -441,14 +440,12 @@ scada::HistoryReadEventsDetails ToScada(
           .filter = ToScada(v.filter)};
 }
 
-opcua::HistoryReadRawResult ToOpcua(
-    const scada::HistoryReadRawResult& v) {
+opcua::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult& v) {
   return {.status = ToOpcua(v.status),
           .values = ToOpcuaVector(v.values),
           .continuation_point = v.continuation_point};
 }
-scada::HistoryReadRawResult ToScada(
-    const opcua::HistoryReadRawResult& v) {
+scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult& v) {
   return {.status = ToScada(v.status),
           .values = ToScadaVector(v.values),
           .continuation_point = v.continuation_point};
@@ -504,15 +501,17 @@ scada::MonitoredItemCreateResult ToScada(
 
 scada::MonitoredItemNotification ToScada(
     const opcua::scada::ItemNotification& n) {
-  // The wire notification is one of two standard types. A MonitoredItemNotification
-  // (client_handle + DataValue) maps to a core DataChangeNotification. An
-  // EventFieldList (client_handle + projected event fields) maps to a core
-  // EventNotification; the std::any payload is reassembled from the event fields
-  // via the core AssembleEvent. Consumers correlate by client_handle.
+  // The wire notification is one of two standard types. A
+  // MonitoredItemNotification (client_handle + DataValue) maps to a core
+  // DataChangeNotification. An EventFieldList (client_handle + projected event
+  // fields) maps to a core EventNotification; the std::any payload is
+  // reassembled from the event fields via the core AssembleEvent. Consumers
+  // correlate by client_handle.
   return std::visit(
       [](const auto& x) -> scada::MonitoredItemNotification {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (std::is_same_v<T, opcua::scada::MonitoredItemNotification>) {
+        if constexpr (std::is_same_v<T,
+                                     opcua::scada::MonitoredItemNotification>) {
           return scada::DataChangeNotification{.item_id = 0,
                                                .client_handle = x.client_handle,
                                                .value = ToScada(x.value)};
@@ -521,8 +520,9 @@ scada::MonitoredItemNotification ToScada(
           // AssembleEvent expects the full DisassembleEvent field layout
           // (event_type_id at index 0, 13 fields); only reassemble when the
           // wire carries that full layout. Projected select-clause subsets
-          // (e.g. the 7 default fields) cannot be losslessly reassembled, so the
-          // payload is left empty and only the client_handle/status survive.
+          // (e.g. the 7 default fields) cannot be losslessly reassembled, so
+          // the payload is left empty and only the client_handle/status
+          // survive.
           constexpr std::size_t kFullEventFieldCount = 13;
           std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
           std::any event = fields.size() >= kFullEventFieldCount
@@ -552,8 +552,7 @@ scada::SessionSecuritySettings ToScada(
           .client_private_key_path = v.client_private_key_path};
 }
 
-opcua::SessionConnectParams ToOpcua(
-    const scada::SessionConnectParams& v) {
+opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
           .user_name = v.user_name,  // LocalizedText is std::u16string
@@ -561,8 +560,7 @@ opcua::SessionConnectParams ToOpcua(
           .allow_remote_logoff = v.allow_remote_logoff,
           .security = ToOpcua(v.security)};
 }
-scada::SessionConnectParams ToScada(
-    const opcua::SessionConnectParams& v) {
+scada::SessionConnectParams ToScada(const opcua::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
           .user_name = v.user_name,

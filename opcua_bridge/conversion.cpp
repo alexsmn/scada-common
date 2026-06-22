@@ -64,7 +64,7 @@ scada::NodeId ToScada(const opcua::NodeId& n) {
 
 opcua::ExpandedNodeId ToOpcua(const scada::ExpandedNodeId& e) {
   return opcua::ExpandedNodeId{ToOpcua(e.node_id()), e.namespace_uri(),
-                                      e.server_index()};
+                               e.server_index()};
 }
 scada::ExpandedNodeId ToScada(const opcua::ExpandedNodeId& e) {
   return scada::ExpandedNodeId{ToScada(e.node_id()), e.namespace_uri(),
@@ -93,54 +93,92 @@ scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {
 opcua::Variant ToOpcua(const scada::Variant& v) {
   using V = scada::Variant;
   switch (v.type()) {
-    case V::EMPTY: return {};
-    case V::BOOL: return ToOpcuaSame<bool>(v);
-    case V::INT8: return ToOpcuaSame<scada::Int8>(v);
-    case V::UINT8: return ToOpcuaSame<scada::UInt8>(v);
-    case V::INT16: return ToOpcuaSame<scada::Int16>(v);
-    case V::UINT16: return ToOpcuaSame<scada::UInt16>(v);
-    case V::INT32: return ToOpcuaSame<scada::Int32>(v);
-    case V::UINT32: return ToOpcuaSame<scada::UInt32>(v);
-    case V::INT64: return ToOpcuaSame<scada::Int64>(v);
-    case V::UINT64: return ToOpcuaSame<scada::UInt64>(v);
-    case V::DOUBLE: return ToOpcuaSame<scada::Double>(v);
-    case V::BYTE_STRING: return ToOpcuaSame<scada::ByteString>(v);
-    case V::STRING: return ToOpcuaSame<scada::String>(v);
-    case V::LOCALIZED_TEXT: return ToOpcuaSame<scada::LocalizedText>(v);
-    case V::QUALIFIED_NAME: return ToOpcuaConv<scada::QualifiedName>(v);
-    case V::NODE_ID: return ToOpcuaConv<scada::NodeId>(v);
-    case V::EXPANDED_NODE_ID: return ToOpcuaConv<scada::ExpandedNodeId>(v);
-    case V::EXTENSION_OBJECT: return ToOpcuaConv<scada::ExtensionObject>(v);
+    case V::EMPTY:
+      return {};
+    case V::BOOL:
+      return ToOpcuaSame<bool>(v);
+    case V::INT8:
+      return ToOpcuaSame<scada::Int8>(v);
+    case V::UINT8:
+      return ToOpcuaSame<scada::UInt8>(v);
+    case V::INT16:
+      return ToOpcuaSame<scada::Int16>(v);
+    case V::UINT16:
+      return ToOpcuaSame<scada::UInt16>(v);
+    case V::INT32:
+      return ToOpcuaSame<scada::Int32>(v);
+    case V::UINT32:
+      return ToOpcuaSame<scada::UInt32>(v);
+    case V::INT64:
+      return ToOpcuaSame<scada::Int64>(v);
+    case V::UINT64:
+      return ToOpcuaSame<scada::UInt64>(v);
+    case V::DOUBLE:
+      return ToOpcuaSame<scada::Double>(v);
+    case V::BYTE_STRING:
+      return ToOpcuaSame<scada::ByteString>(v);
+    case V::STRING:
+      return ToOpcuaSame<scada::String>(v);
+    case V::LOCALIZED_TEXT:
+      return ToOpcuaSame<scada::LocalizedText>(v);
+    case V::QUALIFIED_NAME:
+      return ToOpcuaConv<scada::QualifiedName>(v);
+    case V::NODE_ID:
+      return ToOpcuaConv<scada::NodeId>(v);
+    case V::EXPANDED_NODE_ID:
+      return ToOpcuaConv<scada::ExpandedNodeId>(v);
+    case V::EXTENSION_OBJECT:
+      return ToOpcuaConv<scada::ExtensionObject>(v);
     case V::DATE_TIME:  // no array alternative for DateTime
       return opcua::Variant{ToOpcua(v.get<scada::DateTime>())};
-    default: return {};
+    default:
+      return {};
   }
 }
 
 scada::Variant ToScada(const opcua::Variant& v) {
   using V = opcua::Variant;
   switch (v.type()) {
-    case V::EMPTY: return {};
-    case V::BOOL: return ToScadaSame<bool>(v);
-    case V::INT8: return ToScadaSame<opcua::Int8>(v);
-    case V::UINT8: return ToScadaSame<opcua::UInt8>(v);
-    case V::INT16: return ToScadaSame<opcua::Int16>(v);
-    case V::UINT16: return ToScadaSame<opcua::UInt16>(v);
-    case V::INT32: return ToScadaSame<opcua::Int32>(v);
-    case V::UINT32: return ToScadaSame<opcua::UInt32>(v);
-    case V::INT64: return ToScadaSame<opcua::Int64>(v);
-    case V::UINT64: return ToScadaSame<opcua::UInt64>(v);
-    case V::DOUBLE: return ToScadaSame<opcua::Double>(v);
-    case V::BYTE_STRING: return ToScadaSame<opcua::ByteString>(v);
-    case V::STRING: return ToScadaSame<opcua::String>(v);
-    case V::LOCALIZED_TEXT: return ToScadaSame<opcua::LocalizedText>(v);
-    case V::QUALIFIED_NAME: return ToScadaConv<opcua::QualifiedName>(v);
-    case V::NODE_ID: return ToScadaConv<opcua::NodeId>(v);
-    case V::EXPANDED_NODE_ID: return ToScadaConv<opcua::ExpandedNodeId>(v);
-    case V::EXTENSION_OBJECT: return ToScadaConv<opcua::ExtensionObject>(v);
+    case V::EMPTY:
+      return {};
+    case V::BOOL:
+      return ToScadaSame<bool>(v);
+    case V::INT8:
+      return ToScadaSame<opcua::Int8>(v);
+    case V::UINT8:
+      return ToScadaSame<opcua::UInt8>(v);
+    case V::INT16:
+      return ToScadaSame<opcua::Int16>(v);
+    case V::UINT16:
+      return ToScadaSame<opcua::UInt16>(v);
+    case V::INT32:
+      return ToScadaSame<opcua::Int32>(v);
+    case V::UINT32:
+      return ToScadaSame<opcua::UInt32>(v);
+    case V::INT64:
+      return ToScadaSame<opcua::Int64>(v);
+    case V::UINT64:
+      return ToScadaSame<opcua::UInt64>(v);
+    case V::DOUBLE:
+      return ToScadaSame<opcua::Double>(v);
+    case V::BYTE_STRING:
+      return ToScadaSame<opcua::ByteString>(v);
+    case V::STRING:
+      return ToScadaSame<opcua::String>(v);
+    case V::LOCALIZED_TEXT:
+      return ToScadaSame<opcua::LocalizedText>(v);
+    case V::QUALIFIED_NAME:
+      return ToScadaConv<opcua::QualifiedName>(v);
+    case V::NODE_ID:
+      return ToScadaConv<opcua::NodeId>(v);
+    case V::EXPANDED_NODE_ID:
+      return ToScadaConv<opcua::ExpandedNodeId>(v);
+    case V::EXTENSION_OBJECT:
+      return ToScadaConv<opcua::ExtensionObject>(v);
     case V::DATE_TIME:
       return scada::Variant{ToScada(v.get<opcua::DateTime>())};
-    default: return {};
+    default:
+      return {};
   }
 }
 

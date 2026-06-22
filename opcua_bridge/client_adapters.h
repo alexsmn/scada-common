@@ -13,7 +13,7 @@
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 
-#include "opcua/client_session.h"
+#include "opcua/client/client_session.h"
 
 #include <memory>
 #include <span>

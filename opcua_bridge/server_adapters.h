@@ -17,13 +17,13 @@
 #include "scada/node_management_service.h"
 #include "scada/view_service.h"
 
-#include "opcua/scada/attribute_service.h"
-#include "opcua/scada/authentication.h"
-#include "opcua/scada/history_service.h"
-#include "opcua/scada/method_service.h"
-#include "opcua/scada/node_management_service.h"
-#include "opcua/scada/view_service.h"
-#include "opcua/service_callbacks.h"
+#include "opcua/services/attribute_types.h"
+#include "opcua/services/history_update_types.h"
+#include "opcua/services/method_types.h"
+#include "opcua/services/node_management_types.h"
+#include "opcua/services/service_callbacks.h"
+#include "opcua/services/view_types.h"
+#include "opcua/session/authentication.h"
 
 #include <cstdint>
 #include <memory>
