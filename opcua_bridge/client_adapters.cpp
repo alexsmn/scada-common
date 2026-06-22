@@ -134,6 +134,47 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
           std::move(*result))};
 }
 
+// --- HistoryService / HistoryUpdateService -----------------------------
+Awaitable<scada::HistoryReadRawResult>
+ClientHistoryServiceAdapter::HistoryReadRaw(
+    scada::HistoryReadRawDetails details) {
+  auto result = co_await session_->HistoryReadRaw(ToOpcua(details));
+  if (!result.ok()) {
+    co_return scada::HistoryReadRawResult{.status = ToScada(result.status())};
+  }
+  co_return ToScada(*result);
+}
+
+Awaitable<scada::HistoryReadEventsResult>
+ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
+                                               base::Time from,
+                                               base::Time to,
+                                               scada::EventFilter filter) {
+  scada::HistoryReadEventsDetails details{.node_id = std::move(node_id),
+                                          .from = from,
+                                          .to = to,
+                                          .filter = std::move(filter)};
+  auto result = co_await session_->HistoryReadEvents(ToOpcua(details));
+  if (!result.ok()) {
+    co_return scada::HistoryReadEventsResult{.status =
+                                                 ToScada(result.status())};
+  }
+  co_return ToScada(*result);
+}
+
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+ClientHistoryServiceAdapter::HistoryUpdateData(
+    scada::UpdateDataDetails details) {
+  auto result = co_await session_->HistoryUpdateData(ToOpcua(details));
+  if (!result.ok()) {
+    co_return ToScada(result.status());
+  }
+  if (result->status.bad()) {
+    co_return ToScada(result->status);
+  }
+  co_return ToScadaVector(result->operation_results);
+}
+
 // --- factory ------------------------------------------------------------
 ::DataServices CreateClientDataServices(
     std::shared_ptr<opcua::ClientSession> session) {
@@ -149,7 +190,8 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
       std::make_shared<ClientNodeManagementServiceAdapter>(session);
   services.monitored_item_service_ =
       std::make_shared<ClientMonitoredItemServiceAdapter>(session);
-  services.history_service_ = std::make_shared<UnsupportedHistoryService>();
+  services.history_service_ =
+      std::make_shared<ClientHistoryServiceAdapter>(session);
   return services;
 }
 

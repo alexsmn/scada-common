@@ -10,6 +10,7 @@
 
 #include "scada/data_services.h"
 #include "scada/history_service.h"
+#include "scada/history_update_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 
@@ -166,21 +167,31 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
   std::shared_ptr<opcua::ClientSession> session_;
 };
 
-// History is not provided by the OPC UA client session; this stub returns a
-// bad status (matching the prior in-tree behaviour).
-class UnsupportedHistoryService : public scada::HistoryService {
+// Presents a remote OPC UA historian (reached over the client session) as the
+// core history read + update services. Implements both interfaces because the
+// SCADA historian exposes both; the server-side router cross-casts a registered
+// HistoryService to its update interface (mirrors RootNodeManager).
+class ClientHistoryServiceAdapter : public scada::HistoryService,
+                                    public scada::HistoryUpdateService {
  public:
+  explicit ClientHistoryServiceAdapter(std::shared_ptr<opcua::ClientSession> s)
+      : session_{std::move(s)} {}
+
+  // scada::HistoryService
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
-      scada::HistoryReadRawDetails) override {
-    co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
-  }
+      scada::HistoryReadRawDetails details) override;
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
-      scada::NodeId,
-      base::Time,
-      base::Time,
-      scada::EventFilter) override {
-    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
-  }
+      scada::NodeId node_id,
+      base::Time from,
+      base::Time to,
+      scada::EventFilter filter) override;
+
+  // scada::HistoryUpdateService
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateData(
+      scada::UpdateDataDetails details) override;
+
+ private:
+  std::shared_ptr<opcua::ClientSession> session_;
 };
 
 // Assembles a ::DataServices backed by the given opcua client session.
