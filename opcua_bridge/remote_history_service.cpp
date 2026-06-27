@@ -1,16 +1,51 @@
 #include "opcua_bridge/remote_history_service.h"
 
+#include "scada/data_value.h"
+#include "scada/read_value_id.h"
+#include "scada/service_context.h"
+#include "scada/variant.h"
+
 #include <utility>
 
 namespace opcua_bridge {
+namespace {
+
+// OPC UA Part 5 §6.3.1: Server_ServiceLevel, the standard health indicator a
+// non-transparent-redundancy client uses to pick the best server.
+constexpr scada::NumericId kServerServiceLevelId = 2267;
+
+// Reads Server_ServiceLevel over the given session.
+Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevelVia(
+    std::shared_ptr<opcua::ClientSession> session) {
+  ClientAttributeServiceAdapter attr{std::move(session)};
+  auto inputs = std::make_shared<std::vector<scada::ReadValueId>>();
+  inputs->push_back(scada::ReadValueId{.node_id = scada::NodeId{
+                                           kServerServiceLevelId}});
+  auto result = co_await attr.Read(scada::ServiceContext{}, std::move(inputs));
+  if (!result.ok()) {
+    co_return result.status();
+  }
+  if (result->empty() || !scada::IsGood(result->front().status_code)) {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+  scada::UInt8 level = 0;
+  if (!result->front().value.get(level)) {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+  co_return level;
+}
+
+}  // namespace
 
 RemoteHistoryService::RemoteHistoryService(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
     RemoteHistoryServiceConfig config)
-    : config_{std::move(config)},
-      session_{std::make_shared<opcua::ClientSession>(std::move(executor),
-                                                      transport_factory)},
+    : executor_{std::move(executor)},
+      transport_factory_{transport_factory},
+      config_{std::move(config)},
+      session_{std::make_shared<opcua::ClientSession>(executor_,
+                                                      transport_factory_)},
       adapter_{session_} {}
 
 RemoteHistoryService::~RemoteHistoryService() = default;
@@ -44,6 +79,28 @@ Awaitable<void> RemoteHistoryService::Disconnect() {
 
 bool RemoteHistoryService::IsConnected() const {
   return session_->IsConnected(nullptr);
+}
+
+Awaitable<scada::StatusOr<scada::UInt8>>
+RemoteHistoryService::ReadServiceLevel() {
+  return ReadServiceLevelVia(session_);
+}
+
+Awaitable<scada::StatusOr<scada::UInt8>>
+RemoteHistoryService::ProbeServiceLevel(std::string endpoint) {
+  auto probe =
+      std::make_shared<opcua::ClientSession>(executor_, transport_factory_);
+  auto status = co_await probe->ConnectStatus(
+      opcua::SessionConnectParams{.connection_string = std::move(endpoint),
+                                  .user_name = config_.user_name,
+                                  .password = config_.password});
+  auto scada_status = ToScada(status);
+  if (!scada_status) {
+    co_return scada_status;
+  }
+  auto level = co_await ReadServiceLevelVia(probe);
+  co_await probe->Disconnect();
+  co_return level;
 }
 
 Awaitable<scada::HistoryReadRawResult> RemoteHistoryService::HistoryReadRaw(

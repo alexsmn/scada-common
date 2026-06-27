@@ -58,6 +58,17 @@ class RemoteHistoryService : public scada::HistoryService,
   [[nodiscard]] Awaitable<void> Disconnect();
   [[nodiscard]] bool IsConnected() const;
 
+  // Reads the current session's advertised Server_ServiceLevel (OPC UA Part 4
+  // §6.6). Used by a failover loop to prefer the highest-ServiceLevel server.
+  [[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevel();
+  // Opens a *transient* session to `endpoint`, reads its ServiceLevel, and
+  // disconnects — without disturbing the active session — so the loop can
+  // compare candidates for ServiceLevel-aware preemption. Returns a connectivity
+  // Bad if the endpoint is unreachable (e.g. a gated standby with its listener
+  // closed).
+  [[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
+      std::string endpoint);
+
   // scada::HistoryService
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
@@ -72,6 +83,8 @@ class RemoteHistoryService : public scada::HistoryService,
       scada::UpdateDataDetails details) override;
 
  private:
+  AnyExecutor executor_;
+  transport::TransportFactory& transport_factory_;
   RemoteHistoryServiceConfig config_;
   // Declaration order is load-bearing: the session must outlive the adapter
   // that holds it.
