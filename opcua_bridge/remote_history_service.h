@@ -44,9 +44,17 @@ class RemoteHistoryService : public scada::HistoryService,
                        RemoteHistoryServiceConfig config);
   ~RemoteHistoryService() override;
 
-  // Opens the session to the configured historian and returns the connect
-  // status (connect/activation failures surface here).
+  // Opens the session to the configured (primary) historian endpoint and
+  // returns the connect status (connect/activation failures surface here).
   [[nodiscard]] Awaitable<scada::Status> Connect();
+  // Connects to a specific endpoint using the configured credentials. Used by a
+  // failover loop that drives the candidate endpoint list itself.
+  [[nodiscard]] Awaitable<scada::Status> ConnectTo(std::string endpoint);
+  // Cheap liveness keepalive: round-trips a HistoryRead of the standard
+  // ServerStatus node. Returns a connectivity Bad (e.g. Bad_Disconnected /
+  // Bad_Timeout) when the session is no longer usable, letting a caller detect a
+  // silent mid-session drop that IsConnected() would not surface promptly.
+  [[nodiscard]] Awaitable<scada::Status> Probe();
   [[nodiscard]] Awaitable<void> Disconnect();
   [[nodiscard]] bool IsConnected() const;
 

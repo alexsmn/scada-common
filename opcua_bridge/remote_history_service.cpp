@@ -16,11 +16,24 @@ RemoteHistoryService::RemoteHistoryService(
 RemoteHistoryService::~RemoteHistoryService() = default;
 
 Awaitable<scada::Status> RemoteHistoryService::Connect() {
+  return ConnectTo(config_.endpoint_url);
+}
+
+Awaitable<scada::Status> RemoteHistoryService::ConnectTo(std::string endpoint) {
   auto status = co_await session_->ConnectStatus(
-      opcua::SessionConnectParams{.connection_string = config_.endpoint_url,
+      opcua::SessionConnectParams{.connection_string = std::move(endpoint),
                                   .user_name = config_.user_name,
                                   .password = config_.password});
   co_return ToScada(status);
+}
+
+Awaitable<scada::Status> RemoteHistoryService::Probe() {
+  // Liveness keepalive: round-trip a HistoryRead of the standard ServerStatus
+  // CurrentTime node (i=2258). A live session returns Good/empty or a
+  // non-connectivity Bad; a dead transport returns Bad_Disconnected/Bad_Timeout.
+  auto result = co_await adapter_.HistoryReadRaw(
+      scada::HistoryReadRawDetails{.node_id = scada::NodeId{2258}});
+  co_return result.status;
 }
 
 Awaitable<void> RemoteHistoryService::Disconnect() {
