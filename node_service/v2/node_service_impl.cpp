@@ -12,6 +12,8 @@
 
 #include "base/debug_util.h"
 
+#include <format>
+
 namespace v2 {
 
 // PendingEvents
@@ -53,8 +55,8 @@ void PendingEvents::PostEvent(const scada::SemanticChangeEvent& event) {
 }
 
 void PendingEvents::FireEvent(const scada::ModelChangeEvent& event) {
-  LOG_INFO(service_.logger_)
-      << "Notify node model changed" << LOG_TAG("Event", ToString(event));
+  LOG_INFO(service_.logger_) << "Notify node model changed"
+                             << LOG_TAG("Event", std::format("{}", event));
 
   if (auto node_model = service_.GetNodeModel(event.node_id)) {
     for (auto& obs : node_model->observers_)
@@ -65,8 +67,8 @@ void PendingEvents::FireEvent(const scada::ModelChangeEvent& event) {
 }
 
 void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
-  LOG_INFO(service_.logger_)
-      << "Notify node semantics changed" << LOG_TAG("Event", ToString(event));
+  LOG_INFO(service_.logger_) << "Notify node semantics changed"
+                             << LOG_TAG("Event", std::format("{}", event));
 
   if (auto node_model = service_.GetNodeModel(event.node_id)) {
     for (auto& obs : node_model->observers_)

@@ -11,6 +11,8 @@
 
 #include "base/debug_util.h"
 
+#include <format>
+
 namespace v1 {
 
 namespace {
@@ -73,7 +75,8 @@ void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
-  LOG_INFO(logger_) << "Model changed" << LOG_TAG("Event", ToString(event));
+  LOG_INFO(logger_) << "Model changed"
+                    << LOG_TAG("Event", std::format("{}", event));
 
   // Model must handle node deletion first to correctly cleanup a refrence to
   // the node, since it has already been deleted.
@@ -86,7 +89,8 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void NodeServiceImpl::OnSemanticChanged(
     const scada::SemanticChangeEvent& event) {
-  LOG_INFO(logger_) << "Semantic changed" << LOG_TAG("Event", ToString(event));
+  LOG_INFO(logger_) << "Semantic changed"
+                    << LOG_TAG("Event", std::format("{}", event));
 
   for (auto& o : observers_)
     o.OnNodeSemanticChanged(event.node_id);
