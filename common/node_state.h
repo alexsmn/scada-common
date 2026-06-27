@@ -6,6 +6,7 @@
 #include "scada/variant.h"
 #include "scada/view_service.h"
 
+#include <algorithm>
 #include <memory>
 #include <ostream>
 #include <vector>
