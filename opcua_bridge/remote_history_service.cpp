@@ -88,19 +88,9 @@ RemoteHistoryService::ReadServiceLevel() {
 
 Awaitable<scada::StatusOr<scada::UInt8>>
 RemoteHistoryService::ProbeServiceLevel(std::string endpoint) {
-  auto probe =
-      std::make_shared<opcua::ClientSession>(executor_, transport_factory_);
-  auto status = co_await probe->ConnectStatus(
-      opcua::SessionConnectParams{.connection_string = std::move(endpoint),
-                                  .user_name = config_.user_name,
-                                  .password = config_.password});
-  auto scada_status = ToScada(status);
-  if (!scada_status) {
-    co_return scada_status;
-  }
-  auto level = co_await ReadServiceLevelVia(probe);
-  co_await probe->Disconnect();
-  co_return level;
+  return opcua_bridge::ProbeServiceLevel(executor_, transport_factory_,
+                                         std::move(endpoint), config_.user_name,
+                                         config_.password);
 }
 
 Awaitable<scada::HistoryReadRawResult> RemoteHistoryService::HistoryReadRaw(

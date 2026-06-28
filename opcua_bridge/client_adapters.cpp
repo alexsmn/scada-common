@@ -1,6 +1,9 @@
 #include "opcua_bridge/client_adapters.h"
 
 #include "opcua_bridge/vector_conversion.h"
+#include "scada/read_value_id.h"
+#include "scada/service_awaitable.h"
+#include "scada/standard_node_ids.h"
 
 namespace opcua_bridge {
 
@@ -206,6 +209,36 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
   services.history_service_ =
       std::make_shared<ClientHistoryServiceAdapter>(session);
   return services;
+}
+
+Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
+    AnyExecutor executor,
+    transport::TransportFactory& transport_factory,
+    std::string endpoint,
+    scada::LocalizedText user_name,
+    scada::LocalizedText password) {
+  auto probe = std::make_shared<opcua::ClientSession>(std::move(executor),
+                                                      transport_factory);
+  auto services = CreateClientDataServices(probe);
+  auto status = co_await services.session_service_->ConnectStatus(
+      scada::SessionConnectParams{.connection_string = std::move(endpoint),
+                                  .user_name = std::move(user_name),
+                                  .password = std::move(password)});
+  if (!status) {
+    co_return status;
+  }
+  auto value = co_await scada::Read(
+      *services.attribute_service_, scada::ServiceContext{},
+      scada::ReadValueId{scada::NodeId{scada::id::Server_ServiceLevel}});
+  co_await services.session_service_->Disconnect();
+  if (!scada::IsGood(value.status_code)) {
+    co_return scada::Status{value.status_code};
+  }
+  scada::UInt8 level = 0;
+  if (!value.value.get(level)) {
+    co_return scada::Status{scada::StatusCode::Bad};
+  }
+  co_return level;
 }
 
 }  // namespace opcua_bridge

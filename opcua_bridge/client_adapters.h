@@ -200,4 +200,16 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 ::DataServices CreateClientDataServices(
     std::shared_ptr<opcua::ClientSession> session);
 
+// Probes a peer's Server_ServiceLevel (i=2267) over a throwaway session, so
+// probing a standby does not disturb the active session. Shared by the redundant
+// inter-tier clients (remote historian / aggregating proxy / remote config) for
+// ServiceLevel-aware failover. OPC UA Part 4 §6.6 Non-Transparent Redundancy,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/6.6
+[[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
+    AnyExecutor executor,
+    transport::TransportFactory& transport_factory,
+    std::string endpoint,
+    scada::LocalizedText user_name,
+    scada::LocalizedText password);
+
 }  // namespace opcua_bridge
