@@ -2,6 +2,8 @@
 
 #include "opcua_bridge/vector_conversion.h"
 
+#include "scada/event_util.h"
+
 #include "opcua/events/event_filter.h"
 
 #include <any>
@@ -238,6 +240,17 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
           if (const auto* scada_event = std::any_cast<scada::Event>(&x.event)) {
             event_fields = opcua::ProjectEventFields(
                 field_paths, std::any{ToOpcua(*scada_event)});
+          } else if (x.event.has_value()) {
+            // Non-system SCADA events (GeneralModelChangeEventType,
+            // SemanticChangeEventType) have no OPC UA select-clause projection;
+            // send their full per-type DisassembleEvent layout as the
+            // EventFieldList, which the SCADA client reassembles via AssembleEvent
+            // (symmetric SCADA-to-SCADA transport). OPC UA Part 4 §7.22.3
+            // EventFilter / EventFieldList,
+            // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 ;
+            // Part 3 §9.32.6 GeneralModelChangeEventType,
+            // https://reference.opcfoundation.org/Core/Part3/v105/docs/9.32 .
+            event_fields = ToOpcuaVector(scada::DisassembleEvent(x.event));
           } else {
             event_fields = opcua::ProjectEventFields(field_paths, std::any{});
           }

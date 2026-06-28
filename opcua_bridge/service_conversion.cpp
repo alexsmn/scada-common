@@ -531,18 +531,19 @@ scada::MonitoredItemNotification ToScada(
                                                .client_handle = x.client_handle,
                                                .value = ToScada(x.value)};
         } else {  // opcua::EventFieldList
-          // Reassemble the core event std::any from the wire event fields.
-          // AssembleEvent expects the full DisassembleEvent field layout
-          // (event_type_id at index 0, 13 fields); only reassemble when the
-          // wire carries that full layout. Projected select-clause subsets
-          // (e.g. the 7 default fields) cannot be losslessly reassembled, so
-          // the payload is left empty and only the client_handle/status
-          // survive.
-          constexpr std::size_t kFullEventFieldCount = 13;
+          // Reassemble the core event std::any from the wire EventFieldList.
+          // OPC UA Part 4 §7.22.3 EventFilter delivers each Event as the field
+          // values selected by the SelectClauses,
+          // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 . On the
+          // SCADA path both ends are this bridge and carry the full per-type
+          // DisassembleEvent layout (no select-clause projection): AssembleEvent
+          // dispatches on the event type id at field 0 and rebuilds that type's
+          // layout (13 fields for SystemEvent, 4 for GeneralModelChange, etc.) —
+          // the field count is per-type, not a fixed 13. So reassemble whenever
+          // fields are present; an unrecognized type id yields an empty payload.
           std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
-          std::any event = fields.size() >= kFullEventFieldCount
-                               ? scada::AssembleEvent(fields)
-                               : std::any{};
+          std::any event =
+              fields.empty() ? std::any{} : scada::AssembleEvent(fields);
           return scada::EventNotification{.item_id = 0,
                                           .client_handle = x.client_handle,
                                           .status = scada::StatusCode::Good,
