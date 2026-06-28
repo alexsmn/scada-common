@@ -122,4 +122,9 @@ RemoteHistoryService::HistoryUpdateData(scada::UpdateDataDetails details) {
   return adapter_.HistoryUpdateData(std::move(details));
 }
 
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+RemoteHistoryService::HistoryUpdateEvent(scada::UpdateEventDetails details) {
+  return adapter_.HistoryUpdateEvent(std::move(details));
+}
+
 }  // namespace opcua_bridge

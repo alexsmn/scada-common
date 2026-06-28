@@ -68,6 +68,10 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
           [this](opcua::UpdateDataDetails details) {
             return history_update.HistoryUpdateData(std::move(details));
           },
+      .history_update_event =
+          [this](opcua::UpdateEventDetails details) {
+            return history_update.HistoryUpdateEvent(std::move(details));
+          },
       .add_nodes =
           [this](std::vector<opcua::AddNodesItem> inputs) {
             return node_management.AddNodes(std::move(inputs));
@@ -195,6 +199,17 @@ HistoryUpdateServiceAdapter::HistoryUpdateData(
   // The core service returns a per-value StatusCode vector or an
   // operation-level failure; map both onto the wire HistoryUpdateResult.
   auto result = co_await inner_.HistoryUpdateData(ToScada(details));
+  if (!result.ok()) {
+    co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
+  }
+  co_return opcua::HistoryUpdateResult{.operation_results =
+                                           ToOpcuaVector(*result)};
+}
+
+opcua::Awaitable<opcua::HistoryUpdateResult>
+HistoryUpdateServiceAdapter::HistoryUpdateEvent(
+    opcua::UpdateEventDetails details) {
+  auto result = co_await inner_.HistoryUpdateEvent(ToScada(details));
   if (!result.ok()) {
     co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
   }

@@ -475,6 +475,19 @@ scada::UpdateDataDetails ToScada(const opcua::UpdateDataDetails& v) {
           .values = ToScadaVector(v.values)};
 }
 
+opcua::UpdateEventDetails ToOpcua(const scada::UpdateEventDetails& v) {
+  return {.node_id = ToOpcua(v.node_id),
+          .perform_insert_replace =
+              static_cast<opcua::PerformUpdateType>(v.perform_insert_replace),
+          .events = ToOpcuaVector(v.events)};
+}
+scada::UpdateEventDetails ToScada(const opcua::UpdateEventDetails& v) {
+  return {.node_id = ToScada(v.node_id),
+          .perform_insert_replace =
+              static_cast<scada::PerformUpdateType>(v.perform_insert_replace),
+          .events = ToScadaVector(v.events)};
+}
+
 opcua::MonitoredItemSubscriptionOptions ToOpcua(
     const scada::MonitoredItemSubscriptionOptions& v) {
   return {.max_pending_notifications = v.max_pending_notifications,

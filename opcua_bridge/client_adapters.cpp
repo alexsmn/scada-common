@@ -175,6 +175,19 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
   co_return ToScadaVector(result->operation_results);
 }
 
+Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+ClientHistoryServiceAdapter::HistoryUpdateEvent(
+    scada::UpdateEventDetails details) {
+  auto result = co_await session_->HistoryUpdateEvent(ToOpcua(details));
+  if (!result.ok()) {
+    co_return ToScada(result.status());
+  }
+  if (result->status.bad()) {
+    co_return ToScada(result->status);
+  }
+  co_return ToScadaVector(result->operation_results);
+}
+
 // --- factory ------------------------------------------------------------
 ::DataServices CreateClientDataServices(
     std::shared_ptr<opcua::ClientSession> session) {

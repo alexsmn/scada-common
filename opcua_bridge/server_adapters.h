@@ -137,6 +137,9 @@ class HistoryUpdateServiceAdapter {
   opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateData(
       opcua::UpdateDataDetails details);
 
+  opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateEvent(
+      opcua::UpdateEventDetails details);
+
  private:
   scada::HistoryUpdateService& inner_;
 };
