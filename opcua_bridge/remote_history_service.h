@@ -30,6 +30,8 @@ struct RemoteHistoryServiceConfig {
   std::string endpoint_url;        // e.g. "opc.tcp://historian-host:4840"
   scada::LocalizedText user_name;  // empty = anonymous
   scada::LocalizedText password;
+  // Endpoint security negotiation for the historian session (default None).
+  opcua::SessionSecuritySettings security;
 };
 
 // Presents an external OPC UA historian as the core history read + update
