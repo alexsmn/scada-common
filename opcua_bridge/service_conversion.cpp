@@ -14,12 +14,14 @@ namespace opcua_bridge {
 opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
   return opcua::ServiceContext{}
       .with_user_id(ToOpcua(c.user_id()))
+      .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id());
 }
 scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
   return scada::ServiceContext{}
       .with_user_id(ToScada(c.user_id()))
+      .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id());
 }
