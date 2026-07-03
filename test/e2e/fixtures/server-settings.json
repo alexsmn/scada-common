@@ -4,9 +4,6 @@
     "driver": "SQLite",
     "dir": "${DIR_PARAM}/Configuration"
   },
-  "security": {
-    "useConfigurationAuthenticator": true
-  },
   "history": {
     "dir": "${DIR_PARAM}/History"
   },
