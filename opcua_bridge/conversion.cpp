@@ -1,6 +1,13 @@
 #include "opcua_bridge/conversion.h"
 
 #include "opcua_bridge/vector_conversion.h"
+#include "scada/authorization.h"
+
+#include "opcua/transport/binary/codec_utils.h"
+
+#include <any>
+#include <cstdint>
+#include <vector>
 
 namespace opcua_bridge {
 
@@ -79,11 +86,25 @@ scada::QualifiedName ToScada(const opcua::QualifiedName& q) {
 }
 
 opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
-  // The payload is a std::any holding scada-universe types; it cannot be
-  // transferred across the type boundary by value. Boundary ExtensionObjects
-  // are expected to carry only the data_type_id (the wire codec serializes the
-  // body separately). Typed payloads, if ever needed, must be serialized to a
-  // neutral form first.
+  // RolePermissionType payload: serialize it to OPC UA binary and carry the
+  // bytes as the ExtensionObject body, tagged with the DefaultBinary encoding
+  // NodeId (ns=0;i=128). The wire codec (AppendExtensionObjectValue) writes a
+  // std::vector<char> body verbatim. OPC UA Part 3 §8.56 RolePermissionType,
+  // Part 6 §5.1.8 ExtensionObject.
+  if (const auto* role =
+          std::any_cast<scada::RolePermissionType>(&e.value())) {
+    std::vector<char> body;
+    opcua::binary::Encoder encoder{body};
+    encoder.Encode(ToOpcua(role->role_id));
+    encoder.Encode(static_cast<std::uint32_t>(role->permissions));
+    // RolePermissionType_Encoding_DefaultBinary, namespace 0.
+    return opcua::ExtensionObject{
+        opcua::ExpandedNodeId{opcua::NodeId{/*numeric_id=*/128, 0}},
+        std::any{std::move(body)}};
+  }
+
+  // Other payloads cannot be transferred across the type boundary by value; the
+  // boundary ExtensionObject then carries only its data_type_id.
   return opcua::ExtensionObject{ToOpcua(e.data_type_id()), {}};
 }
 scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {

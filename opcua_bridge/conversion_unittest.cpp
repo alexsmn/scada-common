@@ -1,6 +1,15 @@
 #include "opcua_bridge/conversion.h"
 #include "opcua_bridge/service_conversion.h"
 
+#include "scada/authorization.h"
+#include "scada/extension_object.h"
+
+#include "opcua/transport/binary/codec_utils.h"
+
+#include <any>
+#include <cstdint>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 namespace opcua_bridge {
@@ -20,6 +29,32 @@ TEST(ConversionTest, NodeId) {
   ExpectRoundTrip(scada::NodeId{scada::String{"the.node"}, 2});
   ExpectRoundTrip(scada::NodeId{scada::ByteString{'a', 'b', 'c'}, 1});
   ExpectRoundTrip(scada::NodeId{});
+}
+
+TEST(ConversionTest, RolePermissionTypeExtensionObjectEncodesBinaryBody) {
+  const scada::RolePermissionType role{
+      .role_id = scada::NodeId{15680u, 0},  // WellKnownRole_Operator
+      .permissions = scada::Permission::kRead | scada::Permission::kWrite};
+  const scada::ExtensionObject scada_object{
+      scada::ExpandedNodeId{scada::NodeId{96u, 0}}, std::any{role}};
+
+  const opcua::ExtensionObject opcua_object = ToOpcua(scada_object);
+
+  // The wire encoding id is RolePermissionType_Encoding_DefaultBinary (i=128).
+  EXPECT_EQ(opcua_object.data_type_id().node_id().numeric_id(), 128u);
+
+  // The body decodes back to the original role id and permission bits.
+  const auto* body = std::any_cast<std::vector<char>>(&opcua_object.value());
+  ASSERT_NE(body, nullptr);
+  opcua::binary::Decoder decoder{*body};
+  opcua::NodeId decoded_role_id;
+  std::uint32_t decoded_permissions = 0;
+  ASSERT_TRUE(decoder.Decode(decoded_role_id));
+  ASSERT_TRUE(decoder.Decode(decoded_permissions));
+  EXPECT_EQ(decoded_role_id.numeric_id(), 15680u);
+  EXPECT_EQ(decoded_permissions,
+            static_cast<std::uint32_t>(scada::Permission::kRead |
+                                       scada::Permission::kWrite));
 }
 
 TEST(ConversionTest, QualifiedName) {
