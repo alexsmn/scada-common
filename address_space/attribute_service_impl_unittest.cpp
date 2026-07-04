@@ -3,6 +3,7 @@
 #include "address_space/test/test_address_space.h"
 #include "base/test/awaitable_test.h"
 #include "scada/data_value.h"
+#include "scada/extension_object.h"
 #include "scada/privileges.h"
 #include "scada/service_context.h"
 #include "scada/test/status_matchers.h"
@@ -153,6 +154,44 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
             scada::Variant{false});
   EXPECT_EQ(read(scada::AttributeId::UserExecutable, scada::ServiceContext{}).value,
             scada::Variant{false});
+}
+
+TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
+  TestAddressSpace address_space;
+
+  const std::uint32_t control_rights =
+      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+  const scada::ServiceContext operator_context =
+      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
+          control_rights);
+
+  const auto read = [&](scada::AttributeId attribute_id,
+                        const scada::ServiceContext& context) {
+    const std::vector<scada::ReadValueId> inputs{
+        {.node_id = address_space.kTestNode1Id, .attribute_id = attribute_id}};
+    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+  };
+
+  // UserRolePermissions is always readable and reflects the caller's roles: an
+  // operator holds AuthenticatedUser + Observer + Operator (3 entries).
+  const auto user_roles =
+      read(scada::AttributeId::UserRolePermissions, operator_context);
+  EXPECT_EQ(user_roles.status_code, scada::StatusCode::Good);
+  ASSERT_TRUE(user_roles.value.is_array());
+  EXPECT_EQ(user_roles.value.get<std::vector<scada::ExtensionObject>>().size(),
+            3u);
+
+  // RolePermissions requires the ReadRolePermissions permission: an operator has
+  // it (8 well-known roles), an anonymous caller does not.
+  const auto role_perms =
+      read(scada::AttributeId::RolePermissions, operator_context);
+  EXPECT_EQ(role_perms.status_code, scada::StatusCode::Good);
+  EXPECT_EQ(role_perms.value.get<std::vector<scada::ExtensionObject>>().size(),
+            8u);
+
+  const auto denied =
+      read(scada::AttributeId::RolePermissions, scada::ServiceContext{});
+  EXPECT_EQ(denied.status_code, scada::StatusCode::Bad_UserAccessDenied);
 }
 
 TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {

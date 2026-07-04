@@ -8,6 +8,7 @@
 #include "address_space/variable.h"
 #include "base/range_util.h"
 #include "scada/authorization.h"
+#include "scada/role_permission_encoding.h"
 
 #include <ranges>
 
@@ -81,6 +82,23 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
 
     case scada::AttributeId::DisplayName:
       return scada::MakeReadResult(node.GetDisplayName());
+
+    // UserRolePermissions: the caller's own effective role permissions, always
+    // readable by the session (OPC UA Part 3 §5.2.10).
+    case scada::AttributeId::UserRolePermissions:
+      return scada::MakeReadResult(scada::EncodeRolePermissions(
+          scada::UserRolePermissions(context.user_rights(),
+                                     context.is_anonymous())));
+
+    // RolePermissions: the node's full role/permission map, readable only with
+    // the ReadRolePermissions permission (OPC UA Part 3 §5.2.9).
+    case scada::AttributeId::RolePermissions:
+      if (!scada::IsPermitted(context.user_rights(), context.is_anonymous(),
+                              scada::Permission::kReadRolePermissions)) {
+        return {scada::StatusCode::Bad_UserAccessDenied, scada::DateTime::Now()};
+      }
+      return scada::MakeReadResult(
+          scada::EncodeRolePermissions(scada::DefaultRolePermissions()));
   }
 
   if (auto* variable = scada::AsVariable(&node)) {
