@@ -1,6 +1,7 @@
 #include "node_service/v3/node_service_impl.h"
 
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v3/node_fetcher.h"
@@ -49,21 +50,56 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
   if (node_id.is_null())
     return nullptr;
 
-  auto& node = nodes_[node_id];
-  if (!node)
-    node = std::make_shared<NodeModelImpl>(*this, node_id);
+  auto& entry = registry_->nodes[node_id];
+  auto node = entry.lock();
+  if (!node) {
+    node = std::make_shared<NodeModelImpl>(*this, registry_, node_id);
+    entry = node;
+  }
 
+  TouchKeepAlive(node);
   return node;
 }
 
 std::shared_ptr<NodeModelImpl> NodeServiceImpl::FindNodeModel(
     const scada::NodeId& node_id) const {
-  auto i = nodes_.find(node_id);
-  return i != nodes_.end() ? i->second : nullptr;
+  auto i = registry_->nodes.find(node_id);
+  return i != registry_->nodes.end() ? i->second.lock() : nullptr;
+}
+
+void NodeServiceImpl::TouchKeepAlive(std::shared_ptr<NodeModelImpl> model) {
+  if (keep_alive_capacity_ == 0)
+    return;
+
+  if (auto i = keep_alive_index_.find(model->node_id());
+      i != keep_alive_index_.end()) {
+    keep_alive_list_.splice(keep_alive_list_.begin(), keep_alive_list_,
+                            i->second);
+    return;
+  }
+
+  const scada::NodeId node_id = model->node_id();
+  keep_alive_index_[node_id] =
+      keep_alive_list_.insert(keep_alive_list_.begin(), std::move(model));
+
+  while (keep_alive_list_.size() > keep_alive_capacity_) {
+    keep_alive_index_.erase(keep_alive_list_.back()->node_id());
+    // May destroy the model, which unregisters itself from the registry.
+    keep_alive_list_.pop_back();
+  }
+}
+
+void NodeServiceImpl::RemoveFromKeepAlive(const scada::NodeId& node_id) {
+  if (auto i = keep_alive_index_.find(node_id); i != keep_alive_index_.end()) {
+    auto list_iterator = i->second;
+    keep_alive_index_.erase(i);
+    // May destroy the model, which unregisters itself from the registry.
+    keep_alive_list_.erase(list_iterator);
+  }
 }
 
 void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
-  assert(!observers_.HasObserver(&observer));
+  base::Check(!observers_.HasObserver(&observer));
   observers_.AddObserver(&observer);
 }
 
@@ -81,6 +117,12 @@ void NodeServiceImpl::NotifySemanticsChanged(const scada::NodeId& node_id) {
     o.OnNodeSemanticChanged(node_id);
 }
 
+void NodeServiceImpl::NotifyNodeStateChanged(
+    const NodeRefObserver::NodeStateChangedEvent& event) {
+  for (auto& o : observers_)
+    o.OnNodeStateChanged(event);
+}
+
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   // Service-wide observers are notified regardless of whether the node is
   // resident: consumers that don't hold a NodeRef to the node still rely on
@@ -88,10 +130,12 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   NotifyModelChanged(event);
 
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
-    // Tombstone the resident model so per-node observers see the deletion;
-    // eviction of the map entry is handled by the residency layer.
+    // Tombstone the resident model so per-node observers see the deletion,
+    // and drop our keep-alive pin: once external holders release the node it
+    // unregisters itself, and a later GetNode starts from a fresh model.
     if (auto node = FindNodeModel(event.node_id))
       node->OnModelChanged(event);
+    RemoveFromKeepAlive(event.node_id);
     return;
   }
 
@@ -119,33 +163,48 @@ void NodeServiceImpl::OnNodeSemanticsChanged(
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
                                   const NodeFetchStatus& requested_status) {
   if (!channel_opened_) {
-    pending_fetch_nodes_[node_id] |= requested_status;
+    auto& pending = pending_fetch_nodes_[node_id];
+    pending.status |= requested_status;
+    if (!pending.model)
+      pending.model = FindNodeModel(node_id);
     return;
   }
 
+  SpawnFetch(node_id, requested_status, FindNodeModel(node_id));
+}
+
+void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
+                                 const NodeFetchStatus& requested_status,
+                                 std::shared_ptr<NodeModelImpl> model) {
   if (requested_status.node_fetched) {
-    CoSpawn(
-        executor_,
-        [this, fetcher = node_fetcher_, node_id]() mutable -> Awaitable<void> {
-          auto node_state = co_await fetcher->FetchNode(node_id);
-          if (node_state.ok()) {
-            ProcessFetchedNodes({std::move(*node_state)});
-          } else {
-            ProcessFetchErrors({{node_id, node_state.status()}});
-          }
-        });
+    CoSpawn(executor_,
+            [this, fetcher = node_fetcher_, node_id,
+             pin = model]() mutable -> Awaitable<void> {
+              auto node_state = co_await fetcher->FetchNode(node_id);
+              // The pin keeps the requesting model resident for the duration of
+              // the fetch; if it is gone anyway, nobody is interested.
+              if (!pin)
+                co_return;
+              if (node_state.ok()) {
+                ProcessFetchedNodes({std::move(*node_state)});
+              } else {
+                ProcessFetchErrors({{node_id, node_state.status()}});
+              }
+            });
   }
   if (requested_status.children_fetched) {
-    CoSpawn(
-        executor_,
-        [this, fetcher = node_fetcher_, node_id]() mutable -> Awaitable<void> {
-          auto references = co_await fetcher->FetchChildren(node_id);
-          if (references.ok()) {
-            ProcessFetchedChildren(node_id, std::move(*references));
-          } else {
-            ProcessFetchErrors({{node_id, references.status()}});
-          }
-        });
+    CoSpawn(executor_,
+            [this, fetcher = node_fetcher_, node_id,
+             pin = std::move(model)]() mutable -> Awaitable<void> {
+              auto references = co_await fetcher->FetchChildren(node_id);
+              if (!pin)
+                co_return;
+              if (references.ok()) {
+                ProcessFetchedChildren(node_id, std::move(*references));
+              } else {
+                ProcessFetchErrors({{node_id, references.status()}});
+              }
+            });
   }
 }
 
@@ -154,14 +213,22 @@ void NodeServiceImpl::ProcessFetchedNodes(
   // Must update all nodes at first, then notify all together.
   // TODO: Simplify
 
-  for (auto& node_state : node_states) {
-    if (auto node = GetNodeModel(node_state.node_id))
-      node->OnFetched(node_state);
+  // Fetch results apply only to resident models; hold them across both loops
+  // so the OnFetched/OnFetchCompleted pairing stays balanced even if a
+  // notification drops the last external pin.
+  std::vector<std::shared_ptr<NodeModelImpl>> nodes;
+  nodes.reserve(node_states.size());
+  for (auto& node_state : node_states)
+    nodes.push_back(FindNodeModel(node_state.node_id));
+
+  for (size_t i = 0; i < node_states.size(); ++i) {
+    if (nodes[i])
+      nodes[i]->OnFetched(node_states[i]);
   }
 
-  for (auto& node_state : node_states) {
-    if (auto node = GetNodeModel(node_state.node_id))
-      node->OnFetchCompleted();
+  for (size_t i = 0; i < node_states.size(); ++i) {
+    if (nodes[i])
+      nodes[i]->OnFetchCompleted();
   }
 }
 
@@ -177,48 +244,24 @@ void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
 void NodeServiceImpl::ProcessFetchedChildren(
     const scada::NodeId& node_id,
     scada::ReferenceDescriptions&& references) {
-  if (auto node = GetNodeModel(node_id))
+  if (auto node = FindNodeModel(node_id))
     node->OnChildrenFetched(std::move(references));
 }
 
 void NodeServiceImpl::OnChannelOpened() {
-  assert(!channel_opened_);
+  base::Check(!channel_opened_);
   channel_opened_ = true;
 
   auto pending_fetch_nodes = std::move(pending_fetch_nodes_);
   pending_fetch_nodes_.clear();
 
-  for (auto& [node_id, requested_status] : pending_fetch_nodes) {
-    if (requested_status.node_fetched) {
-      CoSpawn(executor_,
-              [this, fetcher = node_fetcher_,
-               node_id]() mutable -> Awaitable<void> {
-                auto node_state = co_await fetcher->FetchNode(node_id);
-                if (node_state.ok()) {
-                  ProcessFetchedNodes({std::move(*node_state)});
-                } else {
-                  ProcessFetchErrors({{node_id, node_state.status()}});
-                }
-              });
-    }
-    if (requested_status.children_fetched) {
-      CoSpawn(executor_,
-              [this, fetcher = node_fetcher_,
-               node_id]() mutable -> Awaitable<void> {
-                auto references = co_await fetcher->FetchChildren(node_id);
-                if (references.ok()) {
-                  ProcessFetchedChildren(node_id, std::move(*references));
-                } else {
-                  ProcessFetchErrors({{node_id, references.status()}});
-                }
-              });
-    }
-  }
+  for (auto& [node_id, pending] : pending_fetch_nodes)
+    SpawnFetch(node_id, pending.status, std::move(pending.model));
 }
 
 void NodeServiceImpl::OnChannelClosed() {
-  assert(channel_opened_);
-  assert(pending_fetch_nodes_.empty());
+  base::Check(channel_opened_);
+  base::Check(pending_fetch_nodes_.empty());
 
   channel_opened_ = false;
 }

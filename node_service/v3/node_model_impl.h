@@ -1,10 +1,12 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "base/observer_list.h"
 #include "common/node_state.h"
 #include "node_service/base_node_model.h"
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -16,6 +18,7 @@ namespace v3 {
 
 class NodeModelImpl;
 class NodeServiceImpl;
+struct NodeModelRegistry;
 
 struct RemoteReference {
   NodeModelImpl* reference_type = nullptr;
@@ -36,7 +39,13 @@ using ReferenceMap =
 class NodeModelImpl final : public BaseNodeModel,
                             public std::enable_shared_from_this<NodeModelImpl> {
  public:
-  NodeModelImpl(NodeServiceImpl& service, scada::NodeId node_id);
+  NodeModelImpl(NodeServiceImpl& service,
+                std::shared_ptr<NodeModelRegistry> registry,
+                scada::NodeId node_id);
+  ~NodeModelImpl() override;
+
+  // Identifier of the node this model represents.
+  const scada::NodeId& node_id() const SCADA_LIFETIME_BOUND { return node_id_; }
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
   void OnNodeSemanticChanged();
@@ -82,16 +91,33 @@ class NodeModelImpl final : public BaseNodeModel,
   void NotifyModelChanged();
   void NotifySemanticChanged();
 
+  // Publishes a fresh immutable snapshot built from the working state and
+  // notifies observers with it; deferred while a fetch batch holds the
+  // callback lock.
+  void NotifyStateChanged();
+
   NodeServiceImpl& service_;
+  // Shared with the service so the destructor can unregister safely even if
+  // the last NodeRef outlives the service.
+  const std::shared_ptr<NodeModelRegistry> registry_;
   const scada::NodeId node_id_;
 
+  // Working state, mutated in place by fetch results and remote updates.
+  // Immutable snapshots of it are published to observers via
+  // NotifyStateChanged.
   scada::NodeState node_state_;
   scada::ReferenceDescriptions child_references_;
+
+  // Pins for the fetched children (and their reference types): the parent
+  // keeps its fetched subtree resident, so dropping the last NodeRef to a
+  // subtree root releases the whole subtree.
+  std::vector<NodeRef> child_models_;
 
   std::shared_ptr<bool> reference_request_;
 
   bool pending_model_changed_ = false;
   bool pending_semantic_changed_ = false;
+  bool pending_state_changed_ = false;
 
   friend class NodeServiceImpl;
 };

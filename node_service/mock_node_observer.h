@@ -15,4 +15,8 @@ class MockNodeObserver : public NodeRefObserver {
               (const scada::NodeId& node_id),
               (override));
   MOCK_METHOD(void, OnNodeFetched, (const NodeFetchedEvent& event), (override));
+  MOCK_METHOD(void,
+              OnNodeStateChanged,
+              (const NodeStateChangedEvent& event),
+              (override));
 };

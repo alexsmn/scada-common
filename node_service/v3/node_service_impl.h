@@ -5,9 +5,11 @@
 #include "events/view_events_subscription.h"
 #include "node_service/node_children_fetcher.h"
 #include "node_service/node_fetcher_impl.h"
+#include "node_service/node_observer.h"
 #include "node_service/node_service.h"
 #include "scada/view_service.h"
 
+#include <list>
 #include <map>
 
 namespace scada {
@@ -26,6 +28,18 @@ struct NodeServiceImplContext {
   scada::MonitoredItemService& monitored_item_service_;
   const std::shared_ptr<NodeFetcher> node_fetcher_;
   const ViewEventsProvider view_events_provider_;
+
+  // Bounds the service-owned MRU keep-alive pins that absorb refetch churn
+  // from transient GetNode traversals. Residency beyond this window requires
+  // callers to hold their NodeRefs.
+  size_t keep_alive_capacity_ = 256;
+};
+
+// Node-model map shared between the service and its models. Models
+// unregister themselves on destruction through this shared object, so a
+// NodeRef released after the service has been torn down stays safe.
+struct NodeModelRegistry {
+  std::map<scada::NodeId, std::weak_ptr<NodeModelImpl>> nodes;
 };
 
 // NodeService implementation using injected coroutine fetch logic.
@@ -51,9 +65,10 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
   virtual size_t GetPendingTaskCount() const override;
 
-  // Number of node models currently held by the service. Exposed for
-  // diagnostics and residency tests; not part of the NodeService interface.
-  size_t GetResidentNodeCount() const { return nodes_.size(); }
+  // Number of node models currently resident (pinned by NodeRefs, in-flight
+  // fetches, parents, or the keep-alive window). Exposed for diagnostics and
+  // residency tests; not part of the NodeService interface.
+  size_t GetResidentNodeCount() const { return registry_->nodes.size(); }
 
  private:
   std::shared_ptr<NodeModelImpl> GetNodeModel(const scada::NodeId& node_id);
@@ -64,16 +79,30 @@ class NodeServiceImpl : private NodeServiceImplContext,
   std::shared_ptr<NodeModelImpl> FindNodeModel(
       const scada::NodeId& node_id) const;
 
+  // Moves |model| to the front of the bounded keep-alive window, possibly
+  // releasing the least-recently-used model.
+  void TouchKeepAlive(std::shared_ptr<NodeModelImpl> model);
+
+  // Drops the keep-alive pin for |node_id| (e.g. when the node is deleted).
+  void RemoveFromKeepAlive(const scada::NodeId& node_id);
+
+  // Spawns the remote fetch coroutines for |node_id|. |model| is pinned by
+  // the coroutines so the fetch target cannot be released mid-flight.
+  void SpawnFetch(const scada::NodeId& node_id,
+                  const NodeFetchStatus& requested_status,
+                  std::shared_ptr<NodeModelImpl> model);
+
   void NotifyModelChanged(const scada::ModelChangeEvent& event);
   void NotifySemanticsChanged(const scada::NodeId& node_id);
+  void NotifyNodeStateChanged(
+      const NodeRefObserver::NodeStateChangedEvent& event);
 
   void OnFetchNode(const scada::NodeId& node_id,
                    const NodeFetchStatus& requested_status);
 
   void ProcessFetchedNodes(std::vector<scada::NodeState>&& node_states);
-  void ProcessFetchedChildren(
-      const scada::NodeId& node_id,
-      scada::ReferenceDescriptions&& references);
+  void ProcessFetchedChildren(const scada::NodeId& node_id,
+                              scada::ReferenceDescriptions&& references);
   void ProcessFetchErrors(NodeFetchStatuses&& errors);
 
   // scada::ViewService
@@ -83,10 +112,26 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   mutable base::ObserverList<NodeRefObserver> observers_;
 
-  std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
+  // Models are owned by their holders (NodeRefs, parents, in-flight fetches,
+  // the keep-alive window); the registry only tracks them weakly so unused
+  // parts of the node graph are released as soon as the last pin drops.
+  const std::shared_ptr<NodeModelRegistry> registry_ =
+      std::make_shared<NodeModelRegistry>();
+
+  // MRU keep-alive pins; see NodeServiceImplContext::keep_alive_capacity_.
+  std::list<std::shared_ptr<NodeModelImpl>> keep_alive_list_;
+  std::map<scada::NodeId, std::list<std::shared_ptr<NodeModelImpl>>::iterator>
+      keep_alive_index_;
+
+  // Fetch requested before the channel opened. The model is pinned so the
+  // requester's node survives until the fetch can actually start.
+  struct PendingNodeFetch {
+    NodeFetchStatus status;
+    std::shared_ptr<NodeModelImpl> model;
+  };
 
   bool channel_opened_ = false;
-  std::map<scada::NodeId, NodeFetchStatus> pending_fetch_nodes_;
+  std::map<scada::NodeId, PendingNodeFetch> pending_fetch_nodes_;
 
   std::unique_ptr<IViewEventsSubscription> view_events_subscription_;
 

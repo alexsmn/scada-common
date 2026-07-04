@@ -1,5 +1,6 @@
 #include "node_service/v3/node_model_impl.h"
 
+#include "base/check.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
@@ -9,27 +10,32 @@
 
 namespace v3 {
 
-namespace {
-
-Awaitable<void> FetchReferences(NodeService& service,
-                                const scada::ReferenceDescriptions& references) {
-  for (auto& ref : references) {
-    co_await service.GetNode(ref.node_id).Fetch(NodeFetchStatus::NodeOnly());
-    co_await service.GetNode(ref.reference_type_id)
-        .Fetch(NodeFetchStatus::NodeOnly());
-  }
-}
-
-}  // namespace
-
 // NodeModelImpl
 
-NodeModelImpl::NodeModelImpl(NodeServiceImpl& service, scada::NodeId node_id)
-    : service_{service}, node_id_{std::move(node_id)} {}
+NodeModelImpl::NodeModelImpl(NodeServiceImpl& service,
+                             std::shared_ptr<NodeModelRegistry> registry,
+                             scada::NodeId node_id)
+    : service_{service},
+      registry_{std::move(registry)},
+      node_id_{std::move(node_id)} {}
+
+NodeModelImpl::~NodeModelImpl() {
+  // Unregister through the shared registry (not the service) so a NodeRef
+  // released after service teardown stays safe. Skip if the entry was
+  // already replaced by a fresh model for the same node id.
+  auto i = registry_->nodes.find(node_id_);
+  if (i != registry_->nodes.end() && i->second.expired())
+    registry_->nodes.erase(i);
+}
 
 void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
+
+    // A deleted node no longer pins its fetched subtree; holders of
+    // previously published snapshots keep their frozen copies.
+    child_models_.clear();
+    child_references_.clear();
 
     for (auto& o : observers_)
       o.OnModelChanged(event);
@@ -64,19 +70,31 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
       if (auto target = service_.FindNodeModel(ref.node_id)) {
         target->node_state_.references.push_back(scada::ReferenceDescription{
             ref.reference_type_id, !ref.forward, node_id_});
+        // Each affected neighbor publishes its own snapshot. Unfetched
+        // neighbors publish nothing: their working state is replaced
+        // wholesale when their own fetch completes.
+        if (target->fetch_status_.node_fetched)
+          target->NotifyStateChanged();
       }
     }
   }
 
   SetFetchStatus(scada::StatusCode::Good, NodeFetchStatus::NodeOnly());
 
+  NotifyStateChanged();
   NotifyModelChanged();
   NotifySemanticChanged();
 }
 
 void NodeModelImpl::OnFetchCompleted() {
-  assert(callback_lock_count_ > 0);
+  base::Check(callback_lock_count_ > 0);
   --callback_lock_count_;
+
+  // Publish the snapshot before the change notifications so consumers that
+  // cache snapshots from OnNodeStateChanged have fresh data by the time
+  // OnModelChanged/OnNodeSemanticChanged fire.
+  if (pending_state_changed_)
+    NotifyStateChanged();
 
   if (pending_model_changed_)
     NotifyModelChanged();
@@ -99,20 +117,40 @@ void NodeModelImpl::OnChildrenFetched(
   reference_request_ = std::make_shared<bool>(false);
   std::weak_ptr<bool> reference_request = reference_request_;
   CoSpawn(service_.executor_,
-          [reference_request, this, shared_references]() -> Awaitable<void> {
-            co_await FetchReferences(service_, *shared_references);
+          [reference_request, this, &service = service_,
+           shared_references]() -> Awaitable<void> {
+            // Fetch and pin every child target and its reference type. Until
+            // the pins are handed to the parent below, they keep the fetched
+            // nodes resident across the coroutine suspension points.
+            std::vector<NodeRef> fetched_nodes;
+            fetched_nodes.reserve(shared_references->size() * 2);
+            for (const auto& ref : *shared_references) {
+              auto target = service.GetNode(ref.node_id);
+              co_await target.Fetch(NodeFetchStatus::NodeOnly());
+              auto reference_type = service.GetNode(ref.reference_type_id);
+              co_await reference_type.Fetch(NodeFetchStatus::NodeOnly());
+              fetched_nodes.push_back(std::move(target));
+              fetched_nodes.push_back(std::move(reference_type));
+            }
 
-                    if (!reference_request.lock())
-                      co_return;
+            // |this| may only be touched past this point: |reference_request|
+            // guards against both a superseding request and the model having
+            // been released mid-flight (the flag dies with the model).
+            if (!reference_request.lock())
+              co_return;
 
-                    child_references_ = *shared_references;
+            child_references_ = *shared_references;
+            // The parent pins its fetched subtree; releasing the last NodeRef
+            // to the parent releases the children too.
+            child_models_ = std::move(fetched_nodes);
 
-                    auto fetch_status = fetch_status_;
-                    fetch_status.children_fetched = true;
-                    SetFetchStatus(status_, fetch_status);
+            auto fetch_status = fetch_status_;
+            fetch_status.children_fetched = true;
+            SetFetchStatus(status_, fetch_status);
 
-                    NotifyModelChanged();
-                  });
+            NotifyStateChanged();
+            NotifyModelChanged();
+          });
 }
 
 NodeRef NodeModelImpl::GetAggregateDeclaration(
@@ -230,8 +268,9 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
 
   for (auto& ref : node_state_.references) {
     if (ref.forward == forward) {
+      // The reference type may not be fetched yet (remote data); the
+      // subtype test below then simply fails to match.
       auto reference_type = service_.GetNode(ref.reference_type_id);
-      assert(reference_type.fetched());
       if (IsSubtypeOf(reference_type, reference_type_id)) {
         result.push_back(
             {reference_type, service_.GetNode(ref.node_id), ref.forward});
@@ -241,8 +280,9 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
 
   for (auto& ref : child_references_) {
     if (ref.forward == forward) {
+      // The reference type may not be fetched yet (remote data); the
+      // subtype test below then simply fails to match.
       auto reference_type = service_.GetNode(ref.reference_type_id);
-      assert(reference_type.fetched());
       if (IsSubtypeOf(reference_type, reference_type_id)) {
         result.push_back(
             {reference_type, service_.GetNode(ref.node_id), ref.forward});
@@ -267,7 +307,8 @@ scada::Variant NodeModelImpl::GetAttribute(
     case scada::AttributeId::BrowseName:
       if (!fetch_status_.node_fetched || !status_)
         return scada::QualifiedName{NodeIdToScadaString(node_id_)};
-      assert(!node_state_.attributes.browse_name.empty());
+      // The browse name was fetched from a (possibly remote) server and may
+      // be missing in malformed responses.
       return node_state_.attributes.browse_name;
 
     case scada::AttributeId::DisplayName:
@@ -285,7 +326,7 @@ scada::Variant NodeModelImpl::GetAttribute(
       return node_state_.attributes.value.value_or(scada::Variant{});
 
     default:
-      assert(false);
+      // Unsupported attributes yield an empty variant.
       return {};
   }
 }
@@ -295,7 +336,7 @@ NodeRef NodeModelImpl::GetDataType() const {
 }
 
 void NodeModelImpl::SetError(const scada::Status& status) {
-  assert(status_.good());
+  base::Check(status_.good());
 
   status_ = status;
 }
@@ -334,6 +375,31 @@ void NodeModelImpl::NotifySemanticChanged() {
     obs.OnNodeSemanticChanged(node_id_);
 
   service_.NotifySemanticsChanged(node_id_);
+}
+
+void NodeModelImpl::NotifyStateChanged() {
+  if (callback_lock_count_ != 0) {
+    pending_state_changed_ = true;
+    return;
+  }
+
+  pending_state_changed_ = false;
+
+  // Build a self-contained snapshot: the working state plus the fetched
+  // child references (kept separately in |child_references_|). Published
+  // snapshots are never mutated — holders keep a frozen, consistent view.
+  auto state = node_state_;
+  state.references.insert(state.references.end(), child_references_.begin(),
+                          child_references_.end());
+
+  const NodeRefObserver::NodeStateChangedEvent event{
+      node_id_, std::make_shared<const scada::NodeState>(std::move(state)),
+      fetch_status_};
+
+  for (auto& obs : observers_)
+    obs.OnNodeStateChanged(event);
+
+  service_.NotifyNodeStateChanged(event);
 }
 
 scada::node NodeModelImpl::GetScadaNode() const {

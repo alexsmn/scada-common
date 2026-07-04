@@ -1,3 +1,4 @@
+#include "base/check.h"
 #include "node_service/static/static_node_service.h"
 #include "node_service/v1/node_service_impl.h"
 #include "node_service/v2/node_service_impl.h"
@@ -139,6 +140,10 @@ class TestNodeFetcher final : public NodeFetcher {
 struct NodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
 
+  // Disabled by default so residency tests observe pure refcount-driven
+  // release; keep-alive behavior is tested with a non-zero capacity.
+  size_t keep_alive_capacity = 0;
+
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   std::shared_ptr<TestNodeFetcher> node_fetcher{
       std::make_shared<TestNodeFetcher>(*base_env.server_address_space)};
@@ -147,7 +152,8 @@ struct NodeServiceTestContext {
       .executor_ = base_env.executor,
       .monitored_item_service_ = monitored_item_service,
       .node_fetcher_ = node_fetcher,
-      .view_events_provider_ = base_env.view_events_provider}};
+      .view_events_provider_ = base_env.view_events_provider,
+      .keep_alive_capacity_ = keep_alive_capacity}};
 };
 
 }  // namespace v3
@@ -268,7 +274,7 @@ template <class NodeServiceImpl>
 ViewEventsProvider NodeServiceTest<NodeServiceImpl>::MakeViewEventsProvider() {
   return [this](scada::ViewEvents& events)
              -> std::unique_ptr<IViewEventsSubscription> {
-    assert(!view_events_);
+    base::Check(!view_events_);
     view_events_ = &events;
     return std::make_unique<IViewEventsSubscription>();
   };
@@ -329,8 +335,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
     const scada::NodeId& unknown_node_id) {
   auto& server_address_space = *this->base_env_.server_address_space;
 
-  EXPECT_CALL(server_address_space,
-              Read(_, Each(NodeIs(unknown_node_id))))
+  EXPECT_CALL(server_address_space, Read(_, Each(NodeIs(unknown_node_id))))
       .Times(AtMost(1));
 
   EXPECT_CALL(server_address_space,
@@ -366,6 +371,7 @@ void NodeServiceTest<NodeServiceImpl>::ExpectAnyUpdates() {
   EXPECT_CALL(node_service_observer_, OnNodeSemanticChanged(_))
       .Times(AnyNumber());
   EXPECT_CALL(node_service_observer_, OnNodeFetched(_)).Times(AnyNumber());
+  EXPECT_CALL(node_service_observer_, OnNodeStateChanged(_)).Times(AnyNumber());
 }
 
 template <class NodeServiceImpl>
@@ -554,9 +560,8 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
   this->ExpectAnyUpdates();
 
   // Fetches the node, its aggregates, and children.
-  EXPECT_CALL(
-      server_address_space,
-      Read(_, Each(NodeIsOrIsNestedOf(new_node_state.node_id))));
+  EXPECT_CALL(server_address_space,
+              Read(_, Each(NodeIsOrIsNestedOf(new_node_state.node_id))));
 
   EXPECT_CALL(
       server_address_space,
@@ -693,8 +698,7 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
   EXPECT_CALL(node_observer, OnNodeSemanticChanged(node_id));
 
-  EXPECT_CALL(server_address_space,
-              Read(_, Each(NodeIsOrIsNestedOf(node_id))))
+  EXPECT_CALL(server_address_space, Read(_, Each(NodeIsOrIsNestedOf(node_id))))
       .Times(2);
 
   EXPECT_CALL(server_address_space,
@@ -872,7 +876,8 @@ TEST_F(V3NodeServiceTest, ServiceObserverSeesEventsForNonResidentNodes) {
   this->view_events_->OnModelChanged(node_added_event);
 
   EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
-  this->view_events_->OnNodeSemanticsChanged(scada::SemanticChangeEvent{node_id});
+  this->view_events_->OnNodeSemanticsChanged(
+      scada::SemanticChangeEvent{node_id});
 
   // Event routing must not create models either.
   EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
@@ -904,6 +909,259 @@ TEST_F(V3NodeServiceTest, NodeDeletedTombstonesResidentModel) {
   EXPECT_FALSE(node.status());
 
   node.Unsubscribe(node_observer);
+}
+
+TEST_F(V3NodeServiceTest, ModelReleasedWhenLastNodeRefDropped) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  auto node = this->node_service_->GetNode(node_id);
+  this->DrainExecutor();
+
+  ASSERT_TRUE(node.fetched());
+  ASSERT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
+
+  node = nullptr;
+
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+}
+
+TEST_F(V3NodeServiceTest, InFlightFetchSurvivesCallerDroppingRef) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+
+  // The returned NodeRef is dropped immediately; the in-flight fetch must
+  // pin the model until its results are delivered.
+  this->node_service_->GetNode(node_id);
+
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
+
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+  EXPECT_CALL(this->node_service_observer_, OnNodeStateChanged(_));
+
+  this->DrainExecutor();
+
+  // Once the fetch completed and notified, nothing pins the model anymore.
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+}
+
+TEST_F(V3NodeServiceTest, SubtreeReleasedWhenRootDropped) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  auto node = this->node_service_->GetNode(node_id);
+  node.StartFetch(NodeFetchStatus::NodeAndChildren());
+  this->DrainExecutor();
+
+  ASSERT_TRUE(node.fetched());
+  ASSERT_TRUE(node.children_fetched());
+
+  // The parent pins its fetched children (and their reference types).
+  EXPECT_GT(this->node_service_->GetResidentNodeCount(), 1u);
+
+  node = nullptr;
+
+  // Dropping the subtree root unwinds the whole fetched subtree.
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+}
+
+TEST_F(V3NodeServiceTest, FetchUnknownNodeReportsError) {
+  const scada::NodeId unknown_node_id{1, 100};
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  auto node = this->node_service_->GetNode(unknown_node_id);
+  this->DrainExecutor();
+
+  // The error lands on the requesting (resident) model without creating any
+  // other models as a side effect.
+  EXPECT_TRUE(node.fetched());
+  EXPECT_FALSE(node.status());
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
+}
+
+TEST_F(V3NodeServiceTest, PendingFetchBeforeChannelOpenPinsModel) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  // Channel closed: the fetch is queued, and the queue pins the model even
+  // though the caller drops its NodeRef immediately.
+  this->node_service_->GetNode(node_id);
+
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
+
+  this->ExpectAnyUpdates();
+  this->OpenChannel();
+
+  // The queued fetch ran against the pinned model and released it after
+  // delivering the results.
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+}
+
+TEST_F(V3NodeServiceTest, NeighborSnapshotRepublishedOnInverseReferencePush) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto neighbor_id = server_address_space.kTestNode3Id;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  // Capture the latest published snapshot per node. Declared after
+  // ExpectAnyUpdates so this expectation takes precedence.
+  std::map<scada::NodeId, scada::NodeStatePtr> published;
+  EXPECT_CALL(this->node_service_observer_, OnNodeStateChanged(_))
+      .WillRepeatedly([&](const NodeRefObserver::NodeStateChangedEvent& event) {
+        published[event.node_id] = event.state;
+      });
+
+  auto neighbor = this->node_service_->GetNode(neighbor_id);
+  this->DrainExecutor();
+
+  const scada::NodeStatePtr old_state = published[neighbor_id];
+  ASSERT_NE(old_state, nullptr);
+
+  // TestNode2 references TestNode3; fetching it pushes the inverse reference
+  // into the resident neighbor, which republishes its snapshot.
+  auto node = this->node_service_->GetNode(node_id);
+  this->DrainExecutor();
+
+  const scada::NodeStatePtr new_state = published[neighbor_id];
+  ASSERT_NE(new_state, nullptr);
+  EXPECT_NE(new_state, old_state);
+
+  bool has_inverse_reference = false;
+  for (const auto& reference : new_state->references) {
+    if (!reference.forward && reference.node_id == node_id)
+      has_inverse_reference = true;
+  }
+  EXPECT_TRUE(has_inverse_reference);
+}
+
+TEST_F(V3NodeServiceTest, PublishesImmutableSnapshotOnFetch) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+
+  // Exactly one snapshot is published per fetch batch, and it carries the
+  // fetched node data.
+  scada::NodeStatePtr event_state;
+  EXPECT_CALL(this->node_service_observer_, OnNodeStateChanged(_))
+      .WillOnce([&](const NodeRefObserver::NodeStateChangedEvent& event) {
+        EXPECT_EQ(event.node_id, node_id);
+        EXPECT_TRUE(event.fetch_status.node_fetched);
+        event_state = event.state;
+      });
+  EXPECT_CALL(this->node_service_observer_, OnModelChanged(NodeIs(node_id)));
+  EXPECT_CALL(this->node_service_observer_, OnNodeSemanticChanged(node_id));
+
+  auto node = this->node_service_->GetNode(node_id);
+  this->DrainExecutor();
+
+  ASSERT_TRUE(node.fetched());
+  ASSERT_NE(event_state, nullptr);
+  EXPECT_EQ(event_state->node_id, node_id);
+  EXPECT_EQ(event_state->attributes.browse_name, "TestNode2");
+}
+
+TEST_F(V3NodeServiceTest, SnapshotIsCopyOnWrite) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+  const auto node_id = server_address_space.kTestNode2Id;
+
+  this->OpenChannel();
+  this->ExpectAnyUpdates();
+
+  // Capture the latest published snapshot per node. Declared after
+  // ExpectAnyUpdates so this expectation takes precedence.
+  std::map<scada::NodeId, scada::NodeStatePtr> published;
+  EXPECT_CALL(this->node_service_observer_, OnNodeStateChanged(_))
+      .WillRepeatedly([&](const NodeRefObserver::NodeStateChangedEvent& event) {
+        published[event.node_id] = event.state;
+      });
+
+  auto node = this->node_service_->GetNode(node_id);
+  this->DrainExecutor();
+
+  const scada::NodeStatePtr old_state = published[node_id];
+  ASSERT_NE(old_state, nullptr);
+  const size_t old_reference_count = old_state->references.size();
+
+  // Children fetch publishes a new self-contained snapshot that includes the
+  // child references; the previously published snapshot stays frozen.
+  node.StartFetch(NodeFetchStatus::NodeAndChildren());
+  this->DrainExecutor();
+
+  const scada::NodeStatePtr new_state = published[node_id];
+  ASSERT_NE(new_state, nullptr);
+  EXPECT_NE(new_state, old_state);
+  EXPECT_EQ(old_state->references.size(), old_reference_count);
+  EXPECT_GT(new_state->references.size(), old_reference_count);
+}
+
+// Keep-alive tests need a non-zero capacity, so they build their own context
+// instead of using the V3NodeServiceTest fixture.
+class V3KeepAliveTest : public Test {
+ protected:
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && base_env_.executor.GetTaskCount() != 0; ++i)
+      base_env_.executor.Poll();
+  }
+
+  scada::ViewEvents* view_events_ = nullptr;
+
+  BaseNodeServiceTestEnvironment base_env_{
+      .executor = TestExecutor{},
+      .server_address_space = std::make_shared<TestAddressSpace>(),
+      .view_events_provider = [this](scada::ViewEvents& events)
+          -> std::unique_ptr<IViewEventsSubscription> {
+        view_events_ = &events;
+        return std::make_unique<IViewEventsSubscription>();
+      }};
+
+  v3::NodeServiceTestContext context_{base_env_, /*keep_alive_capacity=*/2};
+};
+
+TEST_F(V3KeepAliveTest, KeepAliveWindowRetainsRecentModels) {
+  auto& server_address_space = *base_env_.server_address_space;
+  auto& node_service = context_.node_service;
+
+  node_service.OnChannelOpened();
+
+  // All NodeRefs are dropped immediately; only the 2-slot keep-alive window
+  // holds models after the fetches complete.
+  node_service.GetNode(server_address_space.kTestNode1Id);
+  node_service.GetNode(server_address_space.kTestNode2Id);
+  node_service.GetNode(server_address_space.kTestNode3Id);
+  DrainExecutor();
+
+  EXPECT_EQ(node_service.GetResidentNodeCount(), 2u);
+}
+
+TEST_F(V3KeepAliveTest, NodeDeletedEvictsKeepAlivePin) {
+  auto& server_address_space = *base_env_.server_address_space;
+  auto& node_service = context_.node_service;
+  const auto node_id = server_address_space.kTestNode1Id;
+
+  node_service.OnChannelOpened();
+
+  node_service.GetNode(node_id);
+  DrainExecutor();
+  ASSERT_EQ(node_service.GetResidentNodeCount(), 1u);
+
+  view_events_->OnModelChanged(scada::ModelChangeEvent{
+      node_id, {}, scada::ModelChangeEvent::NodeDeleted});
+
+  EXPECT_EQ(node_service.GetResidentNodeCount(), 0u);
 }
 
 class V2NodeServiceRegressionTest : public Test {
