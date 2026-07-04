@@ -1,4 +1,5 @@
 #include "attribute_service_impl.h"
+#include "base/check.h"
 
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
@@ -24,7 +25,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 AttributeServiceImpl::Read(scada::ServiceContext context,
                            std::vector<scada::ReadValueId> inputs) {
   auto results = sync_attribute_service_.Read(context, inputs);
-  assert(results.size() == inputs.size());
+  base::Check(results.size() == inputs.size());
 
   co_return results;
 }
@@ -77,28 +78,36 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
       return scada::MakeReadResult(static_cast<int>(node.GetNodeClass()));
 
     case scada::AttributeId::BrowseName:
-      assert(!node.GetBrowseName().empty());
+      base::Check(!node.GetBrowseName().empty());
       return scada::MakeReadResult(node.GetBrowseName());
 
     case scada::AttributeId::DisplayName:
       return scada::MakeReadResult(node.GetDisplayName());
 
     // UserRolePermissions: the caller's own effective role permissions, always
-    // readable by the session (OPC UA Part 3 §5.2.10).
+    // readable by the session (OPC UA Part 3 §5.2.10). Narrowed from the node's
+    // RolePermissions override when it carries one, else from the defaults.
     case scada::AttributeId::UserRolePermissions:
       return scada::MakeReadResult(scada::EncodeRolePermissions(
-          scada::UserRolePermissions(context.user_rights(),
-                                     context.is_anonymous())));
+          node.role_permissions()
+              ? scada::UserRolePermissionsFrom(*node.role_permissions(),
+                                               context.user_rights(),
+                                               context.is_anonymous())
+              : scada::UserRolePermissions(context.user_rights(),
+                                           context.is_anonymous())));
 
     // RolePermissions: the node's full role/permission map, readable only with
-    // the ReadRolePermissions permission (OPC UA Part 3 §5.2.9).
+    // the ReadRolePermissions permission (OPC UA Part 3 §5.2.9). A node may
+    // carry a per-node override; otherwise it publishes the server defaults.
     case scada::AttributeId::RolePermissions:
       if (!scada::IsPermitted(context.user_rights(), context.is_anonymous(),
                               scada::Permission::kReadRolePermissions)) {
-        return {scada::StatusCode::Bad_UserAccessDenied, scada::DateTime::Now()};
+        return {scada::StatusCode::Bad_UserAccessDenied,
+                scada::DateTime::Now()};
       }
-      return scada::MakeReadResult(
-          scada::EncodeRolePermissions(scada::DefaultRolePermissions()));
+      return scada::MakeReadResult(scada::EncodeRolePermissions(
+          node.role_permissions() ? *node.role_permissions()
+                                   : scada::DefaultRolePermissions()));
   }
 
   if (auto* variable = scada::AsVariable(&node)) {

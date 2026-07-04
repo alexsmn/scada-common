@@ -2,6 +2,7 @@
 
 #include "address_space/test/test_address_space.h"
 #include "base/test/awaitable_test.h"
+#include "scada/authorization.h"
 #include "scada/data_value.h"
 #include "scada/extension_object.h"
 #include "scada/privileges.h"
@@ -192,6 +193,53 @@ TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
   const auto denied =
       read(scada::AttributeId::RolePermissions, scada::ServiceContext{});
   EXPECT_EQ(denied.status_code, scada::StatusCode::Bad_UserAccessDenied);
+}
+
+TEST(AttributeServiceImpl, PerNodeRolePermissionsOverride) {
+  TestAddressSpace address_space;
+
+  // A per-node override on TestNode1: Observer may only browse, Operator may
+  // also write (OPC UA Part 3 §5.2.9).
+  const std::vector<scada::RolePermissionType> override_permissions = {
+      {.role_id = scada::WellKnownRoleId(scada::WellKnownRole::kObserver),
+       .permissions = scada::Permission::kBrowse},
+      {.role_id = scada::WellKnownRoleId(scada::WellKnownRole::kOperator),
+       .permissions = scada::Permission::kBrowse | scada::Permission::kWrite}};
+  address_space.GetMutableNode(address_space.kTestNode1Id)
+      ->SetRolePermissions(override_permissions);
+
+  const std::uint32_t control_rights =
+      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+  const scada::ServiceContext operator_context =
+      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
+          control_rights);
+
+  const auto read = [&](scada::AttributeId attribute_id,
+                        const scada::ServiceContext& context) {
+    const std::vector<scada::ReadValueId> inputs{
+        {.node_id = address_space.kTestNode1Id, .attribute_id = attribute_id}};
+    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+  };
+
+  // RolePermissions returns the override (2 entries), not the 8 defaults.
+  const auto role_perms =
+      read(scada::AttributeId::RolePermissions, operator_context);
+  EXPECT_EQ(role_perms.status_code, scada::StatusCode::Good);
+  EXPECT_EQ(role_perms.value.get<std::vector<scada::ExtensionObject>>().size(),
+            2u);
+
+  // The operator holds Observer + Operator, so its UserRolePermissions narrows
+  // to both matching override entries.
+  const auto user_roles =
+      read(scada::AttributeId::UserRolePermissions, operator_context);
+  EXPECT_EQ(user_roles.value.get<std::vector<scada::ExtensionObject>>().size(),
+            2u);
+
+  // An anonymous caller matches no entry in this override.
+  const auto anon_roles =
+      read(scada::AttributeId::UserRolePermissions, scada::ServiceContext{});
+  EXPECT_TRUE(
+      anon_roles.value.get<std::vector<scada::ExtensionObject>>().empty());
 }
 
 TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {

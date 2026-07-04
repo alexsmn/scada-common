@@ -8,6 +8,7 @@
 #include "scada/variant.h"
 
 #include <memory>
+#include <vector>
 
 namespace scada {
 
@@ -15,6 +16,7 @@ class Node;
 class ReferenceType;
 class TypeDefinition;
 struct Reference;
+struct RolePermissionType;
 
 using References = std::vector<Reference>;
 
@@ -40,6 +42,14 @@ class Node {
   void SetDisplayName(LocalizedText display_name) {
     display_name_ = std::move(display_name);
   }
+
+  // Optional per-node RolePermissions override (OPC UA Part 3 §5.2.9). Null (the
+  // common case) means the node publishes the server's DefaultRolePermissions;
+  // when set, these entries replace it and the per-caller UserRolePermissions is
+  // narrowed from them. Defined out of line so this widely-included header need
+  // not pull in scada/authorization.h.
+  const std::vector<RolePermissionType>* role_permissions() const;
+  void SetRolePermissions(std::vector<RolePermissionType> role_permissions);
 
   const References& forward_references() const { return forward_references_; }
   const References& inverse_references() const { return inverse_references_; }
@@ -68,6 +78,8 @@ class Node {
 
   QualifiedName browse_name_;
   LocalizedText display_name_;
+
+  std::unique_ptr<std::vector<RolePermissionType>> role_permissions_;
 
   References forward_references_;
   References inverse_references_;
