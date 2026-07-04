@@ -7,9 +7,9 @@
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
 #include "base/range_util.h"
-#include "base/span_util.h"
+#include "scada/authorization.h"
 
-#include <boost/range/adaptor/transformed.hpp>
+#include <ranges>
 
 SyncAttributeServiceImpl::SyncAttributeServiceImpl(
     AttributeServiceImplContext&& context)
@@ -22,11 +22,9 @@ AttributeServiceImpl::AttributeServiceImpl(
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 AttributeServiceImpl::Read(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
-  assert(inputs);
-
-  auto results = sync_attribute_service_.Read(context, *inputs);
-  assert(results.size() == inputs->size());
+    std::vector<scada::ReadValueId> inputs) {
+  auto results = sync_attribute_service_.Read(context, inputs);
+  assert(results.size() == inputs.size());
 
   co_return results;
 }
@@ -34,23 +32,23 @@ AttributeServiceImpl::Read(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 AttributeServiceImpl::Write(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
-  assert(inputs);
-
-  auto results = sync_attribute_service_.Write(context, *inputs);
+    std::vector<scada::WriteValue> inputs) {
+  auto results = sync_attribute_service_.Write(context, inputs);
   co_return results;
 }
 
 std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(
     const scada::ServiceContext& context,
     std::span<const scada::ReadValueId> inputs) {
-  return AsRange(inputs) |
-         boost::adaptors::transformed(
-             [this](const scada::ReadValueId& input) { return Read(input); }) |
+  return inputs | std::views::transform([this, &context](
+                                            const scada::ReadValueId& input) {
+           return Read(context, input);
+         }) |
          to_vector;
 }
 
 scada::DataValue SyncAttributeServiceImpl::Read(
+    const scada::ServiceContext& context,
     const scada::ReadValueId& input) {
   std::string_view nested_name;
   auto* node = scada::GetNestedNode(address_space_, input.node_id, nested_name);
@@ -58,7 +56,7 @@ scada::DataValue SyncAttributeServiceImpl::Read(
     return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 
   if (nested_name.empty())
-    return ReadNode(*node, input.attribute_id);
+    return ReadNode(context, *node, input.attribute_id);
 
   return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
 }
@@ -71,6 +69,7 @@ std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
 }
 
 scada::DataValue SyncAttributeServiceImpl::ReadNode(
+    const scada::ServiceContext& context,
     const scada::Node& node,
     scada::AttributeId attribute_id) {
   switch (attribute_id) {
@@ -94,14 +93,21 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
       // Mandatory VariableNode attributes (OPC UA Part 3 §5.6.2,
       // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.6.2). The
       // node model does not carry these, so return conformant defaults: a
-      // scalar ValueRank, current-read access (OPC UA Write is not supported),
-      // no historizing, and no minimum sampling interval. Clients (and the CTT)
-      // require these to be readable rather than Bad_AttributeIdInvalid.
+      // scalar ValueRank, current-read access (these static nodes are not
+      // writable through this service), no historizing, and no minimum sampling
+      // interval. Clients (and the CTT) require these to be readable rather than
+      // Bad_AttributeIdInvalid.
       case scada::AttributeId::ValueRank:
         return scada::MakeReadResult(scada::Int32{-1});  // Scalar
       case scada::AttributeId::AccessLevel:
+        return scada::MakeReadResult(
+            scada::UInt8{scada::access_level::kCurrentRead});
+      // UserAccessLevel narrows AccessLevel by the caller's permissions
+      // (OPC UA Part 3 §5.6.2). The caller's rights ride on the ServiceContext.
       case scada::AttributeId::UserAccessLevel:
-        return scada::MakeReadResult(scada::UInt8{0x01});  // CurrentRead
+        return scada::MakeReadResult(scada::UInt8{scada::UserAccessLevel(
+            scada::access_level::kCurrentRead, context.user_rights(),
+            context.is_anonymous())});
       case scada::AttributeId::Historizing:
         return scada::MakeReadResult(false);
       case scada::AttributeId::MinimumSamplingInterval:

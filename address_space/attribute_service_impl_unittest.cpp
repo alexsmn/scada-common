@@ -3,8 +3,11 @@
 #include "address_space/test/test_address_space.h"
 #include "base/test/awaitable_test.h"
 #include "scada/data_value.h"
+#include "scada/privileges.h"
 #include "scada/service_context.h"
 #include "scada/test/status_matchers.h"
+
+#include <cstdint>
 
 #include <gmock/gmock.h>
 
@@ -16,13 +19,12 @@ TEST(AttributeServiceImpl, CoroutineReadReturnsSyncResults) {
   TestAddressSpace address_space;
   TestExecutor executor;
 
-  auto inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      std::vector<scada::ReadValueId>{
-          {.node_id = address_space.kTestNode1Id,
-           .attribute_id = scada::AttributeId::DisplayName},
-          {.node_id = address_space.MakeNestedNodeId(
-               address_space.kTestNode1Id, address_space.kTestProp1Id),
-           .attribute_id = scada::AttributeId::Value}});
+  std::vector<scada::ReadValueId> inputs{
+      {.node_id = address_space.kTestNode1Id,
+       .attribute_id = scada::AttributeId::DisplayName},
+      {.node_id = address_space.MakeNestedNodeId(address_space.kTestNode1Id,
+                                                 address_space.kTestProp1Id),
+       .attribute_id = scada::AttributeId::Value}};
 
   ASSERT_OK_AND_ASSIGN(
       auto results,
@@ -41,11 +43,10 @@ TEST(AttributeServiceImpl, CoroutineWriteReturnsSyncResults) {
   TestAddressSpace address_space;
   TestExecutor executor;
 
-  auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-      std::vector<scada::WriteValue>{
-          {.node_id = address_space.kTestNode1Id,
-           .attribute_id = scada::AttributeId::Value,
-           .value = scada::Variant{scada::Int32{42}}}});
+  std::vector<scada::WriteValue> inputs{
+      {.node_id = address_space.kTestNode1Id,
+       .attribute_id = scada::AttributeId::Value,
+       .value = scada::Variant{scada::Int32{42}}}};
 
   ASSERT_OK_AND_ASSIGN(
       auto results,
@@ -82,6 +83,34 @@ TEST(AttributeServiceImpl, ReadsMandatoryVariableAttributes) {
   EXPECT_EQ(results[2].value, scada::Variant{scada::UInt8{0x01}});
   EXPECT_EQ(results[3].value, scada::Variant{false});
   EXPECT_EQ(results[4].value, scada::Variant{0.0});
+}
+
+TEST(AttributeServiceImpl, UserAccessLevelIsBoundedByNodeAccessLevel) {
+  TestAddressSpace address_space;
+
+  // The static node advertises only CurrentRead, so even a fully privileged
+  // caller sees UserAccessLevel == CurrentRead: a user cannot gain write access
+  // the node itself does not offer (OPC UA Part 3 §5.6.2).
+  const std::uint32_t root_rights =
+      (std::uint32_t{1} << static_cast<int>(scada::Privilege::Configure)) |
+      (std::uint32_t{1} << static_cast<int>(scada::Privilege::Control));
+  const scada::ServiceContext context =
+      scada::ServiceContext{}
+          .with_user_id(scada::NodeId{1, 1})
+          .with_user_rights(root_rights);
+
+  const std::vector<scada::ReadValueId> inputs{
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::AccessLevel},
+      {.node_id = address_space.kTestProp1Id,
+       .attribute_id = scada::AttributeId::UserAccessLevel}};
+
+  const auto results =
+      address_space.sync_attribute_service_impl.Read(context, inputs);
+
+  ASSERT_EQ(results.size(), 2u);
+  EXPECT_EQ(results[0].value, scada::Variant{scada::UInt8{0x01}});
+  EXPECT_EQ(results[1].value, scada::Variant{scada::UInt8{0x01}});
 }
 
 TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {

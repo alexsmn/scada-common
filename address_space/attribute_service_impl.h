@@ -2,8 +2,6 @@
 
 #include "common/sync_attribute_service.h"
 #include "scada/attribute_service.h"
-#include "scada/coroutine_services.h"
-
 #include <span>
 
 namespace scada {
@@ -29,8 +27,10 @@ class SyncAttributeServiceImpl : private AttributeServiceImplContext,
       std::span<const scada::WriteValue> inputs) override;
 
  private:
-  scada::DataValue Read(const scada::ReadValueId& input);
-  scada::DataValue ReadNode(const scada::Node& node,
+  scada::DataValue Read(const scada::ServiceContext& context,
+                        const scada::ReadValueId& input);
+  scada::DataValue ReadNode(const scada::ServiceContext& context,
+                            const scada::Node& node,
                             scada::AttributeId attribute_id);
 };
 
@@ -38,12 +38,12 @@ class AttributeServiceImpl : public scada::AttributeService {
  public:
   explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
 
-  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-  Read(scada::ServiceContext context,
-       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  Write(scada::ServiceContext context,
-        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+      scada::ServiceContext context,
+      std::vector<scada::ReadValueId> inputs) override;
+  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+      scada::ServiceContext context,
+      std::vector<scada::WriteValue> inputs) override;
 
  private:
   SyncAttributeService& sync_attribute_service_;
