@@ -40,18 +40,23 @@ MATCHER_P(ArgumentsContainEventIds, event_ids, "") {
   return actual == event_ids;
 }
 
+MATCHER_P(ContextHasUserId, user_id, "") {
+  return arg.user_id() == user_id;
+}
+
 }  // namespace
 
 TEST_F(EventAckQueueTest, AckDispatchesMethodCallFromCoroutineTask) {
   auto queue = MakeQueue();
-  queue.OnChannelOpened(scada::id::Server);
+  const scada::NodeId user_id{scada::id::Server};
+  queue.OnChannelOpened(scada::ServiceContext{}.with_user_id(user_id));
 
   EXPECT_CALL(method_service_,
               Call(scada::NodeId{scada::id::Server},
                    scada::NodeId{
                        scada::id::AcknowledgeableConditionType_Acknowledge},
                    ArgumentsContainEventIds(std::vector<scada::EventId>{11}),
-                   scada::NodeId{scada::id::Server}))
+                   ContextHasUserId(user_id)))
       .WillOnce(Invoke([](auto, auto, auto, auto) {
         return MakeStatusAwaitable();
       }));
@@ -62,7 +67,8 @@ TEST_F(EventAckQueueTest, AckDispatchesMethodCallFromCoroutineTask) {
 
 TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
   auto queue = MakeQueue();
-  queue.OnChannelOpened(scada::id::Server);
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
 
   EXPECT_CALL(method_service_,
               Call(_, _, ArgumentsContainEventIds(
@@ -92,7 +98,8 @@ TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
 
 TEST_F(EventAckQueueTest, DuplicateAckIsIgnoredWhilePending) {
   auto queue = MakeQueue();
-  queue.OnChannelOpened(scada::id::Server);
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
 
   EXPECT_CALL(method_service_,
               Call(_, _,
@@ -110,7 +117,8 @@ TEST_F(EventAckQueueTest, DuplicateAckIsIgnoredWhilePending) {
 TEST_F(EventAckQueueTest, DestroyedQueueSuppressesPendingAckDispatch) {
   {
     auto queue = MakeQueue();
-    queue.OnChannelOpened(scada::id::Server);
+    queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
     queue.Ack(11);
   }
 

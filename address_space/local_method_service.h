@@ -15,7 +15,7 @@ class LocalMethodService : public MethodService {
   Awaitable<Status> Call(NodeId node_id,
                          NodeId method_id,
                          std::vector<Variant> arguments,
-                         NodeId user_id) override;
+                         ServiceContext context) override;
 };
 
 }  // namespace scada

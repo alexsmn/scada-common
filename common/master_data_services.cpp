@@ -359,11 +359,11 @@ Awaitable<scada::Status> MasterDataServices::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
-    scada::NodeId user_id) {
+    scada::ServiceContext context) {
   auto* service = method_service_;
   if (service)
     co_return co_await service->Call(std::move(node_id), std::move(method_id),
-                                     std::move(arguments), std::move(user_id));
+                                     std::move(arguments), std::move(context));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }

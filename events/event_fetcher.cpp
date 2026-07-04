@@ -159,9 +159,9 @@ void EventFetcher::Update() {
       });
 }
 
-void EventFetcher::OnChannelOpened(const scada::NodeId& user_id) {
+void EventFetcher::OnChannelOpened(const scada::ServiceContext& context) {
   connected_ = true;
-  event_ack_queue_.OnChannelOpened(user_id);
+  event_ack_queue_.OnChannelOpened(context);
   Update();
 }
 

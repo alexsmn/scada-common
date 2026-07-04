@@ -74,7 +74,7 @@ class VidiconSession final : public scada::SessionService,
   virtual Awaitable<scada::Status> Call(scada::NodeId node_id,
                                         scada::NodeId method_id,
                                         std::vector<scada::Variant> arguments,
-                                        scada::NodeId user_id) override;
+                                        scada::ServiceContext context) override;
 
   // scada::NodeManagementService
   virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>

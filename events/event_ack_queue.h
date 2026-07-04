@@ -5,6 +5,7 @@
 #include "base/awaitable.h"
 #include "base/logger.h"
 #include "scada/event.h"
+#include "scada/service_context.h"
 
 #include <algorithm>
 #include <deque>
@@ -27,7 +28,12 @@ class EventAckQueue : private EventAckQueueContext {
 
   ~EventAckQueue();
 
-  void OnChannelOpened(const scada::NodeId& user_id) { user_id_ = user_id; }
+  // Captures the acknowledging user's full service context (user id + rights) so
+  // the acknowledge Call runs with the real caller's rights, letting the server
+  // enforce the Call permission against them rather than a system identity.
+  void OnChannelOpened(const scada::ServiceContext& context) {
+    service_context_ = context;
+  }
 
   bool IsAcking() const {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
@@ -56,8 +62,9 @@ class EventAckQueue : private EventAckQueueContext {
 
   bool ack_pending_ = false;
 
-  // Acknowledger user ID.
-  scada::NodeId user_id_;
+  // Acknowledging user's service context (user id + rights), captured when the
+  // channel opens.
+  scada::ServiceContext service_context_;
 
   Cancelation cancelation_;
 

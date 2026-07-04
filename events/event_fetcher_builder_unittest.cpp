@@ -58,12 +58,12 @@ class TestMethodService final : public scada::MethodService {
   Awaitable<scada::Status> Call(scada::NodeId node_id,
                                 scada::NodeId method_id,
                                 std::vector<scada::Variant> arguments,
-                                scada::NodeId user_id) override {
+                                scada::ServiceContext context) override {
     ++call_count;
     last_node_id = std::move(node_id);
     last_method_id = std::move(method_id);
     last_arguments = std::move(arguments);
-    last_user_id = std::move(user_id);
+    last_user_id = context.user_id();
     co_return scada::Status{scada::StatusCode::Good};
   }
 

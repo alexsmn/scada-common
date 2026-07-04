@@ -4,10 +4,11 @@
 
 namespace scada {
 
-Awaitable<Status> LocalMethodService::Call(NodeId /*node_id*/,
-                                           NodeId /*method_id*/,
-                                           std::vector<Variant> /*arguments*/,
-                                           NodeId /*user_id*/) {
+Awaitable<Status> LocalMethodService::Call(
+    NodeId /*node_id*/,
+    NodeId /*method_id*/,
+    std::vector<Variant> /*arguments*/,
+    ServiceContext /*context*/) {
   co_return Status{StatusCode::Bad};
 }
 

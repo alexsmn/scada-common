@@ -78,7 +78,7 @@ class MethodServiceAdapter {
   opcua::Awaitable<opcua::Status> Call(opcua::NodeId node_id,
                                        opcua::NodeId method_id,
                                        std::vector<opcua::Variant> arguments,
-                                       opcua::NodeId user_id);
+                                       opcua::ServiceContext context);
 
  private:
   scada::MethodService& inner_;

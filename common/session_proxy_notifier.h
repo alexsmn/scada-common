@@ -1,7 +1,9 @@
 #pragma once
 
+#include "scada/service_context.h"
 #include "scada/session_service.h"
 
+#include <cstdint>
 #include <type_traits>
 
 template <class Proxy>
@@ -24,10 +26,30 @@ class SessionProxyNotifier {
   }
 
  private:
+  // Builds the caller's ServiceContext from the live session: its user id plus a
+  // rights bitmask reconstructed from the privileges the session exposes. The
+  // bit layout matches scada::Privilege (bit N = 1u << Privilege), so downstream
+  // permission checks (scada::IsPermitted) see the acknowledging user's real
+  // rights rather than a system identity.
+  scada::ServiceContext MakeSessionContext() const {
+    std::uint32_t user_rights = 0;
+    if (session_service_.HasPrivilege(scada::Privilege::Configure))
+      user_rights |= 1u << static_cast<int>(scada::Privilege::Configure);
+    if (session_service_.HasPrivilege(scada::Privilege::Control))
+      user_rights |= 1u << static_cast<int>(scada::Privilege::Control);
+    return scada::ServiceContext{}
+        .with_user_id(session_service_.GetUserId())
+        .with_user_rights(user_rights);
+  }
+
   void OnChannelOpened() {
     if constexpr (std::is_invocable_v<decltype(&Proxy::OnChannelOpened),
                                       Proxy*,
-                                      const scada::NodeId&>) {
+                                      const scada::ServiceContext&>) {
+      proxy_.OnChannelOpened(MakeSessionContext());
+    } else if constexpr (std::is_invocable_v<decltype(&Proxy::OnChannelOpened),
+                                             Proxy*,
+                                             const scada::NodeId&>) {
       proxy_.OnChannelOpened(session_service_.GetUserId());
     } else {
       proxy_.OnChannelOpened();

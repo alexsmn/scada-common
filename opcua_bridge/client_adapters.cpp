@@ -67,10 +67,12 @@ Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
-    scada::NodeId user_id) {
-  auto status =
-      co_await session_->Call(ToOpcua(node_id), ToOpcua(method_id),
-                              ToOpcuaVector(arguments), ToOpcua(user_id));
+    scada::ServiceContext context) {
+  // The wire client session's Call still takes only a user id (the client does
+  // not carry a rights bitmask to the server); extract it from the context.
+  auto status = co_await session_->Call(ToOpcua(node_id), ToOpcua(method_id),
+                                        ToOpcuaVector(arguments),
+                                        ToOpcua(context.user_id()));
   co_return ToScada(status);
 }
 

@@ -103,11 +103,11 @@ class TestCoroutineDataServices final
   Awaitable<scada::Status> Call(scada::NodeId node_id,
                                 scada::NodeId method_id,
                                 std::vector<scada::Variant> /*arguments*/,
-                                scada::NodeId user_id) override {
+                                scada::ServiceContext context) override {
     ++call_count;
     last_call_node_id = std::move(node_id);
     last_call_method_id = std::move(method_id);
-    last_call_user_id = std::move(user_id);
+    last_call_user_id = context.user_id();
     co_return scada::Status{scada::StatusCode::Good};
   }
 
@@ -488,7 +488,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   auto call_status =
       WaitAwaitable(executor, services.Call(scada::NodeId{102},
                                             scada::NodeId{103}, {},
-                                            scada::NodeId{104}));
+                                            scada::ServiceContext{}.with_user_id(
+                                                scada::NodeId{104})));
 
   EXPECT_TRUE(call_status.good());
   EXPECT_EQ(direct_services->call_count, 1);

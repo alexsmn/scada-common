@@ -6,6 +6,7 @@
 #include "base/cancelation.h"
 #include "events/node_event_provider.h"
 #include "scada/legacy_monitored_item_adapter.h"
+#include "scada/service_context.h"
 
 namespace scada {
 class HistoryService;
@@ -36,7 +37,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   explicit EventFetcher(EventFetcherContext&& context);
   ~EventFetcher();
 
-  void OnChannelOpened(const scada::NodeId& user_id);
+  void OnChannelOpened(const scada::ServiceContext& context);
   void OnChannelClosed();
 
   // NodeEventProvider

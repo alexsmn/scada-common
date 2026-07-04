@@ -50,9 +50,10 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
           },
       .call =
           [this](opcua::NodeId node_id, opcua::NodeId method_id,
-                 std::vector<opcua::Variant> arguments, opcua::NodeId user_id) {
+                 std::vector<opcua::Variant> arguments,
+                 opcua::ServiceContext context) {
             return method.Call(std::move(node_id), std::move(method_id),
-                               std::move(arguments), std::move(user_id));
+                               std::move(arguments), std::move(context));
           },
       .history_read_raw =
           [this](opcua::HistoryReadRawDetails details) {
@@ -139,10 +140,13 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
     opcua::NodeId node_id,
     opcua::NodeId method_id,
     std::vector<opcua::Variant> arguments,
-    opcua::NodeId user_id) {
+    opcua::ServiceContext context) {
+  // ToScada(const opcua::ServiceContext&) carries the caller's user id and its
+  // user_rights bitmask, so the scada MethodService sees the real caller for
+  // permission enforcement (e.g. the Call permission at the router).
   auto status =
       co_await inner_.Call(ToScada(node_id), ToScada(method_id),
-                           ToScadaVector(arguments), ToScada(user_id));
+                           ToScadaVector(arguments), ToScada(context));
   co_return ToOpcua(status);
 }
 

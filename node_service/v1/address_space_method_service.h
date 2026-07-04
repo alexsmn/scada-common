@@ -17,7 +17,7 @@ class AddressSpaceMethodService : public scada::MethodService {
       scada::NodeId node_id,
       scada::NodeId method_id,
       std::vector<scada::Variant> arguments,
-      scada::NodeId user_id) override;
+      scada::ServiceContext context) override;
 
  private:
   [[maybe_unused]] scada::AddressSpace& address_space_;
@@ -27,6 +27,6 @@ inline Awaitable<scada::Status> AddressSpaceMethodService::Call(
     scada::NodeId /*node_id*/,
     scada::NodeId /*method_id*/,
     std::vector<scada::Variant> /*arguments*/,
-    scada::NodeId /*user_id*/) {
+    scada::ServiceContext /*context*/) {
   co_return scada::Status{scada::StatusCode::Bad_WrongMethodId};
 }

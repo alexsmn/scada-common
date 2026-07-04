@@ -138,7 +138,7 @@ Awaitable<scada::Status> VidiconSession::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
-    scada::NodeId user_id) {
+    scada::ServiceContext context) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 

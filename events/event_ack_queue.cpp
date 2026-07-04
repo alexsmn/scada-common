@@ -52,11 +52,11 @@ void EventAckQueue::AckPendingEvents() {
                     ToString(event_ids));
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
-             user_id = user_id_]() mutable -> Awaitable<void> {
+             context = service_context_]() mutable -> Awaitable<void> {
               co_await method_service_.Call(
                   scada::id::Server,
                   scada::id::AcknowledgeableConditionType_Acknowledge,
-                  {event_ids, scada::DateTime::Now()}, user_id);
+                  {event_ids, scada::DateTime::Now()}, std::move(context));
             });
   }
 
