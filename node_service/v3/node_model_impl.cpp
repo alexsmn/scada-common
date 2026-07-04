@@ -56,9 +56,12 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
         scada::id::HasSubtype, false, node_state_.supertype_id});
   }
 
+  // Push inverse references only into models that are already resident;
+  // materializing the whole reference neighborhood here would grow the node
+  // graph unboundedly as a side effect of fetching a single node.
   for (const auto& ref : node_state_.references) {
     if (ref.node_id != node_id_) {
-      if (auto target = service_.GetNodeModel(ref.node_id)) {
+      if (auto target = service_.FindNodeModel(ref.node_id)) {
         target->node_state_.references.push_back(scada::ReferenceDescription{
             ref.reference_type_id, !ref.forward, node_id_});
       }

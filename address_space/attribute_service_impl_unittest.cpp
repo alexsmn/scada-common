@@ -113,6 +113,48 @@ TEST(AttributeServiceImpl, UserAccessLevelIsBoundedByNodeAccessLevel) {
   EXPECT_EQ(results[1].value, scada::Variant{scada::UInt8{0x01}});
 }
 
+TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
+  TestAddressSpace address_space;
+
+  const scada::NodeId method_id{700, TestAddressSpace::kNamespaceIndex};
+  address_space.CreateNode({.node_id = method_id,
+                            .node_class = scada::NodeClass::Method,
+                            .parent_id = address_space.kTestNode1Id,
+                            .reference_type_id = scada::id::HasComponent,
+                            .attributes = scada::NodeAttributes{}
+                                              .set_browse_name("TestMethod")
+                                              .set_display_name(u"TestMethod")});
+
+  const std::uint32_t control_rights =
+      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+
+  const auto read = [&](scada::AttributeId attribute_id,
+                        const scada::ServiceContext& context) {
+    const std::vector<scada::ReadValueId> inputs{
+        {.node_id = method_id, .attribute_id = attribute_id}};
+    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+  };
+
+  // Executable is always true for a method.
+  EXPECT_EQ(read(scada::AttributeId::Executable, scada::ServiceContext{}).value,
+            scada::Variant{true});
+
+  // UserExecutable tracks the Call permission: an Operator (Control) may call;
+  // a plain authenticated Observer and an anonymous caller may not.
+  const scada::ServiceContext operator_context =
+      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
+          control_rights);
+  const scada::ServiceContext observer_context =
+      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1});
+
+  EXPECT_EQ(read(scada::AttributeId::UserExecutable, operator_context).value,
+            scada::Variant{true});
+  EXPECT_EQ(read(scada::AttributeId::UserExecutable, observer_context).value,
+            scada::Variant{false});
+  EXPECT_EQ(read(scada::AttributeId::UserExecutable, scada::ServiceContext{}).value,
+            scada::Variant{false});
+}
+
 TEST(AttributeServiceImpl, ReadNestedNodeWithSinglePartName) {
   TestAddressSpace address_space;
 

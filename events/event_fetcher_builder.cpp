@@ -2,13 +2,15 @@
 
 #include "base/nested_logger.h"
 #include "common/coroutine_service_resolver.h"
-#include "common/session_proxy_notifier.h"
 #include "common/data_services_util.h"
+#include "common/session_proxy_notifier.h"
 #include "events/event_ack_queue.h"
 #include "events/event_fetcher.h"
 #include "events/event_storage.h"
-#include "scada/coroutine_services.h"
+#include "scada/history_service.h"
+#include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
+#include "scada/session_service.h"
 
 namespace internal {
 
@@ -33,17 +35,16 @@ void NormalizeLegacyServices(EventFetcherBuilder& builder) {
 }
 
 bool HasRequiredServices(const DataServices& data_services) {
-  return data_services.monitored_item_service_ && data_services.history_service_ &&
-         data_services.method_service_ && data_services.session_service_;
+  return data_services.monitored_item_service_ &&
+         data_services.history_service_ && data_services.method_service_ &&
+         data_services.session_service_;
 }
 
 DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
   return DataServices{
       .session_service_ = data_services::Unowned(builder.session_service_),
-      .history_service_ =
-          data_services::Unowned(builder.history_service_),
-      .method_service_ =
-          data_services::Unowned(builder.method_service_),
+      .history_service_ = data_services::Unowned(builder.history_service_),
+      .method_service_ = data_services::Unowned(builder.method_service_),
       .monitored_item_service_ =
           data_services::Unowned(builder.monitored_item_service_)};
 }
@@ -109,8 +110,9 @@ std::shared_ptr<EventFetcher> EventFetcherBuilder::Build() {
 }
 
 std::shared_ptr<EventFetcher> CoroutineEventFetcherBuilder::Build() {
-  return EventFetcherBuilder{.executor_ = std::move(executor_),
-                             .logger_ = std::move(logger_),
-                             .data_services_ = internal::MakeDataServices(*this)}
+  return EventFetcherBuilder{
+      .executor_ = std::move(executor_),
+      .logger_ = std::move(logger_),
+      .data_services_ = internal::MakeDataServices(*this)}
       .Build();
 }

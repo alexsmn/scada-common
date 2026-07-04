@@ -6,9 +6,9 @@
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "node_service/v1/address_space_updater.h"
-#include "scada/coroutine_services.h"
 #include "scada/event.h"
 #include "scada/service_context.h"
+#include "scada/view_service.h"
 
 #include "base/debug_util.h"
 
@@ -84,8 +84,7 @@ void AddressSpaceFetcherImpl::Init() {
   };
 
   node_fetcher_ = NodeFetcherImpl::Create(
-      NodeFetcherImplContext{executor_, view_service_,
-                             attribute_service_,
+      NodeFetcherImplContext{executor_, view_service_, attribute_service_,
                              std::move(fetch_completed_handler),
                              std::move(node_validator), service_context_});
 
@@ -95,8 +94,7 @@ void AddressSpaceFetcherImpl::Init() {
       };
 
   node_children_fetcher_ = NodeChildrenFetcher::Create(
-      {executor_, service_context_, view_service_,
-       reference_validator});
+      {executor_, service_context_, view_service_, reference_validator});
 }
 
 void AddressSpaceFetcherImpl::OnChannelOpened() {
@@ -208,7 +206,8 @@ void AddressSpaceFetcherImpl::OnFetchCompleted(
                     << LOG_TAG("Count", fetched_nodes.size());
   LOG_DEBUG(logger_) << "Nodes fetched"
                      << LOG_TAG("Count", fetched_nodes.size())
-                     << LOG_TAG("NodeIds", ToString(CollectNodeIds(fetched_nodes)));
+                     << LOG_TAG("NodeIds",
+                                ToString(CollectNodeIds(fetched_nodes)));
 
   if (!errors.empty()) {
     LOG_WARNING(logger_) << "Nodes fetch errors"
@@ -305,8 +304,7 @@ AddressSpaceFetcherImpl::MakeNodeChildrenFetcherContext() {
         OnChildrenFetched(node_id, std::move(result.references));
       };
 
-  return {executor_, service_context_, view_service_,
-          reference_validator};
+  return {executor_, service_context_, view_service_, reference_validator};
 }
 
 std::pair<scada::Status, NodeFetchStatus>

@@ -26,17 +26,17 @@ class TestCoroutineAuditServices final
  public:
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
+      std::vector<scada::ReadValueId> inputs) override {
     ++read_count;
-    last_read_inputs = *inputs;
+    last_read_inputs = std::move(inputs);
     co_return read_results;
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+      std::vector<scada::WriteValue> inputs) override {
     ++write_count;
-    co_return std::vector<scada::StatusCode>(inputs->size(),
+    co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
@@ -79,16 +79,14 @@ TEST(AuditTest, CoroutineReadRecordsMetric) {
                    .executor_ = executor});
 
   EXPECT_CALL(*attribute_service, Read(_, _))
-      .WillOnce([](scada::ServiceContext,
-                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
                     -> Awaitable<
                         scada::StatusOr<std::vector<scada::DataValue>>> {
         co_return std::vector<scada::DataValue>{scada::DataValue{}};
       });
 
   auto read_result = WaitAwaitable(
-      executor, audit->Read(
-                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
+      executor, audit->Read({}, std::vector<scada::ReadValueId>{}));
 
   ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
 }
@@ -131,8 +129,7 @@ TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributes) {
   EXPECT_NE(audited_services->attribute_service, &attribute_service);
 
   EXPECT_CALL(attribute_service, Read(_, _))
-      .WillOnce([](scada::ServiceContext,
-                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
                     -> Awaitable<
                         scada::StatusOr<std::vector<scada::DataValue>>> {
         co_return std::vector<scada::DataValue>{};
@@ -140,7 +137,7 @@ TEST(AuditTest, AuditScadaServicesWithExecutorWrapsAttributes) {
 
   auto read_result = WaitAwaitable(
       executor, audited_services->attribute_service->Read(
-                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
+                    {}, std::vector<scada::ReadValueId>{}));
 
   ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
 }
@@ -165,18 +162,18 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
   EXPECT_NE(audited_services->view_service_.get(),
             source_services.get());
 
-  auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{1}}});
+  const std::vector<scada::ReadValueId> read_inputs{
+      {.node_id = scada::NodeId{1}}};
   auto read_result = WaitAwaitable(
       executor, audited_services->attribute_service_->Read({}, read_inputs));
 
   ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::Eq(
                                source_services->read_results)));
   EXPECT_EQ(source_services->read_count, 1);
-  EXPECT_EQ(source_services->last_read_inputs, *read_inputs);
+  EXPECT_EQ(source_services->last_read_inputs, read_inputs);
 
-  auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-      std::vector<scada::WriteValue>{{.node_id = scada::NodeId{4}}});
+  const std::vector<scada::WriteValue> write_inputs{
+      {.node_id = scada::NodeId{4}}};
   auto write_result = WaitAwaitable(
       executor, audited_services->attribute_service_->Write({}, write_inputs));
 
@@ -227,15 +224,14 @@ TEST(AuditTest, AuditDataServicesWrapsUnownedServicesForCoroutineUse) {
   EXPECT_NE(audited_services->attribute_service_.get(), &attribute_service);
 
   EXPECT_CALL(attribute_service, Read(_, _))
-      .WillOnce([](scada::ServiceContext,
-                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
                     -> Awaitable<
                         scada::StatusOr<std::vector<scada::DataValue>>> {
         co_return std::vector<scada::DataValue>{scada::DataValue{}};
       });
 
-  auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{3}}});
+  const std::vector<scada::ReadValueId> read_inputs{
+      {.node_id = scada::NodeId{3}}};
   auto values = WaitAwaitable(
       executor, audited_services->attribute_service_->Read({}, read_inputs));
   ASSERT_THAT(values, scada::test::IsOkAndHolds(testing::SizeIs(1)));

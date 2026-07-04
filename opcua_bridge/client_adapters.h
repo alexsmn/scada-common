@@ -91,10 +91,10 @@ class ClientAttributeServiceAdapter : public scada::AttributeService {
 
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+      std::vector<scada::ReadValueId> inputs) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+      std::vector<scada::WriteValue> inputs) override;
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;

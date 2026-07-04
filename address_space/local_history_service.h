@@ -1,6 +1,5 @@
 #pragma once
 
-#include "scada/coroutine_services.h"
 #include "scada/event.h"
 #include "scada/history_service.h"
 #include "scada/node_id.h"
@@ -41,11 +40,11 @@ class LocalHistoryService : public HistoryService {
   // HistoryService
   Awaitable<HistoryReadRawResult> HistoryReadRaw(
       HistoryReadRawDetails details) override;
-  Awaitable<HistoryReadEventsResult> HistoryReadEvents(NodeId node_id,
-                                                       base::Time from,
-                                                       base::Time to,
-                                                       EventFilter filter)
-      override;
+  Awaitable<HistoryReadEventsResult> HistoryReadEvents(
+      NodeId node_id,
+      base::Time from,
+      base::Time to,
+      EventFilter filter) override;
 
  private:
   static UInt32 ParseSeverity(std::string_view s);

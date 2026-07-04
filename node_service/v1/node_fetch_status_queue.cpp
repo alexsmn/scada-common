@@ -1,6 +1,7 @@
 #include "node_service/v1/node_fetch_status_queue.h"
 
 #include "base/auto_reset.h"
+#include "base/check.h"
 #include "base/debug_util.h"
 
 namespace v1 {
@@ -10,13 +11,13 @@ namespace v1 {
 NodeFetchStatusQueue::ScopedStatusLock::ScopedStatusLock(
     NodeFetchStatusQueue& queue)
     : queue_{queue} {
-  assert(queue_.thread_checker_.CalledOnValidThread());
+  queue_.thread_checker_.CheckCalledOnValidThread();
   ++queue_.status_lock_count_;
 }
 
 NodeFetchStatusQueue::ScopedStatusLock::~ScopedStatusLock() {
-  assert(queue_.thread_checker_.CalledOnValidThread());
-  assert(queue_.status_lock_count_ > 0);
+  queue_.thread_checker_.CheckCalledOnValidThread();
+  base::Check(queue_.status_lock_count_ > 0, "unbalanced status lock");
   --queue_.status_lock_count_;
   if (queue_.status_lock_count_ == 0)
     queue_.NotifyPendingStatusChanged();
@@ -47,8 +48,8 @@ void NodeFetchStatusQueue::NotifyStatusChanged(const scada::NodeId& node_id) {
 }
 
 void NodeFetchStatusQueue::NotifyPendingStatusChanged() {
-  assert(!notifying_);
-  assert(status_lock_count_ >= 0);
+  base::Check(!notifying_, "reentered pending-status notification");
+  base::Check(status_lock_count_ >= 0, "negative status lock count");
 
   if (status_lock_count_ != 0)
     return;

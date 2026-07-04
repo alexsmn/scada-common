@@ -122,7 +122,7 @@ VidiconSession::CreateSubscription(
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> VidiconSession::Read(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+    std::vector<scada::ReadValueId> inputs) {
   co_return co_await attribute_service_.Read(std::move(context),
                                              std::move(inputs));
 }
@@ -130,7 +130,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> VidiconSession::Read(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::Write(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+    std::vector<scada::WriteValue> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 

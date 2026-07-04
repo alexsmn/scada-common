@@ -343,7 +343,7 @@ MasterDataServices::TranslateBrowsePaths(
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 MasterDataServices::Read(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+    std::vector<scada::ReadValueId> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Read(std::move(context), std::move(inputs));
@@ -354,7 +354,7 @@ MasterDataServices::Read(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::Write(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+    std::vector<scada::WriteValue> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));

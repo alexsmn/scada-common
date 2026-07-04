@@ -68,7 +68,7 @@ class NodeFetchStatusTracker : private NodeFetchStatusTrackerContext {
 
   BoostLogger logger_{LOG_NAME("NodeFetchStatusTracker")};
 
-  THREAD_CHECKER(thread_checker_);
+  ThreadChecker thread_checker_;
 
   // Key is absent - not fetched, unknown node
   // Key presents, pending_child_ids.empty() - fetched

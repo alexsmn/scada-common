@@ -115,9 +115,7 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
 AttributeServiceAdapter::Read(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
-  auto scada_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      ToScadaVector(*inputs));
-  auto result = co_await inner_.Read(ToScada(context), std::move(scada_inputs));
+  auto result = co_await inner_.Read(ToScada(context), ToScadaVector(*inputs));
   co_return ToOpcua(result);
 }
 
@@ -125,10 +123,8 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 AttributeServiceAdapter::Write(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
-  auto scada_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-      ToScadaVector(*inputs));
   auto result =
-      co_await inner_.Write(ToScada(context), std::move(scada_inputs));
+      co_await inner_.Write(ToScada(context), ToScadaVector(*inputs));
   co_return ToOpcua(result);
 }
 

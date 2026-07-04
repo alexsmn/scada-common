@@ -5,12 +5,15 @@
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
 #include "node_service/node_service_factory_services.h"
+#include "scada/attribute_service.h"
 #include "scada/attribute_service_mock.h"
-#include "scada/coroutine_services.h"
+#include "scada/method_service.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
+#include "scada/session_service.h"
 #include "scada/session_service_mock.h"
 #include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 #include "scada/view_service_mock.h"
 
 #include <boost/signals2/signal.hpp>
@@ -27,8 +30,7 @@ using testing::NiceMock;
 using testing::Return;
 using testing::StrictMock;
 
-class TestSessionService final
-    : public scada::SessionService {
+class TestSessionService final : public scada::SessionService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
     co_return;
@@ -96,15 +98,12 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
     TestExecutor& executor,
     bool use_v2) {
   DataServices data_services;
-  data_services.session_service_ =
-      std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
-                                                      &session_service};
-  data_services.attribute_service_ =
-      std::shared_ptr<scada::AttributeService>{
-          std::shared_ptr<void>{}, &address_space.attribute_service_impl};
-  data_services.view_service_ =
-      std::shared_ptr<scada::ViewService>{
-          std::shared_ptr<void>{}, &address_space.view_service_impl};
+  data_services.session_service_ = std::shared_ptr<scada::SessionService>{
+      std::shared_ptr<void>{}, &session_service};
+  data_services.attribute_service_ = std::shared_ptr<scada::AttributeService>{
+      std::shared_ptr<void>{}, &address_space.attribute_service_impl};
+  data_services.view_service_ = std::shared_ptr<scada::ViewService>{
+      std::shared_ptr<void>{}, &address_space.view_service_impl};
   data_services.monitored_item_service_ =
       std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
                                                    &monitored_item_service};
@@ -230,12 +229,10 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   DataServices data_services;
-  data_services.session_service_ =
-      std::shared_ptr<scada::SessionService>{std::shared_ptr<void>{},
-                                                      &session_service};
-  data_services.view_service_ =
-      std::shared_ptr<scada::ViewService>{
-          std::shared_ptr<void>{}, &address_space.view_service_impl};
+  data_services.session_service_ = std::shared_ptr<scada::SessionService>{
+      std::shared_ptr<void>{}, &session_service};
+  data_services.view_service_ = std::shared_ptr<scada::ViewService>{
+      std::shared_ptr<void>{}, &address_space.view_service_impl};
   data_services.monitored_item_service_ =
       std::shared_ptr<scada::MonitoredItemService>{std::shared_ptr<void>{},
                                                    &monitored_item_service};

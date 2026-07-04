@@ -36,10 +36,9 @@ TEST(VidiconSession, SessionServiceLifecycleCompletes) {
 TEST(VidiconSession, CoroutineReadUsesLocalAddressSpace) {
   VidiconSession session;
   TestExecutor executor;
-  auto inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      std::vector<scada::ReadValueId>{
-          {.node_id = scada::id::RootFolder,
-           .attribute_id = scada::AttributeId::DisplayName}});
+  std::vector<scada::ReadValueId> inputs{
+      {.node_id = scada::id::RootFolder,
+       .attribute_id = scada::AttributeId::DisplayName}};
 
   ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
       executor, static_cast<scada::AttributeService&>(session).Read(
@@ -89,8 +88,7 @@ TEST(VidiconSession, CoroutineHistoryReturnsBad) {
 TEST(VidiconSession, CoroutineWriteAndMethodReturnBad) {
   VidiconSession session;
   TestExecutor executor;
-  auto inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-      std::vector<scada::WriteValue>{{.node_id = scada::id::RootFolder}});
+  std::vector<scada::WriteValue> inputs{{.node_id = scada::id::RootFolder}};
 
   const auto write_result = WaitAwaitable(
       executor, static_cast<scada::AttributeService&>(session).Write(

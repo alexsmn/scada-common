@@ -70,18 +70,18 @@ class TestCoroutineDataServices final
 
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
+      std::vector<scada::ReadValueId> inputs) override {
     ++read_count;
     last_read_context = std::move(context);
-    last_read_inputs = *inputs;
+    last_read_inputs = std::move(inputs);
     co_return std::vector<scada::DataValue>{read_value};
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext /*context*/,
-      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+      std::vector<scada::WriteValue> inputs) override {
     ++write_count;
-    co_return std::vector<scada::StatusCode>(inputs->size(),
+    co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
@@ -251,16 +251,14 @@ TEST(MasterDataServicesTest, ReadDispatchesThroughCoroutineService) {
   services.SetServices(std::move(data_services));
 
   EXPECT_CALL(*attribute_service, Read(_, _))
-      .WillOnce([](scada::ServiceContext,
-                   std::shared_ptr<const std::vector<scada::ReadValueId>>)
+      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
                     -> Awaitable<
                         scada::StatusOr<std::vector<scada::DataValue>>> {
         co_return std::vector<scada::DataValue>{scada::DataValue{}};
       });
 
   auto result = WaitAwaitable(
-      executor, services.Read(
-                    {}, std::make_shared<const std::vector<scada::ReadValueId>>()));
+      executor, services.Read({}, std::vector<scada::ReadValueId>{}));
 
   ASSERT_THAT(result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
 }
@@ -420,19 +418,18 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->connect_count, 1);
   EXPECT_EQ(direct_services->last_host, "direct-connect");
 
-  auto read_inputs = std::make_shared<const std::vector<scada::ReadValueId>>(
-      std::vector<scada::ReadValueId>{{.node_id = scada::NodeId{100}}});
+  const std::vector<scada::ReadValueId> read_inputs{
+      {.node_id = scada::NodeId{100}}};
   auto read_result = WaitAwaitable(executor, services.Read({}, read_inputs));
 
   ASSERT_THAT(read_result,
               scada::test::IsOkAndHolds(testing::ElementsAre(
                   direct_services->read_value)));
   EXPECT_EQ(direct_services->read_count, 1);
-  EXPECT_EQ(direct_services->last_read_inputs, *read_inputs);
+  EXPECT_EQ(direct_services->last_read_inputs, read_inputs);
 
-  auto write_inputs = std::make_shared<const std::vector<scada::WriteValue>>(
-      std::vector<scada::WriteValue>{});
-  auto write_result = WaitAwaitable(executor, services.Write({}, write_inputs));
+  auto write_result = WaitAwaitable(
+      executor, services.Write({}, std::vector<scada::WriteValue>{}));
 
   ASSERT_THAT(write_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
   EXPECT_EQ(direct_services->write_count, 1);

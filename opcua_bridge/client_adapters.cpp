@@ -42,9 +42,9 @@ ClientViewServiceAdapter::TranslateBrowsePaths(
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 ClientAttributeServiceAdapter::Read(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+    std::vector<scada::ReadValueId> inputs) {
   auto opcua_inputs = std::make_shared<const std::vector<opcua::ReadValueId>>(
-      ToOpcuaVector(*inputs));
+      ToOpcuaVector(inputs));
   auto result =
       co_await session_->Read(ToOpcua(context), std::move(opcua_inputs));
   co_return ToScada(result);
@@ -53,9 +53,9 @@ ClientAttributeServiceAdapter::Read(
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientAttributeServiceAdapter::Write(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+    std::vector<scada::WriteValue> inputs) {
   auto opcua_inputs = std::make_shared<const std::vector<opcua::WriteValue>>(
-      ToOpcuaVector(*inputs));
+      ToOpcuaVector(inputs));
   auto result =
       co_await session_->Write(ToOpcua(context), std::move(opcua_inputs));
   co_return ToScada(result);

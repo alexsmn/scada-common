@@ -2,14 +2,14 @@
 
 #include "address_space/test/test_address_space.h"
 #include "address_space/test/test_matchers.h"
-#include "base/test/test_executor.h"
 #include "base/any_executor.h"
+#include "base/test/test_executor.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service_mock.h"
-#include "scada/coroutine_services.h"
 #include "scada/node_class.h"
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 #include "scada/view_service_mock.h"
 
 #include "base/debug_util.h"
@@ -79,8 +79,7 @@ class NodeFetcherTest : public Test {
 
   const std::shared_ptr<NodeFetcherImpl> node_fetcher_{
       NodeFetcherImpl::Create(NodeFetcherImplContext{
-          executor_, server_address_space_,
-          server_address_space_,
+          executor_, server_address_space_, server_address_space_,
           fetch_completed_handler_.AsStdFunction(),
           node_validator_.AsStdFunction()})};
 
@@ -129,7 +128,7 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
 
   EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id)))));
+              Read(_, Contains(NodeIs(node_id))));
 
   EXPECT_CALL(server_address_space_, Browse(/*context=*/_, /*inputs=*/_))
       .Times(AnyNumber());
@@ -196,7 +195,7 @@ TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
 
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_,
-              Read(_, Pointee(Contains(NodeIs(node_id)))));
+              Read(_, Contains(NodeIs(node_id))));
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id))));
 
@@ -227,16 +226,14 @@ TEST_F(NodeFetcherTest, Cancel) {
   size_t read_count = 0;
   size_t browse_count = 0;
 
-  EXPECT_CALL(server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id)))))
+  EXPECT_CALL(server_address_space_, Read(_, Contains(NodeIs(node_id))))
       .WillOnce([&](scada::ServiceContext,
-                    std::shared_ptr<const std::vector<scada::ReadValueId>>
-                        inputs) {
-        read_count = inputs->size();
+                    std::vector<scada::ReadValueId> inputs) {
+        read_count = inputs.size();
         return read.Wait();
       })
       .WillRepeatedly([&](scada::ServiceContext context,
-                          std::shared_ptr<const std::vector<scada::ReadValueId>>
-                              inputs) {
+                          std::vector<scada::ReadValueId> inputs) {
         return server_address_space_.attribute_service_impl.Read(
             std::move(context), std::move(inputs));
       });

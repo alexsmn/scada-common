@@ -2,8 +2,7 @@
 
 #include "base/any_executor.h"
 #include "base/awaitable.h"
-#include "scada/coroutine_services.h"
-
+#include "scada/history_service.h"
 inline void CancelHistory(AnyExecutor executor,
                           scada::HistoryService& service,
                           const scada::HistoryReadRawDetails& details,
@@ -14,8 +13,8 @@ inline void CancelHistory(AnyExecutor executor,
   cancel_details.release_continuation_point = true;
   cancel_details.continuation_point = std::move(continuation_point);
   CoSpawn(std::move(executor),
-          [&service, cancel_details = std::move(cancel_details)]() mutable
-              -> Awaitable<void> {
+          [&service, cancel_details = std::move(
+                         cancel_details)]() mutable -> Awaitable<void> {
             [[maybe_unused]] auto result =
                 co_await service.HistoryReadRaw(std::move(cancel_details));
           });

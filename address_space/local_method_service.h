@@ -1,6 +1,5 @@
 #pragma once
 
-#include "scada/coroutine_services.h"
 #include "scada/method_service.h"
 
 namespace scada {

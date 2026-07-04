@@ -2,6 +2,7 @@
 
 #include "address_space/address_space.h"
 #include "address_space/node_utils.h"
+#include "base/check.h"
 #include "base/debug_util.h"
 #include "base/range_util.h"
 
@@ -19,15 +20,15 @@ void NodeFetchStatusTracker::SetFetchStatusesHint(
     const std::vector<std::pair<scada::NodeId, NodeFetchStatus>>&
         fetch_statuses) {
   for (const auto& [node_id, new_fetch_status] : fetch_statuses) {
-    assert(!node_id.is_null());
-    assert(!new_fetch_status.empty());
+    base::Check(!node_id.is_null(), "fetch status hint for null node");
+    base::Check(!new_fetch_status.empty(), "empty fetch status hint");
     experimental_fetch_statuses_.insert_or_assign(
         node_id, std::make_pair(scada::StatusCode::Good, new_fetch_status));
   }
 
   for (const auto& [node_id, new_error_status] : errors) {
-    assert(!node_id.is_null());
-    assert(!new_error_status);
+    base::Check(!node_id.is_null(), "error status hint for null node");
+    base::Check(!new_error_status, "good status passed as error hint");
     experimental_fetch_statuses_.insert_or_assign(
         node_id, std::make_pair(new_error_status, NodeFetchStatus::Max()));
   }
@@ -37,14 +38,15 @@ void NodeFetchStatusTracker::OnNodesFetched(const NodeFetchStatuses& statuses) {
   LOG_INFO(logger_) << "Nodes fetched"
                     << LOG_TAG("statuses", ToString(statuses));
 
-  assert(!statuses.empty());
-  assert(thread_checker_.CalledOnValidThread());
+  base::Check(!statuses.empty(), "OnNodesFetched with no statuses");
+  thread_checker_.CheckCalledOnValidThread();
 
   auto status_lock = status_queue_.Lock();
 
   for (auto& [node_id, status] : statuses) {
-    assert(!node_id.is_null());
-    assert(!status || IsNodeFetched(node_id));
+    base::Check(!node_id.is_null(), "fetched status for null node");
+    base::Check(!status || IsNodeFetched(node_id),
+                "good status for a node absent from the address space");
 
     if (status)
       errors_.erase(node_id);
@@ -78,8 +80,8 @@ void NodeFetchStatusTracker::OnChildrenFetched(
                      << LOG_TAG("references.size", references.size())
                      << LOG_TAG("references", ToString(references));
 
-  assert(thread_checker_.CalledOnValidThread());
-  assert(!parent_id.is_null());
+  thread_checker_.CheckCalledOnValidThread();
+  base::Check(!parent_id.is_null(), "children fetched for null parent");
 
   auto status_lock = status_queue_.Lock();
 
@@ -116,7 +118,7 @@ void NodeFetchStatusTracker::OnChildrenFetched(
 void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
   LOG_INFO(logger_) << "Delete" << LOG_TAG("node_id", ToString(node_id));
 
-  assert(thread_checker_.CalledOnValidThread());
+  thread_checker_.CheckCalledOnValidThread();
 
   auto status_lock = status_queue_.Lock();
 
@@ -149,20 +151,24 @@ std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
   auto result = GetStatusHelper(node_id);
 
   auto experimental_result = GetExperimentalStatus(node_id);
-  assert(result.first == experimental_result.first);
-  assert(result.second.node_fetched == experimental_result.second.node_fetched);
-  assert(result.second.non_hierarchical_inverse_references ==
-         experimental_result.second.non_hierarchical_inverse_references);
+  base::Check(result.first == experimental_result.first,
+              "experimental status diverged");
+  base::Check(
+      result.second.node_fetched == experimental_result.second.node_fetched,
+      "experimental node_fetched diverged");
+  base::Check(result.second.non_hierarchical_inverse_references ==
+                  experimental_result.second.non_hierarchical_inverse_references,
+              "experimental inverse references diverged");
 
- return result;
+  return result;
 }
 
 std::pair<scada::Status, NodeFetchStatus>
 NodeFetchStatusTracker::GetStatusHelper(const scada::NodeId& node_id) const {
-  assert(thread_checker_.CalledOnValidThread());
+  thread_checker_.CheckCalledOnValidThread();
 
   if (auto i = errors_.find(node_id); i != errors_.end()) {
-    assert(!i->second);
+    base::Check(!i->second, "good status stored in error map");
     return {i->second, NodeFetchStatus::Max()};
   }
 
@@ -191,7 +197,7 @@ bool NodeFetchStatusTracker::IsNodeFetched(const scada::NodeId& node_id) const {
 }
 
 void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
-  assert(!child_id.is_null());
+  base::Check(!child_id.is_null(), "child fetched for null node");
 
   auto i = children_.find(child_id);
   if (i == children_.end())
@@ -201,9 +207,11 @@ void NodeFetchStatusTracker::OnChildFetched(const scada::NodeId& child_id) {
   children_.erase(i);
 
   for (const auto& parent_id : parent_ids) {
-    assert(parents_.find(parent_id) != parents_.end());
+    base::Check(parents_.find(parent_id) != parents_.end(),
+                "child links to unknown parent");
     auto& pending_child_ids = parents_[parent_id];
-    assert(pending_child_ids.find(child_id) != pending_child_ids.end());
+    base::Check(pending_child_ids.find(child_id) != pending_child_ids.end(),
+                "parent does not list child as pending");
     pending_child_ids.erase(child_id);
 
     if (pending_child_ids.empty())

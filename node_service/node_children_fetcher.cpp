@@ -1,12 +1,12 @@
 #include "node_service/node_children_fetcher.h"
 
 #include "base/awaitable.h"
-#include <format>
 #include "model/node_id_util.h"
 #include "node_service/node_fetcher.h"
-#include "scada/coroutine_services.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
+#include <format>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -160,8 +160,8 @@ void NodeChildrenFetcher::FetchChildren(
   }
 
   CoSpawn(executor_, weak_from_this(),
-          [start_ticks, descriptions](
-              std::shared_ptr<NodeChildrenFetcher> self) mutable
+          [start_ticks,
+           descriptions](std::shared_ptr<NodeChildrenFetcher> self) mutable
               -> Awaitable<void> {
             auto result = co_await self->view_service_.Browse(
                 self->service_context_, descriptions);

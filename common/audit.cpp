@@ -136,7 +136,7 @@ void Audit::FinishBrowse(Clock::time_point start_time) {
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
     scada::ServiceContext context,
-    std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) {
+    std::vector<scada::ReadValueId> inputs) {
   auto* service = attribute_service_;
   if (service) {
     StartRead();
@@ -151,7 +151,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 Audit::Write(scada::ServiceContext context,
-             std::shared_ptr<const std::vector<scada::WriteValue>> inputs) {
+             std::vector<scada::WriteValue> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));

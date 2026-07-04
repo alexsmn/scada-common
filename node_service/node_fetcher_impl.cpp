@@ -5,9 +5,10 @@
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"
-#include "scada/coroutine_services.h"
+#include "scada/attribute_service.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
 
 #include "base/debug_util.h"
 
@@ -262,26 +263,26 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   // Attributes
 
-  auto read_ids = std::make_shared<std::vector<scada::ReadValueId>>();
-  read_ids->reserve(nodes.size() * kFetchAttributesReserveFactor);
+  std::vector<scada::ReadValueId> read_ids;
+  read_ids.reserve(nodes.size() * kFetchAttributesReserveFactor);
   for (auto* node : nodes) {
-    size_t count = read_ids->size();
-    GetFetchAttributes(*node, *read_ids);
-    node->attributes_fetched = count == read_ids->size();
+    size_t count = read_ids.size();
+    GetFetchAttributes(*node, read_ids);
+    node->attributes_fetched = count == read_ids.size();
   }
 
   assert(AssertValid());
 
   CoSpawn(executor_, weak_from_this(),
-          [request_id, start_ticks,
-           read_ids](std::shared_ptr<NodeFetcherImpl> self)
-              -> Awaitable<void> {
+          [request_id, start_ticks, read_ids = std::move(read_ids)](
+              std::shared_ptr<NodeFetcherImpl> self) -> Awaitable<void> {
+            // OnReadResult needs the inputs after the call, so pass a copy in.
             auto result = co_await self->attribute_service_.Read(
                 self->service_context_, read_ids);
             auto status = result.status();
             auto results = std::move(result).value_or({});
             self->OnReadResult(request_id, start_ticks, std::move(status),
-                               *read_ids, std::move(results));
+                               read_ids, std::move(results));
           });
 
   // References
@@ -301,17 +302,17 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
 
   assert(AssertValid());
 
-  CoSpawn(executor_, weak_from_this(),
-          [request_id, start_ticks, descriptions](
-              std::shared_ptr<NodeFetcherImpl> self) mutable
-              -> Awaitable<void> {
-            auto result = co_await self->view_service_.Browse(
-                self->service_context_, descriptions);
-            auto status = result.status();
-            auto results = std::move(result).value_or({});
-            self->OnBrowseResult(request_id, start_ticks, std::move(status),
-                                 descriptions, std::move(results));
-          });
+  CoSpawn(
+      executor_, weak_from_this(),
+      [request_id, start_ticks, descriptions](
+          std::shared_ptr<NodeFetcherImpl> self) mutable -> Awaitable<void> {
+        auto result = co_await self->view_service_.Browse(
+            self->service_context_, descriptions);
+        auto status = result.status();
+        auto results = std::move(result).value_or({});
+        self->OnBrowseResult(request_id, start_ticks, std::move(status),
+                             descriptions, std::move(results));
+      });
 }
 
 void NodeFetcherImpl::NotifyFetchedNodes() {

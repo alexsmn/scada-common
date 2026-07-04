@@ -32,7 +32,7 @@ class FetchQueue {
   std::vector<Node>::iterator find(const FetchingNode& node);
   std::vector<Node>::const_iterator find(const FetchingNode& node) const;
 
-  THREAD_CHECKER(thread_checker_);
+  ThreadChecker thread_checker_;
 
   std::vector<Node> queue_;
   unsigned next_sequence_ = 0;

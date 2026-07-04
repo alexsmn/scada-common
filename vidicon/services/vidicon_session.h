@@ -5,7 +5,6 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "scada/attribute_service.h"
-#include "scada/coroutine_services.h"
 #include "scada/history_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
@@ -65,10 +64,10 @@ class VidiconSession final : public scada::SessionService,
   // scada::AttributeService
   virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+      std::vector<scada::ReadValueId> inputs) override;
   virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+      std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
   virtual Awaitable<scada::Status> Call(scada::NodeId node_id,

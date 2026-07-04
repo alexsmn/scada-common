@@ -20,9 +20,8 @@ AttributeServiceImpl::AttributeServiceImpl(
     : sync_attribute_service_{sync_attribute_service} {}
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-AttributeServiceImpl::Read(
-    scada::ServiceContext context,
-    std::vector<scada::ReadValueId> inputs) {
+AttributeServiceImpl::Read(scada::ServiceContext context,
+                           std::vector<scada::ReadValueId> inputs) {
   auto results = sync_attribute_service_.Read(context, inputs);
   assert(results.size() == inputs.size());
 
@@ -30,9 +29,8 @@ AttributeServiceImpl::Read(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-AttributeServiceImpl::Write(
-    scada::ServiceContext context,
-    std::vector<scada::WriteValue> inputs) {
+AttributeServiceImpl::Write(scada::ServiceContext context,
+                            std::vector<scada::WriteValue> inputs) {
   auto results = sync_attribute_service_.Write(context, inputs);
   co_return results;
 }
@@ -40,10 +38,11 @@ AttributeServiceImpl::Write(
 std::vector<scada::DataValue> SyncAttributeServiceImpl::Read(
     const scada::ServiceContext& context,
     std::span<const scada::ReadValueId> inputs) {
-  return inputs | std::views::transform([this, &context](
-                                            const scada::ReadValueId& input) {
-           return Read(context, input);
-         }) |
+  return inputs |
+         std::views::transform(
+             [this, &context](const scada::ReadValueId& input) {
+               return Read(context, input);
+             }) |
          to_vector;
 }
 
@@ -95,8 +94,8 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
       // node model does not carry these, so return conformant defaults: a
       // scalar ValueRank, current-read access (these static nodes are not
       // writable through this service), no historizing, and no minimum sampling
-      // interval. Clients (and the CTT) require these to be readable rather than
-      // Bad_AttributeIdInvalid.
+      // interval. Clients (and the CTT) require these to be readable rather
+      // than Bad_AttributeIdInvalid.
       case scada::AttributeId::ValueRank:
         return scada::MakeReadResult(scada::Int32{-1});  // Scalar
       case scada::AttributeId::AccessLevel:
@@ -121,6 +120,20 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
         return scada::MakeReadResult(variable_type->data_type().id());
       case scada::AttributeId::Value:
         return scada::MakeReadResult(variable_type->default_value());
+    }
+  }
+
+  if (node.GetNodeClass() == scada::NodeClass::Method) {
+    switch (attribute_id) {
+      // A method node is executable; UserExecutable narrows it to callers that
+      // hold the Call permission (OPC UA Part 3 §5.6.2, UserExecutable is the
+      // user-specific value of Executable).
+      case scada::AttributeId::Executable:
+        return scada::MakeReadResult(true);
+      case scada::AttributeId::UserExecutable:
+        return scada::MakeReadResult(
+            scada::IsPermitted(context.user_rights(), context.is_anonymous(),
+                               scada::Permission::kCall));
     }
   }
 

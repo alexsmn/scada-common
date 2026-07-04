@@ -30,16 +30,16 @@ class VirtualObject : public scada::GenericObject,
 
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override {
-    std::vector<scada::DataValue> results(inputs->size());
-    for (size_t i = 0; i < inputs->size(); ++i)
-      results[i] = Read((*inputs)[i]);
+      std::vector<scada::ReadValueId> inputs) override {
+    std::vector<scada::DataValue> results(inputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i)
+      results[i] = Read(inputs[i]);
     co_return results;
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
-      std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override {
+      std::vector<scada::WriteValue> inputs) override {
     assert(false);
     co_return scada::Status{scada::StatusCode::Bad};
   }

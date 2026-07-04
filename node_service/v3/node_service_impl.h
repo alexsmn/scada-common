@@ -51,8 +51,18 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void Unsubscribe(NodeRefObserver& observer) const override;
   virtual size_t GetPendingTaskCount() const override;
 
+  // Number of node models currently held by the service. Exposed for
+  // diagnostics and residency tests; not part of the NodeService interface.
+  size_t GetResidentNodeCount() const { return nodes_.size(); }
+
  private:
   std::shared_ptr<NodeModelImpl> GetNodeModel(const scada::NodeId& node_id);
+
+  // Returns the model for |node_id| if one is already resident, without
+  // creating it. Use for update/notification paths that must not grow the
+  // node graph as a side effect.
+  std::shared_ptr<NodeModelImpl> FindNodeModel(
+      const scada::NodeId& node_id) const;
 
   void NotifyModelChanged(const scada::ModelChangeEvent& event);
   void NotifySemanticsChanged(const scada::NodeId& node_id);

@@ -6,7 +6,6 @@
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
-#include "scada/coroutine_services.h"
 #include "scada/history_service.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/method_service.h"
@@ -36,16 +35,15 @@ class TestEventObserver final : public EventObserver {
 };
 
 // MonitoredItemService backed by the production subscription adapter
-// (`MakeItemFactorySubscription`). Each subscription creates its items through a
-// shared `TestMonitoredItem`, so a test can push a system event down the real
+// (`MakeItemFactorySubscription`). Each subscription creates its items through
+// a shared `TestMonitoredItem`, so a test can push a system event down the real
 // delivery path: TestMonitoredItem -> ItemFactorySubscription -> subscription
 // pump -> LegacyMonitoredItemAdapter -> EventFetcher.
 class FakeMonitoredItemService final : public scada::MonitoredItemService {
  public:
   scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
-  CreateSubscription(
-      scada::ServiceContext /*context*/,
-      scada::MonitoredItemSubscriptionOptions options) override {
+  CreateSubscription(scada::ServiceContext /*context*/,
+                     scada::MonitoredItemSubscriptionOptions options) override {
     return scada::MakeItemFactorySubscription(
         [this](const scada::ReadValueId& /*value_id*/,
                const scada::MonitoringParameters& /*params*/) {
@@ -101,23 +99,22 @@ scada::Event MakeEvent(scada::EventId event_id,
 
 struct TestContext {
   TestContext()
-      : ack_queue{EventAckQueueContext{
-            .logger_ = NullLogger::GetInstance(),
-            .executor_ = executor,
-            .method_service_ = method_service}} {}
+      : ack_queue{EventAckQueueContext{.logger_ = NullLogger::GetInstance(),
+                                       .executor_ = executor,
+                                       .method_service_ = method_service}} {}
 
   // Constructs the fetcher and drives it until its system-events monitored item
   // is established. `EventFetcher` subscribes lazily through the real
   // `CreateSubscription` path on the executor, so a drain is needed before the
   // fake item exists.
   void StartFetcher(EventObserver& observer) {
-    fetcher.emplace(EventFetcherContext{
-        .executor_ = executor,
-        .monitored_item_service_ = monitored_item_service,
-        .history_service_ = history_service,
-        .logger_ = NullLogger::GetInstance(),
-        .event_storage_ = event_storage,
-        .event_ack_queue_ = ack_queue});
+    fetcher.emplace(
+        EventFetcherContext{.executor_ = executor,
+                            .monitored_item_service_ = monitored_item_service,
+                            .history_service_ = history_service,
+                            .logger_ = NullLogger::GetInstance(),
+                            .event_storage_ = event_storage,
+                            .event_ack_queue_ = ack_queue});
     fetcher->AddObserver(observer);
     Drain(executor);
   }
@@ -184,8 +181,8 @@ TEST(EventFetcherTest, MonitoredItemEventWithBadStatusIsIgnored) {
   context.StartFetcher(observer);
   ASSERT_EQ(context.monitored_item_service.items.size(), 1u);
 
-  context.system_events_item().NotifyEvent(std::any{MakeEvent(42, node_id)},
-                                           scada::Status{scada::StatusCode::Bad});
+  context.system_events_item().NotifyEvent(
+      std::any{MakeEvent(42, node_id)}, scada::Status{scada::StatusCode::Bad});
   Drain(context.executor);
 
   EXPECT_FALSE(observer.events_called);

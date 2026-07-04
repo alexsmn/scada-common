@@ -1,19 +1,17 @@
 #include "timed_data/timed_data_impl.h"
 
-#include "base/cancelation.h"
-#include "base/debug_util.h"
 #include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
+#include "base/cancelation.h"
+#include "base/debug_util.h"
 #include "base/format_time.h"
 #include "base/interval.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "model/node_id_util.h"
 #include "scada/history_service.h"
-#include "scada/coroutine_services.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_util.h"
-
 
 namespace {
 const size_t kMaxReadCount = 10000;
@@ -47,15 +45,14 @@ void TimedDataFetcher::FetchNextGap() {
                                        querying_range_.second, kMaxReadCount,
                                        aggregate_filter_};
   CoSpawn(executor_, weak_from_this(),
-          [details](std::shared_ptr<TimedDataFetcher> self)
-              -> Awaitable<void> {
+          [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
             auto result =
                 co_await self->history_service_.HistoryReadRaw(details);
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};
-            self->OnHistoryReadRawComplete(std::move(result.values),
-                                           std::move(scoped_continuation_point));
+            self->OnHistoryReadRawComplete(
+                std::move(result.values), std::move(scoped_continuation_point));
           });
 }
 
@@ -92,15 +89,14 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
                                        false,
                                        continuation_point.release()};
   CoSpawn(executor_, weak_from_this(),
-          [details](std::shared_ptr<TimedDataFetcher> self)
-              -> Awaitable<void> {
+          [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
             auto result =
                 co_await self->history_service_.HistoryReadRaw(details);
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
                 std::move(result.continuation_point)};
-            self->OnHistoryReadRawComplete(std::move(result.values),
-                                           std::move(scoped_continuation_point));
+            self->OnHistoryReadRawComplete(
+                std::move(result.values), std::move(scoped_continuation_point));
           });
 }
 

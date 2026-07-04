@@ -2,7 +2,6 @@
 
 #include "base/any_executor.h"
 #include "scada/attribute_service.h"
-#include "scada/coroutine_services.h"
 #include "scada/data_services.h"
 #include "scada/history_service.h"
 #include "scada/legacy_monitored_item_adapter.h"
@@ -84,11 +83,11 @@ class MasterDataServices final : public scada::AttributeService,
   [[nodiscard]] virtual Awaitable<
       scada::StatusOr<std::vector<scada::DataValue>>>
   Read(scada::ServiceContext context,
-       std::shared_ptr<const std::vector<scada::ReadValueId>> inputs) override;
+       std::vector<scada::ReadValueId> inputs) override;
   [[nodiscard]] virtual Awaitable<
       scada::StatusOr<std::vector<scada::StatusCode>>>
   Write(scada::ServiceContext context,
-        std::shared_ptr<const std::vector<scada::WriteValue>> inputs) override;
+        std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
   [[nodiscard]] virtual Awaitable<scada::Status> Call(

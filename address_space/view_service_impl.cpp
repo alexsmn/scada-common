@@ -5,9 +5,10 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "base/range_util.h"
-#include "base/span_util.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
+
+#include <ranges>
 
 namespace {
 
@@ -60,11 +61,10 @@ ViewServiceImpl::ViewServiceImpl(SyncViewService& sync_view_service)
 
 std::vector<scada::BrowseResult> SyncViewServiceImpl::Browse(
     std::span<const scada::BrowseDescription> inputs) {
-  return AsRange(inputs) |
-         boost::adaptors::transformed(
-             [this](const scada::BrowseDescription& input) {
-               return BrowseOne(input);
-             }) |
+  return inputs |
+         std::views::transform([this](const scada::BrowseDescription& input) {
+           return BrowseOne(input);
+         }) |
          to_vector;
 }
 
@@ -83,8 +83,7 @@ scada::BrowseResult SyncViewServiceImpl::BrowseOne(
 
 std::vector<scada::BrowsePathResult> SyncViewServiceImpl::TranslateBrowsePaths(
     std::span<const scada::BrowsePath> inputs) {
-  return AsRange(inputs) |
-         boost::adaptors::transformed([this](const scada::BrowsePath& input) {
+  return inputs | std::views::transform([this](const scada::BrowsePath& input) {
            return TranslateBrowsePath(input);
          }) |
          to_vector;
@@ -210,9 +209,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-ViewServiceImpl::Browse(
-    scada::ServiceContext context,
-    std::vector<scada::BrowseDescription> descriptions) {
+ViewServiceImpl::Browse(scada::ServiceContext context,
+                        std::vector<scada::BrowseDescription> descriptions) {
   auto results = sync_view_service_.Browse(descriptions);
   co_return results;
 }

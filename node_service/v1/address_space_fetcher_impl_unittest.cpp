@@ -6,7 +6,6 @@
 #include "address_space/test/test_matchers.h"
 #include "address_space/variable.h"
 #include "base/test/test_executor.h"
-#include "scada/coroutine_services.h"
 #include "scada/event.h"
 #include "scada/service_context.h"
 
@@ -102,10 +101,9 @@ TEST_F(AddressSpaceFetcherImplTest,
                   node_id, scada::StatusCode::Good,
                   NodeFetchStatus::NodeAndChildren()})));
 
-  EXPECT_CALL(server_address_space_, Read(_, Pointee(Contains(NodeIs(node_id)))))
+  EXPECT_CALL(server_address_space_, Read(_, Contains(NodeIs(node_id))))
       .WillOnce([&](scada::ServiceContext context,
-                    std::shared_ptr<const std::vector<scada::ReadValueId>>
-                        inputs) {
+                    std::vector<scada::ReadValueId> inputs) {
         return server_address_space_.attribute_service_impl.Read(
             std::move(context), std::move(inputs));
       })

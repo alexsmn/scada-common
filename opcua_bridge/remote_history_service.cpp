@@ -18,9 +18,9 @@ constexpr scada::NumericId kServerServiceLevelId = 2267;
 Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevelVia(
     std::shared_ptr<opcua::ClientSession> session) {
   ClientAttributeServiceAdapter attr{std::move(session)};
-  auto inputs = std::make_shared<std::vector<scada::ReadValueId>>();
-  inputs->push_back(scada::ReadValueId{.node_id = scada::NodeId{
-                                           kServerServiceLevelId}});
+  std::vector<scada::ReadValueId> inputs;
+  inputs.push_back(scada::ReadValueId{.node_id = scada::NodeId{
+                                          kServerServiceLevelId}});
   auto result = co_await attr.Read(scada::ServiceContext{}, std::move(inputs));
   if (!result.ok()) {
     co_return result.status();

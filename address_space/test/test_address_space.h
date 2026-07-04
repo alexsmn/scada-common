@@ -75,19 +75,15 @@ inline TestAddressSpace::TestAddressSpace() {
   using namespace testing;
 
   ON_CALL(*this, Read(_, _))
-      .WillByDefault([this](
-                         scada::ServiceContext context,
-                         std::shared_ptr<const std::vector<scada::ReadValueId>>
-                             inputs) {
+      .WillByDefault([this](scada::ServiceContext context,
+                            std::vector<scada::ReadValueId> inputs) {
         return attribute_service_impl.Read(std::move(context),
                                            std::move(inputs));
       });
 
   ON_CALL(*this, Write(_, _))
-      .WillByDefault([this](
-                         scada::ServiceContext context,
-                         std::shared_ptr<const std::vector<scada::WriteValue>>
-                             inputs) {
+      .WillByDefault([this](scada::ServiceContext context,
+                            std::vector<scada::WriteValue> inputs) {
         return attribute_service_impl.Write(std::move(context),
                                             std::move(inputs));
       });

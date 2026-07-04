@@ -12,7 +12,7 @@
 #include "node_service/node_service_mock.h"
 #include "node_service/static/static_node_service.h"
 #include "scada/attribute_service_mock.h"
-#include "scada/coroutine_services.h"
+#include "scada/history_service.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service_mock.h"
 #include "scada/monitored_item_service_mock.h"
@@ -37,8 +37,7 @@ DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
   return {.history_service_ = UnownedService(history_service)};
 }
 
-class TestHistoryService final
-    : public scada::HistoryService {
+class TestHistoryService final : public scada::HistoryService {
  public:
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
@@ -321,8 +320,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
       }));
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details,
-      continuation_point};
+      executor_, history_service_, details, continuation_point};
   scoped_continuation_point.reset();
 
   Drain(executor_);
@@ -347,8 +345,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
       }));
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details,
-      continuation_point};
+      executor_, history_service_, details, continuation_point};
   ScopedContinuationPoint moved_continuation_point{
       std::move(scoped_continuation_point)};
   scoped_continuation_point.reset();
@@ -369,8 +366,7 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   EXPECT_CALL(history_service_, HistoryReadRaw(_)).Times(0);
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details,
-      continuation_point};
+      executor_, history_service_, details, continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();
 

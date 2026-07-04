@@ -56,6 +56,12 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
   return node;
 }
 
+std::shared_ptr<NodeModelImpl> NodeServiceImpl::FindNodeModel(
+    const scada::NodeId& node_id) const {
+  auto i = nodes_.find(node_id);
+  return i != nodes_.end() ? i->second : nullptr;
+}
+
 void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
   assert(!observers_.HasObserver(&observer));
   observers_.AddObserver(&observer);
@@ -76,32 +82,38 @@ void NodeServiceImpl::NotifySemanticsChanged(const scada::NodeId& node_id) {
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
+  // Service-wide observers are notified regardless of whether the node is
+  // resident: consumers that don't hold a NodeRef to the node still rely on
+  // remote model-change events (e.g. to decide whether to fetch it).
+  NotifyModelChanged(event);
+
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
-    if (auto i = nodes_.find(event.node_id); i != nodes_.end()) {
-      /*auto model = std::move(i->second);
-      nodes_.erase(i);
-      model->OnModelChanged(
-          {event.node_id, {}, scada::ModelChangeEvent::NodeDeleted});*/
-    }
+    // Tombstone the resident model so per-node observers see the deletion;
+    // eviction of the map entry is handled by the residency layer.
+    if (auto node = FindNodeModel(event.node_id))
+      node->OnModelChanged(event);
     return;
   }
 
   if (event.verb & scada::ModelChangeEvent::NodeAdded) {
-    if (nodes_.find(event.node_id) != nodes_.end()) {
+    if (FindNodeModel(event.node_id)) {
       // TODO: Log error.
-      return;
     }
     return;
   }
 
-  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
-    i->second->OnModelChanged(event);
+  if (auto node = FindNodeModel(event.node_id))
+    node->OnModelChanged(event);
 }
 
 void NodeServiceImpl::OnNodeSemanticsChanged(
     const scada::SemanticChangeEvent& event) {
-  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
-    i->second->OnNodeSemanticChanged();
+  // As with OnModelChanged, service-wide observers hear about every remote
+  // semantic change; only the per-node routing requires a resident model.
+  NotifySemanticsChanged(event.node_id);
+
+  if (auto node = FindNodeModel(event.node_id))
+    node->OnNodeSemanticChanged();
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
@@ -155,8 +167,10 @@ void NodeServiceImpl::ProcessFetchedNodes(
 
 void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
   for (auto& [node_id, status] : errors) {
-    auto& model = nodes_[node_id];
-    model->OnFetchError(std::move(status));
+    // Only resident models can have requested a fetch; never create a model
+    // just to record an error for it.
+    if (auto model = FindNodeModel(node_id))
+      model->OnFetchError(std::move(status));
   }
 }
 

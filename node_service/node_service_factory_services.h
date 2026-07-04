@@ -5,8 +5,9 @@
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "node_service/node_service_factory.h"
-#include "scada/coroutine_services.h"
-
+#include "scada/attribute_service.h"
+#include "scada/session_service.h"
+#include "scada/view_service.h"
 #include <memory>
 
 namespace node_service::internal {
@@ -22,12 +23,11 @@ inline scada::services MakeLegacyNodeServices(
 
 inline DataServicesNodeServiceContext MakeDataServicesNodeServiceContext(
     const NodeServiceContext& context) {
-  return {
-      .executor_ = context.executor_,
-      .service_context_ = context.service_context_,
-      .data_services_ =
-          data_services::FromUnownedServices(MakeLegacyNodeServices(context)),
-      .scada_client_ = context.scada_client_};
+  return {.executor_ = context.executor_,
+          .service_context_ = context.service_context_,
+          .data_services_ = data_services::FromUnownedServices(
+              MakeLegacyNodeServices(context)),
+          .scada_client_ = context.scada_client_};
 }
 
 inline bool HasRequiredNodeServices(const DataServices& data_services) {

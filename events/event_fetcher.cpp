@@ -3,18 +3,16 @@
 #include "base/awaitable.h"
 #include "base/logger.h"
 #include "base/range_util.h"
-#include "base/span_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
-#include "scada/coroutine_services.h"
+#include "scada/history_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
 #include "scada/standard_node_ids.h"
 
-#include <boost/range/adaptor/filtered.hpp>
 #include <ranges>
 
 #include "base/debug_util.h"
@@ -109,13 +107,12 @@ void EventFetcher::OnSystemEvents(std::span<const scada::Event> events) {
     }
   }
 
-  auto filtered_events =
-      AsRange(events) |
-      boost::adaptors::filtered(
-          [severity_min = severity_min_](const scada::Event& event) {
-            return event.severity >= severity_min;
-          }) |
-      to_vector;
+  auto filtered_events = events |
+                         std::views::filter([severity_min = severity_min_](
+                                                const scada::Event& event) {
+                           return event.severity >= severity_min;
+                         }) |
+                         to_vector;
 
   if (!filtered_events.empty()) {
     event_storage_.Update(filtered_events);
