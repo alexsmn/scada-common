@@ -67,8 +67,20 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
 }
 
 TEST(ConversionTest, DateTime) {
-  ExpectRoundTrip(base::Time::FromInternalValue(123456789));
+  const auto scada_time = base::Time::FromInternalValue(123456789);
+  EXPECT_EQ(ToOpcua(scada_time).ToInternalValue(), 1234567890);
+  ExpectRoundTrip(scada_time);
   ExpectRoundTrip(base::Time{});
+  ExpectRoundTrip(base::Time::Min());
+  ExpectRoundTrip(base::Time::Max());
+}
+
+TEST(ConversionTest, Duration) {
+  const auto scada_duration = base::TimeDelta::FromMicroseconds(1250);
+  EXPECT_DOUBLE_EQ(ToOpcua(scada_duration).ToInternalValue(), 1.25);
+  ExpectRoundTrip(scada_duration);
+  ExpectRoundTrip(base::TimeDelta::Min());
+  ExpectRoundTrip(base::TimeDelta::Max());
 }
 
 TEST(ConversionTest, VariantScalars) {

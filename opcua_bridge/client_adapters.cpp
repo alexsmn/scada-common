@@ -2,7 +2,6 @@
 
 #include "opcua_bridge/vector_conversion.h"
 #include "scada/read_value_id.h"
-#include "scada/service_awaitable.h"
 #include "scada/standard_node_ids.h"
 
 namespace opcua_bridge {

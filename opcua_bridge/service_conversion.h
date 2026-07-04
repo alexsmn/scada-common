@@ -68,10 +68,18 @@ inline scada::Privilege ToScada(opcua::Privilege v) {
 
 // --- Duration (base::TimeDelta vs opcua::Duration) ----------------
 inline opcua::Duration ToOpcua(scada::Duration d) {
-  return opcua::Duration::FromInternalValue(d.ToInternalValue());
+  if (d.is_max())
+    return opcua::Duration::Max();
+  if (d.is_min())
+    return opcua::Duration::Min();
+  return opcua::Duration::FromMillisecondsD(d.InMillisecondsF());
 }
 inline scada::Duration ToScada(opcua::Duration d) {
-  return base::TimeDelta::FromInternalValue(d.ToInternalValue());
+  if (d.is_max())
+    return scada::Duration::Max();
+  if (d.is_min())
+    return scada::Duration::Min();
+  return scada::Duration::FromMicroseconds(d.InMicroseconds());
 }
 
 // --- WriteFlags ---------------------------------------------------------

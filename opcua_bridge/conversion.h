@@ -27,6 +27,7 @@
 #include "opcua/types/status.h"
 #include "opcua/types/variant.h"
 
+#include <limits>
 #include <vector>
 
 namespace opcua_bridge {
@@ -129,10 +130,26 @@ inline scada::Status ToScada(opcua::Status s) {
 
 // --- DateTime (base::Time vs opcua::DateTime) -------------------------
 inline opcua::DateTime ToOpcua(scada::DateTime t) {
-  return opcua::DateTime::FromInternalValue(t.ToInternalValue());
+  if (t.is_max())
+    return opcua::DateTime::Max();
+  if (t.is_min())
+    return opcua::DateTime::Min();
+  constexpr int64_t kTicksPerMicrosecond =
+      opcua::DateTime::kTicksPerMicrosecond;
+  const int64_t value = t.ToInternalValue();
+  if (value > std::numeric_limits<int64_t>::max() / kTicksPerMicrosecond)
+    return opcua::DateTime::Max();
+  if (value < std::numeric_limits<int64_t>::min() / kTicksPerMicrosecond)
+    return opcua::DateTime::Min();
+  return opcua::DateTime::FromInternalValue(value * kTicksPerMicrosecond);
 }
 inline scada::DateTime ToScada(opcua::DateTime t) {
-  return base::Time::FromInternalValue(t.ToInternalValue());
+  if (t.is_max())
+    return scada::DateTime::Max();
+  if (t.is_min())
+    return scada::DateTime::Min();
+  return scada::DateTime::FromInternalValue(
+      t.ToInternalValue() / opcua::DateTime::kTicksPerMicrosecond);
 }
 
 // --- Qualifier ----------------------------------------------------------
