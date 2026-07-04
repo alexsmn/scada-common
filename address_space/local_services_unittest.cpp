@@ -62,11 +62,12 @@ TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {
   LocalNodeManagementService service;
 
   auto result = WaitAwaitable(
-      executor, service.AddNodes({AddNodesItem{
-                    .requested_id = NodeId{1, 2},
-                    .parent_id = id::ObjectsFolder,
-                    .node_class = NodeClass::Object,
-                    .type_definition_id = id::BaseObjectType}}));
+      executor, service.AddNodes(ServiceContext{},
+                                 {AddNodesItem{
+                                     .requested_id = NodeId{1, 2},
+                                     .parent_id = id::ObjectsFolder,
+                                     .node_class = NodeClass::Object,
+                                     .type_definition_id = id::BaseObjectType}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
@@ -77,7 +78,8 @@ TEST(LocalNodeManagementService, CoroutineDeleteNodesReturnsBadResults) {
 
   auto result = WaitAwaitable(
       executor,
-      service.DeleteNodes({DeleteNodesItem{.node_id = NodeId{1, 2}}}));
+      service.DeleteNodes(ServiceContext{},
+                          {DeleteNodesItem{.node_id = NodeId{1, 2}}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
@@ -88,10 +90,11 @@ TEST(LocalNodeManagementService, CoroutineAddReferencesReturnsBadResults) {
 
   auto result =
       WaitAwaitable(executor,
-                    service.AddReferences({AddReferencesItem{
-                        .source_node_id = id::ObjectsFolder,
-                        .reference_type_id = id::Organizes,
-                        .target_node_id = NodeId{1, 2}}}));
+                    service.AddReferences(ServiceContext{},
+                                          {AddReferencesItem{
+                                              .source_node_id = id::ObjectsFolder,
+                                              .reference_type_id = id::Organizes,
+                                              .target_node_id = NodeId{1, 2}}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
@@ -102,10 +105,12 @@ TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
 
   auto result =
       WaitAwaitable(executor,
-                    service.DeleteReferences({DeleteReferencesItem{
-                        .source_node_id = id::ObjectsFolder,
-                        .reference_type_id = id::Organizes,
-                        .target_node_id = NodeId{1, 2}}}));
+                    service.DeleteReferences(
+                        ServiceContext{},
+                        {DeleteReferencesItem{
+                            .source_node_id = id::ObjectsFolder,
+                            .reference_type_id = id::Organizes,
+                            .target_node_id = NodeId{1, 2}}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }

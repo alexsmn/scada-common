@@ -91,16 +91,20 @@ class NodeManagementServiceAdapter {
       : inner_{inner} {}
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
-  AddNodes(std::vector<opcua::AddNodesItem> inputs);
+  AddNodes(opcua::ServiceContext context,
+           std::vector<opcua::AddNodesItem> inputs);
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>> DeleteNodes(
+      opcua::ServiceContext context,
       std::vector<opcua::DeleteNodesItem> inputs);
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  AddReferences(std::vector<opcua::AddReferencesItem> inputs);
+  AddReferences(opcua::ServiceContext context,
+                std::vector<opcua::AddReferencesItem> inputs);
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  DeleteReferences(std::vector<opcua::DeleteReferencesItem> inputs);
+  DeleteReferences(opcua::ServiceContext context,
+                   std::vector<opcua::DeleteReferencesItem> inputs);
 
  private:
   scada::NodeManagementService& inner_;
@@ -117,8 +121,8 @@ class HistoryServiceAdapter {
 
   opcua::Awaitable<opcua::HistoryReadEventsResult> HistoryReadEvents(
       opcua::NodeId node_id,
-      opcua::base::Time from,
-      opcua::base::Time to,
+      opcua::DateTime from,
+      opcua::DateTime to,
       opcua::EventFilter filter);
 
  private:
@@ -135,9 +139,11 @@ class HistoryUpdateServiceAdapter {
       : inner_{inner} {}
 
   opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateData(
+      opcua::ServiceContext context,
       opcua::UpdateDataDetails details);
 
   opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateEvent(
+      opcua::ServiceContext context,
       opcua::UpdateEventDetails details);
 
  private:

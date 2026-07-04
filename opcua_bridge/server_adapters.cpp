@@ -60,34 +60,46 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
             return history.HistoryReadRaw(std::move(details));
           },
       .history_read_events =
-          [this](opcua::NodeId node_id, opcua::base::Time from,
-                 opcua::base::Time to, opcua::EventFilter filter) {
+          [this](opcua::NodeId node_id, opcua::DateTime from,
+                 opcua::DateTime to, opcua::EventFilter filter) {
             return history.HistoryReadEvents(std::move(node_id), from, to,
                                              std::move(filter));
           },
       .history_update =
-          [this](opcua::UpdateDataDetails details) {
-            return history_update.HistoryUpdateData(std::move(details));
+          [this](opcua::ServiceContext context,
+                 opcua::UpdateDataDetails details) {
+            return history_update.HistoryUpdateData(std::move(context),
+                                                    std::move(details));
           },
       .history_update_event =
-          [this](opcua::UpdateEventDetails details) {
-            return history_update.HistoryUpdateEvent(std::move(details));
+          [this](opcua::ServiceContext context,
+                 opcua::UpdateEventDetails details) {
+            return history_update.HistoryUpdateEvent(std::move(context),
+                                                     std::move(details));
           },
       .add_nodes =
-          [this](std::vector<opcua::AddNodesItem> inputs) {
-            return node_management.AddNodes(std::move(inputs));
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::AddNodesItem> inputs) {
+            return node_management.AddNodes(std::move(context),
+                                            std::move(inputs));
           },
       .delete_nodes =
-          [this](std::vector<opcua::DeleteNodesItem> inputs) {
-            return node_management.DeleteNodes(std::move(inputs));
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::DeleteNodesItem> inputs) {
+            return node_management.DeleteNodes(std::move(context),
+                                               std::move(inputs));
           },
       .add_references =
-          [this](std::vector<opcua::AddReferencesItem> inputs) {
-            return node_management.AddReferences(std::move(inputs));
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::AddReferencesItem> inputs) {
+            return node_management.AddReferences(std::move(context),
+                                                 std::move(inputs));
           },
       .delete_references =
-          [this](std::vector<opcua::DeleteReferencesItem> inputs) {
-            return node_management.DeleteReferences(std::move(inputs));
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::DeleteReferencesItem> inputs) {
+            return node_management.DeleteReferences(std::move(context),
+                                                    std::move(inputs));
           },
       .create_subscription =
           [this](opcua::ServiceContext context,
@@ -153,29 +165,37 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
 // --- NodeManagementService ---------------------------------------------
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
 NodeManagementServiceAdapter::AddNodes(
+    opcua::ServiceContext context,
     std::vector<opcua::AddNodesItem> inputs) {
-  auto result = co_await inner_.AddNodes(ToScadaVector(inputs));
+  auto result =
+      co_await inner_.AddNodes(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteNodes(
+    opcua::ServiceContext context,
     std::vector<opcua::DeleteNodesItem> inputs) {
-  auto result = co_await inner_.DeleteNodes(ToScadaVector(inputs));
+  auto result =
+      co_await inner_.DeleteNodes(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::AddReferences(
+    opcua::ServiceContext context,
     std::vector<opcua::AddReferencesItem> inputs) {
-  auto result = co_await inner_.AddReferences(ToScadaVector(inputs));
+  auto result =
+      co_await inner_.AddReferences(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteReferences(
+    opcua::ServiceContext context,
     std::vector<opcua::DeleteReferencesItem> inputs) {
-  auto result = co_await inner_.DeleteReferences(ToScadaVector(inputs));
+  auto result =
+      co_await inner_.DeleteReferences(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
@@ -188,8 +208,8 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
 
 opcua::Awaitable<opcua::HistoryReadEventsResult>
 HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
-                                         opcua::base::Time from,
-                                         opcua::base::Time to,
+                                         opcua::DateTime from,
+                                         opcua::DateTime to,
                                          opcua::EventFilter filter) {
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
@@ -199,10 +219,12 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
 // --- HistoryUpdateService ----------------------------------------------
 opcua::Awaitable<opcua::HistoryUpdateResult>
 HistoryUpdateServiceAdapter::HistoryUpdateData(
+    opcua::ServiceContext context,
     opcua::UpdateDataDetails details) {
   // The core service returns a per-value StatusCode vector or an
   // operation-level failure; map both onto the wire HistoryUpdateResult.
-  auto result = co_await inner_.HistoryUpdateData(ToScada(details));
+  auto result =
+      co_await inner_.HistoryUpdateData(ToScada(context), ToScada(details));
   if (!result.ok()) {
     co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
   }
@@ -212,8 +234,10 @@ HistoryUpdateServiceAdapter::HistoryUpdateData(
 
 opcua::Awaitable<opcua::HistoryUpdateResult>
 HistoryUpdateServiceAdapter::HistoryUpdateEvent(
+    opcua::ServiceContext context,
     opcua::UpdateEventDetails details) {
-  auto result = co_await inner_.HistoryUpdateEvent(ToScada(details));
+  auto result =
+      co_await inner_.HistoryUpdateEvent(ToScada(context), ToScada(details));
   if (!result.ok()) {
     co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
   }

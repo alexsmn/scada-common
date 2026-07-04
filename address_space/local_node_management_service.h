@@ -12,13 +12,13 @@ namespace scada {
 class LocalNodeManagementService : public NodeManagementService {
  public:
   Awaitable<StatusOr<std::vector<AddNodesResult>>> AddNodes(
-      std::vector<AddNodesItem> inputs) override;
+      ServiceContext context, std::vector<AddNodesItem> inputs) override;
   Awaitable<StatusOr<std::vector<StatusCode>>> DeleteNodes(
-      std::vector<DeleteNodesItem> inputs) override;
+      ServiceContext context, std::vector<DeleteNodesItem> inputs) override;
   Awaitable<StatusOr<std::vector<StatusCode>>> AddReferences(
-      std::vector<AddReferencesItem> inputs) override;
+      ServiceContext context, std::vector<AddReferencesItem> inputs) override;
   Awaitable<StatusOr<std::vector<StatusCode>>> DeleteReferences(
-      std::vector<DeleteReferencesItem> inputs) override;
+      ServiceContext context, std::vector<DeleteReferencesItem> inputs) override;
 };
 
 }  // namespace scada

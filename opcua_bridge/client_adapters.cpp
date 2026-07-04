@@ -79,24 +79,28 @@ Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
 // --- NodeManagementService ---------------------------------------------
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
 ClientNodeManagementServiceAdapter::AddNodes(
+    scada::ServiceContext /*context*/,
     std::vector<scada::AddNodesItem> inputs) {
   auto result = co_await session_->AddNodes(ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientNodeManagementServiceAdapter::DeleteNodes(
+    scada::ServiceContext /*context*/,
     std::vector<scada::DeleteNodesItem> inputs) {
   auto result = co_await session_->DeleteNodes(ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientNodeManagementServiceAdapter::AddReferences(
+    scada::ServiceContext /*context*/,
     std::vector<scada::AddReferencesItem> inputs) {
   auto result = co_await session_->AddReferences(ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientNodeManagementServiceAdapter::DeleteReferences(
+    scada::ServiceContext /*context*/,
     std::vector<scada::DeleteReferencesItem> inputs) {
   auto result = co_await session_->DeleteReferences(ToOpcuaVector(inputs));
   co_return ToScada(result);
@@ -169,6 +173,7 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientHistoryServiceAdapter::HistoryUpdateData(
+    scada::ServiceContext /*context*/,
     scada::UpdateDataDetails details) {
   auto result = co_await session_->HistoryUpdateData(ToOpcua(details));
   if (!result.ok()) {
@@ -182,6 +187,7 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientHistoryServiceAdapter::HistoryUpdateEvent(
+    scada::ServiceContext /*context*/,
     scada::UpdateEventDetails details) {
   auto result = co_await session_->HistoryUpdateEvent(ToOpcua(details));
   if (!result.ok()) {

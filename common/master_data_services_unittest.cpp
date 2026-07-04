@@ -132,7 +132,8 @@ class TestCoroutineDataServices final
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-  AddNodes(std::vector<scada::AddNodesItem> inputs) override {
+  AddNodes(scada::ServiceContext /*context*/,
+           std::vector<scada::AddNodesItem> inputs) override {
     ++add_nodes_count;
     last_add_nodes_inputs = std::move(inputs);
     co_return std::vector<scada::AddNodesResult>{
@@ -140,21 +141,24 @@ class TestCoroutineDataServices final
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override {
+  DeleteNodes(scada::ServiceContext /*context*/,
+              std::vector<scada::DeleteNodesItem> inputs) override {
     ++delete_nodes_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  AddReferences(std::vector<scada::AddReferencesItem> inputs) override {
+  AddReferences(scada::ServiceContext /*context*/,
+                std::vector<scada::AddReferencesItem> inputs) override {
     ++add_references_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override {
+  DeleteReferences(scada::ServiceContext /*context*/,
+                   std::vector<scada::DeleteReferencesItem> inputs) override {
     ++delete_references_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
@@ -273,8 +277,8 @@ TEST(MasterDataServicesTest,
   services.SetServices(std::move(data_services));
 
   base::AsyncCompletion pending_add_nodes{executor};
-  EXPECT_CALL(*node_management_service, AddNodes(_))
-      .WillOnce([&](std::vector<scada::AddNodesItem>)
+  EXPECT_CALL(*node_management_service, AddNodes(_, _))
+      .WillOnce([&](scada::ServiceContext, std::vector<scada::AddNodesItem>)
                     -> Awaitable<scada::StatusOr<
                         std::vector<scada::AddNodesResult>>> {
         co_await pending_add_nodes.Wait();
@@ -285,6 +289,7 @@ TEST(MasterDataServicesTest,
   auto result = StartAwaitable(
       executor,
       static_cast<scada::NodeManagementService&>(services).AddNodes(
+          scada::ServiceContext{},
           {scada::AddNodesItem{.requested_id = scada::NodeId{1}}}));
   Drain(executor);
 
@@ -454,7 +459,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->translate_count, 1);
 
   auto add_nodes_result = WaitAwaitable(
-      executor, services.AddNodes({{.requested_id = scada::NodeId{101}}}));
+      executor, services.AddNodes(scada::ServiceContext{},
+                                  {{.requested_id = scada::NodeId{101}}}));
 
   ASSERT_THAT(add_nodes_result,
               scada::test::IsOkAndHolds(testing::SizeIs(1)));
@@ -465,21 +471,24 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
             (scada::NodeId{101}));
 
   auto delete_nodes_result = WaitAwaitable(
-      executor, services.DeleteNodes({scada::DeleteNodesItem{}}));
+      executor, services.DeleteNodes(scada::ServiceContext{},
+                                     {scada::DeleteNodesItem{}}));
 
   ASSERT_THAT(delete_nodes_result,
               scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->delete_nodes_count, 1);
 
   auto add_references_result = WaitAwaitable(
-      executor, services.AddReferences({scada::AddReferencesItem{}}));
+      executor, services.AddReferences(scada::ServiceContext{},
+                                       {scada::AddReferencesItem{}}));
 
   ASSERT_THAT(add_references_result,
               scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->add_references_count, 1);
 
   auto delete_references_result = WaitAwaitable(
-      executor, services.DeleteReferences({scada::DeleteReferencesItem{}}));
+      executor, services.DeleteReferences(scada::ServiceContext{},
+                                          {scada::DeleteReferencesItem{}}));
 
   ASSERT_THAT(delete_references_result,
               scada::test::IsOkAndHolds(testing::SizeIs(1)));

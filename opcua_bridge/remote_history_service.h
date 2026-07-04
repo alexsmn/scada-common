@@ -82,8 +82,10 @@ class RemoteHistoryService : public scada::HistoryService,
 
   // scada::HistoryUpdateService
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateData(
+      scada::ServiceContext context,
       scada::UpdateDataDetails details) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateEvent(
+      scada::ServiceContext context,
       scada::UpdateEventDetails details) override;
 
  private:

@@ -276,39 +276,46 @@ scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-MasterDataServices::AddNodes(std::vector<scada::AddNodesItem> inputs) {
+MasterDataServices::AddNodes(scada::ServiceContext context,
+                             std::vector<scada::AddNodesItem> inputs) {
   auto* service = node_management_service_;
   if (service)
-    co_return co_await service->AddNodes(std::move(inputs));
+    co_return co_await service->AddNodes(std::move(context), std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-MasterDataServices::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
+MasterDataServices::DeleteNodes(scada::ServiceContext context,
+                                std::vector<scada::DeleteNodesItem> inputs) {
   auto* service = node_management_service_;
   if (service)
-    co_return co_await service->DeleteNodes(std::move(inputs));
+    co_return co_await service->DeleteNodes(std::move(context),
+                                            std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::AddReferences(
+    scada::ServiceContext context,
     std::vector<scada::AddReferencesItem> inputs) {
   auto* service = node_management_service_;
   if (service)
-    co_return co_await service->AddReferences(std::move(inputs));
+    co_return co_await service->AddReferences(std::move(context),
+                                              std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 MasterDataServices::DeleteReferences(
+    scada::ServiceContext context,
     std::vector<scada::DeleteReferencesItem> inputs) {
   auto* service = node_management_service_;
   if (service)
-    co_return co_await service->DeleteReferences(std::move(inputs));
+    co_return co_await service->DeleteReferences(std::move(context),
+                                                 std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }

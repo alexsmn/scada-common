@@ -109,13 +109,15 @@ RemoteHistoryService::HistoryReadEvents(scada::NodeId node_id,
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-RemoteHistoryService::HistoryUpdateData(scada::UpdateDataDetails details) {
-  return adapter_.HistoryUpdateData(std::move(details));
+RemoteHistoryService::HistoryUpdateData(scada::ServiceContext context,
+                                        scada::UpdateDataDetails details) {
+  return adapter_.HistoryUpdateData(std::move(context), std::move(details));
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-RemoteHistoryService::HistoryUpdateEvent(scada::UpdateEventDetails details) {
-  return adapter_.HistoryUpdateEvent(std::move(details));
+RemoteHistoryService::HistoryUpdateEvent(scada::ServiceContext context,
+                                         scada::UpdateEventDetails details) {
+  return adapter_.HistoryUpdateEvent(std::move(context), std::move(details));
 }
 
 }  // namespace opcua_bridge

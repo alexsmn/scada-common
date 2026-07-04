@@ -5,23 +5,27 @@
 namespace scada {
 
 Awaitable<StatusOr<std::vector<AddNodesResult>>>
-LocalNodeManagementService::AddNodes(std::vector<AddNodesItem> inputs) {
+LocalNodeManagementService::AddNodes(ServiceContext /*context*/,
+                                     std::vector<AddNodesItem> inputs) {
   co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
-LocalNodeManagementService::DeleteNodes(std::vector<DeleteNodesItem> inputs) {
+LocalNodeManagementService::DeleteNodes(ServiceContext /*context*/,
+                                        std::vector<DeleteNodesItem> inputs) {
   co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
 LocalNodeManagementService::AddReferences(
+    ServiceContext /*context*/,
     std::vector<AddReferencesItem> inputs) {
   co_return Status{StatusCode::Bad};
 }
 
 Awaitable<StatusOr<std::vector<StatusCode>>>
 LocalNodeManagementService::DeleteReferences(
+    ServiceContext /*context*/,
     std::vector<DeleteReferencesItem> inputs) {
   co_return Status{StatusCode::Bad};
 }

@@ -143,22 +143,26 @@ Awaitable<scada::Status> VidiconSession::Call(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-VidiconSession::AddNodes(std::vector<scada::AddNodesItem> inputs) {
+VidiconSession::AddNodes(scada::ServiceContext /*context*/,
+                         std::vector<scada::AddNodesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) {
+VidiconSession::DeleteNodes(scada::ServiceContext /*context*/,
+                            std::vector<scada::DeleteNodesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::AddReferences(std::vector<scada::AddReferencesItem> inputs) {
+VidiconSession::AddReferences(scada::ServiceContext /*context*/,
+                              std::vector<scada::AddReferencesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 VidiconSession::DeleteReferences(
+    scada::ServiceContext /*context*/,
     std::vector<scada::DeleteReferencesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }

@@ -127,9 +127,9 @@ inline scada::Status ToScada(opcua::Status s) {
   return result;
 }
 
-// --- DateTime (base::Time vs opcua::base::Time) -------------------------
+// --- DateTime (base::Time vs opcua::DateTime) -------------------------
 inline opcua::DateTime ToOpcua(scada::DateTime t) {
-  return opcua::base::Time::FromInternalValue(t.ToInternalValue());
+  return opcua::DateTime::FromInternalValue(t.ToInternalValue());
 }
 inline scada::DateTime ToScada(opcua::DateTime t) {
   return base::Time::FromInternalValue(t.ToInternalValue());

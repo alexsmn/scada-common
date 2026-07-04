@@ -66,9 +66,9 @@ inline scada::Privilege ToScada(opcua::Privilege v) {
   return static_cast<scada::Privilege>(v);
 }
 
-// --- Duration (base::TimeDelta vs opcua::base::TimeDelta) ----------------
+// --- Duration (base::TimeDelta vs opcua::Duration) ----------------
 inline opcua::Duration ToOpcua(scada::Duration d) {
-  return opcua::base::TimeDelta::FromInternalValue(d.ToInternalValue());
+  return opcua::Duration::FromInternalValue(d.ToInternalValue());
 }
 inline scada::Duration ToScada(opcua::Duration d) {
   return base::TimeDelta::FromInternalValue(d.ToInternalValue());

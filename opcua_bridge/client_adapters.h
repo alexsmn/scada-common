@@ -40,7 +40,7 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
     if (!ping_delay)
       return session_->IsConnected(nullptr);
-    opcua::base::TimeDelta opcua_ping;
+    opcua::Duration opcua_ping;
     const bool connected = session_->IsConnected(&opcua_ping);
     *ping_delay = ToScada(opcua_ping);
     return connected;
@@ -121,12 +121,16 @@ class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
       : session_{std::move(s)} {}
 
   Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
+      scada::ServiceContext context,
       std::vector<scada::AddNodesItem> inputs) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteNodes(
+      scada::ServiceContext context,
       std::vector<scada::DeleteNodesItem> inputs) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> AddReferences(
+      scada::ServiceContext context,
       std::vector<scada::AddReferencesItem> inputs) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteReferences(
+      scada::ServiceContext context,
       std::vector<scada::DeleteReferencesItem> inputs) override;
 
  private:
@@ -188,8 +192,10 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 
   // scada::HistoryUpdateService
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateData(
+      scada::ServiceContext context,
       scada::UpdateDataDetails details) override;
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateEvent(
+      scada::ServiceContext context,
       scada::UpdateEventDetails details) override;
 
  private:

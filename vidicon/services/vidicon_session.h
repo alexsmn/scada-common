@@ -78,13 +78,17 @@ class VidiconSession final : public scada::SessionService,
 
   // scada::NodeManagementService
   virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-  AddNodes(std::vector<scada::AddNodesItem> inputs) override;
+  AddNodes(scada::ServiceContext context,
+           std::vector<scada::AddNodesItem> inputs) override;
   virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteNodes(std::vector<scada::DeleteNodesItem> inputs) override;
+  DeleteNodes(scada::ServiceContext context,
+              std::vector<scada::DeleteNodesItem> inputs) override;
   virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  AddReferences(std::vector<scada::AddReferencesItem> inputs) override;
+  AddReferences(scada::ServiceContext context,
+                std::vector<scada::AddReferencesItem> inputs) override;
   virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteReferences(std::vector<scada::DeleteReferencesItem> inputs) override;
+  DeleteReferences(scada::ServiceContext context,
+                   std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::ViewService
   virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
