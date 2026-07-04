@@ -1,0 +1,43 @@
+@startuml node_service_residency
+' Who keeps a v3 node model alive. The registry itself only tracks models
+' weakly; when the last pin drops, the model unregisters itself and the
+' fetched data is released.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+rectangle "Pins (strong references)" as pins {
+  rectangle "Consumer NodeRefs\n(table rows, tree roots, ...)" as consumers
+  rectangle "In-flight fetch coroutine\n(SpawnFetch captures the model)" as fetch
+  rectangle "Pending fetch queue\n(channel not open yet)" as pending
+  rectangle "Parent model\nchild_models_ (fetched subtree)" as parent
+  rectangle "Keep-alive MRU window\n(keep_alive_capacity_, default 256)" as lru
+}
+
+rectangle "v3::NodeServiceImpl" as service
+rectangle "NodeModelRegistry\nmap<NodeId, weak_ptr>" as registry #EEEEEE
+rectangle "v3::NodeModelImpl" as model
+
+consumers --> model : shared_ptr<const NodeModel>
+fetch --> model
+pending --> model
+parent --> model : NodeRef per fetched child
+lru --> model
+service --> registry : owns (shared_ptr)
+service --> lru : owns
+model ..> registry : erases own entry\non destruction
+registry ..> model : weak_ptr (lookup only)
+
+note bottom of registry
+  GetNodeModel(id): lock or create + touch MRU.
+  FindNodeModel(id): lookup only — update and
+  notification paths must never create models.
+end note
+
+note bottom of model
+  Dropping the last pin destroys the model;
+  a parent's destruction unwinds its whole
+  fetched subtree. NodeDeleted drops the
+  keep-alive pin and tombstones the model
+  for remaining holders.
+end note
+@enduml

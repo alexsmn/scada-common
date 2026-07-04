@@ -1,0 +1,91 @@
+@startuml node_service_classes
+' Core NodeService abstractions and the v3 implementation.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+hide empty members
+
+interface NodeService {
+  +GetNode(node_id) : NodeRef
+  +Subscribe(NodeRefObserver&)
+  +Unsubscribe(NodeRefObserver&)
+  +GetPendingTaskCount() : size_t
+}
+
+class NodeRef <<value handle>> {
+  -model_ : shared_ptr<const NodeModel>
+  +attribute(id) : Variant
+  +targets() / parent() / type_definition()
+  +Fetch(NodeFetchStatus) : Awaitable<NodeRef>
+  +StartFetch(NodeFetchStatus)
+  +Subscribe(NodeRefObserver&)
+}
+
+interface NodeModel {
+  +GetStatus() : Status
+  +GetFetchStatus() : NodeFetchStatus
+  +GetAttribute(id) : Variant
+  +GetReferences(...) / GetTargets(...)
+  +Fetch(...) / StartFetch(...)
+  +Subscribe(NodeRefObserver&)
+}
+
+abstract class BaseNodeModel {
+  #status_ : Status
+  #fetch_status_ : NodeFetchStatus
+  #fetch_callbacks_
+  #observers_ : ObserverList<NodeRefObserver>
+}
+
+interface NodeRefObserver {
+  +OnModelChanged(ModelChangeEvent)
+  +OnNodeSemanticChanged(NodeId)
+  +OnNodeFetched(NodeFetchedEvent)
+  +OnNodeStateChanged(NodeStateChangedEvent)
+}
+
+class NodeStateChangedEvent <<event>> {
+  +node_id : NodeId
+  +state : NodeStatePtr <<immutable snapshot>>
+  +fetch_status : NodeFetchStatus
+}
+
+package "v3" {
+  class NodeServiceImpl {
+    -registry_ : shared_ptr<NodeModelRegistry>
+    -keep_alive_list_ : MRU pins
+    -pending_fetch_nodes_ : pinned queue
+    -FindNodeModel(id) <<never creates>>
+    -GetNodeModel(id) <<creates + touches MRU>>
+    -SpawnFetch(id, status, pin)
+  }
+
+  class NodeModelImpl {
+    -registry_ : shared_ptr<NodeModelRegistry>
+    -node_state_ : NodeState <<working state>>
+    -child_references_
+    -child_models_ : vector<NodeRef> <<subtree pins>>
+    -NotifyStateChanged() <<publishes snapshot>>
+  }
+
+  class NodeModelRegistry <<shared, weak map>> {
+    +nodes : map<NodeId, weak_ptr<NodeModelImpl>>
+  }
+
+  interface NodeFetcher {
+    +FetchNode(id) : Awaitable<StatusOr<NodeState>>
+    +FetchChildren(id) : Awaitable<StatusOr<ReferenceDescriptions>>
+  }
+}
+
+NodeService <|.. NodeServiceImpl
+NodeModel <|.. BaseNodeModel
+BaseNodeModel <|-- NodeModelImpl
+NodeRef o-> "shared_ptr<const>" NodeModel : pins
+NodeServiceImpl --> NodeModelRegistry : owns
+NodeModelImpl --> NodeModelRegistry : unregisters on destruction
+NodeModelRegistry ..> NodeModelImpl : weak_ptr
+NodeServiceImpl --> NodeFetcher : injected
+NodeServiceImpl ..> NodeRefObserver : notifies
+NodeModelImpl ..> NodeStateChangedEvent : publishes
+NodeModelImpl --> "child_models_" NodeRef : pins fetched subtree
+@enduml

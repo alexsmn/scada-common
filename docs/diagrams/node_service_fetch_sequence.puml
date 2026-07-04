@@ -1,0 +1,49 @@
+@startuml node_service_fetch_sequence
+' v3 node fetch: pinning, working-state update, snapshot publication.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+participant Consumer
+participant "v3::NodeServiceImpl" as Service
+participant "NodeModelRegistry" as Registry
+participant "v3::NodeModelImpl" as Model
+participant "NodeFetcher" as Fetcher
+participant "Observers\n(per-node + service-wide)" as Observers
+
+Consumer -> Service : GetNode(node_id)
+Service -> Registry : lock weak entry / create model
+Service -> Service : TouchKeepAlive(model)
+Service -> Model : StartFetch(NodeOnly)
+Model -> Service : OnFetchNode(node_id, status)
+Service -> Service : SpawnFetch(...)\ncoroutine pins the model
+Service --> Consumer : NodeRef (pin)
+
+... asynchronous fetch ...
+
+Service -> Fetcher : FetchNode(node_id)
+Fetcher --> Service : StatusOr<NodeState>
+Service -> Model : OnFetched(state)
+activate Model
+Model -> Model : replace working state,\nsynthesize parent/supertype refs
+Model -> Registry : FindNodeModel per reference
+note right : resident neighbors get the inverse\nreference and republish their own\nsnapshot; nothing is created
+Model -> Model : SetFetchStatus(Good, NodeOnly)
+deactivate Model
+Service -> Model : OnFetchCompleted()
+activate Model
+Model -> Model : build immutable snapshot\n(working state + child references)
+Model -> Observers : OnNodeStateChanged{node_id, state, fetch_status}
+Model -> Observers : OnModelChanged / OnNodeSemanticChanged
+note right : the snapshot is published first, so\nhandlers of the change notifications\nalready see fresh data
+deactivate Model
+
+... consumer releases the node ...
+
+Consumer -> Consumer : drop last NodeRef
+note over Model, Registry
+  ~NodeModelImpl erases its registry entry
+  (through the shared registry, safe even
+  after service teardown); the fetched
+  subtree pinned via child_models_ unwinds.
+end note
+@enduml

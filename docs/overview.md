@@ -8,6 +8,8 @@ Related documents:
 - [../README.md](../README.md) for the top-level common-library overview
 - [./opcua/module.md](./opcua/module.md) for the shared OPC UA transport and
   conversion layer
+- [./node_service.md](./node_service.md) for the NodeService design
+  (bounded residency, immutable NodeState snapshots)
 
 ## Modules
 
