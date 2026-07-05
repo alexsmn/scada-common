@@ -2,9 +2,9 @@
 
 #include "base/any_executor.h"
 #include "base/boost_log.h"
-#include "base/observer_list.h"
 #include "events/view_events_subscription.h"
 #include "node_service/node_children_fetcher.h"
+#include "node_service/node_events.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
 #include "remote/view_event_queue.h"
@@ -90,8 +90,16 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
   virtual size_t GetPendingTaskCount() const override;
 
  private:
@@ -119,7 +127,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   BoostLogger logger_{LOG_NAME("v2::NodeService")};
 
-  mutable base::ObserverList<NodeRefObserver> observers_;
+  NodeSignals signals_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 

@@ -10,8 +10,16 @@ class ProxyNodeModel;
 class ProxyNodeService : public NodeService {
  public:
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
   virtual size_t GetPendingTaskCount() const override;
 
  private:

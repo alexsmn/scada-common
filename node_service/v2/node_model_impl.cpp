@@ -2,7 +2,6 @@
 
 #include "base/check.h"
 #include "model/node_id_util.h"
-#include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v2/node_service_impl.h"
 #include "scada/standard_node_ids.h"
@@ -40,8 +39,7 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
 
-    for (auto& o : observers_)
-      o.OnModelChanged(event);
+    signals_.model_changed(event);
 
     return;
   }
@@ -381,12 +379,10 @@ void NodeModelImpl::OnFetchStatusChanged() {
                              << LOG_TAG("Status", ToString(status_))
                              << LOG_TAG("FetchStatus", ToString(fetch_status_));
 
-  for (auto& o : observers_) {
-    LOG_INFO(service_.logger_)
-        << "Notify node observers"
-        << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
-    o.OnNodeFetched({node_id_});
-  }
+  LOG_INFO(service_.logger_)
+      << "Notify node observers"
+      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+  signals_.node_fetched({node_id_});
 
   LOG_INFO(service_.logger_)
       << "Notify node service from node fetch status change"

@@ -55,8 +55,22 @@ class MockNodeModel : public NodeModel {
               (const scada::QualifiedName& child_name),
               (const));
 
-  MOCK_METHOD(void, Subscribe, (NodeRefObserver & observer), (const));
-  MOCK_METHOD(void, Unsubscribe, (NodeRefObserver & observer), (const));
+  MOCK_METHOD(boost::signals2::scoped_connection,
+              SubscribeModelChanged,
+              (const ModelChangedCallback& callback),
+              (const));
+  MOCK_METHOD(boost::signals2::scoped_connection,
+              SubscribeNodeSemanticChanged,
+              (const NodeSemanticChangedCallback& callback),
+              (const));
+  MOCK_METHOD(boost::signals2::scoped_connection,
+              SubscribeNodeFetched,
+              (const NodeFetchedCallback& callback),
+              (const));
+  MOCK_METHOD(boost::signals2::scoped_connection,
+              SubscribeNodeStateChanged,
+              (const NodeStateChangedCallback& callback),
+              (const));
 
   MOCK_METHOD(scada::node, GetScadaNode, (), (const));
 };

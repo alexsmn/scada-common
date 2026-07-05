@@ -2,10 +2,11 @@
 
 #include "address_space/mutable_address_space.h"
 #include "base/check.h"
-#include "base/observer_list.h"
 #include "scada/status.h"
 
+#include <boost/signals2/signal.hpp>
 #include <map>
+#include <vector>
 
 namespace scada {
 struct PropertyIds;
@@ -65,19 +66,29 @@ class AddressSpaceImpl : public MutableAddressSpace {
   // scada::AddressSpace
   scada::Node* GetMutableNode(const scada::NodeId& node_id) override;
   const scada::Node* GetNode(const scada::NodeId& node_id) const override;
-  void Subscribe(scada::NodeObserver& events) const override;
-  void Unsubscribe(scada::NodeObserver& events) const override;
-  void SubscribeNode(const scada::NodeId& node_id,
-                     scada::NodeObserver& events) const override;
-  void UnsubscribeNode(const scada::NodeId& node_id,
-                       scada::NodeObserver& events) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeCreated(
+      const NodeCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeDeleted(
+      const NodeCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeModified(
+      const NodeModifiedCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeMoved(
+      const NodeCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeTitleChanged(
+      const NodeCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeReferenceAdded(
+      const ReferenceCallback& callback) const override;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeReferenceDeleted(
+      const ReferenceCallback& callback) const override;
 
  private:
   void NotifyNodeMoved(const scada::Node& node, const scada::Node* top) const;
   void NotifyNodeTitleChanged(const scada::Node& node) const;
 
-  typedef base::ObserverList<scada::NodeObserver> NodeEvents;
-  NodeEvents* GetNodeEvents(const scada::NodeId& node_id) const;
+  // Forwards all change notifications of |parent_address_space_| through this
+  // instance's own signals, so subscribers observe the parent chain with a
+  // single subscription.
+  void ConnectParentAddressSpace();
 
   scada::AddressSpace* parent_address_space_ = nullptr;
 
@@ -85,8 +96,24 @@ class AddressSpaceImpl : public MutableAddressSpace {
 
   std::map<scada::NodeId, std::unique_ptr<scada::Node>> static_nodes_;
 
-  mutable NodeEvents observers_;
-  mutable std::map<scada::NodeId, NodeEvents> node_events_;
+  mutable boost::signals2::signal<void(const scada::Node&)>
+      node_created_signal_;
+  mutable boost::signals2::signal<void(const scada::Node&)>
+      node_deleted_signal_;
+  mutable boost::signals2::signal<void(const scada::Node&,
+                                       const scada::PropertyIds&)>
+      node_modified_signal_;
+  mutable boost::signals2::signal<void(const scada::Node&)> node_moved_signal_;
+  mutable boost::signals2::signal<void(const scada::Node&)>
+      node_title_changed_signal_;
+  mutable boost::signals2::signal<
+      void(const scada::ReferenceType&, const scada::Node&, const scada::Node&)>
+      reference_added_signal_;
+  mutable boost::signals2::signal<
+      void(const scada::ReferenceType&, const scada::Node&, const scada::Node&)>
+      reference_deleted_signal_;
+
+  std::vector<boost::signals2::scoped_connection> parent_connections_;
 };
 
 template <class T>

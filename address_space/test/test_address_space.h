@@ -9,7 +9,6 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "base/check.h"
-#include "base/observer_list.h"
 #include "common/node_state.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"

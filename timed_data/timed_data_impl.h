@@ -1,12 +1,12 @@
 #pragma once
 
 #include "events/event_observer.h"
-#include "node_service/node_observer.h"
 #include "scada/aggregate_filter.h"
 #include "scada/client_monitored_item.h"
 #include "timed_data/base_timed_data.h"
 #include "timed_data/timed_data_context.h"
 
+#include <boost/signals2/connection.hpp>
 #include <memory>
 
 class TimedDataFetcher;
@@ -14,7 +14,6 @@ class TimedDataFetcher;
 class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
                       private TimedDataContext,
                       public BaseTimedData,
-                      private NodeRefObserver,
                       private EventObserver {
  public:
   TimedDataImpl(scada::AggregateFilter aggregate_filter,
@@ -39,11 +38,10 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
 
   void OnChannelData(const scada::DataValue& data_value);
 
-  // NodeRefObserver
-  virtual void OnNodeSemanticChanged(const scada::NodeId& node_id) override;
-  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
+  void OnNodeSemanticChanged(const scada::NodeId& node_id);
 
-  // EventObserver
+  // EventObserver; also connected to the node's model-changed signal.
+  virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnItemEventsChanged(const scada::NodeId& node_id,
                                    const EventSet& events) override;
 
@@ -53,4 +51,7 @@ class TimedDataImpl : public std::enable_shared_from_this<TimedDataImpl>,
   scada::monitored_item monitored_item_;
 
   const std::shared_ptr<TimedDataFetcher> timed_data_fetcher_;
+
+  boost::signals2::scoped_connection node_semantic_changed_connection_;
+  boost::signals2::scoped_connection model_changed_connection_;
 };

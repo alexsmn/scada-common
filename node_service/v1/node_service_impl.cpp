@@ -4,7 +4,6 @@
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
 #include "base/check.h"
-#include "node_service/node_observer.h"
 #include "node_service/v1/address_space_fetcher.h"
 #include "node_service/v1/node_fetch_status_types.h"
 #include "node_service/v1/node_model_impl.h"
@@ -34,14 +33,12 @@ const scada::Node* GetSemanticParent(const scada::Node& node) {
 NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
     : NodeServiceImplContext{std::move(context)},
       address_space_fetcher_{address_space_fetcher_factory_(
-          MakeAddressSpaceFetcherFactoryContext())} {
-  address_space_.Subscribe(*this);
-}
+          MakeAddressSpaceFetcherFactoryContext())},
+      node_deleted_connection_{address_space_.SubscribeNodeDeleted(
+          [this](const scada::Node& node) { OnNodeDeleted(node); })} {}
 
 NodeServiceImpl::~NodeServiceImpl() {
-  base::Check(!observers_.might_have_observers());
-
-  address_space_.Unsubscribe(*this);
+  node_deleted_connection_.disconnect();
 
   nodes_.clear();
 }
@@ -67,12 +64,25 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   return model;
 }
 
-void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
-  observers_.AddObserver(&observer);
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
+    const ModelChangedCallback& callback) const {
+  return signals_.model_changed.connect(callback);
 }
 
-void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
-  observers_.RemoveObserver(&observer);
+boost::signals2::scoped_connection
+NodeServiceImpl::SubscribeNodeSemanticChanged(
+    const NodeSemanticChangedCallback& callback) const {
+  return signals_.node_semantic_changed.connect(callback);
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
+    const NodeFetchedCallback& callback) const {
+  return signals_.node_fetched.connect(callback);
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
+    const NodeStateChangedCallback& callback) const {
+  return signals_.node_state_changed.connect(callback);
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
@@ -84,8 +94,7 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
     i->second->OnModelChanged(event);
 
-  for (auto& o : observers_)
-    o.OnModelChanged(event);
+  signals_.model_changed(event);
 }
 
 void NodeServiceImpl::OnSemanticChanged(
@@ -93,34 +102,16 @@ void NodeServiceImpl::OnSemanticChanged(
   LOG_INFO(logger_) << "Semantic changed"
                     << LOG_TAG("Event", std::format("{}", event));
 
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(event.node_id);
+  signals_.node_semantic_changed(event.node_id);
 
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
     i->second->OnNodeSemanticChanged();
 }
 
-void NodeServiceImpl::OnNodeCreated(const scada::Node& node) {}
-
 void NodeServiceImpl::OnNodeDeleted(const scada::Node& node) {
   if (auto i = nodes_.find(node.id()); i != nodes_.end())
     i->second->OnNodeDeleted();
 }
-
-void NodeServiceImpl::OnNodeModified(const scada::Node& node,
-                                     const scada::PropertyIds& property_ids) {
-  // This is handled in |OnSemanticChanged()|.
-}
-
-void NodeServiceImpl::OnReferenceAdded(
-    const scada::ReferenceType& reference_type,
-    const scada::Node& source,
-    const scada::Node& target) {}
-
-void NodeServiceImpl::OnReferenceDeleted(
-    const scada::ReferenceType& reference_type,
-    const scada::Node& source,
-    const scada::Node& target) {}
 
 NodeRef NodeServiceImpl::GetRemoteNode(const scada::Node* node) {
   return node ? GetNode(node->id()) : nullptr;
@@ -163,10 +154,8 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
     if (auto i = nodes_.find(node_id); i != nodes_.end())
       i->second->NotifyFetchStatus();
 
-    for (auto& o : observers_) {
-      o.OnNodeFetched({node_id});
-      o.OnNodeSemanticChanged(node_id);
-    }
+    signals_.node_fetched({node_id});
+    signals_.node_semantic_changed(node_id);
   }
 }
 

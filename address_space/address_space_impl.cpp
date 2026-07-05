@@ -2,8 +2,8 @@
 #include "base/check.h"
 
 #include "address_space/address_space_util.h"
-#include "address_space/node_observer.h"
 #include "address_space/object.h"
+#include "address_space/property_ids.h"
 #include "address_space/reference.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
@@ -12,7 +12,39 @@
 #include "scada/status.h"
 
 AddressSpaceImpl::AddressSpaceImpl(scada::AddressSpace* parent_address_space)
-    : parent_address_space_{parent_address_space} {}
+    : parent_address_space_{parent_address_space} {
+  if (parent_address_space_)
+    ConnectParentAddressSpace();
+}
+
+void AddressSpaceImpl::ConnectParentAddressSpace() {
+  parent_connections_.push_back(parent_address_space_->SubscribeNodeCreated(
+      [this](const scada::Node& node) { node_created_signal_(node); }));
+  parent_connections_.push_back(parent_address_space_->SubscribeNodeDeleted(
+      [this](const scada::Node& node) { node_deleted_signal_(node); }));
+  parent_connections_.push_back(parent_address_space_->SubscribeNodeModified(
+      [this](const scada::Node& node, const scada::PropertyIds& property_ids) {
+        node_modified_signal_(node, property_ids);
+      }));
+  parent_connections_.push_back(parent_address_space_->SubscribeNodeMoved(
+      [this](const scada::Node& node) { node_moved_signal_(node); }));
+  parent_connections_.push_back(
+      parent_address_space_->SubscribeNodeTitleChanged(
+          [this](const scada::Node& node) {
+            node_title_changed_signal_(node);
+          }));
+  parent_connections_.push_back(parent_address_space_->SubscribeReferenceAdded(
+      [this](const scada::ReferenceType& reference_type,
+             const scada::Node& source, const scada::Node& target) {
+        reference_added_signal_(reference_type, source, target);
+      }));
+  parent_connections_.push_back(
+      parent_address_space_->SubscribeReferenceDeleted(
+          [this](const scada::ReferenceType& reference_type,
+                 const scada::Node& source, const scada::Node& target) {
+            reference_deleted_signal_(reference_type, source, target);
+          }));
+}
 
 AddressSpaceImpl::~AddressSpaceImpl() {
   Clear();
@@ -135,8 +167,6 @@ void AddressSpaceImpl::DeleteNode(const scada::NodeId& id) {
 
   NotifyNodeDeleted(*node);
 
-  node_events_.erase(id);
-
   node_map_.erase(i);
 
   static_nodes_.erase(id);
@@ -169,102 +199,62 @@ const scada::Node* AddressSpaceImpl::GetNode(
   return nullptr;
 }
 
-void AddressSpaceImpl::Subscribe(scada::NodeObserver& events) const {
-  observers_.AddObserver(&events);
-
-  if (parent_address_space_)
-    parent_address_space_->Subscribe(events);
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeNodeCreated(
+    const NodeCallback& callback) const {
+  return node_created_signal_.connect(callback);
 }
 
-void AddressSpaceImpl::Unsubscribe(scada::NodeObserver& events) const {
-  base::Check(observers_.HasObserver(&events));
-  observers_.RemoveObserver(&events);
-
-  if (parent_address_space_)
-    parent_address_space_->Unsubscribe(events);
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeNodeDeleted(
+    const NodeCallback& callback) const {
+  return node_deleted_signal_.connect(callback);
 }
 
-void AddressSpaceImpl::SubscribeNode(const scada::NodeId& node_id,
-                                     scada::NodeObserver& events) const {
-  node_events_[node_id].AddObserver(&events);
-
-  if (parent_address_space_)
-    parent_address_space_->SubscribeNode(node_id, events);
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeNodeModified(
+    const NodeModifiedCallback& callback) const {
+  return node_modified_signal_.connect(callback);
 }
 
-void AddressSpaceImpl::UnsubscribeNode(const scada::NodeId& node_id,
-                                       scada::NodeObserver& events) const {
-  auto i = node_events_.find(node_id);
-  base::Check(i != node_events_.end());
-  auto& e = i->second;
-  e.RemoveObserver(&events);
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeNodeMoved(
+    const NodeCallback& callback) const {
+  return node_moved_signal_.connect(callback);
+}
 
-  if (parent_address_space_)
-    parent_address_space_->UnsubscribeNode(node_id, events);
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeNodeTitleChanged(
+    const NodeCallback& callback) const {
+  return node_title_changed_signal_.connect(callback);
+}
+
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeReferenceAdded(
+    const ReferenceCallback& callback) const {
+  return reference_added_signal_.connect(callback);
+}
+
+boost::signals2::scoped_connection AddressSpaceImpl::SubscribeReferenceDeleted(
+    const ReferenceCallback& callback) const {
+  return reference_deleted_signal_.connect(callback);
 }
 
 void AddressSpaceImpl::NotifyNodeAdded(const scada::Node& node) const {
-  for (auto* parent = &node; parent; parent = GetParent(*parent)) {
-    if (auto* events = GetNodeEvents(node.id())) {
-      for (auto& o : *events)
-        o.OnNodeCreated(node);
-    }
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeCreated(node);
+  node_created_signal_(node);
 }
 
 void AddressSpaceImpl::NotifyNodeDeleted(const scada::Node& node) const {
-  for (auto* parent = &node; parent; parent = GetParent(*parent)) {
-    if (auto* events = GetNodeEvents(node.id())) {
-      for (auto& o : *events)
-        o.OnNodeDeleted(node);
-    }
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeDeleted(node);
+  node_deleted_signal_(node);
 }
 
 void AddressSpaceImpl::NotifyNodeMoved(const scada::Node& node,
                                        const scada::Node* top) const {
-  for (auto* parent = &node; parent && parent != top;
-       parent = GetParent(*parent)) {
-    if (auto* events = GetNodeEvents(node.id())) {
-      for (auto& o : *events)
-        o.OnNodeMoved(node);
-    }
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeMoved(node);
+  node_moved_signal_(node);
 }
 
 void AddressSpaceImpl::NotifyNodeTitleChanged(const scada::Node& node) const {
-  for (auto* parent = &node; parent; parent = GetParent(*parent)) {
-    if (auto* events = GetNodeEvents(node.id())) {
-      for (auto& o : *events)
-        o.OnNodeTitleChanged(node);
-    }
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeTitleChanged(node);
+  node_title_changed_signal_(node);
 }
 
 void AddressSpaceImpl::NotifyNodeModified(
     const scada::Node& node,
     const scada::PropertyIds& property_ids) const {
-  for (auto* parent = &node; parent; parent = GetParent(*parent)) {
-    if (auto* events = GetNodeEvents(node.id())) {
-      for (auto& o : *events)
-        o.OnNodeModified(node, property_ids);
-    }
-  }
-
-  for (auto& o : observers_)
-    o.OnNodeModified(node, property_ids);
+  node_modified_signal_(node, property_ids);
 }
 
 void AddressSpaceImpl::NotifyReference(
@@ -272,21 +262,13 @@ void AddressSpaceImpl::NotifyReference(
     const scada::Node& source,
     const scada::Node& target,
     bool added) const {
-  for (auto& o : observers_) {
-    if (added)
-      o.OnReferenceAdded(reference_type, source, target);
-    else
-      o.OnReferenceDeleted(reference_type, source, target);
-  }
+  if (added)
+    reference_added_signal_(reference_type, source, target);
+  else
+    reference_deleted_signal_(reference_type, source, target);
 
   if (scada::IsSubtypeOf(reference_type, scada::id::HierarchicalReferences))
     NotifyNodeMoved(target, nullptr);
-}
-
-AddressSpaceImpl::NodeEvents* AddressSpaceImpl::GetNodeEvents(
-    const scada::NodeId& node_id) const {
-  auto i = node_events_.find(node_id);
-  return i == node_events_.end() ? nullptr : &i->second;
 }
 
 void AddressSpaceImpl::AddNode(std::unique_ptr<scada::Node> node) {

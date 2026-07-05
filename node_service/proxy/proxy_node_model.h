@@ -34,8 +34,16 @@ class ProxyNodeModel : public NodeModel {
       const scada::NodeId& aggregate_declaration_id) const override;
   virtual NodeRef GetChild(
       const scada::QualifiedName& child_name) const override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
 
  private:
   ProxyNodeService& node_service_;

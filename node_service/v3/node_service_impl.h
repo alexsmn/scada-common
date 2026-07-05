@@ -1,11 +1,10 @@
 #pragma once
 
 #include "base/any_executor.h"
-#include "base/observer_list.h"
 #include "events/view_events_subscription.h"
 #include "node_service/node_children_fetcher.h"
+#include "node_service/node_events.h"
 #include "node_service/node_fetcher_impl.h"
-#include "node_service/node_observer.h"
 #include "node_service/node_service.h"
 #include "scada/view_service.h"
 
@@ -61,8 +60,16 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
   virtual size_t GetPendingTaskCount() const override;
 
   // Number of node models currently resident (pinned by NodeRefs, in-flight
@@ -94,8 +101,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   void NotifyModelChanged(const scada::ModelChangeEvent& event);
   void NotifySemanticsChanged(const scada::NodeId& node_id);
-  void NotifyNodeStateChanged(
-      const NodeRefObserver::NodeStateChangedEvent& event);
+  void NotifyNodeStateChanged(const NodeStateChangedEvent& event);
 
   void OnFetchNode(const scada::NodeId& node_id,
                    const NodeFetchStatus& requested_status);
@@ -110,7 +116,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void OnNodeSemanticsChanged(
       const scada::SemanticChangeEvent& event) override;
 
-  mutable base::ObserverList<NodeRefObserver> observers_;
+  NodeSignals signals_;
 
   // Models are owned by their holders (NodeRefs, parents, in-flight fetches,
   // the keep-alive window); the registry only tracks them weakly so unused

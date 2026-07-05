@@ -1,6 +1,6 @@
 #pragma once
 
-#include "address_space/node_observer.h"
+#include "address_space/property_ids.h"
 #include "address_space/reference.h"
 #include "scada/node_attributes.h"
 #include "scada/node_class.h"
@@ -43,11 +43,11 @@ class Node {
     display_name_ = std::move(display_name);
   }
 
-  // Optional per-node RolePermissions override (OPC UA Part 3 §5.2.9). Null (the
-  // common case) means the node publishes the server's DefaultRolePermissions;
-  // when set, these entries replace it and the per-caller UserRolePermissions is
-  // narrowed from them. Defined out of line so this widely-included header need
-  // not pull in scada/authorization.h.
+  // Optional per-node RolePermissions override (OPC UA Part 3 §5.2.9). Null
+  // (the common case) means the node publishes the server's
+  // DefaultRolePermissions; when set, these entries replace it and the
+  // per-caller UserRolePermissions is narrowed from them. Defined out of line
+  // so this widely-included header need not pull in scada/authorization.h.
   const std::vector<RolePermissionType>* role_permissions() const;
   void SetRolePermissions(std::vector<RolePermissionType> role_permissions);
 

@@ -5,7 +5,8 @@
 #include "address_space/test/test_address_space.h"
 #include "base/check.h"
 #include "base/test/test_executor.h"
-#include "node_service/mock_node_observer.h"
+#include "events/view_events_subscription.h"
+#include "node_service/test/recording_node_observer.h"
 #include "node_service/v1/address_space_fetcher_mock.h"
 #include "node_service/v1/node_service_impl.h"
 
@@ -15,12 +16,12 @@ namespace v1 {
 
 struct NodeServiceTestContext {
   NodeServiceTestContext() {
-    node_service.Subscribe(node_observer);
+    node_observer.Connect(node_service);
     node_service.OnChannelOpened();
   }
 
   ~NodeServiceTestContext() {
-    node_service.Unsubscribe(node_observer);
+    node_observer.Disconnect();
 
     client_address_space.Clear();
   }
@@ -48,7 +49,7 @@ struct NodeServiceTestContext {
       .address_space_ = client_address_space,
       .scada_client_ = {}}};
 
-  testing::NiceMock<MockNodeObserver> node_observer;
+  RecordingNodeObserver node_observer;
 
  private:
   AddressSpaceFetcherFactory MakeAddressSpaceFetcherFactory() {

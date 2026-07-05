@@ -2,7 +2,6 @@
 
 #include "base/check.h"
 #include "model/node_id_util.h"
-#include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v3/node_service_impl.h"
 
@@ -37,14 +36,12 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
     child_models_.clear();
     child_references_.clear();
 
-    for (auto& o : observers_)
-      o.OnModelChanged(event);
+    signals_.model_changed(event);
   }
 }
 
 void NodeModelImpl::OnNodeSemanticChanged() {
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(node_id_);
+  signals_.node_semantic_changed(node_id_);
 }
 
 void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
@@ -357,8 +354,7 @@ void NodeModelImpl::NotifyModelChanged() {
                                 scada::ModelChangeEvent::ReferenceAdded |
                                     scada::ModelChangeEvent::ReferenceDeleted};
 
-  for (auto& obs : observers_)
-    obs.OnModelChanged(event);
+  signals_.model_changed(event);
 
   service_.NotifyModelChanged(event);
 }
@@ -371,8 +367,7 @@ void NodeModelImpl::NotifySemanticChanged() {
 
   pending_semantic_changed_ = false;
 
-  for (auto& obs : observers_)
-    obs.OnNodeSemanticChanged(node_id_);
+  signals_.node_semantic_changed(node_id_);
 
   service_.NotifySemanticsChanged(node_id_);
 }
@@ -392,12 +387,11 @@ void NodeModelImpl::NotifyStateChanged() {
   state.references.insert(state.references.end(), child_references_.begin(),
                           child_references_.end());
 
-  const NodeRefObserver::NodeStateChangedEvent event{
+  const NodeStateChangedEvent event{
       node_id_, std::make_shared<const scada::NodeState>(std::move(state)),
       fetch_status_};
 
-  for (auto& obs : observers_)
-    obs.OnNodeStateChanged(event);
+  signals_.node_state_changed(event);
 
   service_.NotifyNodeStateChanged(event);
 }

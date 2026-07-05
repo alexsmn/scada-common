@@ -1,11 +1,12 @@
 #pragma once
 
 #include "base/boost_log.h"
-#include "base/observer_list.h"
+#include "node_service/node_events.h"
 #include "node_service/node_service.h"
 #include "node_service/v1/address_space_fetcher_factory.h"
 #include "node_service/v1/node_model_impl.h"
 
+#include <boost/signals2/connection.hpp>
 #include <map>
 
 namespace scada {
@@ -35,8 +36,7 @@ struct NodeServiceImplContext {
 // and references.
 class NodeServiceImpl final : private NodeServiceImplContext,
                               public NodeService,
-                              private NodeModelDelegate,
-                              private scada::NodeObserver {
+                              private NodeModelDelegate {
  public:
   explicit NodeServiceImpl(NodeServiceImplContext&& context);
   ~NodeServiceImpl();
@@ -46,8 +46,16 @@ class NodeServiceImpl final : private NodeServiceImplContext,
 
   // NodeService
   virtual NodeRef GetNode(const scada::NodeId& node_id) override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
   virtual size_t GetPendingTaskCount() const override;
 
  private:
@@ -66,25 +74,17 @@ class NodeServiceImpl final : private NodeServiceImplContext,
       const scada::NodeId& node_id,
       const NodeFetchStatus& requested_status) override;
 
-  // scada::NodeObserver
-  virtual void OnNodeCreated(const scada::Node& node) override;
-  virtual void OnNodeDeleted(const scada::Node& node) override;
-  virtual void OnNodeModified(const scada::Node& node,
-                              const scada::PropertyIds& property_ids) override;
-  virtual void OnReferenceAdded(const scada::ReferenceType& reference_type,
-                                const scada::Node& source,
-                                const scada::Node& target) override;
-  virtual void OnReferenceDeleted(const scada::ReferenceType& reference_type,
-                                  const scada::Node& source,
-                                  const scada::Node& target) override;
+  void OnNodeDeleted(const scada::Node& node);
 
   BoostLogger logger_{LOG_NAME("v1::NodeServiceImpl")};
 
-  mutable base::ObserverList<NodeRefObserver> observers_;
+  NodeSignals signals_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 
   const std::shared_ptr<AddressSpaceFetcher> address_space_fetcher_;
+
+  boost::signals2::scoped_connection node_deleted_connection_;
 
   friend class NodeModelImpl;
 };

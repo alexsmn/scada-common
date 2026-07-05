@@ -1,12 +1,12 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "node_service/node_events.h"
 #include "node_service/node_ref.h"
 #include "scada/client.h"
 
+#include <boost/signals2/connection.hpp>
 #include <vector>
-
-class NodeRefObserver;
 
 class NodeModel {
  public:
@@ -43,8 +43,19 @@ class NodeModel {
       const scada::NodeId& aggregate_declaration_id) const = 0;
   virtual NodeRef GetChild(const scada::QualifiedName& child_name) const = 0;
 
-  virtual void Subscribe(NodeRefObserver& observer) const = 0;
-  virtual void Unsubscribe(NodeRefObserver& observer) const = 0;
+  // Notifies about model changes affecting this node.
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const = 0;
+  // Notifies about displayed attribute changes and fetch errors of this node.
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const = 0;
+  // Notifies when a fetch of this node completed.
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const = 0;
+  // Notifies after this node model swapped in a new state snapshot.
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(const NodeStateChangedCallback& callback) const = 0;
 
   virtual scada::node GetScadaNode() const = 0;
 };

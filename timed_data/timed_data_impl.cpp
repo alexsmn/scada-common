@@ -52,13 +52,21 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
 
   if (node_) {
     node_event_provider_.RemoveItemObserver(node_.node_id(), *this);
-    node_.Unsubscribe(*this);
+    node_semantic_changed_connection_.disconnect();
+    model_changed_connection_.disconnect();
   }
 
   node_ = node;
 
   if (node_) {
-    node_.Subscribe(*this);
+    node_semantic_changed_connection_ = node_.SubscribeNodeSemanticChanged(
+        [this](const scada::NodeId& node_id) {
+          OnNodeSemanticChanged(node_id);
+        });
+    model_changed_connection_ = node_.SubscribeModelChanged(
+        [this](const scada::ModelChangeEvent& event) {
+          OnModelChanged(event);
+        });
     node_.StartFetch(NodeFetchStatus::NodeOnly());
 
     node_event_provider_.AddItemObserver(node_.node_id(), *this);

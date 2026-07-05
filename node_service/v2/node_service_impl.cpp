@@ -3,7 +3,6 @@
 #include "base/check.h"
 #include "common/node_state_util.h"
 #include "model/node_id_util.h"
-#include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v2/node_model_impl.h"
 #include "scada/attribute_service.h"
@@ -59,10 +58,8 @@ void PendingEvents::FireEvent(const scada::ModelChangeEvent& event) {
   LOG_INFO(service_.logger_) << "Notify node model changed"
                              << LOG_TAG("Event", std::format("{}", event));
 
-  if (auto node_model = service_.GetNodeModel(event.node_id)) {
-    for (auto& obs : node_model->observers_)
-      obs.OnModelChanged(event);
-  }
+  if (auto node_model = service_.GetNodeModel(event.node_id))
+    node_model->signals_.model_changed(event);
 
   service_.NotifyModelChanged(event);
 }
@@ -71,10 +68,8 @@ void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
   LOG_INFO(service_.logger_) << "Notify node semantics changed"
                              << LOG_TAG("Event", std::format("{}", event));
 
-  if (auto node_model = service_.GetNodeModel(event.node_id)) {
-    for (auto& obs : node_model->observers_)
-      obs.OnNodeSemanticChanged(event.node_id);
-  }
+  if (auto node_model = service_.GetNodeModel(event.node_id))
+    node_model->signals_.node_semantic_changed(event.node_id);
 
   service_.NotifySemanticsChanged(event.node_id);
 }
@@ -106,23 +101,33 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
   return node;
 }
 
-void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
-  base::Check(!observers_.HasObserver(&observer));
-  observers_.AddObserver(&observer);
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
+    const ModelChangedCallback& callback) const {
+  return signals_.model_changed.connect(callback);
 }
 
-void NodeServiceImpl::Unsubscribe(NodeRefObserver& observer) const {
-  observers_.RemoveObserver(&observer);
+boost::signals2::scoped_connection
+NodeServiceImpl::SubscribeNodeSemanticChanged(
+    const NodeSemanticChangedCallback& callback) const {
+  return signals_.node_semantic_changed.connect(callback);
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
+    const NodeFetchedCallback& callback) const {
+  return signals_.node_fetched.connect(callback);
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
+    const NodeStateChangedCallback& callback) const {
+  return signals_.node_state_changed.connect(callback);
 }
 
 void NodeServiceImpl::NotifyModelChanged(const scada::ModelChangeEvent& event) {
-  for (auto& o : observers_)
-    o.OnModelChanged(event);
+  signals_.model_changed(event);
 }
 
 void NodeServiceImpl::NotifySemanticsChanged(const scada::NodeId& node_id) {
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(node_id);
+  signals_.node_semantic_changed(node_id);
 }
 
 void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
@@ -176,8 +181,7 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
                     << LOG_TAG("Status", ToString(status))
                     << LOG_TAG("FetchStatus", ToString(fetch_status));
 
-  for (auto& o : observers_)
-    o.OnNodeFetched({node_id});
+  signals_.node_fetched({node_id});
 }
 
 void NodeServiceImpl::ProcessFetchedNodes(

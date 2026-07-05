@@ -11,12 +11,25 @@ class cached_node_service {
     return node_service_->GetNode(node_id);
   }
 
-  void subscribe(NodeRefObserver& observer) const {
-    node_service_->Subscribe(observer);
+  [[nodiscard]] boost::signals2::scoped_connection subscribe_model_changed(
+      const ModelChangedCallback& callback) const {
+    return node_service_->SubscribeModelChanged(callback);
   }
 
-  void unsubscribe(NodeRefObserver& observer) const {
-    node_service_->Unsubscribe(observer);
+  [[nodiscard]] boost::signals2::scoped_connection
+  subscribe_node_semantic_changed(
+      const NodeSemanticChangedCallback& callback) const {
+    return node_service_->SubscribeNodeSemanticChanged(callback);
+  }
+
+  [[nodiscard]] boost::signals2::scoped_connection subscribe_node_fetched(
+      const NodeFetchedCallback& callback) const {
+    return node_service_->SubscribeNodeFetched(callback);
+  }
+
+  [[nodiscard]] boost::signals2::scoped_connection subscribe_node_state_changed(
+      const NodeStateChangedCallback& callback) const {
+    return node_service_->SubscribeNodeStateChanged(callback);
   }
 
   size_t pending_task_count() const {

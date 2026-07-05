@@ -2,7 +2,6 @@
 
 #include "base/check.h"
 #include "model/node_id_util.h"
-#include "node_service/node_observer.h"
 
 namespace v1 {
 
@@ -10,8 +9,6 @@ NodeModelImpl::NodeModelImpl(NodeModelImplContext&& context)
     : NodeModelImplContext{std::move(context)} {}
 
 NodeModelImpl::~NodeModelImpl() {
-  base::Check(!observers_.might_have_observers());
-
   // delegate_.OnNodeModelDeleted(node_id_);
 }
 
@@ -21,13 +18,11 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted)
     OnNodeDeleted();
 
-  for (auto& o : observers_)
-    o.OnModelChanged(event);
+  signals_.model_changed(event);
 }
 
 void NodeModelImpl::OnNodeSemanticChanged() {
-  for (auto& o : observers_)
-    o.OnNodeSemanticChanged(node_id_);
+  signals_.node_semantic_changed(node_id_);
 }
 
 scada::Variant NodeModelImpl::GetAttribute(
@@ -176,10 +171,8 @@ void NodeModelImpl::SetFetchStatus(const scada::Node* node,
 }
 
 void NodeModelImpl::NotifyFetchStatus() {
-  for (auto& o : observers_) {
-    o.OnNodeSemanticChanged(node_id_);
-    o.OnNodeFetched({node_id_});
-  }
+  signals_.node_semantic_changed(node_id_);
+  signals_.node_fetched({node_id_});
 }
 
 void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {

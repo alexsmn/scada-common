@@ -62,6 +62,22 @@ NodeRef ProxyNodeModel::GetChild(const scada::QualifiedName& child_name) const {
   return {};
 }
 
-void ProxyNodeModel::Subscribe(NodeRefObserver& observer) const {}
+boost::signals2::scoped_connection ProxyNodeModel::SubscribeModelChanged(
+    const ModelChangedCallback& callback) const {
+  return {};
+}
 
-void ProxyNodeModel::Unsubscribe(NodeRefObserver& observer) const {}
+boost::signals2::scoped_connection ProxyNodeModel::SubscribeNodeSemanticChanged(
+    const NodeSemanticChangedCallback& callback) const {
+  return {};
+}
+
+boost::signals2::scoped_connection ProxyNodeModel::SubscribeNodeFetched(
+    const NodeFetchedCallback& callback) const {
+  return {};
+}
+
+boost::signals2::scoped_connection ProxyNodeModel::SubscribeNodeStateChanged(
+    const NodeStateChangedCallback& callback) const {
+  return {};
+}

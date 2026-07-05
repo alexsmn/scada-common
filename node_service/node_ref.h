@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "node_service/node_events.h"
 #include "node_service/node_fetch_status.h"
 #include "scada/attribute_ids.h"
 #include "scada/data_value.h"
@@ -8,11 +9,11 @@
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 
+#include <boost/signals2/connection.hpp>
 #include <memory>
 #include <optional>
 
 class NodeModel;
-class NodeRefObserver;
 
 class NodeRef {
  public:
@@ -86,8 +87,16 @@ class NodeRef {
 
   const std::shared_ptr<const NodeModel>& model() const { return model_; }
 
-  void Subscribe(NodeRefObserver& observer) const;
-  void Unsubscribe(NodeRefObserver& observer) const;
+  // Subscriptions forward to the underlying model; a null ref returns an
+  // empty connection.
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeModelChanged(
+      const ModelChangedCallback& callback) const;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const;
+  [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const;
 
   scada::node scada_node() const;
 

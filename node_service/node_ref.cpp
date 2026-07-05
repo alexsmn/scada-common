@@ -146,14 +146,28 @@ scada::Status NodeRef::status() const {
   return model_ ? model_->GetStatus() : scada::StatusCode::Bad_WrongNodeId;
 }
 
-void NodeRef::Subscribe(NodeRefObserver& observer) const {
-  if (model_)
-    model_->Subscribe(observer);
+boost::signals2::scoped_connection NodeRef::SubscribeModelChanged(
+    const ModelChangedCallback& callback) const {
+  return model_ ? model_->SubscribeModelChanged(callback)
+                : boost::signals2::scoped_connection{};
 }
 
-void NodeRef::Unsubscribe(NodeRefObserver& observer) const {
-  if (model_)
-    model_->Unsubscribe(observer);
+boost::signals2::scoped_connection NodeRef::SubscribeNodeSemanticChanged(
+    const NodeSemanticChangedCallback& callback) const {
+  return model_ ? model_->SubscribeNodeSemanticChanged(callback)
+                : boost::signals2::scoped_connection{};
+}
+
+boost::signals2::scoped_connection NodeRef::SubscribeNodeFetched(
+    const NodeFetchedCallback& callback) const {
+  return model_ ? model_->SubscribeNodeFetched(callback)
+                : boost::signals2::scoped_connection{};
+}
+
+boost::signals2::scoped_connection NodeRef::SubscribeNodeStateChanged(
+    const NodeStateChangedCallback& callback) const {
+  return model_ ? model_->SubscribeNodeStateChanged(callback)
+                : boost::signals2::scoped_connection{};
 }
 
 scada::node NodeRef::scada_node() const {

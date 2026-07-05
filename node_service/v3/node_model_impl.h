@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/lifetime.h"
-#include "base/observer_list.h"
 #include "common/node_state.h"
 #include "node_service/base_node_model.h"
 

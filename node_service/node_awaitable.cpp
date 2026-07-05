@@ -1,10 +1,10 @@
 #include "node_service/node_awaitable.h"
 
-#include "node_service/node_observer.h"
 #include "node_service/node_service.h"
 
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/signals2/connection.hpp>
 
 #include <functional>
 #include <memory>
@@ -14,8 +14,7 @@
 namespace {
 
 class PendingNodesWaiter final
-    : private NodeRefObserver,
-      public std::enable_shared_from_this<PendingNodesWaiter> {
+    : public std::enable_shared_from_this<PendingNodesWaiter> {
  public:
   explicit PendingNodesWaiter(NodeService& node_service)
       : node_service_{node_service} {}
@@ -33,30 +32,19 @@ class PendingNodesWaiter final
       (*completion)();
     };
 
-    node_service_.Subscribe(*this);
-    subscribed_ = true;
+    node_fetched_connection_ = node_service_.SubscribeNodeFetched(
+        [this](const NodeFetchedEvent&) { TryResolve(); });
     TryResolve();
   }
 
-  ~PendingNodesWaiter() {
-    if (subscribed_) {
-      node_service_.Unsubscribe(*this);
-    }
-  }
-
  private:
-  void OnNodeFetched(const NodeFetchedEvent&) override { TryResolve(); }
-
   void TryResolve() {
     if (resolved_ || node_service_.GetPendingTaskCount() != 0) {
       return;
     }
 
     resolved_ = true;
-    if (subscribed_) {
-      node_service_.Unsubscribe(*this);
-      subscribed_ = false;
-    }
+    node_fetched_connection_.disconnect();
 
     auto callback = std::move(callback_);
     callback_ = nullptr;
@@ -67,8 +55,8 @@ class PendingNodesWaiter final
 
   NodeService& node_service_;
   std::function<void()> callback_;
-  bool subscribed_ = false;
   bool resolved_ = false;
+  boost::signals2::scoped_connection node_fetched_connection_;
 };
 
 template <class CompletionToken = boost::asio::use_awaitable_t<>>

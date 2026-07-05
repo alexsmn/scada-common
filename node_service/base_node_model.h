@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/observer_list.h"
+#include "node_service/node_events.h"
 #include "node_service/node_model.h"
 
 #include <functional>
@@ -16,8 +16,16 @@ class BaseNodeModel : public NodeModel {
       const NodeFetchStatus& requested_status) const override;
   virtual NodeFetchStatus GetFetchStatus() const override;
   virtual scada::Status GetStatus() const override;
-  virtual void Subscribe(NodeRefObserver& observer) const override;
-  virtual void Unsubscribe(NodeRefObserver& observer) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const ModelChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeSemanticChanged(
+      const NodeSemanticChangedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
+      const NodeFetchedCallback& callback) const override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeNodeStateChanged(
+      const NodeStateChangedCallback& callback) const override;
 
  protected:
   class ScopedCallbackLock {
@@ -58,5 +66,5 @@ class BaseNodeModel : public NodeModel {
   // callback enqueued without growing the stack.
   mutable bool notifying_callbacks_ = false;
 
-  mutable base::ObserverList<NodeRefObserver> observers_;
+  NodeSignals signals_;
 };

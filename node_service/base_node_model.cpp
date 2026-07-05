@@ -2,7 +2,6 @@
 
 #include "base/auto_reset.h"
 #include "base/check.h"
-#include "node_service/node_observer.h"
 
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/use_awaitable.hpp>
@@ -69,14 +68,24 @@ NodeFetchStatus BaseNodeModel::GetFetchStatus() const {
   return fetch_status_;
 }
 
-void BaseNodeModel::Subscribe(NodeRefObserver& observer) const {
-  base::Check(!observers_.HasObserver(&observer));
-  observers_.AddObserver(&observer);
+boost::signals2::scoped_connection BaseNodeModel::SubscribeModelChanged(
+    const ModelChangedCallback& callback) const {
+  return signals_.model_changed.connect(callback);
 }
 
-void BaseNodeModel::Unsubscribe(NodeRefObserver& observer) const {
-  base::Check(observers_.HasObserver(&observer));
-  observers_.RemoveObserver(&observer);
+boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeSemanticChanged(
+    const NodeSemanticChangedCallback& callback) const {
+  return signals_.node_semantic_changed.connect(callback);
+}
+
+boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeFetched(
+    const NodeFetchedCallback& callback) const {
+  return signals_.node_fetched.connect(callback);
+}
+
+boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeStateChanged(
+    const NodeStateChangedCallback& callback) const {
+  return signals_.node_state_changed.connect(callback);
 }
 
 void BaseNodeModel::OnFetchRequested(const NodeFetchStatus& requested_status) {}
