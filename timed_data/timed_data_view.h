@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/boost_log.h"
+#include "base/check.h"
 #include "base/constraints.h"
 #include "base/format_time.h"
 #include "base/interval_util.h"
@@ -19,7 +20,7 @@ template <typename T>
 class BasicTimedDataView final {
  public:
   BasicTimedDataView() = default;
-  ~BasicTimedDataView() { assert(!observers_.might_have_observers()); }
+  ~BasicTimedDataView() { base::Check(!observers_.might_have_observers()); }
 
   BasicTimedDataView(const BasicTimedDataView&) = delete;
   BasicTimedDataView& operator=(const BasicTimedDataView&) = delete;
@@ -107,9 +108,9 @@ template <typename T>
 inline void BasicTimedDataView<T>::AddObserver(
     BasicTimedDataViewObserver<T>& observer,
     const scada::DateTimeRange& range) {
-  assert(!range.second.is_null());
-  assert(IsValidInterval(range));
-  assert(range.first == kTimedDataCurrentOnly || !IsEmptyInterval(range));
+  base::Check(!range.second.is_null());
+  base::Check(IsValidInterval(range));
+  base::Check(range.first == kTimedDataCurrentOnly || !IsEmptyInterval(range));
 
   if (!observers_.HasObserver(&observer))
     observers_.AddObserver(&observer);
@@ -147,7 +148,7 @@ inline void BasicTimedDataView<T>::UpdateObservedRanges() {
 
   for (const auto& [observer, range] : observer_ranges_) {
     if (range.first != kTimedDataCurrentOnly) {
-      assert(!IsEmptyInterval(range));
+      base::Check(!IsEmptyInterval(range));
       UnionIntervals(observed_ranges_, range);
     }
   }
@@ -175,8 +176,8 @@ inline void BasicTimedDataView<T>::AddReadyRange(
 
 template <typename T>
 inline void BasicTimedDataView<T>::NotifyUpdates(std::span<const T> values) {
-  assert(!values.empty());
-  assert(IsTimeSorted(values));
+  base::Check(!values.empty());
+  base::Check(IsTimeSorted(values));
 
   for (auto& o : observers_)
     o.OnTimedDataUpdates(values);
@@ -212,8 +213,8 @@ inline bool BasicTimedDataView<T>::InsertOrUpdate(const T& value) {
 template <typename T>
 inline void BasicTimedDataView<T>::ClearRange(
     const scada::DateTimeRange& range) {
-  assert(!range.first.is_null());
-  assert(range.second.is_null() || range.first <= range.second);
+  base::Check(!range.first.is_null());
+  base::Check(range.second.is_null() || range.first <= range.second);
 
   auto i = LowerBound(values_, range.first);
   auto j = range.second.is_null() ? values_.size()
@@ -263,5 +264,5 @@ inline void BasicTimedDataView<T>::ReplaceRange(std::span<T> values) {
     });
   }
 
-  assert(IsTimeSorted(values_));
+  base::Check(IsTimeSorted(values_));
 }

@@ -1,5 +1,6 @@
 #include "events/event_storage.h"
 
+#include "base/check.h"
 #include "events/event_observer.h"
 
 const scada::Event* EventStorage::Add(const scada::Event& event) {
@@ -8,9 +9,8 @@ const scada::Event* EventStorage::Add(const scada::Event& event) {
 
   // Replace old event on update.
   if (!inserted) {
-    // |tid| and |rid| mustn't be changed.
-    assert(contained_event.node_id == event.node_id);
-    // Replace existing event.
+    // Events arrive from a (possibly remote) server; a node-id change for an
+    // existing event id is tolerated by replacing the stored event.
     contained_event = event;
   }
 
@@ -42,7 +42,7 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
       NodeEntry& entry = p->second;
 
       auto j = entry.events.find(&contained_event);
-      assert(j != entry.events.end());
+      base::Check(j != entry.events.end());
       entry.events.erase(j);
 
       NodeEventsChanged(observers_, contained_event.node_id, entry.events);

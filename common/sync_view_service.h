@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/check.h"
 #include "scada/view_service.h"
 
 #include <span>
@@ -19,6 +20,6 @@ inline scada::BrowseResult Browse(SyncViewService& view_service,
                                   const scada::BrowseDescription& input) {
   std::span<const scada::BrowseDescription> inputs{&input, 1};
   auto results = view_service.Browse(inputs);
-  assert(results.size() == 1);
+  base::Check(results.size() == 1);
   return std::move(results.front());
 }

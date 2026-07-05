@@ -1,5 +1,6 @@
 #include "opc/opc_convertions.h"
 
+#include "base/check.h"
 #include "opc/variant_converter.h"
 
 #include "base/utf_convert.h"
@@ -20,7 +21,7 @@ inline std::string ToString(std::wstring_view str) {
 }
 
 inline scada::Qualifier ConvertBadQuality(opc_client::Quality quality) {
-  assert(quality.bad());
+  base::Check(quality.bad());
 
   switch (quality.raw()) {
     case OPC_QUALITY_CONFIG_ERROR:
@@ -77,7 +78,8 @@ scada::Qualifier OpcQualityConverter::ToScada(opc_client::Quality quality) {
   } else if (quality.uncertain()) {
     return scada::Qualifier{scada::Qualifier::STALE};
   } else {
-    assert(false);
+    // Quality comes from an external classic-OPC server; map unrecognized
+    // bits to BAD instead of panicking.
     return scada::Qualifier{scada::Qualifier::BAD};
   }
 }

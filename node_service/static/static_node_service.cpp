@@ -1,5 +1,6 @@
 #include "node_service/static/static_node_service.h"
 
+#include "base/check.h"
 #include "base/map_util.h"
 #include "common/data_services_util.h"
 #include "model/nested_node_ids.h"
@@ -18,7 +19,7 @@ void RelocateReferences(scada::NodeState& node_state) {
   }
 
   if (!node_state.parent_id.is_null()) {
-    assert(!node_state.reference_type_id.is_null());
+    base::Check(!node_state.reference_type_id.is_null());
 
     node_state.references.emplace_back(
         /*reference_type_id=*/std::move(node_state.reference_type_id),
@@ -41,9 +42,9 @@ StaticNodeService::StaticNodeService(DataServices data_services)
     : data_services_{std::move(data_services)} {}
 
 void StaticNodeService::Add(scada::NodeState node_state) {
-  assert(!node_state.node_id.is_null());
-  assert(scada::IsInstance(node_state.node_class) ^
-         node_state.type_definition_id.is_null());
+  base::Check(!node_state.node_id.is_null());
+  base::Check(scada::IsInstance(node_state.node_class) ^
+              node_state.type_definition_id.is_null());
 
   RelocateReferences(node_state);
 
@@ -112,9 +113,9 @@ StaticNodeService::inverse_references(const scada::NodeId& node_id) const {
 void StaticNodeService::AddInverseReference(
     const scada::NodeId& node_id,
     const scada::ReferenceDescription& desc) {
-  assert(!node_id.is_null());
-  assert(!desc.reference_type_id.is_null());
-  assert(!desc.node_id.is_null());
+  base::Check(!node_id.is_null());
+  base::Check(!desc.reference_type_id.is_null());
+  base::Check(!desc.node_id.is_null());
 
   inverse_references_[desc.node_id].emplace(
       /*reference_type_id=*/desc.reference_type_id,

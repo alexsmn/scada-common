@@ -1,5 +1,6 @@
 #include "node_service/node_ref.h"
 
+#include "base/check.h"
 #include "node_service/node_model.h"
 
 bool NodeRef::fetched() const {
@@ -125,7 +126,7 @@ NodeRef NodeRef::operator[](const scada::QualifiedName& child_name) const {
 
 Awaitable<NodeRef> NodeRef::Fetch(
     const NodeFetchStatus& requested_status) const {
-  assert(!requested_status.empty());
+  base::Check(!requested_status.empty());
 
   if (model_) {
     co_await model_->Fetch(requested_status);
@@ -135,7 +136,7 @@ Awaitable<NodeRef> NodeRef::Fetch(
 }
 
 void NodeRef::StartFetch(const NodeFetchStatus& requested_status) const {
-  assert(!requested_status.empty());
+  base::Check(!requested_status.empty());
 
   if (model_)
     model_->StartFetch(requested_status);

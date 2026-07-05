@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/check.h"
 #include "common/node_state.h"
 #include "common/node_state_util.h"
 #include "node_service/node_model.h"
@@ -35,13 +36,13 @@ class TestNodeModel final : public NodeModel {
 
   virtual Awaitable<void> Fetch(
       const NodeFetchStatus& requested_status) const override {
-    assert(false);
+    base::NotReached();
     co_return;
   }
 
   virtual void StartFetch(
       const NodeFetchStatus& requested_status) const override {
-    assert(false);
+    base::NotReached();
   }
 
   virtual scada::Variant GetAttribute(
@@ -50,7 +51,7 @@ class TestNodeModel final : public NodeModel {
   }
 
   virtual NodeRef GetDataType() const override {
-    assert(false);
+    base::NotReached();
     return nullptr;
   }
 
@@ -91,7 +92,7 @@ class TestNodeModel final : public NodeModel {
 
   virtual NodeRef GetChild(
       const scada::QualifiedName& child_name) const override {
-    assert(false);
+    base::NotReached();
     return nullptr;
   }
 
@@ -100,7 +101,7 @@ class TestNodeModel final : public NodeModel {
   virtual void Unsubscribe(NodeRefObserver& observer) const override {}
 
   virtual scada::node GetScadaNode() const override {
-    assert(false);
+    base::NotReached();
     return {};
   }
 

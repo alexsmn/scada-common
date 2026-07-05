@@ -1,4 +1,5 @@
 #include "address_space/address_space_impl.h"
+#include "base/check.h"
 
 #include "address_space/address_space_util.h"
 #include "address_space/node_observer.h"
@@ -27,7 +28,7 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
                                   scada::NodeAttributes attributes,
                                   scada::NodeProperties properties) {
   auto* node = GetMutableNode(id);
-  assert(node);
+  base::Check(node);
 
   scada::AttributeSet attribute_set;
 
@@ -51,16 +52,13 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 
         // Property ignores timestamps.
         // TODO: Avoid timestamp.
-        auto status = variable->SetValue(std::move(new_data_value));
-        if (!status) {
-          // TODO: Handle error.
-          assert(false);
-        }
+        // The value is data-dependent (may come from external
+        // configuration); a failed update is ignored.
+        (void)variable->SetValue(std::move(new_data_value));
       }
 
     } else {
-      // TODO: Handle error.
-      assert(false);
+      // A value for a non-variable node is external-data dependent; ignore.
     }
   }
 
@@ -74,12 +72,8 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
       continue;
 
     pids[pid_count++] = prop_decl_id;
-    auto status =
-        scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
-    if (!status) {
-      // TODO: Handle error.
-      assert(false);
-    }
+    // Property values are data-dependent; a failed update is ignored.
+    (void)scada::SetPropertyValue(*node, prop_decl_id, std::move(value));
   }
 
   // Notify.
@@ -95,11 +89,11 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 }
 
 void AddressSpaceImpl::AddNode(scada::Node& node) {
-  assert(!node.id().is_null());
-  assert(!GetNode(node.id()));
+  base::Check(!node.id().is_null());
+  base::Check(!GetNode(node.id()));
 
   auto& mapped_node = node_map_[node.id()];
-  assert(!mapped_node);
+  base::Check(!mapped_node);
   mapped_node = &node;
 }
 
@@ -108,7 +102,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
                          const scada::NodeId& reference_type_id,
                          const scada::NodeId& parent_id) {
   auto* parent = address_space.GetMutableNode(parent_id);
-  assert(parent);
+  base::Check(parent);
 
   AddNodeAndReference(address_space, node, reference_type_id, *parent);
 }
@@ -183,7 +177,7 @@ void AddressSpaceImpl::Subscribe(scada::NodeObserver& events) const {
 }
 
 void AddressSpaceImpl::Unsubscribe(scada::NodeObserver& events) const {
-  assert(observers_.HasObserver(&events));
+  base::Check(observers_.HasObserver(&events));
   observers_.RemoveObserver(&events);
 
   if (parent_address_space_)
@@ -201,7 +195,7 @@ void AddressSpaceImpl::SubscribeNode(const scada::NodeId& node_id,
 void AddressSpaceImpl::UnsubscribeNode(const scada::NodeId& node_id,
                                        scada::NodeObserver& events) const {
   auto i = node_events_.find(node_id);
-  assert(i != node_events_.end());
+  base::Check(i != node_events_.end());
   auto& e = i->second;
   e.RemoveObserver(&events);
 

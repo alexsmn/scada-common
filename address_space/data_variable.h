@@ -7,6 +7,7 @@
 #include "address_space/node_variable_handle.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/check.h"
 #include "base/time/time.h"
 #include "scada/data_value.h"
 #include "scada/standard_node_ids.h"
@@ -52,7 +53,7 @@ inline DataVariable<ValueType>::DataVariable(
     : instance_declaration_{
           AsVariable(builder.GetMutableNode(instance_declaration_id))} {
   auto* type_definition = instance_declaration_.type_definition();
-  assert(type_definition);
+  base::Check(type_definition);
 
   value_ = instance_declaration_.GetValue();
 

@@ -5,6 +5,7 @@
 #include "address_space/generic_node_factory.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/type_definition.h"
+#include "base/check.h"
 #include "common/node_state.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
@@ -50,7 +51,9 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("DataItems").set_display_name(u"Все объекты")});
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("DataItems")
+                        .set_display_name(u"Все объекты")});
 
   // Base data-item type.
   nodes.push_back(scada::NodeState{
@@ -58,10 +61,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::VariableType,
       .parent_id = {scada::id::BaseVariableType, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DataItemType")
-                        .set_display_name(u"Объект")
-                        .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("DataItemType")
+              .set_display_name(u"Объект")
+              .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
       .supertype_id = {scada::id::BaseVariableType, NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
       .node_id = di::DataItemType_Alias,
@@ -69,10 +73,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Alias")
-                        .set_display_name(u"Алиас")
-                        .set_data_type({scada::id::String, NamespaceIndexes::NS0})});
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("Alias")
+              .set_display_name(u"Алиас")
+              .set_data_type({scada::id::String, NamespaceIndexes::NS0})});
 
   // Analog item type (ТИТ) and the properties tests reference.
   nodes.push_back(scada::NodeState{
@@ -80,10 +85,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::VariableType,
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("AnalogItemType")
-                        .set_display_name(u"Объект ТИТ")
-                        .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("AnalogItemType")
+              .set_display_name(u"Объект ТИТ")
+              .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
       .supertype_id = di::DataItemType});
   nodes.push_back(scada::NodeState{
       .node_id = di::AnalogItemType_DisplayFormat,
@@ -91,10 +97,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
       .parent_id = di::AnalogItemType,
       .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DisplayFormat")
-                        .set_display_name(u"Формат")
-                        .set_data_type({scada::id::String, NamespaceIndexes::NS0})});
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("DisplayFormat")
+              .set_display_name(u"Формат")
+              .set_data_type({scada::id::String, NamespaceIndexes::NS0})});
 
   // Discrete item type (ТС) and the properties tests reference.
   nodes.push_back(scada::NodeState{
@@ -102,10 +109,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::VariableType,
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DiscreteItemType")
-                        .set_display_name(u"Объект ТС")
-                        .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("DiscreteItemType")
+              .set_display_name(u"Объект ТС")
+              .set_data_type({scada::id::BaseDataType, NamespaceIndexes::NS0}),
       .supertype_id = di::DataItemType});
   nodes.push_back(scada::NodeState{
       .node_id = di::DiscreteItemType_Inversion,
@@ -113,10 +121,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
       .parent_id = di::DiscreteItemType,
       .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Inverted")
-                        .set_display_name(u"Инверсия")
-                        .set_data_type({scada::id::Boolean, NamespaceIndexes::NS0})});
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("Inverted")
+              .set_display_name(u"Инверсия")
+              .set_data_type({scada::id::Boolean, NamespaceIndexes::NS0})});
 
   // Format type and the format-link reference type used by timed-data tests.
   nodes.push_back(scada::NodeState{
@@ -124,7 +133,9 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("TsFormatType").set_display_name(u"Формат"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("TsFormatType")
+                        .set_display_name(u"Формат"),
       .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType_CloseLabel,
@@ -135,7 +146,8 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .attributes = scada::NodeAttributes{}
                         .set_browse_name("CloseLabel")
                         .set_display_name(u"Подпись 1")
-                        .set_data_type({scada::id::LocalizedText, NamespaceIndexes::NS0})});
+                        .set_data_type({scada::id::LocalizedText,
+                                        NamespaceIndexes::NS0})});
 
   // Data group type used by configuration/object-tree tests.
   nodes.push_back(scada::NodeState{
@@ -143,7 +155,9 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("DataGroupType").set_display_name(u"Группа"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("DataGroupType")
+                        .set_display_name(u"Группа"),
       .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
 
   // Conversion enumeration data type referenced by AnalogItemType_Conversion.
@@ -152,7 +166,9 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::DataType,
       .parent_id = {scada::id::Enumeration, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("AnalogConversionDataType").set_display_name(u"Преобразование"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("AnalogConversionDataType")
+                        .set_display_name(u"Преобразование"),
       .supertype_id = {scada::id::Enumeration, NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
       .node_id = di::AnalogConversionDataType_EnumStrings,
@@ -160,20 +176,24 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
       .parent_id = di::AnalogConversionDataType,
       .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("EnumStrings")
-                        .set_display_name(u"EnumStrings")
-                        .set_data_type({scada::id::LocalizedText, NamespaceIndexes::NS0})
-                        .set_value(scada::Variant{std::vector<scada::LocalizedText>{u"Нет", u"Линейное"}})});
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("EnumStrings")
+              .set_display_name(u"EnumStrings")
+              .set_data_type({scada::id::LocalizedText, NamespaceIndexes::NS0})
+              .set_value(scada::Variant{
+                  std::vector<scada::LocalizedText>{u"Нет", u"Линейное"}})});
 
-  // Full DataItemType / AnalogItemType / DiscreteItemType property declarations,
-  // mirroring data_items.xml (and scada_core.xml for Conversion). Tests such as
-  // ExportDataReader require every property column's declaration to exist.
+  // Full DataItemType / AnalogItemType / DiscreteItemType property
+  // declarations, mirroring data_items.xml (and scada_core.xml for Conversion).
+  // Tests such as ExportDataReader require every property column's declaration
+  // to exist.
   const scada::NodeId kString{scada::id::String, NamespaceIndexes::NS0};
   const scada::NodeId kBool{scada::id::Boolean, NamespaceIndexes::NS0};
   const scada::NodeId kInt32{scada::id::Int32, NamespaceIndexes::NS0};
   const scada::NodeId kDouble{scada::id::Double, NamespaceIndexes::NS0};
-  const scada::NodeId kLocalizedText{scada::id::LocalizedText, NamespaceIndexes::NS0};
+  const scada::NodeId kLocalizedText{scada::id::LocalizedText,
+                                     NamespaceIndexes::NS0};
 
   struct PropertyDef {
     scada::NodeId id;
@@ -185,29 +205,50 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
 
   const PropertyDef kProperties[] = {
       // DataItemType properties.
-      {di::DataItemType_Simulated, di::DataItemType, "Simulated", u"Эмуляция", kBool},
-      {di::DataItemType_Severity, di::DataItemType, "Severity", u"Важность", kInt32},
-      {di::DataItemType_Input1, di::DataItemType, "Input1", u"Основной ввод", kString},
-      {di::DataItemType_Input2, di::DataItemType, "Input2", u"Резервный ввод", kString},
+      {di::DataItemType_Simulated, di::DataItemType, "Simulated", u"Эмуляция",
+       kBool},
+      {di::DataItemType_Severity, di::DataItemType, "Severity", u"Важность",
+       kInt32},
+      {di::DataItemType_Input1, di::DataItemType, "Input1", u"Основной ввод",
+       kString},
+      {di::DataItemType_Input2, di::DataItemType, "Input2", u"Резервный ввод",
+       kString},
       {di::DataItemType_Output, di::DataItemType, "Output", u"Вывод", kString},
-      {di::DataItemType_OutputCondition, di::DataItemType, "OutputCondition", u"Условие управления", kString},
-      {di::DataItemType_StalePeriod, di::DataItemType, "StalePeriod", u"Устаревание, с", kInt32},
-      {di::DataItemType_Locked, di::DataItemType, "Locked", u"Блокировка", kBool},
-      {di::DataItemType_OutputTwoStaged, di::DataItemType, "OutputTwoStaged", u"Двухэтапное управление", kBool},
+      {di::DataItemType_OutputCondition, di::DataItemType, "OutputCondition",
+       u"Условие управления", kString},
+      {di::DataItemType_StalePeriod, di::DataItemType, "StalePeriod",
+       u"Устаревание, с", kInt32},
+      {di::DataItemType_Locked, di::DataItemType, "Locked", u"Блокировка",
+       kBool},
+      {di::DataItemType_OutputTwoStaged, di::DataItemType, "OutputTwoStaged",
+       u"Двухэтапное управление", kBool},
       // AnalogItemType properties.
-      {di::AnalogItemType_Conversion, di::AnalogItemType, "Conversion", u"Преобразование", di::AnalogConversionDataType},
-      {di::AnalogItemType_Clamping, di::AnalogItemType, "Clamping", u"Ограничение диапазона", kBool},
-      {di::AnalogItemType_EuLo, di::AnalogItemType, "EuLo", u"Логический минимимум", kDouble},
-      {di::AnalogItemType_EuHi, di::AnalogItemType, "EuHi", u"Логический максимум", kDouble},
-      {di::AnalogItemType_IrLo, di::AnalogItemType, "IrLo", u"Физический минимимум", kDouble},
-      {di::AnalogItemType_IrHi, di::AnalogItemType, "IrHi", u"Физический максимум", kDouble},
-      {di::AnalogItemType_LimitLo, di::AnalogItemType, "LimitLo", u"Уставка нижняя предаварийная", kDouble},
-      {di::AnalogItemType_LimitHi, di::AnalogItemType, "LimitHi", u"Уставка верхняя предаварийная", kDouble},
-      {di::AnalogItemType_LimitLoLo, di::AnalogItemType, "LimitLoLo", u"Уставка нижняя аварийная", kDouble},
-      {di::AnalogItemType_LimitHiHi, di::AnalogItemType, "LimitHiHi", u"Уставка верхняя аварийная", kDouble},
-      {di::AnalogItemType_EngineeringUnits, di::AnalogItemType, "EngineeringUnits", u"Единицы измерения", kLocalizedText},
-      {di::AnalogItemType_Aperture, di::AnalogItemType, "Aperture", u"Апертура", kDouble},
-      {di::AnalogItemType_Deadband, di::AnalogItemType, "Deadband", u"Мертвая зона", kDouble},
+      {di::AnalogItemType_Conversion, di::AnalogItemType, "Conversion",
+       u"Преобразование", di::AnalogConversionDataType},
+      {di::AnalogItemType_Clamping, di::AnalogItemType, "Clamping",
+       u"Ограничение диапазона", kBool},
+      {di::AnalogItemType_EuLo, di::AnalogItemType, "EuLo",
+       u"Логический минимимум", kDouble},
+      {di::AnalogItemType_EuHi, di::AnalogItemType, "EuHi",
+       u"Логический максимум", kDouble},
+      {di::AnalogItemType_IrLo, di::AnalogItemType, "IrLo",
+       u"Физический минимимум", kDouble},
+      {di::AnalogItemType_IrHi, di::AnalogItemType, "IrHi",
+       u"Физический максимум", kDouble},
+      {di::AnalogItemType_LimitLo, di::AnalogItemType, "LimitLo",
+       u"Уставка нижняя предаварийная", kDouble},
+      {di::AnalogItemType_LimitHi, di::AnalogItemType, "LimitHi",
+       u"Уставка верхняя предаварийная", kDouble},
+      {di::AnalogItemType_LimitLoLo, di::AnalogItemType, "LimitLoLo",
+       u"Уставка нижняя аварийная", kDouble},
+      {di::AnalogItemType_LimitHiHi, di::AnalogItemType, "LimitHiHi",
+       u"Уставка верхняя аварийная", kDouble},
+      {di::AnalogItemType_EngineeringUnits, di::AnalogItemType,
+       "EngineeringUnits", u"Единицы измерения", kLocalizedText},
+      {di::AnalogItemType_Aperture, di::AnalogItemType, "Aperture", u"Апертура",
+       kDouble},
+      {di::AnalogItemType_Deadband, di::AnalogItemType, "Deadband",
+       u"Мертвая зона", kDouble},
   };
 
   for (const auto& prop : kProperties) {
@@ -217,15 +258,16 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
         .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
         .parent_id = prop.parent,
         .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
-        .attributes = scada::NodeAttributes{}
-                          .set_browse_name(prop.browse_name)
-                          .set_display_name(scada::LocalizedText{prop.display_name})
-                          .set_data_type(prop.data_type)});
+        .attributes =
+            scada::NodeAttributes{}
+                .set_browse_name(prop.browse_name)
+                .set_display_name(scada::LocalizedText{prop.display_name})
+                .set_data_type(prop.data_type)});
   }
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);
-    assert(result.first);
+    base::Check(result.first);
   }
 }
 
@@ -247,7 +289,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(u"Все оборудование")});
+      .attributes =
+          scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
+              u"Все оборудование")});
 
   // Base device type.
   nodes.push_back(scada::NodeState{
@@ -255,7 +299,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("DeviceType").set_display_name(u"Устройство"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("DeviceType")
+                        .set_display_name(u"Устройство"),
       .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
 
   // IEC 61850 device type (subtype of DeviceType) and its logical-node type.
@@ -264,23 +310,30 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("Iec61850DeviceType").set_display_name(u"Устройство МЭК-61850"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("Iec61850DeviceType")
+                        .set_display_name(u"Устройство МЭК-61850"),
       .supertype_id = dev::DeviceType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::Iec61850LogicalNodeType,
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("Iec61850LogicalNodeType").set_display_name(u"Логический узел МЭК-61850"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("Iec61850LogicalNodeType")
+                        .set_display_name(u"Логический узел МЭК-61850"),
       .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
 
-  // IEC 60870 device type (subtype of DeviceType), used by device-metrics tests.
+  // IEC 60870 device type (subtype of DeviceType), used by device-metrics
+  // tests.
   nodes.push_back(scada::NodeState{
       .node_id = dev::Iec60870DeviceType,
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}.set_browse_name("Iec60870DeviceType").set_display_name(u"Устройство МЭК-60870"),
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("Iec60870DeviceType")
+                        .set_display_name(u"Устройство МЭК-60870"),
       .supertype_id = dev::DeviceType});
 
   // DeviceType metric components (HasComponent, BaseVariableType), in the order
@@ -297,34 +350,38 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       {dev::DeviceType_MessagesOut, "MessagesOut", u"Отправлено сообщений"},
       {dev::DeviceType_BytesIn, "BytesIn", u"Принято байт"},
       {dev::DeviceType_BytesOut, "BytesOut", u"Отправлено байт"},
-      {dev::DeviceType_SyncClockCount, "SyncClockCount", u"Число синхронизаций времени"},
-      {dev::DeviceType_InterrogateCount, "InterrogateCount", u"Число полных опросов"},
+      {dev::DeviceType_SyncClockCount, "SyncClockCount",
+       u"Число синхронизаций времени"},
+      {dev::DeviceType_InterrogateCount, "InterrogateCount",
+       u"Число полных опросов"},
   };
   for (const auto& component : kDeviceMetricComponents) {
     nodes.push_back(scada::NodeState{
         .node_id = component.id,
         .node_class = scada::NodeClass::Variable,
-        .type_definition_id = {scada::id::BaseVariableType, NamespaceIndexes::NS0},
+        .type_definition_id = {scada::id::BaseVariableType,
+                               NamespaceIndexes::NS0},
         .parent_id = dev::DeviceType,
         .reference_type_id = {scada::id::HasComponent, NamespaceIndexes::NS0},
         .attributes = scada::NodeAttributes{}
                           .set_browse_name(component.browse_name)
-                          .set_display_name(scada::LocalizedText{component.display_name})});
+                          .set_display_name(
+                              scada::LocalizedText{component.display_name})});
   }
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);
-    assert(result.first);
+    base::Check(result.first);
   }
 }
 
-// A ready-to-use code-defined SCADA address space: the standard OPC UA tree plus
-// the data_items and devices test type systems. Replaces `AddressSpaceImpl3` for
-// tests without loading any nodeset XML.
+// A ready-to-use code-defined SCADA address space: the standard OPC UA tree
+// plus the data_items and devices test type systems. Replaces
+// `AddressSpaceImpl3` for tests without loading any nodeset XML.
 //
-// `StandardAddressSpace` owns its standard nodes as members, so the address space
-// must drop its node references (Clear()) before those members are destroyed —
-// the destructor does this, mirroring `TestAddressSpace`.
+// `StandardAddressSpace` owns its standard nodes as members, so the address
+// space must drop its node references (Clear()) before those members are
+// destroyed — the destructor does this, mirroring `TestAddressSpace`.
 class ScadaTestAddressSpace : public AddressSpaceImpl {
  public:
   ScadaTestAddressSpace() {
@@ -336,7 +393,8 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     // nodes cannot be built by GenericNodeFactory, so add it directly: a data
     // group may contain data items.
     AddStaticNode<scada::ReferenceType>(scada::id::Creates, "Creates");
-    scada::AddReference(*this, scada::id::Creates, data_items::id::DataGroupType,
+    scada::AddReference(*this, scada::id::Creates,
+                        data_items::id::DataGroupType,
                         data_items::id::DataItemType);
 
     // Non-hierarchical reference types used as data-item property columns (e.g.

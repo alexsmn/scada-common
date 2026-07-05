@@ -41,7 +41,8 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
     : RootFolder{scada::id::RootFolder, "RootFolder", u"Корневая папка"},
       ObjectsFolder{scada::id::ObjectsFolder, "ObjectsFolder", u"Объекты"},
       TypesFolder{scada::id::TypesFolder, "TypesFolder", u"Типы"},
-      Server{scada::id::Server, "Server", u"Сервер"} {
+      Server{scada::id::Server, "Server", u"Сервер"},
+      address_space_{address_space} {
   address_space.AddNode(RootFolder);
   address_space.AddNode(ObjectsFolder);
   address_space.AddNode(TypesFolder);
@@ -160,4 +161,11 @@ StandardAddressSpace::StandardAddressSpace(AddressSpaceImpl& address_space)
   // Server
   address_space.AddReference(Organizes, ObjectsFolder, Server);
   address_space.AddReference(HasTypeDefinition, Server, BaseObjectType);
+}
+
+StandardAddressSpace::~StandardAddressSpace() {
+  // Drop every reference and unregister all nodes before the standard nodes
+  // (members of this struct) are destroyed; scada::Node fail-stops when
+  // destroyed with live references.
+  address_space_.Clear();
 }

@@ -1,4 +1,5 @@
 #include "address_space/node_utils.h"
+#include "base/check.h"
 
 #include "address_space/address_space.h"
 #include "address_space/object.h"
@@ -23,12 +24,12 @@ const Object* AsObject(const Node* node) {
 }
 
 Object& AsObject(Node& node) {
-  assert(node.GetNodeClass() == NodeClass::Object);
+  base::Check(node.GetNodeClass() == NodeClass::Object);
   return static_cast<Object&>(node);
 }
 
 const Object& AsObject(const Node& node) {
-  assert(node.GetNodeClass() == NodeClass::Object);
+  base::Check(node.GetNodeClass() == NodeClass::Object);
   return static_cast<const Object&>(node);
 }
 
@@ -45,12 +46,12 @@ Variable* AsVariable(Node* node) {
 }
 
 Variable& AsVariable(Node& node) {
-  assert(node.GetNodeClass() == NodeClass::Variable);
+  base::Check(node.GetNodeClass() == NodeClass::Variable);
   return static_cast<Variable&>(node);
 }
 
 const Variable& AsVariable(const Node& node) {
-  assert(node.GetNodeClass() == NodeClass::Variable);
+  base::Check(node.GetNodeClass() == NodeClass::Variable);
   return static_cast<const Variable&>(node);
 }
 
@@ -109,7 +110,7 @@ const DataType* AsDataType(const Node* node) {
 }
 
 const DataType& AsDataType(const Node& node) {
-  assert(node.GetNodeClass() == NodeClass::DataType);
+  base::Check(node.GetNodeClass() == NodeClass::DataType);
   return static_cast<const DataType&>(node);
 }
 
@@ -136,7 +137,7 @@ const Node* GetAggregateDeclaration(const TypeDefinition& type,
 }
 
 const Node* GetDeclaration(const Node& node) {
-  assert(!IsTypeDefinition(node.GetNodeClass()));
+  base::Check(!IsTypeDefinition(node.GetNodeClass()));
 
   const auto* parent = GetParent(node);
   if (!parent)
@@ -170,12 +171,12 @@ const TypeDefinition* AsTypeDefinition(const Node* node) {
 }
 
 TypeDefinition& AsTypeDefinition(Node& node) {
-  assert(IsTypeDefinition(node.GetNodeClass()));
+  base::Check(IsTypeDefinition(node.GetNodeClass()));
   return static_cast<TypeDefinition&>(node);
 }
 
 const TypeDefinition& AsTypeDefinition(const Node& node) {
-  assert(IsTypeDefinition(node.GetNodeClass()));
+  base::Check(IsTypeDefinition(node.GetNodeClass()));
   return static_cast<const TypeDefinition&>(node);
 }
 
@@ -244,9 +245,9 @@ Reference FindReference(const Node& node,
 
 bool IsRefSubtypeOf::operator()(const Reference& ref) const {
   // A reference whose type node is not present in the address space cannot be
-  // classified, so it never matches a reference-type filter. Guarding here keeps
-  // Browse from dereferencing a null type node on a partially populated address
-  // space rather than crashing.
+  // classified, so it never matches a reference-type filter. Guarding here
+  // keeps Browse from dereferencing a null type node on a partially populated
+  // address space rather than crashing.
   if (!ref.type)
     return false;
   if (include_subtypes_)
@@ -270,14 +271,14 @@ bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
 }
 
 NodeId GetModellingRuleId(const Node& node) {
-  assert(!IsTypeDefinition(node.GetNodeClass()));
+  base::Check(!IsTypeDefinition(node.GetNodeClass()));
   auto* modelling_rule = GetReference(node, id::HasModellingRule).node;
   return modelling_rule ? modelling_rule->id() : NodeId();
 }
 
 Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
   auto* declaration = FindDeclaration(node, prop_decl_id);
-  assert(declaration);
+  base::Check(declaration);
   if (!declaration)
     return {};
 
@@ -293,13 +294,13 @@ Status SetPropertyValue(Node& node,
                         const NodeId& prop_decl_id,
                         const Variant& value) {
   auto* declaration = FindDeclaration(node, prop_decl_id);
-  assert(declaration);
+  base::Check(declaration);
   if (!declaration)
     return StatusCode::Bad;
 
   auto* property =
       AsVariable(FindChild(node, declaration->GetBrowseName().name()));
-  assert(property);
+  base::Check(property);
   if (!property)
     return StatusCode::Bad;
 
@@ -318,7 +319,7 @@ const Variable* GetPropertyDeclaration(const TypeDefinition& type,
                                        const NodeId& prop_decl_id) {
   for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
     for (const auto& prop : GetProperties(*supertype)) {
-      assert(prop.GetNodeClass() == NodeClass::Variable);
+      base::Check(prop.GetNodeClass() == NodeClass::Variable);
       if (prop.id() == prop_decl_id)
         return &prop;
     }
@@ -328,13 +329,13 @@ const Variable* GetPropertyDeclaration(const TypeDefinition& type,
 
 Variant GetPropertyValueHelper(const Node& node, const NodeId& prop_decl_id) {
   auto* declaration = FindDeclaration(node, prop_decl_id);
-  assert(declaration);
+  base::Check(declaration);
   if (!declaration)
     return {};
 
   const auto* property =
       AsVariable(FindChild(node, declaration->GetBrowseName().name()));
-  assert(property);
+  base::Check(property);
   if (!property)
     return {};
 
@@ -345,13 +346,13 @@ Status SetPropertyValueHelper(Node& node,
                               const NodeId& prop_decl_id,
                               const Variant& value) {
   auto* declaration = FindDeclaration(node, prop_decl_id);
-  assert(declaration);
+  base::Check(declaration);
   if (!declaration)
     return StatusCode::Bad_WrongPropertyId;
 
   auto* property =
       AsVariable(FindChild(node, declaration->GetBrowseName().name()));
-  assert(property);
+  base::Check(property);
   if (!property)
     return StatusCode::Bad_WrongPropertyId;
 

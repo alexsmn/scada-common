@@ -1,5 +1,6 @@
 #include "master_data_services.h"
 
+#include "base/check.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
@@ -21,13 +22,13 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   ~MasterMonitoredItem() {
     if (owner_) {
       auto i = std::ranges::find(owner_->monitored_items_, this);
-      assert(i != owner_->monitored_items_.end());
+      base::Check(i != owner_->monitored_items_.end());
       owner_->monitored_items_.erase(i);
     }
   }
 
   virtual void Subscribe(scada::MonitoredItemHandler handler) override {
-    assert(!handler_);
+    base::Check(!handler_);
 
     if (!owner_) {
       return;
@@ -39,8 +40,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   }
 
   void Reconnect() {
-    assert(owner_);
-    assert(handler_.has_value());
+    base::Check(owner_);
 
     if (!handler_.has_value()) {
       return;
@@ -55,8 +55,8 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       return;
     }
 
-    assert(owner_->services_.monitored_item_service_);
-
+    // A session without a monitored-item service is handled below via the
+    // null |underlying_item_|.
     underlying_item_ =
         owner_->underlying_item_adapter_
             ? owner_->underlying_item_adapter_->CreateMonitoredItem(
@@ -341,9 +341,8 @@ MasterDataServices::TranslateBrowsePaths(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-MasterDataServices::Read(
-    scada::ServiceContext context,
-    std::vector<scada::ReadValueId> inputs) {
+MasterDataServices::Read(scada::ServiceContext context,
+                         std::vector<scada::ReadValueId> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Read(std::move(context), std::move(inputs));
@@ -352,9 +351,8 @@ MasterDataServices::Read(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-MasterDataServices::Write(
-    scada::ServiceContext context,
-    std::vector<scada::WriteValue> inputs) {
+MasterDataServices::Write(scada::ServiceContext context,
+                          std::vector<scada::WriteValue> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));

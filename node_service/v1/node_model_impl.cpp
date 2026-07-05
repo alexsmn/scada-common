@@ -1,5 +1,6 @@
 #include "node_service/v1/node_model_impl.h"
 
+#include "base/check.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 
@@ -9,7 +10,7 @@ NodeModelImpl::NodeModelImpl(NodeModelImplContext&& context)
     : NodeModelImplContext{std::move(context)} {}
 
 NodeModelImpl::~NodeModelImpl() {
-  assert(!observers_.might_have_observers());
+  base::Check(!observers_.might_have_observers());
 
   // delegate_.OnNodeModelDeleted(node_id_);
 }
@@ -108,7 +109,7 @@ NodeRef NodeModelImpl::GetAggregate(const scada::NodeId& declaration_id) const {
 }
 
 NodeRef NodeModelImpl::GetChild(const scada::QualifiedName& child_name) const {
-  assert(fetch_status_.node_fetched);
+  base::Check(fetch_status_.node_fetched);
 
   if (!node_)
     return nullptr;

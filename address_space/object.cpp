@@ -1,4 +1,5 @@
 #include "address_space/object.h"
+#include "base/check.h"
 
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
@@ -16,7 +17,7 @@ ComponentObject::ComponentObject(NodeBuilder& builder,
     : instance_declaration_{
           AsObject(builder.GetMutableNode(instance_declaration_id))} {
   auto* type = instance_declaration_.type_definition();
-  assert(type);
+  base::Check(type);
 
   if (type)
     builder.AddReference(id::HasTypeDefinition, *this, *type);

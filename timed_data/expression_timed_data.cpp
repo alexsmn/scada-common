@@ -1,5 +1,6 @@
 #include "timed_data/expression_timed_data.h"
 
+#include "base/check.h"
 #include "common/scada_expression.h"
 #include "common/timed_data_util.h"
 #include "timed_data/timed_data_property.h"
@@ -66,7 +67,7 @@ base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
     if (operand_ready_from == kTimedDataCurrentOnly)
       return kTimedDataCurrentOnly;
 
-    assert(!operand_ready_from.is_null());
+    base::Check(!operand_ready_from.is_null());
     if (operand_ready_from > ready_from)
       ready_from = operand_ready_from;
   }
@@ -77,8 +78,8 @@ base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
 void ExpressionTimedData::CalculateValuesInRange(
     const scada::DateTimeRange& range,
     std::vector<scada::DataValue>* tvqs) {
-  assert(!range.first.is_null());
-  assert(range.second.is_null() || range.first <= range.second);
+  base::Check(!range.first.is_null());
+  base::Check(range.second.is_null() || range.first <= range.second);
 
   std::vector<size_t> iters(operands_.size());
 
@@ -94,7 +95,7 @@ void ExpressionTimedData::CalculateValuesInRange(
     if (iterator != values.size()) {
       initial_value = values[iterator];
     } else {
-      assert(values.back().source_timestamp <= range.first);
+      base::Check(values.back().source_timestamp <= range.first);
       initial_value = values.back();
     }
   }
@@ -146,7 +147,7 @@ void ExpressionTimedData::CalculateValuesInRange(
     if (calculation_finished)
       break;
 
-    assert(!update_time.is_null());
+    base::Check(!update_time.is_null());
 
     // calculate
     auto total_value = expression_->Calculate();
@@ -154,13 +155,15 @@ void ExpressionTimedData::CalculateValuesInRange(
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
                            base::Time());
 
-      bool updated = timed_data_view_.InsertOrUpdate(tvq);
-      assert(updated);
+      // The insert may be rejected in favor of an existing value with the
+      // same timestamp; that is data-dependent, not an invariant.
+      timed_data_view_.InsertOrUpdate(tvq);
 
       if (tvqs) {
         // Check values are ordered.
-        assert(tvqs->empty() || (*tvqs)[tvqs->size() - 1].source_timestamp <=
-                                    tvq.source_timestamp);
+        base::Check(tvqs->empty() ||
+                    (*tvqs)[tvqs->size() - 1].source_timestamp <=
+                        tvq.source_timestamp);
         tvqs->push_back(tvq);
       }
     }
@@ -168,14 +171,14 @@ void ExpressionTimedData::CalculateValuesInRange(
 }
 
 void ExpressionTimedData::UpdateReadyRange() {
-  assert(historical());
+  base::Check(historical());
 
   base::Time operands_ready_from = GetOperandsReadyFrom();
   if (operands_ready_from == kTimedDataCurrentOnly) {
     return;
   }
 
-  assert(!operands_ready_from.is_null());
+  base::Check(!operands_ready_from.is_null());
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
   CalculateValuesInRange(range, nullptr);
@@ -228,9 +231,9 @@ bool ExpressionTimedData::CalculateCurrent() {
 
 void ExpressionTimedData::OnTimedDataUpdates(
     std::span<const scada::DataValue> values) {
-  assert(historical());
-  assert(values.empty());
-  assert(values.front().source_timestamp >= ready_from_);
+  base::Check(historical());
+  base::Check(!values.empty());
+  base::Check(values.front().source_timestamp >= ready_from_);
 
   scada::DateTimeRange range{values.front().source_timestamp,
                              values.back().source_timestamp};
@@ -252,7 +255,7 @@ void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {
 }
 
 void ExpressionTimedData::OnTimedDataReady() {
-  assert(historical());
+  base::Check(historical());
 
   UpdateReadyRange();
 }

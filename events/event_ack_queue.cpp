@@ -2,6 +2,7 @@
 
 #include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "scada/method_service.h"
 #include "scada/standard_node_ids.h"
 
@@ -23,7 +24,7 @@ void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
 void EventAckQueue::PostAckPendingEvents() {
   if (running_ack_event_ids_.size() >= kMaxParallelAcks ||
       pending_ack_event_ids_.empty()) {
-    assert(!ack_pending_);
+    base::Check(!ack_pending_);
     return;
   }
 
@@ -34,7 +35,7 @@ void EventAckQueue::PostAckPendingEvents() {
 }
 
 void EventAckQueue::AckPendingEvents() {
-  assert(ack_pending_);
+  base::Check(ack_pending_);
   ack_pending_ = false;
 
   std::vector<scada::EventId> event_ids;

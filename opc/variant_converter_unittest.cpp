@@ -1,5 +1,7 @@
 #include "opc/variant_converter.h"
 
+#include "base/check.h"
+
 #include <format>
 #include <gmock/gmock.h>
 
@@ -22,7 +24,7 @@ inline TestParam WrapTestParam(scada::Variant scada_variant,
 inline base::win::ScopedVariant MakeFloatWinVariant(float float_value) {
   base::win::ScopedVariant v;
   v.Set(float_value);
-  assert(v.type() == VT_R4);
+  base::Check(v.type() == VT_R4);
   return v;
 }
 

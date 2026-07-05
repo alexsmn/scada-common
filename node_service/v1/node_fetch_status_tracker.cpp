@@ -6,7 +6,6 @@
 #include "base/debug_util.h"
 #include "base/range_util.h"
 
-
 namespace v1 {
 
 // NodeFetchStatusTracker
@@ -156,9 +155,10 @@ std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
   base::Check(
       result.second.node_fetched == experimental_result.second.node_fetched,
       "experimental node_fetched diverged");
-  base::Check(result.second.non_hierarchical_inverse_references ==
-                  experimental_result.second.non_hierarchical_inverse_references,
-              "experimental inverse references diverged");
+  base::Check(
+      result.second.non_hierarchical_inverse_references ==
+          experimental_result.second.non_hierarchical_inverse_references,
+      "experimental inverse references diverged");
 
   return result;
 }

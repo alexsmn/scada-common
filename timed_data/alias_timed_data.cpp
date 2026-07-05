@@ -1,5 +1,6 @@
 #include "timed_data/alias_timed_data.h"
 
+#include "base/check.h"
 #include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 
@@ -7,8 +8,8 @@ AliasTimedData::AliasTimedData(std::string formula)
     : data_{std::make_unique<DeferredData>(std::move(formula))} {}
 
 void AliasTimedData::SetForwarded(std::shared_ptr<TimedData> timed_data) {
-  assert(!is_forwarded());
-  assert(timed_data);
+  base::Check(!is_forwarded());
+  base::Check(timed_data);
 
   auto deferred = std::move(std::get<std::unique_ptr<DeferredData>>(data_));
 

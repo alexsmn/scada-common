@@ -18,7 +18,10 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
 std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     const scada::NodeState& node_state,
     const scada::NodeId& parent_id) {
-  assert(!node_state.node_id.is_null());
+  // Node states may come from external configuration or a remote server;
+  // validation failures degrade to error statuses instead of panicking.
+  if (node_state.node_id.is_null())
+    return {scada::StatusCode::Bad_WrongNodeId, nullptr};
 
   if (node_state.node_id != scada::id::RootFolder &&
       !scada::IsTypeDefinition(node_state.node_class)) {
@@ -37,7 +40,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   std::unique_ptr<scada::Node> node;
   if (node_state.node_class == scada::NodeClass::Object) {
     auto* object_type = scada::AsObjectType(type_definition);
-    assert(object_type);
     if (!object_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
 
@@ -45,7 +47,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
 
   } else if (node_state.node_class == scada::NodeClass::Variable) {
     auto* variable_type = scada::AsVariableType(type_definition);
-    assert(variable_type);
     if (!variable_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
 
@@ -53,48 +54,35 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
                           ? &variable_type->data_type()
                           : scada::AsDataType(address_space_.GetNode(
                                 node_state.attributes.data_type));
-    assert(data_type);
     if (!data_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
 
     node = std::make_unique<scada::GenericVariable>(*data_type);
 
   } else if (node_state.node_class == scada::NodeClass::ObjectType) {
-    assert(!type_definition);
-
+    // A stray type definition on a type node is ignored.
     node = std::make_unique<scada::ObjectType>();
 
   } else if (node_state.node_class == scada::NodeClass::VariableType) {
-    assert(!type_definition);
-    assert(!node_state.attributes.data_type.is_null());
-
     auto* data_type = scada::AsDataType(
         address_space_.GetNode(node_state.attributes.data_type));
-    assert(data_type);
     if (!data_type)
       return {scada::StatusCode::Bad_WrongTypeId, nullptr};
 
     node = std::make_unique<scada::VariableType>(*data_type);
 
   } else if (node_state.node_class == scada::NodeClass::ReferenceType) {
-    assert(!type_definition);
-
     node = std::make_unique<scada::ReferenceType>();
 
   } else if (node_state.node_class == scada::NodeClass::DataType) {
-    assert(!type_definition);
-
     node = std::make_unique<scada::DataType>();
 
   } else if (node_state.node_class == scada::NodeClass::Method) {
-    assert(!type_definition);
-
     node = std::make_unique<scada::GenericMethod>(
         node_state.node_id, node_state.attributes.browse_name,
         node_state.attributes.display_name);
 
   } else {
-    assert(false);
     return {scada::StatusCode::Bad_WrongNodeClass, nullptr};
   }
 
@@ -116,7 +104,6 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
     } else if (auto* variable_type = scada::AsVariableType(node.get())) {
       variable_type->set_default_value(*node_state.attributes.value);
     } else {
-      assert(false);
       return {scada::StatusCode::Bad_WrongAttributeId, nullptr};
     }
   }

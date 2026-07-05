@@ -13,7 +13,7 @@ class NodeStateReader {
       : node_state_{node_state} {}
 
   template <class F>
-  NodeStateReader& property(const scada::NodeId& prop_decl_id, F T::*field) {
+  NodeStateReader& property(const scada::NodeId& prop_decl_id, F T::* field) {
     auto i = std::find_if(
         node_state_.properties.begin(), node_state_.properties.end(),
         [&](const auto& p) { return p.first == prop_decl_id; });
@@ -25,7 +25,7 @@ class NodeStateReader {
       return *this;
 
     if (!ConvertVariant(property_value, result_.*field)) {
-      assert(false);
+      // Property values come from external node data; report via |ok_|.
       ok_ = false;
       return *this;
     }
@@ -57,7 +57,7 @@ class NodeStateReader2 {
       return *this;
 
     if (!ConvertVariant(*found_value, value)) {
-      assert(false);
+      // Property values come from external node data; report via |ok_|.
       ok_ = false;
       return *this;
     }
@@ -88,7 +88,7 @@ class NodeStateReader2 {
 
     scada::UInt32 int_value = 0;
     if (!ConvertVariant(*found_value, int_value)) {
-      assert(false);
+      // Property values come from external node data; report via |ok_|.
       ok_ = false;
       return *this;
     }
@@ -110,7 +110,7 @@ class NodeStateReader2 {
 
     scada::UInt32 duration_value = 0;
     if (!ConvertVariant(*found_value, duration_value)) {
-      assert(false);
+      // Property values come from external node data; report via |ok_|.
       ok_ = false;
       return *this;
     }

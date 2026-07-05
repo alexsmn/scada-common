@@ -1,6 +1,7 @@
 #include "node_service/base_node_model.h"
 
 #include "base/auto_reset.h"
+#include "base/check.h"
 #include "node_service/node_observer.h"
 
 #include <boost/asio/async_result.hpp>
@@ -46,9 +47,9 @@ Awaitable<void> BaseNodeModel::Fetch(
                       Handler&& handler) mutable {
     auto completion =
         std::make_shared<std::decay_t<Handler>>(std::forward<Handler>(handler));
-    StartFetch(requested_status, [completion = std::move(completion)]() mutable {
-      (*completion)();
-    });
+    StartFetch(
+        requested_status,
+        [completion = std::move(completion)]() mutable { (*completion)(); });
   };
 
   auto token = boost::asio::use_awaitable;
@@ -56,8 +57,7 @@ Awaitable<void> BaseNodeModel::Fetch(
                                                                 token);
 }
 
-void BaseNodeModel::StartFetch(
-    const NodeFetchStatus& requested_status) const {
+void BaseNodeModel::StartFetch(const NodeFetchStatus& requested_status) const {
   StartFetch(requested_status, nullptr);
 }
 
@@ -70,12 +70,12 @@ NodeFetchStatus BaseNodeModel::GetFetchStatus() const {
 }
 
 void BaseNodeModel::Subscribe(NodeRefObserver& observer) const {
-  assert(!observers_.HasObserver(&observer));
+  base::Check(!observers_.HasObserver(&observer));
   observers_.AddObserver(&observer);
 }
 
 void BaseNodeModel::Unsubscribe(NodeRefObserver& observer) const {
-  assert(observers_.HasObserver(&observer));
+  base::Check(observers_.HasObserver(&observer));
   observers_.RemoveObserver(&observer);
 }
 

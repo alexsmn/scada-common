@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/awaitable.h"
-#include "scada/client.h"
 #include "node_service/node_ref.h"
+#include "scada/client.h"
 
 #include <vector>
 

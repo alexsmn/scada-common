@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/mutable_address_space.h"
+#include "base/check.h"
 #include "base/observer_list.h"
 #include "scada/status.h"
 
@@ -90,7 +91,7 @@ class AddressSpaceImpl : public MutableAddressSpace {
 
 template <class T>
 inline T& AddressSpaceImpl::AddStaticNode(std::unique_ptr<T> node) {
-  assert(node);
+  base::Check(node);
   auto& ref = *node;
   AddNode(std::move(node));
   // cppcheck-suppress returnReference

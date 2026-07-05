@@ -41,7 +41,8 @@ std::optional<base::win::ScopedVariant> ConvertScalarToWin(
     case scada::Variant::DOUBLE:
       return MakeWinVariant(value.get<scada::Double>());
     default:
-      assert(false);
+      // Unsupported variant types are data-dependent; report failure via
+      // nullopt instead of panicking.
       return std::nullopt;
   }
 }
@@ -76,21 +77,21 @@ std::optional<scada::Variant> ConvertScalarToScada(const VARIANT& value) {
       return scada::Variant{
           scada::LocalizedText{UtfConvert<char16_t>(value.bstrVal)}};
     default:
-      assert(false);
+      // VARIANTs come from external classic-OPC servers; unknown types are
+      // reported via nullopt instead of panicking.
       return std::nullopt;
   }
 }
 
 std::optional<base::win::ScopedVariant> ConvertArrayToWin(
     const scada::Variant& variant) {
-  // TODO: Implement.
-  assert(false);
+  // TODO: Implement. Arrays are unsupported; report failure via nullopt.
   return std::nullopt;
 }
 
 std::optional<scada::Variant> ConvertArrayToScada(const SAFEARRAY& safe_array) {
-  // TODO: Implement.
-  assert(false);
+  // TODO: Implement. Arrays from external OPC servers are unsupported; report
+  // failure via nullopt.
   return std::nullopt;
 }
 

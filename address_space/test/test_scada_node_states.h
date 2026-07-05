@@ -6,6 +6,7 @@
 #include "address_space/test/scada_test_address_space.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/check.h"
 
 inline scada::NodeState GetNodeState(const scada::Node& node) {
   scada::NodeState node_state;
@@ -34,7 +35,7 @@ inline scada::NodeState GetNodeState(const scada::Node& node) {
 
   /*for (const auto& prop : scada::GetProperties(node)) {
     auto prop_decl_id = scada::GetDeclarationId(prop);
-    assert(!prop_decl_id.is_null());
+    base::Check(!prop_decl_id.is_null());
     node_state.properties.emplace_back(std::move(prop_decl_id),
                                        prop.GetValue().value);
   }*/

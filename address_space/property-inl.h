@@ -6,6 +6,7 @@
 #include "address_space/node_variable_handle.h"
 #include "address_space/property.h"
 #include "address_space/type_definition.h"
+#include "base/check.h"
 
 namespace scada {
 
@@ -56,14 +57,14 @@ inline Property<ValueType>::Property(NodeBuilder& builder,
                                      const NodeId& instance_declaration_id)
     : instance_declaration_{
           AsVariable(builder.GetMutableNode(instance_declaration_id))} {
-  assert(!FindChild(parent, instance_declaration_.GetBrowseName().name()));
+  base::Check(!FindChild(parent, instance_declaration_.GetBrowseName().name()));
 
   auto* type_definition = instance_declaration_.type_definition();
-  assert(type_definition);
+  base::Check(type_definition);
 
   auto default_value = instance_declaration_.GetValue();
-  assert(detail::Convert(default_value.value, value_));
-  (void)detail::Convert(default_value.value, value_);
+  const bool converted = detail::Convert(default_value.value, value_);
+  base::Check(converted, "property default value conversion failed");
 
   if (type_definition)
     builder.AddReference(id::HasTypeDefinition, *this, *type_definition);

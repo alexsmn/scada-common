@@ -2,12 +2,13 @@
 
 #include "base/any_executor.h"
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "scada/history_service.h"
 inline void CancelHistory(AnyExecutor executor,
                           scada::HistoryService& service,
                           const scada::HistoryReadRawDetails& details,
                           scada::ByteString&& continuation_point) {
-  assert(!continuation_point.empty());
+  base::Check(!continuation_point.empty());
 
   auto cancel_details = details;
   cancel_details.release_continuation_point = true;

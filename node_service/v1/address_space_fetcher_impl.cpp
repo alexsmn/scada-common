@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
+#include "base/check.h"
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "node_service/v1/address_space_updater.h"
@@ -287,7 +288,7 @@ void AddressSpaceFetcherImpl::OnChildrenFetched(
   }
 
   for (auto& reference : references) {
-    assert(reference.forward);
+    base::Check(reference.forward);
     // The node could be fetched via non-hierarchical reference with no
     // children.
     if (!address_space_.GetNode(reference.node_id))
@@ -327,7 +328,7 @@ void AddressSpaceFetcherImpl::FetchNode(
 void AddressSpaceFetcherImpl::InternalFetchNode(
     const scada::NodeId& node_id,
     const NodeFetchStatus& requested_status) {
-  assert(channel_opened_);
+  base::Check(channel_opened_);
 
   auto [status, fetch_status] = node_fetch_status_tracker_.GetStatus(node_id);
 

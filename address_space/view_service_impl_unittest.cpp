@@ -7,6 +7,7 @@
 #include "address_space/object.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/test/test_address_space.h"
+#include "base/check.h"
 #include "base/test/awaitable_test.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
@@ -40,7 +41,7 @@ class VirtualObject : public scada::GenericObject,
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override {
-    assert(false);
+    base::NotReached();
     co_return scada::Status{scada::StatusCode::Bad};
   }
 
@@ -71,7 +72,7 @@ class VirtualObject : public scada::GenericObject,
 
     if (!description.include_subtypes ||
         description.reference_type_id != scada::id::HierarchicalReferences) {
-      assert(false);
+      base::NotReached();
       result.status_code = scada::StatusCode::Bad_WrongNodeId;
       return result;
     }
@@ -117,9 +118,9 @@ struct TestContext {
 
   ~TestContext() {
     // AddressSpaceImpl::Clear() only tears down dynamically created nodes, not
-    // AddStaticNode'd ones, so the static nodes' references must be removed here
-    // — while StandardAddressSpace's reference-type / base-type nodes are still
-    // alive — to avoid dangling pointers during member destruction.
+    // AddStaticNode'd ones, so the static nodes' references must be removed
+    // here — while StandardAddressSpace's reference-type / base-type nodes are
+    // still alive — to avoid dangling pointers during member destruction.
     scada::DeleteAllReferences(address_space, *child_);
     scada::DeleteAllReferences(address_space, *object_);
   }
@@ -168,12 +169,11 @@ TEST(ViewServiceImpl, BrowseParentChildren) {
   TestExecutor executor;
   ASSERT_OK_AND_ASSIGN(
       auto results,
-      WaitAwaitable(
-          executor,
-          context.view_service.Browse(
-              scada::ServiceContext{},
-              {{context.kObjectId, scada::BrowseDirection::Forward,
-                scada::id::HierarchicalReferences, true}})));
+      WaitAwaitable(executor,
+                    context.view_service.Browse(
+                        scada::ServiceContext{},
+                        {{context.kObjectId, scada::BrowseDirection::Forward,
+                          scada::id::HierarchicalReferences, true}})));
   ASSERT_EQ(static_cast<size_t>(1), results.size());
   auto& result = results.front();
   ASSERT_TRUE(scada::Status{result.status_code});
@@ -192,14 +192,13 @@ TEST(ViewServiceImpl, BrowsePopulatesNamesAndHonorsResultMask) {
 
   const auto browse_test_node1 = [&](scada::UInt32 result_mask) {
     auto results = WaitAwaitable(
-        executor,
-        address_space.view_service_impl.Browse(
-            scada::ServiceContext{},
-            {{.node_id = scada::id::RootFolder,
-              .direction = scada::BrowseDirection::Forward,
-              .reference_type_id = scada::id::HierarchicalReferences,
-              .include_subtypes = true,
-              .result_mask = result_mask}}));
+        executor, address_space.view_service_impl.Browse(
+                      scada::ServiceContext{},
+                      {{.node_id = scada::id::RootFolder,
+                        .direction = scada::BrowseDirection::Forward,
+                        .reference_type_id = scada::id::HierarchicalReferences,
+                        .include_subtypes = true,
+                        .result_mask = result_mask}}));
     EXPECT_TRUE(results.ok());
     std::optional<scada::ReferenceDescription> match;
     if (results.ok() && results->size() == 1u) {
@@ -232,87 +231,82 @@ TEST(ViewServiceImpl, BrowseAppliesNodeClassMask) {
 
   const auto browse = [&](scada::UInt32 node_class_mask) {
     return WaitAwaitable(
-        executor,
-        address_space.view_service_impl.Browse(
-            scada::ServiceContext{},
-            {{.node_id = scada::id::RootFolder,
-              .direction = scada::BrowseDirection::Forward,
-              .reference_type_id = scada::id::HierarchicalReferences,
-              .include_subtypes = true,
-              .node_class_mask = node_class_mask}}));
+        executor, address_space.view_service_impl.Browse(
+                      scada::ServiceContext{},
+                      {{.node_id = scada::id::RootFolder,
+                        .direction = scada::BrowseDirection::Forward,
+                        .reference_type_id = scada::id::HierarchicalReferences,
+                        .include_subtypes = true,
+                        .node_class_mask = node_class_mask}}));
   };
 
   // No mask: the Object node TestNode1 is among the children.
   ASSERT_OK_AND_ASSIGN(const auto all, browse(0));
   ASSERT_EQ(all.size(), 1u);
-  EXPECT_THAT(all[0].references,
-              testing::Contains(testing::Field(
-                  &scada::ReferenceDescription::node_id,
-                  address_space.kTestNode1Id)));
+  EXPECT_THAT(all[0].references, testing::Contains(testing::Field(
+                                     &scada::ReferenceDescription::node_id,
+                                     address_space.kTestNode1Id)));
 
   // Object mask keeps the Object node.
   ASSERT_OK_AND_ASSIGN(
       const auto objects,
       browse(static_cast<scada::UInt32>(scada::NodeClass::Object)));
   ASSERT_EQ(objects.size(), 1u);
-  EXPECT_THAT(objects[0].references,
-              testing::Contains(testing::Field(
-                  &scada::ReferenceDescription::node_id,
-                  address_space.kTestNode1Id)));
+  EXPECT_THAT(objects[0].references, testing::Contains(testing::Field(
+                                         &scada::ReferenceDescription::node_id,
+                                         address_space.kTestNode1Id)));
 
   // Variable mask filters out the (Object-class) children.
   ASSERT_OK_AND_ASSIGN(
       const auto variables,
       browse(static_cast<scada::UInt32>(scada::NodeClass::Variable)));
   ASSERT_EQ(variables.size(), 1u);
-  EXPECT_THAT(variables[0].references,
-              testing::Not(testing::Contains(testing::Field(
-                  &scada::ReferenceDescription::node_id,
-                  address_space.kTestNode1Id))));
+  EXPECT_THAT(
+      variables[0].references,
+      testing::Not(testing::Contains(testing::Field(
+          &scada::ReferenceDescription::node_id, address_space.kTestNode1Id))));
 }
 
 TEST(ViewServiceImpl, CoroutineBrowseReturnsSyncResults) {
   TestAddressSpace address_space;
   TestExecutor executor;
 
-  ASSERT_OK_AND_ASSIGN(auto results,
-                       WaitAwaitable(executor,
-                                     address_space.view_service_impl.Browse(
-                                         scada::ServiceContext{},
-                                         {{scada::id::RootFolder,
-                                           scada::BrowseDirection::Forward,
-                                           scada::id::HierarchicalReferences,
-                                           true}})));
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(
+          executor,
+          address_space.view_service_impl.Browse(
+              scada::ServiceContext{},
+              {{scada::id::RootFolder, scada::BrowseDirection::Forward,
+                scada::id::HierarchicalReferences, true}})));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
+  EXPECT_THAT(results[0].references, testing::Contains(testing::Field(
+                                         &scada::ReferenceDescription::node_id,
+                                         address_space.kTestNode1Id)));
   EXPECT_THAT(results[0].references,
-              testing::Contains(testing::Field(
-                  &scada::ReferenceDescription::node_id,
-                  address_space.kTestNode1Id)));
-  EXPECT_THAT(
-      results[0].references,
-      testing::Contains(testing::AllOf(
-          testing::Field(&scada::ReferenceDescription::node_id,
-                         address_space.kTestNode1Id),
-          testing::Field(&scada::ReferenceDescription::node_class,
-                         scada::NodeClass::Object))));
+              testing::Contains(testing::AllOf(
+                  testing::Field(&scada::ReferenceDescription::node_id,
+                                 address_space.kTestNode1Id),
+                  testing::Field(&scada::ReferenceDescription::node_class,
+                                 scada::NodeClass::Object))));
 }
 
 TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
   TestAddressSpace address_space;
   TestExecutor executor;
 
-  ASSERT_OK_AND_ASSIGN(auto results, WaitAwaitable(
-      executor, address_space.view_service_impl.TranslateBrowsePaths(
-                    {{.node_id = scada::id::RootFolder,
-                      .relative_path = {{.reference_type_id =
-                                             scada::id::HierarchicalReferences,
-                                         .include_subtypes = true,
-                                         .target_name =
-                                             scada::QualifiedName{
-                                                 "TestNode1",
-                                                 TestAddressSpace::
-                                                     kNamespaceIndex}}}}})));
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(
+          executor,
+          address_space.view_service_impl.TranslateBrowsePaths(
+              {{.node_id = scada::id::RootFolder,
+                .relative_path = {
+                    {.reference_type_id = scada::id::HierarchicalReferences,
+                     .include_subtypes = true,
+                     .target_name = scada::QualifiedName{
+                         "TestNode1", TestAddressSpace::kNamespaceIndex}}}}})));
   ASSERT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].status_code, scada::StatusCode::Good);
   ASSERT_EQ(results[0].targets.size(), 1u);

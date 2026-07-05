@@ -1,4 +1,5 @@
 #include "address_space/variable.h"
+#include "base/check.h"
 
 #include "address_space/address_space.h"
 #include "address_space/node_utils.h"
@@ -12,12 +13,12 @@ namespace scada {
 Variable::Variable() {}
 
 Variable::~Variable() {
-  assert(!variable_handle_.lock());
+  base::Check(!variable_handle_.lock());
 }
 
 const DataType& Variable::GetDataType() const {
   auto* type = scada::AsVariableType(type_definition());
-  assert(type);
+  base::Check(type);
   return type->data_type();
 }
 
@@ -33,10 +34,9 @@ std::shared_ptr<VariableHandle> Variable::GetVariableHandle() const {
   return variable_handle;
 }
 
-void Variable::Write(
-    const scada::ServiceContext& context,
-    const scada::WriteValue& input,
-    const scada::StatusCallback& callback) {
+void Variable::Write(const scada::ServiceContext& context,
+                     const scada::WriteValue& input,
+                     const scada::StatusCallback& callback) {
   callback(StatusCode::Bad);
 }
 

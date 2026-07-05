@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/check.h"
 #include "scada/data_value.h"
 
 #include <algorithm>
@@ -40,9 +41,9 @@ inline bool IsReverseTimeSorted(const std::vector<T>& values) {
   return IsReverseTimeSorted(std::span{values});
 }
 
+// Precondition: |values| is time-sorted.
 template <class T>
 inline std::size_t LowerBound(std::span<T> values, scada::DateTime time) {
-  assert(IsTimeSorted(values));
   auto i = std::ranges::lower_bound(
       values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
@@ -55,9 +56,9 @@ inline std::size_t LowerBound(const std::vector<T>& values,
   return LowerBound(std::span{values}, time);
 }
 
+// Precondition: |values| is time-sorted.
 template <class T>
 inline std::size_t UpperBound(std::span<T> values, scada::DateTime time) {
-  assert(IsTimeSorted(values));
   auto i = std::ranges::upper_bound(
       values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
@@ -89,7 +90,7 @@ inline T* GetValueAt(std::span<T> values, scada::DateTime time) {
 template <class T>
 inline std::size_t ReverseUpperBound(std::span<const T> values,
                                      scada::DateTime time) {
-  assert(IsReverseTimeSorted(values));
+  // Precondition: |values| is reverse-time-sorted.
   auto i = std::ranges::upper_bound(values, time, std::greater{},
                                     &TimedDataTraits<T>::timestamp);
   return i - values.begin();
@@ -135,8 +136,8 @@ template <class T, class Compare>
 inline void ReplaceSubrange(std::vector<T>& values,
                             std::span<T> updates,
                             Compare comp) {
-  assert(std::is_sorted(values.begin(), values.end(), comp));
-  assert(std::is_sorted(updates.begin(), updates.end(), comp));
+  base::Check(std::is_sorted(values.begin(), values.end(), comp));
+  base::Check(std::is_sorted(updates.begin(), updates.end(), comp));
 
   if (updates.empty())
     return;
@@ -158,5 +159,5 @@ inline void ReplaceSubrange(std::vector<T>& values,
     values.erase(first + copy_count, last);
   }
 
-  assert(std::is_sorted(values.begin(), values.end(), comp));
+  base::Check(std::is_sorted(values.begin(), values.end(), comp));
 }

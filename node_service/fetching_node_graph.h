@@ -16,7 +16,8 @@ class FetchingNodeGraph {
 
   FetchCompletedResult GetFetchedNodes();
 
-  bool AssertValid() const;
+  // Validates internal graph consistency; returns false on violation.
+  bool CheckInvariants() const;
 
   std::string GetDebugString() const;
 

@@ -1,4 +1,5 @@
 #include "address_space/type_definition.h"
+#include "base/check.h"
 
 #include "address_space/node_utils.h"
 #include "address_space/reference.h"
@@ -16,8 +17,8 @@ void TypeDefinition::AddReference(const ReferenceType& reference_type,
   Node::AddReference(reference_type, forward, node);
 
   if (!forward && reference_type.id() == scada::id::HasSubtype) {
-    assert(!supertype_);
-    assert(scada::AsTypeDefinition(&node));
+    base::Check(!supertype_);
+    base::Check(scada::AsTypeDefinition(&node));
     supertype_ = scada::AsTypeDefinition(&node);
   }
 }
@@ -26,7 +27,7 @@ void TypeDefinition::DeleteReference(const ReferenceType& reference_type,
                                      bool forward,
                                      Node& node) {
   if (!forward && reference_type.id() == scada::id::HasSubtype) {
-    assert(supertype_ == &node);
+    base::Check(supertype_ == &node);
     supertype_ = nullptr;
   }
 

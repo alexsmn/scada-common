@@ -28,8 +28,8 @@ NodeFetchStatusQueue::ScopedStatusLock::~ScopedStatusLock() {
 NodeFetchStatusQueue::NodeFetchStatusQueue(
     NodeFetchStatusChangedHandler node_fetch_status_changed_handler,
     NodeFetchStatusProvider node_fetch_status_provider)
-    : node_fetch_status_changed_handler_{std::move(
-          node_fetch_status_changed_handler)},
+    : node_fetch_status_changed_handler_{
+          std::move(node_fetch_status_changed_handler)},
       node_fetch_status_provider_{std::move(node_fetch_status_provider)} {}
 
 void NodeFetchStatusQueue::NotifyStatusChanged(const scada::NodeId& node_id) {

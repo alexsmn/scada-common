@@ -3,7 +3,6 @@
 #include "common/data_services_util.h"
 #include "metrics/tracing.h"
 #include "scada/services.h"
-#include "scada/validation.h"
 
 namespace {
 
@@ -168,7 +167,8 @@ Audit::Browse(scada::ServiceContext context,
     const auto start_time = Clock::now();
     auto result =
         co_await service->Browse(std::move(context), std::move(inputs));
-    assert(!result.ok() || Validate(result.value()));
+    // No validity enforcement here: the wrapped service may be a remote
+    // proxy, and malformed remote data is handled by the consumers.
     FinishBrowse(start_time);
     co_return result;
   }

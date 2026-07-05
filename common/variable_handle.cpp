@@ -1,5 +1,6 @@
 #include "common/variable_handle.h"
 
+#include "base/check.h"
 #include "scada/data_value.h"
 
 namespace scada {
@@ -37,7 +38,7 @@ VariableMonitoredItem::VariableMonitoredItem(
     : variable_(std::move(variable)) {}
 
 void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
-  assert(!data_change_handler_);
+  base::Check(!data_change_handler_);
 
   data_change_handler_ = std::move(std::get<DataChangeHandler>(handler));
 

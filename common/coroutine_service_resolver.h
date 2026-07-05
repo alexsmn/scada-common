@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "base/check.h"
 
-#include <cassert>
 #include <memory>
 #include <optional>
 
@@ -10,7 +10,7 @@ namespace scada::service_resolver {
 
 template <typename Service>
 Service& RequireSharedService(const std::shared_ptr<Service>& service) {
-  assert(service);
+  base::Check(service);
   return *service;
 }
 
@@ -64,10 +64,11 @@ CoroutineService* ResolveCoroutineService(
     const std::shared_ptr<CoroutineService>& coroutine_service,
     const std::shared_ptr<CallbackService>& callback_service,
     std::unique_ptr<CallbackToCoroutineAdapter>& callback_to_coroutine_adapter,
-    std::unique_ptr<CoroutineToCallbackAdapter>& coroutine_to_callback_adapter) {
-  auto* service = ResolveCoroutineService(
-      executor, coroutine_service, callback_service,
-      callback_to_coroutine_adapter);
+    std::unique_ptr<CoroutineToCallbackAdapter>&
+        coroutine_to_callback_adapter) {
+  auto* service =
+      ResolveCoroutineService(executor, coroutine_service, callback_service,
+                              callback_to_coroutine_adapter);
   if (service && executor) {
     coroutine_to_callback_adapter =
         std::make_unique<CoroutineToCallbackAdapter>(executor, *service);
@@ -101,7 +102,7 @@ CoroutineService& RequireCoroutineService(
     std::unique_ptr<Adapter>& adapter) {
   auto* service = ResolveCoroutineService(executor, coroutine_service,
                                           callback_service, adapter);
-  assert(service);
+  base::Check(service);
   return *service;
 }
 

@@ -1,8 +1,9 @@
 #include "timed_data/timed_data_impl.h"
 
-#include "base/cancelation.h"
-#include "base/debug_util.h"
 #include "base/any_executor.h"
+#include "base/cancelation.h"
+#include "base/check.h"
+#include "base/debug_util.h"
 #include "common/formula_util.h"
 #include "events/event_set.h"
 #include "events/node_event_provider.h"
@@ -11,7 +12,6 @@
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
-
 
 // TimedDataImpl
 
@@ -31,7 +31,7 @@ TimedDataImpl::~TimedDataImpl() {
 }
 
 void TimedDataImpl::Init(NodeRef node) {
-  assert(node);
+  base::Check(node);
   SetNode(std::move(node));
 
   scada::MonitoringParameters params;
@@ -89,7 +89,7 @@ scada::LocalizedText TimedDataImpl::GetTitle() const {
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
-  assert(node_id == node_.node_id());
+  base::Check(node_id == node_.node_id());
 
   NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
@@ -113,7 +113,7 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
                                         const EventSet& events) {
-  assert(node_id == node_.node_id());
+  base::Check(node_id == node_.node_id());
 
   alerting_ = !events.empty();
   NotifyEventsChanged();

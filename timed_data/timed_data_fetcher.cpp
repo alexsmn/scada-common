@@ -3,6 +3,7 @@
 #include "base/any_executor_dispatch.h"
 #include "base/awaitable.h"
 #include "base/cancelation.h"
+#include "base/check.h"
 #include "base/debug_util.h"
 #include "base/format_time.h"
 #include "base/interval.h"
@@ -31,7 +32,7 @@ void TimedDataFetcher::FetchNextGap() {
   if (!gap)
     return;
 
-  assert(!IsEmptyInterval(*gap));
+  base::Check(!IsEmptyInterval(*gap));
 
   querying_ = true;
   querying_range_ = *gap;
@@ -57,8 +58,8 @@ void TimedDataFetcher::FetchNextGap() {
 }
 
 void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
-  assert(querying_);
-  assert(!continuation_point.empty());
+  base::Check(querying_);
+  base::Check(!continuation_point.empty());
 
   if (!node_) {
     LOG_INFO(logger_) << "Node was deleted";
@@ -103,21 +104,41 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
 void TimedDataFetcher::OnHistoryReadRawComplete(
     std::vector<scada::DataValue> values,
     ScopedContinuationPoint continuation_point) {
-  assert(querying_);
-  assert(IsTimeSorted(values));
-  assert(std::none_of(
-      values.begin(), values.end(),
-      [](const scada::DataValue& v) { return v.server_timestamp.is_null(); }));
+  base::Check(querying_);
+
+  // History results come from a (possibly remote) history service; sanitize
+  // malformed responses instead of panicking.
+  const size_t dropped = std::erase_if(values, [](const scada::DataValue& v) {
+    return v.server_timestamp.is_null();
+  });
+  if (dropped != 0) {
+    LOG_WARNING(logger_) << "History read returned values without a server "
+                            "timestamp"
+                         << LOG_TAG("Count", dropped);
+  }
+  if (!IsTimeSorted(values)) {
+    LOG_WARNING(logger_) << "History read returned unsorted values";
+    std::ranges::stable_sort(values, std::less{},
+                             &TimedDataTraits<scada::DataValue>::timestamp);
+    // Drop duplicate timestamps to restore the strict ordering.
+    auto duplicates = std::ranges::unique(
+        values, std::equal_to{}, &TimedDataTraits<scada::DataValue>::timestamp);
+    values.erase(duplicates.begin(), duplicates.end());
+  }
 
   auto ref = shared_from_this();
 
   timed_data_view_.ReplaceRange(values);
 
   scada::DateTime ready_to;
-  if (continuation_point.empty())
+  if (continuation_point.empty()) {
     ready_to = querying_range_.second;
-  else if (!values.empty())
-    ready_to = values.back().source_timestamp;
+  } else if (!values.empty()) {
+    // |ready_to| derives from server-provided timestamps; clamp it to the
+    // queried range instead of trusting the response.
+    ready_to = std::clamp(values.back().source_timestamp, querying_range_.first,
+                          querying_range_.second);
+  }
 
   if (!ready_to.is_null()) {
     LOG_INFO(logger_) << "Query result" << LOG_TAG("ValueCount", values.size())
@@ -126,8 +147,6 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
 
     timed_data_view_.AddReadyRange({querying_range_.first, ready_to});
 
-    assert(ready_to >= querying_range_.first);
-    assert(ready_to <= querying_range_.second);
     querying_range_.first = ready_to;
   }
 

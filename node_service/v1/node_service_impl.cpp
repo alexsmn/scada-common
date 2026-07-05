@@ -3,6 +3,7 @@
 #include "address_space/address_space.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
+#include "base/check.h"
 #include "node_service/node_observer.h"
 #include "node_service/v1/address_space_fetcher.h"
 #include "node_service/v1/node_fetch_status_types.h"
@@ -38,7 +39,7 @@ NodeServiceImpl::NodeServiceImpl(NodeServiceImplContext&& context)
 }
 
 NodeServiceImpl::~NodeServiceImpl() {
-  assert(!observers_.might_have_observers());
+  base::Check(!observers_.might_have_observers());
 
   address_space_.Unsubscribe(*this);
 
@@ -145,10 +146,11 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
   // First: update node impl statuses.
   for (const auto& [node_id, status, fetch_status] : items) {
-    assert(address_space_fetcher_->GetNodeFetchStatus(node_id).first.code() ==
-           status.code());
-    assert(address_space_fetcher_->GetNodeFetchStatus(node_id).second ==
-           fetch_status);
+    base::Check(
+        address_space_fetcher_->GetNodeFetchStatus(node_id).first.code() ==
+        status.code());
+    base::Check(address_space_fetcher_->GetNodeFetchStatus(node_id).second ==
+                fetch_status);
 
     auto* node = address_space_.GetNode(node_id);
 

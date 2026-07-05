@@ -7,6 +7,7 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/check.h"
 #include "base/format.h"
 #include "base/range_util.h"
 #include "base/string_util.h"
@@ -21,6 +22,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <queue>
+#include <ranges>
 #include <unordered_set>
 
 namespace scada {
@@ -173,12 +175,13 @@ Variant::Type DataTypeToValueType(const TypeDefinition& type) {
 Status ConvertPropertyValue(const DataType& data_type, Variant& value) {
   if (!value.is_null()) {
     if (data_type.id() != id::BaseDataType) {
+      // Property values are external data; conversion failures degrade to an
+      // error status instead of panicking.
       auto value_type = DataTypeToValueType(data_type);
-      assert(value_type != Variant::EMPTY);
-      if (!value.ChangeType(value_type)) {
-        assert(false);
+      if (value_type == Variant::EMPTY)
         return StatusCode::Bad;
-      }
+      if (!value.ChangeType(value_type))
+        return StatusCode::Bad;
     }
   }
 
@@ -192,16 +195,14 @@ StatusCode ConvertPropertyValues(const TypeDefinition& type_definition,
     auto* prop_decl =
         AsVariable(GetAggregateDeclaration(type_definition, prop_decl_id));
     if (!prop_decl) {
-      assert(false);
+      // Property ids come from external node data.
       return StatusCode::Bad_WrongPropertyId;
     }
 
     auto& value = prop.second;
     auto status = ConvertPropertyValue(prop_decl->GetDataType(), value);
-    if (!status) {
-      assert(false);
+    if (!status)
       return StatusCode::Bad;
-    }
   }
 
   return StatusCode::Good;
@@ -246,21 +247,21 @@ bool WantsReference(const AddressSpace& address_space,
 const ReferenceType& BindReferenceType(const AddressSpace& address_space,
                                        const NodeId& node_id) {
   auto* node = AsReferenceType(address_space.GetNode(node_id));
-  assert(node);
+  base::Check(node);
   return *node;
 }
 
 const ObjectType& BindObjectType(const AddressSpace& address_space,
                                  const NodeId& node_id) {
   auto* node = AsObjectType(address_space.GetNode(node_id));
-  assert(node);
+  base::Check(node);
   return *node;
 }
 
 const VariableType& BindVariableType(const AddressSpace& address_space,
                                      const NodeId& node_id) {
   auto* node = AsVariableType(address_space.GetNode(node_id));
-  assert(node);
+  base::Check(node);
   return *node;
 }
 
@@ -280,10 +281,10 @@ void AddReference(MutableAddressSpace& address_space,
                   const NodeId& source_id,
                   const NodeId& target_id) {
   auto* source = address_space.GetMutableNode(source_id);
-  assert(source);
+  base::Check(source);
 
   auto* target = address_space.GetMutableNode(target_id);
-  assert(target);
+  base::Check(target);
 
   AddReference(address_space, reference_type_id, *source, *target);
 }
@@ -294,7 +295,7 @@ void AddReference(MutableAddressSpace& address_space,
                   Node& target) {
   auto* reference_type =
       AsReferenceType(address_space.GetNode(reference_type_id));
-  assert(reference_type);
+  base::Check(reference_type);
   address_space.AddReference(*reference_type, source, target);
 }
 
@@ -304,13 +305,13 @@ void DeleteReference(MutableAddressSpace& address_space,
                      const NodeId& target_id) {
   auto* reference_type =
       AsReferenceType(address_space.GetNode(reference_type_id));
-  assert(reference_type);
+  base::Check(reference_type);
 
   auto* source = address_space.GetMutableNode(source_id);
-  assert(source);
+  base::Check(source);
 
   auto* target = address_space.GetMutableNode(target_id);
-  assert(target);
+  base::Check(target);
 
   address_space.DeleteReference(*reference_type, *source, *target);
 }
@@ -355,7 +356,7 @@ std::vector<const Node*> GetAllNodes(const AddressSpace& address_space) {
 
 std::vector<NodeState> MakeNodeStates(const AddressSpace& address_space) {
   return GetAllNodes(address_space) |
-         boost::adaptors::transformed(
+         std::views::transform(
              [](const Node* node) { return MakeNodeState(*node); }) |
          to_vector;
 }

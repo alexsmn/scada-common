@@ -1,5 +1,6 @@
 #include "format.h"
 
+#include "base/check.h"
 #include "scada/variant.h"
 #include "scada/variant_utils.h"
 
@@ -14,7 +15,7 @@ T StringToValueHelper(std::string_view str) {
 
   scada::Variant value;
   if (!StringToValue(str, data_type, value)) {
-    assert(value.is_null());
+    base::Check(value.is_null());
     return std::numeric_limits<T>::min();
   }
 

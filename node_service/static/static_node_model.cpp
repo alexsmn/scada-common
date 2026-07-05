@@ -91,8 +91,7 @@ NodeRef StaticNodeModel::GetAggregate(
 
 NodeRef StaticNodeModel::GetChild(
     const scada::QualifiedName& child_name) const {
-  // Not implemented.
-  assert(false);
+  // Not implemented; callers get an empty ref.
   return {};
 }
 

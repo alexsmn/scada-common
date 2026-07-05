@@ -173,7 +173,7 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
   scada::BrowseResult result;
 
   if (!description.include_subtypes) {
-    assert(false);
+    // Browse descriptions arrive in service requests (external input).
     result.status_code = scada::StatusCode::Bad;
     return result;
   }

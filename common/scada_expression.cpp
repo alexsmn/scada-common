@@ -10,7 +10,6 @@
 #include "express/strings.h"
 #pragma warning(pop)
 
-#include <cassert>
 #include <exception>
 #include <string>
 
@@ -179,7 +178,8 @@ struct ParserDelegate
       }
 
       default:
-        assert(false);
+        // Formula text is external user input; an unexpected lexem yields an
+        // empty token instead of panicking.
         return {};
     }
   }

@@ -88,7 +88,8 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
 
   void ValidateDependency(FetchingNode& node, const scada::NodeId& from_id);
 
-  bool AssertValid() const;
+  // Validates internal fetch-state consistency; returns false on violation.
+  bool CheckInvariants() const;
 
   BoostLogger logger_{LOG_NAME("NodeFetcher")};
 

@@ -1,6 +1,7 @@
 #include "events/event_fetcher.h"
 
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "base/logger.h"
 #include "base/range_util.h"
 #include "events/event_ack_queue.h"
@@ -25,7 +26,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
           scada::MonitoringParameters{
               .filter = scada::EventFilter{
                   .of_type = {scada::id::SystemEventType}}})} {
-  assert(monitored_item_);
+  base::Check(monitored_item_);
 
   monitored_item_->Subscribe(static_cast<scada::EventHandler>(
       [executor = executor_, cancelation = cancelation_.weak_ptr(), this](
@@ -38,7 +39,8 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
                 co_return;
 
               if (event.has_value()) {
-                assert(std::any_cast<scada::Event>(&event));
+                // Events arrive from a (possibly remote) server; payloads of
+                // an unexpected type are ignored.
                 if (auto* system_event = std::any_cast<scada::Event>(&event)) {
                   OnSystemEvents({system_event, 1});
                 }

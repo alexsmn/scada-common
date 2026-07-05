@@ -111,7 +111,10 @@ VidiconSession::CreateSubscription(
         }
 
         if (read_value_id.attribute_id == scada::AttributeId::EventNotifier) {
-          assert(read_value_id.node_id == scada::id::Server);
+          // The read id comes from a subscription request (external input);
+          // only the Server node exposes events.
+          if (read_value_id.node_id != scada::id::Server)
+            return nullptr;
           return std::make_shared<VidiconMonitoredEvents>();
         }
 
@@ -128,9 +131,8 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> VidiconSession::Read(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::Write(
-    scada::ServiceContext context,
-    std::vector<scada::WriteValue> inputs) {
+VidiconSession::Write(scada::ServiceContext context,
+                      std::vector<scada::WriteValue> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 

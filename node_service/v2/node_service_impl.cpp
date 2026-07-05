@@ -1,5 +1,6 @@
 #include "node_service/v2/node_service_impl.h"
 
+#include "base/check.h"
 #include "common/node_state_util.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
@@ -106,7 +107,7 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
 }
 
 void NodeServiceImpl::Subscribe(NodeRefObserver& observer) const {
-  assert(!observers_.HasObserver(&observer));
+  base::Check(!observers_.HasObserver(&observer));
   observers_.AddObserver(&observer);
 }
 
@@ -253,7 +254,7 @@ NodeChildrenFetcherContext NodeServiceImpl::MakeNodeChildrenFetcherContext() {
 void NodeServiceImpl::OnChannelOpened() {
   LOG_INFO(logger_) << "Channel opened";
 
-  assert(!channel_opened_);
+  base::Check(!channel_opened_);
   channel_opened_ = true;
 
   auto pending_fetch_nodes = std::move(pending_fetch_nodes_);
@@ -274,8 +275,8 @@ void NodeServiceImpl::OnChannelOpened() {
 void NodeServiceImpl::OnChannelClosed() {
   LOG_INFO(logger_) << "Channel closed";
 
-  assert(channel_opened_);
-  assert(pending_fetch_nodes_.empty());
+  base::Check(channel_opened_);
+  base::Check(pending_fetch_nodes_.empty());
 
   channel_opened_ = false;
 }

@@ -1,5 +1,6 @@
 #include "timed_data/base_timed_data.h"
 
+#include "base/check.h"
 #include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 
@@ -17,7 +18,7 @@ BaseTimedData::BaseTimedData() {
 }
 
 BaseTimedData::~BaseTimedData() {
-  assert(!observers_.might_have_observers());
+  base::Check(!observers_.might_have_observers());
 }
 
 const scada::DataValue* BaseTimedData::GetValueAt(

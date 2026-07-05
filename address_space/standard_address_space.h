@@ -35,6 +35,12 @@ class GenericProperty : public scada::GenericVariable {
 struct StandardAddressSpace {
   explicit StandardAddressSpace(AddressSpaceImpl& address_space);
 
+  // Clears the whole address space: the standard nodes owned here are its
+  // substrate, and they must not be destroyed while other nodes still
+  // reference them (scada::Node fail-stops if destroyed with live
+  // references).
+  ~StandardAddressSpace();
+
   scada::Folder RootFolder;
   scada::Folder ObjectsFolder;
   scada::Folder TypesFolder;
@@ -110,4 +116,7 @@ struct StandardAddressSpace {
       scada::id::AcknowledgeableConditionType_Acknowledge,
       "Acknowledge",
       {}};
+
+ private:
+  AddressSpaceImpl& address_space_;
 };

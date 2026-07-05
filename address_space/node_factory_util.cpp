@@ -1,4 +1,5 @@
 #include "address_space/node_factory_util.h"
+#include "base/check.h"
 
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
@@ -39,7 +40,7 @@ scada::Status CreateDataVariables(
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto* data_variable_node : scada::GetComponents(*type)) {
       auto& data_variable_decl = scada::AsVariable(*data_variable_node);
-      assert(data_variable_decl.type_definition());
+      base::Check(data_variable_decl.type_definition());
       auto data_variable_id =
           MakeNestedNodeId(node_id, data_variable_decl.GetBrowseName().name());
       auto [status, data_variable] = node_factory.CreateNode(scada::NodeState{

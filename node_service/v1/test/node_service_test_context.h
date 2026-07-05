@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/generic_node_factory.h"
 #include "address_space/test/test_address_space.h"
+#include "base/check.h"
 #include "base/test/test_executor.h"
 #include "node_service/mock_node_observer.h"
 #include "node_service/v1/address_space_fetcher_mock.h"
@@ -37,7 +38,7 @@ struct NodeServiceTestContext {
 
   ViewEventsProvider view_events_provider = [this](scada::ViewEvents& events)
       -> std::unique_ptr<IViewEventsSubscription> {
-    assert(!view_events);
+    base::Check(!view_events);
     view_events = &events;
     return std::make_unique<IViewEventsSubscription>();
   };
@@ -55,9 +56,8 @@ struct NodeServiceTestContext {
       auto address_space_fetcher =
           std::make_shared<testing::NiceMock<MockAddressSpaceFetcher>>();
       ON_CALL(*address_space_fetcher, GetNodeFetchStatus(testing::_))
-          .WillByDefault(testing::Return(
-              std::make_pair(scada::Status{scada::StatusCode::Good},
-                             NodeFetchStatus::Max())));
+          .WillByDefault(testing::Return(std::make_pair(
+              scada::Status{scada::StatusCode::Good}, NodeFetchStatus::Max())));
       return address_space_fetcher;
     };
   }

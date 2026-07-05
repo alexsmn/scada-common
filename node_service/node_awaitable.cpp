@@ -13,9 +13,9 @@
 
 namespace {
 
-class PendingNodesWaiter final : private NodeRefObserver,
-                                 public std::enable_shared_from_this<
-                                     PendingNodesWaiter> {
+class PendingNodesWaiter final
+    : private NodeRefObserver,
+      public std::enable_shared_from_this<PendingNodesWaiter> {
  public:
   explicit PendingNodesWaiter(NodeService& node_service)
       : node_service_{node_service} {}
@@ -72,7 +72,8 @@ class PendingNodesWaiter final : private NodeRefObserver,
 };
 
 template <class CompletionToken = boost::asio::use_awaitable_t<>>
-auto AwaitPendingNodes(NodeService& node_service, CompletionToken&& token = {}) {
+auto AwaitPendingNodes(NodeService& node_service,
+                       CompletionToken&& token = {}) {
   auto initiate = [&node_service]<typename Handler>(Handler&& handler) mutable {
     auto waiter = std::make_shared<PendingNodesWaiter>(node_service);
     waiter->Wait([waiter, completion = std::make_shared<std::decay_t<Handler>>(
@@ -103,10 +104,8 @@ Awaitable<void> FetchChildren(const NodeRef& node) {
 
 Awaitable<scada::Status> FetchChildrenStatus(const NodeRef& node) {
   if (!node.children_fetched()) {
+    // A failed remote fetch is reported via node.status(); it must not panic.
     co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
-    assert(node.fetched());
-    assert(node.type_definition().fetched());
-    assert(node.children_fetched());
   }
   co_return node.status();
 }

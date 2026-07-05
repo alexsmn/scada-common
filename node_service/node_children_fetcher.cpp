@@ -1,6 +1,7 @@
 #include "node_service/node_children_fetcher.h"
 
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "model/node_id_util.h"
 #include "node_service/node_fetcher.h"
 #include "scada/node_class.h"
@@ -95,7 +96,7 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
                      << LOG_TAG("Inputs", ToString(descriptions))
                      << LOG_TAG("Results", ToString(results));
 
-  assert(!descriptions.empty());
+  base::Check(!descriptions.empty());
 
   std::map<scada::NodeId, scada::BrowseResult> merged_results;
 
@@ -116,7 +117,7 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   for (auto& [node_id, result] : merged_results)
     reference_validator_(node_id, std::move(result));
 
-  assert(children_request_count_ > 0);
+  base::Check(children_request_count_ > 0);
   --children_request_count_;
   LOG_INFO(logger_) << "Running requests"
                     << LOG_TAG("Count", children_request_count_);
@@ -142,7 +143,7 @@ void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
 
 void NodeChildrenFetcher::FetchChildren(
     const std::vector<scada::NodeId>& node_ids) {
-  assert(!node_ids.empty());
+  base::Check(!node_ids.empty());
 
   LOG_INFO(logger_) << "Browse nodes children"
                     << LOG_TAG("NodeIds", ToString(node_ids));
@@ -178,7 +179,7 @@ void NodeChildrenFetcher::Cancel(const scada::NodeId& node_id) {
 
   auto i =
       std::find(pending_children_.begin(), pending_children_.end(), node_id);
-  assert(i != pending_children_.end());
+  base::Check(i != pending_children_.end());
   pending_children_.erase(i);
 }
 

@@ -1,7 +1,8 @@
 #include "vidicon_monitored_data_point.h"
 
-#include "base/utf_convert.h"
+#include "base/check.h"
 #include "base/time/time.h"
+#include "base/utf_convert.h"
 #include "base/win/scoped_variant.h"
 #include "scada/qualifier.h"
 
@@ -73,7 +74,7 @@ scada::Qualifier OpcQualityToQualifier(unsigned quality) {
 VidiconMonitoredDataPoint::VidiconMonitoredDataPoint(
     Microsoft::WRL::ComPtr<IDataPoint> point)
     : point_(std::move(point)) {
-  assert(point_);
+  base::Check(point_);
   DispEventAdvise(point_.Get(), &DIID__IDataPointEvents);
 }
 
@@ -82,7 +83,7 @@ VidiconMonitoredDataPoint::~VidiconMonitoredDataPoint() {
 }
 
 void VidiconMonitoredDataPoint::Subscribe(scada::MonitoredItemHandler handler) {
-  assert(!data_change_handler_);
+  base::Check(!data_change_handler_);
 
   data_change_handler_ = std::move(std::get<scada::DataChangeHandler>(handler));
   data_change_handler_(GetDataValue());

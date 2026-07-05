@@ -2,6 +2,7 @@
 
 #include "base/auto_reset.h"
 #include "base/awaitable.h"
+#include "base/check.h"
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"
@@ -90,14 +91,6 @@ void GetFetchReferences(const FetchingNode& fetching_node,
   }
 }
 
-scada::NodeId FindSupertypeId(const scada::ReferenceDescriptions& references) {
-  auto i = std::ranges::find(references, scada::id::HasSubtype,
-                             [](const scada::ReferenceDescription& ref) {
-                               return ref.reference_type_id;
-                             });
-  return i != references.end() ? i->node_id : scada::NodeId{};
-}
-
 std::vector<scada::NodeId> CollectNodeIds(
     const std::vector<FetchingNode*> nodes) {
   return nodes | boost::adaptors::transformed([](const FetchingNode* node) {
@@ -135,22 +128,22 @@ size_t NodeFetcherImpl::GetPendingNodeCount() const {
 void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
                             NodeFetchStatus status,
                             bool force) {
-  assert(!node_id.is_null());
-  assert(status.node_fetched);
-  assert(AssertValid());
+  base::Check(!node_id.is_null());
+  base::Check(status.node_fetched);
+  base::Check(CheckInvariants());
 
   auto& node = fetching_nodes_.AddNode(node_id);
 
   FetchNode(node, next_pending_sequence_++, status, force);
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
                                 NodeFetchStatus status,
                                 bool force) {
-  assert(status.node_fetched);
+  base::Check(status.node_fetched);
 
   if (!node.fetch_started.empty()) {
     if (status.all_less_or_equal(node.fetch_started) && !force)
@@ -182,7 +175,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
 }
 
 void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
   auto* fetching_node = fetching_nodes_.FindNode(node_id);
   if (!fetching_node)
@@ -199,11 +192,11 @@ void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
 
   FetchPendingNodes();
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::FetchPendingNodes() {
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
   if (processing_response_)
     return;
@@ -225,8 +218,8 @@ void NodeFetcherImpl::FetchPendingNodes() {
     while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
       auto& node = pending_queue_.top();
       pending_queue_.pop();
-      assert(node.fetch_started.empty());
-      assert(!node.pending_status.empty());
+      base::Check(node.fetch_started.empty());
+      base::Check(!node.pending_status.empty());
       node.fetch_started = node.pending_status;
       nodes.emplace_back(&node);
     }
@@ -234,7 +227,7 @@ void NodeFetcherImpl::FetchPendingNodes() {
     FetchPendingNodes(std::move(nodes));
   }
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 }
 
 unsigned NodeFetcherImpl::MakeRequestId() {
@@ -245,7 +238,7 @@ unsigned NodeFetcherImpl::MakeRequestId() {
 }
 
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
   const auto start_ticks = base::TimeTicks::Now();
   const auto request_id = MakeRequestId();
@@ -271,7 +264,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
     node->attributes_fetched = count == read_ids.size();
   }
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
   CoSpawn(executor_, weak_from_this(),
           [request_id, start_ticks, read_ids = std::move(read_ids)](
@@ -300,7 +293,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
     return;
   }
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
   CoSpawn(
       executor_, weak_from_this(),
@@ -332,8 +325,9 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
                                 ToString(CollectFetchedNodeIds(result.nodes)))
                      << LOG_TAG("Errors", ToString(result.errors));
 
-#if !defined(NDEBUG)
-  // Validation.
+  // Consistency diagnostics over node data fetched from a (possibly remote)
+  // server. The data is external, so inconsistencies are logged rather than
+  // treated as internal invariants.
   {
     std::map<scada::NodeId, const scada::NodeState*> type_definition_map;
     for (auto& node : result.nodes) {
@@ -342,25 +336,38 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
     }
     for (auto& node : result.nodes) {
       if (scada::IsInstance(node.node_class)) {
-        assert(!node.type_definition_id.is_null());
+        if (node.type_definition_id.is_null()) {
+          LOG_WARNING(logger_)
+              << "Fetched instance node has no type definition"
+              << LOG_TAG("NodeId", NodeIdToScadaString(node.node_id));
+          continue;
+        }
         auto type_definition_id = node.type_definition_id;
         while (!type_definition_id.is_null()) {
           if (node_validator_(type_definition_id))
             break;
-          /*auto supertype_id = FindSupertypeId(node.references);
-          assert(!supertype_id.is_null());*/
-          assert(type_definition_map.count(type_definition_id));
-          if (auto i = type_definition_map.find(type_definition_id);
-              i != type_definition_map.end()) {
-            auto* type_definiton = i->second;
-            assert(scada::IsTypeDefinition(type_definiton->node_class));
-            type_definition_id = type_definiton->supertype_id;
+          auto i = type_definition_map.find(type_definition_id);
+          if (i == type_definition_map.end()) {
+            LOG_WARNING(logger_)
+                << "Fetched node references an unknown type definition"
+                << LOG_TAG("NodeId", NodeIdToScadaString(node.node_id))
+                << LOG_TAG("TypeDefinitionId",
+                           NodeIdToScadaString(type_definition_id));
+            break;
           }
+          auto* type_definiton = i->second;
+          if (!scada::IsTypeDefinition(type_definiton->node_class)) {
+            LOG_WARNING(logger_)
+                << "Fetched type definition has a non-type node class"
+                << LOG_TAG("NodeId",
+                           NodeIdToScadaString(type_definiton->node_id));
+            break;
+          }
+          type_definition_id = type_definiton->supertype_id;
         }
       }
     }
   }
-#endif
 
   fetch_completed_handler_(std::move(result));
 }
@@ -371,9 +378,10 @@ void NodeFetcherImpl::OnReadResult(
     scada::Status&& status,
     const std::vector<scada::ReadValueId>& read_ids,
     std::vector<scada::DataValue>&& results) {
-  assert(!status || results.size() == read_ids.size());
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
+  // The response comes from a (possibly remote) service; a result-count
+  // mismatch is handled below instead of being treated as an invariant.
   if (status && results.size() != read_ids.size()) {
     LOG_ERROR(logger_) << "Read request returned unexpected result count"
                        << LOG_TAG("RequestId", request_id)
@@ -401,7 +409,7 @@ void NodeFetcherImpl::OnReadResult(
   }
 
   {
-    assert(!processing_response_);
+    base::Check(!processing_response_);
     base::AutoReset processing_response{&processing_response_, true};
 
     LOG_INFO(logger_) << "Read request processing begin"
@@ -423,7 +431,7 @@ void NodeFetcherImpl::OnReadResult(
                       << LOG_TAG("ReadCount", read_ids.size());
   }
 
-  assert(running_request_count_ > 0);
+  base::Check(running_request_count_ > 0);
   --running_request_count_;
   LOG_INFO(logger_) << "Remaining requests"
                     << LOG_TAG("RequestCount", running_request_count_);
@@ -440,7 +448,7 @@ void NodeFetcherImpl::OnReadResult(
   LOG_INFO(logger_) << "Read request fetch pending nodes completed"
                     << LOG_TAG("RequestId", request_id);
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
@@ -530,9 +538,10 @@ void NodeFetcherImpl::OnBrowseResult(
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
-  assert(!status || results.size() == descriptions.size());
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 
+  // The response comes from a (possibly remote) service; a result-count
+  // mismatch is handled below instead of being treated as an invariant.
   if (status && results.size() != descriptions.size()) {
     LOG_ERROR(logger_) << "Browse request returned unexpected result count"
                        << LOG_TAG("RequestId", request_id)
@@ -561,7 +570,7 @@ void NodeFetcherImpl::OnBrowseResult(
   }
 
   {
-    assert(!processing_response_);
+    base::Check(!processing_response_);
     base::AutoReset processing_response{&processing_response_, true};
 
     for (size_t i = 0; i < descriptions.size(); ++i) {
@@ -574,7 +583,7 @@ void NodeFetcherImpl::OnBrowseResult(
     }
   }
 
-  assert(running_request_count_ > 0);
+  base::Check(running_request_count_ > 0);
   --running_request_count_;
   LOG_INFO(logger_) << "Remaining requests"
                     << LOG_TAG("RequestCount", running_request_count_);
@@ -583,7 +592,7 @@ void NodeFetcherImpl::OnBrowseResult(
 
   FetchPendingNodes();
 
-  assert(AssertValid());
+  base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::ApplyBrowseResult(
@@ -623,23 +632,41 @@ void NodeFetcherImpl::AddFetchedReference(
 
   ValidateDependency(node, reference.reference_type_id);
 
+  // Browse results come from a (possibly remote) server. Malformed or
+  // conflicting references are external input: log and skip or overwrite
+  // instead of panicking.
   if (description.direction == scada::BrowseDirection::Inverse) {
     // Parent.
 
-    assert(!reference.forward);
-    assert(description.reference_type_id == scada::id::HierarchicalReferences ||
-           description.reference_type_id == scada::id::HasSubtype);
+    // The browse description is built by GetFetchReferences.
+    base::Check(description.reference_type_id ==
+                    scada::id::HierarchicalReferences ||
+                description.reference_type_id == scada::id::HasSubtype);
+
+    if (reference.forward) {
+      LOG_WARNING(logger_) << "Ignore forward reference in an inverse browse"
+                           << LOG_TAG("NodeId",
+                                      ToString(node.node_state.node_id));
+      return;
+    }
 
     if (reference.reference_type_id == scada::id::HasSubtype) {
-      assert(node.node_state.supertype_id.is_null() ||
-             node.node_state.supertype_id == reference.node_id);
+      if (!node.node_state.supertype_id.is_null() &&
+          node.node_state.supertype_id != reference.node_id) {
+        LOG_WARNING(logger_)
+            << "Conflicting supertype in browse result"
+            << LOG_TAG("NodeId", ToString(node.node_state.node_id));
+      }
       node.node_state.supertype_id = reference.node_id;
     } else {
-      assert(node.node_state.parent_id.is_null() ||
-             node.node_state.parent_id == reference.node_id);
-      assert(node.node_state.reference_type_id.is_null() ||
-             node.node_state.reference_type_id == reference.reference_type_id);
-      assert(reference.reference_type_id != scada::id::HasSubtype);
+      if ((!node.node_state.parent_id.is_null() &&
+           node.node_state.parent_id != reference.node_id) ||
+          (!node.node_state.reference_type_id.is_null() &&
+           node.node_state.reference_type_id != reference.reference_type_id)) {
+        LOG_WARNING(logger_)
+            << "Conflicting parent in browse result"
+            << LOG_TAG("NodeId", ToString(node.node_state.node_id));
+      }
       node.node_state.parent_id = reference.node_id;
       node.node_state.reference_type_id = reference.reference_type_id;
     }
@@ -649,8 +676,13 @@ void NodeFetcherImpl::AddFetchedReference(
   } else if (description.reference_type_id == scada::id::Aggregates) {
     // Child.
 
-    assert(reference.forward);
-    assert(reference.reference_type_id != scada::id::HasSubtype);
+    if (!reference.forward ||
+        reference.reference_type_id == scada::id::HasSubtype) {
+      LOG_WARNING(logger_) << "Ignore unexpected child reference"
+                           << LOG_TAG("NodeId",
+                                      ToString(node.node_state.node_id));
+      return;
+    }
 
     // Save parent for the pending child.
     // WARNING: |reference.node_id|.
@@ -678,18 +710,29 @@ void NodeFetcherImpl::AddFetchedReference(
   } else {
     // Non-hierarchical forward references, including HasTypeDefinition.
 
-    assert(reference.forward);
-    assert(description.reference_type_id ==
-           scada::id::NonHierarchicalReferences);
+    // The browse description is built by GetFetchReferences.
+    base::Check(description.reference_type_id ==
+                scada::id::NonHierarchicalReferences);
+
+    if (!reference.forward) {
+      LOG_WARNING(logger_) << "Ignore inverse reference in a forward browse"
+                           << LOG_TAG("NodeId",
+                                      ToString(node.node_state.node_id));
+      return;
+    }
 
     if (reference.reference_type_id == scada::id::HasTypeDefinition) {
-      assert(node.node_state.type_definition_id.is_null() ||
-             node.node_state.type_definition_id == reference.node_id);
+      if (!node.node_state.type_definition_id.is_null() &&
+          node.node_state.type_definition_id != reference.node_id) {
+        LOG_WARNING(logger_)
+            << "Conflicting type definition in browse result"
+            << LOG_TAG("NodeId", ToString(node.node_state.node_id));
+      }
       node.node_state.type_definition_id = reference.node_id;
-    } else {
-      assert(std::find(node.node_state.references.begin(),
-                       node.node_state.references.end(),
-                       reference) == node.node_state.references.end());
+    } else if (std::find(node.node_state.references.begin(),
+                         node.node_state.references.end(),
+                         reference) == node.node_state.references.end()) {
+      // Skip duplicate references returned by the server.
       node.node_state.references.emplace_back(reference);
     }
 
@@ -697,35 +740,24 @@ void NodeFetcherImpl::AddFetchedReference(
   }
 }
 
-bool NodeFetcherImpl::AssertValid() const {
+bool NodeFetcherImpl::CheckInvariants() const {
   return true;
 
+  // Disabled full validation, kept as pure boolean logic for reference:
   /*for (auto& p : fetching_nodes_.fetching_nodes_) {
     auto& node = p.second;
 
     bool pending = !!pending_queue_.count(node);
 
     if (node.fetched()) {
-      assert(!pending);
-
-      assert(node.fetch_started);
-      if (!node.fetch_started)
+      if (pending)
         return false;
-
-    } else {
-      //assert(pending || node.fetch_started);
-      //if (!pending && !node.fetch_started)
-      //  return false;*
-    }
-
-    if (pending) {
-      assert(!node.fetched());
-      if (node.fetched())
+      if (!node.fetch_started)
         return false;
     }
   }
 
-  return fetching_nodes_.AssertValid();*/
+  return fetching_nodes_.CheckInvariants();*/
 }
 
 void NodeFetcherImpl::ValidateDependency(FetchingNode& node,

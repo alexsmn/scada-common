@@ -7,6 +7,7 @@
 #include "address_space/object.h"
 #include "address_space/type_definition.h"
 #include "address_space/variable.h"
+#include "base/check.h"
 #include "common/node_state.h"
 #include "common/node_state_util.h"
 #include "model/node_id_util.h"
@@ -45,7 +46,7 @@ const scada::Node& GetTransitiveParent(const scada::Node& node,
       break;
     }
   }
-  assert(semantic_parent);
+  base::Check(semantic_parent);
   return *semantic_parent;
 }
 
@@ -68,7 +69,7 @@ struct TypeDefinitionPatch {
   void Patch(std::vector<scada::NodeState>& node_states) {
     for (auto& node_state : node_states) {
       if (scada::IsTypeDefinition(node_state.node_class)) {
-        assert(node_state.reference_type_id != scada::id::HasSubtype);
+        base::Check(node_state.reference_type_id != scada::id::HasSubtype);
         parents.try_emplace(node_state.node_id, node_state.parent_id,
                             node_state.reference_type_id,
                             node_state.supertype_id);
@@ -92,8 +93,9 @@ struct TypeDefinitionPatch {
     if (source_id.is_null())
       return;
 
+    // The source node may be missing when fetched data references unknown
+    // nodes (external input).
     auto* node = address_space.GetNode(source_id);
-    assert(node);
     if (!node) {
       return;
     }
@@ -186,7 +188,7 @@ void AddressSpaceUpdater::UpdateNode(const scada::NodeState& node_state) {
 void AddressSpaceUpdater::UpdateNodeReferences(
     const scada::NodeId& node_id,
     const scada::ReferenceDescriptions& references) {
-  assert(!node_id.is_null());
+  base::Check(!node_id.is_null());
 
   auto* node = address_space_.GetNode(node_id);
   if (!node) {
@@ -196,7 +198,7 @@ void AddressSpaceUpdater::UpdateNodeReferences(
   }
 
   auto& deleted_references = allocated_deleted_references_;
-  assert(deleted_references.empty());
+  base::Check(deleted_references.empty());
 
   // Deleted references.
   FindDeletedReferences(*node, references, deleted_references);
@@ -215,7 +217,7 @@ void AddressSpaceUpdater::UpdateNodeReferences(
 void AddressSpaceUpdater::AddReference(
     const scada::NodeId& node_id,
     const scada::ReferenceDescription& reference) {
-  assert(reference.forward);
+  base::Check(reference.forward);
 
   auto* reference_type =
       AsReferenceType(address_space_.GetNode(reference.reference_type_id));
@@ -303,7 +305,7 @@ std::vector<const scada::Node*> FindDeletedChildren(
   std::vector<scada::NodeId> new_child_ids;
   new_child_ids.reserve(references.size());
   for (const auto& reference : references) {
-    assert(reference.forward);
+    base::Check(reference.forward);
     new_child_ids.emplace_back(reference.node_id);
   }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "base/check.h"
 #include "scada/legacy_monitored_item_adapter.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
@@ -66,12 +67,12 @@ inline ViewEventsSubscription::ViewEventsSubscription(
       monitored_item_adapter_{executor, monitored_item_service},
       monitored_item_{CreateModelAndSemanticChangeEventsMonitoredItem(
           monitored_item_adapter_)} {
-  assert(monitored_item_);
+  base::Check(monitored_item_);
   // FIXME: Capturing |this|.
   monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {
-        assert(status);
-        if (event.has_value()) {
+        // A bad status may be reported for a remote subscription; skip it.
+        if (status && event.has_value()) {
           OnEvent(event);
         }
       });
@@ -84,9 +85,9 @@ inline void ViewEventsSubscription::OnEvent(const std::any& event) {
   } else if (auto* semantic_change_event =
                  std::any_cast<scada::SemanticChangeEvent>(&event)) {
     events_.OnNodeSemanticsChanged(*semantic_change_event);
-  } else {
-    assert(false);
   }
+  // Events arrive from a (possibly remote) server; unknown event types are
+  // ignored.
 }
 
 inline ViewEventsProvider MakeViewEventsProvider(

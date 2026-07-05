@@ -3,6 +3,7 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/address_space_util.h"
 #include "address_space/node_builder.h"
+#include "base/check.h"
 
 class NodeBuilderImpl : public scada::NodeBuilder {
  public:
@@ -12,13 +13,13 @@ class NodeBuilderImpl : public scada::NodeBuilder {
   virtual const scada::Node& GetNode(
       const scada::NodeId& node_id) const override {
     auto* node = address_space_.GetNode(node_id);
-    assert(node);
+    base::Check(node);
     return *node;
   }
 
   virtual scada::Node& GetMutableNode(const scada::NodeId& node_id) override {
     auto* node = address_space_.GetMutableNode(node_id);
-    assert(node);
+    base::Check(node);
     return *node;
   }
 

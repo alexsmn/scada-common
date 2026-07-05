@@ -1,5 +1,6 @@
 #include "common/node_state_util.h"
 
+#include "base/check.h"
 #include "scada/standard_node_ids.h"
 
 namespace scada {
@@ -67,7 +68,7 @@ void SortNodesHierarchically(std::vector<NodeState>& nodes) {
     }
 
     std::vector<NodeState> Collect() && {
-      assert(sorted_indexes.size() == graph.vertex_count());
+      base::Check(sorted_indexes.size() == graph.vertex_count());
 
       std::vector<NodeState> sorted_nodes(sorted_indexes.size());
       for (size_t index = 0; index < graph.vertex_count(); ++index) {

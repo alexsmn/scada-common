@@ -21,8 +21,7 @@ std::optional<opc_client::Address> ParseOpcNodeId(
     return std::nullopt;
   }
 
-  return opc_client::Address::Parse(
-      UtfConvert<wchar_t>(node_id.string_id()));
+  return opc_client::Address::Parse(UtfConvert<wchar_t>(node_id.string_id()));
 }
 
 scada::NodeId MakeOpcNodeId(opc_client::AddressView address) {
@@ -38,8 +37,8 @@ scada::NodeId MakeOpcNodeId(std::wstring_view address) {
 }
 
 std::wstring_view GetOpcItemName(std::wstring_view item_id) {
-  assert(!item_id.empty());
-
+  // Item IDs come from external OPC servers; an empty ID simply yields an
+  // empty name.
   // TODO: This relies on the external item ID structure.
   auto p = item_id.find_last_of(kOpcCustomItemDelimiter);
   return p == item_id.npos ? item_id : item_id.substr(p + 1);

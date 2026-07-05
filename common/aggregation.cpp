@@ -1,5 +1,6 @@
 #include "common/aggregation.h"
 
+#include "base/check.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "scada/aggregate_filter.h"
@@ -90,7 +91,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
                 count](std::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
           count += values.size();
-          assert(count != 0);
+          base::Check(count != 0);
           return DataValue{total / count, {}, interval.first, interval.second};
         };
       });
@@ -101,8 +102,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
         size_t count = 0;
         return [interval, count](std::span<const DataValue> values) mutable {
           count += values.size();
-          return DataValue{static_cast<UInt64>(count), {}, interval.first,
-                           interval.second};
+          return DataValue{
+              static_cast<UInt64>(count), {}, interval.first, interval.second};
         };
       });
 
@@ -180,8 +181,12 @@ DateTime GetLocalAggregateStartTime() {
 DateTimeRange GetAggregateInterval(DateTime time,
                                    DateTime origin_time,
                                    Duration interval) {
-  assert(!interval.is_zero());
-  assert(time >= origin_time);
+  // The interval comes from request/configuration data and |time| from stored
+  // history values (external input); degrade instead of panicking.
+  if (interval.is_zero())
+    return {time, time};
+  if (time < origin_time)
+    return {origin_time, origin_time + interval};
   auto delta = time - origin_time;
   delta -= delta % interval;
   return {origin_time + delta, origin_time + delta + interval};
@@ -193,10 +198,9 @@ void AggregateState::Process(std::span<const scada::DataValue> raw_span) {
                                                 aggregation.start_time,
                                                 aggregation.interval);
 
-    auto count = forward
-                     ? UpperBound(raw_span, interval.second)
-                     : ReverseUpperBound(raw_span, interval.first);
-    assert(count != 0);
+    auto count = forward ? UpperBound(raw_span, interval.second)
+                         : ReverseUpperBound(raw_span, interval.first);
+    base::Check(count != 0);
 
     if (aggregator_interval != interval) {
       if (!aggregated_value.is_null()) {

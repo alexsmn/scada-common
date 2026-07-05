@@ -1,5 +1,6 @@
 #include "timed_data/timed_data_spec.h"
 
+#include "base/check.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "model/data_items_node_ids.h"
@@ -56,9 +57,9 @@ void TimedDataSpec::SetFrom(base::Time from) {
 }
 
 void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
-  assert(!range.second.is_null());
-  assert(IsValidInterval(range));
-  assert(range.second == kTimedDataCurrentOnly || !IsEmptyInterval(range));
+  base::Check(!range.second.is_null());
+  base::Check(IsValidInterval(range));
+  base::Check(range.second == kTimedDataCurrentOnly || !IsEmptyInterval(range));
 
   if (range_ == range)
     return;
@@ -72,7 +73,7 @@ void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
 }
 
 void TimedDataSpec::SetAggregateFilter(scada::AggregateFilter filter) {
-  assert(!data_);
+  base::Check(!data_);
   aggregate_filter_ = std::move(filter);
 }
 

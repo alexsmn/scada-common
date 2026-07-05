@@ -1,10 +1,11 @@
 #include "node_service/v2/node_model_impl.h"
 
-#include "scada/standard_node_ids.h"
+#include "base/check.h"
 #include "model/node_id_util.h"
 #include "node_service/node_observer.h"
 #include "node_service/node_util.h"
 #include "node_service/v2/node_service_impl.h"
+#include "scada/standard_node_ids.h"
 
 #include "base/awaitable.h"
 #include "base/debug_util.h"
@@ -13,8 +14,9 @@ namespace v2 {
 
 namespace {
 
-Awaitable<void> FetchReferences(NodeService& service,
-                                const scada::ReferenceDescriptions& references) {
+Awaitable<void> FetchReferences(
+    NodeService& service,
+    const scada::ReferenceDescriptions& references) {
   for (auto& ref : references) {
     co_await service.GetNode(ref.node_id).Fetch(NodeFetchStatus::NodeOnly());
     co_await service.GetNode(ref.reference_type_id)
@@ -89,12 +91,12 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
 
   /*{
     if (scada::IsInstance(node_state_.node_class)) {
-      assert(!node_state_.type_definition_id.is_null());
+      base::Check(!node_state_.type_definition_id.is_null());
       auto type_definition_id = node_state_.type_definition_id;
       while (!type_definition_id.is_null()) {
         auto type_definition = service_.GetNodeModel(type_definition_id);
-        assert(type_definition);
-        assert(type_definition->fetch_status_.node_fetched);
+        base::Check(type_definition);
+        base::Check(type_definition->fetch_status_.node_fetched);
         type_definition_id = type_definition->node_state_.supertype_id;
       }
     }
@@ -149,25 +151,24 @@ void NodeModelImpl::OnChildrenFetched(
           [reference_request, this, shared_references]() -> Awaitable<void> {
             co_await FetchReferences(service_, *shared_references);
 
-                    if (!reference_request.lock())
-                      co_return;
+            if (!reference_request.lock())
+              co_return;
 
-                    LOG_INFO(service_.logger_)
-                        << "Node children fetched"
-                        << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+            LOG_INFO(service_.logger_)
+                << "Node children fetched"
+                << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
 
-                    bool model_changed =
-                        child_references_ != *shared_references;
-                    if (model_changed)
-                      child_references_ = *shared_references;
+            bool model_changed = child_references_ != *shared_references;
+            if (model_changed)
+              child_references_ = *shared_references;
 
-                    auto fetch_status = fetch_status_;
-                    fetch_status.children_fetched = true;
-                    SetFetchStatus(status_, fetch_status);
+            auto fetch_status = fetch_status_;
+            fetch_status.children_fetched = true;
+            SetFetchStatus(status_, fetch_status);
 
-                    if (model_changed)
-                      NotifyModelChanged();
-                  });
+            if (model_changed)
+              NotifyModelChanged();
+          });
 }
 
 NodeRef NodeModelImpl::GetAggregateDeclaration(
@@ -285,8 +286,9 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
 
   for (auto& ref : node_state_.references) {
     if (ref.forward == forward) {
+      // The reference type may not be fetched yet (remote data); the
+      // subtype test below then simply fails to match.
       auto reference_type = service_.GetNode(ref.reference_type_id);
-      assert(reference_type.fetched());
       if (IsSubtypeOf(reference_type, reference_type_id)) {
         result.push_back(
             {reference_type, service_.GetNode(ref.node_id), ref.forward});
@@ -296,8 +298,9 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
 
   for (auto& ref : inverse_references_) {
     if (ref.forward == forward) {
+      // The reference type may not be fetched yet (remote data); the
+      // subtype test below then simply fails to match.
       auto reference_type = service_.GetNode(ref.reference_type_id);
-      assert(reference_type.fetched());
       if (IsSubtypeOf(reference_type, reference_type_id)) {
         result.push_back(
             {reference_type, service_.GetNode(ref.node_id), ref.forward});
@@ -307,8 +310,9 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
 
   for (auto& ref : child_references_) {
     if (ref.forward == forward) {
+      // The reference type may not be fetched yet (remote data); the
+      // subtype test below then simply fails to match.
       auto reference_type = service_.GetNode(ref.reference_type_id);
-      assert(reference_type.fetched());
       if (IsSubtypeOf(reference_type, reference_type_id)) {
         result.push_back(
             {reference_type, service_.GetNode(ref.node_id), ref.forward});
@@ -333,7 +337,8 @@ scada::Variant NodeModelImpl::GetAttribute(
     case scada::AttributeId::BrowseName:
       if (!fetch_status_.node_fetched || !status_)
         return scada::QualifiedName{NodeIdToScadaString(node_id_)};
-      assert(!node_state_.attributes.browse_name.empty());
+      // The browse name was fetched from a (possibly remote) server and may
+      // be missing in malformed responses.
       return node_state_.attributes.browse_name;
 
     case scada::AttributeId::DisplayName:
@@ -351,7 +356,7 @@ scada::Variant NodeModelImpl::GetAttribute(
       return node_state_.attributes.value.value_or(scada::Variant{});
 
     default:
-      assert(false);
+      // Unsupported attributes yield an empty variant.
       return {};
   }
 }
@@ -361,7 +366,7 @@ NodeRef NodeModelImpl::GetDataType() const {
 }
 
 void NodeModelImpl::SetError(const scada::Status& status) {
-  assert(status_.good());
+  base::Check(status_.good());
 
   status_ = status;
 }

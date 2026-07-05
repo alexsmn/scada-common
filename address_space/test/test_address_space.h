@@ -8,6 +8,7 @@
 #include "address_space/node.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
+#include "base/check.h"
 #include "base/observer_list.h"
 #include "common/node_state.h"
 #include "model/namespaces.h"
@@ -228,7 +229,7 @@ inline scada::NodeId TestAddressSpace::MakeNestedNodeId(
     const scada::NodeId& parent_id,
     const scada::NodeId& component_decl_id) {
   auto* component_decl = GetNode(component_decl_id);
-  assert(component_decl);
+  base::Check(component_decl);
   return ::MakeNestedNodeId(parent_id, component_decl->GetBrowseName().name());
 }
 
@@ -236,12 +237,12 @@ inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
   GenericNodeFactory node_factory{*this};
   auto p = node_factory.CreateNode(node_state);
   (void)p;
-  assert(p.first);
-  assert(p.second);
+  base::Check(p.first);
+  base::Check(p.second);
 }
 
 inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
-  assert(GetNode(node_id));
+  base::Check(GetNode(node_id));
   AddressSpaceImpl::DeleteNode(node_id);
 }
 
