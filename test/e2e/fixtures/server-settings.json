@@ -8,6 +8,12 @@
     "dir": "${DIR_PARAM}/History"
   },
   "dataItems": {},
+  "security": {
+    "_description": "The credential store rejects users without a provisioned credential, so seed the SQL-fixture guest account (UserType id 12) with an empty test password.",
+    "provision": [
+      { "id": 12, "password": "" }
+    ]
+  },
   "sessions": {
     "enabled": false
   },
