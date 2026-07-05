@@ -3,6 +3,7 @@
 
 #include "scada/authorization.h"
 #include "scada/extension_object.h"
+#include "scada/identity_mapping_rule_encoding.h"
 
 #include "opcua/transport/binary/codec_utils.h"
 
@@ -55,6 +56,32 @@ TEST(ConversionTest, RolePermissionTypeExtensionObjectEncodesBinaryBody) {
   EXPECT_EQ(decoded_permissions,
             static_cast<std::uint32_t>(scada::Permission::kRead |
                                        scada::Permission::kWrite));
+}
+
+// An IdentityMappingRuleType payload survives the boundary in BOTH directions:
+// the encode side emits the DefaultBinary body (CriteriaType Int32 + Criteria
+// String per the official 1.05 Opc.Ua.Types.bsd.xml), and the decode side
+// reconstructs the typed rule from that body — so AddIdentity/RemoveIdentity
+// method arguments (OPC UA Part 18 §4.4.5/§4.4.6) arrive structured.
+TEST(ConversionTest, IdentityMappingRuleExtensionObjectRoundTrips) {
+  const scada::IdentityMappingRule rule{
+      .criteria_type = scada::IdentityCriteriaType::kUserName,
+      .criteria = "svc-site-a"};
+  const scada::ExtensionObject scada_object =
+      scada::MakeIdentityMappingRuleObject(rule);
+
+  const opcua::ExtensionObject opcua_object = ToOpcua(scada_object);
+
+  // The wire encoding id is IdentityMappingRuleType_Encoding_DefaultBinary.
+  EXPECT_EQ(opcua_object.data_type_id().node_id().numeric_id(),
+            scada::kIdentityMappingRuleTypeDefaultBinaryId);
+
+  const scada::ExtensionObject decoded = ToScada(opcua_object);
+  EXPECT_EQ(decoded.data_type_id().node_id().numeric_id(),
+            scada::kIdentityMappingRuleTypeDataTypeId);
+  const auto decoded_rule = scada::DecodeIdentityMappingRule(decoded);
+  ASSERT_TRUE(decoded_rule.has_value());
+  EXPECT_EQ(*decoded_rule, rule);
 }
 
 TEST(ConversionTest, QualifiedName) {

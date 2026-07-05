@@ -2,6 +2,7 @@
 
 #include "opcua_bridge/vector_conversion.h"
 #include "scada/authorization.h"
+#include "scada/identity_mapping_rule_encoding.h"
 
 #include "opcua/transport/binary/codec_utils.h"
 
@@ -91,8 +92,7 @@ opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
   // NodeId (ns=0;i=128). The wire codec (AppendExtensionObjectValue) writes a
   // std::vector<char> body verbatim. OPC UA Part 3 §8.56 RolePermissionType,
   // Part 6 §5.1.8 ExtensionObject.
-  if (const auto* role =
-          std::any_cast<scada::RolePermissionType>(&e.value())) {
+  if (const auto* role = std::any_cast<scada::RolePermissionType>(&e.value())) {
     std::vector<char> body;
     opcua::binary::Encoder encoder{body};
     encoder.Encode(ToOpcua(role->role_id));
@@ -103,11 +103,52 @@ opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
         std::any{std::move(body)}};
   }
 
+  // IdentityMappingRuleType payload (a Role's Identities entry or an
+  // AddIdentity/RemoveIdentity argument): CriteriaType (Int32 enum) followed
+  // by Criteria (String), per the official 1.05 Opc.Ua.Types.bsd.xml; tagged
+  // with IdentityMappingRuleType_Encoding_DefaultBinary (ns=0;i=15736).
+  // OPC UA Part 18 §4.4.3,
+  // https://reference.opcfoundation.org/Core/Part18/v105/docs/4.4.3
+  if (const auto* rule =
+          std::any_cast<scada::IdentityMappingRule>(&e.value())) {
+    std::vector<char> body;
+    opcua::binary::Encoder encoder{body};
+    encoder.Encode(static_cast<std::int32_t>(rule->criteria_type));
+    encoder.Encode(std::string_view{rule->criteria});
+    return opcua::ExtensionObject{
+        opcua::ExpandedNodeId{
+            opcua::NodeId{scada::kIdentityMappingRuleTypeDefaultBinaryId, 0}},
+        std::any{std::move(body)}};
+  }
+
   // Other payloads cannot be transferred across the type boundary by value; the
   // boundary ExtensionObject then carries only its data_type_id.
   return opcua::ExtensionObject{ToOpcua(e.data_type_id()), {}};
 }
 scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {
+  // IdentityMappingRuleType bodies are decoded back into the typed rule so
+  // method implementations (AddIdentity/RemoveIdentity, OPC UA Part 18
+  // §4.4.5/§4.4.6) receive a structured argument. The wire decoder
+  // (ReadExtensionObjectValue) delivers the body as an opcua::ByteString
+  // (std::vector<char>); the in-process encode path above uses the same type.
+  if (e.data_type_id().node_id() ==
+      opcua::NodeId{scada::kIdentityMappingRuleTypeDefaultBinaryId, 0}) {
+    if (const auto* body = std::any_cast<opcua::ByteString>(&e.value())) {
+      opcua::binary::Decoder decoder{*body};
+      std::int32_t criteria_type = 0;
+      opcua::String criteria;
+      if (decoder.Decode(criteria_type) && decoder.Decode(criteria)) {
+        return scada::ExtensionObject{
+            scada::ExpandedNodeId{
+                scada::NodeId{scada::kIdentityMappingRuleTypeDataTypeId, 0}},
+            std::any{scada::IdentityMappingRule{
+                .criteria_type =
+                    static_cast<scada::IdentityCriteriaType>(criteria_type),
+                .criteria = std::string{criteria}}}};
+      }
+    }
+  }
+
   return scada::ExtensionObject{ToScada(e.data_type_id()), {}};
 }
 
