@@ -1,5 +1,6 @@
 #pragma once
 
+#include "metrics/tracer.h"
 // A core history service backed by an *external* OPC UA historian reached as an
 // OPC UA client. Owns a ClientSession and its connection lifecycle; delegates
 // reads/updates over the wire via ClientHistoryServiceAdapter. This is the
@@ -41,9 +42,12 @@ struct RemoteHistoryServiceConfig {
 class RemoteHistoryService : public scada::HistoryService,
                              public scada::HistoryUpdateService {
  public:
+  // `tracer` makes the historian-bound client calls emit CLIENT spans that
+  // propagate their trace to the remote historian.
   RemoteHistoryService(AnyExecutor executor,
                        transport::TransportFactory& transport_factory,
-                       RemoteHistoryServiceConfig config);
+                       RemoteHistoryServiceConfig config,
+                       Tracer& tracer = Tracer::None());
   ~RemoteHistoryService() override;
 
   // Opens the session to the configured (primary) historian endpoint and
@@ -54,8 +58,8 @@ class RemoteHistoryService : public scada::HistoryService,
   [[nodiscard]] Awaitable<scada::Status> ConnectTo(std::string endpoint);
   // Cheap liveness keepalive: round-trips a HistoryRead of the standard
   // ServerStatus node. Returns a connectivity Bad (e.g. Bad_Disconnected /
-  // Bad_Timeout) when the session is no longer usable, letting a caller detect a
-  // silent mid-session drop that IsConnected() would not surface promptly.
+  // Bad_Timeout) when the session is no longer usable, letting a caller detect
+  // a silent mid-session drop that IsConnected() would not surface promptly.
   [[nodiscard]] Awaitable<scada::Status> Probe();
   [[nodiscard]] Awaitable<void> Disconnect();
   [[nodiscard]] bool IsConnected() const;
@@ -65,9 +69,9 @@ class RemoteHistoryService : public scada::HistoryService,
   [[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevel();
   // Opens a *transient* session to `endpoint`, reads its ServiceLevel, and
   // disconnects — without disturbing the active session — so the loop can
-  // compare candidates for ServiceLevel-aware preemption. Returns a connectivity
-  // Bad if the endpoint is unreachable (e.g. a gated standby with its listener
-  // closed).
+  // compare candidates for ServiceLevel-aware preemption. Returns a
+  // connectivity Bad if the endpoint is unreachable (e.g. a gated standby with
+  // its listener closed).
   [[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
       std::string endpoint);
 

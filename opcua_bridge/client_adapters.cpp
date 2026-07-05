@@ -6,6 +6,24 @@
 
 namespace opcua_bridge {
 
+namespace {
+
+// Starts a CLIENT span parented from the context's trace and rewrites the
+// context so the span's traceparent rides `ToOpcua(context)` into the OPC UA
+// request header (see ServiceRequestHeader::trace_parent in opcuapp).
+TraceSpan StartClientSpan(Tracer& tracer,
+                          std::string_view name,
+                          scada::ServiceContext& context) {
+  TraceSpan span =
+      tracer.StartSpan(name, TraceSpanKind::kClient, context.trace_id());
+  if (std::string trace_parent = span.traceparent(); !trace_parent.empty()) {
+    context = context.with_trace_id(trace_parent);
+  }
+  return span;
+}
+
+}  // namespace
+
 // --- SessionService -----------------------------------------------------
 Awaitable<void> ClientSessionServiceAdapter::Connect(
     scada::SessionConnectParams params) {
@@ -26,6 +44,7 @@ Awaitable<void> ClientSessionServiceAdapter::Disconnect() {
 Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
 ClientViewServiceAdapter::Browse(scada::ServiceContext context,
                                  std::vector<scada::BrowseDescription> inputs) {
+  auto span = StartClientSpan(tracer_, "opcua.client/Browse", context);
   auto result =
       co_await session_->Browse(ToOpcua(context), ToOpcuaVector(inputs));
   co_return ToScada(result);
@@ -40,9 +59,9 @@ ClientViewServiceAdapter::TranslateBrowsePaths(
 
 // --- AttributeService ---------------------------------------------------
 Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-ClientAttributeServiceAdapter::Read(
-    scada::ServiceContext context,
-    std::vector<scada::ReadValueId> inputs) {
+ClientAttributeServiceAdapter::Read(scada::ServiceContext context,
+                                    std::vector<scada::ReadValueId> inputs) {
+  auto span = StartClientSpan(tracer_, "opcua.client/Read", context);
   auto opcua_inputs = std::make_shared<const std::vector<opcua::ReadValueId>>(
       ToOpcuaVector(inputs));
   auto result =
@@ -51,9 +70,9 @@ ClientAttributeServiceAdapter::Read(
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-ClientAttributeServiceAdapter::Write(
-    scada::ServiceContext context,
-    std::vector<scada::WriteValue> inputs) {
+ClientAttributeServiceAdapter::Write(scada::ServiceContext context,
+                                     std::vector<scada::WriteValue> inputs) {
+  auto span = StartClientSpan(tracer_, "opcua.client/Write", context);
   auto opcua_inputs = std::make_shared<const std::vector<opcua::WriteValue>>(
       ToOpcuaVector(inputs));
   auto result =
@@ -67,11 +86,13 @@ Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
     scada::ServiceContext context) {
+  auto span = StartClientSpan(tracer_, "opcua.client/Call", context);
   // The wire client session's Call still takes only a user id (the client does
   // not carry a rights bitmask to the server); extract it from the context.
-  auto status = co_await session_->Call(ToOpcua(node_id), ToOpcua(method_id),
-                                        ToOpcuaVector(arguments),
-                                        ToOpcua(context.user_id()));
+  // The traceparent travels as an explicit argument instead.
+  auto status = co_await session_->Call(
+      ToOpcua(node_id), ToOpcua(method_id), ToOpcuaVector(arguments),
+      ToOpcua(context.user_id()), span.traceparent());
   co_return ToScada(status);
 }
 
@@ -146,7 +167,12 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
 Awaitable<scada::HistoryReadRawResult>
 ClientHistoryServiceAdapter::HistoryReadRaw(
     scada::HistoryReadRawDetails details) {
-  auto result = co_await session_->HistoryReadRaw(ToOpcua(details));
+  // HistoryService carries no ServiceContext (see tracing.md), so this CLIENT
+  // span is a new root; its traceparent still links the historian-side spans.
+  auto span = tracer_.StartSpan("opcua.client/HistoryReadRaw",
+                                TraceSpanKind::kClient, {});
+  auto result =
+      co_await session_->HistoryReadRaw(ToOpcua(details), span.traceparent());
   if (!result.ok()) {
     co_return scada::HistoryReadRawResult{.status = ToScada(result.status())};
   }
@@ -162,7 +188,10 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
                                           .from = from,
                                           .to = to,
                                           .filter = std::move(filter)};
-  auto result = co_await session_->HistoryReadEvents(ToOpcua(details));
+  auto span = tracer_.StartSpan("opcua.client/HistoryReadEvents",
+                                TraceSpanKind::kClient, {});
+  auto result = co_await session_->HistoryReadEvents(ToOpcua(details),
+                                                     span.traceparent());
   if (!result.ok()) {
     co_return scada::HistoryReadEventsResult{.status =
                                                  ToScada(result.status())};
@@ -172,9 +201,12 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientHistoryServiceAdapter::HistoryUpdateData(
-    scada::ServiceContext /*context*/,
+    scada::ServiceContext context,
     scada::UpdateDataDetails details) {
-  auto result = co_await session_->HistoryUpdateData(ToOpcua(details));
+  auto span =
+      StartClientSpan(tracer_, "opcua.client/HistoryUpdateData", context);
+  auto result = co_await session_->HistoryUpdateData(ToOpcua(details),
+                                                     span.traceparent());
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -186,9 +218,12 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
 ClientHistoryServiceAdapter::HistoryUpdateEvent(
-    scada::ServiceContext /*context*/,
+    scada::ServiceContext context,
     scada::UpdateEventDetails details) {
-  auto result = co_await session_->HistoryUpdateEvent(ToOpcua(details));
+  auto span =
+      StartClientSpan(tracer_, "opcua.client/HistoryUpdateEvent", context);
+  auto result = co_await session_->HistoryUpdateEvent(ToOpcua(details),
+                                                      span.traceparent());
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -200,21 +235,23 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
 
 // --- factory ------------------------------------------------------------
 ::DataServices CreateClientDataServices(
-    std::shared_ptr<opcua::ClientSession> session) {
+    std::shared_ptr<opcua::ClientSession> session,
+    Tracer& tracer) {
   ::DataServices services;
   services.session_service_ =
       std::make_shared<ClientSessionServiceAdapter>(session);
-  services.view_service_ = std::make_shared<ClientViewServiceAdapter>(session);
+  services.view_service_ =
+      std::make_shared<ClientViewServiceAdapter>(session, tracer);
   services.attribute_service_ =
-      std::make_shared<ClientAttributeServiceAdapter>(session);
+      std::make_shared<ClientAttributeServiceAdapter>(session, tracer);
   services.method_service_ =
-      std::make_shared<ClientMethodServiceAdapter>(session);
+      std::make_shared<ClientMethodServiceAdapter>(session, tracer);
   services.node_management_service_ =
       std::make_shared<ClientNodeManagementServiceAdapter>(session);
   services.monitored_item_service_ =
       std::make_shared<ClientMonitoredItemServiceAdapter>(session);
   services.history_service_ =
-      std::make_shared<ClientHistoryServiceAdapter>(session);
+      std::make_shared<ClientHistoryServiceAdapter>(session, tracer);
   return services;
 }
 

@@ -7,6 +7,7 @@
 // co_awaited directly inside an opcua one.
 
 #include "base/lifetime.h"
+#include "metrics/tracer.h"
 #include "opcua_bridge/service_conversion.h"
 
 #include "scada/attribute_service.h"
@@ -37,9 +38,10 @@ namespace opcua_bridge {
 
 class AttributeServiceAdapter {
  public:
-  explicit AttributeServiceAdapter(
-      scada::AttributeService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit AttributeServiceAdapter(scada::AttributeService& inner
+                                       SCADA_LIFETIME_BOUND,
+                                   Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>> Read(
       opcua::ServiceContext context,
@@ -51,12 +53,14 @@ class AttributeServiceAdapter {
 
  private:
   scada::AttributeService& inner_;
+  Tracer& tracer_;
 };
 
 class ViewServiceAdapter {
  public:
-  explicit ViewServiceAdapter(scada::ViewService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit ViewServiceAdapter(scada::ViewService& inner SCADA_LIFETIME_BOUND,
+                              Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>> Browse(
       opcua::ServiceContext context,
@@ -67,13 +71,15 @@ class ViewServiceAdapter {
 
  private:
   scada::ViewService& inner_;
+  Tracer& tracer_;
 };
 
 class MethodServiceAdapter {
  public:
-  explicit MethodServiceAdapter(
-      scada::MethodService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit MethodServiceAdapter(scada::MethodService& inner
+                                    SCADA_LIFETIME_BOUND,
+                                Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::Status> Call(opcua::NodeId node_id,
                                        opcua::NodeId method_id,
@@ -82,6 +88,7 @@ class MethodServiceAdapter {
 
  private:
   scada::MethodService& inner_;
+  Tracer& tracer_;
 };
 
 class NodeManagementServiceAdapter {
@@ -112,9 +119,10 @@ class NodeManagementServiceAdapter {
 
 class HistoryServiceAdapter {
  public:
-  explicit HistoryServiceAdapter(
-      scada::HistoryService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit HistoryServiceAdapter(scada::HistoryService& inner
+                                     SCADA_LIFETIME_BOUND,
+                                 Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::HistoryReadRawResult> HistoryReadRaw(
       opcua::HistoryReadRawDetails details);
@@ -127,6 +135,7 @@ class HistoryServiceAdapter {
 
  private:
   scada::HistoryService& inner_;
+  Tracer& tracer_;
 };
 
 // Adapts a core scada::HistoryUpdateService to the opcua HistoryUpdate wire
@@ -134,9 +143,10 @@ class HistoryServiceAdapter {
 // HistoryUpdateResult. OPC UA Part 4 §5.10.5 HistoryUpdate.
 class HistoryUpdateServiceAdapter {
  public:
-  explicit HistoryUpdateServiceAdapter(
-      scada::HistoryUpdateService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit HistoryUpdateServiceAdapter(scada::HistoryUpdateService& inner
+                                           SCADA_LIFETIME_BOUND,
+                                       Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateData(
       opcua::ServiceContext context,
@@ -148,6 +158,7 @@ class HistoryUpdateServiceAdapter {
 
  private:
   scada::HistoryUpdateService& inner_;
+  Tracer& tracer_;
 };
 
 // Wraps an inner core MonitoredItemSubscription as the opcua interface. Event
@@ -222,6 +233,9 @@ class AuthenticatorAdapter : public opcua::CoroutineAuthenticator {
 // runtime. The returned callback bundle captures this object and must not
 // outlive it.
 struct ServerServiceAdapters {
+  // `tracer` (typically the core module's) makes every context-carrying
+  // service call emit a SERVER span, continuing the caller's trace from the
+  // request header traceparent that opcuapp placed in the ServiceContext.
   ServerServiceAdapters(
       scada::AttributeService& attribute SCADA_LIFETIME_BOUND,
       scada::ViewService& view SCADA_LIFETIME_BOUND,
@@ -229,13 +243,14 @@ struct ServerServiceAdapters {
       scada::NodeManagementService& node_management SCADA_LIFETIME_BOUND,
       scada::HistoryService& history SCADA_LIFETIME_BOUND,
       scada::HistoryUpdateService& history_update SCADA_LIFETIME_BOUND,
-      scada::MonitoredItemService& monitored_item SCADA_LIFETIME_BOUND)
-      : attribute{attribute},
-        view{view},
-        method{method},
+      scada::MonitoredItemService& monitored_item SCADA_LIFETIME_BOUND,
+      Tracer& tracer = Tracer::None())
+      : attribute{attribute, tracer},
+        view{view, tracer},
+        method{method, tracer},
         node_management{node_management},
-        history{history},
-        history_update{history_update},
+        history{history, tracer},
+        history_update{history_update, tracer},
         monitored_item{monitored_item},
         callbacks_{MakeCallbacks()} {}
 

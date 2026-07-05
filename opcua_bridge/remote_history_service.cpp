@@ -19,8 +19,8 @@ Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevelVia(
     std::shared_ptr<opcua::ClientSession> session) {
   ClientAttributeServiceAdapter attr{std::move(session)};
   std::vector<scada::ReadValueId> inputs;
-  inputs.push_back(scada::ReadValueId{.node_id = scada::NodeId{
-                                          kServerServiceLevelId}});
+  inputs.push_back(
+      scada::ReadValueId{.node_id = scada::NodeId{kServerServiceLevelId}});
   auto result = co_await attr.Read(scada::ServiceContext{}, std::move(inputs));
   if (!result.ok()) {
     co_return result.status();
@@ -40,13 +40,14 @@ Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevelVia(
 RemoteHistoryService::RemoteHistoryService(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
-    RemoteHistoryServiceConfig config)
+    RemoteHistoryServiceConfig config,
+    Tracer& tracer)
     : executor_{std::move(executor)},
       transport_factory_{transport_factory},
       config_{std::move(config)},
       session_{std::make_shared<opcua::ClientSession>(executor_,
                                                       transport_factory_)},
-      adapter_{session_} {}
+      adapter_{session_, tracer} {}
 
 RemoteHistoryService::~RemoteHistoryService() = default;
 
@@ -66,7 +67,8 @@ Awaitable<scada::Status> RemoteHistoryService::ConnectTo(std::string endpoint) {
 Awaitable<scada::Status> RemoteHistoryService::Probe() {
   // Liveness keepalive: round-trip a HistoryRead of the standard ServerStatus
   // CurrentTime node (i=2258). A live session returns Good/empty or a
-  // non-connectivity Bad; a dead transport returns Bad_Disconnected/Bad_Timeout.
+  // non-connectivity Bad; a dead transport returns
+  // Bad_Disconnected/Bad_Timeout.
   auto result = co_await adapter_.HistoryReadRaw(
       scada::HistoryReadRawDetails{.node_id = scada::NodeId{2258}});
   co_return result.status;

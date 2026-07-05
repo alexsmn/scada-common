@@ -26,6 +26,24 @@ std::vector<std::vector<std::string>> ParseWireEventFieldPaths(
 
 }  // namespace
 
+// Starts a SERVER span continuing the caller's trace from the request-header
+// traceparent (delivered in the opcua ServiceContext by the server runtime),
+// and rewrites the context so downstream calls parent from this span.
+namespace {
+
+TraceSpan StartServerSpan(Tracer& tracer,
+                          std::string_view name,
+                          opcua::ServiceContext& context) {
+  TraceSpan span =
+      tracer.StartSpan(name, TraceSpanKind::kServer, context.trace_id());
+  if (std::string trace_parent = span.traceparent(); !trace_parent.empty()) {
+    context = context.with_trace_id(trace_parent);
+  }
+  return span;
+}
+
+}  // namespace
+
 opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
   return {
       .read =
@@ -115,6 +133,7 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
 AttributeServiceAdapter::Read(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
+  auto span = StartServerSpan(tracer_, "opcua.server/Read", context);
   auto result = co_await inner_.Read(ToScada(context), ToScadaVector(*inputs));
   co_return ToOpcua(result);
 }
@@ -123,8 +142,8 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 AttributeServiceAdapter::Write(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
-  auto result =
-      co_await inner_.Write(ToScada(context), ToScadaVector(*inputs));
+  auto span = StartServerSpan(tracer_, "opcua.server/Write", context);
+  auto result = co_await inner_.Write(ToScada(context), ToScadaVector(*inputs));
   co_return ToOpcua(result);
 }
 
@@ -132,6 +151,7 @@ AttributeServiceAdapter::Write(
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
 ViewServiceAdapter::Browse(opcua::ServiceContext context,
                            std::vector<opcua::BrowseDescription> inputs) {
+  auto span = StartServerSpan(tracer_, "opcua.server/Browse", context);
   auto result = co_await inner_.Browse(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
@@ -152,6 +172,7 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
   // ToScada(const opcua::ServiceContext&) carries the caller's user id and its
   // user_rights bitmask, so the scada MethodService sees the real caller for
   // permission enforcement (e.g. the Call permission at the router).
+  auto span = StartServerSpan(tracer_, "opcua.server/Call", context);
   auto status =
       co_await inner_.Call(ToScada(node_id), ToScada(method_id),
                            ToScadaVector(arguments), ToScada(context));
@@ -198,6 +219,12 @@ NodeManagementServiceAdapter::DeleteReferences(
 // --- HistoryService -----------------------------------------------------
 opcua::Awaitable<opcua::HistoryReadRawResult>
 HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
+  // HistoryService carries no ServiceContext downstream (see tracing.md);
+  // this SERVER span still anchors the historian-side work in the caller's
+  // trace when the request header carried a traceparent -- which opcuapp
+  // cannot deliver here yet, so today it is a root span.
+  auto span = tracer_.StartSpan("opcua.server/HistoryReadRaw",
+                                TraceSpanKind::kServer, {});
   auto result = co_await inner_.HistoryReadRaw(ToScada(details));
   co_return ToOpcua(result);
 }
@@ -207,6 +234,8 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
                                          opcua::DateTime from,
                                          opcua::DateTime to,
                                          opcua::EventFilter filter) {
+  auto span = tracer_.StartSpan("opcua.server/HistoryReadEvents",
+                                TraceSpanKind::kServer, {});
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
   co_return ToOpcua(result);
@@ -217,6 +246,8 @@ opcua::Awaitable<opcua::HistoryUpdateResult>
 HistoryUpdateServiceAdapter::HistoryUpdateData(
     opcua::ServiceContext context,
     opcua::UpdateDataDetails details) {
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/HistoryUpdateData", context);
   // The core service returns a per-value StatusCode vector or an
   // operation-level failure; map both onto the wire HistoryUpdateResult.
   auto result =
@@ -232,6 +263,8 @@ opcua::Awaitable<opcua::HistoryUpdateResult>
 HistoryUpdateServiceAdapter::HistoryUpdateEvent(
     opcua::ServiceContext context,
     opcua::UpdateEventDetails details) {
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/HistoryUpdateEvent", context);
   auto result =
       co_await inner_.HistoryUpdateEvent(ToScada(context), ToScada(details));
   if (!result.ok()) {
@@ -283,9 +316,9 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
             // Non-system SCADA events (GeneralModelChangeEventType,
             // SemanticChangeEventType) have no OPC UA select-clause projection;
             // send their full per-type DisassembleEvent layout as the
-            // EventFieldList, which the SCADA client reassembles via AssembleEvent
-            // (symmetric SCADA-to-SCADA transport). OPC UA Part 4 §7.22.3
-            // EventFilter / EventFieldList,
+            // EventFieldList, which the SCADA client reassembles via
+            // AssembleEvent (symmetric SCADA-to-SCADA transport). OPC UA Part 4
+            // §7.22.3 EventFilter / EventFieldList,
             // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 ;
             // Part 3 §9.32.6 GeneralModelChangeEventType,
             // https://reference.opcfoundation.org/Core/Part3/v105/docs/9.32 .

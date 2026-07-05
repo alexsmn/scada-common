@@ -6,6 +6,7 @@
 // session, and converts the result core<-opcua -- the mirror of
 // server_adapters.h.
 
+#include "metrics/tracer.h"
 #include "opcua_bridge/service_conversion.h"
 
 #include "scada/data_services.h"
@@ -70,8 +71,9 @@ class ClientSessionServiceAdapter : public scada::SessionService {
 
 class ClientViewServiceAdapter : public scada::ViewService {
  public:
-  explicit ClientViewServiceAdapter(std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+  explicit ClientViewServiceAdapter(std::shared_ptr<opcua::ClientSession> s,
+                                    Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
       scada::ServiceContext context,
@@ -81,13 +83,15 @@ class ClientViewServiceAdapter : public scada::ViewService {
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 class ClientAttributeServiceAdapter : public scada::AttributeService {
  public:
   explicit ClientAttributeServiceAdapter(
-      std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+      std::shared_ptr<opcua::ClientSession> s,
+      Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
       scada::ServiceContext context,
@@ -98,12 +102,14 @@ class ClientAttributeServiceAdapter : public scada::AttributeService {
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 class ClientMethodServiceAdapter : public scada::MethodService {
  public:
-  explicit ClientMethodServiceAdapter(std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+  explicit ClientMethodServiceAdapter(std::shared_ptr<opcua::ClientSession> s,
+                                      Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   Awaitable<scada::Status> Call(scada::NodeId node_id,
                                 scada::NodeId method_id,
@@ -112,6 +118,7 @@ class ClientMethodServiceAdapter : public scada::MethodService {
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
@@ -178,8 +185,9 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
 class ClientHistoryServiceAdapter : public scada::HistoryService,
                                     public scada::HistoryUpdateService {
  public:
-  explicit ClientHistoryServiceAdapter(std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+  explicit ClientHistoryServiceAdapter(std::shared_ptr<opcua::ClientSession> s,
+                                       Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   // scada::HistoryService
   Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
@@ -200,17 +208,22 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 // Assembles a ::DataServices backed by the given opcua client session.
+// `tracer` (typically the core module's) makes every context-carrying call
+// emit a CLIENT span and propagate its traceparent to the remote tier via the
+// OPC UA request header.
 ::DataServices CreateClientDataServices(
-    std::shared_ptr<opcua::ClientSession> session);
+    std::shared_ptr<opcua::ClientSession> session,
+    Tracer& tracer = Tracer::None());
 
 // Probes a peer's Server_ServiceLevel (i=2267) over a throwaway session, so
-// probing a standby does not disturb the active session. Shared by the redundant
-// inter-tier clients (remote historian / aggregating proxy / remote config) for
-// ServiceLevel-aware failover. OPC UA Part 4 §6.6 Non-Transparent Redundancy,
-// https://reference.opcfoundation.org/Core/Part4/v105/docs/6.6
+// probing a standby does not disturb the active session. Shared by the
+// redundant inter-tier clients (remote historian / aggregating proxy / remote
+// config) for ServiceLevel-aware failover. OPC UA Part 4 §6.6 Non-Transparent
+// Redundancy, https://reference.opcfoundation.org/Core/Part4/v105/docs/6.6
 [[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
