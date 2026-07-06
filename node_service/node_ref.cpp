@@ -1,7 +1,15 @@
 #include "node_service/node_ref.h"
 
-#include "base/check.h"
 #include "node_service/node_model.h"
+
+#if defined(SCADA_USE_CORE_MODULE)
+// Modules-pilot consumer (SCADA_CXX_MODULES=ON): base names come from the
+// scada.core facade. The import sits after the textual includes because the
+// reverse order trips an AppleClang 21 declaration-merging bug in libc++.
+import scada.core;
+#else
+#include "base/check.h"
+#endif
 
 bool NodeRef::fetched() const {
   return !model_ || model_->GetFetchStatus().node_fetched;
