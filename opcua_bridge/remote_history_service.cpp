@@ -1,11 +1,18 @@
 #include "opcua_bridge/remote_history_service.h"
 
+#include <utility>
+
+#if defined(SCADA_USE_CORE_MODULE)
+// Modules-pilot consumer (SCADA_CXX_MODULES=ON): scada names come from the
+// scada.core facade. The import sits after the textual includes because the
+// reverse order trips an AppleClang 21 declaration-merging bug in libc++.
+import scada.core;
+#else
 #include "scada/data_value.h"
 #include "scada/read_value_id.h"
 #include "scada/service_context.h"
 #include "scada/variant.h"
-
-#include <utility>
+#endif
 
 namespace opcua_bridge {
 namespace {

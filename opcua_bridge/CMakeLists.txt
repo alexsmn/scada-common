@@ -18,3 +18,15 @@ target_link_libraries(scada_opcua_bridge PUBLIC
   scada_core
   opcuapp::opcuapp
 )
+
+# Modules-pilot consumer: remote_history_service.cpp imports scada.core (see
+# SCADA_USE_CORE_MODULE there).
+scada_module_import_pilot(scada_opcua_bridge
+  IMPORTS scada_core_module
+  DEFINES SCADA_USE_CORE_MODULE)
+
+scada_add_module_facade(scada_opcua_bridge FILES scada_opcua_bridge.cppm
+  IMPORTS scada_core_module)
+if(SCADA_CXX_MODULES)
+  add_subdirectory(module_test)
+endif()
