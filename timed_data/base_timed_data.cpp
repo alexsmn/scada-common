@@ -1,10 +1,18 @@
 #include "timed_data/base_timed_data.h"
 
-#include "base/check.h"
 #include "timed_data/timed_data_observer.h"
 #include "timed_data/timed_data_property.h"
 
 #include <sstream>
+
+#if defined(SCADA_USE_CORE_MODULE)
+// Modules-pilot consumer (SCADA_CXX_MODULES=ON): base/scada names come from
+// the scada.core facade. The import sits after the textual includes because
+// the reverse order trips an AppleClang 21 declaration-merging bug in libc++.
+import scada.core;
+#else
+#include "base/check.h"
+#endif
 
 #include "base/debug_util.h"
 

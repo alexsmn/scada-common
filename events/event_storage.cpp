@@ -1,7 +1,15 @@
 #include "events/event_storage.h"
 
-#include "base/check.h"
 #include "events/event_observer.h"
+
+#if defined(SCADA_USE_CORE_MODULE)
+// Modules-pilot consumer (SCADA_CXX_MODULES=ON): base/scada names come from
+// the scada.core facade. The import sits after the textual includes because
+// the reverse order trips an AppleClang 21 declaration-merging bug in libc++.
+import scada.core;
+#else
+#include "base/check.h"
+#endif
 
 const scada::Event* EventStorage::Add(const scada::Event& event) {
   auto [iter, inserted] = events_.try_emplace(event.event_id, event);
