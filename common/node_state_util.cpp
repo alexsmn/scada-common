@@ -1,7 +1,17 @@
 #include "common/node_state_util.h"
 
-#include "base/check.h"
+// scada/standard_node_ids.h stays textual in both modes: its scada::id
+// constants have internal linkage and are never exported by the facades.
 #include "scada/standard_node_ids.h"
+
+#if defined(SCADA_USE_CORE_MODULE)
+// Modules-pilot consumer (SCADA_CXX_MODULES=ON): base/scada names come from
+// the scada.core facade. The import sits after the textual includes because
+// the reverse order trips an AppleClang 21 declaration-merging bug in libc++.
+import scada.core;
+#else
+#include "base/check.h"
+#endif
 
 namespace scada {
 
