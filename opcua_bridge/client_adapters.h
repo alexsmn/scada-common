@@ -124,8 +124,9 @@ class ClientMethodServiceAdapter : public scada::MethodService {
 class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
  public:
   explicit ClientNodeManagementServiceAdapter(
-      std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+      std::shared_ptr<opcua::ClientSession> s,
+      Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
       scada::ServiceContext context,
@@ -142,6 +143,7 @@ class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 // Wraps an inner opcua MonitoredItemSubscription as the core interface.
@@ -167,8 +169,9 @@ class ClientMonitoredItemSubscriptionAdapter
 class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
  public:
   explicit ClientMonitoredItemServiceAdapter(
-      std::shared_ptr<opcua::ClientSession> s)
-      : session_{std::move(s)} {}
+      std::shared_ptr<opcua::ClientSession> s,
+      Tracer& tracer = Tracer::None())
+      : session_{std::move(s)}, tracer_{tracer} {}
 
   scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
   CreateSubscription(scada::ServiceContext context,
@@ -176,6 +179,7 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
+  Tracer& tracer_;
 };
 
 // Presents a remote OPC UA historian (reached over the client session) as the

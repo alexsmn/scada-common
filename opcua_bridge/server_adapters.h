@@ -93,9 +93,10 @@ class MethodServiceAdapter {
 
 class NodeManagementServiceAdapter {
  public:
-  explicit NodeManagementServiceAdapter(
-      scada::NodeManagementService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit NodeManagementServiceAdapter(scada::NodeManagementService& inner
+                                            SCADA_LIFETIME_BOUND,
+                                        Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
   AddNodes(opcua::ServiceContext context,
@@ -115,6 +116,7 @@ class NodeManagementServiceAdapter {
 
  private:
   scada::NodeManagementService& inner_;
+  Tracer& tracer_;
 };
 
 class HistoryServiceAdapter {
@@ -201,9 +203,10 @@ class MonitoredItemSubscriptionAdapter
 
 class MonitoredItemServiceAdapter {
  public:
-  explicit MonitoredItemServiceAdapter(
-      scada::MonitoredItemService& inner SCADA_LIFETIME_BOUND)
-      : inner_{inner} {}
+  explicit MonitoredItemServiceAdapter(scada::MonitoredItemService& inner
+                                           SCADA_LIFETIME_BOUND,
+                                       Tracer& tracer = Tracer::None())
+      : inner_{inner}, tracer_{tracer} {}
 
   opcua::StatusOr<std::unique_ptr<opcua::MonitoredItemSubscription>>
   CreateSubscription(opcua::ServiceContext context,
@@ -211,6 +214,7 @@ class MonitoredItemServiceAdapter {
 
  private:
   scada::MonitoredItemService& inner_;
+  Tracer& tracer_;
 };
 
 // Presents a core authenticator as the opcua interface the server session
@@ -248,10 +252,10 @@ struct ServerServiceAdapters {
       : attribute{attribute, tracer},
         view{view, tracer},
         method{method, tracer},
-        node_management{node_management},
+        node_management{node_management, tracer},
         history{history, tracer},
         history_update{history_update, tracer},
-        monitored_item{monitored_item},
+        monitored_item{monitored_item, tracer},
         callbacks_{MakeCallbacks()} {}
 
   const opcua::ServiceCallbacks& callbacks() const SCADA_LIFETIME_BOUND {

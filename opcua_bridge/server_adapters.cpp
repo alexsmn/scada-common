@@ -1,5 +1,6 @@
 #include "opcua_bridge/server_adapters.h"
 
+#include "metrics/trace_attribute_util.h"
 #include "opcua_bridge/vector_conversion.h"
 
 #include "scada/event_util.h"
@@ -40,6 +41,17 @@ TraceSpan StartServerSpan(Tracer& tracer,
     context = context.with_trace_id(trace_parent);
   }
   return span;
+}
+
+// Annotates a span with a batched request's size and (capped) node ids;
+// `node_id_of` projects one input to its node id string.
+template <class Items, class NodeIdOf>
+void SetBatchAttributes(TraceSpan& span,
+                        const Items& items,
+                        NodeIdOf&& node_id_of) {
+  span.SetAttribute("scada.input_count", std::to_string(std::size(items)));
+  span.SetAttribute("scada.node_ids",
+                    metrics::JoinForAttribute(items, node_id_of));
 }
 
 }  // namespace
@@ -134,6 +146,9 @@ AttributeServiceAdapter::Read(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
   auto span = StartServerSpan(tracer_, "opcua.server/Read", context);
+  SetBatchAttributes(span, *inputs, [](const opcua::ReadValueId& input) {
+    return input.node_id.ToString();
+  });
   auto result = co_await inner_.Read(ToScada(context), ToScadaVector(*inputs));
   co_return ToOpcua(result);
 }
@@ -152,6 +167,9 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
 ViewServiceAdapter::Browse(opcua::ServiceContext context,
                            std::vector<opcua::BrowseDescription> inputs) {
   auto span = StartServerSpan(tracer_, "opcua.server/Browse", context);
+  SetBatchAttributes(span, inputs, [](const opcua::BrowseDescription& input) {
+    return input.node_id.ToString();
+  });
   auto result = co_await inner_.Browse(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
@@ -159,6 +177,13 @@ ViewServiceAdapter::Browse(opcua::ServiceContext context,
 opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
 ViewServiceAdapter::TranslateBrowsePaths(
     std::vector<opcua::BrowsePath> inputs) {
+  // The translate callback carries no ServiceContext (see tracing.md), so the
+  // request-header traceparent cannot reach this seam yet: a root SERVER span.
+  auto span = tracer_.StartSpan("opcua.server/TranslateBrowsePaths",
+                                TraceSpanKind::kServer, {});
+  SetBatchAttributes(span, inputs, [](const opcua::BrowsePath& input) {
+    return input.node_id.ToString();
+  });
   auto result = co_await inner_.TranslateBrowsePaths(ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
@@ -173,6 +198,8 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
   // user_rights bitmask, so the scada MethodService sees the real caller for
   // permission enforcement (e.g. the Call permission at the router).
   auto span = StartServerSpan(tracer_, "opcua.server/Call", context);
+  span.SetAttribute("scada.object_node_id", node_id.ToString());
+  span.SetAttribute("scada.method_node_id", method_id.ToString());
   auto status =
       co_await inner_.Call(ToScada(node_id), ToScada(method_id),
                            ToScadaVector(arguments), ToScada(context));
@@ -184,6 +211,10 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
 NodeManagementServiceAdapter::AddNodes(
     opcua::ServiceContext context,
     std::vector<opcua::AddNodesItem> inputs) {
+  auto span = StartServerSpan(tracer_, "opcua.server/AddNodes", context);
+  SetBatchAttributes(span, inputs, [](const opcua::AddNodesItem& input) {
+    return input.requested_id.ToString();
+  });
   auto result =
       co_await inner_.AddNodes(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
@@ -193,6 +224,10 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteNodes(
     opcua::ServiceContext context,
     std::vector<opcua::DeleteNodesItem> inputs) {
+  auto span = StartServerSpan(tracer_, "opcua.server/DeleteNodes", context);
+  SetBatchAttributes(span, inputs, [](const opcua::DeleteNodesItem& input) {
+    return input.node_id.ToString();
+  });
   auto result =
       co_await inner_.DeleteNodes(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
@@ -202,6 +237,10 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::AddReferences(
     opcua::ServiceContext context,
     std::vector<opcua::AddReferencesItem> inputs) {
+  auto span = StartServerSpan(tracer_, "opcua.server/AddReferences", context);
+  SetBatchAttributes(span, inputs, [](const opcua::AddReferencesItem& input) {
+    return input.source_node_id.ToString();
+  });
   auto result =
       co_await inner_.AddReferences(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
@@ -211,6 +250,12 @@ opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 NodeManagementServiceAdapter::DeleteReferences(
     opcua::ServiceContext context,
     std::vector<opcua::DeleteReferencesItem> inputs) {
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/DeleteReferences", context);
+  SetBatchAttributes(span, inputs,
+                     [](const opcua::DeleteReferencesItem& input) {
+                       return input.source_node_id.ToString();
+                     });
   auto result =
       co_await inner_.DeleteReferences(ToScada(context), ToScadaVector(inputs));
   co_return ToOpcua(result);
@@ -225,6 +270,7 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   // cannot deliver here yet, so today it is a root span.
   auto span = tracer_.StartSpan("opcua.server/HistoryReadRaw",
                                 TraceSpanKind::kServer, {});
+  span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result = co_await inner_.HistoryReadRaw(ToScada(details));
   co_return ToOpcua(result);
 }
@@ -236,6 +282,7 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
                                          opcua::EventFilter filter) {
   auto span = tracer_.StartSpan("opcua.server/HistoryReadEvents",
                                 TraceSpanKind::kServer, {});
+  span.SetAttribute("scada.node_id", node_id.ToString());
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
   co_return ToOpcua(result);
@@ -248,6 +295,8 @@ HistoryUpdateServiceAdapter::HistoryUpdateData(
     opcua::UpdateDataDetails details) {
   auto span =
       StartServerSpan(tracer_, "opcua.server/HistoryUpdateData", context);
+  span.SetAttribute("scada.node_id", details.node_id.ToString());
+  span.SetAttribute("scada.input_count", std::to_string(details.values.size()));
   // The core service returns a per-value StatusCode vector or an
   // operation-level failure; map both onto the wire HistoryUpdateResult.
   auto result =
@@ -265,6 +314,7 @@ HistoryUpdateServiceAdapter::HistoryUpdateEvent(
     opcua::UpdateEventDetails details) {
   auto span =
       StartServerSpan(tracer_, "opcua.server/HistoryUpdateEvent", context);
+  span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result =
       co_await inner_.HistoryUpdateEvent(ToScada(context), ToScada(details));
   if (!result.ok()) {
@@ -378,6 +428,8 @@ opcua::StatusOr<std::unique_ptr<opcua::MonitoredItemSubscription>>
 MonitoredItemServiceAdapter::CreateSubscription(
     opcua::ServiceContext context,
     opcua::MonitoredItemSubscriptionOptions options) {
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/CreateSubscription", context);
   auto result = inner_.CreateSubscription(ToScada(context), ToScada(options));
   if (!result.ok())
     return ToOpcua(result.status());
