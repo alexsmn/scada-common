@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "address_space/property.h"
+#include "base/lifetime.h"
 #include "scada/variant.h"
 
 #include <optional>
@@ -61,7 +62,9 @@ class VariableType : public TypeDefinition {
 
   const DataType& data_type() const { return data_type_; }
 
-  const Variant& default_value() const { return default_value_; }
+  const Variant& default_value() const SCADA_LIFETIME_BOUND {
+    return default_value_;
+  }
   void set_default_value(scada::Variant value) {
     default_value_ = std::move(value);
   }

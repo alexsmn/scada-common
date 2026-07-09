@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "scada/attribute_ids.h"
 #include "scada/attribute_service.h"
 #include "scada/data_value.h"
@@ -25,13 +26,17 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
 
   void Deleted();
 
-  const DataValue& last_value() const { return last_value_; }
+  const DataValue& last_value() const SCADA_LIFETIME_BOUND {
+    return last_value_;
+  }
   DateTime last_change_time() const { return last_change_time_; }
 
   // Reflects `scada::DataChangeHandler` signature.
   using DataChangeSignal =
       boost::signals2::signal<void(const DataValue& data_value)>;
-  DataChangeSignal& data_change_signal() { return data_change_signal_; }
+  DataChangeSignal& data_change_signal() SCADA_LIFETIME_BOUND {
+    return data_change_signal_;
+  }
 
   virtual void Write(const ServiceContext& context,
                      const WriteValue& input,

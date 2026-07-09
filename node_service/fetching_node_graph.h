@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "node_service/fetching_node.h"
 #include "node_service/node_fetcher.h"
 
@@ -7,8 +8,8 @@ class FetchingNodeGraph {
  public:
   std::size_t size() const { return fetching_nodes_.size(); }
 
-  FetchingNode* FindNode(const scada::NodeId& node_id);
-  FetchingNode& AddNode(const scada::NodeId& node_id);
+  FetchingNode* FindNode(const scada::NodeId& node_id) SCADA_LIFETIME_BOUND;
+  FetchingNode& AddNode(const scada::NodeId& node_id) SCADA_LIFETIME_BOUND;
 
   void RemoveNode(const scada::NodeId& node_id);
 

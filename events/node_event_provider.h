@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "scada/event.h"
 
 #include <map>
@@ -19,10 +20,10 @@ class NodeEventProvider {
   virtual void SetSeverityMin(scada::EventSeverity severity) = 0;
 
   using EventContainer = std::map<scada::EventId, scada::Event>;
-  virtual const EventContainer& unacked_events() const = 0;
+  virtual const EventContainer& unacked_events() const SCADA_LIFETIME_BOUND = 0;
 
   virtual const EventSet* GetItemUnackedEvents(
-      const scada::NodeId& item_id) const = 0;
+      const scada::NodeId& item_id) const SCADA_LIFETIME_BOUND = 0;
 
   virtual void AcknowledgeEvent(scada::EventId) = 0;
   virtual void AcknowledgeItemEvents(const scada::NodeId& item_id) = 0;

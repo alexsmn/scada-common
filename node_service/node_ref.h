@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "base/lifetime.h"
 #include "node_service/node_events.h"
 #include "node_service/node_fetch_status.h"
 #include "scada/attribute_ids.h"
@@ -85,7 +86,9 @@ class NodeRef {
     return node_id() < other.node_id();
   }
 
-  const std::shared_ptr<const NodeModel>& model() const { return model_; }
+  const std::shared_ptr<const NodeModel>& model() const SCADA_LIFETIME_BOUND {
+    return model_;
+  }
 
   // Subscriptions forward to the underlying model; a null ref returns an
   // empty connection.

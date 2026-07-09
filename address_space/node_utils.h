@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "address_space/reference.h"
+#include "base/lifetime.h"
 #include "common/node_state.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
@@ -24,29 +25,30 @@ class Variable;
 class VariableType;
 struct ReferenceDescription;
 
-Object* AsObject(Node* node);
-const Object* AsObject(const Node* node);
-Object& AsObject(Node& node);
-const Object& AsObject(const Node& node);
-const Variable* AsVariable(const Node* node);
-Variable* AsVariable(Node* node);
-const Variable& AsVariable(const Node& node);
-Variable& AsVariable(Node& node);
-const ObjectType* AsObjectType(const Node* node);
-ObjectType* AsObjectType(Node* node);
-const VariableType* AsVariableType(const Node* node);
-VariableType* AsVariableType(Node* node);
-const ReferenceType* AsReferenceType(const Node* node);
-const DataType* AsDataType(const Node* node);
-const DataType& AsDataType(const Node& node);
-TypeDefinition* AsTypeDefinition(Node* node);
-const TypeDefinition* AsTypeDefinition(const Node* node);
-TypeDefinition& AsTypeDefinition(Node& node);
-const TypeDefinition& AsTypeDefinition(const Node& node);
+Object* AsObject(Node* node SCADA_LIFETIME_BOUND);
+const Object* AsObject(const Node* node SCADA_LIFETIME_BOUND);
+Object& AsObject(Node& node SCADA_LIFETIME_BOUND);
+const Object& AsObject(const Node& node SCADA_LIFETIME_BOUND);
+const Variable* AsVariable(const Node* node SCADA_LIFETIME_BOUND);
+Variable* AsVariable(Node* node SCADA_LIFETIME_BOUND);
+const Variable& AsVariable(const Node& node SCADA_LIFETIME_BOUND);
+Variable& AsVariable(Node& node SCADA_LIFETIME_BOUND);
+const ObjectType* AsObjectType(const Node* node SCADA_LIFETIME_BOUND);
+ObjectType* AsObjectType(Node* node SCADA_LIFETIME_BOUND);
+const VariableType* AsVariableType(const Node* node SCADA_LIFETIME_BOUND);
+VariableType* AsVariableType(Node* node SCADA_LIFETIME_BOUND);
+const ReferenceType* AsReferenceType(const Node* node SCADA_LIFETIME_BOUND);
+const DataType* AsDataType(const Node* node SCADA_LIFETIME_BOUND);
+const DataType& AsDataType(const Node& node SCADA_LIFETIME_BOUND);
+TypeDefinition* AsTypeDefinition(Node* node SCADA_LIFETIME_BOUND);
+const TypeDefinition* AsTypeDefinition(const Node* node SCADA_LIFETIME_BOUND);
+TypeDefinition& AsTypeDefinition(Node& node SCADA_LIFETIME_BOUND);
+const TypeDefinition& AsTypeDefinition(const Node& node SCADA_LIFETIME_BOUND);
 // Special handler for refrences to use in inlined functions like
 // `GetProperties`. This is to avoid `type_definition.h` include that brings a
 // circular dependency.
-const TypeDefinition& AsTypeDefinition(const ReferenceType& reference_type);
+const TypeDefinition& AsTypeDefinition(
+    const ReferenceType& reference_type SCADA_LIFETIME_BOUND);
 
 NodeId GetNodeId(const Node* node);
 NodeId GetTypeDefinitionId(const Node& node);

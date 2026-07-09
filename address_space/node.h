@@ -2,6 +2,7 @@
 
 #include "address_space/property_ids.h"
 #include "address_space/reference.h"
+#include "base/lifetime.h"
 #include "scada/node_attributes.h"
 #include "scada/node_class.h"
 #include "scada/status.h"
@@ -28,7 +29,7 @@ class Node {
   Node(const Node&) = delete;
   Node& operator=(const Node&) = delete;
 
-  const NodeId& id() const { return id_; }
+  const NodeId& id() const SCADA_LIFETIME_BOUND { return id_; }
   void set_id(NodeId id) { id_ = std::move(id); }
 
   virtual NodeClass GetNodeClass() const = 0;
@@ -48,11 +49,16 @@ class Node {
   // DefaultRolePermissions; when set, these entries replace it and the
   // per-caller UserRolePermissions is narrowed from them. Defined out of line
   // so this widely-included header need not pull in scada/authorization.h.
-  const std::vector<RolePermissionType>* role_permissions() const;
+  const std::vector<RolePermissionType>* role_permissions() const
+      SCADA_LIFETIME_BOUND;
   void SetRolePermissions(std::vector<RolePermissionType> role_permissions);
 
-  const References& forward_references() const { return forward_references_; }
-  const References& inverse_references() const { return inverse_references_; }
+  const References& forward_references() const SCADA_LIFETIME_BOUND {
+    return forward_references_;
+  }
+  const References& inverse_references() const SCADA_LIFETIME_BOUND {
+    return inverse_references_;
+  }
 
   TypeDefinition* type_definition() { return type_definition_; }
   const TypeDefinition* type_definition() const { return type_definition_; }

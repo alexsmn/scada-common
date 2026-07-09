@@ -2,6 +2,7 @@
 
 #include "address_space/mutable_address_space.h"
 #include "base/check.h"
+#include "base/lifetime.h"
 #include "scada/status.h"
 
 #include <boost/signals2/signal.hpp>
@@ -22,7 +23,7 @@ class AddressSpaceImpl : public MutableAddressSpace {
   AddressSpaceImpl& operator=(const AddressSpaceImpl&) = delete;
 
   typedef std::map<scada::NodeId, scada::Node*> NodeMap;
-  const NodeMap& node_map() const { return node_map_; }
+  const NodeMap& node_map() const SCADA_LIFETIME_BOUND { return node_map_; }
 
   // Add not-owned node.
   void AddNode(scada::Node& node);
@@ -30,10 +31,10 @@ class AddressSpaceImpl : public MutableAddressSpace {
   virtual void AddNode(std::unique_ptr<scada::Node> node) override;
 
   template <class T>
-  T& AddStaticNode(std::unique_ptr<T> node);
+  T& AddStaticNode(std::unique_ptr<T> node) SCADA_LIFETIME_BOUND;
 
   template <class T, class... Args>
-  T& AddStaticNode(Args&&... args);
+  T& AddStaticNode(Args&&... args) SCADA_LIFETIME_BOUND;
 
   // Deletes owned node.
   virtual void DeleteNode(const scada::NodeId& id) override;

@@ -5,6 +5,7 @@
 #include "base/constraints.h"
 #include "base/format_time.h"
 #include "base/interval_util.h"
+#include "base/lifetime.h"
 #include "base/observer_list.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
@@ -32,12 +33,14 @@ class BasicTimedDataView final {
     observed_ranges_updated_handler_ = std::move(handler);
   }
 
-  const T& at(size_t index) const { return values_[index]; }
+  const T& at(size_t index) const SCADA_LIFETIME_BOUND {
+    return values_[index];
+  }
 
-  const std::vector<T>& values() const { return values_; }
+  const std::vector<T>& values() const SCADA_LIFETIME_BOUND { return values_; }
 
   // Returns a pointer instead of an optional for performance reasons.
-  const T* GetValueAt(scada::DateTime time) const;
+  const T* GetValueAt(scada::DateTime time) const SCADA_LIFETIME_BOUND;
 
   // Returns false if no change was applied. That means there is another value
   // for the same timestamp with earlier server timestamp.
@@ -64,7 +67,8 @@ class BasicTimedDataView final {
 
   // Readiness.
 
-  const std::vector<scada::DateTimeRange>& ready_ranges() const {
+  const std::vector<scada::DateTimeRange>& ready_ranges() const
+      SCADA_LIFETIME_BOUND {
     return ready_ranges_;
   }
 

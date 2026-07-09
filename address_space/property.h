@@ -1,6 +1,7 @@
 #pragma once
 
 #include "address_space/variable.h"
+#include "base/lifetime.h"
 
 namespace scada {
 
@@ -16,7 +17,7 @@ class PropertyDecl : public Variable {
                LocalizedText display_name,
                const NodeId& data_type_id);
 
-  const ValueType& value() const { return value_; }
+  const ValueType& value() const SCADA_LIFETIME_BOUND { return value_; }
   void set_value(ValueType value) { value_ = std::move(value); }
 
   // Variable
@@ -42,7 +43,7 @@ class Property : public Variable {
            Node& parent,
            const NodeId& instance_declaration_id);
 
-  const ValueType& value() const { return value_; }
+  const ValueType& value() const SCADA_LIFETIME_BOUND { return value_; }
   void set_value(ValueType value) { value_ = std::move(value); }
 
   // Node

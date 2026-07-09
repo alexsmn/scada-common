@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "events/event_set.h"
 #include "events/node_event_provider.h"
 
@@ -13,9 +14,10 @@ class EventStorage {
  public:
   using EventContainer = NodeEventProvider::EventContainer;
 
-  const EventContainer& events() const { return events_; }
+  const EventContainer& events() const SCADA_LIFETIME_BOUND { return events_; }
 
-  const EventSet* GetNodeEvents(const scada::NodeId& node_id) const {
+  const EventSet* GetNodeEvents(const scada::NodeId& node_id) const
+      SCADA_LIFETIME_BOUND {
     auto i = node_events_.find(node_id);
     return i != node_events_.end() ? &i->second.events : nullptr;
   }
@@ -46,7 +48,7 @@ class EventStorage {
     ObserverSet observers;
   };
 
-  const scada::Event* Add(const scada::Event& event);
+  const scada::Event* Add(const scada::Event& event) SCADA_LIFETIME_BOUND;
   EventContainer::node_type Remove(const scada::Event& event);
 
   // This should be in an observer class.

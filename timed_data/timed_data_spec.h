@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/lifetime.h"
 #include "common/value_format.h"
 #include "node_service/node_ref.h"
 #include "scada/aggregate_filter.h"
@@ -42,7 +43,9 @@ class TimedDataSpec final : private TimedDataObserver,
   bool alerting() const;
   bool connected() const;
   base::Time from() const { return range_.first; }
-  const scada::DateTimeRange& range() const { return range_; }
+  const scada::DateTimeRange& range() const SCADA_LIFETIME_BOUND {
+    return range_;
+  }
   base::Time ready_from() const;
   bool historical() const;
   bool logical() const;
@@ -52,11 +55,13 @@ class TimedDataSpec final : private TimedDataObserver,
   base::Time change_time() const;
 
   // Historical data.
-  std::span<const scada::DataValue> values() const noexcept;
+  std::span<const scada::DataValue> values() const noexcept
+      SCADA_LIFETIME_BOUND;
 
   // TODO: Describe guarantees for this method. Does it return the lower bound?
   // Returns null when there is no value at the provided time.
-  const scada::DataValue* GetValueAt(base::Time time) const;
+  const scada::DataValue* GetValueAt(base::Time time) const
+      SCADA_LIFETIME_BOUND;
 
   scada::NodeId node_id() const;
   NodeRef node() const;
@@ -69,7 +74,7 @@ class TimedDataSpec final : private TimedDataObserver,
                                 const ValueFormat& format = ValueFormat{
                                     FORMAT_QUALITY | FORMAT_UNITS}) const;
   std::u16string GetTitle() const;
-  const EventSet* GetEvents() const;
+  const EventSet* GetEvents() const SCADA_LIFETIME_BOUND;
 
   void Reset() { SetData(nullptr); }
 
