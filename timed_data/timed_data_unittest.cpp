@@ -78,8 +78,13 @@ class TimedDataTest : public Test {
   StrictMock<scada::MockHistoryService> history_service_;
   NiceMock<MockNodeEventProvider> node_event_provider_;
 
+  // `monitored_item_executor` drives the `LegacyMonitoredItemAdapter` that
+  // backs `monitored_item::subscribe`; without it node subscriptions throw
+  // `bad executor`. Value delivery is asynchronous: pump with
+  // `Drain(executor_)` after connecting a spec.
   StaticNodeService node_service_{
-      {.monitored_item_service = &monitored_item_service_}};
+      {.monitored_item_service = &monitored_item_service_,
+       .monitored_item_executor = executor_}};
 
   TimedDataServiceImpl service_{
       {.executor_ = executor_,
@@ -133,6 +138,7 @@ TEST_F(TimedDataTest, NodeTsFormat) {
   node_value_variable_->ForwardData(scada::MakeReadResult(true));
 
   TimedDataSpec spec{service_, kDataItemId};
+  Drain(executor_);
 
   EXPECT_TRUE(spec.connected());
   EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
@@ -145,6 +151,7 @@ TEST_F(TimedDataTest, AliasTsFormat) {
       .WillOnce(InvokeArgument<1>(scada::StatusCode::Good, kDataItemId));
 
   TimedDataSpec spec{service_, kDataItemAlias};
+  Drain(executor_);
 
   EXPECT_TRUE(spec.connected());
   EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
@@ -161,17 +168,23 @@ TEST_F(TimedDataTest, AliasValueUpdatesAfterAliasResolution) {
   TimedDataSpec spec{service_, kDataItemAlias};
   spec.property_change_handler = property_change_handler_.AsStdFunction();
 
-  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).WillOnce(Invoke([&] {
-    EXPECT_EQ(spec.current().value, 111);
-  }));
+  // Alias resolution notifies once for the node change right away and again
+  // when the subscription delivers the value on the drained executor.
+  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).Times(AtLeast(1));
 
   alias_resolve_callback(scada::StatusCode::Good, kDataItemId);
+  Drain(executor_);
+
+  EXPECT_EQ(spec.current().value, 111);
+
+  Mock::VerifyAndClearExpectations(&property_change_handler_);
 
   EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).WillOnce(Invoke([&] {
     EXPECT_EQ(spec.current().value, 222);
   }));
 
   node_value_variable_->ForwardData(scada::MakeReadResult(222));
+  Drain(executor_);
 }
 
 TEST_F(TimedDataTest, ExpressionVariableDeletes) {
@@ -180,16 +193,19 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
   const auto formula = std::format("{} + 55", NodeIdToScadaString(kDataItemId));
 
   TimedDataSpec spec{service_, formula};
+  Drain(executor_);
 
   EXPECT_TRUE(spec.connected());
   EXPECT_EQ(spec.current().value, 123 + 55);
   EXPECT_TRUE(spec.current().qualifier.good());
 
   node_value_variable_->UpdateQualifier(0, scada::Qualifier::BAD);
+  Drain(executor_);
 
   EXPECT_FALSE(spec.current().qualifier.good());
 
   node_value_variable_->UpdateQualifier(scada::Qualifier::BAD, 0);
+  Drain(executor_);
 
   EXPECT_TRUE(spec.current().qualifier.good());
 }
