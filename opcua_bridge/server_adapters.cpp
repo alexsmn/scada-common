@@ -32,11 +32,38 @@ std::vector<std::vector<std::string>> ParseWireEventFieldPaths(
 // and rewrites the context so downstream calls parent from this span.
 namespace {
 
+// Splits a "address:port" peer (IPv6 addresses bracketed) into the OTel
+// server-span attributes `client.address` / `client.port`,
+// https://opentelemetry.io/docs/specs/semconv/general/attributes/#client-attributes.
+void SetPeerAttributes(TraceSpan& span, const std::string& peer) {
+  if (peer.empty()) {
+    return;
+  }
+  const auto colon = peer.rfind(':');
+  if (colon == std::string::npos) {
+    span.SetAttribute("client.address", peer);
+    return;
+  }
+  std::string_view address{peer.data(), colon};
+  if (address.size() >= 2 && address.front() == '[' && address.back() == ']') {
+    address = address.substr(1, address.size() - 2);
+  }
+  span.SetAttribute("client.address", address);
+  span.SetAttribute("client.port", std::string_view{peer}.substr(colon + 1));
+}
+
 TraceSpan StartServerSpan(Tracer& tracer,
                           std::string_view name,
                           opcua::ServiceContext& context) {
   TraceSpan span =
       tracer.StartSpan(name, TraceSpanKind::kServer, context.trace_id());
+  SetPeerAttributes(span, context.peer());
+  // OTel identity convention: `user.id` is the authenticated caller,
+  // https://opentelemetry.io/docs/specs/semconv/registry/attributes/user/.
+  // Omitted for an anonymous session (null user id).
+  if (!context.user_id().is_null()) {
+    span.SetAttribute("user.id", context.user_id().ToString());
+  }
   if (std::string trace_parent = span.traceparent(); !trace_parent.empty()) {
     context = context.with_trace_id(trace_parent);
   }

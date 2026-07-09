@@ -16,14 +16,16 @@ opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
       .with_user_id(ToOpcua(c.user_id()))
       .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
-      .with_trace_id(c.trace_id());
+      .with_trace_id(c.trace_id())
+      .with_peer(c.peer());
 }
 scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
   return scada::ServiceContext{}
       .with_user_id(ToScada(c.user_id()))
       .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
-      .with_trace_id(c.trace_id());
+      .with_trace_id(c.trace_id())
+      .with_peer(c.peer());
 }
 
 opcua::ReadValueId ToOpcua(const scada::ReadValueId& v) {
@@ -529,8 +531,7 @@ scada::MonitoredItemCreateResult ToScada(
   return {.item_id = v.monitored_item_id, .status = ToScada(v.status)};
 }
 
-scada::MonitoredItemNotification ToScada(
-    const opcua::ItemNotification& n) {
+scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
   // The wire notification is one of two standard types. A
   // MonitoredItemNotification (client_handle + DataValue) maps to a core
   // DataChangeNotification. An EventFieldList (client_handle + projected event
@@ -540,8 +541,7 @@ scada::MonitoredItemNotification ToScada(
   return std::visit(
       [](const auto& x) -> scada::MonitoredItemNotification {
         using T = std::decay_t<decltype(x)>;
-        if constexpr (std::is_same_v<T,
-                                     opcua::MonitoredItemNotification>) {
+        if constexpr (std::is_same_v<T, opcua::MonitoredItemNotification>) {
           return scada::DataChangeNotification{.item_id = 0,
                                                .client_handle = x.client_handle,
                                                .value = ToScada(x.value)};
@@ -549,13 +549,14 @@ scada::MonitoredItemNotification ToScada(
           // Reassemble the core event std::any from the wire EventFieldList.
           // OPC UA Part 4 §7.22.3 EventFilter delivers each Event as the field
           // values selected by the SelectClauses,
-          // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 . On the
-          // SCADA path both ends are this bridge and carry the full per-type
-          // DisassembleEvent layout (no select-clause projection): AssembleEvent
-          // dispatches on the event type id at field 0 and rebuilds that type's
-          // layout (13 fields for SystemEvent, 4 for GeneralModelChange, etc.) —
-          // the field count is per-type, not a fixed 13. So reassemble whenever
-          // fields are present; an unrecognized type id yields an empty payload.
+          // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 . On
+          // the SCADA path both ends are this bridge and carry the full
+          // per-type DisassembleEvent layout (no select-clause projection):
+          // AssembleEvent dispatches on the event type id at field 0 and
+          // rebuilds that type's layout (13 fields for SystemEvent, 4 for
+          // GeneralModelChange, etc.) — the field count is per-type, not a
+          // fixed 13. So reassemble whenever fields are present; an
+          // unrecognized type id yields an empty payload.
           std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
           std::any event =
               fields.empty() ? std::any{} : scada::AssembleEvent(fields);
