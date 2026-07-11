@@ -1,6 +1,8 @@
 #include "test/e2e/e2e_process.h"
 
 #include <boost/process/v1/args.hpp>
+#include <boost/process/v1/env.hpp>
+#include <boost/process/v1/environment.hpp>
 #include <boost/process/v1/io.hpp>
 #include <boost/process/v1/start_dir.hpp>
 
@@ -72,19 +74,35 @@ void WaitForExit(ChildProcess& child, int timeout_ms) {
   }
 }
 
-void LaunchProcess(const std::filesystem::path& exe,
-                   const std::vector<std::string>& args,
-                   const std::filesystem::path& workdir,
-                   JobObject& job,
-                   ChildProcess& child) {
+void LaunchProcess(
+    const std::filesystem::path& exe,
+    const std::vector<std::string>& args,
+    const std::filesystem::path& workdir,
+    JobObject& job,
+    ChildProcess& child,
+    const std::vector<std::pair<std::string, std::string>>& extra_env) {
   try {
-    child.process = process::child{
-        exe.string(),
-        process::args(args),
-        process::start_dir(workdir.string()),
-        process::std_out > process::null,
-        process::std_err > process::null,
-        job.group()};
+    if (extra_env.empty()) {
+      child.process = process::child{
+          exe.string(),
+          process::args(args),
+          process::start_dir(workdir.string()),
+          process::std_out > process::null,
+          process::std_err > process::null,
+          job.group()};
+    } else {
+      process::environment env = boost::this_process::environment();
+      for (const auto& [name, value] : extra_env)
+        env[name] = value;
+      child.process = process::child{
+          exe.string(),
+          process::args(args),
+          process::start_dir(workdir.string()),
+          process::std_out > process::null,
+          process::std_err > process::null,
+          env,
+          job.group()};
+    }
   } catch (const std::system_error& e) {
     throw std::runtime_error{"Failed to launch " + exe.string() + ": " +
                              e.what()};
