@@ -21,7 +21,7 @@ const scada::DateTime kTimedDataCurrentOnly = scada::DateTime::Max();
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
 BaseTimedData::BaseTimedData() {
-  timed_data_view_.set_observed_ranges_updated_handler(
+  buffer_.set_observed_ranges_updated_handler(
       std::bind_front(&BaseTimedData::UpdateObservedRanges, this));
 }
 
@@ -36,7 +36,7 @@ const scada::DataValue* BaseTimedData::GetValueAt(
     return &current_;
   }
 
-  return timed_data_view_.GetValueAt(time);
+  return buffer_.GetValueAt(time);
 }
 
 void BaseTimedData::AddObserver(TimedDataObserver& observer) {
@@ -50,11 +50,11 @@ void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
 
 void BaseTimedData::AddViewObserver(TimedDataViewObserver& observer,
                                     const scada::DateTimeRange& range) {
-  timed_data_view_.AddObserver(observer, range);
+  buffer_.AddObserver(observer, range);
 }
 
 void BaseTimedData::RemoveViewObserver(TimedDataViewObserver& observer) {
-  timed_data_view_.RemoveObserver(observer);
+  buffer_.RemoveObserver(observer);
 }
 
 void BaseTimedData::UpdateObservedRanges(bool has_observers) {
@@ -64,7 +64,7 @@ void BaseTimedData::UpdateObservedRanges(bool has_observers) {
 
   // In the 'current only' mode historical values are not maintained.
   if (historical_ && !current_.is_null()) {
-    timed_data_view_.InsertOrUpdate(current_);
+    buffer_.InsertOrUpdate(current_);
   }
 
   OnObservedRangesChanged();
@@ -93,7 +93,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
 
   // Add new point with time of last change.
   if (historical() && is_change && !value.source_timestamp.is_null())
-    timed_data_view_.InsertOrUpdate(value);
+    buffer_.InsertOrUpdate(value);
 
   if (is_change)
     change_time_ = value.source_timestamp;
@@ -105,7 +105,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
 
 std::string BaseTimedData::DumpDebugInfo() const {
   std::stringstream stream;
-  timed_data_view_.Dump(stream);
+  buffer_.Dump(stream);
   stream << "BaseTimedData" << std::endl;
   stream << "Historical: " << historical_ << std::endl;
   return stream.str();

@@ -20,8 +20,9 @@ module;
 #include "timed_data/timed_data_fake.h"
 #include "timed_data/timed_data_fetcher.h"
 #include "timed_data/timed_data_impl.h"
+#include "timed_data/timed_data_buffer.h"
+#include "timed_data/timed_data_buffer_fwd.h"
 #include "timed_data/timed_data_observer.h"
-#include "timed_data/timed_data_projection.h"
 #include "timed_data/timed_data_property.h"
 #include "timed_data/timed_data_service.h"
 #include "timed_data/timed_data_service_factory.h"
@@ -78,10 +79,13 @@ export {
   using ::GetReadyFrom;
   using ::TimedDataSpec;
 
-  // timed_data_view*.h (internal:: dump helpers are not exported)
-  using ::BasicTimedDataProjection;
+  // timed_data_buffer*.h / timed_data_view*.h (internal:: dump helpers are not
+  // exported)
+  using ::BasicTimedDataBuffer;
   using ::BasicTimedDataView;
   using ::BasicTimedDataViewObserver;
+  using ::RetentionPolicy;
+  using ::TimedDataBuffer;
   using ::TimedDataTraits;
   using ::TimedDataView;
   using ::TimedDataViewObserver;

@@ -4,7 +4,7 @@
 #include "scada/data_value.h"
 #include "scada/date_time.h"
 #include "scada/date_time_range.h"
-#include "timed_data/timed_data_view_fwd.h"
+#include "timed_data/timed_data_buffer_fwd.h"
 
 #include <cassert>
 #include <functional>

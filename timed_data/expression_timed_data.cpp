@@ -76,10 +76,12 @@ base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
 }
 
 void ExpressionTimedData::CalculateValuesInRange(
-    const scada::DateTimeRange& range,
-    std::vector<scada::DataValue>* tvqs) {
+    const scada::DateTimeRange& range) {
   base::Check(!range.first.is_null());
   base::Check(range.second.is_null() || range.first <= range.second);
+
+  // Coalesce the per-value inserts below into a single observer notification.
+  auto batch = buffer_.BeginUpdate();
 
   std::vector<size_t> iters(operands_.size());
 
@@ -99,9 +101,6 @@ void ExpressionTimedData::CalculateValuesInRange(
       initial_value = values.back();
     }
   }
-
-  if (tvqs)
-    tvqs->reserve(64);
 
   // Run calculation.
   for (;;) {
@@ -157,15 +156,7 @@ void ExpressionTimedData::CalculateValuesInRange(
 
       // The insert may be rejected in favor of an existing value with the
       // same timestamp; that is data-dependent, not an invariant.
-      timed_data_view_.InsertOrUpdate(tvq);
-
-      if (tvqs) {
-        // Check values are ordered.
-        base::Check(tvqs->empty() ||
-                    (*tvqs)[tvqs->size() - 1].source_timestamp <=
-                        tvq.source_timestamp);
-        tvqs->push_back(tvq);
-      }
+      buffer_.InsertOrUpdate(tvq);
     }
   }
 }
@@ -181,8 +172,8 @@ void ExpressionTimedData::UpdateReadyRange() {
   base::Check(!operands_ready_from.is_null());
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
-  CalculateValuesInRange(range, nullptr);
-  timed_data_view_.AddReadyRange(range);
+  CalculateValuesInRange(range);
+  buffer_.AddReadyRange(range);
 }
 
 bool ExpressionTimedData::CalculateCurrent() {
@@ -238,14 +229,11 @@ void ExpressionTimedData::OnTimedDataUpdates(
   scada::DateTimeRange range{values.front().source_timestamp,
                              values.back().source_timestamp};
 
-  timed_data_view_.ClearRange(range);
-
-  std::vector<scada::DataValue> changed_values;
-  CalculateValuesInRange(range, &changed_values);
-
-  if (!changed_values.empty()) {
-    timed_data_view_.NotifyUpdates(changed_values);
-  }
+  // Clear then recompute the affected range as one logical change; the batch
+  // inside CalculateValuesInRange coalesces the recomputed values into a single
+  // notification, so no manual NotifyUpdates is needed.
+  buffer_.ClearRange(range);
+  CalculateValuesInRange(range);
 }
 
 void ExpressionTimedData::OnPropertyChanged(const PropertySet& properties) {

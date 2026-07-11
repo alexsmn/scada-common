@@ -3,7 +3,7 @@
 #include "base/boost_log.h"
 #include "base/observer_list.h"
 #include "timed_data/timed_data.h"
-#include "timed_data/timed_data_view.h"
+#include "timed_data/timed_data_buffer.h"
 
 class PropertySet;
 
@@ -18,7 +18,7 @@ class BaseTimedData : public TimedData {
   // TimedData
   virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
       const override {
-    return timed_data_view_.ready_ranges();
+    return buffer_.ready_ranges();
   }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }
@@ -26,7 +26,7 @@ class BaseTimedData : public TimedData {
     return change_time_;
   }
   virtual std::span<const scada::DataValue> GetValues() const override {
-    return timed_data_view_.values();
+    return buffer_.values();
   }
   virtual const scada::DataValue* GetValueAt(
       const scada::DateTime& time) const override;
@@ -55,7 +55,7 @@ class BaseTimedData : public TimedData {
 
   virtual void OnObservedRangesChanged() {}
 
-  TimedDataView timed_data_view_;
+  TimedDataBuffer buffer_;
 
   // Populate history with currents. Turns to this mode on a first historical
   // subscription, and then never changes back.

@@ -7,11 +7,8 @@ class DataValue;
 template <typename T>
 struct TimedDataTraits;
 
+// The non-owning, copyable time-series view (a time-aware span).
 template <typename T>
 class BasicTimedDataView;
 
-template <typename T>
-class BasicTimedDataViewObserver;
-
 using TimedDataView = BasicTimedDataView<scada::DataValue>;
-using TimedDataViewObserver = BasicTimedDataViewObserver<scada::DataValue>;

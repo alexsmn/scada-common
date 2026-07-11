@@ -28,7 +28,7 @@ void TimedDataFetcher::FetchNextGap() {
   if (!node_)
     return;
 
-  auto gap = timed_data_view_.FindNextGap();
+  auto gap = buffer_.FindNextGap();
   if (!gap)
     return;
 
@@ -68,7 +68,7 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
   }
 
   // Reset query if the requested range is no more interesting.
-  auto gap = timed_data_view_.FindNextGap();
+  auto gap = buffer_.FindNextGap();
   if (!gap || !IntervalContains(*gap, querying_range_)) {
     LOG_INFO(logger_) << "Query canceled" << LOG_TAG("Gap", ToString(*gap))
                       << LOG_TAG("Range", ToString(querying_range_));
@@ -128,7 +128,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
 
   auto ref = shared_from_this();
 
-  timed_data_view_.ReplaceRange(values);
+  buffer_.ReplaceRange(values);
 
   scada::DateTime ready_to;
   if (continuation_point.empty()) {
@@ -145,7 +145,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
                       << LOG_TAG("ReadFrom", FormatTime(querying_range_.first))
                       << LOG_TAG("ReadTo", FormatTime(ready_to));
 
-    timed_data_view_.AddReadyRange({querying_range_.first, ready_to});
+    buffer_.AddReadyRange({querying_range_.first, ready_to});
 
     querying_range_.first = ready_to;
   }

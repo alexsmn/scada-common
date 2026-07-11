@@ -22,8 +22,7 @@ TimedDataImpl::TimedDataImpl(scada::AggregateFilter aggregate_filter,
       timed_data_fetcher_{
           history_service_
               ? std::make_shared<TimedDataFetcher>(TimedDataFetcherContext{
-                    timed_data_view_, executor_, *history_service_,
-                    aggregate_filter_})
+                    buffer_, executor_, *history_service_, aggregate_filter_})
               : nullptr} {}
 
 TimedDataImpl::~TimedDataImpl() {
@@ -139,9 +138,8 @@ void TimedDataImpl::OnChannelData(const scada::DataValue& data_value) {
       NotifyPropertyChanged(PropertySet(PROPERTY_CURRENT));
     }
   } else {
-    if (timed_data_view_.InsertOrUpdate(data_value)) {
-      timed_data_view_.NotifyUpdates({&data_value, 1});
-    }
+    // InsertOrUpdate notifies observers of the affected sample itself.
+    buffer_.InsertOrUpdate(data_value);
   }
 }
 

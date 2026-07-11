@@ -1,10 +1,14 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "base/boost_log.h"
 #include "common/history_util.h"
+#include "node_service/node_ref.h"
+#include "scada/date_time_range.h"
+#include "timed_data/timed_data_buffer_fwd.h"
 
 struct TimedDataFetcherContext {
-  TimedDataView& timed_data_view_;
+  TimedDataBuffer& buffer_;
   AnyExecutor executor_;
   scada::HistoryService& history_service_;
   const scada::AggregateFilter aggregate_filter_;

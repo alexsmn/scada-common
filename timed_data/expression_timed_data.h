@@ -31,8 +31,9 @@ class ExpressionTimedData final : public BaseTimedData,
   // Returns false if ready range was not changed.
   void UpdateReadyRange();
 
-  void CalculateValuesInRange(const scada::DateTimeRange& range,
-                              std::vector<scada::DataValue>* tvqs);
+  // Computes expression values across `range` from the operands and inserts
+  // them into the buffer (coalescing the inserts into one notification).
+  void CalculateValuesInRange(const scada::DateTimeRange& range);
   bool CalculateCurrent();
 
   // TimedData
