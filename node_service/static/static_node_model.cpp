@@ -62,8 +62,10 @@ std::vector<NodeRef::Reference> StaticNodeModel::GetReferences(
   all_refs.insert(all_refs.end(), inverse_refs.begin(), inverse_refs.end());
 
   auto all_service_refs =
-      all_refs | std::views::transform(std::bind_front(
-                     &StaticNodeService::GetReference, &service_));
+      all_refs | std::views::transform(
+                     [this](const scada::ReferenceDescription& desc) {
+                       return service_.GetReference(desc);
+                     });
 
   return std::vector<NodeRef::Reference>(all_service_refs.begin(),
                                          all_service_refs.end());
