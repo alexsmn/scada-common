@@ -1,63 +1,27 @@
 // Regression coverage for already-satisfied NodeRef coroutine fetches.
 
-#include "base/check.h"
-#include "node_service/base_node_model.h"
 #include "node_service/node_ref.h"
+#include "node_service/test/fake_node_service.h"
 
 #include "base/awaitable.h"
+#include "common/node_state.h"
+#include "scada/standard_node_ids.h"
 
 #include <boost/asio/io_context.hpp>
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
 namespace {
 
-// Chain link: a BaseNodeModel that reports `NodeOnly` as already fetched and
-// exposes the next link as its child.
-class ChainNodeModel : public BaseNodeModel {
- public:
-  static std::shared_ptr<ChainNodeModel> Create() {
-    auto model = std::shared_ptr<ChainNodeModel>{new ChainNodeModel{}};
-    model->SetFetchStatus(scada::StatusCode::Good, NodeFetchStatus::Max());
-    return model;
-  }
-
-  void set_child(NodeRef child) { child_ = std::move(child); }
-  const NodeRef& child() const { return child_; }
-
-  // NodeModel stubs — not exercised by this test.
-  scada::Variant GetAttribute(scada::AttributeId) const override { return {}; }
-  NodeRef GetDataType() const override { return {}; }
-  NodeRef::Reference GetReference(const scada::NodeId&,
-                                  bool,
-                                  const scada::NodeId&) const override {
-    return {};
-  }
-  std::vector<NodeRef::Reference> GetReferences(const scada::NodeId&,
-                                                bool) const override {
-    return {};
-  }
-  NodeRef GetTarget(const scada::NodeId&, bool) const override { return {}; }
-  std::vector<NodeRef> GetTargets(const scada::NodeId&, bool) const override {
-    return {};
-  }
-  NodeRef GetAggregate(const scada::NodeId&) const override { return {}; }
-  NodeRef GetChild(const scada::QualifiedName&) const override { return {}; }
-  scada::node GetScadaNode() const override { return {}; }
-
- private:
-  ChainNodeModel() = default;
-
-  NodeRef child_;
-};
+scada::NodeId Id(scada::NumericId numeric_id) {
+  return scada::NodeId{numeric_id};
+}
 
 }  // namespace
 
-TEST(NodeRefFetchRecursion, SameModelCoroutineFetchCanRepeat) {
-  auto model = ChainNodeModel::Create();
-  NodeRef node{model};
+TEST(NodeRefFetchRecursion, SameNodeCoroutineFetchCanRepeat) {
+  FakeNodeService service;
+  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
 
   constexpr int kRepeat = 2000;
 
@@ -73,28 +37,29 @@ TEST(NodeRefFetchRecursion, SameModelCoroutineFetchCanRepeat) {
   EXPECT_EQ(fetch_count, kRepeat);
 }
 
-TEST(NodeRefFetchRecursion, CrossModelCoroutineFetchCanWalkChain) {
+TEST(NodeRefFetchRecursion, CrossNodeCoroutineFetchCanWalkChain) {
   constexpr int kChainLength = 64;
-  std::vector<std::shared_ptr<ChainNodeModel>> chain;
-  chain.reserve(kChainLength);
-  for (int i = 0; i < kChainLength; ++i)
-    chain.push_back(ChainNodeModel::Create());
-  for (int i = 0; i + 1 < kChainLength; ++i)
-    chain[i]->set_child(NodeRef{chain[i + 1]});
+
+  FakeNodeService service;
+  // Link node i to node i+1 with an Organizes reference so the walk below can
+  // step through the chain via NodeRef navigation.
+  for (int i = 0; i < kChainLength; ++i) {
+    scada::NodeState state;
+    state.set_node_id(Id(i + 1));
+    if (i + 1 < kChainLength) {
+      state.add_reference(scada::ReferenceDescription{scada::id::Organizes,
+                                                      true, Id(i + 2)});
+    }
+    service.Add(std::move(state));
+  }
 
   int fetch_count = 0;
   boost::asio::io_context io_context;
   RunAwaitable(io_context, [&]() -> Awaitable<void> {
-    for (NodeRef node{chain.front()}; node;) {
+    for (NodeRef node = service.GetNode(Id(1)); node;) {
       co_await node.Fetch(NodeFetchStatus::NodeOnly());
       ++fetch_count;
-      NodeRef next;
-      if (const auto& m = node.model()) {
-        const auto* link = dynamic_cast<const ChainNodeModel*>(m.get());
-        base::Check(link);
-        next = link->child();
-      }
-      node = std::move(next);
+      node = node.target(scada::id::Organizes);
     }
   });
 

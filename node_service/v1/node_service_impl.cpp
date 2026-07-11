@@ -43,7 +43,8 @@ NodeServiceImpl::~NodeServiceImpl() {
   nodes_.clear();
 }
 
-NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
+std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
+    const scada::NodeId& node_id) {
   if (node_id.is_null())
     return nullptr;
 
@@ -62,6 +63,132 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
   model->SetFetchStatus(node, std::move(status), fetch_status);
 
   return model;
+}
+
+NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
+  auto model = GetNodeModel(node_id);
+  return model ? NodeRef{node_id, this} : nullptr;
+}
+
+scada::Status NodeServiceImpl::GetStatus(const scada::NodeId& node_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetStatus()
+              : scada::Status{scada::StatusCode::Bad_WrongNodeId};
+}
+
+NodeFetchStatus NodeServiceImpl::GetFetchStatus(const scada::NodeId& node_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetFetchStatus() : NodeFetchStatus{};
+}
+
+Awaitable<void> NodeServiceImpl::Fetch(const scada::NodeId& node_id,
+                                       const NodeFetchStatus& requested_status) {
+  auto node = GetNodeModel(node_id);
+  if (node)
+    co_await node->Fetch(requested_status);
+}
+
+void NodeServiceImpl::StartFetch(const scada::NodeId& node_id,
+                                 const NodeFetchStatus& requested_status) {
+  if (auto node = GetNodeModel(node_id))
+    node->StartFetch(requested_status);
+}
+
+scada::Variant NodeServiceImpl::GetAttribute(const scada::NodeId& node_id,
+                                             scada::AttributeId attribute_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetAttribute(attribute_id) : scada::Variant{};
+}
+
+NodeRef NodeServiceImpl::GetDataType(const scada::NodeId& node_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetDataType() : nullptr;
+}
+
+NodeRef::Reference NodeServiceImpl::GetReference(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward,
+    const scada::NodeId& target_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetReference(reference_type_id, forward, target_id)
+              : NodeRef::Reference{};
+}
+
+std::vector<NodeRef::Reference> NodeServiceImpl::GetReferences(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetReferences(reference_type_id, forward)
+              : std::vector<NodeRef::Reference>{};
+}
+
+NodeRef NodeServiceImpl::GetTarget(const scada::NodeId& node_id,
+                                   const scada::NodeId& reference_type_id,
+                                   bool forward) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetTarget(reference_type_id, forward) : nullptr;
+}
+
+std::vector<NodeRef> NodeServiceImpl::GetTargets(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetTargets(reference_type_id, forward)
+              : std::vector<NodeRef>{};
+}
+
+NodeRef NodeServiceImpl::GetAggregate(
+    const scada::NodeId& node_id,
+    const scada::NodeId& aggregate_declaration_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetAggregate(aggregate_declaration_id) : nullptr;
+}
+
+NodeRef NodeServiceImpl::GetChild(const scada::NodeId& node_id,
+                                  const scada::QualifiedName& child_name) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetChild(child_name) : NodeRef{};
+}
+
+scada::node NodeServiceImpl::GetScadaNode(const scada::NodeId& node_id) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->GetScadaNode() : scada::node{};
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
+    const scada::NodeId& node_id,
+    const ModelChangedCallback& callback) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->SubscribeModelChanged(callback)
+              : boost::signals2::scoped_connection{};
+}
+
+boost::signals2::scoped_connection
+NodeServiceImpl::SubscribeNodeSemanticChanged(
+    const scada::NodeId& node_id,
+    const NodeSemanticChangedCallback& callback) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->SubscribeNodeSemanticChanged(callback)
+              : boost::signals2::scoped_connection{};
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
+    const scada::NodeId& node_id,
+    const NodeFetchedCallback& callback) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->SubscribeNodeFetched(callback)
+              : boost::signals2::scoped_connection{};
+}
+
+boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
+    const scada::NodeId& node_id,
+    const NodeStateChangedCallback& callback) {
+  auto node = GetNodeModel(node_id);
+  return node ? node->SubscribeNodeStateChanged(callback)
+              : boost::signals2::scoped_connection{};
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(

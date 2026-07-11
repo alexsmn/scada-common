@@ -8,21 +8,52 @@
 #include "scada/data_value.h"
 #include "scada/node.h"
 #include "scada/node_class.h"
+#include "scada/node_id.h"
 #include "scada/standard_node_ids.h"
 
 #include <boost/signals2/connection.hpp>
-#include <memory>
 #include <optional>
+#include <vector>
 
-class NodeModel;
+class NodeService;
 
+// Lightweight value cursor identifying one node within one NodeService.
+//
+// A NodeRef stores a node id plus a non-owning pointer to the service that
+// owns the node. Every operation forwards to the service (see
+// `node_service.h`); the ref itself carries no per-node state and does not pin
+// the node resident. Identity is the stored node id, so comparison and hashing
+// are O(1) with no attribute read.
+//
+// A NodeRef is only valid while its service is alive and must be used on the
+// service's executor.
 class NodeRef {
  public:
-  constexpr NodeRef() noexcept {}
-  constexpr NodeRef(std::nullptr_t) noexcept {}
-  template <class T>
-  NodeRef(std::shared_ptr<T> model) noexcept
-      : model_{std::static_pointer_cast<const NodeModel>(std::move(model))} {}
+  NodeRef() noexcept = default;
+  NodeRef(std::nullptr_t) noexcept {}
+  // The cursor stores |service| non-owning, so it must not outlive it; the
+  // lifetime annotation lets the compiler diagnose a NodeRef bound to a
+  // shorter-lived service.
+  NodeRef(scada::NodeId id, NodeService* service SCADA_LIFETIME_BOUND) noexcept
+      : id_{std::move(id)}, service_{service} {}
+
+  // Identity — no dispatch, no attribute read.
+  const scada::NodeId& node_id() const noexcept SCADA_LIFETIME_BOUND {
+    return id_;
+  }
+  NodeService* service() const noexcept { return service_; }
+
+  explicit operator bool() const noexcept { return service_ != nullptr; }
+
+  bool operator==(const NodeRef& other) const noexcept {
+    return id_ == other.id_;
+  }
+  bool operator!=(const NodeRef& other) const noexcept {
+    return !operator==(other);
+  }
+  bool operator<(const NodeRef& other) const noexcept {
+    return id_ < other.id_;
+  }
 
   scada::Status status() const;
 
@@ -37,7 +68,6 @@ class NodeRef {
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 
-  scada::NodeId node_id() const;
   std::optional<scada::NodeClass> node_class() const;
   scada::QualifiedName browse_name() const;
   scada::LocalizedText display_name() const;
@@ -75,23 +105,8 @@ class NodeRef {
   NodeRef operator[](const scada::QualifiedName& child_name) const;
   NodeRef operator[](const scada::NodeId& aggregate_declaration_id) const;
 
-  explicit operator bool() const noexcept { return model_ != nullptr; }
-
-  bool operator==(const NodeRef& other) const {
-    return node_id() == other.node_id();
-  }
-  bool operator!=(const NodeRef& other) const { return !operator==(other); }
-
-  bool operator<(const NodeRef& other) const {
-    return node_id() < other.node_id();
-  }
-
-  const std::shared_ptr<const NodeModel>& model() const SCADA_LIFETIME_BOUND {
-    return model_;
-  }
-
-  // Subscriptions forward to the underlying model; a null ref returns an
-  // empty connection.
+  // Subscriptions forward to the service; a null ref returns an empty
+  // connection. An active subscription keeps the node resident.
   [[nodiscard]] boost::signals2::scoped_connection SubscribeModelChanged(
       const ModelChangedCallback& callback) const;
   [[nodiscard]] boost::signals2::scoped_connection SubscribeNodeSemanticChanged(
@@ -104,7 +119,8 @@ class NodeRef {
   scada::node scada_node() const;
 
  private:
-  std::shared_ptr<const NodeModel> model_;
+  scada::NodeId id_;
+  NodeService* service_ = nullptr;
 };
 
 struct NodeRef::Reference {

@@ -74,7 +74,99 @@ void StaticNodeService::AddAll(std::span<const scada::NodeState> node_states) {
 
 NodeRef StaticNodeService::GetNode(const scada::NodeId& node_id) {
   auto i = nodes_.find(node_id);
-  return i != nodes_.end() ? NodeRef{i->second} : nullptr;
+  return i != nodes_.end() ? NodeRef{node_id, this} : nullptr;
+}
+
+std::shared_ptr<const StaticNodeModel> StaticNodeService::FindNode(
+    const scada::NodeId& node_id) const {
+  auto i = nodes_.find(node_id);
+  return i != nodes_.end() ? i->second : nullptr;
+}
+
+scada::Status StaticNodeService::GetStatus(const scada::NodeId& node_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetStatus()
+              : scada::Status{scada::StatusCode::Bad_WrongNodeId};
+}
+
+NodeFetchStatus StaticNodeService::GetFetchStatus(
+    const scada::NodeId& node_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetFetchStatus() : NodeFetchStatus{};
+}
+
+Awaitable<void> StaticNodeService::Fetch(
+    const scada::NodeId& node_id,
+    const NodeFetchStatus& requested_status) {
+  // All static nodes are fully materialized on Add(); nothing to fetch.
+  co_return;
+}
+
+void StaticNodeService::StartFetch(const scada::NodeId& node_id,
+                                   const NodeFetchStatus& requested_status) {}
+
+scada::Variant StaticNodeService::GetAttribute(
+    const scada::NodeId& node_id,
+    scada::AttributeId attribute_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetAttribute(attribute_id) : scada::Variant{};
+}
+
+NodeRef StaticNodeService::GetDataType(const scada::NodeId& node_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetDataType() : nullptr;
+}
+
+NodeRef::Reference StaticNodeService::GetReference(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward,
+    const scada::NodeId& target_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetReference(reference_type_id, forward, target_id)
+              : NodeRef::Reference{};
+}
+
+std::vector<NodeRef::Reference> StaticNodeService::GetReferences(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward) {
+  auto node = FindNode(node_id);
+  return node ? node->GetReferences(reference_type_id, forward)
+              : std::vector<NodeRef::Reference>{};
+}
+
+NodeRef StaticNodeService::GetTarget(const scada::NodeId& node_id,
+                                     const scada::NodeId& reference_type_id,
+                                     bool forward) {
+  auto node = FindNode(node_id);
+  return node ? node->GetTarget(reference_type_id, forward) : nullptr;
+}
+
+std::vector<NodeRef> StaticNodeService::GetTargets(
+    const scada::NodeId& node_id,
+    const scada::NodeId& reference_type_id,
+    bool forward) {
+  auto node = FindNode(node_id);
+  return node ? node->GetTargets(reference_type_id, forward)
+              : std::vector<NodeRef>{};
+}
+
+NodeRef StaticNodeService::GetAggregate(
+    const scada::NodeId& node_id,
+    const scada::NodeId& aggregate_declaration_id) {
+  return GetNode(MakeAggregateId(node_id, aggregate_declaration_id));
+}
+
+NodeRef StaticNodeService::GetChild(const scada::NodeId& node_id,
+                                    const scada::QualifiedName& child_name) {
+  auto node = FindNode(node_id);
+  return node ? node->GetChild(child_name) : NodeRef{};
+}
+
+scada::node StaticNodeService::GetScadaNode(const scada::NodeId& node_id) {
+  auto node = FindNode(node_id);
+  return node ? node->GetScadaNode() : scada::node{};
 }
 
 scada::NodeId StaticNodeService::MakeAggregateId(

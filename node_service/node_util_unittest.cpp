@@ -8,7 +8,6 @@
 #include "address_space/test/scada_test_address_space.h"
 #include "model/devices_node_ids.h"
 #include "model/namespaces.h"
-#include "node_service/node_model_mock.h"
 #include "node_service/v1/test/test_node_service.h"
 
 #include <gmock/gmock.h>

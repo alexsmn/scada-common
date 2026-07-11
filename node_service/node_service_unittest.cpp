@@ -140,9 +140,11 @@ class TestNodeFetcher final : public NodeFetcher {
 struct NodeServiceTestContext {
   BaseNodeServiceTestEnvironment& base_env;
 
-  // Disabled by default so residency tests observe pure refcount-driven
-  // release; keep-alive behavior is tested with a non-zero capacity.
-  size_t keep_alive_capacity = 0;
+  // Large by default so ordinary read-after-fetch tests keep the fetched
+  // entry resident (NodeRefs no longer pin under the cursor model). Residency
+  // and eviction tests build their own context with a small/zero capacity and
+  // pin the node under test with a subscription.
+  size_t keep_alive_capacity = 1024;
 
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
   std::shared_ptr<TestNodeFetcher> node_fetcher{
@@ -886,66 +888,6 @@ TEST_F(V3NodeServiceTest, NodeDeletedTombstonesResidentModel) {
   EXPECT_FALSE(node.status());
 }
 
-TEST_F(V3NodeServiceTest, ModelReleasedWhenLastNodeRefDropped) {
-  auto& server_address_space = *this->base_env_.server_address_space;
-  const auto node_id = server_address_space.kTestNode2Id;
-
-  this->OpenChannel();
-
-  auto node = this->node_service_->GetNode(node_id);
-  this->DrainExecutor();
-
-  ASSERT_TRUE(node.fetched());
-  ASSERT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
-
-  node = nullptr;
-
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
-}
-
-TEST_F(V3NodeServiceTest, InFlightFetchSurvivesCallerDroppingRef) {
-  auto& server_address_space = *this->base_env_.server_address_space;
-  const auto node_id = server_address_space.kTestNode2Id;
-
-  this->OpenChannel();
-
-  // The returned NodeRef is dropped immediately; the in-flight fetch must
-  // pin the model until its results are delivered.
-  this->node_service_->GetNode(node_id);
-
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
-
-  this->DrainExecutor();
-
-  // The fetch completed against a live model and notified observers; once
-  // done, nothing pins the model anymore.
-  EXPECT_THAT(this->observer_.semantic_changed_node_ids, Contains(node_id));
-  EXPECT_NE(this->observer_.last_state(node_id), nullptr);
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
-}
-
-TEST_F(V3NodeServiceTest, SubtreeReleasedWhenRootDropped) {
-  auto& server_address_space = *this->base_env_.server_address_space;
-  const auto node_id = server_address_space.kTestNode2Id;
-
-  this->OpenChannel();
-
-  auto node = this->node_service_->GetNode(node_id);
-  node.StartFetch(NodeFetchStatus::NodeAndChildren());
-  this->DrainExecutor();
-
-  ASSERT_TRUE(node.fetched());
-  ASSERT_TRUE(node.children_fetched());
-
-  // The parent pins its fetched children (and their reference types).
-  EXPECT_GT(this->node_service_->GetResidentNodeCount(), 1u);
-
-  node = nullptr;
-
-  // Dropping the subtree root unwinds the whole fetched subtree.
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
-}
-
 TEST_F(V3NodeServiceTest, FetchUnknownNodeReportsError) {
   const scada::NodeId unknown_node_id{1, 100};
 
@@ -959,24 +901,6 @@ TEST_F(V3NodeServiceTest, FetchUnknownNodeReportsError) {
   EXPECT_TRUE(node.fetched());
   EXPECT_FALSE(node.status());
   EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
-}
-
-TEST_F(V3NodeServiceTest, PendingFetchBeforeChannelOpenPinsModel) {
-  auto& server_address_space = *this->base_env_.server_address_space;
-  const auto node_id = server_address_space.kTestNode2Id;
-
-  // Channel closed: the fetch is queued, and the queue pins the model even
-  // though the caller drops its NodeRef immediately.
-  this->node_service_->GetNode(node_id);
-
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
-
-  this->OpenChannel();
-
-  // The queued fetch ran against the pinned model and released it after
-  // delivering the results.
-  EXPECT_NE(this->observer_.last_state(node_id), nullptr);
-  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
 }
 
 TEST_F(V3NodeServiceTest, NeighborSnapshotRepublishedOnInverseReferencePush) {
@@ -1110,6 +1034,113 @@ TEST_F(V3KeepAliveTest, NodeDeletedEvictsKeepAlivePin) {
       node_id, {}, scada::ModelChangeEvent::NodeDeleted});
 
   EXPECT_EQ(node_service.GetResidentNodeCount(), 0u);
+}
+
+// Residency semantics under the cursor model: NodeRefs no longer pin, so a
+// node stays resident only via keep-alive (disabled here), an in-flight fetch,
+// a pending pre-channel fetch, or an active subscription. Uses a zero-capacity
+// keep-alive so those pins are observed directly.
+class V3ResidencyTest : public Test {
+ protected:
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && base_env_.executor.GetTaskCount() != 0; ++i)
+      base_env_.executor.Poll();
+  }
+
+  scada::ViewEvents* view_events_ = nullptr;
+
+  BaseNodeServiceTestEnvironment base_env_{
+      .executor = TestExecutor{},
+      .server_address_space = std::make_shared<TestAddressSpace>(),
+      .view_events_provider = [this](scada::ViewEvents& events)
+          -> std::unique_ptr<IViewEventsSubscription> {
+        view_events_ = &events;
+        return std::make_unique<IViewEventsSubscription>();
+      }};
+
+  v3::NodeServiceTestContext context_{base_env_, /*keep_alive_capacity=*/0};
+  v3::NodeServiceImpl& node_service_ = context_.node_service;
+};
+
+// A cursor alone no longer pins its node: once the initiating fetch completes
+// and nothing else holds the model, it is released.
+TEST_F(V3ResidencyTest, CursorAloneDoesNotPinNode) {
+  auto& server_address_space = *base_env_.server_address_space;
+
+  node_service_.OnChannelOpened();
+
+  auto node = node_service_.GetNode(server_address_space.kTestNode1Id);
+  DrainExecutor();
+
+  // The cursor `node` is still in scope, yet the model is gone.
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
+}
+
+// An active subscription keeps the node resident for the connection's lifetime.
+TEST_F(V3ResidencyTest, SubscriptionPinsNodeUntilDisconnected) {
+  auto& server_address_space = *base_env_.server_address_space;
+
+  node_service_.OnChannelOpened();
+
+  auto node = node_service_.GetNode(server_address_space.kTestNode1Id);
+  RecordingNodeObserver observer;
+  observer.Connect(node);  // node-scoped subscriptions pin the model
+  DrainExecutor();
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 1u);
+
+  observer.Disconnect();
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
+}
+
+// An in-flight fetch pins its target even if the caller drops the cursor.
+TEST_F(V3ResidencyTest, InFlightFetchPinsModel) {
+  auto& server_address_space = *base_env_.server_address_space;
+
+  node_service_.OnChannelOpened();
+
+  node_service_.GetNode(server_address_space.kTestNode2Id);  // cursor dropped
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 1u);
+
+  DrainExecutor();
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
+}
+
+// A fetch queued before the channel opens pins its model until it can run.
+TEST_F(V3ResidencyTest, PendingFetchPinsModel) {
+  auto& server_address_space = *base_env_.server_address_space;
+
+  node_service_.GetNode(server_address_space.kTestNode2Id);  // channel closed
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 1u);
+
+  node_service_.OnChannelOpened();
+  DrainExecutor();
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
+}
+
+// Reading through a cursor whose entry was evicted transparently re-fetches:
+// the read re-creates the entry and kicks a NodeOnly fetch, which pins it.
+TEST_F(V3ResidencyTest, ReadReFetchesEvictedNode) {
+  auto& server_address_space = *base_env_.server_address_space;
+
+  node_service_.OnChannelOpened();
+
+  auto node = node_service_.GetNode(server_address_space.kTestNode1Id);
+  DrainExecutor();
+  ASSERT_EQ(node_service_.GetResidentNodeCount(), 0u);  // evicted
+
+  node.display_name();  // a read on the evicted cursor
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 1u);  // re-fetch in flight
+
+  DrainExecutor();
+
+  EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
 }
 
 class V2NodeServiceRegressionTest : public Test {

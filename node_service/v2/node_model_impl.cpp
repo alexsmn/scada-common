@@ -176,7 +176,7 @@ NodeRef NodeModelImpl::GetAggregateDeclaration(
 
   NodeRef type_definition =
       scada::IsTypeDefinition(node_state_.node_class)
-          ? shared_from_this()
+          ? NodeRef{node_id_, &service_}
           : service_.GetNode(node_state_.type_definition_id);
 
   // TODO: Optimize.
