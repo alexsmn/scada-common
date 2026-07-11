@@ -50,7 +50,8 @@ NodeRef NodeServiceImpl::GetNode(const scada::NodeId& node_id) {
 
 scada::Status NodeServiceImpl::GetStatus(const scada::NodeId& node_id) {
   auto node = GetNodeModelForRead(node_id);
-  return node ? node->GetStatus() : scada::Status{scada::StatusCode::Bad_WrongNodeId};
+  return node ? node->GetStatus()
+              : scada::Status{scada::StatusCode::Bad_WrongNodeId};
 }
 
 NodeFetchStatus NodeServiceImpl::GetFetchStatus(const scada::NodeId& node_id) {
@@ -58,8 +59,9 @@ NodeFetchStatus NodeServiceImpl::GetFetchStatus(const scada::NodeId& node_id) {
   return node ? node->GetFetchStatus() : NodeFetchStatus{};
 }
 
-Awaitable<void> NodeServiceImpl::Fetch(const scada::NodeId& node_id,
-                                       const NodeFetchStatus& requested_status) {
+Awaitable<void> NodeServiceImpl::Fetch(
+    const scada::NodeId& node_id,
+    const NodeFetchStatus& requested_status) {
   auto node = GetNodeModelForRead(node_id);
   if (node)
     co_await node->Fetch(requested_status);
@@ -215,6 +217,9 @@ void NodeServiceImpl::TouchKeepAlive(std::shared_ptr<NodeModelImpl> model) {
     return;
   }
 
+  // Copy the key out before the insert: the insert std::moves `model`, and the
+  // right-hand side is sequenced before the left, so reading model->node_id()
+  // in the subscript would touch a moved-from pointer. Keep this copy.
   const scada::NodeId node_id = model->node_id();
   keep_alive_index_[node_id] =
       keep_alive_list_.insert(keep_alive_list_.begin(), std::move(model));

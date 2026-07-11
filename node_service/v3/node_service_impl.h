@@ -9,7 +9,7 @@
 #include "scada/view_service.h"
 
 #include <list>
-#include <map>
+#include <unordered_map>
 
 namespace scada {
 class MonitoredItemService;
@@ -38,7 +38,9 @@ struct NodeServiceImplContext {
 // unregister themselves on destruction through this shared object, so a
 // NodeRef released after the service has been torn down stays safe.
 struct NodeModelRegistry {
-  std::map<scada::NodeId, std::weak_ptr<NodeModelImpl>> nodes;
+  // Hashed: only ever point-accessed (find/insert/erase by NodeId), never
+  // iterated in order.
+  std::unordered_map<scada::NodeId, std::weak_ptr<NodeModelImpl>> nodes;
 };
 
 // NodeService implementation using injected coroutine fetch logic.
@@ -94,9 +96,9 @@ class NodeServiceImpl : private NodeServiceImplContext,
                            const scada::QualifiedName& child_name) override;
   virtual scada::node GetScadaNode(const scada::NodeId& node_id) override;
 
-  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeModelChanged(
-      const scada::NodeId& node_id,
-      const ModelChangedCallback& callback) override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const scada::NodeId& node_id,
+                        const ModelChangedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeNodeSemanticChanged(
       const scada::NodeId& node_id,
@@ -105,9 +107,8 @@ class NodeServiceImpl : private NodeServiceImplContext,
       const scada::NodeId& node_id,
       const NodeFetchedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeStateChanged(
-      const scada::NodeId& node_id,
-      const NodeStateChangedCallback& callback) override;
+  SubscribeNodeStateChanged(const scada::NodeId& node_id,
+                            const NodeStateChangedCallback& callback) override;
 
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeModelChanged(const ModelChangedCallback& callback) const override;
@@ -181,7 +182,8 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   // MRU keep-alive pins; see NodeServiceImplContext::keep_alive_capacity_.
   std::list<std::shared_ptr<NodeModelImpl>> keep_alive_list_;
-  std::map<scada::NodeId, std::list<std::shared_ptr<NodeModelImpl>>::iterator>
+  std::unordered_map<scada::NodeId,
+                     std::list<std::shared_ptr<NodeModelImpl>>::iterator>
       keep_alive_index_;
 
   // Fetch requested before the channel opened. The model is pinned so the

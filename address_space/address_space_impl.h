@@ -7,6 +7,7 @@
 
 #include <boost/signals2/signal.hpp>
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 namespace scada {
@@ -22,7 +23,11 @@ class AddressSpaceImpl : public MutableAddressSpace {
   AddressSpaceImpl(const AddressSpaceImpl&) = delete;
   AddressSpaceImpl& operator=(const AddressSpaceImpl&) = delete;
 
-  typedef std::map<scada::NodeId, scada::Node*> NodeMap;
+  // Hashed rather than ordered: every access is a point lookup by NodeId, and
+  // no consumer depends on sorted iteration (the XML serializer re-sorts its
+  // own snapshot). This trades O(log n) NodeId comparisons for O(1) hashing on
+  // the hottest address-space path.
+  typedef std::unordered_map<scada::NodeId, scada::Node*> NodeMap;
   const NodeMap& node_map() const SCADA_LIFETIME_BOUND { return node_map_; }
 
   // Add not-owned node.
