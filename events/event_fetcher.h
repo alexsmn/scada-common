@@ -3,6 +3,7 @@
 #include <span>
 
 #include "base/any_executor.h"
+#include "base/boost_log.h"
 #include "base/cancelation.h"
 #include "events/node_event_provider.h"
 #include "scada/legacy_monitored_item_adapter.h"
@@ -18,13 +19,12 @@ struct HistoryReadEventsResult;
 class EventAckQueue;
 class EventObserver;
 class EventStorage;
-class Logger;
 
 struct EventFetcherContext {
   AnyExecutor executor_;
   scada::MonitoredItemService& monitored_item_service_;
   scada::HistoryService& history_service_;
-  const std::shared_ptr<const Logger> logger_;
+  const std::shared_ptr<BoostLogger> logger_;
   EventStorage& event_storage_;
   EventAckQueue& event_ack_queue_;
 };

@@ -3,7 +3,7 @@
 #include "base/any_executor.h"
 
 #include "base/awaitable.h"
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "scada/event.h"
 #include "scada/service_context.h"
 
@@ -17,7 +17,7 @@ class MethodService;
 }  // namespace scada
 
 struct EventAckQueueContext {
-  const std::shared_ptr<const Logger> logger_;
+  const std::shared_ptr<BoostLogger> logger_;
   AnyExecutor executor_;
   scada::MethodService& method_service_;
 };

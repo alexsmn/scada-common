@@ -2,7 +2,7 @@
 
 #include "base/awaitable.h"
 #include "base/check.h"
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "base/range_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"

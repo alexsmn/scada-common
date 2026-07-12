@@ -15,8 +15,7 @@ EventAckQueue::~EventAckQueue() {
 
 void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
-    logger_->WriteF(LogSeverity::Normal, "Event {} acknowledged",
-                    acknowledge_id);
+    LOG_INFO(*logger_) << std::format("Event {} acknowledged", acknowledge_id);
     PostAckPendingEvents();
   }
 }
@@ -49,8 +48,8 @@ void EventAckQueue::AckPendingEvents() {
   }
 
   if (!event_ids.empty()) {
-    logger_->WriteF(LogSeverity::Normal, "Acknowledge events {}",
-                    ToString(event_ids));
+    LOG_INFO(*logger_) << std::format("Acknowledge events {}",
+                                      ToString(event_ids));
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
              context = service_context_]() mutable -> Awaitable<void> {

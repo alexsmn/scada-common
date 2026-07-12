@@ -1,6 +1,6 @@
 #include "events/event_fetcher_builder.h"
 
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "base/test/test_executor.h"
 #include "events/event_fetcher.h"
 #include "scada/history_service.h"
@@ -136,7 +136,7 @@ TEST(CoroutineEventFetcherBuilder,
   auto fetcher =
       CoroutineEventFetcherBuilder{
           .executor_ = executor,
-          .logger_ = NullLogger::GetInstance(),
+          .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,
           .method_service_ = method_service,
@@ -166,7 +166,7 @@ TEST(CoroutineEventFetcherBuilder,
   auto fetcher =
       CoroutineEventFetcherBuilder{
           .executor_ = executor,
-          .logger_ = NullLogger::GetInstance(),
+          .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,
           .method_service_ = method_service,
@@ -208,7 +208,7 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
       std::shared_ptr<void>{}, &session_service};
 
   auto fetcher = EventFetcherBuilder{.executor_ = executor,
-                                     .logger_ = NullLogger::GetInstance(),
+                                     .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
                                      .data_services_ = std::move(data_services)}
                      .Build();
 
@@ -235,7 +235,7 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
 
   EXPECT_EQ(nullptr,
             (EventFetcherBuilder{.executor_ = executor,
-                                 .logger_ = NullLogger::GetInstance(),
+                                 .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
                                  .data_services_ = std::move(data_services)}
                  .Build()));
 }
@@ -272,7 +272,7 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   auto fetcher =
       EventFetcherBuilder{
           .executor_ = executor,
-          .logger_ = NullLogger::GetInstance(),
+          .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
           .services_ = {.monitored_item_service = &monitored_item_service,
                         .method_service = &method_service,
                         .history_service = &history_service,
@@ -299,7 +299,7 @@ TEST(CoroutineEventFetcherBuilder, AcknowledgeUsesMethodServiceAndSessionUser) {
   auto fetcher =
       CoroutineEventFetcherBuilder{
           .executor_ = executor,
-          .logger_ = NullLogger::GetInstance(),
+          .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
           .monitored_item_service_ = monitored_item_service,
           .history_service_ = history_service,
           .method_service_ = method_service,

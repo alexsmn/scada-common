@@ -1,13 +1,13 @@
 #pragma once
 
 #include "base/any_executor.h"
+#include "base/boost_log.h"
 #include "scada/data_services.h"
 #include "scada/services.h"
 
 #include <memory>
 
 class EventFetcher;
-class Logger;
 
 namespace scada {
 class HistoryService;
@@ -19,7 +19,7 @@ struct EventFetcherBuilder {
   std::shared_ptr<EventFetcher> Build();
 
   AnyExecutor executor_;
-  std::shared_ptr<const Logger> logger_;
+  std::shared_ptr<BoostLogger> logger_;
 
   DataServices data_services_;
 
@@ -31,7 +31,7 @@ struct CoroutineEventFetcherBuilder {
   std::shared_ptr<EventFetcher> Build();
 
   AnyExecutor executor_;
-  std::shared_ptr<const Logger> logger_;
+  std::shared_ptr<BoostLogger> logger_;
 
   // TODO: Switch to `scada::client`.
   scada::MonitoredItemService& monitored_item_service_;

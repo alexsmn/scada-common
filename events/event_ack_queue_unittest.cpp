@@ -1,6 +1,6 @@
 #include "events/event_ack_queue.h"
 
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "base/test/awaitable_test.h"
 #include "scada/method_service_mock.h"
 #include "scada/standard_node_ids.h"
@@ -16,7 +16,7 @@ class EventAckQueueTest : public Test {
  protected:
   EventAckQueue MakeQueue() {
     return EventAckQueue{
-        EventAckQueueContext{.logger_ = NullLogger::GetInstance(),
+        EventAckQueueContext{.logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
                              .executor_ = executor_,
                              .method_service_ = method_service_}};
   }

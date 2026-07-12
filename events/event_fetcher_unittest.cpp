@@ -1,6 +1,6 @@
 #include "events/event_fetcher.h"
 
-#include "base/logger.h"
+#include "base/boost_log.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "events/event_ack_queue.h"
@@ -99,7 +99,7 @@ scada::Event MakeEvent(scada::EventId event_id,
 
 struct TestContext {
   TestContext()
-      : ack_queue{EventAckQueueContext{.logger_ = NullLogger::GetInstance(),
+      : ack_queue{EventAckQueueContext{.logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
                                        .executor_ = executor,
                                        .method_service_ = method_service}} {}
 
@@ -112,7 +112,7 @@ struct TestContext {
         EventFetcherContext{.executor_ = executor,
                             .monitored_item_service_ = monitored_item_service,
                             .history_service_ = history_service,
-                            .logger_ = NullLogger::GetInstance(),
+                            .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
                             .event_storage_ = event_storage,
                             .event_ack_queue_ = ack_queue});
     fetcher->AddObserver(observer);

@@ -1,6 +1,6 @@
 #include "events/event_fetcher_builder.h"
 
-#include "base/nested_logger.h"
+#include "base/boost_log.h"
 #include "common/coroutine_service_resolver.h"
 #include "common/data_services_util.h"
 #include "common/session_proxy_notifier.h"
@@ -16,13 +16,13 @@ namespace internal {
 
 struct EventFetcherHolderBase {
   EventFetcherHolderBase(AnyExecutor executor,
-                         std::shared_ptr<const Logger> logger)
+                         std::shared_ptr<BoostLogger> /*logger*/)
       : executor_{std::move(executor)},
-        nested_logger_{std::make_shared<NestedLogger>(std::move(logger),
-                                                      "EventFetcher")} {}
+        nested_logger_{
+            std::make_shared<BoostLogger>(LOG_NAME("EventFetcher"))} {}
 
   AnyExecutor executor_;
-  std::shared_ptr<const Logger> nested_logger_;
+  std::shared_ptr<BoostLogger> nested_logger_;
   EventStorage event_storage_;
 };
 
