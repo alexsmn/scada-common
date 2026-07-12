@@ -24,7 +24,7 @@ auto FilterReferences(const scada::NodeId& ref_type_id, bool forward) {
 StaticNodeModel::StaticNodeModel(StaticNodeService& service,
                                  scada::NodeState node_state)
     : service_{service}, node_state_{std::move(node_state)} {
-  fetch_status_ = NodeFetchStatus::Max();
+  fetch_status_ = NodeFetchStatus::Max;
 }
 
 scada::Variant StaticNodeModel::GetAttribute(

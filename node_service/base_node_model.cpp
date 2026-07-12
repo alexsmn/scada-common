@@ -19,7 +19,7 @@ BaseNodeModel::ScopedCallbackLock::~ScopedCallbackLock() {
 
 void BaseNodeModel::StartFetch(const NodeFetchStatus& requested_status,
                                FetchCallback callback) const {
-  if (requested_status.all_less_or_equal(fetch_status_)) {
+  if (Includes(fetch_status_, requested_status)) {
     if (!callback)
       return;
     // Route through the callback queue instead of firing inline so a
@@ -71,7 +71,7 @@ NodeFetchStatus BaseNodeModel::GetFetchStatus() const {
 void BaseNodeModel::OnFetchRequested(const NodeFetchStatus& requested_status) {}
 
 void BaseNodeModel::OnNodeDeleted() {
-  SetFetchStatus(scada::StatusCode::Bad_WrongNodeId, NodeFetchStatus::Max());
+  SetFetchStatus(scada::StatusCode::Bad_WrongNodeId, NodeFetchStatus::Max);
 }
 
 void BaseNodeModel::SetFetchStatus(const scada::Status& status,
@@ -106,7 +106,7 @@ void BaseNodeModel::NotifyCallbacks() {
     for (auto it = fetch_callbacks_.begin(); it != fetch_callbacks_.end();) {
       if (!it->second) {
         it = fetch_callbacks_.erase(it);
-      } else if (it->first.all_less_or_equal(fetch_status_)) {
+      } else if (Includes(fetch_status_, it->first)) {
         callbacks.emplace_back(std::move(it->second));
         it = fetch_callbacks_.erase(it);
       } else {

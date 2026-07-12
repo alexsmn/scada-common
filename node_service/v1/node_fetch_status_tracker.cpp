@@ -14,25 +14,6 @@ NodeFetchStatusTracker::NodeFetchStatusTracker(
     NodeFetchStatusTrackerContext&& context)
     : NodeFetchStatusTrackerContext{std::move(context)} {}
 
-void NodeFetchStatusTracker::SetFetchStatusesHint(
-    const NodeFetchStatuses& errors,
-    const std::vector<std::pair<scada::NodeId, NodeFetchStatus>>&
-        fetch_statuses) {
-  for (const auto& [node_id, new_fetch_status] : fetch_statuses) {
-    base::Check(!node_id.is_null(), "fetch status hint for null node");
-    base::Check(!new_fetch_status.empty(), "empty fetch status hint");
-    experimental_fetch_statuses_.insert_or_assign(
-        node_id, std::make_pair(scada::StatusCode::Good, new_fetch_status));
-  }
-
-  for (const auto& [node_id, new_error_status] : errors) {
-    base::Check(!node_id.is_null(), "error status hint for null node");
-    base::Check(!new_error_status, "good status passed as error hint");
-    experimental_fetch_statuses_.insert_or_assign(
-        node_id, std::make_pair(new_error_status, NodeFetchStatus::Max()));
-  }
-}
-
 void NodeFetchStatusTracker::OnNodesFetched(const NodeFetchStatuses& statuses) {
   LOG_INFO(logger_) << "Nodes fetched"
                     << LOG_TAG("statuses", ToString(statuses));
@@ -122,7 +103,6 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
   auto status_lock = status_queue_.Lock();
 
   errors_.erase(node_id);
-  experimental_fetch_statuses_.erase(node_id);
   status_queue_.CancelPendingStatus(node_id);
 
   // Process as parent.
@@ -147,48 +127,20 @@ void NodeFetchStatusTracker::Delete(const scada::NodeId& node_id) {
 
 std::pair<scada::Status, NodeFetchStatus> NodeFetchStatusTracker::GetStatus(
     const scada::NodeId& node_id) const {
-  auto result = GetStatusHelper(node_id);
-
-  auto experimental_result = GetExperimentalStatus(node_id);
-  base::Check(result.first == experimental_result.first,
-              "experimental status diverged");
-  base::Check(
-      result.second.node_fetched == experimental_result.second.node_fetched,
-      "experimental node_fetched diverged");
-  base::Check(
-      result.second.non_hierarchical_inverse_references ==
-          experimental_result.second.non_hierarchical_inverse_references,
-      "experimental inverse references diverged");
-
-  return result;
-}
-
-std::pair<scada::Status, NodeFetchStatus>
-NodeFetchStatusTracker::GetStatusHelper(const scada::NodeId& node_id) const {
   thread_checker_.CheckCalledOnValidThread();
 
   if (auto i = errors_.find(node_id); i != errors_.end()) {
     base::Check(!i->second, "good status stored in error map");
-    return {i->second, NodeFetchStatus::Max()};
+    return {i->second, NodeFetchStatus::Max};
   }
 
-  NodeFetchStatus fetch_status{};
-  fetch_status.node_fetched = IsNodeFetched(node_id);
+  NodeFetchStatus fetch_status = NodeFetchStatus::None;
+  if (IsNodeFetched(node_id))
+    fetch_status |= NodeFetchStatus::NodeOnly;
+  if (auto i = parents_.find(node_id); i != parents_.end() && i->second.empty())
+    fetch_status |= NodeFetchStatus::ChildrenOnly;
 
-  if (auto i = parents_.find(node_id); i != parents_.end())
-    fetch_status.children_fetched = i->second.empty();
-
-  return {scada::StatusCode::Good, std::move(fetch_status)};
-}
-
-std::pair<scada::Status, NodeFetchStatus>
-NodeFetchStatusTracker::GetExperimentalStatus(
-    const scada::NodeId& node_id) const {
-  auto i = experimental_fetch_statuses_.find(node_id);
-  return i != experimental_fetch_statuses_.end()
-             ? i->second
-             : std::make_pair(scada::Status{scada::StatusCode::Good},
-                              NodeFetchStatus{});
+  return {scada::StatusCode::Good, fetch_status};
 }
 
 bool NodeFetchStatusTracker::IsNodeFetched(const scada::NodeId& node_id) const {

@@ -24,8 +24,8 @@ TEST(ScadaNodeServiceModuleSmoke, NodeRefAndFetchStatus) {
   std::unordered_map<NodeRef, int> map;
   EXPECT_TRUE(map.empty());
 
-  NodeFetchStatus status = NodeFetchStatus::NodeOnly();
-  EXPECT_TRUE(status == NodeFetchStatus::NodeOnly());  // textual operator==
+  NodeFetchStatus status = NodeFetchStatus::NodeOnly;
+  EXPECT_TRUE(status == NodeFetchStatus::NodeOnly);  // textual operator==
 }
 
 TEST(ScadaNodeServiceModuleSmoke, TransitiveSurfaces) {

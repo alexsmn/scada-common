@@ -82,7 +82,6 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
 
   FetchCompletedResult result;
   result.nodes.reserve(std::min<size_t>(32, fetching_nodes_.size()));
-  result.fetch_statuses.reserve(std::min<size_t>(32, fetching_nodes_.size()));
 
   Collector collector{*this};
   for (auto i = fetching_nodes_.begin(); i != fetching_nodes_.end();) {
@@ -94,11 +93,9 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
       continue;
     }
 
-    base::Check(!node.fetch_started.empty());
+    base::Check(!IsEmpty(node.fetch_started));
 
     if (node.status) {
-      result.fetch_statuses.emplace_back(node.node_state.node_id,
-                                         node.fetch_started);
       result.nodes.emplace_back(std::move(node.node_state));
     } else {
       result.errors.emplace_back(std::move(node.node_state.node_id),

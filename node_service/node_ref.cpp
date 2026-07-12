@@ -17,16 +17,18 @@ scada::Status NodeRef::status() const {
 }
 
 bool NodeRef::fetched() const {
-  return !service_ || service_->GetFetchStatus(id_).node_fetched;
+  return !service_ ||
+         Includes(service_->GetFetchStatus(id_), NodeFetchStatus::NodeOnly);
 }
 
 bool NodeRef::children_fetched() const {
-  return !service_ || service_->GetFetchStatus(id_).children_fetched;
+  return !service_ ||
+         Includes(service_->GetFetchStatus(id_), NodeFetchStatus::ChildrenOnly);
 }
 
 Awaitable<NodeRef> NodeRef::Fetch(
     const NodeFetchStatus& requested_status) const {
-  base::Check(!requested_status.empty());
+  base::Check(!IsEmpty(requested_status));
 
   if (service_)
     co_await service_->Fetch(id_, requested_status);
@@ -35,7 +37,7 @@ Awaitable<NodeRef> NodeRef::Fetch(
 }
 
 void NodeRef::StartFetch(const NodeFetchStatus& requested_status) const {
-  base::Check(!requested_status.empty());
+  base::Check(!IsEmpty(requested_status));
 
   if (service_)
     service_->StartFetch(id_, requested_status);

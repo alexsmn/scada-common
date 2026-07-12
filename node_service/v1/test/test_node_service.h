@@ -23,7 +23,7 @@ inline std::shared_ptr<NodeService> CreateTestNodeService(
         ON_CALL(*address_space_fetcher, GetNodeFetchStatus(_))
             .WillByDefault(
                 Return(std::make_pair(scada::Status{scada::StatusCode::Good},
-                                      NodeFetchStatus::Max())));
+                                      NodeFetchStatus::Max)));
         return address_space_fetcher;
       };
     }

@@ -75,7 +75,8 @@ void GetFetchReferences(const FetchingNode& fetching_node,
                               scada::id::NonHierarchicalReferences, true);
   }
 
-  if (fetching_node.fetch_started.non_hierarchical_inverse_references) {
+  if (Includes(fetching_node.fetch_started,
+               NodeFetchStatus::NonHierarchicalInverseReferences)) {
     descriptions.emplace_back(node_id, scada::BrowseDirection::Inverse,
                               scada::id::NonHierarchicalReferences, true);
   }
@@ -129,7 +130,7 @@ void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
                             NodeFetchStatus status,
                             bool force) {
   base::Check(!node_id.is_null());
-  base::Check(status.node_fetched);
+  base::Check(Includes(status, NodeFetchStatus::NodeOnly));
   base::Check(CheckInvariants());
 
   auto& node = fetching_nodes_.AddNode(node_id);
@@ -143,10 +144,10 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
                                 NodeFetchStatus status,
                                 bool force) {
-  base::Check(status.node_fetched);
+  base::Check(Includes(status, NodeFetchStatus::NodeOnly));
 
-  if (!node.fetch_started.empty()) {
-    if (status.all_less_or_equal(node.fetch_started) && !force)
+  if (!IsEmpty(node.fetch_started)) {
+    if (Includes(node.fetch_started, status) && !force)
       return;
 
     LOG_INFO(logger_) << "Cancel started fetching node"
@@ -154,7 +155,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
                       << LOG_TAG("RequestId", node.fetch_request_id)
                       << LOG_TAG("FetchStarted", node.fetch_started);
 
-    node.fetch_started = NodeFetchStatus{};
+    node.fetch_started = NodeFetchStatus::None;
     node.fetch_request_id = 0;
     node.attributes_fetched = false;
     node.references_fetched = false;
@@ -218,8 +219,8 @@ void NodeFetcherImpl::FetchPendingNodes() {
     while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
       auto& node = pending_queue_.top();
       pending_queue_.pop();
-      base::Check(node.fetch_started.empty());
-      base::Check(!node.pending_status.empty());
+      base::Check(IsEmpty(node.fetch_started));
+      base::Check(!IsEmpty(node.pending_status));
       node.fetch_started = node.pending_status;
       nodes.emplace_back(&node);
     }
@@ -459,7 +460,7 @@ void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
     return;
 
   // Request cancelation.
-  if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
+  if (IsEmpty(node->fetch_started) || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore read response for canceled node"
                       << LOG_TAG("NodeId", ToString(node->node_state.node_id));
     return;
@@ -604,7 +605,7 @@ void NodeFetcherImpl::ApplyBrowseResult(
     return;
 
   // Request cancelation.
-  if (node->fetch_started.empty() || node->fetch_request_id != request_id) {
+  if (IsEmpty(node->fetch_started) || node->fetch_request_id != request_id) {
     LOG_INFO(logger_) << "Ignore browse response for canceled node"
                       << LOG_TAG("NodeId", ToString(node->node_state.node_id));
     return;
@@ -705,7 +706,7 @@ void NodeFetcherImpl::AddFetchedReference(
     fetching_nodes_.AddDependency(child, node);
     fetching_nodes_.AddDependency(node, child);
 
-    FetchNode(child, node.pending_sequence, NodeFetchStatus::NodeOnly(), false);
+    FetchNode(child, node.pending_sequence, NodeFetchStatus::NodeOnly, false);
 
   } else {
     // Non-hierarchical forward references, including HasTypeDefinition.
@@ -777,6 +778,6 @@ void NodeFetcherImpl::ValidateDependency(FetchingNode& node,
   if (&from != &node) {
     from.force |= node.force;
     fetching_nodes_.AddDependency(node, from);
-    FetchNode(from, from.pending_sequence, NodeFetchStatus::NodeOnly(), false);
+    FetchNode(from, from.pending_sequence, NodeFetchStatus::NodeOnly, false);
   }
 }

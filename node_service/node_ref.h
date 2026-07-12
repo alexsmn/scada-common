@@ -62,9 +62,9 @@ class NodeRef {
 
   // On error: OnNodeFetched + OnNodeSemanticsChanged.
   Awaitable<NodeRef> Fetch(const NodeFetchStatus& requested_status =
-                               NodeFetchStatus::NodeOnly()) const;
+                               NodeFetchStatus::NodeOnly) const;
   void StartFetch(const NodeFetchStatus& requested_status =
-                      NodeFetchStatus::NodeOnly()) const;
+                      NodeFetchStatus::NodeOnly) const;
 
   scada::Variant attribute(scada::AttributeId attribute_id) const;
 

@@ -2,72 +2,42 @@
 
 #include <ostream>
 
-struct NodeFetchStatus {
-  constexpr static NodeFetchStatus None() { return NodeFetchStatus{}; }
+// Which parts of a node have been (or should be) fetched — a set of independent
+// fetch dimensions combined as bit flags. Union with operator|; test whether
+// one status already covers another with Includes().
+enum class NodeFetchStatus : unsigned {
+  None = 0,
+  NodeOnly = 1u << 0,                          // the node's own attributes
+  ChildrenOnly = 1u << 1,                      // hierarchical child references
+  NonHierarchicalInverseReferences = 1u << 2,  // inverse non-hierarchical refs
 
-  constexpr static NodeFetchStatus Max() {
-    return NodeFetchStatus{true, true, true};
-  }
-
-  constexpr static NodeFetchStatus NodeOnly() {
-    return NodeFetchStatus{true, false};
-  }
-
-  constexpr static NodeFetchStatus NodeAndChildren() {
-    return NodeFetchStatus{true, true};
-  }
-
-  constexpr static NodeFetchStatus ChildrenOnly() {
-    return NodeFetchStatus{false, true};
-  }
-
-  NodeFetchStatus& with_non_hierarchical_inverse_references() {
-    non_hierarchical_inverse_references = true;
-    return *this;
-  }
-
-  constexpr bool empty() const { return !node_fetched && !children_fetched; }
-
-  constexpr bool any_less(NodeFetchStatus other) const {
-    return children_fetched < other.children_fetched ||
-           node_fetched < other.node_fetched ||
-           non_hierarchical_inverse_references <
-               other.non_hierarchical_inverse_references;
-  }
-
-  constexpr bool all_less_or_equal(NodeFetchStatus other) const {
-    return children_fetched <= other.children_fetched &&
-           node_fetched <= other.node_fetched &&
-           non_hierarchical_inverse_references <=
-               other.non_hierarchical_inverse_references;
-  }
-
-  bool node_fetched = false;
-  bool children_fetched = false;
-  bool non_hierarchical_inverse_references = false;
+  NodeAndChildren = NodeOnly | ChildrenOnly,
+  Max = NodeOnly | ChildrenOnly | NonHierarchicalInverseReferences,
 };
 
-inline constexpr bool operator==(NodeFetchStatus a, NodeFetchStatus b) {
-  return a.children_fetched == b.children_fetched &&
-         a.node_fetched == b.node_fetched &&
-         a.non_hierarchical_inverse_references ==
-             b.non_hierarchical_inverse_references;
+constexpr NodeFetchStatus operator|(NodeFetchStatus a, NodeFetchStatus b) {
+  return static_cast<NodeFetchStatus>(static_cast<unsigned>(a) |
+                                      static_cast<unsigned>(b));
 }
 
-inline constexpr bool operator!=(NodeFetchStatus a, NodeFetchStatus b) {
-  return !(a == b);
+constexpr NodeFetchStatus operator&(NodeFetchStatus a, NodeFetchStatus b) {
+  return static_cast<NodeFetchStatus>(static_cast<unsigned>(a) &
+                                      static_cast<unsigned>(b));
 }
 
-inline constexpr NodeFetchStatus& operator|=(NodeFetchStatus& a,
-                                             NodeFetchStatus b) {
-  a.node_fetched |= b.node_fetched;
-  a.children_fetched |= b.children_fetched;
-  a.non_hierarchical_inverse_references |=
-      b.non_hierarchical_inverse_references;
-  return a;
+constexpr NodeFetchStatus& operator|=(NodeFetchStatus& a, NodeFetchStatus b) {
+  return a = a | b;
 }
 
-inline std::ostream& operator<<(std::ostream& stream, NodeFetchStatus status) {
-  return stream << status.node_fetched << '/' << status.children_fetched << '/'
-                << status.non_hierarchical_inverse_references;
+// True when |status| requests/reports nothing.
+constexpr bool IsEmpty(NodeFetchStatus status) {
+  return status == NodeFetchStatus::None;
 }
+
+// True when |have| already covers every dimension in |want| (i.e. a fetch that
+// reached |have| satisfies a request for |want|).
+constexpr bool Includes(NodeFetchStatus have, NodeFetchStatus want) {
+  return (have & want) == want;
+}
+
+std::ostream& operator<<(std::ostream& stream, NodeFetchStatus status);

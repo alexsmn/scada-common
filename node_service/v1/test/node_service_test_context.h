@@ -58,7 +58,7 @@ struct NodeServiceTestContext {
           std::make_shared<testing::NiceMock<MockAddressSpaceFetcher>>();
       ON_CALL(*address_space_fetcher, GetNodeFetchStatus(testing::_))
           .WillByDefault(testing::Return(std::make_pair(
-              scada::Status{scada::StatusCode::Good}, NodeFetchStatus::Max())));
+              scada::Status{scada::StatusCode::Good}, NodeFetchStatus::Max)));
       return address_space_fetcher;
     };
   }

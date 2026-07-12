@@ -17,9 +17,9 @@ Awaitable<void> FetchReferences(
     NodeService& service,
     const scada::ReferenceDescriptions& references) {
   for (auto& ref : references) {
-    co_await service.GetNode(ref.node_id).Fetch(NodeFetchStatus::NodeOnly());
+    co_await service.GetNode(ref.node_id).Fetch(NodeFetchStatus::NodeOnly);
     co_await service.GetNode(ref.reference_type_id)
-        .Fetch(NodeFetchStatus::NodeOnly());
+        .Fetch(NodeFetchStatus::NodeOnly);
   }
 }
 
@@ -94,7 +94,7 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
       while (!type_definition_id.is_null()) {
         auto type_definition = service_.GetNodeModel(type_definition_id);
         base::Check(type_definition);
-        base::Check(type_definition->fetch_status_.node_fetched);
+        base::Check(Includes(type_definition->fetch_status_, NodeFetchStatus::NodeOnly));
         type_definition_id = type_definition->node_state_.supertype_id;
       }
     }
@@ -116,9 +116,8 @@ void NodeModelImpl::OnFetchCompleted() {
       << "Node fetch completed"
       << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
 
-  auto fetch_status = fetch_status_;
-  fetch_status.node_fetched = true;
-  SetFetchStatus(scada::StatusCode::Good, fetch_status);
+  SetFetchStatus(scada::StatusCode::Good,
+                 fetch_status_ | NodeFetchStatus::NodeOnly);
 }
 
 void NodeModelImpl::OnFetchError(scada::Status&& status) {
@@ -126,7 +125,7 @@ void NodeModelImpl::OnFetchError(scada::Status&& status) {
       << "Node fetch error" << LOG_TAG("NodeId", NodeIdToScadaString(node_id_))
       << LOG_TAG("Status", ToString(status));
 
-  SetFetchStatus(std::move(status), NodeFetchStatus::Max());
+  SetFetchStatus(std::move(status), NodeFetchStatus::Max);
 
   NotifySemanticChanged();
 }
@@ -160,9 +159,8 @@ void NodeModelImpl::OnChildrenFetched(
             if (model_changed)
               child_references_ = *shared_references;
 
-            auto fetch_status = fetch_status_;
-            fetch_status.children_fetched = true;
-            SetFetchStatus(status_, fetch_status);
+            SetFetchStatus(status_,
+                           fetch_status_ | NodeFetchStatus::ChildrenOnly);
 
             if (model_changed)
               NotifyModelChanged();
@@ -171,7 +169,7 @@ void NodeModelImpl::OnChildrenFetched(
 
 NodeRef NodeModelImpl::GetAggregateDeclaration(
     const scada::NodeId& aggregate_declaration_id) const {
-  if (!fetch_status_.node_fetched || !status_)
+  if (!Includes(fetch_status_, NodeFetchStatus::NodeOnly) || !status_)
     return nullptr;
 
   NodeRef type_definition =
@@ -205,7 +203,7 @@ NodeRef NodeModelImpl::GetAggregate(
 }
 
 NodeRef NodeModelImpl::GetChild(const scada::QualifiedName& child_name) const {
-  if (!fetch_status_.node_fetched)
+  if (!Includes(fetch_status_, NodeFetchStatus::NodeOnly))
     return nullptr;
 
   // TODO: Optimize.
@@ -328,19 +326,19 @@ scada::Variant NodeModelImpl::GetAttribute(
       return node_id_;
 
     case scada::AttributeId::NodeClass:
-      if (!fetch_status_.node_fetched || !status_)
+      if (!Includes(fetch_status_, NodeFetchStatus::NodeOnly) || !status_)
         return {};
       return static_cast<scada::Int32>(node_state_.node_class);
 
     case scada::AttributeId::BrowseName:
-      if (!fetch_status_.node_fetched || !status_)
+      if (!Includes(fetch_status_, NodeFetchStatus::NodeOnly) || !status_)
         return scada::QualifiedName{NodeIdToScadaString(node_id_)};
       // The browse name was fetched from a (possibly remote) server and may
       // be missing in malformed responses.
       return node_state_.attributes.browse_name;
 
     case scada::AttributeId::DisplayName:
-      if (!fetch_status_.node_fetched)
+      if (!Includes(fetch_status_, NodeFetchStatus::NodeOnly))
         return scada::ToLocalizedText(NodeIdToScadaString(node_id_));
       if (!status_)
         return scada::ToLocalizedText(ToString16(status_));

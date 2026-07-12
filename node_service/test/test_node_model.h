@@ -31,7 +31,7 @@ class TestNodeModel final : public NodeModel {
   }
 
   virtual NodeFetchStatus GetFetchStatus() const override {
-    return NodeFetchStatus::Max();
+    return NodeFetchStatus::Max;
   }
 
   virtual Awaitable<void> Fetch(

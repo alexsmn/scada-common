@@ -39,7 +39,7 @@ std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModelForRead(
     const scada::NodeId& node_id) {
   auto node = GetNodeModel(node_id);
   if (node)
-    node->StartFetch(NodeFetchStatus::NodeOnly());
+    node->StartFetch(NodeFetchStatus::NodeOnly);
   return node;
 }
 
@@ -320,7 +320,7 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
 void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
                                  const NodeFetchStatus& requested_status,
                                  std::shared_ptr<NodeModelImpl> model) {
-  if (requested_status.node_fetched) {
+  if (Includes(requested_status, NodeFetchStatus::NodeOnly)) {
     CoSpawn(executor_,
             [this, fetcher = node_fetcher_, node_id,
              pin = model]() mutable -> Awaitable<void> {
@@ -336,7 +336,7 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
               }
             });
   }
-  if (requested_status.children_fetched) {
+  if (Includes(requested_status, NodeFetchStatus::ChildrenOnly)) {
     CoSpawn(executor_,
             [this, fetcher = node_fetcher_, node_id,
              pin = std::move(model)]() mutable -> Awaitable<void> {

@@ -81,7 +81,7 @@ Awaitable<void> FetchNode(const NodeRef& node) {
 
 Awaitable<scada::Status> FetchNodeStatus(const NodeRef& node) {
   if (!node.fetched()) {
-    co_await node.Fetch(NodeFetchStatus::NodeOnly());
+    co_await node.Fetch(NodeFetchStatus::NodeOnly);
   }
   co_return node.status();
 }
@@ -93,7 +93,7 @@ Awaitable<void> FetchChildren(const NodeRef& node) {
 Awaitable<scada::Status> FetchChildrenStatus(const NodeRef& node) {
   if (!node.children_fetched()) {
     // A failed remote fetch is reported via node.status(); it must not panic.
-    co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
+    co_await node.Fetch(NodeFetchStatus::NodeAndChildren);
   }
   co_return node.status();
 }

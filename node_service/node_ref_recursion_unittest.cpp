@@ -29,7 +29,7 @@ TEST(NodeRefFetchRecursion, SameNodeCoroutineFetchCanRepeat) {
   boost::asio::io_context io_context;
   RunAwaitable(io_context, [&]() -> Awaitable<void> {
     for (int i = 0; i < kRepeat; ++i) {
-      co_await node.Fetch(NodeFetchStatus::NodeOnly());
+      co_await node.Fetch(NodeFetchStatus::NodeOnly);
       ++fetch_count;
     }
   });
@@ -57,7 +57,7 @@ TEST(NodeRefFetchRecursion, CrossNodeCoroutineFetchCanWalkChain) {
   boost::asio::io_context io_context;
   RunAwaitable(io_context, [&]() -> Awaitable<void> {
     for (NodeRef node = service.GetNode(Id(1)); node;) {
-      co_await node.Fetch(NodeFetchStatus::NodeOnly());
+      co_await node.Fetch(NodeFetchStatus::NodeOnly);
       ++fetch_count;
       node = node.target(scada::id::Organizes);
     }

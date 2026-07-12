@@ -7,9 +7,12 @@
 // node_service's PUBLIC link.
 //
 // Not exported (include the header textually):
-//  - the global free operators for NodeFetchStatus (node_fetch_status.h):
-//    global-namespace operator sets are never exported (they would drag
-//    every visible global overload, incl. Boost's);
+//  - the global free operators and helpers for NodeFetchStatus
+//    (node_fetch_status.h): the global-namespace operator set (|, &, |=, <<)
+//    plus the Includes()/IsEmpty() predicates are never exported
+//    (exporting global operator sets would drag every visible global
+//    overload, incl. Boost's). Consumers include the header textually and
+//    reach the enum type via the `using ::NodeFetchStatus;` re-export below;
 //  - node_service::internal (node_service_factory_services.h).
 
 module;

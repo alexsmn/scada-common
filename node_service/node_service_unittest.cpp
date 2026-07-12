@@ -348,7 +348,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
 
   auto node = this->node_service_->GetNode(unknown_node_id);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -363,7 +363,7 @@ void NodeServiceTest<NodeServiceImpl>::ValidateFetchUnknownNode(
               Each(unknown_node_id));
   EXPECT_LE(node_service_observer_.node_fetched_events.size(), 1u);
   EXPECT_THAT(node_service_observer_.node_fetched_events,
-              Each(FieldsAre(unknown_node_id, NodeFetchStatus::None())));
+              Each(FieldsAre(unknown_node_id, NodeFetchStatus::None)));
 }
 
 template <class NodeServiceImpl>
@@ -394,7 +394,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
 
   this->ExpectAnyUpdates();
 
@@ -403,7 +403,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   this->ValidateNodeFetched(node);
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None())));
+              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(node_observer.semantic_changed_node_ids, ElementsAre(node_id));
   EXPECT_THAT(node_observer.state_changed_events, IsEmpty());
 
@@ -427,7 +427,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly_WhenChannelClosed) {
   }
 
   EXPECT_THAT(this->node_service_observer_.node_fetched_events,
-              Contains(FieldsAre(node_id, NodeFetchStatus::None())));
+              Contains(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(this->node_service_observer_.semantic_changed_node_ids,
               Contains(node_id));
 }
@@ -441,7 +441,7 @@ TYPED_TEST(CommonNodeServiceTest, FetchNode_NodeOnly_FetchesCoreAttributes) {
 
   auto node = this->node_service_->GetNode(node_id);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -464,19 +464,19 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeOnly) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
 
   this->ValidateNodeFetched(node);
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None())));
+              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(node_observer.semantic_changed_node_ids, ElementsAre(node_id));
   // TODO: Triggered only by v2.
   EXPECT_LE(node_observer.model_change_events.size(), 1u);
   EXPECT_THAT(node_observer.state_changed_events, IsEmpty());
 
   EXPECT_THAT(this->node_service_observer_.node_fetched_events,
-              Contains(FieldsAre(node_id, NodeFetchStatus::None())));
+              Contains(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(this->node_service_observer_.semantic_changed_node_ids,
               Contains(node_id));
 }
@@ -497,7 +497,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeAndChildren());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren);
 
   this->ValidateNodeFetched(node);
 
@@ -505,7 +505,7 @@ TYPED_TEST(NodeServiceTest, FetchNode_NodeAndChildren) {
   EXPECT_TRUE(node.children_fetched());
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              Each(FieldsAre(node_id, NodeFetchStatus::None())));
+              Each(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_GE(node_observer.node_fetched_events.size(), 1u);
   EXPECT_LE(node_observer.node_fetched_events.size(), 2u);
 
@@ -570,7 +570,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 
   auto node = this->node_service_->GetNode(new_node_state.node_id);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   this->DrainExecutor();
 
   EXPECT_TRUE(node.fetched());
@@ -588,7 +588,7 @@ TYPED_TEST(NodeServiceTest, NodeAdded) {
 
   EXPECT_THAT(
       this->node_service_observer_.node_fetched_events,
-      Contains(FieldsAre(new_node_state.node_id, NodeFetchStatus::None())));
+      Contains(FieldsAre(new_node_state.node_id, NodeFetchStatus::None)));
 }
 
 TYPED_TEST(NodeServiceTest, NodeDeleted) {
@@ -606,12 +606,12 @@ TYPED_TEST(NodeServiceTest, NodeDeleted) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
 
   this->ExpectNoUpdates();
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              ElementsAre(FieldsAre(deleted_node_id, NodeFetchStatus::None())));
+              ElementsAre(FieldsAre(deleted_node_id, NodeFetchStatus::None)));
   EXPECT_THAT(node_observer.semantic_changed_node_ids,
               ElementsAre(deleted_node_id));
   // TODO: Triggered only by v2.
@@ -664,12 +664,12 @@ TYPED_TEST(NodeServiceTest, NodeSemanticsChanged) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
 
   this->ExpectNoUpdates();
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None())));
+              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(node_observer.semantic_changed_node_ids, ElementsAre(node_id));
   // TODO: Triggered only by v2.
   EXPECT_LE(node_observer.model_change_events.size(), 1u);
@@ -727,13 +727,13 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   RecordingNodeObserver node_observer;
   node_observer.Connect(node);
 
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   this->DrainExecutor();
 
   ASSERT_EQ(node.target(reference_type_id).node_id(), old_target_node_id);
 
   EXPECT_THAT(node_observer.node_fetched_events,
-              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None())));
+              ElementsAre(FieldsAre(node_id, NodeFetchStatus::None)));
   EXPECT_THAT(node_observer.semantic_changed_node_ids, ElementsAre(node_id));
   // TODO: Triggered only by v2.
   EXPECT_LE(node_observer.model_change_events.size(), 1u);
@@ -774,12 +774,12 @@ TYPED_TEST(NodeServiceTest, ReplaceNonHierarchicalReference) {
   // fetch/semantic notifications for neighboring nodes are impl-specific
   // and deliberately not constrained here.)
   EXPECT_THAT(this->node_service_observer_.node_fetched_events,
-              Contains(FieldsAre(new_target_node_id, NodeFetchStatus::None())));
+              Contains(FieldsAre(new_target_node_id, NodeFetchStatus::None)));
   // TODO: The (node_id, None) refetch notification shouldn't happen; v1
   // triggers it.
   EXPECT_LE(node_observer.node_fetched_events.size(), 1u);
   EXPECT_THAT(node_observer.node_fetched_events,
-              Each(FieldsAre(node_id, NodeFetchStatus::None())));
+              Each(FieldsAre(node_id, NodeFetchStatus::None)));
 }
 
 TYPED_TEST(NodeServiceTest,
@@ -790,7 +790,7 @@ TYPED_TEST(NodeServiceTest,
   auto& server_address_space = *this->base_env_.server_address_space;
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   this->DrainExecutor();
 
   auto target = node.target(server_address_space.kTestReferenceTypeId);
@@ -806,7 +806,7 @@ TYPED_TEST(NodeServiceTest, TsFormat) {
   auto& server_address_space = *this->base_env_.server_address_space;
   auto node_id = server_address_space.kTestNode2Id;
   auto node = this->node_service_->GetNode(node_id);
-  node.StartFetch(NodeFetchStatus::NodeOnly());
+  node.StartFetch(NodeFetchStatus::NodeOnly);
   this->DrainExecutor();
 }
 
@@ -979,7 +979,7 @@ TEST_F(V3NodeServiceTest, PublishesImmutableSnapshotOnFetch) {
   ASSERT_EQ(this->observer_.state_changed_events.size(), 1u);
   const auto& event = this->observer_.state_changed_events.front();
   EXPECT_EQ(event.node_id, node_id);
-  EXPECT_TRUE(event.fetch_status.node_fetched);
+  EXPECT_TRUE(Includes(event.fetch_status, NodeFetchStatus::NodeOnly));
   ASSERT_NE(event.state, nullptr);
   EXPECT_EQ(event.state->node_id, node_id);
   EXPECT_EQ(event.state->attributes.browse_name, "TestNode2");
@@ -1000,7 +1000,7 @@ TEST_F(V3NodeServiceTest, SnapshotIsCopyOnWrite) {
 
   // Children fetch publishes a new self-contained snapshot that includes the
   // child references; the previously published snapshot stays frozen.
-  node.StartFetch(NodeFetchStatus::NodeAndChildren());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren);
   this->DrainExecutor();
 
   const scada::NodeStatePtr new_state = this->observer_.last_state(node_id);
@@ -1227,7 +1227,7 @@ TEST_F(V2NodeServiceRegressionTest,
 
   auto node = node_service_->GetNode(node_id);
 
-  node.StartFetch(NodeFetchStatus::NodeAndChildren());
+  node.StartFetch(NodeFetchStatus::NodeAndChildren);
 
   DrainExecutor();
 

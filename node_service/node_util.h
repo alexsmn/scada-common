@@ -27,7 +27,7 @@ inline Awaitable<void> FetchTree(const NodeRef& root) {
     auto node = std::move(queue.front());
     queue.pop();
 
-    node = co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
+    node = co_await node.Fetch(NodeFetchStatus::NodeAndChildren);
     for (const auto& child : node.targets(scada::id::Organizes)) {
       queue.emplace(child);
     }

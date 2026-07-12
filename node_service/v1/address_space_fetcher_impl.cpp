@@ -58,7 +58,7 @@ AddressSpaceFetcherImpl::AddressSpaceFetcherImpl(
       node_fetch_status_tracker_{
           {node_fetch_status_changed_handler_,
            [this](const scada::NodeId& node_id) {
-             node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+             node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
              return false;
            },
            address_space_}} {}
@@ -102,16 +102,16 @@ void AddressSpaceFetcherImpl::OnChannelOpened() {
   channel_opened_ = true;
 
   for (const auto& node_id : GetAllNodeIds(address_space_)) {
-    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
     node_children_fetcher_->Fetch(node_id);
   }
 
   PostponedFetchNodes postponed_fetch_nodes;
   postponed_fetch_nodes_.swap(postponed_fetch_nodes);
   for (auto& [node_id, requested_status] : postponed_fetch_nodes) {
-    if (requested_status.node_fetched)
-      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
-    if (requested_status.children_fetched)
+    if (Includes(requested_status, NodeFetchStatus::NodeOnly))
+      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
+    if (Includes(requested_status, NodeFetchStatus::ChildrenOnly))
       node_children_fetcher_->Fetch(node_id);
   }
 }
@@ -158,7 +158,7 @@ void AddressSpaceFetcherImpl::OnModelChanged(
                                      NodeIdToScadaString(event.node_id));
 
         // Fetch forward references.
-        node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
+        node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly, true);
 
         // Fetch child references.
         // TODO: This can be avoided if no children were requested.
@@ -176,7 +176,7 @@ void AddressSpaceFetcherImpl::OnNodeSemanticsChanged(
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (address_space_.GetNode(event.node_id))
-    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
+    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly, true);
 }
 
 void AddressSpaceFetcherImpl::FillMissingParent(scada::NodeState& node_state) {
@@ -201,7 +201,7 @@ void AddressSpaceFetcherImpl::FillMissingParent(scada::NodeState& node_state) {
 
 void AddressSpaceFetcherImpl::OnFetchCompleted(
     FetchCompletedResult&& fetch_completed_result) {
-  auto& [fetched_nodes, errors, fetch_statuses] = fetch_completed_result;
+  auto& [fetched_nodes, errors] = fetch_completed_result;
 
   LOG_INFO(logger_) << "Nodes fetched"
                     << LOG_TAG("Count", fetched_nodes.size());
@@ -223,8 +223,6 @@ void AddressSpaceFetcherImpl::OnFetchCompleted(
 
   AddressSpaceUpdater updater{address_space_, node_factory_};
   updater.UpdateNodes(std::move(fetched_nodes));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(errors, fetch_statuses);
 
   const std::set<scada::NodeId> added_node_ids =
       updater.model_change_verbs() |
@@ -292,7 +290,7 @@ void AddressSpaceFetcherImpl::OnChildrenFetched(
     // The node could be fetched via non-hierarchical reference with no
     // children.
     if (!address_space_.GetNode(reference.node_id))
-      node_fetcher_->Fetch(reference.node_id, NodeFetchStatus::NodeOnly());
+      node_fetcher_->Fetch(reference.node_id, NodeFetchStatus::NodeOnly);
   }
 
   node_fetch_status_tracker_.OnChildrenFetched(node_id, std::move(references));
@@ -332,10 +330,12 @@ void AddressSpaceFetcherImpl::InternalFetchNode(
 
   auto [status, fetch_status] = node_fetch_status_tracker_.GetStatus(node_id);
 
-  if (fetch_status.node_fetched < requested_status.node_fetched)
-    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+  if (!Includes(fetch_status, NodeFetchStatus::NodeOnly) &&
+      Includes(requested_status, NodeFetchStatus::NodeOnly))
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
 
-  if (fetch_status.children_fetched < requested_status.children_fetched)
+  if (!Includes(fetch_status, NodeFetchStatus::ChildrenOnly) &&
+      Includes(requested_status, NodeFetchStatus::ChildrenOnly))
     node_children_fetcher_->Fetch(node_id);
 }
 

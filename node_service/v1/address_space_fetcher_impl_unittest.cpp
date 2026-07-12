@@ -28,7 +28,7 @@ class AddressSpaceFetcherImplTest : public Test {
     address_space_fetcher_->OnChannelOpened();
     DrainExecutor();
     /*address_space_fetcher_->FetchNode(scada::id::RootFolder,
-                      NodeFetchStatus::NodeAndChildren());*/
+                      NodeFetchStatus::NodeAndChildren);*/
     Mock::VerifyAndClearExpectations(this);
   }
 
@@ -74,9 +74,9 @@ TEST_F(AddressSpaceFetcherImplTest, FetchNode_NodeOnly) {
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
       Call(Contains(NodeFetchStatusChangedItem{node_id, scada::StatusCode::Good,
-                                               NodeFetchStatus::NodeOnly()})));
+                                               NodeFetchStatus::NodeOnly})));
 
-  address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly());
+  address_space_fetcher_->FetchNode(node_id, NodeFetchStatus::NodeOnly);
   DrainExecutor();
 }
 
@@ -95,11 +95,11 @@ TEST_F(AddressSpaceFetcherImplTest,
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
       Call(Contains(NodeFetchStatusChangedItem{
-          node_id, scada::StatusCode::Good, NodeFetchStatus::ChildrenOnly()})));
+          node_id, scada::StatusCode::Good, NodeFetchStatus::ChildrenOnly})));
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeFetchStatusChangedItem{
                   node_id, scada::StatusCode::Good,
-                  NodeFetchStatus::NodeAndChildren()})));
+                  NodeFetchStatus::NodeAndChildren})));
 
   EXPECT_CALL(server_address_space_, Read(_, Contains(NodeIs(node_id))))
       .WillOnce([&](scada::ServiceContext context,
@@ -110,13 +110,13 @@ TEST_F(AddressSpaceFetcherImplTest,
       .WillRepeatedly(DoDefault());
 
   address_space_fetcher_->FetchNode(node_id,
-                                    NodeFetchStatus::NodeAndChildren());
+                                    NodeFetchStatus::NodeAndChildren);
   DrainExecutor();
 }
 
 TEST_F(AddressSpaceFetcherImplTest, DISABLED_ConfigurationLoad) {
   address_space_fetcher_->FetchNode(scada::id::RootFolder,
-                                    NodeFetchStatus::NodeAndChildren());
+                                    NodeFetchStatus::NodeAndChildren);
 
   {
     auto* node = client_address_space_.GetNode(scada::id::RootFolder);
@@ -165,16 +165,16 @@ TEST_F(AddressSpaceFetcherImplTest, DISABLED_NodeAdded) {
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeFetchStatusChangedItem{
                   new_node_state.node_id, scada::StatusCode::Good,
-                  NodeFetchStatus::NodeOnly()})));
+                  NodeFetchStatus::NodeOnly})));
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(Contains(NodeFetchStatusChangedItem{
                   new_node_state.node_id, scada::StatusCode::Good,
-                  NodeFetchStatus::NodeAndChildren()})));
+                  NodeFetchStatus::NodeAndChildren})));
 
   server_address_space_.CreateNode(new_node_state);
 
   address_space_fetcher_->FetchNode(new_node_state.node_id,
-                                    NodeFetchStatus::NodeAndChildren());
+                                    NodeFetchStatus::NodeAndChildren);
 
   {
     auto* node = client_address_space_.GetNode(new_node_state.node_id);
@@ -206,7 +206,7 @@ TEST_F(AddressSpaceFetcherImplTest, NodeSemanticsChanged) {
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AtLeast(1));
   EXPECT_CALL(node_fetch_status_changed_handler_, Call(_));
 
-  address_space_fetcher_->FetchNode(kNodeId, NodeFetchStatus::NodeOnly());
+  address_space_fetcher_->FetchNode(kNodeId, NodeFetchStatus::NodeOnly);
   DrainExecutor();
 
   {
@@ -251,10 +251,10 @@ TEST_F(AddressSpaceFetcherImplTest,
 
   EXPECT_CALL(*this,
               OnNodeFetchStatusChanged(kNodeId, scada::StatusCode::Good,
-                                       NodeFetchStatus::NodeOnly()));
+                                       NodeFetchStatus::NodeOnly));
   EXPECT_CALL(*this,
               OnNodeFetchStatusChanged(kNodeId, scada::StatusCode::Good,
-                                       NodeFetchStatus::NodeAndChildren()));
+                                       NodeFetchStatus::NodeAndChildren));
 
   server_address_space_.nodes.emplace_back(saved_node);
   server_address_space_.NotifyModelChanged(

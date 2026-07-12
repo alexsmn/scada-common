@@ -66,7 +66,7 @@ void TimedDataImpl::SetNode(const NodeRef& node) {
         [this](const scada::ModelChangeEvent& event) {
           OnModelChanged(event);
         });
-    node_.StartFetch(NodeFetchStatus::NodeOnly());
+    node_.StartFetch(NodeFetchStatus::NodeOnly);
 
     node_event_provider_.AddItemObserver(node_.node_id(), *this);
     alerting_ = node_event_provider_.IsAlerting(node_.node_id());

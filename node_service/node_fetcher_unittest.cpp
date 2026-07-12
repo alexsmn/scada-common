@@ -136,15 +136,13 @@ TEST_F(NodeFetcherTest, Fetch) {
   EXPECT_CALL(server_address_space_,
               Browse(/*context=*/_, /*inputs=*/Contains(NodeIs(node_id))));
 
-  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
       .Times(AnyNumber());
 
   EXPECT_CALL(fetch_completed_handler_,
-              Call(FieldsAre(Contains(NodeIs(node_id)), _,
-                             Contains(std::make_pair(
-                                 node_id, NodeFetchStatus::NodeOnly())))));
+              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
 
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly);
   DrainExecutor();
 
   ValidateFetchedNode();
@@ -156,7 +154,7 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_, Call(_)).Times(AnyNumber());
 
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly);
   DrainExecutor();
   ValidateFetchedNode();
 
@@ -167,21 +165,19 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(0);
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(0);
 
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly);
 
   // Forced refetch triggers another set of requests.
 
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
 
-  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
       .Times(AnyNumber());
   EXPECT_CALL(fetch_completed_handler_,
-              Call(FieldsAre(Contains(NodeIs(node_id)), _,
-                             Contains(std::make_pair(
-                                 node_id, NodeFetchStatus::NodeOnly())))));
+              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
 
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
   DrainExecutor();
 
   ValidateFetchedNode();
@@ -190,8 +186,8 @@ TEST_F(NodeFetcherTest, Fetch_Refetch) {
 TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
   EXPECT_CALL(node_validator_, Call(_)).Times(AnyNumber());
 
-  auto fetch_status =
-      NodeFetchStatus::NodeOnly().with_non_hierarchical_inverse_references();
+  auto fetch_status = NodeFetchStatus::NodeOnly |
+                      NodeFetchStatus::NonHierarchicalInverseReferences;
 
   EXPECT_CALL(server_address_space_, Read(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_,
@@ -199,12 +195,11 @@ TEST_F(NodeFetcherTest, Fetch_NonHierarchicalInverseReferences) {
   EXPECT_CALL(server_address_space_, Browse(_, _)).Times(AnyNumber());
   EXPECT_CALL(server_address_space_, Browse(_, Contains(NodeIs(node_id))));
 
-  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty(), _)))
+  EXPECT_CALL(fetch_completed_handler_, Call(FieldsAre(_, IsEmpty())))
       .Times(AnyNumber());
 
   EXPECT_CALL(fetch_completed_handler_,
-              Call(FieldsAre(Contains(NodeIs(node_id)), _,
-                             Contains(std::make_pair(node_id, fetch_status)))));
+              Call(FieldsAre(Contains(NodeIs(node_id)), _)));
 
   node_fetcher_->Fetch(node_id, fetch_status);
   DrainExecutor();
@@ -250,7 +245,7 @@ TEST_F(NodeFetcherTest, Cancel) {
             std::move(context), std::move(inputs));
       });
 
-  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
+  node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly);
   DrainExecutor();
 
   EXPECT_FALSE(node_validator_impl_.IsNodeValid(node_id));
@@ -309,7 +304,7 @@ TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryIsIterative) {
         for (size_t i = 0; i + 1 < chain.size(); ++i) {
           if (node_validator_impl_.IsNodeValid(chain[i]) &&
               !node_validator_impl_.IsNodeValid(chain[i + 1])) {
-            node_fetcher_->Fetch(chain[i + 1], NodeFetchStatus::NodeOnly());
+            node_fetcher_->Fetch(chain[i + 1], NodeFetchStatus::NodeOnly);
             break;
           }
         }
@@ -317,7 +312,7 @@ TEST_F(NodeFetcherTest, FetchCompletedHandlerReentryIsIterative) {
         --depth;
       });
 
-  node_fetcher_->Fetch(chain.front(), NodeFetchStatus::NodeOnly());
+  node_fetcher_->Fetch(chain.front(), NodeFetchStatus::NodeOnly);
   DrainExecutor();
 
   // Every chain node must have been fetched: if the completion handler

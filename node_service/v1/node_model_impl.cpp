@@ -99,7 +99,7 @@ NodeRef NodeModelImpl::GetAggregate(const scada::NodeId& declaration_id) const {
 }
 
 NodeRef NodeModelImpl::GetChild(const scada::QualifiedName& child_name) const {
-  base::Check(fetch_status_.node_fetched);
+  base::Check(Includes(fetch_status_, NodeFetchStatus::NodeOnly));
 
   if (!node_)
     return nullptr;

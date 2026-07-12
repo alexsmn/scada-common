@@ -57,7 +57,7 @@ class FakeNodeService : public NodeService {
       return;
     NodeStateChangedEvent event{
         node_id, std::make_shared<const scada::NodeState>(entry->state),
-        NodeFetchStatus::Max()};
+        NodeFetchStatus::Max};
     entry->signals.node_state_changed(event);
     service_signals_.node_state_changed(event);
   }
@@ -86,7 +86,7 @@ class FakeNodeService : public NodeService {
     return scada::StatusCode::Good;
   }
   NodeFetchStatus GetFetchStatus(const scada::NodeId& node_id) override {
-    return NodeFetchStatus::Max();
+    return NodeFetchStatus::Max;
   }
   Awaitable<void> Fetch(const scada::NodeId& node_id,
                         const NodeFetchStatus& requested_status) override {

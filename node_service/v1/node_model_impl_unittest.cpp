@@ -41,33 +41,33 @@ TEST(NodeModelImpl, Fetch) {
       .scada_node_ = {},
   }};
   EXPECT_CALL(delegate,
-              OnNodeModelFetchRequested(kNodeId, NodeFetchStatus::NodeOnly()));
+              OnNodeModelFetchRequested(kNodeId, NodeFetchStatus::NodeOnly));
 
   boost::asio::io_context io_context;
   bool fetched = false;
   auto fetched_result = boost::asio::co_spawn(
       io_context,
       [&node, &fetched]() -> Awaitable<void> {
-        co_await node.Fetch(NodeFetchStatus::NodeOnly());
+        co_await node.Fetch(NodeFetchStatus::NodeOnly);
         fetched = true;
       },
       boost::asio::use_future);
   io_context.poll();
 
   EXPECT_CALL(delegate, OnNodeModelFetchRequested(
-                            kNodeId, NodeFetchStatus::NodeAndChildren()));
+                            kNodeId, NodeFetchStatus::NodeAndChildren));
 
   bool children_fetched = false;
   auto children_fetched_result = boost::asio::co_spawn(
       io_context,
       [&node, &children_fetched]() -> Awaitable<void> {
-        co_await node.Fetch(NodeFetchStatus::NodeAndChildren());
+        co_await node.Fetch(NodeFetchStatus::NodeAndChildren);
         children_fetched = true;
       },
       boost::asio::use_future);
   io_context.poll();
 
-  EXPECT_TRUE(node.GetFetchStatus().empty());
+  EXPECT_TRUE(IsEmpty(node.GetFetchStatus()));
   EXPECT_FALSE(fetched);
   EXPECT_FALSE(children_fetched);
 
@@ -75,14 +75,14 @@ TEST(NodeModelImpl, Fetch) {
       address_space.AddStaticNode(std::make_unique<scada::GenericObject>(
           scada::id::RootFolder, "RootFolder", scada::LocalizedText{}));
   node.SetFetchStatus(&root_folder, scada::StatusCode::Good,
-                      NodeFetchStatus::NodeOnly());
+                      NodeFetchStatus::NodeOnly);
   io_context.poll();
 
   EXPECT_TRUE(fetched);
   EXPECT_FALSE(children_fetched);
 
   node.SetFetchStatus(&root_folder, scada::StatusCode::Good,
-                      NodeFetchStatus::NodeAndChildren());
+                      NodeFetchStatus::NodeAndChildren);
   io_context.restart();
   io_context.run();
   EXPECT_TRUE(fetched);

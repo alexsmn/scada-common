@@ -275,7 +275,7 @@ void NodeServiceImpl::OnNodeSemanticsChanged(
                     << LOG_TAG("NodeId", NodeIdToScadaString(event.node_id));
 
   if (auto node = GetNodeModel(event.node_id))
-    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly(), true);
+    node_fetcher_->Fetch(event.node_id, NodeFetchStatus::NodeOnly, true);
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
@@ -289,9 +289,9 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
                     << LOG_TAG("NodeId", NodeIdToScadaString(node_id))
                     << LOG_TAG("RequestedStatus", ToString(requested_status));
 
-  if (requested_status.node_fetched)
-    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly(), true);
-  if (requested_status.children_fetched)
+  if (Includes(requested_status, NodeFetchStatus::NodeOnly))
+    node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly, true);
+  if (Includes(requested_status, NodeFetchStatus::ChildrenOnly))
     node_children_fetcher_->Fetch(node_id);
 }
 
@@ -357,7 +357,8 @@ NodeFetcherImplContext NodeServiceImpl::MakeNodeFetcherImplContext() {
   NodeValidator node_validator = [this](const scada::NodeId& node_id) -> bool {
     auto i = nodes_.find(node_id);
     // TODO: Optimize |GetFetchStatus()|.
-    return i != nodes_.end() && i->second->GetFetchStatus().node_fetched;
+    return i != nodes_.end() &&
+           Includes(i->second->GetFetchStatus(), NodeFetchStatus::NodeOnly);
   };
 
   return NodeFetcherImplContext{executor_,
@@ -393,9 +394,9 @@ void NodeServiceImpl::OnChannelOpened() {
                       << LOG_TAG("NodeId", NodeIdToScadaString(node_id))
                       << LOG_TAG("RequestedStatus", ToString(requested_status));
 
-    if (requested_status.node_fetched)
-      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly());
-    if (requested_status.children_fetched)
+    if (Includes(requested_status, NodeFetchStatus::NodeOnly))
+      node_fetcher_->Fetch(node_id, NodeFetchStatus::NodeOnly);
+    if (Includes(requested_status, NodeFetchStatus::ChildrenOnly))
       node_children_fetcher_->Fetch(node_id);
   }
 }

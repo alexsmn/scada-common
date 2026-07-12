@@ -50,15 +50,12 @@ TEST_F(NodeFetchStatusTrackerTest, OnNodesFetched_GoodStatus) {
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-                  node_id, kGoodStatus, NodeFetchStatus::NodeOnly()})));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(
-      {}, {{node_id, NodeFetchStatus::NodeOnly()}});
+                  node_id, kGoodStatus, NodeFetchStatus::NodeOnly})));
 
   node_fetch_status_tracker_.OnNodesFetched({{node_id, kGoodStatus}});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(node_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::NodeOnly()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::NodeOnly));
 }
 
 TEST_F(NodeFetchStatusTrackerTest, OnNodesFetched_BadStatus) {
@@ -67,14 +64,12 @@ TEST_F(NodeFetchStatusTrackerTest, OnNodesFetched_BadStatus) {
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-                  node_id, bad_status, NodeFetchStatus::Max()})));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint({{node_id, bad_status}}, {});
+                  node_id, bad_status, NodeFetchStatus::Max})));
 
   node_fetch_status_tracker_.OnNodesFetched({{node_id, bad_status}});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(node_id),
-            std::make_pair(bad_status, NodeFetchStatus::Max()));
+            std::make_pair(bad_status, NodeFetchStatus::Max));
 }
 
 TEST_F(NodeFetchStatusTrackerTest,
@@ -84,10 +79,7 @@ TEST_F(NodeFetchStatusTrackerTest,
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
       Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-          parent_id, kGoodStatus, NodeFetchStatus::NodeAndChildren()})));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(
-      {}, {{parent_id, NodeFetchStatus::NodeOnly()}});
+          parent_id, kGoodStatus, NodeFetchStatus::NodeAndChildren})));
 
   node_fetch_status_tracker_.OnChildrenFetched(
       parent_id, {scada::ReferenceDescription{scada::id::Organizes, true,
@@ -96,7 +88,7 @@ TEST_F(NodeFetchStatusTrackerTest,
                                               scada::id::TypesFolder}});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(parent_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren));
 }
 
 TEST_F(NodeFetchStatusTrackerTest,
@@ -105,9 +97,6 @@ TEST_F(NodeFetchStatusTrackerTest,
   const scada::NodeId child_id{1, 1};
 
   EXPECT_CALL(node_validator_, Call(child_id));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(
-      {}, {{parent_id, NodeFetchStatus::NodeOnly()}});
 
   node_fetch_status_tracker_.OnChildrenFetched(
       parent_id,
@@ -123,23 +112,20 @@ TEST_F(NodeFetchStatusTrackerTest,
       node_fetch_status_changed_handler_,
       Call(UnorderedElementsAre(
           NodeFetchStatusChangedItem{child_id, kGoodStatus,
-                                     NodeFetchStatus::NodeOnly()},
+                                     NodeFetchStatus::NodeOnly},
           NodeFetchStatusChangedItem{parent_id, kGoodStatus,
-                                     NodeFetchStatus::NodeAndChildren()})));
+                                     NodeFetchStatus::NodeAndChildren})));
 
   address_space_.AddStaticNode<scada::GenericObject>(child_id, "ChildName",
                                                      u"ChildDisplayName");
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(
-      {}, {{child_id, NodeFetchStatus::NodeOnly()}});
 
   node_fetch_status_tracker_.OnNodesFetched(
       {std::make_pair(child_id, kGoodStatus)});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(child_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::NodeOnly()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::NodeOnly));
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(parent_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren));
 }
 
 TEST_F(NodeFetchStatusTrackerTest,
@@ -148,7 +134,7 @@ TEST_F(NodeFetchStatusTrackerTest,
 
   EXPECT_CALL(node_fetch_status_changed_handler_,
               Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-                  parent_id, kGoodStatus, NodeFetchStatus::ChildrenOnly()})));
+                  parent_id, kGoodStatus, NodeFetchStatus::ChildrenOnly})));
 
   node_fetch_status_tracker_.OnChildrenFetched(
       parent_id, {scada::ReferenceDescription{scada::id::Organizes, true,
@@ -159,7 +145,7 @@ TEST_F(NodeFetchStatusTrackerTest,
   // Resolve parent.
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(parent_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::ChildrenOnly()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::ChildrenOnly));
 
   address_space_.AddStaticNode<scada::GenericObject>(parent_id, "ParentName",
                                                      u"ParentDisplayName");
@@ -167,16 +153,13 @@ TEST_F(NodeFetchStatusTrackerTest,
   EXPECT_CALL(
       node_fetch_status_changed_handler_,
       Call(UnorderedElementsAre(NodeFetchStatusChangedItem{
-          parent_id, kGoodStatus, NodeFetchStatus::NodeAndChildren()})));
-
-  node_fetch_status_tracker_.SetFetchStatusesHint(
-      {}, {{parent_id, NodeFetchStatus::NodeOnly()}});
+          parent_id, kGoodStatus, NodeFetchStatus::NodeAndChildren})));
 
   node_fetch_status_tracker_.OnNodesFetched(
       {std::make_pair(parent_id, kGoodStatus)});
 
   EXPECT_EQ(node_fetch_status_tracker_.GetStatus(parent_id),
-            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren()));
+            std::make_pair(kGoodStatus, NodeFetchStatus::NodeAndChildren));
 }
 
 }  // namespace v1
