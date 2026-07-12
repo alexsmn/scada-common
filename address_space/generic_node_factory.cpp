@@ -94,6 +94,11 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (!node_state.attributes.display_name.empty())
     node->SetDisplayName(node_state.attributes.display_name);
 
+  if (!node_state.attributes.inverse_name.empty()) {
+    if (auto* reference_type = scada::AsReferenceType(node.get()))
+      reference_type->set_inverse_name(node_state.attributes.inverse_name);
+  }
+
   if (node_state.attributes.value.has_value()) {
     auto* variable = scada::AsVariable(node.get());
     if (variable) {

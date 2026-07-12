@@ -52,6 +52,12 @@
     <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
   </Node>
   <Node id="NS0.8" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int64" displayName="Int64" />
+  <Node id="NS0.80" class="Object" typeDefinition="NS0.58" parent="NS0.87" parentReference="NS0.35" browseName="Optional" displayName="Optional">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.11508" class="Object" typeDefinition="NS0.58" parent="NS0.87" parentReference="NS0.35" browseName="OptionalPlaceholder" displayName="OptionalPlaceholder">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
   <Node id="NS0.84" class="Object" typeDefinition="NS0.61" browseName="RootFolder" displayName="Корневая папка">
     <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
   </Node>

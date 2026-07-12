@@ -150,6 +150,19 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
     }
   }
 
+  if (auto* reference_type = scada::AsReferenceType(&node)) {
+    switch (attribute_id) {
+      // InverseName is required for non-symmetric ReferenceTypes (OPC UA
+      // Part 3 §5.3.2,
+      // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2); a
+      // symmetric type carries none and reads as Bad_WrongAttributeId.
+      case scada::AttributeId::InverseName:
+        if (reference_type->inverse_name().empty())
+          break;
+        return scada::MakeReadResult(reference_type->inverse_name());
+    }
+  }
+
   if (node.GetNodeClass() == scada::NodeClass::Method) {
     switch (attribute_id) {
       // A method node is executable; UserExecutable narrows it to callers that

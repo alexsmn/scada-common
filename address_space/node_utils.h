@@ -38,6 +38,7 @@ ObjectType* AsObjectType(Node* node SCADA_LIFETIME_BOUND);
 const VariableType* AsVariableType(const Node* node SCADA_LIFETIME_BOUND);
 VariableType* AsVariableType(Node* node SCADA_LIFETIME_BOUND);
 const ReferenceType* AsReferenceType(const Node* node SCADA_LIFETIME_BOUND);
+ReferenceType* AsReferenceType(Node* node SCADA_LIFETIME_BOUND);
 const DataType* AsDataType(const Node* node SCADA_LIFETIME_BOUND);
 const DataType& AsDataType(const Node& node SCADA_LIFETIME_BOUND);
 TypeDefinition* AsTypeDefinition(Node* node SCADA_LIFETIME_BOUND);

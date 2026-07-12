@@ -1010,6 +1010,20 @@
       <Reference ReferenceType="ns=1;i=297">ns=1;i=342</Reference>
     </References>
   </UAObjectType>
+  <!-- OptionalPlaceholder InstanceDeclaration: instances of ModbusDeviceType
+       may contain ModbusTransmissionItemType components (OPC UA Part 3
+       §6.4.4.4.4,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/6.4.4). The
+       standard replacement for the proprietary Creates edge above, which is
+       kept until the client/web editors migrate (alignment plan phase 4). -->
+  <UAObject NodeId="ns=1;i=371" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="ModbusDeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=118">
+    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=342</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
   <UADataType NodeId="ns=1;i=130" BrowseName="ModbusLinkProtocol" SymbolicName="ModbusLinkProtocol">
     <DisplayName>Тип протокола MODBUS</DisplayName>
     <References>
@@ -1505,6 +1519,16 @@
       <Reference ReferenceType="ns=1;i=297">ns=1;i=343</Reference>
     </References>
   </UAObjectType>
+  <!-- OptionalPlaceholder InstanceDeclaration (OPC UA Part 3 §6.4.4.4.4);
+       see ModbusDeviceType_TransmissionItemPlaceholder. -->
+  <UAObject NodeId="ns=1;i=370" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="Iec60870DeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=331">
+    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=343</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
   <UAObjectType NodeId="ns=1;i=343" BrowseName="Iec60870TransmissionItemType" SymbolicName="Iec60870TransmissionItemType">
     <DisplayName>Ретрансляция МЭК-60870</DisplayName>
     <References>
@@ -1519,6 +1543,16 @@
       <Reference ReferenceType="ns=1;i=297">ns=1;i=344</Reference>
     </References>
   </UAObjectType>
+  <!-- OptionalPlaceholder InstanceDeclaration (OPC UA Part 3 §6.4.4.4.4);
+       see ModbusDeviceType_TransmissionItemPlaceholder. -->
+  <UAObject NodeId="ns=1;i=372" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="Iec61850DeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=277">
+    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=344</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
   <UAVariable NodeId="ns=1;i=278" BrowseName="Host" SymbolicName="Iec61850DeviceType_Host" ParentNodeId="ns=1;i=277" DataType="String">
     <DisplayName>Хост</DisplayName>
     <References>

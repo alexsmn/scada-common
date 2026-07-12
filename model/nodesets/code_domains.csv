@@ -109,6 +109,7 @@ Iec60870DeviceType_InterrogationPeriodGroup9,devices
 Iec60870DeviceType_LinkAddress,devices
 Iec60870DeviceType_StartupClockSync,devices
 Iec60870DeviceType_StartupInterrogation,devices
+Iec60870DeviceType_TransmissionItemPlaceholder,devices
 Iec60870DeviceType_UtcTime,devices
 Iec60870LinkType,devices
 Iec60870LinkType_AnonymousMode,devices
@@ -141,6 +142,7 @@ Iec61850DeviceType,devices
 Iec61850DeviceType_Host,devices
 Iec61850DeviceType_Model,devices
 Iec61850DeviceType_Port,devices
+Iec61850DeviceType_TransmissionItemPlaceholder,devices
 Iec61850LogicalNodeType,devices
 Iec61850RcbType,devices
 Iec61850TransmissionItemType,devices
@@ -157,6 +159,7 @@ ModbusDeviceType_Address,devices
 ModbusDeviceType_ResponseTimeout,devices
 ModbusDeviceType_SendRetryCount,devices
 ModbusDeviceType_SuspendDuration,devices
+ModbusDeviceType_TransmissionItemPlaceholder,devices
 ModbusLinkProtocol,devices
 ModbusLinkProtocol_EnumStrings,devices
 ModbusLinkType,devices

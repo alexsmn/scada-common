@@ -10,7 +10,10 @@
 #include "address_space/address_space_impl2.h"
 #include "address_space/address_space_util.h"
 #include "address_space/generic_node_factory.h"
+#include "address_space/node_utils.h"
+#include "address_space/type_definition.h"
 #include "common/node_state.h"
+#include "model/devices_node_ids.h"
 #include "model/node_id_util.h"
 #include "model/static_nodesets.h"
 
@@ -97,6 +100,39 @@ TEST(ScadaAddressSpace, MatchesGolden) {
     if (it != actual.end())
       EXPECT_EQ(canonical, it->second) << "node " << id << " differs from golden";
   }
+}
+
+// InverseName is parsed from the UANodeSet <InverseName> element and
+// materialized on the ReferenceType node (OPC UA Part 3 §5.3.2,
+// https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2).
+TEST(ScadaAddressSpace, ReferenceTypeInverseName) {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  ASSERT_TRUE(LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space,
+                                     factory));
+
+  const auto* reference_type =
+      AsReferenceType(space.GetNode(devices::id::HasTransmissionItem));
+  ASSERT_TRUE(reference_type);
+  EXPECT_EQ(ToString(reference_type->inverse_name()), "TransmissionItemOf");
+}
+
+// An instance node parented through a model-defined hierarchical
+// ReferenceType (HasTransmissionItem, a HasComponent subtype) is materialized
+// with that parent — the OptionalPlaceholder InstanceDeclarations on the
+// protocol device types rely on this (OPC UA Part 3 §6.4.4.4.4).
+TEST(ScadaAddressSpace, PlaceholderParentedThroughCustomHierarchicalReference) {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  ASSERT_TRUE(LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space,
+                                     factory));
+
+  const Node* placeholder = space.GetNode(
+      devices::id::Iec60870DeviceType_TransmissionItemPlaceholder);
+  ASSERT_TRUE(placeholder);
+  const Node* parent = GetParent(*placeholder);
+  ASSERT_TRUE(parent);
+  EXPECT_EQ(parent->id(), NodeId{devices::id::Iec60870DeviceType});
 }
 
 }  // namespace

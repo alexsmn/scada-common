@@ -96,10 +96,23 @@ class ReferenceType : public TypeDefinition {
     SetDisplayName(std::move(display_name));
   }
 
+  // The reference's meaning as seen from the TargetNode; empty for symmetric
+  // ReferenceTypes (OPC UA Part 3 §5.3.2,
+  // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2).
+  const LocalizedText& inverse_name() const SCADA_LIFETIME_BOUND {
+    return inverse_name_;
+  }
+  void set_inverse_name(LocalizedText inverse_name) {
+    inverse_name_ = std::move(inverse_name);
+  }
+
   // TypeDefinition
   virtual NodeClass GetNodeClass() const override {
     return NodeClass::ReferenceType;
   }
+
+ private:
+  LocalizedText inverse_name_;
 };
 
 class ObjectType : public TypeDefinition {

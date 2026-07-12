@@ -103,6 +103,12 @@ const ReferenceType* AsReferenceType(const Node* node) {
              : nullptr;
 }
 
+ReferenceType* AsReferenceType(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::ReferenceType
+             ? static_cast<ReferenceType*>(node)
+             : nullptr;
+}
+
 const DataType* AsDataType(const Node* node) {
   return node && node->GetNodeClass() == NodeClass::DataType
              ? static_cast<const DataType*>(node)
@@ -450,6 +456,17 @@ const Node* FindComponentDeclaration(const Node& component) {
   return FindComponentDeclaration(*type, component_name.name());
 }
 
+namespace {
+
+// InverseName is a ReferenceType-only attribute; every other node class
+// yields an empty text (OPC UA Part 3 §5.3.2).
+LocalizedText GetInverseName(const Node& node) {
+  const auto* reference_type = AsReferenceType(&node);
+  return reference_type ? reference_type->inverse_name() : LocalizedText{};
+}
+
+}  // namespace
+
 NodeState MakeNodeState(const Node& node) {
   auto properties =
       GetProperties(node) |
@@ -484,6 +501,7 @@ NodeState MakeNodeState(const Node& node) {
           .reference_type_id = GetNodeId(parent_ref.type),
           .attributes = {.browse_name = node.GetBrowseName(),
                          .display_name = node.GetDisplayName(),
+                         .inverse_name = GetInverseName(node),
                          .data_type = GetDataTypeId(node),
                          .value = GetValue(node)},
           .properties = std::move(properties),

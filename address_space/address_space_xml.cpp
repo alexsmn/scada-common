@@ -13,6 +13,7 @@
 
 #include <pugixml.hpp>
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <filesystem>
@@ -486,6 +487,10 @@ Status WriteNodeState(pugi::xml_node parent, const NodeState& node_state) {
     node.append_attribute("displayName")
         .set_value(ToUtf8(node_state.attributes.display_name).c_str());
   }
+  if (!node_state.attributes.inverse_name.empty()) {
+    node.append_attribute("inverseName")
+        .set_value(ToUtf8(node_state.attributes.inverse_name).c_str());
+  }
   SetNodeIdAttribute(node, "dataType", node_state.attributes.data_type);
   if (node_state.attributes.value) {
     auto status = WriteVariant(node.append_child("AttributeValue"),
@@ -538,6 +543,8 @@ Status ReadNodeState(pugi::xml_node node, NodeState& node_state) {
   node_state.attributes.browse_name = ReadQualifiedName(node, "browse");
   node_state.attributes.display_name =
       FromUtf8(node.attribute("displayName").as_string());
+  node_state.attributes.inverse_name =
+      FromUtf8(node.attribute("inverseName").as_string());
   node_state.attributes.data_type =
       ParseNodeId(node.attribute("dataType").as_string());
 
@@ -604,6 +611,60 @@ Status ParseNodeStates(const pugi::xml_document& document,
   return OkStatus();
 }
 
+// The per-node parsers recognize only the namespace-0 container references
+// (HasComponent/HasProperty/Organizes) as parent edges, so an instance node
+// parented through a model-defined hierarchical ReferenceType (e.g. a
+// HasComponent subtype declared in the same nodeset) arrives with a null
+// parent and the edge left in `references`. Resolve the ReferenceType
+// hierarchy from the parsed states themselves and promote the first inverse
+// hierarchical reference into the parent slot, so the node factory (which
+// requires a parent for instance nodes) can materialize it. OPC UA Part 3
+// §7.3: HierarchicalReferences span the containment hierarchy,
+// https://reference.opcfoundation.org/Core/Part3/v105/docs/7.3
+void PromoteHierarchicalParents(std::vector<NodeState>& node_states) {
+  std::unordered_map<NodeId, NodeId> supertype_by_reference_type;
+  for (const auto& node_state : node_states) {
+    if (node_state.node_class == NodeClass::ReferenceType) {
+      supertype_by_reference_type.emplace(node_state.node_id,
+                                          node_state.supertype_id);
+    }
+  }
+
+  auto is_hierarchical = [&](const NodeId& reference_type_id) {
+    NodeId current = reference_type_id;
+    // Depth bound guards against a malformed cyclic supertype chain.
+    for (int depth = 0; depth < 64 && !current.is_null(); ++depth) {
+      if (current == id::HierarchicalReferences) {
+        return true;
+      }
+      auto it = supertype_by_reference_type.find(current);
+      if (it == supertype_by_reference_type.end()) {
+        return false;
+      }
+      current = it->second;
+    }
+    return false;
+  };
+
+  for (auto& node_state : node_states) {
+    if (!node_state.parent_id.is_null() ||
+        IsTypeDefinition(node_state.node_class)) {
+      continue;
+    }
+    auto it = std::ranges::find_if(
+        node_state.references, [&](const ReferenceDescription& reference) {
+          return !reference.forward &&
+                 is_hierarchical(reference.reference_type_id);
+        });
+    if (it == node_state.references.end()) {
+      continue;
+    }
+    node_state.parent_id = it->node_id;
+    node_state.reference_type_id = it->reference_type_id;
+    node_state.references.erase(it);
+  }
+}
+
 // Materializes parsed NodeStates into the address space: first creates every
 // node, then resolves supertype and reference links. Resolution runs only after
 // all nodes exist, so references may target nodes parsed from any input file —
@@ -612,6 +673,7 @@ Status ParseNodeStates(const pugi::xml_document& document,
 Status ApplyNodeStates(std::vector<NodeState> node_states,
                        MutableAddressSpace& address_space,
                        NodeFactory& node_factory) {
+  PromoteHierarchicalParents(node_states);
   SortNodesHierarchically(node_states);
 
   for (const auto& node_state : node_states) {
@@ -850,6 +912,13 @@ Status ReadUaNodeState(pugi::xml_node node,
       ParseUaBrowseName(node.attribute("BrowseName").as_string(), ns_map);
   node_state.attributes.display_name =
       FromUtf8(node.child("DisplayName").text().as_string());
+  // OPC UA Part 3 §5.3.2: the InverseName attribute of a non-symmetric
+  // ReferenceType,
+  // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2
+  if (node_state.node_class == NodeClass::ReferenceType) {
+    node_state.attributes.inverse_name =
+        FromUtf8(node.child("InverseName").text().as_string());
+  }
   if (auto data_type = node.attribute("DataType")) {
     node_state.attributes.data_type =
         ParseUaNodeId(data_type.as_string(), ns_map, aliases);

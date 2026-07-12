@@ -104,6 +104,17 @@ TEST(ModelFrozenIds, NodeIdValues) {
             133u);  // runtime method
   EXPECT_EQ(devices::id::TransmissionItemType_SourceAddress.numeric_id(), 225u);
   EXPECT_EQ(devices::id::HasTransmissionItem.numeric_id(), 339u);
+  // Transmission-item OptionalPlaceholder InstanceDeclarations on the
+  // protocol device types (OPC UA Part 3 §6.4.4.4.4).
+  EXPECT_EQ(
+      devices::id::Iec60870DeviceType_TransmissionItemPlaceholder.numeric_id(),
+      370u);
+  EXPECT_EQ(
+      devices::id::ModbusDeviceType_TransmissionItemPlaceholder.numeric_id(),
+      371u);
+  EXPECT_EQ(
+      devices::id::Iec61850DeviceType_TransmissionItemPlaceholder.numeric_id(),
+      372u);
   EXPECT_EQ(devices::numeric_id::Iec60870DeviceType_InterrogationPeriodGroup1,
             200u);
 
