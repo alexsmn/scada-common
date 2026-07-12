@@ -7,6 +7,8 @@
 
 #include "base/awaitable.h"
 
+#include <algorithm>
+
 namespace v3 {
 
 // NodeModelImpl
@@ -60,8 +62,14 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
   for (const auto& ref : node_state_.references) {
     if (ref.node_id != node_id_) {
       if (auto target = service_.FindNodeModel(ref.node_id)) {
-        target->node_state_.references.push_back(scada::ReferenceDescription{
-            ref.reference_type_id, !ref.forward, node_id_});
+        const scada::ReferenceDescription mirror{ref.reference_type_id,
+                                                 !ref.forward, node_id_};
+        // The neighbor may already know this edge — from its own node or
+        // children fetch, or from an earlier fetch of this node. Pushing it
+        // again would make consumers (tables, trees) see the target twice.
+        if (target->HasReference(mirror))
+          continue;
+        target->node_state_.references.push_back(mirror);
         // Each affected neighbor publishes its own snapshot. Unfetched
         // neighbors publish nothing: their working state is replaced
         // wholesale when their own fetch completes.
@@ -144,6 +152,15 @@ void NodeModelImpl::OnChildrenFetched(
               co_return;
 
             child_references_ = *shared_references;
+            // The child fetches above pushed mirror references into this
+            // resident model (see OnFetched); those edges are now reported by
+            // |child_references_| too, so drop the mirrors to keep each edge
+            // single.
+            std::erase_if(node_state_.references, [this](const auto& ref) {
+              return std::find(child_references_.begin(),
+                               child_references_.end(),
+                               ref) != child_references_.end();
+            });
             // The parent pins its fetched subtree; releasing the last NodeRef
             // to the parent releases the children too.
             child_models_ = std::move(fetched_nodes);
@@ -154,6 +171,15 @@ void NodeModelImpl::OnChildrenFetched(
             NotifyStateChanged();
             NotifyModelChanged();
           });
+}
+
+bool NodeModelImpl::HasReference(
+    const scada::ReferenceDescription& reference) const {
+  return std::find(node_state_.references.begin(),
+                   node_state_.references.end(),
+                   reference) != node_state_.references.end() ||
+         std::find(child_references_.begin(), child_references_.end(),
+                   reference) != child_references_.end();
 }
 
 NodeRef NodeModelImpl::GetAggregateDeclaration(

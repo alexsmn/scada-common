@@ -11,7 +11,9 @@
 #include "model/devices_node_ids.h"
 #include "model/history_node_ids.h"
 #include "model/namespaces.h"
+#include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
+#include "model/security_node_ids.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 
@@ -266,8 +268,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
   }
 
   for (const auto& node : nodes) {
-    [[maybe_unused]] const auto result = factory.CreateNode(node);
-    base::Check(result.first);
+    const auto [status, created] = factory.CreateNode(node);
+    base::Check(status, "test data-item node creation failed: " +
+                            NodeIdToScadaString(node.node_id) + " | " +
+                            ToString(status));
   }
 }
 
@@ -336,6 +340,80 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
                         .set_display_name(u"Устройство МЭК-60870"),
       .supertype_id = dev::DeviceType});
 
+  // Link (channel) types and the Modbus device type. Display names mirror
+  // devices.xml; the screenshot generator instantiates a Modbus channel /
+  // device / retransmission chain from these.
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::LinkType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("LinkType")
+                        .set_display_name(u"Направление"),
+      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::ModbusLinkType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = dev::LinkType,
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("ModbusLinkType")
+                        .set_display_name(u"Направление MODBUS"),
+      .supertype_id = dev::LinkType});
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::ModbusDeviceType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = dev::DeviceType,
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("ModbusDeviceType")
+                        .set_display_name(u"Устройство MODBUS"),
+      .supertype_id = dev::DeviceType});
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::ModbusDeviceType_Address,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = dev::ModbusDeviceType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("Address")
+              .set_display_name(u"Адрес")
+              .set_data_type({scada::id::UInt8, NamespaceIndexes::NS0})});
+
+  // Retransmission item types (the Modbus one is what device retransmission
+  // tables instantiate); the source-address property lives on the base type.
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::TransmissionItemType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("TransmissionItemType")
+                        .set_display_name(u"Ретрансляция"),
+      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::TransmissionItemType_SourceAddress,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = dev::TransmissionItemType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("InfoAddress")
+              .set_display_name(u"Адрес объекта приемника")
+              .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::ModbusTransmissionItemType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = dev::TransmissionItemType,
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("ModbusTransmissionItemType")
+                        .set_display_name(u"Ретрансляция MODBUS"),
+      .supertype_id = dev::TransmissionItemType});
+
   // DeviceType metric components (HasComponent, BaseVariableType), in the order
   // device-metrics tests expect. Display names mirror devices.xml.
   struct ComponentDef {
@@ -375,6 +453,68 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
   }
 }
 
+// Adds the `security` test types: the Users folder and the UserType with the
+// property declarations the Users table renders. Display names mirror
+// `model/nodesets/Scada.NodeSet2.xml`. UserType_ProfileJson /
+// UserType_ProfileRevision are deliberately omitted: they are server-internal
+// profile-persistence plumbing, and the docs screenshots pin the reviewed
+// operator-facing column set (AccessRights + MultiSessions).
+inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
+  GenericNodeFactory factory{address_space};
+
+  namespace sec = security::id;
+
+  std::vector<scada::NodeState> nodes;
+
+  // The "Пользователи" folder that owns user instances.
+  nodes.push_back(scada::NodeState{
+      .node_id = sec::Users,
+      .node_class = scada::NodeClass::Object,
+      .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
+      .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}.set_browse_name("Users").set_display_name(
+              u"Пользователи")});
+
+  nodes.push_back(scada::NodeState{
+      .node_id = sec::UserType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("UserType")
+                        .set_display_name(u"Пользователь"),
+      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+  nodes.push_back(scada::NodeState{
+      .node_id = sec::UserType_AccessRights,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = sec::UserType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("AccessRights")
+              .set_display_name(u"Права")
+              .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+  nodes.push_back(scada::NodeState{
+      .node_id = sec::UserType_MultiSessions,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = sec::UserType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("MultiSessions")
+              .set_display_name(u"Множество сессий")
+              .set_data_type({scada::id::Boolean, NamespaceIndexes::NS0})});
+
+  for (const auto& node : nodes) {
+    [[maybe_unused]] const auto result = factory.CreateNode(node);
+    base::Check(result.first);
+  }
+}
+
 // A ready-to-use code-defined SCADA address space: the standard OPC UA tree
 // plus the data_items and devices test type systems. Replaces
 // `AddressSpaceImpl3` for tests without loading any nodeset XML.
@@ -387,24 +527,61 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
   ScadaTestAddressSpace() {
     AddScadaDataItemsTestTypes(*this);
     AddScadaDevicesTestTypes(*this);
+    AddScadaSecurityTestTypes(*this);
 
     // The "Creates" reference type declares which instance types a container
-    // type may hold (used by child-property/type resolution). ReferenceType
-    // nodes cannot be built by GenericNodeFactory, so add it directly: a data
-    // group may contain data items.
+    // node or type may hold (used by child-property/type resolution).
+    // ReferenceType nodes cannot be built by GenericNodeFactory, so add it
+    // directly. The references mirror Scada.NodeSet2.xml: a data group may
+    // contain data items, the Users folder contains users, a Modbus link
+    // contains Modbus devices, and a Modbus device contains retransmission
+    // items.
     AddStaticNode<scada::ReferenceType>(scada::id::Creates, "Creates");
+    // All SCADA reference types are subtypes of NonHierarchicalReferences in
+    // the nodeset. The subtype edge matters: node fetchers browse
+    // NonHierarchicalReferences with include-subtypes, so an unparented
+    // reference type would silently drop its references from fetch results.
+    const scada::NodeId kHasSubtype{scada::id::HasSubtype,
+                                    NamespaceIndexes::NS0};
+    const scada::NodeId kNonHierarchical{scada::id::NonHierarchicalReferences,
+                                         NamespaceIndexes::NS0};
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        scada::id::Creates);
     scada::AddReference(*this, scada::id::Creates,
                         data_items::id::DataGroupType,
                         data_items::id::DataItemType);
+    scada::AddReference(*this, scada::id::Creates, security::id::Users,
+                        security::id::UserType);
+    scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
+                        devices::id::LinkType);
+    scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
+                        devices::id::Iec61850DeviceType);
+    scada::AddReference(*this, scada::id::Creates, devices::id::ModbusLinkType,
+                        devices::id::ModbusDeviceType);
+    scada::AddReference(*this, scada::id::Creates,
+                        devices::id::ModbusDeviceType,
+                        devices::id::ModbusTransmissionItemType);
 
     // Non-hierarchical reference types used as data-item property columns (e.g.
     // by ExportDataReader). Also ReferenceType, so added directly.
     AddStaticNode<scada::ReferenceType>(data_items::id::HasSimulationSignal,
                                         "HasSimulationSignal");
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        data_items::id::HasSimulationSignal);
     AddStaticNode<scada::ReferenceType>(history::id::HasHistoricalDatabase,
                                         "HasHistoricalDatabase");
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        history::id::HasHistoricalDatabase);
     AddStaticNode<scada::ReferenceType>(data_items::id::HasTsFormat,
                                         "HasTsFormat");
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        data_items::id::HasTsFormat);
+    // Links a retransmission item to its source variable (the "Объект"
+    // column of the device retransmission table).
+    AddStaticNode<scada::ReferenceType>(devices::id::HasTransmissionSource,
+                                        "IecTransmitSource");
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        devices::id::HasTransmissionSource);
   }
 
   ~ScadaTestAddressSpace() { Clear(); }

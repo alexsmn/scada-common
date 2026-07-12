@@ -98,6 +98,15 @@ Awaitable<scada::Status> FetchChildrenStatus(const NodeRef& node) {
   co_return node.status();
 }
 
+Awaitable<scada::Status> FetchTypeChainStatus(NodeRef type_definition) {
+  for (auto type = std::move(type_definition); type; type = type.supertype()) {
+    if (auto status = co_await FetchChildrenStatus(type); !status) {
+      co_return status;
+    }
+  }
+  co_return scada::StatusCode::Good;
+}
+
 Awaitable<void> WaitForPendingNodes(NodeService& node_service) {
   co_await AwaitPendingNodes(node_service);
 }

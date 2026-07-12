@@ -31,9 +31,15 @@ struct NodeServiceImplContext {
   const ViewEventsProvider view_events_provider_;
 
   // Bounds the service-owned MRU keep-alive pins that absorb refetch churn
-  // from transient GetNode traversals. Residency beyond this window requires
-  // callers to hold their NodeRefs.
-  size_t keep_alive_capacity_ = 256;
+  // from transient GetNode traversals. NodeRef is a non-pinning cursor (see
+  // node_ref.h), so this window is the ONLY thing keeping fetched models
+  // resident: once the combined read set of the open views exceeds it, the
+  // service livelocks in an evict -> auto-refetch -> notify -> re-read cycle
+  // (views re-read on every fetch event, evicting each other's nodes), and
+  // synchronous walk preconditions (PropertyService) start failing. Size it
+  // above any realistic multi-window working set; models are small, so the
+  // cost of a large window is negligible next to that failure mode.
+  size_t keep_alive_capacity_ = 4096;
 };
 
 // Node-model map shared between the service and its models. Models

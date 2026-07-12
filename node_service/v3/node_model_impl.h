@@ -84,6 +84,12 @@ class NodeModelImpl final : public BaseNodeModel,
   NodeRef GetAggregateDeclaration(
       const scada::NodeId& aggregate_declaration_id) const;
 
+  // True if the edge is already recorded, either in the fetched node state or
+  // among the fetched children. Used to keep each edge single: node fetches
+  // of neighbors push mirror references into resident models, which must not
+  // duplicate what this model's own fetches reported.
+  bool HasReference(const scada::ReferenceDescription& reference) const;
+
   void SetError(const scada::Status& status);
 
   void NotifyModelChanged();

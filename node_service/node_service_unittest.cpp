@@ -16,6 +16,8 @@
 
 #include <gmock/gmock.h>
 
+#include <unordered_map>
+
 #include "base/debug_util.h"
 
 using namespace testing;
@@ -340,6 +342,49 @@ TEST_F(V3NodeServiceTest, FetchDoesNotMaterializeReferenceNeighborhood) {
 
   // Fetching a node must not create models for its reference neighborhood.
   EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 1u);
+}
+
+// Regression: a children fetch also node-fetches every child, and each
+// child's node fetch pushes a mirror of its parent reference back into the
+// resident parent (OnFetched). The parent's own children-fetch result then
+// reported the same edges again, so tables and trees saw every child twice.
+TEST_F(V3NodeServiceTest, ChildrenReportedOnceAfterNodeAndChildrenFetch) {
+  auto& server_address_space = *this->base_env_.server_address_space;
+
+  this->OpenChannel();
+
+  auto node = this->node_service_->GetNode(server_address_space.kTestNode3Id);
+  node.StartFetch(NodeFetchStatus::NodeAndChildren);
+  this->DrainExecutor();
+
+  ASSERT_TRUE(node.fetched());
+  ASSERT_TRUE(node.children_fetched());
+
+  // targets(HierarchicalReferences) resolves each edge's reference type
+  // against the *fetched* type hierarchy: an unfetched supertype chain
+  // silently fails the subtype match (the production client fetches the
+  // whole type system at login). Fetch the chain the assertion depends on —
+  // HasComponent's match needs both hops (HasComponent → Aggregates →
+  // HierarchicalReferences), while Organizes matches after one.
+  for (const auto& reference_type_id :
+       {scada::id::Organizes, scada::id::HasProperty, scada::id::HasComponent,
+        scada::id::Aggregates}) {
+    this->node_service_->GetNode(reference_type_id)
+        .StartFetch(NodeFetchStatus::NodeOnly);
+  }
+  this->DrainExecutor();
+
+  std::unordered_map<scada::NodeId, int> counts;
+  for (const NodeRef& child :
+       node.targets(scada::id::HierarchicalReferences)) {
+    ++counts[child.node_id()];
+  }
+
+  // TestNode3 organizes TestNode4 and aggregates TestNode5 (plus its two
+  // property declarations) — each must be reported exactly once.
+  EXPECT_THAT(counts, Contains(Key(server_address_space.kTestNode4Id)));
+  EXPECT_THAT(counts, Contains(Key(server_address_space.kTestNode5Id)));
+  EXPECT_THAT(counts, Each(Pair(_, 1)));
 }
 
 TEST_F(V3NodeServiceTest, ServiceObserverSeesEventsForNonResidentNodes) {
