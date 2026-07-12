@@ -99,7 +99,7 @@ class NodeStateReader2 {
 
   template <class T>
   NodeStateReader2& ReadDuration(const scada::NodeId& prop_decl_id,
-                                 Duration& duration) {
+                                 Clock::duration& duration) {
     // Use a separate implementation to avoid overriding current |duration|
     // value if property isn't set.
 
