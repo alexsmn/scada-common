@@ -676,3 +676,68 @@ TEST_F(V3ResidencyTest, ReadReFetchesEvictedNode) {
   EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
 }
 
+// Regression for a use-after-free in v3::NodeModelImpl::OnChildrenFetched.
+//
+// The children-fetch tail runs SetFetchStatus -> NotifyCallbacks, which resumes
+// other fetch coroutines that can, in turn, evict this very model from the
+// keep-alive window and free it. The coroutine held `this` only as a raw
+// pointer guarded by a one-shot `reference_request` check taken *before* the
+// tail, so the model could be freed mid-tail and the remaining notifications
+// touched freed memory (observed as a client SIGSEGV during object-tree
+// expansion under real server latency). The fix pins `self` across the tail.
+//
+// Reproduction: a leaf node fetched NodeAndChildren has empty children, so its
+// tail runs while it sits alone in the 1-slot keep-alive. A fetch-completion
+// callback then touches another node, evicting (and, without the fix, freeing)
+// the leaf while its tail is still executing. Most reliably fails under a
+// sanitizer / libgmalloc; the pin makes it safe in every build.
+class V3ChildrenFetchReentrancyTest : public Test {
+ protected:
+  void DrainExecutor() {
+    for (size_t i = 0; i < 100 && base_env_.executor.GetTaskCount() != 0; ++i)
+      base_env_.executor.Poll();
+  }
+
+  scada::ViewEvents* view_events_ = nullptr;
+
+  BaseNodeServiceTestEnvironment base_env_{
+      .executor = TestExecutor{},
+      .server_address_space = std::make_shared<TestAddressSpace>(),
+      .view_events_provider = [this](scada::ViewEvents& events)
+          -> std::unique_ptr<IViewEventsSubscription> {
+        view_events_ = &events;
+        return std::make_unique<IViewEventsSubscription>();
+      }};
+
+  v3::NodeServiceTestContext context_{base_env_, /*keep_alive_capacity=*/1};
+};
+
+TEST_F(V3ChildrenFetchReentrancyTest, ChildrenFetchTailSurvivesKeepAliveEviction) {
+  auto& server_address_space = *base_env_.server_address_space;
+  auto& node_service = context_.node_service;
+
+  node_service.OnChannelOpened();
+
+  // A reference type has no hierarchical children, so FetchChildren returns
+  // empty and the children-fetch tail runs with the node as the sole keep-alive
+  // entry.
+  const auto leaf = server_address_space.kTestReferenceTypeId;
+  const auto other = server_address_space.kTestNode1Id;
+
+  bool fetch_completed = false;
+  CoSpawn(base_env_.executor, [&]() -> Awaitable<void> {
+    co_await node_service.Fetch(leaf, NodeFetchStatus::NodeAndChildren);
+    // Resumed from inside the leaf's OnChildrenFetched tail (SetFetchStatus ->
+    // NotifyCallbacks). Touching another node evicts the sole keep-alive entry,
+    // freeing the leaf while its tail is still running.
+    node_service.GetNode(other);
+    fetch_completed = true;
+  });
+
+  DrainExecutor();
+
+  // Reaching here without a use-after-free is the regression: the tail must
+  // have survived the re-entrant eviction of its own model.
+  EXPECT_TRUE(fetch_completed);
+}
+

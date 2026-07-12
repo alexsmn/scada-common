@@ -108,8 +108,9 @@ void NodeModelImpl::OnChildrenFetched(
 
   reference_request_ = std::make_shared<bool>(false);
   std::weak_ptr<bool> reference_request = reference_request_;
+  std::weak_ptr<NodeModelImpl> weak_self = weak_from_this();
   CoSpawn(service_.executor_,
-          [reference_request, this, &service = service_,
+          [reference_request, weak_self, this, &service = service_,
            shared_references]() -> Awaitable<void> {
             // Fetch and pin every child target and its reference type. Until
             // the pins are handed to the parent below, they keep the fetched
@@ -129,6 +130,17 @@ void NodeModelImpl::OnChildrenFetched(
             // guards against both a superseding request and the model having
             // been released mid-flight (the flag dies with the model).
             if (!reference_request.lock())
+              co_return;
+
+            // Pin this model for the synchronous tail below. SetFetchStatus
+            // fires NotifyCallbacks, which resumes other fetch coroutines that
+            // can drop the last NodeRef to this model; without a self-pin the
+            // ensuing notifications would touch a freed |this| (a use-after-free
+            // observed as a client crash during object-tree expansion). The pin
+            // is taken only here, not around the fetch loop, so residency while
+            // fetching children is unchanged.
+            auto self = weak_self.lock();
+            if (!self)
               co_return;
 
             child_references_ = *shared_references;
