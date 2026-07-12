@@ -58,8 +58,7 @@ void PendingEvents::FireEvent(const scada::ModelChangeEvent& event) {
   LOG_INFO(service_.logger_) << "Notify node model changed"
                              << LOG_TAG("Event", std::format("{}", event));
 
-  if (auto node_model = service_.GetNodeModel(event.node_id))
-    node_model->signals_.model_changed(event);
+  service_.subscription_table_.EmitModelChanged(event);
 
   service_.NotifyModelChanged(event);
 }
@@ -68,8 +67,7 @@ void PendingEvents::FireEvent(const scada::SemanticChangeEvent& event) {
   LOG_INFO(service_.logger_) << "Notify node semantics changed"
                              << LOG_TAG("Event", std::format("{}", event));
 
-  if (auto node_model = service_.GetNodeModel(event.node_id))
-    node_model->signals_.node_semantic_changed(event.node_id);
+  service_.subscription_table_.EmitNodeSemanticChanged(event.node_id);
 
   service_.NotifySemanticsChanged(event.node_id);
 }
@@ -101,8 +99,9 @@ NodeFetchStatus NodeServiceImpl::GetFetchStatus(const scada::NodeId& node_id) {
   return node ? node->GetFetchStatus() : NodeFetchStatus{};
 }
 
-Awaitable<void> NodeServiceImpl::Fetch(const scada::NodeId& node_id,
-                                       const NodeFetchStatus& requested_status) {
+Awaitable<void> NodeServiceImpl::Fetch(
+    const scada::NodeId& node_id,
+    const NodeFetchStatus& requested_status) {
   auto node = GetNodeModel(node_id);
   if (node)
     co_await node->Fetch(requested_status);
@@ -181,34 +180,34 @@ scada::node NodeServiceImpl::GetScadaNode(const scada::NodeId& node_id) {
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
     const scada::NodeId& node_id,
     const ModelChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeModelChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeModelChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection
 NodeServiceImpl::SubscribeNodeSemanticChanged(
     const scada::NodeId& node_id,
     const NodeSemanticChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeSemanticChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeSemanticChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
     const scada::NodeId& node_id,
     const NodeFetchedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeFetched(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeFetched(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
     const scada::NodeId& node_id,
     const NodeStateChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeStateChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeStateChanged(node_id, callback);
 }
 
 std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
@@ -256,8 +255,10 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (auto i = nodes_.find(event.node_id); i != nodes_.end()) {
     i->second->OnModelChanged(event);
 
-    if (event.verb & scada::ModelChangeEvent::NodeDeleted)
+    if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
+      subscription_table_.EmitModelChanged(event);
       NotifyModelChanged(event);
+    }
   }
 
   if (event.verb & scada::ModelChangeEvent::NodeAdded) {
@@ -303,6 +304,7 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
                     << LOG_TAG("Status", ToString(status))
                     << LOG_TAG("FetchStatus", ToString(fetch_status));
 
+  subscription_table_.EmitNodeFetched({node_id});
   signals_.node_fetched({node_id});
 }
 

@@ -82,9 +82,17 @@ Ownership rules:
   subtree pins, and drops the service's keep-alive pin. Remaining holders
   keep a valid tombstoned model; once they release it, a later `GetNode`
   starts from a fresh model.
-- **Events are decoupled from residency.** Service-wide observers receive
-  remote `ModelChangeEvent`/`SemanticChangeEvent` notifications whether or
-  not the node is resident; only the per-node routing requires a live model.
+- **Events are decoupled from residency.** Node change subscriptions live in
+  the service's `NodeSubscriptionTable` (`node_service/node_subscription_table.h`),
+  keyed by node id and materialized only for nodes with a live subscription —
+  they are no longer stored on the node model. As a result a subscription no
+  longer pins the node's model (or its fetched subtree) resident, and both
+  service-wide and per-node observers receive remote
+  `ModelChangeEvent`/`SemanticChangeEvent` notifications whether or not the
+  node is resident. A subscriber that needs the node's cached state must keep
+  it resident by holding its `NodeRef`. This also removes the fixed
+  four-`signals2`-signal storage every resident node used to carry regardless
+  of whether anyone subscribed.
 
 Diagnostics: `v3::NodeServiceImpl::GetResidentNodeCount()` reports the
 current registry size (used by the residency unit tests).

@@ -862,7 +862,36 @@ TEST_F(V3NodeServiceTest, ServiceObserverSeesEventsForNonResidentNodes) {
   EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
 }
 
-TEST_F(V3NodeServiceTest, NodeDeletedTombstonesResidentModel) {
+TEST_F(V3NodeServiceTest, PerNodeSubscriptionDoesNotPinResidency) {
+  this->OpenChannel();
+
+  // A node that is never fetched, so nothing else keeps it resident.
+  const scada::NodeId node_id{1, 100};
+
+  int model_changes = 0;
+  int semantic_changes = 0;
+  auto model_connection = this->node_service_->SubscribeModelChanged(
+      node_id, [&](const scada::ModelChangeEvent&) { ++model_changes; });
+  auto semantic_connection = this->node_service_->SubscribeNodeSemanticChanged(
+      node_id, [&](const scada::NodeId&) { ++semantic_changes; });
+
+  // Subscribing stores signals in the service's subscription table only; it
+  // must not materialize (or pin) a model for the node.
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+
+  // Remote per-node changes still reach the subscriber even though the node is
+  // not resident, and delivery still does not create a model.
+  this->view_events_->OnModelChanged(scada::ModelChangeEvent{
+      node_id, {}, scada::ModelChangeEvent::ReferenceAdded});
+  this->view_events_->OnNodeSemanticsChanged(
+      scada::SemanticChangeEvent{node_id});
+
+  EXPECT_EQ(model_changes, 1);
+  EXPECT_EQ(semantic_changes, 1);
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
+}
+
+TEST_F(V3NodeServiceTest, NodeDeletedNotifiesPerNodeObservers) {
   auto& server_address_space = *this->base_env_.server_address_space;
   const auto node_id = server_address_space.kTestNode1Id;
 
@@ -880,12 +909,13 @@ TEST_F(V3NodeServiceTest, NodeDeletedTombstonesResidentModel) {
       node_id, {}, scada::ModelChangeEvent::NodeDeleted};
   this->view_events_->OnModelChanged(node_deleted_event);
 
-  // Per-node observers see the deletion; the held model is tombstoned:
-  // still fetched, but with an error status.
+  // Per-node observers receive the deletion even though the subscription no
+  // longer pins the model resident. Because the deletion also drops the
+  // model's keep-alive pin and nothing else holds it (the subscription lives
+  // in the service table, not on the model), the model is then evicted.
   EXPECT_THAT(node_observer.model_change_events,
               ElementsAre(node_deleted_event));
-  EXPECT_TRUE(node.fetched());
-  EXPECT_FALSE(node.status());
+  EXPECT_EQ(this->node_service_->GetResidentNodeCount(), 0u);
 }
 
 TEST_F(V3NodeServiceTest, FetchUnknownNodeReportsError) {
@@ -1076,21 +1106,22 @@ TEST_F(V3ResidencyTest, CursorAloneDoesNotPinNode) {
   EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
 }
 
-// An active subscription keeps the node resident for the connection's lifetime.
-TEST_F(V3ResidencyTest, SubscriptionPinsNodeUntilDisconnected) {
+// A node-scoped subscription does NOT keep the node resident: subscription
+// signals live in the service's NodeSubscriptionTable, decoupled from the
+// model. (Subscribers still receive events for non-resident nodes; see
+// V3NodeServiceTest.PerNodeSubscriptionDoesNotPinResidency.)
+TEST_F(V3ResidencyTest, SubscriptionDoesNotPinNode) {
   auto& server_address_space = *base_env_.server_address_space;
 
   node_service_.OnChannelOpened();
 
   auto node = node_service_.GetNode(server_address_space.kTestNode1Id);
   RecordingNodeObserver observer;
-  observer.Connect(node);  // node-scoped subscriptions pin the model
+  observer.Connect(node);  // node-scoped subscriptions no longer pin the model
   DrainExecutor();
 
-  EXPECT_EQ(node_service_.GetResidentNodeCount(), 1u);
-
-  observer.Disconnect();
-
+  // With the in-flight fetch settled, keep-alive disabled in this fixture, and
+  // the cursor not pinning, nothing keeps the model resident.
   EXPECT_EQ(node_service_.GetResidentNodeCount(), 0u);
 }
 

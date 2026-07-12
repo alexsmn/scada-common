@@ -32,16 +32,11 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
     OnNodeDeleted();
 
     // A deleted node no longer pins its fetched subtree; holders of
-    // previously published snapshots keep their frozen copies.
+    // previously published snapshots keep their frozen copies. The service
+    // emits the per-node model-changed signal via its subscription table.
     child_models_.clear();
     child_references_.clear();
-
-    signals_.model_changed(event);
   }
-}
-
-void NodeModelImpl::OnNodeSemanticChanged() {
-  signals_.node_semantic_changed(node_id_);
 }
 
 void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
@@ -354,8 +349,8 @@ void NodeModelImpl::NotifyModelChanged() {
                                 scada::ModelChangeEvent::ReferenceAdded |
                                     scada::ModelChangeEvent::ReferenceDeleted};
 
-  signals_.model_changed(event);
-
+  // The service emits the per-node signal (via its subscription table) and the
+  // service-wide signal.
   service_.NotifyModelChanged(event);
 }
 
@@ -366,8 +361,6 @@ void NodeModelImpl::NotifySemanticChanged() {
   }
 
   pending_semantic_changed_ = false;
-
-  signals_.node_semantic_changed(node_id_);
 
   service_.NotifySemanticsChanged(node_id_);
 }
@@ -391,8 +384,8 @@ void NodeModelImpl::NotifyStateChanged() {
       node_id_, std::make_shared<const scada::NodeState>(std::move(state)),
       fetch_status_};
 
-  signals_.node_state_changed(event);
-
+  // The service emits the per-node signal (via its subscription table) and the
+  // service-wide signal.
   service_.NotifyNodeStateChanged(event);
 }
 

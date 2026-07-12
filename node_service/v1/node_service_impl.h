@@ -3,6 +3,7 @@
 #include "base/boost_log.h"
 #include "node_service/node_events.h"
 #include "node_service/node_service.h"
+#include "node_service/node_subscription_table.h"
 #include "node_service/v1/address_space_fetcher_factory.h"
 #include "node_service/v1/node_model_impl.h"
 
@@ -80,9 +81,9 @@ class NodeServiceImpl final : private NodeServiceImplContext,
                            const scada::QualifiedName& child_name) override;
   virtual scada::node GetScadaNode(const scada::NodeId& node_id) override;
 
-  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeModelChanged(
-      const scada::NodeId& node_id,
-      const ModelChangedCallback& callback) override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const scada::NodeId& node_id,
+                        const ModelChangedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeNodeSemanticChanged(
       const scada::NodeId& node_id,
@@ -91,9 +92,8 @@ class NodeServiceImpl final : private NodeServiceImplContext,
       const scada::NodeId& node_id,
       const NodeFetchedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeStateChanged(
-      const scada::NodeId& node_id,
-      const NodeStateChangedCallback& callback) override;
+  SubscribeNodeStateChanged(const scada::NodeId& node_id,
+                            const NodeStateChangedCallback& callback) override;
 
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeModelChanged(const ModelChangedCallback& callback) const override;
@@ -129,7 +129,11 @@ class NodeServiceImpl final : private NodeServiceImplContext,
 
   BoostLogger logger_{LOG_NAME("v1::NodeServiceImpl")};
 
+  // Service-wide observers (all nodes).
   NodeSignals signals_;
+
+  // Per-node change subscriptions, materialized only for subscribed nodes.
+  NodeSubscriptionTable subscription_table_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 

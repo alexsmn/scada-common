@@ -48,12 +48,10 @@ class NodeModelImpl final : private NodeModelImplContext,
   ~NodeModelImpl();
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
-  void OnNodeSemanticChanged();
 
   void SetFetchStatus(const scada::Node* node,
                       const scada::Status& status,
                       const NodeFetchStatus& fetch_status);
-  void NotifyFetchStatus();
 
   // NodeModel
   virtual scada::Variant GetAttribute(

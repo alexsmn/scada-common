@@ -68,26 +68,6 @@ NodeFetchStatus BaseNodeModel::GetFetchStatus() const {
   return fetch_status_;
 }
 
-boost::signals2::scoped_connection BaseNodeModel::SubscribeModelChanged(
-    const ModelChangedCallback& callback) const {
-  return signals_.model_changed.connect(callback);
-}
-
-boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeSemanticChanged(
-    const NodeSemanticChangedCallback& callback) const {
-  return signals_.node_semantic_changed.connect(callback);
-}
-
-boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeFetched(
-    const NodeFetchedCallback& callback) const {
-  return signals_.node_fetched.connect(callback);
-}
-
-boost::signals2::scoped_connection BaseNodeModel::SubscribeNodeStateChanged(
-    const NodeStateChangedCallback& callback) const {
-  return signals_.node_state_changed.connect(callback);
-}
-
 void BaseNodeModel::OnFetchRequested(const NodeFetchStatus& requested_status) {}
 
 void BaseNodeModel::OnNodeDeleted() {

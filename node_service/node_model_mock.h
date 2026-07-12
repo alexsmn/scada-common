@@ -55,22 +55,9 @@ class MockNodeModel : public NodeModel {
               (const scada::QualifiedName& child_name),
               (const));
 
-  MOCK_METHOD(boost::signals2::scoped_connection,
-              SubscribeModelChanged,
-              (const ModelChangedCallback& callback),
-              (const));
-  MOCK_METHOD(boost::signals2::scoped_connection,
-              SubscribeNodeSemanticChanged,
-              (const NodeSemanticChangedCallback& callback),
-              (const));
-  MOCK_METHOD(boost::signals2::scoped_connection,
-              SubscribeNodeFetched,
-              (const NodeFetchedCallback& callback),
-              (const));
-  MOCK_METHOD(boost::signals2::scoped_connection,
-              SubscribeNodeStateChanged,
-              (const NodeStateChangedCallback& callback),
-              (const));
+  // Per-node change subscriptions were removed from the NodeModel interface;
+  // they now live in the service's NodeSubscriptionTable (see
+  // node_subscription_table.h).
 
   MOCK_METHOD(scada::node, GetScadaNode, (), (const));
 };

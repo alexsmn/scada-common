@@ -14,15 +14,10 @@ NodeModelImpl::~NodeModelImpl() {
 
 void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   // The node reference must be cleaned up at first, as the observers may access
-  // to the object.
+  // to the object. Signal emission is driven by the service (which owns the
+  // subscription table); this hook only performs the model-side cleanup.
   if (event.verb & scada::ModelChangeEvent::NodeDeleted)
     OnNodeDeleted();
-
-  signals_.model_changed(event);
-}
-
-void NodeModelImpl::OnNodeSemanticChanged() {
-  signals_.node_semantic_changed(node_id_);
 }
 
 scada::Variant NodeModelImpl::GetAttribute(
@@ -168,11 +163,6 @@ void NodeModelImpl::SetFetchStatus(const scada::Node* node,
   node_ = node;
 
   BaseNodeModel::SetFetchStatus(status, fetch_status);
-}
-
-void NodeModelImpl::NotifyFetchStatus() {
-  signals_.node_semantic_changed(node_id_);
-  signals_.node_fetched({node_id_});
 }
 
 void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {

@@ -43,19 +43,10 @@ class NodeModel {
       const scada::NodeId& aggregate_declaration_id) const = 0;
   virtual NodeRef GetChild(const scada::QualifiedName& child_name) const = 0;
 
-  // Notifies about model changes affecting this node.
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeModelChanged(const ModelChangedCallback& callback) const = 0;
-  // Notifies about displayed attribute changes and fetch errors of this node.
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeSemanticChanged(
-      const NodeSemanticChangedCallback& callback) const = 0;
-  // Notifies when a fetch of this node completed.
-  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
-      const NodeFetchedCallback& callback) const = 0;
-  // Notifies after this node model swapped in a new state snapshot.
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeStateChanged(const NodeStateChangedCallback& callback) const = 0;
+  // Change subscriptions are owned by the service, not the node model: they
+  // live in the service's NodeSubscriptionTable so an unsubscribed node costs
+  // no per-node signal storage. See NodeService::Subscribe* and
+  // node_subscription_table.h.
 
   virtual scada::node GetScadaNode() const = 0;
 };

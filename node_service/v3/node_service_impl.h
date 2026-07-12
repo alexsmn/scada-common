@@ -6,6 +6,7 @@
 #include "node_service/node_events.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
+#include "node_service/node_subscription_table.h"
 #include "scada/view_service.h"
 
 #include <list>
@@ -172,7 +173,13 @@ class NodeServiceImpl : private NodeServiceImplContext,
   virtual void OnNodeSemanticsChanged(
       const scada::SemanticChangeEvent& event) override;
 
+  // Service-wide observers (all nodes).
   NodeSignals signals_;
+
+  // Per-node change subscriptions, materialized only for subscribed nodes.
+  // Unlike the pre-table design, a subscription no longer pins the node's
+  // model (and subtree) resident: the table stores signals only.
+  NodeSubscriptionTable subscription_table_;
 
   // Models are owned by their holders (NodeRefs, parents, in-flight fetches,
   // the keep-alive window); the registry only tracks them weakly so unused

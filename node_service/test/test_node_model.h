@@ -96,37 +96,12 @@ class TestNodeModel final : public NodeModel {
     return nullptr;
   }
 
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeModelChanged(const ModelChangedCallback& callback) const override {
-    return signals_.model_changed.connect(callback);
-  }
-
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeSemanticChanged(
-      const NodeSemanticChangedCallback& callback) const override {
-    return signals_.node_semantic_changed.connect(callback);
-  }
-
-  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeNodeFetched(
-      const NodeFetchedCallback& callback) const override {
-    return signals_.node_fetched.connect(callback);
-  }
-
-  [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeStateChanged(
-      const NodeStateChangedCallback& callback) const override {
-    return signals_.node_state_changed.connect(callback);
-  }
-
   virtual scada::node GetScadaNode() const override {
     base::NotReached();
     return {};
   }
 
   scada::NodeState node_state;
-
-  // Exposed so tests can emit node events through the model.
-  NodeSignals signals_;
 
  private:
   TestNodeService* node_service_ = nullptr;

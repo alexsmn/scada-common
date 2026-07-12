@@ -81,8 +81,9 @@ NodeFetchStatus NodeServiceImpl::GetFetchStatus(const scada::NodeId& node_id) {
   return node ? node->GetFetchStatus() : NodeFetchStatus{};
 }
 
-Awaitable<void> NodeServiceImpl::Fetch(const scada::NodeId& node_id,
-                                       const NodeFetchStatus& requested_status) {
+Awaitable<void> NodeServiceImpl::Fetch(
+    const scada::NodeId& node_id,
+    const NodeFetchStatus& requested_status) {
   auto node = GetNodeModel(node_id);
   if (node)
     co_await node->Fetch(requested_status);
@@ -161,34 +162,34 @@ scada::node NodeServiceImpl::GetScadaNode(const scada::NodeId& node_id) {
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
     const scada::NodeId& node_id,
     const ModelChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeModelChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeModelChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection
 NodeServiceImpl::SubscribeNodeSemanticChanged(
     const scada::NodeId& node_id,
     const NodeSemanticChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeSemanticChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeSemanticChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
     const scada::NodeId& node_id,
     const NodeFetchedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeFetched(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeFetched(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
     const scada::NodeId& node_id,
     const NodeStateChangedCallback& callback) {
-  auto node = GetNodeModel(node_id);
-  return node ? node->SubscribeNodeStateChanged(callback)
-              : boost::signals2::scoped_connection{};
+  if (node_id.is_null())
+    return {};
+  return subscription_table_.SubscribeNodeStateChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
@@ -221,6 +222,7 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (auto i = nodes_.find(event.node_id); i != nodes_.end())
     i->second->OnModelChanged(event);
 
+  subscription_table_.EmitModelChanged(event);
   signals_.model_changed(event);
 }
 
@@ -231,8 +233,7 @@ void NodeServiceImpl::OnSemanticChanged(
 
   signals_.node_semantic_changed(event.node_id);
 
-  if (auto i = nodes_.find(event.node_id); i != nodes_.end())
-    i->second->OnNodeSemanticChanged();
+  subscription_table_.EmitNodeSemanticChanged(event.node_id);
 }
 
 void NodeServiceImpl::OnNodeDeleted(const scada::Node& node) {
@@ -278,8 +279,8 @@ void NodeServiceImpl::OnNodeFetchStatusChanged(
 
   // Second: report all statuses.
   for (const auto& [node_id, status, fetch_status] : items) {
-    if (auto i = nodes_.find(node_id); i != nodes_.end())
-      i->second->NotifyFetchStatus();
+    subscription_table_.EmitNodeSemanticChanged(node_id);
+    subscription_table_.EmitNodeFetched({node_id});
 
     signals_.node_fetched({node_id});
     signals_.node_semantic_changed(node_id);

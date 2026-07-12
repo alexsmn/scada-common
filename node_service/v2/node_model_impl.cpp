@@ -39,8 +39,8 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
 
-    signals_.model_changed(event);
-
+    // Per-node signal emission is driven by the service via its subscription
+    // table; this hook only performs the model-side cleanup.
     return;
   }
 
@@ -380,13 +380,10 @@ void NodeModelImpl::OnFetchStatusChanged() {
                              << LOG_TAG("FetchStatus", ToString(fetch_status_));
 
   LOG_INFO(service_.logger_)
-      << "Notify node observers"
-      << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
-  signals_.node_fetched({node_id_});
-
-  LOG_INFO(service_.logger_)
       << "Notify node service from node fetch status change"
       << LOG_TAG("NodeId", NodeIdToScadaString(node_id_));
+  // The service emits the per-node fetched signal (via its subscription table)
+  // and the service-wide signal from OnNodeFetchStatusChanged.
   service_.OnNodeFetchStatusChanged(node_id_, status_, fetch_status_);
 }
 

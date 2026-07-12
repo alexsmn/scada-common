@@ -47,7 +47,6 @@ class NodeModelImpl final : public BaseNodeModel,
   const scada::NodeId& node_id() const SCADA_LIFETIME_BOUND { return node_id_; }
 
   void OnModelChanged(const scada::ModelChangeEvent& event);
-  void OnNodeSemanticChanged();
 
   void OnFetched(const scada::NodeState& node_state);
   void OnFetchCompleted();

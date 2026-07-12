@@ -7,6 +7,7 @@
 #include "node_service/node_events.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
+#include "node_service/node_subscription_table.h"
 #include "remote/view_event_queue.h"
 #include "scada/view_service.h"
 
@@ -124,9 +125,9 @@ class NodeServiceImpl : private NodeServiceImplContext,
                            const scada::QualifiedName& child_name) override;
   virtual scada::node GetScadaNode(const scada::NodeId& node_id) override;
 
-  [[nodiscard]] virtual boost::signals2::scoped_connection SubscribeModelChanged(
-      const scada::NodeId& node_id,
-      const ModelChangedCallback& callback) override;
+  [[nodiscard]] virtual boost::signals2::scoped_connection
+  SubscribeModelChanged(const scada::NodeId& node_id,
+                        const ModelChangedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeNodeSemanticChanged(
       const scada::NodeId& node_id,
@@ -135,9 +136,8 @@ class NodeServiceImpl : private NodeServiceImplContext,
       const scada::NodeId& node_id,
       const NodeFetchedCallback& callback) override;
   [[nodiscard]] virtual boost::signals2::scoped_connection
-  SubscribeNodeStateChanged(
-      const scada::NodeId& node_id,
-      const NodeStateChangedCallback& callback) override;
+  SubscribeNodeStateChanged(const scada::NodeId& node_id,
+                            const NodeStateChangedCallback& callback) override;
 
   [[nodiscard]] virtual boost::signals2::scoped_connection
   SubscribeModelChanged(const ModelChangedCallback& callback) const override;
@@ -176,7 +176,11 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   BoostLogger logger_{LOG_NAME("v2::NodeService")};
 
+  // Service-wide observers (all nodes).
   NodeSignals signals_;
+
+  // Per-node change subscriptions, materialized only for subscribed nodes.
+  NodeSubscriptionTable subscription_table_;
 
   std::map<scada::NodeId, std::shared_ptr<NodeModelImpl>> nodes_;
 

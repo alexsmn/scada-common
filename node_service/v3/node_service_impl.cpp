@@ -137,51 +137,43 @@ scada::node NodeServiceImpl::GetScadaNode(const scada::NodeId& node_id) {
   return node ? node->GetScadaNode() : scada::node{};
 }
 
+// Node-scoped subscriptions live in the service's subscription table, not on
+// the model. Subscribing no longer materializes or pins the node's model:
+// remote change events reach per-node observers through the service's
+// On*/Notify* path regardless of residency (see OnModelChanged /
+// OnNodeSemanticsChanged), and local model-driven notifications only fire while
+// a fetch keeps the model resident anyway.
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeModelChanged(
     const scada::NodeId& node_id,
     const ModelChangedCallback& callback) {
-  auto node = GetNodeModelForRead(node_id);
-  if (!node)
+  if (node_id.is_null())
     return {};
-  // The slot owns a strong ref to the model, so an active subscription keeps
-  // the node resident; releasing the connection drops the slot and the pin.
-  return node->SubscribeModelChanged(
-      [node, callback](const scada::ModelChangeEvent& event) {
-        callback(event);
-      });
+  return subscription_table_.SubscribeModelChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection
 NodeServiceImpl::SubscribeNodeSemanticChanged(
     const scada::NodeId& node_id,
     const NodeSemanticChangedCallback& callback) {
-  auto node = GetNodeModelForRead(node_id);
-  if (!node)
+  if (node_id.is_null())
     return {};
-  return node->SubscribeNodeSemanticChanged(
-      [node, callback](const scada::NodeId& id) { callback(id); });
+  return subscription_table_.SubscribeNodeSemanticChanged(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeFetched(
     const scada::NodeId& node_id,
     const NodeFetchedCallback& callback) {
-  auto node = GetNodeModelForRead(node_id);
-  if (!node)
+  if (node_id.is_null())
     return {};
-  return node->SubscribeNodeFetched(
-      [node, callback](const NodeFetchedEvent& event) { callback(event); });
+  return subscription_table_.SubscribeNodeFetched(node_id, callback);
 }
 
 boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
     const scada::NodeId& node_id,
     const NodeStateChangedCallback& callback) {
-  auto node = GetNodeModelForRead(node_id);
-  if (!node)
+  if (node_id.is_null())
     return {};
-  return node->SubscribeNodeStateChanged(
-      [node, callback](const NodeStateChangedEvent& event) {
-        callback(event);
-      });
+  return subscription_table_.SubscribeNodeStateChanged(node_id, callback);
 }
 
 std::shared_ptr<NodeModelImpl> NodeServiceImpl::GetNodeModel(
@@ -262,15 +254,18 @@ boost::signals2::scoped_connection NodeServiceImpl::SubscribeNodeStateChanged(
 }
 
 void NodeServiceImpl::NotifyModelChanged(const scada::ModelChangeEvent& event) {
+  subscription_table_.EmitModelChanged(event);
   signals_.model_changed(event);
 }
 
 void NodeServiceImpl::NotifySemanticsChanged(const scada::NodeId& node_id) {
+  subscription_table_.EmitNodeSemanticChanged(node_id);
   signals_.node_semantic_changed(node_id);
 }
 
 void NodeServiceImpl::NotifyNodeStateChanged(
     const NodeStateChangedEvent& event) {
+  subscription_table_.EmitNodeStateChanged(event);
   signals_.node_state_changed(event);
 }
 
@@ -303,12 +298,10 @@ void NodeServiceImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void NodeServiceImpl::OnNodeSemanticsChanged(
     const scada::SemanticChangeEvent& event) {
-  // As with OnModelChanged, service-wide observers hear about every remote
-  // semantic change; only the per-node routing requires a resident model.
+  // Service-wide and per-node observers both hear about every remote semantic
+  // change; NotifySemanticsChanged emits the per-node signal via the
+  // subscription table, so no resident model is required for routing.
   NotifySemanticsChanged(event.node_id);
-
-  if (auto node = FindNodeModel(event.node_id))
-    node->OnNodeSemanticChanged();
 }
 
 void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
