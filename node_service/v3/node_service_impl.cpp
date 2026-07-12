@@ -320,11 +320,18 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
 void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
                                  const NodeFetchStatus& requested_status,
                                  std::shared_ptr<NodeModelImpl> model) {
-  if (Includes(requested_status, NodeFetchStatus::NodeOnly)) {
+  // Guard against duplicate in-flight fetches: BaseNodeModel re-requests until
+  // the status is fetched, and the injected NodeFetcher does not dedupe. `insert`
+  // returns false when a fetch is already running for this node, in which case
+  // the requester's callback is already queued on the model and will fire when
+  // that fetch resolves.
+  if (Includes(requested_status, NodeFetchStatus::NodeOnly) &&
+      node_fetch_in_flight_.insert(node_id).second) {
     CoSpawn(executor_,
             [this, fetcher = node_fetcher_, node_id,
              pin = model]() mutable -> Awaitable<void> {
               auto node_state = co_await fetcher->FetchNode(node_id);
+              node_fetch_in_flight_.erase(node_id);
               // The pin keeps the requesting model resident for the duration of
               // the fetch; if it is gone anyway, nobody is interested.
               if (!pin)
@@ -336,11 +343,13 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
               }
             });
   }
-  if (Includes(requested_status, NodeFetchStatus::ChildrenOnly)) {
+  if (Includes(requested_status, NodeFetchStatus::ChildrenOnly) &&
+      children_fetch_in_flight_.insert(node_id).second) {
     CoSpawn(executor_,
             [this, fetcher = node_fetcher_, node_id,
              pin = std::move(model)]() mutable -> Awaitable<void> {
               auto references = co_await fetcher->FetchChildren(node_id);
+              children_fetch_in_flight_.erase(node_id);
               if (!pin)
                 co_return;
               if (references.ok()) {

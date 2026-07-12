@@ -1,20 +1,32 @@
-#include "node_service/v2/node_service_factory.h"
+#include "node_service/v3/node_service_factory.h"
 
-#include "address_space/address_space_impl.h"
-#include "address_space/generic_node_factory.h"
 #include "common/session_proxy_notifier.h"
 #include "node_service/node_service_factory.h"
 #include "node_service/node_service_factory_services.h"
-#include "node_service/v2/node_service_impl.h"
+#include "node_service/v3/node_service_impl.h"
+#include "node_service/v3/service_node_fetcher.h"
+#include "scada/service_context.h"
 
 #include <memory>
 
-namespace v2 {
+namespace v3 {
 
 namespace {
 using node_service::internal::HasRequiredNodeServices;
 using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::ResolvedNodeServices;
+
+// Builds the production coroutine fetcher v3::NodeServiceImpl injects. Like v2's
+// internal NodeFetcherImpl, it runs with a default ServiceContext.
+std::shared_ptr<NodeFetcher> MakeServiceNodeFetcher(
+    scada::ViewService& view_service,
+    scada::AttributeService& attribute_service) {
+  return std::make_shared<ServiceNodeFetcher>(ServiceNodeFetcherContext{
+      .view_service_ = view_service,
+      .attribute_service_ = attribute_service,
+      .service_context_ = scada::ServiceContext{},
+  });
+}
 
 struct NodeServiceHolder {
   explicit NodeServiceHolder(const NodeServiceContext& node_service_context)
@@ -38,31 +50,29 @@ struct NodeServiceHolder {
 
   NodeServiceImplContext MakeNodeServiceImplContext(
       const CoroutineNodeServiceContext& node_service_context) {
-    auto view_events_provider =
-        MakeViewEventsProvider(node_service_context.executor_,
-                               node_service_context.monitored_item_service_);
-
     return NodeServiceImplContext{
-        node_service_context.executor_,
-        node_service_context.view_service_,
-        node_service_context.attribute_service_,
-        node_service_context.monitored_item_service_,
-        view_events_provider,
+        .executor_ = node_service_context.executor_,
+        .monitored_item_service_ = node_service_context.monitored_item_service_,
+        .node_fetcher_ =
+            MakeServiceNodeFetcher(node_service_context.view_service_,
+                                   node_service_context.attribute_service_),
+        .view_events_provider_ = MakeViewEventsProvider(
+            node_service_context.executor_,
+            node_service_context.monitored_item_service_),
     };
   }
 
   NodeServiceImplContext MakeNodeServiceImplContext(
       const DataServicesNodeServiceContext& node_service_context) {
-    auto view_events_provider =
-        MakeViewEventsProvider(node_service_context.executor_,
-                               *resolved_services->monitored_item_service);
-
     return NodeServiceImplContext{
-        node_service_context.executor_,
-        *resolved_services->view_service,
-        *resolved_services->attribute_service,
-        *resolved_services->monitored_item_service,
-        view_events_provider,
+        .executor_ = node_service_context.executor_,
+        .monitored_item_service_ = *resolved_services->monitored_item_service,
+        .node_fetcher_ =
+            MakeServiceNodeFetcher(*resolved_services->view_service,
+                                   *resolved_services->attribute_service),
+        .view_events_provider_ = MakeViewEventsProvider(
+            node_service_context.executor_,
+            *resolved_services->monitored_item_service),
     };
   }
 
@@ -96,4 +106,4 @@ std::shared_ptr<NodeService> CreateNodeService(
   return std::shared_ptr<NodeService>{context, &context->node_service};
 }
 
-}  // namespace v2
+}  // namespace v3

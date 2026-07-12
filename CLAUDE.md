@@ -28,16 +28,14 @@ scada_core (external)          express (external)
     ├──────────┐                   │
     ▼          ▼                   │
 address_space  scada_common ◄──────┘
-    │              │
-    │    ┌─────────┼──────────┐
-    │    ▼         ▼          ▼
-    │  events   node_service  timed_data
-    │              │
-    │    ┌────┬────┼────┐
-    │    ▼    ▼    ▼    ▼
-    │   v1   v2   v3  proxy
-    │    │
-    └────┘
+                   │
+         ┌─────────┼──────────┐
+         ▼         ▼          ▼
+       events   node_service  timed_data
+                   │
+              ┌────┴────┐
+              ▼         ▼
+             v3       proxy
 ```
 
 | Module | CMake Target | Description |

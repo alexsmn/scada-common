@@ -77,26 +77,22 @@ std::shared_ptr<NodeService> CreateCoroutineFactoryNodeService(
     TestAddressSpace& address_space,
     scada::SessionService& session_service,
     scada::MonitoredItemService& monitored_item_service,
-    TestExecutor& executor,
-    bool use_v2) {
-  return CreateNodeService(
-      CoroutineNodeServiceContext{
-          .executor_ = executor,
-          .service_context_ = scada::ServiceContext{},
-          .session_service_ = session_service,
-          .attribute_service_ = address_space.attribute_service_impl,
-          .view_service_ = address_space.view_service_impl,
-          .monitored_item_service_ = monitored_item_service,
-          .scada_client_ = {}},
-      use_v2);
+    TestExecutor& executor) {
+  return CreateNodeService(CoroutineNodeServiceContext{
+      .executor_ = executor,
+      .service_context_ = scada::ServiceContext{},
+      .session_service_ = session_service,
+      .attribute_service_ = address_space.attribute_service_impl,
+      .view_service_ = address_space.view_service_impl,
+      .monitored_item_service_ = monitored_item_service,
+      .scada_client_ = {}});
 }
 
 std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
     TestAddressSpace& address_space,
     scada::SessionService& session_service,
     scada::MonitoredItemService& monitored_item_service,
-    TestExecutor& executor,
-    bool use_v2) {
+    TestExecutor& executor) {
   DataServices data_services;
   data_services.session_service_ = std::shared_ptr<scada::SessionService>{
       std::shared_ptr<void>{}, &session_service};
@@ -113,8 +109,7 @@ std::shared_ptr<NodeService> CreateDataServicesFactoryNodeService(
           .executor_ = executor,
           .service_context_ = scada::ServiceContext{},
           .data_services_ = std::move(data_services),
-          .scada_client_ = {}},
-      use_v2);
+          .scada_client_ = {}});
 }
 
 std::shared_ptr<NodeService> CreateLegacyFactoryNodeService(
@@ -123,8 +118,7 @@ std::shared_ptr<NodeService> CreateLegacyFactoryNodeService(
     scada::ViewService& view_service,
     scada::MonitoredItemService& monitored_item_service,
     scada::MethodService& method_service,
-    TestExecutor& executor,
-    bool use_v2) {
+    TestExecutor& executor) {
   return CreateNodeService(
       NodeServiceContext{.executor_ = executor,
                          .service_context_ = scada::ServiceContext{},
@@ -133,8 +127,7 @@ std::shared_ptr<NodeService> CreateLegacyFactoryNodeService(
                          .view_service_ = view_service,
                          .monitored_item_service_ = monitored_item_service,
                          .method_service_ = method_service,
-                         .scada_client_ = {}},
-      use_v2);
+                         .scada_client_ = {}});
 }
 
 void ExpectFetchesNode(TestAddressSpace& address_space,
@@ -155,35 +148,35 @@ void ExpectFetchesNode(TestAddressSpace& address_space,
             address_space.kTestNode3Id);
 }
 
-void ExpectCoroutineFactoryFetchesNode(bool use_v2) {
+void ExpectCoroutineFactoryFetchesNode() {
   TestExecutor executor;
   TestAddressSpace address_space;
   TestSessionService session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   const auto node_service = CreateCoroutineFactoryNodeService(
-      address_space, session_service, monitored_item_service, executor, use_v2);
+      address_space, session_service, monitored_item_service, executor);
 
   ExpectFetchesNode(address_space, *node_service, executor);
   EXPECT_EQ(session_service.subscribe_count, 1);
   EXPECT_EQ(session_service.is_connected_count, 1);
 }
 
-void ExpectDataServicesFactoryFetchesNode(bool use_v2) {
+void ExpectDataServicesFactoryFetchesNode() {
   TestExecutor executor;
   TestAddressSpace address_space;
   TestSessionService session_service;
   NiceMock<scada::MockMonitoredItemService> monitored_item_service;
 
   const auto node_service = CreateDataServicesFactoryNodeService(
-      address_space, session_service, monitored_item_service, executor, use_v2);
+      address_space, session_service, monitored_item_service, executor);
 
   ExpectFetchesNode(address_space, *node_service, executor);
   EXPECT_EQ(session_service.subscribe_count, 1);
   EXPECT_EQ(session_service.is_connected_count, 1);
 }
 
-void ExpectLegacyFactoryFetchesNode(bool use_v2) {
+void ExpectLegacyFactoryFetchesNode() {
   TestExecutor executor;
   TestAddressSpace address_space;
   StrictMock<scada::MockSessionService> session_service;
@@ -201,25 +194,17 @@ void ExpectLegacyFactoryFetchesNode(bool use_v2) {
   const auto node_service = CreateLegacyFactoryNodeService(
       session_service, address_space.attribute_service_impl,
       address_space.view_service_impl, monitored_item_service, method_service,
-      executor, use_v2);
+      executor);
 
   ExpectFetchesNode(address_space, *node_service, executor);
 }
 
-TEST(NodeServiceFactory, V1CoroutineContextFetchesThroughCoroutineServices) {
-  ExpectCoroutineFactoryFetchesNode(/*use_v2=*/false);
+TEST(NodeServiceFactory, CoroutineContextFetchesThroughCoroutineServices) {
+  ExpectCoroutineFactoryFetchesNode();
 }
 
-TEST(NodeServiceFactory, V2CoroutineContextFetchesThroughCoroutineServices) {
-  ExpectCoroutineFactoryFetchesNode(/*use_v2=*/true);
-}
-
-TEST(NodeServiceFactory, V1DataServicesContextFetchesThroughCoroutineSlots) {
-  ExpectDataServicesFactoryFetchesNode(/*use_v2=*/false);
-}
-
-TEST(NodeServiceFactory, V2DataServicesContextFetchesThroughCoroutineSlots) {
-  ExpectDataServicesFactoryFetchesNode(/*use_v2=*/true);
+TEST(NodeServiceFactory, DataServicesContextFetchesThroughCoroutineSlots) {
+  ExpectDataServicesFactoryFetchesNode();
 }
 
 TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
@@ -245,16 +230,11 @@ TEST(NodeServiceFactory, DataServicesContextRequiresAttributeService) {
         .scada_client_ = {}};
   };
 
-  EXPECT_EQ(nullptr, CreateNodeService(make_context(), /*use_v2=*/false));
-  EXPECT_EQ(nullptr, CreateNodeService(make_context(), /*use_v2=*/true));
+  EXPECT_EQ(nullptr, CreateNodeService(make_context()));
 }
 
-TEST(NodeServiceFactory, V1LegacyContextNormalizesToDataServicesAdapters) {
-  ExpectLegacyFactoryFetchesNode(/*use_v2=*/false);
-}
-
-TEST(NodeServiceFactory, V2LegacyContextNormalizesToDataServicesAdapters) {
-  ExpectLegacyFactoryFetchesNode(/*use_v2=*/true);
+TEST(NodeServiceFactory, LegacyContextNormalizesToDataServicesAdapters) {
+  ExpectLegacyFactoryFetchesNode();
 }
 
 TEST(NodeServiceFactory, LegacyContextHelperNormalizesToDataServices) {

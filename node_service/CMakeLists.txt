@@ -30,18 +30,19 @@ endif()
 
 # Implementations.
 
-add_subdirectory(v1)
-add_subdirectory(v2)
 add_subdirectory(v3)
 add_subdirectory(proxy)
 
 # Link implementations to common UTs.
 
 target_link_libraries(node_service_unittests PUBLIC
-  node_service_v1
-  node_service_v2
   node_service_v3
   node_service_proxy
+  # The test fixtures build a real address space (TestAddressSpace,
+  # AddressSpaceImpl, ViewServiceImpl) and MakeNodeStates. This used to be
+  # pulled in transitively through node_service_v1 (the only impl that kept an
+  # address-space mirror); link it directly now that v1 is gone.
+  address_space
 )
 
 if(MSVC)

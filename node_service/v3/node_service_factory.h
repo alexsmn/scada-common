@@ -7,7 +7,7 @@ struct CoroutineNodeServiceContext;
 struct DataServicesNodeServiceContext;
 struct NodeServiceContext;
 
-namespace v2 {
+namespace v3 {
 
 std::shared_ptr<NodeService> CreateNodeService(
     const NodeServiceContext& context);
@@ -18,4 +18,4 @@ std::shared_ptr<NodeService> CreateNodeService(
 std::shared_ptr<NodeService> CreateNodeService(
     DataServicesNodeServiceContext&& context);
 
-}  // namespace v2
+}  // namespace v3

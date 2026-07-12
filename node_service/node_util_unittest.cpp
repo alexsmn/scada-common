@@ -8,7 +8,7 @@
 #include "address_space/test/scada_test_address_space.h"
 #include "model/devices_node_ids.h"
 #include "model/namespaces.h"
-#include "node_service/v1/test/test_node_service.h"
+#include "node_service/test/create_test_node_service.h"
 
 #include <gmock/gmock.h>
 
@@ -34,7 +34,7 @@ TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
   scada::AddReference(address_space, scada::id::HasTypeDefinition, model_id,
                       devices::id::Iec61850LogicalNodeType);
 
-  auto node_service = v1::CreateTestNodeService(address_space);
+  auto node_service = node_service::test::CreateTestNodeService(address_space);
 
   const std::u16string expected_full_display_name =
       u"DeviceDisplayName : ModelDisplayName";

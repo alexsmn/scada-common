@@ -1,25 +1,18 @@
 #include "node_service/node_service_factory.h"
 
-#include "node_service/v1/node_service_factory.h"
-#include "node_service/v2/node_service_factory.h"
+#include "node_service/v3/node_service_factory.h"
 
 std::shared_ptr<NodeService> CreateNodeService(
-    const NodeServiceContext& context,
-    bool use_v2) {
-  return use_v2 ? v2::CreateNodeService(context)
-                : v1::CreateNodeService(context);
+    const NodeServiceContext& context) {
+  return v3::CreateNodeService(context);
 }
 
 std::shared_ptr<NodeService> CreateNodeService(
-    const CoroutineNodeServiceContext& context,
-    bool use_v2) {
-  return use_v2 ? v2::CreateNodeService(context)
-                : v1::CreateNodeService(context);
+    const CoroutineNodeServiceContext& context) {
+  return v3::CreateNodeService(context);
 }
 
 std::shared_ptr<NodeService> CreateNodeService(
-    DataServicesNodeServiceContext&& context,
-    bool use_v2) {
-  return use_v2 ? v2::CreateNodeService(std::move(context))
-                : v1::CreateNodeService(std::move(context));
+    DataServicesNodeServiceContext&& context) {
+  return v3::CreateNodeService(std::move(context));
 }

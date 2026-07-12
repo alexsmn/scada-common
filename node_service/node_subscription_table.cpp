@@ -27,7 +27,7 @@ boost::signals2::scoped_connection NodeSubscriptionTable::SubscribeModelChanged(
   auto entry = Ensure(node_id);
   // Capture the entry into the slot so it stays resident exactly while this
   // (or any sibling) subscription is live; the last release erases the entry.
-  return entry->signals.model_changed.connect(
+  return entry->signals_.model_changed.connect(
       [entry, callback](const scada::ModelChangeEvent& event) {
         callback(event);
       });
@@ -38,7 +38,7 @@ NodeSubscriptionTable::SubscribeNodeSemanticChanged(
     const scada::NodeId& node_id,
     const NodeSemanticChangedCallback& callback) {
   auto entry = Ensure(node_id);
-  return entry->signals.node_semantic_changed.connect(
+  return entry->signals_.node_semantic_changed.connect(
       [entry, callback](const scada::NodeId& changed_id) {
         callback(changed_id);
       });
@@ -48,7 +48,7 @@ boost::signals2::scoped_connection NodeSubscriptionTable::SubscribeNodeFetched(
     const scada::NodeId& node_id,
     const NodeFetchedCallback& callback) {
   auto entry = Ensure(node_id);
-  return entry->signals.node_fetched.connect(
+  return entry->signals_.node_fetched.connect(
       [entry, callback](const NodeFetchedEvent& event) { callback(event); });
 }
 
@@ -57,7 +57,7 @@ NodeSubscriptionTable::SubscribeNodeStateChanged(
     const scada::NodeId& node_id,
     const NodeStateChangedCallback& callback) {
   auto entry = Ensure(node_id);
-  return entry->signals.node_state_changed.connect(
+  return entry->signals_.node_state_changed.connect(
       [entry, callback](const NodeStateChangedEvent& event) {
         callback(event);
       });
@@ -69,22 +69,22 @@ void NodeSubscriptionTable::EmitModelChanged(
   // callback that releases its own connection cannot destroy the signal
   // mid-emission.
   if (auto entry = Find(event.node_id))
-    entry->signals.model_changed(event);
+    entry->signals_.model_changed(event);
 }
 
 void NodeSubscriptionTable::EmitNodeSemanticChanged(
     const scada::NodeId& node_id) {
   if (auto entry = Find(node_id))
-    entry->signals.node_semantic_changed(node_id);
+    entry->signals_.node_semantic_changed(node_id);
 }
 
 void NodeSubscriptionTable::EmitNodeFetched(const NodeFetchedEvent& event) {
   if (auto entry = Find(event.node_id))
-    entry->signals.node_fetched(event);
+    entry->signals_.node_fetched(event);
 }
 
 void NodeSubscriptionTable::EmitNodeStateChanged(
     const NodeStateChangedEvent& event) {
   if (auto entry = Find(event.node_id))
-    entry->signals.node_state_changed(event);
+    entry->signals_.node_state_changed(event);
 }

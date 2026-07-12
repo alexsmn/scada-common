@@ -63,7 +63,10 @@ class NodeSubscriptionTable {
   struct Entry {
     NodeSubscriptionTable* owner;
     scada::NodeId node_id;
-    NodeSignals signals;
+    // Note the trailing underscore: `signals` is a Qt keyword macro
+    // (`#define signals public`), and this header is included by Qt client
+    // code through v3::NodeServiceImpl.
+    NodeSignals signals_;
 
     ~Entry() { owner->entries_.erase(node_id); }
   };

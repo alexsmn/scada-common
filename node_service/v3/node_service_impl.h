@@ -10,6 +10,7 @@
 #include "scada/view_service.h"
 
 #include <list>
+#include <set>
 #include <unordered_map>
 
 namespace scada {
@@ -202,6 +203,15 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   bool channel_opened_ = false;
   std::map<scada::NodeId, PendingNodeFetch> pending_fetch_nodes_;
+
+  // Nodes with a fetch coroutine currently in flight. BaseNodeModel re-requests
+  // a fetch on every StartFetch until the status is fetched; because the
+  // injected NodeFetcher is stateless (unlike v2's self-deduping
+  // NodeFetcherImpl), without this guard a slow/asynchronous fetch would spawn a
+  // duplicate coroutine per call, and each duplicate result would re-run the
+  // fetched-node notification path. Entries are cleared when the fetch resolves.
+  std::set<scada::NodeId> node_fetch_in_flight_;
+  std::set<scada::NodeId> children_fetch_in_flight_;
 
   std::unique_ptr<IViewEventsSubscription> view_events_subscription_;
 

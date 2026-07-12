@@ -49,14 +49,10 @@ struct DataServicesNodeServiceContext {
   scada::client scada_client_;
 };
 
-std::shared_ptr<NodeService> CreateNodeService(
-    const NodeServiceContext& context,
-    bool use_v2 = false);
+std::shared_ptr<NodeService> CreateNodeService(const NodeServiceContext& context);
 
 std::shared_ptr<NodeService> CreateNodeService(
-    const CoroutineNodeServiceContext& context,
-    bool use_v2 = false);
+    const CoroutineNodeServiceContext& context);
 
 std::shared_ptr<NodeService> CreateNodeService(
-    DataServicesNodeServiceContext&& context,
-    bool use_v2 = false);
+    DataServicesNodeServiceContext&& context);
