@@ -7,7 +7,7 @@
 
 using namespace testing;
 
-namespace opc {
+namespace scada::opc {
 
 // GTest requires test parameters to be copyable.
 using TestParam =
@@ -85,4 +85,4 @@ TEST_P(VariantConverterTest, ConvertBackwardAndForward) {
   // ASSERT_EQ(*backward_result, win_variant);
 }
 
-}  // namespace opc
+}  // namespace scada::opc

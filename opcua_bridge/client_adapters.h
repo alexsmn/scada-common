@@ -21,7 +21,8 @@
 #include <span>
 #include <vector>
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 class ClientSessionServiceAdapter : public scada::SessionService {
  public:
@@ -235,4 +236,4 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
     scada::LocalizedText user_name,
     scada::LocalizedText password);
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

@@ -8,7 +8,7 @@
 #include <opcda.h>
 #include <opcerror.h>
 
-namespace opc {
+namespace scada::opc {
 
 namespace {
 
@@ -140,4 +140,4 @@ DATE ToDATE(const FILETIME& file_time) {
   return opc_client::ToDATE(file_time);
 }
 
-}  // namespace opc
+}  // namespace scada::opc

@@ -11,7 +11,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 template <class T>
 auto ToOpcuaVector(const std::vector<T>& in) {
@@ -48,4 +49,4 @@ auto ToScada(const opcua::StatusOr<std::vector<T>>& s) -> scada::StatusOr<
   return ToScadaVector(*s);
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

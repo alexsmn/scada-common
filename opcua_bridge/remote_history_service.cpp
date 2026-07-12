@@ -14,7 +14,7 @@ import scada.core;
 #include "scada/variant.h"
 #endif
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 namespace {
 
 // OPC UA Part 5 §6.3.1: Server_ServiceLevel, the standard health indicator a
@@ -129,4 +129,4 @@ RemoteHistoryService::HistoryUpdateEvent(scada::ServiceContext context,
   return adapter_.HistoryUpdateEvent(std::move(context), std::move(details));
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

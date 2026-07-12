@@ -5,7 +5,8 @@
 
 #include <optional>
 
-namespace vidicon {
+#include "vidicon/vidicon_compat.h"
+namespace scada::vidicon {
 
 extern const scada::NodeId kVidiconRootNodeId;
 extern const scada::NodeId kVidiconRootFileNodeId;
@@ -22,4 +23,4 @@ scada::NodeId MakeVidiconNodeId(VidiconObjectId object_id);
 bool IsVidiconFileNodeId(const scada::NodeId& node_id);
 scada::NodeId MakeVidiconFileNodeId(VidiconFileId vidicon_file_id);
 
-}  // namespace vidicon
+}  // namespace scada::vidicon

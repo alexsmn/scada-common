@@ -12,7 +12,7 @@
 #include <optional>
 #include <variant>
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 namespace {
 
 // A core ViewService that records the (converted) request it receives and
@@ -162,4 +162,4 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
 }
 
 }  // namespace
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

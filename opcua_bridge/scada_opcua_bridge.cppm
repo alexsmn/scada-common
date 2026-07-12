@@ -25,36 +25,36 @@ export import scada.core;
 export namespace opcua_bridge {
 
 // client_adapters.h
-using opcua_bridge::ClientAttributeServiceAdapter;
-using opcua_bridge::ClientHistoryServiceAdapter;
-using opcua_bridge::ClientMethodServiceAdapter;
-using opcua_bridge::ClientMonitoredItemServiceAdapter;
-using opcua_bridge::ClientMonitoredItemSubscriptionAdapter;
-using opcua_bridge::ClientNodeManagementServiceAdapter;
-using opcua_bridge::ClientSessionServiceAdapter;
-using opcua_bridge::ClientViewServiceAdapter;
+using scada::opcua_bridge::ClientAttributeServiceAdapter;
+using scada::opcua_bridge::ClientHistoryServiceAdapter;
+using scada::opcua_bridge::ClientMethodServiceAdapter;
+using scada::opcua_bridge::ClientMonitoredItemServiceAdapter;
+using scada::opcua_bridge::ClientMonitoredItemSubscriptionAdapter;
+using scada::opcua_bridge::ClientNodeManagementServiceAdapter;
+using scada::opcua_bridge::ClientSessionServiceAdapter;
+using scada::opcua_bridge::ClientViewServiceAdapter;
 
 // server_adapters.h
-using opcua_bridge::AttributeServiceAdapter;
-using opcua_bridge::AuthenticatorAdapter;
-using opcua_bridge::HistoryServiceAdapter;
-using opcua_bridge::HistoryUpdateServiceAdapter;
-using opcua_bridge::MethodServiceAdapter;
-using opcua_bridge::MonitoredItemServiceAdapter;
-using opcua_bridge::MonitoredItemSubscriptionAdapter;
-using opcua_bridge::NodeManagementServiceAdapter;
-using opcua_bridge::ServerServiceAdapters;
-using opcua_bridge::ViewServiceAdapter;
+using scada::opcua_bridge::AttributeServiceAdapter;
+using scada::opcua_bridge::AuthenticatorAdapter;
+using scada::opcua_bridge::HistoryServiceAdapter;
+using scada::opcua_bridge::HistoryUpdateServiceAdapter;
+using scada::opcua_bridge::MethodServiceAdapter;
+using scada::opcua_bridge::MonitoredItemServiceAdapter;
+using scada::opcua_bridge::MonitoredItemSubscriptionAdapter;
+using scada::opcua_bridge::NodeManagementServiceAdapter;
+using scada::opcua_bridge::ServerServiceAdapters;
+using scada::opcua_bridge::ViewServiceAdapter;
 
 // remote_history_service.h
-using opcua_bridge::RemoteHistoryService;
-using opcua_bridge::RemoteHistoryServiceConfig;
+using scada::opcua_bridge::RemoteHistoryService;
+using scada::opcua_bridge::RemoteHistoryServiceConfig;
 
 // conversion.h / service_conversion.h / vector_conversion.h: the whole
 // ToOpcua/ToScada overload sets (exported once, after all GMF includes).
-using opcua_bridge::ToOpcua;
-using opcua_bridge::ToOpcuaVector;
-using opcua_bridge::ToScada;
-using opcua_bridge::ToScadaVector;
+using scada::opcua_bridge::ToOpcua;
+using scada::opcua_bridge::ToOpcuaVector;
+using scada::opcua_bridge::ToScada;
+using scada::opcua_bridge::ToScadaVector;
 
 }  // namespace opcua_bridge

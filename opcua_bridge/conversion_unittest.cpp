@@ -13,7 +13,7 @@
 
 #include <gtest/gtest.h>
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 namespace {
 
 // Round-trips a scada value through opcua and back; the result must equal the
@@ -226,4 +226,4 @@ TEST(ConversionTest, MonitoringFilterAggregateRoundTrip) {
 }
 
 }  // namespace
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

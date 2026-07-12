@@ -5,7 +5,7 @@
 #include "scada/read_value_id.h"
 #include "scada/standard_node_ids.h"
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 
 namespace {
 
@@ -342,4 +342,4 @@ Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
   co_return level;
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

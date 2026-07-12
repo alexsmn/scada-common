@@ -10,7 +10,7 @@
 #include <any>
 #include <variant>
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 namespace {
 
 // Parses the EventFilter select-clause browse paths from a wire monitoring
@@ -475,4 +475,4 @@ AuthenticatorAdapter::Authenticate(opcua::LocalizedText user_name,
   co_return ToOpcua(*result);
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

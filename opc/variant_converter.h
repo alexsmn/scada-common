@@ -5,7 +5,8 @@
 
 #include <optional>
 
-namespace opc {
+#include "opc/opc_compat.h"
+namespace scada::opc {
 
 class VariantConverter {
  public:
@@ -17,4 +18,4 @@ class VariantConverter {
   static std::optional<scada::Variant> ToScada(const VARIANT& variant);
 };
 
-}  // namespace opc
+}  // namespace scada::opc

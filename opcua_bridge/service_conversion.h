@@ -38,7 +38,8 @@
 #include "opcua/types/read_value_id.h"
 #include "opcua/types/write_flags.h"
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 // --- enums (identical underlying values) --------------------------------
 inline opcua::AttributeId ToOpcua(scada::AttributeId v) {
@@ -232,4 +233,4 @@ inline scada::AuthenticationResult ToScada(
           .multi_sessions = v.multi_sessions};
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

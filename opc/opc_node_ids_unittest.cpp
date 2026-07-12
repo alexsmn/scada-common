@@ -8,7 +8,7 @@
 
 using namespace testing;
 
-namespace opc {
+namespace scada::opc {
 
 TEST(ParseOpcNodeId, ServerNode) {
   EXPECT_THAT(ParseOpcNodeId(MakeOpcServerNodeId(L"Server.Prog.ID")),
@@ -74,4 +74,4 @@ TEST(OpcNodeIds, GetOpcCustomParentItemId) {
             L"RootBranch.ChildBranch");
 }
 
-}  // namespace opc
+}  // namespace scada::opc

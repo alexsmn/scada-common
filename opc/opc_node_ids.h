@@ -5,7 +5,8 @@
 #include <opc_client/core/address.h>
 #include <optional>
 
-namespace opc {
+#include "opc/opc_compat.h"
+namespace scada::opc {
 
 // WARNING: This method must be very performant, as a service locator may invoke
 // it for each requested node.
@@ -39,4 +40,4 @@ std::wstring_view GetOpcItemName(std::wstring_view item_id);
 
 std::wstring_view GetOpcCustomParentItemId(std::wstring_view item_id);
 
-}  // namespace opc
+}  // namespace scada::opc

@@ -9,7 +9,7 @@
 
 #include <boost/locale/encoding_utf.hpp>
 
-namespace vidicon {
+namespace scada::vidicon {
 
 const scada::NodeId kVidiconRootNodeId = data_items::id::DataItems;
 const scada::NodeId kVidiconRootFileNodeId = filesystem::id::FileSystem;
@@ -66,4 +66,4 @@ scada::NodeId MakeVidiconFileNodeId(VidiconFileId vidicon_file_id) {
              : scada::NodeId{vidicon_file_id, NamespaceIndexes::VIDICON_FILE};
 }
 
-}  // namespace vidicon
+}  // namespace scada::vidicon

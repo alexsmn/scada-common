@@ -9,7 +9,7 @@
 #include <any>
 #include <variant>
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 
 opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
   return opcua::ServiceContext{}
@@ -601,4 +601,4 @@ scada::SessionConnectParams ToScada(const opcua::SessionConnectParams& v) {
           .security = ToScada(v.security)};
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

@@ -7,7 +7,7 @@
 #include "base/utf_convert.h"
 #include <opc_client/core/address.h>
 
-namespace opc {
+namespace scada::opc {
 
 namespace {
 const wchar_t kOpcPathDelimiter = L'\\';
@@ -49,4 +49,4 @@ std::wstring_view GetOpcCustomParentItemId(std::wstring_view item_id) {
   return p == item_id.npos ? std::wstring_view{} : item_id.substr(0, p);
 }
 
-}  // namespace opc
+}  // namespace scada::opc

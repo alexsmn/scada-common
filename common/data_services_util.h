@@ -2,7 +2,8 @@
 
 #include "scada/data_services.h"
 
-namespace data_services {
+#include "common/common_compat.h"
+namespace scada::data_services {
 
 template <typename Service>
 std::shared_ptr<Service> Unowned(Service& service) {
@@ -20,4 +21,4 @@ inline DataServices FromUnownedServices(const scada::services& services) {
   return DataServices::FromUnownedServices(services);
 }
 
-}  // namespace data_services
+}  // namespace scada::data_services

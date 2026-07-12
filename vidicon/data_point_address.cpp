@@ -3,7 +3,7 @@
 #include "base/format.h"
 #include "base/utf_convert.h"
 
-namespace vidicon {
+namespace scada::vidicon {
 
 std::optional<DataPointAddress> ParseDataPointAddress(std::wstring_view str) {
   if (str.starts_with(L"AE:")) {
@@ -27,4 +27,4 @@ std::optional<DataPointAddress> ParseDataPointAddress(std::wstring_view str) {
   return DataPointAddress{.opc_address = std::wstring{str}};
 }
 
-}  // namespace vidicon
+}  // namespace scada::vidicon

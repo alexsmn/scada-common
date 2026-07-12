@@ -4,7 +4,7 @@
 
 using namespace testing;
 
-namespace vidicon {
+namespace scada::vidicon {
 
 TEST(DataPointAddress, ParseOpcDaAddress) {
   EXPECT_EQ(
@@ -24,4 +24,4 @@ TEST(DataPointAddress, ParseVidiconAddress) {
             DataPointAddress{.object_id = 456});
 }
 
-}  // namespace vidicon
+}  // namespace scada::vidicon

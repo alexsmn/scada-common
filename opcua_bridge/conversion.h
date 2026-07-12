@@ -30,7 +30,8 @@
 #include <limits>
 #include <vector>
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 // --- enums --------------------------------------------------------------
 // Core uses SCADA-internal StatusCode values; opcuapp uses the standard OPC UA
@@ -184,4 +185,4 @@ scada::DataValue ToScada(const opcua::DataValue&);
 // overloads are declared, so ordinary lookup inside the template sees every
 // element converter.
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

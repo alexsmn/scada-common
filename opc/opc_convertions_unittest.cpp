@@ -8,7 +8,7 @@
 
 using namespace testing;
 
-namespace opc {
+namespace scada::opc {
 
 TEST(OpcErrorConverter, ToScada) {
   EXPECT_EQ(scada::StatusCode::Good, OpcErrorConverter::ToScada(S_OK));
@@ -115,4 +115,4 @@ TEST(OpcDataValueConverter, ToOpc) {
   EXPECT_EQ(opc_data_value.status, S_OK);
 }
 
-}  // namespace opc
+}  // namespace scada::opc

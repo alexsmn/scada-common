@@ -34,7 +34,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 class AttributeServiceAdapter {
  public:
@@ -276,4 +277,4 @@ struct ServerServiceAdapters {
   opcua::ServiceCallbacks callbacks_;
 };
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

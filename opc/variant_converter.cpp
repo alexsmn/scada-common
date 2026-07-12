@@ -2,7 +2,7 @@
 
 #include "base/utf_convert.h"
 
-namespace opc {
+namespace scada::opc {
 
 namespace {
 
@@ -118,4 +118,4 @@ std::optional<scada::Variant> VariantConverter::ToScada(const VARIANT& value) {
   return ConvertScalarToScada(value);
 }
 
-}  // namespace opc
+}  // namespace scada::opc

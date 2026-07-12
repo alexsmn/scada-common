@@ -105,9 +105,9 @@ using scada::service_resolver::ResolveCoroutineServiceShared;
 export namespace data_services {
 
 // data_services_util.h
-using data_services::FromUnownedServices;
-using data_services::HasServices;
-using data_services::Unowned;
+using scada::data_services::FromUnownedServices;
+using scada::data_services::HasServices;
+using scada::data_services::Unowned;
 
 }  // namespace data_services
 

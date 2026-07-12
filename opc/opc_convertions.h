@@ -6,7 +6,8 @@
 #include <opc_client/core/data_value.h>
 #include <optional>
 
-namespace opc {
+#include "opc/opc_compat.h"
+namespace scada::opc {
 
 class OpcErrorConverter {
  public:
@@ -35,4 +36,4 @@ class OpcDataValueConverter {
 
 DATE ToDATE(const FILETIME& file_time);
 
-}  // namespace opc
+}  // namespace scada::opc

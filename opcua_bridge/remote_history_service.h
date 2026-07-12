@@ -24,7 +24,8 @@ namespace transport {
 class TransportFactory;
 }
 
-namespace opcua_bridge {
+#include "opcua_bridge/opcua_bridge_compat.h"
+namespace scada::opcua_bridge {
 
 // Connection settings for an external OPC UA historian.
 struct RemoteHistoryServiceConfig {
@@ -102,4 +103,4 @@ class RemoteHistoryService : public scada::HistoryService,
   ClientHistoryServiceAdapter adapter_;
 };
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

@@ -4,7 +4,8 @@
 #include <optional>
 #include <string>
 
-namespace vidicon {
+#include "vidicon/vidicon_compat.h"
+namespace scada::vidicon {
 
 using VidiconObjectId = unsigned;
 using VidiconFileId = unsigned;
@@ -21,14 +22,14 @@ struct DataPointAddress {
 
 std::optional<DataPointAddress> ParseDataPointAddress(std::wstring_view str);
 
-}  // namespace vidicon
+}  // namespace scada::vidicon
 
 namespace std {
 
 template <>
-struct hash<vidicon::DataPointAddress> {
+struct hash<scada::vidicon::DataPointAddress> {
   std::size_t operator()(
-      const vidicon::DataPointAddress& address) const noexcept {
+      const scada::vidicon::DataPointAddress& address) const noexcept {
     std::size_t seed = 0;
     boost::hash_combine(seed, address.opc_address);
     boost::hash_combine(seed, address.object_id);

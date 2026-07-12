@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace opcua_bridge {
+namespace scada::opcua_bridge {
 
 namespace {
 
@@ -263,4 +263,4 @@ scada::DataValue ToScada(const opcua::DataValue& d) {
   return out;
 }
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge
