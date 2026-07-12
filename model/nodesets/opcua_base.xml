@@ -28,6 +28,8 @@
   <Node id="NS0.35" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Organizes" displayName="Organizes" />
   <Node id="NS0.36" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="HasEventSource" displayName="HasEventSource" />
   <Node id="NS0.37" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasModellingRule" displayName="HasModellingRule" />
+  <Node id="NS0.56" class="ReferenceType" parent="NS0.44" parentReference="NS0.45" supertype="NS0.44" browseName="HasHistoricalConfiguration" displayName="HasHistoricalConfiguration" />
+  <Node id="NS0.2318" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="HistoricalDataConfigurationType" displayName="HistoricalDataConfigurationType" />
   <Node id="NS0.4" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int16" displayName="Int16" />
   <Node id="NS0.40" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasTypeDefinition" displayName="HasTypeDefinition" />
   <Node id="NS0.44" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Aggregates" displayName="Aggregates" />

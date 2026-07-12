@@ -70,6 +70,8 @@ HasPropertyCategory,scada
 HasSimulationSignal,data_items
 HasTransmissionSource,devices
 HasTsFormat,data_items
+HistoricalDataConfigurationType,history
+HistoricalDataConfigurations,history
 HistoricalDatabaseType,history
 HistoricalDatabaseType_Depth,history
 HistoricalDatabaseType_EventCleanupDuration,history

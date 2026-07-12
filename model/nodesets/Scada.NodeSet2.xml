@@ -1616,4 +1616,33 @@
       <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
     </References>
   </UAObject>
+  <!-- The historian's historization entry for a node served by another
+       (tier/edge) server (ADR 0002 §2c): a subtype of the standard
+       HistoricalDataConfigurationType (i=2318, OPC UA Part 11 §5.2.2,
+       https://reference.opcfoundation.org/Core/Part11/v105/docs/5.2.2). The
+       INVERSE HasHistoricalConfiguration reference (i=56, Part 11 §5.3.2 —
+       historized node is the source, the config entry the target) declares
+       the subject field: the entry's rows store the historized node's id, and
+       their other reference fields (HasHistoricalDatabase — the historian
+       database collected values land in) are resolved against that subject
+       node rather than the entry itself.
+       Conformance gap: the mandatory Stepped property and AggregateConfiguration
+       component of i=2318 (§5.2.2) are not yet modeled; they belong to the
+       serve-side materialization phase. -->
+  <UAObjectType NodeId="ns=1;i=368" BrowseName="HistoricalDataConfigurationType" SymbolicName="HistoricalDataConfigurationType">
+    <DisplayName>Historical data configuration</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2318</Reference>
+      <Reference ReferenceType="i=56" IsForward="false">i=62</Reference>
+      <Reference ReferenceType="ns=1;i=152">ns=1;i=20</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=369" BrowseName="HistoricalDataConfigurations" SymbolicName="HistoricalDataConfigurations" ParentNodeId="i=85">
+    <DisplayName>Historical data configurations</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=368</Reference>
+    </References>
+  </UAObject>
 </UANodeSet>
