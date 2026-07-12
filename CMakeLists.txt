@@ -30,12 +30,11 @@ set(CMAKE_SKIP_LINTING OFF)
 
 add_subdirectory(model)
 
-# Expose the model headers (generated node-id/namespace headers + hand-written
-# helpers) to the rest of common, mirroring how they were globally reachable via
-# the core include root before the move. Server/client get the same treatment
-# from the top-level CMakeLists after common is added.
-get_target_property(_scada_model_includes scada_model INTERFACE_INCLUDE_DIRECTORIES)
-include_directories(${_scada_model_includes})
+# Targets that include "model/..." headers link `scada_model` (or a lib that
+# PUBLIC-links it, e.g. scada_common / server_base): scada_model PUBLIC-exports
+# both the common root and the generated headers dir. No global include hack —
+# an explicit link keeps the dependency graph honest so a subset of the tree
+# (e.g. a standalone server tier) can build without this top-level CMake.
 
 add_subdirectory(common)
 add_subdirectory(events)

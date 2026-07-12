@@ -20,12 +20,14 @@ target_link_libraries(scada_common PUBLIC
   scada_core
   scada_metrics
   transport
+  # Node-id / namespace vocabulary (model/*.h, e.g. NodeIdFromScadaString) is part
+  # of scada_common's public surface; PUBLIC so consumers resolve "model/..."
+  # through this link instead of a global include hack.
+  scada_model
 )
 
 target_link_libraries(scada_common PRIVATE
   express
-  # For `NodeIdFromScadaString`.
-  scada_model
 )
 
 # Modules-pilot consumer: node_state_util.cpp imports scada.core (see

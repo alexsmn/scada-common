@@ -10,13 +10,16 @@ target_include_directories(address_space PUBLIC "..")
 target_link_libraries(address_space PUBLIC
   scada_core
   transport
+  # Node-id / namespace vocabulary (model/*.h) is used by address_space's public
+  # headers (incl. the test/ helpers other modules' tests reuse); PUBLIC so
+  # consumers resolve "model/..." through this link.
+  scada_model
 )
 
 find_package(pugixml REQUIRED)
 
 target_link_libraries(address_space PRIVATE
   scada_common
-  scada_model
   pugixml::pugixml
 )
 
