@@ -73,6 +73,22 @@ def reftype_str(raw, scada_ns, used_aliases):
     return nodeid_str(raw, scada_ns)
 
 
+# Dependency-sensible file order (mirrors kScadaStaticNodesetFiles): a type must
+# precede its instances so the loader's factory can instantiate type-defined
+# nested properties. opcua_base is namespace-0 only and emits no SCADA nodes.
+CANONICAL_ORDER = [
+    "scada_core.xml", "security.xml", "history.xml", "data_items.xml",
+    "devices.xml", "devices_modbus.xml", "devices_iec60870.xml",
+    "devices_iec61850.xml", "filesystem.xml", "opc.xml",
+]
+
+
+def ordered_paths(nodesets_dir):
+    files = [f for f in CANONICAL_ORDER
+             if os.path.exists(os.path.join(nodesets_dir, f))]
+    return [os.path.join(nodesets_dir, f) for f in files]
+
+
 def read_nodes(paths):
     """Return list of dicts, one per <Node>, across all input files."""
     nodes = []
@@ -134,9 +150,16 @@ def emit(nodes, scada_uri, pub_date, ns0_pub_date):
         elem = CLASS_ELEM.get(a.get("class"))
         if not elem:
             continue
+        # The custom format defaults a browse name to namespace 0 unless a
+        # browseNamespace attribute overrides it, so most SCADA nodes carry an
+        # ns0 browse name. Preserve that exactly (a Phase 5 concern to normalize).
+        browse_ns = a.get("browseNamespace", "0")
+        browse_local = 0 if browse_ns in ("", "0") else scada_ns
+        browse = escape(a.get("browseName", ""))
+        browse_qname = f"{browse_local}:{browse}" if browse_local else browse
         el_attrs = [
             f'NodeId="{nodeid_str(a["id"], scada_ns)}"',
-            f'BrowseName="{scada_ns}:{escape(a.get("browseName", ""))}"',
+            f'BrowseName="{browse_qname}"',
         ]
         if a.get("symbolicName"):
             el_attrs.append(f'SymbolicName="{escape(a["symbolicName"])}"')
@@ -196,7 +219,7 @@ def main():
     args = ap.parse_args()
 
     paths = ([os.path.join(args.nodesets, f) for f in args.files]
-             if args.files else sorted(glob.glob(os.path.join(args.nodesets, "*.xml"))))
+             if args.files else ordered_paths(args.nodesets))
     nodes = read_nodes(paths)
     out = emit(nodes, args.scada_uri, args.pub_date, args.ns0_pub_date)
     os.makedirs(os.path.dirname(args.out), exist_ok=True)

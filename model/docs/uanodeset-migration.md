@@ -92,13 +92,33 @@ deduped reference union, aliases, `uax:` value encoding, `Model` metadata).
 Emit `Scada.NodeSet2.xml` (the SCADA-namespace nodes) for review and validate it
 against `UANodeSet.xsd`. Originals stay in place.
 
-### Phase 2 — UANodeSet2 loader (the bulk of the work)
-`LoadUANodeSetXml(path, AddressSpace&, NodeFactory&)` in `common/address_space/`
-(pugixml) that populates the **same** `AddressSpace`/`NodeState` model as
-`LoadAddressSpaceXml`. Handles per-class elements, file-local→global namespace
-remap, alias resolution, and `uax:` value decoding. A/B test: assert the address
-space loaded from the converted files is node-for-node identical to the one
-loaded from the custom files (extend `StaticNodesets.ResolveAcrossFiles`).
+### Phase 2 — UANodeSet2 loader (DONE)
+`LoadUANodeSetXml` / `LoadStaticUANodeSet` in `common/address_space/` parse
+UANodeSet2 into the **same** `NodeState` vector the custom parser builds and hand
+it to the shared `ApplyNodeStates`, so materialization is identical. Each node's
+`<References>` are reversed back into the `NodeState` hierarchy fields
+(`HasSubtype`→supertype, `HasComponent`/`HasProperty`/`Organizes` inverse→parent,
+`HasTypeDefinition` forward→type definition); everything else stays in
+`references`. Also added `LoadStaticNodesets`, which auto-detects each file's
+format from its root element so custom and UANodeSet2 files can be loaded
+together during the transition.
+
+**A/B test** (`address_space_uanodeset_unittest.cpp`, `UANodeSetLoader.
+MatchesCustomFormat`): loads the model both ways — custom (all 11 files) vs
+`opcua_base.xml` (custom, ns0) + `Scada.Full.NodeSet2.xml` (UANodeSet) — and
+asserts the two address spaces are node-for-node identical (294 nodes: class,
+browse name, hierarchy, references, values). Passes.
+
+Two behaviors the converter must preserve for a faithful drop-in (both learned
+here, both handled):
+- **Load order matters.** The factory instantiates a type's properties as nested
+  instance nodes only if the type is already built, so a type must precede its
+  instances. The converter emits files in the canonical `kScadaStaticNodesetFiles`
+  order (scada_core before history, …), not glob order.
+- **Browse-name namespace is 0.** The custom format defaults a browse name to
+  namespace 0 (no `browseNamespace` attribute), so SCADA nodes carry ns0 browse
+  names. The converter preserves that (Phase 5 could normalize browse names to
+  the node's namespace, but that changes behavior).
 
 ### Phase 3 — Generator update
 `generate_model_headers.py` reads UANodeSet2: `SymbolicName` (already standard),
