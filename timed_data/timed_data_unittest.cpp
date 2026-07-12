@@ -214,8 +214,11 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   const auto from = base::Time::Now();
   const auto to = from + base::TimeDelta::FromSeconds(10);
 
+  // The action is a lazy coroutine: it must take `details` by value so the
+  // copy lives in the coroutine frame. A `const&` parameter would bind to
+  // gMock's argument tuple, which is destroyed before the awaitable runs.
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
                            -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
@@ -244,8 +247,9 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
       .data_services_ = MakeTimedDataServices(history_service_),
       .node_event_provider_ = node_event_provider_});
 
+  // By-value `details` for the same coroutine-lifetime reason as above.
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke([&](const scada::HistoryReadRawDetails& details)
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
                            -> Awaitable<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
