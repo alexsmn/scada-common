@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="NS0.1" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Bool" displayName="Bool" />
+  <Node id="NS0.11" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Double" displayName="Double" />
+  <Node id="NS0.12" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="String" displayName="String" />
+  <Node id="NS0.13" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="DateTime" displayName="DateTime" />
+  <Node id="NS0.15" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="ByteString" displayName="ByteString" />
+  <Node id="NS0.17" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="NodeId" displayName="NodeId" />
+  <Node id="NS0.2" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int8" displayName="Int8" />
+  <Node id="NS0.21" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="LocalizedText" displayName="LocalizedText" />
+  <Node id="NS0.2130" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SystemEventType" displayName="SystemEventType" />
+  <Node id="NS0.2133" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="GeneralModelChangeEventType" displayName="GeneralModelChangeEventType" />
+  <Node id="NS0.2052" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="AuditEventType" displayName="AuditEventType" />
+  <Node id="NS0.2058" class="ObjectType" parent="NS0.2052" parentReference="NS0.45" supertype="NS0.2052" browseName="AuditSecurityEventType" displayName="AuditSecurityEventType" />
+  <Node id="NS0.2069" class="ObjectType" parent="NS0.2058" parentReference="NS0.45" supertype="NS0.2058" browseName="AuditSessionEventType" displayName="AuditSessionEventType" />
+  <Node id="NS0.2071" class="ObjectType" parent="NS0.2069" parentReference="NS0.45" supertype="NS0.2069" browseName="AuditCreateSessionEventType" displayName="AuditCreateSessionEventType" />
+  <Node id="NS0.2075" class="ObjectType" parent="NS0.2069" parentReference="NS0.45" supertype="NS0.2069" browseName="AuditActivateSessionEventType" displayName="AuditActivateSessionEventType" />
+  <Node id="NS0.2253" class="Object" typeDefinition="NS0.58" parent="NS0.85" parentReference="NS0.35" browseName="Server" displayName="Сервер">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.24" class="DataType" parent="NS0.86" parentReference="NS0.35" browseName="BaseDataType" displayName="BaseDataType" />
+  <Node id="NS0.2738" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SemanticChangeEventType" displayName="SemanticChangeEventType" />
+  <Node id="NS0.29" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Enumeration" displayName="Enumeration" />
+  <Node id="NS0.3" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt8" displayName="UInt8" />
+  <Node id="NS0.31" class="ReferenceType" parent="NS0.86" parentReference="NS0.35" browseName="References" displayName="References" />
+  <Node id="NS0.32" class="ReferenceType" parent="NS0.31" parentReference="NS0.45" supertype="NS0.31" browseName="NonHierarchicalReference" displayName="NonHierarchicalReference" />
+  <Node id="NS0.33" class="ReferenceType" parent="NS0.31" parentReference="NS0.45" supertype="NS0.31" browseName="HierarchicalReference" displayName="HierarchicalReference" />
+  <Node id="NS0.35" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Organizes" displayName="Organizes" />
+  <Node id="NS0.36" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="HasEventSource" displayName="HasEventSource" />
+  <Node id="NS0.37" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasModellingRule" displayName="HasModellingRule" />
+  <Node id="NS0.4" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int16" displayName="Int16" />
+  <Node id="NS0.40" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasTypeDefinition" displayName="HasTypeDefinition" />
+  <Node id="NS0.44" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="Aggregates" displayName="Aggregates" />
+  <Node id="NS0.45" class="ReferenceType" parent="NS0.33" parentReference="NS0.45" supertype="NS0.33" browseName="HasSubtype" displayName="HasSubtype" />
+  <Node id="NS0.46" class="ReferenceType" parent="NS0.44" parentReference="NS0.45" supertype="NS0.44" browseName="HasProperty" displayName="HasProperty" />
+  <Node id="NS0.47" class="ReferenceType" parent="NS0.44" parentReference="NS0.45" supertype="NS0.44" browseName="HasComponent" displayName="HasComponent" />
+  <Node id="NS0.48" class="ReferenceType" parent="NS0.36" parentReference="NS0.45" supertype="NS0.36" browseName="HasNotifier" displayName="HasNotifier" />
+  <Node id="NS0.5" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt16" displayName="UInt16" />
+  <Node id="NS0.58" class="ObjectType" parent="NS0.86" parentReference="NS0.35" browseName="BaseObjectType" displayName="BaseObjectType" />
+  <Node id="NS0.6" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int32" displayName="Int32" />
+  <Node id="NS0.61" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="FolderType" displayName="FolderType" />
+  <Node id="NS0.62" class="VariableType" parent="NS0.86" parentReference="NS0.35" browseName="BaseVariableType" displayName="BaseVariableType" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="NS0.68" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="PropertyType" displayName="PropertyType" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="NS0.7" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt32" displayName="UInt32" />
+  <Node id="NS0.78" class="Object" typeDefinition="NS0.58" parent="NS0.87" parentReference="NS0.35" browseName="Mandatory" displayName="Mandatory">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.8" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int64" displayName="Int64" />
+  <Node id="NS0.84" class="Object" typeDefinition="NS0.61" browseName="RootFolder" displayName="Корневая папка">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.85" class="Object" typeDefinition="NS0.61" parent="NS0.84" parentReference="NS0.35" browseName="ObjectsFolder" displayName="Объекты">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.86" class="Object" typeDefinition="NS0.61" parent="NS0.84" parentReference="NS0.35" browseName="TypesFolder" displayName="Типы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.87" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="ModellingRules" displayName="ModellingRules">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.9" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt64" displayName="UInt64" />
+  <Node id="NS0.9111" class="Method" browseName="Acknowledge" displayName="Acknowledge" />
+  <!-- Server object children. Variable values for the dynamic/capability nodes
+       below are served at read time by StandardIoManager (see
+       server/modules/core/standard_io_manager.cpp); the AttributeValue here is
+       a structural placeholder. -->
+  <Node id="NS0.2254" class="Variable" typeDefinition="NS0.68" parent="NS0.2253" parentReference="NS0.46" browseName="ServerArray" displayName="ServerArray" dataType="NS0.12">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2255" class="Variable" typeDefinition="NS0.68" parent="NS0.2253" parentReference="NS0.46" browseName="NamespaceArray" displayName="NamespaceArray" dataType="NS0.12">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2256" class="Variable" typeDefinition="NS0.62" parent="NS0.2253" parentReference="NS0.47" browseName="ServerStatus" displayName="ServerStatus" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2258" class="Variable" typeDefinition="NS0.62" parent="NS0.2256" parentReference="NS0.47" browseName="CurrentTime" displayName="CurrentTime" dataType="NS0.13">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2259" class="Variable" typeDefinition="NS0.62" parent="NS0.2256" parentReference="NS0.47" browseName="State" displayName="State" dataType="NS0.6">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2267" class="Variable" typeDefinition="NS0.68" parent="NS0.2253" parentReference="NS0.46" browseName="ServiceLevel" displayName="ServiceLevel" dataType="NS0.3">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2034" class="Object" typeDefinition="NS0.58" parent="NS0.2253" parentReference="NS0.47" browseName="ServerRedundancy" displayName="ServerRedundancy">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.3709" class="Variable" typeDefinition="NS0.68" parent="NS0.2034" parentReference="NS0.46" browseName="RedundancySupport" displayName="RedundancySupport" dataType="NS0.6">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11314" class="Variable" typeDefinition="NS0.68" parent="NS0.2034" parentReference="NS0.46" browseName="ServerUriArray" displayName="ServerUriArray" dataType="NS0.12">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2994" class="Variable" typeDefinition="NS0.68" parent="NS0.2253" parentReference="NS0.46" browseName="Auditing" displayName="Auditing" dataType="NS0.1">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2268" class="Object" typeDefinition="NS0.58" parent="NS0.2253" parentReference="NS0.47" browseName="ServerCapabilities" displayName="ServerCapabilities">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.2269" class="Variable" typeDefinition="NS0.68" parent="NS0.2268" parentReference="NS0.46" browseName="ServerProfileArray" displayName="ServerProfileArray" dataType="NS0.12">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2271" class="Variable" typeDefinition="NS0.68" parent="NS0.2268" parentReference="NS0.46" browseName="LocaleIdArray" displayName="LocaleIdArray" dataType="NS0.12">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2272" class="Variable" typeDefinition="NS0.68" parent="NS0.2268" parentReference="NS0.46" browseName="MinSupportedSampleRate" displayName="MinSupportedSampleRate" dataType="NS0.11">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.2735" class="Variable" typeDefinition="NS0.68" parent="NS0.2268" parentReference="NS0.46" browseName="MaxBrowseContinuationPoints" displayName="MaxBrowseContinuationPoints" dataType="NS0.5">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11704" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="OperationLimits" displayName="OperationLimits">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <!-- Server.Namespaces: one NamespaceMetadata object per NamespaceArray
+       entry, served dynamically by the core module's
+       NamespaceMetadataManager (OPC UA Part 5 §6.3.12/§6.3.13,
+       https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.12). Only
+       the container object and the metadata ObjectType are static; ids per
+       the official 1.05 NodeIds.csv. -->
+  <Node id="NS0.11616" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="NamespaceMetadataType" displayName="NamespaceMetadataType" />
+  <Node id="NS0.11715" class="Object" typeDefinition="NS0.58" parent="NS0.2253" parentReference="NS0.47" browseName="Namespaces" displayName="Namespaces">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <!-- RoleSet: the roles this server supports, published under
+       ServerCapabilities (OPC UA Part 18 §4.3,
+       https://reference.opcfoundation.org/Core/Part18/v105/docs/4.3). All
+       numeric ids per the official 1.05 NodeIds.csv. Custom (group) roles are
+       database rows in the ROLE namespace parented here via the Creates
+       reference to the SCADA RoleType; the well-known roles are the static
+       objects below. -->
+  <Node id="NS0.15620" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="RoleType" displayName="RoleType" />
+  <Node id="NS0.15606" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="RoleSet" displayName="RoleSet">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.354" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.16301" class="Method" parent="NS0.15606" parentReference="NS0.47" browseName="AddRole" displayName="AddRole" />
+  <Node id="NS0.16304" class="Method" parent="NS0.15606" parentReference="NS0.47" browseName="RemoveRole" displayName="RemoveRole" />
+  <Node id="NS0.15644" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="Anonymous" displayName="Anonymous">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15656" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="AuthenticatedUser" displayName="AuthenticatedUser">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15668" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="Observer" displayName="Observer">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15680" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="Operator" displayName="Operator">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.16036" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="Engineer" displayName="Engineer">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15692" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="Supervisor" displayName="Supervisor">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15704" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="SecurityAdmin" displayName="SecurityAdmin">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.15716" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="ConfigureAdmin" displayName="ConfigureAdmin">
+    <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.11705" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerRead" displayName="MaxNodesPerRead" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11707" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerWrite" displayName="MaxNodesPerWrite" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11709" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerMethodCall" displayName="MaxNodesPerMethodCall" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11710" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerBrowse" displayName="MaxNodesPerBrowse" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11711" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerRegisterNodes" displayName="MaxNodesPerRegisterNodes" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11712" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerTranslateBrowsePathsToNodeIds" displayName="MaxNodesPerTranslateBrowsePathsToNodeIds" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11713" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerNodeManagement" displayName="MaxNodesPerNodeManagement" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.12165" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerHistoryReadData" displayName="MaxNodesPerHistoryReadData" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.12166" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerHistoryReadEvents" displayName="MaxNodesPerHistoryReadEvents" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11714" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxMonitoredItemsPerCall" displayName="MaxMonitoredItemsPerCall" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+</AddressSpace>

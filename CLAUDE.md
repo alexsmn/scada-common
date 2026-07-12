@@ -42,6 +42,7 @@ address_space  scada_common ◄──────┘
 
 | Module | CMake Target | Description |
 |--------|-------------|-------------|
+| `model/` | `scada_model` | Namespace + node-id vocabulary. The `nodesets/*.xml` are the single source of truth; `namespaces.*` and `*_node_ids.h` are generated at build by `gen/generate_model_headers.py` (`add_custom_command` → `${BINARY_DIR}/generated/model/`). Hand-written: `node_id_util`, `static_nodesets`, `security_node_ids_util` (`UserNodeId`/`RoleSet`), `nested_node_ids`, `static_types`, `model_compat`. Never change a numeric id in the nodesets — they are persisted in config DBs (guarded by `ModelFrozenIds` test). Add a node via a `symbolicName`/`codeNs` attribute in the XML, or a row in `nodesets/extra_node_ids.csv` for ids with no static node. |
 | `common/` | `scada_common` | Core utilities, data services, node state, expression engine |
 | `address_space/` | `address_space` | OPC UA address space (nodes, types, hierarchy, builder) |
 | `events/` | `scada_common_events` | Event storage, aggregation, per-node subscriptions |

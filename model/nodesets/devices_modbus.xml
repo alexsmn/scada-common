@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.108" class="ObjectType" parent="SCADA.116" parentReference="NS0.45" supertype="SCADA.116" browseName="ModbusLinkType" symbolicName="ModbusLinkType" displayName="Направление MODBUS">
+    <Property id="SCADA.167" type="Int32">0</Property>
+    <Property id="SCADA.330" type="Int32">0</Property>
+    <Property id="SCADA.299" type="Int32">0</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.118" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.118" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="ModbusDeviceType" symbolicName="ModbusDeviceType" displayName="Устройство MODBUS">
+    <Property id="SCADA.168" type="Int32">1</Property>
+    <Property id="SCADA.169" type="Int32">3</Property>
+    <Property id="SCADA.298" type="Int32">1000</Property>
+    <Property id="SCADA.349" type="Int32">30000</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.342" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.130" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="ModbusLinkProtocol" symbolicName="ModbusLinkProtocol" displayName="Тип протокола MODBUS">
+    <Property id="SCADA.303" type="LocalizedText" array="true">
+      <Value>RTU</Value>
+      <Value>ASCII</Value>
+      <Value>TCP</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.167" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="Protocol" symbolicName="ModbusLinkType_Protocol" displayName="Протокол" dataType="SCADA.130">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.168" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="Address" symbolicName="ModbusDeviceType_Address" displayName="Адрес" dataType="NS0.3">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.169" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="RepeatCount" symbolicName="ModbusDeviceType_SendRetryCount" displayName="Попыток повторов передачи" dataType="NS0.6">
+    <AttributeValue type="Int32">3</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.298" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="ResponseTimeout" symbolicName="ModbusDeviceType_ResponseTimeout" displayName="Таймаут ответа, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">1000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.299" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="RequestDelay" symbolicName="ModbusLinkType_RequestDelay" displayName="Задержка запроса, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.303" class="Variable" typeDefinition="NS0.68" parent="SCADA.130" parentReference="NS0.46" browseName="EnumStrings" symbolicName="ModbusLinkProtocol_EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>RTU</Value>
+      <Value>ASCII</Value>
+      <Value>TCP</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.330" class="Variable" typeDefinition="NS0.68" parent="SCADA.108" parentReference="NS0.46" browseName="Mode" symbolicName="ModbusLinkType_Mode" displayName="Режим" dataType="SCADA.332">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.332" class="DataType" parent="NS0.29" parentReference="NS0.45" supertype="NS0.29" browseName="ModbusModeDataType" symbolicName="ModbusModeDataType" displayName="Режим MODBUS">
+    <Property id="SCADA.333" type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+    </Property>
+  </Node>
+  <Node id="SCADA.333" class="Variable" typeDefinition="NS0.68" parent="SCADA.332" parentReference="NS0.46" browseName="EnumStrings" symbolicName="ModbusModeDataType_EnumStrings" displayName="EnumStrings" dataType="NS0.21">
+    <AttributeValue type="LocalizedText" array="true">
+      <Value>Polling</Value>
+      <Value>Retransmission</Value>
+    </AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.342" class="ObjectType" parent="SCADA.34" parentReference="NS0.45" supertype="SCADA.34" browseName="ModbusTransmissionItemType" symbolicName="ModbusTransmissionItemType" displayName="Ретрансляция MODBUS" />
+  <Node id="SCADA.349" class="Variable" typeDefinition="NS0.68" parent="SCADA.118" parentReference="NS0.46" browseName="SuspendDuration" symbolicName="ModbusDeviceType_SuspendDuration" displayName="Длительность приостановки, мс" dataType="NS0.6">
+    <AttributeValue type="Int32">30000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+</AddressSpace>

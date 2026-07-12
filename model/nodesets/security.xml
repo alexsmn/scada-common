@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.16" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="UserType" symbolicName="UserType" displayName="Пользователь">
+    <Property id="SCADA.170" type="Int32">0</Property>
+    <Property id="SCADA.345" type="Bool">false</Property>
+    <Property id="SCADA.346" type="String"></Property>
+    <Property id="SCADA.347" type="UInt64">0</Property>
+  </Node>
+  <Node id="SCADA.170" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="AccessRights" symbolicName="UserType_AccessRights" displayName="Права" dataType="NS0.6">
+    <AttributeValue type="Int32">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.29" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="Users" symbolicName="Users" displayName="Пользователи">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.16" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.345" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="MultiSessions" symbolicName="UserType_MultiSessions" displayName="Множество сессий" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.346" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="ProfileJson" symbolicName="UserType_ProfileJson" displayName="Профиль" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.347" class="Variable" typeDefinition="NS0.68" parent="SCADA.16" parentReference="NS0.46" browseName="ProfileRevision" symbolicName="UserType_ProfileRevision" displayName="Версия профиля" dataType="NS0.9">
+    <AttributeValue type="UInt64">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.348" class="Method" parent="SCADA.16" parentReference="NS0.47" browseName="SaveProfile" symbolicName="UserType_SaveProfile" displayName="Сохранить профиль">
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.353" class="Method" parent="SCADA.16" parentReference="NS0.47" browseName="VerifyPassword" symbolicName="UserType_VerifyPassword" displayName="Проверить пароль">
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <!-- User groups modeled as OPC UA Roles: one RoleType instance per group,
+       membership expressed as IdentityMappingRule children with UserName
+       criteria. OPC UA Part 18 §4.4.1 RoleType,
+       https://reference.opcfoundation.org/Core/Part18/v105/docs/4.4 -->
+  <Node id="SCADA.354" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="RoleType" symbolicName="RoleType" displayName="Роль">
+    <Property id="SCADA.355" type="Bool">false</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.357" targetClass="ObjectType" />
+    <Reference type="SCADA.356" forward="true" target="SCADA.360" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.355" class="Variable" typeDefinition="NS0.68" parent="SCADA.354" parentReference="NS0.46" browseName="Authoring" symbolicName="RoleType_Authoring" displayName="Редактирование" dataType="NS0.1">
+    <AttributeValue type="Bool">false</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.356" class="ReferenceType" parent="NS0.32" parentReference="NS0.45" supertype="NS0.32" browseName="HasConfiguration" symbolicName="HasConfiguration" displayName="Конфигурация" />
+  <!-- Membership admin methods: the Identities of a Role are modified only
+       via AddIdentity/RemoveIdentity (OPC UA Part 18 §4.4.5/§4.4.6,
+       https://reference.opcfoundation.org/Core/Part18/v105/docs/4.4.5). -->
+  <Node id="SCADA.363" class="Method" parent="SCADA.354" parentReference="NS0.47" browseName="AddIdentity" symbolicName="RoleType_AddIdentity" displayName="Добавить участника">
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.364" class="Method" parent="SCADA.354" parentReference="NS0.47" browseName="RemoveIdentity" symbolicName="RoleType_RemoveIdentity" displayName="Удалить участника">
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <!-- IdentityMappingRuleType: OPC UA Part 18 §4.4.3,
+       https://reference.opcfoundation.org/Core/Part18/v105/docs/4.4.3.
+       CriteriaType values per Part 18 §4.4.4 (UserName = 1). -->
+  <Node id="SCADA.357" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="IdentityMappingRuleType" symbolicName="IdentityMappingRuleType" displayName="Правило сопоставления">
+    <Property id="SCADA.358" type="Int32">1</Property>
+    <Property id="SCADA.359" type="String"></Property>
+  </Node>
+  <Node id="SCADA.358" class="Variable" typeDefinition="NS0.68" parent="SCADA.357" parentReference="NS0.46" browseName="CriteriaType" symbolicName="IdentityMappingRuleType_CriteriaType" displayName="Тип критерия" dataType="NS0.6">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.359" class="Variable" typeDefinition="NS0.68" parent="SCADA.357" parentReference="NS0.46" browseName="Criteria" symbolicName="IdentityMappingRuleType_Criteria" displayName="Критерий" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <!-- A hosted configuration (tenant) on the central configuration server.
+       No standard OPC UA object models "a hosted configuration"; the standard
+       surface per configuration — NamespaceMetadata for its namespace set
+       (OPC UA Part 5 §6.3.12/§6.3.13) — is published separately by the
+       config server. -->
+  <Node id="SCADA.360" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="ConfigurationType" symbolicName="ConfigurationType" displayName="Конфигурация" />
+  <Node id="SCADA.362" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="Configurations" symbolicName="Configurations" displayName="Конфигурации">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.360" targetClass="ObjectType" />
+  </Node>
+  <!-- Runtime deploy/remove of a hosted configuration (tenant). No standard
+       OPC UA service creates a namespace set; the result is standard
+       (Part 5 §6.3.1/§6.3.13). -->
+  <Node id="SCADA.365" class="Method" parent="SCADA.362" parentReference="NS0.47" browseName="DeployConfiguration" symbolicName="Configurations_DeployConfiguration" displayName="Развернуть конфигурацию" />
+  <Node id="SCADA.366" class="Method" parent="SCADA.362" parentReference="NS0.47" browseName="RemoveConfiguration" symbolicName="Configurations_RemoveConfiguration" displayName="Удалить конфигурацию" />
+</AddressSpace>

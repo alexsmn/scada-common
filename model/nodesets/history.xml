@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.12" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="HistoricalDatabases" symbolicName="HistoricalDatabases" displayName="Базы данных">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.20" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.171" class="Variable" typeDefinition="NS0.68" parent="SCADA.20" parentReference="NS0.46" browseName="Depth" symbolicName="HistoricalDatabaseType_Depth" displayName="Глубина, дн" dataType="NS0.6">
+    <AttributeValue type="Int32">1</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.20" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="HistoricalDatabaseType" symbolicName="HistoricalDatabaseType" displayName="База данных">
+    <Property id="SCADA.171" type="Int32">1</Property>
+  </Node>
+  <Node id="SCADA.244" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="ItemCount" symbolicName="HistoricalDatabaseType_ItemCount" displayName="Количество измерений" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.245" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="WriteValueCount" symbolicName="HistoricalDatabaseType_WriteValueCount" displayName="Количество записанных измерений" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.240" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="WriteValueDuration" symbolicName="HistoricalDatabaseType_WriteValueDuration" displayName="Задержка записи измерений, мкс" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.241" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="PendingTaskCount" symbolicName="HistoricalDatabaseType_PendingTaskCount" displayName="Очередь записи измерений" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.242" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="EventCleanupDuration" symbolicName="HistoricalDatabaseType_EventCleanupDuration" displayName="Продолжительность очистки событий, мкс" dataType="NS0.6">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.243" class="Variable" typeDefinition="SCADA.336" parent="SCADA.20" parentReference="NS0.47" browseName="ValueCleanupDuration" symbolicName="HistoricalDatabaseType_ValueCleanupDuration" displayName="Продолжительность очистки измерений, мкс" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="SCADA.336" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+</AddressSpace>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.329" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="OPC" symbolicName="OPC" displayName="OPC">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+  </Node>
+</AddressSpace>

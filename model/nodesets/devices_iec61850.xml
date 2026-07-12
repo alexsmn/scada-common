@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.277" class="ObjectType" parent="SCADA.115" parentReference="NS0.45" supertype="SCADA.115" browseName="Iec61850DeviceType" symbolicName="Iec61850DeviceType" displayName="Устройство МЭК-61850">
+    <Property id="SCADA.278" type="String"></Property>
+    <Property id="SCADA.279" type="Int32">102</Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.281" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.344" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.278" class="Variable" typeDefinition="NS0.68" parent="SCADA.277" parentReference="NS0.46" browseName="Host" symbolicName="Iec61850DeviceType_Host" displayName="Хост" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.279" class="Variable" typeDefinition="NS0.68" parent="SCADA.277" parentReference="NS0.46" browseName="Port" symbolicName="Iec61850DeviceType_Port" displayName="Порт" dataType="NS0.6">
+    <AttributeValue type="Int32">102</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.281" class="ObjectType" parent="SCADA.285" parentReference="NS0.45" supertype="SCADA.285" browseName="RCB" symbolicName="Iec61850RcbType" displayName="RCB МЭК-61850" />
+  <Node id="SCADA.283" class="Variable" typeDefinition="NS0.68" parent="SCADA.285" parentReference="NS0.46" browseName="Address" symbolicName="Iec61850ConfigurableObjectType_Reference" displayName="Адрес" dataType="NS0.12">
+    <AttributeValue type="String"></AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.285" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="ConfigurableObject" symbolicName="Iec61850ConfigurableObjectType" displayName="Параметр МЭК-61850">
+    <Property id="SCADA.283" type="String"></Property>
+    <Reference type="SCADA.297" forward="true" target="SCADA.285" targetClass="ObjectType" />
+  </Node>
+  <Node id="SCADA.288" class="Object" typeDefinition="SCADA.289" parent="SCADA.277" parentReference="NS0.47" browseName="Model" symbolicName="Iec61850DeviceType_Model" displayName="Модель">
+    <Reference type="NS0.40" forward="true" target="SCADA.289" targetClass="ObjectType" />
+    <Reference type="NS0.37" forward="true" target="NS0.78" targetClass="Object" />
+  </Node>
+  <Node id="SCADA.289" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="Iec61850LogicalNodeType" symbolicName="Iec61850LogicalNodeType" displayName="Логический узел МЭК-61850" />
+  <Node id="SCADA.291" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="Iec61850DataVariableType" symbolicName="Iec61850DataVariableType" displayName="Объект данных МЭК-61850" dataType="NS0.24">
+    <AttributeValue type="Empty" />
+  </Node>
+  <Node id="SCADA.293" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="Iec61850ControlObjectType" symbolicName="Iec61850ControlObjectType" displayName="Объект управления МЭК-61850" />
+  <Node id="SCADA.344" class="ObjectType" parent="SCADA.34" parentReference="NS0.45" supertype="SCADA.34" browseName="Iec61850TransmissionItemType" symbolicName="Iec61850TransmissionItemType" displayName="Ретрансляция МЭК-61850" />
+</AddressSpace>

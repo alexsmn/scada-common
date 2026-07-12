@@ -28,6 +28,15 @@ find_package(ScadaCore REQUIRED)
 find_package(Express REQUIRED)
 set(CMAKE_SKIP_LINTING OFF)
 
+add_subdirectory(model)
+
+# Expose the model headers (generated node-id/namespace headers + hand-written
+# helpers) to the rest of common, mirroring how they were globally reachable via
+# the core include root before the move. Server/client get the same treatment
+# from the top-level CMakeLists after common is added.
+get_target_property(_scada_model_includes scada_model INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(${_scada_model_includes})
+
 add_subdirectory(common)
 add_subdirectory(events)
 add_subdirectory(address_space)

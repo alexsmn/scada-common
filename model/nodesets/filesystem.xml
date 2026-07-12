@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AddressSpace format="scada-node-state-v1">
+  <Node id="SCADA.304" class="Object" typeDefinition="NS0.61" parent="NS0.85" parentReference="NS0.35" browseName="FileSystem" symbolicName="FileSystem" displayName="Файлы">
+    <Reference type="NS0.40" forward="true" target="NS0.61" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.305" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.306" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.305" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="FileDirectoryType" symbolicName="FileDirectoryType" displayName="Папка">
+    <Reference type="SCADA.297" forward="true" target="SCADA.305" targetClass="ObjectType" />
+    <Reference type="SCADA.297" forward="true" target="SCADA.306" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.306" class="VariableType" parent="NS0.62" parentReference="NS0.45" supertype="NS0.62" browseName="FileType" symbolicName="FileType" displayName="Файл" dataType="NS0.15">
+    <AttributeValue type="Empty" />
+    <Property id="SCADA.307" type="DateTime">0</Property>
+    <Property id="SCADA.308" type="UInt64">0</Property>
+  </Node>
+  <Node id="SCADA.307" class="Variable" typeDefinition="NS0.68" parent="SCADA.306" parentReference="NS0.46" browseName="LastUpdateTime" symbolicName="FileType_LastUpdateTime" displayName="Время изменения" dataType="NS0.13">
+    <AttributeValue type="DateTime">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="SCADA.308" class="Variable" typeDefinition="NS0.68" parent="SCADA.306" parentReference="NS0.46" browseName="Size" symbolicName="FileType_Size" displayName="Размер, байт" dataType="NS0.9">
+    <AttributeValue type="UInt64">0</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+</AddressSpace>
