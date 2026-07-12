@@ -32,6 +32,7 @@ add_custom_command(
   DEPENDS ${_model_generator} ${_model_nodeset_xml}
           "${_model_nodesets}/namespaces.csv"
           "${_model_nodesets}/extra_node_ids.csv"
+          "${_model_nodesets}/code_domains.csv"
   COMMENT "Generating model namespace + node-id headers from nodesets"
   VERBATIM)
 

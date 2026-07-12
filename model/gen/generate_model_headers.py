@@ -75,21 +75,51 @@ def ns_const_by_index(ns_rows):
     return {i: c for i, c, _d in ns_rows if c}
 
 
+def read_code_domains(path):
+    """symbolic_name -> C++ domain. The domain (which header a constant lands in)
+    is not an OPC UA concept, so it lives in this sidecar rather than in the
+    nodesets. See common/model/docs/uanodeset-migration.md."""
+    domains = {}
+    with open(path, newline="") as f:
+        for r in csv.DictReader(f):
+            domains[r["symbolic_name"]] = r["domain"]
+    return domains
+
+
+def read_symbolic_nodes(path):
+    """Yield (symbolic_name, ns_index, numeric_id) for every annotated node,
+    auto-detecting the file format (repo-owned scada-node-state-v1 or standard
+    UANodeSet2). Numeric ids are identical in both; only the syntax differs."""
+    text = open(path, encoding="utf-8").read()
+    if re.search(r"<UANodeSet\b", text):
+        for m in re.finditer(r"<UA\w+\s+([^>]*?)/?>", text):
+            attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(1)))
+            sym = attrs.get("SymbolicName")
+            idm = re.match(r"(?:ns=(\d+);)?i=(\d+)", attrs.get("NodeId", ""))
+            if not sym or not idm:
+                continue
+            ns_index = 7 if (idm.group(1) or "0") == "1" else 0  # local ns 1 == SCADA
+            yield sym, ns_index, int(idm.group(2))
+    else:
+        for m in re.finditer(r"<Node\s+([^>]*?)/?>", text):
+            attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(1)))
+            sym = attrs.get("symbolicName")
+            idm = re.match(r"([A-Z0-9]+)\.(\d+)", attrs.get("id", ""))
+            if not sym or not idm:
+                continue
+            yield sym, NS_PREFIX.get(idm.group(1), -1), int(idm.group(2))
+
+
 def collect_constants(nodesets_dir):
     """Return {domain: {'id': {name: (value, ns_index)}, 'numeric_id': {name: value}}}."""
     out = {d: {"id": {}, "numeric_id": {}} for d in DOMAINS}
-    # From nodes.
+    domains = read_code_domains(os.path.join(nodesets_dir, "code_domains.csv"))
+    # From nodes (either format); the sidecar decides the C++ domain.
     for path in sorted(glob.glob(os.path.join(nodesets_dir, "*.xml"))):
-        file_domain = DOMAIN_BY_XML.get(os.path.basename(path), "scada")
-        for m in re.finditer(r"<Node\s+([^>]*?)\s*/?>", open(path).read()):
-            attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(1)))
-            sym = attrs.get("symbolicName")
-            if not sym:
-                continue
-            idm = re.match(r"([A-Z0-9]+)\.(\d+)", attrs.get("id", ""))
-            ns_index = NS_PREFIX.get(idm.group(1), -1)
-            value = int(idm.group(2))
-            domain = attrs.get("codeNs", file_domain)
+        for sym, ns_index, value in read_symbolic_nodes(path):
+            domain = domains.get(sym)
+            if not domain or domain == "ns0":
+                continue  # ns0 base nodes carry no SCADA C++ constant
             out[domain]["id"][sym] = (value, ns_index)
     # From the supplement CSV.
     csv_path = os.path.join(nodesets_dir, "extra_node_ids.csv")

@@ -120,13 +120,19 @@ here, both handled):
   names. The converter preserves that (Phase 5 could normalize browse names to
   the node's namespace, but that changes behavior).
 
-### Phase 3 — Generator update
-`generate_model_headers.py` reads UANodeSet2: `SymbolicName` (already standard),
-per-class elements, `ns=;i=`. The C++ sub-domain grouping (`devices`,
-`data_items`, …) is not an OPC UA concept — move `codeNs` into a codegen sidecar
-(`gen/code_domains.csv`: symbolic-name → C++ domain, or a browseName-prefix
-rule). `extra_node_ids.csv` stays for the ~18 runtime/reserved ids. **Gate:
-output byte-identical (`ModelFrozenIds`).**
+### Phase 3 — Generator update (DONE)
+`generate_model_headers.py` is now format-agnostic: `read_symbolic_nodes`
+detects each nodeset file's root and reads `symbolicName`/`SymbolicName` +
+numeric id from either format. The C++ sub-domain grouping (`devices`,
+`data_items`, …) is not an OPC UA concept, so `codeNs` moved out of the XML into
+the **`nodesets/code_domains.csv`** sidecar (symbolic-name → domain), read by the
+generator for both formats. `namespaces.csv` / `extra_node_ids.csv` unchanged.
+
+Proven byte-identical two ways: the generator's output from the current custom
+nodesets equals its output from the converted `Scada.Full.NodeSet2.xml`
+(`diff -rq` → identical), and the build (still on the custom nodesets) keeps
+`ModelFrozenIds` green. So the generator is ready for the Phase 4 cut-over — only
+the input files change, not its output.
 
 ### Phase 4 — Cut over
 Replace the nodeset files, point `static_nodesets.{h,cpp}` at the
