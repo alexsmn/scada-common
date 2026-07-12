@@ -1,0 +1,1619 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+           xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://telecontrol.example/SCADA/</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://telecontrol.example/SCADA/" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z"/>
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="BaseDataType">i=24</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UAVariable NodeId="ns=1;i=140" BrowseName="1:Alias" SymbolicName="DataItemType_Alias" ParentNodeId="ns=1;i=239" DataType="String">
+    <DisplayName>Алиас</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=143" BrowseName="1:Simulated" SymbolicName="DataItemType_Simulated" ParentNodeId="ns=1;i=239" DataType="Boolean">
+    <DisplayName>Эмуляция</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=318</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=144" BrowseName="1:Severity" SymbolicName="DataItemType_Severity" ParentNodeId="ns=1;i=239" DataType="Int32">
+    <DisplayName>Важность</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=145" BrowseName="1:Input1" SymbolicName="DataItemType_Input1" ParentNodeId="ns=1;i=239" DataType="String">
+    <DisplayName>Основной ввод</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=146" BrowseName="1:Input2" SymbolicName="DataItemType_Input2" ParentNodeId="ns=1;i=239" DataType="String">
+    <DisplayName>Резервный ввод</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=147" BrowseName="1:Output" SymbolicName="DataItemType_Output" ParentNodeId="ns=1;i=239" DataType="String">
+    <DisplayName>Вывод</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=148" BrowseName="1:OutputCondition" SymbolicName="DataItemType_OutputCondition" ParentNodeId="ns=1;i=239" DataType="String">
+    <DisplayName>Условие управления</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=149" BrowseName="1:StalePeriod" SymbolicName="DataItemType_StalePeriod" ParentNodeId="ns=1;i=239" DataType="Int32">
+    <DisplayName>Устаревание, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAReferenceType NodeId="ns=1;i=150" BrowseName="1:HasSimulationSignal" SymbolicName="HasSimulationSignal">
+    <DisplayName>Эмулируемый сигнал</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=318</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariable NodeId="ns=1;i=151" BrowseName="1:Locked" SymbolicName="DataItemType_Locked" ParentNodeId="ns=1;i=239" DataType="Boolean">
+    <DisplayName>Блокировка</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=153" BrowseName="1:Inverted" SymbolicName="DiscreteItemType_Inversion" ParentNodeId="ns=1;i=72" DataType="Boolean">
+    <DisplayName>Инверсия</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=72</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAReferenceType NodeId="ns=1;i=154" BrowseName="1:HasTsFormat" SymbolicName="HasTsFormat">
+    <DisplayName>Параметры</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=316</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariable NodeId="ns=1;i=155" BrowseName="1:DisplayFormat" SymbolicName="AnalogItemType_DisplayFormat" ParentNodeId="ns=1;i=76" DataType="String">
+    <DisplayName>Формат</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=316</Reference>
+    </References>
+    <Value><uax:String>0.####</uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=157" BrowseName="1:Clamping" SymbolicName="AnalogItemType_Clamping" ParentNodeId="ns=1;i=76" DataType="Boolean">
+    <DisplayName>Ограничение диапазона</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=315</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=158" BrowseName="1:EuLo" SymbolicName="AnalogItemType_EuLo" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Логический минимимум</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Double>-100</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=159" BrowseName="1:EuHi" SymbolicName="AnalogItemType_EuHi" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Логический максимум</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Double>100</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=160" BrowseName="1:IrLo" SymbolicName="AnalogItemType_IrLo" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Физический минимимум</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Double>0</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=161" BrowseName="1:IrHi" SymbolicName="AnalogItemType_IrHi" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Физический максимум</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Double>65535</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=162" BrowseName="1:LimitLo" SymbolicName="AnalogItemType_LimitLo" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Уставка нижняя предаварийная</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=319</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=163" BrowseName="1:LimitHi" SymbolicName="AnalogItemType_LimitHi" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Уставка верхняя предаварийная</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=319</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=164" BrowseName="1:LimitLoLo" SymbolicName="AnalogItemType_LimitLoLo" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Уставка нижняя аварийная</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=319</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=165" BrowseName="1:LimitHiHi" SymbolicName="AnalogItemType_LimitHiHi" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Уставка верхняя аварийная</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=319</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=166" BrowseName="1:EngineeringUnits" SymbolicName="AnalogItemType_EngineeringUnits" ParentNodeId="ns=1;i=76" DataType="LocalizedText">
+    <DisplayName>Единицы измерения</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=316</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=172" BrowseName="1:Type" SymbolicName="SimulationSignalType_Function" ParentNodeId="ns=1;i=67" DataType="ns=1;i=326">
+    <DisplayName>Тип</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=173" BrowseName="1:Period" SymbolicName="SimulationSignalType_Period" ParentNodeId="ns=1;i=67" DataType="Int32">
+    <DisplayName>Период, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>60000</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=174" BrowseName="1:Phase" SymbolicName="SimulationSignalType_Phase" ParentNodeId="ns=1;i=67" DataType="Int32">
+    <DisplayName>Фаза, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=175" BrowseName="1:UpdateInterval" SymbolicName="SimulationSignalType_UpdateInterval" ParentNodeId="ns=1;i=67" DataType="Int32">
+    <DisplayName>Обновление, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1000</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=216" BrowseName="1:OpenLabel" SymbolicName="TsFormatType_OpenLabel" ParentNodeId="ns=1;i=80" DataType="LocalizedText">
+    <DisplayName>Подпись 0</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=217" BrowseName="1:CloseLabel" SymbolicName="TsFormatType_CloseLabel" ParentNodeId="ns=1;i=80" DataType="LocalizedText">
+    <DisplayName>Подпись 1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=218" BrowseName="1:OpenColor" SymbolicName="TsFormatType_OpenColor" ParentNodeId="ns=1;i=80" DataType="Int32">
+    <DisplayName>Цвет 0</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=219" BrowseName="1:CloseColor" SymbolicName="TsFormatType_CloseColor" ParentNodeId="ns=1;i=80" DataType="Int32">
+    <DisplayName>Цвет 1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariableType NodeId="ns=1;i=239" BrowseName="1:DataItemType" SymbolicName="DataItemType" DataType="BaseDataType">
+    <DisplayName>Объект</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+      <Reference ReferenceType="ns=1;i=150">ns=1;i=67</Reference>
+      <Reference ReferenceType="ns=1;i=152">ns=1;i=20</Reference>
+    </References>
+  </UAVariableType>
+  <UAObject NodeId="ns=1;i=24" BrowseName="1:DataItems" SymbolicName="DataItems" ParentNodeId="i=85">
+    <DisplayName>Все объекты</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=62</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=27" BrowseName="1:TsFormats" SymbolicName="TsFormats" ParentNodeId="i=85">
+    <DisplayName>Форматы</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=80</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=28" BrowseName="1:SimulationSignals" SymbolicName="SimulationSignals" ParentNodeId="i=85">
+    <DisplayName>Эмулируемые сигналы</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=67</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=292" BrowseName="1:Simulated" SymbolicName="DataGroupType_Simulated" ParentNodeId="ns=1;i=62" DataType="Boolean">
+    <DisplayName>Эмуляция</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=318</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=295" BrowseName="1:Aperture" SymbolicName="AnalogItemType_Aperture" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Апертура</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=315</Reference>
+    </References>
+    <Value><uax:Double>0</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=296" BrowseName="1:Deadband" SymbolicName="AnalogItemType_Deadband" ParentNodeId="ns=1;i=76" DataType="Double">
+    <DisplayName>Мертвая зона</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=315</Reference>
+    </References>
+    <Value><uax:Double>0</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=300" BrowseName="1:Aliases" SymbolicName="Aliases" ParentNodeId="i=85">
+    <DisplayName>Алиасы</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=301" BrowseName="1:AliasType" SymbolicName="AliasType">
+    <DisplayName>Алиас</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAReferenceType NodeId="ns=1;i=302" BrowseName="1:AliasOf" SymbolicName="AliasOf">
+    <DisplayName>AliasOf</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariable NodeId="ns=1;i=309" BrowseName="1:OutputTwoStaged" SymbolicName="DataItemType_OutputTwoStaged" ParentNodeId="ns=1;i=239" DataType="Boolean">
+    <DisplayName>Двухэтапное управление</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+    <Value><uax:Boolean>true</uax:Boolean></Value>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=320" BrowseName="1:AnalogConversionDataType" SymbolicName="AnalogConversionDataType">
+    <DisplayName>Преобразование</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=321" BrowseName="1:EnumStrings" SymbolicName="AnalogConversionDataType_EnumStrings" ParentNodeId="ns=1;i=320" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=320</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=326" BrowseName="1:SimulationSignalTypeEnum" SymbolicName="SimulationFunctionDataType">
+    <DisplayName>Тип эмуляции</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=327" BrowseName="1:EnumStrings" SymbolicName="SimulationFunctionDataType_EnumStrings" ParentNodeId="ns=1;i=326" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=326</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=62" BrowseName="1:DataGroupType" SymbolicName="DataGroupType">
+    <DisplayName>Группа</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=62</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=239</Reference>
+      <Reference ReferenceType="ns=1;i=328">ns=1;i=115</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariableType NodeId="ns=1;i=67" BrowseName="1:SimulationSignalType" SymbolicName="SimulationSignalType" DataType="BaseDataType">
+    <DisplayName>Эмулируемый сигнал</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+    </References>
+  </UAVariableType>
+  <UAVariableType NodeId="ns=1;i=72" BrowseName="1:DiscreteItemType" SymbolicName="DiscreteItemType" DataType="BaseDataType">
+    <DisplayName>Объект ТС</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="ns=1;i=154">ns=1;i=80</Reference>
+    </References>
+  </UAVariableType>
+  <UAVariableType NodeId="ns=1;i=76" BrowseName="1:AnalogItemType" SymbolicName="AnalogItemType" DataType="BaseDataType">
+    <DisplayName>Объект ТИТ</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=239</Reference>
+    </References>
+  </UAVariableType>
+  <UAObjectType NodeId="ns=1;i=80" BrowseName="1:TsFormatType" SymbolicName="TsFormatType">
+    <DisplayName>Формат</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=115" BrowseName="1:DeviceType" SymbolicName="DeviceType">
+    <DisplayName>Устройство</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=335">ns=1;i=20</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=116" BrowseName="1:LinkType" SymbolicName="LinkType">
+    <DisplayName>Направление</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=141" BrowseName="1:Disabled" SymbolicName="DeviceType_Disabled" ParentNodeId="ns=1;i=115" DataType="Boolean">
+    <DisplayName>Отключено</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>true</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=142" BrowseName="1:TransportString" SymbolicName="LinkType_Transport" ParentNodeId="ns=1;i=116" DataType="String">
+    <DisplayName>Транспорт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=15132" BrowseName="1:DeviceWatchEventType" SymbolicName="DeviceWatchEventType">
+    <DisplayName>DeviceWatchEventType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAReferenceType NodeId="ns=1;i=221" BrowseName="1:IecTransmitSource" SymbolicName="HasTransmissionSource">
+    <DisplayName>Объект источник</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariable NodeId="ns=1;i=225" BrowseName="1:InfoAddress" SymbolicName="TransmissionItemType_SourceAddress" ParentNodeId="ns=1;i=34" DataType="Int32">
+    <DisplayName>Адрес объекта приемника</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=248" BrowseName="1:Online" SymbolicName="DeviceType_Online" ParentNodeId="ns=1;i=115" DataType="Boolean">
+    <DisplayName>Связь</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=249" BrowseName="1:Enabled" SymbolicName="DeviceType_Enabled" ParentNodeId="ns=1;i=115" DataType="Boolean">
+    <DisplayName>Включено</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=250" BrowseName="1:ConnectCount" SymbolicName="LinkType_ConnectCount" ParentNodeId="ns=1;i=116" DataType="Int32">
+    <DisplayName>ConnectCount</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=251" BrowseName="1:ActiveConnections" SymbolicName="LinkType_ActiveConnections" ParentNodeId="ns=1;i=116" DataType="Int32">
+    <DisplayName>ActiveConnections</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=252" BrowseName="1:MessagesIn" SymbolicName="DeviceType_MessagesIn" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Принято сообщений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=253" BrowseName="1:MessagesOut" SymbolicName="DeviceType_MessagesOut" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Отправлено сообщений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=254" BrowseName="1:BytesIn" SymbolicName="DeviceType_BytesIn" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Принято байт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=255" BrowseName="1:BytesOut" SymbolicName="DeviceType_BytesOut" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Отправлено байт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=30" BrowseName="1:Devices" SymbolicName="Devices" ParentNodeId="i=85">
+    <DisplayName>Все оборудование</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=116</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=277</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=34" BrowseName="1:TransmissionItemType" SymbolicName="TransmissionItemType">
+    <DisplayName>Ретрансляция</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=221">i=62</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=350" BrowseName="1:SyncClockCount" SymbolicName="DeviceType_SyncClockCount" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Число синхронизаций времени</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=351" BrowseName="1:InterrogateCount" SymbolicName="DeviceType_InterrogateCount" ParentNodeId="ns=1;i=115" DataType="Int32">
+    <DisplayName>Число полных опросов</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=124" BrowseName="1:Iec60870LinkType" SymbolicName="Iec60870LinkType">
+    <DisplayName>Направление МЭК-60870</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=331</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=176" BrowseName="1:Protocol" SymbolicName="Iec60870LinkType_Protocol" ParentNodeId="ns=1;i=124" DataType="ns=1;i=322">
+    <DisplayName>Протокол</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=177" BrowseName="1:Mode" SymbolicName="Iec60870LinkType_Mode" ParentNodeId="ns=1;i=124" DataType="ns=1;i=324">
+    <DisplayName>Режим</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=178" BrowseName="1:SendQueueSize" SymbolicName="Iec60870LinkType_SendQueueSize" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Очередь передачи (K)</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>12</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=179" BrowseName="1:ReceiveQueueSize" SymbolicName="Iec60870LinkType_ReceiveQueueSize" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Очередь приема (W)</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>8</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=180" BrowseName="1:ConnectTimeout" SymbolicName="Iec60870LinkType_ConnectTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут связи (T0), с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>30</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=181" BrowseName="1:ConfirmationTimeout" SymbolicName="Iec60870LinkType_ConfirmationTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут подтверждения, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>5</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=182" BrowseName="1:TerminationTimeout" SymbolicName="Iec60870LinkType_TerminationTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут операции, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>20</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=183" BrowseName="1:DeviceAddressSize" SymbolicName="Iec60870LinkType_DeviceAddressSize" ParentNodeId="ns=1;i=124" DataType="i=3">
+    <DisplayName>Размер адреса устройства</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>2</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=184" BrowseName="1:CotSize" SymbolicName="Iec60870LinkType_COTSize" ParentNodeId="ns=1;i=124" DataType="i=3">
+    <DisplayName>Размер причины передачи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>2</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=185" BrowseName="1:InfoAddressSize" SymbolicName="Iec60870LinkType_InfoAddressSize" ParentNodeId="ns=1;i=124" DataType="i=3">
+    <DisplayName>Размер адреса объекта</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>3</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=186" BrowseName="1:CollectData" SymbolicName="Iec60870LinkType_DataCollection" ParentNodeId="ns=1;i=124" DataType="Boolean">
+    <DisplayName>Сбор данных</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>true</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=187" BrowseName="1:SendRetries" SymbolicName="Iec60870LinkType_SendRetryCount" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Попыток повторов передачи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=188" BrowseName="1:CrcProtection" SymbolicName="Iec60870LinkType_CRCProtection" ParentNodeId="ns=1;i=124" DataType="Boolean">
+    <DisplayName>Защита CRC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=189" BrowseName="1:SendTimeout" SymbolicName="Iec60870LinkType_SendTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут передачи (T1), с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>15</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=190" BrowseName="1:ReceiveTimeout" SymbolicName="Iec60870LinkType_ReceiveTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут приема (T2), с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>10</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=191" BrowseName="1:IdleTimeout" SymbolicName="Iec60870LinkType_IdleTimeout" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Таймаут простоя (T3), с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>20</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=192" BrowseName="1:AnonymousMode" SymbolicName="Iec60870LinkType_AnonymousMode" ParentNodeId="ns=1;i=124" DataType="Boolean">
+    <DisplayName>Анонимный режим</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=193" BrowseName="1:Address" SymbolicName="Iec60870DeviceType_Address" ParentNodeId="ns=1;i=331" DataType="i=5">
+    <DisplayName>Адрес</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=194" BrowseName="1:LinkAddress" SymbolicName="Iec60870DeviceType_LinkAddress" ParentNodeId="ns=1;i=331" DataType="i=5">
+    <DisplayName>Адрес коммутатора</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=195" BrowseName="1:InterrogateOnStart" SymbolicName="Iec60870DeviceType_StartupInterrogation" ParentNodeId="ns=1;i=331" DataType="Boolean">
+    <DisplayName>Полный опрос при запуске</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>true</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=196" BrowseName="1:InterrogationPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriod" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период полного опроса, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=197" BrowseName="1:SynchronizeClockOnStart" SymbolicName="Iec60870DeviceType_StartupClockSync" ParentNodeId="ns=1;i=331" DataType="Boolean">
+    <DisplayName>Синхронизация часов при запуске</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=198" BrowseName="1:ClockSynchronizationPeriod" SymbolicName="Iec60870DeviceType_ClockSyncPeriod" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период синхронизации часов, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=200" BrowseName="1:Group1PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup1" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 1, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=201" BrowseName="1:Group2PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup2" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 2, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=202" BrowseName="1:Group3PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup3" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 3, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=203" BrowseName="1:Group4PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup4" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 4, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=204" BrowseName="1:Group5PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup5" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 5, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=205" BrowseName="1:Group6PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup6" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 6, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=206" BrowseName="1:Group7PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup7" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 7, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=207" BrowseName="1:Group8PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup8" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 8, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=208" BrowseName="1:Group9PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup9" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 9, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=209" BrowseName="1:Group10PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup10" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 10, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=210" BrowseName="1:Group11PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup11" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 11, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=211" BrowseName="1:Group12PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup12" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 12, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=212" BrowseName="1:Group13PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup13" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 13, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=213" BrowseName="1:Group14PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup14" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 14, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=214" BrowseName="1:Group15PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup15" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 15, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=215" BrowseName="1:Group16PollPeriod" SymbolicName="Iec60870DeviceType_InterrogationPeriodGroup16" ParentNodeId="ns=1;i=331" DataType="Int32">
+    <DisplayName>Период опроса группы 16, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=294" BrowseName="1:UtcTime" SymbolicName="Iec60870DeviceType_UtcTime" ParentNodeId="ns=1;i=331" DataType="Boolean">
+    <DisplayName>Время UTC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=322" BrowseName="1:Iec60870ProtocolType" SymbolicName="Iec60870ProtocolDataType">
+    <DisplayName>Тип протокола МЭК-60870</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=323" BrowseName="1:EnumStrings" SymbolicName="Iec60870ProtocolDataType_EnumStrings" ParentNodeId="ns=1;i=322" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=322</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=324" BrowseName="1:Iec60870ModeType" SymbolicName="Iec60870ModeDataType">
+    <DisplayName>Режим МЭК-60870</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=325" BrowseName="1:EnumStrings" SymbolicName="Iec60870ModeDataType_EnumStrings" ParentNodeId="ns=1;i=324" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=324</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=331" BrowseName="1:Iec60870DeviceType" SymbolicName="Iec60870DeviceType">
+    <DisplayName>Устройство МЭК-60870</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=343</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=343" BrowseName="1:Iec60870TransmissionItemType" SymbolicName="Iec60870TransmissionItemType">
+    <DisplayName>Ретрансляция МЭК-60870</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=277" BrowseName="1:Iec61850DeviceType" SymbolicName="Iec61850DeviceType">
+    <DisplayName>Устройство МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=281</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=344</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=278" BrowseName="1:Host" SymbolicName="Iec61850DeviceType_Host" ParentNodeId="ns=1;i=277" DataType="String">
+    <DisplayName>Хост</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=279" BrowseName="1:Port" SymbolicName="Iec61850DeviceType_Port" ParentNodeId="ns=1;i=277" DataType="Int32">
+    <DisplayName>Порт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>102</uax:Int32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=281" BrowseName="1:RCB" SymbolicName="Iec61850RcbType">
+    <DisplayName>RCB МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=285</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=283" BrowseName="1:Address" SymbolicName="Iec61850ConfigurableObjectType_Reference" ParentNodeId="ns=1;i=285" DataType="String">
+    <DisplayName>Адрес</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=285" BrowseName="1:ConfigurableObject" SymbolicName="Iec61850ConfigurableObjectType">
+    <DisplayName>Параметр МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=285</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=288" BrowseName="1:Model" SymbolicName="Iec61850DeviceType_Model" ParentNodeId="ns=1;i=277">
+    <DisplayName>Модель</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=289</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=289" BrowseName="1:Iec61850LogicalNodeType" SymbolicName="Iec61850LogicalNodeType">
+    <DisplayName>Логический узел МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariableType NodeId="ns=1;i=291" BrowseName="1:Iec61850DataVariableType" SymbolicName="Iec61850DataVariableType" DataType="BaseDataType">
+    <DisplayName>Объект данных МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+    </References>
+  </UAVariableType>
+  <UAObjectType NodeId="ns=1;i=293" BrowseName="1:Iec61850ControlObjectType" SymbolicName="Iec61850ControlObjectType">
+    <DisplayName>Объект управления МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=344" BrowseName="1:Iec61850TransmissionItemType" SymbolicName="Iec61850TransmissionItemType">
+    <DisplayName>Ретрансляция МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=108" BrowseName="1:ModbusLinkType" SymbolicName="ModbusLinkType">
+    <DisplayName>Направление MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=118</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=118" BrowseName="1:ModbusDeviceType" SymbolicName="ModbusDeviceType">
+    <DisplayName>Устройство MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=342</Reference>
+    </References>
+  </UAObjectType>
+  <UADataType NodeId="ns=1;i=130" BrowseName="1:ModbusLinkProtocol" SymbolicName="ModbusLinkProtocol">
+    <DisplayName>Тип протокола MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=167" BrowseName="1:Protocol" SymbolicName="ModbusLinkType_Protocol" ParentNodeId="ns=1;i=108" DataType="ns=1;i=130">
+    <DisplayName>Протокол</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=168" BrowseName="1:Address" SymbolicName="ModbusDeviceType_Address" ParentNodeId="ns=1;i=118" DataType="i=3">
+    <DisplayName>Адрес</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=169" BrowseName="1:RepeatCount" SymbolicName="ModbusDeviceType_SendRetryCount" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Попыток повторов передачи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>3</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=298" BrowseName="1:ResponseTimeout" SymbolicName="ModbusDeviceType_ResponseTimeout" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Таймаут ответа, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1000</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=299" BrowseName="1:RequestDelay" SymbolicName="ModbusLinkType_RequestDelay" ParentNodeId="ns=1;i=108" DataType="Int32">
+    <DisplayName>Задержка запроса, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=303" BrowseName="1:EnumStrings" SymbolicName="ModbusLinkProtocol_EnumStrings" ParentNodeId="ns=1;i=130" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=130</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=330" BrowseName="1:Mode" SymbolicName="ModbusLinkType_Mode" ParentNodeId="ns=1;i=108" DataType="ns=1;i=332">
+    <DisplayName>Режим</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=332" BrowseName="1:ModbusModeDataType" SymbolicName="ModbusModeDataType">
+    <DisplayName>Режим MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=333" BrowseName="1:EnumStrings" SymbolicName="ModbusModeDataType_EnumStrings" ParentNodeId="ns=1;i=332" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=332</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=342" BrowseName="1:ModbusTransmissionItemType" SymbolicName="ModbusTransmissionItemType">
+    <DisplayName>Ретрансляция MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=349" BrowseName="1:SuspendDuration" SymbolicName="ModbusDeviceType_SuspendDuration" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Длительность приостановки, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>30000</uax:Int32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=304" BrowseName="1:FileSystem" SymbolicName="FileSystem" ParentNodeId="i=85">
+    <DisplayName>Файлы</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=305</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=306</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=305" BrowseName="1:FileDirectoryType" SymbolicName="FileDirectoryType">
+    <DisplayName>Папка</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=305</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=306</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariableType NodeId="ns=1;i=306" BrowseName="1:FileType" SymbolicName="FileType" DataType="ByteString">
+    <DisplayName>Файл</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+    </References>
+  </UAVariableType>
+  <UAVariable NodeId="ns=1;i=307" BrowseName="1:LastUpdateTime" SymbolicName="FileType_LastUpdateTime" ParentNodeId="ns=1;i=306" DataType="DateTime">
+    <DisplayName>Время изменения</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=306</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><uax:DateTime>0</uax:DateTime></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=308" BrowseName="1:Size" SymbolicName="FileType_Size" ParentNodeId="ns=1;i=306" DataType="UInt64">
+    <DisplayName>Размер, байт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=306</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><uax:UInt64>0</uax:UInt64></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=12" BrowseName="1:HistoricalDatabases" SymbolicName="HistoricalDatabases" ParentNodeId="i=85">
+    <DisplayName>Базы данных</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=20</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=171" BrowseName="1:Depth" SymbolicName="HistoricalDatabaseType_Depth" ParentNodeId="ns=1;i=20" DataType="Int32">
+    <DisplayName>Глубина, дн</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=20" BrowseName="1:HistoricalDatabaseType" SymbolicName="HistoricalDatabaseType">
+    <DisplayName>База данных</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=244" BrowseName="1:ItemCount" SymbolicName="HistoricalDatabaseType_ItemCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+    <DisplayName>Количество измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=245" BrowseName="1:WriteValueCount" SymbolicName="HistoricalDatabaseType_WriteValueCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+    <DisplayName>Количество записанных измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=240" BrowseName="1:WriteValueDuration" SymbolicName="HistoricalDatabaseType_WriteValueDuration" ParentNodeId="ns=1;i=20" DataType="i=7">
+    <DisplayName>Задержка записи измерений, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=241" BrowseName="1:PendingTaskCount" SymbolicName="HistoricalDatabaseType_PendingTaskCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+    <DisplayName>Очередь записи измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=242" BrowseName="1:EventCleanupDuration" SymbolicName="HistoricalDatabaseType_EventCleanupDuration" ParentNodeId="ns=1;i=20" DataType="Int32">
+    <DisplayName>Продолжительность очистки событий, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=243" BrowseName="1:ValueCleanupDuration" SymbolicName="HistoricalDatabaseType_ValueCleanupDuration" ParentNodeId="ns=1;i=20" DataType="i=7">
+    <DisplayName>Продолжительность очистки измерений, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=329" BrowseName="1:OPC" SymbolicName="OPC" ParentNodeId="i=85">
+    <DisplayName>OPC</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAReferenceType NodeId="ns=1;i=152" BrowseName="1:HasHistoricalDatabase" SymbolicName="HasHistoricalDatabase">
+    <DisplayName>Архив значений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariable NodeId="ns=1;i=156" BrowseName="1:Conversion" SymbolicName="AnalogItemType_Conversion" ParentNodeId="ns=1;i=76" DataType="ns=1;i=320">
+    <DisplayName>Преобразование</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=314</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAReferenceType NodeId="ns=1;i=297" BrowseName="1:Creates" SymbolicName="Creates">
+    <DisplayName>Можно создать</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UAObject NodeId="ns=1;i=310" BrowseName="1:PropertyCategories" SymbolicName="PropertyCategories" ParentNodeId="i=85">
+    <DisplayName>Категории свойств</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAReferenceType NodeId="ns=1;i=311" BrowseName="1:HasPropertyCategory" SymbolicName="HasPropertyCategory">
+    <DisplayName>Категория свойства</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UAObject NodeId="ns=1;i=312" BrowseName="1:General" SymbolicName="GeneralPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Общие</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=313" BrowseName="1:Channels" SymbolicName="ChannelsPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Каналы</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=314" BrowseName="1:Conversion" SymbolicName="ConversionPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Преобразование</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=315" BrowseName="1:Filtering" SymbolicName="FilteringPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Фильтрация</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=316" BrowseName="1:Display" SymbolicName="DisplayPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Отображение</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=317" BrowseName="1:History" SymbolicName="HistoryPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Архивирование</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=318" BrowseName="1:Simulation" SymbolicName="SimulationPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Эмуляция</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=319" BrowseName="1:Limits" SymbolicName="LimitsPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Уставки</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAReferenceType NodeId="ns=1;i=328" BrowseName="1:HasDevice" SymbolicName="HasDevice">
+    <DisplayName>Устройство</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=313</Reference>
+    </References>
+  </UAReferenceType>
+  <UAReferenceType NodeId="ns=1;i=335" BrowseName="1:HasEventDatabase" SymbolicName="HasEventDatabase">
+    <DisplayName>Архив событий</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
+    </References>
+  </UAReferenceType>
+  <UAVariableType NodeId="ns=1;i=336" BrowseName="1:MetricType" SymbolicName="MetricType" DataType="Int64">
+    <DisplayName>Метрика</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+    </References>
+  </UAVariableType>
+  <UAVariable NodeId="ns=1;i=337" BrowseName="1:AggregateFunction" SymbolicName="MetricType_AggregateFunction" ParentNodeId="ns=1;i=336" DataType="NodeId">
+    <DisplayName>Функция</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=338" BrowseName="1:AggregateInterval" SymbolicName="MetricType_AggregateInterval" ParentNodeId="ns=1;i=336" DataType="Int32">
+    <DisplayName>Период, с</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=16" BrowseName="1:UserType" SymbolicName="UserType">
+    <DisplayName>Пользователь</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=170" BrowseName="1:AccessRights" SymbolicName="UserType_AccessRights" ParentNodeId="ns=1;i=16" DataType="Int32">
+    <DisplayName>Права</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=29" BrowseName="1:Users" SymbolicName="Users" ParentNodeId="i=85">
+    <DisplayName>Пользователи</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=16</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=345" BrowseName="1:MultiSessions" SymbolicName="UserType_MultiSessions" ParentNodeId="ns=1;i=16" DataType="Boolean">
+    <DisplayName>Множество сессий</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=346" BrowseName="1:ProfileJson" SymbolicName="UserType_ProfileJson" ParentNodeId="ns=1;i=16" DataType="String">
+    <DisplayName>Профиль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=347" BrowseName="1:ProfileRevision" SymbolicName="UserType_ProfileRevision" ParentNodeId="ns=1;i=16" DataType="UInt64">
+    <DisplayName>Версия профиля</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:UInt64>0</uax:UInt64></Value>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=348" BrowseName="1:SaveProfile" SymbolicName="UserType_SaveProfile" ParentNodeId="ns=1;i=16">
+    <DisplayName>Сохранить профиль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=353" BrowseName="1:VerifyPassword" SymbolicName="UserType_VerifyPassword" ParentNodeId="ns=1;i=16">
+    <DisplayName>Проверить пароль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAObjectType NodeId="ns=1;i=354" BrowseName="1:RoleType" SymbolicName="RoleType">
+    <DisplayName>Роль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=357</Reference>
+      <Reference ReferenceType="ns=1;i=356">ns=1;i=360</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=355" BrowseName="1:Authoring" SymbolicName="RoleType_Authoring" ParentNodeId="ns=1;i=354" DataType="Boolean">
+    <DisplayName>Редактирование</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=354</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAReferenceType NodeId="ns=1;i=356" BrowseName="1:HasConfiguration" SymbolicName="HasConfiguration">
+    <DisplayName>Конфигурация</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+    </References>
+  </UAReferenceType>
+  <UAMethod NodeId="ns=1;i=363" BrowseName="1:AddIdentity" SymbolicName="RoleType_AddIdentity" ParentNodeId="ns=1;i=354">
+    <DisplayName>Добавить участника</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=354</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=364" BrowseName="1:RemoveIdentity" SymbolicName="RoleType_RemoveIdentity" ParentNodeId="ns=1;i=354">
+    <DisplayName>Удалить участника</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=354</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAObjectType NodeId="ns=1;i=357" BrowseName="1:IdentityMappingRuleType" SymbolicName="IdentityMappingRuleType">
+    <DisplayName>Правило сопоставления</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=358" BrowseName="1:CriteriaType" SymbolicName="IdentityMappingRuleType_CriteriaType" ParentNodeId="ns=1;i=357" DataType="Int32">
+    <DisplayName>Тип критерия</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=357</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=359" BrowseName="1:Criteria" SymbolicName="IdentityMappingRuleType_Criteria" ParentNodeId="ns=1;i=357" DataType="String">
+    <DisplayName>Критерий</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=357</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=360" BrowseName="1:ConfigurationType" SymbolicName="ConfigurationType">
+    <DisplayName>Конфигурация</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=362" BrowseName="1:Configurations" SymbolicName="Configurations" ParentNodeId="i=85">
+    <DisplayName>Конфигурации</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="ns=1;i=297">ns=1;i=360</Reference>
+    </References>
+  </UAObject>
+  <UAMethod NodeId="ns=1;i=365" BrowseName="1:DeployConfiguration" SymbolicName="Configurations_DeployConfiguration" ParentNodeId="ns=1;i=362">
+    <DisplayName>Развернуть конфигурацию</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=362</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=366" BrowseName="1:RemoveConfiguration" SymbolicName="Configurations_RemoveConfiguration" ParentNodeId="ns=1;i=362">
+    <DisplayName>Удалить конфигурацию</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=362</Reference>
+    </References>
+  </UAMethod>
+</UANodeSet>
