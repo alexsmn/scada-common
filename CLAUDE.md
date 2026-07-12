@@ -79,7 +79,10 @@ may report zero discovered tests even when the binaries exist.
 
 Test fixtures and utilities live in `test/` subdirectories:
 - `address_space/test/` — `test_address_space.h`, `test_matchers.h`
-- `node_service/test/` — `test_node_model.h`
+- `node_service/test/` — `model_node_service.h` (a `NodeService` double that
+  forwards each per-node operation to a registered `NodeModel`, so tests can
+  keep lightweight `MockNodeModel` stubs and still hand out real `NodeRef`
+  cursors)
 - `node_service/v1/test/` — `node_service_test_context.h`
 
 The `node_service_unittests` target links all implementation variants (v1, v2, v3, proxy) to test them together.
