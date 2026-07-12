@@ -8,7 +8,7 @@
 
 #include <opcda.h>
 
-namespace base {
+namespace scada::base {
 
 inline int64_t InSeconds(const SYSTEMTIME& t) {
   FILETIME ft = {};
@@ -37,7 +37,7 @@ Time ToTime(DATE time) {
   return result;
 }
 
-}  // namespace base
+}  // namespace scada::base
 
 namespace scada {
 
