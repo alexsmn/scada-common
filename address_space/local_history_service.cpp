@@ -41,7 +41,23 @@ UInt32 LocalHistoryService::ParseSeverity(std::string_view s) {
   return kSeverityNormal;
 }
 
+void LocalHistoryService::SetNowOverride(base::Time now) {
+  now_override_ = now;
+}
+
+base::Time LocalHistoryService::Now() const {
+  return now_override_.is_null() ? base::Time::Now() : now_override_;
+}
+
 void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
+  // Optional frozen clock, so regenerating screenshots doesn't shift every
+  // rendered timestamp.
+  if (const auto* jnow = root.as_object().if_contains("now")) {
+    base::Time now;
+    if (base::Time::FromString(std::string(jnow->as_string()).c_str(), &now))
+      SetNowOverride(now);
+  }
+
   // Raw-history base values from the `nodes` array.
   for (const auto& jn : root.at("nodes").as_array()) {
     if (auto* bv = jn.as_object().if_contains("base_value")) {
@@ -52,7 +68,7 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   }
 
   // Events from the `events` array.
-  const auto now = base::Time::Now();
+  const auto now = Now();
   for (const auto& je : root.at("events").as_array()) {
     Event e;
     e.event_id = static_cast<EventId>(je.at("id").as_int64());
@@ -86,7 +102,11 @@ Awaitable<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
 
 HistoryReadRawResult LocalHistoryService::ReadRaw(
     HistoryReadRawDetails details) const {
-  const auto now = base::Time::Now();
+  // Anchor the synthesized series to the requested window when it has a
+  // finite end: consumers (TimedDataFetcher) filter returned values by the
+  // requested range, so a series pinned to a frozen "now" would otherwise
+  // vanish for wall-clock-ranged queries, and vice versa.
+  const auto now = details.to.is_null() ? Now() : details.to;
 
   double base_value = 100.0;
   if (auto it = raw_profiles_.find(details.node_id); it != raw_profiles_.end())
@@ -96,7 +116,8 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // across runs for a given node.
   auto seed = details.node_id.is_numeric() ? details.node_id.numeric_id() : 0u;
   std::mt19937 rng{seed};
-  std::normal_distribution<double> dist(base_value, std::abs(base_value) * 0.05);
+  std::normal_distribution<double> dist(base_value,
+                                        std::abs(base_value) * 0.05);
 
   std::vector<DataValue> values;
   values.reserve(48);
