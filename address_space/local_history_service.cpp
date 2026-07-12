@@ -25,8 +25,9 @@ LocalHistoryService::LocalHistoryService() = default;
 LocalHistoryService::~LocalHistoryService() = default;
 
 void LocalHistoryService::SetRawProfile(const NodeId& node_id,
-                                        double base_value) {
-  raw_profiles_[node_id] = base_value;
+                                        double base_value,
+                                        std::optional<double> noise_stddev) {
+  raw_profiles_[node_id] = RawProfile{base_value, noise_stddev};
 }
 
 void LocalHistoryService::AddEvent(Event event) {
@@ -58,12 +59,16 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
       SetNowOverride(now);
   }
 
-  // Raw-history base values from the `nodes` array.
+  // Raw-history base values from the `nodes` array, plus an optional per-node
+  // `history_stddev` that overrides the default noise amplitude.
   for (const auto& jn : root.at("nodes").as_array()) {
     if (auto* bv = jn.as_object().if_contains("base_value")) {
+      std::optional<double> noise_stddev;
+      if (auto* sd = jn.as_object().if_contains("history_stddev"))
+        noise_stddev = sd->to_number<double>();
       SetRawProfile(
           NodeIdFromScadaString(std::string_view(jn.at("id").as_string())),
-          bv->to_number<double>());
+          bv->to_number<double>(), noise_stddev);
     }
   }
 
@@ -109,15 +114,21 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   const auto now = details.to.is_null() ? Now() : details.to;
 
   double base_value = 100.0;
-  if (auto it = raw_profiles_.find(details.node_id); it != raw_profiles_.end())
-    base_value = it->second;
+  std::optional<double> noise_stddev;
+  if (auto it = raw_profiles_.find(details.node_id);
+      it != raw_profiles_.end()) {
+    base_value = it->second.base_value;
+    noise_stddev = it->second.noise_stddev;
+  }
 
   // Deterministic per-node noise: seed on the numeric id so output is stable
-  // across runs for a given node.
+  // across runs for a given node. The amplitude defaults to 5% of the mean,
+  // but a node may pin an absolute standard deviation (e.g. so a narrow-range
+  // frequency series stays inside its engineering-unit band).
   auto seed = details.node_id.is_numeric() ? details.node_id.numeric_id() : 0u;
   std::mt19937 rng{seed};
-  std::normal_distribution<double> dist(base_value,
-                                        std::abs(base_value) * 0.05);
+  std::normal_distribution<double> dist(
+      base_value, noise_stddev.value_or(std::abs(base_value) * 0.05));
 
   std::vector<DataValue> values;
   values.reserve(48);

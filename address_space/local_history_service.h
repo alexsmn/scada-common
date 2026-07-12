@@ -4,6 +4,7 @@
 #include "scada/history_service.h"
 #include "scada/node_id.h"
 
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -26,9 +27,15 @@ class LocalHistoryService : public HistoryService {
   ~LocalHistoryService() override;
 
   // Raw reads for `node_id` will return a 48-point normal distribution around
-  // `base_value` (std = 5% of |base_value|) at 30-minute intervals ending at
-  // "now" (see SetNowOverride).
-  void SetRawProfile(const NodeId& node_id, double base_value);
+  // `base_value` at 30-minute intervals ending at "now" (see SetNowOverride).
+  // The standard deviation defaults to 5% of |base_value|; pass `noise_stddev`
+  // to override it with an absolute value. An explicit override lets a node
+  // with a narrow engineering-unit range (e.g. grid frequency at 50 Hz within
+  // [49.95, 50.05]) synthesize a series that stays inside that band instead of
+  // overshooting it.
+  void SetRawProfile(const NodeId& node_id,
+                     double base_value,
+                     std::optional<double> noise_stddev = std::nullopt);
 
   void AddEvent(Event event);
 
@@ -42,7 +49,9 @@ class LocalHistoryService : public HistoryService {
   // Populates raw profiles from `nodes` and events from `events` of a
   // screenshot-style JSON document. Events are timestamped at load time as
   // `now - hours_ago * 1h`. An optional top-level `now` key ("YYYY-MM-DD
-  // HH:MM:SS", local time) applies SetNowOverride before timestamping.
+  // HH:MM:SS", local time) applies SetNowOverride before timestamping. A node
+  // may carry an optional `history_stddev` (absolute standard deviation of the
+  // synthesized raw series); it overrides the default 5%-of-|base_value| noise.
   void LoadFromJson(const boost::json::value& root);
 
   // HistoryService
@@ -63,7 +72,14 @@ class LocalHistoryService : public HistoryService {
                                      base::Time to,
                                      EventFilter filter) const;
 
-  std::unordered_map<NodeId, double> raw_profiles_;
+  // Synthesized raw-history profile for a node: the series mean and, optionally,
+  // an explicit absolute standard deviation (falls back to 5% of |base_value|).
+  struct RawProfile {
+    double base_value = 0.0;
+    std::optional<double> noise_stddev;
+  };
+
+  std::unordered_map<NodeId, RawProfile> raw_profiles_;
   std::vector<Event> events_;
   base::Time now_override_;
 };
