@@ -55,9 +55,16 @@ class TestNodeFetcher final : public NodeFetcher {
     for (const auto& reference : node->forward_references()) {
       if (scada::IsSubtypeOf(*reference.type,
                              scada::id::HierarchicalReferences)) {
-        references.push_back({.reference_type_id = reference.type->id(),
-                              .forward = true,
-                              .node_id = reference.node->id()});
+        // Fill the browse-result fields like the production fetcher's Browse
+        // does: children dedup must work against full descriptions, not just
+        // the identity triple.
+        references.push_back(
+            {.reference_type_id = reference.type->id(),
+             .forward = true,
+             .node_id = reference.node->id(),
+             .node_class = reference.node->GetNodeClass(),
+             .browse_name = reference.node->GetBrowseName(),
+             .display_name = reference.node->GetDisplayName()});
       }
     }
     co_return references;
@@ -109,6 +116,51 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
   node_service.Add({.node_id = node_id,
                     .node_class = scada::NodeClass::Variable,
                     .type_definition_id = scada::id::BaseVariableType});
+
+  EXPECT_CALL(attribute_service, Read(_, _))
+      .WillOnce(
+          [&](scada::ServiceContext, std::vector<scada::ReadValueId> inputs)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
+            EXPECT_EQ(inputs.size(), 1u);
+            if (inputs.empty()) {
+              co_return scada::StatusCode::Bad;
+            }
+            EXPECT_EQ(inputs[0].node_id, node_id);
+            EXPECT_EQ(inputs[0].attribute_id, scada::AttributeId::Value);
+            co_return std::vector{scada::DataValue{expected_value, {}, {}, {}}};
+          });
+
+  auto result = WaitAwaitable(
+      executor, node_service.GetNode(node_id).scada_node().read_value());
+
+  EXPECT_EQ(result.value().value, expected_value);
+}
+
+// Regression: v3 used to answer GetScadaNode from the node model, which
+// returned an empty (service-less) scada::node — every read/subscribe through
+// NodeRef::scada_node() completed with Bad_Disconnected. The service must
+// build the node from the context's scada::client instead, independent of
+// model residency.
+TEST(V3NodeServiceScadaNodeTest, UsesContextClientServices) {
+  TestExecutor executor;
+  auto address_space = std::make_shared<TestAddressSpace>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+  StrictMock<scada::MockAttributeService> attribute_service;
+  scada::services client_services;
+  client_services.attribute_service = &attribute_service;
+
+  v3::NodeServiceImpl node_service{v3::NodeServiceImplContext{
+      .executor_ = executor,
+      .monitored_item_service_ = monitored_item_service,
+      .node_fetcher_ = std::make_shared<v3::TestNodeFetcher>(*address_space),
+      .view_events_provider_ =
+          [](scada::ViewEvents&) {
+            return std::make_unique<IViewEventsSubscription>();
+          },
+      .scada_client_ = scada::client{client_services}}};
+
+  const scada::NodeId node_id = address_space->kTestNode1Id;
+  const scada::Variant expected_value{scada::Int32{42}};
 
   EXPECT_CALL(attribute_service, Read(_, _))
       .WillOnce(
@@ -375,8 +427,7 @@ TEST_F(V3NodeServiceTest, ChildrenReportedOnceAfterNodeAndChildrenFetch) {
   this->DrainExecutor();
 
   std::unordered_map<scada::NodeId, int> counts;
-  for (const NodeRef& child :
-       node.targets(scada::id::HierarchicalReferences)) {
+  for (const NodeRef& child : node.targets(scada::id::HierarchicalReferences)) {
     ++counts[child.node_id()];
   }
 
@@ -757,7 +808,8 @@ class V3ChildrenFetchReentrancyTest : public Test {
   v3::NodeServiceTestContext context_{base_env_, /*keep_alive_capacity=*/1};
 };
 
-TEST_F(V3ChildrenFetchReentrancyTest, ChildrenFetchTailSurvivesKeepAliveEviction) {
+TEST_F(V3ChildrenFetchReentrancyTest,
+       ChildrenFetchTailSurvivesKeepAliveEviction) {
   auto& server_address_space = *base_env_.server_address_space;
   auto& node_service = context_.node_service;
 
@@ -785,4 +837,3 @@ TEST_F(V3ChildrenFetchReentrancyTest, ChildrenFetchTailSurvivesKeepAliveEviction
   // have survived the re-entrant eviction of its own model.
   EXPECT_TRUE(fetch_completed);
 }
-

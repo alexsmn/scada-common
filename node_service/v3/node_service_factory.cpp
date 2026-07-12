@@ -16,8 +16,8 @@ using node_service::internal::HasRequiredNodeServices;
 using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::ResolvedNodeServices;
 
-// Builds the production coroutine fetcher v3::NodeServiceImpl injects. Like v2's
-// internal NodeFetcherImpl, it runs with a default ServiceContext.
+// Builds the production coroutine fetcher v3::NodeServiceImpl injects. Like
+// v2's internal NodeFetcherImpl, it runs with a default ServiceContext.
 std::shared_ptr<NodeFetcher> MakeServiceNodeFetcher(
     scada::ViewService& view_service,
     scada::AttributeService& attribute_service) {
@@ -59,6 +59,7 @@ struct NodeServiceHolder {
         .view_events_provider_ = MakeViewEventsProvider(
             node_service_context.executor_,
             node_service_context.monitored_item_service_),
+        .scada_client_ = node_service_context.scada_client_,
     };
   }
 
@@ -70,9 +71,10 @@ struct NodeServiceHolder {
         .node_fetcher_ =
             MakeServiceNodeFetcher(*resolved_services->view_service,
                                    *resolved_services->attribute_service),
-        .view_events_provider_ = MakeViewEventsProvider(
-            node_service_context.executor_,
-            *resolved_services->monitored_item_service),
+        .view_events_provider_ =
+            MakeViewEventsProvider(node_service_context.executor_,
+                                   *resolved_services->monitored_item_service),
+        .scada_client_ = node_service_context.scada_client_,
     };
   }
 

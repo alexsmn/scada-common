@@ -133,8 +133,13 @@ NodeRef NodeServiceImpl::GetChild(const scada::NodeId& node_id,
 }
 
 scada::node NodeServiceImpl::GetScadaNode(const scada::NodeId& node_id) {
-  auto node = GetNodeModelForRead(node_id);
-  return node ? node->GetScadaNode() : scada::node{};
+  if (node_id.is_null())
+    return {};
+
+  // A scada::node is a pure {services, node_id} cursor: build it from the
+  // context's client rather than the (possibly evicted) node model, so
+  // read/write/subscribe through it works regardless of residency.
+  return scada_client_.node(node_id);
 }
 
 // Node-scoped subscriptions live in the service's subscription table, not on
@@ -321,10 +326,10 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
                                  const NodeFetchStatus& requested_status,
                                  std::shared_ptr<NodeModelImpl> model) {
   // Guard against duplicate in-flight fetches: BaseNodeModel re-requests until
-  // the status is fetched, and the injected NodeFetcher does not dedupe. `insert`
-  // returns false when a fetch is already running for this node, in which case
-  // the requester's callback is already queued on the model and will fire when
-  // that fetch resolves.
+  // the status is fetched, and the injected NodeFetcher does not dedupe.
+  // `insert` returns false when a fetch is already running for this node, in
+  // which case the requester's callback is already queued on the model and will
+  // fire when that fetch resolves.
   if (Includes(requested_status, NodeFetchStatus::NodeOnly) &&
       node_fetch_in_flight_.insert(node_id).second) {
     CoSpawn(executor_,

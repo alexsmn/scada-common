@@ -7,6 +7,7 @@
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
 #include "node_service/node_subscription_table.h"
+#include "scada/client.h"
 #include "scada/view_service.h"
 
 #include <list>
@@ -29,6 +30,12 @@ struct NodeServiceImplContext {
   scada::MonitoredItemService& monitored_item_service_;
   const std::shared_ptr<NodeFetcher> node_fetcher_;
   const ViewEventsProvider view_events_provider_;
+
+  // Backs GetScadaNode: a scada::node is a service-bound cursor, so it must
+  // carry the session's services (including the monitored-item executor) for
+  // read/write/subscribe calls made through it. A default-constructed client
+  // yields nodes whose operations complete with Bad_Disconnected.
+  const scada::client scada_client_;
 
   // Bounds the service-owned MRU keep-alive pins that absorb refetch churn
   // from transient GetNode traversals. NodeRef is a non-pinning cursor (see
@@ -213,9 +220,10 @@ class NodeServiceImpl : private NodeServiceImplContext,
   // Nodes with a fetch coroutine currently in flight. BaseNodeModel re-requests
   // a fetch on every StartFetch until the status is fetched; because the
   // injected NodeFetcher is stateless (unlike v2's self-deduping
-  // NodeFetcherImpl), without this guard a slow/asynchronous fetch would spawn a
-  // duplicate coroutine per call, and each duplicate result would re-run the
-  // fetched-node notification path. Entries are cleared when the fetch resolves.
+  // NodeFetcherImpl), without this guard a slow/asynchronous fetch would spawn
+  // a duplicate coroutine per call, and each duplicate result would re-run the
+  // fetched-node notification path. Entries are cleared when the fetch
+  // resolves.
   std::set<scada::NodeId> node_fetch_in_flight_;
   std::set<scada::NodeId> children_fetch_in_flight_;
 

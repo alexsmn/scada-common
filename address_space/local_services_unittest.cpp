@@ -1,15 +1,19 @@
 #include "address_space/address_space_impl.h"
 #include "address_space/local_history_service.h"
 #include "address_space/local_method_service.h"
+#include "address_space/local_monitored_item_service.h"
 #include "address_space/local_node_management_service.h"
 #include "address_space/local_session_service.h"
 #include "address_space/method_service_impl.h"
+#include "address_space/test/test_address_space.h"
 
 #include "base/test/awaitable_test.h"
+#include "scada/monitored_item.h"
 #include "scada/standard_node_ids.h"
 #include "scada/test/status_matchers.h"
 
 #include <gmock/gmock.h>
+#include <variant>
 
 namespace scada {
 namespace {
@@ -50,9 +54,8 @@ TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
   AddressSpaceImpl address_space;
   MethodServiceImpl service{{address_space}};
 
-  const auto status =
-      WaitAwaitable(executor, service.Call(NodeId{1, 2}, NodeId{2, 2}, {},
-                                           ServiceContext{}));
+  const auto status = WaitAwaitable(
+      executor, service.Call(NodeId{1, 2}, NodeId{2, 2}, {}, ServiceContext{}));
 
   EXPECT_EQ(status.code(), StatusCode::Bad_WrongMethodId);
 }
@@ -62,12 +65,12 @@ TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {
   LocalNodeManagementService service;
 
   auto result = WaitAwaitable(
-      executor, service.AddNodes(ServiceContext{},
-                                 {AddNodesItem{
-                                     .requested_id = NodeId{1, 2},
-                                     .parent_id = id::ObjectsFolder,
-                                     .node_class = NodeClass::Object,
-                                     .type_definition_id = id::BaseObjectType}}));
+      executor, service.AddNodes(
+                    ServiceContext{},
+                    {AddNodesItem{.requested_id = NodeId{1, 2},
+                                  .parent_id = id::ObjectsFolder,
+                                  .node_class = NodeClass::Object,
+                                  .type_definition_id = id::BaseObjectType}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
@@ -88,13 +91,12 @@ TEST(LocalNodeManagementService, CoroutineAddReferencesReturnsBadResults) {
   TestExecutor executor;
   LocalNodeManagementService service;
 
-  auto result =
-      WaitAwaitable(executor,
-                    service.AddReferences(ServiceContext{},
-                                          {AddReferencesItem{
-                                              .source_node_id = id::ObjectsFolder,
-                                              .reference_type_id = id::Organizes,
-                                              .target_node_id = NodeId{1, 2}}}));
+  auto result = WaitAwaitable(
+      executor, service.AddReferences(
+                    ServiceContext{},
+                    {AddReferencesItem{.source_node_id = id::ObjectsFolder,
+                                       .reference_type_id = id::Organizes,
+                                       .target_node_id = NodeId{1, 2}}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
 }
@@ -103,16 +105,48 @@ TEST(LocalNodeManagementService, CoroutineDeleteReferencesReturnsBadResults) {
   TestExecutor executor;
   LocalNodeManagementService service;
 
-  auto result =
-      WaitAwaitable(executor,
-                    service.DeleteReferences(
-                        ServiceContext{},
-                        {DeleteReferencesItem{
-                            .source_node_id = id::ObjectsFolder,
-                            .reference_type_id = id::Organizes,
-                            .target_node_id = NodeId{1, 2}}}));
+  auto result = WaitAwaitable(
+      executor, service.DeleteReferences(
+                    ServiceContext{},
+                    {DeleteReferencesItem{.source_node_id = id::ObjectsFolder,
+                                          .reference_type_id = id::Organizes,
+                                          .target_node_id = NodeId{1, 2}}}));
 
   EXPECT_THAT(result, test::StatusIs(StatusCode::Bad));
+}
+
+// Regression: LocalMonitoredItem used to deliver a random synthetic sample;
+// current-value consumers must instead receive the node's actual Value
+// attribute from the backing address space, stamped with fresh timestamps.
+TEST(LocalMonitoredItemService, DeliversAddressSpaceValueOnSubscribe) {
+  TestExecutor executor;
+  ::TestAddressSpace address_space;
+  LocalMonitoredItemService service{address_space.sync_attribute_service_impl};
+
+  ASSERT_OK_AND_ASSIGN(auto subscription,
+                       service.CreateSubscription(ServiceContext{}, {}));
+
+  const NodeId value_node_id = address_space.MakeNestedNodeId(
+      address_space.kTestNode1Id, address_space.kTestProp1Id);
+  auto results = WaitAwaitable(
+      executor, subscription->AddItems({MonitoredItemCreateRequest{
+                    .item_to_monitor = {.node_id = value_node_id,
+                                        .attribute_id = AttributeId::Value},
+                    .client_handle = 1}}));
+  ASSERT_EQ(results.size(), 1u);
+  ASSERT_TRUE(results[0].status);
+
+  ASSERT_OK_AND_ASSIGN(auto notifications,
+                       WaitAwaitable(executor, subscription->ReadNext(10)));
+  ASSERT_EQ(notifications.size(), 1u);
+  const auto* data_change =
+      std::get_if<DataChangeNotification>(&notifications[0]);
+  ASSERT_NE(data_change, nullptr);
+  EXPECT_EQ(data_change->client_handle, 1u);
+  EXPECT_EQ(data_change->value.status_code, StatusCode::Good);
+  EXPECT_EQ(data_change->value.value, Variant{"TestNode1.TestProp1.Value"});
+  EXPECT_FALSE(data_change->value.source_timestamp.is_null());
+  EXPECT_FALSE(data_change->value.server_timestamp.is_null());
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
@@ -146,12 +180,9 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   service.AddEvent(event);
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(event.node_id,
-                                          event.time -
-                                              base::TimeDelta::FromHours(1),
-                                          event.time +
-                                              base::TimeDelta::FromHours(1),
-                                          EventFilter{}));
+      executor, service.HistoryReadEvents(
+                    event.node_id, event.time - base::TimeDelta::FromHours(1),
+                    event.time + base::TimeDelta::FromHours(1), EventFilter{}));
 
   EXPECT_TRUE(result.status);
   ASSERT_EQ(result.events.size(), 1u);
