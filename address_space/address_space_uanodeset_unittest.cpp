@@ -1,12 +1,9 @@
-// A/B test for the UANodeSet2 loader (Phase 2 of the nodeset migration; see
-// common/model/docs/uanodeset-migration.md). Loads the SCADA model two ways --
-// from the repo-owned scada-node-state-v1 files and from the UANodeSet2 file
-// produced by gen/convert_to_uanodeset.py -- and asserts the resulting address
-// spaces are structurally identical (same nodes, classes, names, hierarchy, and
-// references). This proves the standard loader is a faithful drop-in.
-//
-// The UANodeSet2 fixture (model/gen/samples/Scada.Full.NodeSet2.xml) is the
-// committed converter output; regenerate it if the nodesets change.
+// Regression guard for the static SCADA address space across the UANodeSet2
+// migration (see common/model/docs/uanodeset-migration.md). Loads the static
+// nodesets (via the format-detecting LoadStaticAddressSpace) and compares the
+// resulting address space to a committed golden dump captured from the original
+// scada-node-state-v1 model, so the cut-over to UANodeSet2 -- and any later
+// nodeset edit -- is proven to preserve the exact node/reference structure.
 
 #include "address_space/address_space_xml.h"
 
@@ -18,9 +15,9 @@
 #include "model/static_nodesets.h"
 
 #include <algorithm>
-#include <array>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <map>
 #include <string>
 #include <vector>
@@ -30,8 +27,6 @@
 namespace scada {
 namespace {
 
-// A canonical, order-independent string for one node's structure: everything
-// MakeNodeStates reconstructs plus the sorted reference set.
 std::string Canonicalize(const NodeState& n) {
   std::vector<std::string> refs;
   for (const auto& r : n.references) {
@@ -56,55 +51,51 @@ std::string Canonicalize(const NodeState& n) {
       n.attributes.value ? "set" : "none", joined);
 }
 
-std::map<std::string, std::string> Dump(const AddressSpace& address_space) {
+std::map<std::string, std::string> LoadAndDump() {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  const Status status =
+      LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space, factory);
+  EXPECT_TRUE(status);
   std::map<std::string, std::string> out;
-  for (const auto& node_state : MakeNodeStates(address_space)) {
-    out.emplace(NodeIdToScadaString(node_state.node_id),
-                Canonicalize(node_state));
+  for (const auto& node_state : MakeNodeStates(space))
+    out.emplace(NodeIdToScadaString(node_state.node_id), Canonicalize(node_state));
+  return out;
+}
+
+std::map<std::string, std::string> ReadGolden() {
+  const std::filesystem::path golden =
+      std::filesystem::path{__FILE__}.parent_path() /
+      "scada_address_space_golden.txt";
+  std::map<std::string, std::string> out;
+  std::ifstream in{golden};
+  std::string line;
+  while (std::getline(in, line)) {
+    const auto tab = line.find('\t');
+    if (tab != std::string::npos)
+      out.emplace(line.substr(0, tab), line.substr(tab + 1));
   }
   return out;
 }
 
-std::filesystem::path ModelDir() {
-  return GetScadaStaticNodesetSourceDir().parent_path();
-}
+// The static SCADA address space (now loaded from opcua_base.xml +
+// Scada.NodeSet2.xml) must match the golden captured from the original
+// scada-node-state-v1 model, node-for-node.
+TEST(ScadaAddressSpace, MatchesGolden) {
+  const auto golden = ReadGolden();
+  ASSERT_FALSE(golden.empty()) << "golden fixture missing";
+  const auto actual = LoadAndDump();
 
-TEST(UANodeSetLoader, MatchesCustomFormat) {
-  // A: the repo-owned scada-node-state-v1 files (the current source of truth).
-  AddressSpaceImpl2 custom_space;
-  {
-    GenericNodeFactory factory{custom_space};
-    ASSERT_TRUE(LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(),
-                                       custom_space, factory));
-  }
-
-  // B: the OPC UA namespace-0 base nodes (still from the custom file, since we
-  // only convert the SCADA namespace) plus the SCADA model from the converted
-  // UANodeSet2 file. Loaded together so the cross-namespace references resolve.
-  AddressSpaceImpl2 ua_space;
-  {
-    GenericNodeFactory factory{ua_space};
-    const std::array<std::filesystem::path, 2> paths = {
-        GetScadaStaticNodesetSourceDir() / "opcua_base.xml",
-        ModelDir() / "gen" / "samples" / "Scada.Full.NodeSet2.xml"};
-    ASSERT_TRUE(LoadStaticNodesets(paths, ua_space, factory));
-  }
-
-  const auto a = Dump(custom_space);
-  const auto b = Dump(ua_space);
-
-  for (const auto& [id, canonical] : a)
-    if (!b.contains(id))
-      ADD_FAILURE() << "node in custom but not UANodeSet: " << id << " -> "
-                    << canonical;
-  for (const auto& [id, canonical] : b)
-    if (!a.contains(id))
-      ADD_FAILURE() << "node in UANodeSet but not custom: " << id << " -> "
-                    << canonical;
-  for (const auto& [id, canonical] : a) {
-    auto it = b.find(id);
-    if (it != b.end())
-      EXPECT_EQ(canonical, it->second) << "node " << id << " differs";
+  for (const auto& [id, canonical] : golden)
+    if (!actual.contains(id))
+      ADD_FAILURE() << "node missing from loaded address space: " << id;
+  for (const auto& [id, canonical] : actual)
+    if (!golden.contains(id))
+      ADD_FAILURE() << "unexpected node in loaded address space: " << id;
+  for (const auto& [id, canonical] : golden) {
+    auto it = actual.find(id);
+    if (it != actual.end())
+      EXPECT_EQ(canonical, it->second) << "node " << id << " differs from golden";
   }
 }
 

@@ -12,13 +12,14 @@ namespace scada {
 // per namespace / protocol module under `server/base/nodesets/`. The files are
 // listed in dependency-sensible load order, though `LoadStaticAddressSpace`
 // resolves references across files regardless of order.
-inline constexpr std::array<std::string_view, 11> kScadaStaticNodesetFiles = {
-    "opcua_base.xml",       "scada_core.xml",
-    "security.xml",         "history.xml",
-    "data_items.xml",       "devices.xml",
-    "devices_modbus.xml",   "devices_iec60870.xml",
-    "devices_iec61850.xml", "filesystem.xml",
-    "opc.xml",
+inline constexpr std::array<std::string_view, 2> kScadaStaticNodesetFiles = {
+    // OPC UA namespace-0 base types (repo-owned scada-node-state-v1 subset; the
+    // official Opc.Ua.NodeSet2.xml is a later migration step) followed by the
+    // SCADA model as a standard OPC UA UANodeSet2. LoadStaticAddressSpace
+    // detects each file's format; the base must precede the SCADA model so its
+    // types resolve. See common/model/docs/uanodeset-migration.md.
+    "opcua_base.xml",
+    "Scada.NodeSet2.xml",
 };
 
 // Absolute path to the committed nodeset source directory in the server source

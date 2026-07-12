@@ -134,10 +134,24 @@ nodesets equals its output from the converted `Scada.Full.NodeSet2.xml`
 `ModelFrozenIds` green. So the generator is ready for the Phase 4 cut-over — only
 the input files change, not its output.
 
-### Phase 4 — Cut over
-Replace the nodeset files, point `static_nodesets.{h,cpp}` at the
-`*.NodeSet2.xml` set, retire the custom loader (or keep as a legacy importer).
-Full build + frozen test + nodeset-load test.
+### Phase 4 — Cut over (DONE)
+The SCADA model is now `nodesets/Scada.NodeSet2.xml` (standard UANodeSet2); the
+10 custom SCADA files are removed. `opcua_base.xml` stays in the repo-owned
+format for now (the ns0 base subset; Phase 5 can swap in the official OPC UA
+nodeset). `kScadaStaticNodesetFiles` is `{opcua_base.xml, Scada.NodeSet2.xml}`.
+`LoadStaticAddressSpace` auto-detects each file's format, so every runtime caller
+loads the mixed set unchanged — no caller churn. The generator reads the new SoT
+(opcua_base contributes no constants; `Scada.NodeSet2.xml` supplies them via
+`SymbolicName` + the sidecar).
+
+The Phase 2 A/B test is replaced by `ScadaAddressSpace.MatchesGolden`: a committed
+golden dump (`common/address_space/scada_address_space_golden.txt`) captured from
+the original scada-node-state-v1 model, against which the loaded address space is
+checked node-for-node. Verified: `ModelFrozenIds`, `ScadaAddressSpace.
+MatchesGolden`, `StaticNodesets.ResolveAcrossFiles`, and the server-module
+`CoreModuleTest` all pass on the new SoT. The one-shot migration tools
+(`convert_to_uanodeset.py`, `seed_from_headers.py`) are retired; git history and
+this doc preserve the mapping.
 
 ### Phase 5 — Standardize & publish (optional, high value)
 Add `Model` metadata; publish via the existing **NamespaceMetadata** machinery

@@ -940,7 +940,9 @@ Status LoadStaticAddressSpace(std::span<const std::filesystem::path> paths,
                               NodeFactory& node_factory) {
   // Parse every file into one NodeState set, then materialize it once so
   // references that cross file boundaries (e.g. a protocol type whose supertype
-  // lives in another partition) resolve regardless of load order.
+  // lives in another partition) resolve regardless of load order. Each file's
+  // format (repo-owned scada-node-state-v1 or standard UANodeSet2) is detected
+  // from its root element, so the two coexist during the migration.
   std::vector<NodeState> node_states;
   for (const auto& path : paths) {
     pugi::xml_document document;
@@ -948,7 +950,10 @@ Status LoadStaticAddressSpace(std::span<const std::filesystem::path> paths,
     if (!document.load_file(path_string.c_str())) {
       return StatusCode::Bad_CantParseString;
     }
-    if (auto status = ParseNodeStates(document, node_states); !status) {
+    const Status status = document.child(kUaRootTag)
+                              ? ParseUaNodeStates(document, node_states)
+                              : ParseNodeStates(document, node_states);
+    if (!status) {
       return status;
     }
   }
@@ -990,25 +995,9 @@ Status LoadStaticUANodeSet(std::span<const std::filesystem::path> paths,
 Status LoadStaticNodesets(std::span<const std::filesystem::path> paths,
                           MutableAddressSpace& address_space,
                           NodeFactory& node_factory) {
-  // Parse each file with the parser matching its root element, accumulating into
-  // one NodeState set so references resolve across files (and across formats)
-  // regardless of order -- this is what lets custom and UANodeSet2 files coexist
-  // during the migration.
-  std::vector<NodeState> node_states;
-  for (const auto& path : paths) {
-    pugi::xml_document document;
-    const auto path_string = path.string();
-    if (!document.load_file(path_string.c_str())) {
-      return StatusCode::Bad_CantParseString;
-    }
-    const Status status = document.child(kUaRootTag)
-                              ? ParseUaNodeStates(document, node_states)
-                              : ParseNodeStates(document, node_states);
-    if (!status) {
-      return status;
-    }
-  }
-  return ApplyNodeStates(std::move(node_states), address_space, node_factory);
+  // LoadStaticAddressSpace already auto-detects each file's format; this name is
+  // kept as the intent-revealing entry point for mixed custom + UANodeSet2 sets.
+  return LoadStaticAddressSpace(paths, address_space, node_factory);
 }
 
 Status SaveAddressSpaceXml(const std::filesystem::path& path,
