@@ -51,6 +51,10 @@
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
     </References>
+    <!-- OPC UA Part 3 §5.3.2: non-symmetric ReferenceTypes shall define an
+         InverseName,
+         https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2 -->
+    <InverseName>CreatedBy</InverseName>
   </UAReferenceType>
   <UAObject NodeId="ns=1;i=310" BrowseName="PropertyCategories" SymbolicName="PropertyCategories" ParentNodeId="i=85">
     <DisplayName>Категории свойств</DisplayName>
@@ -859,6 +863,23 @@
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
     </References>
+    <!-- OPC UA Part 3 §5.3.2: non-symmetric ReferenceTypes shall define an
+         InverseName,
+         https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2 -->
+    <InverseName>TransmissionSourceOf</InverseName>
+  </UAReferenceType>
+  <!-- Containment reference device -> transmission item. Subtype of
+       HasComponent so instances are reachable via HierarchicalReferences
+       browse and TranslateBrowsePaths (OPC UA Part 3 §7.7,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/7.7). Every
+       ReferenceType must be exposed in the ReferenceType hierarchy (Part 3
+       §5.3.3.3); this node was previously only an id in extra_node_ids.csv. -->
+  <UAReferenceType NodeId="ns=1;i=339" BrowseName="HasTransmissionItem" SymbolicName="HasTransmissionItem">
+    <DisplayName>HasTransmissionItem</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=47</Reference>
+    </References>
+    <InverseName>TransmissionItemOf</InverseName>
   </UAReferenceType>
   <UAVariable NodeId="ns=1;i=225" BrowseName="InfoAddress" SymbolicName="TransmissionItemType_SourceAddress" ParentNodeId="ns=1;i=34" DataType="Int32">
     <DisplayName>Адрес объекта приемника</DisplayName>

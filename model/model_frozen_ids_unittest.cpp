@@ -103,6 +103,7 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),
             133u);  // runtime method
   EXPECT_EQ(devices::id::TransmissionItemType_SourceAddress.numeric_id(), 225u);
+  EXPECT_EQ(devices::id::HasTransmissionItem.numeric_id(), 339u);
   EXPECT_EQ(devices::numeric_id::Iec60870DeviceType_InterrogationPeriodGroup1,
             200u);
 

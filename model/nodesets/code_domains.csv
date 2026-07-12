@@ -68,6 +68,7 @@ HasEventDatabase,history
 HasHistoricalDatabase,history
 HasPropertyCategory,scada
 HasSimulationSignal,data_items
+HasTransmissionItem,devices
 HasTransmissionSource,devices
 HasTsFormat,data_items
 HistoricalDataConfigurationType,history

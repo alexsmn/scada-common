@@ -265,6 +265,7 @@ SCADA.335	class=32 browse=0:HasEventDatabase typedef=NS0.0 parent=NS0.32 parentR
 SCADA.336	class=16 browse=0:MetricType typedef=NS0.0 parent=NS0.62 parentRef=NS0.45 supertype=NS0.62 dataType=NS0.8 value=set refs=[]
 SCADA.337	class=2 browse=0:AggregateFunction typedef=NS0.68 parent=SCADA.336 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.17 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.68;]
 SCADA.338	class=2 browse=0:AggregateInterval typedef=NS0.68 parent=SCADA.336 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.6 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.68;]
+SCADA.339	class=32 browse=0:HasTransmissionItem typedef=NS0.0 parent=NS0.47 parentRef=NS0.45 supertype=NS0.47 dataType=NS0.0 value=none refs=[]
 SCADA.34	class=8 browse=0:TransmissionItemType typedef=NS0.0 parent=NS0.58 parentRef=NS0.45 supertype=NS0.58 dataType=NS0.0 value=none refs=[SCADA.221->NS0.62;]
 SCADA.342	class=8 browse=0:ModbusTransmissionItemType typedef=NS0.0 parent=SCADA.34 parentRef=NS0.45 supertype=SCADA.34 dataType=NS0.0 value=none refs=[]
 SCADA.343	class=8 browse=0:Iec60870TransmissionItemType typedef=NS0.0 parent=SCADA.34 parentRef=NS0.45 supertype=SCADA.34 dataType=NS0.0 value=none refs=[]

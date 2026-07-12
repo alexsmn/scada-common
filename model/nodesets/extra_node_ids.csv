@@ -13,7 +13,6 @@ devices,id,DeviceType_Select,137,SCADA
 devices,id,DeviceType_SyncClock,134,SCADA
 devices,id,DeviceType_Write,136,SCADA
 devices,id,DeviceType_WriteParam,138,SCADA
-devices,id,HasTransmissionItem,339,SCADA
 devices,numeric_id,Iec60870DeviceType_InterrogationPeriodGroup1,200,SCADA
 history,id,SystemDatabase,233,SCADA
 history,numeric_id,HistoricalDatabases,12,SCADA
