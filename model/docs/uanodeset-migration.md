@@ -153,10 +153,29 @@ MatchesGolden`, `StaticNodesets.ResolveAcrossFiles`, and the server-module
 (`convert_to_uanodeset.py`, `seed_from_headers.py`) are retired; git history and
 this doc preserve the mapping.
 
-### Phase 5 — Standardize & publish (optional, high value)
-Add `Model` metadata; publish via the existing **NamespaceMetadata** machinery
-(`Server/Namespaces`, Part 5) for runtime discovery; optionally swap the curated
-NS0 for the official nodeset; consider off-the-shelf codegen.
+### Phase 5 — Standardize & publish (DONE for the discoverable-model piece)
+`Scada.NodeSet2.xml` already carries `Model` metadata (ModelUri, Version,
+PublicationDate + a `RequiredModel` on OPC UA). Its ModelUri/NamespaceUri is now
+the server's real SCADA namespace URI — `http://telecontrol.ru/opcua/scada`
+(`server/base/proxy_namespace_table.cpp`, `NamespaceIndexes::SCADA`) — instead of
+the placeholder, so a tool importing the nodeset and a client browsing the
+server agree on the namespace. `ScadaNodesetNamespaceUri.
+MatchesServerNamespaceArray` guards against drift between the two.
+
+Runtime discovery already exists: `NamespaceMetadataManager`
+(`server/modules/core`) serves the standard `NamespaceMetadataType` objects
+under `Server.Namespaces` (Part 5 §6.3.12), so the SCADA namespace + URI are
+already discoverable by clients — no new work needed there.
+
+Deliberately **not** done (optional, higher cost, lower value here):
+- Publishing per-namespace `NamespaceVersion` / `NamespacePublicationDate` from
+  the `Model` metadata — only the SCADA namespace has a nodeset, so the data is
+  sparse; would extend `NamespaceMetadataManager`.
+- Swapping the repo's curated `opcua_base.xml` for the official
+  `Opc.Ua.NodeSet2.xml` — the subset is intentionally minimal; the full nodeset
+  would enlarge the runtime address space. `opcua_base.xml` stays custom.
+- Off-the-shelf (open62541-style) codegen — the in-tree generator already
+  produces the exact headers.
 
 ## Risks / open decisions
 - **Reference-type / datatype aliases**: need the numeric-id → standard-name

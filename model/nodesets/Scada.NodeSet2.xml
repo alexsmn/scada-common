@@ -3,10 +3,10 @@
            xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
            xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
   <NamespaceUris>
-    <Uri>http://telecontrol.example/SCADA/</Uri>
+    <Uri>http://telecontrol.ru/opcua/scada</Uri>
   </NamespaceUris>
   <Models>
-    <Model ModelUri="http://telecontrol.example/SCADA/" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
+    <Model ModelUri="http://telecontrol.ru/opcua/scada" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
       <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z"/>
     </Model>
   </Models>
