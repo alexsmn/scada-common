@@ -858,16 +858,10 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
-  <UAReferenceType NodeId="ns=1;i=221" BrowseName="IecTransmitSource" SymbolicName="HasTransmissionSource">
-    <DisplayName>Объект источник</DisplayName>
-    <References>
-      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
-    </References>
-    <!-- OPC UA Part 3 §5.3.2: non-symmetric ReferenceTypes shall define an
-         InverseName,
-         https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2 -->
-    <InverseName>TransmissionSourceOf</InverseName>
-  </UAReferenceType>
+  <!-- HasTransmissionSource (ns=1;i=221) was retired by the transmission
+       OPC UA alignment (phase 4): the source link is now the SourceNode
+       Property (ns=1;i=373). The numeric id 221 stays reserved in
+       extra_node_ids.csv and must not be reused. -->
   <!-- Containment reference device -> transmission item. Subtype of
        HasComponent so instances are reachable via HierarchicalReferences
        browse and TranslateBrowsePaths (OPC UA Part 3 §7.7,
@@ -881,7 +875,7 @@
     </References>
     <InverseName>TransmissionItemOf</InverseName>
   </UAReferenceType>
-  <UAVariable NodeId="ns=1;i=225" BrowseName="InfoAddress" SymbolicName="TransmissionItemType_SourceAddress" ParentNodeId="ns=1;i=34" DataType="Int32">
+  <UAVariable NodeId="ns=1;i=225" BrowseName="Address" SymbolicName="TransmissionItemType_SourceAddress" ParentNodeId="ns=1;i=34" DataType="Int32">
     <DisplayName>Адрес объекта приемника</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
@@ -889,6 +883,20 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
     <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <!-- The address-space node whose value this item retransmits: a Mandatory
+       NodeId Property (OPC UA Part 3 §5.6.3 Properties,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/5.6.3),
+       replacing the retired HasTransmissionSource reference and the former
+       type-level template edge to BaseVariableType (transmission alignment,
+       phase 4). -->
+  <UAVariable NodeId="ns=1;i=373" BrowseName="SourceNode" SymbolicName="TransmissionItemType_SourceNode" ParentNodeId="ns=1;i=34" DataType="NodeId">
+    <DisplayName>Объект источник</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=248" BrowseName="Online" SymbolicName="DeviceType_Online" ParentNodeId="ns=1;i=115" DataType="Boolean">
     <DisplayName>Связь</DisplayName>
@@ -975,7 +983,6 @@
     <DisplayName>Ретрансляция</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-      <Reference ReferenceType="ns=1;i=221">i=62</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=350" BrowseName="SyncClockCount" SymbolicName="DeviceType_SyncClockCount" ParentNodeId="ns=1;i=115" DataType="Int32">
