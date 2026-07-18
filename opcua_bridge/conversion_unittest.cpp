@@ -115,16 +115,132 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x802B0000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_NoSubscription), 0x80790000u);
   EXPECT_EQ(wire(scada::StatusCode::Bad_HistoryOperationInvalid), 0x80710000u);
+  EXPECT_EQ(wire(scada::StatusCode::Bad_UserAccessDenied),
+            0x801F0000u);  // BadUserAccessDenied
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongLoginCredentials),
+            0x80210000u);  // BadIdentityTokenRejected
+  EXPECT_EQ(wire(scada::StatusCode::Bad_NotSupported),
+            0x803D0000u);  // BadNotSupported
+  EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
+            0x80310000u);  // BadNoCommunication
+  EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
+            0x80260000u);  // BadSessionClosed
+  EXPECT_EQ(wire(scada::StatusCode::Bad_DuplicateNodeId),
+            0x805E0000u);  // BadNodeIdExists
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongParentId),
+            0x805B0000u);  // BadParentNodeIdInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongTypeId),
+            0x80630000u);  // BadTypeDefinitionInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongNodeClass),
+            0x805F0000u);  // BadNodeClassInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongReferenceId),
+            0x804C0000u);  // BadReferenceTypeIdInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WrongTargetId),
+            0x80650000u);  // BadTargetNodeIdInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CantParseString),
+            0x80740000u);  // BadTypeMismatch
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TooLongString),
+            0x803C0000u);  // BadOutOfRange
+  EXPECT_EQ(wire(scada::StatusCode::Bad_UnsupportedProtocolVersion),
+            0x80BE0000u);  // BadProtocolVersionUnsupported
   // Good is unchanged.
   EXPECT_EQ(wire(scada::StatusCode::Good), 0x00000000u);
+}
 
-  // Every mapped code round-trips back to the original core code.
-  for (const auto code : {scada::StatusCode::Bad_NothingToDo,
-                          scada::StatusCode::Bad_ViewIdUnknown,
-                          scada::StatusCode::Bad_NoSubscription,
-                          scada::StatusCode::Bad_WrongSubscriptionId,
-                          scada::StatusCode::Bad_Disconnected}) {
-    EXPECT_EQ(ToScada(ToOpcua(code)), code);
+// Every core status code must survive the OPC UA wire crossing losslessly
+// (tier-to-tier links carry device and quality codes through opcuapp), and no
+// Bad code may leak a core-internal value that collides with an unrelated
+// standard code: whatever goes on the wire is either the matching standard
+// code or a vendor-extension SubCode (>= 0x2000) that the standard leaves
+// undefined.
+TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
+  using scada::StatusCode;
+  constexpr StatusCode kAllCodes[] = {
+      StatusCode::Good,
+      StatusCode::Good_Pending,
+      StatusCode::Good_Sporadic,
+      StatusCode::Good_Backup,
+      StatusCode::Good_Manual,
+      StatusCode::Good_Simulated,
+      StatusCode::Uncertain,
+      StatusCode::Uncertain_DeviceFlag,
+      StatusCode::Uncertain_Misconfigured,
+      StatusCode::Uncertain_Disconnected,
+      StatusCode::Uncertain_NotUpdated,
+      StatusCode::Uncertain_StateWasNotChanged,
+      StatusCode::Bad,
+      StatusCode::Bad_WrongLoginCredentials,
+      StatusCode::Bad_UserIsAlreadyLoggedOn,
+      StatusCode::Bad_UnsupportedProtocolVersion,
+      StatusCode::Bad_ObjectIsBusy,
+      StatusCode::Bad_WrongNodeId,
+      StatusCode::Bad_WrongDeviceId,
+      StatusCode::Bad_Disconnected,
+      StatusCode::Bad_SessionForcedLogoff,
+      StatusCode::Bad_Timeout,
+      StatusCode::Bad_CantDeleteDependentNode,
+      StatusCode::Bad_ServerWasShutDown,
+      StatusCode::Bad_WrongMethodId,
+      StatusCode::Bad_CantDeleteOwnUser,
+      StatusCode::Bad_DuplicateNodeId,
+      StatusCode::Bad_UnsupportedFileVersion,
+      StatusCode::Bad_WrongTypeId,
+      StatusCode::Bad_WrongParentId,
+      StatusCode::Bad_SessionIsLoggedOff,
+      StatusCode::Bad_WrongSubscriptionId,
+      StatusCode::Bad_WrongIndex,
+      StatusCode::Bad_Iec60870UnknownType,
+      StatusCode::Bad_Iec60870UnknownCot,
+      StatusCode::Bad_Iec60870UnknownDevice,
+      StatusCode::Bad_Iec60870UnknownAddress,
+      StatusCode::Bad_Iec60870UnknownError,
+      StatusCode::Bad_WrongCallArguments,
+      StatusCode::Bad_CantParseString,
+      StatusCode::Bad_TooLongString,
+      StatusCode::Bad_WrongPropertyId,
+      StatusCode::Bad_WrongReferenceId,
+      StatusCode::Bad_WrongNodeClass,
+      StatusCode::Bad_WrongAttributeId,
+      StatusCode::Bad_Iec61850Error,
+      StatusCode::Bad_NothingToDo,
+      StatusCode::Bad_BrowseNameInvalid,
+      StatusCode::Bad_WrongTargetId,
+      StatusCode::Bad_MonitoredItemIdInvalid,
+      StatusCode::Bad_MessageNotAvailable,
+      StatusCode::Bad_ApplicationSignatureInvalid,
+      StatusCode::Bad_TooManyOperations,
+      StatusCode::Bad_TooManyMonitoredItems,
+      StatusCode::Bad_SequenceNumberUnknown,
+      StatusCode::Bad_NoContinuationPoints,
+      StatusCode::Bad_TimestampsToReturnInvalid,
+      StatusCode::Bad_ViewIdUnknown,
+      StatusCode::Bad_HistoryOperationInvalid,
+      StatusCode::Bad_NoSubscription,
+      StatusCode::Bad_UserAccessDenied,
+      StatusCode::Bad_NotSupported,
+  };
+  for (const auto code : kAllCodes) {
+    EXPECT_EQ(ToScada(ToOpcua(code)), code) << ToString(code);
+    // Severity must survive the mapping.
+    EXPECT_EQ(static_cast<int>(scada::GetSeverity(code)),
+              static_cast<int>(opcua::GetSeverity(ToOpcua(code))))
+        << ToString(code);
+  }
+  // The core-internal sequential values (SubCode < 0x100 in the Bad range but
+  // not equal to a deliberate standard mapping) must never appear on the wire
+  // for codes the bridge knows: the wire SubCode is either a standard value
+  // (< 0x2000, asserted per-code above and in
+  // StatusCodeMapsToStandardOpcUaWireValue) or in the vendor-extension range.
+  for (const auto code :
+       {StatusCode::Bad_UserIsAlreadyLoggedOn, StatusCode::Bad_WrongDeviceId,
+        StatusCode::Bad_CantDeleteOwnUser, StatusCode::Bad_WrongPropertyId,
+        StatusCode::Bad_Iec60870UnknownType, StatusCode::Bad_Iec60870UnknownCot,
+        StatusCode::Bad_Iec60870UnknownDevice,
+        StatusCode::Bad_Iec60870UnknownAddress,
+        StatusCode::Bad_Iec60870UnknownError, StatusCode::Bad_Iec61850Error}) {
+    const unsigned sub_code =
+        (opcua::Status{ToOpcua(code)}.full_code() >> 16) & 0x3FFF;
+    EXPECT_GE(sub_code, 0x2000u) << ToString(code);
   }
 }
 

@@ -34,42 +34,71 @@
 namespace scada::opcua_bridge {
 
 // --- enums --------------------------------------------------------------
-// Core uses SCADA-internal StatusCode values; opcuapp uses the standard OPC UA
-// StatusCode values that go on the wire. The two enums share enumerator names,
-// so the boundary maps the codes whose values differ (all others still share a
-// value and fall through to a direct cast).
+// Core uses SCADA-internal StatusCode values; opcuapp uses the values that go
+// on the wire — the standard OPC UA code where one exists, or a
+// vendor-extension SubCode (0x2000+) otherwise. The two enums share
+// enumerator names; every shared Bad_* name is listed explicitly (even the
+// few whose values coincide) so a new core code can never silently leak its
+// internal value onto the wire through the default cast. The Good_* and
+// Uncertain_* quality codes intentionally share values on both sides and fall
+// through.
+#define SCADA_OPCUA_STATUS_CODE_MAP(MAP) \
+  MAP(Bad_WrongLoginCredentials)         \
+  MAP(Bad_UserIsAlreadyLoggedOn)         \
+  MAP(Bad_UnsupportedProtocolVersion)    \
+  MAP(Bad_ObjectIsBusy)                  \
+  MAP(Bad_WrongNodeId)                   \
+  MAP(Bad_WrongDeviceId)                 \
+  MAP(Bad_Disconnected)                  \
+  MAP(Bad_SessionForcedLogoff)           \
+  MAP(Bad_Timeout)                       \
+  MAP(Bad_CantDeleteDependentNode)       \
+  MAP(Bad_ServerWasShutDown)             \
+  MAP(Bad_WrongMethodId)                 \
+  MAP(Bad_CantDeleteOwnUser)             \
+  MAP(Bad_DuplicateNodeId)               \
+  MAP(Bad_UnsupportedFileVersion)        \
+  MAP(Bad_WrongTypeId)                   \
+  MAP(Bad_WrongParentId)                 \
+  MAP(Bad_SessionIsLoggedOff)            \
+  MAP(Bad_WrongSubscriptionId)           \
+  MAP(Bad_WrongIndex)                    \
+  MAP(Bad_Iec60870UnknownType)           \
+  MAP(Bad_Iec60870UnknownCot)            \
+  MAP(Bad_Iec60870UnknownDevice)         \
+  MAP(Bad_Iec60870UnknownAddress)        \
+  MAP(Bad_Iec60870UnknownError)          \
+  MAP(Bad_WrongCallArguments)            \
+  MAP(Bad_CantParseString)               \
+  MAP(Bad_TooLongString)                 \
+  MAP(Bad_WrongPropertyId)               \
+  MAP(Bad_WrongReferenceId)              \
+  MAP(Bad_WrongNodeClass)                \
+  MAP(Bad_WrongAttributeId)              \
+  MAP(Bad_Iec61850Error)                 \
+  MAP(Bad_NothingToDo)                   \
+  MAP(Bad_BrowseNameInvalid)             \
+  MAP(Bad_WrongTargetId)                 \
+  MAP(Bad_MonitoredItemIdInvalid)        \
+  MAP(Bad_MessageNotAvailable)           \
+  MAP(Bad_ApplicationSignatureInvalid)   \
+  MAP(Bad_TooManyOperations)             \
+  MAP(Bad_TooManyMonitoredItems)         \
+  MAP(Bad_SequenceNumberUnknown)         \
+  MAP(Bad_NoContinuationPoints)          \
+  MAP(Bad_TimestampsToReturnInvalid)     \
+  MAP(Bad_ViewIdUnknown)                 \
+  MAP(Bad_HistoryOperationInvalid)       \
+  MAP(Bad_NoSubscription)                \
+  MAP(Bad_UserAccessDenied)              \
+  MAP(Bad_NotSupported)
+
 inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
 #define MAP(name)               \
   case scada::StatusCode::name: \
     return opcua::StatusCode::name;
-    MAP(Bad_WrongLoginCredentials)
-    MAP(Bad_WrongNodeId)
-    MAP(Bad_Timeout)
-    MAP(Bad_CantDeleteDependentNode)
-    MAP(Bad_WrongMethodId)
-    MAP(Bad_UnsupportedFileVersion)
-    MAP(Bad_WrongTypeId)
-    MAP(Bad_SessionIsLoggedOff)
-    MAP(Bad_WrongSubscriptionId)
-    MAP(Bad_WrongIndex)
-    MAP(Bad_WrongCallArguments)
-    MAP(Bad_WrongNodeClass)
-    MAP(Bad_WrongAttributeId)
-    MAP(Bad_NothingToDo)
-    MAP(Bad_BrowseNameInvalid)
-    MAP(Bad_MonitoredItemIdInvalid)
-    MAP(Bad_MessageNotAvailable)
-    MAP(Bad_ApplicationSignatureInvalid)
-    MAP(Bad_TooManyOperations)
-    MAP(Bad_TooManyMonitoredItems)
-    MAP(Bad_SequenceNumberUnknown)
-    MAP(Bad_NoContinuationPoints)
-    MAP(Bad_TimestampsToReturnInvalid)
-    MAP(Bad_ViewIdUnknown)
-    MAP(Bad_HistoryOperationInvalid)
-    MAP(Bad_NoSubscription)
-    MAP(Bad_ServerWasShutDown)
+    SCADA_OPCUA_STATUS_CODE_MAP(MAP)
 #undef MAP
     default:
       return static_cast<opcua::StatusCode>(c);
@@ -80,34 +109,13 @@ inline scada::StatusCode ToScada(opcua::StatusCode c) {
 #define MAP(name)               \
   case opcua::StatusCode::name: \
     return scada::StatusCode::name;
-    MAP(Bad_WrongLoginCredentials)
-    MAP(Bad_WrongNodeId)
-    MAP(Bad_Timeout)
-    MAP(Bad_CantDeleteDependentNode)
-    MAP(Bad_WrongMethodId)
-    MAP(Bad_UnsupportedFileVersion)
-    MAP(Bad_WrongTypeId)
-    MAP(Bad_SessionIsLoggedOff)
-    MAP(Bad_WrongSubscriptionId)
-    MAP(Bad_WrongIndex)
-    MAP(Bad_WrongCallArguments)
-    MAP(Bad_WrongNodeClass)
-    MAP(Bad_WrongAttributeId)
-    MAP(Bad_NothingToDo)
-    MAP(Bad_BrowseNameInvalid)
-    MAP(Bad_MonitoredItemIdInvalid)
-    MAP(Bad_MessageNotAvailable)
-    MAP(Bad_ApplicationSignatureInvalid)
-    MAP(Bad_TooManyOperations)
-    MAP(Bad_TooManyMonitoredItems)
-    MAP(Bad_SequenceNumberUnknown)
-    MAP(Bad_NoContinuationPoints)
-    MAP(Bad_TimestampsToReturnInvalid)
-    MAP(Bad_ViewIdUnknown)
-    MAP(Bad_HistoryOperationInvalid)
-    MAP(Bad_NoSubscription)
-    MAP(Bad_ServerWasShutDown)
+    SCADA_OPCUA_STATUS_CODE_MAP(MAP)
 #undef MAP
+    // opcuapp-only code with no core twin: a ServiceFault from a peer maps to
+    // the closest core meaning instead of casting its wire value into an
+    // unrelated core enumerator.
+    case opcua::StatusCode::Bad_ServiceUnsupported:
+      return scada::StatusCode::Bad_NotSupported;
     default:
       return static_cast<scada::StatusCode>(c);
   }
