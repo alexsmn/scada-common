@@ -11,6 +11,7 @@
 // When you intentionally ADD a node, add its constant here too; you should
 // never need to CHANGE an existing expectation.
 
+#include "model/config_tables.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/filesystem_node_ids.h"
@@ -152,6 +153,47 @@ TEST(ModelFrozenIds, NodeIdValues) {
   // filesystem:: and opc::
   EXPECT_EQ(filesystem::id::FileSystem.numeric_id(), 304u);
   EXPECT_EQ(opc::id::OPC.numeric_id(), 329u);
+}
+
+// The generated config-table registry (namespaces.csv row_type/config_group
+// columns) binds each device config table's row type to the namespace whose
+// index every stored row NodeId carries. Both sides of each pair are persisted
+// in configuration databases, so the association is frozen too.
+TEST(ModelFrozenIds, ConfigTableRegistry) {
+  ASSERT_EQ(std::size(model::kConfigTables), 9u);
+
+  const auto expect_entry =
+      [](const model::ConfigTableEntry& entry, const NodeId& type_definition_id,
+         NamespaceIndex namespace_index, std::string_view config_group) {
+        EXPECT_EQ(entry.type_definition_id, type_definition_id);
+        EXPECT_EQ(entry.namespace_index, namespace_index);
+        EXPECT_EQ(entry.config_group, config_group);
+      };
+
+  const auto tables = model::GetConfigTables();
+  expect_entry(tables[0], devices::id::ModbusDeviceType,
+               NamespaceIndexes::MODBUS_DEVICES, "modbus");
+  expect_entry(tables[1], devices::id::Iec60870LinkType,
+               NamespaceIndexes::IEC60870_LINK, "iec60870");
+  expect_entry(tables[2], devices::id::Iec60870DeviceType,
+               NamespaceIndexes::IEC60870_DEVICE, "iec60870");
+  expect_entry(tables[3], devices::id::ModbusLinkType,
+               NamespaceIndexes::MODBUS_PORTS, "modbus");
+  expect_entry(tables[4], devices::id::Iec60870TransmissionItemType,
+               NamespaceIndexes::IEC60870_TRANSMISSION_ITEM, "iec60870");
+  expect_entry(tables[5], devices::id::Iec61850DeviceType,
+               NamespaceIndexes::IEC61850_DEVICE, "iec61850");
+  expect_entry(tables[6], devices::id::Iec61850RcbType,
+               NamespaceIndexes::IEC61850_RCB, "iec61850");
+  expect_entry(tables[7], devices::id::ModbusTransmissionItemType,
+               NamespaceIndexes::MODBUS_TRANSMISSION_ITEM, "modbus");
+  expect_entry(tables[8], devices::id::Iec61850TransmissionItemType,
+               NamespaceIndexes::IEC61850_TRANSMISSION_ITEM, "iec61850");
+
+  ASSERT_EQ(std::size(model::kConfigTableGroups), 3u);
+  EXPECT_EQ(model::kConfigTableGroups[0], "modbus");
+  EXPECT_EQ(model::kConfigTableGroups[1], "iec60870");
+  EXPECT_EQ(model::kConfigTableGroups[2], "iec61850");
 }
 
 }  // namespace

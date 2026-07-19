@@ -7,13 +7,21 @@ Inputs (under --nodesets):
   * `*.xml`            — static address-space nodes. Every `<Node>` that carries
                          a `symbolicName` attribute yields a `scada::<domain>::id`
                          constant; `codeNs` overrides the file-default domain.
-  * `namespaces.csv`   — index, C++ const name, config-DB short name.
+  * `namespaces.csv`   — index, C++ const name, config-DB short name, plus the
+                         optional config-table registry columns: `row_type`
+                         (symbolic name of the namespace's row type) and
+                         `config_group` (which config group serves the table).
+                         Both set or both empty per row. V1 tags only the
+                         device-protocol tables; data_items/history/security
+                         still declare their mappings in framework code
+                         (migrating them here is a follow-up).
   * `extra_node_ids.csv` — constants with no static node (runtime method ids,
                          server metrics, reserved ids) and all `numeric_id`
                          constants.
 
 Outputs (under --out, one dir):
-  namespaces.h, namespaces.cpp, and `<domain>_node_ids.h` per domain.
+  namespaces.h, namespaces.cpp, config_tables.h, and `<domain>_node_ids.h` per
+  domain.
 
 The generator is deterministic (constants sorted by value then name) so repeated
 builds produce identical output. Node numeric ids are read-only: a `symbolicName`
@@ -67,12 +75,10 @@ def load_namespaces(path):
     rows = []
     with open(path, newline="") as f:
         for r in csv.DictReader(f):
-            rows.append((int(r["index"]), r["const_name"], r["db_name"]))
+            rows.append((int(r["index"]), r["const_name"], r["db_name"],
+                         r.get("row_type", "") or "",
+                         r.get("config_group", "") or ""))
     return rows
-
-
-def ns_const_by_index(ns_rows):
-    return {i: c for i, c, _d in ns_rows if c}
 
 
 def read_code_domains(path):
@@ -137,7 +143,7 @@ def collect_constants(nodesets_dir):
 def emit_namespaces_h(ns_rows):
     const_lines = []
     end = len(ns_rows)
-    for i, const, _db in ns_rows:
+    for i, const, _db, _rt, _cg in ns_rows:
         if const:
             const_lines.append(f"constexpr scada::NamespaceIndex {const} = {i};")
         else:
@@ -175,7 +181,7 @@ using scada::GetNamespaceName;          // NOLINT(build/namespaces) transitional
 
 
 def emit_namespaces_cpp(ns_rows):
-    names = ",\n    ".join(f'"{db}"' for _i, _c, db in ns_rows)
+    names = ",\n    ".join(f'"{db}"' for _i, _c, db, _rt, _cg in ns_rows)
     return f"""{GEN_BANNER}#include "model/namespaces.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -234,6 +240,96 @@ int FindNamespaceIndexByName(std::string_view name) {{
 """
 
 
+def resolve_row_type(name, consts):
+    """Resolve a row_type symbolic name to its (value, ns_index) across all
+    domains. Hard error on unknown or ambiguous names so a nodeset rename can't
+    silently drop a table from the registry."""
+    hits = [(domain, data["id"][name])
+            for domain, data in consts.items() if name in data["id"]]
+    if not hits:
+        raise SystemExit(
+            f"namespaces.csv row_type '{name}' does not resolve to any "
+            f"symbolicName in the nodesets")
+    if len(hits) > 1:
+        raise SystemExit(
+            f"namespaces.csv row_type '{name}' is ambiguous across domains: "
+            f"{sorted(d for d, _ in hits)}")
+    return hits[0][1]
+
+
+def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
+    entries = []
+    groups = []
+    seen_row_types = set()
+    for i, const, db, row_type, config_group in ns_rows:
+        if bool(row_type) != bool(config_group):
+            raise SystemExit(
+                f"namespaces.csv index {i}: row_type and config_group must "
+                f"both be set or both be empty (got row_type='{row_type}', "
+                f"config_group='{config_group}')")
+        if not row_type:
+            continue
+        if row_type in seen_row_types:
+            raise SystemExit(
+                f"namespaces.csv index {i}: row_type '{row_type}' already "
+                f"maps to another namespace — one row type per table")
+        seen_row_types.add(row_type)
+        value, type_ns = resolve_row_type(row_type, consts)
+        type_ns_const = ns_const_index_all.get(type_ns, str(type_ns))
+        table_ns_const = ns_const_index_all[i]
+        entries.append(
+            f"    // {row_type} rows live in the {db} table.\n"
+            f"    {{{{{value}, NamespaceIndexes::{type_ns_const}}},\n"
+            f"     NamespaceIndexes::{table_ns_const},\n"
+            f'     "{config_group}"}},')
+        if config_group not in groups:
+            groups.append(config_group)
+    entry_body = "\n".join(entries)
+    group_body = ", ".join(f'"{g}"' for g in groups)
+    return f"""{GEN_BANNER}#pragma once
+
+#include "model/namespaces.h"
+#include "scada/node_id.h"
+
+#include <span>
+#include <string_view>
+
+#include "model/model_compat.h"
+namespace scada::model {{
+
+// A model-owned configuration table: the table's row type, the namespace
+// (config-DB table) its rows live in, and the config group that serves it.
+// Generated from the `row_type`/`config_group` columns of
+// common/model/nodesets/namespaces.csv — the single source of truth for the
+// type<->namespace association shared by the driver tiers and the config
+// server.
+struct ConfigTableEntry {{
+  scada::NodeId type_definition_id;
+  scada::NamespaceIndex namespace_index;
+  std::string_view config_group;
+}};
+
+inline constexpr ConfigTableEntry kConfigTables[] = {{
+{entry_body}
+}};
+
+// Distinct config groups, in registry (namespace-index) order.
+inline constexpr std::string_view kConfigTableGroups[] = {{{group_body}}};
+
+// All model-registered configuration tables, in registry order.
+constexpr std::span<const ConfigTableEntry> GetConfigTables() {{
+  return kConfigTables;
+}}
+
+// The distinct config groups of GetConfigTables().
+constexpr std::span<const std::string_view> GetConfigTableGroups() {{
+  return kConfigTableGroups;
+}}
+
+}}  // namespace scada::model
+"""
+
+
 def emit_domain_header(domain, data, ns_const_index):
     fname, cpp_ns, includes = DOMAINS[domain]
     parts = [GEN_BANNER, "#pragma once", ""]
@@ -271,8 +367,8 @@ def main():
     args = ap.parse_args()
 
     ns_rows = load_namespaces(os.path.join(args.nodesets, "namespaces.csv"))
-    ns_const_index = {i: c for i, c, _d in ns_rows if c}
-    ns_const_index_all = {i: (c if c else str(i)) for i, c, _d in ns_rows}
+    ns_const_index = {i: c for i, c, _d, _rt, _cg in ns_rows if c}
+    ns_const_index_all = {i: (c if c else str(i)) for i, c, _d, _rt, _cg in ns_rows}
 
     consts = collect_constants(args.nodesets)
 
@@ -282,7 +378,9 @@ def main():
         f.write(emit_namespaces_h(ns_rows))
     with open(os.path.join(args.out, "namespaces.cpp"), "w") as f:
         f.write(emit_namespaces_cpp(ns_rows))
-    written += ["namespaces.h", "namespaces.cpp"]
+    with open(os.path.join(args.out, "config_tables.h"), "w") as f:
+        f.write(emit_config_tables_h(ns_rows, consts, ns_const_index_all))
+    written += ["namespaces.h", "namespaces.cpp", "config_tables.h"]
     for domain in DOMAINS:
         fname, text = emit_domain_header(domain, consts[domain], ns_const_index_all)
         with open(os.path.join(args.out, fname), "w") as f:

@@ -16,6 +16,7 @@ file(GLOB _model_nodeset_xml CONFIGURE_DEPENDS "${_model_nodesets}/*.xml")
 set(_model_generated
     "${_model_gen_dir}/namespaces.h"
     "${_model_gen_dir}/namespaces.cpp"
+    "${_model_gen_dir}/config_tables.h"
     "${_model_gen_dir}/scada_node_ids.h"
     "${_model_gen_dir}/data_items_node_ids.h"
     "${_model_gen_dir}/devices_node_ids.h"
