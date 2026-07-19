@@ -25,7 +25,16 @@ Configurations,security
 Configurations_DeployConfiguration,security
 Configurations_RemoveConfiguration,security
 ConversionPropertyCategory,data_items
-Creates,scada
+DataItemsFolderType,data_items
+TsFormatsFolderType,data_items
+SimulationSignalsFolderType,data_items
+DevicesFolderType,devices
+RoleSetContainerType,security
+UsersFolderType,security
+ConfigurationsFolderType,security
+HistoricalDatabasesFolderType,history
+FileSystemType,filesystem
+HistoricalDataConfigurationsFolderType,history
 DataGroupType,data_items
 DataGroupType_Simulated,data_items
 DataItemType,data_items

@@ -7,12 +7,29 @@
 #include "common/node_state.h"
 #include "model/node_id_util.h"
 
+namespace {
+
+// Placeholder InstanceDeclarations (OptionalPlaceholder/MandatoryPlaceholder)
+// describe what instances MAY add; they are not fixed children and must never
+// be materialized as a real "<Name>" node when instantiating a type.
+bool IsPlaceholderDeclaration(const scada::Node& node) {
+  const scada::NodeId rule_id = scada::GetModellingRuleId(node);
+  return rule_id ==
+             scada::NodeId{scada::id::ModellingRule_OptionalPlaceholder} ||
+         rule_id ==
+             scada::NodeId{scada::id::ModellingRule_MandatoryPlaceholder};
+}
+
+}  // namespace
+
 scada::Status CreateMissingProperties(
     NodeFactory& node_factory,
     const scada::NodeId& node_id,
     const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto& prop_node : scada::GetProperties(*type)) {
+      if (IsPlaceholderDeclaration(prop_node))
+        continue;
       auto& prop_decl = scada::AsVariable(prop_node);
       const auto& prop_name = prop_decl.GetBrowseName();
       if (!scada::FindChild(prop_node, prop_name.name())) {
@@ -39,6 +56,8 @@ scada::Status CreateDataVariables(
     const scada::TypeDefinition& type_definition) {
   for (auto* type = &type_definition; type; type = type->supertype()) {
     for (const auto* data_variable_node : scada::GetComponents(*type)) {
+      if (IsPlaceholderDeclaration(*data_variable_node))
+        continue;
       auto& data_variable_decl = scada::AsVariable(*data_variable_node);
       base::Check(data_variable_decl.type_definition());
       auto data_variable_id =

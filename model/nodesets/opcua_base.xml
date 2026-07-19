@@ -151,13 +151,13 @@
        ServerCapabilities (OPC UA Part 18 §4.3,
        https://reference.opcfoundation.org/Core/Part18/v105/docs/4.3). All
        numeric ids per the official 1.05 NodeIds.csv. Custom (group) roles are
-       database rows in the ROLE namespace parented here via the Creates
-       reference to the SCADA RoleType; the well-known roles are the static
-       objects below. -->
+       database rows in the ROLE namespace organized here; RoleSet is typed
+       SCADA RoleSetContainerType, whose <Role> OptionalPlaceholder declares the
+       SCADA RoleType as creatable. The well-known roles are the static objects
+       below. -->
   <Node id="NS0.15620" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="RoleType" displayName="RoleType" />
-  <Node id="NS0.15606" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="RoleSet" displayName="RoleSet">
-    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
-    <Reference type="SCADA.297" forward="true" target="SCADA.354" targetClass="ObjectType" />
+  <Node id="NS0.15606" class="Object" typeDefinition="SCADA.430" parent="NS0.2268" parentReference="NS0.47" browseName="RoleSet" displayName="RoleSet">
+    <Reference type="NS0.40" forward="true" target="SCADA.430" targetClass="ObjectType" />
   </Node>
   <Node id="NS0.16301" class="Method" parent="NS0.15606" parentReference="NS0.47" browseName="AddRole" displayName="AddRole" />
   <Node id="NS0.16304" class="Method" parent="NS0.15606" parentReference="NS0.47" browseName="RemoveRole" displayName="RemoveRole" />

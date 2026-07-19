@@ -54,7 +54,14 @@ void StaticNodeService::Add(scada::NodeState node_state) {
 
   if (scada::IsInstance(node_state.node_class)) {
     for (const auto& [prop_decl_id, prop_value] : node_state.properties) {
-      Add(MakePropNodeState(node_state.node_id, prop_decl_id, prop_value));
+      auto prop_state =
+          MakePropNodeState(node_state.node_id, prop_decl_id, prop_value);
+      // Carry the declaration's DataType onto the materialized instance:
+      // property values alone are not enough for data_type()-driven rendering
+      // (e.g. enum text reads EnumStrings off the property's data type).
+      if (auto declaration = FindNode(prop_decl_id))
+        prop_state.attributes.data_type = declaration->GetDataType().node_id();
+      Add(std::move(prop_state));
     }
   }
 
@@ -155,7 +162,20 @@ std::vector<NodeRef> StaticNodeService::GetTargets(
 NodeRef StaticNodeService::GetAggregate(
     const scada::NodeId& node_id,
     const scada::NodeId& aggregate_declaration_id) {
-  return GetNode(MakeAggregateId(node_id, aggregate_declaration_id));
+  // Properties materialized from NodeState::properties live under a synthetic
+  // nested id keyed by the declaration id.
+  if (NodeRef property =
+          GetNode(MakeAggregateId(node_id, aggregate_declaration_id))) {
+    return property;
+  }
+
+  // Properties created by a node factory instead live under their declaration's
+  // browse name (MakeNestedNodeId(node, browse_name)); resolve through it, the
+  // way v3 NodeModelImpl::GetAggregate does.
+  if (NodeRef declaration = GetNode(aggregate_declaration_id))
+    return GetChild(node_id, declaration.browse_name());
+
+  return {};
 }
 
 NodeRef StaticNodeService::GetChild(const scada::NodeId& node_id,

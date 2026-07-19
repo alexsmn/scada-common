@@ -1,20 +1,77 @@
 #include "node_service/node_util.h"
 
 #include "address_space/address_space_impl.h"
+#include "address_space/address_space_impl2.h"
 #include "address_space/address_space_util.h"
+#include "address_space/address_space_xml.h"
+#include "address_space/generic_node_factory.h"
 #include "address_space/node_utils.h"
 #include "address_space/object.h"
 #include "address_space/standard_address_space.h"
 #include "address_space/test/scada_test_address_space.h"
+#include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/namespaces.h"
+#include "model/static_nodesets.h"
 #include "node_service/test/create_test_node_service.h"
 
 #include <gmock/gmock.h>
 
+#include <vector>
+
 #include "base/debug_util.h"
 
 using namespace testing;
+
+namespace {
+
+std::vector<scada::NodeId> CreatableTypeIds(const NodeRef& node) {
+  std::vector<scada::NodeId> ids;
+  for (const auto& type : GetCreatableChildTypes(node))
+    ids.push_back(type.node_id());
+  return ids;
+}
+
+}  // namespace
+
+// The NodeRef GetCreatableChildTypes reads the OptionalPlaceholder
+// InstanceDeclarations that replaced the proprietary Creates reference. Backed
+// by a synchronous StaticNodeService over the real static SCADA address space.
+TEST(NodeUtil, GetCreatableChildTypesFromPlaceholders) {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  ASSERT_TRUE(scada::LoadStaticAddressSpace(
+      scada::GetScadaStaticNodesetSourcePaths(), space, factory));
+  auto node_service = node_service::test::CreateTestNodeService(space);
+
+  // The DataItems folder (an instance of DataItemsFolderType) may organize
+  // DataGroupType nodes via its <DataGroup> placeholder.
+  EXPECT_THAT(CreatableTypeIds(node_service->GetNode(data_items::id::DataItems)),
+              UnorderedElementsAre(data_items::id::DataGroupType));
+
+  // DataGroupType itself declares nested DataGroups and DataItems.
+  EXPECT_THAT(
+      CreatableTypeIds(node_service->GetNode(data_items::id::DataGroupType)),
+      UnorderedElementsAre(data_items::id::DataGroupType,
+                           data_items::id::DataItemType));
+
+  // A leaf type with no placeholder declarations yields nothing.
+  EXPECT_THAT(
+      CreatableTypeIds(node_service->GetNode(data_items::id::DataItemType)),
+      IsEmpty());
+}
+
+// LinkType derives from DeviceType in the nodeset, so a link IS a device — the
+// relation GetFullDisplayName relies on to qualify a device by its parent link.
+TEST(NodeUtil, TestAddressSpaceLinkTypeDerivesFromDeviceType) {
+  scada_test::ScadaTestAddressSpace address_space;
+  auto node_service = node_service::test::CreateTestNodeService(address_space);
+
+  EXPECT_TRUE(IsSubtypeOf(node_service->GetNode(devices::id::LinkType),
+                          devices::id::DeviceType));
+  EXPECT_TRUE(IsSubtypeOf(node_service->GetNode(devices::id::ModbusLinkType),
+                          devices::id::DeviceType));
+}
 
 TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
   scada_test::ScadaTestAddressSpace address_space;

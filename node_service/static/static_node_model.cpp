@@ -3,7 +3,9 @@
 #include "model/nested_node_ids.h"
 #include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
+#include "scada/standard_reference_types.h"
 
+#include <optional>
 #include <ranges>
 
 namespace {
@@ -15,7 +17,17 @@ auto ToVector(auto&& range) {
 auto FilterReferences(const scada::NodeId& ref_type_id, bool forward) {
   return std::views::filter(
       [ref_type_id, forward](const scada::ReferenceDescription& desc) {
-        return desc.forward == forward && desc.reference_type_id == ref_type_id;
+        if (desc.forward != forward)
+          return false;
+        // Match reference-type subtypes, not just the exact id — a query for a
+        // base type (e.g. HierarchicalReferences) must return Organizes /
+        // HasComponent references. Standard (ns0) types resolve statically;
+        // custom types fall back to an exact-id match.
+        if (std::optional<bool> known = scada::IsStandardReferenceSubtype(
+                desc.reference_type_id, ref_type_id)) {
+          return *known;
+        }
+        return desc.reference_type_id == ref_type_id;
       });
 }
 
@@ -93,7 +105,14 @@ NodeRef StaticNodeModel::GetAggregate(
 
 NodeRef StaticNodeModel::GetChild(
     const scada::QualifiedName& child_name) const {
-  // Not implemented; callers get an empty ref.
+  // Mirrors v3 NodeModelImpl::GetChild: the hierarchical child whose browse
+  // name matches (subtype matching in GetReferences covers HasProperty /
+  // HasComponent / Organizes children).
+  for (const auto& ref : GetReferences(
+           scada::NodeId{scada::id::HierarchicalReferences}, true)) {
+    if (ref.target.browse_name() == child_name)
+      return ref.target;
+  }
   return {};
 }
 

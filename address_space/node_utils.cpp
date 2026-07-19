@@ -282,6 +282,40 @@ NodeId GetModellingRuleId(const Node& node) {
   return modelling_rule ? modelling_rule->id() : NodeId();
 }
 
+std::vector<CreatableChildType> GetCreatableChildTypes(const Node& node) {
+  std::vector<CreatableChildType> result;
+
+  // Scan `node` itself when it is a type; otherwise its type definition. Either
+  // way, walk the supertype chain so inherited placeholders are included.
+  const TypeDefinition* type = IsTypeDefinition(node.GetNodeClass())
+                                   ? &AsTypeDefinition(node)
+                                   : node.type_definition();
+
+  for (; type; type = type->supertype()) {
+    for (const auto& ref : type->forward_references()) {
+      if (!ref.type || !ref.node)
+        continue;
+      // Placeholder InstanceDeclarations are non-type hierarchical children.
+      // Skip type-definition targets first: forward HasSubtype refs point at
+      // subtypes, and GetModellingRuleId panics on a TypeDefinition.
+      if (IsTypeDefinition(ref.node->GetNodeClass()))
+        continue;
+      if (!IsSubtypeOf(AsTypeDefinition(*ref.type), id::HierarchicalReferences))
+        continue;
+      const NodeId rule_id = GetModellingRuleId(*ref.node);
+      if (rule_id != NodeId{id::ModellingRule_OptionalPlaceholder} &&
+          rule_id != NodeId{id::ModellingRule_MandatoryPlaceholder})
+        continue;
+      auto* type_definition =
+          GetReference(*ref.node, id::HasTypeDefinition).node;
+      if (!type_definition)
+        continue;
+      result.push_back({ref.type->id(), type_definition->id()});
+    }
+  }
+  return result;
+}
+
 Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
   auto* declaration = FindDeclaration(node, prop_decl_id);
   base::Check(declaration);

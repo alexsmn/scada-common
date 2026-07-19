@@ -20,6 +20,36 @@ bool IsInstanceOf(const NodeRef& node,
   return IsSubtypeOf(node.type_definition(), type_definition_id);
 }
 
+std::vector<NodeRef> GetCreatableChildTypes(const NodeRef& node) {
+  std::vector<NodeRef> result;
+
+  // Scan `node` itself when it is a type, else its type definition; walk the
+  // supertype chain so inherited placeholders are included.
+  NodeRef type =
+      (node.node_class() && scada::IsTypeDefinition(*node.node_class()))
+          ? node
+          : node.type_definition();
+
+  for (; type; type = type.supertype()) {
+    // Placeholder children attach via a hierarchical reference (Organizes /
+    // HasComponent subtype); need the type's children and each child fetched.
+    type.StartFetch(NodeFetchStatus::NodeAndChildren);
+    for (const auto& child : type.targets(scada::id::HierarchicalReferences)) {
+      child.StartFetch(NodeFetchStatus::NodeOnly);
+      const scada::NodeId rule_id =
+          child.target(scada::id::HasModellingRule).node_id();
+      if (rule_id !=
+              scada::NodeId{scada::id::ModellingRule_OptionalPlaceholder} &&
+          rule_id !=
+              scada::NodeId{scada::id::ModellingRule_MandatoryPlaceholder})
+        continue;
+      if (NodeRef type_definition = child.type_definition())
+        result.push_back(std::move(type_definition));
+    }
+  }
+  return result;
+}
+
 std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
   std::vector<NodeRef> result;
 

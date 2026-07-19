@@ -10,6 +10,7 @@
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <string>
+#include <vector>
 
 namespace scada {
 
@@ -171,6 +172,21 @@ inline auto GetChildren(const Node& node) {
 }
 
 NodeId GetModellingRuleId(const Node& node);
+
+// A kind of child instance that may be created under a node: the hierarchical
+// reference used to attach it, and the type definition the instance must have.
+struct CreatableChildType {
+  NodeId reference_type_id;
+  NodeId type_definition_id;
+};
+
+// Returns the child instance types that may be created under `node`, derived
+// from the OPC UA OptionalPlaceholder/MandatoryPlaceholder InstanceDeclarations
+// on its type-definition chain (or, when `node` is itself a TypeDefinition, on
+// it and its supertypes). This is the standard-modelling replacement for reading
+// the proprietary `Creates` reference (OPC UA Part 3 §6.4.4.4.4,
+// https://reference.opcfoundation.org/Core/Part3/v105/docs/6.4.4).
+std::vector<CreatableChildType> GetCreatableChildTypes(const Node& node);
 
 const Node* FindDeclaration(const Node& node, const NodeId& declaration_id);
 const Variable* GetPropertyDeclaration(const TypeDefinition& type,

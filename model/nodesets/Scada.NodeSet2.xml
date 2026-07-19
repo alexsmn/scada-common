@@ -46,16 +46,6 @@
     </References>
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
-  <UAReferenceType NodeId="ns=1;i=297" BrowseName="Creates" SymbolicName="Creates">
-    <DisplayName>Можно создать</DisplayName>
-    <References>
-      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
-    </References>
-    <!-- OPC UA Part 3 §5.3.2: non-symmetric ReferenceTypes shall define an
-         InverseName,
-         https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2 -->
-    <InverseName>CreatedBy</InverseName>
-  </UAReferenceType>
   <UAObject NodeId="ns=1;i=310" BrowseName="PropertyCategories" SymbolicName="PropertyCategories" ParentNodeId="i=85">
     <DisplayName>Категории свойств</DisplayName>
     <References>
@@ -180,8 +170,7 @@
     <DisplayName>Пользователи</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=404</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=345" BrowseName="MultiSessions" SymbolicName="UserType_MultiSessions" ParentNodeId="ns=1;i=16" DataType="Boolean">
@@ -229,7 +218,6 @@
     <DisplayName>Роль</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=357</Reference>
       <Reference ReferenceType="ns=1;i=356">ns=1;i=360</Reference>
     </References>
   </UAObjectType>
@@ -296,8 +284,7 @@
     <DisplayName>Конфигурации</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=360</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=405</Reference>
     </References>
   </UAObject>
   <UAMethod NodeId="ns=1;i=365" BrowseName="DeployConfiguration" SymbolicName="Configurations_DeployConfiguration" ParentNodeId="ns=1;i=362">
@@ -316,8 +303,7 @@
     <DisplayName>Базы данных</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=406</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=171" BrowseName="Depth" SymbolicName="HistoricalDatabaseType_Depth" ParentNodeId="ns=1;i=20" DataType="Int32">
@@ -682,24 +668,41 @@
     <DisplayName>Все объекты</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=400</Reference>
+    </References>
+  </UAObject>
+  <!-- Container ObjectType for the DataItems folder. Its OptionalPlaceholder
+       InstanceDeclaration <DataGroup> is the standard-modelling replacement for
+       the proprietary Creates edge on the DataItems object (OPC UA Part 3
+       §6.4.4.4.4 OptionalPlaceholder,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/6.4.4): it marks
+       that instances of DataItemsFolderType may organize DataGroupType nodes. -->
+  <UAObjectType NodeId="ns=1;i=400" BrowseName="DataItemsFolderType" SymbolicName="DataItemsFolderType">
+    <DisplayName>DataItemsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=410" BrowseName="&lt;DataGroup&gt;" SymbolicName="DataItemsFolderType_DataGroupPlaceholder" ParentNodeId="ns=1;i=400">
+    <DisplayName>&lt;DataGroup&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=400</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
     </References>
   </UAObject>
   <UAObject NodeId="ns=1;i=27" BrowseName="TsFormats" SymbolicName="TsFormats" ParentNodeId="i=85">
     <DisplayName>Форматы</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=401</Reference>
     </References>
   </UAObject>
   <UAObject NodeId="ns=1;i=28" BrowseName="SimulationSignals" SymbolicName="SimulationSignals" ParentNodeId="i=85">
     <DisplayName>Эмулируемые сигналы</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=402</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=292" BrowseName="Simulated" SymbolicName="DataGroupType_Simulated" ParentNodeId="ns=1;i=62" DataType="Boolean">
@@ -791,8 +794,6 @@
     <DisplayName>Группа</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=62</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=239</Reference>
       <Reference ReferenceType="ns=1;i=328">ns=1;i=115</Reference>
     </References>
   </UAObjectType>
@@ -974,9 +975,7 @@
     <DisplayName>Все оборудование</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=116</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=403</Reference>
     </References>
   </UAObject>
   <UAObjectType NodeId="ns=1;i=34" BrowseName="TransmissionItemType" SymbolicName="TransmissionItemType">
@@ -1007,14 +1006,12 @@
     <DisplayName>Направление MODBUS</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=118</Reference>
     </References>
   </UAObjectType>
   <UAObjectType NodeId="ns=1;i=118" BrowseName="ModbusDeviceType" SymbolicName="ModbusDeviceType">
     <DisplayName>Устройство MODBUS</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=342</Reference>
     </References>
   </UAObjectType>
   <!-- OptionalPlaceholder InstanceDeclaration: instances of ModbusDeviceType
@@ -1130,7 +1127,6 @@
     <DisplayName>Направление МЭК-60870</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=331</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=176" BrowseName="Protocol" SymbolicName="Iec60870LinkType_Protocol" ParentNodeId="ns=1;i=124" DataType="ns=1;i=322">
@@ -1523,7 +1519,6 @@
     <DisplayName>Устройство МЭК-60870</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=343</Reference>
     </References>
   </UAObjectType>
   <!-- OptionalPlaceholder InstanceDeclaration (OPC UA Part 3 §6.4.4.4.4);
@@ -1546,8 +1541,6 @@
     <DisplayName>Устройство МЭК-61850</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=281</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=344</Reference>
     </References>
   </UAObjectType>
   <!-- OptionalPlaceholder InstanceDeclaration (OPC UA Part 3 §6.4.4.4.4);
@@ -1597,7 +1590,6 @@
     <DisplayName>Параметр МЭК-61850</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=285</Reference>
     </References>
   </UAObjectType>
   <UAObject NodeId="ns=1;i=288" BrowseName="Model" SymbolicName="Iec61850DeviceType_Model" ParentNodeId="ns=1;i=277">
@@ -1636,17 +1628,13 @@
     <DisplayName>Файлы</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=305</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=306</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=407</Reference>
     </References>
   </UAObject>
   <UAObjectType NodeId="ns=1;i=305" BrowseName="FileDirectoryType" SymbolicName="FileDirectoryType">
     <DisplayName>Папка</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=305</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=306</Reference>
     </References>
   </UAObjectType>
   <UAVariableType NodeId="ns=1;i=306" BrowseName="FileType" SymbolicName="FileType" DataType="ByteString">
@@ -1703,8 +1691,268 @@
     <DisplayName>Historical data configurations</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-      <Reference ReferenceType="ns=1;i=297">ns=1;i=368</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=408</Reference>
     </References>
   </UAObject>
+  <!-- Container ObjectTypes + OptionalPlaceholder InstanceDeclarations: the
+       standard-modelling replacement for the proprietary Creates edges (OPC UA
+       Part 3 §6.4.4.4.4 OptionalPlaceholder,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/6.4.4). Each
+       folder object is retyped to its container type; the placeholder marks
+       which type may be organized under instances of that container. Placeholder
+       node class matches the createable type's instances (UAVariable for a
+       VariableType target, UAObject for an ObjectType target); all attach via
+       Organizes, matching how config instances are parented at runtime. -->
+
+  <!-- TsFormats folder -->
+  <UAObjectType NodeId="ns=1;i=401" BrowseName="TsFormatsFolderType" SymbolicName="TsFormatsFolderType">
+    <DisplayName>TsFormatsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=411" BrowseName="&lt;TsFormat&gt;" SymbolicName="TsFormatsFolderType_TsFormatPlaceholder" ParentNodeId="ns=1;i=401">
+    <DisplayName>&lt;TsFormat&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=401</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=80</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- SimulationSignals folder (SimulationSignalType is a VariableType) -->
+  <UAObjectType NodeId="ns=1;i=402" BrowseName="SimulationSignalsFolderType" SymbolicName="SimulationSignalsFolderType">
+    <DisplayName>SimulationSignalsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=412" BrowseName="&lt;SimulationSignal&gt;" SymbolicName="SimulationSignalsFolderType_SimulationSignalPlaceholder" ParentNodeId="ns=1;i=402" DataType="BaseDataType">
+    <DisplayName>&lt;SimulationSignal&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=402</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- Devices folder (LinkType + Iec61850DeviceType) -->
+  <UAObjectType NodeId="ns=1;i=403" BrowseName="DevicesFolderType" SymbolicName="DevicesFolderType">
+    <DisplayName>DevicesFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=413" BrowseName="&lt;Link&gt;" SymbolicName="DevicesFolderType_LinkPlaceholder" ParentNodeId="ns=1;i=403">
+    <DisplayName>&lt;Link&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=403</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=414" BrowseName="&lt;Iec61850Device&gt;" SymbolicName="DevicesFolderType_Iec61850DevicePlaceholder" ParentNodeId="ns=1;i=403">
+    <DisplayName>&lt;Iec61850Device&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=403</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- Users folder -->
+  <UAObjectType NodeId="ns=1;i=404" BrowseName="UsersFolderType" SymbolicName="UsersFolderType">
+    <DisplayName>UsersFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=415" BrowseName="&lt;User&gt;" SymbolicName="UsersFolderType_UserPlaceholder" ParentNodeId="ns=1;i=404">
+    <DisplayName>&lt;User&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=404</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- Configurations folder -->
+  <UAObjectType NodeId="ns=1;i=405" BrowseName="ConfigurationsFolderType" SymbolicName="ConfigurationsFolderType">
+    <DisplayName>ConfigurationsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=416" BrowseName="&lt;Configuration&gt;" SymbolicName="ConfigurationsFolderType_ConfigurationPlaceholder" ParentNodeId="ns=1;i=405">
+    <DisplayName>&lt;Configuration&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=405</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=360</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- HistoricalDatabases folder -->
+  <UAObjectType NodeId="ns=1;i=406" BrowseName="HistoricalDatabasesFolderType" SymbolicName="HistoricalDatabasesFolderType">
+    <DisplayName>HistoricalDatabasesFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=417" BrowseName="&lt;HistoricalDatabase&gt;" SymbolicName="HistoricalDatabasesFolderType_HistoricalDatabasePlaceholder" ParentNodeId="ns=1;i=406">
+    <DisplayName>&lt;HistoricalDatabase&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=406</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- FileSystem folder (FileDirectoryType + FileType; FileType is a VariableType) -->
+  <UAObjectType NodeId="ns=1;i=407" BrowseName="FileSystemType" SymbolicName="FileSystemType">
+    <DisplayName>FileSystemType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=418" BrowseName="&lt;FileDirectory&gt;" SymbolicName="FileSystemType_FileDirectoryPlaceholder" ParentNodeId="ns=1;i=407">
+    <DisplayName>&lt;FileDirectory&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=407</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=305</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=419" BrowseName="&lt;File&gt;" SymbolicName="FileSystemType_FilePlaceholder" ParentNodeId="ns=1;i=407" DataType="ByteString">
+    <DisplayName>&lt;File&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=407</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=306</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- HistoricalDataConfigurations folder -->
+  <UAObjectType NodeId="ns=1;i=408" BrowseName="HistoricalDataConfigurationsFolderType" SymbolicName="HistoricalDataConfigurationsFolderType">
+    <DisplayName>HistoricalDataConfigurationsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=420" BrowseName="&lt;HistoricalDataConfiguration&gt;" SymbolicName="HistoricalDataConfigurationsFolderType_HistoricalDataConfigurationPlaceholder" ParentNodeId="ns=1;i=408">
+    <DisplayName>&lt;HistoricalDataConfiguration&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=408</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=368</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- Type-level OptionalPlaceholders (source is a TypeDefinition; the placeholder
+       attaches directly to the type, no container object needed). -->
+
+  <!-- DataGroupType may contain nested DataGroups and DataItems (DataItemType is a VariableType) -->
+  <UAObject NodeId="ns=1;i=421" BrowseName="&lt;DataGroup&gt;" SymbolicName="DataGroupType_DataGroupPlaceholder" ParentNodeId="ns=1;i=62">
+    <DisplayName>&lt;DataGroup&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=422" BrowseName="&lt;DataItem&gt;" SymbolicName="DataGroupType_DataItemPlaceholder" ParentNodeId="ns=1;i=62" DataType="BaseDataType">
+    <DisplayName>&lt;DataItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- ModbusLinkType may contain ModbusDeviceType -->
+  <UAObject NodeId="ns=1;i=423" BrowseName="&lt;Device&gt;" SymbolicName="ModbusLinkType_DevicePlaceholder" ParentNodeId="ns=1;i=108">
+    <DisplayName>&lt;Device&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- Iec60870LinkType may contain Iec60870DeviceType -->
+  <UAObject NodeId="ns=1;i=424" BrowseName="&lt;Device&gt;" SymbolicName="Iec60870LinkType_DevicePlaceholder" ParentNodeId="ns=1;i=124">
+    <DisplayName>&lt;Device&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=331</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- Iec61850DeviceType may contain RCB -->
+  <UAObject NodeId="ns=1;i=425" BrowseName="&lt;RCB&gt;" SymbolicName="Iec61850DeviceType_RcbPlaceholder" ParentNodeId="ns=1;i=277">
+    <DisplayName>&lt;RCB&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=281</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- RoleType may contain IdentityMappingRuleType -->
+  <UAObject NodeId="ns=1;i=426" BrowseName="&lt;IdentityMappingRule&gt;" SymbolicName="RoleType_IdentityMappingRulePlaceholder" ParentNodeId="ns=1;i=354">
+    <DisplayName>&lt;IdentityMappingRule&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=354</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=357</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- ConfigurableObject may contain nested ConfigurableObjects -->
+  <UAObject NodeId="ns=1;i=427" BrowseName="&lt;ConfigurableObject&gt;" SymbolicName="ConfigurableObject_ConfigurableObjectPlaceholder" ParentNodeId="ns=1;i=285">
+    <DisplayName>&lt;ConfigurableObject&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
+  <!-- FileDirectoryType may contain nested FileDirectories and Files (FileType is a VariableType) -->
+  <UAObject NodeId="ns=1;i=428" BrowseName="&lt;FileDirectory&gt;" SymbolicName="FileDirectoryType_FileDirectoryPlaceholder" ParentNodeId="ns=1;i=305">
+    <DisplayName>&lt;FileDirectory&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=305</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=305</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=429" BrowseName="&lt;File&gt;" SymbolicName="FileDirectoryType_FilePlaceholder" ParentNodeId="ns=1;i=305" DataType="ByteString">
+    <DisplayName>&lt;File&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=305</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=306</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- Container type for the RoleSet object (OPC UA Part 18 §4.3): its <Role>
+       placeholder marks the SCADA RoleType (custom group roles are config rows)
+       as creatable, replacing the Creates edge on RoleSet in opcua_base.xml. -->
+  <UAObjectType NodeId="ns=1;i=430" BrowseName="RoleSetContainerType" SymbolicName="RoleSetContainerType">
+    <DisplayName>RoleSetContainerType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=431" BrowseName="&lt;Role&gt;" SymbolicName="RoleSetContainerType_RolePlaceholder" ParentNodeId="ns=1;i=430">
+    <DisplayName>&lt;Role&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=430</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=354</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+
 </UANodeSet>

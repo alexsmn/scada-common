@@ -84,10 +84,25 @@ std::map<std::string, std::string> ReadGolden() {
 // The static SCADA address space (now loaded from opcua_base.xml +
 // Scada.NodeSet2.xml) must match the golden captured from the original
 // scada-node-state-v1 model, node-for-node.
+// Rewrites scada_address_space_golden.txt from the loaded address space. Gated
+// on SCADA_UPDATE_GOLDEN so intentional nodeset edits can reconcile the golden
+// in one step; unset in CI, where the comparison below guards the structure.
+void MaybeRegenerateGolden(const std::map<std::string, std::string>& actual) {
+  if (!std::getenv("SCADA_UPDATE_GOLDEN"))
+    return;
+  const std::filesystem::path golden =
+      std::filesystem::path{__FILE__}.parent_path() /
+      "scada_address_space_golden.txt";
+  std::ofstream out{golden, std::ios::trunc};
+  for (const auto& [id, canonical] : actual)
+    out << id << '\t' << canonical << '\n';
+}
+
 TEST(ScadaAddressSpace, MatchesGolden) {
+  const auto actual = LoadAndDump();
+  MaybeRegenerateGolden(actual);
   const auto golden = ReadGolden();
   ASSERT_FALSE(golden.empty()) << "golden fixture missing";
-  const auto actual = LoadAndDump();
 
   for (const auto& [id, canonical] : golden)
     if (!actual.contains(id))

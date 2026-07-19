@@ -391,12 +391,15 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
   nodes.push_back(scada::NodeState{
       .node_id = dev::LinkType,
       .node_class = scada::NodeClass::ObjectType,
-      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      // LinkType derives from DeviceType in the nodeset (Scada.NodeSet2.xml
+      // i=116 HasSubtype -> i=115); links ARE devices, and consumers rely on it
+      // (e.g. GetFullDisplayName qualifies a device by its parent link).
+      .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
       .attributes = scada::NodeAttributes{}
                         .set_browse_name("LinkType")
                         .set_display_name(u"Направление"),
-      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+      .supertype_id = dev::DeviceType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusLinkType,
       .node_class = scada::NodeClass::ObjectType,
@@ -703,14 +706,6 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     AddScadaSimulationTestTypes(*this);
     AddScadaHistoryTestTypes(*this);
 
-    // The "Creates" reference type declares which instance types a container
-    // node or type may hold (used by child-property/type resolution).
-    // ReferenceType nodes cannot be built by GenericNodeFactory, so add it
-    // directly. The references mirror Scada.NodeSet2.xml: a data group may
-    // contain data items, the Users folder contains users, a Modbus link
-    // contains Modbus devices, and a Modbus device contains retransmission
-    // items.
-    AddStaticNode<scada::ReferenceType>(scada::id::Creates, "Creates");
     // All SCADA reference types are subtypes of NonHierarchicalReferences in
     // the nodeset. The subtype edge matters: node fetchers browse
     // NonHierarchicalReferences with include-subtypes, so an unparented
@@ -719,30 +714,6 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                                     NamespaceIndexes::NS0};
     const scada::NodeId kNonHierarchical{scada::id::NonHierarchicalReferences,
                                          NamespaceIndexes::NS0};
-    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
-                        scada::id::Creates);
-    scada::AddReference(*this, scada::id::Creates,
-                        data_items::id::DataGroupType,
-                        data_items::id::DataItemType);
-    scada::AddReference(*this, scada::id::Creates, security::id::Users,
-                        security::id::UserType);
-    scada::AddReference(*this, scada::id::Creates,
-                        data_items::id::SimulationSignals,
-                        data_items::id::SimulationSignalType);
-    scada::AddReference(*this, scada::id::Creates, data_items::id::TsFormats,
-                        data_items::id::TsFormatType);
-    scada::AddReference(*this, scada::id::Creates,
-                        history::id::HistoricalDatabases,
-                        history::id::HistoricalDatabaseType);
-    scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
-                        devices::id::LinkType);
-    scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
-                        devices::id::Iec61850DeviceType);
-    scada::AddReference(*this, scada::id::Creates, devices::id::ModbusLinkType,
-                        devices::id::ModbusDeviceType);
-    scada::AddReference(*this, scada::id::Creates,
-                        devices::id::ModbusDeviceType,
-                        devices::id::ModbusTransmissionItemType);
 
     // Non-hierarchical reference types used as data-item property columns (e.g.
     // by ExportDataReader). Also ReferenceType, so added directly.
@@ -764,11 +735,57 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                                         "IecTransmitSource");
     scada::AddReference(*this, kHasSubtype, kNonHierarchical,
                         devices::id::HasTransmissionSource);
+
+    // OptionalPlaceholder InstanceDeclarations — the standard-modelling
+    // replacement for the removed Creates edges. Tests resolve creatable child
+    // types (GetCreatableChildTypes) through these. Mirrors Scada.NodeSet2.xml.
+    // Mirrors how StandardAddressSpace wires ModellingRule_Mandatory: an
+    // Object typed BaseObjectType, organized under the ModellingRules folder.
+    const scada::NodeId kOptionalPlaceholder{
+        scada::id::ModellingRule_OptionalPlaceholder};
+    AddStaticNode<scada::GenericObject>(kOptionalPlaceholder,
+                                        "OptionalPlaceholder",
+                                        scada::LocalizedText{});
+    scada::AddReference(
+        *this, scada::NodeId{scada::id::HasTypeDefinition}, kOptionalPlaceholder,
+        scada::NodeId{scada::id::BaseObjectType, NamespaceIndexes::NS0});
+    scada::AddReference(
+        *this, scada::id::Organizes,
+        scada::NodeId{scada::id::ModellingRules, NamespaceIndexes::NS0},
+        kOptionalPlaceholder);
+    AddCreatablePlaceholder(data_items::id::DataGroupType,
+                            data_items::id::DataItemType, "<DataItem>");
+    AddCreatablePlaceholder(devices::id::ModbusLinkType,
+                            devices::id::ModbusDeviceType, "<Device>");
+    AddCreatablePlaceholder(devices::id::ModbusDeviceType,
+                            devices::id::ModbusTransmissionItemType,
+                            "<TransmissionItem>");
   }
 
   ~ScadaTestAddressSpace() { Clear(); }
 
  private:
+  // Adds an OptionalPlaceholder <name> child of |parent_type| typed
+  // |createable_type| (attached via Organizes, matching how config instances
+  // are parented) — the standard-modelling replacement for a Creates edge.
+  void AddCreatablePlaceholder(const scada::NodeId& parent_type,
+                               const scada::NodeId& createable_type,
+                               std::string_view browse_name) {
+    const scada::NodeId placeholder_id{next_placeholder_id_++,
+                                        NamespaceIndexes::SCADA};
+    AddStaticNode<scada::GenericObject>(placeholder_id,
+                                        std::string{browse_name},
+                                        scada::LocalizedText{});
+    scada::AddReference(*this, scada::id::Organizes, parent_type,
+                        placeholder_id);
+    scada::AddReference(*this, scada::NodeId{scada::id::HasTypeDefinition},
+                        placeholder_id, createable_type);
+    scada::AddReference(
+        *this, scada::NodeId{scada::id::HasModellingRule}, placeholder_id,
+        scada::NodeId{scada::id::ModellingRule_OptionalPlaceholder});
+  }
+
+  scada::NumericId next_placeholder_id_ = 90000;
   StandardAddressSpace standard_address_space_{*this};
 };
 
