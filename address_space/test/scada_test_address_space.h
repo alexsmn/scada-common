@@ -140,6 +140,17 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
                         .set_display_name(u"Формат"),
       .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
+      .node_id = di::TsFormatType_OpenLabel,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = di::TsFormatType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("OpenLabel")
+                        .set_display_name(u"Подпись 0")
+                        .set_data_type({scada::id::LocalizedText,
+                                        NamespaceIndexes::NS0})});
+  nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType_CloseLabel,
       .node_class = scada::NodeClass::Variable,
       .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
@@ -150,6 +161,40 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
                         .set_display_name(u"Подпись 1")
                         .set_data_type({scada::id::LocalizedText,
                                         NamespaceIndexes::NS0})});
+  nodes.push_back(scada::NodeState{
+      .node_id = di::TsFormatType_OpenColor,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = di::TsFormatType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("OpenColor")
+              .set_display_name(u"Цвет 0")
+              .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+  nodes.push_back(scada::NodeState{
+      .node_id = di::TsFormatType_CloseColor,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+      .parent_id = di::TsFormatType,
+      .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{}
+              .set_browse_name("CloseColor")
+              .set_display_name(u"Цвет 1")
+              .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+
+  // The "Форматы ТС" folder that owns format instances (the Formats admin
+  // table). Mirrors the SimulationSignals / Users admin folders.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::TsFormats,
+      .node_class = scada::NodeClass::Object,
+      .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
+      .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("TsFormats")
+                        .set_display_name(u"Форматы ТС")});
 
   // Data group type used by configuration/object-tree tests.
   nodes.push_back(scada::NodeState{
@@ -620,6 +665,8 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     scada::AddReference(*this, scada::id::Creates,
                         data_items::id::SimulationSignals,
                         data_items::id::SimulationSignalType);
+    scada::AddReference(*this, scada::id::Creates, data_items::id::TsFormats,
+                        data_items::id::TsFormatType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
                         devices::id::LinkType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
