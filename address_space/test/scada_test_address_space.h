@@ -624,6 +624,69 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
   }
 }
 
+// Adds the historical-database test types: the HistoricalDatabases folder and
+// the HistoricalDatabaseType with the operator-facing property declarations the
+// Historical-DBs admin table renders (Depth / ItemCount / WriteValueCount /
+// PendingTaskCount). The counters are typed UInt32 in the production nodeset;
+// they are declared Int32 here so the fixture's plain integer values render
+// directly, which is all the docs screenshot exercises. Mirrors the
+// SimulationSignals / TsFormats admin folders.
+inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
+  GenericNodeFactory factory{address_space};
+
+  namespace hi = history::id;
+
+  std::vector<scada::NodeState> nodes;
+
+  // The "Базы данных истории" folder that owns historical-database instances.
+  nodes.push_back(scada::NodeState{
+      .node_id = hi::HistoricalDatabases,
+      .node_class = scada::NodeClass::Object,
+      .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
+      .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("HistoricalDatabases")
+                        .set_display_name(u"Базы данных истории")});
+
+  nodes.push_back(scada::NodeState{
+      .node_id = hi::HistoricalDatabaseType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("HistoricalDatabaseType")
+                        .set_display_name(u"База данных истории"),
+      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+
+  const auto add_property = [&nodes](const scada::NodeId& property_id,
+                                     const char* browse_name,
+                                     std::u16string display_name) {
+    nodes.push_back(scada::NodeState{
+        .node_id = property_id,
+        .node_class = scada::NodeClass::Variable,
+        .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+        .parent_id = hi::HistoricalDatabaseType,
+        .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+        .attributes =
+            scada::NodeAttributes{}
+                .set_browse_name(browse_name)
+                .set_display_name(std::move(display_name))
+                .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+  };
+  add_property(hi::HistoricalDatabaseType_Depth, "Depth", u"Глубина");
+  add_property(hi::HistoricalDatabaseType_ItemCount, "ItemCount", u"Элементов");
+  add_property(hi::HistoricalDatabaseType_WriteValueCount, "WriteValueCount",
+               u"Записано");
+  add_property(hi::HistoricalDatabaseType_PendingTaskCount, "PendingTaskCount",
+               u"В очереди");
+
+  for (const auto& node : nodes) {
+    [[maybe_unused]] const auto result = factory.CreateNode(node);
+    base::Check(result.first);
+  }
+}
+
 // A ready-to-use code-defined SCADA address space: the standard OPC UA tree
 // plus the data_items and devices test type systems. Replaces
 // `AddressSpaceImpl3` for tests without loading any nodeset XML.
@@ -638,6 +701,7 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     AddScadaDevicesTestTypes(*this);
     AddScadaSecurityTestTypes(*this);
     AddScadaSimulationTestTypes(*this);
+    AddScadaHistoryTestTypes(*this);
 
     // The "Creates" reference type declares which instance types a container
     // node or type may hold (used by child-property/type resolution).
@@ -667,6 +731,9 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                         data_items::id::SimulationSignalType);
     scada::AddReference(*this, scada::id::Creates, data_items::id::TsFormats,
                         data_items::id::TsFormatType);
+    scada::AddReference(*this, scada::id::Creates,
+                        history::id::HistoricalDatabases,
+                        history::id::HistoricalDatabaseType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
                         devices::id::LinkType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
