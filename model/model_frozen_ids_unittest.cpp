@@ -160,40 +160,74 @@ TEST(ModelFrozenIds, NodeIdValues) {
 // index every stored row NodeId carries. Both sides of each pair are persisted
 // in configuration databases, so the association is frozen too.
 TEST(ModelFrozenIds, ConfigTableRegistry) {
-  ASSERT_EQ(std::size(model::kConfigTables), 9u);
+  ASSERT_EQ(std::size(model::kConfigTables), 20u);
 
   const auto expect_entry =
       [](const model::ConfigTableEntry& entry, const NodeId& type_definition_id,
-         NamespaceIndex namespace_index, std::string_view config_group) {
+         NamespaceIndex namespace_index, std::string_view config_group,
+         std::string_view group_kind) {
         EXPECT_EQ(entry.type_definition_id, type_definition_id);
         EXPECT_EQ(entry.namespace_index, namespace_index);
         EXPECT_EQ(entry.config_group, config_group);
+        EXPECT_EQ(entry.group_kind, group_kind);
       };
 
   const auto tables = model::GetConfigTables();
-  expect_entry(tables[0], devices::id::ModbusDeviceType,
-               NamespaceIndexes::MODBUS_DEVICES, "modbus");
-  expect_entry(tables[1], devices::id::Iec60870LinkType,
-               NamespaceIndexes::IEC60870_LINK, "iec60870");
-  expect_entry(tables[2], devices::id::Iec60870DeviceType,
-               NamespaceIndexes::IEC60870_DEVICE, "iec60870");
-  expect_entry(tables[3], devices::id::ModbusLinkType,
-               NamespaceIndexes::MODBUS_PORTS, "modbus");
-  expect_entry(tables[4], devices::id::Iec60870TransmissionItemType,
-               NamespaceIndexes::IEC60870_TRANSMISSION_ITEM, "iec60870");
-  expect_entry(tables[5], devices::id::Iec61850DeviceType,
-               NamespaceIndexes::IEC61850_DEVICE, "iec61850");
-  expect_entry(tables[6], devices::id::Iec61850RcbType,
-               NamespaceIndexes::IEC61850_RCB, "iec61850");
-  expect_entry(tables[7], devices::id::ModbusTransmissionItemType,
-               NamespaceIndexes::MODBUS_TRANSMISSION_ITEM, "modbus");
-  expect_entry(tables[8], devices::id::Iec61850TransmissionItemType,
-               NamespaceIndexes::IEC61850_TRANSMISSION_ITEM, "iec61850");
+  expect_entry(tables[0], data_items::id::DiscreteItemType,
+               NamespaceIndexes::TS, "data_items", "dedicated");
+  expect_entry(tables[1], data_items::id::AnalogItemType, NamespaceIndexes::TIT,
+               "data_items", "dedicated");
+  expect_entry(tables[2], devices::id::ModbusDeviceType,
+               NamespaceIndexes::MODBUS_DEVICES, "modbus", "device");
+  expect_entry(tables[3], data_items::id::DataGroupType,
+               NamespaceIndexes::GROUP, "data_items", "dedicated");
+  expect_entry(tables[4], security::id::UserType, NamespaceIndexes::USER,
+               "security", "dedicated");
+  expect_entry(tables[5], history::id::HistoricalDatabaseType,
+               NamespaceIndexes::HISTORICAL_DB, "history", "dedicated");
+  expect_entry(tables[6], data_items::id::SimulationSignalType,
+               NamespaceIndexes::SIM_ITEM, "data_items", "dedicated");
+  expect_entry(tables[7], devices::id::Iec60870LinkType,
+               NamespaceIndexes::IEC60870_LINK, "iec60870", "device");
+  expect_entry(tables[8], devices::id::Iec60870DeviceType,
+               NamespaceIndexes::IEC60870_DEVICE, "iec60870", "device");
+  expect_entry(tables[9], devices::id::ModbusLinkType,
+               NamespaceIndexes::MODBUS_PORTS, "modbus", "device");
+  expect_entry(tables[10], data_items::id::TsFormatType,
+               NamespaceIndexes::TS_FORMAT, "data_items", "dedicated");
+  expect_entry(tables[11], devices::id::Iec60870TransmissionItemType,
+               NamespaceIndexes::IEC60870_TRANSMISSION_ITEM, "iec60870",
+               "device");
+  expect_entry(tables[12], devices::id::Iec61850DeviceType,
+               NamespaceIndexes::IEC61850_DEVICE, "iec61850", "device");
+  expect_entry(tables[13], devices::id::Iec61850RcbType,
+               NamespaceIndexes::IEC61850_RCB, "iec61850", "device");
+  expect_entry(tables[14], devices::id::ModbusTransmissionItemType,
+               NamespaceIndexes::MODBUS_TRANSMISSION_ITEM, "modbus", "device");
+  expect_entry(tables[15], devices::id::Iec61850TransmissionItemType,
+               NamespaceIndexes::IEC61850_TRANSMISSION_ITEM, "iec61850",
+               "device");
+  expect_entry(tables[16], security::id::RoleType, NamespaceIndexes::ROLE,
+               "security", "dedicated");
+  expect_entry(tables[17], security::id::IdentityMappingRuleType,
+               NamespaceIndexes::ROLE_IDENTITY, "security", "dedicated");
+  expect_entry(tables[18], security::id::ConfigurationType,
+               NamespaceIndexes::CONFIGURATION, "security", "dedicated");
+  expect_entry(tables[19], history::id::HistoricalDataConfigurationType,
+               NamespaceIndexes::HISTORICAL_CONFIG, "history", "dedicated");
 
-  ASSERT_EQ(std::size(model::kConfigTableGroups), 3u);
-  EXPECT_EQ(model::kConfigTableGroups[0], "modbus");
-  EXPECT_EQ(model::kConfigTableGroups[1], "iec60870");
-  EXPECT_EQ(model::kConfigTableGroups[2], "iec61850");
+  ASSERT_EQ(std::size(model::kConfigTableGroups), 6u);
+  EXPECT_EQ(model::kConfigTableGroups[0], "data_items");
+  EXPECT_EQ(model::kConfigTableGroups[1], "modbus");
+  EXPECT_EQ(model::kConfigTableGroups[2], "security");
+  EXPECT_EQ(model::kConfigTableGroups[3], "history");
+  EXPECT_EQ(model::kConfigTableGroups[4], "iec60870");
+  EXPECT_EQ(model::kConfigTableGroups[5], "iec61850");
+
+  ASSERT_EQ(std::size(model::kDeviceConfigTableGroups), 3u);
+  EXPECT_EQ(model::kDeviceConfigTableGroups[0], "modbus");
+  EXPECT_EQ(model::kDeviceConfigTableGroups[1], "iec60870");
+  EXPECT_EQ(model::kDeviceConfigTableGroups[2], "iec61850");
 }
 
 }  // namespace

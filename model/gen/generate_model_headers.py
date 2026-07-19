@@ -9,12 +9,14 @@ Inputs (under --nodesets):
                          constant; `codeNs` overrides the file-default domain.
   * `namespaces.csv`   — index, C++ const name, config-DB short name, plus the
                          optional config-table registry columns: `row_type`
-                         (symbolic name of the namespace's row type) and
-                         `config_group` (which config group serves the table).
-                         Both set or both empty per row. V1 tags only the
-                         device-protocol tables; data_items/history/security
-                         still declare their mappings in framework code
-                         (migrating them here is a follow-up).
+                         (symbolic name of the namespace's row type),
+                         `config_group` (which config group serves the table)
+                         and `group_kind` (`device` = hosted by the generic
+                         device-config module on the config server and by a
+                         driver tier on the edge; `dedicated` = hosted by that
+                         group's dedicated framework module — data_items,
+                         history, security). All three set or all empty per
+                         row; a group's kind must be consistent across rows.
   * `extra_node_ids.csv` — constants with no static node (runtime method ids,
                          server metrics, reserved ids) and all `numeric_id`
                          constants.
@@ -77,7 +79,8 @@ def load_namespaces(path):
         for r in csv.DictReader(f):
             rows.append((int(r["index"]), r["const_name"], r["db_name"],
                          r.get("row_type", "") or "",
-                         r.get("config_group", "") or ""))
+                         r.get("config_group", "") or "",
+                         r.get("group_kind", "") or ""))
     return rows
 
 
@@ -143,7 +146,7 @@ def collect_constants(nodesets_dir):
 def emit_namespaces_h(ns_rows):
     const_lines = []
     end = len(ns_rows)
-    for i, const, _db, _rt, _cg in ns_rows:
+    for i, const, _db, _rt, _cg, _gk in ns_rows:
         if const:
             const_lines.append(f"constexpr scada::NamespaceIndex {const} = {i};")
         else:
@@ -181,7 +184,7 @@ using scada::GetNamespaceName;          // NOLINT(build/namespaces) transitional
 
 
 def emit_namespaces_cpp(ns_rows):
-    names = ",\n    ".join(f'"{db}"' for _i, _c, db, _rt, _cg in ns_rows)
+    names = ",\n    ".join(f'"{db}"' for _i, _c, db, _rt, _cg, _gk in ns_rows)
     return f"""{GEN_BANNER}#include "model/namespaces.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -259,21 +262,32 @@ def resolve_row_type(name, consts):
 
 def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
     entries = []
-    groups = []
+    groups = []  # (name, kind), first-appearance order
     seen_row_types = set()
-    for i, const, db, row_type, config_group in ns_rows:
-        if bool(row_type) != bool(config_group):
+    for i, const, db, row_type, config_group, group_kind in ns_rows:
+        if not (bool(row_type) == bool(config_group) == bool(group_kind)):
             raise SystemExit(
-                f"namespaces.csv index {i}: row_type and config_group must "
-                f"both be set or both be empty (got row_type='{row_type}', "
-                f"config_group='{config_group}')")
+                f"namespaces.csv index {i}: row_type, config_group and "
+                f"group_kind must all be set or all be empty (got "
+                f"row_type='{row_type}', config_group='{config_group}', "
+                f"group_kind='{group_kind}')")
         if not row_type:
             continue
+        if group_kind not in ("device", "dedicated"):
+            raise SystemExit(
+                f"namespaces.csv index {i}: group_kind must be 'device' or "
+                f"'dedicated', got '{group_kind}'")
         if row_type in seen_row_types:
             raise SystemExit(
                 f"namespaces.csv index {i}: row_type '{row_type}' already "
                 f"maps to another namespace — one row type per table")
         seen_row_types.add(row_type)
+        for name, kind in groups:
+            if name == config_group and kind != group_kind:
+                raise SystemExit(
+                    f"namespaces.csv index {i}: config_group "
+                    f"'{config_group}' has inconsistent group_kind "
+                    f"('{kind}' vs '{group_kind}')")
         value, type_ns = resolve_row_type(row_type, consts)
         type_ns_const = ns_const_index_all.get(type_ns, str(type_ns))
         table_ns_const = ns_const_index_all[i]
@@ -281,11 +295,14 @@ def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
             f"    // {row_type} rows live in the {db} table.\n"
             f"    {{{{{value}, NamespaceIndexes::{type_ns_const}}},\n"
             f"     NamespaceIndexes::{table_ns_const},\n"
-            f'     "{config_group}"}},')
-        if config_group not in groups:
-            groups.append(config_group)
+            f'     "{config_group}",\n'
+            f'     "{group_kind}"}},')
+        if config_group not in [g for g, _k in groups]:
+            groups.append((config_group, group_kind))
     entry_body = "\n".join(entries)
-    group_body = ", ".join(f'"{g}"' for g in groups)
+    group_body = ", ".join(f'"{g}"' for g, _k in groups)
+    device_group_body = ", ".join(
+        f'"{g}"' for g, k in groups if k == "device")
     return f"""{GEN_BANNER}#pragma once
 
 #include "model/namespaces.h"
@@ -298,16 +315,22 @@ def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
 namespace scada::model {{
 
 // A model-owned configuration table: the table's row type, the namespace
-// (config-DB table) its rows live in, and the config group that serves it.
-// Generated from the `row_type`/`config_group` columns of
+// (config-DB table) its rows live in, the config group that serves it, and
+// the group's kind — "device" groups are hosted by the generic device-config
+// module on the config server (and by their driver tier on the edge), while
+// "dedicated" groups (data_items, history, security) are hosted by their
+// dedicated framework module. Generated from the
+// `row_type`/`config_group`/`group_kind` columns of
 // common/model/nodesets/namespaces.csv — the single source of truth for the
-// type<->namespace association shared by the driver tiers and the config
-// server.
+// type<->namespace association shared by the tiers and the config server.
 struct ConfigTableEntry {{
   scada::NodeId type_definition_id;
   scada::NamespaceIndex namespace_index;
   std::string_view config_group;
+  std::string_view group_kind;
 }};
+
+inline constexpr std::string_view kDeviceGroupKind = "device";
 
 inline constexpr ConfigTableEntry kConfigTables[] = {{
 {entry_body}
@@ -315,6 +338,9 @@ inline constexpr ConfigTableEntry kConfigTables[] = {{
 
 // Distinct config groups, in registry (namespace-index) order.
 inline constexpr std::string_view kConfigTableGroups[] = {{{group_body}}};
+
+// Distinct device-kind config groups, in registry order.
+inline constexpr std::string_view kDeviceConfigTableGroups[] = {{{device_group_body}}};
 
 // All model-registered configuration tables, in registry order.
 constexpr std::span<const ConfigTableEntry> GetConfigTables() {{
@@ -324,6 +350,11 @@ constexpr std::span<const ConfigTableEntry> GetConfigTables() {{
 // The distinct config groups of GetConfigTables().
 constexpr std::span<const std::string_view> GetConfigTableGroups() {{
   return kConfigTableGroups;
+}}
+
+// The distinct device-kind config groups of GetConfigTables().
+constexpr std::span<const std::string_view> GetDeviceConfigTableGroups() {{
+  return kDeviceConfigTableGroups;
 }}
 
 }}  // namespace scada::model
@@ -367,8 +398,9 @@ def main():
     args = ap.parse_args()
 
     ns_rows = load_namespaces(os.path.join(args.nodesets, "namespaces.csv"))
-    ns_const_index = {i: c for i, c, _d, _rt, _cg in ns_rows if c}
-    ns_const_index_all = {i: (c if c else str(i)) for i, c, _d, _rt, _cg in ns_rows}
+    ns_const_index = {i: c for i, c, _d, _rt, _cg, _gk in ns_rows if c}
+    ns_const_index_all = {
+        i: (c if c else str(i)) for i, c, _d, _rt, _cg, _gk in ns_rows}
 
     consts = collect_constants(args.nodesets)
 
