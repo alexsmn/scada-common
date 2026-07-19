@@ -142,8 +142,8 @@ void NodeModelImpl::OnChildrenFetched(
   std::weak_ptr<bool> reference_request = reference_request_;
   std::weak_ptr<NodeModelImpl> weak_self = weak_from_this();
   CoSpawn(service_.executor_,
-          [reference_request, weak_self, this, &service = service_,
-           shared_references]() -> Awaitable<void> {
+          [reference_request, weak_self, this, &service = service_, node_id =
+           node_id_, shared_references]() -> Awaitable<void> {
             // Fetch and pin every child target and its reference type. Until
             // the pins are handed to the parent below, they keep the fetched
             // nodes resident across the coroutine suspension points.
@@ -160,9 +160,13 @@ void NodeModelImpl::OnChildrenFetched(
 
             // |this| may only be touched past this point: |reference_request|
             // guards against both a superseding request and the model having
-            // been released mid-flight (the flag dies with the model).
-            if (!reference_request.lock())
+            // been released mid-flight (the flag dies with the model). The
+            // service (captured by reference) and |node_id| (by value) stay
+            // valid regardless, so the in-flight guard is always released.
+            if (!reference_request.lock()) {
+              service.ChildrenFetchSettled(node_id);
               co_return;
+            }
 
             // Pin this model for the synchronous tail below. SetFetchStatus
             // fires NotifyCallbacks, which resumes other fetch coroutines that
@@ -172,8 +176,10 @@ void NodeModelImpl::OnChildrenFetched(
             // expansion). The pin is taken only here, not around the fetch
             // loop, so residency while fetching children is unchanged.
             auto self = weak_self.lock();
-            if (!self)
+            if (!self) {
+              service.ChildrenFetchSettled(node_id);
               co_return;
+            }
 
             child_references_ = *shared_references;
             // The child fetches above pushed mirror references into this
@@ -192,6 +198,11 @@ void NodeModelImpl::OnChildrenFetched(
 
             SetFetchStatus(status_,
                            fetch_status_ | NodeFetchStatus::ChildrenOnly);
+
+            // Release the in-flight guard only now that the ChildrenOnly status
+            // is applied: subsequent re-requests are satisfied by the status, so
+            // they no longer re-spawn the fetch.
+            service.ChildrenFetchSettled(node_id);
 
             NotifyStateChanged();
             NotifyModelChanged();

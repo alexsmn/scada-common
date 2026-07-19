@@ -354,16 +354,32 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
             [this, fetcher = node_fetcher_, node_id,
              pin = std::move(model)]() mutable -> Awaitable<void> {
               auto references = co_await fetcher->FetchChildren(node_id);
-              children_fetch_in_flight_.erase(node_id);
-              if (!pin)
+              // Do NOT release children_fetch_in_flight_ here. A successful
+              // fetch hands the references to OnChildrenFetched, which spawns a
+              // long async tail that fetches each child (and its reference type)
+              // before it applies the ChildrenOnly status bit. Clearing the
+              // guard now — before that bit is set — lets a view that re-reads
+              // on the tail's own child-fetch notifications re-request and
+              // re-spawn the children fetch, which livelocks (the tail never
+              // gets to settle). The guard is cleared by ChildrenFetchSettled
+              // once the tail applies the status (or immediately below on the
+              // no-model / error paths, where no tail runs).
+              if (!pin) {
+                children_fetch_in_flight_.erase(node_id);
                 co_return;
+              }
               if (references.ok()) {
                 ProcessFetchedChildren(node_id, std::move(*references));
               } else {
+                children_fetch_in_flight_.erase(node_id);
                 ProcessFetchErrors({{node_id, references.status()}});
               }
             });
   }
+}
+
+void NodeServiceImpl::ChildrenFetchSettled(const scada::NodeId& node_id) {
+  children_fetch_in_flight_.erase(node_id);
 }
 
 void NodeServiceImpl::ProcessFetchedNodes(
@@ -402,8 +418,15 @@ void NodeServiceImpl::ProcessFetchErrors(NodeFetchStatuses&& errors) {
 void NodeServiceImpl::ProcessFetchedChildren(
     const scada::NodeId& node_id,
     scada::ReferenceDescriptions&& references) {
-  if (auto node = FindNodeModel(node_id))
+  if (auto node = FindNodeModel(node_id)) {
+    // OnChildrenFetched owns the in-flight guard from here: its tail calls
+    // ChildrenFetchSettled once the ChildrenOnly status is applied.
     node->OnChildrenFetched(std::move(references));
+  } else {
+    // No resident model to apply the children to, so no tail will settle the
+    // guard — release it here.
+    children_fetch_in_flight_.erase(node_id);
+  }
 }
 
 void NodeServiceImpl::OnChannelOpened() {

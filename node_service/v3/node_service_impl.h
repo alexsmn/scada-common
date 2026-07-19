@@ -182,6 +182,13 @@ class NodeServiceImpl : private NodeServiceImplContext,
                               scada::ReferenceDescriptions&& references);
   void ProcessFetchErrors(NodeFetchStatuses&& errors);
 
+  // Releases the children-fetch in-flight guard for `node_id`. Called by
+  // NodeModelImpl::OnChildrenFetched once its async tail has applied the
+  // ChildrenOnly status (or bailed out), so the guard covers the whole
+  // fetch-and-apply, not just the browse. Keeping it held for that window is
+  // what prevents a re-read-driven re-spawn livelock (see SpawnFetch).
+  void ChildrenFetchSettled(const scada::NodeId& node_id);
+
   // scada::ViewService
   virtual void OnModelChanged(const scada::ModelChangeEvent& event) override;
   virtual void OnNodeSemanticsChanged(
