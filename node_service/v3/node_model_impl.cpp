@@ -4,10 +4,12 @@
 #include "model/node_id_util.h"
 #include "node_service/node_util.h"
 #include "node_service/v3/node_service_impl.h"
+#include "scada/standard_reference_types.h"
 
 #include "base/awaitable.h"
 
 #include <algorithm>
+#include <optional>
 
 namespace v3 {
 
@@ -318,29 +320,33 @@ std::vector<NodeRef::Reference> NodeModelImpl::GetReferences(
     bool forward) const {
   std::vector<NodeRef::Reference> result;
 
-  for (auto& ref : node_state_.references) {
-    if (ref.forward == forward) {
-      // The reference type may not be fetched yet (remote data); the
-      // subtype test below then simply fails to match.
-      auto reference_type = service_.GetNode(ref.reference_type_id);
-      if (IsSubtypeOf(reference_type, reference_type_id)) {
-        result.push_back(
-            {reference_type, service_.GetNode(ref.node_id), ref.forward});
-      }
+  // Whether a reference of type `ref_type_id` matches the requested
+  // `reference_type_id`. Standard (namespace 0) reference types are resolved
+  // statically — their subtype hierarchy is fixed and known without the
+  // ReferenceType node being fetched, which matters for remote data where those
+  // nodes are not resident. Custom, server-defined reference types fall back to
+  // the address-space walk (which yields false while the type is unfetched, the
+  // pre-existing behavior).
+  auto matches = [&](const scada::NodeId& ref_type_id) {
+    if (std::optional<bool> known =
+            scada::IsStandardReferenceSubtype(ref_type_id, reference_type_id)) {
+      return *known;
     }
-  }
+    return IsSubtypeOf(service_.GetNode(ref_type_id), reference_type_id);
+  };
 
-  for (auto& ref : child_references_) {
-    if (ref.forward == forward) {
-      // The reference type may not be fetched yet (remote data); the
-      // subtype test below then simply fails to match.
-      auto reference_type = service_.GetNode(ref.reference_type_id);
-      if (IsSubtypeOf(reference_type, reference_type_id)) {
-        result.push_back(
-            {reference_type, service_.GetNode(ref.node_id), ref.forward});
-      }
-    }
-  }
+  auto append_matching =
+      [&](const std::vector<scada::ReferenceDescription>& references) {
+        for (auto& ref : references) {
+          if (ref.forward == forward && matches(ref.reference_type_id)) {
+            result.push_back({service_.GetNode(ref.reference_type_id),
+                              service_.GetNode(ref.node_id), ref.forward});
+          }
+        }
+      };
+
+  append_matching(node_state_.references);
+  append_matching(child_references_);
 
   return result;
 }
