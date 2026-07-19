@@ -515,6 +515,70 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
   }
 }
 
+// Adds the simulation-signal test types: the SimulationSignals folder and the
+// SimulationSignalType with the property declarations the Simulation admin
+// table renders (Function / Period / Phase / UpdateInterval). Function is typed
+// Int32 here, whereas the production nodeset types it as the
+// SimulationFunctionType enumeration — the table renders the raw value, which
+// is all the docs screenshot exercises. Display names mirror
+// `model/nodesets/Scada.NodeSet2.xml`.
+inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
+  GenericNodeFactory factory{address_space};
+
+  namespace di = data_items::id;
+
+  std::vector<scada::NodeState> nodes;
+
+  // The "Сигналы имитации" folder that owns simulation-signal instances.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::SimulationSignals,
+      .node_class = scada::NodeClass::Object,
+      .type_definition_id = {scada::id::FolderType, NamespaceIndexes::NS0},
+      .parent_id = {scada::id::ObjectsFolder, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::Organizes, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("SimulationSignals")
+                        .set_display_name(u"Сигналы имитации")});
+
+  nodes.push_back(scada::NodeState{
+      .node_id = di::SimulationSignalType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype, NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("SimulationSignalType")
+                        .set_display_name(u"Сигнал имитации"),
+      .supertype_id = {scada::id::BaseObjectType, NamespaceIndexes::NS0}});
+
+  // The four operator-facing property declarations, all rendered as Int32
+  // columns in the Simulation table.
+  const auto add_property = [&nodes](const scada::NodeId& property_id,
+                                     const char* browse_name,
+                                     std::u16string display_name) {
+    nodes.push_back(scada::NodeState{
+        .node_id = property_id,
+        .node_class = scada::NodeClass::Variable,
+        .type_definition_id = {scada::id::PropertyType, NamespaceIndexes::NS0},
+        .parent_id = di::SimulationSignalType,
+        .reference_type_id = {scada::id::HasProperty, NamespaceIndexes::NS0},
+        .attributes =
+            scada::NodeAttributes{}
+                .set_browse_name(browse_name)
+                .set_display_name(std::move(display_name))
+                .set_data_type({scada::id::Int32, NamespaceIndexes::NS0})});
+  };
+  add_property(di::SimulationSignalType_Function, "Function", u"Функция");
+  add_property(di::SimulationSignalType_Period, "Period", u"Период");
+  add_property(di::SimulationSignalType_Phase, "Phase", u"Фаза");
+  add_property(di::SimulationSignalType_UpdateInterval, "UpdateInterval",
+               u"Интервал");
+
+  for (const auto& node : nodes) {
+    [[maybe_unused]] const auto result = factory.CreateNode(node);
+    base::Check(result.first);
+  }
+}
+
 // A ready-to-use code-defined SCADA address space: the standard OPC UA tree
 // plus the data_items and devices test type systems. Replaces
 // `AddressSpaceImpl3` for tests without loading any nodeset XML.
@@ -528,6 +592,7 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     AddScadaDataItemsTestTypes(*this);
     AddScadaDevicesTestTypes(*this);
     AddScadaSecurityTestTypes(*this);
+    AddScadaSimulationTestTypes(*this);
 
     // The "Creates" reference type declares which instance types a container
     // node or type may hold (used by child-property/type resolution).
@@ -552,6 +617,9 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                         data_items::id::DataItemType);
     scada::AddReference(*this, scada::id::Creates, security::id::Users,
                         security::id::UserType);
+    scada::AddReference(*this, scada::id::Creates,
+                        data_items::id::SimulationSignals,
+                        data_items::id::SimulationSignalType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
                         devices::id::LinkType);
     scada::AddReference(*this, scada::id::Creates, devices::id::Devices,
