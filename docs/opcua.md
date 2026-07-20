@@ -18,8 +18,8 @@ fields inside a camelCase transport envelope (`requestHandle`, `service`,
 
 - [./overview.md](./overview.md) — broader common-library index
 - [../README.md](../README.md) — top-level common-library overview
-- [../../server/docs/design.md](../../server/docs/design.md) — overall server architecture
-- [../../server/docs/opcua_module.md](../../server/docs/opcua_module.md) —
+- [../../scada-server-framework/docs/design.md](../../scada-server-framework/docs/design.md) — overall server architecture
+- [../../scada-server-framework/docs/opcua_module.md](../../scada-server-framework/docs/opcua_module.md) —
   server-side module wiring, config loading, and lifecycle
 - `server/opcua/opcua_module.cpp` + `common/opcua/binary/server.{h,cpp}`
   — the existing `opc.tcp://` endpoint that this module sits next to
@@ -536,7 +536,7 @@ Notes:
   same `server_private_key` / `server_certificate` now also feed the
   `opc.tcp://` SecureChannel: when both are set the binary endpoint additionally
   advertises and accepts `Basic256Sha256` / `SignAndEncrypt` (see
-  `server/docs/opcua_module.md`).
+  `scada-server-framework/docs/opcua_module.md`).
 - `max_message_size` bounds both directions; over-large messages close the
   socket with status 1009.
 
