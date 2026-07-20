@@ -4,6 +4,9 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/json.hpp>
+#include <boost/process/v1/args.hpp>
+#include <boost/process/v1/io.hpp>
+#include <boost/process/v1/start_dir.hpp>
 
 #include <chrono>
 #include <stdexcept>
@@ -41,26 +44,56 @@ std::string SqlitePath(const std::filesystem::path& path) {
 }
 
 // Runs the sqlite3 tool with `-init script` against `database_path`. Throws
-// std::runtime_error (with `action` in the message) on a non-zero exit.
+// std::runtime_error (with `action` and sqlite3's own diagnostics in the
+// message) on a non-zero exit.
 void RunSqliteScript(const ServerProcessContext& context,
                      const std::filesystem::path& workspace,
                      const std::filesystem::path& database_path,
                      const std::filesystem::path& script_path,
                      std::string_view action) {
+  // sqlite3 names the rejected statement and the reason ("no such column",
+  // "database is locked", ...) on stderr; capture both streams to a file beside
+  // the script so a failure is diagnosable from the message alone, and so the
+  // text survives in preserved workspaces.
+  const auto output_path =
+      std::filesystem::path{script_path}.concat(".output.txt");
+
   JobObject job;
   ChildProcess sqlite;
-  LaunchProcess(
-      context.sqlite_exe,
-      {"-batch", "-init", script_path.string(), database_path.string()},
-      workspace, job, sqlite);
+  try {
+    sqlite.process = process::child{
+        context.sqlite_exe.string(),
+        process::args(
+            {"-batch", "-init", script_path.string(), database_path.string()}),
+        process::start_dir(workspace.string()),
+        // sqlite3 keeps reading SQL from stdin after the -init script has run.
+        // Inheriting the test binary's stdin lets whatever happens to sit there
+        // (terminal input, a piped harness script) be executed as SQL, which
+        // `.bail on` then turns into a spurious exit-1 "failure" of the fixture
+        // SQL. Feed it EOF instead so only the script runs.
+        (process::std_in < process::null),
+        ((process::std_out & process::std_err) > output_path.string()),
+        job.group()};
+  } catch (const std::system_error& e) {
+    throw std::runtime_error{"Failed to launch " + context.sqlite_exe.string() +
+                             ": " + e.what()};
+  }
+
   WaitForExit(sqlite, 30000);
   auto exit_code = sqlite.ExitCode();
   if (!exit_code || *exit_code != 0) {
     ForceTerminate(sqlite);
+    std::string diagnostics = ReadFileOrEmpty(output_path);
+    while (!diagnostics.empty() &&
+           (diagnostics.back() == '\n' || diagnostics.back() == '\r'))
+      diagnostics.pop_back();
     throw std::runtime_error{
         "sqlite3 failed while " + std::string{action} + " " +
         database_path.string() + " with exit code " +
-        (exit_code ? std::to_string(*exit_code) : std::string{"unavailable"})};
+        (exit_code ? std::to_string(*exit_code) : std::string{"unavailable"}) +
+        (diagnostics.empty() ? std::string{": (no sqlite3 output)"}
+                             : ": " + diagnostics) +
+        "\nscript: " + script_path.string()};
   }
 }
 
