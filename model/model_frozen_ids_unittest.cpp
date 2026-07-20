@@ -172,6 +172,13 @@ TEST(ModelFrozenIds, ConfigTableRegistry) {
         EXPECT_EQ(entry.group_kind, group_kind);
       };
 
+  const auto expect_module = [](const model::ModuleNamespaceEntry& entry,
+                                NamespaceIndex namespace_index,
+                                std::string_view config_group) {
+    EXPECT_EQ(entry.namespace_index, namespace_index);
+    EXPECT_EQ(entry.config_group, config_group);
+  };
+
   const auto tables = model::GetConfigTables();
   expect_entry(tables[0], data_items::id::DiscreteItemType,
                NamespaceIndexes::TS, "data_items", "dedicated");
@@ -228,6 +235,25 @@ TEST(ModelFrozenIds, ConfigTableRegistry) {
   EXPECT_EQ(model::kDeviceConfigTableGroups[0], "modbus");
   EXPECT_EQ(model::kDeviceConfigTableGroups[1], "iec60870");
   EXPECT_EQ(model::kDeviceConfigTableGroups[2], "iec61850");
+
+  // Module namespaces (ADR 0003): tier-exclusive namespaces with no config
+  // table. Frozen indexes, since they are persisted and drive tier routing.
+  ASSERT_EQ(std::size(model::kModuleNamespaces), 5u);
+  // FILESYSTEM (19) has no NamespaceIndexes:: constant (no C++ references it by
+  // name); its index is frozen in namespaces.csv.
+  expect_module(model::kModuleNamespaces[0], 19, "filesystem");
+  expect_module(model::kModuleNamespaces[1], NamespaceIndexes::FILESYSTEM_FILE,
+                "filesystem");
+  expect_module(model::kModuleNamespaces[2], NamespaceIndexes::OPC, "opc");
+  expect_module(model::kModuleNamespaces[3], NamespaceIndexes::VIDICON,
+                "vidicon");
+  expect_module(model::kModuleNamespaces[4], NamespaceIndexes::VIDICON_FILE,
+                "vidicon");
+
+  ASSERT_EQ(std::size(model::kModuleNamespaceGroups), 3u);
+  EXPECT_EQ(model::kModuleNamespaceGroups[0], "filesystem");
+  EXPECT_EQ(model::kModuleNamespaceGroups[1], "opc");
+  EXPECT_EQ(model::kModuleNamespaceGroups[2], "vidicon");
 }
 
 }  // namespace

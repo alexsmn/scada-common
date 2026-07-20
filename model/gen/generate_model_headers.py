@@ -256,20 +256,42 @@ def resolve_row_type(name, consts):
 def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
     entries = []
     groups = []  # (name, kind), first-appearance order
+    module_entries = []       # (namespace_index, config_group) for module rows
+    module_groups = []        # module group names, first-appearance order
     seen_row_types = set()
     for i, const, db, row_type, config_group, group_kind in ns_rows:
-        if not (bool(row_type) == bool(config_group) == bool(group_kind)):
+        # config_group and group_kind travel together; row_type is present only
+        # for config-DB-backed tables ("device"/"dedicated"). A "module" group
+        # (filesystem/opc/vidicon) owns a namespace with no config table, so it
+        # carries config_group + group_kind but no row_type.
+        if bool(config_group) != bool(group_kind):
             raise SystemExit(
-                f"namespaces.csv index {i}: row_type, config_group and "
-                f"group_kind must all be set or all be empty (got "
-                f"row_type='{row_type}', config_group='{config_group}', "
-                f"group_kind='{group_kind}')")
+                f"namespaces.csv index {i}: config_group and group_kind must "
+                f"both be set or both be empty (got config_group="
+                f"'{config_group}', group_kind='{group_kind}')")
+        if group_kind == "module":
+            if row_type:
+                raise SystemExit(
+                    f"namespaces.csv index {i}: a 'module' group owns a "
+                    f"namespace with no config table, so row_type must be "
+                    f"empty (got row_type='{row_type}')")
+            module_entries.append(
+                (ns_const_index_all[i], config_group))
+            if config_group not in module_groups:
+                module_groups.append(config_group)
+            continue
+        if bool(row_type) != bool(config_group):
+            raise SystemExit(
+                f"namespaces.csv index {i}: a 'device'/'dedicated' group is a "
+                f"config table, so row_type, config_group and group_kind must "
+                f"all be set or all be empty (got row_type='{row_type}', "
+                f"config_group='{config_group}', group_kind='{group_kind}')")
         if not row_type:
             continue
         if group_kind not in ("device", "dedicated"):
             raise SystemExit(
-                f"namespaces.csv index {i}: group_kind must be 'device' or "
-                f"'dedicated', got '{group_kind}'")
+                f"namespaces.csv index {i}: group_kind must be 'device', "
+                f"'dedicated' or 'module', got '{group_kind}'")
         if row_type in seen_row_types:
             raise SystemExit(
                 f"namespaces.csv index {i}: row_type '{row_type}' already "
@@ -296,6 +318,15 @@ def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
     group_body = ", ".join(f'"{g}"' for g, _k in groups)
     device_group_body = ", ".join(
         f'"{g}"' for g, k in groups if k == "device")
+    # A module namespace may have no NamespaceIndexes:: constant (the generator
+    # emits constants only for names referenced from C++); fall back to the raw
+    # numeric index in that case.
+    def ns_index_expr(ns_const):
+        return ns_const if ns_const.isdigit() else f"NamespaceIndexes::{ns_const}"
+    module_entry_body = "\n".join(
+        f'    {{{ns_index_expr(ns_const)}, "{group}"}},'
+        for ns_const, group in module_entries)
+    module_group_body = ", ".join(f'"{g}"' for g in module_groups)
     return f"""{GEN_BANNER}#pragma once
 
 #include "model/namespaces.h"
@@ -347,6 +378,37 @@ constexpr std::span<const std::string_view> GetConfigTableGroups() {{
 // The distinct device-kind config groups of GetConfigTables().
 constexpr std::span<const std::string_view> GetDeviceConfigTableGroups() {{
   return kDeviceConfigTableGroups;
+}}
+
+inline constexpr std::string_view kModuleGroupKind = "module";
+
+// A namespace owned exclusively by one module's tier — the filesystem, opc and
+// vidicon tiers each mint their instance nodes in their own namespace and host
+// no config table there. Unlike a "device" group this has no ConfigTableEntry
+// (no row type). A tier that does not serve the group drops the namespace from
+// its published NamespaceArray, so an aggregating proxy routes it to the owning
+// tier without a config claim (ADR 0003). The types these instances use live in
+// the shared SCADA namespace, which every tier keeps.
+struct ModuleNamespaceEntry {{
+  scada::NamespaceIndex namespace_index;
+  std::string_view config_group;
+}};
+
+inline constexpr ModuleNamespaceEntry kModuleNamespaces[] = {{
+{module_entry_body}
+}};
+
+// The module-owned namespaces (filesystem/opc/vidicon instance namespaces).
+constexpr std::span<const ModuleNamespaceEntry> GetModuleNamespaces() {{
+  return kModuleNamespaces;
+}}
+
+// Distinct module groups, in registry (namespace-index) order.
+inline constexpr std::string_view kModuleNamespaceGroups[] = {{{module_group_body}}};
+
+// The distinct module groups that own a namespace (filesystem/opc/vidicon).
+constexpr std::span<const std::string_view> GetModuleNamespaceGroups() {{
+  return kModuleNamespaceGroups;
 }}
 
 }}  // namespace scada::model
