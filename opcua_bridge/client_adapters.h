@@ -223,6 +223,27 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
     std::shared_ptr<opcua::ClientSession> session,
     Tracer& tracer = Tracer::None());
 
+// Assembles a ::DataServices that translates NodeIds between the client's own
+// namespace index space and the remote server's, so a client keeps using its
+// compiled-in NamespaceIndexes:: constants against a server that numbers its
+// namespaces differently — any tier that publishes only the namespaces it serves
+// (ADR 0003).
+//
+// `local_namespace_uris[i]` is the URI at the CLIENT's NamespaceIndex i (its own
+// canonical array). The remote array is learned from the server, never assumed:
+// on every (re)connect the session's Server_NamespaceArray (i=2255) is matched
+// against `local_namespace_uris` by URI and the bidirectional remapper rebuilt.
+// This is deliberately model-agnostic — the caller supplies its local array — so
+// this boundary layer links no model or config-table vocabulary.
+//
+// Shared by every OPC UA client of a tier: the desktop client and the historian's
+// external history-collection client. OPC UA Part 3 §8.2.3 makes the URI the
+// stable identity, https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.3 .
+::DataServices CreateRemappingClientDataServices(
+    std::shared_ptr<opcua::ClientSession> session,
+    std::vector<std::string> local_namespace_uris,
+    Tracer& tracer = Tracer::None());
+
 // Probes a peer's Server_ServiceLevel (i=2267) over a throwaway session, so
 // probing a standby does not disturb the active session. Shared by the
 // redundant inter-tier clients (remote historian / aggregating proxy / remote

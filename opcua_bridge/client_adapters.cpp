@@ -2,8 +2,17 @@
 
 #include "metrics/trace_attribute_util.h"
 #include "opcua_bridge/vector_conversion.h"
+#include "scada/namespace_remapper.h"
 #include "scada/read_value_id.h"
+#include "scada/remapping_services.h"
 #include "scada/standard_node_ids.h"
+
+#include <boost/signals2/connection.hpp>
+
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace scada::opcua_bridge {
 
@@ -310,6 +319,92 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
   services.history_service_ =
       std::make_shared<ClientHistoryServiceAdapter>(session, tracer);
   return services;
+}
+
+namespace {
+
+// Owns a client session's raw service adapters plus a NamespaceRemapper wrapped
+// around them, and keeps the remapper in step with the server's published
+// NamespaceArray (ADR 0003).
+//
+// The remapper is rebuilt on every (re)connect from the server's own
+// Server_NamespaceArray (read into the session during activation), matched by
+// URI against the client's local array — the remote indexes are learned, never
+// assumed. `remapper_` starts empty (identity), which is correct: nothing is
+// browsed or subscribed before the first connect populates it, and the state
+// callback fires when activation completes, before the client acts on the
+// session. The wrappers hold references to `remapper_` and to `inner_`, so both
+// must be declared before them and outlive them (this holder is kept alive by
+// the aliasing shared_ptrs handed back in AsDataServices).
+class RemappingClientServices
+    : public std::enable_shared_from_this<RemappingClientServices> {
+ public:
+  RemappingClientServices(std::shared_ptr<opcua::ClientSession> session,
+                          ::DataServices inner,
+                          std::vector<std::string> local_uris,
+                          Tracer& tracer)
+      : session_{std::move(session)},
+        inner_{std::move(inner)},
+        local_uris_{std::move(local_uris)},
+        view_{*inner_.view_service_, remapper_},
+        attribute_{*inner_.attribute_service_, remapper_},
+        method_{*inner_.method_service_, remapper_},
+        node_management_{*inner_.node_management_service_, remapper_},
+        monitored_item_{*inner_.monitored_item_service_, remapper_},
+        history_{*inner_.history_service_, remapper_} {
+    (void)tracer;
+    state_conn_ = session_->SubscribeSessionStateChanged(
+        [this](bool connected, const auto&) {
+          if (connected) {
+            remapper_ = scada::aggregation::NamespaceRemapper::BuildByUri(
+                local_uris_, session_->namespace_table().uris());
+          }
+        });
+  }
+
+  // A ::DataServices whose service pointers alias into this holder, so the
+  // holder lives exactly as long as the services the caller keeps. Session and
+  // executor pass through unwrapped — neither carries address-space NodeIds
+  // that need translation.
+  ::DataServices AsDataServices() {
+    auto self = shared_from_this();
+    ::DataServices services;
+    services.session_service_ = {self, inner_.session_service_.get()};
+    services.view_service_ = {self, &view_};
+    services.attribute_service_ = {self, &attribute_};
+    services.method_service_ = {self, &method_};
+    services.node_management_service_ = {self, &node_management_};
+    services.monitored_item_service_ = {self, &monitored_item_};
+    services.history_service_ = {self, &history_};
+    services.monitored_item_executor_ = inner_.monitored_item_executor_;
+    return services;
+  }
+
+ private:
+  std::shared_ptr<opcua::ClientSession> session_;
+  ::DataServices inner_;
+  std::vector<std::string> local_uris_;
+  scada::aggregation::NamespaceRemapper remapper_;
+  scada::aggregation::RemappingViewService view_;
+  scada::aggregation::RemappingAttributeService attribute_;
+  scada::aggregation::RemappingMethodService method_;
+  scada::aggregation::RemappingNodeManagementService node_management_;
+  scada::aggregation::RemappingMonitoredItemService monitored_item_;
+  scada::aggregation::RemappingHistoryService history_;
+  boost::signals2::scoped_connection state_conn_;
+};
+
+}  // namespace
+
+::DataServices CreateRemappingClientDataServices(
+    std::shared_ptr<opcua::ClientSession> session,
+    std::vector<std::string> local_namespace_uris,
+    Tracer& tracer) {
+  ::DataServices inner = CreateClientDataServices(session, tracer);
+  auto holder = std::make_shared<RemappingClientServices>(
+      std::move(session), std::move(inner), std::move(local_namespace_uris),
+      tracer);
+  return holder->AsDataServices();
 }
 
 Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
