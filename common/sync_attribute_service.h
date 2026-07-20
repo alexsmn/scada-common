@@ -23,6 +23,6 @@ inline scada::DataValue Read(SyncAttributeService& attribute_service,
                              const scada::ReadValueId& input) {
   std::span<const scada::ReadValueId> inputs{&input, 1};
   auto results = attribute_service.Read(context, inputs);
-  base::Check(results.size() == 1);
+  scada::base::Check(results.size() == 1);
   return std::move(results.front());
 }

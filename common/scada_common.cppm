@@ -102,14 +102,14 @@ using scada::service_resolver::ResolveCoroutineServiceShared;
 
 }  // namespace scada
 
-export namespace data_services {
+export namespace scada::data_services {
 
 // data_services_util.h
 using scada::data_services::FromUnownedServices;
 using scada::data_services::HasServices;
 using scada::data_services::Unowned;
 
-}  // namespace data_services
+}  // namespace scada::data_services
 
 export {
   // aliases.h / audit.h

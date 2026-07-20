@@ -15,7 +15,7 @@ T StringToValueHelper(std::string_view str) {
 
   scada::Variant value;
   if (!StringToValue(str, data_type, value)) {
-    base::Check(value.is_null());
+    scada::base::Check(value.is_null());
     return std::numeric_limits<T>::min();
   }
 

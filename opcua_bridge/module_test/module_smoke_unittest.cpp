@@ -16,15 +16,16 @@ namespace {
 TEST(ScadaOpcuaBridgeModuleSmoke, StatusConversionRoundTrip) {
   // ToOpcua/ToScada overload sets from the import; opcua::StatusCode from
   // the textual include.
-  opcua::StatusCode opcua_code = opcua_bridge::ToOpcua(scada::StatusCode::Good);
-  scada::StatusCode scada_code = opcua_bridge::ToScada(opcua_code);
+  opcua::StatusCode opcua_code =
+      scada::opcua_bridge::ToOpcua(scada::StatusCode::Good);
+  scada::StatusCode scada_code = scada::opcua_bridge::ToScada(opcua_code);
   EXPECT_EQ(scada_code, scada::StatusCode::Good);
 }
 
 TEST(ScadaOpcuaBridgeModuleSmoke, TransitiveSurfaces) {
   EXPECT_TRUE(scada::Status{scada::StatusCode::Good});
   EXPECT_EQ(Format(6), "6");
-  base::Check(true, "opcua_bridge module smoke");
+  scada::base::Check(true, "opcua_bridge module smoke");
 }
 
 }  // namespace

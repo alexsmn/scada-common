@@ -124,7 +124,7 @@ class AddressSpaceImpl : public MutableAddressSpace {
 
 template <class T>
 inline T& AddressSpaceImpl::AddStaticNode(std::unique_ptr<T> node) {
-  base::Check(node);
+  scada::base::Check(node);
   auto& ref = *node;
   AddNode(std::move(node));
   // cppcheck-suppress returnReference

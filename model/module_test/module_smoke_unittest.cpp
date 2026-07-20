@@ -26,7 +26,7 @@ TEST(ScadaModelModuleSmoke, NestedNodeIdsWithConstantHeaders) {
   scada::NodeId parent = scada::id::PropertyCategories;
   scada::NodeId nested = MakeNestedNodeId(parent, "sub");
   EXPECT_TRUE(IsNestedNodeId(nested));
-  EXPECT_EQ(nested.namespace_index(), NamespaceIndexes::SCADA);
+  EXPECT_EQ(nested.namespace_index(), scada::NamespaceIndexes::SCADA);
 
   scada::NodeId root;
   std::string_view nested_name;
@@ -40,16 +40,16 @@ TEST(ScadaModelModuleSmoke, ScadaStringsAndNamespaces) {
   EXPECT_FALSE(node_id.is_null());
   EXPECT_FALSE(NodeIdToScadaString(node_id).empty());
 
-  EXPECT_EQ(GetNamespaceName(NamespaceIndexes::NS0), "NS0");
+  EXPECT_EQ(GetNamespaceName(scada::NamespaceIndexes::NS0), "NS0");
   EXPECT_EQ(FindNamespaceIndexByName("NS0"), 0);
 
   // cfg enums/constants from static_types.h (external linkage - exported).
-  EXPECT_EQ(cfg::NUM_CHANNELS, 2);
-  cfg::ModbusMode mode = cfg::ModbusMode::MASTER;
-  EXPECT_NE(mode, cfg::ModbusMode::SLAVE);
+  EXPECT_EQ(scada::cfg::NUM_CHANNELS, 2);
+  scada::cfg::ModbusMode mode = scada::cfg::ModbusMode::MASTER;
+  EXPECT_NE(mode, scada::cfg::ModbusMode::SLAVE);
 
   // Names from all three imports coexist in one TU.
-  base::Check(true, "model module smoke");
+  scada::base::Check(true, "model module smoke");
   EXPECT_EQ(Format(1), "1");
   EXPECT_TRUE(scada::Status{scada::StatusCode::Good});
 }

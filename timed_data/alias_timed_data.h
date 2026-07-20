@@ -18,8 +18,8 @@ class AliasTimedData final : public TimedData {
       const override;
   virtual scada::DataValue GetDataValue() const override;
   virtual const scada::DataValue* GetValueAt(
-      const base::Time& time) const override;
-  virtual base::Time GetChangeTime() const override;
+      const scada::base::Time& time) const override;
+  virtual scada::base::Time GetChangeTime() const override;
   virtual std::span<const scada::DataValue> GetValues() const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;

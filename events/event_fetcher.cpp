@@ -26,7 +26,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
           scada::MonitoringParameters{
               .filter = scada::EventFilter{
                   .of_type = {scada::id::SystemEventType}}})} {
-  base::Check(monitored_item_);
+  scada::base::Check(monitored_item_);
 
   monitored_item_->Subscribe(static_cast<scada::EventHandler>(
       [executor = executor_, cancelation = cancelation_.weak_ptr(), this](

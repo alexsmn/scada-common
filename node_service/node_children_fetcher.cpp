@@ -74,7 +74,7 @@ void NodeChildrenFetcher::FetchPendingNodes() {
 }
 
 void NodeChildrenFetcher::OnBrowseChildrenResult(
-    base::TimeTicks start_ticks,
+    scada::base::TimeTicks start_ticks,
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
@@ -86,7 +86,7 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     results.clear();
   }
 
-  const auto duration = base::TimeTicks::Now() - start_ticks;
+  const auto duration = scada::base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse children completed"
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
                     << LOG_TAG("Status", ToString(status));
@@ -96,7 +96,7 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
                      << LOG_TAG("Inputs", ToString(descriptions))
                      << LOG_TAG("Results", ToString(results));
 
-  base::Check(!descriptions.empty());
+  scada::base::Check(!descriptions.empty());
 
   std::map<scada::NodeId, scada::BrowseResult> merged_results;
 
@@ -117,7 +117,7 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   for (auto& [node_id, result] : merged_results)
     reference_validator_(node_id, std::move(result));
 
-  base::Check(children_request_count_ > 0);
+  scada::base::Check(children_request_count_ > 0);
   --children_request_count_;
   LOG_INFO(logger_) << "Running requests"
                     << LOG_TAG("Count", children_request_count_);
@@ -143,12 +143,12 @@ void NodeChildrenFetcher::Fetch(const scada::NodeId& node_id) {
 
 void NodeChildrenFetcher::FetchChildren(
     const std::vector<scada::NodeId>& node_ids) {
-  base::Check(!node_ids.empty());
+  scada::base::Check(!node_ids.empty());
 
   LOG_INFO(logger_) << "Browse nodes children"
                     << LOG_TAG("NodeIds", ToString(node_ids));
 
-  const auto start_ticks = base::TimeTicks::Now();
+  const auto start_ticks = scada::base::TimeTicks::Now();
   ++children_request_count_;
 
   std::vector<scada::BrowseDescription> descriptions;
@@ -179,7 +179,7 @@ void NodeChildrenFetcher::Cancel(const scada::NodeId& node_id) {
 
   auto i =
       std::find(pending_children_.begin(), pending_children_.end(), node_id);
-  base::Check(i != pending_children_.end());
+  scada::base::Check(i != pending_children_.end());
   pending_children_.erase(i);
 }
 

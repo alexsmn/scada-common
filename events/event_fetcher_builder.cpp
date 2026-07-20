@@ -27,11 +27,11 @@ struct EventFetcherHolderBase {
 };
 
 void NormalizeLegacyServices(EventFetcherBuilder& builder) {
-  if (data_services::HasServices(builder.data_services_))
+  if (scada::data_services::HasServices(builder.data_services_))
     return;
 
   builder.data_services_ =
-      data_services::FromUnownedServices(builder.services_);
+      scada::data_services::FromUnownedServices(builder.services_);
 }
 
 bool HasRequiredServices(const DataServices& data_services) {
@@ -42,11 +42,13 @@ bool HasRequiredServices(const DataServices& data_services) {
 
 DataServices MakeDataServices(CoroutineEventFetcherBuilder& builder) {
   return DataServices{
-      .session_service_ = data_services::Unowned(builder.session_service_),
-      .history_service_ = data_services::Unowned(builder.history_service_),
-      .method_service_ = data_services::Unowned(builder.method_service_),
+      .session_service_ =
+          scada::data_services::Unowned(builder.session_service_),
+      .history_service_ =
+          scada::data_services::Unowned(builder.history_service_),
+      .method_service_ = scada::data_services::Unowned(builder.method_service_),
       .monitored_item_service_ =
-          data_services::Unowned(builder.monitored_item_service_)};
+          scada::data_services::Unowned(builder.monitored_item_service_)};
 }
 
 struct EventFetcherServices {

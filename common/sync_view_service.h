@@ -20,6 +20,6 @@ inline scada::BrowseResult Browse(SyncViewService& view_service,
                                   const scada::BrowseDescription& input) {
   std::span<const scada::BrowseDescription> inputs{&input, 1};
   auto results = view_service.Browse(inputs);
-  base::Check(results.size() == 1);
+  scada::base::Check(results.size() == 1);
   return std::move(results.front());
 }

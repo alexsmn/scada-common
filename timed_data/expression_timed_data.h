@@ -25,7 +25,7 @@ class ExpressionTimedData final : public BaseTimedData,
  private:
   // Get earliest time from which all operands are ready.
   // Returns |kTimedDataCurrentOnly| if one of operands is not ready.
-  base::Time GetOperandsReadyFrom() const;
+  scada::base::Time GetOperandsReadyFrom() const;
 
   // Fill all ranges that was requested but not calculated yet.
   // Returns false if ready range was not changed.

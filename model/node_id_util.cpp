@@ -22,10 +22,10 @@ import scada.core;
 namespace {
 
 const std::pair<std::string_view, scada::NodeId> kPredefinedScadaStrings[] = {
-    {"Server!CPU", data_items::id::Statistics_TotalCPUUsage},
-    {"Server!Mem", data_items::id::Statistics_TotalMemoryUsage},
-    {"Server!PCPU", data_items::id::Statistics_ServerCPUUsage},
-    {"Server!PMem", data_items::id::Statistics_ServerMemoryUsage},
+    {"Server!CPU", scada::data_items::id::Statistics_TotalCPUUsage},
+    {"Server!Mem", scada::data_items::id::Statistics_TotalMemoryUsage},
+    {"Server!PCPU", scada::data_items::id::Statistics_ServerCPUUsage},
+    {"Server!PMem", scada::data_items::id::Statistics_ServerMemoryUsage},
 };
 
 scada::NodeId NodeIdFromPredefinedScadaString(std::string_view scada_string) {

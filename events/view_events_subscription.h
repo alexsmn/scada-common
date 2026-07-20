@@ -67,7 +67,7 @@ inline ViewEventsSubscription::ViewEventsSubscription(
       monitored_item_adapter_{executor, monitored_item_service},
       monitored_item_{CreateModelAndSemanticChangeEventsMonitoredItem(
           monitored_item_adapter_)} {
-  base::Check(monitored_item_);
+  scada::base::Check(monitored_item_);
   // FIXME: Capturing |this|.
   monitored_item_->Subscribe(
       [this](const scada::Status& status, const std::any& event) {

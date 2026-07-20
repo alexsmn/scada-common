@@ -136,8 +136,8 @@ template <class T, class Compare>
 inline void ReplaceSubrange(std::vector<T>& values,
                             std::span<T> updates,
                             Compare comp) {
-  base::Check(std::is_sorted(values.begin(), values.end(), comp));
-  base::Check(std::is_sorted(updates.begin(), updates.end(), comp));
+  scada::base::Check(std::is_sorted(values.begin(), values.end(), comp));
+  scada::base::Check(std::is_sorted(updates.begin(), updates.end(), comp));
 
   if (updates.empty())
     return;
@@ -159,5 +159,5 @@ inline void ReplaceSubrange(std::vector<T>& values,
     values.erase(first + copy_count, last);
   }
 
-  base::Check(std::is_sorted(values.begin(), values.end(), comp));
+  scada::base::Check(std::is_sorted(values.begin(), values.end(), comp));
 }

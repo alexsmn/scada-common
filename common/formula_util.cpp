@@ -48,11 +48,12 @@ std::string MakeNodeIdFormula(const scada::NodeId& id) {
 }
 
 std::string_view GetParentGroupChannelPath(std::string_view path) {
-  bool matches = path.starts_with(cfg::kDataGroupDevicePlaceholder);
+  bool matches = path.starts_with(scada::cfg::kDataGroupDevicePlaceholder);
   if (!matches)
     return {};
 
-  path = path.substr(std::string_view{cfg::kDataGroupDevicePlaceholder}.size());
+  path = path.substr(
+      std::string_view{scada::cfg::kDataGroupDevicePlaceholder}.size());
   if (path.empty() || path[0] != '!')
     return {};
 

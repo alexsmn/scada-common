@@ -40,7 +40,8 @@ class TestSessionService final : public scada::SessionService {
 
   Awaitable<void> Disconnect() override { co_return; }
 
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+  bool IsConnected(
+      scada::base::TimeDelta* ping_delay = nullptr) const override {
     ++is_connected_count;
     return connected;
   }

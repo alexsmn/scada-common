@@ -68,12 +68,12 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
                            scada::ReferenceDescription&& reference);
 
   void OnReadResult(unsigned request_id,
-                    base::TimeTicks start_ticks,
+                    scada::base::TimeTicks start_ticks,
                     scada::Status&& status,
                     const std::vector<scada::ReadValueId>& read_ids,
                     std::vector<scada::DataValue>&& results);
   void OnBrowseResult(unsigned request_id,
-                      base::TimeTicks start_ticks,
+                      scada::base::TimeTicks start_ticks,
                       scada::Status&& status,
                       const std::vector<scada::BrowseDescription>& descriptions,
                       std::vector<scada::BrowseResult>&& results);

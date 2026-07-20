@@ -46,7 +46,8 @@ class TestCoroutineDataServices final
     co_return;
   }
 
-  bool IsConnected(base::TimeDelta* /*ping_delay*/ = nullptr) const override {
+  bool IsConnected(
+      scada::base::TimeDelta* /*ping_delay*/ = nullptr) const override {
     return connected;
   }
 
@@ -122,8 +123,8 @@ class TestCoroutineDataServices final
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      base::Time /*from*/,
-      base::Time /*to*/,
+      scada::base::Time /*from*/,
+      scada::base::Time /*to*/,
       scada::EventFilter /*filter*/) override {
     ++history_events_count;
     last_history_events_node_id = std::move(node_id);
@@ -202,30 +203,30 @@ class TestCoroutineDataServices final
 };
 
 TEST(DataServicesUtilTest, HasServicesDetectsServiceSlots) {
-  EXPECT_FALSE(data_services::HasServices(DataServices{}));
+  EXPECT_FALSE(scada::data_services::HasServices(DataServices{}));
 
   StrictMock<scada::MockAttributeService> attribute_service;
   DataServices callback_services;
   callback_services.attribute_service_ =
       std::shared_ptr<scada::AttributeService>{&attribute_service,
                                                [](scada::AttributeService*) {}};
-  EXPECT_TRUE(data_services::HasServices(callback_services));
+  EXPECT_TRUE(scada::data_services::HasServices(callback_services));
 
   DataServices coroutine_services;
   coroutine_services.method_service_ =
       std::make_shared<TestCoroutineDataServices>();
-  EXPECT_TRUE(data_services::HasServices(coroutine_services));
+  EXPECT_TRUE(scada::data_services::HasServices(coroutine_services));
 }
 
 TEST(DataServicesUtilTest, FromUnownedServicesAliasesSlots) {
   StrictMock<scada::MockAttributeService> attribute_service;
   StrictMock<scada::MockSessionService> session_service;
 
-  auto data_services = data_services::FromUnownedServices(scada::services{
-      .attribute_service = &attribute_service,
-      .session_service = &session_service});
+  auto data_services = scada::data_services::FromUnownedServices(
+      scada::services{.attribute_service = &attribute_service,
+                      .session_service = &session_service});
 
-  EXPECT_TRUE(data_services::HasServices(data_services));
+  EXPECT_TRUE(scada::data_services::HasServices(data_services));
   EXPECT_EQ(data_services.attribute_service_.get(), &attribute_service);
   EXPECT_EQ(data_services.session_service_.get(), &session_service);
 }
@@ -233,7 +234,7 @@ TEST(DataServicesUtilTest, FromUnownedServicesAliasesSlots) {
 TEST(DataServicesUtilTest, UnownedAliasesServiceWithoutOwningIt) {
   StrictMock<scada::MockAttributeService> attribute_service;
 
-  auto service = data_services::Unowned(attribute_service);
+  auto service = scada::data_services::Unowned(attribute_service);
 
   EXPECT_EQ(service.get(), &attribute_service);
   EXPECT_FALSE(service.owner_before(std::shared_ptr<void>{}));
@@ -274,7 +275,7 @@ TEST(MasterDataServicesTest,
   data_services.node_management_service_ = node_management_service;
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_add_nodes{executor};
+  scada::base::AsyncCompletion pending_add_nodes{executor};
   EXPECT_CALL(*node_management_service, AddNodes(_, _))
       .WillOnce([&](scada::ServiceContext, std::vector<scada::AddNodesItem>)
                     -> Awaitable<scada::StatusOr<
@@ -311,7 +312,7 @@ TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_connect{executor};
+  scada::base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, ConnectStatus(_))
       .WillOnce([&](scada::SessionConnectParams) -> Awaitable<scada::Status> {
         co_await pending_connect.Wait();
@@ -338,7 +339,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
   EXPECT_CALL(*session_service, SubscribeSessionStateChanged(_));
   services.SetServices(std::move(data_services));
 
-  base::AsyncCompletion pending_connect{executor};
+  scada::base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, ConnectStatus(_))
       .WillOnce([&](scada::SessionConnectParams params)
                     -> Awaitable<scada::Status> {
@@ -370,7 +371,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
   services.SetServices(std::move(data_services));
 
   auto& coroutine_session = services;
-  base::TimeDelta ping_delay;
+  scada::base::TimeDelta ping_delay;
 
   EXPECT_CALL(*session_service, IsConnected(&ping_delay))
       .WillOnce(testing::Return(true));
@@ -518,8 +519,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   auto history_events_result = WaitAwaitable(
       executor,
-      services.HistoryReadEvents(scada::NodeId{107}, base::Time{},
-                                 base::Time{}, scada::EventFilter{}));
+      services.HistoryReadEvents(scada::NodeId{107}, scada::base::Time{},
+                                 scada::base::Time{}, scada::EventFilter{}));
   EXPECT_TRUE(history_events_result.status.good());
   EXPECT_EQ(direct_services->history_events_count, 1);
   EXPECT_EQ(direct_services->last_history_events_node_id,

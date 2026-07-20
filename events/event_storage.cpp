@@ -50,7 +50,7 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
       NodeEntry& entry = p->second;
 
       auto j = entry.events.find(&contained_event);
-      base::Check(j != entry.events.end());
+      scada::base::Check(j != entry.events.end());
       entry.events.erase(j);
 
       NodeEventsChanged(observers_, contained_event.node_id, entry.events);

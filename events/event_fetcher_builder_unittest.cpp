@@ -41,8 +41,8 @@ class TestHistoryService final : public scada::HistoryService {
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      base::Time from,
-      base::Time to,
+      scada::base::Time from,
+      scada::base::Time to,
       scada::EventFilter filter) override {
     ++read_events_count;
     last_filter = filter;
@@ -85,7 +85,8 @@ class TestSessionService final : public scada::SessionService {
 
   Awaitable<void> Disconnect() override { co_return; }
 
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+  bool IsConnected(
+      scada::base::TimeDelta* ping_delay = nullptr) const override {
     return connected;
   }
 
@@ -258,8 +259,8 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
   EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce([&](scada::NodeId read_node_id, base::Time from, base::Time to,
-                    scada::EventFilter filter)
+      .WillOnce([&](scada::NodeId read_node_id, scada::base::Time from,
+                    scada::base::Time to, scada::EventFilter filter)
                     -> Awaitable<scada::HistoryReadEventsResult> {
         EXPECT_EQ(read_node_id, scada::id::Server);
         EXPECT_LE(from, to);

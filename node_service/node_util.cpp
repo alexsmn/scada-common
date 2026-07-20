@@ -63,8 +63,8 @@ std::vector<NodeRef> GetDataVariables(const NodeRef& node) {
 
 std::u16string GetFullDisplayName(const NodeRef& node) {
   auto parent = node.inverse_target(scada::id::Organizes);
-  if (IsInstanceOf(parent, data_items::id::DataGroupType) ||
-      IsInstanceOf(parent, devices::id::DeviceType))
+  if (IsInstanceOf(parent, scada::data_items::id::DataGroupType) ||
+      IsInstanceOf(parent, scada::devices::id::DeviceType))
     return u16format(L"{} : {}", GetFullDisplayName(parent),
                       ToString16(node.display_name()));
   else

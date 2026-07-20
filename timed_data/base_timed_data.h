@@ -67,7 +67,7 @@ class BaseTimedData : public TimedData {
   scada::DataValue current_;
   scada::DateTime change_time_;
 
-  base::ObserverList<TimedDataObserver> observers_;
+  scada::base::ObserverList<TimedDataObserver> observers_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedData")};
 };

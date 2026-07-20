@@ -52,7 +52,7 @@ class RecordingObserver : public BasicTimedDataViewObserver<TestStruct> {
 // Distinct, ordered timestamps.
 scada::DateTime At(int seconds) {
   static const scada::DateTime kBase = scada::DateTime::Now();
-  return kBase + base::TimeDelta::FromSeconds(seconds);
+  return kBase + scada::base::TimeDelta::FromSeconds(seconds);
 }
 
 std::vector<TestStruct> Samples(std::initializer_list<int> seconds) {

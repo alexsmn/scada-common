@@ -41,7 +41,7 @@ export {
   using ::GetNamespaceName;
 }  // export
 
-export namespace cfg {
+export namespace scada::cfg {
 
 // static_types.h (the inline constants have external linkage - exportable)
 using scada::cfg::Iec60870Mode;
@@ -52,4 +52,4 @@ using scada::cfg::ModbusMode;
 using scada::cfg::NUM_CHANNELS;
 using scada::cfg::SimulationSignalType;
 
-}  // namespace cfg
+}  // namespace scada::cfg

@@ -5,7 +5,6 @@
 
 #include <optional>
 
-#include "vidicon/vidicon_compat.h"
 namespace scada::vidicon {
 
 extern const scada::NodeId kVidiconRootNodeId;

@@ -8,7 +8,7 @@ inline void CancelHistory(AnyExecutor executor,
                           scada::HistoryService& service,
                           const scada::HistoryReadRawDetails& details,
                           scada::ByteString&& continuation_point) {
-  base::Check(!continuation_point.empty());
+  scada::base::Check(!continuation_point.empty());
 
   auto cancel_details = details;
   cancel_details.release_continuation_point = true;

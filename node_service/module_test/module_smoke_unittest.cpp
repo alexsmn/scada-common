@@ -32,7 +32,7 @@ TEST(ScadaNodeServiceModuleSmoke, TransitiveSurfaces) {
   scada::NodeProperties properties;  // scada.common via export import
   EXPECT_TRUE(properties.empty());
   EXPECT_EQ(Format(4), "4");
-  base::Check(true, "node_service module smoke");
+  scada::base::Check(true, "node_service module smoke");
 }
 
 }  // namespace

@@ -30,8 +30,8 @@ template <class T>
 inline std::optional<Interval<T>> FindFirstGap(
     const std::vector<Interval<T>>& ranges,
     const std::vector<Interval<T>>& ready_ranges) {
-  base::Check(AreValidIntervals(ranges));
-  base::Check(AreValidIntervals(ready_ranges));
+  scada::base::Check(AreValidIntervals(ranges));
+  scada::base::Check(AreValidIntervals(ready_ranges));
   auto j = ready_ranges.begin();
   for (auto i = ranges.begin(); i != ranges.end(); ++i) {
     while (j != ready_ranges.end() && j->second <= i->first)
@@ -57,8 +57,8 @@ template <class T>
 inline std::optional<Interval<T>> FindLastGap(
     const std::vector<Interval<T>>& ranges,
     const std::vector<Interval<T>>& ready_ranges) {
-  base::Check(AreValidIntervals(ranges));
-  base::Check(AreValidIntervals(ready_ranges));
+  scada::base::Check(AreValidIntervals(ranges));
+  scada::base::Check(AreValidIntervals(ready_ranges));
   auto j = ready_ranges.rbegin();
   for (auto i = ranges.rbegin(); i != ranges.rend(); ++i) {
     while (j != ready_ranges.rend() && j->first >= i->second)

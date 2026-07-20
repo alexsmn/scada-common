@@ -23,7 +23,7 @@ void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
 void EventAckQueue::PostAckPendingEvents() {
   if (running_ack_event_ids_.size() >= kMaxParallelAcks ||
       pending_ack_event_ids_.empty()) {
-    base::Check(!ack_pending_);
+    scada::base::Check(!ack_pending_);
     return;
   }
 
@@ -34,7 +34,7 @@ void EventAckQueue::PostAckPendingEvents() {
 }
 
 void EventAckQueue::AckPendingEvents() {
-  base::Check(ack_pending_);
+  scada::base::Check(ack_pending_);
   ack_pending_ = false;
 
   std::vector<scada::EventId> event_ids;

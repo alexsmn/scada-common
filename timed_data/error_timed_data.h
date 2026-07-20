@@ -12,10 +12,10 @@ class ErrorTimedData final : public TimedData {
       const override;
   virtual scada::DataValue GetDataValue() const override { return {}; }
   virtual const scada::DataValue* GetValueAt(
-      const base::Time& time) const override {
+      const scada::base::Time& time) const override {
     return nullptr;
   }
-  virtual base::Time GetChangeTime() const override { return {}; }
+  virtual scada::base::Time GetChangeTime() const override { return {}; }
   virtual std::span<const scada::DataValue> GetValues() const override {
     return {};
   }

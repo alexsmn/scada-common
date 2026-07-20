@@ -11,7 +11,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "opcua_bridge/opcua_bridge_compat.h"
 namespace scada::opcua_bridge {
 
 template <class T>

@@ -46,19 +46,20 @@ TEST(NodeUtil, GetCreatableChildTypesFromPlaceholders) {
 
   // The DataItems folder (an instance of DataItemsFolderType) may organize
   // DataGroupType nodes via its <DataGroup> placeholder.
-  EXPECT_THAT(CreatableTypeIds(node_service->GetNode(data_items::id::DataItems)),
-              UnorderedElementsAre(data_items::id::DataGroupType));
+  EXPECT_THAT(
+      CreatableTypeIds(node_service->GetNode(scada::data_items::id::DataItems)),
+      UnorderedElementsAre(scada::data_items::id::DataGroupType));
 
   // DataGroupType itself declares nested DataGroups and DataItems.
-  EXPECT_THAT(
-      CreatableTypeIds(node_service->GetNode(data_items::id::DataGroupType)),
-      UnorderedElementsAre(data_items::id::DataGroupType,
-                           data_items::id::DataItemType));
+  EXPECT_THAT(CreatableTypeIds(
+                  node_service->GetNode(scada::data_items::id::DataGroupType)),
+              UnorderedElementsAre(scada::data_items::id::DataGroupType,
+                                   scada::data_items::id::DataItemType));
 
   // A leaf type with no placeholder declarations yields nothing.
-  EXPECT_THAT(
-      CreatableTypeIds(node_service->GetNode(data_items::id::DataItemType)),
-      IsEmpty());
+  EXPECT_THAT(CreatableTypeIds(
+                  node_service->GetNode(scada::data_items::id::DataItemType)),
+              IsEmpty());
 }
 
 // LinkType derives from DeviceType in the nodeset, so a link IS a device — the
@@ -67,29 +68,31 @@ TEST(NodeUtil, TestAddressSpaceLinkTypeDerivesFromDeviceType) {
   scada_test::ScadaTestAddressSpace address_space;
   auto node_service = node_service::test::CreateTestNodeService(address_space);
 
-  EXPECT_TRUE(IsSubtypeOf(node_service->GetNode(devices::id::LinkType),
-                          devices::id::DeviceType));
-  EXPECT_TRUE(IsSubtypeOf(node_service->GetNode(devices::id::ModbusLinkType),
-                          devices::id::DeviceType));
+  EXPECT_TRUE(IsSubtypeOf(node_service->GetNode(scada::devices::id::LinkType),
+                          scada::devices::id::DeviceType));
+  EXPECT_TRUE(
+      IsSubtypeOf(node_service->GetNode(scada::devices::id::ModbusLinkType),
+                  scada::devices::id::DeviceType));
 }
 
 TEST(NodeUtil, GetFullDisplayName_Iec61850Model) {
   scada_test::ScadaTestAddressSpace address_space;
 
-  const scada::NodeId model_id{"1!Model", NamespaceIndexes::IEC61850_DEVICE};
-  const scada::NodeId device_id{1, NamespaceIndexes::IEC61850_DEVICE};
+  const scada::NodeId model_id{"1!Model",
+                               scada::NamespaceIndexes::IEC61850_DEVICE};
+  const scada::NodeId device_id{1, scada::NamespaceIndexes::IEC61850_DEVICE};
 
   address_space.AddStaticNode<scada::GenericObject>(model_id, "ModelBrowseName",
                                                     u"ModelDisplayName");
   address_space.AddStaticNode<scada::GenericObject>(
       device_id, "DeviceBrowseName", u"DeviceDisplayName");
-  scada::AddReference(address_space, scada::id::Organizes, devices::id::Devices,
-                      device_id);
+  scada::AddReference(address_space, scada::id::Organizes,
+                      scada::devices::id::Devices, device_id);
   scada::AddReference(address_space, scada::id::HasTypeDefinition, device_id,
-                      devices::id::Iec61850DeviceType);
+                      scada::devices::id::Iec61850DeviceType);
   scada::AddReference(address_space, scada::id::Organizes, device_id, model_id);
   scada::AddReference(address_space, scada::id::HasTypeDefinition, model_id,
-                      devices::id::Iec61850LogicalNodeType);
+                      scada::devices::id::Iec61850LogicalNodeType);
 
   auto node_service = node_service::test::CreateTestNodeService(address_space);
 

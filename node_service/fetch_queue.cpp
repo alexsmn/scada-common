@@ -8,11 +8,13 @@ void FetchQueue::push(FetchingNode& node) {
   thread_checker_.CheckCalledOnValidThread();
 
   if (node.pending) {
-    base::Check(find(node) != queue_.end(), "pending node missing from queue");
+    scada::base::Check(find(node) != queue_.end(),
+                       "pending node missing from queue");
     return;
   }
 
-  base::Check(find(node) == queue_.end(), "non-pending node already queued");
+  scada::base::Check(find(node) == queue_.end(),
+                     "non-pending node already queued");
 
   node.pending = true;
 
@@ -24,7 +26,7 @@ void FetchQueue::pop() {
   thread_checker_.CheckCalledOnValidThread();
 
   auto& node = *queue_.front().node;
-  base::Check(node.pending, "popped node is not pending");
+  scada::base::Check(node.pending, "popped node is not pending");
   node.pending = false;
   std::pop_heap(queue_.begin(), queue_.end());
   queue_.pop_back();
@@ -34,13 +36,13 @@ void FetchQueue::erase(FetchingNode& node) {
   thread_checker_.CheckCalledOnValidThread();
 
   if (!node.pending) {
-    base::Check(find(node) == queue_.end(),
-                "non-pending node present in queue");
+    scada::base::Check(find(node) == queue_.end(),
+                       "non-pending node present in queue");
     return;
   }
 
   auto i = find(node);
-  base::Check(i != queue_.end(), "pending node missing from queue");
+  scada::base::Check(i != queue_.end(), "pending node missing from queue");
 
   if (i != std::prev(queue_.end()))
     std::iter_swap(i, std::prev(queue_.end()));
@@ -67,7 +69,7 @@ std::vector<FetchQueue::Node>::const_iterator FetchQueue::find(
 
 std::size_t FetchQueue::count(const FetchingNode& node) const {
   thread_checker_.CheckCalledOnValidThread();
-  base::Check(node.pending == (find(node) != queue_.cend()),
-              "pending flag inconsistent with queue contents");
+  scada::base::Check(node.pending == (find(node) != queue_.cend()),
+                     "pending flag inconsistent with queue contents");
   return node.pending ? 1 : 0;
 }

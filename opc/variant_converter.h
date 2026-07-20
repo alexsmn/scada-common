@@ -5,7 +5,6 @@
 
 #include <optional>
 
-#include "opc/opc_compat.h"
 namespace scada::opc {
 
 class VariantConverter {

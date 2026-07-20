@@ -49,7 +49,7 @@ class NodeChildrenFetcher
   void FetchPendingNodes();
 
   void OnBrowseChildrenResult(
-      base::TimeTicks start_ticks,
+      scada::base::TimeTicks start_ticks,
       scada::Status&& status,
       const std::vector<scada::BrowseDescription>& descriptions,
       std::vector<scada::BrowseResult>&& results);

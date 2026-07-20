@@ -55,7 +55,7 @@ class TestAddressSpace : public AddressSpaceImpl,
   //     TestNode5 : TestType (HasComponent)
   //       TestNode6 : TestType (Organizes)
 
-  static const unsigned kNamespaceIndex = NamespaceIndexes::SCADA;
+  static const unsigned kNamespaceIndex = scada::NamespaceIndexes::SCADA;
   // TODO: Create a custom reference type.
   const scada::NodeId kTestTypeId{101, kNamespaceIndex};
   const scada::NodeId kTestReferenceTypeId{102, kNamespaceIndex};
@@ -228,7 +228,7 @@ inline scada::NodeId TestAddressSpace::MakeNestedNodeId(
     const scada::NodeId& parent_id,
     const scada::NodeId& component_decl_id) {
   auto* component_decl = GetNode(component_decl_id);
-  base::Check(component_decl);
+  scada::base::Check(component_decl);
   return ::MakeNestedNodeId(parent_id, component_decl->GetBrowseName().name());
 }
 
@@ -236,12 +236,12 @@ inline void TestAddressSpace::CreateNode(const scada::NodeState& node_state) {
   GenericNodeFactory node_factory{*this};
   auto p = node_factory.CreateNode(node_state);
   (void)p;
-  base::Check(p.first);
-  base::Check(p.second);
+  scada::base::Check(p.first);
+  scada::base::Check(p.second);
 }
 
 inline void TestAddressSpace::DeleteNode(const scada::NodeId& node_id) {
-  base::Check(GetNode(node_id));
+  scada::base::Check(GetNode(node_id));
   AddressSpaceImpl::DeleteNode(node_id);
 }
 

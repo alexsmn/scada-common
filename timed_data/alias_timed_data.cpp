@@ -8,8 +8,8 @@ AliasTimedData::AliasTimedData(std::string formula)
     : data_{std::make_unique<DeferredData>(std::move(formula))} {}
 
 void AliasTimedData::SetForwarded(std::shared_ptr<TimedData> timed_data) {
-  base::Check(!is_forwarded());
-  base::Check(timed_data);
+  scada::base::Check(!is_forwarded());
+  scada::base::Check(timed_data);
 
   auto deferred = std::move(std::get<std::unique_ptr<DeferredData>>(data_));
 
@@ -41,12 +41,12 @@ scada::DataValue AliasTimedData::GetDataValue() const {
 }
 
 const scada::DataValue* AliasTimedData::GetValueAt(
-    const base::Time& time) const {
+    const scada::base::Time& time) const {
   return is_forwarded() ? forwarded().GetValueAt(time) : nullptr;
 }
 
-base::Time AliasTimedData::GetChangeTime() const {
-  return is_forwarded() ? forwarded().GetChangeTime() : base::Time{};
+scada::base::Time AliasTimedData::GetChangeTime() const {
+  return is_forwarded() ? forwarded().GetChangeTime() : scada::base::Time{};
 }
 
 std::span<const scada::DataValue> AliasTimedData::GetValues() const {

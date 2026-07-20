@@ -60,7 +60,7 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
                                   scada::NodeAttributes attributes,
                                   scada::NodeProperties properties) {
   auto* node = GetMutableNode(id);
-  base::Check(node);
+  scada::base::Check(node);
 
   scada::AttributeSet attribute_set;
 
@@ -121,11 +121,11 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 }
 
 void AddressSpaceImpl::AddNode(scada::Node& node) {
-  base::Check(!node.id().is_null());
-  base::Check(!GetNode(node.id()));
+  scada::base::Check(!node.id().is_null());
+  scada::base::Check(!GetNode(node.id()));
 
   auto& mapped_node = node_map_[node.id()];
-  base::Check(!mapped_node);
+  scada::base::Check(!mapped_node);
   mapped_node = &node;
 }
 
@@ -134,7 +134,7 @@ void AddNodeAndReference(AddressSpaceImpl& address_space,
                          const scada::NodeId& reference_type_id,
                          const scada::NodeId& parent_id) {
   auto* parent = address_space.GetMutableNode(parent_id);
-  base::Check(parent);
+  scada::base::Check(parent);
 
   AddNodeAndReference(address_space, node, reference_type_id, *parent);
 }

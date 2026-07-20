@@ -24,7 +24,6 @@ namespace transport {
 class TransportFactory;
 }
 
-#include "opcua_bridge/opcua_bridge_compat.h"
 namespace scada::opcua_bridge {
 
 // Connection settings for an external OPC UA historian.

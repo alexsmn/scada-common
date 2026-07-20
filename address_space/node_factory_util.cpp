@@ -59,7 +59,7 @@ scada::Status CreateDataVariables(
       if (IsPlaceholderDeclaration(*data_variable_node))
         continue;
       auto& data_variable_decl = scada::AsVariable(*data_variable_node);
-      base::Check(data_variable_decl.type_definition());
+      scada::base::Check(data_variable_decl.type_definition());
       auto data_variable_id =
           MakeNestedNodeId(node_id, data_variable_decl.GetBrowseName().name());
       auto [status, data_variable] = node_factory.CreateNode(scada::NodeState{

@@ -74,7 +74,7 @@ scada::Qualifier OpcQualityToQualifier(unsigned quality) {
 VidiconMonitoredDataPoint::VidiconMonitoredDataPoint(
     Microsoft::WRL::ComPtr<IDataPoint> point)
     : point_(std::move(point)) {
-  base::Check(point_);
+  scada::base::Check(point_);
   DispEventAdvise(point_.Get(), &DIID__IDataPointEvents);
 }
 
@@ -83,21 +83,21 @@ VidiconMonitoredDataPoint::~VidiconMonitoredDataPoint() {
 }
 
 void VidiconMonitoredDataPoint::Subscribe(scada::MonitoredItemHandler handler) {
-  base::Check(!data_change_handler_);
+  scada::base::Check(!data_change_handler_);
 
   data_change_handler_ = std::move(std::get<scada::DataChangeHandler>(handler));
   data_change_handler_(GetDataValue());
 }
 
 scada::DataValue VidiconMonitoredDataPoint::GetDataValue() const {
-  base::win::ScopedVariant value;
+  scada::base::win::ScopedVariant value;
   ULONG quality = 0;
   DATE time = 0;
   point_->get_Value(value.Receive());
   point_->get_Quality(&quality);
   point_->get_Time(&time);
 
-  auto timestamp = base::ToTime(time);
+  auto timestamp = scada::base::ToTime(time);
   return {scada::ToVariant(value), scada::OpcQualityToQualifier(quality),
           timestamp, timestamp};
 }

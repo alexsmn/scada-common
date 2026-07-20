@@ -2,7 +2,6 @@
 
 // TODO: Remove this file.
 
-#include "model/model_compat.h"
 namespace scada::cfg {
 
 enum class ModbusEncoding : int { RTU, ASCII, TCP };

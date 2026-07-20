@@ -25,7 +25,7 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
 AttributeServiceImpl::Read(scada::ServiceContext context,
                            std::vector<scada::ReadValueId> inputs) {
   auto results = sync_attribute_service_.Read(context, inputs);
-  base::Check(results.size() == inputs.size());
+  scada::base::Check(results.size() == inputs.size());
 
   co_return results;
 }
@@ -78,7 +78,7 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
       return scada::MakeReadResult(static_cast<int>(node.GetNodeClass()));
 
     case scada::AttributeId::BrowseName:
-      base::Check(!node.GetBrowseName().empty());
+      scada::base::Check(!node.GetBrowseName().empty());
       return scada::MakeReadResult(node.GetBrowseName());
 
     case scada::AttributeId::DisplayName:

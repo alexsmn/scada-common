@@ -28,7 +28,7 @@ bool NodeRef::children_fetched() const {
 
 Awaitable<NodeRef> NodeRef::Fetch(
     const NodeFetchStatus& requested_status) const {
-  base::Check(!IsEmpty(requested_status));
+  scada::base::Check(!IsEmpty(requested_status));
 
   if (service_)
     co_await service_->Fetch(id_, requested_status);
@@ -37,7 +37,7 @@ Awaitable<NodeRef> NodeRef::Fetch(
 }
 
 void NodeRef::StartFetch(const NodeFetchStatus& requested_status) const {
-  base::Check(!IsEmpty(requested_status));
+  scada::base::Check(!IsEmpty(requested_status));
 
   if (service_)
     service_->StartFetch(id_, requested_status);

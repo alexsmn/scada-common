@@ -32,7 +32,7 @@ class TimedDataSpec final : private TimedDataObserver,
   void SetAggregateFilter(scada::AggregateFilter filter);
 
   void SetCurrentOnly();
-  void SetFrom(base::Time from);
+  void SetFrom(scada::base::Time from);
   void SetRange(const scada::DateTimeRange& range);
 
   void Connect(TimedDataService& service, std::string_view formula);
@@ -42,17 +42,17 @@ class TimedDataSpec final : private TimedDataObserver,
   std::string formula() const;
   bool alerting() const;
   bool connected() const;
-  base::Time from() const { return range_.first; }
+  scada::base::Time from() const { return range_.first; }
   const scada::DateTimeRange& range() const SCADA_LIFETIME_BOUND {
     return range_;
   }
-  base::Time ready_from() const;
+  scada::base::Time ready_from() const;
   bool historical() const;
   bool logical() const;
   bool ready() const;  // connected and all requested data was received
   bool range_ready(const scada::DateTimeRange& range) const;
   scada::DataValue current() const;
-  base::Time change_time() const;
+  scada::base::Time change_time() const;
 
   // Historical data.
   std::span<const scada::DataValue> values() const noexcept
@@ -60,7 +60,7 @@ class TimedDataSpec final : private TimedDataObserver,
 
   // TODO: Describe guarantees for this method. Does it return the lower bound?
   // Returns null when there is no value at the provided time.
-  const scada::DataValue* GetValueAt(base::Time time) const
+  const scada::DataValue* GetValueAt(scada::base::Time time) const
       SCADA_LIFETIME_BOUND;
 
   scada::NodeId node_id() const;
@@ -115,5 +115,5 @@ class TimedDataSpec final : private TimedDataObserver,
                               GetTimedDataCurrentOnly()};
 
   // Keep it defined in the source file to void heavy includes.
-  static base::Time GetTimedDataCurrentOnly();
+  static scada::base::Time GetTimedDataCurrentOnly();
 };

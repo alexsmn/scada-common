@@ -55,7 +55,7 @@ Awaitable<void> VidiconSession::Disconnect() {
   co_return;
 }
 
-bool VidiconSession::IsConnected(base::TimeDelta* ping_delay) const {
+bool VidiconSession::IsConnected(scada::base::TimeDelta* ping_delay) const {
   return true;
 }
 
@@ -83,8 +83,8 @@ Awaitable<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(
     scada::NodeId node_id,
-    base::Time from,
-    base::Time to,
+    scada::base::Time from,
+    scada::base::Time to,
     scada::EventFilter filter) {
   co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
 }
@@ -103,7 +103,7 @@ VidiconSession::CreateSubscription(
           auto address =
               std::format(L"CF:{}", read_value_id.node_id.numeric_id());
           Microsoft::WRL::ComPtr<IDataPoint> point;
-          teleclient_->RequestPoint(base::win::ScopedBstr(address),
+          teleclient_->RequestPoint(scada::base::win::ScopedBstr(address),
                                     point.GetAddressOf());
           if (!point)
             return nullptr;

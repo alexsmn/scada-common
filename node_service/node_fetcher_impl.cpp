@@ -129,22 +129,22 @@ size_t NodeFetcherImpl::GetPendingNodeCount() const {
 void NodeFetcherImpl::Fetch(const scada::NodeId& node_id,
                             NodeFetchStatus status,
                             bool force) {
-  base::Check(!node_id.is_null());
-  base::Check(Includes(status, NodeFetchStatus::NodeOnly));
-  base::Check(CheckInvariants());
+  scada::base::Check(!node_id.is_null());
+  scada::base::Check(Includes(status, NodeFetchStatus::NodeOnly));
+  scada::base::Check(CheckInvariants());
 
   auto& node = fetching_nodes_.AddNode(node_id);
 
   FetchNode(node, next_pending_sequence_++, status, force);
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::FetchNode(FetchingNode& node,
                                 unsigned pending_sequence,
                                 NodeFetchStatus status,
                                 bool force) {
-  base::Check(Includes(status, NodeFetchStatus::NodeOnly));
+  scada::base::Check(Includes(status, NodeFetchStatus::NodeOnly));
 
   if (!IsEmpty(node.fetch_started)) {
     if (Includes(node.fetch_started, status) && !force)
@@ -176,7 +176,7 @@ void NodeFetcherImpl::FetchNode(FetchingNode& node,
 }
 
 void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   auto* fetching_node = fetching_nodes_.FindNode(node_id);
   if (!fetching_node)
@@ -193,11 +193,11 @@ void NodeFetcherImpl::Cancel(const scada::NodeId& node_id) {
 
   FetchPendingNodes();
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::FetchPendingNodes() {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   if (processing_response_)
     return;
@@ -208,7 +208,7 @@ void NodeFetcherImpl::FetchPendingNodes() {
   // picks them up without growing the stack.
   if (draining_pending_queue_)
     return;
-  base::AutoReset<bool> drain_guard{&draining_pending_queue_, true};
+  scada::base::AutoReset<bool> drain_guard{&draining_pending_queue_, true};
 
   while (!pending_queue_.empty() &&
          running_request_count_ + kPrimitiveRequestCount <=
@@ -219,8 +219,8 @@ void NodeFetcherImpl::FetchPendingNodes() {
     while (!pending_queue_.empty() && nodes.size() < kMaxRequestNodeCount) {
       auto& node = pending_queue_.top();
       pending_queue_.pop();
-      base::Check(IsEmpty(node.fetch_started));
-      base::Check(!IsEmpty(node.pending_status));
+      scada::base::Check(IsEmpty(node.fetch_started));
+      scada::base::Check(!IsEmpty(node.pending_status));
       node.fetch_started = node.pending_status;
       nodes.emplace_back(&node);
     }
@@ -228,7 +228,7 @@ void NodeFetcherImpl::FetchPendingNodes() {
     FetchPendingNodes(std::move(nodes));
   }
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 unsigned NodeFetcherImpl::MakeRequestId() {
@@ -239,9 +239,9 @@ unsigned NodeFetcherImpl::MakeRequestId() {
 }
 
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
-  const auto start_ticks = base::TimeTicks::Now();
+  const auto start_ticks = scada::base::TimeTicks::Now();
   const auto request_id = MakeRequestId();
 
   LOG_INFO(logger_) << "Fetch pending nodes"
@@ -265,7 +265,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
     node->attributes_fetched = count == read_ids.size();
   }
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   CoSpawn(executor_, weak_from_this(),
           [request_id, start_ticks, read_ids = std::move(read_ids)](
@@ -294,7 +294,7 @@ void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
     return;
   }
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   CoSpawn(
       executor_, weak_from_this(),
@@ -375,11 +375,11 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
 
 void NodeFetcherImpl::OnReadResult(
     unsigned request_id,
-    base::TimeTicks start_ticks,
+    scada::base::TimeTicks start_ticks,
     scada::Status&& status,
     const std::vector<scada::ReadValueId>& read_ids,
     std::vector<scada::DataValue>&& results) {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   // The response comes from a (possibly remote) service; a result-count
   // mismatch is handled below instead of being treated as an invariant.
@@ -392,7 +392,7 @@ void NodeFetcherImpl::OnReadResult(
     results.clear();
   }
 
-  auto duration = base::TimeTicks::Now() - start_ticks;
+  auto duration = scada::base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Read request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("DurationMs", duration.InMilliseconds())
@@ -410,8 +410,8 @@ void NodeFetcherImpl::OnReadResult(
   }
 
   {
-    base::Check(!processing_response_);
-    base::AutoReset processing_response{&processing_response_, true};
+    scada::base::Check(!processing_response_);
+    scada::base::AutoReset processing_response{&processing_response_, true};
 
     LOG_INFO(logger_) << "Read request processing begin"
                       << LOG_TAG("RequestId", request_id)
@@ -432,7 +432,7 @@ void NodeFetcherImpl::OnReadResult(
                       << LOG_TAG("ReadCount", read_ids.size());
   }
 
-  base::Check(running_request_count_ > 0);
+  scada::base::Check(running_request_count_ > 0);
   --running_request_count_;
   LOG_INFO(logger_) << "Remaining requests"
                     << LOG_TAG("RequestCount", running_request_count_);
@@ -449,7 +449,7 @@ void NodeFetcherImpl::OnReadResult(
   LOG_INFO(logger_) << "Read request fetch pending nodes completed"
                     << LOG_TAG("RequestId", request_id);
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::ApplyReadResult(unsigned request_id,
@@ -535,11 +535,11 @@ void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
 
 void NodeFetcherImpl::OnBrowseResult(
     unsigned request_id,
-    base::TimeTicks start_ticks,
+    scada::base::TimeTicks start_ticks,
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   // The response comes from a (possibly remote) service; a result-count
   // mismatch is handled below instead of being treated as an invariant.
@@ -552,7 +552,7 @@ void NodeFetcherImpl::OnBrowseResult(
     results.clear();
   }
 
-  const auto duration = base::TimeTicks::Now() - start_ticks;
+  const auto duration = scada::base::TimeTicks::Now() - start_ticks;
   LOG_INFO(logger_) << "Browse request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("Count", descriptions.size())
@@ -571,8 +571,8 @@ void NodeFetcherImpl::OnBrowseResult(
   }
 
   {
-    base::Check(!processing_response_);
-    base::AutoReset processing_response{&processing_response_, true};
+    scada::base::Check(!processing_response_);
+    scada::base::AutoReset processing_response{&processing_response_, true};
 
     for (size_t i = 0; i < descriptions.size(); ++i) {
       if (status) {
@@ -584,7 +584,7 @@ void NodeFetcherImpl::OnBrowseResult(
     }
   }
 
-  base::Check(running_request_count_ > 0);
+  scada::base::Check(running_request_count_ > 0);
   --running_request_count_;
   LOG_INFO(logger_) << "Remaining requests"
                     << LOG_TAG("RequestCount", running_request_count_);
@@ -593,7 +593,7 @@ void NodeFetcherImpl::OnBrowseResult(
 
   FetchPendingNodes();
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 void NodeFetcherImpl::ApplyBrowseResult(
@@ -640,9 +640,9 @@ void NodeFetcherImpl::AddFetchedReference(
     // Parent.
 
     // The browse description is built by GetFetchReferences.
-    base::Check(description.reference_type_id ==
-                    scada::id::HierarchicalReferences ||
-                description.reference_type_id == scada::id::HasSubtype);
+    scada::base::Check(description.reference_type_id ==
+                           scada::id::HierarchicalReferences ||
+                       description.reference_type_id == scada::id::HasSubtype);
 
     if (reference.forward) {
       LOG_WARNING(logger_) << "Ignore forward reference in an inverse browse"
@@ -712,8 +712,8 @@ void NodeFetcherImpl::AddFetchedReference(
     // Non-hierarchical forward references, including HasTypeDefinition.
 
     // The browse description is built by GetFetchReferences.
-    base::Check(description.reference_type_id ==
-                scada::id::NonHierarchicalReferences);
+    scada::base::Check(description.reference_type_id ==
+                       scada::id::NonHierarchicalReferences);
 
     if (!reference.forward) {
       LOG_WARNING(logger_) << "Ignore inverse reference in a forward browse"

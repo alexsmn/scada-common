@@ -22,7 +22,7 @@ export module scada.opcua_bridge;
 
 export import scada.core;
 
-export namespace opcua_bridge {
+export namespace scada::opcua_bridge {
 
 // client_adapters.h
 using scada::opcua_bridge::ClientAttributeServiceAdapter;
@@ -57,4 +57,4 @@ using scada::opcua_bridge::ToOpcuaVector;
 using scada::opcua_bridge::ToScada;
 using scada::opcua_bridge::ToScadaVector;
 
-}  // namespace opcua_bridge
+}  // namespace scada::opcua_bridge

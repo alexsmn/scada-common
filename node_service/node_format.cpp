@@ -32,8 +32,8 @@ void FmtAddMods(const NodeRef& node,
   else if (qualifier.backup())
     mods += u'2';
 
-  if (IsInstanceOf(node, data_items::id::DataItemType) &&
-      node[data_items::id::DataItemType_Locked].value().get_or(false))
+  if (IsInstanceOf(node, scada::data_items::id::DataItemType) &&
+      node[scada::data_items::id::DataItemType_Locked].value().get_or(false))
     mods += u'Б';
 
   if (qualifier.stale())
@@ -56,17 +56,18 @@ void FmtAddMods(const NodeRef& node,
 }
 
 TsFormatParams GetTsFormatParams(const NodeRef& node) {
-  auto format = node.target(data_items::id::HasTsFormat);
+  auto format = node.target(scada::data_items::id::HasTsFormat);
   if (!format) {
     return {};
   }
 
-  return {.close_label =
-              format[data_items::id::TsFormatType_CloseLabel].value().get_or(
-                  scada::LocalizedText{}),
-          .open_label =
-              format[data_items::id::TsFormatType_OpenLabel].value().get_or(
-                  scada::LocalizedText{})};
+  return {
+      .close_label =
+          format[scada::data_items::id::TsFormatType_CloseLabel].value().get_or(
+              scada::LocalizedText{}),
+      .open_label =
+          format[scada::data_items::id::TsFormatType_OpenLabel].value().get_or(
+              scada::LocalizedText{})};
 }
 
 std::u16string FormatTsValue(const NodeRef& node,
@@ -90,13 +91,14 @@ std::u16string FormatTsValue(const NodeRef& node,
 }
 
 TitFormatParams GetTitFormatParams(const NodeRef& node) {
-  return {
-      .display_format =
-          node[data_items::id::AnalogItemType_DisplayFormat].value().get_or(
-              scada::String()),
-      .engineering_units =
-          node[data_items::id::AnalogItemType_EngineeringUnits].value().get_or(
-              scada::LocalizedText())};
+  return {.display_format =
+              node[scada::data_items::id::AnalogItemType_DisplayFormat]
+                  .value()
+                  .get_or(scada::String()),
+          .engineering_units =
+              node[scada::data_items::id::AnalogItemType_EngineeringUnits]
+                  .value()
+                  .get_or(scada::LocalizedText())};
 }
 
 std::u16string FormatTitValue(const NodeRef& node,
@@ -152,9 +154,9 @@ std::u16string FormatValue(const NodeRef& node,
                            const scada::Variant& value,
                            scada::Qualifier qualifier,
                            int flags) {
-  if (IsInstanceOf(node, data_items::id::DiscreteItemType))
+  if (IsInstanceOf(node, scada::data_items::id::DiscreteItemType))
     return FormatTsValue(node, value, qualifier, flags);
-  else if (IsInstanceOf(node, data_items::id::AnalogItemType))
+  else if (IsInstanceOf(node, scada::data_items::id::AnalogItemType))
     return FormatTitValue(node, value, qualifier, flags);
   else
     return FormatUnknownValue(node, value, qualifier, flags);

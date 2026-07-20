@@ -6,7 +6,6 @@
 #include <opc_client/core/data_value.h>
 #include <optional>
 
-#include "opc/opc_compat.h"
 namespace scada::opc {
 
 class OpcErrorConverter {

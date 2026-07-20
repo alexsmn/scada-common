@@ -25,7 +25,7 @@ inline DataServicesNodeServiceContext MakeDataServicesNodeServiceContext(
     const NodeServiceContext& context) {
   return {.executor_ = context.executor_,
           .service_context_ = context.service_context_,
-          .data_services_ = data_services::FromUnownedServices(
+          .data_services_ = scada::data_services::FromUnownedServices(
               MakeLegacyNodeServices(context)),
           .scada_client_ = context.scada_client_};
 }

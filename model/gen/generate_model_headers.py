@@ -48,24 +48,18 @@ DOMAINS = {
     "scada": ("scada_node_ids.h", "scada",
               ['#include "scada/standard_node_ids.h"', '#include "model/namespaces.h"']),
     "data_items": ("data_items_node_ids.h", "scada::data_items",
-                   ['#include "scada/node_id.h"', '#include "model/namespaces.h"',
-                    '#include "model/model_compat.h"']),
+                   ['#include "scada/node_id.h"', '#include "model/namespaces.h"']),
     "devices": ("devices_node_ids.h", "scada::devices",
-                ['#include "scada/node_id.h"', '#include "model/namespaces.h"',
-                 '#include "model/model_compat.h"']),
+                ['#include "scada/node_id.h"', '#include "model/namespaces.h"']),
     "history": ("history_node_ids.h", "scada::history",
-                ['#include "model/namespaces.h"', '#include "scada/node_id.h"',
-                 '#include "model/model_compat.h"']),
+                ['#include "model/namespaces.h"', '#include "scada/node_id.h"']),
     "security": ("security_node_ids.h", "scada::security",
                  ['#include "model/namespaces.h"', '#include "scada/node_id.h"',
-                  '#include "scada/standard_node_ids.h"',
-                  '#include "model/model_compat.h"']),
+                  '#include "scada/standard_node_ids.h"']),
     "filesystem": ("filesystem_node_ids.h", "scada::filesystem",
-                   ['#include "scada/node_id.h"', '#include "model/namespaces.h"',
-                    '#include "model/model_compat.h"']),
+                   ['#include "scada/node_id.h"', '#include "model/namespaces.h"']),
     "opc": ("opc_node_ids.h", "scada::opc",
-            ['#include "scada/node_id.h"', '#include "model/namespaces.h"',
-             '#include "model/model_compat.h"']),
+            ['#include "scada/node_id.h"', '#include "model/namespaces.h"']),
 }
 GEN_BANNER = ("// GENERATED FILE - DO NOT EDIT.\n"
               "// Produced by common/model/gen/generate_model_headers.py from the\n"
@@ -158,7 +152,6 @@ def emit_namespaces_h(ns_rows):
 
 #include <string_view>
 
-#include "model/model_compat.h"
 namespace scada::NamespaceIndexes {{
 
 {body}
@@ -205,7 +198,7 @@ constexpr std::string_view kNamespaceNames[] = {{
     {names},
 }};
 
-static_assert(std::size(kNamespaceNames) == NamespaceIndexes::END);
+static_assert(std::size(kNamespaceNames) == scada::NamespaceIndexes::END);
 
 }}  // namespace
 
@@ -311,7 +304,6 @@ def emit_config_tables_h(ns_rows, consts, ns_const_index_all):
 #include <span>
 #include <string_view>
 
-#include "model/model_compat.h"
 namespace scada::model {{
 
 // A model-owned configuration table: the table's row type, the namespace

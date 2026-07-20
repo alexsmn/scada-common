@@ -99,7 +99,7 @@ void BaseNodeModel::NotifyCallbacks() {
   // up whatever the callback enqueued.
   if (notifying_callbacks_)
     return;
-  base::AutoReset<bool> drain_guard{&notifying_callbacks_, true};
+  scada::base::AutoReset<bool> drain_guard{&notifying_callbacks_, true};
 
   while (true) {
     std::vector<FetchCallback> callbacks;

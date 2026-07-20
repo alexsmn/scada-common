@@ -32,7 +32,7 @@ void TimedDataFetcher::FetchNextGap() {
   if (!gap)
     return;
 
-  base::Check(!IsEmptyInterval(*gap));
+  scada::base::Check(!IsEmptyInterval(*gap));
 
   querying_ = true;
   querying_range_ = *gap;
@@ -58,8 +58,8 @@ void TimedDataFetcher::FetchNextGap() {
 }
 
 void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
-  base::Check(querying_);
-  base::Check(!continuation_point.empty());
+  scada::base::Check(querying_);
+  scada::base::Check(!continuation_point.empty());
 
   if (!node_) {
     LOG_INFO(logger_) << "Node was deleted";
@@ -104,7 +104,7 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
 void TimedDataFetcher::OnHistoryReadRawComplete(
     std::vector<scada::DataValue> values,
     ScopedContinuationPoint continuation_point) {
-  base::Check(querying_);
+  scada::base::Check(querying_);
 
   // History results come from a (possibly remote) history service; sanitize
   // malformed responses instead of panicking.

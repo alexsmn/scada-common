@@ -52,14 +52,15 @@ void TimedDataSpec::SetCurrentOnly() {
   SetFrom(kTimedDataCurrentOnly);
 }
 
-void TimedDataSpec::SetFrom(base::Time from) {
+void TimedDataSpec::SetFrom(scada::base::Time from) {
   SetRange({from, kTimedDataCurrentOnly});
 }
 
 void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
-  base::Check(!range.second.is_null());
-  base::Check(IsValidInterval(range));
-  base::Check(range.second == kTimedDataCurrentOnly || !IsEmptyInterval(range));
+  scada::base::Check(!range.second.is_null());
+  scada::base::Check(IsValidInterval(range));
+  scada::base::Check(range.second == kTimedDataCurrentOnly ||
+                     !IsEmptyInterval(range));
 
   if (range_ == range)
     return;
@@ -73,7 +74,7 @@ void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
 }
 
 void TimedDataSpec::SetAggregateFilter(scada::AggregateFilter filter) {
-  base::Check(!data_);
+  scada::base::Check(!data_);
   aggregate_filter_ = std::move(filter);
 }
 
@@ -128,7 +129,7 @@ std::u16string TimedDataSpec::GetValueString(
 }
 
 bool TimedDataSpec::logical() const {
-  return IsInstanceOf(node(), data_items::id::DiscreteItemType);
+  return IsInstanceOf(node(), scada::data_items::id::DiscreteItemType);
 }
 
 bool TimedDataSpec::ready() const {
@@ -160,7 +161,7 @@ bool TimedDataSpec::alerting() const {
   return data_ && data_->IsAlerting();
 }
 
-base::Time TimedDataSpec::ready_from() const {
+scada::base::Time TimedDataSpec::ready_from() const {
   return data_ ? GetReadyFrom(data_->GetReadyRanges(), range_)
                : kTimedDataCurrentOnly;
 }
@@ -169,8 +170,8 @@ scada::DataValue TimedDataSpec::current() const {
   return data_ ? data_->GetDataValue() : scada::DataValue();
 }
 
-base::Time TimedDataSpec::change_time() const {
-  return data_ ? data_->GetChangeTime() : base::Time();
+scada::base::Time TimedDataSpec::change_time() const {
+  return data_ ? data_->GetChangeTime() : scada::base::Time();
 }
 
 bool TimedDataSpec::historical() const {
@@ -197,7 +198,8 @@ scada::LocalizedText TimedDataSpec::GetTitle() const {
   return data_ ? data_->GetTitle() : scada::LocalizedText{kUnknownDisplayName};
 }
 
-const scada::DataValue* TimedDataSpec::GetValueAt(base::Time time) const {
+const scada::DataValue* TimedDataSpec::GetValueAt(
+    scada::base::Time time) const {
   return data_ ? data_->GetValueAt(time) : nullptr;
 }
 
@@ -257,6 +259,6 @@ std::string TimedDataSpec::DumpDebugInfo() const {
 }
 
 // static
-base::Time TimedDataSpec::GetTimedDataCurrentOnly() {
+scada::base::Time TimedDataSpec::GetTimedDataCurrentOnly() {
   return kTimedDataCurrentOnly;
 }

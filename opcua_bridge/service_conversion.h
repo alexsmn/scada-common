@@ -38,7 +38,6 @@
 #include "opcua/types/read_value_id.h"
 #include "opcua/types/write_flags.h"
 
-#include "opcua_bridge/opcua_bridge_compat.h"
 namespace scada::opcua_bridge {
 
 // --- enums (identical underlying values) --------------------------------

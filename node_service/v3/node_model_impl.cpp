@@ -111,7 +111,7 @@ void NodeModelImpl::OnFetched(const scada::NodeState& node_state) {
 }
 
 void NodeModelImpl::OnFetchCompleted() {
-  base::Check(callback_lock_count_ > 0);
+  scada::base::Check(callback_lock_count_ > 0);
   --callback_lock_count_;
 
   // Publish the snapshot before the change notifications so consumers that
@@ -405,7 +405,7 @@ NodeRef NodeModelImpl::GetDataType() const {
 }
 
 void NodeModelImpl::SetError(const scada::Status& status) {
-  base::Check(status_.good());
+  scada::base::Check(status_.good());
 
   status_ = status;
 }

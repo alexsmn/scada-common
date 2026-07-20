@@ -14,7 +14,7 @@ TEST(VidiconSession, SessionServiceReportsLocalSessionMetadata) {
   VidiconSession session;
   auto& coroutine_session = session;
 
-  base::TimeDelta ping_delay;
+  scada::base::TimeDelta ping_delay;
   EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
   EXPECT_TRUE(ping_delay.is_zero());
   EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));

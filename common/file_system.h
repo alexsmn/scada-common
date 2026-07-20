@@ -23,6 +23,6 @@ inline scada::ByteString CalculateFileHash(const std::filesystem::path& path) {
   contents.resize(static_cast<size_t>(size));
   ifs.read(contents.data(), size);
 
-  auto md5 = base::MD5String(contents);
+  auto md5 = scada::base::MD5String(contents);
   return {md5.begin(), md5.end()};
 }

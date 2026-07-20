@@ -5,7 +5,6 @@
 #include <opc_client/core/address.h>
 #include <optional>
 
-#include "opc/opc_compat.h"
 namespace scada::opc {
 
 // WARNING: This method must be very performant, as a service locator may invoke

@@ -2,7 +2,6 @@
 
 #include "scada/data_services.h"
 
-#include "common/common_compat.h"
 namespace scada::data_services {
 
 template <typename Service>

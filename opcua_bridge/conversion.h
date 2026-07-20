@@ -30,7 +30,6 @@
 #include <limits>
 #include <vector>
 
-#include "opcua_bridge/opcua_bridge_compat.h"
 namespace scada::opcua_bridge {
 
 // --- enums --------------------------------------------------------------

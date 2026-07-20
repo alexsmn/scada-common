@@ -4,7 +4,6 @@
 #include <optional>
 #include <string>
 
-#include "vidicon/vidicon_compat.h"
 namespace scada::vidicon {
 
 using VidiconObjectId = unsigned;

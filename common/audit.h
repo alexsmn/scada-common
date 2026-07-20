@@ -57,7 +57,7 @@ class Audit final : private AuditContext,
   void StartBrowse();
   void FinishBrowse(Clock::time_point start_time);
 
-  metrics::Meter metrics_{"scada.audit"};
+  scada::metrics::Meter metrics_{"scada.audit"};
 
   scada::AttributeService* attribute_service_ = nullptr;
   scada::ViewService* view_service_ = nullptr;

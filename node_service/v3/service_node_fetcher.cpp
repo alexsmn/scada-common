@@ -16,7 +16,8 @@ namespace v3 {
 namespace {
 
 BoostLogger& Logger() {
-  static base::NoDestructor<BoostLogger> logger{LOG_NAME("ServiceNodeFetcher")};
+  static scada::base::NoDestructor<BoostLogger> logger{
+      LOG_NAME("ServiceNodeFetcher")};
   return *logger;
 }
 

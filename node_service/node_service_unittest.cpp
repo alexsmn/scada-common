@@ -240,7 +240,7 @@ template <class NodeServiceImpl>
 ViewEventsProvider NodeServiceTest<NodeServiceImpl>::MakeViewEventsProvider() {
   return [this](scada::ViewEvents& events)
              -> std::unique_ptr<IViewEventsSubscription> {
-    base::Check(!view_events_);
+    scada::base::Check(!view_events_);
     view_events_ = &events;
     return std::make_unique<IViewEventsSubscription>();
   };

@@ -32,7 +32,7 @@ TEST(ScadaCommonModuleSmoke, ExpressionAndFormat) {
   EXPECT_FALSE(FormatFloat(1.5, "%.2f").empty());
 
   // Transitive surfaces.
-  base::Check(true, "common module smoke");
+  scada::base::Check(true, "common module smoke");
   EXPECT_TRUE(scada::Status{scada::StatusCode::Good});
 }
 

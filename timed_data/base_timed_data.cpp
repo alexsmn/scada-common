@@ -26,7 +26,7 @@ BaseTimedData::BaseTimedData() {
 }
 
 BaseTimedData::~BaseTimedData() {
-  base::Check(!observers_.might_have_observers());
+  scada::base::Check(!observers_.might_have_observers());
 }
 
 const scada::DataValue* BaseTimedData::GetValueAt(

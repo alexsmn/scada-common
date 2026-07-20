@@ -25,7 +25,7 @@ TEST(ScadaEventsModuleSmoke, TransitiveSurfaces) {
   scada::NodeProperties properties;
   EXPECT_EQ(scada::FindProperty(properties, scada::NodeId{1, 0}), nullptr);
   EXPECT_EQ(Format(3), "3");
-  base::Check(true, "events module smoke");
+  scada::base::Check(true, "events module smoke");
 }
 
 }  // namespace

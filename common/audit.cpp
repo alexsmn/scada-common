@@ -17,7 +17,8 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
            std::optional<AnyExecutor> executor)
         : services_{services},
           audit_{Audit::Create(AuditContext{
-              .data_services_ = data_services::FromUnownedServices(*services_),
+              .data_services_ =
+                  scada::data_services::FromUnownedServices(*services_),
               .tracer_ = tracer,
               .executor_ = std::move(executor)})},
           audited_services_{*services_} {

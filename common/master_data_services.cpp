@@ -22,13 +22,13 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   ~MasterMonitoredItem() {
     if (owner_) {
       auto i = std::ranges::find(owner_->monitored_items_, this);
-      base::Check(i != owner_->monitored_items_.end());
+      scada::base::Check(i != owner_->monitored_items_.end());
       owner_->monitored_items_.erase(i);
     }
   }
 
   virtual void Subscribe(scada::MonitoredItemHandler handler) override {
-    base::Check(!handler_);
+    scada::base::Check(!handler_);
 
     if (!owner_) {
       return;
@@ -40,7 +40,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
   }
 
   void Reconnect() {
-    base::Check(owner_);
+    scada::base::Check(owner_);
 
     if (!handler_.has_value()) {
       return;
@@ -49,8 +49,8 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     if (!owner_->connected_) {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
-        (*data_change_handler)(
-            {scada::StatusCode::Uncertain_Disconnected, base::Time::Now()});
+        (*data_change_handler)({scada::StatusCode::Uncertain_Disconnected,
+                                scada::base::Time::Now()});
       }
       return;
     }
@@ -66,7 +66,8 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     if (!underlying_item_) {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
-        (*data_change_handler)({scada::StatusCode::Bad, base::Time::Now()});
+        (*data_change_handler)(
+            {scada::StatusCode::Bad, scada::base::Time::Now()});
       } else if (const auto* event_handler =
                      std::get_if<scada::EventHandler>(&*handler_)) {
         (*event_handler)(scada::StatusCode::Bad, {});
@@ -212,7 +213,7 @@ Awaitable<void> MasterDataServices::Reconnect() {
   co_await session_service_->Reconnect();
 }
 
-bool MasterDataServices::IsConnected(base::TimeDelta* ping_delay) const {
+bool MasterDataServices::IsConnected(scada::base::TimeDelta* ping_delay) const {
   if (!connected_)
     return false;
 
@@ -385,8 +386,8 @@ Awaitable<scada::HistoryReadRawResult> MasterDataServices::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
     scada::NodeId node_id,
-    base::Time from,
-    base::Time to,
+    scada::base::Time from,
+    scada::base::Time to,
     scada::EventFilter filter) {
   auto* service = history_service_;
   if (service)

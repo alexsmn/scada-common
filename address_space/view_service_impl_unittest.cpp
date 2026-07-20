@@ -41,7 +41,7 @@ class VirtualObject : public scada::GenericObject,
   Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override {
-    base::NotReached();
+    scada::base::NotReached();
     co_return scada::Status{scada::StatusCode::Bad};
   }
 
@@ -72,7 +72,7 @@ class VirtualObject : public scada::GenericObject,
 
     if (!description.include_subtypes ||
         description.reference_type_id != scada::id::HierarchicalReferences) {
-      base::NotReached();
+      scada::base::NotReached();
       result.status_code = scada::StatusCode::Bad_WrongNodeId;
       return result;
     }
@@ -135,8 +135,8 @@ struct TestContext {
   ViewServiceImpl view_service{sync_view_service};
 
   // Node id-s must be correct to parse.
-  const scada::NodeId kObjectId{23, NamespaceIndexes::GROUP};
-  const scada::NodeId kChildId{43, NamespaceIndexes::TS};
+  const scada::NodeId kObjectId{23, scada::NamespaceIndexes::GROUP};
+  const scada::NodeId kChildId{43, scada::NamespaceIndexes::TS};
 
   const std::vector<std::string> kItems{"Item1", "Item2", "Item3"};
 

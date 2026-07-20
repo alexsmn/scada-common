@@ -430,7 +430,7 @@ void NodeServiceImpl::ProcessFetchedChildren(
 }
 
 void NodeServiceImpl::OnChannelOpened() {
-  base::Check(!channel_opened_);
+  scada::base::Check(!channel_opened_);
   channel_opened_ = true;
 
   auto pending_fetch_nodes = std::move(pending_fetch_nodes_);
@@ -441,8 +441,8 @@ void NodeServiceImpl::OnChannelOpened() {
 }
 
 void NodeServiceImpl::OnChannelClosed() {
-  base::Check(channel_opened_);
-  base::Check(pending_fetch_nodes_.empty());
+  scada::base::Check(channel_opened_);
+  scada::base::Check(pending_fetch_nodes_.empty());
 
   channel_opened_ = false;
 }

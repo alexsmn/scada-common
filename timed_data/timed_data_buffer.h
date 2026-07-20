@@ -51,7 +51,9 @@ template <typename T>
 class BasicTimedDataBuffer final {
  public:
   BasicTimedDataBuffer() = default;
-  ~BasicTimedDataBuffer() { base::Check(!observers_.might_have_observers()); }
+  ~BasicTimedDataBuffer() {
+    scada::base::Check(!observers_.might_have_observers());
+  }
 
   BasicTimedDataBuffer(const BasicTimedDataBuffer&) = delete;
   BasicTimedDataBuffer& operator=(const BasicTimedDataBuffer&) = delete;
@@ -203,7 +205,7 @@ class BasicTimedDataBuffer final {
     return TimedDataTraits<T>::timestamp(value);
   }
 
-  base::ObserverList<BasicTimedDataViewObserver<T>> observers_;
+  scada::base::ObserverList<BasicTimedDataViewObserver<T>> observers_;
   std::map<BasicTimedDataViewObserver<T>*, scada::DateTimeRange> observer_ranges_;
 
   std::vector<scada::DateTimeRange> observed_ranges_;
@@ -225,9 +227,10 @@ template <typename T>
 inline void BasicTimedDataBuffer<T>::AddObserver(
     BasicTimedDataViewObserver<T>& observer,
     const scada::DateTimeRange& range) {
-  base::Check(!range.second.is_null());
-  base::Check(IsValidInterval(range));
-  base::Check(range.first == kTimedDataCurrentOnly || !IsEmptyInterval(range));
+  scada::base::Check(!range.second.is_null());
+  scada::base::Check(IsValidInterval(range));
+  scada::base::Check(range.first == kTimedDataCurrentOnly ||
+                     !IsEmptyInterval(range));
 
   if (!observers_.HasObserver(&observer))
     observers_.AddObserver(&observer);
@@ -265,7 +268,7 @@ inline void BasicTimedDataBuffer<T>::UpdateObservedRanges() {
 
   for (const auto& [observer, range] : observer_ranges_) {
     if (range.first != kTimedDataCurrentOnly) {
-      base::Check(!IsEmptyInterval(range));
+      scada::base::Check(!IsEmptyInterval(range));
       UnionIntervals(observed_ranges_, range);
     }
   }
@@ -306,7 +309,7 @@ inline void BasicTimedDataBuffer<T>::MarkDirty(
 
 template <typename T>
 inline void BasicTimedDataBuffer<T>::EndBatch() {
-  base::Check(batch_depth_ > 0);
+  scada::base::Check(batch_depth_ > 0);
   if (--batch_depth_ == 0 && dirty_) {
     scada::DateTimeRange range = *dirty_;
     dirty_.reset();
@@ -343,8 +346,8 @@ inline bool BasicTimedDataBuffer<T>::InsertOrUpdate(const T& value) {
 template <typename T>
 inline void BasicTimedDataBuffer<T>::ClearRange(
     const scada::DateTimeRange& range) {
-  base::Check(!range.first.is_null());
-  base::Check(range.second.is_null() || range.first <= range.second);
+  scada::base::Check(!range.first.is_null());
+  scada::base::Check(range.second.is_null() || range.first <= range.second);
 
   auto i = LowerBound(values_, range.first);
   auto j = range.second.is_null() ? values_.size()
@@ -425,7 +428,7 @@ inline void BasicTimedDataBuffer<T>::ReplaceRange(std::span<T> values) {
     });
   }
 
-  base::Check(IsTimeSorted(values_));
+  scada::base::Check(IsTimeSorted(values_));
 
   // A landed batch can push us over the working set; trim before notifying so
   // observers see the retained window.

@@ -48,8 +48,8 @@ class TestHistoryService final : public scada::HistoryService {
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      base::Time from,
-      base::Time to,
+      scada::base::Time from,
+      scada::base::Time to,
       scada::EventFilter filter) override {
     co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
   }
@@ -99,28 +99,30 @@ class TimedDataTest : public Test {
   StrictMock<MockFunction<void(const PropertySet& properties)>>
       property_change_handler_;
 
-  inline static const scada::NodeId kDataItemId{1, NamespaceIndexes::TS};
+  inline static const scada::NodeId kDataItemId{1, scada::NamespaceIndexes::TS};
   inline static const std::string_view kDataItemAlias = "Alias";
 
-  inline static const scada::NodeId kTsFormatId{1, NamespaceIndexes::TS_FORMAT};
+  inline static const scada::NodeId kTsFormatId{
+      1, scada::NamespaceIndexes::TS_FORMAT};
   inline static const scada::LocalizedText kFormatCloseLabel = u"Active";
 };
 
 TimedDataTest::TimedDataTest() {
   node_service_.AddAll(GetScadaNodeStates());
 
-  node_service_.Add({.node_id = kTsFormatId,
-                     .type_definition_id = data_items::id::TsFormatType,
-                     .properties = {{data_items::id::TsFormatType_CloseLabel,
-                                     kFormatCloseLabel}}});
+  node_service_.Add(
+      {.node_id = kTsFormatId,
+       .type_definition_id = scada::data_items::id::TsFormatType,
+       .properties = {{scada::data_items::id::TsFormatType_CloseLabel,
+                       kFormatCloseLabel}}});
 
   node_service_.Add(
       {.node_id = kDataItemId,
        .node_class = scada::NodeClass::Variable,
-       .type_definition_id = data_items::id::DiscreteItemType,
-       .properties = {{data_items::id::DataItemType_Alias,
+       .type_definition_id = scada::data_items::id::DiscreteItemType,
+       .properties = {{scada::data_items::id::DataItemType_Alias,
                        scada::String{kDataItemAlias}}},
-       .references = {{.reference_type_id = data_items::id::HasTsFormat,
+       .references = {{.reference_type_id = scada::data_items::id::HasTsFormat,
                        .node_id = kTsFormatId}}});
 
   ON_CALL(monitored_item_service_,
@@ -211,8 +213,8 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
-  const auto from = base::Time::Now();
-  const auto to = from + base::TimeDelta::FromSeconds(10);
+  const auto from = scada::base::Time::Now();
+  const auto to = from + scada::base::TimeDelta::FromSeconds(10);
 
   // The action is a lazy coroutine: it must take `details` by value so the
   // copy lives in the coroutine frame. A `const&` parameter would bind to
@@ -238,8 +240,8 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
 }
 
 TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
-  const auto from = base::Time::Now();
-  const auto to = from + base::TimeDelta::FromSeconds(10);
+  const auto from = scada::base::Time::Now();
+  const auto to = from + scada::base::TimeDelta::FromSeconds(10);
   auto service = CreateTimedDataService(TimedDataContext{
       .executor_ = executor_,
       .alias_resolver_ = alias_resolver_.AsStdFunction(),
@@ -269,8 +271,8 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
-  const auto from = base::Time::Now();
-  const auto to = from + base::TimeDelta::FromSeconds(10);
+  const auto from = scada::base::Time::Now();
+  const auto to = from + scada::base::TimeDelta::FromSeconds(10);
   auto history_service = std::make_shared<TestHistoryService>();
   auto service = CreateTimedDataService(CoroutineTimedDataContext{
       .executor_ = executor_,
@@ -292,8 +294,8 @@ TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
-  const auto from = base::Time::Now();
-  const auto to = from + base::TimeDelta::FromSeconds(10);
+  const auto from = scada::base::Time::Now();
+  const auto to = from + scada::base::TimeDelta::FromSeconds(10);
   auto history_service = std::make_shared<TestHistoryService>();
 
   DataServices data_services;
@@ -321,8 +323,8 @@ TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
 TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = base::Time::Now(),
-      .to = base::Time::Now() + base::TimeDelta::FromSeconds(1),
+      .from = scada::base::Time::Now(),
+      .to = scada::base::Time::Now() + scada::base::TimeDelta::FromSeconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};
@@ -349,8 +351,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
 TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = base::Time::Now(),
-      .to = base::Time::Now() + base::TimeDelta::FromSeconds(1),
+      .from = scada::base::Time::Now(),
+      .to = scada::base::Time::Now() + scada::base::TimeDelta::FromSeconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};
@@ -377,8 +379,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
 TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = base::Time::Now(),
-      .to = base::Time::Now() + base::TimeDelta::FromSeconds(1),
+      .from = scada::base::Time::Now(),
+      .to = scada::base::Time::Now() + scada::base::TimeDelta::FromSeconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};

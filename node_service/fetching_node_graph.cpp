@@ -15,14 +15,14 @@ inline void Insert(std::vector<T>& c, const T& v) {
 }  // namespace
 
 FetchingNode* FetchingNodeGraph::FindNode(const scada::NodeId& node_id) {
-  base::Check(!node_id.is_null());
+  scada::base::Check(!node_id.is_null());
 
   auto i = fetching_nodes_.find(node_id);
   return i != fetching_nodes_.end() ? &i->second : nullptr;
 }
 
 FetchingNode& FetchingNodeGraph::AddNode(const scada::NodeId& node_id) {
-  base::Check(!node_id.is_null());
+  scada::base::Check(!node_id.is_null());
 
   auto p = fetching_nodes_.try_emplace(node_id);
   auto& node = p.first->second;
@@ -33,7 +33,7 @@ FetchingNode& FetchingNodeGraph::AddNode(const scada::NodeId& node_id) {
 }
 
 void FetchingNodeGraph::RemoveNode(const scada::NodeId& node_id) {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   auto i = fetching_nodes_.find(node_id);
   if (i == fetching_nodes_.end())
@@ -45,11 +45,11 @@ void FetchingNodeGraph::RemoveNode(const scada::NodeId& node_id) {
 
   fetching_nodes_.erase(i);
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 }
 
 FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   struct Collector {
     bool IsFetchedRecursively(FetchingNode& node) {
@@ -93,7 +93,7 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
       continue;
     }
 
-    base::Check(!IsEmpty(node.fetch_started));
+    scada::base::Check(!IsEmpty(node.fetch_started));
 
     if (node.status) {
       result.nodes.emplace_back(std::move(node.node_state));
@@ -108,13 +108,13 @@ FetchCompletedResult FetchingNodeGraph::GetFetchedNodes() {
     i = fetching_nodes_.erase(i);
   }
 
-  base::Check(CheckInvariants());
+  scada::base::Check(CheckInvariants());
 
   return result;
 }
 
 void FetchingNodeGraph::AddDependency(FetchingNode& node, FetchingNode& from) {
-  base::Check(&node != &from);
+  scada::base::Check(&node != &from);
 
   Insert(from.dependent_nodes, &node);
   Insert(node.depends_of, &from);

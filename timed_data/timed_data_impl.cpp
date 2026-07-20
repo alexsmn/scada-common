@@ -30,7 +30,7 @@ TimedDataImpl::~TimedDataImpl() {
 }
 
 void TimedDataImpl::Init(NodeRef node) {
-  base::Check(node);
+  scada::base::Check(node);
   SetNode(std::move(node));
 
   scada::MonitoringParameters params;
@@ -96,7 +96,7 @@ scada::LocalizedText TimedDataImpl::GetTitle() const {
 }
 
 void TimedDataImpl::OnNodeSemanticChanged(const scada::NodeId& node_id) {
-  base::Check(node_id == node_.node_id());
+  scada::base::Check(node_id == node_.node_id());
 
   NotifyPropertyChanged(PropertySet(PROPERTY_TITLE | PROPERTY_CURRENT));
 
@@ -120,7 +120,7 @@ void TimedDataImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
 
 void TimedDataImpl::OnItemEventsChanged(const scada::NodeId& node_id,
                                         const EventSet& events) {
-  base::Check(node_id == node_.node_id());
+  scada::base::Check(node_id == node_.node_id());
 
   alerting_ = !events.empty();
   NotifyEventsChanged();
