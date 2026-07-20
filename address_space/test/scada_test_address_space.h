@@ -9,6 +9,7 @@
 #include "common/node_state.h"
 #include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
+#include "model/filesystem_node_ids.h"
 #include "model/history_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
@@ -755,6 +756,61 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
   }
 }
 
+// Adds the filesystem test nodes: the FileSystem root folder (Organizes under
+// ObjectsFolder) with its FileSystemType, and the FileType leaf type. The
+// client FileSystemView roots its configuration tree at
+// filesystem::id::FileSystem; with the StaticNodeService-backed fixtures a
+// missing root makes NodeService::GetNode return a null cursor and the tree
+// panics (ConfigurationTreeNode::FetchMore Check(node_)). Mirrors
+// Scada.NodeSet2.xml.
+inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
+  GenericNodeFactory factory{address_space};
+
+  namespace fs = scada::filesystem::id;
+
+  std::vector<scada::NodeState> nodes;
+
+  nodes.push_back(scada::NodeState{
+      .node_id = fs::FileSystemType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("FileSystemType")
+                        .set_display_name(u"Файловая система"),
+      .supertype_id = {scada::id::BaseObjectType,
+                       scada::NamespaceIndexes::NS0}});
+
+  nodes.push_back(scada::NodeState{
+      .node_id = fs::FileType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("FileType")
+                        .set_display_name(u"Файл"),
+      .supertype_id = {scada::id::BaseObjectType,
+                       scada::NamespaceIndexes::NS0}});
+
+  // The FileSystem root the client FileSystemView browses from.
+  nodes.push_back(scada::NodeState{
+      .node_id = fs::FileSystem,
+      .node_class = scada::NodeClass::Object,
+      .type_definition_id = fs::FileSystemType,
+      .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("FileSystem")
+                        .set_display_name(u"Файловая система")});
+
+  for (const auto& node : nodes) {
+    [[maybe_unused]] const auto result = factory.CreateNode(node);
+    scada::base::Check(result.first);
+  }
+}
+
 // A ready-to-use code-defined SCADA address space: the standard OPC UA tree
 // plus the data_items and devices test type systems. Replaces
 // `AddressSpaceImpl3` for tests without loading any nodeset XML.
@@ -770,6 +826,7 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     AddScadaSecurityTestTypes(*this);
     AddScadaSimulationTestTypes(*this);
     AddScadaHistoryTestTypes(*this);
+    AddScadaFilesystemTestTypes(*this);
 
     // All SCADA reference types are subtypes of NonHierarchicalReferences in
     // the nodeset. The subtype edge matters: node fetchers browse
@@ -808,9 +865,8 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     // Object typed BaseObjectType, organized under the ModellingRules folder.
     const scada::NodeId kOptionalPlaceholder{
         scada::id::ModellingRule_OptionalPlaceholder};
-    AddStaticNode<scada::GenericObject>(kOptionalPlaceholder,
-                                        "OptionalPlaceholder",
-                                        scada::LocalizedText{});
+    AddStaticNode<scada::GenericObject>(
+        kOptionalPlaceholder, "OptionalPlaceholder", scada::LocalizedText{});
     scada::AddReference(
         *this, scada::NodeId{scada::id::HasTypeDefinition},
         kOptionalPlaceholder,
@@ -839,9 +895,8 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                                std::string_view browse_name) {
     const scada::NodeId placeholder_id{next_placeholder_id_++,
                                        scada::NamespaceIndexes::SCADA};
-    AddStaticNode<scada::GenericObject>(placeholder_id,
-                                        std::string{browse_name},
-                                        scada::LocalizedText{});
+    AddStaticNode<scada::GenericObject>(
+        placeholder_id, std::string{browse_name}, scada::LocalizedText{});
     scada::AddReference(*this, scada::id::Organizes, parent_type,
                         placeholder_id);
     scada::AddReference(*this, scada::NodeId{scada::id::HasTypeDefinition},
