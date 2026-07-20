@@ -512,11 +512,24 @@ NodeState MakeNodeState(const Node& node) {
 
   auto references =
       node.forward_references() |
-      boost::adaptors::filtered([](const Reference& ref) {
+      boost::adaptors::filtered([&node](const Reference& ref) {
         if (!ref.type || !ref.node) {
           return false;
         }
-        return IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
+        if (IsSubtypeOf(*ref.type, id::NonHierarchicalReferences)) {
+          return true;
+        }
+        // A node's primary parent edge is carried by the target's
+        // parent_id/reference_type_id slot, and HasSubtype edges by the
+        // target's supertype_id. Every other hierarchical edge (a second
+        // Organizes parent, a custom hierarchical reference) exists only in
+        // the graph itself, so export it here or the snapshot loses it.
+        if (!IsSubtypeOf(*ref.type, id::HierarchicalReferences) ||
+            ref.type->id() == NodeId{id::HasSubtype}) {
+          return false;
+        }
+        const auto target_parent = GetParentReference(*ref.node);
+        return target_parent.node != &node || target_parent.type != ref.type;
       }) |
       boost::adaptors::transformed([](const Reference& ref) {
         return ReferenceDescription{.reference_type_id = ref.type->id(),
