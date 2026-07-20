@@ -113,6 +113,15 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // vanish for wall-clock-ranged queries, and vice versa.
   const auto now = details.to.is_null() ? Now() : details.to;
 
+  // Span the requested window when it is finite so every consumer gets a
+  // fully-populated series regardless of its range — a graph's 24 h span and
+  // a table row's 1 h sparkline window both read 48 points (a 24 h request
+  // keeps the historical 30-minute spacing exactly). An open-ended request
+  // falls back to that 30-minute spacing.
+  base::TimeDelta interval = base::TimeDelta::FromMinutes(30);
+  if (!details.from.is_null() && details.from < now)
+    interval = (now - details.from) / 48;
+
   double base_value = 100.0;
   std::optional<double> noise_stddev;
   if (auto it = raw_profiles_.find(details.node_id);
@@ -133,7 +142,7 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   std::vector<DataValue> values;
   values.reserve(48);
   for (int i = 0; i < 48; ++i) {
-    auto time = now - base::TimeDelta::FromMinutes(30 * (48 - i));
+    auto time = now - interval * (48 - i);
     values.push_back(MakeValueAt(Variant{dist(rng)}, time));
   }
 

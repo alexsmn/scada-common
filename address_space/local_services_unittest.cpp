@@ -167,6 +167,28 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
   EXPECT_FALSE(result.values.front().value.is_null());
 }
 
+// The synthesized series spans the requested window, so a narrow range (a
+// table row's 1 h sparkline window) still reads a fully-populated series
+// instead of the tail of a fixed 30-minute-spaced day.
+TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  const NodeId node_id{7, 2};
+  service.SetRawProfile(node_id, 42.0);
+
+  const auto to = base::Time::Now();
+  const auto from = to - base::TimeDelta::FromHours(1);
+  auto result =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = node_id, .from = from, .to = to}));
+
+  EXPECT_TRUE(result.status);
+  ASSERT_EQ(result.values.size(), 48u);
+  // All 48 points fall inside [from, to], evenly spaced, ending at `to`.
+  EXPECT_GE(result.values.front().source_timestamp, from);
+  EXPECT_EQ(result.values.back().source_timestamp, to - (to - from) / 48);
+}
+
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   TestExecutor executor;
   LocalHistoryService service;
