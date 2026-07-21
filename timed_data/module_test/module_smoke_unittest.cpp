@@ -17,11 +17,11 @@ TEST(ScadaTimedDataModuleSmoke, FakeTimedDataAndView) {
   timed_data.title = u"smoke";
   EXPECT_EQ(timed_data.title, u"smoke");
 
-  TimedDataView view;
+  TimedDataBuffer buffer;
   scada::DataValue data_value;
   data_value.source_timestamp = scada::DateTime::Now();
-  view.InsertOrUpdate(data_value);
-  EXPECT_EQ(view.values().size(), 1u);
+  buffer.InsertOrUpdate(data_value);
+  EXPECT_EQ(buffer.view().size(), 1u);
 
   // Extern constants defined out-of-line in the library (proves linkage
   // through the module boundary; the "current only" ready-range list is
