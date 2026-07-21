@@ -181,6 +181,9 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   event.change_mask = scada::Event::EVT_VAL;
   event.severity = 600;
   event.source_node_id = scada::NodeId{42, 2};
+  // Post-producer events carry a resolved SourceName; an empty one would
+  // round-trip as the projection's NodeId-string fallback, not as empty.
+  event.source_name = "Pump 42";
   event.user_id = scada::NodeId{7, 3};
   event.value = scada::Variant{123};
   event.message = scada::LocalizedText{u"forwarded alarm"};

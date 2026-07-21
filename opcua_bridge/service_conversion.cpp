@@ -383,6 +383,7 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToOpcua(v.source_node_id);
+  out.source_name = v.source_name;
   out.user_id = ToOpcua(v.user_id);
   out.value = ToOpcua(v.value);
   out.qualifier = ToOpcua(v.qualifier);
@@ -401,6 +402,7 @@ scada::Event ToScada(const opcua::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToScada(v.source_node_id);
+  out.source_name = v.source_name;
   out.user_id = ToScada(v.user_id);
   out.value = ToScada(v.value);
   out.qualifier = ToScada(v.qualifier);
