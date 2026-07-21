@@ -96,8 +96,10 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   LOG_DEBUG(logger_) << "Browse children completed"
                      << LOG_TAG("DurationMs", duration.InMilliseconds())
                      << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Inputs", ToString(scada::base::AsList(descriptions)))
-                     << LOG_TAG("Results", ToString(scada::base::AsList(results)));
+                     << LOG_TAG("Inputs",
+                                ToString(scada::base::AsList(descriptions)))
+                     << LOG_TAG("Results",
+                                ToString(scada::base::AsList(results)));
 
   scada::base::Check(!descriptions.empty());
 
@@ -148,8 +150,12 @@ void NodeChildrenFetcher::FetchChildren(
     const std::vector<scada::NodeId>& node_ids) {
   scada::base::Check(!node_ids.empty());
 
+  // Wrapped in AsList explicitly: a bare vector<NodeId> would still compile
+  // here by implicitly converting to scada::Variant (it is a Variant
+  // alternative) and rendering through Variant::Dump.
   LOG_INFO(logger_) << "Browse nodes children"
-                    << LOG_TAG("NodeIds", ToString(node_ids));
+                    << LOG_TAG("NodeIds",
+                               ToString(scada::base::AsList(node_ids)));
 
   const auto start_ticks = scada::base::TimeTicks::Now();
   ++children_request_count_;
