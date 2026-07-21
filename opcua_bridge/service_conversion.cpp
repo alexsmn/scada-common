@@ -4,6 +4,7 @@
 
 #include "scada/event_util.h"
 
+#include "opcua/events/event_filter.h"
 #include "opcua/events/event_util.h"
 
 #include <any>
@@ -549,17 +550,24 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
           // Reassemble the core event std::any from the wire EventFieldList.
           // OPC UA Part 4 §7.22.3 EventFilter delivers each Event as the field
           // values selected by the SelectClauses,
-          // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 . On
-          // the SCADA path both ends are this bridge and carry the full
-          // per-type DisassembleEvent layout (no select-clause projection):
-          // AssembleEvent dispatches on the event type id at field 0 and
-          // rebuilds that type's layout (13 fields for SystemEvent, 4 for
-          // GeneralModelChange, etc.) — the field count is per-type, not a
-          // fixed 13. So reassemble whenever fields are present; an
-          // unrecognized type id yields an empty payload.
+          // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22 .
+          // Two layouts arrive on the SCADA path: the model-notification
+          // payloads (GeneralModelChange / SemanticChange) cross as their
+          // per-type DisassembleEvent layout, which AssembleEvent rebuilds by
+          // the type id at field 0; a scada::Event payload crosses as the
+          // DEFAULT full-fidelity projection (the _scada event filter carries
+          // no SelectClauses, so the serving side projects
+          // DefaultEventFieldPaths) and is rebuilt the same way the
+          // HistoryReadEvents decode rebuilds it. An unrecognized layout
+          // yields an empty payload.
           std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
           std::any event =
               fields.empty() ? std::any{} : scada::AssembleEvent(fields);
+          if (!event.has_value() &&
+              x.event_fields.size() == opcua::DefaultEventFieldPaths().size()) {
+            event = std::any{ToScada(opcua::ReconstructEventFromFields(
+                opcua::DefaultEventFieldPaths(), x.event_fields))};
+          }
           return scada::EventNotification{.item_id = 0,
                                           .client_handle = x.client_handle,
                                           .status = scada::StatusCode::Good,

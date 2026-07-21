@@ -161,5 +161,72 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   EXPECT_EQ(event_fields->event_fields[2].get<opcua::UInt64>(), 77u);
 }
 
+// A scada::Event crossing the SCADA-to-SCADA path — an event filter WITHOUT
+// select clauses, so the serving side projects the default full-fidelity
+// field paths — must reconstruct on the client side with identity (event id,
+// receive time) and payload intact. The aggregation event tap forwards
+// downstream process/alarm events through exactly this path (ADR 0004).
+TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  auto* fake_ptr = fake.get();
+
+  scada::Event event;
+  event.event_type_id = scada::id::SystemEventType;
+  event.event_id = 0x123456789;
+  event.time = scada::DateTime::Now();
+  event.receive_time = scada::DateTime::Now();
+  event.change_mask = scada::Event::EVT_VAL;
+  event.severity = 600;
+  event.node_id = scada::NodeId{42, 2};
+  event.user_id = scada::NodeId{7, 3};
+  event.value = scada::Variant{123};
+  event.message = scada::LocalizedText{u"forwarded alarm"};
+  fake_ptr->next = scada::EventNotification{.item_id = 1,
+                                            .client_handle = 55,
+                                            .status = scada::StatusCode::Good,
+                                            .event = std::any{event}};
+
+  MonitoredItemSubscriptionAdapter adapter{std::move(fake)};
+
+  // Subscribe the way the SCADA client does: a scada::EventFilter converts to
+  // the `_scada` json wire filter, which carries no SelectClauses.
+  scada::MonitoringParameters scada_params;
+  scada_params.filter = scada::EventFilter{
+      .of_type = {scada::NodeId{scada::id::SystemEventType}}};
+  opcua::MonitoredItemCreateRequest request;
+  request.item_to_monitor = {.node_id = opcua::NodeId{2253u},
+                             .attribute_id = opcua::AttributeId::EventNotifier};
+  request.requested_parameters = ToOpcua(scada_params);
+  request.requested_parameters.client_handle = 55;
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        std::vector<opcua::MonitoredItemCreateRequest> requests;
+        requests.push_back(request);
+        co_await adapter.AddItems(std::move(requests));
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(read_result.has_value());
+  ASSERT_TRUE(read_result->ok());
+  ASSERT_EQ((*read_result)->size(), 1u);
+
+  // Client-side decode: the default projection reconstructs the full event.
+  const scada::MonitoredItemNotification decoded = ToScada((**read_result)[0]);
+  const auto* decoded_event = std::get_if<scada::EventNotification>(&decoded);
+  ASSERT_NE(decoded_event, nullptr);
+  EXPECT_EQ(decoded_event->client_handle, 55u);
+  const auto* reconstructed =
+      std::any_cast<scada::Event>(&decoded_event->event);
+  ASSERT_NE(reconstructed, nullptr);
+  EXPECT_EQ(*reconstructed, event);
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge
