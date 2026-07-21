@@ -92,7 +92,7 @@ scada::Event MakeEvent(scada::EventId event_id,
                        scada::EventSeverity severity = scada::kSeverityNormal) {
   scada::Event event;
   event.event_id = event_id;
-  event.node_id = node_id;
+  event.source_node_id = node_id;
   event.severity = severity;
   return event;
 }

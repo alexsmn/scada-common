@@ -223,7 +223,7 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   LocalHistoryService service;
   Event event;
   event.event_id = EventId{17};
-  event.node_id = NodeId{3, 2};
+  event.source_node_id = NodeId{3, 2};
   event.time = base::Time::Now();
   event.receive_time = event.time;
   event.severity = kSeverityWarning;
@@ -232,13 +232,13 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
 
   auto result = WaitAwaitable(
       executor, service.HistoryReadEvents(
-                    event.node_id, event.time - base::TimeDelta::FromHours(1),
+                    event.source_node_id, event.time - base::TimeDelta::FromHours(1),
                     event.time + base::TimeDelta::FromHours(1), EventFilter{}));
 
   EXPECT_TRUE(result.status);
   ASSERT_EQ(result.events.size(), 1u);
   EXPECT_EQ(result.events[0].event_id, event.event_id);
-  EXPECT_EQ(result.events[0].node_id, event.node_id);
+  EXPECT_EQ(result.events[0].node_id, event.source_node_id);
   EXPECT_EQ(result.events[0].severity, kSeverityWarning);
 }
 

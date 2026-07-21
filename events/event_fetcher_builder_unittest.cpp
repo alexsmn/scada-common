@@ -114,7 +114,7 @@ class TestSessionService final : public scada::SessionService {
 scada::Event MakeEvent(scada::EventId event_id, scada::NodeId node_id) {
   scada::Event event;
   event.event_id = event_id;
-  event.node_id = std::move(node_id);
+  event.source_node_id = std::move(node_id);
   event.severity = scada::kSeverityMax;
   return event;
 }

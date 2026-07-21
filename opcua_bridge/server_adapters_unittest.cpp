@@ -113,7 +113,7 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   scada::Event event;
   event.event_id = 77;
   event.event_type_id = scada::id::SystemEventType;
-  event.node_id = scada::NodeId{3001u};
+  event.source_node_id = scada::NodeId{3001u};
   event.message = scada::LocalizedText{u"custom alarm"};
   event.severity = 600;
   fake_ptr->next = scada::EventNotification{.item_id = 1,
@@ -177,7 +177,7 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   event.receive_time = scada::DateTime::Now();
   event.change_mask = scada::Event::EVT_VAL;
   event.severity = 600;
-  event.node_id = scada::NodeId{42, 2};
+  event.source_node_id = scada::NodeId{42, 2};
   event.user_id = scada::NodeId{7, 3};
   event.value = scada::Variant{123};
   event.message = scada::LocalizedText{u"forwarded alarm"};

@@ -22,11 +22,11 @@ const scada::Event* EventStorage::Add(const scada::Event& event) {
     contained_event = event;
   }
 
-  if (inserted && !event.node_id.is_null()) {
-    NodeEntry& entry = node_events_[event.node_id];
+  if (inserted && !event.source_node_id.is_null()) {
+    NodeEntry& entry = node_events_[event.source_node_id];
     entry.events.insert(&contained_event);
-    NodeEventsChanged(observers_, event.node_id, entry.events);
-    NodeEventsChanged(entry.observers, event.node_id, entry.events);
+    NodeEventsChanged(observers_, event.source_node_id, entry.events);
+    NodeEventsChanged(entry.observers, event.source_node_id, entry.events);
   }
 
   UpdateAlerting();
@@ -44,8 +44,8 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
   // Update fields of contained event before notification to observers.
   contained_event = event;
 
-  if (!contained_event.node_id.is_null()) {
-    auto p = node_events_.find(contained_event.node_id);
+  if (!contained_event.source_node_id.is_null()) {
+    auto p = node_events_.find(contained_event.source_node_id);
     if (p != node_events_.end()) {
       NodeEntry& entry = p->second;
 
@@ -53,8 +53,8 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
       scada::base::Check(j != entry.events.end());
       entry.events.erase(j);
 
-      NodeEventsChanged(observers_, contained_event.node_id, entry.events);
-      NodeEventsChanged(entry.observers, contained_event.node_id, entry.events);
+      NodeEventsChanged(observers_, contained_event.source_node_id, entry.events);
+      NodeEventsChanged(entry.observers, contained_event.source_node_id, entry.events);
 
       if (entry.events.empty() && entry.observers.empty()) {
         node_events_.erase(p);
