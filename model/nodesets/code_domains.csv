@@ -193,7 +193,7 @@ SimulationSignalType_Phase,data_items
 SimulationSignalType_UpdateInterval,data_items
 SimulationSignals,data_items
 TransmissionItemType,devices
-TransmissionItemType_SourceAddress,devices
+TransmissionItemType_Address,devices
 TransmissionItemType_SourceNode,devices
 TsFormatType,data_items
 TsFormatType_CloseColor,data_items

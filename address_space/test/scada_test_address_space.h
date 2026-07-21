@@ -487,7 +487,7 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
-      .node_id = dev::TransmissionItemType_SourceAddress,
+      .node_id = dev::TransmissionItemType_Address,
       .node_class = scada::NodeClass::Variable,
       .type_definition_id = {scada::id::PropertyType,
                              scada::NamespaceIndexes::NS0},
@@ -495,10 +495,25 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
       .attributes = scada::NodeAttributes{}
-                        .set_browse_name("InfoAddress")
+                        .set_browse_name("Address")
                         .set_display_name(u"Адрес объекта приемника")
                         .set_data_type(
                             {scada::id::Int32, scada::NamespaceIndexes::NS0})});
+  // The source link: a Mandatory NodeId property, replacing the retired
+  // HasTransmissionSource reference (transmission OPC UA alignment, phase 4).
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::TransmissionItemType_SourceNode,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType,
+                             scada::NamespaceIndexes::NS0},
+      .parent_id = dev::TransmissionItemType,
+      .reference_type_id = {scada::id::HasProperty,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{}
+                        .set_browse_name("SourceNode")
+                        .set_display_name(u"Объект")
+                        .set_data_type({scada::id::NodeId,
+                                        scada::NamespaceIndexes::NS0})});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusTransmissionItemType,
       .node_class = scada::NodeClass::ObjectType,
@@ -851,12 +866,9 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                                         "HasTsFormat");
     scada::AddReference(*this, kHasSubtype, kNonHierarchical,
                         scada::data_items::id::HasTsFormat);
-    // Links a retransmission item to its source variable (the "Объект"
-    // column of the device retransmission table).
-    AddStaticNode<scada::ReferenceType>(
-        scada::devices::id::HasTransmissionSource, "IecTransmitSource");
-    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
-                        scada::devices::id::HasTransmissionSource);
+    // The retransmission source link is the TransmissionItemType SourceNode
+    // property declared above — the HasTransmissionSource reference type is
+    // retired (transmission OPC UA alignment, phase 4).
 
     // OptionalPlaceholder InstanceDeclarations — the standard-modelling
     // replacement for the removed Creates edges. Tests resolve creatable child

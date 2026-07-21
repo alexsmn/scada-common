@@ -103,11 +103,10 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::Iec60870DeviceType.numeric_id(), 331u);
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),
             133u);  // runtime method
-  EXPECT_EQ(devices::id::TransmissionItemType_SourceAddress.numeric_id(), 225u);
-  // Retired ReferenceType (transmission alignment phase 4): the id stays
-  // reserved and the constant remains until the Qt client migrates off it
-  // (phase 4b); the source link is the SourceNode property below.
-  EXPECT_EQ(devices::id::HasTransmissionSource.numeric_id(), 221u);
+  EXPECT_EQ(devices::id::TransmissionItemType_Address.numeric_id(), 225u);
+  // ns=1;i=221 (HasTransmissionSource) is RETIRED but stays reserved — never
+  // reallocate it (transmission alignment phase 4; the source link is the
+  // SourceNode property below, like i=297 Creates before it).
   EXPECT_EQ(devices::id::TransmissionItemType_SourceNode.numeric_id(), 373u);
   EXPECT_EQ(devices::id::HasTransmissionItem.numeric_id(), 339u);
   // Transmission-item OptionalPlaceholder InstanceDeclarations on the

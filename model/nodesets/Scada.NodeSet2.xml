@@ -876,7 +876,7 @@
     </References>
     <InverseName>TransmissionItemOf</InverseName>
   </UAReferenceType>
-  <UAVariable NodeId="ns=1;i=225" BrowseName="Address" SymbolicName="TransmissionItemType_SourceAddress" ParentNodeId="ns=1;i=34" DataType="Int32">
+  <UAVariable NodeId="ns=1;i=225" BrowseName="Address" SymbolicName="TransmissionItemType_Address" ParentNodeId="ns=1;i=34" DataType="Int32">
     <DisplayName>Адрес объекта приемника</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
