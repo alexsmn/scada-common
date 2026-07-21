@@ -322,9 +322,12 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
                      << LOG_TAG("NodeCount", result.nodes.size())
                      << LOG_TAG("ErrorCount", result.errors.size())
                      << LOG_TAG("FetchingCount", fetching_nodes_.size())
-                     << LOG_TAG("NodeIds",
-                                ToString(CollectFetchedNodeIds(result.nodes)))
-                     << LOG_TAG("Errors", ToString(result.errors));
+                     << LOG_TAG(
+                            "NodeIds",
+                            ToString(scada::base::AsList(
+                                CollectFetchedNodeIds(result.nodes))))
+                     << LOG_TAG("Errors",
+                                ToString(scada::base::AsDict(result.errors)));
 
   // Consistency diagnostics over node data fetched from a (possibly remote)
   // server. The data is external, so inconsistencies are logged rather than

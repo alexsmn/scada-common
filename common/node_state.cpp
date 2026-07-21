@@ -112,7 +112,6 @@ NodeState& NodeState::set_property(const scada::NodeId& prop_decl_id,
 }
 
 std::ostream& operator<<(std::ostream& stream, const NodeState& node_state) {
-  using ::operator<<;
   return stream << "{"
                 << "node_id: " << node_state.node_id << ", "
                 << "node_class: " << node_state.node_class << ", "
@@ -122,9 +121,9 @@ std::ostream& operator<<(std::ostream& stream, const NodeState& node_state) {
                 << "reference_type_id: " << node_state.reference_type_id << ", "
                 << "supertype_id: " << node_state.supertype_id << ", "
                 << "attributes: " << node_state.attributes << ", "
-                << "properties: " << node_state.properties << ", "
-                << "references: " << node_state.references << ", "
-                << "children: " << node_state.children << "}";
+                << "properties: " << base::AsDict(node_state.properties) << ", "
+                << "references: " << base::AsList(node_state.references) << ", "
+                << "children: " << base::AsList(node_state.children) << "}";
 }
 
 }  // namespace scada

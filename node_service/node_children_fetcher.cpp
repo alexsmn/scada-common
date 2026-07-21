@@ -8,6 +8,9 @@
 #include "scada/standard_node_ids.h"
 #include "scada/view_service.h"
 #include <format>
+// Textual: importing TUs don't see the PCH, and no imported facade
+// re-exports <map> (see docs/cxx-modules.md, "Rules for importing TUs").
+#include <map>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -93,8 +96,8 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
   LOG_DEBUG(logger_) << "Browse children completed"
                      << LOG_TAG("DurationMs", duration.InMilliseconds())
                      << LOG_TAG("Status", ToString(status))
-                     << LOG_TAG("Inputs", ToString(descriptions))
-                     << LOG_TAG("Results", ToString(results));
+                     << LOG_TAG("Inputs", ToString(scada::base::AsList(descriptions)))
+                     << LOG_TAG("Results", ToString(scada::base::AsList(results)));
 
   scada::base::Check(!descriptions.empty());
 

@@ -4,6 +4,8 @@
 #include "node_service/fetching_node.h"
 #include "node_service/node_fetcher.h"
 
+#include <map>
+
 class FetchingNodeGraph {
  public:
   std::size_t size() const { return fetching_nodes_.size(); }

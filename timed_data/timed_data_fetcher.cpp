@@ -70,8 +70,10 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
   // Reset query if the requested range is no more interesting.
   auto gap = buffer_.FindNextGap();
   if (!gap || !IntervalContains(*gap, querying_range_)) {
-    LOG_INFO(logger_) << "Query canceled" << LOG_TAG("Gap", ToString(*gap))
-                      << LOG_TAG("Range", ToString(querying_range_));
+    LOG_INFO(logger_) << "Query canceled"
+                      << LOG_TAG("Gap", ToString(scada::base::AsPair(*gap)))
+                      << LOG_TAG("Range",
+                                 ToString(scada::base::AsPair(querying_range_)));
     continuation_point.reset();
     querying_ = false;
     FetchNextGap();
@@ -79,7 +81,8 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
   }
 
   LOG_INFO(logger_) << "Continue querying history"
-                    << LOG_TAG("Range", ToString(querying_range_));
+                    << LOG_TAG("Range",
+                               ToString(scada::base::AsPair(querying_range_)));
 
   // Query history in the backward direction.
   scada::HistoryReadRawDetails details{node_.node_id(),

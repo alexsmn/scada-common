@@ -49,7 +49,7 @@ void EventAckQueue::AckPendingEvents() {
 
   if (!event_ids.empty()) {
     LOG_INFO(*logger_) << std::format("Acknowledge events {}",
-                                      ToString(event_ids));
+                                      scada::base::AsList(event_ids));
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
              context = service_context_]() mutable -> Awaitable<void> {

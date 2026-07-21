@@ -19,6 +19,7 @@ module;
 #include "model/namespaces.h"
 #include "model/nested_node_ids.h"
 #include "model/node_id_util.h"
+#include "model/static_nodesets.h"
 #include "model/static_types.h"
 
 export module scada.model;
@@ -40,6 +41,16 @@ export {
   using ::FindNamespaceIndexByName;
   using ::GetNamespaceName;
 }  // export
+
+export namespace scada {
+
+// static_nodesets.h (kScadaStaticNodesetFiles is `inline constexpr` —
+// external linkage, exportable; the node-id constant headers stay excluded)
+using scada::GetScadaStaticNodesetSourceDir;
+using scada::GetScadaStaticNodesetSourcePaths;
+using scada::kScadaStaticNodesetFiles;
+
+}  // namespace scada
 
 export namespace scada::cfg {
 

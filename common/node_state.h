@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/ostream_formatter.h"
 #include "scada/node_attributes.h"
 #include "scada/node_class.h"
 #include "scada/node_id.h"
@@ -157,3 +158,8 @@ void SetReferences(scada::ReferenceDescriptions& references,
 std::ostream& operator<<(std::ostream& stream, const NodeState& node_state);
 
 }  // namespace scada
+
+// std::format support (used by base::AsList element rendering, e.g. for
+// NodeState::children), delegating to the operator<< overload above.
+template <>
+struct std::formatter<scada::NodeState> : OStreamFormatter {};
