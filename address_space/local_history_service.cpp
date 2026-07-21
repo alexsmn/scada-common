@@ -83,7 +83,7 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
     e.severity = ParseSeverity(je.at("severity").as_string());
     e.message = LocalizedText{
         UtfConvert<char16_t>(std::string(je.at("message").as_string()))};
-    e.node_id =
+    e.source_node_id =
         NodeIdFromScadaString(std::string_view(je.at("node_id").as_string()));
     e.change_mask = static_cast<UInt32>(je.at("change_mask").as_int64());
     // Acknowledged unless the entry says otherwise — an `"acknowledged":

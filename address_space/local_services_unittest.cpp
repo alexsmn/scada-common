@@ -238,7 +238,7 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   EXPECT_TRUE(result.status);
   ASSERT_EQ(result.events.size(), 1u);
   EXPECT_EQ(result.events[0].event_id, event.event_id);
-  EXPECT_EQ(result.events[0].node_id, event.source_node_id);
+  EXPECT_EQ(result.events[0].source_node_id, event.source_node_id);
   EXPECT_EQ(result.events[0].severity, kSeverityWarning);
 }
 
