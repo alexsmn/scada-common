@@ -12,6 +12,7 @@
 #include "scada/standard_node_ids.h"
 #include "scada/test/status_matchers.h"
 
+#include <boost/json.hpp>
 #include <gmock/gmock.h>
 #include <variant>
 
@@ -187,6 +188,34 @@ TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
   // All 48 points fall inside [from, to], evenly spaced, ending at `to`.
   EXPECT_GE(result.values.front().source_timestamp, from);
   EXPECT_EQ(result.values.back().source_timestamp, to - (to - from) / 48);
+}
+
+// LoadFromJson leaves an event marked `"acknowledged": false` pending (null
+// acknowledged time), so alarm-surface fixtures can render actionable state;
+// unmarked events stay acknowledged as before.
+TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  service.LoadFromJson(boost::json::parse(R"({
+    "now": "2026-04-16 15:02:00",
+    "nodes": [],
+    "events": [
+      {"id": 1, "hours_ago": 1.0, "severity": "critical", "message": "m1",
+       "node_id": "TS.105", "change_mask": 16, "acknowledged": false},
+      {"id": 2, "hours_ago": 2.0, "severity": "normal", "message": "m2",
+       "node_id": "TS.105", "change_mask": 16}
+    ]
+  })"));
+
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadEvents(NodeId{}, base::Time{},
+                                          base::Time::Now(), EventFilter{}));
+
+  ASSERT_EQ(result.events.size(), 2u);
+  EXPECT_FALSE(result.events[0].acked);
+  EXPECT_TRUE(result.events[0].acknowledged_time.is_null());
+  EXPECT_TRUE(result.events[1].acked);
+  EXPECT_FALSE(result.events[1].acknowledged_time.is_null());
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {

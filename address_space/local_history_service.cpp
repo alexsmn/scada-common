@@ -86,8 +86,14 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
     e.node_id =
         NodeIdFromScadaString(std::string_view(je.at("node_id").as_string()));
     e.change_mask = static_cast<UInt32>(je.at("change_mask").as_int64());
+    // Acknowledged unless the entry says otherwise — an `"acknowledged":
+    // false` event stays pending, so alarm-surface chrome (pending markers,
+    // backlog summaries) has something real to render.
     e.acked = true;
-    e.acknowledged_time = e.time;
+    if (const auto* ja = je.as_object().if_contains("acknowledged"))
+      e.acked = ja->as_bool();
+    if (e.acked)
+      e.acknowledged_time = e.time;
     AddEvent(std::move(e));
   }
 }
