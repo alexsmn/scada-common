@@ -157,7 +157,7 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
   ASSERT_EQ(event_fields->event_fields.size(), 3u);
   EXPECT_EQ(event_fields->event_fields[0].get<opcua::LocalizedText>(),
             opcua::LocalizedText{u"custom alarm"});
-  EXPECT_EQ(event_fields->event_fields[1].get<opcua::UInt32>(), 600u);
+  EXPECT_EQ(event_fields->event_fields[1].get<opcua::UInt16>(), 600u);
   // EventId is projected as ByteString per OPC UA Part 5 §6.4.2 BaseEventType,
   // https://reference.opcfoundation.org/Core/Part5/v105/docs/6.4.2
   EXPECT_EQ(event_fields->event_fields[2].get<opcua::ByteString>(),

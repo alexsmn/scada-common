@@ -395,7 +395,10 @@
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
-    <Value><uax:Int32>1</uax:Int32></Value>
+    <!-- On the OPC UA BaseEventType Severity scale (1-1000, Part 5 §6.4.2);
+         the default matches the config-DB severity_scale_1000 migration
+         (old default 1 rescales to 10). -->
+    <Value><uax:Int32>10</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=145" BrowseName="Input1" SymbolicName="DataItemType_Input1" ParentNodeId="ns=1;i=239" DataType="String">
     <DisplayName>Основной ввод</DisplayName>
