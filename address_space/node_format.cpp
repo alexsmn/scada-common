@@ -2,10 +2,10 @@
 
 #include "address_space/address_space_util.h"
 #include "address_space/node_utils.h"
-#include <format>
 #include "base/utf_convert.h"
 #include "model/data_items_node_ids.h"
 #include "model/scada_node_ids.h"
+#include <format>
 
 namespace scada {
 
@@ -56,7 +56,7 @@ std::u16string FormatDiscreteValue(const LocalizedText& open_label,
 
   bool bool_value;
   if (value.get(bool_value)) {
-    text = bool_value ? close_label : open_label;
+    text = bool_value ? close_label.text : open_label.text;
   }
 
   if ((flags & FORMAT_QUALITY) && qualifier.bad())
@@ -78,14 +78,13 @@ std::u16string FormatAnalogValue(const String& display_format,
 
   double double_value;
   if (value.get(double_value)) {
-    text = UtfConvert<char16_t>(
-        FormatFloat(double_value, display_format.c_str()));
+    text =
+        UtfConvert<char16_t>(FormatFloat(double_value, display_format.c_str()));
     if ((flags & FORMAT_UNITS) && !eu_units.empty()) {
       text += L' ';
       if (flags & FORMAT_COLOR)
-        text += UtfConvert<char16_t>(
-            std::format("&color:{};", 0x7f7f7f));
-      text += eu_units;
+        text += UtfConvert<char16_t>(std::format("&color:{};", 0x7f7f7f));
+      text += eu_units.text;
     }
   }
 
@@ -102,9 +101,7 @@ std::u16string FormatUnknownValue(bool locked,
                                   const Variant& value,
                                   Qualifier qualifier,
                                   int flags) {
-  std::u16string text;
-
-  value.get(text);
+  std::u16string text = ToString16(value);
 
   if (qualifier.bad() && (flags & FORMAT_QUALITY))
     text += L'?';

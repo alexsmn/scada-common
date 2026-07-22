@@ -3,12 +3,12 @@
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/utf_convert.h"
-#include <charconv>
-#include <cmath>
-#include <cstdio>
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 #include "scada/variant.h"
+#include <charconv>
+#include <cmath>
+#include <cstdio>
 
 #include <algorithm>
 #include <cstring>
@@ -44,8 +44,8 @@ std::string FormatFloat(double val, const char* fmt) {
   }
 
   char buffer[64];
-  int n = std::snprintf(buffer, sizeof(buffer), "%.*f",
-                        static_cast<int>(rlen), val);
+  int n = std::snprintf(buffer, sizeof(buffer), "%.*f", static_cast<int>(rlen),
+                        val);
   if (n < 0 || n >= static_cast<int>(sizeof(buffer)))
     return {};
 
@@ -189,7 +189,7 @@ scada::LocalizedText FormatTit(double double_value,
 
   if (!params.engineering_units.empty()) {
     text += u' ';
-    text += params.engineering_units;
+    text += params.engineering_units.text;
   }
 
   return text;

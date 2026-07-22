@@ -4,12 +4,12 @@
 
 #include "base/format.h"
 #include "base/string_util.h"
-#include <format>
 #include "base/utf_convert.h"
 #include "common/format.h"
-#include "scada/tvq.h"
 #include "model/data_items_node_ids.h"
 #include "node_service/node_util.h"
+#include "scada/tvq.h"
+#include <format>
 
 void FmtAddMods(const NodeRef& node,
                 scada::Qualifier qualifier,
@@ -78,7 +78,7 @@ std::u16string FormatTsValue(const NodeRef& node,
 
   if (bool bool_value; value.get(bool_value)) {
     auto format_params = GetTsFormatParams(node);
-    text = FormatTs(bool_value, format_params);
+    text = FormatTs(bool_value, format_params).text;
   }
 
   if ((flags & FORMAT_QUALITY) && qualifier.bad())
@@ -115,9 +115,8 @@ std::u16string FormatTitValue(const NodeRef& node,
     if ((flags & FORMAT_UNITS) && !format_params.engineering_units.empty()) {
       text += u' ';
       if (flags & FORMAT_COLOR)
-        text += UtfConvert<char16_t>(
-            std::format("&color:{};", 0x7f7f7f));
-      text += format_params.engineering_units;
+        text += UtfConvert<char16_t>(std::format("&color:{};", 0x7f7f7f));
+      text += format_params.engineering_units.text;
     }
   }
 
@@ -136,7 +135,8 @@ std::u16string FormatUnknownValue(const NodeRef& node,
                                   int flags) {
   std::u16string text;
 
-  if (value.get(text)) {
+  if (scada::LocalizedText localized; value.get(localized)) {
+    text = std::move(localized.text);
     if (flags & FORMAT_COLOR)
       EscapeColoredString(text);
   }

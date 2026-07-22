@@ -74,7 +74,7 @@ opcua::ReferenceDescription ToOpcua(const scada::ReferenceDescription& v) {
           .node_id = ToOpcua(v.node_id),
           .node_class = ToOpcua(v.node_class),
           .browse_name = ToOpcua(v.browse_name),
-          .display_name = v.display_name,  // LocalizedText is std::u16string
+          .display_name = ToOpcua(v.display_name),
           .type_definition = ToOpcua(v.type_definition)};
 }
 scada::ReferenceDescription ToScada(const opcua::ReferenceDescription& v) {
@@ -83,7 +83,7 @@ scada::ReferenceDescription ToScada(const opcua::ReferenceDescription& v) {
           .node_id = ToScada(v.node_id),
           .node_class = ToScada(v.node_class),
           .browse_name = ToScada(v.browse_name),
-          .display_name = v.display_name,
+          .display_name = ToScada(v.display_name),
           .type_definition = ToScada(v.type_definition)};
 }
 
@@ -141,7 +141,7 @@ scada::BrowsePathResult ToScada(const opcua::BrowsePathResult& v) {
 opcua::NodeAttributes ToOpcua(const scada::NodeAttributes& v) {
   opcua::NodeAttributes out;
   out.browse_name = ToOpcua(v.browse_name);
-  out.display_name = v.display_name;  // LocalizedText is std::u16string
+  out.display_name = ToOpcua(v.display_name);
   out.data_type = ToOpcua(v.data_type);
   out.value = ToOpcua(v.value);
   return out;
@@ -149,7 +149,7 @@ opcua::NodeAttributes ToOpcua(const scada::NodeAttributes& v) {
 scada::NodeAttributes ToScada(const opcua::NodeAttributes& v) {
   scada::NodeAttributes out;
   out.browse_name = ToScada(v.browse_name);
-  out.display_name = v.display_name;
+  out.display_name = ToScada(v.display_name);
   out.data_type = ToScada(v.data_type);
   out.value = ToScada(v.value);
   return out;
@@ -387,7 +387,7 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.user_id = ToOpcua(v.user_id);
   out.value = ToOpcua(v.value);
   out.qualifier = ToOpcua(v.qualifier);
-  out.message = v.message;  // LocalizedText is std::u16string
+  out.message = ToOpcua(v.message);
   out.acked = v.acked;
   out.acknowledged_time = ToOpcua(v.acknowledged_time);
   out.acknowledged_user_id = ToOpcua(v.acknowledged_user_id);
@@ -406,7 +406,7 @@ scada::Event ToScada(const opcua::Event& v) {
   out.user_id = ToScada(v.user_id);
   out.value = ToScada(v.value);
   out.qualifier = ToScada(v.qualifier);
-  out.message = v.message;
+  out.message = ToScada(v.message);
   out.acked = v.acked;
   out.acknowledged_time = ToScada(v.acknowledged_time);
   out.acknowledged_user_id = ToScada(v.acknowledged_user_id);
@@ -597,16 +597,16 @@ scada::SessionSecuritySettings ToScada(
 opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
-          .user_name = v.user_name,  // LocalizedText is std::u16string
-          .password = v.password,
+          .user_name = ToOpcua(v.user_name),
+          .password = ToOpcua(v.password),
           .allow_remote_logoff = v.allow_remote_logoff,
           .security = ToOpcua(v.security)};
 }
 scada::SessionConnectParams ToScada(const opcua::SessionConnectParams& v) {
   return {.host = v.host,
           .connection_string = v.connection_string,
-          .user_name = v.user_name,
-          .password = v.password,
+          .user_name = ToScada(v.user_name),
+          .password = ToScada(v.password),
           .allow_remote_logoff = v.allow_remote_logoff,
           .security = ToScada(v.security)};
 }

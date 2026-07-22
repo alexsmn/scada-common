@@ -513,8 +513,8 @@ MonitoredItemServiceAdapter::CreateSubscription(
 opcua::Awaitable<opcua::StatusOr<opcua::AuthenticationResult>>
 AuthenticatorAdapter::Authenticate(opcua::LocalizedText user_name,
                                    opcua::LocalizedText password) {
-  // LocalizedText is std::u16string on both sides.
-  auto result = co_await inner_->Authenticate(user_name, password);
+  auto result =
+      co_await inner_->Authenticate(ToScada(user_name), ToScada(password));
   if (!result.ok())
     co_return ToOpcua(result.status());
   co_return ToOpcua(*result);

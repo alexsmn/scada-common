@@ -123,9 +123,7 @@ std::u16string TimedDataSpec::GetValueString(
     return FormatValue(node, value, qualifier, format_options.flags);
   }
 
-  std::u16string string_value;
-  value.get(string_value);
-  return string_value;
+  return ToString16(value);
 }
 
 bool TimedDataSpec::logical() const {

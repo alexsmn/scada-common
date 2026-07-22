@@ -73,7 +73,7 @@ class TimedDataSpec final : private TimedDataObserver,
                                 scada::Qualifier qualifier,
                                 const ValueFormat& format = ValueFormat{
                                     FORMAT_QUALITY | FORMAT_UNITS}) const;
-  std::u16string GetTitle() const;
+  scada::LocalizedText GetTitle() const;
   const EventSet* GetEvents() const SCADA_LIFETIME_BOUND;
 
   void Reset() { SetData(nullptr); }

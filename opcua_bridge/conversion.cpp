@@ -15,8 +15,8 @@ namespace scada::opcua_bridge {
 namespace {
 
 // Scalar-or-array conversion for an "identity" element type T (the same std
-// type on both sides: bool, the numeric primitives, String, LocalizedText,
-// ByteString). The opcua Variant accepts the value directly.
+// type on both sides: bool, the numeric primitives, String, ByteString). The
+// opcua Variant accepts the value directly.
 template <class T>
 opcua::Variant ToOpcuaSame(const scada::Variant& v) {
   if (v.is_array())
@@ -182,7 +182,7 @@ opcua::Variant ToOpcua(const scada::Variant& v) {
     case V::STRING:
       return ToOpcuaSame<scada::String>(v);
     case V::LOCALIZED_TEXT:
-      return ToOpcuaSame<scada::LocalizedText>(v);
+      return ToOpcuaConv<scada::LocalizedText>(v);
     case V::QUALIFIED_NAME:
       return ToOpcuaConv<scada::QualifiedName>(v);
     case V::NODE_ID:
@@ -228,7 +228,7 @@ scada::Variant ToScada(const opcua::Variant& v) {
     case V::STRING:
       return ToScadaSame<opcua::String>(v);
     case V::LOCALIZED_TEXT:
-      return ToScadaSame<opcua::LocalizedText>(v);
+      return ToScadaConv<opcua::LocalizedText>(v);
     case V::QUALIFIED_NAME:
       return ToScadaConv<opcua::QualifiedName>(v);
     case V::NODE_ID:

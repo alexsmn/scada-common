@@ -65,8 +65,8 @@ Awaitable<scada::Status> RemoteHistoryService::Connect() {
 Awaitable<scada::Status> RemoteHistoryService::ConnectTo(std::string endpoint) {
   auto status = co_await session_->ConnectStatus(
       opcua::SessionConnectParams{.connection_string = std::move(endpoint),
-                                  .user_name = config_.user_name,
-                                  .password = config_.password,
+                                  .user_name = ToOpcua(config_.user_name),
+                                  .password = ToOpcua(config_.password),
                                   .security = config_.security});
   co_return ToScada(status);
 }

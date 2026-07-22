@@ -4,14 +4,15 @@
 // extracted opcuapp types (`opcua::`). The two type universes are
 // structurally identical mirrors, so most conversions are mechanical field
 // copies. Notably, the std-alias types — `String` (std::string),
-// `LocalizedText` (std::u16string), `ByteString` (std::vector<char>) and the
-// numeric primitives — are the SAME std type on both sides and need no
-// conversion at all; only the class types and `base::Time`-backed `DateTime`
-// require real work.
+// `ByteString` (std::vector<char>) and the numeric primitives — are the SAME
+// std type on both sides and need no conversion at all; the class types
+// (including the `{locale, text}` LocalizedText mirrors) and
+// `base::Time`-backed `DateTime` require real work.
 
 #include "scada/data_value.h"
 #include "scada/expanded_node_id.h"
 #include "scada/extension_object.h"
+#include "scada/localized_text.h"
 #include "scada/node_id.h"
 #include "scada/qualified_name.h"
 #include "scada/qualifier.h"
@@ -166,6 +167,15 @@ inline opcua::Qualifier ToOpcua(scada::Qualifier q) {
 }
 inline scada::Qualifier ToScada(opcua::Qualifier q) {
   return scada::Qualifier{q.raw()};
+}
+
+// --- LocalizedText ------------------------------------------------------
+// Mirror structs with identical `{locale, text}` layout on both sides.
+inline opcua::LocalizedText ToOpcua(const scada::LocalizedText& t) {
+  return opcua::LocalizedText{t.locale, t.text};
+}
+inline scada::LocalizedText ToScada(const opcua::LocalizedText& t) {
+  return scada::LocalizedText{t.locale, t.text};
 }
 
 // --- class types --------------------------------------------------------
