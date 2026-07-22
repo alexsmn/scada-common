@@ -360,6 +360,11 @@ MonitoredItemSubscriptionAdapter::AddItems(
   for (const auto& request : requests) {
     field_paths_by_handle_[request.requested_parameters.client_handle] =
         ParseWireEventFieldPaths(request.requested_parameters.filter);
+    if (!event_item_handle_.has_value() &&
+        request.item_to_monitor.attribute_id ==
+            opcua::AttributeId::EventNotifier) {
+      event_item_handle_ = request.requested_parameters.client_handle;
+    }
   }
   auto results = co_await inner_->AddItems(ToScadaVector(requests));
   co_return ToOpcuaVector(results);
@@ -406,6 +411,46 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
           return opcua::EventFieldList{.client_handle = x.client_handle,
                                        .event_fields = std::move(event_fields)};
         } else if constexpr (std::is_same_v<T, scada::OverflowNotification>) {
+          if (event_item_handle_.has_value()) {
+            // Event subscriptions surface the overflow as the standard
+            // EventQueueOverflowEventType notification on the event item's
+            // handle; it deliberately bypasses where clauses (OPC UA Part 4
+            // §7.22,
+            // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22).
+            // The bridge has no event-id generator, so the EventId is
+            // synthesized from the wall clock plus a process-wide counter —
+            // unique enough for the "never null" rule, but not resolvable by
+            // the Acknowledge method (overflow events are not ackable).
+            static std::atomic<opcua::UInt64> counter{0};
+            opcua::Event overflow_event;
+            overflow_event.event_type_id =
+                opcua::NodeId{opcua::id::EventQueueOverflowEventType};
+            overflow_event.event_id =
+                (static_cast<opcua::UInt64>(
+                     opcua::DateTime::Now().ToInternalValue())
+                 << 12) |
+                (counter.fetch_add(1, std::memory_order_relaxed) & 0xfff);
+            overflow_event.time = opcua::DateTime::Now();
+            overflow_event.receive_time = overflow_event.time;
+            overflow_event.severity = opcua::kSeverityCritical;
+            overflow_event.source_node_id = opcua::NodeId{opcua::id::Server};
+            overflow_event.source_name = "Server";
+            overflow_event.message =
+                u"Event queue overflowed; event notifications were lost";
+
+            std::vector<std::vector<std::string>> field_paths;
+            if (const auto it =
+                    field_paths_by_handle_.find(*event_item_handle_);
+                it != field_paths_by_handle_.end()) {
+              field_paths = it->second;
+            } else {
+              field_paths = opcua::NormalizeEventFieldPaths({});
+            }
+            return opcua::EventFieldList{
+                .client_handle = *event_item_handle_,
+                .event_fields = opcua::ProjectEventFields(
+                    field_paths, std::any{std::move(overflow_event)})};
+          }
           // Overflow has no client_handle; surface as a status-only data-change
           // notification with handle 0 so the dropped-notifications signal
           // survives by status.

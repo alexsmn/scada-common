@@ -1,5 +1,8 @@
 NS0.1	class=64 browse=0:Bool typedef=NS0.0 parent=NS0.24 parentRef=NS0.45 supertype=NS0.24 dataType=NS0.0 value=none refs=[]
 NS0.11	class=64 browse=0:Double typedef=NS0.0 parent=NS0.24 parentRef=NS0.45 supertype=NS0.24 dataType=NS0.0 value=none refs=[]
+NS0.11192	class=1 browse=0:HistoryServerCapabilities typedef=NS0.58 parent=NS0.2268 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.40->NS0.58;]
+NS0.11193	class=2 browse=0:AccessHistoryDataCapability typedef=NS0.68 parent=NS0.11192 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.1 value=set refs=[NS0.40->NS0.68;]
+NS0.11242	class=2 browse=0:AccessHistoryEventsCapability typedef=NS0.68 parent=NS0.11192 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.1 value=set refs=[NS0.40->NS0.68;]
 NS0.11314	class=2 browse=0:ServerUriArray typedef=NS0.68 parent=NS0.2034 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.12 value=set refs=[NS0.40->NS0.68;]
 NS0.11508	class=1 browse=0:OptionalPlaceholder typedef=NS0.58 parent=NS0.87 parentRef=NS0.35 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.40->NS0.58;]
 NS0.11616	class=8 browse=0:NamespaceMetadataType typedef=NS0.0 parent=NS0.58 parentRef=NS0.45 supertype=NS0.58 dataType=NS0.0 value=none refs=[]

@@ -199,6 +199,11 @@ class MonitoredItemSubscriptionAdapter
   // events into EventFieldList.
   std::unordered_map<std::uint32_t, std::vector<std::vector<std::string>>>
       field_paths_by_handle_;
+  // The first event item's (EventNotifier attribute) client handle. When set,
+  // a queue overflow surfaces as an EventQueueOverflowEventType notification
+  // on this handle (OPC UA Part 4 §7.22); data-only subscriptions keep the
+  // status-only degradation.
+  std::optional<std::uint32_t> event_item_handle_;
 };
 
 class MonitoredItemServiceAdapter {

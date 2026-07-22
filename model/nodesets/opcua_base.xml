@@ -144,6 +144,21 @@
   <Node id="NS0.11704" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="OperationLimits" displayName="OperationLimits">
     <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
   </Node>
+  <!-- HistoryServerCapabilities: whether this server serves historical
+       data/event reads; values served dynamically by StandardIoManager
+       (OPC UA Part 11 §5.3,
+       https://reference.opcfoundation.org/Core/Part11/v105/docs/5.3). -->
+  <Node id="NS0.11192" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="HistoryServerCapabilities" displayName="HistoryServerCapabilities">
+    <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.11193" class="Variable" typeDefinition="NS0.68" parent="NS0.11192" parentReference="NS0.46" browseName="AccessHistoryDataCapability" displayName="AccessHistoryDataCapability" dataType="NS0.1">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.11242" class="Variable" typeDefinition="NS0.68" parent="NS0.11192" parentReference="NS0.46" browseName="AccessHistoryEventsCapability" displayName="AccessHistoryEventsCapability" dataType="NS0.1">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
   <!-- Server.Namespaces: one NamespaceMetadata object per NamespaceArray
        entry, served dynamically by the core module's
        NamespaceMetadataManager (OPC UA Part 5 §6.3.12/§6.3.13,
