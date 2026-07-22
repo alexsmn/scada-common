@@ -117,7 +117,15 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // finite end: consumers (TimedDataFetcher) filter returned values by the
   // requested range, so a series pinned to a frozen "now" would otherwise
   // vanish for wall-clock-ranged queries, and vice versa.
-  const auto now = details.to.is_null() ? Now() : details.to;
+  // A history read whose upper bound is null or the "current-only" sentinel
+  // (DateTime::Max — used by live consumers that want the latest sample, not a
+  // finite window) has no real end time. Anchoring the synthesized series to
+  // Max would spread its 48 points across geological time, so every point but
+  // the first falls outside any real query window and the series reads flat.
+  // Treat an unbounded end as "now".
+  const auto now = (details.to.is_null() || details.to == base::Time::Max())
+                       ? Now()
+                       : details.to;
 
   // Span the requested window when it is finite so every consumer gets a
   // fully-populated series regardless of its range — a graph's 24 h span and
