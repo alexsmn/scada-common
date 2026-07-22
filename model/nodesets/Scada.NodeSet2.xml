@@ -859,9 +859,153 @@
   <UAObjectType NodeId="ns=1;i=15132" BrowseName="DeviceWatchEventType" SymbolicName="DeviceWatchEventType">
     <DisplayName>DeviceWatchEventType</DisplayName>
     <References>
-      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2130</Reference>
     </References>
   </UAObjectType>
+  <!-- ScadaEventType: the SCADA process-event base (ADR 0005 phase 2).
+       Deliberately a subtype of SystemEventType (i=2130) so every existing
+       of_type={SystemEventType} subscription (proxy event tap, historian
+       collector) keeps matching retyped events via the router's
+       HasSubtype-ancestor matching. Declares the SCADA extension fields as
+       Property InstanceDeclarations, named exactly as the select-clause
+       paths the wire projection serves (OPC UA Part 4 §7.22,
+       https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22). -->
+  <UAObjectType NodeId="ns=1;i=440" BrowseName="ScadaEventType" SymbolicName="ScadaEventType">
+    <DisplayName>ScadaEventType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2130</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=441" BrowseName="Value" SymbolicName="ScadaEventType_Value" ParentNodeId="ns=1;i=440" DataType="BaseDataType">
+    <DisplayName>Value</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=442" BrowseName="Quality" SymbolicName="ScadaEventType_Quality" ParentNodeId="ns=1;i=440" DataType="UInt32">
+    <DisplayName>Quality</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=443" BrowseName="ChangeMask" SymbolicName="ScadaEventType_ChangeMask" ParentNodeId="ns=1;i=440" DataType="UInt32">
+    <DisplayName>ChangeMask</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=444" BrowseName="UserId" SymbolicName="ScadaEventType_UserId" ParentNodeId="ns=1;i=440" DataType="NodeId">
+    <DisplayName>UserId</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=445" BrowseName="AckedState" SymbolicName="ScadaEventType_AckedState" ParentNodeId="ns=1;i=440" DataType="Boolean">
+    <DisplayName>AckedState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=446" BrowseName="AckedTime" SymbolicName="ScadaEventType_AckedTime" ParentNodeId="ns=1;i=440" DataType="DateTime">
+    <DisplayName>AckedTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=447" BrowseName="AckedUserId" SymbolicName="ScadaEventType_AckedUserId" ParentNodeId="ns=1;i=440" DataType="NodeId">
+    <DisplayName>AckedUserId</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=440</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <!-- Value/limit/quality change events raised by data items. -->
+  <UAObjectType NodeId="ns=1;i=448" BrowseName="ItemAlarmEventType" SymbolicName="ItemAlarmEventType">
+    <DisplayName>ItemAlarmEventType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=440</Reference>
+    </References>
+  </UAObjectType>
+  <!-- Operator write/control/unlock actions. Subtypes the standard
+       AuditWriteUpdateEventType (i=2100, OPC UA Part 5 §6.4) — the events
+       carry the acting user, the written value and the target node. The
+       SCADA extension properties are re-declared here because single
+       inheritance cannot also derive from ScadaEventType. -->
+  <UAObjectType NodeId="ns=1;i=449" BrowseName="OperatorActionAuditEventType" SymbolicName="OperatorActionAuditEventType">
+    <DisplayName>OperatorActionAuditEventType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2100</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=450" BrowseName="Value" SymbolicName="OperatorActionAuditEventType_Value" ParentNodeId="ns=1;i=449" DataType="BaseDataType">
+    <DisplayName>Value</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=451" BrowseName="Quality" SymbolicName="OperatorActionAuditEventType_Quality" ParentNodeId="ns=1;i=449" DataType="UInt32">
+    <DisplayName>Quality</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=452" BrowseName="ChangeMask" SymbolicName="OperatorActionAuditEventType_ChangeMask" ParentNodeId="ns=1;i=449" DataType="UInt32">
+    <DisplayName>ChangeMask</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=453" BrowseName="UserId" SymbolicName="OperatorActionAuditEventType_UserId" ParentNodeId="ns=1;i=449" DataType="NodeId">
+    <DisplayName>UserId</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=454" BrowseName="AckedState" SymbolicName="OperatorActionAuditEventType_AckedState" ParentNodeId="ns=1;i=449" DataType="Boolean">
+    <DisplayName>AckedState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=455" BrowseName="AckedTime" SymbolicName="OperatorActionAuditEventType_AckedTime" ParentNodeId="ns=1;i=449" DataType="DateTime">
+    <DisplayName>AckedTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=456" BrowseName="AckedUserId" SymbolicName="OperatorActionAuditEventType_AckedUserId" ParentNodeId="ns=1;i=449" DataType="NodeId">
+    <DisplayName>AckedUserId</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=449</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
   <!-- HasTransmissionSource (ns=1;i=221) was retired by the transmission
        OPC UA alignment (phase 4): the source link is now the SourceNode
        Property (ns=1;i=373). The numeric id 221 stays reserved in

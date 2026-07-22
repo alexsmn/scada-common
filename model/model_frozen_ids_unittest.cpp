@@ -128,6 +128,18 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(data_items::id::Statistics_TotalCPUUsage.numeric_id(),
             228u);  // runtime metric
   EXPECT_EQ(data_items::numeric_id::TsFormats, 27u);
+
+  // Event types (ADR 0005 phase 2). ScadaEventType deliberately subtypes the
+  // NS0 SystemEventType; the extension-property InstanceDeclarations carry
+  // the select-clause browse names the wire projection serves.
+  EXPECT_EQ(id::ScadaEventType.numeric_id(), 440u);
+  EXPECT_EQ(id::ScadaEventType_Value.numeric_id(), 441u);
+  EXPECT_EQ(id::ScadaEventType_AckedUserId.numeric_id(), 447u);
+  EXPECT_EQ(data_items::id::ItemAlarmEventType.numeric_id(), 448u);
+  EXPECT_EQ(data_items::id::OperatorActionAuditEventType.numeric_id(), 449u);
+  EXPECT_EQ(
+      data_items::id::OperatorActionAuditEventType_AckedUserId.numeric_id(),
+      456u);
   EXPECT_EQ(data_items::numeric_id::SimulationSignals, 28u);
 
   // history::

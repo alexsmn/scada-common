@@ -8,9 +8,16 @@
   <Node id="NS0.17" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="NodeId" displayName="NodeId" />
   <Node id="NS0.2" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Int8" displayName="Int8" />
   <Node id="NS0.21" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="LocalizedText" displayName="LocalizedText" />
-  <Node id="NS0.2130" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SystemEventType" displayName="SystemEventType" />
-  <Node id="NS0.2133" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="GeneralModelChangeEventType" displayName="GeneralModelChangeEventType" />
-  <Node id="NS0.2052" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="AuditEventType" displayName="AuditEventType" />
+  <Node id="NS0.2041" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="BaseEventType" displayName="BaseEventType" />
+  <Node id="NS0.2130" class="ObjectType" parent="NS0.2041" parentReference="NS0.45" supertype="NS0.2041" browseName="SystemEventType" displayName="SystemEventType" />
+  <Node id="NS0.2131" class="ObjectType" parent="NS0.2130" parentReference="NS0.45" supertype="NS0.2130" browseName="DeviceFailureEventType" displayName="DeviceFailureEventType" />
+  <Node id="NS0.2132" class="ObjectType" parent="NS0.2041" parentReference="NS0.45" supertype="NS0.2041" browseName="BaseModelChangeEventType" displayName="BaseModelChangeEventType" />
+  <Node id="NS0.3035" class="ObjectType" parent="NS0.2041" parentReference="NS0.45" supertype="NS0.2041" browseName="EventQueueOverflowEventType" displayName="EventQueueOverflowEventType" />
+  <Node id="NS0.2133" class="ObjectType" parent="NS0.2132" parentReference="NS0.45" supertype="NS0.2132" browseName="GeneralModelChangeEventType" displayName="GeneralModelChangeEventType" />
+  <Node id="NS0.2052" class="ObjectType" parent="NS0.2041" parentReference="NS0.45" supertype="NS0.2041" browseName="AuditEventType" displayName="AuditEventType" />
+  <Node id="NS0.2099" class="ObjectType" parent="NS0.2052" parentReference="NS0.45" supertype="NS0.2052" browseName="AuditUpdateEventType" displayName="AuditUpdateEventType" />
+  <Node id="NS0.2100" class="ObjectType" parent="NS0.2099" parentReference="NS0.45" supertype="NS0.2099" browseName="AuditWriteUpdateEventType" displayName="AuditWriteUpdateEventType" />
+  <Node id="NS0.2127" class="ObjectType" parent="NS0.2052" parentReference="NS0.45" supertype="NS0.2052" browseName="AuditUpdateMethodEventType" displayName="AuditUpdateMethodEventType" />
   <Node id="NS0.2058" class="ObjectType" parent="NS0.2052" parentReference="NS0.45" supertype="NS0.2052" browseName="AuditSecurityEventType" displayName="AuditSecurityEventType" />
   <Node id="NS0.2069" class="ObjectType" parent="NS0.2058" parentReference="NS0.45" supertype="NS0.2058" browseName="AuditSessionEventType" displayName="AuditSessionEventType" />
   <Node id="NS0.2071" class="ObjectType" parent="NS0.2069" parentReference="NS0.45" supertype="NS0.2069" browseName="AuditCreateSessionEventType" displayName="AuditCreateSessionEventType" />
@@ -19,7 +26,7 @@
     <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
   </Node>
   <Node id="NS0.24" class="DataType" parent="NS0.86" parentReference="NS0.35" browseName="BaseDataType" displayName="BaseDataType" />
-  <Node id="NS0.2738" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="SemanticChangeEventType" displayName="SemanticChangeEventType" />
+  <Node id="NS0.2738" class="ObjectType" parent="NS0.2041" parentReference="NS0.45" supertype="NS0.2041" browseName="SemanticChangeEventType" displayName="SemanticChangeEventType" />
   <Node id="NS0.29" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Enumeration" displayName="Enumeration" />
   <Node id="NS0.3" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="UInt8" displayName="UInt8" />
   <Node id="NS0.31" class="ReferenceType" parent="NS0.86" parentReference="NS0.35" browseName="References" displayName="References" />
