@@ -55,30 +55,30 @@ void ExpressionTimedData::Acknowledge() {
     operands_[i]->Acknowledge();
 }
 
-scada::base::Time ExpressionTimedData::GetOperandsReadyFrom() const {
-  scada::base::Time ready_from = scada::base::kNullTime;
+scada::DateTime ExpressionTimedData::GetOperandsReadyFrom() const {
+  scada::DateTime ready_from = scada::kNullTime;
 
   scada::DateTimeRange range{from_, kTimedDataCurrentOnly};
   for (size_t i = 0; i < operands_.size(); ++i) {
     const auto& operand = *operands_[i];
-    scada::base::Time operand_ready_from =
+    scada::DateTime operand_ready_from =
         GetReadyFrom(operand.GetReadyRanges(), range);
 
     if (operand_ready_from == kTimedDataCurrentOnly)
       return kTimedDataCurrentOnly;
 
-    scada::base::Check(!scada::base::IsNull(operand_ready_from));
+    scada::base::Check(!scada::IsNull(operand_ready_from));
     if (operand_ready_from > ready_from)
       ready_from = operand_ready_from;
   }
 
-  return scada::base::IsNull(ready_from) ? kTimedDataCurrentOnly : ready_from;
+  return scada::IsNull(ready_from) ? kTimedDataCurrentOnly : ready_from;
 }
 
 void ExpressionTimedData::CalculateValuesInRange(
     const scada::DateTimeRange& range) {
-  scada::base::Check(!scada::base::IsNull(range.first));
-  scada::base::Check(scada::base::IsNull(range.second) || range.first <= range.second);
+  scada::base::Check(!scada::IsNull(range.first));
+  scada::base::Check(scada::IsNull(range.second) || range.first <= range.second);
 
   // Coalesce the per-value inserts below into a single observer notification.
   auto batch = buffer_.BeginUpdate();
@@ -105,7 +105,7 @@ void ExpressionTimedData::CalculateValuesInRange(
   // Run calculation.
   for (;;) {
     // Setup operand values and find next calculation time.
-    scada::base::Time update_time = scada::base::kNullTime;
+    scada::DateTime update_time = scada::kNullTime;
     scada::Qualifier total_qualifier;
     bool calculation_finished = true;
 
@@ -115,7 +115,7 @@ void ExpressionTimedData::CalculateValuesInRange(
 
       ScadaExpression::Item& item = expression_->items[i];
 
-      if (scada::base::IsNull(update_time) || update_time < item.value.source_timestamp)
+      if (scada::IsNull(update_time) || update_time < item.value.source_timestamp)
         update_time = item.value.source_timestamp;
 
       // Check iterator reached end.
@@ -123,10 +123,10 @@ void ExpressionTimedData::CalculateValuesInRange(
       if (iterator == values.size()) {
         continue;
       }
-      const scada::base::Time& time = values[iterator].source_timestamp;
+      const scada::DateTime& time = values[iterator].source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
-      if (!scada::base::IsNull(range.second) && time > range.second) {
+      if (!scada::IsNull(range.second) && time > range.second) {
         continue;
       }
 
@@ -146,13 +146,13 @@ void ExpressionTimedData::CalculateValuesInRange(
     if (calculation_finished)
       break;
 
-    scada::base::Check(!scada::base::IsNull(update_time));
+    scada::base::Check(!scada::IsNull(update_time));
 
     // calculate
     auto total_value = expression_->Calculate();
     if (!total_value.is_null()) {
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
-                           scada::base::Time());
+                           scada::DateTime());
 
       // The insert may be rejected in favor of an existing value with the
       // same timestamp; that is data-dependent, not an invariant.
@@ -164,12 +164,12 @@ void ExpressionTimedData::CalculateValuesInRange(
 void ExpressionTimedData::UpdateReadyRange() {
   scada::base::Check(historical());
 
-  scada::base::Time operands_ready_from = GetOperandsReadyFrom();
+  scada::DateTime operands_ready_from = GetOperandsReadyFrom();
   if (operands_ready_from == kTimedDataCurrentOnly) {
     return;
   }
 
-  scada::base::Check(!scada::base::IsNull(operands_ready_from));
+  scada::base::Check(!scada::IsNull(operands_ready_from));
 
   auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
   CalculateValuesInRange(range);
@@ -181,23 +181,23 @@ bool ExpressionTimedData::CalculateCurrent() {
 
   size_t num_operands = operands_.size();
 
-  scada::base::Time max_update_time = scada::base::kNullTime;
+  scada::DateTime max_update_time = scada::kNullTime;
   for (size_t i = 0; i < num_operands; ++i) {
     const auto& operand = *operands_[i];
 
     expression_->items[i].value = scada::DataValue();
 
     const auto& cur = operand.GetDataValue();
-    if (scada::base::IsNull(cur.source_timestamp))
+    if (scada::IsNull(cur.source_timestamp))
       continue;
 
     // calculate value
     expression_->items[i].value = cur;
 
     // find maximal change and update times
-    const scada::base::Time& update_time = cur.source_timestamp;
-    if (!scada::base::IsNull(update_time)) {
-      if (scada::base::IsNull(max_update_time) || update_time > max_update_time)
+    const scada::DateTime& update_time = cur.source_timestamp;
+    if (!scada::IsNull(update_time)) {
+      if (scada::IsNull(max_update_time) || update_time > max_update_time)
         max_update_time = update_time;
     }
 
@@ -211,7 +211,7 @@ bool ExpressionTimedData::CalculateCurrent() {
     total_value = std::move(*calculated);
   }
 
-  auto now = scada::base::NowUtc();
+  auto now = scada::Now();
   if (num_operands == 0)
     max_update_time = now;
 

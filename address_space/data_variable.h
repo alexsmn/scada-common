@@ -9,6 +9,7 @@
 #include "address_space/variable.h"
 #include "base/check.h"
 #include "base/time/time.h"
+#include "scada/date_time.h"
 #include "scada/data_value.h"
 #include "scada/standard_node_ids.h"
 
@@ -40,7 +41,7 @@ class DataVariable : public Variable {
  private:
   Variable& instance_declaration_;
   DataValue value_;
-  DateTime change_time_ = base::kNullTime;
+  DateTime change_time_ = scada::kNullTime;
 };
 
 // DataVariable

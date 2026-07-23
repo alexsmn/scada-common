@@ -2,6 +2,7 @@
 
 #include "base/time/calendar.h"
 #include "base/time/time.h"
+#include "scada/date_time.h"
 
 #include <chrono>
 #include "base/utf_convert.h"
@@ -18,7 +19,7 @@ namespace scada {
 
 namespace {
 
-DataValue MakeValueAt(Variant value, base::Time time) {
+DataValue MakeValueAt(Variant value, scada::DateTime time) {
   return DataValue{std::move(value), {}, time, time};
 }
 
@@ -45,12 +46,12 @@ UInt32 LocalHistoryService::ParseSeverity(std::string_view s) {
   return kSeverityNormal;
 }
 
-void LocalHistoryService::SetNowOverride(base::Time now) {
+void LocalHistoryService::SetNowOverride(scada::DateTime now) {
   now_override_ = now;
 }
 
-base::Time LocalHistoryService::Now() const {
-  return scada::base::IsNull(now_override_) ? base::NowUtc() : now_override_;
+scada::DateTime LocalHistoryService::Now() const {
+  return scada::IsNull(now_override_) ? scada::Now() : now_override_;
 }
 
 void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
@@ -109,8 +110,8 @@ Awaitable<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
 
 Awaitable<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
     NodeId node_id,
-    base::Time from,
-    base::Time to,
+    scada::DateTime from,
+    scada::DateTime to,
     EventFilter filter) {
   co_return ReadEvents(std::move(node_id), from, to, std::move(filter));
 }
@@ -127,7 +128,7 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // Max would spread its 48 points across geological time, so every point but
   // the first falls outside any real query window and the series reads flat.
   // Treat an unbounded end as "now".
-  const auto now = (scada::base::IsNull(details.to) || details.to == base::kMaxTime)
+  const auto now = (scada::IsNull(details.to) || details.to == scada::kMaxTime)
                        ? Now()
                        : details.to;
 
@@ -136,8 +137,8 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // a table row's 1 h sparkline window both read 48 points (a 24 h request
   // keeps the historical 30-minute spacing exactly). An open-ended request
   // falls back to that 30-minute spacing.
-  base::TimeDelta interval = std::chrono::minutes{30};
-  if (!scada::base::IsNull(details.from) && details.from < now)
+  scada::Duration interval = std::chrono::minutes{30};
+  if (!scada::IsNull(details.from) && details.from < now)
     interval = (now - details.from) / 48;
 
   double base_value = 100.0;
@@ -172,8 +173,8 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
 
 HistoryReadEventsResult LocalHistoryService::ReadEvents(
     NodeId /*node_id*/,
-    base::Time /*from*/,
-    base::Time /*to*/,
+    scada::DateTime /*from*/,
+    scada::DateTime /*to*/,
     EventFilter /*filter*/) const {
   return HistoryReadEventsResult{
       .status = Status{StatusCode::Good},

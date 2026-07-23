@@ -55,7 +55,7 @@ Awaitable<void> VidiconSession::Disconnect() {
   co_return;
 }
 
-bool VidiconSession::IsConnected(scada::base::TimeDelta* ping_delay) const {
+bool VidiconSession::IsConnected(scada::Duration* ping_delay) const {
   return true;
 }
 
@@ -83,8 +83,8 @@ Awaitable<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(
     scada::NodeId node_id,
-    scada::base::Time from,
-    scada::base::Time to,
+    scada::DateTime from,
+    scada::DateTime to,
     scada::EventFilter filter) {
   co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
 }

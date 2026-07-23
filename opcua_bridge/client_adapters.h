@@ -38,7 +38,7 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   Awaitable<void> Reconnect() override;
   Awaitable<void> Disconnect() override;
 
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override {
+  bool IsConnected(scada::Duration* ping_delay = nullptr) const override {
     if (!ping_delay)
       return session_->IsConnected(nullptr);
     opcua::Duration opcua_ping;
@@ -198,8 +198,8 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
       scada::HistoryReadRawDetails details) override;
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      base::Time from,
-      base::Time to,
+      scada::DateTime from,
+      scada::DateTime to,
       scada::EventFilter filter) override;
 
   // scada::HistoryUpdateService

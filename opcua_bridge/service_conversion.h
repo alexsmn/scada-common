@@ -67,7 +67,7 @@ inline scada::Privilege ToScada(opcua::Privilege v) {
   return static_cast<scada::Privilege>(v);
 }
 
-// --- Duration (base::TimeDelta vs opcua::Duration) ----------------
+// --- Duration (scada::Duration vs opcua::Duration) ----------------
 inline opcua::Duration ToOpcua(scada::Duration d) {
   if (d == scada::Duration::max())
     return opcua::Duration::Max();

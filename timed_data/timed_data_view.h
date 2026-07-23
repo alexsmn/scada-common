@@ -34,7 +34,7 @@ class BasicTimedDataView {
 
   // The samples whose timestamp is >= `start` (no lower bound if `start` null).
   BasicTimedDataView from(scada::DateTime start) const SCADA_LIFETIME_BOUND {
-    if (scada::base::IsNull(start))
+    if (scada::IsNull(start))
       return *this;
     size_t i = LowerBound(samples_, start);
     return BasicTimedDataView{samples_.subspan(i)};
@@ -42,7 +42,7 @@ class BasicTimedDataView {
 
   // The samples whose timestamp is <= `end` (no upper bound if `end` null).
   BasicTimedDataView until(scada::DateTime end) const SCADA_LIFETIME_BOUND {
-    if (scada::base::IsNull(end))
+    if (scada::IsNull(end))
       return *this;
     size_t i = UpperBound(samples_, end);
     return BasicTimedDataView{samples_.subspan(0, i)};

@@ -50,7 +50,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)({scada::StatusCode::Uncertain_Disconnected,
-                                scada::base::NowUtc()});
+                                scada::Now()});
       }
       return;
     }
@@ -67,7 +67,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)(
-            {scada::StatusCode::Bad, scada::base::NowUtc()});
+            {scada::StatusCode::Bad, scada::Now()});
       } else if (const auto* event_handler =
                      std::get_if<scada::EventHandler>(&*handler_)) {
         (*event_handler)(scada::StatusCode::Bad, {});
@@ -213,7 +213,7 @@ Awaitable<void> MasterDataServices::Reconnect() {
   co_await session_service_->Reconnect();
 }
 
-bool MasterDataServices::IsConnected(scada::base::TimeDelta* ping_delay) const {
+bool MasterDataServices::IsConnected(scada::Duration* ping_delay) const {
   if (!connected_)
     return false;
 
@@ -386,8 +386,8 @@ Awaitable<scada::HistoryReadRawResult> MasterDataServices::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
     scada::NodeId node_id,
-    scada::base::Time from,
-    scada::base::Time to,
+    scada::DateTime from,
+    scada::DateTime to,
     scada::EventFilter filter) {
   auto* service = history_service_;
   if (service)

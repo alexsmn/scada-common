@@ -7,7 +7,7 @@
 // `ByteString` (std::vector<char>) and the numeric primitives — are the SAME
 // std type on both sides and need no conversion at all; the class types
 // (including the `{locale, text}` LocalizedText mirrors) and
-// `base::Time`-backed `DateTime` require real work.
+// `scada::DateTime`-backed `DateTime` require real work.
 
 #include "scada/data_value.h"
 #include "scada/expanded_node_id.h"
@@ -139,14 +139,14 @@ inline scada::Status ToScada(opcua::Status s) {
   return result;
 }
 
-// --- DateTime (base::Time vs opcua::DateTime) -------------------------
+// --- DateTime (scada::DateTime vs opcua::DateTime) -------------------------
 // scada::DateTime is µs since the Unix epoch; opcua::DateTime is 100-ns ticks
 // since the Windows 1601 epoch. The µs-since-1601 wire value bridges the two
 // (see base/time/time_wire_codec.h), with the range sentinels special-cased.
 inline opcua::DateTime ToOpcua(scada::DateTime t) {
-  if (t == scada::base::kMaxTime)
+  if (t == scada::kMaxTime)
     return opcua::DateTime::Max();
-  if (t == scada::base::kMinTime)
+  if (t == scada::kMinTime)
     return opcua::DateTime::Min();
   constexpr int64_t kTicksPerMicrosecond =
       opcua::DateTime::kTicksPerMicrosecond;
@@ -159,9 +159,9 @@ inline opcua::DateTime ToOpcua(scada::DateTime t) {
 }
 inline scada::DateTime ToScada(opcua::DateTime t) {
   if (t.is_max())
-    return scada::base::kMaxTime;
+    return scada::kMaxTime;
   if (t.is_min())
-    return scada::base::kMinTime;
+    return scada::kMinTime;
   return scada::base::DecodeWireTime(
       t.ToInternalValue() / opcua::DateTime::kTicksPerMicrosecond);
 }

@@ -41,12 +41,12 @@ scada::DataValue AliasTimedData::GetDataValue() const {
 }
 
 const scada::DataValue* AliasTimedData::GetValueAt(
-    const scada::base::Time& time) const {
+    const scada::DateTime& time) const {
   return is_forwarded() ? forwarded().GetValueAt(time) : nullptr;
 }
 
-scada::base::Time AliasTimedData::GetChangeTime() const {
-  return is_forwarded() ? forwarded().GetChangeTime() : scada::base::Time{};
+scada::DateTime AliasTimedData::GetChangeTime() const {
+  return is_forwarded() ? forwarded().GetChangeTime() : scada::DateTime{};
 }
 
 std::span<const scada::DataValue> AliasTimedData::GetValues() const {

@@ -47,7 +47,7 @@ class TestCoroutineDataServices final
   }
 
   bool IsConnected(
-      scada::base::TimeDelta* /*ping_delay*/ = nullptr) const override {
+      scada::Duration* /*ping_delay*/ = nullptr) const override {
     return connected;
   }
 
@@ -123,8 +123,8 @@ class TestCoroutineDataServices final
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      scada::base::Time /*from*/,
-      scada::base::Time /*to*/,
+      scada::DateTime /*from*/,
+      scada::DateTime /*to*/,
       scada::EventFilter /*filter*/) override {
     ++history_events_count;
     last_history_events_node_id = std::move(node_id);
@@ -371,7 +371,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
   services.SetServices(std::move(data_services));
 
   auto& coroutine_session = services;
-  scada::base::TimeDelta ping_delay;
+  scada::Duration ping_delay;
 
   EXPECT_CALL(*session_service, IsConnected(&ping_delay))
       .WillOnce(testing::Return(true));
@@ -519,8 +519,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   auto history_events_result = WaitAwaitable(
       executor,
-      services.HistoryReadEvents(scada::NodeId{107}, scada::base::Time{},
-                                 scada::base::Time{}, scada::EventFilter{}));
+      services.HistoryReadEvents(scada::NodeId{107}, scada::DateTime{},
+                                 scada::DateTime{}, scada::EventFilter{}));
   EXPECT_TRUE(history_events_result.status.good());
   EXPECT_EQ(direct_services->history_events_count, 1);
   EXPECT_EQ(direct_services->last_history_events_node_id,

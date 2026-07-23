@@ -20,7 +20,7 @@ class TestTimedData : public BaseTimedData {
 }  // namespace
 
 TEST(ExpressionTimedData, Test) {
-  auto time = scada::base::NowUtc();
+  auto time = scada::Now();
 
   auto expression = std::make_unique<ScadaExpression>();
   expression->Parse("x + 5");

@@ -49,7 +49,7 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
 
  private:
   DataValue last_value_;
-  base::Time last_change_time_ = base::kNullTime;
+  scada::DateTime last_change_time_ = scada::kNullTime;
 
   DataChangeSignal data_change_signal_;
 };

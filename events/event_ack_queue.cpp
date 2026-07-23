@@ -56,7 +56,7 @@ void EventAckQueue::AckPendingEvents() {
               co_await method_service_.Call(
                   scada::id::Server,
                   scada::id::AcknowledgeableConditionType_Acknowledge,
-                  {event_ids, scada::base::NowUtc()}, std::move(context));
+                  {event_ids, scada::Now()}, std::move(context));
             });
   }
 

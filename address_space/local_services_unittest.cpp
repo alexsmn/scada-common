@@ -146,8 +146,8 @@ TEST(LocalMonitoredItemService, DeliversAddressSpaceValueOnSubscribe) {
   EXPECT_EQ(data_change->client_handle, 1u);
   EXPECT_EQ(data_change->value.status_code, StatusCode::Good);
   EXPECT_EQ(data_change->value.value, Variant{"TestNode1.TestProp1.Value"});
-  EXPECT_FALSE(scada::base::IsNull(data_change->value.source_timestamp));
-  EXPECT_FALSE(scada::base::IsNull(data_change->value.server_timestamp));
+  EXPECT_FALSE(scada::IsNull(data_change->value.source_timestamp));
+  EXPECT_FALSE(scada::IsNull(data_change->value.server_timestamp));
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
@@ -159,8 +159,8 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
   auto result = WaitAwaitable(
       executor, service.HistoryReadRaw(HistoryReadRawDetails{
                     .node_id = node_id,
-                    .from = base::NowUtc() - std::chrono::hours(1),
-                    .to = base::NowUtc()}));
+                    .from = scada::Now() - std::chrono::hours(1),
+                    .to = scada::Now()}));
 
   EXPECT_TRUE(result.status);
   ASSERT_EQ(result.values.size(), 48u);
@@ -177,7 +177,7 @@ TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
   const NodeId node_id{7, 2};
   service.SetRawProfile(node_id, 42.0);
 
-  const auto to = base::NowUtc();
+  const auto to = scada::Now();
   const auto from = to - std::chrono::hours(1);
   auto result =
       WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
@@ -202,17 +202,17 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
   const NodeId node_id{8, 2};
   service.SetRawProfile(node_id, 42.0);
 
-  const auto from = base::NowUtc() - std::chrono::hours(1);
+  const auto from = scada::Now() - std::chrono::hours(1);
   auto result =
       WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
                                   .node_id = node_id,
                                   .from = from,
-                                  .to = base::kMaxTime}));
+                                  .to = scada::kMaxTime}));
 
   EXPECT_TRUE(result.status);
   ASSERT_EQ(result.values.size(), 48u);
   // The newest point is within a day of now, not centuries into the future.
-  const auto now = base::NowUtc();
+  const auto now = scada::Now();
   EXPECT_LT(result.values.back().source_timestamp,
             now + std::chrono::days(1));
   EXPECT_GT(result.values.back().source_timestamp,
@@ -237,14 +237,14 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   })"));
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(NodeId{}, base::Time{},
-                                          base::NowUtc(), EventFilter{}));
+      executor, service.HistoryReadEvents(NodeId{}, scada::DateTime{},
+                                          scada::Now(), EventFilter{}));
 
   ASSERT_EQ(result.events.size(), 2u);
   EXPECT_FALSE(result.events[0].acked);
-  EXPECT_TRUE(scada::base::IsNull(result.events[0].acknowledged_time));
+  EXPECT_TRUE(scada::IsNull(result.events[0].acknowledged_time));
   EXPECT_TRUE(result.events[1].acked);
-  EXPECT_FALSE(scada::base::IsNull(result.events[1].acknowledged_time));
+  EXPECT_FALSE(scada::IsNull(result.events[1].acknowledged_time));
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
@@ -253,7 +253,7 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   Event event;
   event.event_id = EventId{17};
   event.source_node_id = NodeId{3, 2};
-  event.time = base::NowUtc();
+  event.time = scada::Now();
   event.receive_time = event.time;
   event.severity = kSeverityWarning;
   event.message = LocalizedText{u"Warning"};

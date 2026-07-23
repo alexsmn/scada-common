@@ -38,7 +38,7 @@ class VidiconSession final : public scada::SessionService,
   virtual Awaitable<void> Disconnect() override;
   virtual Awaitable<void> Reconnect() override;
   virtual bool IsConnected(
-      scada::base::TimeDelta* ping_delay = nullptr) const override;
+      scada::Duration* ping_delay = nullptr) const override;
   virtual bool HasPrivilege(scada::Privilege privilege) const override;
   virtual bool IsScada() const override { return false; }
   virtual scada::NodeId GetUserId() const override;
@@ -52,8 +52,8 @@ class VidiconSession final : public scada::SessionService,
       scada::HistoryReadRawDetails details) override;
   virtual Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      scada::base::Time from,
-      scada::base::Time to,
+      scada::DateTime from,
+      scada::DateTime to,
       scada::EventFilter filter) override;
 
   // scada::MonitoredItemService

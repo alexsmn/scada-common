@@ -45,7 +45,7 @@ void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
   variable_connection_ =
       variable_->data_change_signal().connect(data_change_handler_);
 
-  if (!scada::base::IsNull(variable_->last_value().server_timestamp))
+  if (!scada::IsNull(variable_->last_value().server_timestamp))
     data_change_handler_(variable_->last_value());
 }
 
@@ -73,7 +73,7 @@ void VariableHandle::ForwardData(const DataValue& value) {
 void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
   // |SourceTimestamp| is not updated, because next device value with a valid
   // |SourceTimestamp| overwrites this value.
-  auto server_timestamp = base::NowUtc();
+  auto server_timestamp = scada::Now();
 
   if (last_value_.is_null()) {
     ForwardData({Variant{}, Qualifier{add}, DateTime{}, server_timestamp});

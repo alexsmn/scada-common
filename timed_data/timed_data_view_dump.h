@@ -13,11 +13,11 @@ inline void Dump(std::ostream& stream, const T& value) {
 }
 
 inline void Dump(std::ostream& stream, scada::DateTime time) {
-  if (time == scada::base::kMinTime)
+  if (time == scada::kMinTime)
     stream << "min";
-  else if (time == scada::base::kMaxTime)
+  else if (time == scada::kMaxTime)
     stream << "max";
-  else if (scada::base::IsNull(time))
+  else if (scada::IsNull(time))
     stream << "null";
   else
     stream << time;

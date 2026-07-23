@@ -1,6 +1,7 @@
 #include "address_space/local_monitored_item_service.h"
 
 #include "base/time/time.h"
+#include "scada/date_time.h"
 #include "common/sync_attribute_service.h"
 #include "scada/data_value.h"
 #include "scada/item_factory_subscription.h"
@@ -34,11 +35,11 @@ class LocalMonitoredItem : public MonitoredItem {
 
     // Address-space attributes carry no timestamps; stamp the delivery time so
     // current-value consumers (IsUpdate ordering) treat the sample as fresh.
-    const DateTime now = base::NowUtc();
-    if (scada::base::IsNull(value.source_timestamp)) {
+    const DateTime now = scada::Now();
+    if (scada::IsNull(value.source_timestamp)) {
       value.source_timestamp = now;
     }
-    if (scada::base::IsNull(value.server_timestamp)) {
+    if (scada::IsNull(value.server_timestamp)) {
       value.server_timestamp = now;
     }
 

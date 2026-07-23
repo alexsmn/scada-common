@@ -44,7 +44,7 @@ class LocalHistoryService : public HistoryService {
   // keeps rendered timestamps stable across runs (screenshot generation
   // depends on this). Call before LoadFromJson; a null Time restores the
   // wall clock.
-  void SetNowOverride(base::Time now);
+  void SetNowOverride(scada::DateTime now);
 
   // Populates raw profiles from `nodes` and events from `events` of a
   // screenshot-style JSON document. Events are timestamped at load time as
@@ -59,17 +59,17 @@ class LocalHistoryService : public HistoryService {
       HistoryReadRawDetails details) override;
   Awaitable<HistoryReadEventsResult> HistoryReadEvents(
       NodeId node_id,
-      base::Time from,
-      base::Time to,
+      scada::DateTime from,
+      scada::DateTime to,
       EventFilter filter) override;
 
  private:
   static UInt32 ParseSeverity(std::string_view s);
-  base::Time Now() const;
+  scada::DateTime Now() const;
   HistoryReadRawResult ReadRaw(HistoryReadRawDetails details) const;
   HistoryReadEventsResult ReadEvents(NodeId node_id,
-                                     base::Time from,
-                                     base::Time to,
+                                     scada::DateTime from,
+                                     scada::DateTime to,
                                      EventFilter filter) const;
 
   // Synthesized raw-history profile for a node: the series mean and, optionally,
@@ -81,7 +81,7 @@ class LocalHistoryService : public HistoryService {
 
   std::unordered_map<NodeId, RawProfile> raw_profiles_;
   std::vector<Event> events_;
-  base::Time now_override_ = base::kNullTime;
+  scada::DateTime now_override_ = scada::kNullTime;
 };
 
 }  // namespace scada

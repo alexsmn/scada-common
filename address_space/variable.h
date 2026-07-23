@@ -2,6 +2,7 @@
 
 #include "address_space/node.h"
 #include "base/time/time.h"
+#include "scada/date_time.h"
 #include "scada/attribute_service.h"
 
 #include <functional>
@@ -67,7 +68,7 @@ class BaseVariable : public Variable {
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_ = base::kNullTime;
+  DateTime change_time_ = scada::kNullTime;
 };
 
 class GenericVariable : public Variable {
@@ -88,7 +89,7 @@ class GenericVariable : public Variable {
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_ = base::kNullTime;
+  DateTime change_time_ = scada::kNullTime;
 };
 
 }  // namespace scada

@@ -18,7 +18,7 @@ class LocalSessionService : public SessionService {
   Awaitable<void> Reconnect() override;
   Awaitable<void> Disconnect() override;
 
-  bool IsConnected(base::TimeDelta* ping_delay = nullptr) const override;
+  bool IsConnected(scada::Duration* ping_delay = nullptr) const override;
 
   NodeId GetUserId() const override;
   bool HasPrivilege(Privilege privilege) const override;

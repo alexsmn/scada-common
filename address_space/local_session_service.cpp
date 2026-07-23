@@ -19,7 +19,7 @@ Awaitable<void> LocalSessionService::Disconnect() {
 }
 
 bool LocalSessionService::IsConnected(
-    base::TimeDelta* /*ping_delay*/) const {
+    scada::Duration* /*ping_delay*/) const {
   return true;
 }
 

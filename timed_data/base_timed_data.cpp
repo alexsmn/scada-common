@@ -16,7 +16,7 @@ import scada.core;
 
 #include "base/debug_util.h"
 
-const scada::DateTime kTimedDataCurrentOnly = scada::base::kMaxTime;
+const scada::DateTime kTimedDataCurrentOnly = scada::kMaxTime;
 
 const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
 
@@ -31,7 +31,7 @@ BaseTimedData::~BaseTimedData() {
 
 const scada::DataValue* BaseTimedData::GetValueAt(
     const scada::DateTime& time) const {
-  if (!scada::base::IsNull(current_.source_timestamp) &&
+  if (!scada::IsNull(current_.source_timestamp) &&
       current_.source_timestamp <= time) {
     return &current_;
   }
@@ -92,7 +92,7 @@ bool BaseTimedData::UpdateCurrent(const scada::DataValue& value) {
       current_.value != value.value || current_.qualifier != value.qualifier;
 
   // Add new point with time of last change.
-  if (historical() && is_change && !scada::base::IsNull(value.source_timestamp))
+  if (historical() && is_change && !scada::IsNull(value.source_timestamp))
     buffer_.InsertOrUpdate(value);
 
   if (is_change)

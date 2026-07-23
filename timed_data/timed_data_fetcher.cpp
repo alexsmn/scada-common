@@ -112,7 +112,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
   // History results come from a (possibly remote) history service; sanitize
   // malformed responses instead of panicking.
   const size_t dropped = std::erase_if(values, [](const scada::DataValue& v) {
-    return scada::base::IsNull(v.server_timestamp);
+    return scada::IsNull(v.server_timestamp);
   });
   if (dropped != 0) {
     LOG_WARNING(logger_) << "History read returned values without a server "
@@ -133,7 +133,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
 
   buffer_.ReplaceRange(values);
 
-  scada::DateTime ready_to = scada::base::kNullTime;
+  scada::DateTime ready_to = scada::kNullTime;
   if (continuation_point.empty()) {
     ready_to = querying_range_.second;
   } else if (!values.empty()) {
@@ -143,7 +143,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
                           querying_range_.second);
   }
 
-  if (!scada::base::IsNull(ready_to)) {
+  if (!scada::IsNull(ready_to)) {
     LOG_INFO(logger_) << "Query result" << LOG_TAG("ValueCount", values.size())
                       << LOG_TAG("ReadFrom", FormatTime(querying_range_.first))
                       << LOG_TAG("ReadTo", FormatTime(ready_to));

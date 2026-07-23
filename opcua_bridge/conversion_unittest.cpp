@@ -251,17 +251,17 @@ TEST(ConversionTest, DateTime) {
   const auto scada_time = base::DecodeWireTime(123456789);
   EXPECT_EQ(ToOpcua(scada_time).ToInternalValue(), 1234567890);
   ExpectRoundTrip(scada_time);
-  ExpectRoundTrip(base::Time{});
-  ExpectRoundTrip(base::kMinTime);
-  ExpectRoundTrip(base::kMaxTime);
+  ExpectRoundTrip(scada::DateTime{});
+  ExpectRoundTrip(scada::kMinTime);
+  ExpectRoundTrip(scada::kMaxTime);
 }
 
 TEST(ConversionTest, Duration) {
   const auto scada_duration = std::chrono::microseconds(1250);
   EXPECT_DOUBLE_EQ(ToOpcua(scada_duration).ToInternalValue(), 1.25);
   ExpectRoundTrip(scada_duration);
-  ExpectRoundTrip(base::TimeDelta::min());
-  ExpectRoundTrip(base::TimeDelta::max());
+  ExpectRoundTrip(scada::Duration::min());
+  ExpectRoundTrip(scada::Duration::max());
 }
 
 TEST(ConversionTest, VariantScalars) {

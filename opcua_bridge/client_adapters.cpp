@@ -246,8 +246,8 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult>
 ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
-                                               base::Time from,
-                                               base::Time to,
+                                               scada::DateTime from,
+                                               scada::DateTime to,
                                                scada::EventFilter filter) {
   scada::HistoryReadEventsDetails details{.node_id = std::move(node_id),
                                           .from = from,

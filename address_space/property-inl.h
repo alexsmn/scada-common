@@ -84,7 +84,7 @@ inline Status Property<ValueType>::SetValue(const DataValue& data_value) {
   value_ = std::move(new_value);
 
   if (auto variable_handle = variable_handle_.lock()) {
-    auto now = scada::base::NowUtc();
+    auto now = scada::Now();
     variable_handle->ForwardData(scada::DataValue{value_, {}, now, now});
   }
 

@@ -48,8 +48,8 @@ class TestHistoryService final : public scada::HistoryService {
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      scada::base::Time from,
-      scada::base::Time to,
+      scada::DateTime from,
+      scada::DateTime to,
       scada::EventFilter filter) override {
     co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
   }
@@ -213,7 +213,7 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
-  const auto from = scada::base::NowUtc();
+  const auto from = scada::Now();
   const auto to = from + std::chrono::seconds(10);
 
   // The action is a lazy coroutine: it must take `details` by value so the
@@ -240,7 +240,7 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
 }
 
 TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
-  const auto from = scada::base::NowUtc();
+  const auto from = scada::Now();
   const auto to = from + std::chrono::seconds(10);
   auto service = CreateTimedDataService(TimedDataContext{
       .executor_ = executor_,
@@ -271,7 +271,7 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
-  const auto from = scada::base::NowUtc();
+  const auto from = scada::Now();
   const auto to = from + std::chrono::seconds(10);
   auto history_service = std::make_shared<TestHistoryService>();
   auto service = CreateTimedDataService(CoroutineTimedDataContext{
@@ -294,7 +294,7 @@ TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
-  const auto from = scada::base::NowUtc();
+  const auto from = scada::Now();
   const auto to = from + std::chrono::seconds(10);
   auto history_service = std::make_shared<TestHistoryService>();
 
@@ -323,8 +323,8 @@ TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
 TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = scada::base::NowUtc(),
-      .to = scada::base::NowUtc() + std::chrono::seconds(1),
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};
@@ -351,8 +351,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
 TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = scada::base::NowUtc(),
-      .to = scada::base::NowUtc() + std::chrono::seconds(1),
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};
@@ -379,8 +379,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
 TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   const scada::HistoryReadRawDetails details{
       .node_id = kDataItemId,
-      .from = scada::base::NowUtc(),
-      .to = scada::base::NowUtc() + std::chrono::seconds(1),
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
       .max_count = 100,
   };
   const scada::ByteString continuation_point{'c', 'p'};
