@@ -98,6 +98,7 @@ TEST(ConversionTest, StatusAndCode) {
             scada::StatusCode::Bad_WrongNodeId);
   ExpectRoundTrip(scada::Status{scada::StatusCode::Good});
   ExpectRoundTrip(scada::Status{scada::StatusCode::Bad_WrongLoginCredentials});
+  ExpectRoundTrip(scada::Status{scada::StatusCode::Bad_LicenseExpired});
 }
 
 // The boundary translates SCADA-internal status codes to the standard OPC UA
@@ -121,6 +122,8 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80210000u);  // BadIdentityTokenRejected
   EXPECT_EQ(wire(scada::StatusCode::Bad_NotSupported),
             0x803D0000u);  // BadNotSupported
+  EXPECT_EQ(wire(scada::StatusCode::Bad_LicenseExpired),
+            0x810E0000u);  // BadLicenseExpired
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),

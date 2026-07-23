@@ -91,7 +91,8 @@ namespace scada::opcua_bridge {
   MAP(Bad_HistoryOperationInvalid, Bad_HistoryOperationInvalid)         \
   MAP(Bad_NoSubscription, Bad_NoSubscription)                           \
   MAP(Bad_UserAccessDenied, Bad_UserAccessDenied)                       \
-  MAP(Bad_NotSupported, Bad_NotSupported)
+  MAP(Bad_NotSupported, Bad_NotSupported)                               \
+  MAP(Bad_LicenseExpired, Bad_LicenseExpired)
 
 inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
