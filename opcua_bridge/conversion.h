@@ -16,6 +16,7 @@
 #include "scada/node_id.h"
 #include "scada/qualified_name.h"
 #include "scada/qualifier.h"
+#include "base/time/time_wire_codec.h"
 #include "scada/status.h"
 #include "scada/variant.h"
 
@@ -139,14 +140,17 @@ inline scada::Status ToScada(opcua::Status s) {
 }
 
 // --- DateTime (base::Time vs opcua::DateTime) -------------------------
+// scada::DateTime is µs since the Unix epoch; opcua::DateTime is 100-ns ticks
+// since the Windows 1601 epoch. The µs-since-1601 wire value bridges the two
+// (see base/time/time_wire_codec.h), with the range sentinels special-cased.
 inline opcua::DateTime ToOpcua(scada::DateTime t) {
-  if (t.is_max())
+  if (t == scada::base::kMaxTime)
     return opcua::DateTime::Max();
-  if (t.is_min())
+  if (t == scada::base::kMinTime)
     return opcua::DateTime::Min();
   constexpr int64_t kTicksPerMicrosecond =
       opcua::DateTime::kTicksPerMicrosecond;
-  const int64_t value = t.ToInternalValue();
+  const int64_t value = scada::base::EncodeWireMicroseconds(t);
   if (value > std::numeric_limits<int64_t>::max() / kTicksPerMicrosecond)
     return opcua::DateTime::Max();
   if (value < std::numeric_limits<int64_t>::min() / kTicksPerMicrosecond)
@@ -155,10 +159,10 @@ inline opcua::DateTime ToOpcua(scada::DateTime t) {
 }
 inline scada::DateTime ToScada(opcua::DateTime t) {
   if (t.is_max())
-    return scada::DateTime::Max();
+    return scada::base::kMaxTime;
   if (t.is_min())
-    return scada::DateTime::Min();
-  return scada::DateTime::FromInternalValue(
+    return scada::base::kMinTime;
+  return scada::base::DecodeWireTime(
       t.ToInternalValue() / opcua::DateTime::kTicksPerMicrosecond);
 }
 

@@ -2,6 +2,7 @@
 
 #include "base/awaitable.h"
 #include "base/check.h"
+#include "base/time_utils.h"
 #include "model/node_id_util.h"
 #include "node_service/node_fetcher.h"
 #include "scada/node_class.h"
@@ -77,7 +78,7 @@ void NodeChildrenFetcher::FetchPendingNodes() {
 }
 
 void NodeChildrenFetcher::OnBrowseChildrenResult(
-    scada::base::TimeTicks start_ticks,
+    std::chrono::steady_clock::time_point start_ticks,
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
@@ -89,12 +90,12 @@ void NodeChildrenFetcher::OnBrowseChildrenResult(
     results.clear();
   }
 
-  const auto duration = scada::base::TimeTicks::Now() - start_ticks;
+  const auto duration = std::chrono::steady_clock::now() - start_ticks;
   LOG_INFO(logger_) << "Browse children completed"
-                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("DurationMs", InMilliseconds(duration))
                     << LOG_TAG("Status", ToString(status));
   LOG_DEBUG(logger_) << "Browse children completed"
-                     << LOG_TAG("DurationMs", duration.InMilliseconds())
+                     << LOG_TAG("DurationMs", InMilliseconds(duration))
                      << LOG_TAG("Status", ToString(status))
                      << LOG_TAG("Inputs",
                                 ToString(scada::base::AsList(descriptions)))
@@ -157,7 +158,7 @@ void NodeChildrenFetcher::FetchChildren(
                     << LOG_TAG("NodeIds",
                                ToString(scada::base::AsList(node_ids)));
 
-  const auto start_ticks = scada::base::TimeTicks::Now();
+  const auto start_ticks = std::chrono::steady_clock::now();
   ++children_request_count_;
 
   std::vector<scada::BrowseDescription> descriptions;

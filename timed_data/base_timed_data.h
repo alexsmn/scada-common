@@ -65,7 +65,7 @@ class BaseTimedData : public TimedData {
   bool alerting_ = false;
 
   scada::DataValue current_;
-  scada::DateTime change_time_;
+  scada::DateTime change_time_ = scada::base::kNullTime;
 
   scada::base::ObserverList<TimedDataObserver> observers_;
 

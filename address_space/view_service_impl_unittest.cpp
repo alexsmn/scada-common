@@ -63,7 +63,7 @@ class VirtualObject : public scada::GenericObject,
 
  private:
   scada::DataValue Read(const scada::ReadValueId& read_value_id) const {
-    return {scada::StatusCode::Bad, scada::DateTime::Now()};
+    return {scada::StatusCode::Bad, scada::base::NowUtc()};
   }
 
   scada::BrowseResult Browse(

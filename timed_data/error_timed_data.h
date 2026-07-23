@@ -39,7 +39,7 @@ class ErrorTimedData final : public TimedData {
   const scada::LocalizedText title_;
 
   inline static const std::vector<scada::DateTimeRange> kReadyRanges{
-      {scada::DateTime::Min(), scada::DateTime::Max()}};
+      {scada::base::kMinTime, scada::base::kMaxTime}};
 };
 
 inline scada::LocalizedText ErrorTimedData::GetTitle() const {

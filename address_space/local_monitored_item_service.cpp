@@ -34,11 +34,11 @@ class LocalMonitoredItem : public MonitoredItem {
 
     // Address-space attributes carry no timestamps; stamp the delivery time so
     // current-value consumers (IsUpdate ordering) treat the sample as fresh.
-    const DateTime now = base::Time::Now();
-    if (value.source_timestamp.is_null()) {
+    const DateTime now = base::NowUtc();
+    if (scada::base::IsNull(value.source_timestamp)) {
       value.source_timestamp = now;
     }
-    if (value.server_timestamp.is_null()) {
+    if (scada::base::IsNull(value.server_timestamp)) {
       value.server_timestamp = now;
     }
 

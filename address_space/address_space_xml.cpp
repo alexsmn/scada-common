@@ -5,6 +5,7 @@
 #include "address_space/mutable_address_space.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
+#include "base/time/time_wire_codec.h"
 #include "common/node_state.h"
 #include "common/node_state_util.h"
 #include "model/namespaces.h"
@@ -264,7 +265,7 @@ void AppendArrayValues(pugi::xml_node xml_node, const std::vector<T>& values) {
     } else if constexpr (std::is_same_v<T, NodeId>) {
       value_node.text().set(NodeIdToScadaString(value).c_str());
     } else if constexpr (std::is_same_v<T, DateTime>) {
-      SetIntegerValue(value_node, value.ToInternalValue());
+      SetIntegerValue(value_node, base::EncodeWireMicroseconds(value));
     } else {
       SetIntegerValue(value_node, value);
     }
@@ -326,7 +327,8 @@ Status WriteVariant(pugi::xml_node xml_node, const Variant& value) {
         xml_node.text().set(NodeIdToScadaString(value.as_node_id()).c_str());
         return OkStatus();
       case Variant::DATE_TIME:
-        SetIntegerValue(xml_node, value.get<DateTime>().ToInternalValue());
+        SetIntegerValue(xml_node,
+                        base::EncodeWireMicroseconds(value.get<DateTime>()));
         return OkStatus();
       default:
         return StatusCode::Bad_WrongTypeId;
@@ -405,7 +407,7 @@ std::optional<Variant> ReadScalarVariant(Variant::Type type,
       return Variant{ParseNodeId(text)};
     case Variant::DATE_TIME:
       if (auto value = ParseInteger<int64_t>(text)) {
-        return Variant{DateTime::FromInternalValue(*value)};
+        return Variant{base::DecodeWireTime(*value)};
       }
       return std::nullopt;
     default:

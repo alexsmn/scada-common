@@ -248,20 +248,20 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
 }
 
 TEST(ConversionTest, DateTime) {
-  const auto scada_time = base::Time::FromInternalValue(123456789);
+  const auto scada_time = base::DecodeWireTime(123456789);
   EXPECT_EQ(ToOpcua(scada_time).ToInternalValue(), 1234567890);
   ExpectRoundTrip(scada_time);
   ExpectRoundTrip(base::Time{});
-  ExpectRoundTrip(base::Time::Min());
-  ExpectRoundTrip(base::Time::Max());
+  ExpectRoundTrip(base::kMinTime);
+  ExpectRoundTrip(base::kMaxTime);
 }
 
 TEST(ConversionTest, Duration) {
-  const auto scada_duration = base::TimeDelta::FromMicroseconds(1250);
+  const auto scada_duration = std::chrono::microseconds(1250);
   EXPECT_DOUBLE_EQ(ToOpcua(scada_duration).ToInternalValue(), 1.25);
   ExpectRoundTrip(scada_duration);
-  ExpectRoundTrip(base::TimeDelta::Min());
-  ExpectRoundTrip(base::TimeDelta::Max());
+  ExpectRoundTrip(base::TimeDelta::min());
+  ExpectRoundTrip(base::TimeDelta::max());
 }
 
 TEST(ConversionTest, VariantScalars) {
@@ -309,8 +309,8 @@ TEST(ConversionTest, DataValue) {
   scada::DataValue dv;
   dv.value = scada::Variant{scada::Double{42.0}};
   dv.status_code = scada::StatusCode::Good;
-  dv.source_timestamp = base::Time::FromInternalValue(1000);
-  dv.server_timestamp = base::Time::FromInternalValue(2000);
+  dv.source_timestamp = base::DecodeWireTime(1000);
+  dv.server_timestamp = base::DecodeWireTime(2000);
   ExpectRoundTrip(dv);
 }
 
@@ -333,8 +333,8 @@ TEST(ConversionTest, MonitoringFilterEventRoundTrip) {
 
 TEST(ConversionTest, MonitoringFilterAggregateRoundTrip) {
   scada::AggregateFilter af;
-  af.start_time = base::Time::FromInternalValue(123456789);
-  af.interval = base::TimeDelta::FromMilliseconds(500);
+  af.start_time = base::DecodeWireTime(123456789);
+  af.interval = std::chrono::milliseconds(500);
   af.aggregate_type = scada::NodeId{2342u};
   scada::MonitoringParameters params;
   params.filter = af;

@@ -23,7 +23,7 @@ class PropertyDecl : public Variable {
   // Variable
   virtual const DataType& GetDataType() const override { return data_type_; }
   virtual DataValue GetValue() const override {
-    auto now = DateTime::Now();
+    auto now = base::NowUtc();
     return {value_, {}, now, now};
   }
   virtual Status SetValue(const DataValue& data_value) override {
@@ -59,7 +59,7 @@ class Property : public Variable {
     return instance_declaration_.GetDataType();
   }
   virtual DataValue GetValue() const override {
-    auto now = DateTime::Now();
+    auto now = base::NowUtc();
     return {value_, {}, now, now};
   }
   virtual Status SetValue(const DataValue& data_value) override;

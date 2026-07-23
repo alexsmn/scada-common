@@ -1,5 +1,7 @@
 #include "opcua_bridge/service_conversion.h"
 
+#include <chrono>
+
 #include "opcua_bridge/vector_conversion.h"
 
 #include "scada/event_util.h"
@@ -299,19 +301,17 @@ scada::EventFilter EventFilterFromJson(const boost::json::object& obj) {
 boost::json::value AggregateFilterToJson(const scada::AggregateFilter& v) {
   return boost::json::object{
       {"_scada", "aggregate"},
-      {"start_time_us",
-       v.start_time.ToDeltaSinceWindowsEpoch().InMicroseconds()},
-      {"interval_us", v.interval.InMicroseconds()},
+      {"start_time_us", base::EncodeWireMicroseconds(v.start_time)},
+      {"interval_us", v.interval.count()},
       {"aggregate_type", v.aggregate_type.ToString()}};
 }
 
 scada::AggregateFilter AggregateFilterFromJson(const boost::json::object& obj) {
   scada::AggregateFilter out;
-  out.start_time =
-      base::Time::FromDeltaSinceWindowsEpoch(base::TimeDelta::FromMicroseconds(
-          obj.at("start_time_us").to_number<std::int64_t>()));
-  out.interval = base::TimeDelta::FromMicroseconds(
-      obj.at("interval_us").to_number<std::int64_t>());
+  out.start_time = base::DecodeWireTime(
+      obj.at("start_time_us").to_number<std::int64_t>());
+  out.interval = std::chrono::microseconds{
+      obj.at("interval_us").to_number<std::int64_t>()};
   out.aggregate_type =
       scada::NodeId::FromString(obj.at("aggregate_type").as_string().c_str());
   return out;
@@ -358,17 +358,19 @@ scada::MonitoringFilter ToScadaFilter(
 
 opcua::MonitoringParameters ToOpcua(const scada::MonitoringParameters& v) {
   opcua::MonitoringParameters out;
-  out.sampling_interval_ms = v.sampling_interval.has_value()
-                                 ? v.sampling_interval->InMillisecondsF()
-                                 : 0.0;
+  out.sampling_interval_ms =
+      v.sampling_interval.has_value()
+          ? std::chrono::duration<double, std::milli>(*v.sampling_interval)
+                .count()
+          : 0.0;
   out.filter = ToOpcuaFilter(v.filter);
   out.queue_size = static_cast<opcua::UInt32>(v.queue_size.value_or(1));
   return out;
 }
 scada::MonitoringParameters ToScada(const opcua::MonitoringParameters& v) {
   scada::MonitoringParameters out;
-  out.sampling_interval =
-      base::TimeDelta::FromMillisecondsD(v.sampling_interval_ms);
+  out.sampling_interval = std::chrono::round<std::chrono::microseconds>(
+      std::chrono::duration<double, std::milli>{v.sampling_interval_ms});
   out.filter = ToScadaFilter(v.filter);
   out.queue_size = static_cast<size_t>(v.queue_size);
   return out;

@@ -57,7 +57,7 @@ void TimedDataSpec::SetFrom(scada::base::Time from) {
 }
 
 void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
-  scada::base::Check(!range.second.is_null());
+  scada::base::Check(!scada::base::IsNull(range.second));
   scada::base::Check(IsValidInterval(range));
   scada::base::Check(range.second == kTimedDataCurrentOnly ||
                      !IsEmptyInterval(range));

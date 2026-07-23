@@ -19,7 +19,7 @@ TEST(ScadaTimedDataModuleSmoke, FakeTimedDataAndView) {
 
   TimedDataBuffer buffer;
   scada::DataValue data_value;
-  data_value.source_timestamp = scada::DateTime::Now();
+  data_value.source_timestamp = scada::base::NowUtc();
   buffer.InsertOrUpdate(data_value);
   EXPECT_EQ(buffer.view().size(), 1u);
 

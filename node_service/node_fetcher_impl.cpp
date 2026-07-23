@@ -4,6 +4,7 @@
 #include "base/awaitable.h"
 #include "base/check.h"
 #include "base/range_util.h"
+#include "base/time_utils.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"
 #include "scada/attribute_service.h"
@@ -241,7 +242,7 @@ unsigned NodeFetcherImpl::MakeRequestId() {
 void NodeFetcherImpl::FetchPendingNodes(std::vector<FetchingNode*>&& nodes) {
   scada::base::Check(CheckInvariants());
 
-  const auto start_ticks = scada::base::TimeTicks::Now();
+  const auto start_ticks = std::chrono::steady_clock::now();
   const auto request_id = MakeRequestId();
 
   LOG_INFO(logger_) << "Fetch pending nodes"
@@ -378,7 +379,7 @@ void NodeFetcherImpl::NotifyFetchedNodes() {
 
 void NodeFetcherImpl::OnReadResult(
     unsigned request_id,
-    scada::base::TimeTicks start_ticks,
+    std::chrono::steady_clock::time_point start_ticks,
     scada::Status&& status,
     const std::vector<scada::ReadValueId>& read_ids,
     std::vector<scada::DataValue>&& results) {
@@ -395,10 +396,10 @@ void NodeFetcherImpl::OnReadResult(
     results.clear();
   }
 
-  auto duration = scada::base::TimeTicks::Now() - start_ticks;
+  auto duration = std::chrono::steady_clock::now() - start_ticks;
   LOG_INFO(logger_) << "Read request completed"
                     << LOG_TAG("RequestId", request_id)
-                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("DurationMs", InMilliseconds(duration))
                     << LOG_TAG("Status", ToString(status));
   for (size_t i = 0; i < read_ids.size() && i < results.size(); ++i) {
     const auto& input = read_ids[i];
@@ -538,7 +539,7 @@ void NodeFetcherImpl::SetFetchedAttribute(FetchingNode& node,
 
 void NodeFetcherImpl::OnBrowseResult(
     unsigned request_id,
-    scada::base::TimeTicks start_ticks,
+    std::chrono::steady_clock::time_point start_ticks,
     scada::Status&& status,
     const std::vector<scada::BrowseDescription>& descriptions,
     std::vector<scada::BrowseResult>&& results) {
@@ -555,11 +556,11 @@ void NodeFetcherImpl::OnBrowseResult(
     results.clear();
   }
 
-  const auto duration = scada::base::TimeTicks::Now() - start_ticks;
+  const auto duration = std::chrono::steady_clock::now() - start_ticks;
   LOG_INFO(logger_) << "Browse request completed"
                     << LOG_TAG("RequestId", request_id)
                     << LOG_TAG("Count", descriptions.size())
-                    << LOG_TAG("DurationMs", duration.InMilliseconds())
+                    << LOG_TAG("DurationMs", InMilliseconds(duration))
                     << LOG_TAG("Status", ToString(status));
   for (size_t i = 0; i < descriptions.size() && i < results.size(); ++i) {
     const auto& input = descriptions[i];

@@ -227,7 +227,7 @@ template <typename T>
 inline void BasicTimedDataBuffer<T>::AddObserver(
     BasicTimedDataViewObserver<T>& observer,
     const scada::DateTimeRange& range) {
-  scada::base::Check(!range.second.is_null());
+  scada::base::Check(!scada::base::IsNull(range.second));
   scada::base::Check(IsValidInterval(range));
   scada::base::Check(range.first == kTimedDataCurrentOnly ||
                      !IsEmptyInterval(range));
@@ -321,7 +321,7 @@ template <typename T>
 inline bool BasicTimedDataBuffer<T>::InsertOrUpdate(const T& value) {
   ScopedInvariant values_sorted{[&] { return IsTimeSorted(values_); }};
 
-  if (timestamp(value).is_null())
+  if (scada::base::IsNull(timestamp(value)))
     return false;
 
   // An optimization for tail inserts.
@@ -346,11 +346,11 @@ inline bool BasicTimedDataBuffer<T>::InsertOrUpdate(const T& value) {
 template <typename T>
 inline void BasicTimedDataBuffer<T>::ClearRange(
     const scada::DateTimeRange& range) {
-  scada::base::Check(!range.first.is_null());
-  scada::base::Check(range.second.is_null() || range.first <= range.second);
+  scada::base::Check(!scada::base::IsNull(range.first));
+  scada::base::Check(scada::base::IsNull(range.second) || range.first <= range.second);
 
   auto i = LowerBound(values_, range.first);
-  auto j = range.second.is_null() ? values_.size()
+  auto j = scada::base::IsNull(range.second) ? values_.size()
                                   : UpperBound(values_, range.second);
   if (i == j)
     return;
@@ -394,12 +394,12 @@ inline void BasicTimedDataBuffer<T>::ReplaceRange(std::span<T> values) {
   // alone would accept a single leading null.
   std::vector<T> sanitized;
   const bool has_leading_null =
-      !values.empty() && timestamp(values.front()).is_null();
+      !values.empty() && scada::base::IsNull(timestamp(values.front()));
   if (has_leading_null || !IsTimeSorted(values)) {
     sanitized.assign(std::make_move_iterator(values.begin()),
                      std::make_move_iterator(values.end()));
     std::erase_if(sanitized,
-                  [](const T& v) { return timestamp(v).is_null(); });
+                  [](const T& v) { return scada::base::IsNull(timestamp(v)); });
     std::ranges::stable_sort(sanitized, std::less{},
                              &TimedDataTraits<T>::timestamp);
     auto dup = std::ranges::unique(sanitized, std::equal_to{},
@@ -457,7 +457,7 @@ inline void BasicTimedDataBuffer<T>::TrimToObservedRanges() {
     const scada::DateTime hull_last = observed_ranges_.back().second;
 
     size_t keep_begin = LowerBound(values_, hull_first);
-    size_t keep_end = hull_last.is_null() ? values_.size()
+    size_t keep_end = scada::base::IsNull(hull_last) ? values_.size()
                                           : UpperBound(values_, hull_last);
     if (keep_end < values_.size())
       values_.erase(values_.begin() + keep_end, values_.end());
@@ -492,7 +492,7 @@ inline void BasicTimedDataBuffer<T>::ClampRanges(
   result.reserve(ranges.size());
   for (const auto& r : ranges) {
     scada::DateTime a = std::max(r.first, lo);
-    scada::DateTime b = hi.is_null() ? r.second : std::min(r.second, hi);
+    scada::DateTime b = scada::base::IsNull(hi) ? r.second : std::min(r.second, hi);
     if (a < b)
       result.push_back({a, b});
   }
@@ -504,7 +504,7 @@ inline scada::DateTimeRange BasicTimedDataBuffer<T>::UnionRange(
     const scada::DateTimeRange& a,
     const scada::DateTimeRange& b) {
   scada::DateTime first = std::min(a.first, b.first);
-  scada::DateTime second = (a.second.is_null() || b.second.is_null())
+  scada::DateTime second = (scada::base::IsNull(a.second) || scada::base::IsNull(b.second))
                                ? scada::DateTime{}
                                : std::max(a.second, b.second);
   return {first, second};

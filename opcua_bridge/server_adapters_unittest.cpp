@@ -176,8 +176,8 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   scada::Event event;
   event.event_type_id = scada::id::SystemEventType;
   event.event_id = 0x123456789;
-  event.time = scada::DateTime::Now();
-  event.receive_time = scada::DateTime::Now();
+  event.time = scada::base::NowUtc();
+  event.receive_time = scada::base::NowUtc();
   event.change_mask = scada::Event::EVT_VAL;
   event.severity = 600;
   event.source_node_id = scada::NodeId{42, 2};

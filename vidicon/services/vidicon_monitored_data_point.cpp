@@ -1,6 +1,7 @@
 #include "vidicon_monitored_data_point.h"
 
 #include "base/check.h"
+#include "base/time/calendar.h"
 #include "base/time/time.h"
 #include "base/utf_convert.h"
 #include "base/win/scoped_variant.h"
@@ -28,13 +29,11 @@ Time ToTime(DATE time) {
   utc.wMilliseconds =
       static_cast<WORD>(std::round((time - floor(time)) * 24 * 60 * 60 * 1000));
 
-  Time result;
-  Time::Exploded exploded{
+  Exploded exploded{
       system_time.wYear,        system_time.wMonth, 0,
       system_time.wDay,         system_time.wHour,  system_time.wSecond,
       system_time.wMilliseconds};
-  Time::FromUTCExploded(exploded, &result);
-  return result;
+  return FromUtcExploded(exploded).value_or(Time{});
 }
 
 }  // namespace scada::base

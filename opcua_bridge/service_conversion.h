@@ -22,6 +22,7 @@
 #include "scada/session_service.h"
 #include "scada/view_service.h"
 #include "scada/write_flags.h"
+#include <chrono>
 
 #include "opcua/events/event.h"
 #include "opcua/message.h"
@@ -68,18 +69,19 @@ inline scada::Privilege ToScada(opcua::Privilege v) {
 
 // --- Duration (base::TimeDelta vs opcua::Duration) ----------------
 inline opcua::Duration ToOpcua(scada::Duration d) {
-  if (d.is_max())
+  if (d == scada::Duration::max())
     return opcua::Duration::Max();
-  if (d.is_min())
+  if (d == scada::Duration::min())
     return opcua::Duration::Min();
-  return opcua::Duration::FromMillisecondsD(d.InMillisecondsF());
+  return opcua::Duration::FromMillisecondsD(
+      std::chrono::duration<double, std::milli>(d).count());
 }
 inline scada::Duration ToScada(opcua::Duration d) {
   if (d.is_max())
-    return scada::Duration::Max();
+    return scada::Duration::max();
   if (d.is_min())
-    return scada::Duration::Min();
-  return scada::Duration::FromMicroseconds(d.InMicroseconds());
+    return scada::Duration::min();
+  return std::chrono::microseconds{d.InMicroseconds()};
 }
 
 // --- WriteFlags ---------------------------------------------------------

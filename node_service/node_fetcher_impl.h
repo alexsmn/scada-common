@@ -7,6 +7,7 @@
 #include "node_service/node_fetcher.h"
 #include "scada/service_context.h"
 
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -68,12 +69,12 @@ class NodeFetcherImpl : private NodeFetcherImplContext,
                            scada::ReferenceDescription&& reference);
 
   void OnReadResult(unsigned request_id,
-                    scada::base::TimeTicks start_ticks,
+                    std::chrono::steady_clock::time_point start_ticks,
                     scada::Status&& status,
                     const std::vector<scada::ReadValueId>& read_ids,
                     std::vector<scada::DataValue>&& results);
   void OnBrowseResult(unsigned request_id,
-                      scada::base::TimeTicks start_ticks,
+                      std::chrono::steady_clock::time_point start_ticks,
                       scada::Status&& status,
                       const std::vector<scada::BrowseDescription>& descriptions,
                       std::vector<scada::BrowseResult>&& results);

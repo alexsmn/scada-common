@@ -50,7 +50,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)({scada::StatusCode::Uncertain_Disconnected,
-                                scada::base::Time::Now()});
+                                scada::base::NowUtc()});
       }
       return;
     }
@@ -67,7 +67,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
         (*data_change_handler)(
-            {scada::StatusCode::Bad, scada::base::Time::Now()});
+            {scada::StatusCode::Bad, scada::base::NowUtc()});
       } else if (const auto* event_handler =
                      std::get_if<scada::EventHandler>(&*handler_)) {
         (*event_handler)(scada::StatusCode::Bad, {});

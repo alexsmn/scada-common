@@ -2,9 +2,9 @@
 
 #include "base/any_executor.h"
 #include "base/boost_log.h"
-#include "base/time/time.h"
 #include "scada/service_context.h"
 
+#include <chrono>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -49,7 +49,7 @@ class NodeChildrenFetcher
   void FetchPendingNodes();
 
   void OnBrowseChildrenResult(
-      scada::base::TimeTicks start_ticks,
+      std::chrono::steady_clock::time_point start_ticks,
       scada::Status&& status,
       const std::vector<scada::BrowseDescription>& descriptions,
       std::vector<scada::BrowseResult>&& results);

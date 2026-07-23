@@ -81,7 +81,7 @@ TEST(OpcQualityConverter, Bad) {
 }
 
 TEST(OpcDataValueConverter, ToScada) {
-  auto now = scada::DateTime::Now();
+  auto now = scada::base::NowUtc();
   auto timestamp = now - scada::Duration::FromSeconds(123);
 
   auto opc_data_value =
@@ -97,7 +97,7 @@ TEST(OpcDataValueConverter, ToScada) {
 }
 
 TEST(OpcDataValueConverter, ToOpc) {
-  auto server_timestamp = scada::DateTime::Now();
+  auto server_timestamp = scada::base::NowUtc();
   auto source_timestamp = server_timestamp - scada::Duration::FromSeconds(123);
 
   auto scada_data_value =

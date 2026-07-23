@@ -54,12 +54,12 @@ scada::DataValue SyncAttributeServiceImpl::Read(
   std::string_view nested_name;
   auto* node = scada::GetNestedNode(address_space_, input.node_id, nested_name);
   if (!node)
-    return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
+    return {scada::StatusCode::Bad_WrongNodeId, scada::base::NowUtc()};
 
   if (nested_name.empty())
     return ReadNode(context, *node, input.attribute_id);
 
-  return {scada::StatusCode::Bad_WrongNodeId, scada::DateTime::Now()};
+  return {scada::StatusCode::Bad_WrongNodeId, scada::base::NowUtc()};
 }
 
 std::vector<scada::StatusCode> SyncAttributeServiceImpl::Write(
@@ -103,7 +103,7 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
       if (!scada::IsPermitted(context.user_rights(), context.is_anonymous(),
                               scada::Permission::kReadRolePermissions)) {
         return {scada::StatusCode::Bad_UserAccessDenied,
-                scada::DateTime::Now()};
+                scada::base::NowUtc()};
       }
       return scada::MakeReadResult(scada::EncodeRolePermissions(
           node.role_permissions() ? *node.role_permissions()
@@ -177,5 +177,5 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
     }
   }
 
-  return {scada::StatusCode::Bad_WrongAttributeId, scada::DateTime::Now()};
+  return {scada::StatusCode::Bad_WrongAttributeId, scada::base::NowUtc()};
 }

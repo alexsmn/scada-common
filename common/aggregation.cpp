@@ -1,6 +1,7 @@
 #include "common/aggregation.h"
 
 #include "base/check.h"
+#include "base/time/calendar.h"
 #include "common/data_value_traits.h"
 #include "common/timed_data_util.h"
 #include "scada/aggregate_filter.h"
@@ -170,12 +171,8 @@ Aggregator GetAggregator(const NodeId& aggregate_type,
 }
 
 DateTime GetLocalAggregateStartTime() {
-  DateTime result;
-  DateTime::Exploded exploded = {2000, 1, 0, 1};
-  if (!DateTime::FromLocalExploded(exploded, &result)) {
-    result = DateTime::UnixEpoch();
-  }
-  return result;
+  base::Exploded exploded = {2000, 1, 0, 1};
+  return base::FromLocalExploded(exploded).value_or(DateTime{});
 }
 
 DateTimeRange GetAggregateInterval(DateTime time,
@@ -183,7 +180,7 @@ DateTimeRange GetAggregateInterval(DateTime time,
                                    Duration interval) {
   // The interval comes from request/configuration data and |time| from stored
   // history values (external input); degrade instead of panicking.
-  if (interval.is_zero())
+  if (interval == Duration::zero())
     return {time, time};
   if (time < origin_time)
     return {origin_time, origin_time + interval};

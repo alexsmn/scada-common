@@ -67,7 +67,7 @@ class BaseVariable : public Variable {
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_;
+  DateTime change_time_ = base::kNullTime;
 };
 
 class GenericVariable : public Variable {
@@ -88,7 +88,7 @@ class GenericVariable : public Variable {
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_;
+  DateTime change_time_ = base::kNullTime;
 };
 
 }  // namespace scada

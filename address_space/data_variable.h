@@ -40,7 +40,7 @@ class DataVariable : public Variable {
  private:
   Variable& instance_declaration_;
   DataValue value_;
-  DateTime change_time_;
+  DateTime change_time_ = base::kNullTime;
 };
 
 // DataVariable

@@ -1,6 +1,9 @@
 #include "address_space/local_history_service.h"
 
+#include "base/time/calendar.h"
 #include "base/time/time.h"
+
+#include <chrono>
 #include "base/utf_convert.h"
 #include "model/node_id_util.h"
 #include "scada/data_value.h"
@@ -47,16 +50,16 @@ void LocalHistoryService::SetNowOverride(base::Time now) {
 }
 
 base::Time LocalHistoryService::Now() const {
-  return now_override_.is_null() ? base::Time::Now() : now_override_;
+  return scada::base::IsNull(now_override_) ? base::NowUtc() : now_override_;
 }
 
 void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   // Optional frozen clock, so regenerating screenshots doesn't shift every
   // rendered timestamp.
   if (const auto* jnow = root.as_object().if_contains("now")) {
-    base::Time now;
-    if (base::Time::FromString(std::string(jnow->as_string()).c_str(), &now))
-      SetNowOverride(now);
+    if (auto now = base::TimeFromString(std::string(jnow->as_string()),
+                                        /*is_local=*/true))
+      SetNowOverride(*now);
   }
 
   // Raw-history base values from the `nodes` array, plus an optional per-node
@@ -78,7 +81,8 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
     Event e;
     e.event_id = static_cast<EventId>(je.at("id").as_int64());
     double hours_ago = je.at("hours_ago").to_number<double>();
-    e.time = now - base::TimeDelta::FromSecondsD(hours_ago * 3600);
+    e.time = now - std::chrono::round<std::chrono::microseconds>(
+                       std::chrono::duration<double>{hours_ago * 3600});
     e.receive_time = e.time;
     e.severity = ParseSeverity(je.at("severity").as_string());
     e.message = LocalizedText{
@@ -123,7 +127,7 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // Max would spread its 48 points across geological time, so every point but
   // the first falls outside any real query window and the series reads flat.
   // Treat an unbounded end as "now".
-  const auto now = (details.to.is_null() || details.to == base::Time::Max())
+  const auto now = (scada::base::IsNull(details.to) || details.to == base::kMaxTime)
                        ? Now()
                        : details.to;
 
@@ -132,8 +136,8 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // a table row's 1 h sparkline window both read 48 points (a 24 h request
   // keeps the historical 30-minute spacing exactly). An open-ended request
   // falls back to that 30-minute spacing.
-  base::TimeDelta interval = base::TimeDelta::FromMinutes(30);
-  if (!details.from.is_null() && details.from < now)
+  base::TimeDelta interval = std::chrono::minutes{30};
+  if (!scada::base::IsNull(details.from) && details.from < now)
     interval = (now - details.from) / 48;
 
   double base_value = 100.0;

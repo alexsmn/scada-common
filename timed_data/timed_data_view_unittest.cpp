@@ -15,7 +15,7 @@ namespace {
 // the full scada::DataValue machinery. `seq` is a tiebreak among samples that
 // share a timestamp, mirroring DataValue's server_timestamp tiebreak.
 struct TestStruct {
-  scada::DateTime timestamp;
+  scada::DateTime timestamp = scada::base::kNullTime;
   int value = 0;
   int seq = 0;
 };
@@ -51,8 +51,8 @@ class RecordingObserver : public BasicTimedDataViewObserver<TestStruct> {
 
 // Distinct, ordered timestamps.
 scada::DateTime At(int seconds) {
-  static const scada::DateTime kBase = scada::DateTime::Now();
-  return kBase + scada::base::TimeDelta::FromSeconds(seconds);
+  static const scada::DateTime kBase = scada::base::NowUtc();
+  return kBase + std::chrono::seconds(seconds);
 }
 
 std::vector<TestStruct> Samples(std::initializer_list<int> seconds) {
@@ -106,8 +106,8 @@ TEST(TimedDataViewTest, FromAndUntilOpenEnds) {
   EXPECT_EQ(view.until(At(4)).size(), 3u);  // 0, 2, 4
 
   // A null bound is unbounded on that side.
-  EXPECT_EQ(view.from(scada::DateTime{}).size(), 5u);
-  EXPECT_EQ(view.until(scada::DateTime{}).size(), 5u);
+  EXPECT_EQ(view.from(scada::base::kNullTime).size(), 5u);
+  EXPECT_EQ(view.until(scada::base::kNullTime).size(), 5u);
 }
 
 TEST(TimedDataViewTest, ValueAtExactVersusAtOrBefore) {
@@ -231,7 +231,7 @@ TEST(TimedDataBufferTest, ReplaceRangeSanitizesUnsortedDuplicateAndNull) {
   // Unsorted, with a duplicate timestamp and a null-timestamp sample.
   std::vector<TestStruct> messy = {
       TestStruct{.timestamp = At(4), .value = 4},
-      TestStruct{.timestamp = scada::DateTime{}, .value = -1},  // null: dropped
+      TestStruct{.timestamp = scada::base::kNullTime, .value = -1},  // null: dropped
       TestStruct{.timestamp = At(1), .value = 1},
       TestStruct{.timestamp = At(4), .value = 40},  // duplicate of At(4)
       TestStruct{.timestamp = At(2), .value = 2},

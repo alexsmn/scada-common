@@ -81,7 +81,7 @@ class LocalHistoryService : public HistoryService {
 
   std::unordered_map<NodeId, RawProfile> raw_profiles_;
   std::vector<Event> events_;
-  base::Time now_override_;
+  base::Time now_override_ = base::kNullTime;
 };
 
 }  // namespace scada
