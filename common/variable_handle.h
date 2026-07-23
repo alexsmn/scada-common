@@ -19,7 +19,7 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   virtual ~VariableHandle();
 
   void set_last_value(DataValue value) { last_value_ = std::move(value); }
-  void set_last_change_time(DateTime time) { last_change_time_ = time; }
+  void set_last_change_time(Time time) { last_change_time_ = time; }
 
   void ForwardData(const DataValue& value);
   void UpdateQualifier(unsigned remove, unsigned add);
@@ -29,7 +29,7 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
   const DataValue& last_value() const SCADA_LIFETIME_BOUND {
     return last_value_;
   }
-  DateTime last_change_time() const { return last_change_time_; }
+  Time last_change_time() const { return last_change_time_; }
 
   // Reflects `scada::DataChangeHandler` signature.
   using DataChangeSignal =
@@ -49,7 +49,7 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
 
  private:
   DataValue last_value_;
-  scada::DateTime last_change_time_ = scada::kNullTime;
+  scada::Time last_change_time_ = scada::kNullTime;
 
   DataChangeSignal data_change_signal_;
 };

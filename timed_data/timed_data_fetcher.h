@@ -32,7 +32,7 @@ class TimedDataFetcher : private TimedDataFetcherContext,
   NodeRef node_;
 
   bool querying_ = false;
-  scada::DateTimeRange querying_range_;
+  scada::TimeRange querying_range_;
 
   inline static BoostLogger logger_{LOG_NAME("TimedDataFetcher")};
 };

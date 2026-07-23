@@ -28,7 +28,7 @@ class MockTimedData : public TimedData {
 
     ON_CALL(*this, AddViewObserver(_, _))
         .WillByDefault(Invoke([this](TimedDataViewObserver& observer,
-                                     const scada::DateTimeRange& range) {
+                                     const scada::TimeRange& range) {
           view_observers_.emplace_back(&observer);
         }));
 
@@ -40,14 +40,14 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(bool, IsError, (), (const override));
 
-  MOCK_METHOD(const std::vector<scada::DateTimeRange>&,
+  MOCK_METHOD(const std::vector<scada::TimeRange>&,
               GetReadyRanges,
               (),
               (const override));
 
   MOCK_METHOD(scada::DataValue, GetDataValue, (), (const override));
 
-  MOCK_METHOD(scada::DateTime, GetChangeTime, (), (const override));
+  MOCK_METHOD(scada::Time, GetChangeTime, (), (const override));
 
   MOCK_METHOD(std::span<const scada::DataValue>,
               GetValues,
@@ -56,7 +56,7 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(const scada::DataValue*,
               GetValueAt,
-              (const scada::DateTime& time),
+              (const scada::Time& time),
               (const override));
 
   MOCK_METHOD(void, AddObserver, (TimedDataObserver & observer), (override));
@@ -66,7 +66,7 @@ class MockTimedData : public TimedData {
   MOCK_METHOD(void,
               AddViewObserver,
               (TimedDataViewObserver & observer,
-               const scada::DateTimeRange& range),
+               const scada::TimeRange& range),
               (override));
 
   MOCK_METHOD(void,

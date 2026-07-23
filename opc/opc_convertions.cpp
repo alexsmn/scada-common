@@ -12,8 +12,8 @@ namespace scada::opc {
 
 namespace {
 
-inline scada::DateTime ToDateTime(FILETIME timestamp) {
-  return scada::DateTime::FromFileTime(timestamp);
+inline scada::Time ToDateTime(FILETIME timestamp) {
+  return scada::Time::FromFileTime(timestamp);
 }
 
 inline std::string ToString(std::wstring_view str) {
@@ -95,7 +95,7 @@ opc_client::Quality OpcQualityConverter::ToOpc(scada::Qualifier qualifier) {
 // static
 scada::DataValue OpcDataValueConverter::ToScada(
     const opc_client::DataValue& opc_data_value,
-    scada::DateTime now) {
+    scada::Time now) {
   // OPC UA. Part 8. A.3.2.4 Timestamp
   // - The `Timestamp` provided for a value in the DA server is assigned to the
   // `SourceTimeStamp` of the `DataValue` in the COM UA Wrapper.

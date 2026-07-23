@@ -25,7 +25,7 @@ class ExpressionTimedData final : public BaseTimedData,
  private:
   // Get earliest time from which all operands are ready.
   // Returns |kTimedDataCurrentOnly| if one of operands is not ready.
-  scada::DateTime GetOperandsReadyFrom() const;
+  scada::Time GetOperandsReadyFrom() const;
 
   // Fill all ranges that was requested but not calculated yet.
   // Returns false if ready range was not changed.
@@ -33,7 +33,7 @@ class ExpressionTimedData final : public BaseTimedData,
 
   // Computes expression values across `range` from the operands and inserts
   // them into the buffer (coalescing the inserts into one notification).
-  void CalculateValuesInRange(const scada::DateTimeRange& range);
+  void CalculateValuesInRange(const scada::TimeRange& range);
   bool CalculateCurrent();
 
   // TimedData
@@ -50,6 +50,6 @@ class ExpressionTimedData final : public BaseTimedData,
   std::unique_ptr<ScadaExpression> expression_;
   std::vector<std::shared_ptr<TimedData>> operands_;
 
-  scada::DateTime from_ = kTimedDataCurrentOnly;
-  scada::DateTime ready_from_ = kTimedDataCurrentOnly;
+  scada::Time from_ = kTimedDataCurrentOnly;
+  scada::Time ready_from_ = kTimedDataCurrentOnly;
 };

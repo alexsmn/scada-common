@@ -15,7 +15,7 @@ namespace {
 // the full scada::DataValue machinery. `seq` is a tiebreak among samples that
 // share a timestamp, mirroring DataValue's server_timestamp tiebreak.
 struct TestStruct {
-  scada::DateTime timestamp = scada::kNullTime;
+  scada::Time timestamp = scada::kNullTime;
   int value = 0;
   int seq = 0;
 };
@@ -24,7 +24,7 @@ struct TestStruct {
 
 template <>
 struct TimedDataTraits<TestStruct> {
-  static constexpr scada::DateTime timestamp(const TestStruct& v) {
+  static constexpr scada::Time timestamp(const TestStruct& v) {
     return v.timestamp;
   }
 
@@ -50,8 +50,8 @@ class RecordingObserver : public BasicTimedDataViewObserver<TestStruct> {
 };
 
 // Distinct, ordered timestamps.
-scada::DateTime At(int seconds) {
-  static const scada::DateTime kBase = scada::Now();
+scada::Time At(int seconds) {
+  static const scada::Time kBase = scada::Now();
   return kBase + std::chrono::seconds(seconds);
 }
 

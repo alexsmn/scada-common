@@ -16,24 +16,24 @@ class BaseTimedData : public TimedData {
   BaseTimedData& operator=(const BaseTimedData&) = delete;
 
   // TimedData
-  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges()
       const override {
     return buffer_.ready_ranges();
   }
   virtual bool IsAlerting() const override { return alerting_; }
   virtual scada::DataValue GetDataValue() const override { return current_; }
-  virtual scada::DateTime GetChangeTime() const override {
+  virtual scada::Time GetChangeTime() const override {
     return change_time_;
   }
   virtual std::span<const scada::DataValue> GetValues() const override {
     return buffer_.values();
   }
   virtual const scada::DataValue* GetValueAt(
-      const scada::DateTime& time) const override;
+      const scada::Time& time) const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual void AddViewObserver(TimedDataViewObserver& observer,
-                               const scada::DateTimeRange& range) override;
+                               const scada::TimeRange& range) override;
   virtual void RemoveViewObserver(TimedDataViewObserver& observer) override;
   virtual NodeRef GetNode() const override { return nullptr; }
   virtual const EventSet* GetEvents() const override { return nullptr; }
@@ -65,7 +65,7 @@ class BaseTimedData : public TimedData {
   bool alerting_ = false;
 
   scada::DataValue current_;
-  scada::DateTime change_time_ = scada::kNullTime;
+  scada::Time change_time_ = scada::kNullTime;
 
   scada::base::ObserverList<TimedDataObserver> observers_;
 

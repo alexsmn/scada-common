@@ -55,13 +55,13 @@ void ExpressionTimedData::Acknowledge() {
     operands_[i]->Acknowledge();
 }
 
-scada::DateTime ExpressionTimedData::GetOperandsReadyFrom() const {
-  scada::DateTime ready_from = scada::kNullTime;
+scada::Time ExpressionTimedData::GetOperandsReadyFrom() const {
+  scada::Time ready_from = scada::kNullTime;
 
-  scada::DateTimeRange range{from_, kTimedDataCurrentOnly};
+  scada::TimeRange range{from_, kTimedDataCurrentOnly};
   for (size_t i = 0; i < operands_.size(); ++i) {
     const auto& operand = *operands_[i];
-    scada::DateTime operand_ready_from =
+    scada::Time operand_ready_from =
         GetReadyFrom(operand.GetReadyRanges(), range);
 
     if (operand_ready_from == kTimedDataCurrentOnly)
@@ -76,7 +76,7 @@ scada::DateTime ExpressionTimedData::GetOperandsReadyFrom() const {
 }
 
 void ExpressionTimedData::CalculateValuesInRange(
-    const scada::DateTimeRange& range) {
+    const scada::TimeRange& range) {
   scada::base::Check(!scada::IsNull(range.first));
   scada::base::Check(scada::IsNull(range.second) || range.first <= range.second);
 
@@ -105,7 +105,7 @@ void ExpressionTimedData::CalculateValuesInRange(
   // Run calculation.
   for (;;) {
     // Setup operand values and find next calculation time.
-    scada::DateTime update_time = scada::kNullTime;
+    scada::Time update_time = scada::kNullTime;
     scada::Qualifier total_qualifier;
     bool calculation_finished = true;
 
@@ -123,7 +123,7 @@ void ExpressionTimedData::CalculateValuesInRange(
       if (iterator == values.size()) {
         continue;
       }
-      const scada::DateTime& time = values[iterator].source_timestamp;
+      const scada::Time& time = values[iterator].source_timestamp;
 
       // Warning: condition "time >= to" is incorrect here.
       if (!scada::IsNull(range.second) && time > range.second) {
@@ -152,7 +152,7 @@ void ExpressionTimedData::CalculateValuesInRange(
     auto total_value = expression_->Calculate();
     if (!total_value.is_null()) {
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
-                           scada::DateTime());
+                           scada::Time());
 
       // The insert may be rejected in favor of an existing value with the
       // same timestamp; that is data-dependent, not an invariant.
@@ -164,14 +164,14 @@ void ExpressionTimedData::CalculateValuesInRange(
 void ExpressionTimedData::UpdateReadyRange() {
   scada::base::Check(historical());
 
-  scada::DateTime operands_ready_from = GetOperandsReadyFrom();
+  scada::Time operands_ready_from = GetOperandsReadyFrom();
   if (operands_ready_from == kTimedDataCurrentOnly) {
     return;
   }
 
   scada::base::Check(!scada::IsNull(operands_ready_from));
 
-  auto range = scada::DateTimeRange{operands_ready_from, ready_from_};
+  auto range = scada::TimeRange{operands_ready_from, ready_from_};
   CalculateValuesInRange(range);
   buffer_.AddReadyRange(range);
 }
@@ -181,7 +181,7 @@ bool ExpressionTimedData::CalculateCurrent() {
 
   size_t num_operands = operands_.size();
 
-  scada::DateTime max_update_time = scada::kNullTime;
+  scada::Time max_update_time = scada::kNullTime;
   for (size_t i = 0; i < num_operands; ++i) {
     const auto& operand = *operands_[i];
 
@@ -195,7 +195,7 @@ bool ExpressionTimedData::CalculateCurrent() {
     expression_->items[i].value = cur;
 
     // find maximal change and update times
-    const scada::DateTime& update_time = cur.source_timestamp;
+    const scada::Time& update_time = cur.source_timestamp;
     if (!scada::IsNull(update_time)) {
       if (scada::IsNull(max_update_time) || update_time > max_update_time)
         max_update_time = update_time;
@@ -226,7 +226,7 @@ void ExpressionTimedData::OnTimedDataUpdates(
   scada::base::Check(!values.empty());
   scada::base::Check(values.front().source_timestamp >= ready_from_);
 
-  scada::DateTimeRange range{values.front().source_timestamp,
+  scada::TimeRange range{values.front().source_timestamp,
                              values.back().source_timestamp};
 
   // Clear then recompute the affected range as one logical change; the batch

@@ -191,8 +191,8 @@ opcua::Variant ToOpcua(const scada::Variant& v) {
       return ToOpcuaConv<scada::ExpandedNodeId>(v);
     case V::EXTENSION_OBJECT:
       return ToOpcuaConv<scada::ExtensionObject>(v);
-    case V::DATE_TIME:  // no array alternative for DateTime
-      return opcua::Variant{ToOpcua(v.get<scada::DateTime>())};
+    case V::DATE_TIME:  // no array alternative for Time
+      return opcua::Variant{ToOpcua(v.get<scada::Time>())};
     default:
       return {};
   }

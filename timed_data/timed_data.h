@@ -13,8 +13,8 @@
 class EventSet;
 class TimedDataObserver;
 
-extern const scada::DateTime kTimedDataCurrentOnly;
-extern const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly;
+extern const scada::Time kTimedDataCurrentOnly;
+extern const std::vector<scada::TimeRange> kReadyCurrentTimeOnly;
 
 class TimedData {
  public:
@@ -22,23 +22,23 @@ class TimedData {
 
   virtual bool IsError() const { return false; }
 
-  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges() const = 0;
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges() const = 0;
 
   virtual scada::DataValue GetDataValue() const = 0;
-  virtual scada::DateTime GetChangeTime() const = 0;
+  virtual scada::Time GetChangeTime() const = 0;
 
   virtual std::span<const scada::DataValue> GetValues() const = 0;
 
   // TODO: Describe guarantees for this method. Does it return the lower bound?
   // Returns null when there is no value at the provided time.
   virtual const scada::DataValue* GetValueAt(
-      const scada::DateTime& time) const = 0;
+      const scada::Time& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
   virtual void RemoveObserver(TimedDataObserver& observer) = 0;
 
   virtual void AddViewObserver(TimedDataViewObserver& observer,
-                               const scada::DateTimeRange& range) = 0;
+                               const scada::TimeRange& range) = 0;
   virtual void RemoveViewObserver(TimedDataViewObserver& observer) = 0;
 
   virtual std::string GetFormula(bool aliases) const = 0;

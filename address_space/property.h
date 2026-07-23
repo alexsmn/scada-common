@@ -29,7 +29,7 @@ class PropertyDecl : public Variable {
   virtual Status SetValue(const DataValue& data_value) override {
     return scada::StatusCode::Bad;
   }
-  virtual DateTime GetChangeTime() const override { return {}; }
+  virtual Time GetChangeTime() const override { return {}; }
 
  private:
   const scada::DataType& data_type_;
@@ -63,7 +63,7 @@ class Property : public Variable {
     return {value_, {}, now, now};
   }
   virtual Status SetValue(const DataValue& data_value) override;
-  virtual DateTime GetChangeTime() const override { return {}; }
+  virtual Time GetChangeTime() const override { return {}; }
 
  private:
   Variable& instance_declaration_;

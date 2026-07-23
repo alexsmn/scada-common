@@ -110,8 +110,8 @@ Awaitable<scada::HistoryReadRawResult> RemoteHistoryService::HistoryReadRaw(
 
 Awaitable<scada::HistoryReadEventsResult>
 RemoteHistoryService::HistoryReadEvents(scada::NodeId node_id,
-                                        scada::DateTime from,
-                                        scada::DateTime to,
+                                        scada::Time from,
+                                        scada::Time to,
                                         scada::EventFilter filter) {
   return adapter_.HistoryReadEvents(std::move(node_id), from, to,
                                     std::move(filter));

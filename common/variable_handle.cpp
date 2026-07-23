@@ -76,7 +76,7 @@ void VariableHandle::UpdateQualifier(unsigned remove, unsigned add) {
   auto server_timestamp = scada::Now();
 
   if (last_value_.is_null()) {
-    ForwardData({Variant{}, Qualifier{add}, DateTime{}, server_timestamp});
+    ForwardData({Variant{}, Qualifier{add}, Time{}, server_timestamp});
     return;
   }
 

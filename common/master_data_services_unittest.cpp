@@ -123,8 +123,8 @@ class TestCoroutineDataServices final
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      scada::DateTime /*from*/,
-      scada::DateTime /*to*/,
+      scada::Time /*from*/,
+      scada::Time /*to*/,
       scada::EventFilter /*filter*/) override {
     ++history_events_count;
     last_history_events_node_id = std::move(node_id);
@@ -519,8 +519,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   auto history_events_result = WaitAwaitable(
       executor,
-      services.HistoryReadEvents(scada::NodeId{107}, scada::DateTime{},
-                                 scada::DateTime{}, scada::EventFilter{}));
+      services.HistoryReadEvents(scada::NodeId{107}, scada::Time{},
+                                 scada::Time{}, scada::EventFilter{}));
   EXPECT_TRUE(history_events_result.status.good());
   EXPECT_EQ(direct_services->history_events_count, 1);
   EXPECT_EQ(direct_services->last_history_events_node_id,

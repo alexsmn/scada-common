@@ -36,12 +36,12 @@ class DataVariable : public Variable {
   }
   virtual DataValue GetValue() const override { return value_; }
   virtual Status SetValue(const DataValue& data_value) override;
-  virtual DateTime GetChangeTime() const override { return change_time_; }
+  virtual Time GetChangeTime() const override { return change_time_; }
 
  private:
   Variable& instance_declaration_;
   DataValue value_;
-  DateTime change_time_ = scada::kNullTime;
+  Time change_time_ = scada::kNullTime;
 };
 
 // DataVariable

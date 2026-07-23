@@ -264,7 +264,7 @@ void AppendArrayValues(pugi::xml_node xml_node, const std::vector<T>& values) {
       value_node.text().set(HexEncode(value).c_str());
     } else if constexpr (std::is_same_v<T, NodeId>) {
       value_node.text().set(NodeIdToScadaString(value).c_str());
-    } else if constexpr (std::is_same_v<T, DateTime>) {
+    } else if constexpr (std::is_same_v<T, Time>) {
       SetIntegerValue(value_node, base::EncodeWireMicroseconds(value));
     } else {
       SetIntegerValue(value_node, value);
@@ -328,7 +328,7 @@ Status WriteVariant(pugi::xml_node xml_node, const Variant& value) {
         return OkStatus();
       case Variant::DATE_TIME:
         SetIntegerValue(xml_node,
-                        base::EncodeWireMicroseconds(value.get<DateTime>()));
+                        base::EncodeWireMicroseconds(value.get<Time>()));
         return OkStatus();
       default:
         return StatusCode::Bad_WrongTypeId;

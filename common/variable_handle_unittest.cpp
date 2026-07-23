@@ -25,7 +25,7 @@ TEST_F(VariableHandleTest, UpdateQualifier_LastValueIsMissing) {
       data_change_handler_,
       Call(FieldsAre(
           scada::Variant{}, scada::Qualifier{scada::Qualifier::OFFLINE},
-          scada::DateTime{}, ResultOf([](scada::DateTime t) { return scada::IsNull(t); }, IsFalse()),
+          scada::Time{}, ResultOf([](scada::Time t) { return scada::IsNull(t); }, IsFalse()),
           scada::StatusCode::Good)));
 
   variable_handle_->UpdateQualifier(0, scada::Qualifier::OFFLINE);
@@ -50,7 +50,7 @@ TEST_F(VariableHandleTest, UpdateQualifier_LastValueIsPresent) {
   EXPECT_CALL(data_change_handler_,
               Call(FieldsAre(value, scada::Qualifier{scada::Qualifier::OFFLINE},
                              source_timestamp,
-                             ResultOf([](scada::DateTime t) { return scada::IsNull(t); }, IsFalse()),
+                             ResultOf([](scada::Time t) { return scada::IsNull(t); }, IsFalse()),
                              scada::StatusCode::Good)));
 
   variable_handle_->UpdateQualifier(0, scada::Qualifier::OFFLINE);

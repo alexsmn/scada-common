@@ -32,8 +32,8 @@ class TimedDataSpec final : private TimedDataObserver,
   void SetAggregateFilter(scada::AggregateFilter filter);
 
   void SetCurrentOnly();
-  void SetFrom(scada::DateTime from);
-  void SetRange(const scada::DateTimeRange& range);
+  void SetFrom(scada::Time from);
+  void SetRange(const scada::TimeRange& range);
 
   void Connect(TimedDataService& service, std::string_view formula);
   void Connect(TimedDataService& service, const scada::NodeId& node_id);
@@ -42,17 +42,17 @@ class TimedDataSpec final : private TimedDataObserver,
   std::string formula() const;
   bool alerting() const;
   bool connected() const;
-  scada::DateTime from() const { return range_.first; }
-  const scada::DateTimeRange& range() const SCADA_LIFETIME_BOUND {
+  scada::Time from() const { return range_.first; }
+  const scada::TimeRange& range() const SCADA_LIFETIME_BOUND {
     return range_;
   }
-  scada::DateTime ready_from() const;
+  scada::Time ready_from() const;
   bool historical() const;
   bool logical() const;
   bool ready() const;  // connected and all requested data was received
-  bool range_ready(const scada::DateTimeRange& range) const;
+  bool range_ready(const scada::TimeRange& range) const;
   scada::DataValue current() const;
-  scada::DateTime change_time() const;
+  scada::Time change_time() const;
 
   // Historical data.
   std::span<const scada::DataValue> values() const noexcept
@@ -60,7 +60,7 @@ class TimedDataSpec final : private TimedDataObserver,
 
   // TODO: Describe guarantees for this method. Does it return the lower bound?
   // Returns null when there is no value at the provided time.
-  const scada::DataValue* GetValueAt(scada::DateTime time) const
+  const scada::DataValue* GetValueAt(scada::Time time) const
       SCADA_LIFETIME_BOUND;
 
   scada::NodeId node_id() const;
@@ -111,9 +111,9 @@ class TimedDataSpec final : private TimedDataObserver,
   std::shared_ptr<TimedData> data_;
 
   scada::AggregateFilter aggregate_filter_;
-  scada::DateTimeRange range_{GetTimedDataCurrentOnly(),
+  scada::TimeRange range_{GetTimedDataCurrentOnly(),
                               GetTimedDataCurrentOnly()};
 
   // Keep it defined in the source file to void heavy includes.
-  static scada::DateTime GetTimedDataCurrentOnly();
+  static scada::Time GetTimedDataCurrentOnly();
 };

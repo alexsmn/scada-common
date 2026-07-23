@@ -16,9 +16,9 @@ import scada.core;
 
 #include "base/debug_util.h"
 
-const scada::DateTime kTimedDataCurrentOnly = scada::kMaxTime;
+const scada::Time kTimedDataCurrentOnly = scada::kMaxTime;
 
-const std::vector<scada::DateTimeRange> kReadyCurrentTimeOnly = {};
+const std::vector<scada::TimeRange> kReadyCurrentTimeOnly = {};
 
 BaseTimedData::BaseTimedData() {
   buffer_.set_observed_ranges_updated_handler(
@@ -30,7 +30,7 @@ BaseTimedData::~BaseTimedData() {
 }
 
 const scada::DataValue* BaseTimedData::GetValueAt(
-    const scada::DateTime& time) const {
+    const scada::Time& time) const {
   if (!scada::IsNull(current_.source_timestamp) &&
       current_.source_timestamp <= time) {
     return &current_;
@@ -49,7 +49,7 @@ void BaseTimedData::RemoveObserver(TimedDataObserver& observer) {
 }
 
 void BaseTimedData::AddViewObserver(TimedDataViewObserver& observer,
-                                    const scada::DateTimeRange& range) {
+                                    const scada::TimeRange& range) {
   buffer_.AddObserver(observer, range);
 }
 

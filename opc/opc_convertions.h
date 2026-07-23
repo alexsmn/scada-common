@@ -29,7 +29,7 @@ class OpcDataValueConverter {
   OpcDataValueConverter() = delete;
 
   static scada::DataValue ToScada(const opc_client::DataValue& opc_data_value,
-                                  scada::DateTime now);
+                                  scada::Time now);
   static opc_client::DataValue ToOpc(const scada::DataValue& data_value);
 };
 

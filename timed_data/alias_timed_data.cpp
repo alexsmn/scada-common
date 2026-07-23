@@ -31,7 +31,7 @@ bool AliasTimedData::IsError() const {
   return is_forwarded() && forwarded().IsError();
 }
 
-const std::vector<scada::DateTimeRange>& AliasTimedData::GetReadyRanges()
+const std::vector<scada::TimeRange>& AliasTimedData::GetReadyRanges()
     const {
   return is_forwarded() ? forwarded().GetReadyRanges() : kReadyCurrentTimeOnly;
 }
@@ -41,12 +41,12 @@ scada::DataValue AliasTimedData::GetDataValue() const {
 }
 
 const scada::DataValue* AliasTimedData::GetValueAt(
-    const scada::DateTime& time) const {
+    const scada::Time& time) const {
   return is_forwarded() ? forwarded().GetValueAt(time) : nullptr;
 }
 
-scada::DateTime AliasTimedData::GetChangeTime() const {
-  return is_forwarded() ? forwarded().GetChangeTime() : scada::DateTime{};
+scada::Time AliasTimedData::GetChangeTime() const {
+  return is_forwarded() ? forwarded().GetChangeTime() : scada::Time{};
 }
 
 std::span<const scada::DataValue> AliasTimedData::GetValues() const {
@@ -69,7 +69,7 @@ void AliasTimedData::RemoveObserver(TimedDataObserver& observer) {
 }
 
 void AliasTimedData::AddViewObserver(TimedDataViewObserver& observer,
-                                     const scada::DateTimeRange& range) {
+                                     const scada::TimeRange& range) {
   if (is_forwarded())
     forwarded().AddViewObserver(observer, range);
   else

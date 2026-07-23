@@ -7,7 +7,7 @@ struct TimedDataTraits;
 
 template <>
 struct TimedDataTraits<scada::DataValue> {
-  static constexpr scada::DateTime timestamp(
+  static constexpr scada::Time timestamp(
       const scada::DataValue& data_value) {
     return data_value.source_timestamp;
   }

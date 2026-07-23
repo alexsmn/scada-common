@@ -115,7 +115,7 @@ class BasicTimedDataBuffer final {
   BasicTimedDataView<T> view() const SCADA_LIFETIME_BOUND {
     return BasicTimedDataView<T>{std::span<const T>{values_}};
   }
-  BasicTimedDataView<T> view(const scada::DateTimeRange& range) const
+  BasicTimedDataView<T> view(const scada::TimeRange& range) const
       SCADA_LIFETIME_BOUND {
     return view().slice(range);
   }
@@ -126,7 +126,7 @@ class BasicTimedDataBuffer final {
 
   // Returns the sample at or before `time`, or null when `time` precedes all
   // samples. Returns a pointer instead of an optional for performance reasons.
-  const T* GetValueAt(scada::DateTime time) const SCADA_LIFETIME_BOUND {
+  const T* GetValueAt(scada::Time time) const SCADA_LIFETIME_BOUND {
     return view().sample_at_or_before(time);
   }
 
@@ -144,25 +144,25 @@ class BasicTimedDataBuffer final {
   void ReplaceRange(std::span<T> values);
 
   // Drops all samples inside `range`.
-  void ClearRange(const scada::DateTimeRange& range);
+  void ClearRange(const scada::TimeRange& range);
 
   // Observation.
 
   void AddObserver(BasicTimedDataViewObserver<T>& observer,
-                   const scada::DateTimeRange& range);
+                   const scada::TimeRange& range);
   void RemoveObserver(BasicTimedDataViewObserver<T>& observer);
 
   // Readiness.
 
-  const std::vector<scada::DateTimeRange>& ready_ranges() const
+  const std::vector<scada::TimeRange>& ready_ranges() const
       SCADA_LIFETIME_BOUND {
     return ready_ranges_;
   }
 
-  void AddReadyRange(const scada::DateTimeRange& range);
+  void AddReadyRange(const scada::TimeRange& range);
 
   // Finds a next observed range that's not covered by a ready range.
-  std::optional<scada::DateTimeRange> FindNextGap() const;
+  std::optional<scada::TimeRange> FindNextGap() const;
 
   // Rest.
 
@@ -173,12 +173,12 @@ class BasicTimedDataBuffer final {
 
   // Records that samples in `range` changed. Notifies immediately when no
   // BeginUpdate() scope is active, otherwise coalesces into that scope.
-  void MarkDirty(const scada::DateTimeRange& range);
+  void MarkDirty(const scada::TimeRange& range);
 
   void EndBatch();
 
   // Notifies observers of the samples currently in `range`. No-op when empty.
-  void NotifyRange(const scada::DateTimeRange& range) {
+  void NotifyRange(const scada::TimeRange& range) {
     BasicTimedDataView<T> slice = view(range);
     if (!slice.empty()) {
       for (auto& o : observers_)
@@ -193,30 +193,30 @@ class BasicTimedDataBuffer final {
 
   // Clamps each interval in `ranges` to [lo, hi] (a null `hi` means no upper
   // bound), dropping intervals that become empty. `ranges` stays sorted.
-  static void ClampRanges(std::vector<scada::DateTimeRange>& ranges,
-                          scada::DateTime lo,
-                          scada::DateTime hi);
+  static void ClampRanges(std::vector<scada::TimeRange>& ranges,
+                          scada::Time lo,
+                          scada::Time hi);
 
-  static scada::DateTimeRange UnionRange(const scada::DateTimeRange& a,
-                                         const scada::DateTimeRange& b);
+  static scada::TimeRange UnionRange(const scada::TimeRange& a,
+                                         const scada::TimeRange& b);
 
   // For convenience.
-  static constexpr scada::DateTime timestamp(const T& value) {
+  static constexpr scada::Time timestamp(const T& value) {
     return TimedDataTraits<T>::timestamp(value);
   }
 
   scada::base::ObserverList<BasicTimedDataViewObserver<T>> observers_;
-  std::map<BasicTimedDataViewObserver<T>*, scada::DateTimeRange> observer_ranges_;
+  std::map<BasicTimedDataViewObserver<T>*, scada::TimeRange> observer_ranges_;
 
-  std::vector<scada::DateTimeRange> observed_ranges_;
-  std::vector<scada::DateTimeRange> ready_ranges_;
+  std::vector<scada::TimeRange> observed_ranges_;
+  std::vector<scada::TimeRange> ready_ranges_;
 
   ObservedRangesUpdatedHandler observed_ranges_updated_handler_;
 
   RetentionPolicy retention_;
 
   int batch_depth_ = 0;
-  std::optional<scada::DateTimeRange> dirty_;
+  std::optional<scada::TimeRange> dirty_;
 
   std::vector<T> values_;
 
@@ -226,7 +226,7 @@ class BasicTimedDataBuffer final {
 template <typename T>
 inline void BasicTimedDataBuffer<T>::AddObserver(
     BasicTimedDataViewObserver<T>& observer,
-    const scada::DateTimeRange& range) {
+    const scada::TimeRange& range) {
   scada::base::Check(!scada::IsNull(range.second));
   scada::base::Check(IsValidInterval(range));
   scada::base::Check(range.first == kTimedDataCurrentOnly ||
@@ -249,7 +249,7 @@ inline void BasicTimedDataBuffer<T>::RemoveObserver(
     BasicTimedDataViewObserver<T>& observer) {
   observers_.RemoveObserver(&observer);
 
-  scada::DateTimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
+  scada::TimeRange range{kTimedDataCurrentOnly, kTimedDataCurrentOnly};
   if (auto i = observer_ranges_.find(&observer); i != observer_ranges_.end()) {
     range = i->second;
     observer_ranges_.erase(i);
@@ -282,14 +282,14 @@ inline void BasicTimedDataBuffer<T>::UpdateObservedRanges() {
 }
 
 template <typename T>
-inline std::optional<scada::DateTimeRange>
+inline std::optional<scada::TimeRange>
 BasicTimedDataBuffer<T>::FindNextGap() const {
   return FindFirstGap(observed_ranges_, ready_ranges_);
 }
 
 template <typename T>
 inline void BasicTimedDataBuffer<T>::AddReadyRange(
-    const scada::DateTimeRange& range) {
+    const scada::TimeRange& range) {
   UnionIntervals(ready_ranges_, range);
 
   for (auto& o : observers_) {
@@ -299,7 +299,7 @@ inline void BasicTimedDataBuffer<T>::AddReadyRange(
 
 template <typename T>
 inline void BasicTimedDataBuffer<T>::MarkDirty(
-    const scada::DateTimeRange& range) {
+    const scada::TimeRange& range) {
   if (batch_depth_ > 0) {
     dirty_ = dirty_ ? UnionRange(*dirty_, range) : range;
     return;
@@ -311,7 +311,7 @@ template <typename T>
 inline void BasicTimedDataBuffer<T>::EndBatch() {
   scada::base::Check(batch_depth_ > 0);
   if (--batch_depth_ == 0 && dirty_) {
-    scada::DateTimeRange range = *dirty_;
+    scada::TimeRange range = *dirty_;
     dirty_.reset();
     NotifyRange(range);
   }
@@ -345,7 +345,7 @@ inline bool BasicTimedDataBuffer<T>::InsertOrUpdate(const T& value) {
 
 template <typename T>
 inline void BasicTimedDataBuffer<T>::ClearRange(
-    const scada::DateTimeRange& range) {
+    const scada::TimeRange& range) {
   scada::base::Check(!scada::IsNull(range.first));
   scada::base::Check(scada::IsNull(range.second) || range.first <= range.second);
 
@@ -412,7 +412,7 @@ inline void BasicTimedDataBuffer<T>::ReplaceRange(std::span<T> values) {
     return;
   }
 
-  scada::DateTimeRange changed{timestamp(values.front()),
+  scada::TimeRange changed{timestamp(values.front()),
                                timestamp(values.back())};
 
   // Optimization: if all new values relate to the same position in history,
@@ -453,8 +453,8 @@ inline void BasicTimedDataBuffer<T>::TrimToObservedRanges() {
     }
 
     // Keep the covering hull [earliest observed start, latest observed end].
-    const scada::DateTime hull_first = observed_ranges_.front().first;
-    const scada::DateTime hull_last = observed_ranges_.back().second;
+    const scada::Time hull_first = observed_ranges_.front().first;
+    const scada::Time hull_last = observed_ranges_.back().second;
 
     size_t keep_begin = LowerBound(values_, hull_first);
     size_t keep_end = scada::IsNull(hull_last) ? values_.size()
@@ -472,9 +472,9 @@ inline void BasicTimedDataBuffer<T>::TrimToObservedRanges() {
   // Backstop: bound the absolute sample count by dropping the oldest.
   if (values_.size() > retention_.max_samples) {
     size_t drop = values_.size() - retention_.max_samples;
-    scada::DateTime new_first = timestamp(values_[drop]);
+    scada::Time new_first = timestamp(values_[drop]);
     values_.erase(values_.begin(), values_.begin() + drop);
-    ClampRanges(ready_ranges_, new_first, scada::DateTime{});
+    ClampRanges(ready_ranges_, new_first, scada::Time{});
   }
 
   // Return memory only after a substantial trim, so normal batch-by-batch
@@ -485,14 +485,14 @@ inline void BasicTimedDataBuffer<T>::TrimToObservedRanges() {
 
 template <typename T>
 inline void BasicTimedDataBuffer<T>::ClampRanges(
-    std::vector<scada::DateTimeRange>& ranges,
-    scada::DateTime lo,
-    scada::DateTime hi) {
-  std::vector<scada::DateTimeRange> result;
+    std::vector<scada::TimeRange>& ranges,
+    scada::Time lo,
+    scada::Time hi) {
+  std::vector<scada::TimeRange> result;
   result.reserve(ranges.size());
   for (const auto& r : ranges) {
-    scada::DateTime a = std::max(r.first, lo);
-    scada::DateTime b = scada::IsNull(hi) ? r.second : std::min(r.second, hi);
+    scada::Time a = std::max(r.first, lo);
+    scada::Time b = scada::IsNull(hi) ? r.second : std::min(r.second, hi);
     if (a < b)
       result.push_back({a, b});
   }
@@ -500,12 +500,12 @@ inline void BasicTimedDataBuffer<T>::ClampRanges(
 }
 
 template <typename T>
-inline scada::DateTimeRange BasicTimedDataBuffer<T>::UnionRange(
-    const scada::DateTimeRange& a,
-    const scada::DateTimeRange& b) {
-  scada::DateTime first = std::min(a.first, b.first);
-  scada::DateTime second = (scada::IsNull(a.second) || scada::IsNull(b.second))
-                               ? scada::DateTime{}
+inline scada::TimeRange BasicTimedDataBuffer<T>::UnionRange(
+    const scada::TimeRange& a,
+    const scada::TimeRange& b) {
+  scada::Time first = std::min(a.first, b.first);
+  scada::Time second = (scada::IsNull(a.second) || scada::IsNull(b.second))
+                               ? scada::Time{}
                                : std::max(a.second, b.second);
   return {first, second};
 }

@@ -19,7 +19,7 @@ namespace scada {
 
 namespace {
 
-DataValue MakeValueAt(Variant value, scada::DateTime time) {
+DataValue MakeValueAt(Variant value, scada::Time time) {
   return DataValue{std::move(value), {}, time, time};
 }
 
@@ -46,11 +46,11 @@ UInt32 LocalHistoryService::ParseSeverity(std::string_view s) {
   return kSeverityNormal;
 }
 
-void LocalHistoryService::SetNowOverride(scada::DateTime now) {
+void LocalHistoryService::SetNowOverride(scada::Time now) {
   now_override_ = now;
 }
 
-scada::DateTime LocalHistoryService::Now() const {
+scada::Time LocalHistoryService::Now() const {
   return scada::IsNull(now_override_) ? scada::Now() : now_override_;
 }
 
@@ -110,8 +110,8 @@ Awaitable<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
 
 Awaitable<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
     NodeId node_id,
-    scada::DateTime from,
-    scada::DateTime to,
+    scada::Time from,
+    scada::Time to,
     EventFilter filter) {
   co_return ReadEvents(std::move(node_id), from, to, std::move(filter));
 }
@@ -123,7 +123,7 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // requested range, so a series pinned to a frozen "now" would otherwise
   // vanish for wall-clock-ranged queries, and vice versa.
   // A history read whose upper bound is null or the "current-only" sentinel
-  // (DateTime::Max — used by live consumers that want the latest sample, not a
+  // (Time::Max — used by live consumers that want the latest sample, not a
   // finite window) has no real end time. Anchoring the synthesized series to
   // Max would spread its 48 points across geological time, so every point but
   // the first falls outside any real query window and the series reads flat.
@@ -173,8 +173,8 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
 
 HistoryReadEventsResult LocalHistoryService::ReadEvents(
     NodeId /*node_id*/,
-    scada::DateTime /*from*/,
-    scada::DateTime /*to*/,
+    scada::Time /*from*/,
+    scada::Time /*to*/,
     EventFilter /*filter*/) const {
   return HistoryReadEventsResult{
       .status = Status{StatusCode::Good},

@@ -190,7 +190,7 @@ TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
   EXPECT_EQ(result.values.back().source_timestamp, to - (to - from) / 48);
 }
 
-// A read whose upper bound is the "current-only" sentinel (DateTime::Max, used
+// A read whose upper bound is the "current-only" sentinel (Time::Max, used
 // by live consumers that want the latest sample rather than a finite window)
 // must anchor the synthesized series to now, not to Max. Anchoring to Max
 // spread the 48 points across ~285,000 years, so every point but the first
@@ -237,7 +237,7 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   })"));
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(NodeId{}, scada::DateTime{},
+      executor, service.HistoryReadEvents(NodeId{}, scada::Time{},
                                           scada::Now(), EventFilter{}));
 
   ASSERT_EQ(result.events.size(), 2u);

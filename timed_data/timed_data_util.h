@@ -10,13 +10,13 @@
 #include <optional>
 #include <span>
 
-inline scada::DateTime GetReadyFrom(
-    std::span<const scada::DateTimeRange> ready_ranges,
-    const scada::DateTimeRange& range) {
+inline scada::Time GetReadyFrom(
+    std::span<const scada::TimeRange> ready_ranges,
+    const scada::TimeRange& range) {
   auto i =
       std::lower_bound(ready_ranges.begin(), ready_ranges.end(), range.second,
-                       [](const scada::DateTimeRange& range,
-                          scada::DateTime time) { return range.first < time; });
+                       [](const scada::TimeRange& range,
+                          scada::Time time) { return range.first < time; });
   if (i == ready_ranges.end())
     return kTimedDataCurrentOnly;
 

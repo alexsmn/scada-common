@@ -14,17 +14,17 @@ class AliasTimedData final : public TimedData {
 
   // TimedData
   virtual bool IsError() const override;
-  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges()
       const override;
   virtual scada::DataValue GetDataValue() const override;
   virtual const scada::DataValue* GetValueAt(
-      const scada::DateTime& time) const override;
-  virtual scada::DateTime GetChangeTime() const override;
+      const scada::Time& time) const override;
+  virtual scada::Time GetChangeTime() const override;
   virtual std::span<const scada::DataValue> GetValues() const override;
   virtual void AddObserver(TimedDataObserver& observer) override;
   virtual void RemoveObserver(TimedDataObserver& observer) override;
   virtual void AddViewObserver(TimedDataViewObserver& observer,
-                               const scada::DateTimeRange& range) override;
+                               const scada::TimeRange& range) override;
   virtual void RemoveViewObserver(TimedDataViewObserver& observer) override;
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
@@ -40,7 +40,7 @@ class AliasTimedData final : public TimedData {
 
     const std::string formula;
     std::unordered_set<TimedDataObserver*> observers;
-    std::unordered_map<TimedDataViewObserver*, scada::DateTimeRange /*range*/>
+    std::unordered_map<TimedDataViewObserver*, scada::TimeRange /*range*/>
         view_observers;
   };
 

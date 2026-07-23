@@ -52,11 +52,11 @@ void TimedDataSpec::SetCurrentOnly() {
   SetFrom(kTimedDataCurrentOnly);
 }
 
-void TimedDataSpec::SetFrom(scada::DateTime from) {
+void TimedDataSpec::SetFrom(scada::Time from) {
   SetRange({from, kTimedDataCurrentOnly});
 }
 
-void TimedDataSpec::SetRange(const scada::DateTimeRange& range) {
+void TimedDataSpec::SetRange(const scada::TimeRange& range) {
   scada::base::Check(!scada::IsNull(range.second));
   scada::base::Check(IsValidInterval(range));
   scada::base::Check(range.second == kTimedDataCurrentOnly ||
@@ -134,7 +134,7 @@ bool TimedDataSpec::ready() const {
   return range_ready(range_);
 }
 
-bool TimedDataSpec::range_ready(const scada::DateTimeRange& range) const {
+bool TimedDataSpec::range_ready(const scada::TimeRange& range) const {
   if (!data_)
     return true;
 
@@ -159,7 +159,7 @@ bool TimedDataSpec::alerting() const {
   return data_ && data_->IsAlerting();
 }
 
-scada::DateTime TimedDataSpec::ready_from() const {
+scada::Time TimedDataSpec::ready_from() const {
   return data_ ? GetReadyFrom(data_->GetReadyRanges(), range_)
                : kTimedDataCurrentOnly;
 }
@@ -168,8 +168,8 @@ scada::DataValue TimedDataSpec::current() const {
   return data_ ? data_->GetDataValue() : scada::DataValue();
 }
 
-scada::DateTime TimedDataSpec::change_time() const {
-  return data_ ? data_->GetChangeTime() : scada::DateTime();
+scada::Time TimedDataSpec::change_time() const {
+  return data_ ? data_->GetChangeTime() : scada::Time();
 }
 
 bool TimedDataSpec::historical() const {
@@ -197,7 +197,7 @@ scada::LocalizedText TimedDataSpec::GetTitle() const {
 }
 
 const scada::DataValue* TimedDataSpec::GetValueAt(
-    scada::DateTime time) const {
+    scada::Time time) const {
   return data_ ? data_->GetValueAt(time) : nullptr;
 }
 
@@ -257,6 +257,6 @@ std::string TimedDataSpec::DumpDebugInfo() const {
 }
 
 // static
-scada::DateTime TimedDataSpec::GetTimedDataCurrentOnly() {
+scada::Time TimedDataSpec::GetTimedDataCurrentOnly() {
   return kTimedDataCurrentOnly;
 }

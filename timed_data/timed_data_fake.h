@@ -15,20 +15,20 @@ class FakeTimedData : public TimedData {
       : formula{formula},
         title{UtfConvert<char16_t>(formula)} {}
 
-  const std::vector<scada::DateTimeRange>& GetReadyRanges() const override {
+  const std::vector<scada::TimeRange>& GetReadyRanges() const override {
     return ready_ranges;
   }
 
   scada::DataValue GetDataValue() const override { return {}; }
 
-  scada::DateTime GetChangeTime() const override { return {}; }
+  scada::Time GetChangeTime() const override { return {}; }
 
   std::span<const scada::DataValue> GetValues() const override {
     return data_values;
   }
 
   const scada::DataValue* GetValueAt(
-      const scada::DateTime& time) const override {
+      const scada::Time& time) const override {
     return ::GetValueAt(std::span{data_values}, time);
   }
 
@@ -37,7 +37,7 @@ class FakeTimedData : public TimedData {
   void RemoveObserver(TimedDataObserver& observer) override {}
 
   void AddViewObserver(TimedDataViewObserver& observer,
-                       const scada::DateTimeRange& range) override {
+                       const scada::TimeRange& range) override {
     // Immediately notify the observer that data is ready so consumers
     // (e.g. graph data sources) can render without waiting for async fetches.
     observer.OnTimedDataReady();
@@ -63,5 +63,5 @@ class FakeTimedData : public TimedData {
   std::string formula;
   scada::LocalizedText title;
 
-  std::vector<scada::DateTimeRange> ready_ranges;
+  std::vector<scada::TimeRange> ready_ranges;
 };

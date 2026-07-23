@@ -26,7 +26,7 @@ TEST(ScadaTimedDataModuleSmoke, FakeTimedDataAndView) {
   // Extern constants defined out-of-line in the library (proves linkage
   // through the module boundary; the "current only" ready-range list is
   // empty by definition).
-  std::vector<scada::DateTimeRange> ready_ranges = kReadyCurrentTimeOnly;
+  std::vector<scada::TimeRange> ready_ranges = kReadyCurrentTimeOnly;
   EXPECT_TRUE(ready_ranges.empty());
 }
 

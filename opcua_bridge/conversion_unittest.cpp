@@ -247,11 +247,11 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
   }
 }
 
-TEST(ConversionTest, DateTime) {
+TEST(ConversionTest, Time) {
   const auto scada_time = base::DecodeWireTime(123456789);
   EXPECT_EQ(ToOpcua(scada_time).ToInternalValue(), 1234567890);
   ExpectRoundTrip(scada_time);
-  ExpectRoundTrip(scada::DateTime{});
+  ExpectRoundTrip(scada::Time{});
   ExpectRoundTrip(scada::kMinTime);
   ExpectRoundTrip(scada::kMaxTime);
 }

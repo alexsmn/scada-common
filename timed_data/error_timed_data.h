@@ -8,21 +8,21 @@ class ErrorTimedData final : public TimedData {
       : formula_{std::move(formula)}, title_{std::move(title)} {}
 
   virtual bool IsError() const override { return true; }
-  virtual const std::vector<scada::DateTimeRange>& GetReadyRanges()
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges()
       const override;
   virtual scada::DataValue GetDataValue() const override { return {}; }
   virtual const scada::DataValue* GetValueAt(
-      const scada::DateTime& time) const override {
+      const scada::Time& time) const override {
     return nullptr;
   }
-  virtual scada::DateTime GetChangeTime() const override { return {}; }
+  virtual scada::Time GetChangeTime() const override { return {}; }
   virtual std::span<const scada::DataValue> GetValues() const override {
     return {};
   }
   virtual void AddObserver(TimedDataObserver& observer) override {}
   virtual void RemoveObserver(TimedDataObserver& observer) override {}
   virtual void AddViewObserver(TimedDataViewObserver& observer,
-                               const scada::DateTimeRange& range) override {}
+                               const scada::TimeRange& range) override {}
   virtual void RemoveViewObserver(TimedDataViewObserver& observer) override {}
   virtual std::string GetFormula(bool aliases) const override {
     return formula_;
@@ -38,7 +38,7 @@ class ErrorTimedData final : public TimedData {
   const std::string formula_;
   const scada::LocalizedText title_;
 
-  inline static const std::vector<scada::DateTimeRange> kReadyRanges{
+  inline static const std::vector<scada::TimeRange> kReadyRanges{
       {scada::kMinTime, scada::kMaxTime}};
 };
 
@@ -46,7 +46,7 @@ inline scada::LocalizedText ErrorTimedData::GetTitle() const {
   return title_;
 }
 
-inline const std::vector<scada::DateTimeRange>& ErrorTimedData::GetReadyRanges()
+inline const std::vector<scada::TimeRange>& ErrorTimedData::GetReadyRanges()
     const {
   return kReadyRanges;
 }

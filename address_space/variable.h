@@ -30,7 +30,7 @@ class Variable : public Node {
   virtual DataValue GetValue() const = 0;
   virtual Status SetValue(const DataValue& data_value) = 0;
 
-  virtual DateTime GetChangeTime() const = 0;
+  virtual Time GetChangeTime() const = 0;
 
   virtual std::shared_ptr<VariableHandle> GetVariableHandle() const;
 
@@ -63,12 +63,12 @@ class BaseVariable : public Variable {
   virtual const DataType& GetDataType() const override { return data_type_; }
   virtual DataValue GetValue() const override { return value_; }
   virtual Status SetValue(const DataValue& data_value) override;
-  virtual DateTime GetChangeTime() const override { return change_time_; }
+  virtual Time GetChangeTime() const override { return change_time_; }
 
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_ = scada::kNullTime;
+  Time change_time_ = scada::kNullTime;
 };
 
 class GenericVariable : public Variable {
@@ -84,12 +84,12 @@ class GenericVariable : public Variable {
   virtual const DataType& GetDataType() const override { return data_type_; }
   virtual DataValue GetValue() const override { return value_; }
   virtual Status SetValue(const DataValue& data_value) override;
-  virtual DateTime GetChangeTime() const override { return change_time_; }
+  virtual Time GetChangeTime() const override { return change_time_; }
 
  protected:
   const DataType& data_type_;
   DataValue value_;
-  DateTime change_time_ = scada::kNullTime;
+  Time change_time_ = scada::kNullTime;
 };
 
 }  // namespace scada

@@ -17,7 +17,7 @@ namespace scada {
 namespace {
 
 using AggregatorFactory =
-    std::function<Aggregator(const DateTimeRange& interval, bool forward)>;
+    std::function<Aggregator(const TimeRange& interval, bool forward)>;
 
 struct CompareVariants {
   bool operator()(const Variant& left, const Variant& right) const {
@@ -47,7 +47,7 @@ Double CalculateTotal(std::span<const DataValue> values) {
                          });
 }
 
-Aggregator MakeFrontAggregator(const DateTimeRange& interval) {
+Aggregator MakeFrontAggregator(const TimeRange& interval) {
   return [interval, start_data_value = DataValue{}](
              std::span<const DataValue> values) mutable {
     if (start_data_value.is_null())
@@ -57,7 +57,7 @@ Aggregator MakeFrontAggregator(const DateTimeRange& interval) {
   };
 }
 
-Aggregator MakeBackAggregator(const DateTimeRange& interval) {
+Aggregator MakeBackAggregator(const TimeRange& interval) {
   return [interval](std::span<const DataValue> values) {
     const auto& end_data_value = values[values.size() - 1];
     return DataValue{end_data_value.value, end_data_value.qualifier,
@@ -75,7 +75,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
 
   aggregators.emplace(
       id::AggregateFunction_Total,
-      [](const DateTimeRange& interval, bool forward) {
+      [](const TimeRange& interval, bool forward) {
         Double total = 0;
         return [interval, total](std::span<const DataValue> values) mutable {
           total += CalculateTotal(values);
@@ -85,7 +85,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
 
   aggregators.emplace(
       id::AggregateFunction_Average,
-      [](const DateTimeRange& interval, bool forward) {
+      [](const TimeRange& interval, bool forward) {
         Double total = 0;
         size_t count = 0;
         return [interval, total,
@@ -99,7 +99,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
 
   aggregators.emplace(
       id::AggregateFunction_Count,
-      [](const DateTimeRange& interval, bool forward) {
+      [](const TimeRange& interval, bool forward) {
         size_t count = 0;
         return [interval, count](std::span<const DataValue> values) mutable {
           count += values.size();
@@ -110,7 +110,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
 
   aggregators.emplace(
       id::AggregateFunction_Minimum,
-      [](const DateTimeRange& interval, bool forward) {
+      [](const TimeRange& interval, bool forward) {
         auto min_value = std::numeric_limits<Double>::max();
         return
             [interval, min_value](std::span<const DataValue> values) mutable {
@@ -126,7 +126,7 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
 
   aggregators.emplace(
       id::AggregateFunction_Maximum,
-      [](const DateTimeRange& interval, bool forward) {
+      [](const TimeRange& interval, bool forward) {
         auto max_value = std::numeric_limits<Double>::min();
         return
             [interval, max_value](std::span<const DataValue> values) mutable {
@@ -141,13 +141,13 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
       });
 
   aggregators.emplace(id::AggregateFunction_Start,
-                      [](const DateTimeRange& interval, bool forward) {
+                      [](const TimeRange& interval, bool forward) {
                         return forward ? MakeFrontAggregator(interval)
                                        : MakeBackAggregator(interval);
                       });
 
   aggregators.emplace(id::AggregateFunction_End,
-                      [](const DateTimeRange& interval, bool forward) {
+                      [](const TimeRange& interval, bool forward) {
                         return forward ? MakeBackAggregator(interval)
                                        : MakeFrontAggregator(interval);
                       });
@@ -164,19 +164,19 @@ AggregatorFactory GetAggregatorFactory(const NodeId& aggregate_type) {
 }  // namespace
 
 Aggregator GetAggregator(const NodeId& aggregate_type,
-                         const DateTimeRange& interval,
+                         const TimeRange& interval,
                          bool forward) {
   auto factory = GetAggregatorFactory(aggregate_type);
   return factory ? factory(interval, forward) : nullptr;
 }
 
-DateTime GetLocalAggregateStartTime() {
+Time GetLocalAggregateStartTime() {
   base::Exploded exploded = {2000, 1, 0, 1};
-  return base::FromLocalExploded(exploded).value_or(DateTime{});
+  return base::FromLocalExploded(exploded).value_or(Time{});
 }
 
-DateTimeRange GetAggregateInterval(DateTime time,
-                                   DateTime origin_time,
+TimeRange GetAggregateInterval(Time time,
+                                   Time origin_time,
                                    Duration interval) {
   // The interval comes from request/configuration data and |time| from stored
   // history values (external input); degrade instead of panicking.

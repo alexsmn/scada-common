@@ -10,7 +10,7 @@ class MockVariable : public Variable {
  public:
   MOCK_METHOD(DataValue, GetValue, (), (const override));
   MOCK_METHOD(Status, SetValue, (const DataValue& data_value), (override));
-  MOCK_METHOD(DateTime, GetChangeTime, (), (const override));
+  MOCK_METHOD(Time, GetChangeTime, (), (const override));
 };
 
 }  // namespace scada

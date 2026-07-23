@@ -110,7 +110,7 @@ TEST(OpcDataValueConverter, ToOpc) {
 
   EXPECT_EQ(VariantConverter::ToScada(opc_data_value.value), 123);
   EXPECT_EQ(opc_data_value.quality, opc_client::Quality::GOOD);
-  EXPECT_EQ(scada::DateTime::FromFileTime(opc_data_value.timestamp),
+  EXPECT_EQ(scada::Time::FromFileTime(opc_data_value.timestamp),
             source_timestamp);
   EXPECT_EQ(opc_data_value.status, S_OK);
 }

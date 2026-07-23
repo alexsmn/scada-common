@@ -43,7 +43,7 @@ inline bool IsReverseTimeSorted(const std::vector<T>& values) {
 
 // Precondition: |values| is time-sorted.
 template <class T>
-inline std::size_t LowerBound(std::span<T> values, scada::DateTime time) {
+inline std::size_t LowerBound(std::span<T> values, scada::Time time) {
   auto i = std::ranges::lower_bound(
       values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
@@ -52,13 +52,13 @@ inline std::size_t LowerBound(std::span<T> values, scada::DateTime time) {
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t LowerBound(const std::vector<T>& values,
-                              scada::DateTime time) {
+                              scada::Time time) {
   return LowerBound(std::span{values}, time);
 }
 
 // Precondition: |values| is time-sorted.
 template <class T>
-inline std::size_t UpperBound(std::span<T> values, scada::DateTime time) {
+inline std::size_t UpperBound(std::span<T> values, scada::Time time) {
   auto i = std::ranges::upper_bound(
       values, time, std::less{}, &TimedDataTraits<std::decay_t<T>>::timestamp);
   return i - values.begin();
@@ -67,12 +67,12 @@ inline std::size_t UpperBound(std::span<T> values, scada::DateTime time) {
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t UpperBound(const std::vector<T>& values,
-                              scada::DateTime time) {
+                              scada::Time time) {
   return UpperBound(std::span{values}, time);
 }
 
 template <class T>
-inline T* GetValueAt(std::span<T> values, scada::DateTime time) {
+inline T* GetValueAt(std::span<T> values, scada::Time time) {
   auto i = LowerBound(values, time);
 
   if (i != values.size() &&
@@ -89,7 +89,7 @@ inline T* GetValueAt(std::span<T> values, scada::DateTime time) {
 
 template <class T>
 inline std::size_t ReverseUpperBound(std::span<const T> values,
-                                     scada::DateTime time) {
+                                     scada::Time time) {
   // Precondition: |values| is reverse-time-sorted.
   auto i = std::ranges::upper_bound(values, time, std::greater{},
                                     &TimedDataTraits<T>::timestamp);
@@ -99,14 +99,14 @@ inline std::size_t ReverseUpperBound(std::span<const T> values,
 // An overload for `std::vector`.
 template <class T>
 inline std::size_t ReverseUpperBound(const std::vector<T>& values,
-                                     scada::DateTime time) {
+                                     scada::Time time) {
   return ReverseUpperBound(std::span{values}, time);
 }
 
 template <class T>
 inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
-                                                scada::DateTime from,
-                                                scada::DateTime to) {
+                                                scada::Time from,
+                                                scada::Time to) {
   auto i = LowerBound(values, from);
   if (i != values.size() && TimedDataTraits<T>::timestamp(values[i]) == from) {
     return std::nullopt;
@@ -127,8 +127,8 @@ inline std::optional<size_t> FindInsertPosition(std::span<const T> values,
 // An overload for `std::vector`.
 template <class T>
 inline std::optional<size_t> FindInsertPosition(const std::vector<T>& values,
-                                                scada::DateTime from,
-                                                scada::DateTime to) {
+                                                scada::Time from,
+                                                scada::Time to) {
   return FindInsertPosition(std::span{values}, from, to);
 }
 

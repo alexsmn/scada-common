@@ -27,13 +27,13 @@ class BasicTimedDataView {
 
   // The samples whose timestamp falls in `range` ([first, second], with a null
   // `second` meaning "to the end").
-  BasicTimedDataView slice(const scada::DateTimeRange& range) const
+  BasicTimedDataView slice(const scada::TimeRange& range) const
       SCADA_LIFETIME_BOUND {
     return from(range.first).until(range.second);
   }
 
   // The samples whose timestamp is >= `start` (no lower bound if `start` null).
-  BasicTimedDataView from(scada::DateTime start) const SCADA_LIFETIME_BOUND {
+  BasicTimedDataView from(scada::Time start) const SCADA_LIFETIME_BOUND {
     if (scada::IsNull(start))
       return *this;
     size_t i = LowerBound(samples_, start);
@@ -41,7 +41,7 @@ class BasicTimedDataView {
   }
 
   // The samples whose timestamp is <= `end` (no upper bound if `end` null).
-  BasicTimedDataView until(scada::DateTime end) const SCADA_LIFETIME_BOUND {
+  BasicTimedDataView until(scada::Time end) const SCADA_LIFETIME_BOUND {
     if (scada::IsNull(end))
       return *this;
     size_t i = UpperBound(samples_, end);
@@ -65,7 +65,7 @@ class BasicTimedDataView {
   // copy; null means "no such sample".
 
   // The sample whose timestamp equals `time` exactly, or null.
-  const T* value_at(scada::DateTime time) const SCADA_LIFETIME_BOUND {
+  const T* value_at(scada::Time time) const SCADA_LIFETIME_BOUND {
     size_t i = LowerBound(samples_, time);
     if (i != samples_.size() &&
         TimedDataTraits<T>::timestamp(samples_[i]) == time) {
@@ -77,13 +77,13 @@ class BasicTimedDataView {
   // The last sample whose timestamp is <= `time`, or null when `time` precedes
   // all samples. This is the honest name for the old GetValueAt lower-bound
   // behavior.
-  const T* sample_at_or_before(scada::DateTime time) const
+  const T* sample_at_or_before(scada::Time time) const
       SCADA_LIFETIME_BOUND {
     return GetValueAt(samples_, time);
   }
 
   // The [first timestamp, last timestamp] span, or an empty range when empty.
-  scada::DateTimeRange time_span() const {
+  scada::TimeRange time_span() const {
     if (samples_.empty())
       return {};
     return {TimedDataTraits<T>::timestamp(samples_.front()),

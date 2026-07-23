@@ -12,7 +12,7 @@ inline void Dump(std::ostream& stream, const T& value) {
   stream << value;
 }
 
-inline void Dump(std::ostream& stream, scada::DateTime time) {
+inline void Dump(std::ostream& stream, scada::Time time) {
   if (time == scada::kMinTime)
     stream << "min";
   else if (time == scada::kMaxTime)
@@ -23,7 +23,7 @@ inline void Dump(std::ostream& stream, scada::DateTime time) {
     stream << time;
 }
 
-inline void Dump(std::ostream& stream, const scada::DateTimeRange& range) {
+inline void Dump(std::ostream& stream, const scada::TimeRange& range) {
   stream << "(";
   Dump(stream, range.first);
   stream << ",";
@@ -32,7 +32,7 @@ inline void Dump(std::ostream& stream, const scada::DateTimeRange& range) {
 }
 
 inline void Dump(std::ostream& stream,
-                 const std::map<TimedDataViewObserver*, scada::DateTimeRange>&
+                 const std::map<TimedDataViewObserver*, scada::TimeRange>&
                      observer_ranges) {
   for (auto& p : observer_ranges) {
     Dump(stream, p.second);

@@ -133,7 +133,7 @@ void TimedDataFetcher::OnHistoryReadRawComplete(
 
   buffer_.ReplaceRange(values);
 
-  scada::DateTime ready_to = scada::kNullTime;
+  scada::Time ready_to = scada::kNullTime;
   if (continuation_point.empty()) {
     ready_to = querying_range_.second;
   } else if (!values.empty()) {

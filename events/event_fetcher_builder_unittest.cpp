@@ -41,8 +41,8 @@ class TestHistoryService final : public scada::HistoryService {
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
-      scada::DateTime from,
-      scada::DateTime to,
+      scada::Time from,
+      scada::Time to,
       scada::EventFilter filter) override {
     ++read_events_count;
     last_filter = filter;
@@ -259,8 +259,8 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
   EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce([&](scada::NodeId read_node_id, scada::DateTime from,
-                    scada::DateTime to, scada::EventFilter filter)
+      .WillOnce([&](scada::NodeId read_node_id, scada::Time from,
+                    scada::Time to, scada::EventFilter filter)
                     -> Awaitable<scada::HistoryReadEventsResult> {
         EXPECT_EQ(read_node_id, scada::id::Server);
         EXPECT_LE(from, to);
