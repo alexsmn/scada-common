@@ -18,21 +18,7 @@ using namespace std::chrono_literals;
 namespace client::test {
 namespace {
 
-constexpr auto kWaitStep = 100ms;
 constexpr auto kServerStartTimeout = 30s;
-
-template <class Predicate>
-bool WaitUntil(Predicate&& predicate,
-               std::chrono::milliseconds timeout,
-               std::chrono::milliseconds step = kWaitStep) {
-  auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {
-    if (predicate())
-      return true;
-    std::this_thread::sleep_for(step);
-  }
-  return predicate();
-}
 
 std::string SqlitePath(const std::filesystem::path& path) {
   auto result = path.lexically_normal().generic_string();

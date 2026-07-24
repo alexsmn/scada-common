@@ -38,7 +38,6 @@ const std::string_view kStripDataItemRowsSql =
 
 namespace {
 
-constexpr auto kWaitStep = 100ms;
 constexpr auto kClusterStartTimeout = 30s;
 
 // The file-instance namespace the proxy claims to the file store, and the
@@ -48,17 +47,6 @@ constexpr auto kClusterStartTimeout = 30s;
 constexpr std::string_view kFileTypeNamespaceUri =
     "http://telecontrol.ru/opcua/filesystem/FileType";
 constexpr std::string_view kFileSystemRootNodeId = "ns=7;i=304";
-
-template <class Predicate>
-bool WaitUntil(Predicate&& predicate, std::chrono::milliseconds timeout) {
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {
-    if (predicate())
-      return true;
-    std::this_thread::sleep_for(kWaitStep);
-  }
-  return predicate();
-}
 
 boost::json::object& EnsureObject(boost::json::object& parent,
                                   std::string_view key) {

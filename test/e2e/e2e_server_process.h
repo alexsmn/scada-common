@@ -2,6 +2,7 @@
 
 #include "test/e2e/e2e_file_helpers.h"
 #include "test/e2e/e2e_process.h"
+#include "test/e2e/e2e_wait.h"
 
 #include <filesystem>
 #include <functional>
