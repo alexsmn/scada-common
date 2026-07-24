@@ -8,6 +8,7 @@
 // reverse order trips an AppleClang 21 declaration-merging bug in libc++.
 import scada.core;
 #else
+#include "scada/co_result.h"
 #include "scada/data_value.h"
 #include "scada/read_value_id.h"
 #include "scada/service_context.h"
@@ -22,7 +23,7 @@ namespace {
 constexpr scada::NumericId kServerServiceLevelId = 2267;
 
 // Reads Server_ServiceLevel over the given session.
-Awaitable<scada::StatusOr<scada::UInt8>> ReadServiceLevelVia(
+scada::CoStatusOr<scada::UInt8> ReadServiceLevelVia(
     std::shared_ptr<opcua::ClientSession> session) {
   ClientAttributeServiceAdapter attr{std::move(session)};
   std::vector<scada::ReadValueId> inputs;
@@ -58,11 +59,11 @@ RemoteHistoryService::RemoteHistoryService(
 
 RemoteHistoryService::~RemoteHistoryService() = default;
 
-Awaitable<scada::Status> RemoteHistoryService::Connect() {
+scada::CoStatus RemoteHistoryService::Connect() {
   return ConnectTo(config_.endpoint_url);
 }
 
-Awaitable<scada::Status> RemoteHistoryService::ConnectTo(std::string endpoint) {
+scada::CoStatus RemoteHistoryService::ConnectTo(std::string endpoint) {
   auto status = co_await session_->ConnectStatus(
       opcua::SessionConnectParams{.connection_string = std::move(endpoint),
                                   .user_name = ToOpcua(config_.user_name),
@@ -71,7 +72,7 @@ Awaitable<scada::Status> RemoteHistoryService::ConnectTo(std::string endpoint) {
   co_return ToScada(status);
 }
 
-Awaitable<scada::Status> RemoteHistoryService::Probe() {
+scada::CoStatus RemoteHistoryService::Probe() {
   // Liveness keepalive: round-trip a HistoryRead of the standard ServerStatus
   // CurrentTime node (i=2258). A live session returns Good/empty or a
   // non-connectivity Bad; a dead transport returns
@@ -91,24 +92,23 @@ bool RemoteHistoryService::IsConnected() const {
   return session_->IsConnected(nullptr);
 }
 
-Awaitable<scada::StatusOr<scada::UInt8>>
-RemoteHistoryService::ReadServiceLevel() {
+scada::CoStatusOr<scada::UInt8> RemoteHistoryService::ReadServiceLevel() {
   return ReadServiceLevelVia(session_);
 }
 
-Awaitable<scada::StatusOr<scada::UInt8>>
-RemoteHistoryService::ProbeServiceLevel(std::string endpoint) {
+scada::CoStatusOr<scada::UInt8> RemoteHistoryService::ProbeServiceLevel(
+    std::string endpoint) {
   return opcua_bridge::ProbeServiceLevel(executor_, transport_factory_,
                                          std::move(endpoint), config_.user_name,
                                          config_.password);
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+scada::CoStatusOr<scada::HistoryReadRawResult>
 RemoteHistoryService::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   return adapter_.HistoryReadRaw(std::move(details));
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+scada::CoStatusOr<scada::HistoryReadEventsResult>
 RemoteHistoryService::HistoryReadEvents(scada::NodeId node_id,
                                         scada::Time from,
                                         scada::Time to,
@@ -117,13 +117,13 @@ RemoteHistoryService::HistoryReadEvents(scada::NodeId node_id,
                                     std::move(filter));
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 RemoteHistoryService::HistoryUpdateData(scada::ServiceContext context,
                                         scada::UpdateDataDetails details) {
   return adapter_.HistoryUpdateData(std::move(context), std::move(details));
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 RemoteHistoryService::HistoryUpdateEvent(scada::ServiceContext context,
                                          scada::UpdateEventDetails details) {
   return adapter_.HistoryUpdateEvent(std::move(context), std::move(details));

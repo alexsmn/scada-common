@@ -9,6 +9,7 @@
 #include "address_space/variable.h"
 #include "base/range_util.h"
 #include "scada/authorization.h"
+#include "scada/co_result.h"
 #include "scada/role_permission_encoding.h"
 
 #include <ranges>
@@ -21,18 +22,18 @@ AttributeServiceImpl::AttributeServiceImpl(
     SyncAttributeService& sync_attribute_service)
     : sync_attribute_service_{sync_attribute_service} {}
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-AttributeServiceImpl::Read(scada::ServiceContext context,
-                           std::vector<scada::ReadValueId> inputs) {
+scada::CoStatusOr<std::vector<scada::DataValue>> AttributeServiceImpl::Read(
+    scada::ServiceContext context,
+    std::vector<scada::ReadValueId> inputs) {
   auto results = sync_attribute_service_.Read(context, inputs);
   scada::base::Check(results.size() == inputs.size());
 
   co_return results;
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-AttributeServiceImpl::Write(scada::ServiceContext context,
-                            std::vector<scada::WriteValue> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> AttributeServiceImpl::Write(
+    scada::ServiceContext context,
+    std::vector<scada::WriteValue> inputs) {
   auto results = sync_attribute_service_.Write(context, inputs);
   co_return results;
 }
@@ -102,12 +103,11 @@ scada::DataValue SyncAttributeServiceImpl::ReadNode(
     case scada::AttributeId::RolePermissions:
       if (!scada::IsPermitted(context.user_rights(), context.is_anonymous(),
                               scada::Permission::kReadRolePermissions)) {
-        return {scada::StatusCode::Bad_UserAccessDenied,
-                scada::Now()};
+        return {scada::StatusCode::Bad_UserAccessDenied, scada::Now()};
       }
       return scada::MakeReadResult(scada::EncodeRolePermissions(
           node.role_permissions() ? *node.role_permissions()
-                                   : scada::DefaultRolePermissions()));
+                                  : scada::DefaultRolePermissions()));
   }
 
   if (auto* variable = scada::AsVariable(&node)) {

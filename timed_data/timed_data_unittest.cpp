@@ -23,6 +23,7 @@
 #include <gmock/gmock.h>
 
 #include "base/debug_util.h"
+#include "scada/co_result.h"
 
 using namespace testing;
 
@@ -39,14 +40,14 @@ DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
 
 class TestHistoryService final : public scada::HistoryService {
  public:
-  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
     ++raw_read_count;
     last_raw_details = std::move(details);
     co_return raw_result;
   }
 
-  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
@@ -219,16 +220,15 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   // copy lives in the coroutine frame. A `const&` parameter would bind to
   // gMock's argument tuple, which is destroyed before the awaitable runs.
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke(
-          [&](scada::HistoryReadRawDetails details)
-              -> Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> {
-            EXPECT_EQ(details.node_id, kDataItemId);
-            EXPECT_EQ(details.from, from);
-            EXPECT_EQ(details.to, to);
-            co_return scada::HistoryReadRawResult{
-                .values = {},
-            };
-          }));
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        co_return scada::HistoryReadRawResult{
+            .values = {},
+        };
+      }));
 
   TimedDataSpec spec{service_, kDataItemId};
   spec.SetRange({from, to});
@@ -250,16 +250,15 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
 
   // By-value `details` for the same coroutine-lifetime reason as above.
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke(
-          [&](scada::HistoryReadRawDetails details)
-              -> Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> {
-            EXPECT_EQ(details.node_id, kDataItemId);
-            EXPECT_EQ(details.from, from);
-            EXPECT_EQ(details.to, to);
-            co_return scada::HistoryReadRawResult{
-                .values = {},
-            };
-          }));
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        co_return scada::HistoryReadRawResult{
+            .values = {},
+        };
+      }));
 
   TimedDataSpec spec{*service, kDataItemId};
   spec.SetRange({from, to});
@@ -329,17 +328,16 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   const scada::ByteString continuation_point{'c', 'p'};
 
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke(
-          [&](scada::HistoryReadRawDetails cleanup)
-              -> Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> {
-            EXPECT_EQ(cleanup.node_id, details.node_id);
-            EXPECT_EQ(cleanup.from, details.from);
-            EXPECT_EQ(cleanup.to, details.to);
-            EXPECT_EQ(cleanup.max_count, details.max_count);
-            EXPECT_TRUE(cleanup.release_continuation_point);
-            EXPECT_EQ(cleanup.continuation_point, continuation_point);
-            co_return scada::HistoryReadRawResult{};
-          }));
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails cleanup)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(cleanup.node_id, details.node_id);
+        EXPECT_EQ(cleanup.from, details.from);
+        EXPECT_EQ(cleanup.to, details.to);
+        EXPECT_EQ(cleanup.max_count, details.max_count);
+        EXPECT_TRUE(cleanup.release_continuation_point);
+        EXPECT_EQ(cleanup.continuation_point, continuation_point);
+        co_return scada::HistoryReadRawResult{};
+      }));
 
   ScopedContinuationPoint scoped_continuation_point{
       executor_, history_service_, details, continuation_point};
@@ -358,14 +356,13 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
   const scada::ByteString continuation_point{'c', 'p'};
 
   EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce(Invoke(
-          [&](scada::HistoryReadRawDetails cleanup)
-              -> Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> {
-            EXPECT_EQ(cleanup.node_id, details.node_id);
-            EXPECT_TRUE(cleanup.release_continuation_point);
-            EXPECT_EQ(cleanup.continuation_point, continuation_point);
-            co_return scada::HistoryReadRawResult{};
-          }));
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails cleanup)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(cleanup.node_id, details.node_id);
+        EXPECT_TRUE(cleanup.release_continuation_point);
+        EXPECT_EQ(cleanup.continuation_point, continuation_point);
+        co_return scada::HistoryReadRawResult{};
+      }));
 
   ScopedContinuationPoint scoped_continuation_point{
       executor_, history_service_, details, continuation_point};

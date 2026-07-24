@@ -6,6 +6,7 @@
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
+#include "scada/co_result.h"
 #include "scada/history_service.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/method_service.h"
@@ -61,12 +62,12 @@ class FakeMonitoredItemService final : public scada::MonitoredItemService {
 // history from `OnChannelOpened`, which these tests do not exercise.
 class FakeHistoryService final : public scada::HistoryService {
  public:
-  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails /*details*/) override {
     co_return scada::HistoryReadRawResult{};
   }
 
-  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId /*node_id*/,
       scada::Time /*from*/,
       scada::Time /*to*/,
@@ -79,10 +80,10 @@ class FakeHistoryService final : public scada::HistoryService {
 // but these tests never acknowledge, so `Call` is never invoked.
 class FakeMethodService final : public scada::MethodService {
  public:
-  Awaitable<scada::Status> Call(scada::NodeId /*node_id*/,
-                                scada::NodeId /*method_id*/,
-                                std::vector<scada::Variant> /*arguments*/,
-                                scada::ServiceContext /*context*/) override {
+  scada::CoStatus Call(scada::NodeId /*node_id*/,
+                       scada::NodeId /*method_id*/,
+                       std::vector<scada::Variant> /*arguments*/,
+                       scada::ServiceContext /*context*/) override {
     co_return scada::Status{scada::StatusCode::Good};
   }
 };

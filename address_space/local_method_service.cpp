@@ -10,15 +10,16 @@
 // reverse order trips an AppleClang 21 declaration-merging bug in libc++.
 import scada.core;
 #else
+#include "scada/co_result.h"
 #include "scada/status.h"
 #endif
 
 namespace scada {
 
-Awaitable<Status> LocalMethodService::Call(NodeId /*node_id*/,
-                                           NodeId /*method_id*/,
-                                           std::vector<Variant> /*arguments*/,
-                                           ServiceContext /*context*/) {
+CoStatus LocalMethodService::Call(NodeId /*node_id*/,
+                                  NodeId /*method_id*/,
+                                  std::vector<Variant> /*arguments*/,
+                                  ServiceContext /*context*/) {
   co_return Status{StatusCode::Bad};
 }
 

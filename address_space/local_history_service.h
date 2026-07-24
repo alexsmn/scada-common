@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scada/co_result.h"
 #include "scada/event.h"
 #include "scada/history_service.h"
 #include "scada/node_id.h"
@@ -55,9 +56,9 @@ class LocalHistoryService : public HistoryService {
   void LoadFromJson(const boost::json::value& root);
 
   // HistoryService
-  Awaitable<StatusOr<HistoryReadRawResult>> HistoryReadRaw(
+  CoStatusOr<HistoryReadRawResult> HistoryReadRaw(
       HistoryReadRawDetails details) override;
-  Awaitable<StatusOr<HistoryReadEventsResult>> HistoryReadEvents(
+  CoStatusOr<HistoryReadEventsResult> HistoryReadEvents(
       NodeId node_id,
       scada::Time from,
       scada::Time to,

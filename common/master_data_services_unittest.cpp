@@ -5,6 +5,7 @@
 #include "base/test/test_executor.h"
 #include "common/data_services_util.h"
 #include "scada/attribute_service_mock.h"
+#include "scada/co_result.h"
 #include "scada/node_management_service_mock.h"
 #include "scada/session_service_mock.h"
 #include "scada/test/status_matchers.h"
@@ -67,7 +68,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
 
   scada::SessionDebugger* GetSessionDebugger() override { return nullptr; }
 
-  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+  scada::CoStatusOr<std::vector<scada::DataValue>> Read(
       scada::ServiceContext context,
       std::vector<scada::ReadValueId> inputs) override {
     ++read_count;
@@ -76,7 +77,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
     co_return std::vector<scada::DataValue>{read_value};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
       scada::ServiceContext /*context*/,
       std::vector<scada::WriteValue> inputs) override {
     ++write_count;
@@ -84,7 +85,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+  scada::CoStatusOr<std::vector<scada::BrowseResult>> Browse(
       scada::ServiceContext /*context*/,
       std::vector<scada::BrowseDescription> inputs) override {
     ++browse_count;
@@ -93,16 +94,16 @@ class TestCoroutineDataServices final : public scada::SessionService,
         {.references = {browse_reference}}};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override {
+  scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
     co_return std::vector<scada::BrowsePathResult>(inputs.size());
   }
 
-  Awaitable<scada::Status> Call(scada::NodeId node_id,
-                                scada::NodeId method_id,
-                                std::vector<scada::Variant> /*arguments*/,
-                                scada::ServiceContext context) override {
+  scada::CoStatus Call(scada::NodeId node_id,
+                       scada::NodeId method_id,
+                       std::vector<scada::Variant> /*arguments*/,
+                       scada::ServiceContext context) override {
     ++call_count;
     last_call_node_id = std::move(node_id);
     last_call_method_id = std::move(method_id);
@@ -110,14 +111,14 @@ class TestCoroutineDataServices final : public scada::SessionService,
     co_return scada::Status{scada::StatusCode::Good};
   }
 
-  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
     ++history_raw_count;
     last_history_raw_details = std::move(details);
     co_return scada::HistoryReadRawResult{.values = {read_value}};
   }
 
-  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time /*from*/,
       scada::Time /*to*/,
@@ -127,7 +128,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
     co_return scada::HistoryReadEventsResult{};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
+  scada::CoStatusOr<std::vector<scada::AddNodesResult>> AddNodes(
       scada::ServiceContext /*context*/,
       std::vector<scada::AddNodesItem> inputs) override {
     ++add_nodes_count;
@@ -136,7 +137,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
         {.added_node_id = scada::NodeId{700, 7}}};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteNodes(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteNodes(
       scada::ServiceContext /*context*/,
       std::vector<scada::DeleteNodesItem> inputs) override {
     ++delete_nodes_count;
@@ -144,7 +145,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> AddReferences(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> AddReferences(
       scada::ServiceContext /*context*/,
       std::vector<scada::AddReferencesItem> inputs) override {
     ++add_references_count;
@@ -152,7 +153,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteReferences(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteReferences(
       scada::ServiceContext /*context*/,
       std::vector<scada::DeleteReferencesItem> inputs) override {
     ++delete_references_count;
@@ -247,11 +248,10 @@ TEST(MasterDataServicesTest, ReadDispatchesThroughCoroutineService) {
   services.SetServices(std::move(data_services));
 
   EXPECT_CALL(*attribute_service, Read(_, _))
-      .WillOnce(
-          [](scada::ServiceContext, std::vector<scada::ReadValueId>)
-              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
-            co_return std::vector<scada::DataValue>{scada::DataValue{}};
-          });
+      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
+                    -> scada::CoStatusOr<std::vector<scada::DataValue>> {
+        co_return std::vector<scada::DataValue>{scada::DataValue{}};
+      });
 
   auto result = WaitAwaitable(
       executor, services.Read({}, std::vector<scada::ReadValueId>{}));
@@ -307,7 +307,7 @@ TEST(MasterDataServicesTest, SessionConnectUsesCoroutineAdapter) {
 
   scada::base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, ConnectStatus(_))
-      .WillOnce([&](scada::SessionConnectParams) -> Awaitable<scada::Status> {
+      .WillOnce([&](scada::SessionConnectParams) -> scada::CoStatus {
         co_await pending_connect.Wait();
         co_return scada::StatusCode::Good;
       });
@@ -334,12 +334,11 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
 
   scada::base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, ConnectStatus(_))
-      .WillOnce(
-          [&](scada::SessionConnectParams params) -> Awaitable<scada::Status> {
-            EXPECT_EQ(params.host, "node-host");
-            co_await pending_connect.Wait();
-            co_return scada::StatusCode::Good;
-          });
+      .WillOnce([&](scada::SessionConnectParams params) -> scada::CoStatus {
+        EXPECT_EQ(params.host, "node-host");
+        co_await pending_connect.Wait();
+        co_return scada::StatusCode::Good;
+      });
 
   auto result =
       StartAwaitable(executor, services.Connect({.host = "node-host"}));

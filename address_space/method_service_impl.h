@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scada/co_result.h"
 #include "scada/method_service.h"
 
 namespace scada {
@@ -16,8 +17,8 @@ class MethodServiceImpl : private MethodServiceImplContext,
   explicit MethodServiceImpl(const MethodServiceImplContext& context);
 
   // scada::MethodService
-  Awaitable<scada::Status> Call(scada::NodeId node_id,
-                                scada::NodeId method_id,
-                                std::vector<scada::Variant> arguments,
-                                scada::ServiceContext context) override;
+  scada::CoStatus Call(scada::NodeId node_id,
+                       scada::NodeId method_id,
+                       std::vector<scada::Variant> arguments,
+                       scada::ServiceContext context) override;
 };

@@ -5,6 +5,7 @@
 #include "address_space/standard_address_space.h"
 #include "address_space/view_service_impl.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include "scada/history_service.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
@@ -33,7 +34,7 @@ class VidiconSession final : public scada::SessionService,
 
   // scada::SessionService
   virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
-  virtual Awaitable<scada::Status> ConnectStatus(
+  virtual scada::CoStatus ConnectStatus(
       scada::SessionConnectParams params) override;
   virtual Awaitable<void> Disconnect() override;
   virtual Awaitable<void> Reconnect() override;
@@ -48,13 +49,13 @@ class VidiconSession final : public scada::SessionService,
   virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::HistoryService
-  virtual Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
-  HistoryReadRaw(scada::HistoryReadRawDetails details) override;
-  virtual Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
-  HistoryReadEvents(scada::NodeId node_id,
-                    scada::Time from,
-                    scada::Time to,
-                    scada::EventFilter filter) override;
+  virtual scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override;
+  virtual scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      scada::Time from,
+      scada::Time to,
+      scada::EventFilter filter) override;
 
   // scada::MonitoredItemService
   scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
@@ -62,38 +63,38 @@ class VidiconSession final : public scada::SessionService,
                      scada::MonitoredItemSubscriptionOptions options) override;
 
   // scada::AttributeService
-  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+  virtual scada::CoStatusOr<std::vector<scada::DataValue>> Read(
       scada::ServiceContext context,
       std::vector<scada::ReadValueId> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
-  virtual Awaitable<scada::Status> Call(scada::NodeId node_id,
-                                        scada::NodeId method_id,
-                                        std::vector<scada::Variant> arguments,
-                                        scada::ServiceContext context) override;
+  virtual scada::CoStatus Call(scada::NodeId node_id,
+                               scada::NodeId method_id,
+                               std::vector<scada::Variant> arguments,
+                               scada::ServiceContext context) override;
 
   // scada::NodeManagementService
-  virtual Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-  AddNodes(scada::ServiceContext context,
-           std::vector<scada::AddNodesItem> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteNodes(scada::ServiceContext context,
-              std::vector<scada::DeleteNodesItem> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  AddReferences(scada::ServiceContext context,
-                std::vector<scada::AddReferencesItem> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteReferences(scada::ServiceContext context,
-                   std::vector<scada::DeleteReferencesItem> inputs) override;
+  virtual scada::CoStatusOr<std::vector<scada::AddNodesResult>> AddNodes(
+      scada::ServiceContext context,
+      std::vector<scada::AddNodesItem> inputs) override;
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteNodes(
+      scada::ServiceContext context,
+      std::vector<scada::DeleteNodesItem> inputs) override;
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> AddReferences(
+      scada::ServiceContext context,
+      std::vector<scada::AddReferencesItem> inputs) override;
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteReferences(
+      scada::ServiceContext context,
+      std::vector<scada::DeleteReferencesItem> inputs) override;
 
   // scada::ViewService
-  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+  virtual scada::CoStatusOr<std::vector<scada::BrowseResult>> Browse(
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+  virtual scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
  private:

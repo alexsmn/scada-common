@@ -3,6 +3,7 @@
 #include "base/any_executor.h"
 #include "metrics/otel_metrics.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include "scada/data_services.h"
 #include "scada/services.h"
 #include "scada/view_service.h"
@@ -31,18 +32,18 @@ class Audit final : private AuditContext,
   static std::shared_ptr<Audit> Create(AuditContext&& context);
 
   // scada::AttributeService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-  Read(scada::ServiceContext context,
-       std::vector<scada::ReadValueId> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  Write(scada::ServiceContext context,
-        std::vector<scada::WriteValue> inputs) override;
+  [[nodiscard]] virtual scada::CoStatusOr<std::vector<scada::DataValue>> Read(
+      scada::ServiceContext context,
+      std::vector<scada::ReadValueId> inputs) override;
+  [[nodiscard]] virtual scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
+      scada::ServiceContext context,
+      std::vector<scada::WriteValue> inputs) override;
 
   // scada::ViewService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
+  [[nodiscard]] virtual scada::CoStatusOr<std::vector<scada::BrowseResult>>
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+  [[nodiscard]] virtual scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
   TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
 
  private:

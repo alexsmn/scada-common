@@ -1,6 +1,7 @@
 #include "opcua_bridge/server_adapters.h"
 
 #include "opcua/events/event_filter.h"
+#include "scada/co_result.h"
 
 #include <gtest/gtest.h>
 
@@ -20,7 +21,7 @@ namespace {
 // delegation can be observed.
 class FakeViewService : public scada::ViewService {
  public:
-  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+  scada::CoStatusOr<std::vector<scada::BrowseResult>> Browse(
       scada::ServiceContext,
       std::vector<scada::BrowseDescription> inputs) override {
     received_inputs = std::move(inputs);
@@ -30,8 +31,8 @@ class FakeViewService : public scada::ViewService {
         scada::ReferenceDescription{.node_id = scada::NodeId{2253u}});
     co_return std::vector<scada::BrowseResult>{std::move(result)};
   }
-  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath>) override {
+  scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      std::vector<scada::BrowsePath>) override {
     co_return std::vector<scada::BrowsePathResult>{};
   }
 
@@ -92,8 +93,8 @@ class FakeMonitoredItemSubscription : public scada::MonitoredItemSubscription {
       std::span<const scada::MonitoredItemId>) override {
     co_return std::vector<scada::Status>{};
   }
-  Awaitable<scada::StatusOr<std::vector<scada::MonitoredItemNotification>>>
-  ReadNext(std::size_t) override {
+  scada::CoStatusOr<std::vector<scada::MonitoredItemNotification>> ReadNext(
+      std::size_t) override {
     std::vector<scada::MonitoredItemNotification> out;
     out.push_back(next);
     co_return out;
@@ -121,9 +122,8 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
                                             .status = scada::StatusCode::Good,
                                             .event = std::any{event}};
 
-  MonitoredItemSubscriptionAdapter adapter{std::move(fake),
-                                          opcua::ServiceContext{},
-                                          Tracer::None()};
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake), opcua::ServiceContext{}, Tracer::None()};
 
   // Add the item with an EventFilter selecting three fields so the adapter
   // stores the field paths keyed by client_handle.
@@ -194,9 +194,8 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
                                             .status = scada::StatusCode::Good,
                                             .event = std::any{event}};
 
-  MonitoredItemSubscriptionAdapter adapter{std::move(fake),
-                                          opcua::ServiceContext{},
-                                          Tracer::None()};
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake), opcua::ServiceContext{}, Tracer::None()};
 
   // Subscribe the way the SCADA client does: a scada::EventFilter converts to
   // the `_scada` json wire filter, which carries no SelectClauses.

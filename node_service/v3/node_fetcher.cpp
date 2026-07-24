@@ -1,13 +1,14 @@
 #include "node_service/v3/node_fetcher.h"
+#include "scada/co_result.h"
 
 namespace v3 {
 
-Awaitable<scada::StatusOr<scada::NodeState>> NodeFetcher::FetchNode(
+scada::CoStatusOr<scada::NodeState> NodeFetcher::FetchNode(
     const scada::NodeId& node_id) {
   co_return scada::NodeState{};
 }
 
-Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> NodeFetcher::FetchChildren(
+scada::CoStatusOr<scada::ReferenceDescriptions> NodeFetcher::FetchChildren(
     const scada::NodeId& node_id) {
   co_return scada::ReferenceDescriptions{};
 }

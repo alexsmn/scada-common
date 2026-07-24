@@ -26,6 +26,7 @@
 #include "opcua/services/service_callbacks.h"
 #include "opcua/services/view_types.h"
 #include "opcua/session/authentication.h"
+#include "opcua/types/co_result.h"
 
 #include <cstdint>
 #include <memory>
@@ -43,11 +44,11 @@ class AttributeServiceAdapter {
                                    Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>> Read(
+  opcua::CoStatusOr<std::vector<opcua::DataValue>> Read(
       opcua::ServiceContext context,
       std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>> Write(
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> Write(
       opcua::ServiceContext context,
       std::shared_ptr<const std::vector<opcua::WriteValue>> inputs);
 
@@ -62,12 +63,12 @@ class ViewServiceAdapter {
                               Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>> Browse(
+  opcua::CoStatusOr<std::vector<opcua::BrowseResult>> Browse(
       opcua::ServiceContext context,
       std::vector<opcua::BrowseDescription> inputs);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<opcua::BrowsePath> inputs);
+  opcua::CoStatusOr<std::vector<opcua::BrowsePathResult>> TranslateBrowsePaths(
+      std::vector<opcua::BrowsePath> inputs);
 
  private:
   scada::ViewService& inner_;
@@ -81,10 +82,10 @@ class MethodServiceAdapter {
                                 Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::Status> Call(opcua::NodeId node_id,
-                                       opcua::NodeId method_id,
-                                       std::vector<opcua::Variant> arguments,
-                                       opcua::ServiceContext context);
+  opcua::CoStatus Call(opcua::NodeId node_id,
+                       opcua::NodeId method_id,
+                       std::vector<opcua::Variant> arguments,
+                       opcua::ServiceContext context);
 
  private:
   scada::MethodService& inner_;
@@ -98,21 +99,21 @@ class NodeManagementServiceAdapter {
                                         Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
-  AddNodes(opcua::ServiceContext context,
-           std::vector<opcua::AddNodesItem> inputs);
+  opcua::CoStatusOr<std::vector<opcua::AddNodesResult>> AddNodes(
+      opcua::ServiceContext context,
+      std::vector<opcua::AddNodesItem> inputs);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>> DeleteNodes(
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> DeleteNodes(
       opcua::ServiceContext context,
       std::vector<opcua::DeleteNodesItem> inputs);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  AddReferences(opcua::ServiceContext context,
-                std::vector<opcua::AddReferencesItem> inputs);
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> AddReferences(
+      opcua::ServiceContext context,
+      std::vector<opcua::AddReferencesItem> inputs);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  DeleteReferences(opcua::ServiceContext context,
-                   std::vector<opcua::DeleteReferencesItem> inputs);
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> DeleteReferences(
+      opcua::ServiceContext context,
+      std::vector<opcua::DeleteReferencesItem> inputs);
 
  private:
   scada::NodeManagementService& inner_;
@@ -126,14 +127,14 @@ class HistoryServiceAdapter {
                                  Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadRawResult>> HistoryReadRaw(
+  opcua::CoStatusOr<opcua::HistoryReadRawResult> HistoryReadRaw(
       opcua::HistoryReadRawDetails details);
 
-  opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadEventsResult>>
-  HistoryReadEvents(opcua::NodeId node_id,
-                    opcua::DateTime from,
-                    opcua::DateTime to,
-                    opcua::EventFilter filter);
+  opcua::CoStatusOr<opcua::HistoryReadEventsResult> HistoryReadEvents(
+      opcua::NodeId node_id,
+      opcua::DateTime from,
+      opcua::DateTime to,
+      opcua::EventFilter filter);
 
  private:
   scada::HistoryService& inner_;
@@ -150,13 +151,13 @@ class HistoryUpdateServiceAdapter {
                                        Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  HistoryUpdateData(opcua::ServiceContext context,
-                    opcua::UpdateDataDetails details);
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> HistoryUpdateData(
+      opcua::ServiceContext context,
+      opcua::UpdateDataDetails details);
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
-  HistoryUpdateEvent(opcua::ServiceContext context,
-                     opcua::UpdateEventDetails details);
+  opcua::CoStatusOr<std::vector<opcua::StatusCode>> HistoryUpdateEvent(
+      opcua::ServiceContext context,
+      opcua::UpdateEventDetails details);
 
  private:
   scada::HistoryUpdateService& inner_;
@@ -190,8 +191,8 @@ class MonitoredItemSubscriptionAdapter
   opcua::Awaitable<std::vector<opcua::Status>> RemoveItems(
       std::span<const opcua::MonitoredItemId> item_ids) override;
 
-  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
-  ReadNext(std::size_t max_count) override;
+  opcua::CoStatusOr<std::vector<opcua::ItemNotification>> ReadNext(
+      std::size_t max_count) override;
 
   void Close(opcua::Status status) override;
 
@@ -241,7 +242,7 @@ class AuthenticatorAdapter : public opcua::CoroutineAuthenticator {
       std::shared_ptr<scada::CoroutineAuthenticator> inner)
       : inner_{std::move(inner)} {}
 
-  opcua::Awaitable<opcua::StatusOr<opcua::AuthenticationResult>> Authenticate(
+  opcua::CoStatusOr<opcua::AuthenticationResult> Authenticate(
       opcua::LocalizedText user_name,
       opcua::LocalizedText password) override;
 

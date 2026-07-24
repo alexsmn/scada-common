@@ -2,6 +2,7 @@
 
 #include "base/win/scoped_bstr.h"
 
+#include "scada/co_result.h"
 #include "scada/date_time.h"
 #include "scada/history_types.h"
 #include "scada/item_factory_subscription.h"
@@ -35,7 +36,7 @@ Awaitable<void> VidiconSession::Connect(scada::SessionConnectParams params) {
   (void)co_await ConnectStatus(std::move(params));
 }
 
-Awaitable<scada::Status> VidiconSession::ConnectStatus(
+scada::CoStatus VidiconSession::ConnectStatus(
     scada::SessionConnectParams params) {
   teleclient_ = CreateTeleClient();
   if (!teleclient_) {
@@ -77,12 +78,12 @@ boost::signals2::scoped_connection VidiconSession::SubscribeSessionStateChanged(
   return boost::signals2::scoped_connection{};
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
-VidiconSession::HistoryReadRaw(scada::HistoryReadRawDetails details) {
+scada::CoStatusOr<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
+    scada::HistoryReadRawDetails details) {
   co_return scada::StatusCode::Bad;
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+scada::CoStatusOr<scada::HistoryReadEventsResult>
 VidiconSession::HistoryReadEvents(scada::NodeId node_id,
                                   scada::Time from,
                                   scada::Time to,
@@ -124,60 +125,59 @@ VidiconSession::CreateSubscription(
       options);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> VidiconSession::Read(
+scada::CoStatusOr<std::vector<scada::DataValue>> VidiconSession::Read(
     scada::ServiceContext context,
     std::vector<scada::ReadValueId> inputs) {
   co_return co_await attribute_service_.Read(std::move(context),
                                              std::move(inputs));
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::Write(scada::ServiceContext context,
-                      std::vector<scada::WriteValue> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> VidiconSession::Write(
+    scada::ServiceContext context,
+    std::vector<scada::WriteValue> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::Status> VidiconSession::Call(
-    scada::NodeId node_id,
-    scada::NodeId method_id,
-    std::vector<scada::Variant> arguments,
-    scada::ServiceContext context) {
+scada::CoStatus VidiconSession::Call(scada::NodeId node_id,
+                                     scada::NodeId method_id,
+                                     std::vector<scada::Variant> arguments,
+                                     scada::ServiceContext context) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-VidiconSession::AddNodes(scada::ServiceContext /*context*/,
-                         std::vector<scada::AddNodesItem> inputs) {
+scada::CoStatusOr<std::vector<scada::AddNodesResult>> VidiconSession::AddNodes(
+    scada::ServiceContext /*context*/,
+    std::vector<scada::AddNodesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::DeleteNodes(scada::ServiceContext /*context*/,
-                            std::vector<scada::DeleteNodesItem> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> VidiconSession::DeleteNodes(
+    scada::ServiceContext /*context*/,
+    std::vector<scada::DeleteNodesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-VidiconSession::AddReferences(scada::ServiceContext /*context*/,
-                              std::vector<scada::AddReferencesItem> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> VidiconSession::AddReferences(
+    scada::ServiceContext /*context*/,
+    std::vector<scada::AddReferencesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 VidiconSession::DeleteReferences(
     scada::ServiceContext /*context*/,
     std::vector<scada::DeleteReferencesItem> inputs) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-VidiconSession::Browse(scada::ServiceContext context,
-                       std::vector<scada::BrowseDescription> inputs) {
+scada::CoStatusOr<std::vector<scada::BrowseResult>> VidiconSession::Browse(
+    scada::ServiceContext context,
+    std::vector<scada::BrowseDescription> inputs) {
   co_return co_await view_service_.Browse(std::move(context),
                                           std::move(inputs));
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 VidiconSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   co_return co_await view_service_.TranslateBrowsePaths(std::move(inputs));
 }

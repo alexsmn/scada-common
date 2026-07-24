@@ -1,6 +1,7 @@
 #include "master_data_services.h"
 
 #include "base/check.h"
+#include "scada/co_result.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
@@ -189,7 +190,7 @@ Awaitable<void> MasterDataServices::Connect(
   (void)co_await ConnectStatus(std::move(params));
 }
 
-Awaitable<scada::Status> MasterDataServices::ConnectStatus(
+scada::CoStatus MasterDataServices::ConnectStatus(
     scada::SessionConnectParams params) {
   if (!session_service_) {
     co_return scada::StatusCode::Bad_Disconnected;
@@ -282,7 +283,7 @@ scada::SessionDebugger* MasterDataServices::GetSessionDebugger() {
   return session_service_ ? session_service_->GetSessionDebugger() : nullptr;
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+scada::CoStatusOr<std::vector<scada::AddNodesResult>>
 MasterDataServices::AddNodes(scada::ServiceContext context,
                              std::vector<scada::AddNodesItem> inputs) {
   auto* service = node_management_service_;
@@ -292,7 +293,7 @@ MasterDataServices::AddNodes(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 MasterDataServices::DeleteNodes(scada::ServiceContext context,
                                 std::vector<scada::DeleteNodesItem> inputs) {
   auto* service = node_management_service_;
@@ -303,7 +304,7 @@ MasterDataServices::DeleteNodes(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 MasterDataServices::AddReferences(
     scada::ServiceContext context,
     std::vector<scada::AddReferencesItem> inputs) {
@@ -315,7 +316,7 @@ MasterDataServices::AddReferences(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 MasterDataServices::DeleteReferences(
     scada::ServiceContext context,
     std::vector<scada::DeleteReferencesItem> inputs) {
@@ -327,9 +328,9 @@ MasterDataServices::DeleteReferences(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-MasterDataServices::Browse(scada::ServiceContext context,
-                           std::vector<scada::BrowseDescription> inputs) {
+scada::CoStatusOr<std::vector<scada::BrowseResult>> MasterDataServices::Browse(
+    scada::ServiceContext context,
+    std::vector<scada::BrowseDescription> inputs) {
   auto* service = view_service_;
   if (service)
     co_return co_await service->Browse(std::move(context), std::move(inputs));
@@ -337,7 +338,7 @@ MasterDataServices::Browse(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 MasterDataServices::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> inputs) {
   auto* service = view_service_;
@@ -347,9 +348,9 @@ MasterDataServices::TranslateBrowsePaths(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
-MasterDataServices::Read(scada::ServiceContext context,
-                         std::vector<scada::ReadValueId> inputs) {
+scada::CoStatusOr<std::vector<scada::DataValue>> MasterDataServices::Read(
+    scada::ServiceContext context,
+    std::vector<scada::ReadValueId> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Read(std::move(context), std::move(inputs));
@@ -357,9 +358,9 @@ MasterDataServices::Read(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-MasterDataServices::Write(scada::ServiceContext context,
-                          std::vector<scada::WriteValue> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> MasterDataServices::Write(
+    scada::ServiceContext context,
+    std::vector<scada::WriteValue> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
@@ -367,11 +368,10 @@ MasterDataServices::Write(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::Status> MasterDataServices::Call(
-    scada::NodeId node_id,
-    scada::NodeId method_id,
-    std::vector<scada::Variant> arguments,
-    scada::ServiceContext context) {
+scada::CoStatus MasterDataServices::Call(scada::NodeId node_id,
+                                         scada::NodeId method_id,
+                                         std::vector<scada::Variant> arguments,
+                                         scada::ServiceContext context) {
   auto* service = method_service_;
   if (service)
     co_return co_await service->Call(std::move(node_id), std::move(method_id),
@@ -380,7 +380,7 @@ Awaitable<scada::Status> MasterDataServices::Call(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+scada::CoStatusOr<scada::HistoryReadRawResult>
 MasterDataServices::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   auto* service = history_service_;
   if (service)
@@ -389,7 +389,7 @@ MasterDataServices::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   co_return scada::StatusCode::Bad_Disconnected;
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+scada::CoStatusOr<scada::HistoryReadEventsResult>
 MasterDataServices::HistoryReadEvents(scada::NodeId node_id,
                                       scada::Time from,
                                       scada::Time to,

@@ -2,6 +2,7 @@
 
 #include "metrics/trace_attribute_util.h"
 #include "opcua_bridge/vector_conversion.h"
+#include "scada/co_result.h"
 #include "scada/namespace_remapper.h"
 #include "scada/read_value_id.h"
 #include "scada/remapping_services.h"
@@ -50,7 +51,7 @@ Awaitable<void> ClientSessionServiceAdapter::Connect(
     scada::SessionConnectParams params) {
   co_await session_->Connect(ToOpcua(params));
 }
-Awaitable<scada::Status> ClientSessionServiceAdapter::ConnectStatus(
+scada::CoStatus ClientSessionServiceAdapter::ConnectStatus(
     scada::SessionConnectParams params) {
   co_return ToScada(co_await session_->ConnectStatus(ToOpcua(params)));
 }
@@ -62,7 +63,7 @@ Awaitable<void> ClientSessionServiceAdapter::Disconnect() {
 }
 
 // --- ViewService --------------------------------------------------------
-Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
+scada::CoStatusOr<std::vector<scada::BrowseResult>>
 ClientViewServiceAdapter::Browse(scada::ServiceContext context,
                                  std::vector<scada::BrowseDescription> inputs) {
   auto span = StartClientSpan(tracer_, "opcua.client/Browse", context);
@@ -74,7 +75,7 @@ ClientViewServiceAdapter::Browse(scada::ServiceContext context,
   co_return ToScada(result);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 ClientViewServiceAdapter::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> inputs) {
   // No ServiceContext on this service (see tracing.md): a root CLIENT span
@@ -90,7 +91,7 @@ ClientViewServiceAdapter::TranslateBrowsePaths(
 }
 
 // --- AttributeService ---------------------------------------------------
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>>
+scada::CoStatusOr<std::vector<scada::DataValue>>
 ClientAttributeServiceAdapter::Read(scada::ServiceContext context,
                                     std::vector<scada::ReadValueId> inputs) {
   auto span = StartClientSpan(tracer_, "opcua.client/Read", context);
@@ -104,7 +105,7 @@ ClientAttributeServiceAdapter::Read(scada::ServiceContext context,
   co_return ToScada(result);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientAttributeServiceAdapter::Write(scada::ServiceContext context,
                                      std::vector<scada::WriteValue> inputs) {
   auto span = StartClientSpan(tracer_, "opcua.client/Write", context);
@@ -119,7 +120,7 @@ ClientAttributeServiceAdapter::Write(scada::ServiceContext context,
 }
 
 // --- MethodService ------------------------------------------------------
-Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
+scada::CoStatus ClientMethodServiceAdapter::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
@@ -137,7 +138,7 @@ Awaitable<scada::Status> ClientMethodServiceAdapter::Call(
 }
 
 // --- NodeManagementService ---------------------------------------------
-Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
+scada::CoStatusOr<std::vector<scada::AddNodesResult>>
 ClientNodeManagementServiceAdapter::AddNodes(
     scada::ServiceContext context,
     std::vector<scada::AddNodesItem> inputs) {
@@ -149,7 +150,7 @@ ClientNodeManagementServiceAdapter::AddNodes(
       co_await session_->AddNodes(ToOpcuaVector(inputs), span.traceparent());
   co_return ToScada(result);
 }
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientNodeManagementServiceAdapter::DeleteNodes(
     scada::ServiceContext context,
     std::vector<scada::DeleteNodesItem> inputs) {
@@ -161,7 +162,7 @@ ClientNodeManagementServiceAdapter::DeleteNodes(
       co_await session_->DeleteNodes(ToOpcuaVector(inputs), span.traceparent());
   co_return ToScada(result);
 }
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientNodeManagementServiceAdapter::AddReferences(
     scada::ServiceContext context,
     std::vector<scada::AddReferencesItem> inputs) {
@@ -173,7 +174,7 @@ ClientNodeManagementServiceAdapter::AddReferences(
                                                  span.traceparent());
   co_return ToScada(result);
 }
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientNodeManagementServiceAdapter::DeleteReferences(
     scada::ServiceContext context,
     std::vector<scada::DeleteReferencesItem> inputs) {
@@ -209,7 +210,7 @@ ClientMonitoredItemSubscriptionAdapter::RemoveItems(
   auto results = co_await inner_->RemoveItems(item_ids);
   co_return ToScadaVector(results);
 }
-Awaitable<scada::StatusOr<std::vector<scada::MonitoredItemNotification>>>
+scada::CoStatusOr<std::vector<scada::MonitoredItemNotification>>
 ClientMonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
   co_return ToScada(result);
@@ -235,7 +236,7 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
 }
 
 // --- HistoryService / HistoryUpdateService -----------------------------
-Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+scada::CoStatusOr<scada::HistoryReadRawResult>
 ClientHistoryServiceAdapter::HistoryReadRaw(
     scada::HistoryReadRawDetails details) {
   // HistoryService carries no ServiceContext (see tracing.md), so this CLIENT
@@ -251,7 +252,7 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
   co_return ToScada(*result);
 }
 
-Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+scada::CoStatusOr<scada::HistoryReadEventsResult>
 ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
                                                scada::Time from,
                                                scada::Time to,
@@ -271,7 +272,7 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
   co_return ToScada(*result);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientHistoryServiceAdapter::HistoryUpdateData(
     scada::ServiceContext context,
     scada::UpdateDataDetails details) {
@@ -285,7 +286,7 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
   co_return ToScadaVector(*result);
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
+scada::CoStatusOr<std::vector<scada::StatusCode>>
 ClientHistoryServiceAdapter::HistoryUpdateEvent(
     scada::ServiceContext context,
     scada::UpdateEventDetails details) {
@@ -407,7 +408,7 @@ class RemappingClientServices
   return holder->AsDataServices();
 }
 
-Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
+scada::CoStatusOr<scada::UInt8> ProbeServiceLevel(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
     std::string endpoint,

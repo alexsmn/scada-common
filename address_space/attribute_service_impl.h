@@ -2,6 +2,7 @@
 
 #include "common/sync_attribute_service.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include <span>
 
 namespace scada {
@@ -38,10 +39,10 @@ class AttributeServiceImpl : public scada::AttributeService {
  public:
   explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
 
-  virtual Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+  virtual scada::CoStatusOr<std::vector<scada::DataValue>> Read(
       scada::ServiceContext context,
       std::vector<scada::ReadValueId> inputs) override;
-  virtual Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override;
 

@@ -2,6 +2,7 @@
 
 #include "common/node_state.h"
 #include "node_service/v3/node_fetcher.h"
+#include "scada/co_result.h"
 #include "scada/service_context.h"
 
 namespace scada {
@@ -33,9 +34,9 @@ class ServiceNodeFetcher : private ServiceNodeFetcherContext,
   explicit ServiceNodeFetcher(ServiceNodeFetcherContext&& context);
 
   // NodeFetcher
-  Awaitable<scada::StatusOr<scada::NodeState>> FetchNode(
+  scada::CoStatusOr<scada::NodeState> FetchNode(
       const scada::NodeId& node_id) override;
-  Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> FetchChildren(
+  scada::CoStatusOr<scada::ReferenceDescriptions> FetchChildren(
       const scada::NodeId& node_id) override;
 };
 

@@ -19,6 +19,7 @@
 #include <unordered_map>
 
 #include "base/debug_util.h"
+#include "scada/co_result.h"
 
 using namespace testing;
 
@@ -35,7 +36,7 @@ class TestNodeFetcher final : public NodeFetcher {
   explicit TestNodeFetcher(TestAddressSpace& address_space)
       : address_space_{address_space} {}
 
-  Awaitable<scada::StatusOr<scada::NodeState>> FetchNode(
+  scada::CoStatusOr<scada::NodeState> FetchNode(
       const scada::NodeId& node_id) override {
     const auto* node = address_space_.GetNode(node_id);
     if (!node) {
@@ -44,7 +45,7 @@ class TestNodeFetcher final : public NodeFetcher {
     co_return scada::MakeNodeState(*node);
   }
 
-  Awaitable<scada::StatusOr<scada::ReferenceDescriptions>> FetchChildren(
+  scada::CoStatusOr<scada::ReferenceDescriptions> FetchChildren(
       const scada::NodeId& node_id) override {
     const auto* node = address_space_.GetNode(node_id);
     if (!node) {
@@ -120,7 +121,7 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
   EXPECT_CALL(attribute_service, Read(_, _))
       .WillOnce(
           [&](scada::ServiceContext, std::vector<scada::ReadValueId> inputs)
-              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
+              -> scada::CoStatusOr<std::vector<scada::DataValue>> {
             EXPECT_EQ(inputs.size(), 1u);
             if (inputs.empty()) {
               co_return scada::StatusCode::Bad;
@@ -165,7 +166,7 @@ TEST(V3NodeServiceScadaNodeTest, UsesContextClientServices) {
   EXPECT_CALL(attribute_service, Read(_, _))
       .WillOnce(
           [&](scada::ServiceContext, std::vector<scada::ReadValueId> inputs)
-              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
+              -> scada::CoStatusOr<std::vector<scada::DataValue>> {
             EXPECT_EQ(inputs.size(), 1u);
             if (inputs.empty()) {
               co_return scada::StatusCode::Bad;

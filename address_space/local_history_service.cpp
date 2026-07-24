@@ -6,6 +6,7 @@
 
 #include "base/utf_convert.h"
 #include "model/node_id_util.h"
+#include "scada/co_result.h"
 #include "scada/data_value.h"
 #include "scada/status.h"
 #include <chrono>
@@ -103,16 +104,16 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   }
 }
 
-Awaitable<StatusOr<HistoryReadRawResult>> LocalHistoryService::HistoryReadRaw(
+CoStatusOr<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
     HistoryReadRawDetails details) {
   co_return ReadRaw(std::move(details));
 }
 
-Awaitable<StatusOr<HistoryReadEventsResult>>
-LocalHistoryService::HistoryReadEvents(NodeId node_id,
-                                       scada::Time from,
-                                       scada::Time to,
-                                       EventFilter filter) {
+CoStatusOr<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
+    NodeId node_id,
+    scada::Time from,
+    scada::Time to,
+    EventFilter filter) {
   co_return ReadEvents(std::move(node_id), from, to, std::move(filter));
 }
 

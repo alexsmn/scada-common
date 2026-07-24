@@ -5,6 +5,7 @@
 #include "model/node_id_util.h"
 #include "scada/attribute_ids.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include "scada/node_class.h"
 #include "scada/standard_node_ids.h"
 #include "scada/view_service.h"
@@ -89,9 +90,10 @@ bool ApplyFetchedAttribute(scada::NodeState& node_state,
 }
 
 // Applies one browsed reference to |node_state|. Mirrors the parent/supertype
-// and forward-non-hierarchical branches of NodeFetcherImpl::AddFetchedReference.
-// The Aggregates/child branch is intentionally absent: v3 does not browse
-// Aggregates during the node fetch — children come from FetchChildren.
+// and forward-non-hierarchical branches of
+// NodeFetcherImpl::AddFetchedReference. The Aggregates/child branch is
+// intentionally absent: v3 does not browse Aggregates during the node fetch —
+// children come from FetchChildren.
 void ApplyFetchedReference(scada::NodeState& node_state,
                            const scada::BrowseDescription& description,
                            scada::ReferenceDescription&& reference) {
@@ -104,9 +106,9 @@ void ApplyFetchedReference(scada::NodeState& node_state,
     // Inverse HierarchicalReferences browse: the parent (via HasComponent,
     // Organizes, ...) and the supertype (via HasSubtype).
     if (reference.forward) {
-      LOG_WARNING(Logger()) << "Ignore forward reference in an inverse browse"
-                            << LOG_TAG("NodeId",
-                                       NodeIdToScadaString(node_state.node_id));
+      LOG_WARNING(Logger())
+          << "Ignore forward reference in an inverse browse"
+          << LOG_TAG("NodeId", NodeIdToScadaString(node_state.node_id));
       return;
     }
 
@@ -163,7 +165,7 @@ void ApplyFetchedReference(scada::NodeState& node_state,
 ServiceNodeFetcher::ServiceNodeFetcher(ServiceNodeFetcherContext&& context)
     : ServiceNodeFetcherContext{std::move(context)} {}
 
-Awaitable<scada::StatusOr<scada::NodeState>> ServiceNodeFetcher::FetchNode(
+scada::CoStatusOr<scada::NodeState> ServiceNodeFetcher::FetchNode(
     const scada::NodeId& node_id) {
   scada::NodeState node_state;
   node_state.node_id = node_id;
@@ -179,7 +181,8 @@ Awaitable<scada::StatusOr<scada::NodeState>> ServiceNodeFetcher::FetchNode(
       {node_id, scada::AttributeId::Value},
   };
 
-  auto read_result = co_await attribute_service_.Read(service_context_, read_ids);
+  auto read_result =
+      co_await attribute_service_.Read(service_context_, read_ids);
   if (!read_result.ok())
     co_return read_result.status();
 
@@ -234,7 +237,7 @@ Awaitable<scada::StatusOr<scada::NodeState>> ServiceNodeFetcher::FetchNode(
   co_return node_state;
 }
 
-Awaitable<scada::StatusOr<scada::ReferenceDescriptions>>
+scada::CoStatusOr<scada::ReferenceDescriptions>
 ServiceNodeFetcher::FetchChildren(const scada::NodeId& node_id) {
   // v3 keeps children in the model's child_references_ and resolves them via
   // GetTargets(HierarchicalReferences, ...). Unlike v2 — which splits children

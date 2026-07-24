@@ -2,6 +2,7 @@
 
 #include "base/any_executor.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include "scada/data_services.h"
 #include "scada/history_service.h"
 #include "scada/legacy_monitored_item_adapter.h"
@@ -33,7 +34,7 @@ class MasterDataServices final : public scada::AttributeService,
 
   // scada::SessionService
   virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
-  virtual Awaitable<scada::Status> ConnectStatus(
+  virtual scada::CoStatus ConnectStatus(
       scada::SessionConnectParams params) override;
   virtual Awaitable<void> Disconnect() override;
   virtual Awaitable<void> Reconnect() override;
@@ -91,14 +92,14 @@ class MasterDataServices final : public scada::AttributeService,
         std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
-  [[nodiscard]] virtual Awaitable<scada::Status> Call(
+  [[nodiscard]] virtual scada::CoStatus Call(
       scada::NodeId node_id,
       scada::NodeId method_id,
       std::vector<scada::Variant> arguments,
       scada::ServiceContext context) override;
 
   // scada::HistoryService
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+  [[nodiscard]] virtual scada::CoStatusOr<scada::HistoryReadRawResult>
   HistoryReadRaw(scada::HistoryReadRawDetails details) override;
   [[nodiscard]] virtual Awaitable<
       scada::StatusOr<scada::HistoryReadEventsResult>>

@@ -16,6 +16,7 @@
 #include "scada/monitored_item_service.h"
 
 #include "opcua/client/client_session.h"
+#include "scada/co_result.h"
 
 #include <memory>
 #include <span>
@@ -33,8 +34,7 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   // failures (e.g. Bad_WrongLoginCredentials) surface to the client. Without
   // this override the core SessionService default runs Connect() and
   // unconditionally reports Good, swallowing every connect failure.
-  Awaitable<scada::Status> ConnectStatus(
-      scada::SessionConnectParams params) override;
+  scada::CoStatus ConnectStatus(scada::SessionConnectParams params) override;
   Awaitable<void> Reconnect() override;
   Awaitable<void> Disconnect() override;
 
@@ -75,11 +75,11 @@ class ClientViewServiceAdapter : public scada::ViewService {
                                     Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+  scada::CoStatusOr<std::vector<scada::BrowseResult>> Browse(
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override;
-  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+  scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      std::vector<scada::BrowsePath> inputs) override;
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
@@ -93,10 +93,10 @@ class ClientAttributeServiceAdapter : public scada::AttributeService {
       Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+  scada::CoStatusOr<std::vector<scada::DataValue>> Read(
       scada::ServiceContext context,
       std::vector<scada::ReadValueId> inputs) override;
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override;
 
@@ -111,10 +111,10 @@ class ClientMethodServiceAdapter : public scada::MethodService {
                                       Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  Awaitable<scada::Status> Call(scada::NodeId node_id,
-                                scada::NodeId method_id,
-                                std::vector<scada::Variant> arguments,
-                                scada::ServiceContext context) override;
+  scada::CoStatus Call(scada::NodeId node_id,
+                       scada::NodeId method_id,
+                       std::vector<scada::Variant> arguments,
+                       scada::ServiceContext context) override;
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
@@ -128,16 +128,16 @@ class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
       Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
+  scada::CoStatusOr<std::vector<scada::AddNodesResult>> AddNodes(
       scada::ServiceContext context,
       std::vector<scada::AddNodesItem> inputs) override;
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteNodes(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteNodes(
       scada::ServiceContext context,
       std::vector<scada::DeleteNodesItem> inputs) override;
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> AddReferences(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> AddReferences(
       scada::ServiceContext context,
       std::vector<scada::AddReferencesItem> inputs) override;
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteReferences(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> DeleteReferences(
       scada::ServiceContext context,
       std::vector<scada::DeleteReferencesItem> inputs) override;
 
@@ -165,8 +165,8 @@ class ClientMonitoredItemSubscriptionAdapter
       std::vector<scada::MonitoredItemCreateRequest> requests) override;
   Awaitable<std::vector<scada::Status>> RemoveItems(
       std::span<const scada::MonitoredItemId> item_ids) override;
-  Awaitable<scada::StatusOr<std::vector<scada::MonitoredItemNotification>>>
-  ReadNext(std::size_t max_count) override;
+  scada::CoStatusOr<std::vector<scada::MonitoredItemNotification>> ReadNext(
+      std::size_t max_count) override;
   void Close(scada::Status status) override;
 
  private:
@@ -203,19 +203,19 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
       : session_{std::move(s)}, tracer_{tracer} {}
 
   // scada::HistoryService
-  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
-  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
       scada::EventFilter filter) override;
 
   // scada::HistoryUpdateService
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateData(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> HistoryUpdateData(
       scada::ServiceContext context,
       scada::UpdateDataDetails details) override;
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> HistoryUpdateEvent(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> HistoryUpdateEvent(
       scada::ServiceContext context,
       scada::UpdateEventDetails details) override;
 
@@ -259,7 +259,7 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // redundant inter-tier clients (remote historian / aggregating proxy / remote
 // config) for ServiceLevel-aware failover. OPC UA Part 4 §6.6 Non-Transparent
 // Redundancy, https://reference.opcfoundation.org/Core/Part4/v105/docs/6.6
-[[nodiscard]] Awaitable<scada::StatusOr<scada::UInt8>> ProbeServiceLevel(
+[[nodiscard]] scada::CoStatusOr<scada::UInt8> ProbeServiceLevel(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
     std::string endpoint,

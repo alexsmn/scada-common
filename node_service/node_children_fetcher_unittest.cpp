@@ -10,6 +10,7 @@
 #include "scada/view_service_mock.h"
 
 #include "base/debug_util.h"
+#include "scada/co_result.h"
 
 #include <map>
 
@@ -86,15 +87,14 @@ TEST(NodeChildrenFetcher, CompletesDelayedBrowseThroughCoroutineContinuation) {
   const scada::NodeId node_id{1, 100};
   const scada::NodeId child_id{1, 101};
   EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
-      .WillOnce(
-          [child_id](scada::ServiceContext,
-                     std::vector<scada::BrowseDescription>)
-              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
-            co_return std::vector{
-                scada::BrowseResult{
-                    .references = {{scada::id::Organizes, true, child_id}}},
-                scada::BrowseResult{}};
-          });
+      .WillOnce([child_id](scada::ServiceContext,
+                           std::vector<scada::BrowseDescription>)
+                    -> scada::CoStatusOr<std::vector<scada::BrowseResult>> {
+        co_return std::vector{
+            scada::BrowseResult{
+                .references = {{scada::id::Organizes, true, child_id}}},
+            scada::BrowseResult{}};
+      });
 
   context.fetcher->Fetch(node_id);
   context.DrainExecutor();
@@ -113,16 +113,15 @@ TEST(NodeChildrenFetcher, MergesMultipleBrowseResultsForNode) {
   const scada::NodeId subtype_id{1, 102};
 
   EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
-      .WillOnce(
-          [child_id, subtype_id](scada::ServiceContext,
-                                 std::vector<scada::BrowseDescription>)
-              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
-            co_return std::vector{
-                scada::BrowseResult{
-                    .references = {{scada::id::Organizes, true, child_id}}},
-                scada::BrowseResult{
-                    .references = {{scada::id::HasSubtype, true, subtype_id}}}};
-          });
+      .WillOnce([child_id, subtype_id](scada::ServiceContext,
+                                       std::vector<scada::BrowseDescription>)
+                    -> scada::CoStatusOr<std::vector<scada::BrowseResult>> {
+        co_return std::vector{
+            scada::BrowseResult{
+                .references = {{scada::id::Organizes, true, child_id}}},
+            scada::BrowseResult{
+                .references = {{scada::id::HasSubtype, true, subtype_id}}}};
+      });
 
   context.fetcher->Fetch(node_id);
   context.DrainExecutor();
@@ -141,11 +140,10 @@ TEST(NodeChildrenFetcher, CancelRemovesQueuedNodeBeforeRequestStarts) {
   const scada::NodeId first_id{1, 100};
   const scada::NodeId second_id{1, 101};
   EXPECT_CALL(context.view_service, Browse(_, SizeIs(2)))
-      .WillOnce(
-          [](scada::ServiceContext, std::vector<scada::BrowseDescription>)
-              -> Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> {
-            co_return std::vector{scada::BrowseResult{}, scada::BrowseResult{}};
-          });
+      .WillOnce([](scada::ServiceContext, std::vector<scada::BrowseDescription>)
+                    -> scada::CoStatusOr<std::vector<scada::BrowseResult>> {
+        co_return std::vector{scada::BrowseResult{}, scada::BrowseResult{}};
+      });
 
   context.fetcher->Fetch(first_id);
   context.fetcher->Fetch(second_id);

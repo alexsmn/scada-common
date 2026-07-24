@@ -12,6 +12,7 @@
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
 #include "scada/attribute_service.h"
+#include "scada/co_result.h"
 #include "scada/service_context.h"
 #include "scada/standard_node_ids.h"
 #include "scada/test/status_matchers.h"
@@ -29,7 +30,7 @@ class VirtualObject : public scada::GenericObject,
   virtual AttributeService* GetAttributeService() final { return this; }
   virtual ViewService* GetViewService() final { return this; }
 
-  Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Read(
+  scada::CoStatusOr<std::vector<scada::DataValue>> Read(
       scada::ServiceContext context,
       std::vector<scada::ReadValueId> inputs) override {
     std::vector<scada::DataValue> results(inputs.size());
@@ -38,14 +39,14 @@ class VirtualObject : public scada::GenericObject,
     co_return results;
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> Write(
+  scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
       scada::ServiceContext context,
       std::vector<scada::WriteValue> inputs) override {
     scada::base::NotReached();
     co_return scada::Status{scada::StatusCode::Bad};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+  scada::CoStatusOr<std::vector<scada::BrowseResult>> Browse(
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> descriptions) override {
     std::vector<scada::BrowseResult> results(descriptions.size());
@@ -54,8 +55,8 @@ class VirtualObject : public scada::GenericObject,
     co_return results;
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> browse_paths) override {
+  scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      std::vector<scada::BrowsePath> browse_paths) override {
     co_return scada::Status{scada::StatusCode::Bad};
   }
 

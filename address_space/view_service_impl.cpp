@@ -7,6 +7,7 @@
 #include "base/range_util.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
+#include "scada/co_result.h"
 
 #include <ranges>
 
@@ -208,14 +209,14 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
   return result;
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-ViewServiceImpl::Browse(scada::ServiceContext context,
-                        std::vector<scada::BrowseDescription> descriptions) {
+scada::CoStatusOr<std::vector<scada::BrowseResult>> ViewServiceImpl::Browse(
+    scada::ServiceContext context,
+    std::vector<scada::BrowseDescription> descriptions) {
   auto results = sync_view_service_.Browse(descriptions);
   co_return results;
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 ViewServiceImpl::TranslateBrowsePaths(
     std::vector<scada::BrowsePath> browse_paths) {
   auto results = sync_view_service_.TranslateBrowsePaths(browse_paths);

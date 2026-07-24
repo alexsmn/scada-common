@@ -6,6 +6,7 @@
 #include "scada/event_util.h"
 
 #include "opcua/events/event_filter.h"
+#include "opcua/types/co_result.h"
 
 #include <any>
 #include <variant>
@@ -168,8 +169,7 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
 }
 
 // --- AttributeService ---------------------------------------------------
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::DataValue>>>
-AttributeServiceAdapter::Read(
+opcua::CoStatusOr<std::vector<opcua::DataValue>> AttributeServiceAdapter::Read(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::ReadValueId>> inputs) {
   auto span = StartServerSpan(tracer_, "opcua.server/Read", context);
@@ -180,7 +180,7 @@ AttributeServiceAdapter::Read(
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 AttributeServiceAdapter::Write(
     opcua::ServiceContext context,
     std::shared_ptr<const std::vector<opcua::WriteValue>> inputs) {
@@ -190,9 +190,9 @@ AttributeServiceAdapter::Write(
 }
 
 // --- ViewService --------------------------------------------------------
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowseResult>>>
-ViewServiceAdapter::Browse(opcua::ServiceContext context,
-                           std::vector<opcua::BrowseDescription> inputs) {
+opcua::CoStatusOr<std::vector<opcua::BrowseResult>> ViewServiceAdapter::Browse(
+    opcua::ServiceContext context,
+    std::vector<opcua::BrowseDescription> inputs) {
   auto span = StartServerSpan(tracer_, "opcua.server/Browse", context);
   SetBatchAttributes(span, inputs, [](const opcua::BrowseDescription& input) {
     return input.node_id.ToString();
@@ -201,7 +201,7 @@ ViewServiceAdapter::Browse(opcua::ServiceContext context,
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::BrowsePathResult>>>
+opcua::CoStatusOr<std::vector<opcua::BrowsePathResult>>
 ViewServiceAdapter::TranslateBrowsePaths(
     std::vector<opcua::BrowsePath> inputs) {
   // The translate callback carries no ServiceContext (see tracing.md), so the
@@ -216,7 +216,7 @@ ViewServiceAdapter::TranslateBrowsePaths(
 }
 
 // --- MethodService ------------------------------------------------------
-opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
+opcua::CoStatus MethodServiceAdapter::Call(
     opcua::NodeId node_id,
     opcua::NodeId method_id,
     std::vector<opcua::Variant> arguments,
@@ -234,7 +234,7 @@ opcua::Awaitable<opcua::Status> MethodServiceAdapter::Call(
 }
 
 // --- NodeManagementService ---------------------------------------------
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::AddNodesResult>>>
+opcua::CoStatusOr<std::vector<opcua::AddNodesResult>>
 NodeManagementServiceAdapter::AddNodes(
     opcua::ServiceContext context,
     std::vector<opcua::AddNodesItem> inputs) {
@@ -247,7 +247,7 @@ NodeManagementServiceAdapter::AddNodes(
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 NodeManagementServiceAdapter::DeleteNodes(
     opcua::ServiceContext context,
     std::vector<opcua::DeleteNodesItem> inputs) {
@@ -260,7 +260,7 @@ NodeManagementServiceAdapter::DeleteNodes(
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 NodeManagementServiceAdapter::AddReferences(
     opcua::ServiceContext context,
     std::vector<opcua::AddReferencesItem> inputs) {
@@ -273,7 +273,7 @@ NodeManagementServiceAdapter::AddReferences(
   co_return ToOpcua(result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 NodeManagementServiceAdapter::DeleteReferences(
     opcua::ServiceContext context,
     std::vector<opcua::DeleteReferencesItem> inputs) {
@@ -289,7 +289,7 @@ NodeManagementServiceAdapter::DeleteReferences(
 }
 
 // --- HistoryService -----------------------------------------------------
-opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadRawResult>>
+opcua::CoStatusOr<opcua::HistoryReadRawResult>
 HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   // HistoryService carries no ServiceContext downstream (see tracing.md);
   // this SERVER span still anchors the historian-side work in the caller's
@@ -305,7 +305,7 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   co_return ToOpcua(*result);
 }
 
-opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadEventsResult>>
+opcua::CoStatusOr<opcua::HistoryReadEventsResult>
 HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
                                          opcua::DateTime from,
                                          opcua::DateTime to,
@@ -322,7 +322,7 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
 }
 
 // --- HistoryUpdateService ----------------------------------------------
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 HistoryUpdateServiceAdapter::HistoryUpdateData(
     opcua::ServiceContext context,
     opcua::UpdateDataDetails details) {
@@ -338,7 +338,7 @@ HistoryUpdateServiceAdapter::HistoryUpdateData(
   co_return ToOpcuaVector(*result);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+opcua::CoStatusOr<std::vector<opcua::StatusCode>>
 HistoryUpdateServiceAdapter::HistoryUpdateEvent(
     opcua::ServiceContext context,
     opcua::UpdateEventDetails details) {
@@ -488,7 +488,7 @@ MonitoredItemSubscriptionAdapter::RemoveItems(
   co_return ToOpcuaVector(results);
 }
 
-opcua::Awaitable<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+opcua::CoStatusOr<std::vector<opcua::ItemNotification>>
 MonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
   if (!result.ok())
@@ -520,7 +520,7 @@ MonitoredItemServiceAdapter::CreateSubscription(
 }
 
 // --- Authenticator ------------------------------------------------------
-opcua::Awaitable<opcua::StatusOr<opcua::AuthenticationResult>>
+opcua::CoStatusOr<opcua::AuthenticationResult>
 AuthenticatorAdapter::Authenticate(opcua::LocalizedText user_name,
                                    opcua::LocalizedText password) {
   auto result =

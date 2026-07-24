@@ -2,6 +2,7 @@
 
 #include "base/boost_log.h"
 #include "base/test/awaitable_test.h"
+#include "scada/co_result.h"
 #include "scada/method_service_mock.h"
 #include "scada/standard_node_ids.h"
 
@@ -15,10 +16,10 @@ namespace {
 class EventAckQueueTest : public Test {
  protected:
   EventAckQueue MakeQueue() {
-    return EventAckQueue{
-        EventAckQueueContext{.logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
-                             .executor_ = executor_,
-                             .method_service_ = method_service_}};
+    return EventAckQueue{EventAckQueueContext{
+        .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
+        .executor_ = executor_,
+        .method_service_ = method_service_}};
   }
 
   void DrainExecutor() { Drain(executor_); }
@@ -27,7 +28,7 @@ class EventAckQueueTest : public Test {
   StrictMock<scada::MockMethodService> method_service_;
 };
 
-Awaitable<scada::Status> MakeStatusAwaitable(
+scada::CoStatus MakeStatusAwaitable(
     scada::Status status = scada::StatusCode::Good) {
   co_return std::move(status);
 }

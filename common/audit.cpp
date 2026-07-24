@@ -2,6 +2,7 @@
 
 #include "common/data_services_util.h"
 #include "metrics/tracing.h"
+#include "scada/co_result.h"
 #include "scada/services.h"
 
 namespace {
@@ -36,19 +37,15 @@ std::shared_ptr<scada::services> AuditScadaServicesImpl(
     scada::services audited_services_;
   };
 
-  auto holder =
-      std::make_shared<Holder>(services, tracer, std::move(executor));
+  auto holder = std::make_shared<Holder>(services, tracer, std::move(executor));
   return std::shared_ptr<scada::services>{holder, &holder->audited_services_};
 }
 
-std::shared_ptr<DataServices> AuditDataServicesImpl(
-    DataServices services,
-    Tracer& tracer,
-    AnyExecutor executor) {
+std::shared_ptr<DataServices> AuditDataServicesImpl(DataServices services,
+                                                    Tracer& tracer,
+                                                    AnyExecutor executor) {
   struct Holder {
-    Holder(DataServices services,
-           Tracer& tracer,
-           AnyExecutor executor)
+    Holder(DataServices services, Tracer& tracer, AnyExecutor executor)
         : services_{std::move(services)} {
       audit_ = Audit::Create(AuditContext{.data_services_ = services_,
                                           .tracer_ = tracer,
@@ -67,8 +64,8 @@ std::shared_ptr<DataServices> AuditDataServicesImpl(
     DataServices audited_services_;
   };
 
-  auto holder =
-      std::make_shared<Holder>(std::move(services), tracer, std::move(executor));
+  auto holder = std::make_shared<Holder>(std::move(services), tracer,
+                                         std::move(executor));
   return std::shared_ptr<DataServices>{holder, &holder->audited_services_};
 }
 
@@ -90,13 +87,13 @@ std::shared_ptr<scada::services> AuditScadaServices(
 std::shared_ptr<DataServices> AuditDataServices(DataServices services,
                                                 Tracer& tracer,
                                                 AnyExecutor executor) {
-  return AuditDataServicesImpl(std::move(services), tracer, std::move(executor));
+  return AuditDataServicesImpl(std::move(services), tracer,
+                               std::move(executor));
 }
 
 // Audit
 
-Audit::Audit(AuditContext&& context)
-    : AuditContext{std::move(context)} {
+Audit::Audit(AuditContext&& context) : AuditContext{std::move(context)} {
   RefreshCoroutineServices();
 }
 
@@ -134,7 +131,7 @@ void Audit::FinishBrowse(Clock::time_point start_time) {
           .count());
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
+scada::CoStatusOr<std::vector<scada::DataValue>> Audit::Read(
     scada::ServiceContext context,
     std::vector<scada::ReadValueId> inputs) {
   auto* service = attribute_service_;
@@ -149,9 +146,9 @@ Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> Audit::Read(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-Audit::Write(scada::ServiceContext context,
-             std::vector<scada::WriteValue> inputs) {
+scada::CoStatusOr<std::vector<scada::StatusCode>> Audit::Write(
+    scada::ServiceContext context,
+    std::vector<scada::WriteValue> inputs) {
   auto* service = attribute_service_;
   if (service)
     co_return co_await service->Write(std::move(context), std::move(inputs));
@@ -159,9 +156,9 @@ Audit::Write(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-Audit::Browse(scada::ServiceContext context,
-              std::vector<scada::BrowseDescription> inputs) {
+scada::CoStatusOr<std::vector<scada::BrowseResult>> Audit::Browse(
+    scada::ServiceContext context,
+    std::vector<scada::BrowseDescription> inputs) {
   auto* service = view_service_;
   if (service) {
     StartBrowse();
@@ -177,7 +174,7 @@ Audit::Browse(scada::ServiceContext context,
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::StatusOr<std::vector<scada::BrowsePathResult>>>
+scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 Audit::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
   auto* service = view_service_;
   if (service)

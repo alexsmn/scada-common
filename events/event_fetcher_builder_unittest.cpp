@@ -3,6 +3,7 @@
 #include "base/boost_log.h"
 #include "base/test/test_executor.h"
 #include "events/event_fetcher.h"
+#include "scada/co_result.h"
 #include "scada/history_service.h"
 #include "scada/history_service_mock.h"
 #include "scada/method_service.h"
@@ -34,12 +35,12 @@ void DrainExecutor(TestExecutor& executor) {
 
 class TestHistoryService final : public scada::HistoryService {
  public:
-  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
     co_return scada::StatusCode::Bad;
   }
 
-  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
@@ -56,10 +57,10 @@ class TestHistoryService final : public scada::HistoryService {
 
 class TestMethodService final : public scada::MethodService {
  public:
-  Awaitable<scada::Status> Call(scada::NodeId node_id,
-                                scada::NodeId method_id,
-                                std::vector<scada::Variant> arguments,
-                                scada::ServiceContext context) override {
+  scada::CoStatus Call(scada::NodeId node_id,
+                       scada::NodeId method_id,
+                       std::vector<scada::Variant> arguments,
+                       scada::ServiceContext context) override {
     ++call_count;
     last_node_id = std::move(node_id);
     last_method_id = std::move(method_id);
@@ -264,16 +265,15 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
   EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce(
-          [&](scada::NodeId read_node_id, scada::Time from, scada::Time to,
-              scada::EventFilter filter)
-              -> Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> {
-            EXPECT_EQ(read_node_id, scada::id::Server);
-            EXPECT_LE(from, to);
-            EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED});
-            co_return scada::HistoryReadEventsResult{
-                .events = {MakeEvent(15, node_id)}};
-          });
+      .WillOnce([&](scada::NodeId read_node_id, scada::Time from,
+                    scada::Time to, scada::EventFilter filter)
+                    -> scada::CoStatusOr<scada::HistoryReadEventsResult> {
+        EXPECT_EQ(read_node_id, scada::id::Server);
+        EXPECT_LE(from, to);
+        EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED});
+        co_return scada::HistoryReadEventsResult{
+            .events = {MakeEvent(15, node_id)}};
+      });
 
   auto fetcher =
       EventFetcherBuilder{

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/awaitable.h"
+#include "scada/co_result.h"
 #include "scada/event.h"
 #include "scada/status_or.h"
 
@@ -13,8 +14,8 @@ class EventNotifier {
   // TODO: Introduce batch interface. See `EventProducer` for reasoning.
   virtual void NotifyEvent(const scada::Event& event) = 0;
 
-  [[nodiscard]] virtual Awaitable<scada::StatusOr<scada::EventId>>
-  NotifyEventAsync(scada::Event event) = 0;
+  [[nodiscard]] virtual scada::CoStatusOr<scada::EventId> NotifyEventAsync(
+      scada::Event event) = 0;
 
   // Routes an event that another server already produced: unlike NotifyEvent
   // it must carry its origin-assigned event id and receive time, which are

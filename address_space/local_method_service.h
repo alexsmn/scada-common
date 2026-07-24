@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scada/co_result.h"
 #include "scada/method_service.h"
 
 namespace scada {
@@ -11,10 +12,10 @@ namespace scada {
 // backed implementation.
 class LocalMethodService : public MethodService {
  public:
-  Awaitable<Status> Call(NodeId node_id,
-                         NodeId method_id,
-                         std::vector<Variant> arguments,
-                         ServiceContext context) override;
+  CoStatus Call(NodeId node_id,
+                NodeId method_id,
+                std::vector<Variant> arguments,
+                ServiceContext context) override;
 };
 
 }  // namespace scada
