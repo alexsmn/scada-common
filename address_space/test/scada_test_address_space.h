@@ -429,7 +429,7 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
   nodes.push_back(scada::NodeState{
       .node_id = dev::LinkType,
       .node_class = scada::NodeClass::ObjectType,
-      // LinkType derives from DeviceType in the nodeset (Scada.NodeSet2.xml
+      // LinkType derives from DeviceType in the nodeset (devices.xml
       // i=116 HasSubtype -> i=115); links ARE devices, and consumers rely on it
       // (e.g. GetFullDisplayName qualifies a device by its parent link).
       .parent_id = dev::DeviceType,
@@ -567,7 +567,7 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
 
 // Adds the `security` test types: the Users folder and the UserType with the
 // property declarations the Users table renders. Display names mirror
-// `model/nodesets/Scada.NodeSet2.xml`. UserType_ProfileJson /
+// `model/nodesets/security.xml`. UserType_ProfileJson /
 // UserType_ProfileRevision are deliberately omitted: they are server-internal
 // profile-persistence plumbing, and the docs screenshots pin the reviewed
 // operator-facing column set (AccessRights + MultiSessions).
@@ -640,7 +640,7 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
 // Int32 here, whereas the production nodeset types it as the
 // SimulationFunctionType enumeration — the table renders the raw value, which
 // is all the docs screenshot exercises. Display names mirror
-// `model/nodesets/Scada.NodeSet2.xml`.
+// `model/nodesets/data_items.xml`.
 inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
   GenericNodeFactory factory{address_space};
 
@@ -777,7 +777,7 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
 // filesystem::id::FileSystem; with the StaticNodeService-backed fixtures a
 // missing root makes NodeService::GetNode return a null cursor and the tree
 // panics (ConfigurationTreeNode::FetchMore Check(node_)). Mirrors
-// Scada.NodeSet2.xml.
+// filesystem.xml.
 inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
   GenericNodeFactory factory{address_space};
 
@@ -872,7 +872,7 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
 
     // OptionalPlaceholder InstanceDeclarations — the standard-modelling
     // replacement for the removed Creates edges. Tests resolve creatable child
-    // types (GetCreatableChildTypes) through these. Mirrors Scada.NodeSet2.xml.
+    // types (GetCreatableChildTypes) through these. Mirrors the SCADA nodeset.
     // Mirrors how StandardAddressSpace wires ModellingRule_Mandatory: an
     // Object typed BaseObjectType, organized under the ModellingRules folder.
     const scada::NodeId kOptionalPlaceholder{

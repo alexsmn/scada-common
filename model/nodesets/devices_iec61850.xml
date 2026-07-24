@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+           xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://telecontrol.ru/opcua/scada</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://telecontrol.ru/opcua/scada" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z"/>
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="BaseDataType">i=24</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UAObjectType NodeId="ns=1;i=277" BrowseName="Iec61850DeviceType" SymbolicName="Iec61850DeviceType">
+    <DisplayName>Устройство МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=372" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="Iec61850DeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=277">
+    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=344</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=278" BrowseName="Host" SymbolicName="Iec61850DeviceType_Host" ParentNodeId="ns=1;i=277" DataType="String">
+    <DisplayName>Хост</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=279" BrowseName="Port" SymbolicName="Iec61850DeviceType_Port" ParentNodeId="ns=1;i=277" DataType="Int32">
+    <DisplayName>Порт</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>102</uax:Int32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=281" BrowseName="RCB" SymbolicName="Iec61850RcbType">
+    <DisplayName>RCB МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=285</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=283" BrowseName="Address" SymbolicName="Iec61850ConfigurableObjectType_Reference" ParentNodeId="ns=1;i=285" DataType="String">
+    <DisplayName>Адрес</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=285" BrowseName="ConfigurableObject" SymbolicName="Iec61850ConfigurableObjectType">
+    <DisplayName>Параметр МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=288" BrowseName="Model" SymbolicName="Iec61850DeviceType_Model" ParentNodeId="ns=1;i=277">
+    <DisplayName>Модель</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=289</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=289" BrowseName="Iec61850LogicalNodeType" SymbolicName="Iec61850LogicalNodeType">
+    <DisplayName>Логический узел МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariableType NodeId="ns=1;i=291" BrowseName="Iec61850DataVariableType" SymbolicName="Iec61850DataVariableType" DataType="BaseDataType">
+    <DisplayName>Объект данных МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
+    </References>
+  </UAVariableType>
+  <UAObjectType NodeId="ns=1;i=293" BrowseName="Iec61850ControlObjectType" SymbolicName="Iec61850ControlObjectType">
+    <DisplayName>Объект управления МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=344" BrowseName="Iec61850TransmissionItemType" SymbolicName="Iec61850TransmissionItemType">
+    <DisplayName>Ретрансляция МЭК-61850</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=414" BrowseName="&lt;Iec61850Device&gt;" SymbolicName="DevicesFolderType_Iec61850DevicePlaceholder" ParentNodeId="ns=1;i=403">
+    <DisplayName>&lt;Iec61850Device&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=403</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=425" BrowseName="&lt;RCB&gt;" SymbolicName="Iec61850DeviceType_RcbPlaceholder" ParentNodeId="ns=1;i=277">
+    <DisplayName>&lt;RCB&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=281</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=427" BrowseName="&lt;ConfigurableObject&gt;" SymbolicName="ConfigurableObject_ConfigurableObjectPlaceholder" ParentNodeId="ns=1;i=285">
+    <DisplayName>&lt;ConfigurableObject&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=285</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>

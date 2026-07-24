@@ -1,5 +1,15 @@
 # Migrating the model nodesets to OPC UA UANodeSet2
 
+- **Status:** Implemented (design record) — all phases (0–6) done.
+- **Last verified against code:** 2026-07-23
+- **Owns:** the model nodeset format, its invariants (frozen ids, SCADA at
+  namespace index 7), the loader/generator contract, and the per-domain split.
+
+Kept as the reference for how the nodesets are shaped and why, since the format
+mapping and the frozen-id / load-order invariants below still bind anyone editing
+`common/model/nodesets/`. Referenced from `static_nodesets.h`,
+`scada_nodeset_namespace_uri_unittest.cpp`, and `common/CLAUDE.md`.
+
 ## Why
 
 `common/model/nodesets/*.xml` currently use a bespoke schema,
@@ -135,6 +145,9 @@ nodesets equals its output from the converted `Scada.Full.NodeSet2.xml`
 the input files change, not its output.
 
 ### Phase 4 — Cut over (DONE)
+> Superseded by Phase 6: the single `Scada.NodeSet2.xml` described here was later
+> split into one UANodeSet2 file per C++ domain.
+
 The SCADA model is now `nodesets/Scada.NodeSet2.xml` (standard UANodeSet2); the
 10 custom SCADA files are removed. `opcua_base.xml` stays in the repo-owned
 format for now (the ns0 base subset; Phase 5 can swap in the official OPC UA
@@ -176,6 +189,35 @@ Deliberately **not** done (optional, higher cost, lower value here):
   would enlarge the runtime address space. `opcua_base.xml` stays custom.
 - Off-the-shelf (open62541-style) codegen — the in-tree generator already
   produces the exact headers.
+
+### Phase 6 — Split the SCADA model by domain (DONE)
+The single `Scada.NodeSet2.xml` is split into one standard UANodeSet2 per C++
+domain — `scada_core.xml`, `data_items.xml`, `devices.xml` (+ `devices_modbus`,
+`devices_iec60870`, `devices_iec61850`), `history.xml`, `security.xml`,
+`filesystem.xml`, `opc.xml` — so the source is organized the way the tiers and
+the generated `*_node_ids.h` headers already are (the follow-on to the ADR-0003
+namespace-array work). Each file is an independently valid UANodeSet2 carrying
+the same `NamespaceUris`/`Models`/`Aliases` header.
+
+Why this is a pure reorganization with no behavior change:
+- `LoadStaticAddressSpace` parses **every** file into one `NodeState` set and
+  materializes once, so cross-file references and instance materialization
+  resolve regardless of the partition or load order. `ReadNamespaceMap` /
+  `ReadAliasMap` run per file, so each file must (and does) carry the SCADA
+  `NamespaceUris` + `Aliases`.
+- The generator globs `*.xml`, so the split does not change its output. Which
+  C++ domain a symbolic name lands in — and which nodes get a constant at all
+  (the folder modelling-rule placeholders deliberately do not, while the two
+  `*_TransmissionItemPlaceholder` nodes do) — remains hand-curated in the
+  `code_domains.csv` sidecar rather than inferred from the file, because that
+  curation is not derivable from node attributes (the placeholders share the
+  same `OptionalPlaceholder` modelling rule).
+
+Gates held byte-for-byte: the generator's headers are identical before/after the
+split (`diff -rq`), and `ModelFrozenIds`, `ScadaAddressSpace.MatchesGolden`,
+`StaticNodesets.ResolveAcrossFiles` and `ScadaNodesetNamespaceUri` stay green.
+`kScadaStaticNodesetFiles` lists all partitions; the one-shot splitter is not
+retained (git history preserves the mapping).
 
 ## Risks / open decisions
 - **Reference-type / datatype aliases**: need the numeric-id → standard-name

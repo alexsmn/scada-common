@@ -81,9 +81,9 @@ std::map<std::string, std::string> ReadGolden() {
   return out;
 }
 
-// The static SCADA address space (now loaded from opcua_base.xml +
-// Scada.NodeSet2.xml) must match the golden captured from the original
-// scada-node-state-v1 model, node-for-node.
+// The static SCADA address space (now loaded from opcua_base.xml + the
+// per-domain SCADA UANodeSet2 files) must match the golden captured from the
+// original scada-node-state-v1 model, node-for-node.
 // Rewrites scada_address_space_golden.txt from the loaded address space. Gated
 // on SCADA_UPDATE_GOLDEN so intentional nodeset edits can reconcile the golden
 // in one step; unset in CI, where the comparison below guards the structure.

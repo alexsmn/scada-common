@@ -9,17 +9,28 @@ namespace scada {
 
 // The SCADA static address space is the single source of truth for the standard
 // OPC UA base nodes plus the SCADA type system. It is partitioned into one file
-// per namespace / protocol module under `server/base/nodesets/`. The files are
+// per C++ domain / protocol module under `common/model/nodesets/`. The files are
 // listed in dependency-sensible load order, though `LoadStaticAddressSpace`
-// resolves references across files regardless of order.
-inline constexpr std::array<std::string_view, 2> kScadaStaticNodesetFiles = {
+// parses every file into one NodeState set and materializes it once, so
+// references (and instance materialization) resolve across files regardless of
+// order.
+inline constexpr std::array<std::string_view, 11> kScadaStaticNodesetFiles = {
     // OPC UA namespace-0 base types (repo-owned scada-node-state-v1 subset; the
     // official Opc.Ua.NodeSet2.xml is a later migration step) followed by the
-    // SCADA model as a standard OPC UA UANodeSet2. LoadStaticAddressSpace
-    // detects each file's format; the base must precede the SCADA model so its
-    // types resolve. See common/model/docs/uanodeset-migration.md.
+    // SCADA model, split into one standard OPC UA UANodeSet2 per C++ domain (and
+    // per protocol under `devices`). LoadStaticAddressSpace detects each file's
+    // format. See common/model/docs/uanodeset-migration.md.
     "opcua_base.xml",
-    "Scada.NodeSet2.xml",
+    "scada_core.xml",
+    "data_items.xml",
+    "devices.xml",
+    "devices_modbus.xml",
+    "devices_iec60870.xml",
+    "devices_iec61850.xml",
+    "history.xml",
+    "security.xml",
+    "filesystem.xml",
+    "opc.xml",
 };
 
 // Absolute path to the committed nodeset source directory in the server source

@@ -4,9 +4,21 @@ the nodeset XML (the single source of truth) plus the small `namespaces.csv` /
 `extra_node_ids.csv` manifests.
 
 Inputs (under --nodesets):
-  * `*.xml`            — static address-space nodes. Every `<Node>` that carries
-                         a `symbolicName` attribute yields a `scada::<domain>::id`
-                         constant; `codeNs` overrides the file-default domain.
+  * `*.xml`            — static address-space nodes, split into one UANodeSet2
+                         file per C++ domain (scada_core, data_items, devices[+
+                         protocol], history, security, filesystem, opc). Every
+                         annotated node whose `SymbolicName` appears in
+                         `code_domains.csv` yields a `scada::<domain>::id`
+                         constant; nodes absent from that sidecar (e.g. folder
+                         modelling-rule placeholders) carry no constant. The
+                         generator globs all files, so the partition boundaries
+                         do not affect its output.
+  * `code_domains.csv` — `symbolic_name -> domain`. The C++ sub-domain grouping
+                         is not an OPC UA concept, and which nodes get a constant
+                         is a hand-curated decision (two `*_TransmissionItem
+                         Placeholder` nodes are constants, the folder placeholders
+                         are not), so it lives in this sidecar rather than being
+                         inferred from the file a node lands in.
   * `namespaces.csv`   — index, C++ const name, config-DB short name, plus the
                          optional config-table registry columns: `row_type`
                          (symbolic name of the namespace's row type),
@@ -36,13 +48,6 @@ import os
 import re
 
 NS_PREFIX = {"NS0": 0, "SCADA": 7}
-DOMAIN_BY_XML = {
-    "scada_core.xml": "scada", "data_items.xml": "data_items",
-    "devices.xml": "devices", "devices_modbus.xml": "devices",
-    "devices_iec60870.xml": "devices", "devices_iec61850.xml": "devices",
-    "history.xml": "history", "security.xml": "security",
-    "filesystem.xml": "filesystem", "opc.xml": "opc", "opcua_base.xml": "ns0",
-}
 # domain -> (header filename, C++ namespace, include lines)
 DOMAINS = {
     "scada": ("scada_node_ids.h", "scada",
