@@ -107,7 +107,7 @@ QualifiedName GetBrowseName(const AddressSpace& address_space,
 LocalizedText GetDisplayName(const AddressSpace& address_space,
                              const NodeId& node_id) {
   auto* node = address_space.GetNode(node_id);
-  return node ? GetFullDisplayName(*node) : LocalizedText{kUnknownDisplayName};
+  return node ? GetFullDisplayName(*node) : LocalizedText{UnknownDisplayName()};
 }
 
 std::u16string GetFullDisplayName(const Node& node) {

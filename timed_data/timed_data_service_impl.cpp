@@ -22,7 +22,7 @@ TimedDataServiceImpl::TimedDataServiceImpl(TimedDataContext&& context)
       node_id_cache_{executor_},
       alias_cache_{executor_},
       null_timed_data_{
-          std::make_shared<ErrorTimedData>(std::string{}, kEmptyDisplayName)} {
+          std::make_shared<ErrorTimedData>(std::string{}, EmptyDisplayName())} {
   if (!history_service_) {
     history_service_ = data_services_.history_service_;
   }

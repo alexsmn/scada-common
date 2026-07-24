@@ -66,7 +66,7 @@ std::u16string GetFullDisplayName(const NodeRef& node) {
   if (IsInstanceOf(parent, scada::data_items::id::DataGroupType) ||
       IsInstanceOf(parent, scada::devices::id::DeviceType))
     return u16format(L"{} : {}", GetFullDisplayName(parent),
-                      ToString16(node.display_name()));
+                     ToString16(node.display_name()));
   else
     return ToString16(node.display_name());
 }
@@ -77,5 +77,6 @@ scada::LocalizedText GetDisplayName(NodeService& node_service,
     return {};
 
   auto node = node_service.GetNode(node_id);
-  return node ? node.display_name() : scada::LocalizedText{kUnknownDisplayName};
+  return node ? node.display_name()
+              : scada::LocalizedText{UnknownDisplayName()};
 }

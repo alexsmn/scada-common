@@ -193,11 +193,10 @@ scada::node TimedDataSpec::scada_node() const {
 }
 
 scada::LocalizedText TimedDataSpec::GetTitle() const {
-  return data_ ? data_->GetTitle() : scada::LocalizedText{kUnknownDisplayName};
+  return data_ ? data_->GetTitle() : scada::LocalizedText{UnknownDisplayName()};
 }
 
-const scada::DataValue* TimedDataSpec::GetValueAt(
-    scada::Time time) const {
+const scada::DataValue* TimedDataSpec::GetValueAt(scada::Time time) const {
   return data_ ? data_->GetValueAt(time) : nullptr;
 }
 

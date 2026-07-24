@@ -3,6 +3,7 @@
 #include "base/format.h"
 #include "base/string_util.h"
 #include "base/utf_convert.h"
+#include "common/ui_text.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 #include "scada/variant.h"
@@ -13,11 +14,21 @@
 #include <algorithm>
 #include <cstring>
 
-const char16_t kDefaultCloseLabel[] = u"Вкл";
-const char16_t kDefaultOpenLabel[] = u"Откл";
+std::u16string DefaultCloseLabel() {
+  return scada::TranslateUiText("On");
+}
 
-const char16_t kEmptyDisplayName[] = u"#ИМЯ?";
-const char16_t kUnknownDisplayName[] = u"#ИМЯ?";
+std::u16string DefaultOpenLabel() {
+  return scada::TranslateUiText("Off");
+}
+
+std::u16string EmptyDisplayName() {
+  return scada::TranslateUiText("#NAME?");
+}
+
+std::u16string UnknownDisplayName() {
+  return scada::TranslateUiText("#NAME?");
+}
 
 void EscapeColoredString(std::u16string& str) {
   static const char16_t amp[] = u"&";
@@ -177,7 +188,7 @@ scada::LocalizedText FormatTs(bool bool_value, const TsFormatParams& params) {
     return label;
   }
 
-  return bool_value ? kDefaultCloseLabel : kDefaultOpenLabel;
+  return bool_value ? DefaultCloseLabel() : DefaultOpenLabel();
 }
 
 scada::LocalizedText FormatTit(double double_value,

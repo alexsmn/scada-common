@@ -129,8 +129,8 @@ std::u16string FormatValue(const Node& node,
           GetPropertyValue(*format, data_items::id::TsFormatType_CloseLabel)
               .get_or(LocalizedText());
     } else {
-      open_label = kDefaultOpenLabel;
-      close_label = kDefaultCloseLabel;
+      open_label = DefaultOpenLabel();
+      close_label = DefaultCloseLabel();
     }
 
     return FormatDiscreteValue(open_label, close_label, locked, value,

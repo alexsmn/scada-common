@@ -14,11 +14,16 @@ class NodeId;
 class Variant;
 }  // namespace scada
 
-extern const char16_t kDefaultCloseLabel[];
-extern const char16_t kDefaultOpenLabel[];
+// Fallback state labels for a two-state (TS) item whose TsFormat carries no
+// CloseLabel/OpenLabel of its own. Translated through `TranslateUiText`, so
+// they follow the display locale rather than being frozen at one language.
+std::u16string DefaultCloseLabel();
+std::u16string DefaultOpenLabel();
 
-extern const char16_t kEmptyDisplayName[];
-extern const char16_t kUnknownDisplayName[];
+// Placeholders for a value whose display name is empty or cannot be resolved,
+// in the spreadsheet "#NAME?" idiom. Also locale-dependent.
+std::u16string EmptyDisplayName();
+std::u16string UnknownDisplayName();
 
 std::string FormatFloat(double val, const char* fmt);
 
