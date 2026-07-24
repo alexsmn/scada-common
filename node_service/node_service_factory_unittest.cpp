@@ -48,7 +48,10 @@ class TestSessionService final : public scada::SessionService {
 
   scada::NodeId GetUserId() const override { return {}; }
 
-  bool HasPrivilege(scada::Privilege privilege) const override { return true; }
+  std::uint32_t GetAccessRights() const override {
+    return scada::AccessRightBit(scada::AccessRight::kConfigure) |
+           scada::AccessRightBit(scada::AccessRight::kControl);
+  }
 
   std::string GetHostName() const override { return {}; }
 

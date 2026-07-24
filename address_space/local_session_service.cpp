@@ -27,8 +27,9 @@ NodeId LocalSessionService::GetUserId() const {
   return {};
 }
 
-bool LocalSessionService::HasPrivilege(Privilege /*privilege*/) const {
-  return true;
+std::uint32_t LocalSessionService::GetAccessRights() const {
+  return AccessRightBit(AccessRight::kConfigure) |
+         AccessRightBit(AccessRight::kControl);
 }
 
 std::string LocalSessionService::GetHostName() const {

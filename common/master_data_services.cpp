@@ -220,11 +220,18 @@ bool MasterDataServices::IsConnected(scada::Duration* ping_delay) const {
   return session_service_ && session_service_->IsConnected(ping_delay);
 }
 
-bool MasterDataServices::HasPrivilege(scada::Privilege privilege) const {
+std::uint32_t MasterDataServices::GetAccessRights() const {
   if (!session_service_)
-    return false;
+    return 0;
 
-  return session_service_->HasPrivilege(privilege);
+  return session_service_->GetAccessRights();
+}
+
+bool MasterDataServices::IsAnonymous() const {
+  if (!session_service_)
+    return true;
+
+  return session_service_->IsAnonymous();
 }
 
 scada::NodeId MasterDataServices::GetUserId() const {

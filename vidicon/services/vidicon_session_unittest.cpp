@@ -17,7 +17,7 @@ TEST(VidiconSession, SessionServiceReportsLocalSessionMetadata) {
   scada::Duration ping_delay;
   EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
   EXPECT_TRUE(ping_delay.is_zero());
-  EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_TRUE(coroutine_session.HasAccessRight(scada::AccessRight::kConfigure));
   EXPECT_FALSE(coroutine_session.IsScada());
   EXPECT_EQ(coroutine_session.GetUserId(), scada::NodeId{});
   EXPECT_EQ(coroutine_session.GetHostName(), "Vidicon");

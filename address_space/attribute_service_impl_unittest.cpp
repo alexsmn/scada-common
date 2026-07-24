@@ -2,10 +2,10 @@
 
 #include "address_space/test/test_address_space.h"
 #include "base/test/awaitable_test.h"
+#include "scada/access_rights.h"
 #include "scada/authorization.h"
 #include "scada/data_value.h"
 #include "scada/extension_object.h"
-#include "scada/privileges.h"
 #include "scada/service_context.h"
 #include "scada/test/status_matchers.h"
 
@@ -90,16 +90,15 @@ TEST(AttributeServiceImpl, ReadsMandatoryVariableAttributes) {
 TEST(AttributeServiceImpl, UserAccessLevelIsBoundedByNodeAccessLevel) {
   TestAddressSpace address_space;
 
-  // The static node advertises only CurrentRead, so even a fully privileged
+  // The static node advertises only CurrentRead, so even a fully entitled
   // caller sees UserAccessLevel == CurrentRead: a user cannot gain write access
   // the node itself does not offer (OPC UA Part 3 §5.6.2).
   const std::uint32_t root_rights =
-      (std::uint32_t{1} << static_cast<int>(scada::Privilege::Configure)) |
-      (std::uint32_t{1} << static_cast<int>(scada::Privilege::Control));
-  const scada::ServiceContext context =
-      scada::ServiceContext{}
-          .with_user_id(scada::NodeId{1, 1})
-          .with_user_rights(root_rights);
+      scada::AccessRightBit(scada::AccessRight::kConfigure) |
+      scada::AccessRightBit(scada::AccessRight::kControl);
+  const scada::ServiceContext context = scada::ServiceContext{}
+                                            .with_user_id(scada::NodeId{1, 1})
+                                            .with_user_rights(root_rights);
 
   const std::vector<scada::ReadValueId> inputs{
       {.node_id = address_space.kTestProp1Id,
@@ -128,7 +127,7 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
                                               .set_display_name(u"TestMethod")});
 
   const std::uint32_t control_rights =
-      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+      scada::AccessRightBit(scada::AccessRight::kControl);
 
   const auto read = [&](scada::AttributeId attribute_id,
                         const scada::ServiceContext& context) {
@@ -161,7 +160,7 @@ TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
   TestAddressSpace address_space;
 
   const std::uint32_t control_rights =
-      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+      scada::AccessRightBit(scada::AccessRight::kControl);
   const scada::ServiceContext operator_context =
       scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
           control_rights);
@@ -182,8 +181,8 @@ TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
   EXPECT_EQ(user_roles.value.get<std::vector<scada::ExtensionObject>>().size(),
             3u);
 
-  // RolePermissions requires the ReadRolePermissions permission: an operator has
-  // it (8 well-known roles), an anonymous caller does not.
+  // RolePermissions requires the ReadRolePermissions permission: an operator
+  // has it (8 well-known roles), an anonymous caller does not.
   const auto role_perms =
       read(scada::AttributeId::RolePermissions, operator_context);
   EXPECT_EQ(role_perms.status_code, scada::StatusCode::Good);
@@ -209,7 +208,7 @@ TEST(AttributeServiceImpl, PerNodeRolePermissionsOverride) {
       ->SetRolePermissions(override_permissions);
 
   const std::uint32_t control_rights =
-      std::uint32_t{1} << static_cast<int>(scada::Privilege::Control);
+      scada::AccessRightBit(scada::AccessRight::kControl);
   const scada::ServiceContext operator_context =
       scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
           control_rights);

@@ -16,7 +16,6 @@
 #include "scada/monitoring_parameters.h"
 #include "scada/node_attributes.h"
 #include "scada/node_management_service.h"
-#include "scada/privileges.h"
 #include "scada/read_value_id.h"
 #include "scada/service_context.h"
 #include "scada/session_service.h"
@@ -35,7 +34,6 @@
 #include "opcua/session/authentication.h"
 #include "opcua/session/session_types.h"
 #include "opcua/types/node_attributes.h"
-#include "opcua/types/privileges.h"
 #include "opcua/types/read_value_id.h"
 #include "opcua/types/write_flags.h"
 
@@ -59,12 +57,6 @@ inline opcua::BrowseDirection ToOpcua(scada::BrowseDirection v) {
 }
 inline scada::BrowseDirection ToScada(opcua::BrowseDirection v) {
   return static_cast<scada::BrowseDirection>(v);
-}
-inline opcua::Privilege ToOpcua(scada::Privilege v) {
-  return static_cast<opcua::Privilege>(v);
-}
-inline scada::Privilege ToScada(opcua::Privilege v) {
-  return static_cast<scada::Privilege>(v);
 }
 
 // --- Duration (scada::Duration vs opcua::Duration) ----------------

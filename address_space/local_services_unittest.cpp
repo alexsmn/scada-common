@@ -32,7 +32,7 @@ TEST(LocalSessionService, ReportsConnectedLocalSession) {
   LocalSessionService service;
 
   EXPECT_TRUE(service.IsConnected());
-  EXPECT_TRUE(service.HasPrivilege(Privilege::Configure));
+  EXPECT_TRUE(service.HasAccessRight(AccessRight::kConfigure));
   EXPECT_TRUE(service.IsScada());
   EXPECT_EQ(service.GetUserId(), NodeId{});
   EXPECT_EQ(service.GetHostName(), "local");

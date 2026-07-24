@@ -59,8 +59,9 @@ bool VidiconSession::IsConnected(scada::Duration* ping_delay) const {
   return true;
 }
 
-bool VidiconSession::HasPrivilege(scada::Privilege privilege) const {
-  return true;
+std::uint32_t VidiconSession::GetAccessRights() const {
+  return scada::AccessRightBit(scada::AccessRight::kConfigure) |
+         scada::AccessRightBit(scada::AccessRight::kControl);
 }
 
 scada::NodeId VidiconSession::GetUserId() const {

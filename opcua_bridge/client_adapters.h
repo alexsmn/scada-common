@@ -49,8 +49,8 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   scada::NodeId GetUserId() const override {
     return ToScada(session_->GetUserId());
   }
-  bool HasPrivilege(scada::Privilege privilege) const override {
-    return session_->HasPrivilege(ToOpcua(privilege));
+  std::uint32_t GetAccessRights() const override {
+    return session_->GetAccessRights();
   }
   std::string GetHostName() const override { return session_->GetHostName(); }
   bool IsScada() const override { return session_->IsScada(); }

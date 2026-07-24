@@ -53,8 +53,8 @@ class TestCoroutineDataServices final
 
   scada::NodeId GetUserId() const override { return user_id; }
 
-  bool HasPrivilege(scada::Privilege privilege) const override {
-    return privilege == scada::Privilege::Configure;
+  std::uint32_t GetAccessRights() const override {
+    return scada::AccessRightBit(scada::AccessRight::kConfigure);
   }
 
   std::string GetHostName() const override { return host_name; }
@@ -375,8 +375,9 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
 
   EXPECT_CALL(*session_service, IsConnected(&ping_delay))
       .WillOnce(testing::Return(true));
-  EXPECT_CALL(*session_service, HasPrivilege(scada::Privilege::Configure))
-      .WillOnce(testing::Return(true));
+  EXPECT_CALL(*session_service, GetAccessRights())
+      .WillOnce(testing::Return(
+          scada::AccessRightBit(scada::AccessRight::kConfigure)));
   EXPECT_CALL(*session_service, GetUserId())
       .WillOnce(testing::Return(scada::NodeId{1, 2}));
   EXPECT_CALL(*session_service, GetHostName())
@@ -387,7 +388,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
       .WillOnce(testing::Return(nullptr));
 
   EXPECT_TRUE(coroutine_session.IsConnected(&ping_delay));
-  EXPECT_TRUE(coroutine_session.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_TRUE(coroutine_session.HasAccessRight(scada::AccessRight::kConfigure));
   EXPECT_EQ(coroutine_session.GetUserId(), (scada::NodeId{1, 2}));
   EXPECT_EQ(coroutine_session.GetHostName(), "master-host");
   EXPECT_TRUE(coroutine_session.IsScada());
@@ -410,7 +411,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   EXPECT_EQ(direct_services->session_subscription_count, 1);
   EXPECT_TRUE(services.IsConnected());
-  EXPECT_TRUE(services.HasPrivilege(scada::Privilege::Configure));
+  EXPECT_TRUE(services.HasAccessRight(scada::AccessRight::kConfigure));
   EXPECT_EQ(services.GetUserId(), (scada::NodeId{55, 5}));
   EXPECT_EQ(services.GetHostName(), "direct-host");
   EXPECT_TRUE(services.IsScada());

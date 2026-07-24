@@ -5,7 +5,7 @@
 namespace scada {
 
 // Trivial in-memory SessionService. Reports `IsConnected() == true`, grants
-// every privilege, and completes all lifecycle coroutines immediately.
+// every access right, and completes all lifecycle coroutines immediately.
 //
 // Intended for tests, demos, and screenshot tooling where the session layer
 // is not under test.
@@ -21,7 +21,7 @@ class LocalSessionService : public SessionService {
   bool IsConnected(scada::Duration* ping_delay = nullptr) const override;
 
   NodeId GetUserId() const override;
-  bool HasPrivilege(Privilege privilege) const override;
+  std::uint32_t GetAccessRights() const override;
 
   std::string GetHostName() const override;
   bool IsScada() const override;

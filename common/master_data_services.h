@@ -39,7 +39,8 @@ class MasterDataServices final : public scada::AttributeService,
   virtual Awaitable<void> Reconnect() override;
   virtual bool IsConnected(
       scada::Duration* ping_delay = nullptr) const override;
-  virtual bool HasPrivilege(scada::Privilege privilege) const override;
+  virtual std::uint32_t GetAccessRights() const override;
+  virtual bool IsAnonymous() const override;
   virtual bool IsScada() const override;
   virtual scada::NodeId GetUserId() const override;
   virtual std::string GetHostName() const override;
