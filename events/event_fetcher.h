@@ -64,7 +64,8 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void Update();
 
   void OnSystemEvents(std::span<const scada::Event> events);
-  void OnHistoryReadEventsComplete(scada::HistoryReadEventsResult&& result);
+  void OnHistoryReadEventsComplete(
+      scada::StatusOr<scada::HistoryReadEventsResult>&& result);
 
   bool connected_ = false;
 

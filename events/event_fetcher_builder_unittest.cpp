@@ -39,7 +39,7 @@ class TestHistoryService final : public scada::HistoryService {
     co_return scada::StatusCode::Bad;
   }
 
-  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
@@ -264,16 +264,16 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
   EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce([&](scada::NodeId read_node_id, scada::Time from,
-                    scada::Time to, scada::EventFilter filter)
-                    -> Awaitable<scada::HistoryReadEventsResult> {
-        EXPECT_EQ(read_node_id, scada::id::Server);
-        EXPECT_LE(from, to);
-        EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED});
-        co_return scada::HistoryReadEventsResult{
-            .status = scada::StatusCode::Good,
-            .events = {MakeEvent(15, node_id)}};
-      });
+      .WillOnce(
+          [&](scada::NodeId read_node_id, scada::Time from, scada::Time to,
+              scada::EventFilter filter)
+              -> Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> {
+            EXPECT_EQ(read_node_id, scada::id::Server);
+            EXPECT_LE(from, to);
+            EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED});
+            co_return scada::HistoryReadEventsResult{
+                .events = {MakeEvent(15, node_id)}};
+          });
 
   auto fetcher =
       EventFetcherBuilder{

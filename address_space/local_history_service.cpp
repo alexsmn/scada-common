@@ -108,11 +108,11 @@ Awaitable<StatusOr<HistoryReadRawResult>> LocalHistoryService::HistoryReadRaw(
   co_return ReadRaw(std::move(details));
 }
 
-Awaitable<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
-    NodeId node_id,
-    scada::Time from,
-    scada::Time to,
-    EventFilter filter) {
+Awaitable<StatusOr<HistoryReadEventsResult>>
+LocalHistoryService::HistoryReadEvents(NodeId node_id,
+                                       scada::Time from,
+                                       scada::Time to,
+                                       EventFilter filter) {
   co_return ReadEvents(std::move(node_id), from, to, std::move(filter));
 }
 
@@ -176,7 +176,6 @@ HistoryReadEventsResult LocalHistoryService::ReadEvents(
     scada::Time /*to*/,
     EventFilter /*filter*/) const {
   return HistoryReadEventsResult{
-      .status = Status{StatusCode::Good},
       .events = events_,
   };
 }

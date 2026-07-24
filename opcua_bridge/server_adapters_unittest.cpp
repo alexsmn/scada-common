@@ -121,7 +121,9 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
                                             .status = scada::StatusCode::Good,
                                             .event = std::any{event}};
 
-  MonitoredItemSubscriptionAdapter adapter{std::move(fake)};
+  MonitoredItemSubscriptionAdapter adapter{std::move(fake),
+                                          opcua::ServiceContext{},
+                                          Tracer::None()};
 
   // Add the item with an EventFilter selecting three fields so the adapter
   // stores the field paths keyed by client_handle.
@@ -192,7 +194,9 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
                                             .status = scada::StatusCode::Good,
                                             .event = std::any{event}};
 
-  MonitoredItemSubscriptionAdapter adapter{std::move(fake)};
+  MonitoredItemSubscriptionAdapter adapter{std::move(fake),
+                                          opcua::ServiceContext{},
+                                          Tracer::None()};
 
   // Subscribe the way the SCADA client does: a scada::EventFilter converts to
   // the `_scada` json wire filter, which carries no SelectClauses.

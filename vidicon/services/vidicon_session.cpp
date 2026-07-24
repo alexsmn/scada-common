@@ -82,12 +82,12 @@ VidiconSession::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   co_return scada::StatusCode::Bad;
 }
 
-Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(
-    scada::NodeId node_id,
-    scada::Time from,
-    scada::Time to,
-    scada::EventFilter filter) {
-  co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+VidiconSession::HistoryReadEvents(scada::NodeId node_id,
+                                  scada::Time from,
+                                  scada::Time to,
+                                  scada::EventFilter filter) {
+  co_return scada::StatusCode::Bad;
 }
 
 scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>

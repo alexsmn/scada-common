@@ -100,7 +100,8 @@ class MasterDataServices final : public scada::AttributeService,
   // scada::HistoryService
   [[nodiscard]] virtual Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
   HistoryReadRaw(scada::HistoryReadRawDetails details) override;
-  [[nodiscard]] virtual Awaitable<scada::HistoryReadEventsResult>
+  [[nodiscard]] virtual Awaitable<
+      scada::StatusOr<scada::HistoryReadEventsResult>>
   HistoryReadEvents(scada::NodeId node_id,
                     scada::Time from,
                     scada::Time to,

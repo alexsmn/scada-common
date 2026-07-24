@@ -236,11 +236,12 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
       executor, service.HistoryReadEvents(NodeId{}, scada::Time{}, scada::Now(),
                                           EventFilter{}));
 
-  ASSERT_EQ(result.events.size(), 2u);
-  EXPECT_FALSE(result.events[0].acked);
-  EXPECT_TRUE(scada::IsNull(result.events[0].acknowledged_time));
-  EXPECT_TRUE(result.events[1].acked);
-  EXPECT_FALSE(scada::IsNull(result.events[1].acknowledged_time));
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->events.size(), 2u);
+  EXPECT_FALSE(result->events[0].acked);
+  EXPECT_TRUE(scada::IsNull(result->events[0].acknowledged_time));
+  EXPECT_TRUE(result->events[1].acked);
+  EXPECT_FALSE(scada::IsNull(result->events[1].acknowledged_time));
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
@@ -260,11 +261,11 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
                     event.source_node_id, event.time - std::chrono::hours(1),
                     event.time + std::chrono::hours(1), EventFilter{}));
 
-  EXPECT_TRUE(result.status);
-  ASSERT_EQ(result.events.size(), 1u);
-  EXPECT_EQ(result.events[0].event_id, event.event_id);
-  EXPECT_EQ(result.events[0].source_node_id, event.source_node_id);
-  EXPECT_EQ(result.events[0].severity, kSeverityWarning);
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->events.size(), 1u);
+  EXPECT_EQ(result->events[0].event_id, event.event_id);
+  EXPECT_EQ(result->events[0].source_node_id, event.source_node_id);
+  EXPECT_EQ(result->events[0].severity, kSeverityWarning);
 }
 
 }  // namespace

@@ -78,7 +78,7 @@ class RemoteHistoryService : public scada::HistoryService,
   // scada::HistoryService
   Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
-  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,

@@ -66,12 +66,12 @@ class FakeHistoryService final : public scada::HistoryService {
     co_return scada::HistoryReadRawResult{};
   }
 
-  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
       scada::NodeId /*node_id*/,
       scada::Time /*from*/,
       scada::Time /*to*/,
       scada::EventFilter /*filter*/) override {
-    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Good};
+    co_return scada::HistoryReadEventsResult{};
   }
 };
 

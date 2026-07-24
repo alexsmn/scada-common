@@ -150,9 +150,16 @@ class ClientNodeManagementServiceAdapter : public scada::NodeManagementService {
 class ClientMonitoredItemSubscriptionAdapter
     : public scada::MonitoredItemSubscription {
  public:
-  explicit ClientMonitoredItemSubscriptionAdapter(
-      std::unique_ptr<opcua::MonitoredItemSubscription> inner)
-      : inner_{std::move(inner)} {}
+  // `context` is the one the subscription was created with, so AddItems can
+  // span item creation — where a monitored item's destination is decided —
+  // under the caller's trace.
+  ClientMonitoredItemSubscriptionAdapter(
+      std::unique_ptr<opcua::MonitoredItemSubscription> inner,
+      scada::ServiceContext context,
+      Tracer& tracer)
+      : inner_{std::move(inner)},
+        context_{std::move(context)},
+        tracer_{tracer} {}
 
   Awaitable<std::vector<scada::MonitoredItemCreateResult>> AddItems(
       std::vector<scada::MonitoredItemCreateRequest> requests) override;
@@ -164,6 +171,8 @@ class ClientMonitoredItemSubscriptionAdapter
 
  private:
   std::unique_ptr<opcua::MonitoredItemSubscription> inner_;
+  const scada::ServiceContext context_;
+  Tracer& tracer_;
 };
 
 class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
@@ -196,7 +205,7 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
   // scada::HistoryService
   Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
-  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,

@@ -389,16 +389,15 @@ MasterDataServices::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   co_return scada::StatusCode::Bad_Disconnected;
 }
 
-Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(
-    scada::NodeId node_id,
-    scada::Time from,
-    scada::Time to,
-    scada::EventFilter filter) {
+Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
+MasterDataServices::HistoryReadEvents(scada::NodeId node_id,
+                                      scada::Time from,
+                                      scada::Time to,
+                                      scada::EventFilter filter) {
   auto* service = history_service_;
   if (service)
     co_return co_await service->HistoryReadEvents(std::move(node_id), from, to,
                                                   std::move(filter));
 
-  co_return scada::HistoryReadEventsResult{
-      .status = scada::StatusCode::Bad_Disconnected};
+  co_return scada::StatusCode::Bad_Disconnected;
 }

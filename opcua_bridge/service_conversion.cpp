@@ -460,11 +460,11 @@ scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult& v) {
 
 opcua::HistoryReadEventsResult ToOpcua(
     const scada::HistoryReadEventsResult& v) {
-  return {.status = ToOpcua(v.status), .events = ToOpcuaVector(v.events)};
+  return {.events = ToOpcuaVector(v.events)};
 }
 scada::HistoryReadEventsResult ToScada(
     const opcua::HistoryReadEventsResult& v) {
-  return {.status = ToScada(v.status), .events = ToScadaVector(v.events)};
+  return {.events = ToScadaVector(v.events)};
 }
 
 opcua::UpdateDataDetails ToOpcua(const scada::UpdateDataDetails& v) {

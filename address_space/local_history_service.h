@@ -57,7 +57,7 @@ class LocalHistoryService : public HistoryService {
   // HistoryService
   Awaitable<StatusOr<HistoryReadRawResult>> HistoryReadRaw(
       HistoryReadRawDetails details) override;
-  Awaitable<HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<StatusOr<HistoryReadEventsResult>> HistoryReadEvents(
       NodeId node_id,
       scada::Time from,
       scada::Time to,

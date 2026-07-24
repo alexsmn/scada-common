@@ -192,6 +192,13 @@ ClientNodeManagementServiceAdapter::DeleteReferences(
 Awaitable<std::vector<scada::MonitoredItemCreateResult>>
 ClientMonitoredItemSubscriptionAdapter::AddItems(
     std::vector<scada::MonitoredItemCreateRequest> requests) {
+  scada::ServiceContext context = context_;
+  auto span = StartClientSpan(tracer_, "opcua.client/CreateMonitoredItems",
+                              context);
+  SetBatchAttributes(span, requests,
+                     [](const scada::MonitoredItemCreateRequest& request) {
+                       return request.item_to_monitor.node_id.ToString();
+                     });
   auto results = co_await inner_->AddItems(ToOpcuaVector(requests));
   co_return ToScadaVector(results);
 }
@@ -224,7 +231,7 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
     return ToScada(result.status());
   return std::unique_ptr<scada::MonitoredItemSubscription>{
       std::make_unique<ClientMonitoredItemSubscriptionAdapter>(
-          std::move(*result))};
+          std::move(*result), context, tracer_)};
 }
 
 // --- HistoryService / HistoryUpdateService -----------------------------
@@ -244,7 +251,7 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
   co_return ToScada(*result);
 }
 
-Awaitable<scada::HistoryReadEventsResult>
+Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>>
 ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
                                                scada::Time from,
                                                scada::Time to,
@@ -259,8 +266,7 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
   auto result = co_await session_->HistoryReadEvents(ToOpcua(details),
                                                      span.traceparent());
   if (!result.ok()) {
-    co_return scada::HistoryReadEventsResult{.status =
-                                                 ToScada(result.status())};
+    co_return ToScada(result.status());
   }
   co_return ToScada(*result);
 }

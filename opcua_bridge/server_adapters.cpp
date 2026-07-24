@@ -305,7 +305,7 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   co_return ToOpcua(*result);
 }
 
-opcua::Awaitable<opcua::HistoryReadEventsResult>
+opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadEventsResult>>
 HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
                                          opcua::DateTime from,
                                          opcua::DateTime to,
@@ -315,7 +315,10 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
   span.SetAttribute("scada.node_id", node_id.ToString());
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
-  co_return ToOpcua(result);
+  if (!result.ok()) {
+    co_return ToOpcua(result.status());
+  }
+  co_return ToOpcua(*result);
 }
 
 // --- HistoryUpdateService ----------------------------------------------
@@ -369,6 +372,13 @@ MonitoredItemSubscriptionAdapter::AddItems(
       event_item_handle_ = request.requested_parameters.client_handle;
     }
   }
+  opcua::ServiceContext context = context_;
+  auto span = StartServerSpan(tracer_, "opcua.server/CreateMonitoredItems",
+                              context);
+  SetBatchAttributes(span, requests,
+                     [](const opcua::MonitoredItemCreateRequest& request) {
+                       return request.item_to_monitor.node_id.ToString();
+                     });
   auto results = co_await inner_->AddItems(ToScadaVector(requests));
   co_return ToOpcuaVector(results);
 }
@@ -509,7 +519,8 @@ MonitoredItemServiceAdapter::CreateSubscription(
   if (!result.ok())
     return ToOpcua(result.status());
   return std::unique_ptr<opcua::MonitoredItemSubscription>{
-      std::make_unique<MonitoredItemSubscriptionAdapter>(std::move(*result))};
+      std::make_unique<MonitoredItemSubscriptionAdapter>(
+          std::move(*result), context, tracer_)};
 }
 
 // --- Authenticator ------------------------------------------------------

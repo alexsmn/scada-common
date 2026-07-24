@@ -129,11 +129,11 @@ class HistoryServiceAdapter {
   opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadRawResult>> HistoryReadRaw(
       opcua::HistoryReadRawDetails details);
 
-  opcua::Awaitable<opcua::HistoryReadEventsResult> HistoryReadEvents(
-      opcua::NodeId node_id,
-      opcua::DateTime from,
-      opcua::DateTime to,
-      opcua::EventFilter filter);
+  opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadEventsResult>>
+  HistoryReadEvents(opcua::NodeId node_id,
+                    opcua::DateTime from,
+                    opcua::DateTime to,
+                    opcua::EventFilter filter);
 
  private:
   scada::HistoryService& inner_;
@@ -171,9 +171,18 @@ class HistoryUpdateServiceAdapter {
 class MonitoredItemSubscriptionAdapter
     : public opcua::MonitoredItemSubscription {
  public:
-  explicit MonitoredItemSubscriptionAdapter(
-      std::unique_ptr<scada::MonitoredItemSubscription> inner)
-      : inner_{std::move(inner)} {}
+  // `context` is the one the subscription was created with (its trace id is
+  // the client's), and `tracer` lets AddItems record where each item was
+  // created. Item creation is where a monitored item's destination is decided,
+  // so this span — not the subscription's — is the one that attributes an item
+  // to the tier that serves it.
+  MonitoredItemSubscriptionAdapter(
+      std::unique_ptr<scada::MonitoredItemSubscription> inner,
+      opcua::ServiceContext context,
+      Tracer& tracer)
+      : inner_{std::move(inner)},
+        context_{std::move(context)},
+        tracer_{tracer} {}
 
   opcua::Awaitable<std::vector<opcua::MonitoredItemCreateResult>> AddItems(
       std::vector<opcua::MonitoredItemCreateRequest> requests) override;
@@ -194,6 +203,8 @@ class MonitoredItemSubscriptionAdapter
       const scada::MonitoredItemNotification& notification) const;
 
   std::unique_ptr<scada::MonitoredItemSubscription> inner_;
+  const opcua::ServiceContext context_;
+  Tracer& tracer_;
   // Event-field select-clause paths parsed from each item's wire filter, keyed
   // by client_handle. Populated in AddItems; consumed in ReadNext to project
   // events into EventFieldList.

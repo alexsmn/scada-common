@@ -1,8 +1,8 @@
 #include "events/event_fetcher.h"
 
 #include "base/awaitable.h"
-#include "base/check.h"
 #include "base/boost_log.h"
+#include "base/check.h"
 #include "base/range_util.h"
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
@@ -169,6 +169,10 @@ void EventFetcher::OnChannelClosed() {
 }
 
 void EventFetcher::OnHistoryReadEventsComplete(
-    scada::HistoryReadEventsResult&& result) {
-  OnSystemEvents(std::move(result.events));
+    scada::StatusOr<scada::HistoryReadEventsResult>&& result) {
+  // A failed read is indistinguishable from an empty one here, as before: the
+  // fetcher has no error surface and simply leaves the view unchanged.
+  if (!result.ok())
+    return;
+  OnSystemEvents(std::move(result->events));
 }

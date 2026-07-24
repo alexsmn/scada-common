@@ -46,12 +46,12 @@ class TestHistoryService final : public scada::HistoryService {
     co_return raw_result;
   }
 
-  Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
+  Awaitable<scada::StatusOr<scada::HistoryReadEventsResult>> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
       scada::EventFilter filter) override {
-    co_return scada::HistoryReadEventsResult{.status = scada::StatusCode::Bad};
+    co_return scada::StatusCode::Bad;
   }
 
   int raw_read_count = 0;
