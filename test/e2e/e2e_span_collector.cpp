@@ -129,10 +129,9 @@ class SpanCollector::Impl {
    public:
     explicit TraceService(Impl& owner) : owner_{owner} {}
 
-    ::grpc::Status Export(
-        ::grpc::ServerContext*,
-        const otlp_trace::ExportTraceServiceRequest* request,
-        otlp_trace::ExportTraceServiceResponse*) override {
+    ::grpc::Status Export(::grpc::ServerContext*,
+                          const otlp_trace::ExportTraceServiceRequest* request,
+                          otlp_trace::ExportTraceServiceResponse*) override {
       if (request)
         owner_.Ingest(*request);
       return ::grpc::Status::OK;
@@ -268,7 +267,8 @@ bool SpanCollector::WaitUntilQuiet(std::chrono::milliseconds quiet_period,
       return true;
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
   }
-  return std::chrono::steady_clock::now() - impl_->LastArrival() >= quiet_period;
+  return std::chrono::steady_clock::now() - impl_->LastArrival() >=
+         quiet_period;
 }
 
 void SpanCollector::Clear() {

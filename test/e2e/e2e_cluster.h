@@ -71,9 +71,10 @@ void ConfigureSignedLicenseFromEnv(boost::json::object& server_json);
 ::testing::AssertionResult ValidateSignedLicenseEnv();
 
 // Points one server process's metrics, traces and structured logs at
-// `endpoint`, or leaves `server_json` untouched when it is empty. `service_name`
-// becomes the process's OTel resource identity, so a cluster run shows up as one
-// service per tier rather than several indistinguishable "scada-server" rows.
+// `endpoint`, or leaves `server_json` untouched when it is empty.
+// `service_name` becomes the process's OTel resource identity, so a cluster run
+// shows up as one service per tier rather than several indistinguishable
+// "scada-server" rows.
 void ConfigureTelemetry(boost::json::object& server_json,
                         std::string_view service_name,
                         std::string_view endpoint);

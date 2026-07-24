@@ -8,8 +8,8 @@
 #include <cstdlib>
 #include <map>
 #include <memory>
-#include <system_error>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -195,8 +195,9 @@ std::string TelemetryServiceName(ClusterTier tier) {
   // its driver block (and therefore the name the existing suites derive) is
   // "iec60870". See docs/server/tier-namespace-map.md, "Tier name != group
   // name".
-  const std::string_view name =
-      tier == ClusterTier::kIec104 ? std::string_view{"iec60870"} : ToString(tier);
+  const std::string_view name = tier == ClusterTier::kIec104
+                                    ? std::string_view{"iec60870"}
+                                    : ToString(tier);
   return "scada-e2e-" + std::string{name};
 }
 
@@ -220,10 +221,10 @@ class ServerCluster::Impl {
     // Edges and module tiers first, then the file store, then the
     // config/historian everything else depends on.
     static constexpr ClusterTier kOrder[] = {
-        ClusterTier::kIec104,     ClusterTier::kModbus,
-        ClusterTier::kIec61850,   ClusterTier::kOpc,
-        ClusterTier::kVidicon,    ClusterTier::kFilesystem,
-        ClusterTier::kHistorian,  ClusterTier::kConfig};
+        ClusterTier::kIec104,    ClusterTier::kModbus,
+        ClusterTier::kIec61850,  ClusterTier::kOpc,
+        ClusterTier::kVidicon,   ClusterTier::kFilesystem,
+        ClusterTier::kHistorian, ClusterTier::kConfig};
     std::vector<ServerTier*> result;
     for (ClusterTier tier : kOrder) {
       if (ServerTier* launched = Tier(tier))
@@ -272,7 +273,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   // shared test server) and the TIT.4 historization live here because the edges
   // read their config from here. Mirrors
   // gcp/free-tier/multitier/configs/config.json.
-  ServerTier& config = Reserve(ClusterTier::kConfig, executables_.config, ports);
+  ServerTier& config =
+      Reserve(ClusterTier::kConfig, executables_.config, ports);
   std::string config_sql{kSvcUserSql};
   if (options.historize_simulated_item)
     config_sql += std::string{kHistorizeSimulatedItemSql};
@@ -346,8 +348,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
 
   // The iec104 edge serves the historized TIT.4; the historian pulls it from
   // there (any edge would do — all serve the config-derived data items).
-  const std::string collect_source_url =
-      Tier(ClusterTier::kIec104)->OpcUaUrl();
+  const std::string collect_source_url = Tier(ClusterTier::kIec104)->OpcUaUrl();
 
   std::string historian_sql{kSvcUserSql};
   if (options.historize_simulated_item)
@@ -356,8 +357,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       .configure =
           [collect_source_url, historian_url, endpoint, enforce_permissions,
            proxy_opcua_url = options.proxy_opcua_url,
-           historize = options.historize_simulated_item](
-              boost::json::object& json) {
+           historize =
+               options.historize_simulated_item](boost::json::object& json) {
             EraseDrivers(json);
             json.erase("filesystem");
             ProvisionSvcPassword(json);
@@ -401,10 +402,9 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
                                  bool dynamic_registration,
                                  std::string advertise_url) {
     return [config_url, proxy_opcua_url, endpoint, enforce_permissions,
-            keep_driver,
-            dynamic_registration,
-            advertise_url = std::move(advertise_url)](
-               boost::json::object& json) {
+            keep_driver, dynamic_registration,
+            advertise_url =
+                std::move(advertise_url)](boost::json::object& json) {
       for (std::string_view driver : {"iec60870", "modbus", "iec61850"}) {
         if (driver != keep_driver)
           json.erase(driver);
@@ -519,8 +519,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       ServerTier& module_tier = Reserve(spec.tier, spec.exe, ports);
       module_tier.Launch(ServerTier::Options{
           .configure =
-              [endpoint, enforce_permissions, &spec](
-                  boost::json::object& json) {
+              [endpoint, enforce_permissions,
+               &spec](boost::json::object& json) {
                 EraseDrivers(json);
                 json.erase("filesystem");
                 json.erase("history");
@@ -545,7 +545,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   }
 #endif
 
-  // --- Aggregation entries for the caller's proxy -----------------------------
+  // --- Aggregation entries for the caller's proxy
+  // -----------------------------
   for (const EdgeSpec& edge : edges) {
     // Dynamically-registered edges have no static entry — they arrive through
     // the DiscoveryRegistry.

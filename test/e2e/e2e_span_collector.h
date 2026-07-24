@@ -69,8 +69,9 @@ class SpanCollector {
   std::vector<CollectedSpan> Spans() const;
 
   // Spans matching a trace id and (when non-empty) a span name.
-  std::vector<CollectedSpan> SpansOnTrace(std::string_view trace_id,
-                                          std::string_view span_name = {}) const;
+  std::vector<CollectedSpan> SpansOnTrace(
+      std::string_view trace_id,
+      std::string_view span_name = {}) const;
 
   // The distinct service names that emitted `span_name` on `trace_id` — i.e.
   // the set of tiers that handled that request. This is the assertion the
