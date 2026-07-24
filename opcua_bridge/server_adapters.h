@@ -142,7 +142,7 @@ class HistoryServiceAdapter {
 
 // Adapts a core scada::HistoryUpdateService to the opcua HistoryUpdate wire
 // result, converting the StatusOr<per-value StatusCodes> into the wire
-// HistoryUpdateResult. OPC UA Part 4 §5.10.5 HistoryUpdate.
+// per-value StatusCode vector. OPC UA Part 4 §5.10.5 HistoryUpdate.
 class HistoryUpdateServiceAdapter {
  public:
   explicit HistoryUpdateServiceAdapter(scada::HistoryUpdateService& inner
@@ -150,13 +150,13 @@ class HistoryUpdateServiceAdapter {
                                        Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateData(
-      opcua::ServiceContext context,
-      opcua::UpdateDataDetails details);
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+  HistoryUpdateData(opcua::ServiceContext context,
+                    opcua::UpdateDataDetails details);
 
-  opcua::Awaitable<opcua::HistoryUpdateResult> HistoryUpdateEvent(
-      opcua::ServiceContext context,
-      opcua::UpdateEventDetails details);
+  opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
+  HistoryUpdateEvent(opcua::ServiceContext context,
+                     opcua::UpdateEventDetails details);
 
  private:
   scada::HistoryUpdateService& inner_;

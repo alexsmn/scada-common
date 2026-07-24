@@ -193,8 +193,8 @@ Awaitable<std::vector<scada::MonitoredItemCreateResult>>
 ClientMonitoredItemSubscriptionAdapter::AddItems(
     std::vector<scada::MonitoredItemCreateRequest> requests) {
   scada::ServiceContext context = context_;
-  auto span = StartClientSpan(tracer_, "opcua.client/CreateMonitoredItems",
-                              context);
+  auto span =
+      StartClientSpan(tracer_, "opcua.client/CreateMonitoredItems", context);
   SetBatchAttributes(span, requests,
                      [](const scada::MonitoredItemCreateRequest& request) {
                        return request.item_to_monitor.node_id.ToString();
@@ -282,10 +282,7 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
-  if (result->status.bad()) {
-    co_return ToScada(result->status);
-  }
-  co_return ToScadaVector(result->operation_results);
+  co_return ToScadaVector(*result);
 }
 
 Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
@@ -299,10 +296,7 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
-  if (result->status.bad()) {
-    co_return ToScada(result->status);
-  }
-  co_return ToScadaVector(result->operation_results);
+  co_return ToScadaVector(*result);
 }
 
 // --- factory ------------------------------------------------------------

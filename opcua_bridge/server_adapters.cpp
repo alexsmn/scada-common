@@ -322,7 +322,7 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
 }
 
 // --- HistoryUpdateService ----------------------------------------------
-opcua::Awaitable<opcua::HistoryUpdateResult>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 HistoryUpdateServiceAdapter::HistoryUpdateData(
     opcua::ServiceContext context,
     opcua::UpdateDataDetails details) {
@@ -330,18 +330,15 @@ HistoryUpdateServiceAdapter::HistoryUpdateData(
       StartServerSpan(tracer_, "opcua.server/HistoryUpdateData", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
   span.SetAttribute("scada.input_count", std::to_string(details.values.size()));
-  // The core service returns a per-value StatusCode vector or an
-  // operation-level failure; map both onto the wire HistoryUpdateResult.
   auto result =
       co_await inner_.HistoryUpdateData(ToScada(context), ToScada(details));
   if (!result.ok()) {
-    co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
+    co_return ToOpcua(result.status());
   }
-  co_return opcua::HistoryUpdateResult{.operation_results =
-                                           ToOpcuaVector(*result)};
+  co_return ToOpcuaVector(*result);
 }
 
-opcua::Awaitable<opcua::HistoryUpdateResult>
+opcua::Awaitable<opcua::StatusOr<std::vector<opcua::StatusCode>>>
 HistoryUpdateServiceAdapter::HistoryUpdateEvent(
     opcua::ServiceContext context,
     opcua::UpdateEventDetails details) {
@@ -351,10 +348,9 @@ HistoryUpdateServiceAdapter::HistoryUpdateEvent(
   auto result =
       co_await inner_.HistoryUpdateEvent(ToScada(context), ToScada(details));
   if (!result.ok()) {
-    co_return opcua::HistoryUpdateResult{.status = ToOpcua(result.status())};
+    co_return ToOpcua(result.status());
   }
-  co_return opcua::HistoryUpdateResult{.operation_results =
-                                           ToOpcuaVector(*result)};
+  co_return ToOpcuaVector(*result);
 }
 
 // --- MonitoredItemSubscription -----------------------------------------
@@ -373,8 +369,8 @@ MonitoredItemSubscriptionAdapter::AddItems(
     }
   }
   opcua::ServiceContext context = context_;
-  auto span = StartServerSpan(tracer_, "opcua.server/CreateMonitoredItems",
-                              context);
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/CreateMonitoredItems", context);
   SetBatchAttributes(span, requests,
                      [](const opcua::MonitoredItemCreateRequest& request) {
                        return request.item_to_monitor.node_id.ToString();
@@ -519,8 +515,8 @@ MonitoredItemServiceAdapter::CreateSubscription(
   if (!result.ok())
     return ToOpcua(result.status());
   return std::unique_ptr<opcua::MonitoredItemSubscription>{
-      std::make_unique<MonitoredItemSubscriptionAdapter>(
-          std::move(*result), context, tracer_)};
+      std::make_unique<MonitoredItemSubscriptionAdapter>(std::move(*result),
+                                                         context, tracer_)};
 }
 
 // --- Authenticator ------------------------------------------------------
