@@ -34,43 +34,43 @@ fields inside a camelCase transport envelope (`requestHandle`, `service`,
 
 ![Common OPC UA module overview](./diagrams/opcua_module_overview.svg)
 
-Source: [opcua_module_overview.mmd](./diagrams/opcua_module_overview.mmd)
+Source: [opcua_module_overview.puml](./diagrams/opcua_module_overview.puml)
 
 ### Shared server request flow
 
 ![Common OPC UA server request flow](./diagrams/opcua_server_request_flow.svg)
 
-Source: [opcua_server_request_flow.mmd](./diagrams/opcua_server_request_flow.mmd)
+Source: [opcua_server_request_flow.puml](./diagrams/opcua_server_request_flow.puml)
 
 ### Client session flow
 
 ![Common OPC UA client session flow](./diagrams/opcua_client_session_flow.svg)
 
-Source: [opcua_client_session_flow.mmd](./diagrams/opcua_client_session_flow.mmd)
+Source: [opcua_client_session_flow.puml](./diagrams/opcua_client_session_flow.puml)
 
 ### Component diagram
 
 ![Common OPC UA Binary and WebSocket components](./diagrams/opcua_component_diagram.svg)
 
-Source: [opcua_component_diagram.mmd](./diagrams/opcua_component_diagram.mmd)
+Source: [opcua_component_diagram.puml](./diagrams/opcua_component_diagram.puml)
 
 ### Module architecture
 
 ![OPC UA Binary and WebSocket transport architecture](./diagrams/opcua_architecture.svg)
 
-Source: [opcua_architecture.mmd](./diagrams/opcua_architecture.mmd)
+Source: [opcua_architecture.puml](./diagrams/opcua_architecture.puml)
 
 ### Session lifecycle
 
 ![OPC UA WebSocket session sequence](./diagrams/opcua_session_sequence.svg)
 
-Source: [opcua_session_sequence.mmd](./diagrams/opcua_session_sequence.mmd)
+Source: [opcua_session_sequence.puml](./diagrams/opcua_session_sequence.puml)
 
 ### Subscription and publish loop
 
 ![OPC UA WebSocket subscription sequence](./diagrams/opcua_subscription_sequence.svg)
 
-Source: [opcua_subscription_sequence.mmd](./diagrams/opcua_subscription_sequence.mmd)
+Source: [opcua_subscription_sequence.puml](./diagrams/opcua_subscription_sequence.puml)
 
 ## Purpose
 

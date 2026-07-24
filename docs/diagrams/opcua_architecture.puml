@@ -1,0 +1,59 @@
+@startuml opcua_architecture
+!include _style.puml
+
+title OPC UA architecture — endpoints, adapters, shared core
+
+left to right direction
+
+package "Clients" as Clients {
+  rectangle "**Qt desktop client**\n//scada/client//" as QT $external
+  rectangle "**Web client**\n//scada/web//" as WEB $external
+  rectangle "**3rd-party UA clients**" as NATIVE $external
+}
+
+package "Server OPC UA endpoints" as Endpoints {
+  rectangle "**binary::Server**\n//common/opcua/binary//\nopc.tcp://:4840\nUA Binary" as TCP $tier
+  rectangle "**WebSocketTransport**\n//third_party/net/transport//\nWS/WSS acceptor\nTLS enabled" as WSSOCK $tier
+}
+
+package "Transport adapters" as Adapters {
+  rectangle "**binary::Runtime**\nbinary request adaptation\n+ authenticated dispatch" as BINARY $tier
+  rectangle "**WsServer**\nmessage-oriented UA-JSON loop" as WS $tier
+  rectangle "**opcua::ServerSession**\nawaitable service adapter +\nsubscription orchestration" as SESS $tier
+  rectangle "**opcua::ServerSessionManager**\nsession ids, auth tokens,\ntimeouts, detach/resume" as SMGR $tier
+  rectangle "**opcua::ServerSubscription**\nper-subscription queue,\nreplay, keepalive" as SUB $tier
+  rectangle "**JsonCodec**\nUA-JSON encode/decode\nrequestHandle + session envelopes" as CODEC $tier
+}
+
+package "Shared core" as Core {
+  rectangle "**opcua::ServerRuntime**\ntransport-neutral request-body routing" as RT $neutral
+  rectangle "**opcua::ServiceHandler**\ncoroutine dispatch into\nshared scada services" as HANDLER $neutral
+  rectangle "**DataServices**\ncoroutine service slots +\nmonitored-item service" as CTX $neutral
+  rectangle "**scada services**\nnode manager, history,\nevents, security" as SVC $neutral
+}
+
+rectangle "**server/opcua/opcua_module.***\nOpcUaModule config + lifecycle" as MOD $config
+
+QT --> TCP : opc.tcp
+NATIVE --> TCP : opc.tcp
+WEB --> WSSOCK : opc.ws / opc.wss
+
+WSSOCK --> WS
+WS --> CODEC
+WS --> RT
+TCP --> BINARY
+BINARY --> RT
+RT --> SESS
+RT --> SMGR
+RT --> HANDLER
+SESS --> SMGR
+SESS --> SUB
+HANDLER --> CTX
+SMGR --> CTX
+
+CTX --> SVC
+
+MOD ..> TCP : configures
+MOD ..> WSSOCK : configures
+
+@enduml

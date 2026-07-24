@@ -1,0 +1,57 @@
+@startuml opcua_binary_client_architecture
+!include _style.puml
+
+title OPC UA binary client — layering
+
+package "Outbound-client adapters" as Consumers {
+  rectangle "**ClientSession**\nscada::SessionService / ViewService /\nAttributeService / MonitoredItemService /\nMethodService" as QT $external
+  rectangle "**Other OPC UA callers**\nfuture" as OTHER $external
+}
+
+package "Reusable client layer\ncommon/opcua/" as Client {
+  rectangle "**ClientProtocolSession**\nCreate / Close\nRead / Write / Browse / BrowseNext\nTranslateBrowsePaths / Call" as SESS $tier
+  rectangle "**ClientProtocolSubscription**\nCreate / Publish / Delete\nCreateMonitoredItem / DeleteMonitoredItem\nDataChangeHandler dispatch" as SUB $tier
+  rectangle "**ClientChannel**\nCall<Req, Resp> → Awaitable<StatusOr>\nrequest_handle + request_id correlation\nauthentication_token bind" as CHAN $tier
+}
+
+package "Binary TCP client adapter\ncommon/opcua/binary/" as BinaryClient {
+  rectangle "**binary::ClientConnection**\nOpen / Close\nEncode requests / decode responses" as CONN $tier
+  rectangle "**binary::ClientSecureChannel**\nOpen / Close\nSendServiceRequest / ReadServiceResponse\nchannel_id + token_id + sequence_number" as SC $tier
+  rectangle "**binary::ClientTransport**\nConnect (HEL / ACK)\nReadFrame / WriteFrame\ntransport::any_transport" as TRANS $tier
+}
+
+package "Shared UA Binary primitives\ncommon/opcua/binary/" as Shared {
+  rectangle "**service_codec**\nEncode/binary::DecodeServiceRequest\nEncode/binary::DecodeServiceResponse" as SVC $neutral
+  rectangle "**secure_channel**\nEncode/DecodeOpenSecureChannelRequestBody\nEncode/DecodeOpenSecureChannelResponseBody\nEncode/DecodeCloseSecureChannelRequestBody" as SECCODEC $neutral
+  rectangle "**protocol**\nHEL / ACK / ERR framing\nSecure Conversation framing" as PROTO $neutral
+  rectangle "**codec_utils**\nbinary::Encoder / binary::Decoder\nVariant / NodeId / DataValue / …" as UTILS $neutral
+}
+
+package "Shared message model\ncommon/opcua/" as Model {
+  rectangle "**opcua_message.h**\nRequestBody / ResponseBody\n(std::variant of all typed services)" as MSG $neutral
+}
+
+package "third_party/net" as Net {
+  rectangle "**transport::any_transport**\nTCP / WS / in-memory" as ANY $external
+}
+
+QT --> SESS
+OTHER ..> SESS
+SESS --> CHAN
+SESS ..> SUB : owns
+SUB --> CHAN
+CHAN --> CONN
+CONN --> SC
+SC --> TRANS
+TRANS --> ANY
+
+CONN ..> SVC : encodes requests /\ndecodes responses via
+SC ..> SECCODEC : frames via
+TRANS ..> PROTO : frames via
+SVC --> UTILS
+SECCODEC --> UTILS
+PROTO --> UTILS
+SVC --> MSG
+CHAN --> MSG
+
+@enduml

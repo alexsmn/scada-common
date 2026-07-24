@@ -114,26 +114,25 @@ The `node_service_unittests` target links all implementation variants (v1, v2, v
 
 ## Documentation
 
-- When updating diagram sources in `docs/`, regenerate the corresponding
-  committed `docs/*.svg` artifacts in the same change.
-- Mermaid sources in `docs/*.mmd` should be rendered to committed `docs/*.svg`
-  artifacts after diagram changes.
-- From WSL, prefer running Mermaid regeneration on the Windows side via
-  `cmd.exe`, not via Linux `mmdc`. In this repo, the WSL-launched browser path
-  can fail with Puppeteer/Chrome startup errors, while the Windows-side render
-  works reliably with Edge.
-- Use the checked-in Windows Puppeteer config at
-  `docs/tools/mermaid-puppeteer-config-win.json`:
+- Diagrams are PlantUML. Sources live in `docs/diagrams/*.puml`; commit both the
+  `.puml` source and the rendered `.svg`, and regenerate the `.svg` in the same
+  change as the source:
 
 ```bash
-cmd.exe /c mmdc -p C:/tc/scada/common/docs/tools/mermaid-puppeteer-config-win.json \
-  -i C:/tc/scada/common/docs/diagrams/<diagram>.mmd \
-  -o C:/tc/scada/common/docs/diagrams/<diagram>.svg \
-  -b white
+plantuml -tsvg docs/diagrams/<diagram>.puml
 ```
 
-- Keep the SVG background explicit (`-b white` or equivalent) so diagrams stay
-  readable on dark backgrounds.
+  (macOS: `brew install plantuml`; it brings its own JDK and Graphviz. No
+  browser or Puppeteer is involved, so this works the same from WSL and Linux.)
+- Start every diagram with `!include _style.puml` — the shared house style
+  (theme, skinparams, palette variables `$tier`/`$config`/`$store`/`$hazard`/
+  `$external`/`$neutral`/`$proxy`) lives in `docs/diagrams/_style.puml`. It sets
+  an explicit white background so diagrams stay readable on dark backgrounds.
+  See the superproject `CLAUDE.md`, "PlantUML house style", for the palette
+  table and rendering gotchas.
+- Always look at the rendered output before committing (`plantuml -tpng … -o /tmp`
+  and open it) — layout collisions and PlantUML warning banners are drawn into
+  the image and are invisible in the source.
 
 ## Include Conventions
 
