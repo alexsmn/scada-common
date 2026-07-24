@@ -156,16 +156,16 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
   const NodeId node_id{7, 2};
   service.SetRawProfile(node_id, 42.0);
 
-  auto result = WaitAwaitable(
-      executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                    .node_id = node_id,
-                    .from = scada::Now() - std::chrono::hours(1),
-                    .to = scada::Now()}));
+  auto result =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = node_id,
+                                  .from = scada::Now() - std::chrono::hours(1),
+                                  .to = scada::Now()}));
 
-  EXPECT_TRUE(result.status);
-  ASSERT_EQ(result.values.size(), 48u);
-  EXPECT_EQ(result.values.front().status_code, StatusCode::Good);
-  EXPECT_FALSE(result.values.front().value.is_null());
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->values.size(), 48u);
+  EXPECT_EQ(result->values.front().status_code, StatusCode::Good);
+  EXPECT_FALSE(result->values.front().value.is_null());
 }
 
 // The synthesized series spans the requested window, so a narrow range (a
@@ -183,11 +183,11 @@ TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
       WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
                                   .node_id = node_id, .from = from, .to = to}));
 
-  EXPECT_TRUE(result.status);
-  ASSERT_EQ(result.values.size(), 48u);
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->values.size(), 48u);
   // All 48 points fall inside [from, to], evenly spaced, ending at `to`.
-  EXPECT_GE(result.values.front().source_timestamp, from);
-  EXPECT_EQ(result.values.back().source_timestamp, to - (to - from) / 48);
+  EXPECT_GE(result->values.front().source_timestamp, from);
+  EXPECT_EQ(result->values.back().source_timestamp, to - (to - from) / 48);
 }
 
 // A read whose upper bound is the "current-only" sentinel (Time::Max, used
@@ -203,20 +203,16 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
   service.SetRawProfile(node_id, 42.0);
 
   const auto from = scada::Now() - std::chrono::hours(1);
-  auto result =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id,
-                                  .from = from,
-                                  .to = scada::kMaxTime}));
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                    .node_id = node_id, .from = from, .to = scada::kMaxTime}));
 
-  EXPECT_TRUE(result.status);
-  ASSERT_EQ(result.values.size(), 48u);
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->values.size(), 48u);
   // The newest point is within a day of now, not centuries into the future.
   const auto now = scada::Now();
-  EXPECT_LT(result.values.back().source_timestamp,
-            now + std::chrono::days(1));
-  EXPECT_GT(result.values.back().source_timestamp,
-            now - std::chrono::days(1));
+  EXPECT_LT(result->values.back().source_timestamp, now + std::chrono::days(1));
+  EXPECT_GT(result->values.back().source_timestamp, now - std::chrono::days(1));
 }
 
 // LoadFromJson leaves an event marked `"acknowledged": false` pending (null
@@ -237,8 +233,8 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   })"));
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(NodeId{}, scada::Time{},
-                                          scada::Now(), EventFilter{}));
+      executor, service.HistoryReadEvents(NodeId{}, scada::Time{}, scada::Now(),
+                                          EventFilter{}));
 
   ASSERT_EQ(result.events.size(), 2u);
   EXPECT_FALSE(result.events[0].acked);

@@ -49,8 +49,8 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     if (!owner_->connected_) {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
-        (*data_change_handler)({scada::StatusCode::Uncertain_Disconnected,
-                                scada::Now()});
+        (*data_change_handler)(
+            {scada::StatusCode::Uncertain_Disconnected, scada::Now()});
       }
       return;
     }
@@ -66,8 +66,7 @@ class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
     if (!underlying_item_) {
       if (const auto* data_change_handler =
               std::get_if<scada::DataChangeHandler>(&*handler_)) {
-        (*data_change_handler)(
-            {scada::StatusCode::Bad, scada::Now()});
+        (*data_change_handler)({scada::StatusCode::Bad, scada::Now()});
       } else if (const auto* event_handler =
                      std::get_if<scada::EventHandler>(&*handler_)) {
         (*event_handler)(scada::StatusCode::Bad, {});
@@ -381,14 +380,13 @@ Awaitable<scada::Status> MasterDataServices::Call(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-Awaitable<scada::HistoryReadRawResult> MasterDataServices::HistoryReadRaw(
-    scada::HistoryReadRawDetails details) {
+Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+MasterDataServices::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   auto* service = history_service_;
   if (service)
     co_return co_await service->HistoryReadRaw(std::move(details));
 
-  co_return scada::HistoryReadRawResult{
-      .status = scada::StatusCode::Bad_Disconnected};
+  co_return scada::StatusCode::Bad_Disconnected;
 }
 
 Awaitable<scada::HistoryReadEventsResult> MasterDataServices::HistoryReadEvents(

@@ -126,7 +126,7 @@ class HistoryServiceAdapter {
                                  Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::Awaitable<opcua::HistoryReadRawResult> HistoryReadRaw(
+  opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadRawResult>> HistoryReadRaw(
       opcua::HistoryReadRawDetails details);
 
   opcua::Awaitable<opcua::HistoryReadEventsResult> HistoryReadEvents(

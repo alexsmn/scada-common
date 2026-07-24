@@ -308,8 +308,8 @@ boost::json::value AggregateFilterToJson(const scada::AggregateFilter& v) {
 
 scada::AggregateFilter AggregateFilterFromJson(const boost::json::object& obj) {
   scada::AggregateFilter out;
-  out.start_time = base::DecodeWireTime(
-      obj.at("start_time_us").to_number<std::int64_t>());
+  out.start_time =
+      base::DecodeWireTime(obj.at("start_time_us").to_number<std::int64_t>());
   out.interval = std::chrono::microseconds{
       obj.at("interval_us").to_number<std::int64_t>()};
   out.aggregate_type =
@@ -450,13 +450,11 @@ scada::HistoryReadEventsDetails ToScada(
 }
 
 opcua::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult& v) {
-  return {.status = ToOpcua(v.status),
-          .values = ToOpcuaVector(v.values),
+  return {.values = ToOpcuaVector(v.values),
           .continuation_point = v.continuation_point};
 }
 scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult& v) {
-  return {.status = ToScada(v.status),
-          .values = ToScadaVector(v.values),
+  return {.values = ToScadaVector(v.values),
           .continuation_point = v.continuation_point};
 }
 

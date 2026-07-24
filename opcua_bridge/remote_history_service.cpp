@@ -78,7 +78,7 @@ Awaitable<scada::Status> RemoteHistoryService::Probe() {
   // Bad_Disconnected/Bad_Timeout.
   auto result = co_await adapter_.HistoryReadRaw(
       scada::HistoryReadRawDetails{.node_id = scada::NodeId{2258}});
-  co_return result.status;
+  co_return result.status();
 }
 
 Awaitable<void> RemoteHistoryService::Disconnect() {
@@ -103,8 +103,8 @@ RemoteHistoryService::ProbeServiceLevel(std::string endpoint) {
                                          config_.password);
 }
 
-Awaitable<scada::HistoryReadRawResult> RemoteHistoryService::HistoryReadRaw(
-    scada::HistoryReadRawDetails details) {
+Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+RemoteHistoryService::HistoryReadRaw(scada::HistoryReadRawDetails details) {
   return adapter_.HistoryReadRaw(std::move(details));
 }
 

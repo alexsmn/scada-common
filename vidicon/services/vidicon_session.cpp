@@ -77,9 +77,9 @@ boost::signals2::scoped_connection VidiconSession::SubscribeSessionStateChanged(
   return boost::signals2::scoped_connection{};
 }
 
-Awaitable<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
-    scada::HistoryReadRawDetails details) {
-  co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
+Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+VidiconSession::HistoryReadRaw(scada::HistoryReadRawDetails details) {
+  co_return scada::StatusCode::Bad;
 }
 
 Awaitable<scada::HistoryReadEventsResult> VidiconSession::HistoryReadEvents(

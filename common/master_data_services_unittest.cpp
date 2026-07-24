@@ -22,13 +22,12 @@ using namespace std::chrono_literals;
 using testing::_;
 using testing::StrictMock;
 
-class TestCoroutineDataServices final
-    : public scada::SessionService,
-      public scada::AttributeService,
-      public scada::ViewService,
-      public scada::MethodService,
-      public scada::HistoryService,
-      public scada::NodeManagementService {
+class TestCoroutineDataServices final : public scada::SessionService,
+                                        public scada::AttributeService,
+                                        public scada::ViewService,
+                                        public scada::MethodService,
+                                        public scada::HistoryService,
+                                        public scada::NodeManagementService {
  public:
   Awaitable<void> Connect(scada::SessionConnectParams params) override {
     ++connect_count;
@@ -46,8 +45,7 @@ class TestCoroutineDataServices final
     co_return;
   }
 
-  bool IsConnected(
-      scada::Duration* /*ping_delay*/ = nullptr) const override {
+  bool IsConnected(scada::Duration* /*ping_delay*/ = nullptr) const override {
     return connected;
   }
 
@@ -86,9 +84,9 @@ class TestCoroutineDataServices final
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>>
-  Browse(scada::ServiceContext /*context*/,
-         std::vector<scada::BrowseDescription> inputs) override {
+  Awaitable<scada::StatusOr<std::vector<scada::BrowseResult>>> Browse(
+      scada::ServiceContext /*context*/,
+      std::vector<scada::BrowseDescription> inputs) override {
     ++browse_count;
     last_browse_inputs = std::move(inputs);
     co_return std::vector<scada::BrowseResult>{
@@ -112,13 +110,11 @@ class TestCoroutineDataServices final
     co_return scada::Status{scada::StatusCode::Good};
   }
 
-  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
     ++history_raw_count;
     last_history_raw_details = std::move(details);
-    co_return scada::HistoryReadRawResult{
-        .status = scada::Status{scada::StatusCode::Good},
-        .values = {read_value}};
+    co_return scada::HistoryReadRawResult{.values = {read_value}};
   }
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
@@ -132,34 +128,34 @@ class TestCoroutineDataServices final
         .status = scada::Status{scada::StatusCode::Good}};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>>
-  AddNodes(scada::ServiceContext /*context*/,
-           std::vector<scada::AddNodesItem> inputs) override {
+  Awaitable<scada::StatusOr<std::vector<scada::AddNodesResult>>> AddNodes(
+      scada::ServiceContext /*context*/,
+      std::vector<scada::AddNodesItem> inputs) override {
     ++add_nodes_count;
     last_add_nodes_inputs = std::move(inputs);
     co_return std::vector<scada::AddNodesResult>{
         {.added_node_id = scada::NodeId{700, 7}}};
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteNodes(scada::ServiceContext /*context*/,
-              std::vector<scada::DeleteNodesItem> inputs) override {
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteNodes(
+      scada::ServiceContext /*context*/,
+      std::vector<scada::DeleteNodesItem> inputs) override {
     ++delete_nodes_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  AddReferences(scada::ServiceContext /*context*/,
-                std::vector<scada::AddReferencesItem> inputs) override {
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> AddReferences(
+      scada::ServiceContext /*context*/,
+      std::vector<scada::AddReferencesItem> inputs) override {
     ++add_references_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
   }
 
-  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>>
-  DeleteReferences(scada::ServiceContext /*context*/,
-                   std::vector<scada::DeleteReferencesItem> inputs) override {
+  Awaitable<scada::StatusOr<std::vector<scada::StatusCode>>> DeleteReferences(
+      scada::ServiceContext /*context*/,
+      std::vector<scada::DeleteReferencesItem> inputs) override {
     ++delete_references_count;
     co_return std::vector<scada::StatusCode>(inputs.size(),
                                              scada::StatusCode::Good);
@@ -252,11 +248,11 @@ TEST(MasterDataServicesTest, ReadDispatchesThroughCoroutineService) {
   services.SetServices(std::move(data_services));
 
   EXPECT_CALL(*attribute_service, Read(_, _))
-      .WillOnce([](scada::ServiceContext, std::vector<scada::ReadValueId>)
-                    -> Awaitable<
-                        scada::StatusOr<std::vector<scada::DataValue>>> {
-        co_return std::vector<scada::DataValue>{scada::DataValue{}};
-      });
+      .WillOnce(
+          [](scada::ServiceContext, std::vector<scada::ReadValueId>)
+              -> Awaitable<scada::StatusOr<std::vector<scada::DataValue>>> {
+            co_return std::vector<scada::DataValue>{scada::DataValue{}};
+          });
 
   auto result = WaitAwaitable(
       executor, services.Read({}, std::vector<scada::ReadValueId>{}));
@@ -264,8 +260,7 @@ TEST(MasterDataServicesTest, ReadDispatchesThroughCoroutineService) {
   ASSERT_THAT(result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
 }
 
-TEST(MasterDataServicesTest,
-     CoroutineNodeManagementForwardsDelayedCompletion) {
+TEST(MasterDataServicesTest, CoroutineNodeManagementForwardsDelayedCompletion) {
   TestExecutor executor;
   MasterDataServices services{executor};
   auto node_management_service =
@@ -278,18 +273,17 @@ TEST(MasterDataServicesTest,
   scada::base::AsyncCompletion pending_add_nodes{executor};
   EXPECT_CALL(*node_management_service, AddNodes(_, _))
       .WillOnce([&](scada::ServiceContext, std::vector<scada::AddNodesItem>)
-                    -> Awaitable<scada::StatusOr<
-                        std::vector<scada::AddNodesResult>>> {
+                    -> Awaitable<
+                        scada::StatusOr<std::vector<scada::AddNodesResult>>> {
         co_await pending_add_nodes.Wait();
-        co_return std::vector{scada::AddNodesResult{
-            .added_node_id = scada::NodeId{1}}};
+        co_return std::vector{
+            scada::AddNodesResult{.added_node_id = scada::NodeId{1}}};
       });
 
   auto result = StartAwaitable(
-      executor,
-      static_cast<scada::NodeManagementService&>(services).AddNodes(
-          scada::ServiceContext{},
-          {scada::AddNodesItem{.requested_id = scada::NodeId{1}}}));
+      executor, static_cast<scada::NodeManagementService&>(services).AddNodes(
+                    scada::ServiceContext{},
+                    {scada::AddNodesItem{.requested_id = scada::NodeId{1}}}));
   Drain(executor);
 
   EXPECT_FALSE(result->done);
@@ -341,16 +335,15 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesConnect) {
 
   scada::base::AsyncCompletion pending_connect{executor};
   EXPECT_CALL(*session_service, ConnectStatus(_))
-      .WillOnce([&](scada::SessionConnectParams params)
-                    -> Awaitable<scada::Status> {
-        EXPECT_EQ(params.host, "node-host");
-        co_await pending_connect.Wait();
-        co_return scada::StatusCode::Good;
-      });
+      .WillOnce(
+          [&](scada::SessionConnectParams params) -> Awaitable<scada::Status> {
+            EXPECT_EQ(params.host, "node-host");
+            co_await pending_connect.Wait();
+            co_return scada::StatusCode::Good;
+          });
 
-  auto result = StartAwaitable(
-      executor,
-      services.Connect({.host = "node-host"}));
+  auto result =
+      StartAwaitable(executor, services.Connect({.host = "node-host"}));
   Drain(executor);
 
   EXPECT_FALSE(result->done);
@@ -382,8 +375,7 @@ TEST(MasterDataServicesTest, CoroutineSessionFacadeDelegatesSessionState) {
       .WillOnce(testing::Return(scada::NodeId{1, 2}));
   EXPECT_CALL(*session_service, GetHostName())
       .WillOnce(testing::Return("master-host"));
-  EXPECT_CALL(*session_service, IsScada())
-      .WillOnce(testing::Return(true));
+  EXPECT_CALL(*session_service, IsScada()).WillOnce(testing::Return(true));
   EXPECT_CALL(*session_service, GetSessionDebugger())
       .WillOnce(testing::Return(nullptr));
 
@@ -424,9 +416,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
       {.node_id = scada::NodeId{100}}};
   auto read_result = WaitAwaitable(executor, services.Read({}, read_inputs));
 
-  ASSERT_THAT(read_result,
-              scada::test::IsOkAndHolds(testing::ElementsAre(
-                  direct_services->read_value)));
+  ASSERT_THAT(read_result, scada::test::IsOkAndHolds(testing::ElementsAre(
+                               direct_services->read_value)));
   EXPECT_EQ(direct_services->read_count, 1);
   EXPECT_EQ(direct_services->last_read_inputs, read_inputs);
 
@@ -436,9 +427,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   ASSERT_THAT(write_result, scada::test::IsOkAndHolds(testing::IsEmpty()));
   EXPECT_EQ(direct_services->write_count, 1);
 
-  auto browse_result =
-      WaitAwaitable(executor, services.Browse(
-                                  {}, {{.node_id = scada::NodeId{106}}}));
+  auto browse_result = WaitAwaitable(
+      executor, services.Browse({}, {{.node_id = scada::NodeId{106}}}));
 
   ASSERT_THAT(browse_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   ASSERT_EQ((*browse_result).size(), 1u);
@@ -449,29 +439,26 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
   EXPECT_EQ(direct_services->last_browse_inputs[0].node_id,
             (scada::NodeId{106}));
 
-  auto translate_result =
-      WaitAwaitable(executor, services.TranslateBrowsePaths(
-                                  {scada::BrowsePath{}}));
+  auto translate_result = WaitAwaitable(
+      executor, services.TranslateBrowsePaths({scada::BrowsePath{}}));
 
-  ASSERT_THAT(translate_result,
-              scada::test::IsOkAndHolds(testing::SizeIs(1)));
+  ASSERT_THAT(translate_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->translate_count, 1);
 
   auto add_nodes_result = WaitAwaitable(
       executor, services.AddNodes(scada::ServiceContext{},
                                   {{.requested_id = scada::NodeId{101}}}));
 
-  ASSERT_THAT(add_nodes_result,
-              scada::test::IsOkAndHolds(testing::SizeIs(1)));
+  ASSERT_THAT(add_nodes_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ((*add_nodes_result)[0].added_node_id, (scada::NodeId{700, 7}));
   EXPECT_EQ(direct_services->add_nodes_count, 1);
   ASSERT_EQ(direct_services->last_add_nodes_inputs.size(), 1u);
   EXPECT_EQ(direct_services->last_add_nodes_inputs[0].requested_id,
             (scada::NodeId{101}));
 
-  auto delete_nodes_result = WaitAwaitable(
-      executor, services.DeleteNodes(scada::ServiceContext{},
-                                     {scada::DeleteNodesItem{}}));
+  auto delete_nodes_result =
+      WaitAwaitable(executor, services.DeleteNodes(scada::ServiceContext{},
+                                                   {scada::DeleteNodesItem{}}));
 
   ASSERT_THAT(delete_nodes_result,
               scada::test::IsOkAndHolds(testing::SizeIs(1)));
@@ -493,11 +480,10 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
               scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->delete_references_count, 1);
 
-  auto call_status =
-      WaitAwaitable(executor, services.Call(scada::NodeId{102},
-                                            scada::NodeId{103}, {},
-                                            scada::ServiceContext{}.with_user_id(
-                                                scada::NodeId{104})));
+  auto call_status = WaitAwaitable(
+      executor,
+      services.Call(scada::NodeId{102}, scada::NodeId{103}, {},
+                    scada::ServiceContext{}.with_user_id(scada::NodeId{104})));
 
   EXPECT_TRUE(call_status.good());
   EXPECT_EQ(direct_services->call_count, 1);
@@ -509,9 +495,9 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
       .node_id = scada::NodeId{105}, .max_count = 3};
   auto history_result =
       WaitAwaitable(executor, services.HistoryReadRaw(history_details));
-  EXPECT_TRUE(history_result.status.good());
-  ASSERT_EQ(history_result.values.size(), 1u);
-  EXPECT_EQ(history_result.values[0], direct_services->read_value);
+  ASSERT_TRUE(history_result.ok()) << history_result.status();
+  ASSERT_EQ(history_result->values.size(), 1u);
+  EXPECT_EQ(history_result->values[0], direct_services->read_value);
   EXPECT_EQ(direct_services->history_raw_count, 1);
   EXPECT_EQ(direct_services->last_history_raw_details.node_id,
             history_details.node_id);
@@ -524,12 +510,12 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
                                  scada::Time{}, scada::EventFilter{}));
   EXPECT_TRUE(history_events_result.status.good());
   EXPECT_EQ(direct_services->history_events_count, 1);
-  EXPECT_EQ(direct_services->last_history_events_node_id,
-            (scada::NodeId{107}));
+  EXPECT_EQ(direct_services->last_history_events_node_id, (scada::NodeId{107}));
 
-  ASSERT_OK_AND_ASSIGN(auto browse_results, WaitAwaitable(
-      executor, static_cast<scada::ViewService&>(services).Browse(
-                    {}, {{.node_id = scada::NodeId{108}}})));
+  ASSERT_OK_AND_ASSIGN(
+      auto browse_results,
+      WaitAwaitable(executor, static_cast<scada::ViewService&>(services).Browse(
+                                  {}, {{.node_id = scada::NodeId{108}}})));
   ASSERT_EQ(browse_results.size(), 1u);
   ASSERT_EQ(browse_results[0].references.size(), 1u);
   EXPECT_EQ(browse_results[0].references[0].node_id, (scada::NodeId{900}));

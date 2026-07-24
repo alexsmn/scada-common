@@ -76,7 +76,7 @@ class RemoteHistoryService : public scada::HistoryService,
       std::string endpoint);
 
   // scada::HistoryService
-  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,

@@ -61,9 +61,9 @@ class FakeMonitoredItemService final : public scada::MonitoredItemService {
 // history from `OnChannelOpened`, which these tests do not exercise.
 class FakeHistoryService final : public scada::HistoryService {
  public:
-  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails /*details*/) override {
-    co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Good};
+    co_return scada::HistoryReadRawResult{};
   }
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
@@ -99,22 +99,23 @@ scada::Event MakeEvent(scada::EventId event_id,
 
 struct TestContext {
   TestContext()
-      : ack_queue{EventAckQueueContext{.logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
-                                       .executor_ = executor,
-                                       .method_service_ = method_service}} {}
+      : ack_queue{EventAckQueueContext{
+            .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
+            .executor_ = executor,
+            .method_service_ = method_service}} {}
 
   // Constructs the fetcher and drives it until its system-events monitored item
   // is established. `EventFetcher` subscribes lazily through the real
   // `CreateSubscription` path on the executor, so a drain is needed before the
   // fake item exists.
   void StartFetcher(EventObserver& observer) {
-    fetcher.emplace(
-        EventFetcherContext{.executor_ = executor,
-                            .monitored_item_service_ = monitored_item_service,
-                            .history_service_ = history_service,
-                            .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
-                            .event_storage_ = event_storage,
-                            .event_ack_queue_ = ack_queue});
+    fetcher.emplace(EventFetcherContext{
+        .executor_ = executor,
+        .monitored_item_service_ = monitored_item_service,
+        .history_service_ = history_service,
+        .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
+        .event_storage_ = event_storage,
+        .event_ack_queue_ = ack_queue});
     fetcher->AddObserver(observer);
     Drain(executor);
   }

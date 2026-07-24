@@ -34,9 +34,9 @@ void DrainExecutor(TestExecutor& executor) {
 
 class TestHistoryService final : public scada::HistoryService {
  public:
-  Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
+  Awaitable<scada::StatusOr<scada::HistoryReadRawResult>> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override {
-    co_return scada::HistoryReadRawResult{.status = scada::StatusCode::Bad};
+    co_return scada::StatusCode::Bad;
   }
 
   Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
@@ -85,8 +85,7 @@ class TestSessionService final : public scada::SessionService {
 
   Awaitable<void> Disconnect() override { co_return; }
 
-  bool IsConnected(
-      scada::Duration* ping_delay = nullptr) const override {
+  bool IsConnected(scada::Duration* ping_delay = nullptr) const override {
     return connected;
   }
 
@@ -211,10 +210,12 @@ TEST(EventFetcherBuilder, DataServicesCoroutineSlotsRefreshHistory) {
   data_services.session_service_ = std::shared_ptr<scada::SessionService>{
       std::shared_ptr<void>{}, &session_service};
 
-  auto fetcher = EventFetcherBuilder{.executor_ = executor,
-                                     .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
-                                     .data_services_ = std::move(data_services)}
-                     .Build();
+  auto fetcher =
+      EventFetcherBuilder{
+          .executor_ = executor,
+          .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
+          .data_services_ = std::move(data_services)}
+          .Build();
 
   DrainExecutor(executor);
 
@@ -238,9 +239,10 @@ TEST(EventFetcherBuilder, DataServicesContextRequiresMethodService) {
       std::shared_ptr<void>{}, &session_service};
 
   EXPECT_EQ(nullptr,
-            (EventFetcherBuilder{.executor_ = executor,
-                                 .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
-                                 .data_services_ = std::move(data_services)}
+            (EventFetcherBuilder{
+                .executor_ = executor,
+                .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
+                .data_services_ = std::move(data_services)}
                  .Build()));
 }
 

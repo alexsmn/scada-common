@@ -4,11 +4,11 @@
 #include "base/time/time.h"
 #include "scada/date_time.h"
 
-#include <chrono>
 #include "base/utf_convert.h"
 #include "model/node_id_util.h"
 #include "scada/data_value.h"
 #include "scada/status.h"
+#include <chrono>
 
 #include <boost/json.hpp>
 
@@ -103,7 +103,7 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   }
 }
 
-Awaitable<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
+Awaitable<StatusOr<HistoryReadRawResult>> LocalHistoryService::HistoryReadRaw(
     HistoryReadRawDetails details) {
   co_return ReadRaw(std::move(details));
 }
@@ -166,7 +166,6 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   }
 
   return HistoryReadRawResult{
-      .status = Status{StatusCode::Good},
       .values = std::move(values),
   };
 }

@@ -16,7 +16,23 @@
 
 namespace {
 const size_t kMaxReadCount = 10000;
+
+// The values and continuation point a HistoryReadRaw yielded. A failed read
+// yields neither; the fetcher treats it the same as an empty answer and lets
+// the gap stay unfilled.
+struct RawReadParts {
+  std::vector<scada::DataValue> values;
+  scada::ByteString continuation_point;
+};
+
+RawReadParts SplitRawResult(
+    scada::StatusOr<scada::HistoryReadRawResult> result) {
+  if (!result.ok())
+    return {};
+  return {.values = std::move(result->values),
+          .continuation_point = std::move(result->continuation_point)};
 }
+}  // namespace
 
 TimedDataFetcher::TimedDataFetcher(TimedDataFetcherContext&& context)
     : TimedDataFetcherContext{std::move(context)} {}
@@ -47,13 +63,13 @@ void TimedDataFetcher::FetchNextGap() {
                                        aggregate_filter_};
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
-            auto result =
-                co_await self->history_service_.HistoryReadRaw(details);
+            auto parts = SplitRawResult(
+                co_await self->history_service_.HistoryReadRaw(details));
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
-                std::move(result.continuation_point)};
+                std::move(parts.continuation_point)};
             self->OnHistoryReadRawComplete(
-                std::move(result.values), std::move(scoped_continuation_point));
+                std::move(parts.values), std::move(scoped_continuation_point));
           });
 }
 
@@ -72,8 +88,9 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
   if (!gap || !IntervalContains(*gap, querying_range_)) {
     LOG_INFO(logger_) << "Query canceled"
                       << LOG_TAG("Gap", ToString(scada::base::AsPair(*gap)))
-                      << LOG_TAG("Range",
-                                 ToString(scada::base::AsPair(querying_range_)));
+                      << LOG_TAG(
+                             "Range",
+                             ToString(scada::base::AsPair(querying_range_)));
     continuation_point.reset();
     querying_ = false;
     FetchNextGap();
@@ -94,13 +111,13 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
                                        continuation_point.release()};
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
-            auto result =
-                co_await self->history_service_.HistoryReadRaw(details);
+            auto parts = SplitRawResult(
+                co_await self->history_service_.HistoryReadRaw(details));
             ScopedContinuationPoint scoped_continuation_point{
                 self->executor_, self->history_service_, details,
-                std::move(result.continuation_point)};
+                std::move(parts.continuation_point)};
             self->OnHistoryReadRawComplete(
-                std::move(result.values), std::move(scoped_continuation_point));
+                std::move(parts.values), std::move(scoped_continuation_point));
           });
 }
 

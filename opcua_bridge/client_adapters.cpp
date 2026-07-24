@@ -228,7 +228,7 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
 }
 
 // --- HistoryService / HistoryUpdateService -----------------------------
-Awaitable<scada::HistoryReadRawResult>
+Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
 ClientHistoryServiceAdapter::HistoryReadRaw(
     scada::HistoryReadRawDetails details) {
   // HistoryService carries no ServiceContext (see tracing.md), so this CLIENT
@@ -239,7 +239,7 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
   auto result =
       co_await session_->HistoryReadRaw(ToOpcua(details), span.traceparent());
   if (!result.ok()) {
-    co_return scada::HistoryReadRawResult{.status = ToScada(result.status())};
+    co_return ToScada(result.status());
   }
   co_return ToScada(*result);
 }

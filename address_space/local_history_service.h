@@ -55,7 +55,7 @@ class LocalHistoryService : public HistoryService {
   void LoadFromJson(const boost::json::value& root);
 
   // HistoryService
-  Awaitable<HistoryReadRawResult> HistoryReadRaw(
+  Awaitable<StatusOr<HistoryReadRawResult>> HistoryReadRaw(
       HistoryReadRawDetails details) override;
   Awaitable<HistoryReadEventsResult> HistoryReadEvents(
       NodeId node_id,
@@ -72,8 +72,9 @@ class LocalHistoryService : public HistoryService {
                                      scada::Time to,
                                      EventFilter filter) const;
 
-  // Synthesized raw-history profile for a node: the series mean and, optionally,
-  // an explicit absolute standard deviation (falls back to 5% of |base_value|).
+  // Synthesized raw-history profile for a node: the series mean and,
+  // optionally, an explicit absolute standard deviation (falls back to 5% of
+  // |base_value|).
   struct RawProfile {
     double base_value = 0.0;
     std::optional<double> noise_stddev;

@@ -289,7 +289,7 @@ NodeManagementServiceAdapter::DeleteReferences(
 }
 
 // --- HistoryService -----------------------------------------------------
-opcua::Awaitable<opcua::HistoryReadRawResult>
+opcua::Awaitable<opcua::StatusOr<opcua::HistoryReadRawResult>>
 HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
   // HistoryService carries no ServiceContext downstream (see tracing.md);
   // this SERVER span still anchors the historian-side work in the caller's
@@ -299,7 +299,10 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
                                 TraceSpanKind::kServer, {});
   span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result = co_await inner_.HistoryReadRaw(ToScada(details));
-  co_return ToOpcua(result);
+  if (!result.ok()) {
+    co_return ToOpcua(result.status());
+  }
+  co_return ToOpcua(*result);
 }
 
 opcua::Awaitable<opcua::HistoryReadEventsResult>

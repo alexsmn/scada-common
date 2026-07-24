@@ -48,8 +48,8 @@ class VidiconSession final : public scada::SessionService,
   virtual scada::SessionDebugger* GetSessionDebugger() override;
 
   // scada::HistoryService
-  virtual Awaitable<scada::HistoryReadRawResult> HistoryReadRaw(
-      scada::HistoryReadRawDetails details) override;
+  virtual Awaitable<scada::StatusOr<scada::HistoryReadRawResult>>
+  HistoryReadRaw(scada::HistoryReadRawDetails details) override;
   virtual Awaitable<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::NodeId node_id,
       scada::Time from,
