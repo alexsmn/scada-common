@@ -66,6 +66,15 @@ boost::json::object& EnsureObject(boost::json::object& parent,
   return value.is_object() ? value.as_object() : value.emplace_object();
 }
 
+// Turns off namespace/node permission enforcement when a suite asked for it.
+// Absent from the config (the default) leaves the framework default in place.
+void ApplyPermissionEnforcement(boost::json::object& server_json,
+                                bool enforce_permissions) {
+  if (enforce_permissions)
+    return;
+  EnsureObject(server_json, "security")["enforcePermissions"] = false;
+}
+
 // Drops every protocol driver block, so a tier that serves configuration,
 // history, files or aggregation runs no device I/O of its own.
 void EraseDrivers(boost::json::object& server_json) {
@@ -253,6 +262,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     PortPool& ports,
     const ClusterOptions& options) {
   const std::string_view endpoint = options.otlp_endpoint;
+  const bool enforce_permissions = options.enforce_permissions;
 
   // --- Config tier -----------------------------------------------------------
   // Owns the configuration namespace (devices, data items, users, filesystem)
@@ -268,7 +278,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     config_sql += std::string{kHistorizeSimulatedItemSql};
   config.Launch(ServerTier::Options{
       .configure =
-          [endpoint](boost::json::object& json) {
+          [endpoint, enforce_permissions](boost::json::object& json) {
             json["deviceConfig"] = boost::json::object{};
             // Serves config only — no protocol drivers of its own, and no file
             // store (the filesystem tier owns the FileSystem subtree).
@@ -277,6 +287,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             ProvisionSvcPassword(json);
             ConfigureTelemetry(json, TelemetryServiceName(ClusterTier::kConfig),
                                endpoint);
+            ApplyPermissionEnforcement(json, enforce_permissions);
           },
       .iec61850_port = options.iec61850_port,
       .extra_config_sql = config_sql,
@@ -343,7 +354,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     historian_sql += std::string{kHistorizeSimulatedItemSql};
   historian.Launch(ServerTier::Options{
       .configure =
-          [collect_source_url, historian_url, endpoint,
+          [collect_source_url, historian_url, endpoint, enforce_permissions,
            proxy_opcua_url = options.proxy_opcua_url,
            historize = options.historize_simulated_item](
               boost::json::object& json) {
@@ -352,6 +363,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             ProvisionSvcPassword(json);
             ConfigureTelemetry(
                 json, TelemetryServiceName(ClusterTier::kHistorian), endpoint);
+            ApplyPermissionEnforcement(json, enforce_permissions);
             // The historian self-registers with the proxy via OPC UA
             // RegisterServer2, advertising the "HD" (Historical Data)
             // ServerCapabilityIdentifier (Part 4 §5.4.6, Part 12 Annex D).
@@ -383,12 +395,13 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
            << historian.opcua_port();
   }
 
-  auto make_edge_configure = [config_url, endpoint,
+  auto make_edge_configure = [config_url, endpoint, enforce_permissions,
                               proxy_opcua_url = options.proxy_opcua_url](
                                  std::string_view keep_driver,
                                  bool dynamic_registration,
                                  std::string advertise_url) {
-    return [config_url, proxy_opcua_url, endpoint, keep_driver,
+    return [config_url, proxy_opcua_url, endpoint, enforce_permissions,
+            keep_driver,
             dynamic_registration,
             advertise_url = std::move(advertise_url)](
                boost::json::object& json) {
@@ -409,6 +422,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       json.erase("history");
       ConfigureTelemetry(json, "scada-e2e-" + std::string{keep_driver},
                          endpoint);
+      ApplyPermissionEnforcement(json, enforce_permissions);
       if (dynamic_registration) {
         // WS-F self-registration: a per-edge application_uri (the registry
         // keys registrations by server URI) and an externally-reachable
@@ -452,7 +466,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       Reserve(ClusterTier::kFilesystem, executables_.filesystem, ports);
   file_store.Launch(ServerTier::Options{
       .configure =
-          [endpoint](boost::json::object& json) {
+          [endpoint, enforce_permissions](boost::json::object& json) {
             EraseDrivers(json);
             json["dataItems"] = boost::json::object{{"enabled", false}};
             // No history module in the filesystem tier binary; drop the dead
@@ -461,6 +475,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             ProvisionSvcPassword(json);
             ConfigureTelemetry(
                 json, TelemetryServiceName(ClusterTier::kFilesystem), endpoint);
+            ApplyPermissionEnforcement(json, enforce_permissions);
             // The template's filesystem block stays: it roots the store at this
             // tier's own ${DIR_PARAM}/FileSystem workspace dir.
           },
@@ -504,7 +519,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       ServerTier& module_tier = Reserve(spec.tier, spec.exe, ports);
       module_tier.Launch(ServerTier::Options{
           .configure =
-              [endpoint, &spec](boost::json::object& json) {
+              [endpoint, enforce_permissions, &spec](
+                  boost::json::object& json) {
                 EraseDrivers(json);
                 json.erase("filesystem");
                 json.erase("history");
@@ -514,6 +530,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
                 ProvisionSvcPassword(json);
                 ConfigureTelemetry(json, TelemetryServiceName(spec.tier),
                                    endpoint);
+                ApplyPermissionEnforcement(json, enforce_permissions);
               },
           .extra_config_sql =
               std::string{kSvcUserSql} + std::string{kStripDataItemRowsSql},
@@ -630,6 +647,7 @@ void ConfigureProxyRole(boost::json::object& server_json,
   server_json["historyLink"] = boost::json::object{
       {"user", std::string{kSvcUser}}, {"password", std::string{kSvcPassword}}};
   ConfigureTelemetry(server_json, options.service_name, options.otlp_endpoint);
+  ApplyPermissionEnforcement(server_json, options.enforce_permissions);
 }
 
 ::testing::AssertionResult WaitForProxyDownstreams(

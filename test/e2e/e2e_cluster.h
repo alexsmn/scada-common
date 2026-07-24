@@ -129,6 +129,14 @@ struct ClusterOptions {
   // OTLP/gRPC endpoint every tier exports traces, metrics and logs to. Empty
   // (the CI default for the client suite) disables export entirely.
   std::string otlp_endpoint;
+  // Whether the tiers enforce namespace/node permissions
+  // (security.enforcePermissions; the framework default is on). A routing test
+  // turns this OFF: permission gating runs BEFORE routing, so a denied Call or
+  // AddNodes never reaches a downstream and its destination cannot be observed
+  // at all. Authorization is a separate concern with its own coverage; leaving
+  // it on here would silently reduce a routing sweep to "most requests were
+  // denied".
+  bool enforce_permissions = true;
   // Launch the Windows-only Classic OPC and Vidicon module tiers as cluster
   // members and aggregate them behind the proxy. Ignored off Windows. Off by
   // default: the service x namespace sweep needs them to cover their matrix
@@ -190,6 +198,8 @@ struct ProxyRoleOptions {
   boost::json::array* aggregation_servers = nullptr;
   std::string otlp_endpoint;
   std::string_view service_name = "scada-e2e-proxy";
+  // See ClusterOptions::enforce_permissions.
+  bool enforce_permissions = true;
 };
 
 // Turns `server_json` into the client-facing aggregating proxy: no drivers, no
