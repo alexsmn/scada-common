@@ -283,6 +283,65 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
   EXPECT_GT(result->values.back().source_timestamp, now - std::chrono::days(1));
 }
 
+// Regression: a raw read used to fall back to a synthesized series around a
+// mean of 100.0 for any node with no registered profile. That handed consumers
+// a convincing trend for a node the fixture never described — a table row
+// bound to a node its address space does not have painted a sparkline right
+// next to its "no data" quality mark.
+TEST(LocalHistoryService, UnknownNodeHasNoHistory) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  service.SetRawProfile(NodeId{7, 2}, 42.0);
+
+  auto result =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = NodeId{9, 2},
+                                  .from = scada::Now() - std::chrono::hours(1),
+                                  .to = scada::Now()}));
+
+  ASSERT_TRUE(result.ok()) << result.status();
+  EXPECT_THAT(result->values, testing::IsEmpty());
+}
+
+// Regression: the fixture's `nodes` array may name a node the caller could not
+// create (the screenshot fixture's `tree` gives it no parent). Seeding a raw
+// profile for it would let a consumer read history for a node that does not
+// exist, so LoadFromJson skips whatever the caller's predicate rejects.
+TEST(LocalHistoryService, LoadFromJsonSkipsNodesTheCallerDoesNotHave) {
+  TestExecutor executor;
+  LocalHistoryService service;
+
+  const NodeId present = NodeIdFromScadaString("TIT.200");
+  const NodeId orphan = NodeIdFromScadaString("TIT.209");
+  ASSERT_FALSE(present.is_null());
+  ASSERT_NE(present, orphan);
+
+  service.LoadFromJson(
+      boost::json::parse(R"({
+        "now": "2026-04-16 15:02:00",
+        "nodes": [
+          {"id": "TIT.200", "base_value": 42.0},
+          {"id": "TIT.209", "base_value": 0.95}
+        ],
+        "events": []
+      })"),
+      [&present](const NodeId& node_id) { return node_id == present; });
+
+  const auto to = scada::Now();
+  const auto from = to - std::chrono::hours(1);
+  auto kept =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = present, .from = from, .to = to}));
+  ASSERT_TRUE(kept.ok()) << kept.status();
+  EXPECT_EQ(kept->values.size(), 48u);
+
+  auto skipped =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = orphan, .from = from, .to = to}));
+  ASSERT_TRUE(skipped.ok()) << skipped.status();
+  EXPECT_THAT(skipped->values, testing::IsEmpty());
+}
+
 // LoadFromJson leaves an event marked `"acknowledged": false` pending (null
 // acknowledged time), so alarm-surface fixtures can render actionable state;
 // unmarked events stay acknowledged as before.

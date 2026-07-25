@@ -5,6 +5,7 @@
 #include "scada/history_service.h"
 #include "scada/node_id.h"
 
+#include <functional>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -20,6 +21,10 @@ namespace scada {
 // (synthesized into a 48-point raw-history series on demand) and a fixed list
 // of events.
 //
+// The table is the whole truth: a raw read for a node with no registered
+// profile returns no values rather than inventing a series, so a consumer can
+// never render a trend for data the fixture never described.
+//
 // Intended for tests, demos, and screenshot tooling that need a SCADA back-end
 // driven by static data rather than a real server.
 class LocalHistoryService : public HistoryService {
@@ -27,8 +32,9 @@ class LocalHistoryService : public HistoryService {
   LocalHistoryService();
   ~LocalHistoryService() override;
 
-  // Raw reads for `node_id` will return a 48-point normal distribution around
-  // `base_value` at 30-minute intervals ending at "now" (see SetNowOverride).
+  // Registers `node_id` as having history. Raw reads for it return a 48-point
+  // normal distribution around `base_value` at 30-minute intervals ending at
+  // "now" (see SetNowOverride).
   // The standard deviation defaults to 5% of |base_value|; pass `noise_stddev`
   // to override it with an absolute value. An explicit override lets a node
   // with a narrow engineering-unit range (e.g. grid frequency at 50 Hz within
@@ -47,13 +53,26 @@ class LocalHistoryService : public HistoryService {
   // wall clock.
   void SetNowOverride(scada::Time now);
 
+  // Answers whether a node exists in the caller's address space. See
+  // LoadFromJson.
+  using NodeExistsPredicate = std::function<bool(const NodeId&)>;
+
   // Populates raw profiles from `nodes` and events from `events` of a
   // screenshot-style JSON document. Events are timestamped at load time as
   // `now - hours_ago * 1h`. An optional top-level `now` key ("YYYY-MM-DD
   // HH:MM:SS", local time) applies SetNowOverride before timestamping. A node
   // may carry an optional `history_stddev` (absolute standard deviation of the
   // synthesized raw series); it overrides the default 5%-of-|base_value| noise.
-  void LoadFromJson(const boost::json::value& root);
+  //
+  // Pass `node_exists` when the document's `nodes` array can name nodes the
+  // caller never created (the screenshot fixture, for instance, can only build
+  // a node that its `tree` gives a parent). Without it, such a node still gets
+  // a synthesized series, so a consumer reads a plausible trend for a node
+  // that does not exist — fabricated data of exactly the kind the "no data"
+  // quality mark exists to prevent. Nodes the predicate rejects get no
+  // profile, so a raw read for them comes back empty.
+  void LoadFromJson(const boost::json::value& root,
+                    const NodeExistsPredicate& node_exists = {});
 
   // HistoryService
   CoStatusOr<HistoryReadRawResult> HistoryReadRaw(

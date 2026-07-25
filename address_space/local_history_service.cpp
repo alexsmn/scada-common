@@ -13,6 +13,7 @@
 
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <random>
 
@@ -55,7 +56,8 @@ scada::Time LocalHistoryService::Now() const {
   return scada::IsNull(now_override_) ? scada::Now() : now_override_;
 }
 
-void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
+void LocalHistoryService::LoadFromJson(const boost::json::value& root,
+                                       const NodeExistsPredicate& node_exists) {
   // Optional frozen clock, so regenerating screenshots doesn't shift every
   // rendered timestamp.
   if (const auto* jnow = root.as_object().if_contains("now")) {
@@ -68,12 +70,18 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root) {
   // `history_stddev` that overrides the default noise amplitude.
   for (const auto& jn : root.at("nodes").as_array()) {
     if (auto* bv = jn.as_object().if_contains("base_value")) {
+      const NodeId node_id =
+          NodeIdFromScadaString(std::string_view(jn.at("id").as_string()));
+
+      // A node the caller could not create has no history either; see the
+      // NodeExistsPredicate note on LoadFromJson.
+      if (node_exists && !node_exists(node_id))
+        continue;
+
       std::optional<double> noise_stddev;
       if (auto* sd = jn.as_object().if_contains("history_stddev"))
         noise_stddev = sd->to_number<double>();
-      SetRawProfile(
-          NodeIdFromScadaString(std::string_view(jn.at("id").as_string())),
-          bv->to_number<double>(), noise_stddev);
+      SetRawProfile(node_id, bv->to_number<double>(), noise_stddev);
     }
   }
 
@@ -138,17 +146,33 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   // a table row's 1 h sparkline window both read 48 points (a 24 h request
   // keeps the historical 30-minute spacing exactly). An open-ended request
   // falls back to that 30-minute spacing.
+  //
+  // The spacing is capped at that same 30 minutes, so a window far wider than
+  // the data is meant to cover cannot stretch the series past a day. A
+  // consumer may legitimately ask for "everything up to now" — the trend
+  // probes for its earliest available sample to fill the left edge of the
+  // plot — and spreading 48 points from the epoch to now put them ~14 months
+  // apart, leaving every point but the last outside any real view. The graph
+  // then drew nothing, with correct axes and a populated legend, so the empty
+  // plot looked like a rendering quirk rather than bad data. Capping keeps
+  // such a request answerable with the same 24 h series a bounded one gets.
   scada::Duration interval = std::chrono::minutes{30};
   if (!scada::IsNull(details.from) && details.from < now)
-    interval = (now - details.from) / 48;
+    interval = std::min((now - details.from) / 48, interval);
 
-  double base_value = 100.0;
-  std::optional<double> noise_stddev;
-  if (auto it = raw_profiles_.find(details.node_id);
-      it != raw_profiles_.end()) {
-    base_value = it->second.base_value;
-    noise_stddev = it->second.noise_stddev;
-  }
+  // No profile, no history. The service is backed by an explicit table of
+  // per-node base values; a node absent from it is one the caller never
+  // described, and synthesizing a series for it anyway (this used to fall back
+  // to a mean of 100.0) hands the consumer a convincing trend for a node that
+  // may not even exist — a table row would paint a sparkline beside its "no
+  // data" quality mark. An empty result says what is true: nothing is stored
+  // for this node.
+  auto profile = raw_profiles_.find(details.node_id);
+  if (profile == raw_profiles_.end())
+    return HistoryReadRawResult{};
+
+  const double base_value = profile->second.base_value;
+  const std::optional<double> noise_stddev = profile->second.noise_stddev;
 
   // Deterministic per-node noise: seed on the numeric id so output is stable
   // across runs for a given node. The amplitude defaults to 5% of the mean,
