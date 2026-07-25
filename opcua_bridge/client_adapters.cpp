@@ -128,13 +128,17 @@ scada::CoStatus ClientMethodServiceAdapter::Call(
   auto span = StartClientSpan(tracer_, "opcua.client/Call", context);
   span.SetAttribute("scada.object_node_id", node_id.ToString());
   span.SetAttribute("scada.method_node_id", method_id.ToString());
-  // The wire client session's Call still takes only a user id (the client does
-  // not carry a rights bitmask to the server); extract it from the context.
-  // The traceparent travels as an explicit argument instead.
-  auto status = co_await session_->Call(
-      ToOpcua(node_id), ToOpcua(method_id), ToOpcuaVector(arguments),
-      ToOpcua(context.user_id()), span.traceparent());
-  co_return ToScada(status);
+  // The context carries the traceparent to the wire header. Identity is not
+  // sent: it comes from the activated session, and the client has no rights
+  // bitmask to hand the server anyway.
+  auto result = co_await session_->Call(ToOpcua(context), ToOpcua(node_id),
+                                        ToOpcua(method_id),
+                                        ToOpcuaVector(arguments));
+  // TODO(outputs): the wire and the session now carry output arguments, but
+  // scada::MethodService::Call is still status-only, so this is where they are
+  // dropped. Widening that interface removes this collapse.
+  co_return ToScada(result.ok() ? opcua::Status{opcua::StatusCode::Good}
+                                : result.status());
 }
 
 // --- NodeManagementService ---------------------------------------------
@@ -147,7 +151,7 @@ ClientNodeManagementServiceAdapter::AddNodes(
     return input.requested_id.ToString();
   });
   auto result =
-      co_await session_->AddNodes(ToOpcuaVector(inputs), span.traceparent());
+      co_await session_->AddNodes(ToOpcua(context), ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 scada::CoStatusOr<std::vector<scada::StatusCode>>
@@ -159,7 +163,7 @@ ClientNodeManagementServiceAdapter::DeleteNodes(
     return input.node_id.ToString();
   });
   auto result =
-      co_await session_->DeleteNodes(ToOpcuaVector(inputs), span.traceparent());
+      co_await session_->DeleteNodes(ToOpcua(context), ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 scada::CoStatusOr<std::vector<scada::StatusCode>>
@@ -170,8 +174,8 @@ ClientNodeManagementServiceAdapter::AddReferences(
   SetBatchAttributes(span, inputs, [](const scada::AddReferencesItem& input) {
     return input.source_node_id.ToString();
   });
-  auto result = co_await session_->AddReferences(ToOpcuaVector(inputs),
-                                                 span.traceparent());
+  auto result = co_await session_->AddReferences(ToOpcua(context),
+                                                 ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 scada::CoStatusOr<std::vector<scada::StatusCode>>
@@ -184,8 +188,8 @@ ClientNodeManagementServiceAdapter::DeleteReferences(
                      [](const scada::DeleteReferencesItem& input) {
                        return input.source_node_id.ToString();
                      });
-  auto result = co_await session_->DeleteReferences(ToOpcuaVector(inputs),
-                                                    span.traceparent());
+  auto result = co_await session_->DeleteReferences(ToOpcua(context),
+                                                    ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 

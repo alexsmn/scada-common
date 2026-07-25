@@ -82,10 +82,11 @@ class MethodServiceAdapter {
                                 Tracer& tracer = Tracer::None())
       : inner_{inner}, tracer_{tracer} {}
 
-  opcua::CoStatus Call(opcua::NodeId node_id,
-                       opcua::NodeId method_id,
-                       std::vector<opcua::Variant> arguments,
-                       opcua::ServiceContext context);
+  opcua::CoStatusOr<opcua::CallResult> Call(
+      opcua::NodeId node_id,
+      opcua::NodeId method_id,
+      std::vector<opcua::Variant> arguments,
+      opcua::ServiceContext context);
 
  private:
   scada::MethodService& inner_;

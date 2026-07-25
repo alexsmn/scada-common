@@ -216,7 +216,7 @@ ViewServiceAdapter::TranslateBrowsePaths(
 }
 
 // --- MethodService ------------------------------------------------------
-opcua::CoStatus MethodServiceAdapter::Call(
+opcua::CoStatusOr<opcua::CallResult> MethodServiceAdapter::Call(
     opcua::NodeId node_id,
     opcua::NodeId method_id,
     std::vector<opcua::Variant> arguments,
@@ -230,7 +230,13 @@ opcua::CoStatus MethodServiceAdapter::Call(
   auto status =
       co_await inner_.Call(ToScada(node_id), ToScada(method_id),
                            ToScadaVector(arguments), ToScada(context));
-  co_return ToOpcua(status);
+  // TODO(outputs): scada::MethodService::Call is still status-only, so a
+  // successful call produces no output arguments here. Widening that interface
+  // is what fills this in.
+  if (!status) {
+    co_return ToOpcua(status);
+  }
+  co_return opcua::CallResult{};
 }
 
 // --- NodeManagementService ---------------------------------------------
