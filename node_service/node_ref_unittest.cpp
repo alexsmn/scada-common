@@ -63,8 +63,7 @@ TEST(NodeRefTest, HashMatchesNodeIdHashAndWorksInContainers) {
   FakeNodeService service;
   NodeRef ref = service.GetNode(Id(42));
 
-  EXPECT_EQ(std::hash<NodeRef>{}(ref),
-            std::hash<scada::NodeId>{}(Id(42)));
+  EXPECT_EQ(std::hash<NodeRef>{}(ref), std::hash<scada::NodeId>{}(Id(42)));
 
   std::unordered_set<NodeRef> set;
   set.insert(service.GetNode(Id(1)));
@@ -78,10 +77,10 @@ TEST(NodeRefTest, HashMatchesNodeIdHashAndWorksInContainers) {
 
 TEST(NodeRefTest, AttributeReadsForwardToService) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(1))
-                  .set_browse_name(scada::QualifiedName{"TheName"})
-                  .set_display_name(scada::LocalizedText{u"Displayed"}));
+  service.Add(scada::NodeState{
+      .node_id = Id(1),
+      .attributes = {.browse_name = scada::QualifiedName{"TheName"},
+                     .display_name = scada::LocalizedText{u"Displayed"}}});
 
   NodeRef ref = service.GetNode(Id(1));
   EXPECT_EQ(ref.browse_name(), scada::QualifiedName{"TheName"});
@@ -91,15 +90,15 @@ TEST(NodeRefTest, AttributeReadsForwardToService) {
 
 TEST(NodeRefTest, GraphNavigationForwardsToService) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}.set_node_id(Id(10)));            // parent
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(11))
-                  .set_type_definition_id(Id(100))
-                  .set_parent(scada::id::Organizes, Id(10))
-                  .add_reference(scada::ReferenceDescription{
-                      scada::id::HasComponent, true, Id(12)}));
-  service.Add(scada::NodeState{}.set_node_id(Id(12)));           // component
-  service.Add(scada::NodeState{}.set_node_id(Id(100)));          // type def
+  service.Add(scada::NodeState{.node_id = Id(10)});  // parent
+  service.Add(scada::NodeState{
+      .node_id = Id(11),
+      .type_definition_id = Id(100),
+      .parent_id = Id(10),
+      .reference_type_id = scada::id::Organizes,
+      .references = {{scada::id::HasComponent, true, Id(12)}}});
+  service.Add(scada::NodeState{.node_id = Id(12)});   // component
+  service.Add(scada::NodeState{.node_id = Id(100)});  // type def
 
   NodeRef node = service.GetNode(Id(11));
   EXPECT_EQ(node.parent().node_id(), Id(10));
@@ -125,8 +124,8 @@ TEST(NodeRefTest, NullRefOperationsAreSafe) {
   EXPECT_FALSE(ref[scada::QualifiedName{"x"}]);
 
   // Subscribing through a null ref yields an empty, harmless connection.
-  auto connection = ref.SubscribeNodeStateChanged(
-      [](const NodeStateChangedEvent&) {});
+  auto connection =
+      ref.SubscribeNodeStateChanged([](const NodeStateChangedEvent&) {});
   EXPECT_FALSE(connection.connected());
 }
 
@@ -134,14 +133,14 @@ TEST(NodeRefTest, NullRefOperationsAreSafe) {
 
 TEST(NodeRefTest, SubscribeNodeStateChangedReceivesEmittedEvents) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  service.Add(scada::NodeState{.node_id = Id(1)});
 
   NodeRef node = service.GetNode(Id(1));
 
   int calls = 0;
   scada::NodeId seen;
-  auto connection = node.SubscribeNodeStateChanged(
-      [&](const NodeStateChangedEvent& event) {
+  auto connection =
+      node.SubscribeNodeStateChanged([&](const NodeStateChangedEvent& event) {
         ++calls;
         seen = event.node_id;
       });
@@ -162,13 +161,13 @@ TEST(NodeRefTest, BaseReferenceTypeQueryMatchesStandardSubtypes) {
   // without the ns0 ReferenceType nodes being registered — standard reference
   // types resolve statically, as in the production services.
   FakeNodeService service;
-  service.Add(scada::NodeState{}.set_node_id(Id(10)));
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(11))
-                  .set_parent(scada::id::Organizes, Id(10)));
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(12))
-                  .set_parent(scada::id::HasComponent, Id(10)));
+  service.Add(scada::NodeState{.node_id = Id(10)});
+  service.Add(scada::NodeState{.node_id = Id(11),
+                               .parent_id = Id(10),
+                               .reference_type_id = scada::id::Organizes});
+  service.Add(scada::NodeState{.node_id = Id(12),
+                               .parent_id = Id(10),
+                               .reference_type_id = scada::id::HasComponent});
 
   NodeRef parent = service.GetNode(Id(10));
   auto children = parent.targets(scada::id::HierarchicalReferences);
@@ -180,11 +179,12 @@ TEST(NodeRefTest, BaseReferenceTypeQueryMatchesStandardSubtypes) {
 
 TEST(NodeRefTest, ChildLookupResolvesThroughBaseReferenceType) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}.set_node_id(Id(10)));
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(11))
-                  .set_browse_name(scada::QualifiedName{"Child"})
-                  .set_parent(scada::id::HasComponent, Id(10)));
+  service.Add(scada::NodeState{.node_id = Id(10)});
+  service.Add(scada::NodeState{
+      .node_id = Id(11),
+      .parent_id = Id(10),
+      .reference_type_id = scada::id::HasComponent,
+      .attributes = {.browse_name = scada::QualifiedName{"Child"}}});
 
   NodeRef child = service.GetNode(Id(10))[scada::QualifiedName{"Child"}];
   ASSERT_TRUE(child);
@@ -195,8 +195,8 @@ TEST(NodeRefTest, ChildLookupResolvesThroughBaseReferenceType) {
 
 TEST(NodeRefTest, FetchStatusAndStatusAreControllablePerNode) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}.set_node_id(Id(1)));
-  service.Add(scada::NodeState{}.set_node_id(Id(2)));
+  service.Add(scada::NodeState{.node_id = Id(1)});
+  service.Add(scada::NodeState{.node_id = Id(2)});
 
   // Registered nodes default to fully fetched and Good.
   EXPECT_TRUE(service.GetNode(Id(1)).fetched());
@@ -213,7 +213,7 @@ TEST(NodeRefTest, FetchStatusAndStatusAreControllablePerNode) {
 
 TEST(NodeRefTest, FetchRequestsAreRecorded) {
   FakeNodeService service;
-  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  NodeRef node = service.Add(scada::NodeState{.node_id = Id(1)});
 
   EXPECT_TRUE(service.fetch_requests(Id(1)).empty());
 
@@ -232,7 +232,7 @@ TEST(NodeRefTest, FetchHandlerCanSuspendAndPublishStatusOnResume) {
   boost::asio::io_context io_context;
 
   FakeNodeService service;
-  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  NodeRef node = service.Add(scada::NodeState{.node_id = Id(1)});
   service.SetFetchStatus(Id(1), NodeFetchStatus::None);
 
   std::optional<scada::base::AsyncCompletion> gate;
@@ -266,10 +266,9 @@ TEST(NodeRefTest, FetchHandlerCanSuspendAndPublishStatusOnResume) {
 
 TEST(NodeRefTest, PropertiesAreMaterializedAsAggregates) {
   FakeNodeService service;
-  service.Add(scada::NodeState{}
-                  .set_node_id(Id(1))
-                  .set_type_definition_id(Id(100))
-                  .set_properties({{Id(200), scada::Variant{42}}}));
+  service.Add(scada::NodeState{.node_id = Id(1),
+                               .type_definition_id = Id(100),
+                               .properties = {{Id(200), scada::Variant{42}}}});
 
   NodeRef property = service.GetNode(Id(1))[Id(200)];
   ASSERT_TRUE(property);

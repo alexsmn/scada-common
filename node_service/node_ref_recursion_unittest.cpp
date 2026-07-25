@@ -21,7 +21,7 @@ scada::NodeId Id(scada::NumericId numeric_id) {
 
 TEST(NodeRefFetchRecursion, SameNodeCoroutineFetchCanRepeat) {
   FakeNodeService service;
-  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  NodeRef node = service.Add(scada::NodeState{.node_id = Id(1)});
 
   constexpr int kRepeat = 2000;
 
@@ -44,11 +44,10 @@ TEST(NodeRefFetchRecursion, CrossNodeCoroutineFetchCanWalkChain) {
   // Link node i to node i+1 with an Organizes reference so the walk below can
   // step through the chain via NodeRef navigation.
   for (int i = 0; i < kChainLength; ++i) {
-    scada::NodeState state;
-    state.set_node_id(Id(i + 1));
+    scada::NodeState state{.node_id = Id(i + 1)};
     if (i + 1 < kChainLength) {
-      state.add_reference(scada::ReferenceDescription{scada::id::Organizes,
-                                                      true, Id(i + 2)});
+      state.add_reference(
+          scada::ReferenceDescription{scada::id::Organizes, true, Id(i + 2)});
     }
     service.Add(std::move(state));
   }

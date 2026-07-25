@@ -98,14 +98,14 @@ TEST(NodeUtils, MakeNodeStateKeepsExtraHierarchicalReferences) {
   auto [status1, node1] = factory.CreateNode(
       NodeState{node1_id, NodeClass::Object, NodeId{id::BaseObjectType},
                 NodeId{id::ObjectsFolder}, NodeId{id::Organizes},
-                NodeAttributes{}.set_display_name(u"Node 1")});
+                NodeAttributes{.display_name = u"Node 1"}});
   ASSERT_TRUE(status1);
   ASSERT_TRUE(node1);
 
   auto [status2, node2] = factory.CreateNode(
       NodeState{node2_id, NodeClass::Object, NodeId{id::BaseObjectType},
                 NodeId{id::ObjectsFolder}, NodeId{id::Organizes},
-                NodeAttributes{}.set_display_name(u"Node 2")});
+                NodeAttributes{.display_name = u"Node 2"}});
   ASSERT_TRUE(status2);
   ASSERT_TRUE(node2);
 

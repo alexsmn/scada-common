@@ -118,13 +118,13 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
   TestAddressSpace address_space;
 
   const scada::NodeId method_id{700, TestAddressSpace::kNamespaceIndex};
-  address_space.CreateNode({.node_id = method_id,
-                            .node_class = scada::NodeClass::Method,
-                            .parent_id = address_space.kTestNode1Id,
-                            .reference_type_id = scada::id::HasComponent,
-                            .attributes = scada::NodeAttributes{}
-                                              .set_browse_name("TestMethod")
-                                              .set_display_name(u"TestMethod")});
+  address_space.CreateNode(
+      {.node_id = method_id,
+       .node_class = scada::NodeClass::Method,
+       .parent_id = address_space.kTestNode1Id,
+       .reference_type_id = scada::id::HasComponent,
+       .attributes = scada::NodeAttributes{.browse_name = "TestMethod",
+                                           .display_name = u"TestMethod"}});
 
   const std::uint32_t control_rights =
       scada::AccessRightBit(scada::AccessRight::kControl);
@@ -133,7 +133,8 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
                         const scada::ServiceContext& context) {
     const std::vector<scada::ReadValueId> inputs{
         {.node_id = method_id, .attribute_id = attribute_id}};
-    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+    return address_space.sync_attribute_service_impl.Read(context, inputs)
+        .at(0);
   };
 
   // Executable is always true for a method.
@@ -143,8 +144,9 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
   // UserExecutable tracks the Call permission: an Operator (Control) may call;
   // a plain authenticated Observer and an anonymous caller may not.
   const scada::ServiceContext operator_context =
-      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
-          control_rights);
+      scada::ServiceContext{}
+          .with_user_id(scada::NodeId{1, 1})
+          .with_user_rights(control_rights);
   const scada::ServiceContext observer_context =
       scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1});
 
@@ -152,8 +154,9 @@ TEST(AttributeServiceImpl, MethodUserExecutableFollowsCallPermission) {
             scada::Variant{true});
   EXPECT_EQ(read(scada::AttributeId::UserExecutable, observer_context).value,
             scada::Variant{false});
-  EXPECT_EQ(read(scada::AttributeId::UserExecutable, scada::ServiceContext{}).value,
-            scada::Variant{false});
+  EXPECT_EQ(
+      read(scada::AttributeId::UserExecutable, scada::ServiceContext{}).value,
+      scada::Variant{false});
 }
 
 TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
@@ -162,14 +165,16 @@ TEST(AttributeServiceImpl, ServesUserRolePermissionsAndGatesRolePermissions) {
   const std::uint32_t control_rights =
       scada::AccessRightBit(scada::AccessRight::kControl);
   const scada::ServiceContext operator_context =
-      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
-          control_rights);
+      scada::ServiceContext{}
+          .with_user_id(scada::NodeId{1, 1})
+          .with_user_rights(control_rights);
 
   const auto read = [&](scada::AttributeId attribute_id,
                         const scada::ServiceContext& context) {
     const std::vector<scada::ReadValueId> inputs{
         {.node_id = address_space.kTestNode1Id, .attribute_id = attribute_id}};
-    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+    return address_space.sync_attribute_service_impl.Read(context, inputs)
+        .at(0);
   };
 
   // UserRolePermissions is always readable and reflects the caller's roles: an
@@ -210,14 +215,16 @@ TEST(AttributeServiceImpl, PerNodeRolePermissionsOverride) {
   const std::uint32_t control_rights =
       scada::AccessRightBit(scada::AccessRight::kControl);
   const scada::ServiceContext operator_context =
-      scada::ServiceContext{}.with_user_id(scada::NodeId{1, 1}).with_user_rights(
-          control_rights);
+      scada::ServiceContext{}
+          .with_user_id(scada::NodeId{1, 1})
+          .with_user_rights(control_rights);
 
   const auto read = [&](scada::AttributeId attribute_id,
                         const scada::ServiceContext& context) {
     const std::vector<scada::ReadValueId> inputs{
         {.node_id = address_space.kTestNode1Id, .attribute_id = attribute_id}};
-    return address_space.sync_attribute_service_impl.Read(context, inputs).at(0);
+    return address_space.sync_attribute_service_impl.Read(context, inputs)
+        .at(0);
   };
 
   // RolePermissions returns the override (2 entries), not the 8 defaults.

@@ -108,42 +108,37 @@ inline TestAddressSpace::TestAddressSpace() {
        {},                                    // type id
        scada::id::NonHierarchicalReferences,  // parent id
        scada::id::HasSubtype,                 // reference type id
-       scada::NodeAttributes{}
-           .set_browse_name("TestRefType")
-           .set_display_name(u"TestRefTypeDisplayName")},
+       scada::NodeAttributes{.browse_name = "TestRefType",
+                             .display_name = u"TestRefTypeDisplayName"}},
       {kTestTypeId,
        scada::NodeClass::ObjectType,
        {},                         // type id
        scada::id::BaseObjectType,  // parent id
        scada::id::HasSubtype,      // reference type id
-       scada::NodeAttributes{}
-           .set_browse_name("TestType")
-           .set_display_name(u"TestTypeDisplayName")},
+       scada::NodeAttributes{.browse_name = "TestType",
+                             .display_name = u"TestTypeDisplayName"}},
       {kTestProp1Id, scada::NodeClass::Variable,
        scada::id::PropertyType,  // type id
        kTestTypeId,              // parent id
        scada::id::HasProperty,   // reference type id
-       scada::NodeAttributes{}
-           .set_browse_name(std::string{kTestProp1BrowseName})
-           .set_display_name(u"TestProp1DisplayName")
-           .set_data_type(scada::id::String)},
+       scada::NodeAttributes{.browse_name = std::string{kTestProp1BrowseName},
+                             .display_name = u"TestProp1DisplayName",
+                             .data_type = scada::id::String}},
       {kTestProp2Id, scada::NodeClass::Variable,
        scada::id::PropertyType,  // type id
        kTestTypeId,              // parent id
        scada::id::HasProperty,   // reference type id
-       scada::NodeAttributes{}
-           .set_browse_name(std::string{kTestProp2BrowseName})
-           .set_display_name(u"TestProp2DisplayName")
-           .set_data_type(scada::id::String)},
+       scada::NodeAttributes{.browse_name = std::string{kTestProp2BrowseName},
+                             .display_name = u"TestProp2DisplayName",
+                             .data_type = scada::id::String}},
       {
           kTestNode1Id,
           scada::NodeClass::Object,
           kTestTypeId,            // type id
           scada::id::RootFolder,  // parent id
           scada::id::Organizes,   // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode1")
-              .set_display_name(u"TestNode1DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode1",
+                                .display_name = u"TestNode1DisplayName"},
           {
               // properties
               {kTestProp1Id, "TestNode1.TestProp1.Value"},
@@ -156,9 +151,8 @@ inline TestAddressSpace::TestAddressSpace() {
           kTestTypeId,            // type id
           scada::id::RootFolder,  // parent id
           scada::id::Organizes,   // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode2")
-              .set_display_name(u"TestNode2DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode2",
+                                .display_name = u"TestNode2DisplayName"},
           {
               // properties
               {kTestProp1Id, "TestNode2.TestProp1.Value"},
@@ -171,9 +165,8 @@ inline TestAddressSpace::TestAddressSpace() {
           kTestTypeId,            // type id
           scada::id::RootFolder,  // parent id
           scada::id::Organizes,   // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode3")
-              .set_display_name(u"TestNode3DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode3",
+                                .display_name = u"TestNode3DisplayName"},
       },
       {
           kTestNode4Id,
@@ -181,9 +174,8 @@ inline TestAddressSpace::TestAddressSpace() {
           kTestTypeId,           // type id
           kTestNode3Id,          // parent id
           scada::id::Organizes,  // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode4")
-              .set_display_name(u"TestNode4DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode4",
+                                .display_name = u"TestNode4DisplayName"},
       },
       {
           kTestNode5Id,
@@ -191,9 +183,8 @@ inline TestAddressSpace::TestAddressSpace() {
           kTestTypeId,              // type id
           kTestNode3Id,             // parent id
           scada::id::HasComponent,  // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode5")
-              .set_display_name(u"TestNode5DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode5",
+                                .display_name = u"TestNode5DisplayName"},
       },
       {
           kTestNode6Id,
@@ -201,9 +192,8 @@ inline TestAddressSpace::TestAddressSpace() {
           kTestTypeId,           // type id
           kTestNode5Id,          // parent id
           scada::id::Organizes,  // reference type id
-          scada::NodeAttributes{}
-              .set_browse_name("TestNode6")
-              .set_display_name(u"TestNode6DisplayName"),
+          scada::NodeAttributes{.browse_name = "TestNode6",
+                                .display_name = u"TestNode6DisplayName"},
       },
   };
 

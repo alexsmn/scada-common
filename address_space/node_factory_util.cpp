@@ -37,11 +37,10 @@ scada::Status CreateMissingProperties(
         auto [status, prop] = node_factory.CreateNode(scada::NodeState{
             std::move(prop_id), scada::NodeClass::Variable,
             scada::id::PropertyType, node_id, scada::id::HasProperty,
-            scada::NodeAttributes{}
-                .set_browse_name(prop_decl.GetBrowseName())
-                .set_display_name(prop_decl.GetDisplayName())
-                .set_data_type(prop_decl.GetDataType().id())
-                .set_value(prop_decl.GetValue().value)});
+            scada::NodeAttributes{.browse_name = prop_decl.GetBrowseName(),
+                                  .display_name = prop_decl.GetDisplayName(),
+                                  .data_type = prop_decl.GetDataType().id(),
+                                  .value = prop_decl.GetValue().value}});
         if (!status)
           return status;
       }
@@ -66,11 +65,11 @@ scada::Status CreateDataVariables(
           std::move(data_variable_id), scada::NodeClass::Variable,
           data_variable_decl.type_definition()->id(), node_id,
           scada::id::HasComponent,
-          scada::NodeAttributes{}
-              .set_browse_name(data_variable_decl.GetBrowseName())
-              .set_display_name(data_variable_decl.GetDisplayName())
-              .set_data_type(data_variable_decl.GetDataType().id())
-              .set_value(data_variable_decl.GetValue().value)});
+          scada::NodeAttributes{
+              .browse_name = data_variable_decl.GetBrowseName(),
+              .display_name = data_variable_decl.GetDisplayName(),
+              .data_type = data_variable_decl.GetDataType().id(),
+              .value = data_variable_decl.GetValue().value}});
       if (!status)
         return status;
     }

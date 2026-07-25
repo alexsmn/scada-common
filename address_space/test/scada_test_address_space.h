@@ -55,9 +55,8 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DataItems")
-                        .set_display_name(u"Все объекты")});
+      .attributes = scada::NodeAttributes{.browse_name = "DataItems",
+                                          .display_name = u"Все объекты"}});
 
   // Base data-item type.
   nodes.push_back(scada::NodeState{
@@ -66,11 +65,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseVariableType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DataItemType")
-                        .set_display_name(u"Объект")
-                        .set_data_type({scada::id::BaseDataType,
-                                        scada::NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "DataItemType",
+                                .display_name = u"Объект",
+                                .data_type = {scada::id::BaseDataType,
+                                              scada::NamespaceIndexes::NS0}},
       .supertype_id = {scada::id::BaseVariableType,
                        scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
@@ -81,11 +80,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Alias")
-                        .set_display_name(u"Алиас")
-                        .set_data_type({scada::id::String,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "Alias",
+          .display_name = u"Алиас",
+          .data_type = {scada::id::String, scada::NamespaceIndexes::NS0}}});
 
   // Analog item type (ТИТ) and the properties tests reference.
   nodes.push_back(scada::NodeState{
@@ -94,11 +92,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("AnalogItemType")
-                        .set_display_name(u"Объект ТИТ")
-                        .set_data_type({scada::id::BaseDataType,
-                                        scada::NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "AnalogItemType",
+                                .display_name = u"Объект ТИТ",
+                                .data_type = {scada::id::BaseDataType,
+                                              scada::NamespaceIndexes::NS0}},
       .supertype_id = di::DataItemType});
   nodes.push_back(scada::NodeState{
       .node_id = di::AnalogItemType_DisplayFormat,
@@ -108,11 +106,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::AnalogItemType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DisplayFormat")
-                        .set_display_name(u"Формат")
-                        .set_data_type({scada::id::String,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "DisplayFormat",
+          .display_name = u"Формат",
+          .data_type = {scada::id::String, scada::NamespaceIndexes::NS0}}});
 
   // Discrete item type (ТС) and the properties tests reference.
   nodes.push_back(scada::NodeState{
@@ -121,11 +118,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::DataItemType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DiscreteItemType")
-                        .set_display_name(u"Объект ТС")
-                        .set_data_type({scada::id::BaseDataType,
-                                        scada::NamespaceIndexes::NS0}),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "DiscreteItemType",
+                                .display_name = u"Объект ТС",
+                                .data_type = {scada::id::BaseDataType,
+                                              scada::NamespaceIndexes::NS0}},
       .supertype_id = di::DataItemType});
   nodes.push_back(scada::NodeState{
       .node_id = di::DiscreteItemType_Inversion,
@@ -135,11 +132,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::DiscreteItemType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Inverted")
-                        .set_display_name(u"Инверсия")
-                        .set_data_type({scada::id::Boolean,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "Inverted",
+          .display_name = u"Инверсия",
+          .data_type = {scada::id::Boolean, scada::NamespaceIndexes::NS0}}});
 
   // Format type and the format-link reference type used by timed-data tests.
   nodes.push_back(scada::NodeState{
@@ -148,9 +144,8 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("TsFormatType")
-                        .set_display_name(u"Формат"),
+      .attributes = scada::NodeAttributes{.browse_name = "TsFormatType",
+                                          .display_name = u"Формат"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
@@ -161,11 +156,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::TsFormatType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("OpenLabel")
-                        .set_display_name(u"Подпись 0")
-                        .set_data_type({scada::id::LocalizedText,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes =
+          scada::NodeAttributes{.browse_name = "OpenLabel",
+                                .display_name = u"Подпись 0",
+                                .data_type = {scada::id::LocalizedText,
+                                              scada::NamespaceIndexes::NS0}}});
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType_CloseLabel,
       .node_class = scada::NodeClass::Variable,
@@ -174,11 +169,11 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::TsFormatType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("CloseLabel")
-                        .set_display_name(u"Подпись 1")
-                        .set_data_type({scada::id::LocalizedText,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes =
+          scada::NodeAttributes{.browse_name = "CloseLabel",
+                                .display_name = u"Подпись 1",
+                                .data_type = {scada::id::LocalizedText,
+                                              scada::NamespaceIndexes::NS0}}});
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType_OpenColor,
       .node_class = scada::NodeClass::Variable,
@@ -187,11 +182,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::TsFormatType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("OpenColor")
-                        .set_display_name(u"Цвет 0")
-                        .set_data_type(
-                            {scada::id::Int32, scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "OpenColor",
+          .display_name = u"Цвет 0",
+          .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType_CloseColor,
       .node_class = scada::NodeClass::Variable,
@@ -200,11 +194,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::TsFormatType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("CloseColor")
-                        .set_display_name(u"Цвет 1")
-                        .set_data_type(
-                            {scada::id::Int32, scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "CloseColor",
+          .display_name = u"Цвет 1",
+          .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
 
   // The "Форматы ТС" folder that owns format instances (the Formats admin
   // table). Mirrors the SimulationSignals / Users admin folders.
@@ -215,9 +208,8 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("TsFormats")
-                        .set_display_name(u"Форматы ТС")});
+      .attributes = scada::NodeAttributes{.browse_name = "TsFormats",
+                                          .display_name = u"Форматы ТС"}});
 
   // Data group type used by configuration/object-tree tests.
   nodes.push_back(scada::NodeState{
@@ -226,9 +218,8 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DataGroupType")
-                        .set_display_name(u"Группа"),
+      .attributes = scada::NodeAttributes{.browse_name = "DataGroupType",
+                                          .display_name = u"Группа"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -239,9 +230,9 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::Enumeration, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("AnalogConversionDataType")
-                        .set_display_name(u"Преобразование"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "AnalogConversionDataType",
+                                .display_name = u"Преобразование"},
       .supertype_id = {scada::id::Enumeration, scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
       .node_id = di::AnalogConversionDataType_EnumStrings,
@@ -251,14 +242,12 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = di::AnalogConversionDataType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes =
-          scada::NodeAttributes{}
-              .set_browse_name("EnumStrings")
-              .set_display_name(u"EnumStrings")
-              .set_data_type(
-                  {scada::id::LocalizedText, scada::NamespaceIndexes::NS0})
-              .set_value(scada::Variant{
-                  std::vector<scada::LocalizedText>{u"Нет", u"Линейное"}})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "EnumStrings",
+          .display_name = u"EnumStrings",
+          .data_type = {scada::id::LocalizedText, scada::NamespaceIndexes::NS0},
+          .value = scada::Variant{
+              std::vector<scada::LocalizedText>{u"Нет", u"Линейное"}}}});
 
   // Full DataItemType / AnalogItemType / DiscreteItemType property
   // declarations, mirroring data_items.xml (and scada_core.xml for Conversion).
@@ -336,11 +325,10 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
         .parent_id = prop.parent,
         .reference_type_id = {scada::id::HasProperty,
                               scada::NamespaceIndexes::NS0},
-        .attributes =
-            scada::NodeAttributes{}
-                .set_browse_name(prop.browse_name)
-                .set_display_name(scada::LocalizedText{prop.display_name})
-                .set_data_type(prop.data_type)});
+        .attributes = scada::NodeAttributes{
+            .browse_name = prop.browse_name,
+            .display_name = scada::LocalizedText{prop.display_name},
+            .data_type = prop.data_type}});
   }
 
   for (const auto& node : nodes) {
@@ -370,9 +358,8 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes =
-          scada::NodeAttributes{}.set_browse_name("Devices").set_display_name(
-              u"Все оборудование")});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "Devices", .display_name = u"Все оборудование"}});
 
   // Base device type.
   nodes.push_back(scada::NodeState{
@@ -381,9 +368,8 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("DeviceType")
-                        .set_display_name(u"Устройство"),
+      .attributes = scada::NodeAttributes{.browse_name = "DeviceType",
+                                          .display_name = u"Устройство"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -394,9 +380,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Iec61850DeviceType")
-                        .set_display_name(u"Устройство МЭК-61850"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "Iec61850DeviceType",
+                                .display_name = u"Устройство МЭК-61850"},
       .supertype_id = dev::DeviceType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::Iec61850LogicalNodeType,
@@ -404,9 +390,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Iec61850LogicalNodeType")
-                        .set_display_name(u"Логический узел МЭК-61850"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "Iec61850LogicalNodeType",
+                                .display_name = u"Логический узел МЭК-61850"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -418,9 +404,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Iec60870DeviceType")
-                        .set_display_name(u"Устройство МЭК-60870"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "Iec60870DeviceType",
+                                .display_name = u"Устройство МЭК-60870"},
       .supertype_id = dev::DeviceType});
 
   // Link (channel) types and the Modbus device type. Display names mirror
@@ -435,9 +421,8 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("LinkType")
-                        .set_display_name(u"Направление"),
+      .attributes = scada::NodeAttributes{.browse_name = "LinkType",
+                                          .display_name = u"Направление"},
       .supertype_id = dev::DeviceType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusLinkType,
@@ -445,9 +430,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::LinkType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("ModbusLinkType")
-                        .set_display_name(u"Направление MODBUS"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "ModbusLinkType",
+                                .display_name = u"Направление MODBUS"},
       .supertype_id = dev::LinkType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusDeviceType,
@@ -455,9 +440,8 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::DeviceType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("ModbusDeviceType")
-                        .set_display_name(u"Устройство MODBUS"),
+      .attributes = scada::NodeAttributes{.browse_name = "ModbusDeviceType",
+                                          .display_name = u"Устройство MODBUS"},
       .supertype_id = dev::DeviceType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusDeviceType_Address,
@@ -467,11 +451,10 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::ModbusDeviceType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Address")
-                        .set_display_name(u"Адрес")
-                        .set_data_type(
-                            {scada::id::UInt8, scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "Address",
+          .display_name = u"Адрес",
+          .data_type = {scada::id::UInt8, scada::NamespaceIndexes::NS0}}});
 
   // Retransmission item types (the Modbus one is what device retransmission
   // tables instantiate); the source-address property lives on the base type.
@@ -481,9 +464,8 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("TransmissionItemType")
-                        .set_display_name(u"Ретрансляция"),
+      .attributes = scada::NodeAttributes{.browse_name = "TransmissionItemType",
+                                          .display_name = u"Ретрансляция"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
@@ -494,11 +476,10 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::TransmissionItemType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("Address")
-                        .set_display_name(u"Адрес объекта приемника")
-                        .set_data_type(
-                            {scada::id::Int32, scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "Address",
+          .display_name = u"Адрес объекта приемника",
+          .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   // The source link: a Mandatory NodeId property, replacing the retired
   // HasTransmissionSource reference (transmission OPC UA alignment, phase 4).
   nodes.push_back(scada::NodeState{
@@ -509,20 +490,19 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = dev::TransmissionItemType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("SourceNode")
-                        .set_display_name(u"Объект")
-                        .set_data_type({scada::id::NodeId,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "SourceNode",
+          .display_name = u"Объект",
+          .data_type = {scada::id::NodeId, scada::NamespaceIndexes::NS0}}});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusTransmissionItemType,
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = dev::TransmissionItemType,
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("ModbusTransmissionItemType")
-                        .set_display_name(u"Ретрансляция MODBUS"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "ModbusTransmissionItemType",
+                                .display_name = u"Ретрансляция MODBUS"},
       .supertype_id = dev::TransmissionItemType});
 
   // DeviceType metric components (HasComponent, BaseVariableType), in the order
@@ -553,10 +533,9 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
         .parent_id = dev::DeviceType,
         .reference_type_id = {scada::id::HasComponent,
                               scada::NamespaceIndexes::NS0},
-        .attributes = scada::NodeAttributes{}
-                          .set_browse_name(component.browse_name)
-                          .set_display_name(
-                              scada::LocalizedText{component.display_name})});
+        .attributes = scada::NodeAttributes{
+            .browse_name = component.browse_name,
+            .display_name = scada::LocalizedText{component.display_name}}});
   }
 
   for (const auto& node : nodes) {
@@ -586,9 +565,8 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes =
-          scada::NodeAttributes{}.set_browse_name("Users").set_display_name(
-              u"Пользователи")});
+      .attributes = scada::NodeAttributes{.browse_name = "Users",
+                                          .display_name = u"Пользователи"}});
 
   nodes.push_back(scada::NodeState{
       .node_id = sec::UserType,
@@ -596,9 +574,8 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("UserType")
-                        .set_display_name(u"Пользователь"),
+      .attributes = scada::NodeAttributes{.browse_name = "UserType",
+                                          .display_name = u"Пользователь"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
   nodes.push_back(scada::NodeState{
@@ -609,11 +586,10 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = sec::UserType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("AccessRights")
-                        .set_display_name(u"Права")
-                        .set_data_type(
-                            {scada::id::Int32, scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "AccessRights",
+          .display_name = u"Права",
+          .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   nodes.push_back(scada::NodeState{
       .node_id = sec::UserType_MultiSessions,
       .node_class = scada::NodeClass::Variable,
@@ -622,11 +598,10 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = sec::UserType,
       .reference_type_id = {scada::id::HasProperty,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("MultiSessions")
-                        .set_display_name(u"Множество сессий")
-                        .set_data_type({scada::id::Boolean,
-                                        scada::NamespaceIndexes::NS0})});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "MultiSessions",
+          .display_name = u"Множество сессий",
+          .data_type = {scada::id::Boolean, scada::NamespaceIndexes::NS0}}});
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);
@@ -656,9 +631,9 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("SimulationSignals")
-                        .set_display_name(u"Сигналы имитации")});
+      .attributes =
+          scada::NodeAttributes{.browse_name = "SimulationSignals",
+                                .display_name = u"Сигналы имитации"}});
 
   nodes.push_back(scada::NodeState{
       .node_id = di::SimulationSignalType,
@@ -666,9 +641,8 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("SimulationSignalType")
-                        .set_display_name(u"Сигнал имитации"),
+      .attributes = scada::NodeAttributes{.browse_name = "SimulationSignalType",
+                                          .display_name = u"Сигнал имитации"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -685,11 +659,10 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
         .parent_id = di::SimulationSignalType,
         .reference_type_id = {scada::id::HasProperty,
                               scada::NamespaceIndexes::NS0},
-        .attributes = scada::NodeAttributes{}
-                          .set_browse_name(browse_name)
-                          .set_display_name(std::move(display_name))
-                          .set_data_type({scada::id::Int32,
-                                          scada::NamespaceIndexes::NS0})});
+        .attributes = scada::NodeAttributes{
+            .browse_name = browse_name,
+            .display_name = std::move(display_name),
+            .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   };
   add_property(di::SimulationSignalType_Function, "Function", u"Функция");
   add_property(di::SimulationSignalType_Period, "Period", u"Период");
@@ -725,9 +698,9 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
                              scada::NamespaceIndexes::NS0},
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("HistoricalDatabases")
-                        .set_display_name(u"Базы данных истории")});
+      .attributes =
+          scada::NodeAttributes{.browse_name = "HistoricalDatabases",
+                                .display_name = u"Базы данных истории"}});
 
   nodes.push_back(scada::NodeState{
       .node_id = hi::HistoricalDatabaseType,
@@ -735,9 +708,9 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("HistoricalDatabaseType")
-                        .set_display_name(u"База данных истории"),
+      .attributes =
+          scada::NodeAttributes{.browse_name = "HistoricalDatabaseType",
+                                .display_name = u"База данных истории"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -752,11 +725,10 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
         .parent_id = hi::HistoricalDatabaseType,
         .reference_type_id = {scada::id::HasProperty,
                               scada::NamespaceIndexes::NS0},
-        .attributes = scada::NodeAttributes{}
-                          .set_browse_name(browse_name)
-                          .set_display_name(std::move(display_name))
-                          .set_data_type({scada::id::Int32,
-                                          scada::NamespaceIndexes::NS0})});
+        .attributes = scada::NodeAttributes{
+            .browse_name = browse_name,
+            .display_name = std::move(display_name),
+            .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   };
   add_property(hi::HistoricalDatabaseType_Depth, "Depth", u"Глубина");
   add_property(hi::HistoricalDatabaseType_ItemCount, "ItemCount", u"Элементов");
@@ -791,9 +763,8 @@ inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("FileSystemType")
-                        .set_display_name(u"Файловая система"),
+      .attributes = scada::NodeAttributes{.browse_name = "FileSystemType",
+                                          .display_name = u"Файловая система"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -803,9 +774,8 @@ inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("FileType")
-                        .set_display_name(u"Файл"),
+      .attributes = scada::NodeAttributes{.browse_name = "FileType",
+                                          .display_name = u"Файл"},
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
@@ -816,9 +786,8 @@ inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
       .type_definition_id = fs::FileSystemType,
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{}
-                        .set_browse_name("FileSystem")
-                        .set_display_name(u"Файловая система")});
+      .attributes = scada::NodeAttributes{
+          .browse_name = "FileSystem", .display_name = u"Файловая система"}});
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);

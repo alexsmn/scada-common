@@ -15,9 +15,9 @@ namespace scada {
 namespace {
 
 // Instantiating a type must materialize its Mandatory data variables but never
-// its OptionalPlaceholder/MandatoryPlaceholder InstanceDeclarations. ModbusDeviceType
-// carries the <TransmissionItem> OptionalPlaceholder (attached via
-// HasTransmissionItem, a HasComponent subtype, so it is returned by
+// its OptionalPlaceholder/MandatoryPlaceholder InstanceDeclarations.
+// ModbusDeviceType carries the <TransmissionItem> OptionalPlaceholder (attached
+// via HasTransmissionItem, a HasComponent subtype, so it is returned by
 // GetComponents); the factory must skip it.
 TEST(NodeFactoryUtil, SkipsPlaceholderDeclarations) {
   AddressSpaceImpl2 space;
@@ -30,14 +30,14 @@ TEST(NodeFactoryUtil, SkipsPlaceholderDeclarations) {
   ASSERT_TRUE(modbus_device_type);
 
   // Materialize a device instance under the Devices folder, then populate its
-  // data variables from the type — the path that would instantiate placeholders.
+  // data variables from the type — the path that would instantiate
+  // placeholders.
   const NodeId instance_id{devices::id::ModbusDeviceType.numeric_id() + 100000,
                            devices::id::ModbusDeviceType.namespace_index()};
-  auto [instance_status, instance] = factory.CreateNode(
-      NodeState{instance_id, NodeClass::Object, devices::id::ModbusDeviceType,
-                devices::id::Devices, id::Organizes,
-                NodeAttributes{}.set_browse_name(
-                    QualifiedName{"TestModbusDevice"})});
+  auto [instance_status, instance] = factory.CreateNode(NodeState{
+      instance_id, NodeClass::Object, devices::id::ModbusDeviceType,
+      devices::id::Devices, id::Organizes,
+      NodeAttributes{.browse_name = QualifiedName{"TestModbusDevice"}}});
   ASSERT_TRUE(instance_status);
 
   const Status status =
@@ -45,7 +45,8 @@ TEST(NodeFactoryUtil, SkipsPlaceholderDeclarations) {
   ASSERT_TRUE(status);
 
   // The <TransmissionItem> placeholder must NOT be materialized as a child.
-  EXPECT_FALSE(space.GetNode(MakeNestedNodeId(instance_id, "<TransmissionItem>")))
+  EXPECT_FALSE(
+      space.GetNode(MakeNestedNodeId(instance_id, "<TransmissionItem>")))
       << "the OptionalPlaceholder was wrongly instantiated";
 
   // A real Mandatory data variable (from the DeviceType supertype) IS created.
