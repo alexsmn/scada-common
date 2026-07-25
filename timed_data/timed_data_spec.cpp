@@ -169,7 +169,9 @@ scada::DataValue TimedDataSpec::current() const {
 }
 
 scada::Time TimedDataSpec::change_time() const {
-  return data_ ? data_->GetChangeTime() : scada::Time();
+  // Unconnected spec: no change time. kNullTime, not a default-constructed
+  // scada::Time (the Unix epoch), so consumers' IsNull() checks fire.
+  return data_ ? data_->GetChangeTime() : scada::kNullTime;
 }
 
 bool TimedDataSpec::historical() const {

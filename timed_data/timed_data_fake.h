@@ -21,7 +21,7 @@ class FakeTimedData : public TimedData {
 
   scada::DataValue GetDataValue() const override { return {}; }
 
-  scada::Time GetChangeTime() const override { return {}; }
+  scada::Time GetChangeTime() const override { return scada::kNullTime; }
 
   std::span<const scada::DataValue> GetValues() const override {
     return data_values;

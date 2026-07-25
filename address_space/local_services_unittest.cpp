@@ -8,7 +8,10 @@
 #include "address_space/test/test_address_space.h"
 
 #include "base/test/awaitable_test.h"
+#include "common/sync_attribute_service.h"
+#include "scada/date_time.h"
 #include "scada/monitored_item.h"
+#include "scada/read_value_id.h"
 #include "scada/standard_node_ids.h"
 #include "scada/test/status_matchers.h"
 
@@ -148,6 +151,71 @@ TEST(LocalMonitoredItemService, DeliversAddressSpaceValueOnSubscribe) {
   EXPECT_EQ(data_change->value.value, Variant{"TestNode1.TestProp1.Value"});
   EXPECT_FALSE(scada::IsNull(data_change->value.source_timestamp));
   EXPECT_FALSE(scada::IsNull(data_change->value.server_timestamp));
+}
+
+// Regression: the address space used to stamp a statically configured
+// attribute value with a default-constructed scada::Time. Under std::chrono
+// that is the Unix epoch (1970-01-01) — a perfectly valid instant that
+// IsNull() does not recognise — rather than the kNullTime sentinel. Consumers
+// that fill in a missing timestamp (LocalMonitoredItem below, and the
+// client's table cells) therefore saw a "real" timestamp and rendered
+// 1970-01-01 beside a live value.
+TEST(SyncAttributeServiceImpl, StaticValueAttributeHasNullTimestamps) {
+  ::TestAddressSpace address_space;
+
+  const NodeId value_node_id = address_space.MakeNestedNodeId(
+      address_space.kTestNode1Id, address_space.kTestProp1Id);
+  const DataValue value =
+      ::Read(address_space.sync_attribute_service_impl, ServiceContext{},
+             ReadValueId{.node_id = value_node_id,
+                         .attribute_id = AttributeId::Value});
+
+  ASSERT_EQ(value.value, Variant{"TestNode1.TestProp1.Value"});
+  EXPECT_TRUE(scada::IsNull(value.source_timestamp))
+      << "source_timestamp: " << value.source_timestamp.time_since_epoch();
+  EXPECT_TRUE(scada::IsNull(value.server_timestamp))
+      << "server_timestamp: " << value.server_timestamp.time_since_epoch();
+}
+
+// Companion to the test above, on the delivery side: because the address
+// space now reports "no timestamp" as kNullTime, LocalMonitoredItem actually
+// stamps the sample with the current time instead of passing the Unix epoch
+// through untouched.
+TEST(LocalMonitoredItemService, StampsDeliveryTimeOnUntimestampedValue) {
+  TestExecutor executor;
+  ::TestAddressSpace address_space;
+  LocalMonitoredItemService service{address_space.sync_attribute_service_impl};
+
+  ASSERT_OK_AND_ASSIGN(auto subscription,
+                       service.CreateSubscription(ServiceContext{}, {}));
+
+  const Time before = scada::Now();
+  const NodeId value_node_id = address_space.MakeNestedNodeId(
+      address_space.kTestNode1Id, address_space.kTestProp1Id);
+  auto results = WaitAwaitable(
+      executor, subscription->AddItems({MonitoredItemCreateRequest{
+                    .item_to_monitor = {.node_id = value_node_id,
+                                        .attribute_id = AttributeId::Value},
+                    .client_handle = 1}}));
+  ASSERT_EQ(results.size(), 1u);
+  ASSERT_TRUE(results[0].status);
+
+  ASSERT_OK_AND_ASSIGN(auto notifications,
+                       WaitAwaitable(executor, subscription->ReadNext(10)));
+  ASSERT_EQ(notifications.size(), 1u);
+  const auto* data_change =
+      std::get_if<DataChangeNotification>(&notifications[0]);
+  ASSERT_NE(data_change, nullptr);
+
+  // Both timestamps must be the delivery time. `>= before` is what fails on
+  // the pre-fix code: the Unix epoch is non-null, so the stamping was skipped
+  // and the sample arrived dated 1970-01-01.
+  EXPECT_GE(data_change->value.source_timestamp, before)
+      << "source_timestamp: "
+      << data_change->value.source_timestamp.time_since_epoch();
+  EXPECT_GE(data_change->value.server_timestamp, before)
+      << "server_timestamp: "
+      << data_change->value.server_timestamp.time_since_epoch();
 }
 
 TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {

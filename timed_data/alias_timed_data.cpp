@@ -46,7 +46,10 @@ const scada::DataValue* AliasTimedData::GetValueAt(
 }
 
 scada::Time AliasTimedData::GetChangeTime() const {
-  return is_forwarded() ? forwarded().GetChangeTime() : scada::Time{};
+  // An unresolved alias has no change time. kNullTime, not a
+  // default-constructed scada::Time — the latter is the Unix epoch and would
+  // render as a real 1970 timestamp instead of blank.
+  return is_forwarded() ? forwarded().GetChangeTime() : scada::kNullTime;
 }
 
 std::span<const scada::DataValue> AliasTimedData::GetValues() const {

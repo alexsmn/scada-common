@@ -344,7 +344,9 @@ Status SetPropertyValue(Node& node,
   if (!property)
     return StatusCode::Bad;
 
-  return property->SetValue({value, {}, {}, {}});
+  // A property value carries no timestamps; kNullTime, not a
+  // default-constructed scada::Time (the Unix epoch), is the null sentinel.
+  return property->SetValue({value, {}, kNullTime, kNullTime});
 }
 
 const Node* FindDeclaration(const Node& node, const NodeId& declaration_id) {
@@ -396,7 +398,9 @@ Status SetPropertyValueHelper(Node& node,
   if (!property)
     return StatusCode::Bad_WrongPropertyId;
 
-  return property->SetValue({value, {}, {}, {}});
+  // A property value carries no timestamps; kNullTime, not a
+  // default-constructed scada::Time (the Unix epoch), is the null sentinel.
+  return property->SetValue({value, {}, kNullTime, kNullTime});
 }
 
 Node* FindChild(const Node& parent, std::string_view browse_name) {

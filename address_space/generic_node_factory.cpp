@@ -102,10 +102,15 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
   if (node_state.attributes.value.has_value()) {
     auto* variable = scada::AsVariable(node.get());
     if (variable) {
-      // Property ignores timestamps.
-      // TODO: Avoid timestamp.
-      variable->SetValue(
-          scada::DataValue{*node_state.attributes.value, {}, {}, {}});
+      // A statically configured attribute value carries no timestamps, so
+      // both must be the null sentinel rather than a default-constructed
+      // scada::Time — under std::chrono that is the Unix epoch, a perfectly
+      // valid 1970 instant that scada::IsNull() does not recognise and that
+      // downstream renders as a fabricated "1970-01-01" timestamp.
+      variable->SetValue(scada::DataValue{*node_state.attributes.value,
+                                          {},
+                                          scada::kNullTime,
+                                          scada::kNullTime});
     } else if (auto* variable_type = scada::AsVariableType(node.get())) {
       variable_type->set_default_value(*node_state.attributes.value);
     } else {

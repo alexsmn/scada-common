@@ -81,7 +81,11 @@ GenericVariable::GenericVariable(NodeId id,
                                  scada::LocalizedText display_name,
                                  const DataType& data_type,
                                  Variant default_value)
-    : data_type_(data_type), value_{std::move(default_value), {}, {}, {}} {
+    // The default value has no timestamps: kNullTime, not a
+    // default-constructed scada::Time (the Unix epoch), which IsNull() would
+    // not recognise as "no timestamp".
+    : data_type_(data_type),
+      value_{std::move(default_value), {}, kNullTime, kNullTime} {
   set_id(std::move(id));
   SetBrowseName(std::move(browse_name));
   SetDisplayName(std::move(display_name));

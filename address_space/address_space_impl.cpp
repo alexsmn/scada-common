@@ -78,7 +78,11 @@ bool AddressSpaceImpl::ModifyNode(const scada::NodeId& id,
 
   if (attributes.value.has_value()) {
     if (auto* variable = scada::AsVariable(node)) {
-      scada::DataValue new_data_value{std::move(*attributes.value), {}, {}, {}};
+      // No timestamps: an attribute value pushed through the address space
+      // carries none. Must be kNullTime, not a default-constructed
+      // scada::Time (the Unix epoch), which IsNull() would not recognise.
+      scada::DataValue new_data_value{
+          std::move(*attributes.value), {}, scada::kNullTime, scada::kNullTime};
       if (variable->GetValue() != new_data_value) {
         attribute_set.Add(scada::AttributeId::Value);
 

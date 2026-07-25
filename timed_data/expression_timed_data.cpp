@@ -151,8 +151,10 @@ void ExpressionTimedData::CalculateValuesInRange(
     // calculate
     auto total_value = expression_->Calculate();
     if (!total_value.is_null()) {
+      // A recomputed historical sample has no server timestamp: kNullTime,
+      // not a default-constructed scada::Time (the Unix epoch).
       scada::DataValue tvq(std::move(total_value), total_qualifier, update_time,
-                           scada::Time());
+                           scada::kNullTime);
 
       // The insert may be rejected in favor of an existing value with the
       // same timestamp; that is data-dependent, not an invariant.

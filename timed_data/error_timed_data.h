@@ -15,7 +15,11 @@ class ErrorTimedData final : public TimedData {
       const scada::Time& time) const override {
     return nullptr;
   }
-  virtual scada::Time GetChangeTime() const override { return {}; }
+  // An errored item has no change time; kNullTime, not a default-constructed
+  // scada::Time (the Unix epoch), is the null sentinel.
+  virtual scada::Time GetChangeTime() const override {
+    return scada::kNullTime;
+  }
   virtual std::span<const scada::DataValue> GetValues() const override {
     return {};
   }

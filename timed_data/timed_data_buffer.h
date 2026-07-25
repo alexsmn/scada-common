@@ -474,7 +474,10 @@ inline void BasicTimedDataBuffer<T>::TrimToObservedRanges() {
     size_t drop = values_.size() - retention_.max_samples;
     scada::Time new_first = timestamp(values_[drop]);
     values_.erase(values_.begin(), values_.begin() + drop);
-    ClampRanges(ready_ranges_, new_first, scada::Time{});
+    // kNullTime, not scada::Time{}: ClampRanges reads a null `hi` as "no
+    // upper bound", and under std::chrono a default-constructed Time is the
+    // Unix epoch, which would clamp every ready range away.
+    ClampRanges(ready_ranges_, new_first, scada::kNullTime);
   }
 
   // Return memory only after a substantial trim, so normal batch-by-batch
@@ -505,7 +508,7 @@ inline scada::TimeRange BasicTimedDataBuffer<T>::UnionRange(
     const scada::TimeRange& b) {
   scada::Time first = std::min(a.first, b.first);
   scada::Time second = (scada::IsNull(a.second) || scada::IsNull(b.second))
-                               ? scada::Time{}
+                               ? scada::kNullTime
                                : std::max(a.second, b.second);
   return {first, second};
 }
