@@ -1,8 +1,7 @@
 #include "node_service/static/static_node_model.h"
 
-#include "model/nested_node_ids.h"
-#include "model/node_id_util.h"
 #include "node_service/static/static_node_service.h"
+#include "scada/client.h"
 #include "scada/standard_reference_types.h"
 
 #include <optional>
@@ -35,9 +34,7 @@ auto FilterReferences(const scada::NodeId& ref_type_id, bool forward) {
 
 StaticNodeModel::StaticNodeModel(StaticNodeService& service,
                                  scada::NodeState node_state)
-    : service_{service}, node_state_{std::move(node_state)} {
-  fetch_status_ = NodeFetchStatus::Max;
-}
+    : service_{service}, node_state_{std::move(node_state)} {}
 
 scada::Variant StaticNodeModel::GetAttribute(
     scada::AttributeId attribute_id) const {
@@ -52,10 +49,13 @@ NodeRef::Reference StaticNodeModel::GetReference(
     const scada::NodeId& reference_type_id,
     bool forward,
     const scada::NodeId& node_id) const {
+  // GetReferences already filtered by type and direction, so the only thing
+  // left to match is the target. Project to the target id — a predicate-shaped
+  // projection would silently compare a bool against |node_id| (NodeId's
+  // numeric ctor is non-explicit, so it compiles and never matches).
   auto refs = GetReferences(reference_type_id, forward);
-  auto i = std::ranges::find(refs, node_id, [&](const NodeRef::Reference& ref) {
-    return ref.forward == forward && ref.reference_type.node_id() == node_id &&
-           ref.target.node_id() == node_id;
+  auto i = std::ranges::find(refs, node_id, [](const NodeRef::Reference& ref) {
+    return ref.target.node_id();
   });
   return i != refs.end() ? *i : NodeRef::Reference{};
 }
@@ -96,11 +96,6 @@ std::vector<NodeRef> StaticNodeModel::GetTargets(
                  std::views::transform(&NodeRef::Reference::target);
 
   return std::vector<NodeRef>(targets.begin(), targets.end());
-}
-
-NodeRef StaticNodeModel::GetAggregate(
-    const scada::NodeId& aggregate_declaration_id) const {
-  return service_.GetAggregate(node_state_.node_id, aggregate_declaration_id);
 }
 
 NodeRef StaticNodeModel::GetChild(

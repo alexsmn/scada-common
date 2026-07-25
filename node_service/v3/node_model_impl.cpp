@@ -1,15 +1,21 @@
 #include "node_service/v3/node_model_impl.h"
 
+#include "base/auto_reset.h"
+#include "base/awaitable.h"
 #include "base/check.h"
 #include "model/node_id_util.h"
 #include "node_service/node_util.h"
 #include "node_service/v3/node_service_impl.h"
 #include "scada/standard_reference_types.h"
 
-#include "base/awaitable.h"
+#include <boost/asio/async_result.hpp>
+#include <boost/asio/use_awaitable.hpp>
 
 #include <algorithm>
+#include <memory>
 #include <optional>
+#include <utility>
+#include <vector>
 
 namespace v3 {
 
@@ -50,10 +56,9 @@ void NodeModelImpl::OnModelChanged(const scada::ModelChangeEvent& event) {
   if (event.verb & scada::ModelChangeEvent::NodeDeleted) {
     OnNodeDeleted();
 
-    // A deleted node no longer pins its fetched subtree; holders of
-    // previously published snapshots keep their frozen copies. The service
-    // emits the per-node model-changed signal via its subscription table.
-    child_models_.clear();
+    // Holders of previously published snapshots keep their frozen copies. The
+    // service emits the per-node model-changed signal via its subscription
+    // table.
     child_references_.clear();
   }
 }
@@ -144,18 +149,15 @@ void NodeModelImpl::OnChildrenFetched(
   CoSpawn(service_.executor_,
           [reference_request, weak_self, this, &service = service_, node_id =
            node_id_, shared_references]() -> Awaitable<void> {
-            // Fetch and pin every child target and its reference type. Until
-            // the pins are handed to the parent below, they keep the fetched
-            // nodes resident across the coroutine suspension points.
-            std::vector<NodeRef> fetched_nodes;
-            fetched_nodes.reserve(shared_references->size() * 2);
+            // Fetch every child target and its reference type. Residency comes
+            // from the service's keep-alive window, which each GetNode() below
+            // touches (see NodeServiceImpl::TouchKeepAlive); the cursors
+            // themselves do not pin (node_ref.h).
             for (const auto& ref : *shared_references) {
-              auto target = service.GetNode(ref.node_id);
-              co_await target.Fetch(NodeFetchStatus::NodeOnly);
-              auto reference_type = service.GetNode(ref.reference_type_id);
-              co_await reference_type.Fetch(NodeFetchStatus::NodeOnly);
-              fetched_nodes.push_back(std::move(target));
-              fetched_nodes.push_back(std::move(reference_type));
+              co_await service.GetNode(ref.node_id)
+                  .Fetch(NodeFetchStatus::NodeOnly);
+              co_await service.GetNode(ref.reference_type_id)
+                  .Fetch(NodeFetchStatus::NodeOnly);
             }
 
             // |this| may only be touched past this point: |reference_request|
@@ -192,9 +194,6 @@ void NodeModelImpl::OnChildrenFetched(
                     return IsSameReference(ref, child_ref);
                   });
             });
-            // The parent pins its fetched subtree; releasing the last NodeRef
-            // to the parent releases the children too.
-            child_models_ = std::move(fetched_nodes);
 
             SetFetchStatus(status_,
                            fetch_status_ | NodeFetchStatus::ChildrenOnly);
@@ -414,6 +413,102 @@ void NodeModelImpl::OnFetchRequested(const NodeFetchStatus& requested_status) {
   service_.OnFetchNode(node_id_, requested_status);
 }
 
+// --- Fetch state machine ----------------------------------------------------
+
+void NodeModelImpl::StartFetch(const NodeFetchStatus& requested_status,
+                               FetchCallback callback) {
+  if (Includes(fetch_status_, requested_status)) {
+    if (!callback)
+      return;
+    // Route through the callback queue instead of firing inline so a
+    // callback that calls Fetch() on this or another model stays off
+    // the current stack frame. NotifyCallbacks() is re-entrance-safe
+    // (see |notifying_callbacks_|) and drains iteratively.
+    fetch_callbacks_.emplace_back(requested_status, std::move(callback));
+    NotifyCallbacks();
+
+  } else {
+    fetching_status_ |= requested_status;
+    if (callback)
+      fetch_callbacks_.emplace_back(requested_status, std::move(callback));
+    // Must copy, since |fetching_status_| can be updated.
+    auto combined_requested_status = fetching_status_;
+    OnFetchRequested(combined_requested_status);
+  }
+}
+
+Awaitable<void> NodeModelImpl::Fetch(const NodeFetchStatus& requested_status) {
+  auto initiate = [this, requested_status]<typename Handler>(
+                      Handler&& handler) mutable {
+    auto completion =
+        std::make_shared<std::decay_t<Handler>>(std::forward<Handler>(handler));
+    StartFetch(
+        requested_status,
+        [completion = std::move(completion)]() mutable { (*completion)(); });
+  };
+
+  auto token = boost::asio::use_awaitable;
+  co_await boost::asio::async_initiate<decltype(token), void()>(initiate,
+                                                                token);
+}
+
+void NodeModelImpl::StartFetch(const NodeFetchStatus& requested_status) {
+  StartFetch(requested_status, nullptr);
+}
+
+void NodeModelImpl::OnNodeDeleted() {
+  SetFetchStatus(scada::StatusCode::Bad_WrongNodeId, NodeFetchStatus::Max);
+}
+
+void NodeModelImpl::SetFetchStatus(const scada::Status& status,
+                                   const NodeFetchStatus& fetch_status) {
+  status_ = status;
+
+  if (fetch_status_ == fetch_status)
+    return;
+
+  fetch_status_ = fetch_status;
+  fetching_status_ |= fetch_status;
+
+  NotifyCallbacks();
+}
+
+void NodeModelImpl::NotifyCallbacks() {
+  if (callback_lock_count_ != 0)
+    return;
+
+  // If a callback being invoked below calls Fetch() which calls back
+  // into NotifyCallbacks, let the outermost frame own the drain —
+  // nested calls return immediately and the outer while-loop picks
+  // up whatever the callback enqueued.
+  if (notifying_callbacks_)
+    return;
+  scada::base::AutoReset<bool> drain_guard{&notifying_callbacks_, true};
+
+  while (true) {
+    std::vector<FetchCallback> callbacks;
+    for (auto it = fetch_callbacks_.begin(); it != fetch_callbacks_.end();) {
+      if (!it->second) {
+        it = fetch_callbacks_.erase(it);
+      } else if (Includes(fetch_status_, it->first)) {
+        callbacks.emplace_back(std::move(it->second));
+        it = fetch_callbacks_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+
+    if (fetch_callbacks_.empty())
+      fetch_callbacks_.shrink_to_fit();
+
+    if (callbacks.empty())
+      break;
+
+    for (auto& callback : callbacks)
+      callback();
+  }
+}
+
 void NodeModelImpl::NotifyModelChanged() {
   if (callback_lock_count_ != 0) {
     pending_model_changed_ = true;
@@ -466,11 +561,5 @@ void NodeModelImpl::NotifyStateChanged() {
   service_.NotifyNodeStateChanged(event);
 }
 
-scada::node NodeModelImpl::GetScadaNode() const {
-  // Unused: v3's NodeServiceImpl::GetScadaNode builds the node from the
-  // context's scada::client directly (residency-independent); this override
-  // only satisfies the NodeModel interface.
-  return {};
-}
 
 }  // namespace v3

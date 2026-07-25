@@ -11,29 +11,14 @@ interface NodeService {
   +GetPendingTaskCount() : size_t
 }
 
-class NodeRef <<value handle>> {
-  -model_ : shared_ptr<const NodeModel>
+class NodeRef <<cursor>> {
+  -id_ : NodeId
+  -service_ : NodeService* <<non-owning>>
   +attribute(id) : Variant
   +targets() / parent() / type_definition()
   +Fetch(NodeFetchStatus) : Awaitable<NodeRef>
   +StartFetch(NodeFetchStatus)
   +Subscribe(NodeRefObserver&)
-}
-
-interface NodeModel {
-  +GetStatus() : Status
-  +GetFetchStatus() : NodeFetchStatus
-  +GetAttribute(id) : Variant
-  +GetReferences(...) / GetTargets(...)
-  +Fetch(...) / StartFetch(...)
-  +Subscribe(NodeRefObserver&)
-}
-
-abstract class BaseNodeModel {
-  #status_ : Status
-  #fetch_status_ : NodeFetchStatus
-  #fetch_callbacks_
-  #observers_ : ObserverList<NodeRefObserver>
 }
 
 interface NodeRefObserver {
@@ -63,7 +48,7 @@ package "v3" {
     -registry_ : shared_ptr<NodeModelRegistry>
     -node_state_ : NodeState <<working state>>
     -child_references_
-    -child_models_ : vector<NodeRef> <<subtree pins>>
+    -status_ / fetch_status_ / fetch_callbacks_
     -NotifyStateChanged() <<publishes snapshot>>
   }
 
@@ -78,14 +63,12 @@ package "v3" {
 }
 
 NodeService <|.. NodeServiceImpl
-NodeModel <|.. BaseNodeModel
-BaseNodeModel <|-- NodeModelImpl
-NodeRef o-> "shared_ptr<const>" NodeModel : pins
+NodeRef ..> NodeService : forwards to <<non-owning>>
+NodeServiceImpl --> NodeModelImpl : owns per-node state
 NodeServiceImpl --> NodeModelRegistry : owns
 NodeModelImpl --> NodeModelRegistry : unregisters on destruction
 NodeModelRegistry ..> NodeModelImpl : weak_ptr
 NodeServiceImpl --> NodeFetcher : injected
 NodeServiceImpl ..> NodeRefObserver : notifies
 NodeModelImpl ..> NodeStateChangedEvent : publishes
-NodeModelImpl --> "child_models_" NodeRef : pins fetched subtree
 @enduml

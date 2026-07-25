@@ -19,9 +19,7 @@ implementation.
 | Type | Header | Role |
 |---|---|---|
 | `NodeService` | `node_service/node_service.h` | Entry point: `GetNode`, service-wide `Subscribe`/`Unsubscribe`, pending-task count. |
-| `NodeRef` | `node_service/node_ref.h` | Copyable value handle over `shared_ptr<const NodeModel>`. Attribute reads, graph navigation (`targets()`, `parent()`, `type_definition()`, `operator[]`), lazy fetch (`Fetch`/`StartFetch`), per-node subscription. **Holding a `NodeRef` is what keeps a node resident.** |
-| `NodeModel` | `node_service/node_model.h` | Virtual per-node interface behind `NodeRef`; implemented per service variant. |
-| `BaseNodeModel` | `node_service/base_node_model.h` | Shared fetch-status/callback/observer machinery (re-entrancy-safe callback drain). |
+| `NodeRef` | `node_service/node_ref.h` | Lightweight `{NodeId, NodeService*}` cursor. Attribute reads, graph navigation (`targets()`, `parent()`, `type_definition()`, `operator[]`), lazy fetch (`Fetch`/`StartFetch`), per-node subscription — every operation forwards to the service. **A `NodeRef` carries no per-node state and does not pin the node resident.** |
 | `NodeRefObserver` | `node_service/node_observer.h` | Notification interface: `OnModelChanged`, `OnNodeSemanticChanged`, `OnNodeFetched`, `OnNodeStateChanged` (all default no-op). |
 | `scada::NodeState` / `NodeStatePtr` | `common/node_state.h` | Plain node data (attributes, properties, references). `NodeStatePtr = shared_ptr<const NodeState>` is the immutable snapshot type. |
 | `NodeFetchStatus` | `node_service/node_fetch_status.h` | Which fetch level a node has reached (`node_fetched`, `children_fetched`). |
@@ -35,13 +33,14 @@ used from the executor they were created on. Cross-executor use goes through
 | Variant | Directory | Data source | Notes |
 |---|---|---|---|
 | **v3** | `node_service/v3/` | Injected `NodeFetcher` coroutine facade | The active implementation. Bounded residency + snapshot publication (below). |
-| v2 | `node_service/v2/` | `ViewService`/`AttributeService` via `NodeFetcherImpl` | Direct `NodeState` cache per model; `PendingEvents` batching. Unbounded model cache. |
-| v1 | `node_service/v1/` | Mirrors into a local `scada::AddressSpace` | Models read from `scada::Node*`. Legacy. |
 | static | `node_service/static/` | Preloaded `NodeState`s | Immutable test/config data; `Subscribe` is a no-op. |
 | proxy | `node_service/proxy/` | Wraps another `NodeService` | Cross-executor marshaling; read methods are currently stubs. |
 
-`node_service_unittests` links v1+v2+v3+proxy together and runs the shared
-suites against them.
+`node_service_unittests` links v3+proxy+address_space together and runs the
+shared suites against them. For tests that need a `NodeService` without a
+remote, `node_service/test/fake_node_service.h` is the shared data-backed
+fake — register `NodeState`s with `Add()` and drive fetch behaviour with
+`SetFetchStatus` / `SetStatus` / `SetFetchHandler`.
 
 ## v3 residency model: load the minimal subgraph, release what is unused
 
@@ -62,16 +61,16 @@ Ownership rules:
   stays safe.
 - **Pins are the only ownership.** A model stays alive while at least one of
   these holds it:
-  - a consumer `NodeRef` (UI rows, tree roots, captured coroutine locals);
   - an in-flight fetch (`SpawnFetch` captures the model, so a transient
     `GetNode` cannot lose its own fetch mid-flight), including fetches queued
     while the channel is closed (`pending_fetch_nodes_`);
-  - the parent model's `child_models_` — after a children fetch the parent
-    pins every fetched child and its reference type, so a fetched subtree
-    lives exactly as long as its root, and dropping the root unwinds it;
   - the bounded keep-alive MRU window
-    (`NodeServiceImplContext::keep_alive_capacity_`, default 256), which
-    absorbs refetch churn from transient traversal patterns.
+    (`NodeServiceImplContext::keep_alive_capacity_`, default 4096), which
+    absorbs refetch churn from transient traversal patterns. Because
+    `NodeRef` does not pin, this window is the **only** thing keeping a
+    fetched node resident once its fetch has settled — sizing it below the
+    combined working set of the open views livelocks the service in an
+    evict -> auto-refetch -> notify -> re-read cycle.
 - **Update paths never create models.** `FindNodeModel` (lookup-only) is used
   for fetch results, fetch errors, remote event routing, and the
   inverse-reference push into neighbors; only `GetNode`/`GetNodeModel`
@@ -100,7 +99,7 @@ current registry size (used by the residency unit tests).
 ## Snapshot data plane: push-only immutable NodeState
 
 Consumers used to react to a change notification by re-getting the node and
-re-reading each attribute through the virtual `NodeModel` interface. v3
+re-reading each attribute one call at a time through `NodeRef`. v3
 additionally publishes immutable snapshots:
 
 - On every state change (first fetch, attribute/property/reference update,
@@ -113,7 +112,7 @@ additionally publishes immutable snapshots:
   internally consistent view for as long as they need it, and may hand the
   pointer across executor boundaries without pinning the model.
 - The channel is deliberately **push-only**: there is no pull accessor on
-  `NodeModel`/`NodeRef`. Synchronous reads stay on the `NodeRef` attribute
+  `NodeService`/`NodeRef`. Synchronous reads stay on the `NodeRef` attribute
   getters; a subscriber sees a snapshot on the node's next publication.
 - Publications ride the fetch batching (`pending_state_changed_` +
   `OnFetchCompleted`), so one fetch batch produces at most one snapshot per

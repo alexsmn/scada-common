@@ -10,8 +10,8 @@
 
 // Fake node-event subscriber that records every received notification, so
 // tests can assert on observable event sequences instead of encoding mock
-// call-shape expectations. Connect it to a NodeService, NodeModel, or NodeRef
-// via one of the Connect overloads.
+// call-shape expectations. Connect it to a NodeService or a NodeRef via one
+// of the Connect overloads.
 class RecordingNodeObserver {
  public:
   // Connects to all four node-event signals of |source|.

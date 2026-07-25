@@ -91,15 +91,15 @@ std::shared_ptr<const StaticNodeModel> StaticNodeService::FindNode(
 }
 
 scada::Status StaticNodeService::GetStatus(const scada::NodeId& node_id) {
-  auto node = FindNode(node_id);
-  return node ? node->GetStatus()
-              : scada::Status{scada::StatusCode::Bad_WrongNodeId};
+  // Static nodes are fully materialized on Add(), so a registered node is
+  // always Good and an unregistered one is simply unknown.
+  return FindNode(node_id) ? scada::Status{scada::StatusCode::Good}
+                           : scada::Status{scada::StatusCode::Bad_WrongNodeId};
 }
 
 NodeFetchStatus StaticNodeService::GetFetchStatus(
     const scada::NodeId& node_id) {
-  auto node = FindNode(node_id);
-  return node ? node->GetFetchStatus() : NodeFetchStatus{};
+  return FindNode(node_id) ? NodeFetchStatus::Max : NodeFetchStatus{};
 }
 
 Awaitable<void> StaticNodeService::Fetch(

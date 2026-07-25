@@ -16,7 +16,7 @@ Service -> Service : TouchKeepAlive(model)
 Service -> Model : StartFetch(NodeOnly)
 Model -> Service : OnFetchNode(node_id, status)
 Service -> Service : SpawnFetch(...)\ncoroutine pins the model
-Service --> Consumer : NodeRef (pin)
+Service --> Consumer : NodeRef (cursor, no pin)
 
 ... asynchronous fetch ...
 
@@ -41,9 +41,11 @@ deactivate Model
 
 Consumer -> Consumer : drop last NodeRef
 note over Model, Registry
-  ~NodeModelImpl erases its registry entry
-  (through the shared registry, safe even
-  after service teardown); the fetched
-  subtree pinned via child_models_ unwinds.
+  A NodeRef never pinned the model; the
+  model dies when the keep-alive window
+  evicts it. ~NodeModelImpl erases its
+  registry entry through the shared
+  registry, safe even after service
+  teardown.
 end note
 @enduml

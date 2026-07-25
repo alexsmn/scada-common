@@ -2,30 +2,61 @@
 
 #include "base/awaitable.h"
 #include "common/node_state.h"
+#include "model/node_id_util.h"
 #include "node_service/node_service.h"
 #include "node_service/node_util.h"
+#include "scada/client.h"
 #include "scada/standard_node_ids.h"
+#include "scada/standard_reference_types.h"
 
+#include <functional>
 #include <map>
+#include <optional>
 #include <vector>
 
 // Data-backed NodeService for tests.
 //
 // Register nodes with Add(NodeState); the service answers attribute reads and
 // graph navigation from the stored states, resolving reference types by subtype
-// (via node_util::IsSubtypeOf), just like the production services. NodeRefs
-// handed out are plain {NodeId, this} cursors, so identity, hashing, and
-// subscriptions route through this fake exactly as through a real service.
+// just like the production services. NodeRefs handed out are plain
+// {NodeId, this} cursors, so identity, hashing, and subscriptions route through
+// this fake exactly as through a real service.
 //
-// Node fetches complete immediately (every node reports fully fetched). Tests
-// can drive change notifications with the Emit* helpers.
+// Nodes default to fully fetched (NodeFetchStatus::Max) and Good, so fetches
+// complete immediately. Tests that need to exercise partially-fetched or failed
+// nodes drive them with SetFetchStatus / SetStatus / SetFetchHandler, and can
+// assert on what was requested via fetch_requests(). Change notifications are
+// driven with the Emit* helpers.
 class FakeNodeService : public NodeService {
  public:
+  FakeNodeService() = default;
+
+  // Backs GetScadaNode: a scada::node is a service-bound cursor, so it must
+  // carry the services used for reads/writes/calls made through it. A
+  // default-constructed fake yields nodes whose operations report
+  // Bad_Disconnected.
+  explicit FakeNodeService(scada::services services) : client_{services} {}
+
   // Registers or replaces a node's state. Returns a cursor to it. References
   // authored on |state| are mirrored onto their targets so inverse navigation
-  // works regardless of registration order.
+  // works regardless of registration order. Properties on an instance node are
+  // materialized as child Variable nodes under a synthetic nested id, the way
+  // StaticNodeService::Add does, so GetAggregate resolves them.
   NodeRef Add(scada::NodeState state) {
     scada::NodeId node_id = state.node_id;
+
+    if (scada::IsInstance(state.node_class)) {
+      for (const auto& [prop_decl_id, prop_value] : state.properties) {
+        Add(scada::NodeState{
+            .node_id = MakeAggregateId(node_id, prop_decl_id),
+            .node_class = scada::NodeClass::Variable,
+            .type_definition_id = scada::id::PropertyType,
+            .parent_id = node_id,
+            .reference_type_id = scada::id::HasProperty,
+            .attributes = {.value = prop_value}});
+      }
+    }
+    state.properties.clear();
 
     if (!state.type_definition_id.is_null()) {
       state.references.push_back(scada::ReferenceDescription{
@@ -48,6 +79,40 @@ class FakeNodeService : public NodeService {
 
     nodes_[node_id].state = std::move(state);
     return NodeRef{node_id, this};
+  }
+
+  // --- Per-node fetch and status control ---------------------------------
+  // Nodes default to fully fetched (NodeFetchStatus::Max) and Good; these
+  // override that for one node so tests can drive partially-fetched, failed,
+  // or slow-loading nodes.
+
+  void SetFetchStatus(const scada::NodeId& node_id, NodeFetchStatus status) {
+    nodes_[node_id].fetch_status = status;
+  }
+  void SetStatus(const scada::NodeId& node_id, scada::Status status) {
+    nodes_[node_id].status = std::move(status);
+  }
+
+  // Replaces immediate completion of Fetch() for one node. The handler may
+  // suspend, so a test can hold a fetch open and resume it later; it typically
+  // calls SetFetchStatus() before resuming. StartFetch() records the request
+  // but never runs the handler, matching the fire-and-forget production path.
+  using FetchHandler = std::function<Awaitable<void>(const NodeFetchStatus&)>;
+  void SetFetchHandler(const scada::NodeId& node_id, FetchHandler handler) {
+    nodes_[node_id].fetch_handler = std::move(handler);
+  }
+
+  // Every status passed to Fetch() or StartFetch() for |node_id|, in order.
+  // Replaces gmock call-shape expectations on the old per-node model.
+  const std::vector<NodeFetchStatus>& fetch_requests(
+      const scada::NodeId& node_id) const {
+    static const std::vector<NodeFetchStatus> kNone;
+    const Entry* entry = Find(node_id);
+    return entry ? entry->fetch_requests : kNone;
+  }
+  void ClearFetchRequests() {
+    for (auto& [node_id, entry] : nodes_)
+      entry.fetch_requests.clear();
   }
 
   // Emits change notifications for a registered node (per-node + service-wide).
@@ -83,17 +148,30 @@ class FakeNodeService : public NodeService {
   }
 
   scada::Status GetStatus(const scada::NodeId& node_id) override {
-    return scada::StatusCode::Good;
+    auto* entry = Find(node_id);
+    return entry ? entry->status : scada::Status{scada::StatusCode::Good};
   }
   NodeFetchStatus GetFetchStatus(const scada::NodeId& node_id) override {
-    return NodeFetchStatus::Max;
+    auto* entry = Find(node_id);
+    return entry ? entry->fetch_status : NodeFetchStatus::Max;
   }
   Awaitable<void> Fetch(const scada::NodeId& node_id,
                         const NodeFetchStatus& requested_status) override {
-    co_return;
+    // Copy the handler out before suspending: it may re-enter the service
+    // (Add, SetFetchHandler) and rehash `nodes_`, dangling the entry.
+    FetchHandler handler;
+    if (auto* entry = Find(node_id)) {
+      entry->fetch_requests.push_back(requested_status);
+      handler = entry->fetch_handler;
+    }
+    if (handler)
+      co_await handler(requested_status);
   }
   void StartFetch(const scada::NodeId& node_id,
-                  const NodeFetchStatus& requested_status) override {}
+                  const NodeFetchStatus& requested_status) override {
+    if (auto* entry = Find(node_id))
+      entry->fetch_requests.push_back(requested_status);
+  }
 
   scada::Variant GetAttribute(const scada::NodeId& node_id,
                               scada::AttributeId attribute_id) override {
@@ -134,10 +212,9 @@ class FakeNodeService : public NodeService {
     auto add_matching = [&](const scada::ReferenceDescription& ref) {
       if (ref.forward != forward)
         return;
-      NodeRef reference_type = GetNode(ref.reference_type_id);
-      if (IsSubtypeOf(reference_type, reference_type_id)) {
+      if (MatchesReferenceType(ref.reference_type_id, reference_type_id)) {
         result.push_back(
-            {reference_type, GetNode(ref.node_id), ref.forward});
+            {GetNode(ref.reference_type_id), GetNode(ref.node_id), ref.forward});
       }
     };
     if (auto* entry = Find(node_id)) {
@@ -182,7 +259,20 @@ class FakeNodeService : public NodeService {
 
   NodeRef GetAggregate(const scada::NodeId& node_id,
                        const scada::NodeId& aggregate_declaration_id) override {
-    return nullptr;
+    // Properties materialized from NodeState::properties live under a
+    // synthetic nested id keyed by the declaration id. Test for existence with
+    // Find(), not GetNode(): unlike the production services, GetNode() here
+    // hands out a cursor for any non-null id.
+    scada::NodeId property_id = MakeAggregateId(node_id, aggregate_declaration_id);
+    if (Find(property_id))
+      return NodeRef{std::move(property_id), this};
+
+    // Properties created by a node factory instead live under their
+    // declaration's browse name; resolve through it, as the real services do.
+    if (Find(aggregate_declaration_id))
+      return GetChild(node_id, GetNode(aggregate_declaration_id).browse_name());
+
+    return {};
   }
   NodeRef GetChild(const scada::NodeId& node_id,
                    const scada::QualifiedName& child_name) override {
@@ -193,7 +283,9 @@ class FakeNodeService : public NodeService {
     }
     return {};
   }
-  scada::node GetScadaNode(const scada::NodeId& node_id) override { return {}; }
+  scada::node GetScadaNode(const scada::NodeId& node_id) override {
+    return node_id.is_null() ? scada::node{} : client_.node(node_id);
+  }
 
   boost::signals2::scoped_connection SubscribeModelChanged(
       const scada::NodeId& node_id,
@@ -239,9 +331,36 @@ class FakeNodeService : public NodeService {
   struct Entry {
     scada::NodeState state;
     NodeSignals signals;
+    NodeFetchStatus fetch_status = NodeFetchStatus::Max;
+    scada::Status status{scada::StatusCode::Good};
+    FetchHandler fetch_handler;
+    std::vector<NodeFetchStatus> fetch_requests;
   };
 
+  static scada::NodeId MakeAggregateId(const scada::NodeId& node_id,
+                                       const scada::NodeId& prop_decl_id) {
+    return MakeNestedNodeId(node_id, prop_decl_id.ToString());
+  }
+
+  // Mirrors the production services (see StaticNodeModel): standard (ns0)
+  // reference types resolve statically, so a HierarchicalReferences query
+  // matches an Organizes / HasComponent edge without those ReferenceType nodes
+  // being registered. Custom types fall back to a HasSubtype walk over the
+  // registered graph.
+  bool MatchesReferenceType(const scada::NodeId& ref_type_id,
+                            const scada::NodeId& queried_id) {
+    if (std::optional<bool> known =
+            scada::IsStandardReferenceSubtype(ref_type_id, queried_id)) {
+      return *known;
+    }
+    return IsSubtypeOf(GetNode(ref_type_id), queried_id);
+  }
+
   Entry* Find(const scada::NodeId& node_id) {
+    auto i = nodes_.find(node_id);
+    return i != nodes_.end() ? &i->second : nullptr;
+  }
+  const Entry* Find(const scada::NodeId& node_id) const {
     auto i = nodes_.find(node_id);
     return i != nodes_.end() ? &i->second : nullptr;
   }
@@ -250,4 +369,5 @@ class FakeNodeService : public NodeService {
   std::map<scada::NodeId, std::vector<scada::ReferenceDescription>>
       inverse_references_;
   mutable NodeSignals service_signals_;
+  scada::client client_;
 };

@@ -137,6 +137,44 @@ TEST(StaticNodeServiceTest, ScadaNodeUsesDataServicesAttributeService) {
   EXPECT_EQ(result.value().value, expected_value);
 }
 
+// Regression: GetReference passed a predicate-shaped projection to
+// std::ranges::find, so the "find the edge to this target" lookup compared a
+// bool against the node id. It compiled only because NodeId's numeric ctor is
+// non-explicit, and never matched a real target — every targeted reference
+// lookup came back empty.
+TEST(StaticNodeServiceTest, GetReferenceFindsTheEdgeToTheRequestedTarget) {
+  StaticNodeService node_service;
+  const scada::NodeId parent_id{1, 2};
+  const scada::NodeId first_id{2, 2};
+  const scada::NodeId second_id{3, 2};
+
+  node_service.Add({.node_id = parent_id,
+                    .node_class = scada::NodeClass::Object,
+                    .type_definition_id = scada::id::BaseObjectType});
+  for (const scada::NodeId& child_id : {first_id, second_id}) {
+    node_service.Add({.node_id = child_id,
+                      .node_class = scada::NodeClass::Variable,
+                      .type_definition_id = scada::id::BaseVariableType,
+                      .parent_id = parent_id,
+                      .reference_type_id = scada::id::Organizes});
+  }
+
+  // Both children are reachable, and asking for one picks that one.
+  EXPECT_EQ(node_service.GetTargets(parent_id, scada::id::Organizes, true).size(),
+            2u);
+
+  const NodeRef::Reference second = node_service.GetReference(
+      parent_id, scada::id::Organizes, /*forward=*/true, second_id);
+  ASSERT_TRUE(second.target);
+  EXPECT_EQ(second.target.node_id(), second_id);
+
+  // A target that is not on the other end of such an edge finds nothing.
+  EXPECT_FALSE(node_service
+                   .GetReference(parent_id, scada::id::Organizes,
+                                 /*forward=*/true, scada::NodeId{99, 2})
+                   .target);
+}
+
 // Regression: v3 used to answer GetScadaNode from the node model, which
 // returned an empty (service-less) scada::node — every read/subscribe through
 // NodeRef::scada_node() completed with Bad_Disconnected. The service must

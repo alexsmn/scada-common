@@ -224,7 +224,7 @@ class NodeServiceImpl : private NodeServiceImplContext,
   bool channel_opened_ = false;
   std::map<scada::NodeId, PendingNodeFetch> pending_fetch_nodes_;
 
-  // Nodes with a fetch coroutine currently in flight. BaseNodeModel re-requests
+  // Nodes with a fetch coroutine currently in flight. NodeModelImpl re-requests
   // a fetch on every StartFetch until the status is fetched; because the
   // injected NodeFetcher is stateless (unlike v2's self-deduping
   // NodeFetcherImpl), without this guard a slow/asynchronous fetch would spawn

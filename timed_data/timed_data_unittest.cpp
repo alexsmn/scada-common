@@ -8,7 +8,6 @@
 #include "model/data_items_node_ids.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
-#include "node_service/node_model_mock.h"
 #include "node_service/node_service_mock.h"
 #include "node_service/static/static_node_service.h"
 #include "scada/attribute_service_mock.h"

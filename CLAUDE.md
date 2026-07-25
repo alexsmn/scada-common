@@ -45,9 +45,7 @@ address_space  scada_common ◄──────┘
 | `address_space/` | `address_space` | OPC UA address space (nodes, types, hierarchy, builder) |
 | `events/` | `scada_common_events` | Event storage, aggregation, per-node subscriptions |
 | `node_service/` | `node_service` | Node service abstraction with async fetch, includes `static/` sources |
-| `node_service/v1/` | `node_service_v1` | Address-space-based implementation with status tracking |
-| `node_service/v2/` | `node_service_v2` | Alternative implementation |
-| `node_service/v3/` | `node_service_v3` | Alternative implementation |
+| `node_service/v3/` | `node_service_v3` | The active implementation (bounded residency, snapshot publication) |
 | `node_service/proxy/` | `node_service_proxy` | Proxy/forwarding pattern |
 | `opcua/` | `scada_core_opcua` | Shim: INTERFACE target linking `opcuapp::opcuapp` + `scada_opcua_bridge` (the native OPC UA stack now lives in `third_party/opcuapp`; requires `find_package(opcuapp)`) |
 | `opcua_bridge/` | `scada_opcua_bridge` | Boundary adapter converting between core `scada::` types and opcuapp's `opcua::scada::` types (server + client service adapters) |
@@ -79,13 +77,13 @@ may report zero discovered tests even when the binaries exist.
 
 Test fixtures and utilities live in `test/` subdirectories:
 - `address_space/test/` — `test_address_space.h`, `test_matchers.h`
-- `node_service/test/` — `model_node_service.h` (a `NodeService` double that
-  forwards each per-node operation to a registered `NodeModel`, so tests can
-  keep lightweight `MockNodeModel` stubs and still hand out real `NodeRef`
-  cursors)
-- `node_service/v1/test/` — `node_service_test_context.h`
+- `node_service/test/` — `fake_node_service.h` (a data-backed `NodeService`
+  for tests: register `NodeState`s with `Add()`, navigate and read them
+  through real `NodeRef` cursors, and drive loading with `SetFetchStatus` /
+  `SetStatus` / `SetFetchHandler`, asserting on `fetch_requests()`). Prefer
+  it to a per-test mock — there is no per-node model interface to mock.
 
-The `node_service_unittests` target links all implementation variants (v1, v2, v3, proxy) to test them together.
+The `node_service_unittests` target links the implementation variants (v3, proxy) to test them together.
 
 ## Key Architectural Patterns
 

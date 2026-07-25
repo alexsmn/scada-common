@@ -2,12 +2,18 @@
 
 #include "node_service/test/fake_node_service.h"
 
+#include "base/async_completion.h"
+#include "base/awaitable.h"
 #include "common/node_state.h"
 #include "scada/standard_node_ids.h"
 
+#include <boost/asio/io_context.hpp>
+
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <unordered_set>
+#include <vector>
 
 namespace {
 
@@ -147,6 +153,130 @@ TEST(NodeRefTest, SubscribeNodeStateChangedReceivesEmittedEvents) {
   connection.disconnect();
   service.EmitNodeStateChanged(Id(1));
   EXPECT_EQ(calls, 1);  // no longer subscribed
+}
+
+// --- Reference-type matching ----------------------------------------------
+
+TEST(NodeRefTest, BaseReferenceTypeQueryMatchesStandardSubtypes) {
+  // A HierarchicalReferences query must match Organizes / HasComponent edges
+  // without the ns0 ReferenceType nodes being registered — standard reference
+  // types resolve statically, as in the production services.
+  FakeNodeService service;
+  service.Add(scada::NodeState{}.set_node_id(Id(10)));
+  service.Add(scada::NodeState{}
+                  .set_node_id(Id(11))
+                  .set_parent(scada::id::Organizes, Id(10)));
+  service.Add(scada::NodeState{}
+                  .set_node_id(Id(12))
+                  .set_parent(scada::id::HasComponent, Id(10)));
+
+  NodeRef parent = service.GetNode(Id(10));
+  auto children = parent.targets(scada::id::HierarchicalReferences);
+  EXPECT_EQ(children.size(), 2u);
+
+  // A query for a sibling branch of the hierarchy still discriminates.
+  EXPECT_EQ(parent.targets(scada::id::Organizes).size(), 1u);
+}
+
+TEST(NodeRefTest, ChildLookupResolvesThroughBaseReferenceType) {
+  FakeNodeService service;
+  service.Add(scada::NodeState{}.set_node_id(Id(10)));
+  service.Add(scada::NodeState{}
+                  .set_node_id(Id(11))
+                  .set_browse_name(scada::QualifiedName{"Child"})
+                  .set_parent(scada::id::HasComponent, Id(10)));
+
+  NodeRef child = service.GetNode(Id(10))[scada::QualifiedName{"Child"}];
+  ASSERT_TRUE(child);
+  EXPECT_EQ(child.node_id(), Id(11));
+}
+
+// --- Fetch control --------------------------------------------------------
+
+TEST(NodeRefTest, FetchStatusAndStatusAreControllablePerNode) {
+  FakeNodeService service;
+  service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  service.Add(scada::NodeState{}.set_node_id(Id(2)));
+
+  // Registered nodes default to fully fetched and Good.
+  EXPECT_TRUE(service.GetNode(Id(1)).fetched());
+  EXPECT_TRUE(service.GetNode(Id(1)).status());
+
+  service.SetFetchStatus(Id(1), NodeFetchStatus::NodeOnly);
+  service.SetStatus(Id(1), scada::StatusCode::Bad_WrongNodeId);
+
+  EXPECT_EQ(service.GetFetchStatus(Id(1)), NodeFetchStatus::NodeOnly);
+  EXPECT_FALSE(service.GetNode(Id(1)).status());
+  // Other nodes are unaffected.
+  EXPECT_TRUE(service.GetNode(Id(2)).fetched());
+}
+
+TEST(NodeRefTest, FetchRequestsAreRecorded) {
+  FakeNodeService service;
+  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
+
+  EXPECT_TRUE(service.fetch_requests(Id(1)).empty());
+
+  node.StartFetch(NodeFetchStatus::NodeOnly);
+  node.StartFetch(NodeFetchStatus::NodeAndChildren);
+
+  EXPECT_EQ(service.fetch_requests(Id(1)),
+            (std::vector{NodeFetchStatus::NodeOnly,
+                         NodeFetchStatus::NodeAndChildren}));
+
+  service.ClearFetchRequests();
+  EXPECT_TRUE(service.fetch_requests(Id(1)).empty());
+}
+
+TEST(NodeRefTest, FetchHandlerCanSuspendAndPublishStatusOnResume) {
+  boost::asio::io_context io_context;
+
+  FakeNodeService service;
+  NodeRef node = service.Add(scada::NodeState{}.set_node_id(Id(1)));
+  service.SetFetchStatus(Id(1), NodeFetchStatus::None);
+
+  std::optional<scada::base::AsyncCompletion> gate;
+  service.SetFetchHandler(
+      Id(1), [&](const NodeFetchStatus&) -> Awaitable<void> {
+        co_await gate->Wait();
+        service.SetFetchStatus(Id(1), NodeFetchStatus::NodeOnly);
+      });
+
+  bool fetch_returned = false;
+  RunAwaitable(io_context, [&]() -> Awaitable<void> {
+    gate.emplace(io_context.get_executor());
+    // Release the gate from a second coroutine so the fetch really suspends.
+    CoSpawn(io_context.get_executor(), [&]() -> Awaitable<void> {
+      EXPECT_FALSE(node.fetched());
+      gate->Complete();
+      co_return;
+    });
+
+    co_await node.Fetch(NodeFetchStatus::NodeOnly);
+    fetch_returned = true;
+  });
+
+  EXPECT_TRUE(fetch_returned);
+  EXPECT_TRUE(node.fetched());
+  EXPECT_EQ(service.fetch_requests(Id(1)),
+            (std::vector{NodeFetchStatus::NodeOnly}));
+}
+
+// --- Aggregates -----------------------------------------------------------
+
+TEST(NodeRefTest, PropertiesAreMaterializedAsAggregates) {
+  FakeNodeService service;
+  service.Add(scada::NodeState{}
+                  .set_node_id(Id(1))
+                  .set_type_definition_id(Id(100))
+                  .set_properties({{Id(200), scada::Variant{42}}}));
+
+  NodeRef property = service.GetNode(Id(1))[Id(200)];
+  ASSERT_TRUE(property);
+  EXPECT_EQ(property.attribute(scada::AttributeId::Value), scada::Variant{42});
+
+  // An unknown declaration resolves to nothing rather than a live cursor.
+  EXPECT_FALSE(service.GetNode(Id(1))[Id(201)]);
 }
 
 }  // namespace

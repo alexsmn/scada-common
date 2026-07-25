@@ -1,6 +1,6 @@
 // scada.node_service — named C++20 module facade over the top-level
-// common/node_service headers (the v1/v2/v3/proxy implementation targets
-// stay header-based).
+// common/node_service headers (the v3/proxy implementation targets stay
+// header-based).
 //
 // Same design and rules as scada.base (see core/base/scada_base.cppm and
 // core/docs/cxx-modules.md). `export import scada.common;` mirrors
@@ -18,7 +18,6 @@
 module;
 
 // ---- Global module fragment: headers stay the source of truth ----
-#include "node_service/base_node_model.h"
 #include "node_service/cached_node_service.h"
 #include "node_service/fetch_queue.h"
 #include "node_service/fetching_node.h"
@@ -30,7 +29,6 @@ module;
 #include "node_service/node_fetcher.h"
 #include "node_service/node_fetcher_impl.h"
 #include "node_service/node_format.h"
-#include "node_service/node_model.h"
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
 #include "node_service/node_service_factory.h"
@@ -45,10 +43,8 @@ export import scada.common;
 static_assert(sizeof(std::hash<NodeRef>) > 0);
 
 export {
-  // base_node_model.h / node_model.h / cached_node_service.h
-  using ::BaseNodeModel;
+  // cached_node_service.h
   using ::cached_node_service;
-  using ::NodeModel;
 
   // fetch_queue.h / fetching_node.h / fetching_node_graph.h
   using ::FetchingNode;

@@ -325,7 +325,7 @@ void NodeServiceImpl::OnFetchNode(const scada::NodeId& node_id,
 void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
                                  const NodeFetchStatus& requested_status,
                                  std::shared_ptr<NodeModelImpl> model) {
-  // Guard against duplicate in-flight fetches: BaseNodeModel re-requests until
+  // Guard against duplicate in-flight fetches: NodeModelImpl re-requests until
   // the status is fetched, and the injected NodeFetcher does not dedupe.
   // `insert` returns false when a fetch is already running for this node, in
   // which case the requester's callback is already queued on the model and will

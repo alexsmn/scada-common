@@ -1,35 +1,36 @@
 #pragma once
 
 #include "common/node_state.h"
-#include "node_service/base_node_model.h"
+#include "node_service/node_ref.h"
+
+#include <vector>
 
 class StaticNodeService;
 
-class StaticNodeModel : public BaseNodeModel {
+// One node of a StaticNodeService, holding its fully materialized state.
+//
+// Static nodes carry no fetch machinery: everything is present the moment the
+// node is added, so the owning service answers status and fetch queries itself
+// (always Good / fully fetched). This is a plain state holder owned by the
+// service, not a polymorphic node abstraction.
+class StaticNodeModel {
  public:
   StaticNodeModel(StaticNodeService& service, scada::NodeState node_state);
 
-  // BaseNodeModel
-  virtual scada::Variant GetAttribute(
-      scada::AttributeId attribute_id) const override;
-  virtual NodeRef GetDataType() const override;
-  virtual NodeRef::Reference GetReference(
+  scada::Variant GetAttribute(scada::AttributeId attribute_id) const;
+  NodeRef GetDataType() const;
+  NodeRef::Reference GetReference(const scada::NodeId& reference_type_id,
+                                  bool forward,
+                                  const scada::NodeId& node_id) const;
+  std::vector<NodeRef::Reference> GetReferences(
       const scada::NodeId& reference_type_id,
-      bool forward,
-      const scada::NodeId& node_id) const override;
-  virtual std::vector<NodeRef::Reference> GetReferences(
-      const scada::NodeId& reference_type_id,
-      bool forward) const override;
-  virtual NodeRef GetTarget(const scada::NodeId& reference_type_id,
-                            bool forward) const override;
-  virtual std::vector<NodeRef> GetTargets(
-      const scada::NodeId& reference_type_id,
-      bool forward) const override;
-  virtual NodeRef GetAggregate(
-      const scada::NodeId& aggregate_declaration_id) const override;
-  virtual NodeRef GetChild(
-      const scada::QualifiedName& child_name) const override;
-  virtual scada::node GetScadaNode() const override;
+      bool forward) const;
+  NodeRef GetTarget(const scada::NodeId& reference_type_id,
+                    bool forward) const;
+  std::vector<NodeRef> GetTargets(const scada::NodeId& reference_type_id,
+                                  bool forward) const;
+  NodeRef GetChild(const scada::QualifiedName& child_name) const;
+  scada::node GetScadaNode() const;
 
  private:
   StaticNodeService& service_;
