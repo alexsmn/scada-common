@@ -127,3 +127,20 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
   alias_cache_.Add(cache_key, timed_data);
   return timed_data;
 }
+
+bool TimedDataServiceImpl::HasPendingHistory() const {
+  // An alias that has not resolved yet is also "pending": it has no fetcher
+  // until the node lookup completes and it forwards to a TimedDataImpl, so
+  // checking only the resolved entries would report quiet too early.
+  bool pending = false;
+  alias_cache_.ForEach([&pending](const std::shared_ptr<AliasTimedData>& data) {
+    if (data && !data->is_forwarded())
+      pending = true;
+  });
+  node_id_cache_.ForEach(
+      [&pending](const std::shared_ptr<TimedDataImpl>& data) {
+        if (data && data->HasPendingHistory())
+          pending = true;
+      });
+  return pending;
+}

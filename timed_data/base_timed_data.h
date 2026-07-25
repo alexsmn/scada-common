@@ -40,6 +40,11 @@ class BaseTimedData : public TimedData {
   virtual void Acknowledge() override {}
   virtual std::string DumpDebugInfo() const override;
 
+  // True while an observed time range has no ready range covering it — history
+  // was asked for and has not arrived yet. Distinct from "there are no
+  // samples": a completed read over an empty window leaves no gap.
+  bool HasPendingHistory() const { return buffer_.FindNextGap().has_value(); }
+
  protected:
   void NotifyPropertyChanged(const PropertySet& properties);
   void NotifyEventsChanged();

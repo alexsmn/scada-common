@@ -12,10 +12,14 @@ class AliasTimedData final : public TimedData {
 
   void SetForwarded(std::shared_ptr<TimedData> timed_data);
 
+  // True until the alias resolves and forwards to real timed data. Such an
+  // alias has no fetcher yet, so it is still pending work even though it
+  // reports no history of its own.
+  bool is_forwarded() const { return data_.index() == 1; }
+
   // TimedData
   virtual bool IsError() const override;
-  virtual const std::vector<scada::TimeRange>& GetReadyRanges()
-      const override;
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges() const override;
   virtual scada::DataValue GetDataValue() const override;
   virtual const scada::DataValue* GetValueAt(
       const scada::Time& time) const override;
@@ -43,8 +47,6 @@ class AliasTimedData final : public TimedData {
     std::unordered_map<TimedDataViewObserver*, scada::TimeRange /*range*/>
         view_observers;
   };
-
-  bool is_forwarded() const { return data_.index() == 1; }
 
   DeferredData& deferred() {
     return *std::get<std::unique_ptr<DeferredData>>(data_);

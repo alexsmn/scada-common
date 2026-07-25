@@ -22,6 +22,15 @@ class TimedDataServiceImpl final : private TimedDataContext,
       const scada::NodeId& node_id,
       const scada::AggregateFilter& aggregation) override;
 
+  // True while any live timed data is still waiting on history it asked for.
+  //
+  // Exists for tooling that must render a *complete* view — the screenshot
+  // generator waits on this instead of pumping the event loop for a fixed
+  // duration and hoping. A fixed pump is a shared budget: a run capturing many
+  // windows gives each one less settling time, so the same view rendered with
+  // or without its trends depending on what else the run contained.
+  bool HasPendingHistory() const;
+
  private:
   std::shared_ptr<TimedData> GetAliasTimedData(
       std::string_view alias,
