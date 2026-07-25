@@ -540,8 +540,15 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     // the DiscoveryRegistry.
     if (edge.dynamic_registration)
       continue;
-    aggregation_servers_.push_back(
-        boost::json::object{{"endpoint", Tier(edge.tier)->OpcUaUrl()}});
+    // forward_events mirrors gcp/free-tier/multitier/configs/proxy.json, where
+    // every edge re-raises its process/alarm/device events to proxy clients.
+    // It is not decoration here: the tap is a second, permanently-waiting
+    // consumer of the downstream session's subscription, and while consumers
+    // shared one notification queue it drained the data changes belonging to
+    // client subscriptions. Leaving it off made this fixture the one topology
+    // where aggregated live values worked.
+    aggregation_servers_.push_back(boost::json::object{
+        {"endpoint", Tier(edge.tier)->OpcUaUrl()}, {"forward_events", true}});
   }
   // The file-store downstream. The "namespaces" claim names the tier-exclusive
   // file-instance namespace (FILESYSTEM_FILE). Beyond routing that namespace
