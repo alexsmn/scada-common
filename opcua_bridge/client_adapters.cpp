@@ -120,7 +120,7 @@ ClientAttributeServiceAdapter::Write(scada::ServiceContext context,
 }
 
 // --- MethodService ------------------------------------------------------
-scada::CoStatus ClientMethodServiceAdapter::Call(
+scada::CoStatusOr<scada::CallResult> ClientMethodServiceAdapter::Call(
     scada::NodeId node_id,
     scada::NodeId method_id,
     std::vector<scada::Variant> arguments,
@@ -134,11 +134,10 @@ scada::CoStatus ClientMethodServiceAdapter::Call(
   auto result = co_await session_->Call(ToOpcua(context), ToOpcua(node_id),
                                         ToOpcua(method_id),
                                         ToOpcuaVector(arguments));
-  // TODO(outputs): the wire and the session now carry output arguments, but
-  // scada::MethodService::Call is still status-only, so this is where they are
-  // dropped. Widening that interface removes this collapse.
-  co_return ToScada(result.ok() ? opcua::Status{opcua::StatusCode::Good}
-                                : result.status());
+  if (!result.ok()) {
+    co_return ToScada(result.status());
+  }
+  co_return ToScada(*result);
 }
 
 // --- NodeManagementService ---------------------------------------------

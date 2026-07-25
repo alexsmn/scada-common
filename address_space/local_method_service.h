@@ -12,7 +12,7 @@ namespace scada {
 // backed implementation.
 class LocalMethodService : public MethodService {
  public:
-  CoStatus Call(NodeId node_id,
+  CoStatusOr<CallResult> Call(NodeId node_id,
                 NodeId method_id,
                 std::vector<Variant> arguments,
                 ServiceContext context) override;

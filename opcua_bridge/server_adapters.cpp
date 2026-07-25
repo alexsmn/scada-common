@@ -227,16 +227,13 @@ opcua::CoStatusOr<opcua::CallResult> MethodServiceAdapter::Call(
   auto span = StartServerSpan(tracer_, "opcua.server/Call", context);
   span.SetAttribute("scada.object_node_id", node_id.ToString());
   span.SetAttribute("scada.method_node_id", method_id.ToString());
-  auto status =
+  auto result =
       co_await inner_.Call(ToScada(node_id), ToScada(method_id),
                            ToScadaVector(arguments), ToScada(context));
-  // TODO(outputs): scada::MethodService::Call is still status-only, so a
-  // successful call produces no output arguments here. Widening that interface
-  // is what fills this in.
-  if (!status) {
-    co_return ToOpcua(status);
+  if (!result.ok()) {
+    co_return ToOpcua(result.status());
   }
-  co_return opcua::CallResult{};
+  co_return ToOpcua(*result);
 }
 
 // --- NodeManagementService ---------------------------------------------

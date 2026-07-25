@@ -138,7 +138,7 @@ scada::CoStatusOr<std::vector<scada::StatusCode>> VidiconSession::Write(
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-scada::CoStatus VidiconSession::Call(scada::NodeId node_id,
+scada::CoStatusOr<scada::CallResult> VidiconSession::Call(scada::NodeId node_id,
                                      scada::NodeId method_id,
                                      std::vector<scada::Variant> arguments,
                                      scada::ServiceContext context) {

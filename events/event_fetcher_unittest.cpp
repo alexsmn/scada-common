@@ -80,11 +80,11 @@ class FakeHistoryService final : public scada::HistoryService {
 // but these tests never acknowledge, so `Call` is never invoked.
 class FakeMethodService final : public scada::MethodService {
  public:
-  scada::CoStatus Call(scada::NodeId /*node_id*/,
+  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId /*node_id*/,
                        scada::NodeId /*method_id*/,
                        std::vector<scada::Variant> /*arguments*/,
                        scada::ServiceContext /*context*/) override {
-    co_return scada::Status{scada::StatusCode::Good};
+    co_return scada::CallResult{};
   }
 };
 

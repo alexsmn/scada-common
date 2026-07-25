@@ -368,7 +368,7 @@ scada::CoStatusOr<std::vector<scada::StatusCode>> MasterDataServices::Write(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-scada::CoStatus MasterDataServices::Call(scada::NodeId node_id,
+scada::CoStatusOr<scada::CallResult> MasterDataServices::Call(scada::NodeId node_id,
                                          scada::NodeId method_id,
                                          std::vector<scada::Variant> arguments,
                                          scada::ServiceContext context) {

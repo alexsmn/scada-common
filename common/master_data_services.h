@@ -92,7 +92,7 @@ class MasterDataServices final : public scada::AttributeService,
         std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
-  [[nodiscard]] virtual scada::CoStatus Call(
+  [[nodiscard]] virtual scada::CoStatusOr<scada::CallResult> Call(
       scada::NodeId node_id,
       scada::NodeId method_id,
       std::vector<scada::Variant> arguments,

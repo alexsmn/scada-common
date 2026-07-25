@@ -53,6 +53,13 @@ scada::WriteValue ToScada(const opcua::WriteValue& v) {
           .flags = ToScada(v.flags)};
 }
 
+opcua::CallResult ToOpcua(const scada::CallResult& v) {
+  return {.output_arguments = ToOpcuaVector(v.output_arguments)};
+}
+scada::CallResult ToScada(const opcua::CallResult& v) {
+  return {.output_arguments = ToScadaVector(v.output_arguments)};
+}
+
 opcua::BrowseDescription ToOpcua(const scada::BrowseDescription& v) {
   return {.node_id = ToOpcua(v.node_id),
           .direction = ToOpcua(v.direction),

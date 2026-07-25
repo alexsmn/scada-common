@@ -57,7 +57,7 @@ class TestHistoryService final : public scada::HistoryService {
 
 class TestMethodService final : public scada::MethodService {
  public:
-  scada::CoStatus Call(scada::NodeId node_id,
+  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
                        scada::NodeId method_id,
                        std::vector<scada::Variant> arguments,
                        scada::ServiceContext context) override {
@@ -66,7 +66,7 @@ class TestMethodService final : public scada::MethodService {
     last_method_id = std::move(method_id);
     last_arguments = std::move(arguments);
     last_user_id = context.user_id();
-    co_return scada::Status{scada::StatusCode::Good};
+    co_return scada::CallResult{};
   }
 
   int call_count = 0;

@@ -111,7 +111,7 @@ class ClientMethodServiceAdapter : public scada::MethodService {
                                       Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  scada::CoStatus Call(scada::NodeId node_id,
+  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
                        scada::NodeId method_id,
                        std::vector<scada::Variant> arguments,
                        scada::ServiceContext context) override;

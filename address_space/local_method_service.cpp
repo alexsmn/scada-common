@@ -16,7 +16,7 @@ import scada.core;
 
 namespace scada {
 
-CoStatus LocalMethodService::Call(NodeId /*node_id*/,
+CoStatusOr<CallResult> LocalMethodService::Call(NodeId /*node_id*/,
                                   NodeId /*method_id*/,
                                   std::vector<Variant> /*arguments*/,
                                   ServiceContext /*context*/) {

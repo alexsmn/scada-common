@@ -12,6 +12,7 @@
 #include "scada/authentication.h"
 #include "scada/event.h"
 #include "scada/history_types.h"
+#include "scada/method_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/node_attributes.h"
@@ -109,6 +110,9 @@ scada::ReadValueId ToScada(const opcua::ReadValueId&);
 
 opcua::WriteValue ToOpcua(const scada::WriteValue&);
 scada::WriteValue ToScada(const opcua::WriteValue&);
+
+opcua::CallResult ToOpcua(const scada::CallResult&);
+scada::CallResult ToScada(const opcua::CallResult&);
 
 opcua::BrowseDescription ToOpcua(const scada::BrowseDescription&);
 scada::BrowseDescription ToScada(const opcua::BrowseDescription&);

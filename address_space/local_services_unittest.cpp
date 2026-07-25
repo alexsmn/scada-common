@@ -50,7 +50,7 @@ TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
       executor,
       service.Call(id::ObjectsFolder, NodeId{1, 2}, {}, ServiceContext{}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad);
+  EXPECT_EQ(status.status().code(), StatusCode::Bad);
 }
 
 TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
@@ -61,7 +61,7 @@ TEST(MethodServiceImpl, CoroutineCallReturnsWrongMethodId) {
   const auto status = WaitAwaitable(
       executor, service.Call(NodeId{1, 2}, NodeId{2, 2}, {}, ServiceContext{}));
 
-  EXPECT_EQ(status.code(), StatusCode::Bad_WrongMethodId);
+  EXPECT_EQ(status.status().code(), StatusCode::Bad_WrongMethodId);
 }
 
 TEST(LocalNodeManagementService, CoroutineAddNodesReturnsBadResults) {

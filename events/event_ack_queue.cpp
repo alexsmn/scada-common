@@ -6,6 +6,8 @@
 #include "scada/method_service.h"
 #include "scada/standard_node_ids.h"
 
+#include <tuple>
+
 EventAckQueue::EventAckQueue(EventAckQueueContext&& context)
     : EventAckQueueContext{std::move(context)} {}
 
@@ -53,7 +55,10 @@ void EventAckQueue::AckPendingEvents() {
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
              context = service_context_]() mutable -> Awaitable<void> {
-              co_await method_service_.Call(
+              // Fire and forget: the acknowledge is best-effort and has no
+              // output arguments to consume, so the result is discarded
+              // explicitly rather than tripping StatusOr's [[nodiscard]].
+              std::ignore = co_await method_service_.Call(
                   scada::id::Server,
                   scada::id::AcknowledgeableConditionType_Acknowledge,
                   {event_ids, scada::Now()}, std::move(context));

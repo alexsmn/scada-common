@@ -100,7 +100,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
     co_return std::vector<scada::BrowsePathResult>(inputs.size());
   }
 
-  scada::CoStatus Call(scada::NodeId node_id,
+  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
                        scada::NodeId method_id,
                        std::vector<scada::Variant> /*arguments*/,
                        scada::ServiceContext context) override {
@@ -108,7 +108,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
     last_call_node_id = std::move(node_id);
     last_call_method_id = std::move(method_id);
     last_call_user_id = context.user_id();
-    co_return scada::Status{scada::StatusCode::Good};
+    co_return scada::CallResult{};
   }
 
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
@@ -483,7 +483,7 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
       services.Call(scada::NodeId{102}, scada::NodeId{103}, {},
                     scada::ServiceContext{}.with_user_id(scada::NodeId{104})));
 
-  EXPECT_TRUE(call_status.good());
+  EXPECT_TRUE(call_status.ok());
   EXPECT_EQ(direct_services->call_count, 1);
   EXPECT_EQ(direct_services->last_call_node_id, (scada::NodeId{102}));
   EXPECT_EQ(direct_services->last_call_method_id, (scada::NodeId{103}));
