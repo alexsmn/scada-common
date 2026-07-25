@@ -283,6 +283,34 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
   EXPECT_GT(result->values.back().source_timestamp, now - std::chrono::days(1));
 }
 
+// A window far wider than the data is meant to cover must not stretch the
+// series to fit it. The trend probes for its earliest available sample to fill
+// the left edge of the plot, which asks for everything from the epoch to now;
+// spreading 48 points across that put them ~14 months apart, so every point
+// but the last fell outside the 24 h the graph was displaying. The plot came
+// out empty while the axes, limit bands and legend were all correct, which
+// read as a rendering quirk rather than as bad data.
+TEST(LocalHistoryService, VeryWideRangeStillYieldsADayOfSamples) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  const NodeId node_id{9, 2};
+  service.SetRawProfile(node_id, 42.0);
+
+  const auto to = scada::Now();
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                    .node_id = node_id, .from = scada::Time{}, .to = to}));
+
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->values.size(), 48u);
+  // Capped at the default 30-minute spacing, so the series spans a day ending
+  // at `to` rather than reaching back to the epoch.
+  EXPECT_EQ(result->values.back().source_timestamp,
+            to - std::chrono::minutes(30));
+  EXPECT_EQ(result->values.front().source_timestamp,
+            to - std::chrono::minutes(30) * 48);
+}
+
 // Regression: a raw read used to fall back to a synthesized series around a
 // mean of 100.0 for any node with no registered profile. That handed consumers
 // a convincing trend for a node the fixture never described — a table row
