@@ -123,22 +123,22 @@ class FakeNodeService : public NodeService {
     NodeStateChangedEvent event{
         node_id, std::make_shared<const scada::NodeState>(entry->state),
         NodeFetchStatus::Max};
-    entry->signals.node_state_changed(event);
+    entry->node_signals.node_state_changed(event);
     service_signals_.node_state_changed(event);
   }
   void EmitNodeSemanticChanged(const scada::NodeId& node_id) {
     if (auto* entry = Find(node_id))
-      entry->signals.node_semantic_changed(node_id);
+      entry->node_signals.node_semantic_changed(node_id);
     service_signals_.node_semantic_changed(node_id);
   }
   void EmitNodeFetched(const scada::NodeId& node_id) {
     if (auto* entry = Find(node_id))
-      entry->signals.node_fetched({node_id});
+      entry->node_signals.node_fetched({node_id});
     service_signals_.node_fetched({node_id});
   }
   void EmitModelChanged(const scada::ModelChangeEvent& event) {
     if (auto* entry = Find(event.node_id))
-      entry->signals.model_changed(event);
+      entry->node_signals.model_changed(event);
     service_signals_.model_changed(event);
   }
 
@@ -290,22 +290,22 @@ class FakeNodeService : public NodeService {
   boost::signals2::scoped_connection SubscribeModelChanged(
       const scada::NodeId& node_id,
       const ModelChangedCallback& callback) override {
-    return nodes_[node_id].signals.model_changed.connect(callback);
+    return nodes_[node_id].node_signals.model_changed.connect(callback);
   }
   boost::signals2::scoped_connection SubscribeNodeSemanticChanged(
       const scada::NodeId& node_id,
       const NodeSemanticChangedCallback& callback) override {
-    return nodes_[node_id].signals.node_semantic_changed.connect(callback);
+    return nodes_[node_id].node_signals.node_semantic_changed.connect(callback);
   }
   boost::signals2::scoped_connection SubscribeNodeFetched(
       const scada::NodeId& node_id,
       const NodeFetchedCallback& callback) override {
-    return nodes_[node_id].signals.node_fetched.connect(callback);
+    return nodes_[node_id].node_signals.node_fetched.connect(callback);
   }
   boost::signals2::scoped_connection SubscribeNodeStateChanged(
       const scada::NodeId& node_id,
       const NodeStateChangedCallback& callback) override {
-    return nodes_[node_id].signals.node_state_changed.connect(callback);
+    return nodes_[node_id].node_signals.node_state_changed.connect(callback);
   }
 
   boost::signals2::scoped_connection SubscribeModelChanged(
@@ -330,7 +330,10 @@ class FakeNodeService : public NodeService {
  private:
   struct Entry {
     scada::NodeState state;
-    NodeSignals signals;
+    // Not `signals`: Qt's <QObject> defines that as a macro (`#define signals
+    // public`), which makes this header uncompilable from any Qt translation
+    // unit that includes it after a Qt header.
+    NodeSignals node_signals;
     NodeFetchStatus fetch_status = NodeFetchStatus::Max;
     scada::Status status{scada::StatusCode::Good};
     FetchHandler fetch_handler;
