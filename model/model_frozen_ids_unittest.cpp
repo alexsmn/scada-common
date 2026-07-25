@@ -129,6 +129,14 @@ TEST(ModelFrozenIds, NodeIdValues) {
             228u);  // runtime metric
   EXPECT_EQ(data_items::numeric_id::TsFormats, 27u);
 
+  // Select-before-operate control surface: a Control object on a commandable
+  // data item, carrying the Select / Operate / Cancel methods.
+  EXPECT_EQ(data_items::id::DataItemControlType.numeric_id(), 457u);
+  EXPECT_EQ(data_items::id::DataItemControlType_Select.numeric_id(), 458u);
+  EXPECT_EQ(data_items::id::DataItemControlType_Operate.numeric_id(), 459u);
+  EXPECT_EQ(data_items::id::DataItemControlType_Cancel.numeric_id(), 460u);
+  EXPECT_EQ(data_items::id::DataItemType_Control.numeric_id(), 461u);
+
   // Event types (ADR 0005 phase 2). ScadaEventType deliberately subtypes the
   // NS0 SystemEventType; the extension-property InstanceDeclarations carry
   // the select-clause browse names the wire projection serves.

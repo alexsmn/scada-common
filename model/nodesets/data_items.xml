@@ -384,8 +384,55 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
       <Reference ReferenceType="ns=1;i=150">ns=1;i=67</Reference>
       <Reference ReferenceType="ns=1;i=152">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=461</Reference>
     </References>
   </UAVariableType>
+  <!-- Select-before-operate for a commandable data item, modelled the way the
+       OPC UA for IEC 61850 companion specification models control: a Control
+       Object whose Select / Operate / Cancel are Methods, invoked with the Call
+       service. A Method is the spec's construct for an operation with side
+       effects (OPC UA Part 3 §4.8), which a control command is; a Write
+       modifier is not, and a modifier a conformant peer is told to ignore
+       would silently turn a select into an execute. -->
+  <UAObjectType NodeId="ns=1;i=457" BrowseName="DataItemControlType" SymbolicName="DataItemControlType">
+    <DisplayName>Управление</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAMethod NodeId="ns=1;i=458" BrowseName="Select" SymbolicName="DataItemControlType_Select" ParentNodeId="ns=1;i=457">
+    <DisplayName>Выбрать</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=457</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=459" BrowseName="Operate" SymbolicName="DataItemControlType_Operate" ParentNodeId="ns=1;i=457">
+    <DisplayName>Выполнить</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=457</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=460" BrowseName="Cancel" SymbolicName="DataItemControlType_Cancel" ParentNodeId="ns=1;i=457">
+    <DisplayName>Отменить</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=457</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <!-- Optional, not Mandatory: only an item with a non-null Output is
+       commandable (DataItemWriteImpl answers Bad_WrongMethodId otherwise), and
+       Optional keeps a future blanket instantiator from growing a Control on
+       every item in the database. -->
+  <UAObject NodeId="ns=1;i=461" BrowseName="Control" SymbolicName="DataItemType_Control" ParentNodeId="ns=1;i=239">
+    <DisplayName>Управление</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=239</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=457</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+    </References>
+  </UAObject>
   <UAObject NodeId="ns=1;i=24" BrowseName="DataItems" SymbolicName="DataItems" ParentNodeId="i=85">
     <DisplayName>Все объекты</DisplayName>
     <References>

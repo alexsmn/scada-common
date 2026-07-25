@@ -28,8 +28,13 @@ Configurations_RemoveConfiguration,security
 ConversionPropertyCategory,data_items
 DataGroupType,data_items
 DataGroupType_Simulated,data_items
+DataItemControlType,data_items
+DataItemControlType_Cancel,data_items
+DataItemControlType_Operate,data_items
+DataItemControlType_Select,data_items
 DataItemType,data_items
 DataItemType_Alias,data_items
+DataItemType_Control,data_items
 DataItemType_Input1,data_items
 DataItemType_Input2,data_items
 DataItemType_Locked,data_items
