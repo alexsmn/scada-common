@@ -131,6 +131,15 @@ std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
       if (!status)
         return {std::move(status), nullptr};
     }
+
+    if (create_components_ && component_depth_ < kMaxComponentDepth) {
+      ++component_depth_;
+      auto status =
+          CreateMissingChildren(*this, node_ref.id(), *type_definition);
+      --component_depth_;
+      if (!status)
+        return {std::move(status), nullptr};
+    }
   }
 
   if (!parent_id.is_null()) {
