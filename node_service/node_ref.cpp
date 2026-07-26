@@ -181,5 +181,9 @@ boost::signals2::scoped_connection NodeRef::SubscribeNodeStateChanged(
 }
 
 scada::node NodeRef::scada_node() const {
-  return service_ ? service_->GetScadaNode(id_) : scada::node{};
+  return scada_node(id_);
+}
+
+scada::node NodeRef::scada_node(const scada::NodeId& node_id) const {
+  return service_ ? service_->GetScadaNode(node_id) : scada::node{};
 }

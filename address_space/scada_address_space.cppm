@@ -154,7 +154,7 @@ export {
 
   // node_builder.h / node_builder_impl.h / node_factory.h /
   // fallback_node_factory.h / node_factory_util.h
-  using ::CreateDataVariables;
+  using ::CreateMissingChildren;
   using ::CreateMissingProperties;
   using ::FallbackNodeFactory;
   using ::NodeBuilderImpl;

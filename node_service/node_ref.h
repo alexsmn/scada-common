@@ -118,6 +118,11 @@ class NodeRef {
 
   scada::node scada_node() const;
 
+  // A cursor onto another node in the same service. Needed for nodes that
+  // cannot be reached by browsing — a data item's Control object is a nested
+  // id the configuration node manager does not enumerate as a child.
+  scada::node scada_node(const scada::NodeId& node_id) const;
+
  private:
   scada::NodeId id_;
   NodeService* service_ = nullptr;
