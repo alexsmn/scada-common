@@ -42,9 +42,13 @@ class VariableHandle : public std::enable_shared_from_this<VariableHandle> {
                      const WriteValue& input,
                      const StatusCallback& callback);
 
-  virtual void Call(const NodeId& method_id,
+  // Takes the whole ServiceContext, like Write above. It used to take a bare
+  // user id, which silently dropped the caller's rights bitmask — any write a
+  // method performed downstream was then re-checked against empty rights and
+  // denied.
+  virtual void Call(const ServiceContext& context,
+                    const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const NodeId& user_id,
                     const StatusCallback& callback);
 
  private:

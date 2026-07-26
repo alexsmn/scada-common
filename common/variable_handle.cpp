@@ -102,9 +102,9 @@ void VariableHandle::Write(const ServiceContext& context,
   callback(StatusCode::Bad_WrongMethodId);
 }
 
-void VariableHandle::Call(const NodeId& method_id,
+void VariableHandle::Call(const ServiceContext& context,
+                          const NodeId& method_id,
                           const std::vector<Variant>& arguments,
-                          const NodeId& user_id,
                           const StatusCallback& callback) {
   callback(StatusCode::Bad_WrongMethodId);
 }

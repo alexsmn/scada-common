@@ -17,11 +17,11 @@ void NodeVariableHandle::Write(
   node_.Write(context, write_value, callback);
 }
 
-void NodeVariableHandle::Call(const scada::NodeId& method_id,
+void NodeVariableHandle::Call(const scada::ServiceContext& context,
+                              const scada::NodeId& method_id,
                               const std::vector<scada::Variant>& arguments,
-                              const scada::NodeId& user_id,
                               const scada::StatusCallback& callback) {
-  node_.Call(method_id, arguments, user_id, callback);
+  node_.Call(context, method_id, arguments, callback);
 }
 
 }  // namespace scada

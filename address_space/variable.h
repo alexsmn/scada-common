@@ -40,9 +40,9 @@ class Variable : public Node {
       const scada::StatusCallback& callback);
 
   // TODO: Move to Object.
-  virtual void Call(const NodeId& method_id,
+  virtual void Call(const ServiceContext& context,
+                    const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const scada::NodeId& user_id,
                     const StatusCallback& callback);
 
   // Node

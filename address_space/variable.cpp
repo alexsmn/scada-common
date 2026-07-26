@@ -40,9 +40,9 @@ void Variable::Write(const scada::ServiceContext& context,
   callback(StatusCode::Bad);
 }
 
-void Variable::Call(const NodeId& method_id,
+void Variable::Call(const ServiceContext& context,
+                    const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const scada::NodeId& user_id,
                     const StatusCallback& callback) {
   callback(StatusCode::Bad_WrongMethodId);
 }

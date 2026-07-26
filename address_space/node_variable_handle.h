@@ -17,9 +17,9 @@ class NodeVariableHandle : public VariableHandle {
       const scada::ServiceContext& context,
       const scada::WriteValue& input,
       const scada::StatusCallback& callback) override;
-  virtual void Call(const NodeId& method_id,
+  virtual void Call(const ServiceContext& context,
+                    const NodeId& method_id,
                     const std::vector<Variant>& arguments,
-                    const NodeId& user_id,
                     const StatusCallback& callback) override;
 
  private:
