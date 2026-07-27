@@ -25,6 +25,14 @@ class EventNotifier {
   // streams collision-free.
   virtual void NotifyForwardedEvent(const scada::Event& event) = 0;
 
+  // Routes a device protocol frame (DeviceFrameEventType). Defaulted rather
+  // than pure so every existing notifier keeps compiling and still delivers the
+  // frame's log line; a notifier that can carry the structured fields overrides
+  // it. Dropping to the base event loses the decoded frame, not the message.
+  virtual void NotifyDeviceFrame(const scada::DeviceFrameEvent& event) {
+    NotifyEvent(event.base);
+  }
+
   virtual void NotifyModelChanged(const scada::ModelChangeEvent& event) = 0;
 
   virtual void NotifySemanticChanged(
