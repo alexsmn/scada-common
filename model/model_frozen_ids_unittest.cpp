@@ -104,6 +104,20 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),
             133u);  // runtime method
   EXPECT_EQ(devices::id::TransmissionItemType_Address.numeric_id(), 225u);
+  // Device frame trace (docs/ux/shell.md §2.8). DeviceFrameEventType subtypes
+  // DeviceWatchEventType, so an existing device-watch subscription receives
+  // frames without changing its filter.
+  EXPECT_EQ(devices::id::DeviceWatchEventType.numeric_id(), 15132u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType.numeric_id(), 15133u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_Direction.numeric_id(), 15134u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_RawData.numeric_id(), 15135u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_Format.numeric_id(), 15136u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_TypeId.numeric_id(), 15137u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_Cause.numeric_id(), 15138u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_ObjectAddress.numeric_id(), 15139u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_SendSequence.numeric_id(), 15140u);
+  EXPECT_EQ(devices::id::DeviceFrameEventType_ReceiveSequence.numeric_id(),
+            15141u);
   // ns=1;i=221 (HasTransmissionSource) is RETIRED but stays reserved — never
   // reallocate it (transmission alignment phase 4; the source link is the
   // SourceNode property below, like i=297 Creates before it).

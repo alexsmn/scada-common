@@ -46,6 +46,15 @@ DataItemType_Simulated,data_items
 DataItemType_StalePeriod,data_items
 DataItems,data_items
 DataItemsFolderType,data_items
+DeviceFrameEventType,devices
+DeviceFrameEventType_Cause,devices
+DeviceFrameEventType_Direction,devices
+DeviceFrameEventType_Format,devices
+DeviceFrameEventType_ObjectAddress,devices
+DeviceFrameEventType_RawData,devices
+DeviceFrameEventType_ReceiveSequence,devices
+DeviceFrameEventType_SendSequence,devices
+DeviceFrameEventType_TypeId,devices
 DeviceType,devices
 DeviceType_BytesIn,devices
 DeviceType_BytesOut,devices

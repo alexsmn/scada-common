@@ -66,6 +66,88 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=2130</Reference>
     </References>
   </UAObjectType>
+  <!-- A single protocol frame on a device link, reported as structured data
+       rather than as prose in the message. Subtypes DeviceWatchEventType, so a
+       client already subscribed to the device watch stream receives frames
+       without changing its filter (OPC UA event filters match subtypes). -->
+  <UAObjectType NodeId="ns=1;i=15133" BrowseName="DeviceFrameEventType" SymbolicName="DeviceFrameEventType">
+    <DisplayName>DeviceFrameEventType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=15132</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=15134" BrowseName="Direction" SymbolicName="DeviceFrameEventType_Direction" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>Направление</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15135" BrowseName="RawData" SymbolicName="DeviceFrameEventType_RawData" ParentNodeId="ns=1;i=15133" DataType="ByteString">
+    <DisplayName>Кадр</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:ByteString></uax:ByteString></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15136" BrowseName="Format" SymbolicName="DeviceFrameEventType_Format" ParentNodeId="ns=1;i=15133" DataType="String">
+    <DisplayName>Формат</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15137" BrowseName="TypeId" SymbolicName="DeviceFrameEventType_TypeId" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>Идентификатор типа</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15138" BrowseName="Cause" SymbolicName="DeviceFrameEventType_Cause" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>Причина передачи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15139" BrowseName="ObjectAddress" SymbolicName="DeviceFrameEventType_ObjectAddress" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>Адрес объекта</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15140" BrowseName="SendSequence" SymbolicName="DeviceFrameEventType_SendSequence" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>N(S)</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15141" BrowseName="ReceiveSequence" SymbolicName="DeviceFrameEventType_ReceiveSequence" ParentNodeId="ns=1;i=15133" DataType="Int32">
+    <DisplayName>N(R)</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
   <UAReferenceType NodeId="ns=1;i=339" BrowseName="HasTransmissionItem" SymbolicName="HasTransmissionItem">
     <DisplayName>HasTransmissionItem</DisplayName>
     <References>
