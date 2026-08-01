@@ -126,6 +126,8 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x803D0000u);  // BadNotSupported
   EXPECT_EQ(wire(scada::StatusCode::Bad_LicenseExpired),
             0x810E0000u);  // BadLicenseExpired
+  EXPECT_EQ(wire(scada::StatusCode::Bad_WaitingForInitialData),
+            0x80320000u);  // BadWaitingForInitialData
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
@@ -150,6 +152,49 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80BE0000u);  // BadProtocolVersionUnsupported
   // Good is unchanged.
   EXPECT_EQ(wire(scada::StatusCode::Good), 0x00000000u);
+}
+
+// The codes `Qualifier::ToStatus()` produces now reach standard OPC UA clients
+// as the DataValue StatusCode, so their wire values are pinned here.
+//
+// None of the SCADA quality subcodes is defined by the standard (verified
+// against `opcua/ua/ua_status_codes.h`, generated from the OPC Foundation
+// table): a conforming client therefore falls back to the severity bits rather
+// than misreading them as an unrelated standard code — the same rule the Bad
+// codes follow via the 0x2000+ vendor range. Severity is the load-bearing part
+// and is asserted explicitly.
+TEST(ConversionTest, QualityProjectionWireValues) {
+  const auto wire = [](scada::StatusCode code) {
+    return opcua::Status{ToOpcua(code)}.full_code();
+  };
+  const auto severity = [](scada::StatusCode code) {
+    return static_cast<int>(opcua::GetSeverity(ToOpcua(code)));
+  };
+  constexpr int kGood = static_cast<int>(opcua::StatusSeverity::Good);
+  constexpr int kUncertain = static_cast<int>(opcua::StatusSeverity::Uncertain);
+  constexpr int kBad = static_cast<int>(opcua::StatusSeverity::Bad);
+
+  EXPECT_EQ(wire(scada::StatusCode::Uncertain_DeviceFlag), 0x40010000u);
+  EXPECT_EQ(severity(scada::StatusCode::Uncertain_DeviceFlag), kUncertain);
+  EXPECT_EQ(wire(scada::StatusCode::Uncertain_Misconfigured), 0x40020000u);
+  EXPECT_EQ(severity(scada::StatusCode::Uncertain_Misconfigured), kUncertain);
+  EXPECT_EQ(wire(scada::StatusCode::Uncertain_Disconnected), 0x40030000u);
+  EXPECT_EQ(severity(scada::StatusCode::Uncertain_Disconnected), kUncertain);
+  EXPECT_EQ(wire(scada::StatusCode::Uncertain_NotUpdated), 0x40040000u);
+  EXPECT_EQ(severity(scada::StatusCode::Uncertain_NotUpdated), kUncertain);
+
+  EXPECT_EQ(wire(scada::StatusCode::Good_Sporadic), 0x00020000u);
+  EXPECT_EQ(severity(scada::StatusCode::Good_Sporadic), kGood);
+  EXPECT_EQ(wire(scada::StatusCode::Good_Backup), 0x00030000u);
+  EXPECT_EQ(severity(scada::StatusCode::Good_Backup), kGood);
+  EXPECT_EQ(wire(scada::StatusCode::Good_Manual), 0x00040000u);
+  EXPECT_EQ(severity(scada::StatusCode::Good_Manual), kGood);
+  EXPECT_EQ(wire(scada::StatusCode::Good_Simulated), 0x00050000u);
+  EXPECT_EQ(severity(scada::StatusCode::Good_Simulated), kGood);
+
+  // A FAILED qualifier projects onto plain Bad, which IS the standard `Bad`.
+  EXPECT_EQ(wire(scada::StatusCode::Bad), 0x80000000u);
+  EXPECT_EQ(severity(scada::StatusCode::Bad), kBad);
 }
 
 // Every core status code must survive the OPC UA wire crossing losslessly
@@ -223,6 +268,8 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
       StatusCode::Bad_NoSubscription,
       StatusCode::Bad_UserAccessDenied,
       StatusCode::Bad_NotSupported,
+      StatusCode::Bad_LicenseExpired,
+      StatusCode::Bad_WaitingForInitialData,
   };
   for (const auto code : kAllCodes) {
     EXPECT_EQ(ToScada(ToOpcua(code)), code) << ToString(code);

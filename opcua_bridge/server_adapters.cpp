@@ -3,11 +3,13 @@
 #include "metrics/trace_attribute_util.h"
 #include "opcua_bridge/vector_conversion.h"
 
+#include "scada/data_value.h"
 #include "scada/event_util.h"
 
 #include "opcua/events/event_filter.h"
 #include "opcua/types/co_result.h"
 
+#include <algorithm>
 #include <any>
 #include <variant>
 
@@ -177,6 +179,18 @@ opcua::CoStatusOr<std::vector<opcua::DataValue>> AttributeServiceAdapter::Read(
     return input.node_id.ToString();
   });
   auto result = co_await inner_.Read(ToScada(context), ToScadaVector(*inputs));
+  // Value is the only attribute fed by a data source that may not have produced
+  // anything yet; the rest are address-space metadata whose absence the service
+  // already reports as Bad_WrongAttributeId. See scada::ReportedStatusCode
+  // (core/scada/data_value.h) for why an empty Variant may not go out at Good.
+  if (result.ok()) {
+    auto& values = *result;
+    const std::size_t count = std::min(values.size(), inputs->size());
+    for (std::size_t i = 0; i < count; ++i) {
+      if ((*inputs)[i].attribute_id == opcua::AttributeId::Value)
+        values[i].status_code = scada::ReportedStatusCode(values[i]);
+    }
+  }
   co_return ToOpcua(result);
 }
 
@@ -388,8 +402,13 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
       [this](const auto& x) -> opcua::ItemNotification {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same_v<T, scada::DataChangeNotification>) {
+          // Every sample of a value-less item would otherwise be published as
+          // Good over an empty Variant — see scada::ReportedStatusCode
+          // (core/scada/data_value.h).
+          scada::DataValue value = x.value;
+          value.status_code = scada::ReportedStatusCode(value);
           return opcua::MonitoredItemNotification{
-              .client_handle = x.client_handle, .value = ToOpcua(x.value)};
+              .client_handle = x.client_handle, .value = ToOpcua(value)};
         } else if constexpr (std::is_same_v<T, scada::EventNotification>) {
           // Project the core event onto this item's EventFilter select clauses,
           // producing a standard wire EventFieldList. The core event payload is

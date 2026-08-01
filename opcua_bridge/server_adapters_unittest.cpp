@@ -278,5 +278,236 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   EXPECT_EQ(*reconstructed, event);
 }
 
+// A core AttributeService returning caller-supplied Read results, so the
+// adapter's outbound status projection can be observed.
+class FakeAttributeService : public scada::AttributeService {
+ public:
+  scada::CoStatusOr<std::vector<scada::DataValue>> Read(
+      scada::ServiceContext,
+      std::vector<scada::ReadValueId> inputs) override {
+    received_inputs = std::move(inputs);
+    co_return results;
+  }
+  scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
+      scada::ServiceContext,
+      std::vector<scada::WriteValue>) override {
+    co_return std::vector<scada::StatusCode>{};
+  }
+
+  std::vector<scada::ReadValueId> received_inputs;
+  std::vector<scada::DataValue> results;
+};
+
+// The wire-side bug this guards: an item whose data source has never delivered
+// anything read back as `Value: (empty) Type: (empty) Status: Good`. An empty
+// Variant must go out at Bad_WaitingForInitialData instead — OPC UA Part 4
+// §7.38.2, https://reference.opcfoundation.org/Core/Part4/v105/docs/7.38.2
+TEST(ServerAdapterTest, ReadOfValuelessItemIsNotReportedGood) {
+  FakeAttributeService fake;
+  // The demo shape: timestamps stamped, quality bits already offline, no value.
+  scada::DataValue no_value;
+  no_value.qualifier.set_online(false);
+  no_value.source_timestamp = scada::Now();
+  no_value.server_timestamp = no_value.source_timestamp;
+  fake.results.push_back(no_value);
+
+  AttributeServiceAdapter adapter{fake};
+
+  auto inputs = std::make_shared<std::vector<opcua::ReadValueId>>();
+  inputs->push_back({.node_id = opcua::NodeId{std::string{"1"}, 2},
+                     .attribute_id = opcua::AttributeId::Value});
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::DataValue>>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.Read(opcua::ServiceContext{}, inputs);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->ok());
+  ASSERT_EQ((*result)->size(), 1u);
+  const auto& value = (**result)[0];
+  EXPECT_TRUE(value.value.is_null());
+  EXPECT_EQ(value.status_code, opcua::StatusCode::Bad_WaitingForInitialData);
+  // Bad severity is what a spec-conforming client keys off.
+  EXPECT_TRUE(opcua::IsBad(value.status_code));
+  // The wire value is the standard BadWaitingForInitialData.
+  EXPECT_EQ(opcua::Status{value.status_code}.full_code(), 0x80320000u);
+}
+
+// A real value keeps its status; the projection only fills the value-less gap.
+TEST(ServerAdapterTest, ReadOfDeliveredValueStaysGood) {
+  FakeAttributeService fake;
+  const auto now = scada::Now();
+  fake.results.push_back(scada::DataValue{scada::Variant{42}, {}, now, now});
+
+  AttributeServiceAdapter adapter{fake};
+
+  auto inputs = std::make_shared<std::vector<opcua::ReadValueId>>();
+  inputs->push_back({.node_id = opcua::NodeId{std::string{"1"}, 2},
+                     .attribute_id = opcua::AttributeId::Value});
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::DataValue>>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.Read(opcua::ServiceContext{}, inputs);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->ok());
+  ASSERT_EQ((*result)->size(), 1u);
+  EXPECT_EQ((**result)[0].status_code, opcua::StatusCode::Good);
+  EXPECT_EQ((**result)[0].value.get<opcua::Int32>(), 42);
+}
+
+// A delivered value from an offline device: the SCADA Qualifier rides along as
+// an opcuapp extension field that only a SCADA peer decodes, so the quality has
+// to reach a standard client as the StatusCode. Uncertain severity, wire value
+// per the bridge's status mapping.
+TEST(ServerAdapterTest, ReadOfStaleValueCarriesQualityAsStatus) {
+  FakeAttributeService fake;
+  const auto now = scada::Now();
+  fake.results.push_back(
+      scada::DataValue{scada::Variant{42},
+                       scada::Qualifier{scada::Qualifier::OFFLINE}, now, now});
+
+  AttributeServiceAdapter adapter{fake};
+
+  auto inputs = std::make_shared<std::vector<opcua::ReadValueId>>();
+  inputs->push_back({.node_id = opcua::NodeId{std::string{"1"}, 2},
+                     .attribute_id = opcua::AttributeId::Value});
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::DataValue>>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.Read(opcua::ServiceContext{}, inputs);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->ok());
+  ASSERT_EQ((*result)->size(), 1u);
+  const auto& value = (**result)[0];
+  // The value itself still travels — Uncertain means "might not be suitable for
+  // some purposes", not "absent".
+  EXPECT_EQ(value.value.get<opcua::Int32>(), 42);
+  EXPECT_EQ(value.status_code, opcua::StatusCode::Uncertain_Disconnected);
+  EXPECT_EQ(static_cast<int>(opcua::GetSeverity(value.status_code)),
+            static_cast<int>(opcua::StatusSeverity::Uncertain));
+}
+
+// Non-Value attributes are untouched: their absence is the service's own
+// business (Bad_WrongAttributeId and friends), not a missing data source.
+TEST(ServerAdapterTest, ReadOfNonValueAttributeIsNotRewritten) {
+  FakeAttributeService fake;
+  fake.results.push_back(scada::DataValue{});
+
+  AttributeServiceAdapter adapter{fake};
+
+  auto inputs = std::make_shared<std::vector<opcua::ReadValueId>>();
+  inputs->push_back({.node_id = opcua::NodeId{std::string{"1"}, 2},
+                     .attribute_id = opcua::AttributeId::Description});
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::DataValue>>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.Read(opcua::ServiceContext{}, inputs);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->ok());
+  ASSERT_EQ((*result)->size(), 1u);
+  EXPECT_EQ((**result)[0].status_code, opcua::StatusCode::Good);
+}
+
+// The subscription path is the one the 25 s watch exercised: 44 notifications,
+// every one Good over nothing. Each published sample gets the same projection.
+TEST(ServerAdapterTest, DataChangeNotificationOfValuelessItemIsNotGood) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  auto* fake_ptr = fake.get();
+
+  scada::DataValue no_value;
+  no_value.qualifier.set_online(false);
+  no_value.source_timestamp = scada::Now();
+  no_value.server_timestamp = no_value.source_timestamp;
+  fake_ptr->next = scada::DataChangeNotification{
+      .item_id = 1, .client_handle = 55, .value = no_value};
+
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake), opcua::ServiceContext{}, Tracer::None()};
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(read_result.has_value());
+  ASSERT_TRUE(read_result->ok());
+  ASSERT_EQ((*read_result)->size(), 1u);
+  const auto* notification =
+      std::get_if<opcua::MonitoredItemNotification>(&(**read_result)[0]);
+  ASSERT_NE(notification, nullptr);
+  EXPECT_EQ(notification->client_handle, 55u);
+  EXPECT_TRUE(notification->value.value.is_null());
+  EXPECT_EQ(notification->value.status_code,
+            opcua::StatusCode::Bad_WaitingForInitialData);
+}
+
+// A delivered value publishes unchanged.
+TEST(ServerAdapterTest, DataChangeNotificationOfDeliveredValueStaysGood) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  auto* fake_ptr = fake.get();
+
+  const auto now = scada::Now();
+  fake_ptr->next = scada::DataChangeNotification{
+      .item_id = 1,
+      .client_handle = 55,
+      .value = scada::DataValue{scada::Variant{1.5}, {}, now, now}};
+
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake), opcua::ServiceContext{}, Tracer::None()};
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(read_result.has_value());
+  ASSERT_TRUE(read_result->ok());
+  ASSERT_EQ((*read_result)->size(), 1u);
+  const auto* notification =
+      std::get_if<opcua::MonitoredItemNotification>(&(**read_result)[0]);
+  ASSERT_NE(notification, nullptr);
+  EXPECT_EQ(notification->value.status_code, opcua::StatusCode::Good);
+  EXPECT_DOUBLE_EQ(notification->value.value.get<opcua::Double>(), 1.5);
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge
