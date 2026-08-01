@@ -424,4 +424,119 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
 }
 
 }  // namespace
+
+// Event subscriptions are served from seeded events, not the address space:
+// the device log consumes events, and without this it renders an empty grid no
+// matter what a fixture says.
+TEST(LocalMonitoredItemService, DeliversSeededEventsToAnEventSubscription) {
+  TestExecutor executor;
+  ::TestAddressSpace address_space;
+  LocalMonitoredItemService service{address_space.sync_attribute_service_impl};
+
+  Event first;
+  first.message = LocalizedText{u"first"};
+  Event second;
+  second.message = LocalizedText{u"second"};
+  service.AddEvent(address_space.kTestNode1Id, std::any{first});
+  service.AddEvent(address_space.kTestNode1Id, std::any{second});
+
+  ASSERT_OK_AND_ASSIGN(auto subscription,
+                       service.CreateSubscription(ServiceContext{}, {}));
+  auto results = WaitAwaitable(
+      executor,
+      subscription->AddItems({MonitoredItemCreateRequest{
+          .item_to_monitor = {.node_id = address_space.kTestNode1Id,
+                              .attribute_id = AttributeId::EventNotifier},
+          .parameters = {.filter = EventFilter{}},
+          .client_handle = 1}}));
+  ASSERT_EQ(results.size(), 1u);
+  ASSERT_TRUE(results[0].status);
+
+  // The subscription hands out whatever is queued when a reader arrives, so a
+  // two-event delivery can span two reads.
+  std::vector<std::u16string> messages;
+  while (messages.size() < 2) {
+    ASSERT_OK_AND_ASSIGN(auto notifications,
+                         WaitAwaitable(executor, subscription->ReadNext(10)));
+    ASSERT_FALSE(notifications.empty());
+    for (const auto& notification : notifications) {
+      const auto* event = std::get_if<EventNotification>(&notification);
+      ASSERT_TRUE(event) << "an event subscription must not yield data changes";
+      if (event->event.has_value())
+        messages.push_back(std::any_cast<Event>(event->event).message.text);
+    }
+  }
+
+  EXPECT_EQ(messages, (std::vector<std::u16string>{u"first", u"second"}));
+}
+
+// Scoped by source node: two views seeded from one fixture must stay
+// distinguishable, and a device log showing another device's traffic would be
+// a convincing lie.
+TEST(LocalMonitoredItemService, DeliversOnlyTheSubscribedNodesEvents) {
+  TestExecutor executor;
+  ::TestAddressSpace address_space;
+  LocalMonitoredItemService service{address_space.sync_attribute_service_impl};
+
+  Event mine;
+  mine.message = LocalizedText{u"mine"};
+  Event theirs;
+  theirs.message = LocalizedText{u"theirs"};
+  service.AddEvent(address_space.kTestNode1Id, std::any{mine});
+  service.AddEvent(address_space.kTestNode2Id, std::any{theirs});
+
+  ASSERT_OK_AND_ASSIGN(auto subscription,
+                       service.CreateSubscription(ServiceContext{}, {}));
+  auto results = WaitAwaitable(
+      executor,
+      subscription->AddItems({MonitoredItemCreateRequest{
+          .item_to_monitor = {.node_id = address_space.kTestNode1Id,
+                              .attribute_id = AttributeId::EventNotifier},
+          .parameters = {.filter = EventFilter{}},
+          .client_handle = 1}}));
+  ASSERT_EQ(results.size(), 1u);
+
+  ASSERT_OK_AND_ASSIGN(auto notifications,
+                       WaitAwaitable(executor, subscription->ReadNext(10)));
+  ASSERT_EQ(notifications.size(), 1u);
+  const auto* only = std::get_if<EventNotification>(&notifications[0]);
+  ASSERT_TRUE(only);
+  ASSERT_TRUE(only->event.has_value());
+  EXPECT_EQ(std::any_cast<Event>(only->event).message.text, u"mine");
+}
+
+
+// The journal reads rooted at the Server object and the device log reads its
+// own device from the same seeded set; without node scoping the device log
+// lists every other node's events too.
+TEST(LocalHistoryService, ScopesEventReadsToTheRequestedNode) {
+  TestExecutor executor;
+  LocalHistoryService service;
+
+  const NodeId device{7, 1};
+  const NodeId other{8, 1};
+  Event mine;
+  mine.source_node_id = device;
+  mine.message = LocalizedText{u"mine"};
+  Event theirs;
+  theirs.source_node_id = other;
+  theirs.message = LocalizedText{u"theirs"};
+  service.AddEvent(mine);
+  service.AddEvent(theirs);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto device_events,
+      WaitAwaitable(executor, service.HistoryReadEvents(device, kNullTime,
+                                                        kNullTime, {})));
+  ASSERT_EQ(device_events.events.size(), 1u);
+  EXPECT_EQ(device_events.events[0].message.text, u"mine");
+
+  // The whole-server journal still sees everything.
+  ASSERT_OK_AND_ASSIGN(
+      auto all_events,
+      WaitAwaitable(executor, service.HistoryReadEvents(id::Server, kNullTime,
+                                                        kNullTime, {})));
+  EXPECT_EQ(all_events.events.size(), 2u);
+}
+
 }  // namespace scada

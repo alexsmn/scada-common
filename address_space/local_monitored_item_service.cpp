@@ -6,6 +6,7 @@
 #include "scada/data_value.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/monitored_item.h"
+#include "scada/attribute_ids.h"
 #include "scada/monitoring_parameters.h"
 #include "scada/read_value_id.h"
 #include "scada/service_context.h"
@@ -51,6 +52,32 @@ class LocalMonitoredItem : public MonitoredItem {
   const ReadValueId value_id_;
 };
 
+// Delivers the events a fixture seeded for one node, once, on subscribe.
+// Like its data-change sibling it is not a source of continuous updates: it
+// replays a fixed set so a capture is stable across runs.
+class LocalEventMonitoredItem : public MonitoredItem {
+ public:
+  // Parentheses, not braces: std::any is constructible from
+  // std::vector<std::any>, so brace-init picks the initializer_list
+  // constructor and yields a one-element vector holding the whole vector.
+  explicit LocalEventMonitoredItem(std::vector<std::any> events)
+      : events_(std::move(events)) {}
+
+  void Subscribe(MonitoredItemHandler handler) override {
+    auto* h = std::get_if<EventHandler>(&handler);
+    if (!h) {
+      return;
+    }
+
+    for (const std::any& event : events_) {
+      (*h)(Status{StatusCode::Good}, event);
+    }
+  }
+
+ private:
+  const std::vector<std::any> events_;
+};
+
 }  // namespace
 
 LocalMonitoredItemService::LocalMonitoredItemService(
@@ -70,9 +97,28 @@ LocalMonitoredItemService::CreateSubscription(
       options);
 }
 
+void LocalMonitoredItemService::AddEvent(const NodeId& source_node_id,
+                                         std::any event) {
+  events_.push_back({source_node_id, std::move(event)});
+}
+
 std::shared_ptr<MonitoredItem> LocalMonitoredItemService::CreateItem(
     const ReadValueId& value_id,
-    const MonitoringParameters& /*params*/) {
+    const MonitoringParameters& params) {
+  // The EventNotifier attribute is what distinguishes "notify me about this
+  // node's events" from "notify me about its value" — the same test
+  // MakeItemFactorySubscription uses to decide which handler to hand the item,
+  // so keying on anything else (the filter, say) yields an item whose
+  // Subscribe never matches and a subscription that never notifies.
+  if (value_id.attribute_id == AttributeId::EventNotifier) {
+    std::vector<std::any> events;
+    for (const SeededEvent& seeded : events_) {
+      if (seeded.source_node_id == value_id.node_id)
+        events.push_back(seeded.event);
+    }
+    return std::make_shared<LocalEventMonitoredItem>(std::move(events));
+  }
+
   return std::make_shared<LocalMonitoredItem>(attribute_service_, value_id);
 }
 

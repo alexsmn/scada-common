@@ -8,6 +8,7 @@
 #include "model/node_id_util.h"
 #include "scada/co_result.h"
 #include "scada/data_value.h"
+#include "scada/standard_node_ids.h"
 #include "scada/status.h"
 #include <chrono>
 
@@ -196,13 +197,31 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
 }
 
 HistoryReadEventsResult LocalHistoryService::ReadEvents(
-    NodeId /*node_id*/,
+    NodeId node_id,
     scada::Time /*from*/,
     scada::Time /*to*/,
     EventFilter /*filter*/) const {
-  return HistoryReadEventsResult{
-      .events = events_,
-  };
+  // Scoped by source node. A read rooted at the Server object (or at no node
+  // at all) is the whole-server journal and gets everything; a read on any
+  // other node — a device log asking about its own device — gets only that
+  // node's events.
+  //
+  // Without the distinction every reader sees every seeded event, so two views
+  // fed from one fixture cannot be told apart: a device log would list another
+  // device's traffic, which is a convincing enough lie to ship in a
+  // screenshot. The time range and filter are still ignored; captures seed
+  // exactly what they want shown.
+  // A null node is "no particular node" — an unscoped read, like Server.
+  if (node_id.is_null() || node_id == scada::id::Server) {
+    return HistoryReadEventsResult{.events = events_};
+  }
+
+  HistoryReadEventsResult result;
+  for (const Event& event : events_) {
+    if (event.source_node_id == node_id)
+      result.events.push_back(event);
+  }
+  return result;
 }
 
 }  // namespace scada
