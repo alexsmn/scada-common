@@ -107,14 +107,22 @@ void LaunchProcess(
     JobObject& job,
     ChildProcess& child,
     const std::vector<std::pair<std::string, std::string>>& extra_env) {
+  // Capture the child's streams into its workdir rather than discarding them.
+  // They used to go to process::null, so a tier that died *before* its own
+  // logging came up left no evidence anywhere: its Logs/ directory stayed
+  // empty and the only signal was the harness's "did not start listening"
+  // timeout, which says nothing about why. SCADA_E2E_KEEP_WORKSPACE preserves
+  // the workdir, so these two files survive for post-mortem alongside Logs/.
+  const std::string out_path = (workdir / "process.stdout.log").string();
+  const std::string err_path = (workdir / "process.stderr.log").string();
   try {
     if (extra_env.empty()) {
       child.process = process::child{
           exe.string(),
           process::args(args),
           process::start_dir(workdir.string()),
-          process::std_out > process::null,
-          process::std_err > process::null,
+          process::std_out > out_path,
+          process::std_err > err_path,
           job.group()};
     } else {
       process::environment env = boost::this_process::environment();
@@ -124,8 +132,8 @@ void LaunchProcess(
           exe.string(),
           process::args(args),
           process::start_dir(workdir.string()),
-          process::std_out > process::null,
-          process::std_err > process::null,
+          process::std_out > out_path,
+          process::std_err > err_path,
           env,
           job.group()};
     }

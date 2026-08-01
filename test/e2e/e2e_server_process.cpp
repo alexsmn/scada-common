@@ -18,7 +18,16 @@ using namespace std::chrono_literals;
 namespace client::test {
 namespace {
 
-constexpr auto kServerStartTimeout = 30s;
+// Must exceed the edge tiers' config-connect retry ladder, not just "a while".
+// An edge does not open its OPC UA port until RemoteConfigurationManager
+// reaches the config tier, and that loop uses scada::ExponentialBackoff's
+// 1s..30s defaults: 1+2+4+8+16 = 31s elapse before the sixth attempt. At a 30s
+// timeout the harness gave up ~1s before the retry that would have succeeded,
+// so any run that lost a second to load -- a slow CI box, a debugger, extra
+// logging -- failed as "did not start listening", which says nothing about
+// why. Observed 2026-08-01: three edges failed identically at log entry #32,
+// mid-retry, while seven other tiers in the same run started normally.
+constexpr auto kServerStartTimeout = 90s;
 
 std::string SqlitePath(const std::filesystem::path& path) {
   auto result = path.lexically_normal().generic_string();
@@ -220,9 +229,16 @@ void ServerTier::Launch(const Options& options) {
 
 bool ServerTier::WaitListening() const {
   const int port = opcua_port_;
-  return WaitUntil([port] { return CanConnectTcp(port); },
-                   std::chrono::duration_cast<std::chrono::milliseconds>(
-                       kServerStartTimeout));
+  // Give up the moment the child is gone rather than waiting out the full
+  // timeout. A tier that died has nothing left to wait for, and the timeout is
+  // sized for the slowest legitimate start (see kServerStartTimeout), so
+  // burning it on a corpse turns a fast, obvious failure into a slow, opaque
+  // one. process.stderr.log in the workspace carries the reason.
+  return WaitUntil(
+      [this, port] { return CanConnectTcp(port) || !process_.IsRunning(); },
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          kServerStartTimeout)) &&
+         CanConnectTcp(port);
 }
 
 void ServerTier::Terminate() {
