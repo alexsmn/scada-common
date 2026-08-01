@@ -605,14 +605,22 @@ opcua::SessionSecuritySettings ToOpcua(
   return {.mode = static_cast<opcua::SessionSecuritySettings::Mode>(v.mode),
           .required_policy_uri = v.required_policy_uri,
           .client_certificate_path = v.client_certificate_path,
-          .client_private_key_path = v.client_private_key_path};
+          .client_private_key_path = v.client_private_key_path,
+          .trusted_certificates_dir = v.trusted_certificates_dir,
+          .issuer_certificates_dir = v.issuer_certificates_dir,
+          .crl_dir = v.crl_dir,
+          .rejected_certificates_dir = v.rejected_certificates_dir};
 }
 scada::SessionSecuritySettings ToScada(
     const opcua::SessionSecuritySettings& v) {
   return {.mode = static_cast<scada::SessionSecuritySettings::Mode>(v.mode),
           .required_policy_uri = v.required_policy_uri,
           .client_certificate_path = v.client_certificate_path,
-          .client_private_key_path = v.client_private_key_path};
+          .client_private_key_path = v.client_private_key_path,
+          .trusted_certificates_dir = v.trusted_certificates_dir,
+          .issuer_certificates_dir = v.issuer_certificates_dir,
+          .crl_dir = v.crl_dir,
+          .rejected_certificates_dir = v.rejected_certificates_dir};
 }
 
 opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams& v) {
