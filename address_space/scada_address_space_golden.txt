@@ -54,6 +54,7 @@ NS0.2253	class=1 browse=0:Server typedef=NS0.58 parent=NS0.85 parentRef=NS0.35 s
 NS0.2254	class=2 browse=0:ServerArray typedef=NS0.68 parent=NS0.2253 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.12 value=set refs=[NS0.40->NS0.68;]
 NS0.2255	class=2 browse=0:NamespaceArray typedef=NS0.68 parent=NS0.2253 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.12 value=set refs=[NS0.40->NS0.68;]
 NS0.2256	class=2 browse=0:ServerStatus typedef=NS0.62 parent=NS0.2253 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.24 value=set refs=[NS0.40->NS0.62;]
+NS0.2257	class=2 browse=0:StartTime typedef=NS0.62 parent=NS0.2256 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.13 value=set refs=[NS0.40->NS0.62;]
 NS0.2258	class=2 browse=0:CurrentTime typedef=NS0.62 parent=NS0.2256 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.13 value=set refs=[NS0.40->NS0.62;]
 NS0.2259	class=2 browse=0:State typedef=NS0.62 parent=NS0.2256 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.6 value=set refs=[NS0.40->NS0.62;]
 NS0.2267	class=2 browse=0:ServiceLevel typedef=NS0.68 parent=NS0.2253 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.3 value=set refs=[NS0.40->NS0.68;]

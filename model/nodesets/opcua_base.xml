@@ -95,6 +95,15 @@
     <AttributeValue type="Empty" />
     <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
   </Node>
+  <!-- StartTime is a mandatory component of ServerStatusType (OPC UA Part 5
+       §7.6, https://reference.opcfoundation.org/Core/Part5/v105/docs/7.6). Its
+       spec data type is UtcTime, a DateTime subtype (Part 5 §12.2.4.1) that
+       this NS0 subset does not carry separately, so it is declared as DateTime
+       (NS0.13) like its CurrentTime sibling. -->
+  <Node id="NS0.2257" class="Variable" typeDefinition="NS0.62" parent="NS0.2256" parentReference="NS0.47" browseName="StartTime" displayName="StartTime" dataType="NS0.13">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
+  </Node>
   <Node id="NS0.2258" class="Variable" typeDefinition="NS0.62" parent="NS0.2256" parentReference="NS0.47" browseName="CurrentTime" displayName="CurrentTime" dataType="NS0.13">
     <AttributeValue type="Empty" />
     <Reference type="NS0.40" forward="true" target="NS0.62" targetClass="VariableType" />
