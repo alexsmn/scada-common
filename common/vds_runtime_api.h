@@ -58,7 +58,7 @@ struct TcVdsRuntimeShapeInfo {
 // `invalidate_data_source`) onto these colours at render time. This keeps the
 // colour decision inside the renderer — the host passes tokens + raw state,
 // never per-shape colours. Colours are packed 0x00RRGGBB (the high byte is
-// ignored). See client/docs/ux/design-language.md §2 for the semantics; the
+// ignored). See docs/client/ux/design-language.md §2 for the semantics; the
 // energized colour is a restrained amber, never alarm-red.
 struct TcVdsRuntimeStatePalette {
   uint32_t sl_live;       // energized primary conductor / live busbar
