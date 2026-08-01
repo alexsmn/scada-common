@@ -252,6 +252,46 @@ Files:
 Canonical server-side request/response and service-dispatch contract used by
 both the UA Binary adapter and the UA-JSON/WebSocket adapter.
 
+#### Monitored-item bindings must be released individually
+
+`ServerSubscription` keeps two records per monitored item: its own `Item` in
+`items_`, and a *binding* on the backing `MonitoredItemSubscription` that the
+node manager handed it (`Item::backing_item_id`, assigned asynchronously by
+`OnBindResult`). The backing subscription is created once per
+`ServerSubscription` and lives until the subscription closes — on an
+aggregating proxy it is a session to a downstream tier, so it can outlive any
+individual client by days.
+
+**Invariant: every path that stops using a binding must call
+`RemoveBackingItem`.** There are three, and each one is a leak if it is
+missed:
+
+- `DeleteMonitoredItems` — releases the binding before erasing the `Item`.
+- `RebindItem` (reached from `ModifyMonitoredItems`) — releases the binding it
+  is about to overwrite.
+- `OnBindResult`, when the item is gone or has been rebound — the delete could
+  not release a binding that did not exist yet, so the create's own completion
+  has to undo it. This mirrors the client-side orphan undo in
+  `ClientSubscription::SpawnCreateMonitoredItem`.
+
+Dropping the `Item` alone is not enough, and the omission is invisible from
+either end: the server answers `DeleteMonitoredItems` with per-item `Good`
+(the erase from `items_` did succeed), it stops publishing that item, and the
+client's `ClientProtocolSubscription::DeleteMonitoredItem` reports the
+service-level result — so both sides agree the item is gone while the backend
+still holds it. On a tier this strands one `events::EventSource`, and with it
+one `EventRouter` subscription, per deleted item; the tier logs the
+`EventRouter: Subscribe` with no matching `Unsubscribe`, which is the only
+externally visible trace. Past roughly 64–95 stranded items on one node the
+aggregating proxy stops forwarding that node's events altogether while still
+reporting healthy — `RestartCount=0`, no panics, all downstreams connected —
+so it presents as silent data loss, not as a failure.
+
+Regression coverage: `ProxyReleasesDownstreamEventItemsOnClose` in
+`test/e2e/service_namespace_e2e_test.cpp` counts the tier's
+`EventRouter: Subscribe`/`Unsubscribe` lines across 25 create/close cycles and
+requires them to balance.
+
 ### `CreateServices(...)`
 
 File:
