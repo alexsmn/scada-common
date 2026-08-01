@@ -1,6 +1,7 @@
 #include "test/e2e/e2e_file_helpers.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -60,9 +61,9 @@ std::optional<int> FindLoggedObjectTreeChildCount(
     while ((pos = contents.find(kCompletionMarker.data(), pos)) !=
            std::string::npos) {
       const auto line_end = contents.find('\n', pos);
-      const auto line = contents.substr(
-          pos,
-          line_end == std::string::npos ? std::string::npos : line_end - pos);
+      const auto line =
+          contents.substr(pos, line_end == std::string::npos ? std::string::npos
+                                                             : line_end - pos);
       pos = line_end == std::string::npos ? contents.size() : line_end + 1;
 
       const auto count_pos = line.find(kAddedChildCountMarker);
@@ -89,14 +90,19 @@ std::optional<int> FindLoggedObjectTreeChildCount(
 
 TempWorkspace::TempWorkspace() {
   auto base = std::filesystem::temp_directory_path();
-  auto salt =
-      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+  auto salt = std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count());
   path_ = base / ("scada_e2e_" + salt);
   std::filesystem::create_directories(path_);
 }
 
 TempWorkspace::~TempWorkspace() {
-  if (preserve_)
+  // SCADA_E2E_KEEP_WORKSPACE=1 keeps the tree for post-mortem inspection, the
+  // same knob the per-tier startup suites document. Without it a tier that dies
+  // during cluster start-up takes its Logs directory with it, and the only
+  // evidence left is the harness's "did not start listening" timeout — which
+  // says nothing about why.
+  if (preserve_ || std::getenv("SCADA_E2E_KEEP_WORKSPACE") != nullptr)
     return;
   std::error_code ec;
   std::filesystem::remove_all(path_, ec);
