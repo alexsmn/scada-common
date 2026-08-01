@@ -166,6 +166,47 @@ TEST(ServerAdapterTest, EventNotificationProjectsRealFieldValuesToOpcua) {
             opcua::EncodeEventIdByteString(77));
 }
 
+// An event notification with NO payload is the monitored item's initial status
+// report, not an event, and has no wire representation. Publishing it would put
+// one null Variant per select clause on the wire, which a peer cannot tell
+// apart from a real event whose fields are all null — that is how the
+// aggregating proxy came to relay a phantom event with a zero EventId and
+// panic. It must be dropped, not projected.
+TEST(ServerAdapterTest, PayloadlessEventNotificationIsNotPublished) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  auto* fake_ptr = fake.get();
+  fake_ptr->next = scada::EventNotification{.item_id = 1,
+                                            .client_handle = 55,
+                                            .status = scada::StatusCode::Good,
+                                            .event = std::any{}};
+
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake), opcua::ServiceContext{}, Tracer::None()};
+
+  opcua::MonitoredItemCreateRequest request;
+  request.item_to_monitor = {.node_id = opcua::NodeId{2253u},
+                             .attribute_id = opcua::AttributeId::EventNotifier};
+  request.requested_parameters.client_handle = 55;
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        std::vector<opcua::MonitoredItemCreateRequest> requests;
+        requests.push_back(request);
+        co_await adapter.AddItems(std::move(requests));
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  ASSERT_TRUE(read_result.has_value());
+  ASSERT_TRUE(read_result->ok());
+  EXPECT_TRUE((*read_result)->empty());
+}
+
 // A scada::Event crossing the SCADA-to-SCADA path — an event filter WITHOUT
 // select clauses, so the serving side projects the default full-fidelity
 // field paths — must reconstruct on the client side with identity (event id,

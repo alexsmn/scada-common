@@ -5,6 +5,8 @@
 #include "scada/extension_object.h"
 #include "scada/identity_mapping_rule_encoding.h"
 
+#include "opcua/events/event_filter.h"
+#include "opcua/monitored/monitored_item.h"
 #include "opcua/transport/binary/codec_utils.h"
 
 #include <any>
@@ -342,6 +344,66 @@ TEST(ConversionTest, MonitoringFilterAggregateRoundTrip) {
   const scada::MonitoringFilter round = ToScada(ToOpcua(params)).filter;
   ASSERT_TRUE(std::holds_alternative<scada::AggregateFilter>(round));
   EXPECT_EQ(std::get<scada::AggregateFilter>(round), af);
+}
+
+// A monitored item's initial status report carries no event. It must stay
+// distinguishable from a real event across the wire: reassembling it into a
+// default-constructed event yields event_id 0, which is not a legal event
+// (OPC UA Part 5 §6.4.2 BaseEventType requires a non-null EventId,
+// https://reference.opcfoundation.org/Core/Part5/v105/docs/6.4.2) and which
+// the aggregating proxy used to relay onward until its gRPC projection
+// panicked.
+TEST(ConversionTest, EventFieldListAllNullFieldsCarriesNoEvent) {
+  opcua::EventFieldList list;
+  list.client_handle = 7;
+  list.event_fields.resize(opcua::DefaultEventFieldPaths().size());
+
+  const scada::MonitoredItemNotification notification =
+      ToScada(opcua::ItemNotification{list});
+
+  const auto* event = std::get_if<scada::EventNotification>(&notification);
+  ASSERT_NE(event, nullptr);
+  EXPECT_EQ(event->client_handle, 7u);
+  EXPECT_FALSE(event->event.has_value());
+}
+
+TEST(ConversionTest, EventFieldListEmptyCarriesNoEvent) {
+  opcua::EventFieldList list;
+  list.client_handle = 7;
+
+  const scada::MonitoredItemNotification notification =
+      ToScada(opcua::ItemNotification{list});
+
+  const auto* event = std::get_if<scada::EventNotification>(&notification);
+  ASSERT_NE(event, nullptr);
+  EXPECT_FALSE(event->event.has_value());
+}
+
+// The guard above must not cost fidelity for a real event: the default
+// full-fidelity projection still reassembles with its identity intact.
+TEST(ConversionTest, EventFieldListDefaultProjectionKeepsEventId) {
+  opcua::Event source;
+  source.event_id = 0x0123456789abcdefull;
+  source.event_type_id = opcua::NodeId{opcua::id::SystemEventType};
+  source.time = opcua::DateTime::Now();
+  source.receive_time = source.time;
+  source.severity = 500;
+  source.message = opcua::LocalizedText{u"pump tripped"};
+
+  opcua::EventFieldList list;
+  list.client_handle = 9;
+  list.event_fields = opcua::ProjectEventFields(opcua::DefaultEventFieldPaths(),
+                                                std::any{source});
+
+  const scada::MonitoredItemNotification notification =
+      ToScada(opcua::ItemNotification{list});
+
+  const auto* notified = std::get_if<scada::EventNotification>(&notification);
+  ASSERT_NE(notified, nullptr);
+  const auto* event = std::any_cast<scada::Event>(&notified->event);
+  ASSERT_NE(event, nullptr);
+  EXPECT_EQ(event->event_id, source.event_id);
+  EXPECT_EQ(event->severity, source.severity);
 }
 
 }  // namespace

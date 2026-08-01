@@ -574,8 +574,22 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
               fields.empty() ? std::any{} : scada::AssembleEvent(fields);
           if (!event.has_value() &&
               x.event_fields.size() == opcua::DefaultEventFieldPaths().size()) {
-            event = std::any{ToScada(opcua::ReconstructEventFromFields(
-                opcua::DefaultEventFieldPaths(), x.event_fields))};
+            // Reconstruction fills only the fields the peer actually sent, so a
+            // notification carrying no event (a monitored item's initial status
+            // report, or any peer that pads the select clauses with nulls)
+            // comes back as a default-constructed event. Keep it only if it has
+            // an identity: EventId is mandatory and never null for a real event
+            // (OPC UA Part 5 §6.4.2 BaseEventType,
+            // https://reference.opcfoundation.org/Core/Part5/v105/docs/6.4.2),
+            // so a zero id means "there was no event here" — yield an empty
+            // payload rather than a phantom one. These fields arrive from
+            // outside the process and must degrade, never panic a consumer.
+            scada::Event reconstructed =
+                ToScada(opcua::ReconstructEventFromFields(
+                    opcua::DefaultEventFieldPaths(), x.event_fields));
+            if (reconstructed.event_id != 0) {
+              event = std::any{std::move(reconstructed)};
+            }
           }
           return scada::EventNotification{.item_id = 0,
                                           .client_handle = x.client_handle,

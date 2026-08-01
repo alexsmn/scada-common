@@ -418,7 +418,10 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
             // https://reference.opcfoundation.org/Core/Part3/v105/docs/9.32 .
             event_fields = ToOpcuaVector(scada::DisassembleEvent(x.event));
           } else {
-            event_fields = opcua::ProjectEventFields(field_paths, std::any{});
+            // Payload-less notifications are filtered out in ReadNext (see the
+            // comment there); reaching here would mean a caller bypassed it, so
+            // emit an empty field list rather than a full projection of nulls
+            // that a peer would mistake for a real event.
           }
           return opcua::EventFieldList{.client_handle = x.client_handle,
                                        .event_fields = std::move(event_fields)};
@@ -498,8 +501,23 @@ MonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
     co_return ToOpcua(result.status());
   std::vector<opcua::ItemNotification> notifications;
   notifications.reserve(result->size());
-  for (const auto& notification : *result)
+  for (const auto& notification : *result) {
+    // An event notification with no payload is the monitored item's initial
+    // status report (EventSource::Subscribe fires one as soon as the item is
+    // created), not an event. It has no wire representation — an EventFieldList
+    // carries event fields and no status — so publishing it can only emit one
+    // null Variant per select clause, which a peer cannot tell apart from a
+    // real event whose every field happens to be null. That ambiguity is what
+    // made the aggregating proxy relay a phantom event with a zero EventId
+    // (OPC UA Part 5 §6.4.2 BaseEventType requires a non-null EventId,
+    // https://reference.opcfoundation.org/Core/Part5/v105/docs/6.4.2). Drop it.
+    if (const auto* event =
+            std::get_if<scada::EventNotification>(&notification);
+        event && !event->event.has_value()) {
+      continue;
+    }
     notifications.push_back(ToItemNotification(notification));
+  }
   co_return notifications;
 }
 
