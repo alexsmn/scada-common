@@ -104,6 +104,11 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),
             133u);  // runtime method
   EXPECT_EQ(devices::id::TransmissionItemType_Address.numeric_id(), 225u);
+  // Frame-capture arming (docs/ux/shell.md §2.8). Runtime-writable, so unlike
+  // DeviceType_Disabled it is a component (i=62) rather than a config
+  // property. 352 was skipped: the stale NextId marker in extra_node_ids.csv
+  // still holds it.
+  EXPECT_EQ(devices::id::DeviceType_FrameCapture.numeric_id(), 374u);
   // Device frame trace (docs/ux/shell.md §2.8). DeviceFrameEventType subtypes
   // DeviceWatchEventType, so an existing device-watch subscription receives
   // frames without changing its filter.

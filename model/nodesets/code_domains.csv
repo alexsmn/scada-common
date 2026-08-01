@@ -60,6 +60,7 @@ DeviceType_BytesIn,devices
 DeviceType_BytesOut,devices
 DeviceType_Disabled,devices
 DeviceType_Enabled,devices
+DeviceType_FrameCapture,devices
 DeviceType_InterrogateCount,devices
 DeviceType_MessagesIn,devices
 DeviceType_MessagesOut,devices

@@ -257,6 +257,15 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
+  <UAVariable NodeId="ns=1;i=374" BrowseName="FrameCapture" SymbolicName="DeviceType_FrameCapture" ParentNodeId="ns=1;i=115" DataType="Boolean">
+    <DisplayName>Захват кадров</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
   <UAVariable NodeId="ns=1;i=350" BrowseName="SyncClockCount" SymbolicName="DeviceType_SyncClockCount" ParentNodeId="ns=1;i=115" DataType="Int32">
     <DisplayName>Число синхронизаций времени</DisplayName>
     <References>
