@@ -1,5 +1,5 @@
 {
-  "_description": "server.json template consumed by client/server e2e tests. Runtime-only listener ports are patched by the test harness before launching server.exe. All dirs are rooted at ${DIR_PARAM}, the generated server.json directory.",
+  "_description": "server.json template consumed by the client/server e2e suite and the superproject service-x-namespace sweep. Runtime-only listener ports are patched by the test harness before it launches the server tier binary (there is no monolith server.exe: ADR 0001 retired it, and each suite launches scada-* tier executables). All dirs are rooted at ${DIR_PARAM}, the generated server.json directory.",
   "configuration": {
     "driver": "SQLite",
     "dir": "${DIR_PARAM}/Configuration"
