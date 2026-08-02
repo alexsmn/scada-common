@@ -4,31 +4,31 @@
 title OPC UA binary client — layering
 
 package "Outbound-client adapters" as Consumers {
-  rectangle "**ClientSession**\nscada::SessionService / ViewService /\nAttributeService / MonitoredItemService /\nMethodService" as QT $external
+  rectangle "**ClientSession**\nwrapped by common/opcua_bridge\ninto the scada:: services" as QT $external
   rectangle "**Other OPC UA callers**\nfuture" as OTHER $external
 }
 
-package "Reusable client layer\ncommon/opcua/" as Client {
+package "Reusable client layer\nthird_party/opcuapp/opcua/client/" as Client {
   rectangle "**ClientProtocolSession**\nCreate / Close\nRead / Write / Browse / BrowseNext\nTranslateBrowsePaths / Call" as SESS $tier
   rectangle "**ClientProtocolSubscription**\nCreate / Publish / Delete\nCreateMonitoredItem / DeleteMonitoredItem\nDataChangeHandler dispatch" as SUB $tier
   rectangle "**ClientChannel**\nCall<Req, Resp> → Awaitable<StatusOr>\nrequest_handle + request_id correlation\nauthentication_token bind" as CHAN $tier
 }
 
-package "Binary TCP client adapter\ncommon/opcua/binary/" as BinaryClient {
+package "Binary TCP client adapter\nthird_party/opcuapp/opcua/transport/binary/" as BinaryClient {
   rectangle "**binary::ClientConnection**\nOpen / Close\nEncode requests / decode responses" as CONN $tier
   rectangle "**binary::ClientSecureChannel**\nOpen / Close\nSendServiceRequest / ReadServiceResponse\nchannel_id + token_id + sequence_number" as SC $tier
   rectangle "**binary::ClientTransport**\nConnect (HEL / ACK)\nReadFrame / WriteFrame\ntransport::any_transport" as TRANS $tier
 }
 
-package "Shared UA Binary primitives\ncommon/opcua/binary/" as Shared {
+package "Shared UA Binary primitives\nthird_party/opcuapp/opcua/transport/binary/" as Shared {
   rectangle "**service_codec**\nEncode/binary::DecodeServiceRequest\nEncode/binary::DecodeServiceResponse" as SVC $neutral
   rectangle "**secure_channel**\nEncode/DecodeOpenSecureChannelRequestBody\nEncode/DecodeOpenSecureChannelResponseBody\nEncode/DecodeCloseSecureChannelRequestBody" as SECCODEC $neutral
   rectangle "**protocol**\nHEL / ACK / ERR framing\nSecure Conversation framing" as PROTO $neutral
   rectangle "**codec_utils**\nbinary::Encoder / binary::Decoder\nVariant / NodeId / DataValue / …" as UTILS $neutral
 }
 
-package "Shared message model\ncommon/opcua/" as Model {
-  rectangle "**opcua_message.h**\nRequestBody / ResponseBody\n(std::variant of all typed services)" as MSG $neutral
+package "Shared message model\nthird_party/opcuapp/opcua/" as Model {
+  rectangle "**opcua/message.h**\nRequestBody / ResponseBody\n(std::variant of all typed services)" as MSG $neutral
 }
 
 package "third_party/net" as Net {
