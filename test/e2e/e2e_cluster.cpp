@@ -48,6 +48,23 @@ constexpr std::string_view kFileTypeNamespaceUri =
     "http://telecontrol.ru/opcua/filesystem/FileType";
 constexpr std::string_view kFileSystemRootNodeId = "ns=7;i=304";
 
+// The historian's address-space claim: the historical-database namespace no
+// other tier can serve, plus the static System store and each of its property
+// node ids, which live in the shared SCADA namespace and so are unreachable by
+// a namespace claim. See ServerCluster::AggregationServers.
+constexpr std::string_view kHistoricalDbNamespaceUri =
+    "http://telecontrol.ru/opcua/history/HistoricalDatabaseType";
+constexpr std::string_view kSystemHistoricalDbNodeIds[] = {
+    "ns=7;i=233",
+    "ns=7;s=233!Depth",
+    "ns=7;s=233!ItemCount",
+    "ns=7;s=233!WriteValueCount",
+    "ns=7;s=233!WriteValueDuration",
+    "ns=7;s=233!PendingTaskCount",
+    "ns=7;s=233!EventCleanupDuration",
+    "ns=7;s=233!ValueCleanupDuration",
+};
+
 boost::json::object& EnsureObject(boost::json::object& parent,
                                   std::string_view key) {
   auto& value = parent[key];
@@ -295,8 +312,9 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   // 0002 subscription model) and files the samples under its own
   // HasHistoricalDatabase config. It self-registers with the proxy via OPC UA
   // RegisterServer2 advertising the "HD" capability, and the proxy's
-  // history-link module routes ALL client HistoryRead/HistoryUpdate to it —
-  // the historian is deliberately NOT an aggregation downstream. Mirrors
+  // history-link module routes ALL client HistoryRead/HistoryUpdate to it. It
+  // is ALSO a static aggregation downstream, but only for the address space it
+  // owns — see AggregationServers; the two bindings are independent. Mirrors
   // gcp/free-tier/multitier/configs/historian.json.
   ServerTier& historian =
       Reserve(ClusterTier::kHistorian, executables_.historian, ports);
@@ -357,10 +375,12 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             // RegisterServer2, advertising the "HD" (Historical Data)
             // ServerCapabilityIdentifier (Part 4 §5.4.6, Part 12 Annex D).
             // The proxy's history-link module links an HD registrant's
-            // history services (and its aggregation reconcile skips it — a
-            // historian owns no address-space namespaces). This is the
-            // discovery path the Windows on-prem deployment wires the
-            // historian with.
+            // history services. Its address space arrives separately, over the
+            // static aggregation entry in AggregationServers — the historian
+            // DOES own namespaces (the historical databases and their runtime
+            // counters), so discovery and aggregation are two bindings here,
+            // not one. This is the discovery path the Windows on-prem
+            // deployment wires the historian with.
             auto& opcua = json.at("opcua").as_object();
             opcua["application_uri"] = "urn:e2e:scada:historian";
             opcua["advertise_url"] = historian_url;
@@ -574,6 +594,55 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       {"namespaces", boost::json::array{std::string{kFileTypeNamespaceUri}}},
       {"nodes", boost::json::array{std::string{kFileSystemRootNodeId}}},
       {"forward_events", true}});
+  // The historian downstream, carrying its ADDRESS SPACE only. This is a
+  // second, independent binding: the history-link module already links the
+  // same process by its "HD" registration and owns every HistoryRead —
+  // history_service_locator returns false for every aggregation downstream
+  // while a historian is linked, so the two never collide.
+  //
+  // It is needed because the historian is the only tier that can serve the
+  // HistoricalDatabase instances and their runtime counters at all: the
+  // history module ships in scada-tier-historian, so a tier holding the same
+  // HistoricalDatabaseType rows in its configuration database projects none of
+  // them. Without this entry the HistoricalDatabases folder browses EMPTY
+  // through the proxy and every counter answers Bad_NodeIdUnknown, which is
+  // what the Qt and web "Databases" views render.
+  //
+  // The "namespaces" claim is not what makes the counters resolve — Read and
+  // Browse are not claim-scoped — it is what SCOPES this downstream, exactly
+  // as the file store's does: the historian publishes the full canonical
+  // NamespaceArray and keeps its data-item rows (no kStripDataItemRowsSql), so
+  // unclaimed it would take single-target routing for every namespace no other
+  // downstream claims, including the shared SCADA namespace. The "nodes" claim
+  // reaches the System store, which lives in that shared namespace and so
+  // cannot be routed by namespace alone — the same reason the file store
+  // claims i=304. Mirrors the dev-cluster and GCP proxy.json entries.
+  //
+  // What no claim can scope: this also puts the historian in the READ fan-out
+  // of every namespace it publishes (read_service_locator is not
+  // claim-scoped), so it now answers ns=2 item Reads out of its own
+  // configuration copy alongside the edge that actually drives them. Reads
+  // merge good-wins rather than first-wins (MergeResult(scada::DataValue) in
+  // node_manager/composite_types.cpp), so a stale Good races a live Good
+  // rather than a Bad shadowing anything. In the dev cluster the config and
+  // file-store tiers already carried that exposure and the web live suite is
+  // unaffected by adding the historian to it; HERE the historian is a NEW
+  // participant, so if a live-value suite starts flapping between an edge
+  // value and a stale one, this entry is the first thing to suspect. The cure
+  // is single-owner data items (ADR 0006), not dropping the entry — and not
+  // kStripDataItemRowsSql either, which would take away the rows the
+  // historian's own collection is driven by.
+  boost::json::array system_historical_db_nodes;
+  for (std::string_view node_id : kSystemHistoricalDbNodeIds)
+    system_historical_db_nodes.emplace_back(boost::json::string{node_id});
+  aggregation_servers_.push_back(boost::json::object{
+      {"endpoint", historian_url},
+      {"user", std::string{kSvcUser}},
+      {"password", std::string{kSvcPassword}},
+      {"namespaces",
+       boost::json::array{std::string{kHistoricalDbNamespaceUri}}},
+      {"nodes", std::move(system_historical_db_nodes)},
+      {"forward_events", false}});
   for (ClusterTier tier : {ClusterTier::kOpc, ClusterTier::kVidicon}) {
     // Exclusive namespace groups: routed by ownership, so no claim entry.
     if (ServerTier* launched = Tier(tier)) {

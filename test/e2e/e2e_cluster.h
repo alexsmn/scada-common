@@ -20,6 +20,12 @@ namespace client::test {
 // client running one driver), a historian, a dedicated file store, and — on
 // Windows — the Classic OPC and Vidicon module tiers.
 //
+// The proxy reaches the historian TWICE and the two are independent: the
+// history-link module binds it by its "HD" registration and owns all history,
+// while a static aggregation entry carries the address space it owns (its
+// HistoricalDatabase instances and their runtime counters, which no other tier
+// can serve). See ServerCluster::AggregationServers.
+//
 // The client-facing aggregating proxy is deliberately NOT owned here. Each
 // suite launches its own proxy process into its own slot (the client suite
 // shares its workspace with the Qt client's scratch files), and shapes it with
