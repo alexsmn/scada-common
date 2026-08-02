@@ -830,6 +830,14 @@ Covers the transport-independent per-subscription runtime, against a
 - **`maxNotificationsPerPublish`** honoured when non-zero, with
   `moreNotifications` set and the remainder delivered by later publishes; zero
   means the client set no limit (Part 4 §5.13.2), not one per publish.
+- **the two bounds that fix implies.** `kMaxNotificationsPerPublishResponse`
+  caps one response even when the client set no limit, with the remainder
+  reported through `moreNotifications` and delivered next publish;
+  `kMaxRetransmitQueueNotifications` counts NOTIFICATIONS rather than messages
+  (equivalent only while a message held one notification — the property the fix
+  removed), the queue never evicts to empty, and `Acknowledge` — which erases
+  from the middle of that deque — keeps the running total honest, so a later
+  publish does not evict a message the client still wants.
 - data-change publish delivery, and publishing-interval gating before
   data/keep-alive delivery
 - acknowledgement and `Republish` replay behavior, and the bounded
