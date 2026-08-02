@@ -13,6 +13,7 @@
   <Aliases>
     <Alias Alias="Boolean">i=1</Alias>
     <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
     <Alias Alias="Int64">i=8</Alias>
     <Alias Alias="UInt64">i=9</Alias>
     <Alias Alias="Double">i=11</Alias>
@@ -72,7 +73,7 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
-  <UAVariable NodeId="ns=1;i=244" BrowseName="ItemCount" SymbolicName="HistoricalDatabaseType_ItemCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+  <UAVariable NodeId="ns=1;i=244" BrowseName="ItemCount" SymbolicName="HistoricalDatabaseType_ItemCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
     <DisplayName>Количество измерений</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
@@ -80,7 +81,11 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=245" BrowseName="WriteValueCount" SymbolicName="HistoricalDatabaseType_WriteValueCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+  <!-- The one 64-bit counter on this type: a running total over the process
+       lifetime, unlike its siblings, which are all bounded by a single write,
+       a single retention sweep, or the configured item count. A busy historian
+       would wrap a UInt32 in days. -->
+  <UAVariable NodeId="ns=1;i=245" BrowseName="WriteValueCount" SymbolicName="HistoricalDatabaseType_WriteValueCount" ParentNodeId="ns=1;i=20" DataType="UInt64">
     <DisplayName>Количество записанных измерений</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
@@ -88,7 +93,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=240" BrowseName="WriteValueDuration" SymbolicName="HistoricalDatabaseType_WriteValueDuration" ParentNodeId="ns=1;i=20" DataType="i=7">
+  <UAVariable NodeId="ns=1;i=240" BrowseName="WriteValueDuration" SymbolicName="HistoricalDatabaseType_WriteValueDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
     <DisplayName>Задержка записи измерений, мкс</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
@@ -96,7 +101,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=241" BrowseName="PendingTaskCount" SymbolicName="HistoricalDatabaseType_PendingTaskCount" ParentNodeId="ns=1;i=20" DataType="i=7">
+  <UAVariable NodeId="ns=1;i=241" BrowseName="PendingTaskCount" SymbolicName="HistoricalDatabaseType_PendingTaskCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
     <DisplayName>Очередь записи измерений</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
@@ -104,7 +109,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=242" BrowseName="EventCleanupDuration" SymbolicName="HistoricalDatabaseType_EventCleanupDuration" ParentNodeId="ns=1;i=20" DataType="Int32">
+  <UAVariable NodeId="ns=1;i=242" BrowseName="EventCleanupDuration" SymbolicName="HistoricalDatabaseType_EventCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
     <DisplayName>Продолжительность очистки событий, мкс</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
@@ -112,7 +117,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=243" BrowseName="ValueCleanupDuration" SymbolicName="HistoricalDatabaseType_ValueCleanupDuration" ParentNodeId="ns=1;i=20" DataType="i=7">
+  <UAVariable NodeId="ns=1;i=243" BrowseName="ValueCleanupDuration" SymbolicName="HistoricalDatabaseType_ValueCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
     <DisplayName>Продолжительность очистки измерений, мкс</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
