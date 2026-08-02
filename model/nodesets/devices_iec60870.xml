@@ -395,6 +395,91 @@
     </References>
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
+  <!-- Link runtime diagnostics (ADR 0007). These are the APCI state of the TCP
+       connection, NOT of any one device: several devices share a link, so a
+       per-device copy would have as many equal homes as the link has devices.
+       HasComponent + BaseDataVariableType, matching DeviceType's service
+       counters, so they are runtime values rather than configuration and the
+       hardware tree (which follows Organizes) does not list them. -->
+  <UAVariable NodeId="ns=1;i=462" BrowseName="LinkState" SymbolicName="Iec60870LinkType_LinkState" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Состояние связи</DisplayName>
+    <Description>APCI link state: 0 closed, 2 starting (STARTDT sent), 4 running, 8 test requested. Mirrors Iec104Transport&apos;s IEC_START/IEC_RUN/IEC_TEST.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=463" BrowseName="SendSequenceNumber" SymbolicName="Iec60870LinkType_SendSequenceNumber" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Номер отправки V(S)</DisplayName>
+    <Description>IEC 60870-5-104 §5.1 send sequence number V(S).</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=464" BrowseName="ReceiveSequenceNumber" SymbolicName="Iec60870LinkType_ReceiveSequenceNumber" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Номер приема V(R)</DisplayName>
+    <Description>IEC 60870-5-104 §5.1 receive sequence number V(R).</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=465" BrowseName="AcknowledgedSequenceNumber" SymbolicName="Iec60870LinkType_AcknowledgedSequenceNumber" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Подтверждено до</DisplayName>
+    <Description>Sequence number the peer has acknowledged up to.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=466" BrowseName="UnacknowledgedFrames" SymbolicName="Iec60870LinkType_UnacknowledgedFrames" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Кадров без подтверждения</DisplayName>
+    <Description>Frames sent and not yet acknowledged: occupancy of the k window.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=467" BrowseName="InflightRetransmits" SymbolicName="Iec60870LinkType_InflightRetransmits" ParentNodeId="ns=1;i=124" DataType="Int32">
+    <DisplayName>Повторов в окне</DisplayName>
+    <Description>Retransmissions of the frames currently in flight, summed. Window state, not a cumulative history counter.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=468" BrowseName="SendTimeoutExpired" SymbolicName="Iec60870LinkType_SendTimeoutExpired" ParentNodeId="ns=1;i=124" DataType="Boolean">
+    <DisplayName>Таймаут передачи (t1) истек</DisplayName>
+    <Description>True once an in-flight frame has passed its t1 send timeout.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=469" BrowseName="RoundTripTime" SymbolicName="Iec60870LinkType_RoundTripTime" ParentNodeId="ns=1;i=124" DataType="Double">
+    <DisplayName>Время оборота, мс</DisplayName>
+    <Description>Last measured round trip in milliseconds. DELIBERATELY UNSEEDED: a link that has not measured one yet has no round trip, and seeding 0 would assert an instantaneous link. Samples from retransmitted frames are skipped (Karn&apos;s algorithm).</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
   <UADataType NodeId="ns=1;i=322" BrowseName="Iec60870ProtocolType" SymbolicName="Iec60870ProtocolDataType">
     <DisplayName>Тип протокола МЭК-60870</DisplayName>
     <References>
