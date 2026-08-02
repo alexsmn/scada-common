@@ -43,6 +43,9 @@ namespace scada::opcua_bridge {
 // core code can never silently leak its internal value onto the wire through
 // the default cast. The Good_* and Uncertain_* quality codes intentionally
 // share names and values on both sides and fall through.
+//
+// A core code whose wire twin is already claimed by an entry here goes in
+// SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE below instead — see the note there.
 #define SCADA_OPCUA_STATUS_CODE_MAP(MAP)                                \
   MAP(Bad_WrongLoginCredentials, Bad_IdentityTokenRejected)             \
   MAP(Bad_UserIsAlreadyLoggedOn, Bad_UserIsAlreadyLoggedOn)             \
@@ -71,7 +74,7 @@ namespace scada::opcua_bridge {
   MAP(Bad_Iec60870UnknownError, Bad_Iec60870UnknownError)               \
   MAP(Bad_WrongCallArguments, Bad_InvalidArgument)                      \
   MAP(Bad_CantParseString, Bad_TypeMismatch)                            \
-  MAP(Bad_TooLongString, Bad_OutOfRange)                                \
+  MAP(Bad_OutOfRange, Bad_OutOfRange)                                   \
   MAP(Bad_WrongPropertyId, Bad_WrongPropertyId)                         \
   MAP(Bad_WrongReferenceId, Bad_ReferenceTypeIdInvalid)                 \
   MAP(Bad_WrongNodeClass, Bad_NodeClassInvalid)                         \
@@ -96,12 +99,30 @@ namespace scada::opcua_bridge {
   MAP(Bad_LicenseExpired, Bad_LicenseExpired)                           \
   MAP(Bad_WaitingForInitialData, Bad_WaitingForInitialData)
 
+// Core codes that share a wire code with an entry in the table above.
+//
+// The two tables exist because the map is consumed in both directions from one
+// list, so an opcua name may appear only once — a second entry would be a
+// duplicate `case` label in ToScada. Core draws finer distinctions than the
+// wire does in a few places (Bad_TooLongString and Bad_OutOfRange are both
+// OPC UA's Bad_OutOfRange, "outside the valid range ... or other
+// server-defined restrictions", Part 4 §7.39), and the distinction is worth
+// keeping in logs even though it cannot survive the round trip.
+//
+// These convert one way only: ToOpcua maps them, and ToScada resolves the wire
+// code to whichever core code the main table names. Listing them here rather
+// than omitting them is what keeps the default cast from leaking an internal
+// enumerator value onto the wire — `Bad | 52` is not a valid StatusCode.
+#define SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE(MAP) \
+  MAP(Bad_TooLongString, Bad_OutOfRange)
+
 inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
 #define MAP(scada_name, opcua_name)   \
   case scada::StatusCode::scada_name: \
     return opcua::StatusCode::opcua_name;
     SCADA_OPCUA_STATUS_CODE_MAP(MAP)
+    SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE(MAP)
 #undef MAP
     default:
       return static_cast<opcua::StatusCode>(c);
@@ -163,8 +184,8 @@ inline scada::Time ToScada(opcua::DateTime t) {
     return scada::kMaxTime;
   if (t.is_min())
     return scada::kMinTime;
-  return scada::base::DecodeWireTime(
-      t.ToInternalValue() / opcua::DateTime::kTicksPerMicrosecond);
+  return scada::base::DecodeWireTime(t.ToInternalValue() /
+                                     opcua::DateTime::kTicksPerMicrosecond);
 }
 
 // --- Qualifier ----------------------------------------------------------

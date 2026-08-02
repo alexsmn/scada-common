@@ -146,7 +146,11 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80650000u);  // BadTargetNodeIdInvalid
   EXPECT_EQ(wire(scada::StatusCode::Bad_CantParseString),
             0x80740000u);  // BadTypeMismatch
+  // Both core codes for "the Server will not store this value" go out as the
+  // one standard code — OPC UA Part 4 §7.39 Bad_OutOfRange.
   EXPECT_EQ(wire(scada::StatusCode::Bad_TooLongString),
+            0x803C0000u);  // BadOutOfRange
+  EXPECT_EQ(wire(scada::StatusCode::Bad_OutOfRange),
             0x803C0000u);  // BadOutOfRange
   EXPECT_EQ(wire(scada::StatusCode::Bad_UnsupportedProtocolVersion),
             0x80BE0000u);  // BadProtocolVersionUnsupported
@@ -246,7 +250,7 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
       StatusCode::Bad_Iec60870UnknownError,
       StatusCode::Bad_WrongCallArguments,
       StatusCode::Bad_CantParseString,
-      StatusCode::Bad_TooLongString,
+      StatusCode::Bad_OutOfRange,
       StatusCode::Bad_WrongPropertyId,
       StatusCode::Bad_WrongReferenceId,
       StatusCode::Bad_WrongNodeClass,
@@ -271,6 +275,16 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
       StatusCode::Bad_LicenseExpired,
       StatusCode::Bad_WaitingForInitialData,
   };
+  // Core codes that deliberately collapse onto a wire code another core code
+  // owns (SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE). They cannot round-trip — that
+  // is the point of the second table — so what is asserted is the half that
+  // matters for conformance: they reach the wire as the standard code rather
+  // than leaking their internal enumerator value through the default cast.
+  EXPECT_EQ(ToOpcua(StatusCode::Bad_TooLongString),
+            opcua::StatusCode::Bad_OutOfRange);
+  EXPECT_EQ(ToScada(opcua::StatusCode::Bad_OutOfRange),
+            StatusCode::Bad_OutOfRange);
+
   for (const auto code : kAllCodes) {
     EXPECT_EQ(ToScada(ToOpcua(code)), code) << ToString(code);
     // Severity must survive the mapping.
