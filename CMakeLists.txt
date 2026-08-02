@@ -63,6 +63,11 @@ target_link_libraries(scada_common_opcua_ws INTERFACE scada_core_opcua)
 add_subdirectory(timed_data)
 add_subdirectory(node_service)
 
+# The shared E2E harness. Declares INTERFACE targets only, so adding it here
+# costs nothing to the framework, the tiers and the client, which all build this
+# repository and none of which link an E2E harness.
+add_subdirectory(test/e2e)
+
 option(BUILD_OPC "Build Classic OPC modules (Windows only)" ON)
 option(BUILD_VIDICON "Build Vidicon modules (Windows only)" ON)
 
