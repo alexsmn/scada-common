@@ -142,6 +142,7 @@ Iec60870LinkType_DeviceAddressSize,devices
 Iec60870LinkType_IdleTimeout,devices
 Iec60870LinkType_InflightRetransmits,devices
 Iec60870LinkType_InfoAddressSize,devices
+Iec60870LinkType_LastConnected,devices
 Iec60870LinkType_LinkState,devices
 Iec60870LinkType_Mode,devices
 Iec60870LinkType_Protocol,devices

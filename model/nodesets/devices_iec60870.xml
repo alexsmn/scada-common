@@ -480,6 +480,15 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
+  <UAVariable NodeId="ns=1;i=470" BrowseName="LastConnected" SymbolicName="Iec60870LinkType_LastConnected" ParentNodeId="ns=1;i=124" DataType="DateTime">
+    <DisplayName>Последнее подключение</DisplayName>
+    <Description>UTC time the link last came online. DELIBERATELY UNSEEDED: a link that has never connected has no last-connected time, and the epoch would assert one. Stamped by the tier, not the protocol library, whose clock is monotonic and cannot name a wall-clock instant.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
   <UADataType NodeId="ns=1;i=322" BrowseName="Iec60870ProtocolType" SymbolicName="Iec60870ProtocolDataType">
     <DisplayName>Тип протокола МЭК-60870</DisplayName>
     <References>

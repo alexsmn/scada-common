@@ -1,7 +1,7 @@
 # OPC UA Module and Endpoint Design
 
 Status: Living reference
-Last verified against code: 2026-08-01
+Last verified against code: 2026-08-02
 
 The server exposes two sibling OPC UA transport adapters over the same
 semantic core: a classic `opc.tcp://` UA Binary endpoint and a browser-facing
@@ -744,7 +744,7 @@ All paths below are under `third_party/opcuapp/opcua/`, and every
 `*_unittest.cpp` there is globbed into the single `opcuapp_unittests` target.
 
 **Read the exclusion list before trusting any suite named here.**
-`third_party/opcuapp/test/CMakeLists.txt` filters thirteen files out of that
+`third_party/opcuapp/test/CMakeLists.txt` filters twelve files out of that
 glob — they still exercise the removed single-item `MonitoredItem` fixture
 layer or pre-callback service mocks and no longer compile. Each suite below is
 marked **(live)** or **(excluded)** accordingly. An excluded suite is
@@ -754,11 +754,22 @@ behavior it describes regresses. The currently excluded set is
 `server/service_handler_unittest.cpp`,
 `session/server_runtime_unittest.cpp`,
 `session/server_session_unittest.cpp`,
-`session/server_subscription_unittest.cpp`,
 `transport/binary/client_server_e2e_unittest.cpp`,
 `transport/binary/runtime_unittest.cpp`,
 `transport/binary/service_dispatcher_unittest.cpp`, and the five WS suites
 `transport/websocket/{server,service_handler,session,subscription,websocket_server}_unittest.cpp`.
+
+What an exclusion costs is on the record: `session/server_subscription_unittest.cpp`
+was excluded long enough that `ServerSubscription` had no compiled coverage at
+all, and a publish loop draining one notification per cycle (finding S3,
+2026-08-02) reached a live cluster and cost a day of investigation before
+anyone could see it. It was rewritten against the current
+`CreateSubscriptionCallback` boundary on 2026-08-02 and is **live** again. The
+missing fixture the remaining files still include
+(`opcua/monitored/item_factory_subscription.h`, absent from the tree) is
+replaced by `opcua/monitored/test/fake_monitored_item_subscription.h` — a
+backing `MonitoredItemSubscription` double whose `ReadNext` parks rather than
+spinning, so `Drain` terminates. That is the migration path for the rest.
 
 ### Codec
 
@@ -806,18 +817,31 @@ Between them the excluded suites cover the coroutine dispatch layer for:
 - `AddReferences`
 - `DeleteReferences`
 
-`transport/websocket/subscription_unittest.cpp` **(excluded)**, and its
-sibling `session/server_subscription_unittest.cpp` **(excluded)**
+`session/server_subscription_unittest.cpp` **(live)**
 
-Covers the transport-independent per-subscription runtime for:
+Covers the transport-independent per-subscription runtime, against a
+`FakeMonitoredItemSubscription` standing in for the backing subscription:
 
-- data-change publish delivery
-- publishing-interval gating before data/keep-alive delivery
-- acknowledgement and `Republish` replay behavior
-- keep-alive generation
-- publishing-disabled queue retention
-- event-field projection from event filters
-- monitored-item rebind/delete safety against stale callbacks
+- **publish fan-out — every item with data rides one publish.** Eighteen items
+  on one subscription at `queue_size` 1 all appear in a single response, and
+  none is starved across repeated cycles. This is the S3 regression pinned:
+  the shared `pending_notifications_` deque plus per-item trimming used to let
+  a subset monopolise the front while the rest never surfaced.
+- **`maxNotificationsPerPublish`** honoured when non-zero, with
+  `moreNotifications` set and the remainder delivered by later publishes; zero
+  means the client set no limit (Part 4 §5.13.2), not one per publish.
+- data-change publish delivery, and publishing-interval gating before
+  data/keep-alive delivery
+- acknowledgement and `Republish` replay behavior, and the bounded
+  retransmission queue
+- keep-alive generation and publishing-disabled queue retention
+- per-item queue overflow and the `DataChangeFilter` absolute deadband
+- monitoring-mode suppression of non-`Reporting` items
+- backing-binding release on `DeleteMonitoredItems`, and item status reported
+  when a backing bind fails
+
+`transport/websocket/subscription_unittest.cpp` **(excluded)** covers the same
+runtime through the WS transport and does not compile.
 
 `transport/websocket/session_unittest.cpp` **(excluded)**, and its sibling
 `session/server_session_unittest.cpp` **(excluded)**
