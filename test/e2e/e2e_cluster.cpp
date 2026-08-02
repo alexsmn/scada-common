@@ -621,10 +621,13 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   // What no claim can scope: this also puts the historian in the READ fan-out
   // of every namespace it publishes (read_service_locator is not
   // claim-scoped), so it now answers ns=2 item Reads out of its own
-  // configuration copy alongside the edge that actually drives them. Reads
-  // merge good-wins rather than first-wins (MergeResult(scada::DataValue) in
-  // node_manager/composite_types.cpp), so a stale Good races a live Good
-  // rather than a Bad shadowing anything. In the dev cluster the config and
+  // configuration copy alongside the edge that actually drives them. What
+  // keeps that survivable is that MergeResult(scada::DataValue) needs a Good
+  // status AND a value (node_manager/composite_types.cpp) — a Good status
+  // alone used to be enough, and an unset configuration column answers Good
+  // with an EMPTY Variant, so a stale empty answer beat a real value and the
+  // client read Bad_WaitingForInitialData. What remains is two REAL Goods
+  // racing. In the dev cluster the config and
   // file-store tiers already carried that exposure and the web live suite is
   // unaffected by adding the historian to it; HERE the historian is a NEW
   // participant, so if a live-value suite starts flapping between an edge
