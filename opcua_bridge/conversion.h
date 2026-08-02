@@ -9,6 +9,7 @@
 // (including the `{locale, text}` LocalizedText mirrors) and
 // `scada::Time`-backed `Time` require real work.
 
+#include "base/time/time_wire_codec.h"
 #include "scada/data_value.h"
 #include "scada/expanded_node_id.h"
 #include "scada/extension_object.h"
@@ -16,7 +17,6 @@
 #include "scada/node_id.h"
 #include "scada/qualified_name.h"
 #include "scada/qualifier.h"
-#include "base/time/time_wire_codec.h"
 #include "scada/status.h"
 #include "scada/variant.h"
 

@@ -216,6 +216,56 @@
   <Node id="NS0.15716" class="Object" typeDefinition="NS0.15620" parent="NS0.15606" parentReference="NS0.47" browseName="ConfigureAdmin" displayName="ConfigureAdmin">
     <Reference type="NS0.40" forward="true" target="NS0.15620" targetClass="ObjectType" />
   </Node>
+  <!-- User management (OPC UA Part 18 §5,
+       https://reference.opcfoundation.org/Core/Part18/v105/docs/5). The
+       UserManagement Object is ComponentOf the ServerConfiguration Object
+       (§5.3), so ServerConfiguration is declared here as its mandated parent
+       and NOTHING ELSE: the Part 12 push-certificate model it otherwise
+       carries (CertificateGroups, TrustList, UpdateCertificate,
+       SupportedPrivateKeyFormats) is not implemented, and a client must not
+       infer it from this object's presence.
+
+       Every value below is served dynamically from the configuration database
+       by the security module's UserManagementIoManager, so the static nodes
+       declare shape only (`AttributeValue type="Empty"`), the same way the
+       HistoryServerCapabilities flags above are declared. All numeric ids are
+       taken from the official 1.05 NodeIds.csv — never inferred. -->
+  <Node id="NS0.22" class="DataType" parent="NS0.24" parentReference="NS0.45" supertype="NS0.24" browseName="Structure" displayName="Structure" />
+  <Node id="NS0.884" class="DataType" parent="NS0.22" parentReference="NS0.45" supertype="NS0.22" browseName="Range" displayName="Range" />
+  <Node id="NS0.24281" class="DataType" parent="NS0.22" parentReference="NS0.45" supertype="NS0.22" browseName="UserManagementDataType" displayName="UserManagementDataType" />
+  <!-- The two OptionSet DataTypes the object publishes (§5.2.2/§5.2.3). Both
+       are subtypes of UInt32, so a client that does not know the DataType
+       still reads a meaningful bitmask. -->
+  <Node id="NS0.24277" class="DataType" parent="NS0.7" parentReference="NS0.45" supertype="NS0.7" browseName="PasswordOptionsMask" displayName="PasswordOptionsMask" />
+  <Node id="NS0.24279" class="DataType" parent="NS0.7" parentReference="NS0.45" supertype="NS0.7" browseName="UserConfigurationMask" displayName="UserConfigurationMask" />
+  <Node id="NS0.12581" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="ServerConfigurationType" displayName="ServerConfigurationType" />
+  <Node id="NS0.24264" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="UserManagementType" displayName="UserManagementType" />
+  <Node id="NS0.12637" class="Object" typeDefinition="NS0.12581" parent="NS0.2253" parentReference="NS0.47" browseName="ServerConfiguration" displayName="ServerConfiguration">
+    <Reference type="NS0.40" forward="true" target="NS0.12581" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.24290" class="Object" typeDefinition="NS0.24264" parent="NS0.12637" parentReference="NS0.47" browseName="UserManagement" displayName="UserManagement">
+    <Reference type="NS0.40" forward="true" target="NS0.24264" targetClass="ObjectType" />
+  </Node>
+  <Node id="NS0.24301" class="Variable" typeDefinition="NS0.68" parent="NS0.24290" parentReference="NS0.46" browseName="Users" displayName="Users" dataType="NS0.24281">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.24302" class="Variable" typeDefinition="NS0.68" parent="NS0.24290" parentReference="NS0.46" browseName="PasswordLength" displayName="PasswordLength" dataType="NS0.884">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.24303" class="Variable" typeDefinition="NS0.68" parent="NS0.24290" parentReference="NS0.46" browseName="PasswordOptions" displayName="PasswordOptions" dataType="NS0.24277">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.24291" class="Variable" typeDefinition="NS0.68" parent="NS0.24290" parentReference="NS0.46" browseName="PasswordRestrictions" displayName="PasswordRestrictions" dataType="NS0.21">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.24304" class="Method" parent="NS0.24290" parentReference="NS0.47" browseName="AddUser" displayName="AddUser" />
+  <Node id="NS0.24306" class="Method" parent="NS0.24290" parentReference="NS0.47" browseName="ModifyUser" displayName="ModifyUser" />
+  <Node id="NS0.24308" class="Method" parent="NS0.24290" parentReference="NS0.47" browseName="RemoveUser" displayName="RemoveUser" />
+  <Node id="NS0.24310" class="Method" parent="NS0.24290" parentReference="NS0.47" browseName="ChangePassword" displayName="ChangePassword" />
   <Node id="NS0.11705" class="Variable" typeDefinition="NS0.68" parent="NS0.11704" parentReference="NS0.46" browseName="MaxNodesPerRead" displayName="MaxNodesPerRead" dataType="NS0.7">
     <AttributeValue type="Empty" />
     <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />

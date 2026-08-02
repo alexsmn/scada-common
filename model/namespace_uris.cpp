@@ -93,6 +93,8 @@ std::vector<std::string> GetCanonicalNamespaceUris() {
       "http://telecontrol.ru/opcua/vidicon/FileType";
   uris[NamespaceIndexes::HISTORICAL_CONFIG] =
       "http://telecontrol.ru/opcua/history/HistoricalDataConfigurationType";
+  uris[NamespaceIndexes::USER_EXTENSION] =
+      "http://telecontrol.ru/opcua/security/UserExtensionType";
   return uris;
 }
 

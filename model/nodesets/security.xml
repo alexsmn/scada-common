@@ -44,6 +44,34 @@
     </References>
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
+  <!-- The OPC UA UserConfigurationMask of this account (Part 18 §5.2.3:
+       NoDelete, Disabled, NoChangeByUser, MustChangePassword), stored as the
+       Int32 the generated UserConfigurationMask enumeration uses. It backs the
+       UserManagement object's Users property; it lives on UserType rather than
+       in a table of its own because the mask is per-account state that the
+       account's own row is the natural home for, and because that lets the
+       configuration database's schema-upgrade path add it to existing
+       deployments as a plain new column. -->
+  <UAVariable NodeId="ns=1;i=15142" BrowseName="UserConfiguration" SymbolicName="UserType_UserConfiguration" ParentNodeId="ns=1;i=16" DataType="Int32">
+    <DisplayName>Настройки учётной записи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <!-- Free-text description of the account (OPC UA Part 18 §5.2.4
+       UserManagementDataType.Description). -->
+  <UAVariable NodeId="ns=1;i=15143" BrowseName="Description" SymbolicName="UserType_Description" ParentNodeId="ns=1;i=16" DataType="String">
+    <DisplayName>Описание</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
   <UAObject NodeId="ns=1;i=29" BrowseName="Users" SymbolicName="Users" ParentNodeId="i=85">
     <DisplayName>Пользователи</DisplayName>
     <References>
@@ -211,6 +239,79 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=354</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=357</Reference>
       <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <!-- Per-account state the OPC UA model has no room for.
+       UserManagementDataType (Part 18 §5.2.4) carries only userName,
+       userConfiguration and description, but this server also needs a
+       concurrent-session policy and the client's saved workbench profile.
+       Rather than bend the standard structure, they live here, in a vendor
+       extension keyed by the account's NAME — the only identity the standard
+       user model has, so these rows survive the eventual retirement of the
+       UserType folder.
+
+       ProfileJson is client UI state rather than security state; it sits
+       beside MultiSessions because both are "per-account, vendor-only", not
+       because they are related. -->
+  <UAObjectType NodeId="ns=1;i=15144" BrowseName="UserExtensionType" SymbolicName="UserExtensionType">
+    <DisplayName>Дополнительные данные пользователя</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=15145" BrowseName="MultiSessions" SymbolicName="UserExtensionType_MultiSessions" ParentNodeId="ns=1;i=15144" DataType="Boolean">
+    <DisplayName>Множество сессий</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15146" BrowseName="ProfileJson" SymbolicName="UserExtensionType_ProfileJson" ParentNodeId="ns=1;i=15144" DataType="String">
+    <DisplayName>Профиль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15147" BrowseName="ProfileRevision" SymbolicName="UserExtensionType_ProfileRevision" ParentNodeId="ns=1;i=15144" DataType="UInt64">
+    <DisplayName>Версия профиля</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:UInt64>0</uax:UInt64></Value>
+  </UAVariable>
+  <UAMethod NodeId="ns=1;i=15148" BrowseName="SaveProfile" SymbolicName="UserExtensionType_SaveProfile" ParentNodeId="ns=1;i=15144">
+    <DisplayName>Сохранить профиль</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAObjectType NodeId="ns=1;i=15149" BrowseName="UserExtensionsFolderType" SymbolicName="UserExtensionsFolderType">
+    <DisplayName>UserExtensionsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=15150" BrowseName="&lt;UserExtension&gt;" SymbolicName="UserExtensionsFolderType_UserExtensionPlaceholder" ParentNodeId="ns=1;i=15149">
+    <DisplayName>&lt;UserExtension&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=15149</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=15151" BrowseName="UserExtensions" SymbolicName="UserExtensions" ParentNodeId="i=85">
+    <DisplayName>Дополнительные данные пользователей</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=15149</Reference>
     </References>
   </UAObject>
   <UAObjectType NodeId="ns=1;i=430" BrowseName="RoleSetContainerType" SymbolicName="RoleSetContainerType">

@@ -65,7 +65,8 @@ TEST(ModelFrozenIds, NamespaceShortNames) {
                                                    "ROLE",
                                                    "ROLE_IDENTITY",
                                                    "CONFIGURATION",
-                                                   "HISTORICAL_CONFIG"};
+                                                   "HISTORICAL_CONFIG",
+                                                   "USER_EXTENSION"};
   ASSERT_EQ(std::size(kExpected), NamespaceIndexes::END);
   for (NamespaceIndex i = 0; i != NamespaceIndexes::END; ++i)
     EXPECT_EQ(GetNamespaceName(i), kExpected[i]) << "namespace index " << i;
@@ -83,7 +84,8 @@ TEST(ModelFrozenIds, NamespaceIndices) {
   EXPECT_EQ(NamespaceIndexes::ROLE, 30);
   EXPECT_EQ(NamespaceIndexes::CONFIGURATION, 32);
   EXPECT_EQ(NamespaceIndexes::HISTORICAL_CONFIG, 33);
-  EXPECT_EQ(NamespaceIndexes::END, 34);
+  EXPECT_EQ(NamespaceIndexes::USER_EXTENSION, 34);
+  EXPECT_EQ(NamespaceIndexes::END, 35);
 }
 
 // Representative node-id values spanning every domain. These are stored in
@@ -123,6 +125,23 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::DeviceFrameEventType_SendSequence.numeric_id(), 15140u);
   EXPECT_EQ(devices::id::DeviceFrameEventType_ReceiveSequence.numeric_id(),
             15141u);
+
+  // security:: — the OPC UA User Management account fields (Part 18 §5.2.3
+  // UserConfigurationMask, §5.2.4 UserManagementDataType.Description). These
+  // become columns of the UserType table on every existing deployment via the
+  // schema upgrade, so moving them would orphan stored account settings.
+  EXPECT_EQ(security::id::UserType_UserConfiguration.numeric_id(), 15142u);
+  EXPECT_EQ(security::id::UserType_Description.numeric_id(), 15143u);
+
+  // The vendor extension of the standard user record: per-account state
+  // UserManagementDataType has no room for. Keyed by account NAME so the rows
+  // survive the eventual retirement of the UserType folder.
+  EXPECT_EQ(security::id::UserExtensionType.numeric_id(), 15144u);
+  EXPECT_EQ(security::id::UserExtensionType_MultiSessions.numeric_id(), 15145u);
+  EXPECT_EQ(security::id::UserExtensionType_ProfileJson.numeric_id(), 15146u);
+  EXPECT_EQ(security::id::UserExtensionType_ProfileRevision.numeric_id(),
+            15147u);
+  EXPECT_EQ(security::id::UserExtensions.numeric_id(), 15151u);
   // ns=1;i=221 (HasTransmissionSource) is RETIRED but stays reserved — never
   // reallocate it (transmission alignment phase 4; the source link is the
   // SourceNode property below, like i=297 Creates before it).
@@ -198,7 +217,7 @@ TEST(ModelFrozenIds, NodeIdValues) {
 // index every stored row NodeId carries. Both sides of each pair are persisted
 // in configuration databases, so the association is frozen too.
 TEST(ModelFrozenIds, ConfigTableRegistry) {
-  ASSERT_EQ(std::size(model::kConfigTables), 20u);
+  ASSERT_EQ(std::size(model::kConfigTables), 21u);
 
   const auto expect_entry =
       [](const model::ConfigTableEntry& entry, const NodeId& type_definition_id,
@@ -260,6 +279,9 @@ TEST(ModelFrozenIds, ConfigTableRegistry) {
                NamespaceIndexes::CONFIGURATION, "security", "dedicated");
   expect_entry(tables[19], history::id::HistoricalDataConfigurationType,
                NamespaceIndexes::HISTORICAL_CONFIG, "history", "dedicated");
+  // The vendor extension of the standard user record (A1b).
+  expect_entry(tables[20], security::id::UserExtensionType,
+               NamespaceIndexes::USER_EXTENSION, "security", "dedicated");
 
   ASSERT_EQ(std::size(model::kConfigTableGroups), 6u);
   EXPECT_EQ(model::kConfigTableGroups[0], "data_items");

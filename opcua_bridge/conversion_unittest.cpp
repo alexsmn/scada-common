@@ -4,6 +4,8 @@
 #include "scada/authorization.h"
 #include "scada/extension_object.h"
 #include "scada/identity_mapping_rule_encoding.h"
+#include "scada/range_encoding.h"
+#include "scada/user_management_encoding.h"
 
 #include "opcua/events/event_filter.h"
 #include "opcua/monitored/monitored_item.h"
@@ -84,6 +86,65 @@ TEST(ConversionTest, IdentityMappingRuleExtensionObjectRoundTrips) {
   const auto decoded_rule = scada::DecodeIdentityMappingRule(decoded);
   ASSERT_TRUE(decoded_rule.has_value());
   EXPECT_EQ(*decoded_rule, rule);
+}
+
+// A UserManagementDataType payload survives the boundary in BOTH directions:
+// the encode side emits the DefaultBinary body (UserName String +
+// UserConfiguration UInt32 + Description String, in the field order of the
+// official 1.05 Opc.Ua.Types.bsd.xml) and the decode side reconstructs the
+// typed record — so an OPC UA client reading the UserManagement object's Users
+// property (OPC UA Part 18 §5.2.2) gets structured accounts, not opaque bytes.
+TEST(ConversionTest, UserManagementUserExtensionObjectRoundTrips) {
+  const scada::UserManagementDataType user{
+      .user_name = "ivanov",
+      .user_configuration = scada::UserConfiguration::kDisabled,
+      .description = "Dispatcher, north"};
+  const scada::ExtensionObject scada_object =
+      scada::MakeUserManagementObject(user);
+
+  const opcua::ExtensionObject opcua_object = ToOpcua(scada_object);
+
+  // The wire encoding id is UserManagementDataType_Encoding_DefaultBinary.
+  EXPECT_EQ(opcua_object.data_type_id().node_id().numeric_id(),
+            scada::kUserManagementDataTypeDefaultBinaryId);
+
+  const scada::ExtensionObject decoded = ToScada(opcua_object);
+  EXPECT_EQ(decoded.data_type_id().node_id().numeric_id(),
+            scada::kUserManagementDataTypeId);
+  const auto decoded_user = scada::DecodeUserManagementObject(decoded);
+  ASSERT_TRUE(decoded_user.has_value());
+  EXPECT_EQ(*decoded_user, user);
+}
+
+// The description is the one free-text field an operator types, so it must
+// survive non-ASCII content: the body encodes it as a UA String (UTF-8), and a
+// byte-length mistake here would truncate or corrupt every following field.
+TEST(ConversionTest, UserManagementUserCarriesNonAsciiDescription) {
+  const scada::UserManagementDataType user{.user_name = "ivanov",
+                                           .description = "Диспетчер, север"};
+
+  const auto decoded = scada::DecodeUserManagementObject(
+      ToScada(ToOpcua(scada::MakeUserManagementObject(user))));
+
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(decoded->description, user.description);
+  EXPECT_EQ(decoded->user_name, user.user_name);
+}
+
+// The UserManagement object's PasswordLength is a Range (OPC UA Part 18
+// §5.2.2), so a client can only apply the server's password policy if the
+// low/high pair survives the boundary.
+TEST(ConversionTest, RangeExtensionObjectRoundTrips) {
+  const scada::Range range{.low = 8, .high = 64};
+
+  const opcua::ExtensionObject opcua_object =
+      ToOpcua(scada::MakeRangeObject(range));
+  EXPECT_EQ(opcua_object.data_type_id().node_id().numeric_id(),
+            scada::kRangeDefaultBinaryId);
+
+  const auto decoded = scada::DecodeRangeObject(ToScada(opcua_object));
+  ASSERT_TRUE(decoded.has_value());
+  EXPECT_EQ(*decoded, range);
 }
 
 TEST(ConversionTest, QualifiedName) {

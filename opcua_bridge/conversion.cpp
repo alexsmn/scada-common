@@ -3,16 +3,60 @@
 #include "opcua_bridge/vector_conversion.h"
 #include "scada/authorization.h"
 #include "scada/identity_mapping_rule_encoding.h"
+#include "scada/range_encoding.h"
+#include "scada/user_management_encoding.h"
 
 #include "opcua/transport/binary/codec_utils.h"
+#include "opcua/ua/ua_binary_codec.h"
+#include "opcua/ua/ua_types.h"
 
 #include <any>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace scada::opcua_bridge {
 
 namespace {
+
+// Serializes a GENERATED OPC UA structure into an ExtensionObject body, tagged
+// with that type's own DefaultBinary encoding id. Both the field order and the
+// id come from the vendored schema via tools/gen_ua_types.py — this file never
+// restates either, so a schema bump is the only way the wire format can
+// change. OPC UA Part 6 §5.1.8 ExtensionObject,
+// https://reference.opcfoundation.org/Core/Part6/v105/docs/5.1.8
+template <class T>
+opcua::ExtensionObject EncodeGenerated(const T& value) {
+  std::vector<char> body;
+  opcua::binary::Encoder encoder{body};
+  opcua::ua::Encode(encoder, value);
+  return opcua::ExtensionObject{
+      opcua::ExpandedNodeId{
+          opcua::NodeId{opcua::ua::BinaryEncodingId<T>::value, 0}},
+      std::any{std::move(body)}};
+}
+
+// The inverse: decodes `e` as T when it carries T's DefaultBinary encoding id,
+// else nullopt. The wire decoder (ReadExtensionObjectValue) delivers the body
+// as an opcua::ByteString (std::vector<char>), which is what EncodeGenerated
+// produces in-process too, so both paths decode identically.
+template <class T>
+std::optional<T> DecodeGenerated(const opcua::ExtensionObject& e) {
+  if (e.data_type_id().node_id() !=
+      opcua::NodeId{opcua::ua::BinaryEncodingId<T>::value, 0}) {
+    return std::nullopt;
+  }
+  const auto* body = std::any_cast<opcua::ByteString>(&e.value());
+  if (!body) {
+    return std::nullopt;
+  }
+  opcua::binary::Decoder decoder{*body};
+  T value;
+  if (!opcua::ua::Decode(decoder, value)) {
+    return std::nullopt;
+  }
+  return value;
+}
 
 // Scalar-or-array conversion for an "identity" element type T (the same std
 // type on both sides: bool, the numeric primitives, String, ByteString). The
@@ -87,38 +131,48 @@ scada::QualifiedName ToScada(const opcua::QualifiedName& q) {
 }
 
 opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
-  // RolePermissionType payload: serialize it to OPC UA binary and carry the
-  // bytes as the ExtensionObject body, tagged with the DefaultBinary encoding
-  // NodeId (ns=0;i=128). The wire codec (AppendExtensionObjectValue) writes a
-  // std::vector<char> body verbatim. OPC UA Part 3 §8.56 RolePermissionType,
-  // Part 6 §5.1.8 ExtensionObject.
+  // Each branch maps the transport-neutral scada:: struct onto its generated
+  // opcua::ua:: counterpart and lets the GENERATED codec write the bytes. The
+  // field order and the DefaultBinary encoding id both come from the vendored
+  // schema through tools/gen_ua_types.py, so neither is ever restated here —
+  // a wrong field order is fixed by bumping the schema, not by editing this
+  // file. Part 6 §5.1.8 ExtensionObject: the wire codec
+  // (AppendExtensionObjectValue) writes the std::vector<char> body verbatim.
   if (const auto* role = std::any_cast<scada::RolePermissionType>(&e.value())) {
-    std::vector<char> body;
-    opcua::binary::Encoder encoder{body};
-    encoder.Encode(ToOpcua(role->role_id));
-    encoder.Encode(static_cast<std::uint32_t>(role->permissions));
-    // RolePermissionType_Encoding_DefaultBinary, namespace 0.
-    return opcua::ExtensionObject{
-        opcua::ExpandedNodeId{opcua::NodeId{/*numeric_id=*/128, 0}},
-        std::any{std::move(body)}};
+    // OPC UA Part 3 §8.56 RolePermissionType.
+    return EncodeGenerated(opcua::ua::RolePermissionType{
+        .role_id = ToOpcua(role->role_id),
+        .permissions =
+            static_cast<opcua::ua::PermissionType>(role->permissions)});
   }
 
-  // IdentityMappingRuleType payload (a Role's Identities entry or an
-  // AddIdentity/RemoveIdentity argument): CriteriaType (Int32 enum) followed
-  // by Criteria (String), per the official 1.05 Opc.Ua.Types.bsd.xml; tagged
-  // with IdentityMappingRuleType_Encoding_DefaultBinary (ns=0;i=15736).
+  // A Role's Identities entry, or an AddIdentity/RemoveIdentity argument.
   // OPC UA Part 18 §4.4.3,
   // https://reference.opcfoundation.org/Core/Part18/v105/docs/4.4.3
   if (const auto* rule =
           std::any_cast<scada::IdentityMappingRule>(&e.value())) {
-    std::vector<char> body;
-    opcua::binary::Encoder encoder{body};
-    encoder.Encode(static_cast<std::int32_t>(rule->criteria_type));
-    encoder.Encode(std::string_view{rule->criteria});
-    return opcua::ExtensionObject{
-        opcua::ExpandedNodeId{
-            opcua::NodeId{scada::kIdentityMappingRuleTypeDefaultBinaryId, 0}},
-        std::any{std::move(body)}};
+    return EncodeGenerated(opcua::ua::IdentityMappingRuleType{
+        .criteria_type =
+            static_cast<opcua::ua::IdentityCriteriaType>(rule->criteria_type),
+        .criteria = rule->criteria});
+  }
+
+  // One entry of the UserManagement object's Users property. OPC UA Part 18
+  // §5.2.4, https://reference.opcfoundation.org/Core/Part18/v105/docs/5.2.4
+  if (const auto* user =
+          std::any_cast<scada::UserManagementDataType>(&e.value())) {
+    return EncodeGenerated(opcua::ua::UserManagementDataType{
+        .user_name = user->user_name,
+        .user_configuration = static_cast<opcua::ua::UserConfigurationMask>(
+            user->user_configuration),
+        .description = user->description});
+  }
+
+  // The UserManagement object's PasswordLength (OPC UA Part 18 §5.2.2), a
+  // Range of Part 8 §5.6.2.
+  if (const auto* range = std::any_cast<scada::Range>(&e.value())) {
+    return EncodeGenerated(
+        opcua::ua::Range{.low = range->low, .high = range->high});
   }
 
   // Other payloads cannot be transferred across the type boundary by value; the
@@ -126,27 +180,37 @@ opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
   return opcua::ExtensionObject{ToOpcua(e.data_type_id()), {}};
 }
 scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {
-  // IdentityMappingRuleType bodies are decoded back into the typed rule so
-  // method implementations (AddIdentity/RemoveIdentity, OPC UA Part 18
-  // §4.4.5/§4.4.6) receive a structured argument. The wire decoder
-  // (ReadExtensionObjectValue) delivers the body as an opcua::ByteString
-  // (std::vector<char>); the in-process encode path above uses the same type.
-  if (e.data_type_id().node_id() ==
-      opcua::NodeId{scada::kIdentityMappingRuleTypeDefaultBinaryId, 0}) {
-    if (const auto* body = std::any_cast<opcua::ByteString>(&e.value())) {
-      opcua::binary::Decoder decoder{*body};
-      std::int32_t criteria_type = 0;
-      opcua::String criteria;
-      if (decoder.Decode(criteria_type) && decoder.Decode(criteria)) {
-        return scada::ExtensionObject{
-            scada::ExpandedNodeId{
-                scada::NodeId{scada::kIdentityMappingRuleTypeDataTypeId, 0}},
-            std::any{scada::IdentityMappingRule{
-                .criteria_type =
-                    static_cast<scada::IdentityCriteriaType>(criteria_type),
-                .criteria = std::string{criteria}}}};
-      }
-    }
+  // The mirror of ToOpcua: the GENERATED codec reads the body, and each branch
+  // maps the generated struct back onto its transport-neutral counterpart, so
+  // method implementations receive structured arguments (AddIdentity /
+  // RemoveIdentity, OPC UA Part 18 §4.4.5/§4.4.6) and a client reading Users
+  // receives accounts rather than opaque bytes. DecodeGenerated matches on the
+  // type's own generated encoding id, so no id is restated here either.
+  if (auto rule = DecodeGenerated<opcua::ua::IdentityMappingRuleType>(e)) {
+    return scada::ExtensionObject{
+        scada::ExpandedNodeId{
+            scada::NodeId{scada::kIdentityMappingRuleTypeDataTypeId, 0}},
+        std::any{scada::IdentityMappingRule{
+            .criteria_type =
+                static_cast<scada::IdentityCriteriaType>(rule->criteria_type),
+            .criteria = std::string{rule->criteria}}}};
+  }
+
+  if (auto user = DecodeGenerated<opcua::ua::UserManagementDataType>(e)) {
+    return scada::ExtensionObject{
+        scada::ExpandedNodeId{
+            scada::NodeId{scada::kUserManagementDataTypeId, 0}},
+        std::any{scada::UserManagementDataType{
+            .user_name = std::string{user->user_name},
+            .user_configuration = static_cast<scada::UserConfiguration>(
+                user->user_configuration),
+            .description = std::string{user->description}}}};
+  }
+
+  if (auto range = DecodeGenerated<opcua::ua::Range>(e)) {
+    return scada::ExtensionObject{
+        scada::ExpandedNodeId{scada::NodeId{scada::kRangeDataTypeId, 0}},
+        std::any{scada::Range{.low = range->low, .high = range->high}}};
   }
 
   return scada::ExtensionObject{ToScada(e.data_type_id()), {}};
