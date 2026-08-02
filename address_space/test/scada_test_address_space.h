@@ -744,7 +744,8 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
 }
 
 // Adds the filesystem test nodes: the FileSystem root folder (Organizes under
-// ObjectsFolder) with its FileSystemType, and the FileType leaf type. The
+// ObjectsFolder) with its FileSystemType, plus the FileDirectoryType and
+// FileType instance types a file store hangs off. The
 // client FileSystemView roots its configuration tree at
 // filesystem::id::FileSystem; with the StaticNodeService-backed fixtures a
 // missing root makes NodeService::GetNode return a null cursor and the tree
@@ -768,15 +769,36 @@ inline void AddScadaFilesystemTestTypes(AddressSpaceImpl& address_space) {
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
+  // A directory is an object, a file is a *variable* whose value is the file
+  // contents (ByteString) — filesystem.xml declares FileDirectoryType as a
+  // UAObjectType and FileType as a UAVariableType, and the tier's node manager
+  // creates file nodes with NodeClass::Variable. FileType stood here as an
+  // ObjectType with no FileDirectoryType beside it, so a fixture that built a
+  // real file store the way the server does was rejected with
+  // Bad_WrongTypeId.
   nodes.push_back(scada::NodeState{
-      .node_id = fs::FileType,
+      .node_id = fs::FileDirectoryType,
       .node_class = scada::NodeClass::ObjectType,
       .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::HasSubtype,
                             scada::NamespaceIndexes::NS0},
-      .attributes = scada::NodeAttributes{.browse_name = "FileType",
-                                          .display_name = u"Файл"},
+      .attributes = scada::NodeAttributes{.browse_name = "FileDirectoryType",
+                                          .display_name = u"Папка"},
       .supertype_id = {scada::id::BaseObjectType,
+                       scada::NamespaceIndexes::NS0}});
+
+  nodes.push_back(scada::NodeState{
+      .node_id = fs::FileType,
+      .node_class = scada::NodeClass::VariableType,
+      .parent_id = {scada::id::BaseVariableType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{.browse_name = "FileType",
+                                .display_name = u"Файл",
+                                .data_type = {scada::id::ByteString,
+                                              scada::NamespaceIndexes::NS0}},
+      .supertype_id = {scada::id::BaseVariableType,
                        scada::NamespaceIndexes::NS0}});
 
   // The FileSystem root the client FileSystemView browses from.
