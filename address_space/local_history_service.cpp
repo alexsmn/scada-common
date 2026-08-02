@@ -1,4 +1,5 @@
 #include "address_space/local_history_service.h"
+#include "model/namespaces.h"
 
 #include "base/time/calendar.h"
 #include "base/time/time.h"
@@ -101,6 +102,15 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root,
     e.source_node_id =
         NodeIdFromScadaString(std::string_view(je.at("node_id").as_string()));
     e.change_mask = static_cast<UInt32>(je.at("change_mask").as_int64());
+    // Optional `event_type`: an NS0 numeric id. Without it an event stays the
+    // default SystemEventType, which is what every process event here is. The
+    // audit trail needs its own types, because a view scoped to the
+    // AuditEventType subtree can only be exercised by events that carry one.
+    if (const auto* jt = je.as_object().if_contains("event_type")) {
+      e.event_type_id =
+          NodeId{static_cast<NumericId>(jt->to_number<std::int64_t>()),
+                 NamespaceIndexes::NS0};
+    }
     // Acknowledged unless the entry says otherwise — an `"acknowledged":
     // false` event stays pending, so alarm-surface chrome (pending markers,
     // backlog summaries) has something real to render.
