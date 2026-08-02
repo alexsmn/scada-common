@@ -673,6 +673,10 @@ single endpoint string or a list mixing schemes:
   "subprotocol": "opcua+uajson",
   "max_message_size": 4194304,
   "compression": true,
+  "operation_limits": {
+    "max_nodes_per_read": 1000,
+    "max_nodes_per_browse": 1000
+  },
   "trace": "warning"
 }
 ```
@@ -706,6 +710,21 @@ Notes:
   `scada-server-framework/docs/opcua_module.md`).
 - `max_message_size` bounds both directions; over-large messages close the
   socket with status 1009.
+- `operation_limits` is per-field (every field defaults to 1000) and names the
+  fields of `opcua::OperationLimits`: `max_nodes_per_read`,
+  `max_nodes_per_write`, `max_nodes_per_method_call`, `max_nodes_per_browse`,
+  `max_nodes_per_register_nodes`,
+  `max_nodes_per_translate_browse_paths_to_node_ids`,
+  `max_nodes_per_node_management`, `max_nodes_per_history_read_data`,
+  `max_nodes_per_history_read_events`, `max_nodes_per_history_update_data`,
+  `max_monitored_items_per_call`. The one parsed struct drives BOTH the
+  Server.ServerCapabilities.OperationLimits advertisement (published into the
+  core module's instance, which `standard_io_manager.cpp` serves) and the
+  request-path enforcement on both transports, which rejects an oversized
+  operation array with `Bad_TooManyOperations` — the address space must never
+  promise a request size the request path refuses (OPC UA Part 4 §5.10,
+  https://reference.opcfoundation.org/Core/Part4/v105/docs/5.10). There is
+  deliberately no way to configure one half alone.
 
 ## Service coverage
 
