@@ -744,7 +744,7 @@ All paths below are under `third_party/opcuapp/opcua/`, and every
 `*_unittest.cpp` there is globbed into the single `opcuapp_unittests` target.
 
 **Read the exclusion list before trusting any suite named here.**
-`third_party/opcuapp/test/CMakeLists.txt` filters twelve files out of that
+`third_party/opcuapp/test/CMakeLists.txt` filters eight files out of that
 glob — they still exercise the removed single-item `MonitoredItem` fixture
 layer or pre-callback service mocks and no longer compile. Each suite below is
 marked **(live)** or **(excluded)** accordingly. An excluded suite is
@@ -752,24 +752,53 @@ documentation of intent, not regression coverage: nothing fails if the
 behavior it describes regresses. The currently excluded set is
 `client/client_session_unittest.cpp`,
 `server/service_handler_unittest.cpp`,
-`session/server_runtime_unittest.cpp`,
-`session/server_session_unittest.cpp`,
 `transport/binary/client_server_e2e_unittest.cpp`,
 `transport/binary/runtime_unittest.cpp`,
-`transport/binary/service_dispatcher_unittest.cpp`, and the five WS suites
-`transport/websocket/{server,service_handler,session,subscription,websocket_server}_unittest.cpp`.
+`transport/binary/service_dispatcher_unittest.cpp`, and the three WS suites
+`transport/websocket/{server,service_handler,websocket_server}_unittest.cpp`.
 
 What an exclusion costs is on the record: `session/server_subscription_unittest.cpp`
 was excluded long enough that `ServerSubscription` had no compiled coverage at
 all, and a publish loop draining one notification per cycle (finding S3,
 2026-08-02) reached a live cluster and cost a day of investigation before
-anyone could see it. It was rewritten against the current
-`CreateSubscriptionCallback` boundary on 2026-08-02 and is **live** again. The
-missing fixture the remaining files still include
-(`opcua/monitored/item_factory_subscription.h`, absent from the tree) is
-replaced by `opcua/monitored/test/fake_monitored_item_subscription.h` — a
-backing `MonitoredItemSubscription` double whose `ReadNext` parks rather than
-spinning, so `Drain` terminates. That is the migration path for the rest.
+anyone could see it.
+
+**Restoring them is under way** (2026-08-02). Live again:
+`session/server_subscription_unittest.cpp`, `session/server_session_unittest.cpp`
+and `session/server_runtime_unittest.cpp` with its rewritten
+`session/server_runtime_contract_test.h`. Two files were **deleted rather than
+restored** — `transport/websocket/{subscription,session}_unittest.cpp` were not
+WebSocket tests at all: every case constructed `ServerSubscription` or
+`ServerSession` directly, misfiled there from when opcuapp lived under
+`common/opcua/`. Their unique coverage (event-field projection and per-item
+event queue trimming, filter pass-through to the backing subscription, rebind
+dropping late notifications from the previous binding, continuation-point
+release semantics, keep-alive priming under publishing mode) moved into the
+session-level suites.
+
+Three things the restoration established, all of which apply to the files still
+excluded:
+
+- **The missing fixture is not missing, it moved.** The
+  `opcua/monitored/item_factory_subscription.h` those files include exists today
+  as `core/scada/item_factory_subscription.h`. Do **not** repoint the includes
+  there: `opcuapp` links only `transport` + Boost and `opcuapp_unittests` links
+  only opcuapp/GTest/OpenSSL, so that would re-couple `third_party/opcuapp` to
+  `core`. Use the opcuapp-local double,
+  `opcua/monitored/test/fake_monitored_item_subscription.h`.
+- **A compiling include does not mean a compiling test.** Every file restored so
+  far also had API drift behind the missing header — a `ServerSessionContext`
+  field that became `create_subscription`, five service interfaces that became
+  one `ServiceCallbacks` struct, hand-written Browse types that became generated
+  `ua::` ones. Expect to rewrite, not repair.
+- **The `Drain` + `std::this_thread::yield()` spins were a workaround, not a
+  fix.** They synchronised on wall clock, which is why the suites read as flaky
+  (5/80 failures idle, 0/30 under load). The cause was a deferred Publish
+  scheduled through `post_delayed_task`, whose default posts a
+  `boost::asio::steady_timer` that `TestExecutor` — a bare `execution_context`
+  — has no reactor for. The contract fixture captures the deferred task and
+  lets its deadline elapse on the virtual clock instead. Delete the spins and
+  their stale comments together.
 
 ### Codec
 
