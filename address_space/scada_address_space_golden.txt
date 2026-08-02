@@ -484,6 +484,7 @@ SCADA.467	class=2 browse=0:InflightRetransmits typedef=NS0.62 parent=SCADA.124 p
 SCADA.468	class=2 browse=0:SendTimeoutExpired typedef=NS0.62 parent=SCADA.124 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.1 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.62;]
 SCADA.469	class=2 browse=0:RoundTripTime typedef=NS0.62 parent=SCADA.124 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.11 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.62;]
 SCADA.470	class=2 browse=0:LastConnected typedef=NS0.62 parent=SCADA.124 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.13 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.62;]
+SCADA.471	class=4 browse=0:Reconnect typedef=NS0.0 parent=SCADA.124 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.37->NS0.78;]
 SCADA.62	class=8 browse=0:DataGroupType typedef=NS0.0 parent=NS0.58 parentRef=NS0.45 supertype=NS0.58 dataType=NS0.0 value=none refs=[SCADA.328->SCADA.115;]
 SCADA.67	class=16 browse=0:SimulationSignalType typedef=NS0.0 parent=NS0.62 parentRef=NS0.45 supertype=NS0.62 dataType=NS0.24 value=set refs=[]
 SCADA.72	class=16 browse=0:DiscreteItemType typedef=NS0.0 parent=SCADA.239 parentRef=NS0.45 supertype=SCADA.239 dataType=NS0.24 value=set refs=[SCADA.154->SCADA.80;]

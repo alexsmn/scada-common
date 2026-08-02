@@ -146,6 +146,7 @@ Iec60870LinkType_LastConnected,devices
 Iec60870LinkType_LinkState,devices
 Iec60870LinkType_Mode,devices
 Iec60870LinkType_Protocol,devices
+Iec60870LinkType_Reconnect,devices
 Iec60870LinkType_ReceiveQueueSize,devices
 Iec60870LinkType_ReceiveSequenceNumber,devices
 Iec60870LinkType_ReceiveTimeout,devices

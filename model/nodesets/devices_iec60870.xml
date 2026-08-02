@@ -489,6 +489,46 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
+  <!-- The mockup's "Reconnect now" action (ADR 0007 §2). A Method, not a
+       writable parameter: it has no value to hold, it acts on the live TCP
+       connection, and it is gated by the OPC UA Call permission
+       (PermissionType.Call, Part 3 §8.55,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/8.55) rather
+       than by the parameter form's Write gate — which is the whole reason it
+       could not be modelled as a Boolean somebody writes true to.
+
+       It belongs on the LINK for the same reason the diagnostics above do:
+       reconnecting is an act on the TCP connection, and several devices share
+       one. A per-device Reconnect would give every device on a link the power
+       to drop the link out from under its siblings while looking like a
+       device-local action.
+
+       No InputArguments/OutputArguments Properties: both are Optional for a
+       Method (Part 3 §5.7.1,
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/5.7), the link
+       knows which connections it holds, and the outcome is the link state the
+       rows above already report.
+
+       NOT A STANDARD METHOD, checked rather than assumed. The core spec's only
+       comparable surface is PubSubStatusType's Enable/Disable pair over a
+       named state machine (Part 14 §9.1.10 / §6.2.1); Reconnect is not a
+       transition into a named state but a cycle of the current one, so that
+       pattern does not fit. The Devices companion spec (Part 100 §5) models
+       ConnectionPointType and NetworkType with no Methods at all, so there is
+       nothing to inherit there either. What IS standard and is used: the
+       Method node class itself, the Call service (Part 4 §5.11.2,
+       https://reference.opcfoundation.org/Core/Part4/v105/docs/5.11.2), the
+       Call permission above, and Executable/UserExecutable — which is how a
+       client is meant to learn it may not call this, instead of inventing a
+       client-side rule. -->
+  <UAMethod NodeId="ns=1;i=471" BrowseName="Reconnect" SymbolicName="Iec60870LinkType_Reconnect" ParentNodeId="ns=1;i=124">
+    <DisplayName>Переподключить</DisplayName>
+    <Description>Drops the link&apos;s current connections so it redials immediately. Returns as soon as the close is under way; watch LinkState and LastConnected for the result.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
   <UADataType NodeId="ns=1;i=322" BrowseName="Iec60870ProtocolType" SymbolicName="Iec60870ProtocolDataType">
     <DisplayName>Тип протокола МЭК-60870</DisplayName>
     <References>
