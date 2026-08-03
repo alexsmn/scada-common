@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+           xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://telecontrol.ru/opcua/scada</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://telecontrol.ru/opcua/scada" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z"/>
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="BaseDataType">i=24</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UAObjectType NodeId="ns=1;i=108" BrowseName="ModbusLinkType" SymbolicName="ModbusLinkType">
+    <DisplayName>Направление MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=118" BrowseName="ModbusDeviceType" SymbolicName="ModbusDeviceType">
+    <DisplayName>Устройство MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=371" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="ModbusDeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=118">
+    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=342</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UADataType NodeId="ns=1;i=130" BrowseName="ModbusLinkProtocol" SymbolicName="ModbusLinkProtocol">
+    <DisplayName>Тип протокола MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=167" BrowseName="Protocol" SymbolicName="ModbusLinkType_Protocol" ParentNodeId="ns=1;i=108" DataType="ns=1;i=130">
+    <DisplayName>Протокол</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=168" BrowseName="Address" SymbolicName="ModbusDeviceType_Address" ParentNodeId="ns=1;i=118" DataType="i=3">
+    <DisplayName>Адрес</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=169" BrowseName="RepeatCount" SymbolicName="ModbusDeviceType_SendRetryCount" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Попыток повторов передачи</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>3</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=298" BrowseName="ResponseTimeout" SymbolicName="ModbusDeviceType_ResponseTimeout" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Таймаут ответа, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1000</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=299" BrowseName="RequestDelay" SymbolicName="ModbusLinkType_RequestDelay" ParentNodeId="ns=1;i=108" DataType="Int32">
+    <DisplayName>Задержка запроса, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=303" BrowseName="EnumStrings" SymbolicName="ModbusLinkProtocol_EnumStrings" ParentNodeId="ns=1;i=130" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=130</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=330" BrowseName="Mode" SymbolicName="ModbusLinkType_Mode" ParentNodeId="ns=1;i=108" DataType="ns=1;i=332">
+    <DisplayName>Режим</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UADataType NodeId="ns=1;i=332" BrowseName="ModbusModeDataType" SymbolicName="ModbusModeDataType">
+    <DisplayName>Режим MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=333" BrowseName="EnumStrings" SymbolicName="ModbusModeDataType_EnumStrings" ParentNodeId="ns=1;i=332" DataType="LocalizedText">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=332</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=342" BrowseName="ModbusTransmissionItemType" SymbolicName="ModbusTransmissionItemType">
+    <DisplayName>Ретрансляция MODBUS</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=349" BrowseName="SuspendDuration" SymbolicName="ModbusDeviceType_SuspendDuration" ParentNodeId="ns=1;i=118" DataType="Int32">
+    <DisplayName>Длительность приостановки, мс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>30000</uax:Int32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=423" BrowseName="&lt;Device&gt;" SymbolicName="ModbusLinkType_DevicePlaceholder" ParentNodeId="ns=1;i=108">
+    <DisplayName>&lt;Device&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>

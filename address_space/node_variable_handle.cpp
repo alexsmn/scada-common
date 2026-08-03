@@ -1,0 +1,27 @@
+#include "address_space/node_variable_handle.h"
+
+#include "address_space/variable.h"
+
+namespace scada {
+
+NodeVariableHandle::NodeVariableHandle(Variable& node) : node_(node) {}
+
+scada::Node& NodeVariableHandle::GetNode() {
+  return node_;
+}
+
+void NodeVariableHandle::Write(
+    const scada::ServiceContext& context,
+    const scada::WriteValue& write_value,
+    const scada::StatusCallback& callback) {
+  node_.Write(context, write_value, callback);
+}
+
+void NodeVariableHandle::Call(const scada::ServiceContext& context,
+                              const scada::NodeId& method_id,
+                              const std::vector<scada::Variant>& arguments,
+                              const scada::StatusCallback& callback) {
+  node_.Call(context, method_id, arguments, callback);
+}
+
+}  // namespace scada

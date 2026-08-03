@@ -1,0 +1,59 @@
+{
+  "_description": "server.json template consumed by the client/server e2e suite and the superproject service-x-namespace sweep. Runtime-only listener ports are patched by the test harness before it launches the server tier binary (there is no monolith server.exe: ADR 0001 retired it, and each suite launches scada-* tier executables). All dirs are rooted at ${DIR_PARAM}, the generated server.json directory.",
+  "configuration": {
+    "driver": "SQLite",
+    "dir": "${DIR_PARAM}/Configuration"
+  },
+  "history": {
+    "dir": "${DIR_PARAM}/History"
+  },
+  "dataItems": {},
+  "security": {
+    "_description": "The credential store rejects users without a provisioned credential, so seed the SQL-fixture guest account (UserType id 12) with an empty test password.",
+    "provision": [
+      { "id": 12, "password": "" }
+    ]
+  },
+  "sessions": {
+    "enabled": false
+  },
+  "iec60870": {
+    "enabled": true
+  },
+  "modbus": {
+    "enabled": true
+  },
+  "iec61850": {
+    "enabled": true
+  },
+  "opc": {
+    "enabled": false
+  },
+  "opcua": {
+    "enabled": true,
+    "url": [
+      "opc.tcp://127.0.0.1:4840",
+      "opc.ws://0.0.0.0:48480"
+    ],
+    "server_private_key": "${DIR_PARAM}/Certificates/ServerPrivateKey.pem",
+    "server_certificate": "${DIR_PARAM}/Certificates/ServerCertificate.pem",
+    "trace": "warning",
+    "allowed_origins": ["http://127.0.0.1:4173"],
+    "subprotocol": "opcua+uajson",
+    "max_message_size": 4194304,
+    "compression": true
+  },
+  "filesystem": {
+    "enabled": true,
+    "dir": "${DIR_PARAM}/FileSystem"
+  },
+  "vidicon": {
+    "enabled": false
+  },
+  "log": {
+    "dir": "${DIR_PARAM}/Logs",
+    "max_file_size": 10,
+    "max_total_size": 100,
+    "max_count": 1000
+  }
+}

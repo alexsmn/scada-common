@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "scada-common",
+  "version-string": "2.6.0",
+  "description": "Telecontrol SCADA - Shared libraries for client and server",
+  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
+  "dependencies": [
+    "abseil",
+    "boost-asio",
+    "boost-circular-buffer",
+    "boost-endian",
+    "boost-json",
+    "boost-locale",
+    "boost-log",
+    "boost-signals2",
+    "boost-system",
+    "boost-uuid",
+    "grpc",
+    "gtest",
+    "icu",
+    {
+      "name": "opentelemetry-cpp",
+      "features": [
+        "otlp-grpc"
+      ]
+    },
+    "openssl",
+    "protobuf",
+    "pugixml"
+  ]
+}

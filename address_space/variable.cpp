@@ -1,0 +1,108 @@
+#include "address_space/variable.h"
+#include "base/check.h"
+
+#include "address_space/address_space.h"
+#include "address_space/node_utils.h"
+#include "address_space/node_variable_handle.h"
+#include "address_space/type_definition.h"
+#include "scada/data_value.h"
+#include "scada/standard_node_ids.h"
+
+namespace scada {
+
+Variable::Variable() {}
+
+Variable::~Variable() {
+  base::Check(!variable_handle_.lock());
+}
+
+const DataType& Variable::GetDataType() const {
+  auto* type = scada::AsVariableType(type_definition());
+  base::Check(type);
+  return type->data_type();
+}
+
+std::shared_ptr<VariableHandle> Variable::GetVariableHandle() const {
+  auto variable_handle = variable_handle_.lock();
+  if (!variable_handle) {
+    variable_handle =
+        std::make_shared<NodeVariableHandle>(const_cast<Variable&>(*this));
+    variable_handle->set_last_value(GetValue());
+    variable_handle->set_last_change_time(GetChangeTime());
+    variable_handle_ = variable_handle;
+  }
+  return variable_handle;
+}
+
+void Variable::Write(const scada::ServiceContext& context,
+                     const scada::WriteValue& input,
+                     const scada::StatusCallback& callback) {
+  callback(StatusCode::Bad);
+}
+
+void Variable::Call(const ServiceContext& context,
+                    const NodeId& method_id,
+                    const std::vector<Variant>& arguments,
+                    const StatusCallback& callback) {
+  callback(StatusCode::Bad_WrongMethodId);
+}
+
+void Variable::Shutdown() {
+  if (auto variable_handle = variable_handle_.lock())
+    variable_handle->Deleted();
+  variable_handle_.reset();
+}
+
+// BaseVariable
+
+BaseVariable::BaseVariable(const DataType& data_type) : data_type_(data_type) {}
+
+Status BaseVariable::SetValue(const DataValue& data_value) {
+  if (value_ == data_value)
+    return StatusCode::Good;
+
+  bool is_current = IsUpdate(value_, data_value);
+  if (is_current)
+    value_ = data_value;
+
+  if (auto variable_handle = variable_handle_.lock())
+    variable_handle->ForwardData(data_value);
+
+  return StatusCode::Good;
+}
+
+// GenericVariable
+
+GenericVariable::GenericVariable(const DataType& data_type)
+    : data_type_(data_type) {}
+
+GenericVariable::GenericVariable(NodeId id,
+                                 QualifiedName browse_name,
+                                 scada::LocalizedText display_name,
+                                 const DataType& data_type,
+                                 Variant default_value)
+    // The default value has no timestamps: kNullTime, not a
+    // default-constructed scada::Time (the Unix epoch), which IsNull() would
+    // not recognise as "no timestamp".
+    : data_type_(data_type),
+      value_{std::move(default_value), {}, kNullTime, kNullTime} {
+  set_id(std::move(id));
+  SetBrowseName(std::move(browse_name));
+  SetDisplayName(std::move(display_name));
+}
+
+Status GenericVariable::SetValue(const DataValue& data_value) {
+  if (value_ == data_value)
+    return StatusCode::Good;
+
+  bool is_current = IsUpdate(value_, data_value);
+  if (is_current)
+    value_ = data_value;
+
+  if (auto variable_handle = variable_handle_.lock())
+    variable_handle->ForwardData(data_value);
+
+  return StatusCode::Good;
+}
+
+}  // namespace scada

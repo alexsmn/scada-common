@@ -1,0 +1,32 @@
+#pragma once
+
+#include "common/variable_handle.h"
+
+namespace scada {
+
+class Node;
+class Variable;
+
+class NodeVariableHandle : public VariableHandle {
+ public:
+  explicit NodeVariableHandle(Variable& node);
+
+  virtual Node& GetNode();
+
+  virtual void Write(
+      const scada::ServiceContext& context,
+      const scada::WriteValue& input,
+      const scada::StatusCallback& callback) override;
+  virtual void Call(const ServiceContext& context,
+                    const NodeId& method_id,
+                    const std::vector<Variant>& arguments,
+                    const StatusCallback& callback) override;
+
+ private:
+  Variable& node_;
+
+  NodeVariableHandle(const NodeVariableHandle&) = delete;
+  NodeVariableHandle& operator=(const NodeVariableHandle&) = delete;
+};
+
+}  // namespace scada

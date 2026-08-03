@@ -1,0 +1,55 @@
+#pragma once
+
+#include "node_service/node_ref.h"
+#include "scada/data_value.h"
+#include "scada/date_time.h"
+#include "scada/date_time_range.h"
+#include "timed_data/timed_data_buffer_fwd.h"
+
+#include <cassert>
+#include <functional>
+#include <span>
+
+class EventSet;
+class TimedDataObserver;
+
+extern const scada::Time kTimedDataCurrentOnly;
+extern const std::vector<scada::TimeRange> kReadyCurrentTimeOnly;
+
+class TimedData {
+ public:
+  virtual ~TimedData() = default;
+
+  virtual bool IsError() const { return false; }
+
+  virtual const std::vector<scada::TimeRange>& GetReadyRanges() const = 0;
+
+  virtual scada::DataValue GetDataValue() const = 0;
+  virtual scada::Time GetChangeTime() const = 0;
+
+  virtual std::span<const scada::DataValue> GetValues() const = 0;
+
+  // TODO: Describe guarantees for this method. Does it return the lower bound?
+  // Returns null when there is no value at the provided time.
+  virtual const scada::DataValue* GetValueAt(
+      const scada::Time& time) const = 0;
+
+  virtual void AddObserver(TimedDataObserver& observer) = 0;
+  virtual void RemoveObserver(TimedDataObserver& observer) = 0;
+
+  virtual void AddViewObserver(TimedDataViewObserver& observer,
+                               const scada::TimeRange& range) = 0;
+  virtual void RemoveViewObserver(TimedDataViewObserver& observer) = 0;
+
+  virtual std::string GetFormula(bool aliases) const = 0;
+  virtual scada::LocalizedText GetTitle() const = 0;
+  virtual NodeRef GetNode() const = 0;
+
+  virtual bool IsAlerting() const = 0;
+  virtual const EventSet* GetEvents() const = 0;
+
+  // Acknowledge all active events related to this data.
+  virtual void Acknowledge() = 0;
+
+  virtual std::string DumpDebugInfo() const = 0;
+};

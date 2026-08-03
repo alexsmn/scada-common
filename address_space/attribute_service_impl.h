@@ -1,0 +1,51 @@
+#pragma once
+
+#include "common/sync_attribute_service.h"
+#include "scada/attribute_service.h"
+#include "scada/co_result.h"
+#include <span>
+
+namespace scada {
+class AddressSpace;
+class Node;
+}  // namespace scada
+
+struct AttributeServiceImplContext {
+  const scada::AddressSpace& address_space_;
+};
+
+class SyncAttributeServiceImpl : private AttributeServiceImplContext,
+                                 public SyncAttributeService {
+ public:
+  explicit SyncAttributeServiceImpl(AttributeServiceImplContext&& context);
+
+  // SyncAttributeService
+  virtual std::vector<scada::DataValue> Read(
+      const scada::ServiceContext& context,
+      std::span<const scada::ReadValueId> inputs) override;
+  virtual std::vector<scada::StatusCode> Write(
+      const scada::ServiceContext& context,
+      std::span<const scada::WriteValue> inputs) override;
+
+ private:
+  scada::DataValue Read(const scada::ServiceContext& context,
+                        const scada::ReadValueId& input);
+  scada::DataValue ReadNode(const scada::ServiceContext& context,
+                            const scada::Node& node,
+                            scada::AttributeId attribute_id);
+};
+
+class AttributeServiceImpl : public scada::AttributeService {
+ public:
+  explicit AttributeServiceImpl(SyncAttributeService& sync_attribute_service);
+
+  virtual scada::CoStatusOr<std::vector<scada::DataValue>> Read(
+      scada::ServiceContext context,
+      std::vector<scada::ReadValueId> inputs) override;
+  virtual scada::CoStatusOr<std::vector<scada::StatusCode>> Write(
+      scada::ServiceContext context,
+      std::vector<scada::WriteValue> inputs) override;
+
+ private:
+  SyncAttributeService& sync_attribute_service_;
+};

@@ -1,0 +1,563 @@
+#include "address_space/node_utils.h"
+#include "base/check.h"
+
+#include "address_space/address_space.h"
+#include "address_space/object.h"
+#include "address_space/type_definition.h"
+#include "address_space/variable.h"
+#include "base/range_util.h"
+#include "scada/standard_node_ids.h"
+#include "scada/view_service.h"
+
+namespace scada {
+
+Object* AsObject(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::Object
+             ? static_cast<Object*>(node)
+             : nullptr;
+}
+
+const Object* AsObject(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::Object
+             ? static_cast<const Object*>(node)
+             : nullptr;
+}
+
+Object& AsObject(Node& node) {
+  base::Check(node.GetNodeClass() == NodeClass::Object);
+  return static_cast<Object&>(node);
+}
+
+const Object& AsObject(const Node& node) {
+  base::Check(node.GetNodeClass() == NodeClass::Object);
+  return static_cast<const Object&>(node);
+}
+
+const Variable* AsVariable(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::Variable
+             ? static_cast<const Variable*>(node)
+             : nullptr;
+}
+
+Variable* AsVariable(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::Variable
+             ? static_cast<Variable*>(node)
+             : nullptr;
+}
+
+Variable& AsVariable(Node& node) {
+  base::Check(node.GetNodeClass() == NodeClass::Variable);
+  return static_cast<Variable&>(node);
+}
+
+const Variable& AsVariable(const Node& node) {
+  base::Check(node.GetNodeClass() == NodeClass::Variable);
+  return static_cast<const Variable&>(node);
+}
+
+NodeId GetTypeDefinitionId(const Node& node) {
+  auto* type_definition = node.type_definition();
+  return type_definition ? type_definition->id() : NodeId{};
+}
+
+const ObjectType* AsObjectType(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::ObjectType
+             ? static_cast<const ObjectType*>(node)
+             : nullptr;
+}
+
+ObjectType* AsObjectType(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::ObjectType
+             ? static_cast<ObjectType*>(node)
+             : nullptr;
+}
+
+const VariableType* AsVariableType(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::VariableType
+             ? static_cast<const VariableType*>(node)
+             : nullptr;
+}
+
+VariableType* AsVariableType(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::VariableType
+             ? static_cast<VariableType*>(node)
+             : nullptr;
+}
+
+bool IsInstanceOf(const Node* node, const NodeId& type_id) {
+  if (!node)
+    return false;
+  auto* type_definition = node->type_definition();
+  return type_definition && IsSubtypeOf(*type_definition, type_id);
+}
+
+bool IsChildOf(const Node* node, const NodeId& parent_id) {
+  while (node && node->id() != parent_id)
+    node = GetParent(*node);
+  return node != nullptr;
+}
+
+const ReferenceType* AsReferenceType(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::ReferenceType
+             ? static_cast<const ReferenceType*>(node)
+             : nullptr;
+}
+
+ReferenceType* AsReferenceType(Node* node) {
+  return node && node->GetNodeClass() == NodeClass::ReferenceType
+             ? static_cast<ReferenceType*>(node)
+             : nullptr;
+}
+
+const DataType* AsDataType(const Node* node) {
+  return node && node->GetNodeClass() == NodeClass::DataType
+             ? static_cast<const DataType*>(node)
+             : nullptr;
+}
+
+const DataType& AsDataType(const Node& node) {
+  base::Check(node.GetNodeClass() == NodeClass::DataType);
+  return static_cast<const DataType&>(node);
+}
+
+const Node* GetReferenceTarget(const TypeDefinition* source,
+                               const NodeId& reference_type_id) {
+  for (; source; source = source->supertype()) {
+    auto ref = GetReference(*source, reference_type_id);
+    if (ref.node)
+      return ref.node;
+  }
+  return nullptr;
+}
+
+const Node* GetAggregateDeclaration(const TypeDefinition& type,
+                                    const NodeId& prop_decl_id) {
+  for (const auto* supertype = &type; supertype;
+       supertype = supertype->supertype()) {
+    for (const auto* prop : GetAggregates(*supertype)) {
+      if (prop->id() == prop_decl_id)
+        return static_cast<const Variable*>(prop);
+    }
+  }
+  return nullptr;
+}
+
+const Node* GetDeclaration(const Node& node) {
+  base::Check(!IsTypeDefinition(node.GetNodeClass()));
+
+  const auto* parent = GetParent(node);
+  if (!parent)
+    return nullptr;
+
+  if (IsTypeDefinition(parent->GetNodeClass())) {
+    return &node;
+  }
+
+  const auto& browse_name = node.GetBrowseName();
+  for (const auto* type = parent->type_definition(); type;
+       type = type->supertype()) {
+    if (const auto* child = FindChild(*type, browse_name.name())) {
+      return child;
+    }
+  }
+
+  return nullptr;
+}
+
+TypeDefinition* AsTypeDefinition(Node* node) {
+  return node && IsTypeDefinition(node->GetNodeClass())
+             ? static_cast<TypeDefinition*>(node)
+             : nullptr;
+}
+
+const TypeDefinition* AsTypeDefinition(const Node* node) {
+  return node && IsTypeDefinition(node->GetNodeClass())
+             ? static_cast<const TypeDefinition*>(node)
+             : nullptr;
+}
+
+TypeDefinition& AsTypeDefinition(Node& node) {
+  base::Check(IsTypeDefinition(node.GetNodeClass()));
+  return static_cast<TypeDefinition&>(node);
+}
+
+const TypeDefinition& AsTypeDefinition(const Node& node) {
+  base::Check(IsTypeDefinition(node.GetNodeClass()));
+  return static_cast<const TypeDefinition&>(node);
+}
+
+const TypeDefinition& AsTypeDefinition(const ReferenceType& reference_type) {
+  return reference_type;
+}
+
+Reference GetParentReference(const Node& node) {
+  return FindReference(node, id::HierarchicalReferences, false);
+}
+
+Node* GetParent(Node& node) {
+  return GetParentReference(node).node;
+}
+
+const Node* GetParent(const Node& node) {
+  return GetParent(const_cast<Node&>(node));
+}
+
+NodeId GetParentId(const Node& node) {
+  auto* parent = GetParent(node);
+  return parent ? parent->id() : NodeId{};
+}
+
+Reference GetReference(const Node& source, const NodeId& reference_type_id) {
+  return FindReference(source, reference_type_id, true);
+}
+
+Reference FindReference(const Node& node,
+                        const ReferenceDescription& reference) {
+  auto& refs =
+      reference.forward ? node.forward_references() : node.inverse_references();
+  for (auto& ref : refs) {
+    if (IsSubtypeOf(*ref.type, reference.reference_type_id)) {
+      if (ref.node->id() == reference.node_id)
+        return ref;
+    }
+  }
+  return {};
+}
+
+Reference FindReference(const Node& node,
+                        const NodeId& reference_type_id,
+                        bool forward,
+                        const NodeId& referenced_node_id) {
+  auto& refs = forward ? node.forward_references() : node.inverse_references();
+  for (auto& ref : refs) {
+    if (IsSubtypeOf(*ref.type, reference_type_id)) {
+      if (ref.node->id() == referenced_node_id)
+        return ref;
+    }
+  }
+  return {};
+}
+
+Reference FindReference(const Node& node,
+                        const NodeId& reference_type_id,
+                        bool forward) {
+  auto& refs = forward ? node.forward_references() : node.inverse_references();
+  for (auto& ref : refs) {
+    if (IsSubtypeOf(*ref.type, reference_type_id))
+      return ref;
+  }
+  return {};
+}
+
+bool IsRefSubtypeOf::operator()(const Reference& ref) const {
+  // A reference whose type node is not present in the address space cannot be
+  // classified, so it never matches a reference-type filter. Guarding here
+  // keeps Browse from dereferencing a null type node on a partially populated
+  // address space rather than crashing.
+  if (!ref.type)
+    return false;
+  if (include_subtypes_)
+    return IsSubtypeOf(*ref.type, reference_type_id_);
+  else
+    return ref.type->id() == reference_type_id_;
+}
+
+bool IsNonPropReference::operator()(const Reference& ref) const {
+  if (!ref.type)
+    return false;
+  return !IsSubtypeOf(*ref.type, id::NonHierarchicalReferences);
+}
+
+bool IsSubtypeOf(const TypeDefinition& type, const NodeId& supertype_id) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    if (supertype->id() == supertype_id)
+      return true;
+  }
+  return false;
+}
+
+NodeId GetModellingRuleId(const Node& node) {
+  base::Check(!IsTypeDefinition(node.GetNodeClass()));
+  auto* modelling_rule = GetReference(node, id::HasModellingRule).node;
+  return modelling_rule ? modelling_rule->id() : NodeId();
+}
+
+std::vector<CreatableChildType> GetCreatableChildTypes(const Node& node) {
+  std::vector<CreatableChildType> result;
+
+  // Scan `node` itself when it is a type; otherwise its type definition. Either
+  // way, walk the supertype chain so inherited placeholders are included.
+  const TypeDefinition* type = IsTypeDefinition(node.GetNodeClass())
+                                   ? &AsTypeDefinition(node)
+                                   : node.type_definition();
+
+  for (; type; type = type->supertype()) {
+    for (const auto& ref : type->forward_references()) {
+      if (!ref.type || !ref.node)
+        continue;
+      // Placeholder InstanceDeclarations are non-type hierarchical children.
+      // Skip type-definition targets first: forward HasSubtype refs point at
+      // subtypes, and GetModellingRuleId panics on a TypeDefinition.
+      if (IsTypeDefinition(ref.node->GetNodeClass()))
+        continue;
+      if (!IsSubtypeOf(AsTypeDefinition(*ref.type), id::HierarchicalReferences))
+        continue;
+      const NodeId rule_id = GetModellingRuleId(*ref.node);
+      if (rule_id != NodeId{id::ModellingRule_OptionalPlaceholder} &&
+          rule_id != NodeId{id::ModellingRule_MandatoryPlaceholder})
+        continue;
+      auto* type_definition =
+          GetReference(*ref.node, id::HasTypeDefinition).node;
+      if (!type_definition)
+        continue;
+      result.push_back({ref.type->id(), type_definition->id()});
+    }
+  }
+  return result;
+}
+
+Variant GetPropertyValue(const Node& node, const NodeId& prop_decl_id) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  base::Check(declaration);
+  if (!declaration)
+    return {};
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  if (!property)
+    return {};
+
+  return property->GetValue().value;
+}
+
+Status SetPropertyValue(Node& node,
+                        const NodeId& prop_decl_id,
+                        const Variant& value) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  base::Check(declaration);
+  if (!declaration)
+    return StatusCode::Bad;
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  base::Check(property);
+  if (!property)
+    return StatusCode::Bad;
+
+  // A property value carries no timestamps; kNullTime, not a
+  // default-constructed scada::Time (the Unix epoch), is the null sentinel.
+  return property->SetValue({value, {}, kNullTime, kNullTime});
+}
+
+const Node* FindDeclaration(const Node& node, const NodeId& declaration_id) {
+  auto* type = node.type_definition();
+  if (!type)
+    return nullptr;
+
+  return GetPropertyDeclaration(*type, declaration_id);
+}
+
+const Variable* GetPropertyDeclaration(const TypeDefinition& type,
+                                       const NodeId& prop_decl_id) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    for (const auto& prop : GetProperties(*supertype)) {
+      base::Check(prop.GetNodeClass() == NodeClass::Variable);
+      if (prop.id() == prop_decl_id)
+        return &prop;
+    }
+  }
+  return nullptr;
+}
+
+Variant GetPropertyValueHelper(const Node& node, const NodeId& prop_decl_id) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  base::Check(declaration);
+  if (!declaration)
+    return {};
+
+  const auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  base::Check(property);
+  if (!property)
+    return {};
+
+  return property->GetValue().value;
+}
+
+Status SetPropertyValueHelper(Node& node,
+                              const NodeId& prop_decl_id,
+                              const Variant& value) {
+  auto* declaration = FindDeclaration(node, prop_decl_id);
+  base::Check(declaration);
+  if (!declaration)
+    return StatusCode::Bad_WrongPropertyId;
+
+  auto* property =
+      AsVariable(FindChild(node, declaration->GetBrowseName().name()));
+  base::Check(property);
+  if (!property)
+    return StatusCode::Bad_WrongPropertyId;
+
+  // A property value carries no timestamps; kNullTime, not a
+  // default-constructed scada::Time (the Unix epoch), is the null sentinel.
+  return property->SetValue({value, {}, kNullTime, kNullTime});
+}
+
+Node* FindChild(const Node& parent, std::string_view browse_name) {
+  for (auto* child : GetChildren(parent)) {
+    if (child->GetBrowseName().name() == browse_name)
+      return child;
+  }
+  return nullptr;
+}
+
+Node* FindChildByDisplayName(const Node& parent,
+                             std::u16string_view display_name) {
+  for (auto* child : GetChildren(parent)) {
+    if (child->GetDisplayName() == display_name)
+      return child;
+  }
+  return nullptr;
+}
+
+Node* FindChildDeclaration(const TypeDefinition& type,
+                           std::string_view browse_name) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    if (auto* declaration = FindChild(*supertype, browse_name))
+      return declaration;
+  }
+  return nullptr;
+}
+
+Node* FindChildComponent(const Node& parent, std::string_view browse_name) {
+  for (auto* component : GetComponents(parent)) {
+    if (component->GetBrowseName().name() == browse_name)
+      return component;
+  }
+  return nullptr;
+}
+
+Node* FindComponentDeclaration(const TypeDefinition& type,
+                               std::string_view browse_name) {
+  for (auto* supertype = &type; supertype; supertype = supertype->supertype()) {
+    if (auto* declaration = FindChildComponent(*supertype, browse_name))
+      return declaration;
+  }
+  return nullptr;
+}
+
+NodeId GetNodeId(const Node* node) {
+  return node ? node->id() : NodeId{};
+}
+
+NodeId GetSupertypeId(const Node& node) {
+  const auto* type = AsTypeDefinition(&node);
+  const auto* supertype = type ? type->supertype() : nullptr;
+  return GetNodeId(supertype);
+}
+
+NodeId GetDataTypeId(const Node& node) {
+  if (auto* variable = AsVariable(&node)) {
+    return variable->GetDataType().id();
+  }
+  if (auto* variable_type = AsVariableType(&node)) {
+    return variable_type->data_type().id();
+  }
+  return {};
+}
+
+std::optional<Variant> GetValue(const Node& node) {
+  if (auto* variable = AsVariable(&node)) {
+    return variable->GetValue().value;
+  }
+  if (auto* variable_type = AsVariableType(&node)) {
+    return variable_type->default_value();
+  }
+  return std::nullopt;
+}
+
+const Node* FindComponentDeclaration(const Node& component) {
+  auto* instance = GetParent(component);
+  if (!instance) {
+    return {};
+  }
+
+  auto* type = instance->type_definition();
+  if (!type && IsTypeDefinition(instance->GetNodeClass())) {
+    return &component;
+  }
+  if (!type) {
+    return {};
+  }
+
+  const auto& component_name = component.GetBrowseName();
+  return FindComponentDeclaration(*type, component_name.name());
+}
+
+namespace {
+
+// InverseName is a ReferenceType-only attribute; every other node class
+// yields an empty text (OPC UA Part 3 §5.3.2).
+LocalizedText GetInverseName(const Node& node) {
+  const auto* reference_type = AsReferenceType(&node);
+  return reference_type ? reference_type->inverse_name() : LocalizedText{};
+}
+
+}  // namespace
+
+NodeState MakeNodeState(const Node& node) {
+  auto properties =
+      GetProperties(node) |
+      boost::adaptors::transformed([](const Variable& prop) {
+        return NodeProperty{GetNodeId(FindComponentDeclaration(prop)),
+                            prop.GetValue().value};
+      }) |
+      to_vector;
+
+  auto references =
+      node.forward_references() |
+      boost::adaptors::filtered([&node](const Reference& ref) {
+        if (!ref.type || !ref.node) {
+          return false;
+        }
+        if (IsSubtypeOf(*ref.type, id::NonHierarchicalReferences)) {
+          return true;
+        }
+        // A node's primary parent edge is carried by the target's
+        // parent_id/reference_type_id slot, and HasSubtype edges by the
+        // target's supertype_id. Every other hierarchical edge (a second
+        // Organizes parent, a custom hierarchical reference) exists only in
+        // the graph itself, so export it here or the snapshot loses it.
+        if (!IsSubtypeOf(*ref.type, id::HierarchicalReferences) ||
+            ref.type->id() == NodeId{id::HasSubtype}) {
+          return false;
+        }
+        const auto target_parent = GetParentReference(*ref.node);
+        return target_parent.node != &node || target_parent.type != ref.type;
+      }) |
+      boost::adaptors::transformed([](const Reference& ref) {
+        return ReferenceDescription{.reference_type_id = ref.type->id(),
+                                    .forward = true,
+                                    .node_id = ref.node->id(),
+                                    .node_class = ref.node->GetNodeClass()};
+      }) |
+      to_vector;
+
+  auto parent_ref = GetParentReference(node);
+
+  return {.node_id = node.id(),
+          .node_class = node.GetNodeClass(),
+          .type_definition_id = GetTypeDefinitionId(node),
+          .parent_id = GetNodeId(parent_ref.node),
+          .reference_type_id = GetNodeId(parent_ref.type),
+          .attributes = {.browse_name = node.GetBrowseName(),
+                         .display_name = node.GetDisplayName(),
+                         .inverse_name = GetInverseName(node),
+                         .data_type = GetDataTypeId(node),
+                         .value = GetValue(node)},
+          .properties = std::move(properties),
+          .references = std::move(references),
+          .supertype_id = GetSupertypeId(node)};
+}
+
+}  // namespace scada

@@ -1,0 +1,21 @@
+// System include paths are not passed to cppcheck.
+missingIncludeSystem
+
+// Some suppressions only match in specific platform/configuration combos.
+unmatchedSuppression
+
+// Single translation unit analysis reports false positives for functions
+// used across translation units.
+unusedFunction
+
+// Conflicts with project's coding style.
+useStlAlgorithm
+
+// chromebase/build/build_config.h:108 — platform detection #error.
+preprocessorErrorDirective:*\chromebase\build\build_config.h
+
+// chromebase double-conversion/utils.h:133 — architecture detection #error.
+preprocessorErrorDirective:*\double_conversion\*\utils.h
+
+// opc_client AddressView is a lightweight view passed by value by design.
+passedByValue:*\opc_client\*\address.h

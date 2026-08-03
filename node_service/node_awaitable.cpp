@@ -1,0 +1,143 @@
+#include "node_service/node_awaitable.h"
+
+#include "node_service/node_service.h"
+#include "scada/co_result.h"
+
+#include <boost/asio/async_result.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/signals2/connection.hpp>
+
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
+
+namespace {
+
+class PendingNodesWaiter final
+    : public std::enable_shared_from_this<PendingNodesWaiter> {
+ public:
+  explicit PendingNodesWaiter(NodeService& node_service)
+      : node_service_{node_service} {}
+
+  template <typename Handler>
+  void Wait(Handler&& handler) {
+    if (node_service_.GetPendingTaskCount() == 0) {
+      std::forward<Handler>(handler)();
+      return;
+    }
+
+    callback_ = [keep_alive = shared_from_this(),
+                 completion = std::make_shared<std::decay_t<Handler>>(
+                     std::forward<Handler>(handler))]() mutable {
+      (*completion)();
+    };
+
+    node_fetched_connection_ = node_service_.SubscribeNodeFetched(
+        [this](const NodeFetchedEvent&) { TryResolve(); });
+    TryResolve();
+  }
+
+ private:
+  void TryResolve() {
+    if (resolved_ || node_service_.GetPendingTaskCount() != 0) {
+      return;
+    }
+
+    resolved_ = true;
+    node_fetched_connection_.disconnect();
+
+    auto callback = std::move(callback_);
+    callback_ = nullptr;
+    if (callback) {
+      std::move(callback)();
+    }
+  }
+
+  NodeService& node_service_;
+  std::function<void()> callback_;
+  bool resolved_ = false;
+  boost::signals2::scoped_connection node_fetched_connection_;
+};
+
+template <class CompletionToken = boost::asio::use_awaitable_t<>>
+auto AwaitPendingNodes(NodeService& node_service,
+                       CompletionToken&& token = {}) {
+  auto initiate = [&node_service]<typename Handler>(Handler&& handler) mutable {
+    auto waiter = std::make_shared<PendingNodesWaiter>(node_service);
+    waiter->Wait([waiter, completion = std::make_shared<std::decay_t<Handler>>(
+                              std::forward<Handler>(handler))]() mutable {
+      (*completion)();
+    });
+  };
+
+  return boost::asio::async_initiate<CompletionToken, void()>(initiate, token);
+}
+
+}  // namespace
+
+Awaitable<void> FetchNode(const NodeRef& node) {
+  (void)co_await FetchNodeStatus(node);
+}
+
+scada::CoStatus FetchNodeStatus(const NodeRef& node) {
+  if (!node.fetched()) {
+    co_await node.Fetch(NodeFetchStatus::NodeOnly);
+  }
+  co_return node.status();
+}
+
+Awaitable<void> FetchChildren(const NodeRef& node) {
+  (void)co_await FetchChildrenStatus(node);
+}
+
+scada::CoStatus FetchChildrenStatus(const NodeRef& node) {
+  if (!node.children_fetched()) {
+    // A failed remote fetch is reported via node.status(); it must not panic.
+    co_await node.Fetch(NodeFetchStatus::NodeAndChildren);
+  }
+  co_return node.status();
+}
+
+scada::CoStatus FetchTypeChainStatus(NodeRef type_definition) {
+  for (auto type = std::move(type_definition); type; type = type.supertype()) {
+    if (auto status = co_await FetchChildrenStatus(type); !status) {
+      co_return status;
+    }
+  }
+  co_return scada::StatusCode::Good;
+}
+
+Awaitable<void> WaitForPendingNodes(NodeService& node_service) {
+  co_await AwaitPendingNodes(node_service);
+}
+
+Awaitable<void> FetchRecursive(const NodeRef& node,
+                               const scada::NodeId& ref_type_id) {
+  (void)co_await FetchRecursiveStatus(node, ref_type_id);
+}
+
+scada::CoStatus FetchRecursiveStatus(const NodeRef& node,
+                                     const scada::NodeId& ref_type_id) {
+  auto status = co_await FetchChildrenStatus(node);
+  if (!status) {
+    co_return status;
+  }
+  for (const auto& target : node.targets(ref_type_id)) {
+    status = co_await FetchRecursiveStatus(target, ref_type_id);
+    if (!status) {
+      co_return status;
+    }
+  }
+  co_return scada::StatusCode::Good;
+}
+
+Awaitable<void> FetchTypeSystem(NodeService& node_service) {
+  (void)co_await FetchTypeSystemStatus(node_service);
+}
+
+scada::CoStatus FetchTypeSystemStatus(NodeService& node_service) {
+  co_return co_await FetchRecursiveStatus(
+      node_service.GetNode(scada::id::TypesFolder),
+      scada::id::HierarchicalReferences);
+}

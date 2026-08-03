@@ -1,0 +1,38 @@
+@startuml opcua_module_overview
+!include _style.puml
+
+title OPC UA module overview — server and client runtimes
+
+package "Server-side OPC UA runtime" as ServerSide {
+  rectangle "**OpcUaModule**\nscada-server-framework/modules/opcua\nconfig + certificate loading" as Module $tier
+  rectangle "**binary::Server**\nopcuapp transport/binary\nopc.tcp endpoint adapter" as Server $tier
+  rectangle "**opcua::ServerRuntime**\nUA Binary listener + shared runtime" as Endpoint $tier
+  rectangle "**SCADA services**\nattribute / view / monitored-item /\nnode-management / method" as Services $tier
+}
+
+package "Client-side OPC UA runtime" as ClientSide {
+  rectangle "**CreateClientDataServices(...)**\ncommon/opcua_bridge\nDataServices factory" as Factory $tier
+  rectangle "**ClientSession**\nopcuapp client/\nconcrete UA client operations" as Session $tier
+  rectangle "**ClientSubscription**\nopcuapp client/\nmonitored-item batching" as Subscription $tier
+  rectangle "**opcuapp client channel + session**\nremote opc.tcp endpoint" as Channel $tier
+}
+
+rectangle "**common/opcua_bridge**\nOPC UA ↔ SCADA type mapping" as Conversion $tier
+rectangle "Shared callers / features" as Client $external
+rectangle "External OPC UA peer" as UaPeer $external
+
+Module --> Server
+Server --> Endpoint
+Server --> Services
+Server --> Conversion
+Endpoint <--> UaPeer : UA Binary
+
+Client --> Factory
+Factory --> Session
+Session --> Channel
+Session --> Subscription
+Session --> Conversion
+Subscription --> Channel
+Channel <--> UaPeer : UA Binary
+
+@enduml

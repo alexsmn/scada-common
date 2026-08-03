@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "release/*"]
+  pull_request:
+    branches: [main, master, "release/*"]
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+          - os: windows-latest
+            triplet: x64-windows
+          - os: windows-latest
+            triplet: x86-windows
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: common
+
+      - uses: actions/checkout@v4
+        with:
+          repository: alexsmn/scada-core
+          path: core
+          ref: release/2.5
+
+      - name: Checkout third-party dependencies
+        shell: bash
+        run: |
+          git clone --depth 1 --branch release/2.5 https://github.com/alexsmn/transport.git third_party/net
+          git clone --depth 1 https://github.com/alexsmn/chromebase.git third_party/chromebase
+          git clone --depth 1 https://github.com/alexsmn/promise.hpp.git third_party/promise.hpp
+          git clone --depth 1 https://github.com/alexsmn/express.git third_party/express
+          git clone --depth 1 https://github.com/alexsmn/opcuapp.git third_party/opcuapp
+          git clone --depth 1 https://github.com/alexsmn/UA-AnsiC.git third_party/UA-AnsiC
+
+      - name: Export GitHub Actions cache variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: "84bab45d415d22042bd0b9081aea57f362da3f35"
+
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.triplet == 'x86-windows' && 'x86' || 'x64' }}
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: common
+        run: |
+          cmake -B build -G "Ninja Multi-Config" \
+            -DCMAKE_TOOLCHAIN_FILE="${RUNVCPKG_VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+            -DBUILD_OPC=OFF \
+            -DBUILD_VIDICON=OFF \
+            -DOPCUAPP_DIR="${GITHUB_WORKSPACE}/third_party/opcuapp" \
+            -DOPCUA_DIR="${GITHUB_WORKSPACE}/third_party/opcuapp" \
+            -DOPCUA_ROOT_DIR="${GITHUB_WORKSPACE}/third_party/UA-AnsiC" \
+            -DCMAKE_MODULE_PATH="${GITHUB_WORKSPACE}/core;${GITHUB_WORKSPACE}/third_party/net;${GITHUB_WORKSPACE}/third_party/chromebase;${GITHUB_WORKSPACE}/third_party/express;${GITHUB_WORKSPACE}/third_party/opcuapp;${GITHUB_WORKSPACE}/third_party/promise.hpp"
+
+      - name: Build
+        run: cmake --build common/build --config Debug
+
+      - name: Test
+        run: ctest --test-dir common/build --build-config Debug --output-on-failure

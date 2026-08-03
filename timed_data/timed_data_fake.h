@@ -1,0 +1,75 @@
+#pragma once
+
+#include "common/data_value_traits.h"
+#include "common/timed_data_util.h"
+#include "scada/data_value.h"
+#include "timed_data/timed_data.h"
+#include "timed_data/timed_data_view_observer.h"
+
+#include "base/utf_convert.h"
+
+class FakeTimedData : public TimedData {
+ public:
+  FakeTimedData() = default;
+  explicit FakeTimedData(const std::string& formula)
+      : formula{formula}, title{UtfConvert<char16_t>(formula)} {}
+
+  const std::vector<scada::TimeRange>& GetReadyRanges() const override {
+    return ready_ranges;
+  }
+
+  scada::DataValue GetDataValue() const override { return current; }
+
+  scada::Time GetChangeTime() const override { return scada::kNullTime; }
+
+  std::span<const scada::DataValue> GetValues() const override {
+    return data_values;
+  }
+
+  const scada::DataValue* GetValueAt(const scada::Time& time) const override {
+    return ::GetValueAt(std::span{data_values}, time);
+  }
+
+  void AddObserver(TimedDataObserver& observer) override {}
+
+  void RemoveObserver(TimedDataObserver& observer) override {}
+
+  void AddViewObserver(TimedDataViewObserver& observer,
+                       const scada::TimeRange& range) override {
+    // Immediately notify the observer that data is ready so consumers
+    // (e.g. graph data sources) can render without waiting for async fetches.
+    observer.OnTimedDataReady();
+  }
+
+  void RemoveViewObserver(TimedDataViewObserver& observer) override {}
+
+  std::string GetFormula(bool aliases) const override { return formula; }
+
+  scada::LocalizedText GetTitle() const override { return title; }
+
+  NodeRef GetNode() const override { return {}; }
+
+  // The value `GetDataValue` reports. Settable so a consumer can be shown a
+  // new current value the way the real thing delivers one; note the fake
+  // notifies nobody, which is exactly what a consumer that formats on read
+  // rather than caching should tolerate.
+  scada::DataValue current;
+
+  // Settable, so a consumer's alarm path (blinking cells, alert marks) can be
+  // exercised without a limits-bearing node and a live value crossing one.
+  bool alerting = false;
+
+  bool IsAlerting() const override { return alerting; }
+
+  const EventSet* GetEvents() const override { return nullptr; }
+
+  void Acknowledge() override {}
+
+  std::string DumpDebugInfo() const override { return "FakeTimedData"; }
+
+  std::vector<scada::DataValue> data_values;
+  std::string formula;
+  scada::LocalizedText title;
+
+  std::vector<scada::TimeRange> ready_ranges;
+};

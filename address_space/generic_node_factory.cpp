@@ -1,0 +1,173 @@
+#include "address_space/generic_node_factory.h"
+
+#include "address_space/address_space_util.h"
+#include "address_space/method.h"
+#include "address_space/mutable_address_space.h"
+#include "address_space/node_factory_util.h"
+#include "address_space/object.h"
+#include "address_space/type_definition.h"
+#include "address_space/variable.h"
+#include "common/node_state.h"
+#include "scada/standard_node_ids.h"
+
+std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNode(
+    const scada::NodeState& node_state) {
+  return CreateNodeHelper(node_state, node_state.parent_id);
+}
+
+std::pair<scada::Status, scada::Node*> GenericNodeFactory::CreateNodeHelper(
+    const scada::NodeState& node_state,
+    const scada::NodeId& parent_id) {
+  // Node states may come from external configuration or a remote server;
+  // validation failures degrade to error statuses instead of panicking.
+  if (node_state.node_id.is_null())
+    return {scada::StatusCode::Bad_WrongNodeId, nullptr};
+
+  if (node_state.node_id != scada::id::RootFolder &&
+      !scada::IsTypeDefinition(node_state.node_class)) {
+    if (parent_id.is_null())
+      return {scada::StatusCode::Bad_WrongParentId, nullptr};
+    if (node_state.reference_type_id.is_null())
+      return {scada::StatusCode::Bad_WrongReferenceId, nullptr};
+  }
+
+  if (address_space_.GetNode(node_state.node_id))
+    return {scada::StatusCode::Bad_DuplicateNodeId, nullptr};
+
+  auto* type_definition = AsTypeDefinition(
+      address_space_.GetMutableNode(node_state.type_definition_id));
+
+  std::unique_ptr<scada::Node> node;
+  if (node_state.node_class == scada::NodeClass::Object) {
+    auto* object_type = scada::AsObjectType(type_definition);
+    if (!object_type)
+      return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
+    node = std::make_unique<scada::GenericObject>();
+
+  } else if (node_state.node_class == scada::NodeClass::Variable) {
+    auto* variable_type = scada::AsVariableType(type_definition);
+    if (!variable_type)
+      return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
+    auto* data_type = node_state.attributes.data_type.is_null()
+                          ? &variable_type->data_type()
+                          : scada::AsDataType(address_space_.GetNode(
+                                node_state.attributes.data_type));
+    if (!data_type)
+      return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
+    node = std::make_unique<scada::GenericVariable>(*data_type);
+
+  } else if (node_state.node_class == scada::NodeClass::ObjectType) {
+    // A stray type definition on a type node is ignored.
+    node = std::make_unique<scada::ObjectType>();
+
+  } else if (node_state.node_class == scada::NodeClass::VariableType) {
+    auto* data_type = scada::AsDataType(
+        address_space_.GetNode(node_state.attributes.data_type));
+    if (!data_type)
+      return {scada::StatusCode::Bad_WrongTypeId, nullptr};
+
+    node = std::make_unique<scada::VariableType>(*data_type);
+
+  } else if (node_state.node_class == scada::NodeClass::ReferenceType) {
+    node = std::make_unique<scada::ReferenceType>();
+
+  } else if (node_state.node_class == scada::NodeClass::DataType) {
+    node = std::make_unique<scada::DataType>();
+
+  } else if (node_state.node_class == scada::NodeClass::Method) {
+    node = std::make_unique<scada::GenericMethod>(
+        node_state.node_id, node_state.attributes.browse_name,
+        node_state.attributes.display_name);
+
+  } else {
+    return {scada::StatusCode::Bad_WrongNodeClass, nullptr};
+  }
+
+  node->set_id(std::move(node_state.node_id));
+
+  if (!node_state.attributes.browse_name.empty())
+    node->SetBrowseName(node_state.attributes.browse_name);
+
+  if (!node_state.attributes.display_name.empty())
+    node->SetDisplayName(node_state.attributes.display_name);
+
+  if (!node_state.attributes.inverse_name.empty()) {
+    if (auto* reference_type = scada::AsReferenceType(node.get()))
+      reference_type->set_inverse_name(node_state.attributes.inverse_name);
+  }
+
+  if (node_state.attributes.value.has_value()) {
+    auto* variable = scada::AsVariable(node.get());
+    if (variable) {
+      // A statically configured attribute value carries no timestamps, so
+      // both must be the null sentinel rather than a default-constructed
+      // scada::Time — under std::chrono that is the Unix epoch, a perfectly
+      // valid 1970 instant that scada::IsNull() does not recognise and that
+      // downstream renders as a fabricated "1970-01-01" timestamp.
+      variable->SetValue(scada::DataValue{*node_state.attributes.value,
+                                          {},
+                                          scada::kNullTime,
+                                          scada::kNullTime});
+    } else if (auto* variable_type = scada::AsVariableType(node.get())) {
+      variable_type->set_default_value(*node_state.attributes.value);
+    } else {
+      return {scada::StatusCode::Bad_WrongAttributeId, nullptr};
+    }
+  }
+
+  auto& node_ref = *node;
+  address_space_.AddNode(std::move(node));
+
+  if (type_definition) {
+    scada::AddReference(address_space_, scada::id::HasTypeDefinition, node_ref,
+                        *type_definition);
+
+    if (create_properties_) {
+      auto status =
+          CreateMissingProperties(*this, node_ref.id(), *type_definition);
+      if (!status)
+        return {std::move(status), nullptr};
+    }
+
+    if (create_components_ && component_depth_ < kMaxComponentDepth) {
+      ++component_depth_;
+      auto status =
+          CreateMissingChildren(*this, node_ref.id(), *type_definition);
+      --component_depth_;
+      if (!status)
+        return {std::move(status), nullptr};
+    }
+  }
+
+  if (!parent_id.is_null()) {
+    auto* parent = address_space_.GetMutableNode(parent_id);
+    if (!parent)
+      return {scada::StatusCode::Bad_WrongParentId, nullptr};
+
+    auto* reference_type =
+        AsReferenceType(address_space_.GetNode(node_state.reference_type_id));
+    if (!reference_type)
+      return {scada::StatusCode::Bad_WrongReferenceId, nullptr};
+
+    address_space_.AddReference(*reference_type, *parent, node_ref);
+  }
+
+  for (auto& child_state : node_state.children) {
+    auto [status, child_node] =
+        CreateNodeHelper(child_state, node_state.node_id);
+    if (!status) {
+      // TODO: Log.
+    }
+  }
+
+  for (auto& [prop_decl_id, value] : node_state.properties) {
+    auto status = scada::SetPropertyValue(node_ref, prop_decl_id, value);
+    if (!status)
+      return {std::move(status), nullptr};
+  }
+
+  return {scada::StatusCode::Good, &node_ref};
+}

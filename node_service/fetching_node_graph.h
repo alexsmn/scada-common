@@ -1,0 +1,31 @@
+#pragma once
+
+#include "base/lifetime.h"
+#include "node_service/fetching_node.h"
+#include "node_service/node_fetcher.h"
+
+#include <map>
+
+class FetchingNodeGraph {
+ public:
+  std::size_t size() const { return fetching_nodes_.size(); }
+
+  FetchingNode* FindNode(const scada::NodeId& node_id) SCADA_LIFETIME_BOUND;
+  FetchingNode& AddNode(const scada::NodeId& node_id) SCADA_LIFETIME_BOUND;
+
+  void RemoveNode(const scada::NodeId& node_id);
+
+  void AddDependency(FetchingNode& node, FetchingNode& from);
+
+  FetchCompletedResult GetFetchedNodes();
+
+  // Validates internal graph consistency; returns false on violation.
+  bool CheckInvariants() const;
+
+  std::string GetDebugString() const;
+
+ private:
+  std::map<scada::NodeId, FetchingNode> fetching_nodes_;
+
+  int fetch_cache_iteration_ = 1;
+};

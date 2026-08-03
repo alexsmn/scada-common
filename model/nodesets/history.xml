@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+           xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://telecontrol.ru/opcua/scada</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://telecontrol.ru/opcua/scada" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z"/>
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="BaseDataType">i=24</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+  <UAReferenceType NodeId="ns=1;i=152" BrowseName="HasHistoricalDatabase" SymbolicName="HasHistoricalDatabase">
+    <DisplayName>Архив значений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
+    </References>
+  </UAReferenceType>
+  <UAObject NodeId="ns=1;i=317" BrowseName="History" SymbolicName="HistoryPropertyCategory" ParentNodeId="ns=1;i=310">
+    <DisplayName>Архивирование</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+    </References>
+  </UAObject>
+  <UAReferenceType NodeId="ns=1;i=335" BrowseName="HasEventDatabase" SymbolicName="HasEventDatabase">
+    <DisplayName>Архив событий</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
+      <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
+    </References>
+  </UAReferenceType>
+  <UAObject NodeId="ns=1;i=12" BrowseName="HistoricalDatabases" SymbolicName="HistoricalDatabases" ParentNodeId="i=85">
+    <DisplayName>Базы данных</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=406</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=171" BrowseName="Depth" SymbolicName="HistoricalDatabaseType_Depth" ParentNodeId="ns=1;i=20" DataType="Int32">
+    <DisplayName>Глубина, дн</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:Int32>1</uax:Int32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=20" BrowseName="HistoricalDatabaseType" SymbolicName="HistoricalDatabaseType">
+    <DisplayName>База данных</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=244" BrowseName="ItemCount" SymbolicName="HistoricalDatabaseType_ItemCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
+    <DisplayName>Количество измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <!-- The one 64-bit counter on this type: a running total over the process
+       lifetime, unlike its siblings, which are all bounded by a single write,
+       a single retention sweep, or the configured item count. A busy historian
+       would wrap a UInt32 in days. -->
+  <UAVariable NodeId="ns=1;i=245" BrowseName="WriteValueCount" SymbolicName="HistoricalDatabaseType_WriteValueCount" ParentNodeId="ns=1;i=20" DataType="UInt64">
+    <DisplayName>Количество записанных измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=240" BrowseName="WriteValueDuration" SymbolicName="HistoricalDatabaseType_WriteValueDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
+    <DisplayName>Задержка записи измерений, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=241" BrowseName="PendingTaskCount" SymbolicName="HistoricalDatabaseType_PendingTaskCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
+    <DisplayName>Очередь записи измерений</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=242" BrowseName="EventCleanupDuration" SymbolicName="HistoricalDatabaseType_EventCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
+    <DisplayName>Продолжительность очистки событий, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=243" BrowseName="ValueCleanupDuration" SymbolicName="HistoricalDatabaseType_ValueCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
+    <DisplayName>Продолжительность очистки измерений, мкс</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=368" BrowseName="HistoricalDataConfigurationType" SymbolicName="HistoricalDataConfigurationType">
+    <DisplayName>Historical data configuration</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2318</Reference>
+      <Reference ReferenceType="i=56" IsForward="false">i=62</Reference>
+      <Reference ReferenceType="ns=1;i=152">ns=1;i=20</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=369" BrowseName="HistoricalDataConfigurations" SymbolicName="HistoricalDataConfigurations" ParentNodeId="i=85">
+    <DisplayName>Historical data configurations</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=408</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=406" BrowseName="HistoricalDatabasesFolderType" SymbolicName="HistoricalDatabasesFolderType">
+    <DisplayName>HistoricalDatabasesFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=417" BrowseName="&lt;HistoricalDatabase&gt;" SymbolicName="HistoricalDatabasesFolderType_HistoricalDatabasePlaceholder" ParentNodeId="ns=1;i=406">
+    <DisplayName>&lt;HistoricalDatabase&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=406</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=408" BrowseName="HistoricalDataConfigurationsFolderType" SymbolicName="HistoricalDataConfigurationsFolderType">
+    <DisplayName>HistoricalDataConfigurationsFolderType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=61</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=420" BrowseName="&lt;HistoricalDataConfiguration&gt;" SymbolicName="HistoricalDataConfigurationsFolderType_HistoricalDataConfigurationPlaceholder" ParentNodeId="ns=1;i=408">
+    <DisplayName>&lt;HistoricalDataConfiguration&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=408</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=368</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>

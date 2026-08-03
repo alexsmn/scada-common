@@ -1,0 +1,16 @@
+# Normalize line endings to LF on commit, keep native on checkout.
+* text=auto eol=lf
+
+# Binary files.
+*.png binary
+*.jpg binary
+*.ico binary
+*.exe binary
+*.dll binary
+*.lib binary
+*.pdb binary
+*.msi binary
+*.zip binary
+*.tar.gz binary
+*.sde binary
+*.xsde binary

@@ -1,0 +1,393 @@
+#include "address_space/test/test_scada_node_states.h"
+#include "base/test/awaitable_test.h"
+#include "base/test/test_executor.h"
+#include "common/aliases_mock.h"
+#include "common/history_util.h"
+#include "common/variable_handle.h"
+#include "events/node_event_provider_mock.h"
+#include "model/data_items_node_ids.h"
+#include "model/namespaces.h"
+#include "model/node_id_util.h"
+#include "node_service/node_service_mock.h"
+#include "node_service/static/static_node_service.h"
+#include "scada/attribute_service_mock.h"
+#include "scada/history_service.h"
+#include "scada/history_service_mock.h"
+#include "scada/method_service_mock.h"
+#include "scada/monitored_item_service_mock.h"
+#include "timed_data/timed_data_service_factory.h"
+#include "timed_data/timed_data_service_impl.h"
+#include "timed_data/timed_data_spec.h"
+
+#include <gmock/gmock.h>
+
+#include "base/debug_util.h"
+#include "scada/co_result.h"
+
+using namespace testing;
+
+namespace {
+
+template <typename T>
+std::shared_ptr<T> UnownedService(T& service) {
+  return std::shared_ptr<T>{&service, [](T*) {}};
+}
+
+DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
+  return {.history_service_ = UnownedService(history_service)};
+}
+
+class TestHistoryService final : public scada::HistoryService {
+ public:
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails details) override {
+    ++raw_read_count;
+    last_raw_details = std::move(details);
+    co_return raw_result;
+  }
+
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId node_id,
+      scada::Time from,
+      scada::Time to,
+      scada::EventFilter filter) override {
+    co_return scada::StatusCode::Bad;
+  }
+
+  int raw_read_count = 0;
+  scada::HistoryReadRawDetails last_raw_details;
+  scada::HistoryReadRawResult raw_result{
+      .values = {},
+  };
+};
+
+}  // namespace
+
+class TimedDataTest : public Test {
+ public:
+  TimedDataTest();
+
+ protected:
+  TestExecutor executor_;
+
+  StrictMock<MockAliasResolver> alias_resolver_;
+  StrictMock<scada::MockAttributeService> attribute_service_;
+  StrictMock<scada::MockMethodService> method_service_;
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service_;
+  StrictMock<scada::MockHistoryService> history_service_;
+  NiceMock<MockNodeEventProvider> node_event_provider_;
+
+  // `monitored_item_executor` drives the `LegacyMonitoredItemAdapter` that
+  // backs `monitored_item::subscribe`; without it node subscriptions throw
+  // `bad executor`. Value delivery is asynchronous: pump with
+  // `Drain(executor_)` after connecting a spec.
+  StaticNodeService node_service_{
+      {.monitored_item_service = &monitored_item_service_,
+       .monitored_item_executor = executor_}};
+
+  TimedDataServiceImpl service_{
+      {.executor_ = executor_,
+       .alias_resolver_ = alias_resolver_.AsStdFunction(),
+       .node_service_ = node_service_,
+       .data_services_ = MakeTimedDataServices(history_service_),
+       .node_event_provider_ = node_event_provider_}};
+
+  const std::shared_ptr<scada::VariableHandle> node_value_variable_ =
+      std::make_shared<scada::VariableHandle>();
+
+  StrictMock<MockFunction<void(const PropertySet& properties)>>
+      property_change_handler_;
+
+  inline static const scada::NodeId kDataItemId{1, scada::NamespaceIndexes::TS};
+  inline static const std::string_view kDataItemAlias = "Alias";
+
+  inline static const scada::NodeId kTsFormatId{
+      1, scada::NamespaceIndexes::TS_FORMAT};
+  inline static const scada::LocalizedText kFormatCloseLabel = u"Active";
+};
+
+TimedDataTest::TimedDataTest() {
+  node_service_.AddAll(GetScadaNodeStates());
+
+  node_service_.Add(
+      {.node_id = kTsFormatId,
+       .type_definition_id = scada::data_items::id::TsFormatType,
+       .properties = {{scada::data_items::id::TsFormatType_CloseLabel,
+                       kFormatCloseLabel}}});
+
+  node_service_.Add(
+      {.node_id = kDataItemId,
+       .node_class = scada::NodeClass::Variable,
+       .type_definition_id = scada::data_items::id::DiscreteItemType,
+       .properties = {{scada::data_items::id::DataItemType_Alias,
+                       scada::String{kDataItemAlias}}},
+       .references = {{.reference_type_id = scada::data_items::id::HasTsFormat,
+                       .node_id = kTsFormatId}}});
+
+  ON_CALL(monitored_item_service_,
+          CreateMonitoredItem(/*read_value_id=*/_, /*params=*/_))
+      .WillByDefault(Return(nullptr));
+
+  ON_CALL(
+      monitored_item_service_,
+      CreateMonitoredItem(FieldsAre(kDataItemId, scada::AttributeId::Value), _))
+      .WillByDefault(
+          Return(scada::CreateMonitoredVariable(node_value_variable_)));
+}
+
+TEST_F(TimedDataTest, NodeTsFormat) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(true));
+
+  TimedDataSpec spec{service_, kDataItemId};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
+}
+
+TEST_F(TimedDataTest, AliasTsFormat) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(true));
+
+  EXPECT_CALL(alias_resolver_, Call(kDataItemAlias, /*callback=*/_))
+      .WillOnce(InvokeArgument<1>(scada::StatusCode::Good, kDataItemId));
+
+  TimedDataSpec spec{service_, kDataItemAlias};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
+}
+
+TEST_F(TimedDataTest, AliasValueUpdatesAfterAliasResolution) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(111));
+
+  AliasResolveCallback alias_resolve_callback;
+
+  EXPECT_CALL(alias_resolver_, Call(kDataItemAlias, /*callback=*/_))
+      .WillOnce(SaveArg<1>(&alias_resolve_callback));
+
+  TimedDataSpec spec{service_, kDataItemAlias};
+  spec.property_change_handler = property_change_handler_.AsStdFunction();
+
+  // Alias resolution notifies once for the node change right away and again
+  // when the subscription delivers the value on the drained executor.
+  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).Times(AtLeast(1));
+
+  alias_resolve_callback(scada::StatusCode::Good, kDataItemId);
+  Drain(executor_);
+
+  EXPECT_EQ(spec.current().value, 111);
+
+  Mock::VerifyAndClearExpectations(&property_change_handler_);
+
+  EXPECT_CALL(property_change_handler_, Call(/*props=*/_)).WillOnce(Invoke([&] {
+    EXPECT_EQ(spec.current().value, 222);
+  }));
+
+  node_value_variable_->ForwardData(scada::MakeReadResult(222));
+  Drain(executor_);
+}
+
+TEST_F(TimedDataTest, ExpressionVariableDeletes) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(123));
+
+  const auto formula = std::format("{} + 55", NodeIdToScadaString(kDataItemId));
+
+  TimedDataSpec spec{service_, formula};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.current().value, 123 + 55);
+  EXPECT_TRUE(spec.current().qualifier.good());
+
+  node_value_variable_->UpdateQualifier(0, scada::Qualifier::BAD);
+  Drain(executor_);
+
+  EXPECT_FALSE(spec.current().qualifier.good());
+
+  node_value_variable_->UpdateQualifier(scada::Qualifier::BAD, 0);
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.current().qualifier.good());
+}
+
+TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
+  const auto from = scada::Now();
+  const auto to = from + std::chrono::seconds(10);
+
+  // The action is a lazy coroutine: it must take `details` by value so the
+  // copy lives in the coroutine frame. A `const&` parameter would bind to
+  // gMock's argument tuple, which is destroyed before the awaitable runs.
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        co_return scada::HistoryReadRawResult{
+            .values = {},
+        };
+      }));
+
+  TimedDataSpec spec{service_, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
+TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
+  const auto from = scada::Now();
+  const auto to = from + std::chrono::seconds(10);
+  auto service = CreateTimedDataService(TimedDataContext{
+      .executor_ = executor_,
+      .alias_resolver_ = alias_resolver_.AsStdFunction(),
+      .node_service_ = node_service_,
+      .data_services_ = MakeTimedDataServices(history_service_),
+      .node_event_provider_ = node_event_provider_});
+
+  // By-value `details` for the same coroutine-lifetime reason as above.
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails details)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(details.node_id, kDataItemId);
+        EXPECT_EQ(details.from, from);
+        EXPECT_EQ(details.to, to);
+        co_return scada::HistoryReadRawResult{
+            .values = {},
+        };
+      }));
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
+TEST_F(TimedDataTest, HistoryFetchUsesCoroutineFactoryContext) {
+  const auto from = scada::Now();
+  const auto to = from + std::chrono::seconds(10);
+  auto history_service = std::make_shared<TestHistoryService>();
+  auto service = CreateTimedDataService(CoroutineTimedDataContext{
+      .executor_ = executor_,
+      .alias_resolver_ = alias_resolver_.AsStdFunction(),
+      .node_service_ = node_service_,
+      .history_service_ = history_service,
+      .node_event_provider_ = node_event_provider_});
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_EQ(history_service->raw_read_count, 1);
+  EXPECT_EQ(history_service->last_raw_details.node_id, kDataItemId);
+  EXPECT_EQ(history_service->last_raw_details.from, from);
+  EXPECT_EQ(history_service->last_raw_details.to, to);
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
+TEST_F(TimedDataTest, HistoryFetchUsesDataServicesCoroutineSlot) {
+  const auto from = scada::Now();
+  const auto to = from + std::chrono::seconds(10);
+  auto history_service = std::make_shared<TestHistoryService>();
+
+  DataServices data_services;
+  data_services.history_service_ = history_service;
+
+  auto service = CreateTimedDataService(
+      TimedDataContext{.executor_ = executor_,
+                       .alias_resolver_ = alias_resolver_.AsStdFunction(),
+                       .node_service_ = node_service_,
+                       .data_services_ = std::move(data_services),
+                       .node_event_provider_ = node_event_provider_});
+
+  TimedDataSpec spec{*service, kDataItemId};
+  spec.SetRange({from, to});
+
+  Drain(executor_);
+
+  EXPECT_EQ(history_service->raw_read_count, 1);
+  EXPECT_EQ(history_service->last_raw_details.node_id, kDataItemId);
+  EXPECT_EQ(history_service->last_raw_details.from, from);
+  EXPECT_EQ(history_service->last_raw_details.to, to);
+  EXPECT_TRUE(spec.range_ready({from, to}));
+}
+
+TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
+  const scada::HistoryReadRawDetails details{
+      .node_id = kDataItemId,
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
+      .max_count = 100,
+  };
+  const scada::ByteString continuation_point{'c', 'p'};
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails cleanup)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(cleanup.node_id, details.node_id);
+        EXPECT_EQ(cleanup.from, details.from);
+        EXPECT_EQ(cleanup.to, details.to);
+        EXPECT_EQ(cleanup.max_count, details.max_count);
+        EXPECT_TRUE(cleanup.release_continuation_point);
+        EXPECT_EQ(cleanup.continuation_point, continuation_point);
+        co_return scada::HistoryReadRawResult{};
+      }));
+
+  ScopedContinuationPoint scoped_continuation_point{
+      executor_, history_service_, details, continuation_point};
+  scoped_continuation_point.reset();
+
+  Drain(executor_);
+}
+
+TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
+  const scada::HistoryReadRawDetails details{
+      .node_id = kDataItemId,
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
+      .max_count = 100,
+  };
+  const scada::ByteString continuation_point{'c', 'p'};
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_))
+      .WillOnce(Invoke([&](scada::HistoryReadRawDetails cleanup)
+                           -> scada::CoStatusOr<scada::HistoryReadRawResult> {
+        EXPECT_EQ(cleanup.node_id, details.node_id);
+        EXPECT_TRUE(cleanup.release_continuation_point);
+        EXPECT_EQ(cleanup.continuation_point, continuation_point);
+        co_return scada::HistoryReadRawResult{};
+      }));
+
+  ScopedContinuationPoint scoped_continuation_point{
+      executor_, history_service_, details, continuation_point};
+  ScopedContinuationPoint moved_continuation_point{
+      std::move(scoped_continuation_point)};
+  scoped_continuation_point.reset();
+  moved_continuation_point.reset();
+
+  Drain(executor_);
+}
+
+TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
+  const scada::HistoryReadRawDetails details{
+      .node_id = kDataItemId,
+      .from = scada::Now(),
+      .to = scada::Now() + std::chrono::seconds(1),
+      .max_count = 100,
+  };
+  const scada::ByteString continuation_point{'c', 'p'};
+
+  EXPECT_CALL(history_service_, HistoryReadRaw(_)).Times(0);
+
+  ScopedContinuationPoint scoped_continuation_point{
+      executor_, history_service_, details, continuation_point};
+  EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
+  scoped_continuation_point.reset();
+
+  Drain(executor_);
+}
