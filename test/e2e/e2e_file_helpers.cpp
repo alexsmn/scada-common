@@ -5,8 +5,28 @@
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
+#include <string>
+#include <system_error>
+#include <utility>
+
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace client::test {
+namespace {
+
+int CurrentPid() {
+#ifdef _WIN32
+  return ::_getpid();
+#else
+  return static_cast<int>(::getpid());
+#endif
+}
+
+}  // namespace
 
 void WriteTextFile(const std::filesystem::path& path, std::string_view text) {
   std::error_code ec;
@@ -88,12 +108,32 @@ std::optional<int> FindLoggedObjectTreeChildCount(
   return result;
 }
 
+// The workspaces of two runs must never be the same directory: they hold the
+// config DB, the license, the logs and the marker files a live process is
+// reading and writing. The name used to be a steady_clock tick alone, which
+// makes a collision unlikely but neither impossible nor detectable — two
+// processes started together can read the same tick, and `create_directories`
+// succeeds just as happily on a directory that already exists, so the two runs
+// would silently share one. The PID separates concurrent processes (the case
+// that matters: several checkouts running their E2Es at once), the tick and
+// counter separate workspaces within one, and `create_directory` — which
+// reports whether it created the directory or found it — turns the whole thing
+// from an expectation into a guarantee.
 TempWorkspace::TempWorkspace() {
-  auto base = std::filesystem::temp_directory_path();
-  auto salt = std::to_string(
-      std::chrono::steady_clock::now().time_since_epoch().count());
-  path_ = base / ("scada_e2e_" + salt);
-  std::filesystem::create_directories(path_);
+  const auto base = std::filesystem::temp_directory_path();
+  const std::string prefix = "scada_e2e_" + std::to_string(CurrentPid()) + "_";
+  for (int attempt = 0; attempt < 100; ++attempt) {
+    const auto salt = std::to_string(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    auto candidate = base / (prefix + salt + "_" + std::to_string(attempt));
+    std::error_code ec;
+    if (std::filesystem::create_directory(candidate, ec)) {
+      path_ = std::move(candidate);
+      return;
+    }
+  }
+  throw std::runtime_error{"Failed to create a unique E2E workspace under " +
+                           base.string()};
 }
 
 TempWorkspace::~TempWorkspace() {

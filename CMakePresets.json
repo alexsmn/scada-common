@@ -9,52 +9,13 @@
     {
       "name": "ninja",
       "displayName": "Ninja Multi-Config",
-      "description": "Self-contained per ADR 0011: no shared preset file, no include. Machine-specific settings live in .scada-local.cmake beside build-support/; VCPKG_ROOT stays an environment variable because the toolchain runs before any of our CMake.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "generator": "Ninja Multi-Config",
-      "binaryDir": "${sourceDir}/build/ninja",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "debug",
-      "displayName": "Debug",
-      "configurePreset": "ninja",
-      "configuration": "Debug"
-    },
-    {
-      "name": "release",
-      "displayName": "Release",
-      "configurePreset": "ninja",
-      "configuration": "Release"
-    },
-    {
-      "name": "relwithdebinfo",
-      "displayName": "RelWithDebInfo",
-      "configurePreset": "ninja",
-      "configuration": "RelWithDebInfo"
-    }
-  ],
-  "testPresets": [
-    {
-      "name": "test-debug",
-      "displayName": "Debug Tests",
-      "configurePreset": "ninja",
-      "configuration": "Debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "test-release",
-      "displayName": "Release Tests",
-      "configurePreset": "ninja",
-      "configuration": "Release",
-      "output": {
-        "outputOnFailure": true
+        "BUILD_NUMBER": "0",
+        "OUTPUT_DIR": "build/${presetName}/bin",
+        "CMAKE_MODULE_PATH": "${sourceDir};$env{THIRD_PARTY}/express;$env{THIRD_PARTY}/opc_client;$env{THIRD_PARTY}/OPCFoundation;$env{THIRD_PARTY}/midl;$env{THIRD_PARTY}/opcuapp;$env{THIRD_PARTY}/net;$env{THIRD_PARTY}/chromebase"
       }
     }
   ]

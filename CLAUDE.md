@@ -8,17 +8,16 @@ ScadaCommon is a standalone CMake subproject providing shared C++ libraries used
 
 ## Build Commands
 
-Builds standalone, or spliced into a consumer. The per-developer
-`CMakeUserPresets.json` is gone: machine-specific settings live in one
-`.scada-local.cmake` beside `build-support/`, shared by every product
-(ADR 0011). Set `VCPKG_ROOT` in the environment.
+Can be built standalone or as part of the parent SCADA project. Developers create a `CMakeUserPresets.json` (git-ignored) with local paths and MSVC environment — see `CMakeUserPresets.json.template`.
 
 ```shell
-cmake --preset ninja                                    # Configure
-cmake --build --preset release                          # Build (or: debug, relwithdebinfo)
-cmake --build --preset release --target scada_common    # Build one target
-ctest --preset test-release                             # Run all tests (or: test-debug)
-ctest --preset test-release --tests-regex timed_data    # Run some
+cmake --preset ninja-dev                                          # Configure
+cmake --build --preset debug-dev                                  # Build (Debug)
+cmake --build --preset release-dev                                # Build (RelWithDebInfo)
+cmake --build --preset debug-dev --target scada_common            # Build specific target
+ctest --preset test-debug-dev                                     # Run all tests (Debug)
+ctest --preset test-release-dev                                   # Run all tests (RelWithDebInfo)
+ctest --test-dir build/ninja-dev --build-config Debug --tests-regex timed_data  # Specific tests
 ```
 
 ## Modules and Dependencies
@@ -72,10 +71,9 @@ target_include_directories(my_module PUBLIC "..") # Standard: expose parent dir 
 
 Unit test targets are auto-generated per module (e.g., `scada_common_unittests`, `address_space_unittests`, `node_service_unittests`). Tests use GoogleTest with `gtest_discover_tests(DISCOVERY_MODE PRE_TEST)`.
 
-`ctest --preset test-release` from `common/` runs the whole suite — 829 tests
-as of 2026-08-08. (It used to report zero discovered tests here, which is why
-this section once said to run the OPC UA executables directly; that was the
-missing standalone wiring, fixed in ADR 0011 phase 3.)
+For the OPC UA tests in this subproject, prefer running the two generated test
+executables directly. In this repo layout, standalone `ctest` from `common/`
+may report zero discovered tests even when the binaries exist.
 
 Test fixtures and utilities live in `test/` subdirectories:
 - `address_space/test/` — `test_address_space.h`, `test_matchers.h`

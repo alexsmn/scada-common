@@ -134,5 +134,18 @@ struct TcVdsRuntimeApi {
 // callers negotiate compatibility through `abi_version`/`struct_size`.
 constexpr uint32_t TC_VDS_RUNTIME_ABI_VERSION = 2;
 
+// The runtime carries its own private Qt, so its Qt globals are not the host's
+// — a host QApplication is invisible to it, and vice versa. Painting text
+// needs a QGuiApplication in ITS copy, which `render_bgra` creates on first
+// use (offscreen; it never owns a window or an event loop) and never destroys.
+// Hosts therefore neither need to nor can supply one. Call `render_bgra` from
+// the thread that owns the host's GUI, as with any Qt painting.
+//
+// Before that existed, rendering a document containing text hit
+// `QFontDatabase` with no application object and qFatal()'d — aborting the
+// HOST process, which presents as a client crash rather than a failed render.
+// A shapes-only document never reached it, which is why this survived the ABI
+// tests.
+
 TC_VDS_RUNTIME_EXPORT const TcVdsRuntimeApi* TC_VDS_RUNTIME_CALL
 TcVdsRuntimeGetApi(uint32_t requested_abi_version);
