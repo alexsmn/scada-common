@@ -22,15 +22,34 @@ Design docs:
 
 ## Building
 
-ScadaCommon is typically built as part of the parent SCADA project via `find_package(ScadaCommon)`. It can also be configured standalone:
+ScadaCommon builds standalone, and is also spliced into any product that
+consumes it via `find_package(ScadaCommon)`.
+
+It consumes three other products — `core`, `express` and `opcuapp` — which must
+be checked out beside it in a standalone checkout; the resolver in
+`build-support/` finds them there, and in the SCADA monorepo where two of them
+live under `third_party/`.
 
 ```shell
+# Configure
 cmake --preset ninja
-cmake --build build/ninja --config Debug
-ctest --test-dir build/ninja --build-config Debug
+
+# Build
+cmake --build --preset release      # or: debug, relwithdebinfo
+
+# Run tests
+ctest --preset test-release         # or: test-debug
 ```
 
-Requires `VCPKG_ROOT` and `THIRD_PARTY` environment variables pointing to vcpkg and the third-party library root.
+Every product in the SCADA tree carries this same preset set (ADR 0011), so the
+commands do not change from one to the next. Set `VCPKG_ROOT` in the
+environment; anything else machine-specific goes in `.scada-local.cmake` beside
+`build-support/`. Output lands in `build/ninja/bin/<config>/`.
+
+On Windows the `opc/` and `vidicon/` subtrees additionally need genuine
+out-of-tree SDKs (OPC Foundation, midl, the Classic OPC client). Those are not
+products, so name their directories in `SCADA_EXTRA_MODULE_PATH` in the machine
+config — see `build-support/scada-local.cmake.example`.
 
 ## License
 

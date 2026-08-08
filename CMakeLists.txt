@@ -2,18 +2,35 @@ cmake_minimum_required(VERSION 3.27)
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
+# The shared build-support kit (ADR 0011): at this product's root in an export,
+# at the tree root in the monorepo. Before project(), so the machine config it
+# reads can still set the vcpkg variables the toolchain consumes there.
+set(_scada_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+while(NOT EXISTS "${_scada_dir}/build-support/ScadaProducts.cmake")
+  get_filename_component(_scada_parent "${_scada_dir}" DIRECTORY)
+  if(_scada_parent STREQUAL _scada_dir)
+    message(FATAL_ERROR
+      "build-support/ not found above ${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
+  set(_scada_dir "${_scada_parent}")
+endwhile()
+include("${_scada_dir}/build-support/ScadaProducts.cmake")
+include("${_scada_dir}/build-support/ScadaProductBase.cmake")
+unset(_scada_dir)
+unset(_scada_parent)
+
+scada_product_prologue()
+
 project(scada-common VERSION 2.6.0 LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+scada_product_base()
 
-if(WIN32)
-  add_definitions(
-    -DWINVER=0x0603
-    -D_WIN32_WINNT=0x0603
-    -D_MSVC_STL_HARDENING
-  )
-endif()
+# The products this one consumes. `opcuapp` backs the scada_core_opcua shims
+# below and opcua_bridge; `express` is the expression evaluator; `core` is the
+# base. On Windows the opc/ and vidicon/ subtrees additionally reach genuine
+# out-of-tree SDKs (OPC Foundation, midl) — those are not products, so they come
+# from SCADA_EXTRA_MODULE_PATH in the machine config rather than from here.
+scada_find_products(core express opcuapp)
 
 # IDE folder for targets (parent project may override).
 if(NOT DEFINED scada_common_folder)
