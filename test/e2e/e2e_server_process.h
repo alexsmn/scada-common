@@ -1,16 +1,15 @@
 #pragma once
 
 #include "test/e2e/e2e_file_helpers.h"
-#include "test/e2e/e2e_port_reservation.h"
 #include "test/e2e/e2e_process.h"
 #include "test/e2e/e2e_wait.h"
 
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace boost::json {
 class object;
@@ -55,20 +54,19 @@ void ExecuteConfigurationSql(const ServerProcessContext& context,
                              std::string_view sql);
 
 // Hands out distinct TCP ports so the independent server processes of one test
-// never collide — and, because every port is claimed machine-wide for the
-// pool's lifetime (see PortReservation), so that the processes of a *different*
-// E2E run on the same host never collide with them either. Keep the pool alive
-// for as long as the processes it fed: dropping it releases every claim.
-// Not thread-safe; drive it from the test thread.
+// never collide. Not thread-safe; drive it from the test thread.
 class PortPool {
  public:
-  // Returns a free TCP port, claimed against every other E2E process on the
-  // machine and distinct from every port previously returned by this pool.
-  // Throws std::runtime_error if no port can be claimed.
+  // Returns a free TCP port distinct from every port previously returned or
+  // reserved on this pool.
   int Allocate();
 
+  // Records an externally chosen port as used, so later Allocate() avoids it
+  // (e.g. ports a fixture allocated for its own built-in process slots).
+  void Reserve(int port);
+
  private:
-  std::vector<PortReservation> reservations_;
+  std::set<int> used_;
 };
 
 // One server process of a multi-tier integration cluster: its own temp

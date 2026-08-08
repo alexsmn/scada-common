@@ -7,3 +7,6 @@ CMakeUserPresets.json
 # a bare pattern matches at every depth, which is what is wanted — these
 # appear in whichever directory Finder happens to open.
 .DS_Store
+# ...but build-support/ is the shared CMake kit an export of this product carries
+# at its root. It only looks like a build directory (ADR 0011).
+!/build-support/

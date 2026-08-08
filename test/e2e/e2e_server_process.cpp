@@ -95,11 +95,22 @@ void RunSqliteScript(const ServerProcessContext& context,
 }  // namespace
 
 int PortPool::Allocate() {
-  // The claim is exclusive within this process as well as across processes, so
-  // there is no separate "already handed out" bookkeeping to keep: a port this
-  // pool still holds simply cannot be claimed a second time.
-  reservations_.push_back(ReserveEphemeralPort());
-  return reservations_.back().port();
+  boost::asio::io_context io_context;
+  const auto find_port = [&io_context] {
+    boost::asio::ip::tcp::acceptor acceptor{
+        io_context,
+        boost::asio::ip::tcp::endpoint{boost::asio::ip::tcp::v4(), 0}};
+    return static_cast<int>(acceptor.local_endpoint().port());
+  };
+  int port = find_port();
+  while (used_.count(port))
+    port = find_port();
+  used_.insert(port);
+  return port;
+}
+
+void PortPool::Reserve(int port) {
+  used_.insert(port);
 }
 
 namespace {
@@ -224,10 +235,9 @@ bool ServerTier::WaitListening() const {
   // burning it on a corpse turns a fast, obvious failure into a slow, opaque
   // one. process.stderr.log in the workspace carries the reason.
   return WaitUntil(
-             [this, port] {
-               return CanConnectTcp(port) || !process_.IsRunning();
-             },
-             Timeout(kServerStartTimeout)) &&
+      [this, port] { return CanConnectTcp(port) || !process_.IsRunning(); },
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          kServerStartTimeout)) &&
          CanConnectTcp(port);
 }
 

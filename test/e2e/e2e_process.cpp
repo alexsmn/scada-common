@@ -23,8 +23,8 @@ constexpr int kStillActive = 259;
 constexpr auto kWaitStep = std::chrono::milliseconds{50};
 
 // Hard-kills a child by its native pid. boost::process::v1::terminate can no-op
-// on macOS when its internal waitpid has already lost/reaped the child (e.g.
-// the process left the launcher's tracking), leaving the process alive — every
+// on macOS when its internal waitpid has already lost/reaped the child (e.g. the
+// process left the launcher's tracking), leaving the process alive — every
 // cluster tier then survives until the test binary exits and its whole set
 // accumulates across a sequential run. A direct SIGKILL to the pid the launcher
 // recorded is reliable regardless of that tracking state.
@@ -76,8 +76,8 @@ void ForceTerminate(ChildProcess& child) {
 
   // Do NOT gate on IsRunning(): on macOS boost's running()/waitpid can report a
   // still-live child as not-running (its tracking lost the pid), which used to
-  // skip termination and leak the process. Terminate via boost, then SIGKILL
-  // the recorded pid directly as a reliable fallback.
+  // skip termination and leak the process. Terminate via boost, then SIGKILL the
+  // recorded pid directly as a reliable fallback.
   std::error_code ec;
   child.process.terminate(ec);
   HardKill(child.process);
@@ -88,8 +88,8 @@ void WaitForExit(ChildProcess& child, int timeout_ms) {
   if (!child.process.valid())
     return;
 
-  const auto deadline =
-      std::chrono::steady_clock::now() + std::chrono::milliseconds{timeout_ms};
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds{timeout_ms};
   while (std::chrono::steady_clock::now() < deadline) {
     if (!child.IsRunning()) {
       std::error_code ec;
@@ -106,39 +106,36 @@ void LaunchProcess(
     const std::filesystem::path& workdir,
     JobObject& job,
     ChildProcess& child,
-    const std::vector<std::pair<std::string, std::string>>& extra_env,
-    const std::filesystem::path& capture_dir) {
-  // Capture the child's streams rather than discarding them. They used to go to
-  // process::null, so a tier that died *before* its own logging came up left no
-  // evidence anywhere: its Logs/ directory stayed empty and the only signal was
-  // the harness's "did not start listening" timeout, which says nothing about
-  // why. SCADA_E2E_KEEP_WORKSPACE preserves the workspace, so these two files
-  // survive for post-mortem alongside Logs/.
-  const std::filesystem::path& capture =
-      capture_dir.empty() ? workdir : capture_dir;
-  std::error_code ec;
-  std::filesystem::create_directories(capture, ec);
-  const std::string out_path = (capture / "process.stdout.log").string();
-  const std::string err_path = (capture / "process.stderr.log").string();
+    const std::vector<std::pair<std::string, std::string>>& extra_env) {
+  // Capture the child's streams into its workdir rather than discarding them.
+  // They used to go to process::null, so a tier that died *before* its own
+  // logging came up left no evidence anywhere: its Logs/ directory stayed
+  // empty and the only signal was the harness's "did not start listening"
+  // timeout, which says nothing about why. SCADA_E2E_KEEP_WORKSPACE preserves
+  // the workdir, so these two files survive for post-mortem alongside Logs/.
+  const std::string out_path = (workdir / "process.stdout.log").string();
+  const std::string err_path = (workdir / "process.stderr.log").string();
   try {
     if (extra_env.empty()) {
-      child.process = process::child{exe.string(),
-                                     process::args(args),
-                                     process::start_dir(workdir.string()),
-                                     process::std_out > out_path,
-                                     process::std_err > err_path,
-                                     job.group()};
+      child.process = process::child{
+          exe.string(),
+          process::args(args),
+          process::start_dir(workdir.string()),
+          process::std_out > out_path,
+          process::std_err > err_path,
+          job.group()};
     } else {
       process::environment env = boost::this_process::environment();
       for (const auto& [name, value] : extra_env)
         env[name] = value;
-      child.process = process::child{exe.string(),
-                                     process::args(args),
-                                     process::start_dir(workdir.string()),
-                                     process::std_out > out_path,
-                                     process::std_err > err_path,
-                                     env,
-                                     job.group()};
+      child.process = process::child{
+          exe.string(),
+          process::args(args),
+          process::start_dir(workdir.string()),
+          process::std_out > out_path,
+          process::std_err > err_path,
+          env,
+          job.group()};
     }
   } catch (const std::system_error& e) {
     throw std::runtime_error{"Failed to launch " + exe.string() + ": " +
