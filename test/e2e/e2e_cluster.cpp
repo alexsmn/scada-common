@@ -720,8 +720,7 @@ void ConfigureProxyRole(boost::json::object& server_json,
 
 ::testing::AssertionResult WaitForProxyDownstreams(
     const std::filesystem::path& proxy_log_dir) {
-  const auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-      kClusterStartTimeout);
+  const auto timeout = Timeout(kClusterStartTimeout);
 
   if (!WaitUntil(
           [&proxy_log_dir] {
