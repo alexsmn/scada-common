@@ -1,4 +1,4 @@
-#include "common/ui_text.h"
+#include "base/ui_text.h"
 
 #include "common/format.h"
 
@@ -59,6 +59,34 @@ TEST_F(UiTextTest, FormatTsTranslatesOnlyTheFallbackLabels) {
                               .open_label = LocalizedText{u"Opened"}};
   EXPECT_EQ(FormatTs(true, params).text, u"Closed");
   EXPECT_EQ(FormatTs(false, params).text, u"Opened");
+}
+
+// A BOOL exported by one side must import on the other. Which words land in the
+// file depends on whether the writer had a catalog installed, and files written
+// before the labels were translatable carry Russian unconditionally — so the
+// parse has to accept all three, in either direction.
+TEST_F(UiTextTest, BoolLabelsParseBackWhicheverLocaleWroteThem) {
+  const auto parse = [](std::u16string_view text) {
+    scada::Variant value;
+    EXPECT_TRUE(StringToValue(text, scada::Variant::Type::BOOL, value))
+        << "failed to parse a BOOL label";
+    return value.get_or(false);
+  };
+
+  SetUiTextTranslator(nullptr);
+  EXPECT_TRUE(parse(scada::Variant::TrueLabel()));
+  EXPECT_FALSE(parse(scada::Variant::FalseLabel()));
+  EXPECT_TRUE(parse(u"Да"));
+  EXPECT_FALSE(parse(u"Нет"));
+
+  SetUiTextTranslator(&RecordingTranslator);
+  EXPECT_TRUE(parse(scada::Variant::TrueLabel()));
+  EXPECT_FALSE(parse(scada::Variant::FalseLabel()));
+  // Still the English and the legacy Russian, even with a catalog installed.
+  EXPECT_TRUE(parse(u"Yes"));
+  EXPECT_FALSE(parse(u"No"));
+  EXPECT_TRUE(parse(u"Да"));
+  EXPECT_FALSE(parse(u"Нет"));
 }
 
 }  // namespace

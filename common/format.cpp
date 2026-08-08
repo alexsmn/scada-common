@@ -2,8 +2,8 @@
 
 #include "base/format.h"
 #include "base/string_util.h"
+#include "base/ui_text.h"
 #include "base/utf_convert.h"
-#include "common/ui_text.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
 #include "scada/variant.h"
@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <optional>
 
 std::u16string DefaultCloseLabel() {
   return scada::TranslateUiText("On");
@@ -162,15 +163,46 @@ bool StringToValue(std::string_view str,
   }
 }
 
+namespace {
+
+// Recognizes the spelled-out boolean labels a BOOL round-trips through.
+//
+// This accepts more than `Variant::TrueLabel()`/`FalseLabel()` produce, and has
+// to. A configuration export writes the *localized* label (see
+// `FormatHelperT<LocalizedText, bool>`), so which words land in the file
+// depends on who wrote it: a client with the Russian catalog installed writes
+// "Да", a server — which installs no translator — writes "Yes", and every file
+// exported before the labels went through `TranslateUiText` carries the Russian
+// unconditionally. All three have to import anywhere. The alternatives here are
+// therefore wire data, not UI text, which is why the Russian stays as a
+// literal.
+std::optional<bool> ParseBoolLabel(std::u16string_view str) {
+  static constexpr std::u16string_view kTrue[] = {u"Yes", u"Да"};
+  static constexpr std::u16string_view kFalse[] = {u"No", u"Нет"};
+
+  if (IEqualsAscii(str, scada::Variant::FalseLabel()))
+    return false;
+  if (IEqualsAscii(str, scada::Variant::TrueLabel()))
+    return true;
+  for (const std::u16string_view alternative : kFalse) {
+    if (IEqualsAscii(str, alternative))
+      return false;
+  }
+  for (const std::u16string_view alternative : kTrue) {
+    if (IEqualsAscii(str, alternative))
+      return true;
+  }
+  return std::nullopt;
+}
+
+}  // namespace
+
 bool StringToValue(std::u16string_view str,
                    scada::Variant::Type data_type,
                    scada::Variant& value) {
   if (data_type == scada::Variant::Type::BOOL) {
-    if (IEqualsAscii(str, scada::Variant::kFalseString)) {
-      value = false;
-      return true;
-    } else if (IEqualsAscii(str, scada::Variant::kTrueString)) {
-      value = true;
+    if (const std::optional<bool> parsed = ParseBoolLabel(str)) {
+      value = *parsed;
       return true;
     }
 
