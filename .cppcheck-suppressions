@@ -19,3 +19,21 @@ preprocessorErrorDirective:*\double_conversion\*\utils.h
 
 // opc_client AddressView is a lightweight view passed by value by design.
 passedByValue:*\opc_client\*\address.h
+
+// GoogleTest macros inside namespaces: cppcheck's parser cannot follow
+// TEST_F/TYPED_TEST expanded inside a named namespace and reports the closing
+// brace as a syntax error. `core/cppcheck-suppressions.txt` suppresses this id
+// globally for the same reason.
+syntaxError
+
+// Coroutines: cppcheck does not model them, so a coroutine whose body is a bare
+// `(void)co_await …` looks like a non-void function that falls off the end.
+// Every such report so far is that shape -- e.g. `Awaitable<void> FetchNode()`
+// in node_service/node_awaitable.cpp. There is no narrower id for "coroutine",
+// so this is global; a genuine missing return in an ordinary function is hidden
+// by it, which is the accepted cost until cppcheck grows coroutine support.
+missingReturn
+
+// ATL macro maps (BEGIN_SINK_MAP in vidicon/services/) are not known to
+// cppcheck. Suppressed in `core`'s and the root's files for the same reason.
+unknownMacro
