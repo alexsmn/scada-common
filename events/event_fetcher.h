@@ -45,7 +45,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
     return severity_min_;
   }
   virtual void SetSeverityMin(scada::EventSeverity severity) override;
-  virtual const EventContainer& unacked_events() const;
+  virtual const EventContainer& unacked_events() const override;
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& node_id) const override;
   virtual void AcknowledgeEvent(scada::EventId ack_id) override;
