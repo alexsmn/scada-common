@@ -42,6 +42,19 @@ TEST(LocalSessionService, ReportsConnectedLocalSession) {
   EXPECT_EQ(service.GetSessionDebugger(), nullptr);
 }
 
+// A `SessionService` that returns `true` must write `ping_delay`: the type is
+// a `std::chrono` duration, so a caller's default-initialized local holds an
+// uninitialized rep and reads back garbage. That is exactly what made the
+// screenshot generator's status strip and event journal differ between two
+// runs of one binary on one fixture.
+TEST(LocalSessionService, ConnectedSessionReportsAZeroPingDelay) {
+  LocalSessionService service;
+
+  Duration ping_delay = std::chrono::hours{1};
+  EXPECT_TRUE(service.IsConnected(&ping_delay));
+  EXPECT_EQ(ping_delay, Duration::zero());
+}
+
 TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
   TestExecutor executor;
   LocalMethodService service;
@@ -504,7 +517,6 @@ TEST(LocalMonitoredItemService, DeliversOnlyTheSubscribedNodesEvents) {
   ASSERT_TRUE(only->event.has_value());
   EXPECT_EQ(std::any_cast<Event>(only->event).message.text, u"mine");
 }
-
 
 // The journal reads rooted at the Server object and the device log reads its
 // own device from the same seeded set; without node scoping the device log

@@ -4,8 +4,9 @@
 
 namespace scada {
 
-// Trivial in-memory SessionService. Reports `IsConnected() == true`, grants
-// every access right, and completes all lifecycle coroutines immediately.
+// Trivial in-memory SessionService. Reports `IsConnected() == true` with a
+// zero ping delay, grants every access right, and completes all lifecycle
+// coroutines immediately.
 //
 // Intended for tests, demos, and screenshot tooling where the session layer
 // is not under test.

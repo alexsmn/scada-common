@@ -41,7 +41,7 @@ class ClientSessionServiceAdapter : public scada::SessionService {
   bool IsConnected(scada::Duration* ping_delay = nullptr) const override {
     if (!ping_delay)
       return session_->IsConnected(nullptr);
-    opcua::Duration opcua_ping;
+    opcua::Duration opcua_ping{};
     const bool connected = session_->IsConnected(&opcua_ping);
     *ping_delay = ToScada(opcua_ping);
     return connected;

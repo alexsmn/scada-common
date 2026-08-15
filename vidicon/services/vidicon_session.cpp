@@ -57,6 +57,12 @@ Awaitable<void> VidiconSession::Disconnect() {
 }
 
 bool VidiconSession::IsConnected(scada::Duration* ping_delay) const {
+  // The Vidicon client exposes no round-trip measurement, so report zero
+  // rather than leaving the out-parameter alone: `scada::Duration` default-
+  // initializes to an uninitialized rep, and the status strip reads it back
+  // unconditionally. See SessionService::IsConnected.
+  if (ping_delay)
+    *ping_delay = scada::Duration::zero();
   return true;
 }
 
