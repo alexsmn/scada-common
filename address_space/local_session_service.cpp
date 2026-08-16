@@ -26,8 +26,12 @@ bool LocalSessionService::IsConnected(scada::Duration* ping_delay) const {
   return true;
 }
 
+void LocalSessionService::SetUserId(NodeId user_id) {
+  user_id_ = std::move(user_id);
+}
+
 NodeId LocalSessionService::GetUserId() const {
-  return {};
+  return user_id_;
 }
 
 std::uint32_t LocalSessionService::GetAccessRights() const {

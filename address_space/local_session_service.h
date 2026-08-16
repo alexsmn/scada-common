@@ -15,6 +15,13 @@ class LocalSessionService : public SessionService {
   LocalSessionService();
   ~LocalSessionService() override;
 
+  // Names the signed-in user, so consumers that resolve `GetUserId()` against
+  // an address space render a real identity. Without it the id is null and a
+  // lookup finds nothing — which is how the client's status strip came to show
+  // a bare role with no user name under the screenshot fixture. Set it before
+  // anything subscribes; there is no state-changed signal to raise.
+  void SetUserId(NodeId user_id);
+
   Awaitable<void> Connect(SessionConnectParams params) override;
   Awaitable<void> Reconnect() override;
   Awaitable<void> Disconnect() override;
@@ -31,6 +38,9 @@ class LocalSessionService : public SessionService {
       const SessionStateChangedCallback& callback) override;
 
   SessionDebugger* GetSessionDebugger() override;
+
+ private:
+  NodeId user_id_;
 };
 
 }  // namespace scada

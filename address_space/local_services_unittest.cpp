@@ -55,6 +55,21 @@ TEST(LocalSessionService, ConnectedSessionReportsAZeroPingDelay) {
   EXPECT_EQ(ping_delay, Duration::zero());
 }
 
+TEST(LocalSessionService, ReportsANullUserIdUntilOneIsSet) {
+  LocalSessionService service;
+
+  EXPECT_TRUE(service.GetUserId().is_null());
+}
+
+TEST(LocalSessionService, ReportsTheUserIdItWasGiven) {
+  LocalSessionService service;
+
+  const NodeId user_id{42u, 1};
+  service.SetUserId(user_id);
+
+  EXPECT_EQ(service.GetUserId(), user_id);
+}
+
 TEST(LocalMethodService, CoroutineCallReturnsBadStatus) {
   TestExecutor executor;
   LocalMethodService service;
