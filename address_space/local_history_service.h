@@ -84,7 +84,12 @@ class LocalHistoryService : public HistoryService {
       EventFilter filter) override;
 
  private:
-  static UInt32 ParseSeverity(std::string_view s);
+  // An event's `severity`, which a fixture may write either as one of the
+  // three band literals ("normal" / "warning" / "critical") or as a raw OPC UA
+  // severity number in 1..1000. The numeric form exists because the band
+  // literals only reach three of the thousand values, so a fixture could not
+  // express a severity that sits deliberately between them.
+  static UInt32 ParseSeverity(const boost::json::value& value);
   scada::Time Now() const;
   HistoryReadRawResult ReadRaw(HistoryReadRawDetails details) const;
   HistoryReadEventsResult ReadEvents(NodeId node_id,

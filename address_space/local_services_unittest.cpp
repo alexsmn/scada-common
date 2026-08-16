@@ -427,6 +427,41 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   EXPECT_FALSE(scada::IsNull(result->events[1].acknowledged_time));
 }
 
+// A fixture may write `severity` as a raw OPC UA number instead of one of the
+// three band literals, which only reach three of the thousand values. Numbers
+// outside 1..1000 are clamped rather than rejected, so a typo cannot hand the
+// severity banding a value the scale has no meaning for.
+TEST(LocalHistoryService, LoadFromJsonAcceptsANumericSeverity) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  service.LoadFromJson(boost::json::parse(R"({
+    "now": "2026-04-16 15:02:00",
+    "nodes": [],
+    "events": [
+      {"id": 1, "hours_ago": 1.0, "severity": 450, "message": "m1",
+       "node_id": "TS.105", "change_mask": 16},
+      {"id": 2, "hours_ago": 2.0, "severity": "warning", "message": "m2",
+       "node_id": "TS.105", "change_mask": 16},
+      {"id": 3, "hours_ago": 3.0, "severity": 9000, "message": "m3",
+       "node_id": "TS.105", "change_mask": 16},
+      {"id": 4, "hours_ago": 4.0, "severity": 0, "message": "m4",
+       "node_id": "TS.105", "change_mask": 16}
+    ]
+  })"));
+
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadEvents(NodeId{}, scada::Time{}, scada::Now(),
+                                          EventFilter{}));
+
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->events.size(), 4u);
+  EXPECT_EQ(result->events[0].severity, 450u);
+  // The band literals keep working alongside the numeric form.
+  EXPECT_EQ(result->events[1].severity, kSeverityWarning);
+  EXPECT_EQ(result->events[2].severity, 1000u);
+  EXPECT_EQ(result->events[3].severity, 1u);
+}
+
 TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
   TestExecutor executor;
   LocalHistoryService service;

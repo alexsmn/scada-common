@@ -42,7 +42,18 @@ void LocalHistoryService::AddEvent(Event event) {
   events_.push_back(std::move(event));
 }
 
-UInt32 LocalHistoryService::ParseSeverity(std::string_view s) {
+UInt32 LocalHistoryService::ParseSeverity(const boost::json::value& value) {
+  // A raw OPC UA severity, for a fixture that needs a value the three band
+  // literals cannot name. Out-of-range numbers are clamped rather than
+  // rejected: this is fixture data, and a severity of 0 or 4000 would
+  // otherwise reach the severity banding as a value the 1..1000 scale has no
+  // meaning for.
+  if (value.is_number()) {
+    const std::int64_t severity = value.to_number<std::int64_t>();
+    return static_cast<UInt32>(std::clamp<std::int64_t>(severity, 1, 1000));
+  }
+
+  const std::string_view s{value.as_string()};
   if (s == "warning")
     return kSeverityWarning;
   if (s == "critical")
@@ -96,7 +107,7 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root,
     e.time = now - std::chrono::round<std::chrono::microseconds>(
                        std::chrono::duration<double>{hours_ago * 3600});
     e.receive_time = e.time;
-    e.severity = ParseSeverity(je.at("severity").as_string());
+    e.severity = ParseSeverity(je.at("severity"));
     e.message = LocalizedText{
         UtfConvert<char16_t>(std::string(je.at("message").as_string()))};
     e.source_node_id =
