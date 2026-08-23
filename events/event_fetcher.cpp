@@ -7,6 +7,7 @@
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
+#include "model/devices_node_ids.h"
 #include "scada/history_service.h"
 #include "scada/monitored_item.h"
 #include "scada/monitored_item_service.h"
@@ -17,6 +18,45 @@
 #include <ranges>
 
 #include "base/debug_util.h"
+
+namespace {
+
+// True for the device protocol-trace events, which the operator's event
+// journal must not show.
+//
+// The subscription below asks for SystemEventType, and DeviceWatchEventType
+// subtypes it (common/model/nodesets/devices.xml) — OPC UA event filters match
+// subtypes (Part 4 §7.4.4,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/7.4.4), so every
+// IEC-104 APDU an edge traces arrives here by design. There is no `OfType` an
+// operator feed could ask for instead that would exclude them, so the exclusion
+// has to happen on this side.
+//
+// The two surfaces are deliberately separate: the frame trace belongs to the
+// device watch (the `deviceWatch` row in docs/parity/qt-web-parity.json), the
+// journal to UC-5 process events. Left unfiltered, a link that is merely alive
+// pushes every genuine event off the journal within seconds — measured
+// 2026-08-22 against a standalone scada-iec104, where a single idle
+// IEC-104 loopback link raised a few hundred trace events per minute, several
+// of them 300-byte hex dumps.
+//
+// DeviceFrameEventType subtypes DeviceWatchEventType, so both are named: a
+// frame is raised as scada::DeviceFrameEvent and so does not survive the
+// any_cast in the subscription below today, but the history path assembles
+// plain scada::Events, and a check that knew only one of the pair would let the
+// other through.
+//
+// The ids are the canonical ones. That is correct on this side of the wire:
+// a client session's services are wrapped by
+// opcua_bridge::CreateRemappingClientDataServices, which translates the
+// server's published namespace indexes back to canonical ones (ADR 0003
+// phase 3a) before an event reaches here.
+bool IsDeviceTraceEvent(const scada::Event& event) {
+  return event.event_type_id == scada::devices::id::DeviceWatchEventType ||
+         event.event_type_id == scada::devices::id::DeviceFrameEventType;
+}
+
+}  // namespace
 
 EventFetcher::EventFetcher(EventFetcherContext&& context)
     : EventFetcherContext{std::move(context)},
@@ -109,12 +149,13 @@ void EventFetcher::OnSystemEvents(std::span<const scada::Event> events) {
     }
   }
 
-  auto filtered_events = events |
-                         std::views::filter([severity_min = severity_min_](
-                                                const scada::Event& event) {
-                           return event.severity >= severity_min;
-                         }) |
-                         to_vector;
+  auto filtered_events =
+      events |
+      std::views::filter(
+          [severity_min = severity_min_](const scada::Event& event) {
+            return event.severity >= severity_min && !IsDeviceTraceEvent(event);
+          }) |
+      to_vector;
 
   if (!filtered_events.empty()) {
     event_storage_.Update(filtered_events);

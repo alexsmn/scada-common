@@ -6,11 +6,13 @@
 #include "events/event_ack_queue.h"
 #include "events/event_observer.h"
 #include "events/event_storage.h"
+#include "model/devices_node_ids.h"
 #include "scada/co_result.h"
 #include "scada/history_service.h"
 #include "scada/item_factory_subscription.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
+#include "scada/standard_node_ids.h"
 #include "scada/status.h"
 #include "scada/test/test_monitored_item.h"
 
@@ -173,6 +175,79 @@ TEST(EventFetcherTest, MonitoredItemEventsAreCanceledAfterDestroy) {
 
   EXPECT_FALSE(observer.events_called);
   EXPECT_TRUE(context.event_storage.events().empty());
+}
+
+// The device protocol trace and the operator's event journal are separate
+// surfaces (the `deviceWatch` row in docs/parity/qt-web-parity.json versus
+// UC-5 process events), and nothing on the wire keeps them apart:
+// DeviceWatchEventType subtypes SystemEventType, which is exactly what this
+// fetcher's EventFilter asks for, and OPC UA event filters match subtypes. So
+// the journal filled with raw IEC-104 APDUs from any link that was merely
+// alive — observed 2026-08-22 against a standalone scada-iec104.
+TEST(EventFetcherTest, DeviceWatchEventsAreNotDeliveredToTheJournal) {
+  TestContext context;
+  const scada::NodeId node_id{1, 100};
+  TestEventObserver observer;
+
+  context.StartFetcher(observer);
+  ASSERT_EQ(context.monitored_item_service.items.size(), 1u);
+
+  scada::Event event = MakeEvent(42, node_id);
+  event.event_type_id = scada::devices::id::DeviceWatchEventType;
+  event.message = u"[TCP Accepted #3]: [dev:0] #RX: IEC-104: U_TESTFR_CON";
+  context.system_events_item().NotifyEvent(std::any{event});
+  Drain(context.executor);
+
+  EXPECT_FALSE(observer.events_called);
+  EXPECT_TRUE(context.event_storage.events().empty());
+  EXPECT_FALSE(context.fetcher->IsAlerting(node_id));
+}
+
+// DeviceFrameEventType subtypes DeviceWatchEventType, so a check that knew
+// only its supertype would still let a decoded frame through the history path,
+// which assembles plain scada::Events rather than scada::DeviceFrameEvents.
+TEST(EventFetcherTest, DeviceFrameEventsAreNotDeliveredToTheJournal) {
+  TestContext context;
+  const scada::NodeId node_id{1, 100};
+  TestEventObserver observer;
+
+  context.StartFetcher(observer);
+  ASSERT_EQ(context.monitored_item_service.items.size(), 1u);
+
+  scada::Event event = MakeEvent(43, node_id);
+  event.event_type_id = scada::devices::id::DeviceFrameEventType;
+  event.message = u"Accepted: #RX: 68048300000064010600010000000014000000";
+  context.system_events_item().NotifyEvent(std::any{event});
+  Drain(context.executor);
+
+  EXPECT_FALSE(observer.events_called);
+  EXPECT_TRUE(context.event_storage.events().empty());
+}
+
+// The exclusion is stated by type, so it must not narrow the journal to a
+// whitelist: an event of any other type still reaches it.
+TEST(EventFetcherTest, ProcessEventsStillReachTheJournalAlongsideDeviceEvents) {
+  TestContext context;
+  const scada::NodeId node_id{1, 100};
+  TestEventObserver observer;
+
+  context.StartFetcher(observer);
+  ASSERT_EQ(context.monitored_item_service.items.size(), 1u);
+
+  scada::Event trace = MakeEvent(44, node_id);
+  trace.event_type_id = scada::devices::id::DeviceWatchEventType;
+  context.system_events_item().NotifyEvent(std::any{trace});
+
+  scada::Event process = MakeEvent(45, node_id);
+  process.event_type_id = scada::NodeId{scada::id::SystemEventType};
+  process.message = u"Pressure high";
+  context.system_events_item().NotifyEvent(std::any{process});
+
+  Drain(context.executor);
+
+  EXPECT_TRUE(observer.events_called);
+  EXPECT_EQ(observer.event_count, 1u);
+  EXPECT_EQ(context.event_storage.events().size(), 1u);
 }
 
 TEST(EventFetcherTest, MonitoredItemEventWithBadStatusIsIgnored) {
