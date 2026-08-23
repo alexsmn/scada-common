@@ -434,6 +434,23 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
           scada::NodeAttributes{.browse_name = "ModbusLinkType",
                                 .display_name = u"Направление MODBUS"},
       .supertype_id = dev::LinkType});
+  // The IEC 60870-5-104 link type, a sibling of ModbusLinkType. ADR 0007 hangs
+  // the -104 APCI counters and the Reconnect method off the LINK rather than
+  // the device, because several devices share one TCP connection — so a fixture
+  // that models only the device cannot exercise any of it. The client's
+  // device-diagnostics panel decides whether to draw its link section by
+  // comparing this browse name against the parent's type, which is why the name
+  // matters as much as the id.
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::Iec60870LinkType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = dev::LinkType,
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{.browse_name = "Iec60870LinkType",
+                                .display_name = u"Направление МЭК-60870"},
+      .supertype_id = dev::LinkType});
   nodes.push_back(scada::NodeState{
       .node_id = dev::ModbusDeviceType,
       .node_class = scada::NodeClass::ObjectType,

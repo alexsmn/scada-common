@@ -83,6 +83,14 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root,
   // `history_stddev` that overrides the default noise amplitude.
   for (const auto& jn : root.at("nodes").as_array()) {
     if (auto* bv = jn.as_object().if_contains("base_value")) {
+      // Only a number has a raw-history profile. A fixture value can also be a
+      // boolean or a string — a link's t1 flag, a protocol's state — and
+      // synthesizing a normal distribution around one is meaningless; before
+      // this skip existed, `to_number` threw and took the whole fixture with
+      // it.
+      if (!bv->is_int64() && !bv->is_uint64() && !bv->is_double())
+        continue;
+
       const NodeId node_id =
           NodeIdFromScadaString(std::string_view(jn.at("id").as_string()));
 
