@@ -46,7 +46,9 @@ class TestCoroutineDataServices final : public scada::SessionService,
     co_return;
   }
 
-  bool IsConnected(scada::Duration* /*ping_delay*/ = nullptr) const override {
+  bool IsConnected(scada::Duration* ping_delay = nullptr) const override {
+    if (ping_delay)
+      *ping_delay = scada::Duration::zero();
     return connected;
   }
 
