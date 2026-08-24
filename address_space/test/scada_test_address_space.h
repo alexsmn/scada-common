@@ -874,6 +874,16 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                                         "HasTsFormat");
     scada::AddReference(*this, kHasSubtype, kNonHierarchical,
                         scada::data_items::id::HasTsFormat);
+    // HasDevice binds a data group to the device whose link state its Value
+    // column shows. GenericNodeFactory cannot create a ReferenceType, so
+    // without it here every consumer that wires the reference had to add the
+    // node by hand — and the two that did disagreed about the HasSubtype edge,
+    // which is the difference between a reference that resolves and one that
+    // reads null.
+    AddStaticNode<scada::ReferenceType>(scada::data_items::id::HasDevice,
+                                        "HasDevice");
+    scada::AddReference(*this, kHasSubtype, kNonHierarchical,
+                        scada::data_items::id::HasDevice);
     // The retransmission source link is the TransmissionItemType SourceNode
     // property declared above — the HasTransmissionSource reference type is
     // retired (transmission OPC UA alignment, phase 4).
