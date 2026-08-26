@@ -112,13 +112,16 @@ std::optional<int> FindLoggedObjectTreeChildCount(
 // config DB, the license, the logs and the marker files a live process is
 // reading and writing. The name used to be a steady_clock tick alone, which
 // makes a collision unlikely but neither impossible nor detectable — two
-// processes started together can read the same tick, and `create_directories`
-// succeeds just as happily on a directory that already exists, so the two runs
-// would silently share one. The PID separates concurrent processes (the case
-// that matters: several checkouts running their E2Es at once), the tick and
-// counter separate workspaces within one, and `create_directory` — which
-// reports whether it created the directory or found it — turns the whole thing
-// from an expectation into a guarantee.
+// processes started together can read the same tick, and the create call's
+// return value was ignored, so the two runs would silently share one. The PID
+// separates concurrent processes (the case that matters: several checkouts
+// running their E2Es at once), the tick and counter separate workspaces within
+// one, and *checking what the create call returned* — below, taking only a
+// candidate `create_directory` reports it actually made — turns the whole
+// thing from an expectation into a guarantee. The guarantee comes from reading
+// the result, not from the choice of function: `create_directories` reports an
+// already-existing leaf through the same `false` return, so the identical bug
+// is available under either name.
 TempWorkspace::TempWorkspace() {
   const auto base = std::filesystem::temp_directory_path();
   const std::string prefix = "scada_e2e_" + std::to_string(CurrentPid()) + "_";
