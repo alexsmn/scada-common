@@ -44,6 +44,15 @@ endif()
 
 # UT
 
+# scada_module() globs this directory but not its subdirectories, so the
+# ScopedTempDir test has to be named. It lives beside the header it tests, in
+# test/, because that is the path every consuming product includes it by
+# (`common/test/scoped_temp_dir.h`) -- and a test file no target compiles looks
+# exactly like a passing one.
+scada_module_unittests(scada_common
+  test/scoped_temp_dir_unittest.cpp
+)
+
 target_link_libraries(scada_common_unittests PUBLIC
   address_space
 )
