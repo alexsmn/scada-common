@@ -570,10 +570,10 @@ service request/response body field names are governed by the spec casing.
 - **OPC UA Part 6 §5.1.13** — Name encoding rules (characters / escaping;
   does not further lower-case names):
   <https://reference.opcfoundation.org/Core/Part6/v105/docs/5.1.13>
-- **OPC UA Part 14 §7.2.3** — PubSub JSON message mapping; concrete field
+- **OPC UA Part 14 §7.2.5 JSON message mapping** — concrete field
   examples (`MessageId`, `MessageType`, `PublisherId`, `DataSetWriterId`,
   `SequenceNumber`, `Payload`, `Timestamp`) all PascalCase:
-  <https://reference.opcfoundation.org/Core/Part14/v104/docs/7.2.3>
+  <https://reference.opcfoundation.org/Core/Part14/v105/docs/7.2.5>
 - **OPC UA Part 4 §5.7.2** — `CreateSessionRequest` struct definition:
   `ClientDescription`, `ServerUri`, `EndpointUrl`, `SessionName`,
   `ClientNonce`, `ClientCertificate`, `RequestedSessionTimeout`,

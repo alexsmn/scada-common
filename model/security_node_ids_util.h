@@ -15,8 +15,8 @@ namespace scada::security::id {
 
 // The server's RoleSet object. Unlike the SCADA-namespace security nodes this
 // is the standard OPC UA Server ServerCapabilities RoleSet in namespace 0.
-// OPC UA Part 3 §8.40 RoleSet,
-// https://reference.opcfoundation.org/Core/Part3/v105/docs/8.40
+// OPC UA Part 18 §4.3 RoleSet,
+// https://reference.opcfoundation.org/Core/Part18/v105/docs/4.3
 constexpr scada::NodeId RoleSet{scada::id::Server_ServerCapabilities_RoleSet,
                                 NamespaceIndexes::NS0};
 
