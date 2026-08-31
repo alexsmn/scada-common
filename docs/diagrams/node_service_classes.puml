@@ -6,8 +6,10 @@ hide empty members
 
 interface NodeService {
   +GetNode(node_id) : NodeRef
-  +Subscribe(NodeRefObserver&)
-  +Unsubscribe(NodeRefObserver&)
+  +SubscribeModelChanged(cb) : scoped_connection
+  +SubscribeNodeSemanticChanged(cb) : scoped_connection
+  +SubscribeNodeFetched(cb) : scoped_connection
+  +SubscribeNodeStateChanged(cb) : scoped_connection
   +GetPendingTaskCount() : size_t
 }
 
@@ -18,14 +20,14 @@ class NodeRef <<cursor>> {
   +targets() / parent() / type_definition()
   +Fetch(NodeFetchStatus) : Awaitable<NodeRef>
   +StartFetch(NodeFetchStatus)
-  +Subscribe(NodeRefObserver&)
+  +SubscribeNodeStateChanged(cb) : scoped_connection
 }
 
-interface NodeRefObserver {
-  +OnModelChanged(ModelChangeEvent)
-  +OnNodeSemanticChanged(NodeId)
-  +OnNodeFetched(NodeFetchedEvent)
-  +OnNodeStateChanged(NodeStateChangedEvent)
+class NodeSignals <<boost::signals2>> {
+  +model_changed : signal<ModelChangeEvent>
+  +node_semantic_changed : signal<NodeId>
+  +node_fetched : signal<NodeFetchedEvent>
+  +node_state_changed : signal<NodeStateChangedEvent>
 }
 
 class NodeStateChangedEvent <<event>> {
@@ -69,6 +71,6 @@ NodeServiceImpl --> NodeModelRegistry : owns
 NodeModelImpl --> NodeModelRegistry : unregisters on destruction
 NodeModelRegistry ..> NodeModelImpl : weak_ptr
 NodeServiceImpl --> NodeFetcher : injected
-NodeServiceImpl ..> NodeRefObserver : notifies
+NodeServiceImpl --> NodeSignals : emits
 NodeModelImpl ..> NodeStateChangedEvent : publishes
 @enduml

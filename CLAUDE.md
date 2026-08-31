@@ -91,9 +91,9 @@ The `node_service_unittests` target links the implementation variants (v3, proxy
 
 **Service interfaces**: `common/master_data_services.h` aggregates service abstractions (AttributeService, ViewService, SessionService, MonitoredItemService, MethodService, HistoryService, NodeManagementService) defined in ScadaCore.
 
-**Address space builder**: `address_space/scada_address_space.h` provides a builder pattern (`ScadaAddressSpaceBuilder`) for constructing the OPC UA node hierarchy. The address space uses an observer pattern for change notifications.
+**Static address space**: `address_space/address_space_xml.h` provides `LoadStaticAddressSpace`, which parses the partitioned nodeset files into one set and materializes it once, so supertype and reference links can cross partition files regardless of load order. `AddressSpaceImpl3` loads that set through `GetScadaStaticNodesetSourcePaths` (`model/static_nodesets.h`); the committed nodeset files in `core` are the single source of truth. `ScadaAddressSpaceBuilder` and the monolithic `scada_static.xml` it built were deleted in `d34f50bb1`. The address space publishes change notifications as Boost.Signals2 signals — `SubscribeNodeCreated`, `SubscribeNodeDeleted`, `SubscribeNodeModified`, `SubscribeNodeMoved`, `SubscribeNodeTitleChanged` (`address_space/address_space.h`) — not through an observer interface.
 
-**Async node loading**: `node_service/node_ref.h` and `node_service/node_fetcher_impl.h` implement promise-based asynchronous node data fetching with status tracking and fetch queues.
+**Async node loading**: `node_service/node_ref.h` and `node_service/node_fetcher_impl.h` implement coroutine-based asynchronous node data fetching with status tracking and fetch queues — `NodeRef::Fetch` returns `Awaitable<NodeRef>`, so callers `co_await` it rather than chaining a promise.
 
 **Time-series variants**: `timed_data/` provides multiple implementations — `base_timed_data`, `alias_timed_data`, `expression_timed_data` — behind a common `TimedData` interface with time-range view queries.
 
@@ -107,8 +107,9 @@ The `node_service_unittests` target links the implementation variants (v3, proxy
 - Reference OPC UA specs in implementation comments. Provide URLs if possible.
 - OPC UA Binary / OPC UA WS merge goal:
   prefer building UA Binary as an adapter over the shared server runtime that
-  already backs `common/opcua/websocket`, instead of creating a separate parallel
-  runtime in `common/opcua`. Keep new Binary work focused on wire codec,
+  already backs `third_party/opcuapp/opcua/transport/websocket`, instead of
+  creating a separate parallel runtime in `third_party/opcuapp/opcua`. Keep new
+  Binary work focused on wire codec,
   dispatcher, and listener adapter layers unless the change clearly improves
   the shared runtime for both stacks.
 

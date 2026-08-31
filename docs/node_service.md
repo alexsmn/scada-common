@@ -1,5 +1,11 @@
 # NodeService Design
 
+Status: Living reference
+Last verified against code: 2026-08-31 (the type table's notification row and
+the class diagram only: `NodeRefObserver` was replaced by Boost.Signals2
+signals in `d85b7bb01` and no longer exists. The rest is unverified — this
+document has never carried a date.)
+
 `common/node_service/` provides the client-side facade over the OPC UA
 address space: consumers browse, read, and observe nodes through it without
 talking to the remote services directly. It is used by the desktop client's
@@ -20,7 +26,7 @@ implementation.
 |---|---|---|
 | `NodeService` | `node_service/node_service.h` | Entry point: `GetNode`, service-wide `Subscribe`/`Unsubscribe`, pending-task count. |
 | `NodeRef` | `node_service/node_ref.h` | Lightweight `{NodeId, NodeService*}` cursor. Attribute reads, graph navigation (`targets()`, `parent()`, `type_definition()`, `operator[]`), lazy fetch (`Fetch`/`StartFetch`), per-node subscription — every operation forwards to the service. **A `NodeRef` carries no per-node state and does not pin the node resident.** |
-| `NodeRefObserver` | `node_service/node_observer.h` | Notification interface: `OnModelChanged`, `OnNodeSemanticChanged`, `OnNodeFetched`, `OnNodeStateChanged` (all default no-op). |
+| `NodeSignals` | `node_service/node_events.h` | The four node-event Boost.Signals2 signals — `model_changed`, `node_semantic_changed`, `node_fetched`, `node_state_changed` — reached through the `Subscribe*` methods on `NodeService`/`NodeRef`, each returning a `boost::signals2::scoped_connection`. |
 | `scada::NodeState` / `NodeStatePtr` | `common/node_state.h` | Plain node data (attributes, properties, references). `NodeStatePtr = shared_ptr<const NodeState>` is the immutable snapshot type. |
 | `NodeFetchStatus` | `node_service/node_fetch_status.h` | Which fetch level a node has reached (`node_fetched`, `children_fetched`). |
 
