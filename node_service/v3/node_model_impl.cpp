@@ -14,10 +14,21 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <set>
 #include <utility>
 #include <vector>
 
 namespace v3 {
+
+// How many of a level's node fetches may be in flight at once.
+//
+// v3 bounds nothing on its own -- NodeServiceImpl::SpawnFetch starts a
+// coroutine per node and caps neither the count nor the queue -- so publishing
+// a whole level at once would put one in-flight request per child on a single
+// session, and a wide folder is thousands of children. The window keeps the
+// depth bounded while collapsing the level's cost from ~2N sequential round
+// trips to ceil(distinct/kChildFetchWindow) of them.
+constexpr size_t kChildFetchWindow = 16;
 
 namespace {
 
@@ -146,66 +157,102 @@ void NodeModelImpl::OnChildrenFetched(
   reference_request_ = std::make_shared<bool>(false);
   std::weak_ptr<bool> reference_request = reference_request_;
   std::weak_ptr<NodeModelImpl> weak_self = weak_from_this();
-  CoSpawn(service_.executor_,
-          [reference_request, weak_self, this, &service = service_, node_id =
-           node_id_, shared_references]() -> Awaitable<void> {
-            // Fetch every child target and its reference type. Residency comes
-            // from the service's keep-alive window, which each GetNode() below
-            // touches (see NodeServiceImpl::TouchKeepAlive); the cursors
-            // themselves do not pin (node_ref.h).
-            for (const auto& ref : *shared_references) {
-              co_await service.GetNode(ref.node_id)
-                  .Fetch(NodeFetchStatus::NodeOnly);
-              co_await service.GetNode(ref.reference_type_id)
-                  .Fetch(NodeFetchStatus::NodeOnly);
+  CoSpawn(
+      service_.executor_,
+      [reference_request, weak_self, this, &service = service_,
+       node_id = node_id_, shared_references]() -> Awaitable<void> {
+        // Fetch every child target and its reference type. Residency comes
+        // from the service's keep-alive window, which each GetNode() below
+        // touches (see NodeServiceImpl::TouchKeepAlive); the cursors
+        // themselves do not pin (node_ref.h).
+        //
+        // Issued in windows rather than one node at a time. Each fetch here
+        // is independent of every other -- a child's attributes do not
+        // depend on its sibling's, nor on its own reference type's -- so the
+        // serial form was pure latency: a folder of N children cost ~2N
+        // *sequential* round trips, and since ChildrenOnly is set only after
+        // this loop, nothing above could render for the whole of it.
+        //
+        // StartFetch is what makes this small as well as fast. It is
+        // idempotent per node (NodeServiceImpl::SpawnFetch dedupes on an
+        // in-flight set), and Fetch() on an already-started node registers a
+        // callback instead of issuing a second request -- see StartFetch's
+        // Includes() branch below -- so the second pass of each window joins
+        // work already running rather than starting it again. That is also
+        // why the two passes must not be fused: fusing them is the serial
+        // form again.
+        //
+        // Distinct ids only. Reference types repeat across nearly every
+        // child, so a raw list is ~2N entries for ~N+2 distinct nodes and
+        // would spend most of the window re-joining the same Organizes.
+        std::vector<scada::NodeId> level;
+        level.reserve(shared_references->size() + 2);
+        {
+          std::set<scada::NodeId> seen;
+          for (const auto& ref : *shared_references) {
+            for (const scada::NodeId& id :
+                 {ref.node_id, ref.reference_type_id}) {
+              if (seen.insert(id).second)
+                level.push_back(id);
             }
+          }
+        }
 
-            // |this| may only be touched past this point: |reference_request|
-            // guards against both a superseding request and the model having
-            // been released mid-flight (the flag dies with the model). The
-            // service (captured by reference) and |node_id| (by value) stay
-            // valid regardless, so the in-flight guard is always released.
-            if (!reference_request.lock()) {
-              service.ChildrenFetchSettled(node_id);
-              co_return;
-            }
+        for (size_t begin = 0; begin < level.size();
+             begin += kChildFetchWindow) {
+          const size_t end = std::min(begin + kChildFetchWindow, level.size());
+          for (size_t i = begin; i < end; ++i)
+            service.GetNode(level[i]).StartFetch(NodeFetchStatus::NodeOnly);
+          for (size_t i = begin; i < end; ++i) {
+            co_await service.GetNode(level[i]).Fetch(NodeFetchStatus::NodeOnly);
+          }
+        }
 
-            // Pin this model for the synchronous tail below. SetFetchStatus
-            // fires NotifyCallbacks, which resumes other fetch coroutines that
-            // can drop the last NodeRef to this model; without a self-pin the
-            // ensuing notifications would touch a freed |this| (a
-            // use-after-free observed as a client crash during object-tree
-            // expansion). The pin is taken only here, not around the fetch
-            // loop, so residency while fetching children is unchanged.
-            auto self = weak_self.lock();
-            if (!self) {
-              service.ChildrenFetchSettled(node_id);
-              co_return;
-            }
+        // |this| may only be touched past this point: |reference_request|
+        // guards against both a superseding request and the model having
+        // been released mid-flight (the flag dies with the model). The
+        // service (captured by reference) and |node_id| (by value) stay
+        // valid regardless, so the in-flight guard is always released.
+        if (!reference_request.lock()) {
+          service.ChildrenFetchSettled(node_id);
+          co_return;
+        }
 
-            child_references_ = *shared_references;
-            // The child fetches above pushed mirror references into this
-            // resident model (see OnFetched); those edges are now reported by
-            // |child_references_| too, so drop the mirrors to keep each edge
-            // single.
-            std::erase_if(node_state_.references, [this](const auto& ref) {
-              return std::ranges::any_of(
-                  child_references_, [&ref](const auto& child_ref) {
-                    return IsSameReference(ref, child_ref);
-                  });
-            });
+        // Pin this model for the synchronous tail below. SetFetchStatus
+        // fires NotifyCallbacks, which resumes other fetch coroutines that
+        // can drop the last NodeRef to this model; without a self-pin the
+        // ensuing notifications would touch a freed |this| (a
+        // use-after-free observed as a client crash during object-tree
+        // expansion). The pin is taken only here, not around the fetch
+        // loop, so residency while fetching children is unchanged.
+        auto self = weak_self.lock();
+        if (!self) {
+          service.ChildrenFetchSettled(node_id);
+          co_return;
+        }
 
-            SetFetchStatus(status_,
-                           fetch_status_ | NodeFetchStatus::ChildrenOnly);
+        child_references_ = *shared_references;
+        // The child fetches above pushed mirror references into this
+        // resident model (see OnFetched); those edges are now reported by
+        // |child_references_| too, so drop the mirrors to keep each edge
+        // single.
+        std::erase_if(node_state_.references, [this](const auto& ref) {
+          return std::ranges::any_of(child_references_,
+                                     [&ref](const auto& child_ref) {
+                                       return IsSameReference(ref, child_ref);
+                                     });
+        });
 
-            // Release the in-flight guard only now that the ChildrenOnly status
-            // is applied: subsequent re-requests are satisfied by the status, so
-            // they no longer re-spawn the fetch.
-            service.ChildrenFetchSettled(node_id);
+        SetFetchStatus(status_, fetch_status_ | NodeFetchStatus::ChildrenOnly);
 
-            NotifyStateChanged();
-            NotifyModelChanged();
-          });
+        // Release the in-flight guard only now that the ChildrenOnly status
+        // is applied: subsequent re-requests are satisfied by the status, so
+        // they no longer re-spawn the fetch.
+        service.ChildrenFetchSettled(node_id);
+
+        NotifyStateChanged();
+        NotifyModelChanged();
+      });
 }
 
 bool NodeModelImpl::HasReference(
@@ -560,6 +607,5 @@ void NodeModelImpl::NotifyStateChanged() {
   // service-wide signal.
   service_.NotifyNodeStateChanged(event);
 }
-
 
 }  // namespace v3
