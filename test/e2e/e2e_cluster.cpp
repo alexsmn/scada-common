@@ -373,7 +373,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             ApplyPermissionEnforcement(json, enforce_permissions);
             // The historian self-registers with the proxy via OPC UA
             // RegisterServer2, advertising the "HD" (Historical Data)
-            // ServerCapabilityIdentifier (Part 4 §5.4.6, Part 12 Annex D).
+            // ServerCapabilityIdentifier (Part 4 §5.5.6, Part 12 Annex D).
             // The proxy's history-link module links an HD registrant's
             // history services. Its address space arrives separately, over the
             // static aggregation entry in AggregationServers — the historian

@@ -144,7 +144,7 @@ class HistoryServiceAdapter {
 
 // Adapts a core scada::HistoryUpdateService to the opcua HistoryUpdate wire
 // result, converting the StatusOr<per-value StatusCodes> into the wire
-// per-value StatusCode vector. OPC UA Part 4 §5.10.5 HistoryUpdate.
+// per-value StatusCode vector. OPC UA Part 4 §5.11.5 HistoryUpdate.
 class HistoryUpdateServiceAdapter {
  public:
   explicit HistoryUpdateServiceAdapter(scada::HistoryUpdateService& inner

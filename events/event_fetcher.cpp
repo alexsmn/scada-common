@@ -26,8 +26,8 @@ namespace {
 //
 // The subscription below asks for SystemEventType, and DeviceWatchEventType
 // subtypes it (common/model/nodesets/devices.xml) — OPC UA event filters match
-// subtypes (Part 4 §7.4.4,
-// https://reference.opcfoundation.org/Core/Part4/v105/docs/7.4.4), so every
+// subtypes (Part 4 §7.7.3,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/7.7.3), so every
 // IEC-104 APDU an edge traces arrives here by design. There is no `OfType` an
 // operator feed could ask for instead that would exclude them, so the exclusion
 // has to happen on this side.

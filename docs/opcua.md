@@ -574,7 +574,7 @@ service request/response body field names are governed by the spec casing.
   examples (`MessageId`, `MessageType`, `PublisherId`, `DataSetWriterId`,
   `SequenceNumber`, `Payload`, `Timestamp`) all PascalCase:
   <https://reference.opcfoundation.org/Core/Part14/v104/docs/7.2.3>
-- **OPC UA Part 4 §5.6.2** — `CreateSessionRequest` struct definition:
+- **OPC UA Part 4 §5.7.2** — `CreateSessionRequest` struct definition:
   `ClientDescription`, `ServerUri`, `EndpointUrl`, `SessionName`,
   `ClientNonce`, `ClientCertificate`, `RequestedSessionTimeout`,
   `MaxResponseMessageSize`:
