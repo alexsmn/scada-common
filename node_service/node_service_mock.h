@@ -6,6 +6,23 @@
 
 class MockNodeService : public NodeService {
  public:
+  MockNodeService() {
+    using namespace testing;
+
+    // gmock's default for a return type it knows nothing about is
+    // `T()`, and a default-constructed `boost::asio::awaitable` holds a null
+    // frame. `await_ready()` returns false unconditionally, so co_awaiting one
+    // dereferences that null frame in `await_suspend` -- a segfault inside the
+    // awaiting coroutine's body rather than an unmet-expectation failure. Give
+    // the fetches an already-complete awaitable so an unstubbed call behaves
+    // like a node that needed nothing fetched. Same reason as the default in
+    // `MockFileManager`.
+    ON_CALL(*this, Fetch(_, _))
+        .WillByDefault(
+            [](const scada::NodeId&,
+               const NodeFetchStatus&) -> Awaitable<void> { co_return; });
+  }
+
   MOCK_METHOD(NodeRef, GetNode, (const scada::NodeId& node_id), (override));
 
   // --- Per-node operations. ---
