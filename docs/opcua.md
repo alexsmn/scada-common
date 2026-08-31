@@ -1,7 +1,10 @@
 # OPC UA Module and Endpoint Design
 
 Status: Living reference
-Last verified against code: 2026-08-02
+Last verified against code: 2026-08-31 (the "Test strategy" section's inventory
+of WebSocket suites only, re-read against `git ls-files` — two claims about
+which suites exist were wrong and are corrected; the rest last verified
+2026-08-02)
 
 The server exposes two sibling OPC UA transport adapters over the same
 semantic core: a classic `opc.tcp://` UA Binary endpoint and a browser-facing
