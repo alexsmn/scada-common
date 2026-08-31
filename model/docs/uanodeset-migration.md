@@ -96,7 +96,8 @@ references forward.
 - **Coexistence**: keep both loaders during Phases 2–4; cut over at Phase 4.
 
 ### Phase 1 — One-shot converter + validated sample  ← *this change*
-`gen/convert_to_uanodeset.py`: transform the custom XML → UANodeSet2 per the
+~~`gen/convert_to_uanodeset.py`~~ (retired at Phase 4): transform the custom
+XML → UANodeSet2 per the
 mapping above (per-class elements, `ns=;i=` ids with file-local namespace,
 deduped reference union, aliases, `uax:` value encoding, `Model` metadata).
 Emit `Scada.NodeSet2.xml` (the SCADA-namespace nodes) for review and validate it
@@ -148,7 +149,8 @@ the input files change, not its output.
 > Superseded by Phase 6: the single `Scada.NodeSet2.xml` described here was later
 > split into one UANodeSet2 file per C++ domain.
 
-The SCADA model is now `nodesets/Scada.NodeSet2.xml` (standard UANodeSet2); the
+The SCADA model is now ~~`nodesets/Scada.NodeSet2.xml`~~ (standard UANodeSet2;
+split per domain at Phase 6); the
 10 custom SCADA files are removed. `opcua_base.xml` stays in the repo-owned
 format for now (the ns0 base subset; Phase 5 can swap in the official OPC UA
 nodeset). `kScadaStaticNodesetFiles` is `{opcua_base.xml, Scada.NodeSet2.xml}`.
@@ -170,7 +172,7 @@ this doc preserve the mapping.
 `Scada.NodeSet2.xml` already carries `Model` metadata (ModelUri, Version,
 PublicationDate + a `RequiredModel` on OPC UA). Its ModelUri/NamespaceUri is now
 the server's real SCADA namespace URI — `http://telecontrol.ru/opcua/scada`
-(`server/base/proxy_namespace_table.cpp`, `NamespaceIndexes::SCADA`) — instead of
+(`core/scada/proxy_namespace_table.cpp`, `NamespaceIndexes::SCADA`) — instead of
 the placeholder, so a tool importing the nodeset and a client browsing the
 server agree on the namespace. `ScadaNodesetNamespaceUri.
 MatchesServerNamespaceArray` guards against drift between the two.

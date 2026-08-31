@@ -18,7 +18,7 @@ coroutine-based service dispatch lives in
 ## Where the code lives
 
 **The native OPC UA stack this document describes is no longer in
-`common/opcua/` — that directory does not exist.** It was extracted into the
+~~`common/opcua/`~~ — that directory does not exist.** It was extracted into the
 standalone **opcuapp** repo, vendored at `third_party/opcuapp/`. Inside
 `common/` the old names survive only as CMake INTERFACE shims —
 `scada_core_opcua`, `scada_core_opcua_client` and `scada_common_opcua_ws` in
@@ -320,7 +320,7 @@ Files:
 
 Canonical server-side request/response and service-dispatch contract used by
 both the UA Binary adapter and the UA-JSON/WebSocket adapter. The WS-side
-`websocket/runtime.h` convenience wrapper this list used to name is gone —
+~~`websocket/runtime.h`~~ convenience wrapper this list used to name is gone —
 both adapters now hold an `opcua::ServerRuntime` directly.
 
 `message.h` carries the dispatched `RequestMessage` / `ResponseMessage` pair
@@ -377,7 +377,7 @@ File:
 
 Factory adapter that exposes one outbound `opcua::ClientSession` through the
 shared `::DataServices` bundle. This replaced the former
-`common/opcua/services_factory.cpp` / `CreateServices(...)`, which moved to
+~~`common/opcua/services_factory.cpp`~~ / `CreateServices(...)`, which moved to
 the bridge along with the rest of the `scada::` ⇄ `opcua::` boundary.
 
 Responsibilities:
@@ -454,7 +454,7 @@ Except where noted, paths below are relative to
 | `transport/websocket/server.{h,cpp}` | Message-oriented accept/session loop over `transport::any_transport` (`opcua::ws::Server`): reads JSON frames, decodes canonical `opcua::RequestMessage` UA-JSON envelopes, forwards canonical request bodies into `opcua::ServerRuntime`, writes canonical `opcua::ResponseMessage` envelopes, and detaches sessions on disconnect |
 | `transport/websocket/tls_context.{h,cpp}` | `ConfigureServerTlsContext` — WSS certificate/key bootstrap from in-memory PEM |
 | `session/server_session.{h,cpp}` | Canonical transport-independent live session state owned by `opcua::ServerSession` |
-| `session/server_runtime.{h,cpp}` | Canonical shared runtime: transport-neutral request-body routing, shared connection state, session/subscription ownership tracking, and the `ServiceCallbacks` the application supplies. The WS-side `websocket/runtime.h` wrapper is gone; both adapters use `ServerRuntime` directly |
+| `session/server_runtime.{h,cpp}` | Canonical shared runtime: transport-neutral request-body routing, shared connection state, session/subscription ownership tracking, and the `ServiceCallbacks` the application supplies. The WS-side ~~`websocket/runtime.h`~~ wrapper is gone; both adapters use `ServerRuntime` directly |
 | `session/server_session_manager.{h,cpp}` | Canonical transport-independent session lifecycle, resume/detach timeout handling, and auth-policy enforcement |
 | `session/server_subscription.{h,cpp}` | Canonical `opcua::ServerSubscription` publish queue, keep-alive timer, and data-change delivery |
 | `session/{session,subscription,discovery}_conversion.{h,cpp}`, `services/{browse,history,node_attributes}_conversion.{h,cpp}` | The former single `conversion.{h,cpp}` unit, split by service family. These convert **within** `opcua::`; the `scada::` ⇄ `opcua::` conversion lives outside opcuapp in `common/opcua_bridge/conversion.{h,cpp}` + `service_conversion.{h,cpp}` |
@@ -600,7 +600,7 @@ service request/response body field names are governed by the spec casing.
   (`third_party/opcuapp/opcua/transport/websocket/json_codec_unittest.cpp`)
   check PascalCase session field names explicitly.
 - **Server integration tests** used to live in
-  `server/opcua/opcua_module_unittest.cpp`, sending raw PascalCase
+  ~~`server/opcua/opcua_module_unittest.cpp`~~, sending raw PascalCase
   `CreateSession` / `ActivateSession` JSON over a live websocket connection.
   That file is currently parked as
   `scada-server-framework/modules/opcua/opcua_module_unittest.cpp.cutover-disabled`
@@ -656,7 +656,7 @@ The server-side auth path
 ## Configuration
 
 There is **no separate `opcua_ws` block**, and the monolith's
-`server/data/server.json` / `server/docker/server.json` are gone. Both
+~~`server/data/server.json`~~ / ~~`server/docker/server.json`~~ are gone. Both
 transports are configured from the one `opcua` block, whose `url` accepts a
 single endpoint string or a list mixing schemes:
 
@@ -773,8 +773,8 @@ behavior it describes regresses. The currently excluded set is
 `server/service_handler_unittest.cpp`,
 `transport/binary/client_server_e2e_unittest.cpp`,
 `transport/binary/runtime_unittest.cpp`,
-`transport/binary/service_dispatcher_unittest.cpp`, and the three WS suites
-`transport/websocket/{server,service_handler,websocket_server}_unittest.cpp`.
+`transport/binary/service_dispatcher_unittest.cpp`, and the two WS suites
+`transport/websocket/{server,websocket_server}_unittest.cpp`.
 
 What an exclusion costs is on the record: `session/server_subscription_unittest.cpp`
 was excluded long enough that `ServerSubscription` had no compiled coverage at
@@ -786,10 +786,10 @@ anyone could see it.
 `session/server_subscription_unittest.cpp`, `session/server_session_unittest.cpp`
 and `session/server_runtime_unittest.cpp` with its rewritten
 `session/server_runtime_contract_test.h`. Two files were **deleted rather than
-restored** — `transport/websocket/{subscription,session}_unittest.cpp` were not
+restored** — ~~`transport/websocket/{subscription,session}_unittest.cpp`~~ were not
 WebSocket tests at all: every case constructed `ServerSubscription` or
 `ServerSession` directly, misfiled there from when opcuapp lived under
-`common/opcua/`. Their unique coverage (event-field projection and per-item
+~~`common/opcua/`~~. Their unique coverage (event-field projection and per-item
 event queue trimming, filter pass-through to the backing subscription, rebind
 dropping late notifications from the previous binding, continuation-point
 release semantics, keep-alive priming under publishing mode) moved into the
@@ -799,7 +799,7 @@ Three things the restoration established, all of which apply to the files still
 excluded:
 
 - **The missing fixture is not missing, it moved.** The
-  `opcua/monitored/item_factory_subscription.h` those files include exists today
+  ~~`opcua/monitored/item_factory_subscription.h`~~ those files include exists today
   as `core/scada/item_factory_subscription.h`. Do **not** repoint the includes
   there: `opcuapp` links only `transport` + Boost and `opcuapp_unittests` links
   only opcuapp/GTest/OpenSSL, so that would re-couple `third_party/opcuapp` to
@@ -846,9 +846,10 @@ round-trip opaquely via `{typeId, body}`.
 
 ### In-process integration
 
-`transport/websocket/service_handler_unittest.cpp` **(excluded)** and
-`server/service_handler_unittest.cpp` **(excluded)**. Live dispatch-layer
-coverage is narrower: `server/service_handler_call_unittest.cpp` and
+`server/service_handler_unittest.cpp` **(excluded)**. There is no
+~~`transport/websocket/service_handler_unittest.cpp`~~ — the WS transport has
+never had a dispatch suite of its own. Live dispatch-layer coverage is
+narrower: `server/service_handler_call_unittest.cpp` and
 `server/service_handler_trace_unittest.cpp`.
 
 Between them the excluded suites cover the coroutine dispatch layer for:
@@ -896,10 +897,11 @@ Covers the transport-independent per-subscription runtime, against a
 - backing-binding release on `DeleteMonitoredItems`, and item status reported
   when a backing bind fails
 
-`transport/websocket/subscription_unittest.cpp` **(excluded)** covers the same
-runtime through the WS transport and does not compile.
+~~`transport/websocket/subscription_unittest.cpp`~~ **(deleted)** covered the
+same runtime through the WS transport; its unique coverage moved into the
+session-level suites, per the restoration note above.
 
-`transport/websocket/session_unittest.cpp` **(excluded)**, and its sibling
+~~`transport/websocket/session_unittest.cpp`~~ **(deleted)**, and its sibling
 `session/server_session_unittest.cpp` **(excluded)**
 
 Covers the transport-independent live-session runtime for:
@@ -913,7 +915,7 @@ Covers the transport-independent live-session runtime for:
 - in-memory `TransferSubscriptions` ownership handoff
 
 `session/server_runtime_unittest.cpp` **(excluded)** — there is no
-`transport/websocket/runtime_unittest.cpp`; the WS-specific runtime wrapper it
+~~`transport/websocket/runtime_unittest.cpp`~~; the WS-specific runtime wrapper it
 used to test is gone. `session/server_runtime_endpoints_unittest.cpp` is
 **(live)** and covers endpoint-description construction only.
 
