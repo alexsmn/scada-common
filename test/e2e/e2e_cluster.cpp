@@ -567,8 +567,22 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     // shared one notification queue it drained the data changes belonging to
     // client subscriptions. Leaving it off made this fixture the one topology
     // where aggregated live values worked.
-    aggregation_servers_.push_back(boost::json::object{
-        {"endpoint", Tier(edge.tier)->OpcUaUrl()}, {"forward_events", true}});
+    //
+    // The link presents svc for the same reason the file store's does: an
+    // anonymous downstream session is denied the forwarded AddNodes, so a
+    // client adding a transmission rule to a device gets Bad_UserAccessDenied
+    // no matter which transport it used. That was measured against
+    // dev/local-cluster and fixed there the same way (backlog 702); this
+    // fixture carried the identical anonymous entries, which is why
+    // Transmission_AddRuleAgreesAcrossTransports could only ever assert the
+    // two transports agreed on a refusal. The edges resolve svc through the
+    // config tier they read (kSvcUserSql is applied to its DB), so a
+    // remote-config edge authenticates it despite holding no local DB.
+    aggregation_servers_.push_back(
+        boost::json::object{{"endpoint", Tier(edge.tier)->OpcUaUrl()},
+                            {"user", std::string{kSvcUser}},
+                            {"password", std::string{kSvcPassword}},
+                            {"forward_events", true}});
   }
   // The file-store downstream. The "namespaces" claim names the tier-exclusive
   // file-instance namespace (FILESYSTEM_FILE). Beyond routing that namespace
