@@ -77,13 +77,6 @@ target_link_libraries(scada_core_opcua_client INTERFACE scada_core_opcua)
 add_library(scada_common_opcua_ws INTERFACE)
 target_link_libraries(scada_common_opcua_ws INTERFACE scada_core_opcua)
 
-# common/vds_runtime_api.h is the plugin ABI between designer, which implements
-# the VDS runtime, and the client, which loads it. Neither owns it, which is why
-# it lives here. This carries just its include root, so a consumer needing only
-# the contract does not link the whole of scada_common for it.
-add_library(scada_vds_runtime_api INTERFACE)
-target_include_directories(scada_vds_runtime_api INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
-
 add_subdirectory(timed_data)
 add_subdirectory(node_service)
 
