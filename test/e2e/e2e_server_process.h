@@ -18,6 +18,12 @@ class object;
 
 namespace client::test {
 
+// Whether something is accepting TCP connections on `port` of the loopback
+// interface. The readiness question for anything this harness launches: a tier
+// (ServerTier::WaitListening) and the IEC 61850 device (Iec61850Device) both
+// poll it, having first checked that the child is still alive.
+bool CanConnectTcp(int port);
+
 // Everything the server-process harness needs that differs per test target: the
 // binary and fixture paths (each E2E target injects its own compile-time
 // `SCADA_E2E_*` values) and how a signed license is applied to a server.json

@@ -102,8 +102,10 @@ int PortPool::Allocate() {
   return reservations_.back().port();
 }
 
-namespace {
-
+// Declared in the header since 2026-09-20: it was the sole member of this
+// file's anonymous namespace, and `Iec61850Device` needs exactly the same
+// readiness question asked of a device as `ServerTier` asks of a tier. The
+// client E2E support TU had its own copy too.
 bool CanConnectTcp(int port) {
   try {
     boost::asio::io_context io_context;
@@ -116,8 +118,6 @@ bool CanConnectTcp(int port) {
     return false;
   }
 }
-
-}  // namespace
 
 void GenerateConfigurationDatabase(const ServerProcessContext& context,
                                    const std::filesystem::path& workspace,

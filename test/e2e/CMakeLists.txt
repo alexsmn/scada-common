@@ -22,7 +22,13 @@ target_sources(scada_e2e_harness INTERFACE
   "${CMAKE_CURRENT_LIST_DIR}/e2e_port_reservation.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/e2e_process.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/e2e_server_process.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/iec61850_test_server.cpp"
+  # Launches the IEC 61850 device; does NOT implement it. `iec61850_test_server.cpp`
+  # was here until 2026-09-20 and was the reason every consumer of this INTERFACE
+  # library compiled libiec61850 -- putting the unpublished `iec61850pp` product
+  # and a git submodule into the Qt client's source closure for a fake device
+  # (backlog 801). The device is a binary now, at test/e2e/iec61850_device/, and
+  # is handed over by path like the seven tier binaries beside it.
+  "${CMAKE_CURRENT_LIST_DIR}/e2e_iec61850_device.cpp"
 )
 
 # Consumers include these as "test/e2e/e2e_cluster.h", so the include root is
