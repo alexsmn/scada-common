@@ -2,6 +2,8 @@
 
 #include "opcua/events/event_filter.h"
 #include "scada/co_result.h"
+#include "scada/history_service.h"
+#include "scada/locale_negotiation.h"
 
 #include <gtest/gtest.h>
 
@@ -507,6 +509,83 @@ TEST(ServerAdapterTest, DataChangeNotificationOfDeliveredValueStaysGood) {
   ASSERT_NE(notification, nullptr);
   EXPECT_EQ(notification->value.status_code, opcua::StatusCode::Good);
   EXPECT_DOUBLE_EQ(notification->value.value.get<opcua::Double>(), 1.5);
+}
+
+// A HistoryService that returns one event whose message holds every language
+// the server could say it in, the way a composed message is stored.
+class TwoLanguageHistoryService : public scada::HistoryService {
+ public:
+  scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::HistoryReadRawDetails) override {
+    co_return scada::HistoryReadRawResult{};
+  }
+
+  scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::NodeId,
+      scada::Time,
+      scada::Time,
+      scada::EventFilter) override {
+    const scada::LocalizedText translations[] = {
+        {"ru", u"Изменение состояния"},
+        {"en", u"State change"},
+    };
+    scada::Event event;
+    event.event_id = 1;
+    event.time = scada::Now();
+    event.severity = scada::kSeverityNormal;
+    event.message = scada::EncodeMultiLanguage(translations);
+    co_return scada::HistoryReadEventsResult{.events = {std::move(event)}};
+  }
+};
+
+// Reads the journal through the adapter under one session's LocaleIds.
+opcua::LocalizedText ReadOneEventMessage(std::vector<std::string> locale_ids) {
+  TwoLanguageHistoryService fake;
+  HistoryServiceAdapter adapter{fake};
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<opcua::HistoryReadEventsResult>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.HistoryReadEvents(
+            opcua::ServiceContext{}.with_locale_ids(std::move(locale_ids)),
+            opcua::NodeId{85u}, opcua::DateTime{}, opcua::DateTime{},
+            opcua::EventFilter{});
+      },
+      boost::asio::detached);
+  io.run();
+
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result->ok());
+  EXPECT_EQ((*result)->events.size(), 1u);
+  if (!result.has_value() || !result->ok() || (*result)->events.empty())
+    return {};
+  return (*result)->events.front().message;
+}
+
+// The session's LocaleIds choose which stored translation crosses the wire.
+// OPC UA Part 4 §5.4 Locale Negotiation,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4 — Part 11
+// states no exception for historical access, so reading the journal is
+// localized exactly like receiving the event live.
+TEST(ServerAdapterTest, HistoryEventMessageIsResolvedToTheSessionLanguage) {
+  const auto english = ReadOneEventMessage({"en"});
+  EXPECT_EQ(english.locale, "en");
+  EXPECT_EQ(english.text, u"State change");
+
+  const auto russian = ReadOneEventMessage({"ru"});
+  EXPECT_EQ(russian.locale, "ru");
+  EXPECT_NE(russian.text, u"State change");
+  EXPECT_FALSE(russian.text.empty());
+}
+
+// A session that named no locale must not receive the packed payload: it
+// would render as JSON in the event journal.
+TEST(ServerAdapterTest, HistoryEventMessageIsNeverThePackedFormOnTheWire) {
+  const auto received = ReadOneEventMessage({});
+  EXPECT_NE(received.locale, std::string{scada::kMultiLanguageLocale});
+  EXPECT_EQ(received.text.find(u"{\"t\":"), std::u16string::npos);
 }
 
 }  // namespace

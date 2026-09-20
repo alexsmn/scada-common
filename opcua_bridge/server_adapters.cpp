@@ -5,6 +5,7 @@
 
 #include "scada/data_value.h"
 #include "scada/event_util.h"
+#include "scada/locale_negotiation.h"
 
 #include "opcua/events/event_filter.h"
 #include "opcua/types/co_result.h"
@@ -120,9 +121,11 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
             return history.HistoryReadRaw(std::move(details));
           },
       .history_read_events =
-          [this](opcua::NodeId node_id, opcua::DateTime from,
-                 opcua::DateTime to, opcua::EventFilter filter) {
-            return history.HistoryReadEvents(std::move(node_id), from, to,
+          [this](opcua::ServiceContext context, opcua::NodeId node_id,
+                 opcua::DateTime from, opcua::DateTime to,
+                 opcua::EventFilter filter) {
+            return history.HistoryReadEvents(std::move(context),
+                                             std::move(node_id), from, to,
                                              std::move(filter));
           },
       .history_update =
@@ -323,17 +326,25 @@ HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
 }
 
 opcua::CoStatusOr<opcua::HistoryReadEventsResult>
-HistoryServiceAdapter::HistoryReadEvents(opcua::NodeId node_id,
+HistoryServiceAdapter::HistoryReadEvents(opcua::ServiceContext context,
+                                         opcua::NodeId node_id,
                                          opcua::DateTime from,
                                          opcua::DateTime to,
                                          opcua::EventFilter filter) {
-  auto span = tracer_.StartSpan("opcua.server/HistoryReadEvents",
-                                TraceSpanKind::kServer, {});
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/HistoryReadEvents", context);
   span.SetAttribute("scada.node_id", node_id.ToString());
   auto result = co_await inner_.HistoryReadEvents(
       ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
   if (!result.ok()) {
     co_return ToOpcua(result.status());
+  }
+  // A stored message carries every language the server could say it in when
+  // the event was produced; this session gets one of them. A message stored
+  // before events were multi-language resolves to itself.
+  const std::vector<scada::String> locale_ids = context.locale_ids();
+  for (scada::Event& event : result->events) {
+    event.message = scada::ResolveLocalizedText(event.message, locale_ids);
   }
   co_return ToOpcua(*result);
 }

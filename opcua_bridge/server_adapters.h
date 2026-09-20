@@ -131,7 +131,12 @@ class HistoryServiceAdapter {
   opcua::CoStatusOr<opcua::HistoryReadRawResult> HistoryReadRaw(
       opcua::HistoryReadRawDetails details);
 
+  // Takes the session's context so a stored event Message comes back in that
+  // session's language (OPC UA Part 5 §6.4.2, Part 4 §5.4). `scada::
+  // HistoryService` carries no context, so this endpoint resolves rather than
+  // the service interface widening.
   opcua::CoStatusOr<opcua::HistoryReadEventsResult> HistoryReadEvents(
+      opcua::ServiceContext context,
       opcua::NodeId node_id,
       opcua::DateTime from,
       opcua::DateTime to,
