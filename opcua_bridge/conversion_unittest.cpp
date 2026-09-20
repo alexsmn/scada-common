@@ -13,6 +13,7 @@
 
 #include <any>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -526,6 +527,50 @@ TEST(ConversionTest, EventFieldListDefaultProjectionKeepsEventId) {
   ASSERT_NE(event, nullptr);
   EXPECT_EQ(event->event_id, source.event_id);
   EXPECT_EQ(event->severity, source.severity);
+}
+
+// --- Locale negotiation across the bridge ---------------------------------
+//
+// The two ServiceContexts and the two SessionConnectParams are separate types
+// with hand-written converters, so a field added to one side reaches the other
+// only because somebody wrote a line. These pin the locale line in all four
+// directions. OPC UA Part 4 §5.4 Locale Negotiation,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4
+
+TEST(ServiceContextConversionTest, LocaleIdsReachTheOpcuaContext) {
+  const scada::ServiceContext source =
+      scada::ServiceContext{}.with_locale_ids({"en-GB", "en"});
+  EXPECT_EQ((std::vector<std::string>{"en-GB", "en"}),
+            ToOpcua(source).locale_ids());
+}
+
+TEST(ServiceContextConversionTest, LocaleIdsReachTheScadaContext) {
+  const opcua::ServiceContext source =
+      opcua::ServiceContext{}.with_locale_ids({"ru"});
+  EXPECT_EQ((std::vector<std::string>{"ru"}), ToScada(source).locale_ids());
+}
+
+TEST(ServiceContextConversionTest, LocaleIdsRoundTripBothWays) {
+  const std::vector<std::string> locales{"en", "ru", "de"};
+  EXPECT_EQ(locales, ToScada(ToOpcua(scada::ServiceContext{}.with_locale_ids(
+                                 locales)))
+                         .locale_ids());
+}
+
+TEST(ServiceContextConversionTest, AnEmptyLocaleListStaysEmpty) {
+  // Empty means "any locale you have" (§5.4); the bridge must not invent one.
+  EXPECT_TRUE(ToOpcua(scada::ServiceContext{}).locale_ids().empty());
+  EXPECT_TRUE(ToScada(opcua::ServiceContext{}).locale_ids().empty());
+}
+
+TEST(SessionConnectParamsConversionTest, LocaleIdsRoundTrip) {
+  // The client half: what a tier asks its upstream for. The tier links ask
+  // for "mul" so they can resolve per client session themselves.
+  scada::SessionConnectParams source;
+  source.locale_ids = {"mul"};
+  EXPECT_EQ((std::vector<std::string>{"mul"}), ToOpcua(source).locale_ids);
+  EXPECT_EQ((std::vector<std::string>{"mul"}),
+            ToScada(ToOpcua(source)).locale_ids);
 }
 
 }  // namespace

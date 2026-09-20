@@ -20,7 +20,8 @@ opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
       .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id())
-      .with_peer(c.peer());
+      .with_peer(c.peer())
+      .with_locale_ids(c.locale_ids());
 }
 scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
   return scada::ServiceContext{}
@@ -28,7 +29,8 @@ scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
       .with_user_rights(c.user_rights())
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id())
-      .with_peer(c.peer());
+      .with_peer(c.peer())
+      .with_locale_ids(c.locale_ids());
 }
 
 opcua::ReadValueId ToOpcua(const scada::ReadValueId& v) {
@@ -629,6 +631,7 @@ opcua::SessionConnectParams ToOpcua(const scada::SessionConnectParams& v) {
           .user_name = ToOpcua(v.user_name),
           .password = ToOpcua(v.password),
           .allow_remote_logoff = v.allow_remote_logoff,
+          .locale_ids = v.locale_ids,
           .security = ToOpcua(v.security)};
 }
 scada::SessionConnectParams ToScada(const opcua::SessionConnectParams& v) {
@@ -637,6 +640,7 @@ scada::SessionConnectParams ToScada(const opcua::SessionConnectParams& v) {
           .user_name = ToScada(v.user_name),
           .password = ToScada(v.password),
           .allow_remote_logoff = v.allow_remote_logoff,
+          .locale_ids = v.locale_ids,
           .security = ToScada(v.security)};
 }
 
