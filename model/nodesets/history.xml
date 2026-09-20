@@ -31,35 +31,40 @@
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
   <UAReferenceType NodeId="ns=1;i=152" BrowseName="HasHistoricalDatabase" SymbolicName="HasHistoricalDatabase">
-    <DisplayName>Архив значений</DisplayName>
+    <DisplayName Locale="ru">Архив значений</DisplayName>
+    <DisplayName Locale="en">Value archive</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
       <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
     </References>
   </UAReferenceType>
   <UAObject NodeId="ns=1;i=317" BrowseName="History" SymbolicName="HistoryPropertyCategory" ParentNodeId="ns=1;i=310">
-    <DisplayName>Архивирование</DisplayName>
+    <DisplayName Locale="ru">Архивирование</DisplayName>
+    <DisplayName Locale="en">Archiving</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=310</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
     </References>
   </UAObject>
   <UAReferenceType NodeId="ns=1;i=335" BrowseName="HasEventDatabase" SymbolicName="HasEventDatabase">
-    <DisplayName>Архив событий</DisplayName>
+    <DisplayName Locale="ru">Архив событий</DisplayName>
+    <DisplayName Locale="en">Event archive</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
       <Reference ReferenceType="ns=1;i=311">ns=1;i=317</Reference>
     </References>
   </UAReferenceType>
   <UAObject NodeId="ns=1;i=12" BrowseName="HistoricalDatabases" SymbolicName="HistoricalDatabases" ParentNodeId="i=85">
-    <DisplayName>Базы данных</DisplayName>
+    <DisplayName Locale="ru">Базы данных</DisplayName>
+    <DisplayName Locale="en">Databases</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=406</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=171" BrowseName="Depth" SymbolicName="HistoricalDatabaseType_Depth" ParentNodeId="ns=1;i=20" DataType="Int32">
-    <DisplayName>Глубина, дн</DisplayName>
+    <DisplayName Locale="ru">Глубина, дн</DisplayName>
+    <DisplayName Locale="en">Depth, days</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -68,13 +73,15 @@
     <Value><uax:Int32>1</uax:Int32></Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=20" BrowseName="HistoricalDatabaseType" SymbolicName="HistoricalDatabaseType">
-    <DisplayName>База данных</DisplayName>
+    <DisplayName Locale="ru">База данных</DisplayName>
+    <DisplayName Locale="en">Database</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=244" BrowseName="ItemCount" SymbolicName="HistoricalDatabaseType_ItemCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
-    <DisplayName>Количество измерений</DisplayName>
+    <DisplayName Locale="ru">Количество измерений</DisplayName>
+    <DisplayName Locale="en">Measurement count</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
@@ -86,7 +93,8 @@
        a single retention sweep, or the configured item count. A busy historian
        would wrap a UInt32 in days. -->
   <UAVariable NodeId="ns=1;i=245" BrowseName="WriteValueCount" SymbolicName="HistoricalDatabaseType_WriteValueCount" ParentNodeId="ns=1;i=20" DataType="UInt64">
-    <DisplayName>Количество записанных измерений</DisplayName>
+    <DisplayName Locale="ru">Количество записанных измерений</DisplayName>
+    <DisplayName Locale="en">Measurements written</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
@@ -94,7 +102,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=240" BrowseName="WriteValueDuration" SymbolicName="HistoricalDatabaseType_WriteValueDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
-    <DisplayName>Задержка записи измерений, мкс</DisplayName>
+    <DisplayName Locale="ru">Задержка записи измерений, мкс</DisplayName>
+    <DisplayName Locale="en">Measurement write delay, us</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
@@ -102,7 +111,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=241" BrowseName="PendingTaskCount" SymbolicName="HistoricalDatabaseType_PendingTaskCount" ParentNodeId="ns=1;i=20" DataType="UInt32">
-    <DisplayName>Очередь записи измерений</DisplayName>
+    <DisplayName Locale="ru">Очередь записи измерений</DisplayName>
+    <DisplayName Locale="en">Measurement write queue</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
@@ -110,7 +120,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=242" BrowseName="EventCleanupDuration" SymbolicName="HistoricalDatabaseType_EventCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
-    <DisplayName>Продолжительность очистки событий, мкс</DisplayName>
+    <DisplayName Locale="ru">Продолжительность очистки событий, мкс</DisplayName>
+    <DisplayName Locale="en">Event purge duration, us</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>
@@ -118,7 +129,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=243" BrowseName="ValueCleanupDuration" SymbolicName="HistoricalDatabaseType_ValueCleanupDuration" ParentNodeId="ns=1;i=20" DataType="UInt32">
-    <DisplayName>Продолжительность очистки измерений, мкс</DisplayName>
+    <DisplayName Locale="ru">Продолжительность очистки измерений, мкс</DisplayName>
+    <DisplayName Locale="en">Measurement purge duration, us</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=20</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=336</Reference>

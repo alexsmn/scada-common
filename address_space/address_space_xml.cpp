@@ -10,6 +10,7 @@
 #include "common/node_state_util.h"
 #include "model/namespaces.h"
 #include "model/node_id_util.h"
+#include "scada/locale_negotiation.h"
 #include "scada/node_attributes.h"
 
 #include <pugixml.hpp>
@@ -41,6 +42,39 @@ std::string ToUtf8(const LocalizedText& text) {
 
 LocalizedText FromUtf8(std::string_view text) {
   return ToLocalizedText(text);
+}
+
+// Reads every `<DisplayName>` / `<Description>` sibling of `node`, each
+// optionally carrying a `Locale` attribute, and packs them into one value.
+//
+// Both elements are `maxOccurs="unbounded"` in the OPC UA NodeSet schema and
+// their type extends `xs:string` with a `Locale` attribute defaulting to ""
+// (UANodeSet.xsd, `UANode` and `LocalizedText`,
+// https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/latest/Schema/UANodeSet.xsd,
+// read 2026-09-20), so a translated node is written as siblings:
+//
+//     <DisplayName Locale="ru">Все объекты</DisplayName>
+//     <DisplayName Locale="en">All objects</DisplayName>
+//
+// The result is the packed "mul" form when there is more than one, which the
+// client-facing service boundary resolves per session exactly as it resolves
+// a translated configuration node (OPC UA Part 4 §5.4,
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4). With one
+// element — every node in every nodeset that has not been translated — it is
+// that element unchanged, so an untranslated address space is byte-identical
+// to what this produced before locale-qualified names existed.
+//
+// An element with no Locale is carried with an empty locale rather than being
+// guessed at: it cannot then be asked for by name, but it stays the first
+// entry and so remains what §5.4's "return an available locale" falls back
+// to.
+LocalizedText ReadUaLocalizedText(pugi::xml_node node, const char* name) {
+  std::vector<LocalizedText> translations;
+  for (pugi::xml_node child : node.children(name)) {
+    translations.emplace_back(child.attribute("Locale").as_string(),
+                              FromUtf8(child.text().as_string()).text);
+  }
+  return EncodeMultiLanguage(translations);
 }
 
 std::string ToString(NodeClass node_class) {
@@ -913,13 +947,13 @@ Status ReadUaNodeState(pugi::xml_node node,
   node_state.attributes.browse_name =
       ParseUaBrowseName(node.attribute("BrowseName").as_string(), ns_map);
   node_state.attributes.display_name =
-      FromUtf8(node.child("DisplayName").text().as_string());
+      ReadUaLocalizedText(node, "DisplayName");
   // OPC UA Part 3 §5.3.2: the InverseName attribute of a non-symmetric
   // ReferenceType,
   // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2
   if (node_state.node_class == NodeClass::ReferenceType) {
     node_state.attributes.inverse_name =
-        FromUtf8(node.child("InverseName").text().as_string());
+        ReadUaLocalizedText(node, "InverseName");
   }
   if (auto data_type = node.attribute("DataType")) {
     node_state.attributes.data_type =

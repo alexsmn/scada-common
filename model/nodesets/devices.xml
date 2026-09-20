@@ -30,20 +30,23 @@
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
   <UAObjectType NodeId="ns=1;i=115" BrowseName="DeviceType" SymbolicName="DeviceType">
-    <DisplayName>Устройство</DisplayName>
+    <DisplayName Locale="ru">Устройство</DisplayName>
+    <DisplayName Locale="en">Device</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
       <Reference ReferenceType="ns=1;i=335">ns=1;i=20</Reference>
     </References>
   </UAObjectType>
   <UAObjectType NodeId="ns=1;i=116" BrowseName="LinkType" SymbolicName="LinkType">
-    <DisplayName>Направление</DisplayName>
+    <DisplayName Locale="ru">Направление</DisplayName>
+    <DisplayName Locale="en">Direction</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=141" BrowseName="Disabled" SymbolicName="DeviceType_Disabled" ParentNodeId="ns=1;i=115" DataType="Boolean">
-    <DisplayName>Отключено</DisplayName>
+    <DisplayName Locale="ru">Отключено</DisplayName>
+    <DisplayName Locale="en">Disabled</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -52,7 +55,8 @@
     <Value><uax:Boolean>true</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=142" BrowseName="TransportString" SymbolicName="LinkType_Transport" ParentNodeId="ns=1;i=116" DataType="String">
-    <DisplayName>Транспорт</DisplayName>
+    <DisplayName Locale="ru">Транспорт</DisplayName>
+    <DisplayName Locale="en">Transport</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=116</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -77,7 +81,8 @@
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=15134" BrowseName="Direction" SymbolicName="DeviceFrameEventType_Direction" ParentNodeId="ns=1;i=15133" DataType="Int32">
-    <DisplayName>Направление</DisplayName>
+    <DisplayName Locale="ru">Направление</DisplayName>
+    <DisplayName Locale="en">Direction</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -86,7 +91,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15135" BrowseName="RawData" SymbolicName="DeviceFrameEventType_RawData" ParentNodeId="ns=1;i=15133" DataType="ByteString">
-    <DisplayName>Кадр</DisplayName>
+    <DisplayName Locale="ru">Кадр</DisplayName>
+    <DisplayName Locale="en">Frame</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -95,7 +101,8 @@
     <Value><uax:ByteString></uax:ByteString></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15136" BrowseName="Format" SymbolicName="DeviceFrameEventType_Format" ParentNodeId="ns=1;i=15133" DataType="String">
-    <DisplayName>Формат</DisplayName>
+    <DisplayName Locale="ru">Формат</DisplayName>
+    <DisplayName Locale="en">Format</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -104,7 +111,8 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15137" BrowseName="TypeId" SymbolicName="DeviceFrameEventType_TypeId" ParentNodeId="ns=1;i=15133" DataType="Int32">
-    <DisplayName>Идентификатор типа</DisplayName>
+    <DisplayName Locale="ru">Идентификатор типа</DisplayName>
+    <DisplayName Locale="en">Type identifier</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -113,7 +121,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15138" BrowseName="Cause" SymbolicName="DeviceFrameEventType_Cause" ParentNodeId="ns=1;i=15133" DataType="Int32">
-    <DisplayName>Причина передачи</DisplayName>
+    <DisplayName Locale="ru">Причина передачи</DisplayName>
+    <DisplayName Locale="en">Cause of transmission</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -122,7 +131,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15139" BrowseName="ObjectAddress" SymbolicName="DeviceFrameEventType_ObjectAddress" ParentNodeId="ns=1;i=15133" DataType="Int32">
-    <DisplayName>Адрес объекта</DisplayName>
+    <DisplayName Locale="ru">Адрес объекта</DisplayName>
+    <DisplayName Locale="en">Object address</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15133</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -156,7 +166,8 @@
     <InverseName>TransmissionItemOf</InverseName>
   </UAReferenceType>
   <UAVariable NodeId="ns=1;i=225" BrowseName="Address" SymbolicName="TransmissionItemType_Address" ParentNodeId="ns=1;i=34" DataType="Int32">
-    <DisplayName>Адрес объекта приемника</DisplayName>
+    <DisplayName Locale="ru">Адрес объекта приемника</DisplayName>
+    <DisplayName Locale="en">Receiver object address</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -165,7 +176,8 @@
     <Value><uax:Int32>1</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=373" BrowseName="SourceNode" SymbolicName="TransmissionItemType_SourceNode" ParentNodeId="ns=1;i=34" DataType="NodeId">
-    <DisplayName>Объект источник</DisplayName>
+    <DisplayName Locale="ru">Объект источник</DisplayName>
+    <DisplayName Locale="en">Source object</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=34</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -173,7 +185,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=248" BrowseName="Online" SymbolicName="DeviceType_Online" ParentNodeId="ns=1;i=115" DataType="Boolean">
-    <DisplayName>Связь</DisplayName>
+    <DisplayName Locale="ru">Связь</DisplayName>
+    <DisplayName Locale="en">Communication</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -182,7 +195,8 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=249" BrowseName="Enabled" SymbolicName="DeviceType_Enabled" ParentNodeId="ns=1;i=115" DataType="Boolean">
-    <DisplayName>Включено</DisplayName>
+    <DisplayName Locale="ru">Включено</DisplayName>
+    <DisplayName Locale="en">Enabled</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -209,7 +223,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=252" BrowseName="MessagesIn" SymbolicName="DeviceType_MessagesIn" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Принято сообщений</DisplayName>
+    <DisplayName Locale="ru">Принято сообщений</DisplayName>
+    <DisplayName Locale="en">Messages received</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -218,7 +233,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=253" BrowseName="MessagesOut" SymbolicName="DeviceType_MessagesOut" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Отправлено сообщений</DisplayName>
+    <DisplayName Locale="ru">Отправлено сообщений</DisplayName>
+    <DisplayName Locale="en">Messages sent</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -227,7 +243,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=254" BrowseName="BytesIn" SymbolicName="DeviceType_BytesIn" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Принято байт</DisplayName>
+    <DisplayName Locale="ru">Принято байт</DisplayName>
+    <DisplayName Locale="en">Bytes received</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -236,7 +253,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=255" BrowseName="BytesOut" SymbolicName="DeviceType_BytesOut" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Отправлено байт</DisplayName>
+    <DisplayName Locale="ru">Отправлено байт</DisplayName>
+    <DisplayName Locale="en">Bytes sent</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -245,20 +263,23 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=30" BrowseName="Devices" SymbolicName="Devices" ParentNodeId="i=85">
-    <DisplayName>Все оборудование</DisplayName>
+    <DisplayName Locale="ru">Все оборудование</DisplayName>
+    <DisplayName Locale="en">All hardware</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=403</Reference>
     </References>
   </UAObject>
   <UAObjectType NodeId="ns=1;i=34" BrowseName="TransmissionItemType" SymbolicName="TransmissionItemType">
-    <DisplayName>Ретрансляция</DisplayName>
+    <DisplayName Locale="ru">Ретрансляция</DisplayName>
+    <DisplayName Locale="en">Retransmission</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=374" BrowseName="FrameCapture" SymbolicName="DeviceType_FrameCapture" ParentNodeId="ns=1;i=115" DataType="Boolean">
-    <DisplayName>Захват кадров</DisplayName>
+    <DisplayName Locale="ru">Захват кадров</DisplayName>
+    <DisplayName Locale="en">Frame capture</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -267,7 +288,8 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=350" BrowseName="SyncClockCount" SymbolicName="DeviceType_SyncClockCount" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Число синхронизаций времени</DisplayName>
+    <DisplayName Locale="ru">Число синхронизаций времени</DisplayName>
+    <DisplayName Locale="en">Clock synchronisation count</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>
@@ -276,7 +298,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=351" BrowseName="InterrogateCount" SymbolicName="DeviceType_InterrogateCount" ParentNodeId="ns=1;i=115" DataType="Int32">
-    <DisplayName>Число полных опросов</DisplayName>
+    <DisplayName Locale="ru">Число полных опросов</DisplayName>
+    <DisplayName Locale="en">General interrogation count</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=115</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=62</Reference>

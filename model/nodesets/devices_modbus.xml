@@ -30,13 +30,15 @@
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
   <UAObjectType NodeId="ns=1;i=108" BrowseName="ModbusLinkType" SymbolicName="ModbusLinkType">
-    <DisplayName>Направление MODBUS</DisplayName>
+    <DisplayName Locale="ru">Направление MODBUS</DisplayName>
+    <DisplayName Locale="en">Modbus direction</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=116</Reference>
     </References>
   </UAObjectType>
   <UAObjectType NodeId="ns=1;i=118" BrowseName="ModbusDeviceType" SymbolicName="ModbusDeviceType">
-    <DisplayName>Устройство MODBUS</DisplayName>
+    <DisplayName Locale="ru">Устройство MODBUS</DisplayName>
+    <DisplayName Locale="en">Modbus device</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
     </References>
@@ -50,13 +52,15 @@
     </References>
   </UAObject>
   <UADataType NodeId="ns=1;i=130" BrowseName="ModbusLinkProtocol" SymbolicName="ModbusLinkProtocol">
-    <DisplayName>Тип протокола MODBUS</DisplayName>
+    <DisplayName Locale="ru">Тип протокола MODBUS</DisplayName>
+    <DisplayName Locale="en">Modbus protocol type</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
   </UADataType>
   <UAVariable NodeId="ns=1;i=167" BrowseName="Protocol" SymbolicName="ModbusLinkType_Protocol" ParentNodeId="ns=1;i=108" DataType="ns=1;i=130">
-    <DisplayName>Протокол</DisplayName>
+    <DisplayName Locale="ru">Протокол</DisplayName>
+    <DisplayName Locale="en">Protocol</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -65,7 +69,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=168" BrowseName="Address" SymbolicName="ModbusDeviceType_Address" ParentNodeId="ns=1;i=118" DataType="i=3">
-    <DisplayName>Адрес</DisplayName>
+    <DisplayName Locale="ru">Адрес</DisplayName>
+    <DisplayName Locale="en">Address</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -74,7 +79,8 @@
     <Value><uax:Int32>1</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=169" BrowseName="RepeatCount" SymbolicName="ModbusDeviceType_SendRetryCount" ParentNodeId="ns=1;i=118" DataType="Int32">
-    <DisplayName>Попыток повторов передачи</DisplayName>
+    <DisplayName Locale="ru">Попыток повторов передачи</DisplayName>
+    <DisplayName Locale="en">Transmission retry attempts</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -83,7 +89,8 @@
     <Value><uax:Int32>3</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=298" BrowseName="ResponseTimeout" SymbolicName="ModbusDeviceType_ResponseTimeout" ParentNodeId="ns=1;i=118" DataType="Int32">
-    <DisplayName>Таймаут ответа, мс</DisplayName>
+    <DisplayName Locale="ru">Таймаут ответа, мс</DisplayName>
+    <DisplayName Locale="en">Response timeout, ms</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -92,7 +99,8 @@
     <Value><uax:Int32>1000</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=299" BrowseName="RequestDelay" SymbolicName="ModbusLinkType_RequestDelay" ParentNodeId="ns=1;i=108" DataType="Int32">
-    <DisplayName>Задержка запроса, мс</DisplayName>
+    <DisplayName Locale="ru">Задержка запроса, мс</DisplayName>
+    <DisplayName Locale="en">Request delay, ms</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -108,7 +116,8 @@
     </References>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=330" BrowseName="Mode" SymbolicName="ModbusLinkType_Mode" ParentNodeId="ns=1;i=108" DataType="ns=1;i=332">
-    <DisplayName>Режим</DisplayName>
+    <DisplayName Locale="ru">Режим</DisplayName>
+    <DisplayName Locale="en">Mode</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=108</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -117,7 +126,8 @@
     <Value><uax:Int32>0</uax:Int32></Value>
   </UAVariable>
   <UADataType NodeId="ns=1;i=332" BrowseName="ModbusModeDataType" SymbolicName="ModbusModeDataType">
-    <DisplayName>Режим MODBUS</DisplayName>
+    <DisplayName Locale="ru">Режим MODBUS</DisplayName>
+    <DisplayName Locale="en">Modbus mode</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
@@ -130,13 +140,15 @@
     </References>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=342" BrowseName="ModbusTransmissionItemType" SymbolicName="ModbusTransmissionItemType">
-    <DisplayName>Ретрансляция MODBUS</DisplayName>
+    <DisplayName Locale="ru">Ретрансляция MODBUS</DisplayName>
+    <DisplayName Locale="en">Modbus retransmission</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=349" BrowseName="SuspendDuration" SymbolicName="ModbusDeviceType_SuspendDuration" ParentNodeId="ns=1;i=118" DataType="Int32">
-    <DisplayName>Длительность приостановки, мс</DisplayName>
+    <DisplayName Locale="ru">Длительность приостановки, мс</DisplayName>
+    <DisplayName Locale="en">Suspend duration, ms</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=118</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>

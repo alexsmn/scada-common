@@ -30,13 +30,15 @@
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
   <UAObjectType NodeId="ns=1;i=16" BrowseName="UserType" SymbolicName="UserType">
-    <DisplayName>Пользователь</DisplayName>
+    <DisplayName Locale="ru">Пользователь</DisplayName>
+    <DisplayName Locale="en">User</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=170" BrowseName="AccessRights" SymbolicName="UserType_AccessRights" ParentNodeId="ns=1;i=16" DataType="Int32">
-    <DisplayName>Права</DisplayName>
+    <DisplayName Locale="ru">Права</DisplayName>
+    <DisplayName Locale="en">Permissions</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -53,7 +55,8 @@
        configuration database's schema-upgrade path add it to existing
        deployments as a plain new column. -->
   <UAVariable NodeId="ns=1;i=15142" BrowseName="UserConfiguration" SymbolicName="UserType_UserConfiguration" ParentNodeId="ns=1;i=16" DataType="Int32">
-    <DisplayName>Настройки учётной записи</DisplayName>
+    <DisplayName Locale="ru">Настройки учётной записи</DisplayName>
+    <DisplayName Locale="en">Account settings</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -64,7 +67,8 @@
   <!-- Free-text description of the account (OPC UA Part 18 §5.2.4
        UserManagementDataType.Description). -->
   <UAVariable NodeId="ns=1;i=15143" BrowseName="Description" SymbolicName="UserType_Description" ParentNodeId="ns=1;i=16" DataType="String">
-    <DisplayName>Описание</DisplayName>
+    <DisplayName Locale="ru">Описание</DisplayName>
+    <DisplayName Locale="en">Description</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -73,14 +77,16 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=29" BrowseName="Users" SymbolicName="Users" ParentNodeId="i=85">
-    <DisplayName>Пользователи</DisplayName>
+    <DisplayName Locale="ru">Пользователи</DisplayName>
+    <DisplayName Locale="en">Users</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=404</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=345" BrowseName="MultiSessions" SymbolicName="UserType_MultiSessions" ParentNodeId="ns=1;i=16" DataType="Boolean">
-    <DisplayName>Множество сессий</DisplayName>
+    <DisplayName Locale="ru">Множество сессий</DisplayName>
+    <DisplayName Locale="en">Multiple sessions</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -89,7 +95,8 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=346" BrowseName="ProfileJson" SymbolicName="UserType_ProfileJson" ParentNodeId="ns=1;i=16" DataType="String">
-    <DisplayName>Профиль</DisplayName>
+    <DisplayName Locale="ru">Профиль</DisplayName>
+    <DisplayName Locale="en">Profile</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -98,7 +105,8 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=347" BrowseName="ProfileRevision" SymbolicName="UserType_ProfileRevision" ParentNodeId="ns=1;i=16" DataType="UInt64">
-    <DisplayName>Версия профиля</DisplayName>
+    <DisplayName Locale="ru">Версия профиля</DisplayName>
+    <DisplayName Locale="en">Profile revision</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -107,28 +115,32 @@
     <Value><uax:UInt64>0</uax:UInt64></Value>
   </UAVariable>
   <UAMethod NodeId="ns=1;i=348" BrowseName="SaveProfile" SymbolicName="UserType_SaveProfile" ParentNodeId="ns=1;i=16">
-    <DisplayName>Сохранить профиль</DisplayName>
+    <DisplayName Locale="ru">Сохранить профиль</DisplayName>
+    <DisplayName Locale="en">Save profile</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
   <UAMethod NodeId="ns=1;i=353" BrowseName="VerifyPassword" SymbolicName="UserType_VerifyPassword" ParentNodeId="ns=1;i=16">
-    <DisplayName>Проверить пароль</DisplayName>
+    <DisplayName Locale="ru">Проверить пароль</DisplayName>
+    <DisplayName Locale="en">Verify password</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
   <UAObjectType NodeId="ns=1;i=354" BrowseName="RoleType" SymbolicName="RoleType">
-    <DisplayName>Роль</DisplayName>
+    <DisplayName Locale="ru">Роль</DisplayName>
+    <DisplayName Locale="en">Role</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
       <Reference ReferenceType="ns=1;i=356">ns=1;i=360</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=355" BrowseName="Authoring" SymbolicName="RoleType_Authoring" ParentNodeId="ns=1;i=354" DataType="Boolean">
-    <DisplayName>Редактирование</DisplayName>
+    <DisplayName Locale="ru">Редактирование</DisplayName>
+    <DisplayName Locale="en">Editing</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=354</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -137,33 +149,38 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAReferenceType NodeId="ns=1;i=356" BrowseName="HasConfiguration" SymbolicName="HasConfiguration">
-    <DisplayName>Конфигурация</DisplayName>
+    <DisplayName Locale="ru">Конфигурация</DisplayName>
+    <DisplayName Locale="en">Configuration</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=32</Reference>
     </References>
   </UAReferenceType>
   <UAMethod NodeId="ns=1;i=363" BrowseName="AddIdentity" SymbolicName="RoleType_AddIdentity" ParentNodeId="ns=1;i=354">
-    <DisplayName>Добавить участника</DisplayName>
+    <DisplayName Locale="ru">Добавить участника</DisplayName>
+    <DisplayName Locale="en">Add member</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=354</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
   <UAMethod NodeId="ns=1;i=364" BrowseName="RemoveIdentity" SymbolicName="RoleType_RemoveIdentity" ParentNodeId="ns=1;i=354">
-    <DisplayName>Удалить участника</DisplayName>
+    <DisplayName Locale="ru">Удалить участника</DisplayName>
+    <DisplayName Locale="en">Remove member</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=354</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
   <UAObjectType NodeId="ns=1;i=357" BrowseName="IdentityMappingRuleType" SymbolicName="IdentityMappingRuleType">
-    <DisplayName>Правило сопоставления</DisplayName>
+    <DisplayName Locale="ru">Правило сопоставления</DisplayName>
+    <DisplayName Locale="en">Mapping rule</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=358" BrowseName="CriteriaType" SymbolicName="IdentityMappingRuleType_CriteriaType" ParentNodeId="ns=1;i=357" DataType="Int32">
-    <DisplayName>Тип критерия</DisplayName>
+    <DisplayName Locale="ru">Тип критерия</DisplayName>
+    <DisplayName Locale="en">Criteria type</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=357</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -172,7 +189,8 @@
     <Value><uax:Int32>1</uax:Int32></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=359" BrowseName="Criteria" SymbolicName="IdentityMappingRuleType_Criteria" ParentNodeId="ns=1;i=357" DataType="String">
-    <DisplayName>Критерий</DisplayName>
+    <DisplayName Locale="ru">Критерий</DisplayName>
+    <DisplayName Locale="en">Criteria</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=357</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -181,26 +199,30 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=360" BrowseName="ConfigurationType" SymbolicName="ConfigurationType">
-    <DisplayName>Конфигурация</DisplayName>
+    <DisplayName Locale="ru">Конфигурация</DisplayName>
+    <DisplayName Locale="en">Configuration</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAObject NodeId="ns=1;i=362" BrowseName="Configurations" SymbolicName="Configurations" ParentNodeId="i=85">
-    <DisplayName>Конфигурации</DisplayName>
+    <DisplayName Locale="ru">Конфигурации</DisplayName>
+    <DisplayName Locale="en">Configurations</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=405</Reference>
     </References>
   </UAObject>
   <UAMethod NodeId="ns=1;i=365" BrowseName="DeployConfiguration" SymbolicName="Configurations_DeployConfiguration" ParentNodeId="ns=1;i=362">
-    <DisplayName>Развернуть конфигурацию</DisplayName>
+    <DisplayName Locale="ru">Развернуть конфигурацию</DisplayName>
+    <DisplayName Locale="en">Deploy configuration</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=362</Reference>
     </References>
   </UAMethod>
   <UAMethod NodeId="ns=1;i=366" BrowseName="RemoveConfiguration" SymbolicName="Configurations_RemoveConfiguration" ParentNodeId="ns=1;i=362">
-    <DisplayName>Удалить конфигурацию</DisplayName>
+    <DisplayName Locale="ru">Удалить конфигурацию</DisplayName>
+    <DisplayName Locale="en">Delete configuration</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=362</Reference>
     </References>
@@ -254,13 +276,15 @@
        beside MultiSessions because both are "per-account, vendor-only", not
        because they are related. -->
   <UAObjectType NodeId="ns=1;i=15144" BrowseName="UserExtensionType" SymbolicName="UserExtensionType">
-    <DisplayName>Дополнительные данные пользователя</DisplayName>
+    <DisplayName Locale="ru">Дополнительные данные пользователя</DisplayName>
+    <DisplayName Locale="en">User extension</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=15145" BrowseName="MultiSessions" SymbolicName="UserExtensionType_MultiSessions" ParentNodeId="ns=1;i=15144" DataType="Boolean">
-    <DisplayName>Множество сессий</DisplayName>
+    <DisplayName Locale="ru">Множество сессий</DisplayName>
+    <DisplayName Locale="en">Multiple sessions</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -269,7 +293,8 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15146" BrowseName="ProfileJson" SymbolicName="UserExtensionType_ProfileJson" ParentNodeId="ns=1;i=15144" DataType="String">
-    <DisplayName>Профиль</DisplayName>
+    <DisplayName Locale="ru">Профиль</DisplayName>
+    <DisplayName Locale="en">Profile</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -278,7 +303,8 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=15147" BrowseName="ProfileRevision" SymbolicName="UserExtensionType_ProfileRevision" ParentNodeId="ns=1;i=15144" DataType="UInt64">
-    <DisplayName>Версия профиля</DisplayName>
+    <DisplayName Locale="ru">Версия профиля</DisplayName>
+    <DisplayName Locale="en">Profile revision</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15144</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -287,7 +313,8 @@
     <Value><uax:UInt64>0</uax:UInt64></Value>
   </UAVariable>
   <UAMethod NodeId="ns=1;i=15148" BrowseName="SaveProfile" SymbolicName="UserExtensionType_SaveProfile" ParentNodeId="ns=1;i=15144">
-    <DisplayName>Сохранить профиль</DisplayName>
+    <DisplayName Locale="ru">Сохранить профиль</DisplayName>
+    <DisplayName Locale="en">Save profile</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15144</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
@@ -308,7 +335,8 @@
     </References>
   </UAObject>
   <UAObject NodeId="ns=1;i=15151" BrowseName="UserExtensions" SymbolicName="UserExtensions" ParentNodeId="i=85">
-    <DisplayName>Дополнительные данные пользователей</DisplayName>
+    <DisplayName Locale="ru">Дополнительные данные пользователей</DisplayName>
+    <DisplayName Locale="en">User extensions</DisplayName>
     <References>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=15149</Reference>

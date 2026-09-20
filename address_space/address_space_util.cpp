@@ -333,8 +333,15 @@ std::vector<const Node*> GetAllNodes(const AddressSpace& address_space) {
     return {};
   }
   std::vector<const Node*> result;
-  std::unordered_set<Node*> seen;
+  // The root goes in `seen` with it: seeding only the queue let any neighbour
+  // that references back to the root enqueue it a second time, so the walk
+  // emitted RootFolder twice. Callers that key by node id never noticed --
+  // the nodeset golden dump builds a map -- but SaveAddressSpaceXml's
+  // non-AddressSpaceImpl branch writes what this returns, so the duplicate
+  // reached a saved file as two <Node id="NS0.84"> elements.
+  std::unordered_set<const Node*> seen;
   std::queue<const Node*> queue;
+  seen.emplace(root);
   queue.emplace(root);
   while (!queue.empty()) {
     const Node* node = queue.front();

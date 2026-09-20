@@ -30,7 +30,8 @@
     <Alias Alias="HasComponent">i=47</Alias>
   </Aliases>
   <UAObjectType NodeId="ns=1;i=277" BrowseName="Iec61850DeviceType" SymbolicName="Iec61850DeviceType">
-    <DisplayName>Устройство МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Устройство МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 device</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
     </References>
@@ -44,7 +45,8 @@
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=278" BrowseName="Host" SymbolicName="Iec61850DeviceType_Host" ParentNodeId="ns=1;i=277" DataType="String">
-    <DisplayName>Хост</DisplayName>
+    <DisplayName Locale="ru">Хост</DisplayName>
+    <DisplayName Locale="en">Host</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -53,7 +55,8 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=279" BrowseName="Port" SymbolicName="Iec61850DeviceType_Port" ParentNodeId="ns=1;i=277" DataType="Int32">
-    <DisplayName>Порт</DisplayName>
+    <DisplayName Locale="ru">Порт</DisplayName>
+    <DisplayName Locale="en">Port</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=277</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -62,13 +65,15 @@
     <Value><uax:Int32>102</uax:Int32></Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=281" BrowseName="RCB" SymbolicName="Iec61850RcbType">
-    <DisplayName>RCB МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">RCB МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 RCB</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=285</Reference>
     </References>
   </UAObjectType>
   <UAVariable NodeId="ns=1;i=283" BrowseName="Address" SymbolicName="Iec61850ConfigurableObjectType_Reference" ParentNodeId="ns=1;i=285" DataType="String">
-    <DisplayName>Адрес</DisplayName>
+    <DisplayName Locale="ru">Адрес</DisplayName>
+    <DisplayName Locale="en">Address</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=285</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -77,13 +82,15 @@
     <Value><uax:String></uax:String></Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=285" BrowseName="ConfigurableObject" SymbolicName="Iec61850ConfigurableObjectType">
-    <DisplayName>Параметр МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Параметр МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 parameter</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAObject NodeId="ns=1;i=288" BrowseName="Model" SymbolicName="Iec61850DeviceType_Model" ParentNodeId="ns=1;i=277">
-    <DisplayName>Модель</DisplayName>
+    <DisplayName Locale="ru">Модель</DisplayName>
+    <DisplayName Locale="en">Model</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=277</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=289</Reference>
@@ -91,25 +98,29 @@
     </References>
   </UAObject>
   <UAObjectType NodeId="ns=1;i=289" BrowseName="Iec61850LogicalNodeType" SymbolicName="Iec61850LogicalNodeType">
-    <DisplayName>Логический узел МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Логический узел МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 logical node</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAVariableType NodeId="ns=1;i=291" BrowseName="Iec61850DataVariableType" SymbolicName="Iec61850DataVariableType" DataType="BaseDataType">
-    <DisplayName>Объект данных МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Объект данных МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 data object</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=62</Reference>
     </References>
   </UAVariableType>
   <UAObjectType NodeId="ns=1;i=293" BrowseName="Iec61850ControlObjectType" SymbolicName="Iec61850ControlObjectType">
-    <DisplayName>Объект управления МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Объект управления МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 control object</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
   <UAObjectType NodeId="ns=1;i=344" BrowseName="Iec61850TransmissionItemType" SymbolicName="Iec61850TransmissionItemType">
-    <DisplayName>Ретрансляция МЭК-61850</DisplayName>
+    <DisplayName Locale="ru">Ретрансляция МЭК-61850</DisplayName>
+    <DisplayName Locale="en">IEC 61850 retransmission</DisplayName>
     <References>
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=34</Reference>
     </References>
