@@ -228,7 +228,7 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   event.source_node_id = scada::NodeId{42, 2};
   // Post-producer events carry a resolved SourceName; an empty one would
   // round-trip as the projection's NodeId-string fallback, not as empty.
-  event.source_name = "Pump 42";
+  event.source_name = u"Pump 42";
   event.user_id = scada::NodeId{7, 3};
   event.value = scada::Variant{123};
   event.message = scada::LocalizedText{u"forwarded alarm"};
@@ -529,15 +529,23 @@ class TwoLanguageHistoryService : public scada::HistoryService {
         {"ru", u"Изменение состояния"},
         {"en", u"State change"},
     };
+    const scada::LocalizedText names[] = {
+        {"ru", u"Статистика сервера"},
+        {"en", u"Server statistics"},
+    };
     scada::Event event;
     event.event_id = 1;
     event.time = scada::Now();
     event.severity = scada::kSeverityNormal;
     event.message = scada::EncodeMultiLanguage(translations);
+    event.source_name = scada::EncodeMultiLanguage(names);
     co_return scada::HistoryReadEventsResult{.events = {std::move(event)}};
   }
 };
 
+// Reads the journal through the adapter under one session's LocaleIds and
+// returns the whole event, so both the Message and the SourceName projections
+// can be inspected.
 // Reads the journal through the adapter under one session's LocaleIds.
 opcua::LocalizedText ReadOneEventMessage(std::vector<std::string> locale_ids) {
   TwoLanguageHistoryService fake;
@@ -564,6 +572,33 @@ opcua::LocalizedText ReadOneEventMessage(std::vector<std::string> locale_ids) {
   return (*result)->events.front().message;
 }
 
+// The same read, returning the whole event so the SourceName projection can
+// be inspected alongside the Message one.
+opcua::Event ReadOneEvent(std::vector<std::string> locale_ids) {
+  TwoLanguageHistoryService fake;
+  HistoryServiceAdapter adapter{fake};
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<opcua::HistoryReadEventsResult>> result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        result = co_await adapter.HistoryReadEvents(
+            opcua::ServiceContext{}.with_locale_ids(std::move(locale_ids)),
+            opcua::NodeId{85u}, opcua::DateTime{}, opcua::DateTime{},
+            opcua::EventFilter{});
+      },
+      boost::asio::detached);
+  io.run();
+
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result->ok());
+  EXPECT_EQ((*result)->events.size(), 1u);
+  if (!result.has_value() || !result->ok() || (*result)->events.empty())
+    return {};
+  return (*result)->events.front();
+}
+
 // The session's LocaleIds choose which stored translation crosses the wire.
 // OPC UA Part 4 §5.4 Locale Negotiation,
 // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4 — Part 11
@@ -586,6 +621,29 @@ TEST(ServerAdapterTest, HistoryEventMessageIsNeverThePackedFormOnTheWire) {
   const auto received = ReadOneEventMessage({});
   EXPECT_NE(received.locale, std::string{scada::kMultiLanguageLocale});
   EXPECT_EQ(received.text.find(u"{\"t\":"), std::u16string::npos);
+}
+
+// SourceName follows the session as well as Message does. It is the source
+// node's DisplayName as it stood when the event was produced, carried with
+// every language that name had, and Part 5 §6.4.2 makes the wire field a
+// plain `String` — so the difference between two sessions is the string.
+//
+// Regression test for backlog 802.
+TEST(ServerAdapterTest, HistoryEventSourceNameIsResolvedToTheSessionLanguage) {
+  const auto english = ReadOneEvent({"en"});
+  EXPECT_EQ(english.source_name, "Server statistics");
+
+  const auto russian = ReadOneEvent({"ru"});
+  EXPECT_NE(russian.source_name, "Server statistics");
+  EXPECT_FALSE(russian.source_name.empty());
+}
+
+// A packed payload reaching the wire would render as raw JSON in a journal's
+// object column, which is worse than the wrong language.
+TEST(ServerAdapterTest, HistoryEventSourceNameIsNeverThePackedForm) {
+  const auto received = ReadOneEvent({});
+  EXPECT_FALSE(received.source_name.empty());
+  EXPECT_EQ(received.source_name.find("{\"t\":"), std::string::npos);
 }
 
 }  // namespace

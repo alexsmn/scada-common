@@ -1,4 +1,5 @@
 #include "opcua_bridge/service_conversion.h"
+#include "scada/locale_negotiation.h"
 
 #include <chrono>
 
@@ -394,7 +395,18 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToOpcua(v.source_node_id);
-  out.source_name = v.source_name;
+  // Part 5 §6.4.2 types SourceName as a `String`, so unlike `message` it
+  // cannot carry several languages across this projection. The client-facing
+  // boundary has normally resolved it already; passing a still-packed value
+  // straight through would put raw `{"t":[[...]]}` in a journal's object
+  // column, so resolve against no preference — Part 4 §5.4's "any locale the
+  // server has" — which yields the leading translation and never JSON.
+  //
+  // The cost is real and worth knowing: across an OPC UA tier hop SourceName
+  // collapses to one language here, where `message` survives packed. See
+  // `docs/server/locale-negotiation.md` §6.
+  out.source_name =
+      UtfConvert<char>(scada::ResolveLocalizedText(v.source_name, {}).text);
   out.user_id = ToOpcua(v.user_id);
   out.value = ToOpcua(v.value);
   out.qualifier = ToOpcua(v.qualifier);
@@ -413,7 +425,10 @@ scada::Event ToScada(const opcua::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToScada(v.source_node_id);
-  out.source_name = v.source_name;
+  // One string in, one language out, with none declared: the wire type says
+  // nothing about which language it is.
+  out.source_name = scada::LocalizedText{scada::String{},
+                                         UtfConvert<char16_t>(v.source_name)};
   out.user_id = ToScada(v.user_id);
   out.value = ToScada(v.value);
   out.qualifier = ToScada(v.qualifier);

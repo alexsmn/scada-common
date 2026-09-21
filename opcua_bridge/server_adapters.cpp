@@ -345,6 +345,12 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::ServiceContext context,
   const std::vector<scada::String> locale_ids = context.locale_ids();
   for (scada::Event& event : result->events) {
     event.message = scada::ResolveLocalizedText(event.message, locale_ids);
+    // And SourceName, for the same reason and with the same constraint: it
+    // carries every language the source node's DisplayName had, and Part 5
+    // §6.4.2 makes the wire field a plain string, so it is resolved here
+    // rather than projected packed.
+    event.source_name =
+        scada::ResolveLocalizedText(event.source_name, locale_ids);
   }
   co_return ToOpcua(*result);
 }
